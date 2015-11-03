@@ -1,0 +1,11 @@
+# Temporary files.
+*~
+
+# Xcode user data.
+xcuserdata
+
+# Finder metadata
+.DS_Store
+
+# Built site content.
+/_site
