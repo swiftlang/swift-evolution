@@ -25,5 +25,5 @@ compatibility with a stable ABI for future releases to build upon.
 
 Expected release date: Spring 2016
 
-This release will focus on fixing bugs and improving performance.  It may also put some finishing touches on features introduced in Swift 2.0, and include some small additive features that 
+This release will focus on fixing bugs and improving performance.  It may also put some finishing touches on features introduced in Swift 2.0, and include some small additive features that don't break Swift code or fundamentally change the way Swift is used.
 
