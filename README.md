@@ -47,4 +47,4 @@ A given proposal can be in one of several states:
 ### Review
 
 ### Accepted
-**[Allow (most) keywords as argument labels](proposals/0001-keywords-as-argument-labels.md)
+* [Allow (most) keywords as argument labels](proposals/0001-keywords-as-argument-labels.md)

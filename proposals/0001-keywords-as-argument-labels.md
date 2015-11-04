@@ -1,6 +1,6 @@
 # Allow (most) keywords as argument labels
 
-* Author: [Doug Gregor](@DougGregor)
+* Author: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Accepted**
 
 ## Introduction
