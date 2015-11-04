@@ -1,4 +1,4 @@
-# Swift Programming Language - Evolution
+# Swift Programming Language Evolution
 
 Swift is a powerful and intuitive programming language that is designed to make writing and maintaining correct programs easier. Swift is growing and evolving, guided by a community-driven process referred to as the Swift evolution process. This document outlines the Swift evolution process and how a feature grows from a rough idea into something that can improve the Swift development experience for millions of programmers.
 
