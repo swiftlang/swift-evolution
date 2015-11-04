@@ -40,10 +40,10 @@ Allow the use of all keywords except `inout`, `var`, and `let` as argument label
 
 	func touchesMatching(phase: NSTouchPhase, in view: NSView?) -> Set<NSTouch>
 
-Keywords that introduce or modify a parameter—-currently just "inout",
-"let", and "var"—-will need to retain their former meanings. If we
-invent an API that uses such keywords, they will still need to be
-back-ticked:
+  Keywords that introduce or modify a parameter—-currently just
+"inout", "let", and "var"—-will need to retain their former
+meanings. If we invent an API that uses such keywords, they will still
+need to be back-ticked:
 
 	func addParameter(name: String, `inout`: Bool)
 
