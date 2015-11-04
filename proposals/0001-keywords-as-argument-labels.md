@@ -34,9 +34,9 @@ escaping to use those APIs. For example:
 
 Allow the use of all keywords except `inout`, `var`, and `let` as argument labels. This affects the grammar in three places:
 
-1) Call expressions, such as the examples above. Here, we have no grammatic ambiguities, because "<keyword> \`:\`" does not appear in any grammar production within a parenthesized expression list. This is, by far, the most important case.
+* Call expressions, such as the examples above. Here, we have no grammatic ambiguities, because "<keyword> \`:\`" does not appear in any grammar production within a parenthesized expression list. This is, by far, the most important case.
 
-2) Function/subscript/initializer declarations: aside from the three exclusions above, there is no ambiguity here because the keyword will always be followed by an identifier, ‘:’, or ‘_'. For example:
+* Function/subscript/initializer declarations: aside from the three exclusions above, there is no ambiguity here because the keyword will always be followed by an identifier, ‘:’, or ‘_'. For example:
 
 	func touchesMatching(phase: NSTouchPhase, in view: NSView?) -> Set<NSTouch>
 
@@ -47,7 +47,7 @@ back-ticked:
 
 	func addParameter(name: String, `inout`: Bool)
 
-3) Function types: these are actually easier than #2, because the parameter name is always followed by a ‘:’:
+* Function types: these are actually easier than #2, because the parameter name is always followed by a ‘:’:
 
 	(NSTouchPhase, in: NSView?) -> Set<NSTouch>
 	(String, inout: Bool) -> Void
