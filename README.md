@@ -21,11 +21,6 @@ Everyone is welcome to propose and discuss ideas to improve the Swift language a
 
 The Swift [core team](http://www.swift.org/community.html#core-team) is responsible for the strategic direction of the Swift language and standard library. Ideas that have garnered general support within the community are discussed by the core team on the appropriate forum ([swift-review](mailto:swift-review@swift.org) for the language and [swift-stdlib-review](mailto:swift-stdlib-review@swift.org) for the standard library). Accepted proposals become part of the Swift [roadmap](roadmap.md).
 
-## Active proposals
-[Active proposals]: #active-proposals
-
-(No active proposals yet)
-
 ## How to Propose a Significant Change
 
 * **Socialize the idea**: propose a rough sketch of the idea on the appropriate "evolution" mailing list, the problems it solves, what the solution looks like, etc., to gauge interest from the community.
@@ -43,6 +38,7 @@ A given proposal can be in one of several states:
 * **Dismissed**: the proposal has been considered and rejected.
 
 ## Active proposals
+[Active proposals]: #active-proposals
 
 ### Review
 
