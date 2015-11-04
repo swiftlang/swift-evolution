@@ -27,8 +27,6 @@ This release is focused on several key areas:
 * **Complete generics**: Generics are used pervasively in a number of Swift libraries, especially the standard library. However, there are a number of generics features the standard library requires to fully realize its vision, including recursive protocol constraints, the ability to make a constrained extension conform to a new protocol (i.e., an array of `Equatable` elements is `Equatable), and so on. Swift 3.0 should provide those generics features needed by the standard library.
 * **Focusing the language**: Despite being a relatively young language, Swift's rapid development has meant that it has accumulated some language features and library APIs that don't fit will with the language as a whole. Swift 3 will remove or improve those features to provide better overall consistency for Swift.
 
-For example, this allows 
-
 ## Development minor version:  Swift 2.5
 
 Expected release date: Spring 2016
