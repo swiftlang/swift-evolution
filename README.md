@@ -1,95 +1,51 @@
 # Swift Programming Language Evolution
 
-Swift is a powerful and intuitive programming language that is designed to make writing and maintaining correct programs easier. Swift is growing and evolving, guided by a community-driven process referred to as the Swift evolution process. This document outlines the Swift evolution process and how a feature grows from a rough idea into something that can improve the Swift development experience for millions of programmers.
+This repository tracks the ongoing evolution of Swift. It contains:
 
-## Scope
+* Goals for upcoming Swift releases (this document)
+* The [Swift evolution review schedule](schedule.md) tracking proposals to change Swift
+* The [Swift evolution process](process.md) that governs the evolution of Swift.
 
-The Swift evolution process covers all changes to the Swift language and the public interface of the Swift standard library, including new language features and APIs (no matter how small), changes to existing language features or APIs, removal of existing features, and so on. Smaller changes, such as bug fixes, optimizations, or diagnostic improvements can be contributed via the normal contribution process; see [Contributing to Swift](http://www.swift.org/contributing.html).
+This document describes goals for the Swift language on a per-release
+basis, usually listing minor releases adding to the currently shipping
+version and one major release out.  Each release will have many
+smaller features or changes independent of these larger goals, and not
+all goals are reached for each release.
 
-## Goals
+Goals for past versions are included at the bottom of the document for
+historical purposes, but are not necessarily indicative of the
+features shipped. The release notes for each shipped version are the
+definitive list of notable changes in each release.
 
-The Swift evolution process aims to leverage the collective ideas, insights, and experience of the Swift community to improve the Swift development experience. Its two primary goals are:
+## Development major version:  Swift 3.0
 
-* Engage the wider Swift community in the ongoing evolution of Swift, and
-* Maintain the vision and conceptual coherence of Swift.
+Expected release date: Fall 2016
 
-There is a natural tension between these two goals. Open evolution processes are, by nature, chaotic. Yet, maintaining a coherent vision for something as complicated as a programming language requires some level of coordination. The Swift evolution process aims to strike a balance that best serves the Swift community as a whole.
+This release is focused on several key areas:
 
-## Participation
+* **Stable ABI**: Stabilize the binary interface (ABI) to gaurantee a level of binary compatibility moving forward. This involves finalizing runtime data structures, name mangling, calling conventions, and so on, as well as finalizing some of the details of the language itself that have an impact on its ABI. Successful ABI stabilization means that applications and libraries compiled with future versions of Swift can interact at a binary level with applications and libraries compiled with Swift 3.0, even if the source language changes.
+* **Resilience**: Solve the general problem of [fragile binary interface](https://en.wikipedia.org/wiki/Fragile_binary_interface_problem), which currently requires that an application be recompiled if any of the libraries it depends on changes. For example, adding a new stored property or overridable method to a class should not require all subclasses of that class to be recompiled. There are several broad concerns for resilience:
+  * *What changes are resilient?*: Define the kinds of changes that can be made to a library without breaking clients of that library. Source-compatible changes to libraries are good candidates for resilient changes, but such decisions also consider the effects on the implementation.
+  * *How is a resilient library implemented?*: What runtime representations are necessary to allow applications to continue to work after making resilient changes to a library? This dovetails with the stabilization of the ABI, because the stable ABI should be a resilient ABI.
+  * *How do we maintain high performance?*: Resilient implementations often incur more execution overhead than non-resilient (or *fragile*) implementations, because resilient implementations need to leave some details unspecified until load time, such as the specific sizes of a class or offsets of a stored property.
+* **Portability**: Make Swift available on other platforms and ensure that one can write portable Swift code that works properly on all of those platforms.
+* **Type system cleanup and documentation**: Revisit and document the various subtyping and conversion rules in the type system, as well as their implementation in the compiler's type checker. The intent is to converge on a smaller, simpler type system that is more rigorously defined and more faithfully represented by the type checker.
+* **Complete generics**: Generics are used pervasively in a number of Swift libraries, especially the standard library. However, there are a number of generics features the standard library requires to fully realize its vision, including recursive protocol constraints, the ability to make a constrained extension conform to a new protocol (i.e., an array of `Equatable` elements is `Equatable), and so on. Swift 3.0 should provide those generics features needed by the standard library.
+* **Focusing the language**: Despite being a relatively young language, Swift's rapid development has meant that it has accumulated some language features and library APIs that don't fit will with the language as a whole. Swift 3 will remove or improve those features to provide better overall consistency for Swift.
 
-Everyone is welcome to propose, discuss, and review ideas to improve
-the Swift language and standard library on the [swift-evolution
-mailing list][swift-evolution-mailing-list].
+### Accepted proposals
 
-The Swift [core team](www.swift.org/community.html#core-team) is
-responsible for the strategic direction of Swift. Core team members
-initiate, participate in, and manage the public review of proposals
-and have the authority to accept or reject changes to Swift.
+(No specific proposals have been accepted)
 
-## How to propose a change
+## Development minor version:  Swift 2.5
 
-* **Socialize the idea**: propose a rough sketch of the idea on the [swift-evolution mailing list][swift-evolution-mailing-list], the problems it solves, what the solution looks like, etc., to gauge interest from the community.
-* **Develop the proposal**: expand the rough sketch into a complete proposal, using the [proposal template](0000-template.md), and continue to refine the proposal on the evolution mailing list. Prototyping an implementation and its uses along with the proposal is encouraged, because it helps ensure both technical feasibility of the proposal as well as validating that the proposal solves the problems it is meant to solve.
-* **Request a review**: initiate a pull request to the [swift-evolution repository][swift-evolution-repo] to indicate to the core team that you would like the proposal to be reviewed. When the proposal is sufficiently detailed and clear, and addresses feedback from earlier discussions of the idea, the pull request will be accepted. The proposal will be assigned a proposal number as well as a core team member to manage the review.
-* **Address feedback**: in general, and especially [during the review period](#review), be responsive to questions and feedback about the proposal.
+Expected release date: Spring 2016
 
-## Review process
+This release will focus on fixing bugs and improving performance.  It may also put some finishing touches on features introduced in Swift 2.0, and include some small additive features that don't break Swift code or fundamentally change the way Swift is used.
 
-The review process for a particular proposal begins when a member of
-the core team accepts a pull request of a new or updated proposal into
-the [swift-evolution repository][swift-evolution-repo]. That core team
-member becomes the *review manager* for the proposal. The proposal
-is assigned a proposal number (if it is a new proposal), then enters
-the review queue.
+### Accepted proposals
 
-The review manager will work with the proposal authors to schedule the
-review. Reviews usually last a single week, but can run longer for
-particularly large or complex proposals.
-
-When the scheduled review period arrives, the review manager will post
-the proposal to the [swift-evolution mailing
-list][swift-evolution-mailing-list] with the subject "[Review]"
-followed by the proposal title and update the list of active
-reviews. It is important that the proposal authors be available to
-answer questions, address feedback, and clarify their intent during
-the review period.
-
-After the review has completed, the core team will make a decision on
-the proposal. The review manager is responsible for determining
-consensus among the core team members, then reporting their decision
-to the proposal authors and mailing list. The review manager will
-update the proposal's state in the [swift-evolution
-repository][swift-evolution-repo] to reflect that decision.
-
-## Proposal states
-A given proposal can be in one of several states:
-
-* **Review**: the proposal is awaiting or undergoing review. Once
-  known, the dates for the actual review will be placed in the
-  proposal document.
-* **Under revision**: the proposal is undergoing revision by the
-  author(s) based on feedback from the review.
-* **Deferred**: consideration of the proposal has been deferred until
-  the next major Swift release.
-* **Accepted**: the proposal has been accepted and is either awaiting
-  implementation or is actively being implemented. Once a proposal
-  enters the "accepted" state, it becomes part of the Swift roadmap.
-* **Dismissed**: the proposal has been considered and rejected.
-
-## Active proposals
-[Active proposals]: #active-proposals
-
-### Active reviews
-
-(No active reviews)
-
-### Upcoming reviews
-
-(No upcoming reviews)
-
-### Accepted
 * [Allow (most) keywords as argument labels](proposals/0001-keywords-as-argument-labels.md)
 * [Removing currying `func` declaration syntax](proposals/0002-remove-currying.md)
 
-[swift-evolution-repo]: https://github.com/apple/swift-evolution  "Swift evolution repository"
-[swift-evolution-mailing-list]: mailto:swift-evolution@swift.org  "Swift evolution mailing list"
+[swift-evolution-mailing-list]: mailto:swift-evolution@swift.org  "The swift-evolution mailing list"
