@@ -1,6 +1,7 @@
 # Feature name
 
-* Author(s): [Swift Developer](@swiftdev)
+* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/proposals/NNNN-name.md)
+* Author(s): [Swift Developer](https://github.com/swiftdev)
 * Status: **Review**
 * Review manager: TBD
 

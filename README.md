@@ -89,6 +89,7 @@ A given proposal can be in one of several states:
 
 ### Accepted
 * [Allow (most) keywords as argument labels](proposals/0001-keywords-as-argument-labels.md)
+* [Removing currying `func` declaration syntax](proposals/0002-remove-currying.md)
 
 [swift-evolution-repo]: https://github.com/apple/swift-evolution  "Swift evolution repository"
 [swift-evolution-mailing-list]: mailto:swift-evolution@swift.org  "Swift evolution mailing list"
