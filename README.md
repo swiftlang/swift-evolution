@@ -48,4 +48,5 @@ This release will focus on fixing bugs and improving performance.  It may also p
 * [Allow (most) keywords as argument labels](proposals/0001-keywords-as-argument-labels.md)
 * [Removing currying `func` declaration syntax](proposals/0002-remove-currying.md)
 * [Removing `var` from Function Parameters and Pattern Matching](proposals/0003-remove-var-parameters-patterns.md)
+* [Remove the `++` and `--` operators](proposals/0004-remove-pre-post-inc-decrement.md)
 [swift-evolution-mailing-list]: mailto:swift-evolution@swift.org  "The swift-evolution mailing list"
