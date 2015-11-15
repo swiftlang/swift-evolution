@@ -7,7 +7,7 @@
 ## Introduction
 
 The increment/decrement operators in Swift were added very early in the
-development of Swift, as a carry over from C.  These were added without much
+development of Swift, as a carry-over from C.  These were added without much
 consideration, and haven't been thought about much since then.  This document
 provides a fresh look at them, and ultimately recommends we just remove them
 entirely, since they are confusing and not carrying their weight.
@@ -24,7 +24,7 @@ let d = x--  // post-decrement - returns copy of input value before mutation
 However, the result value of these operators are frequently ignored.
 
 
-## Advantages of Supporting These Operators
+## Advantages of These Operators
 
 The primary advantage of these operators is their expressive capability.  They
 are shorthand for (e.g.) `x += 1` on a numeric type, or `x.advance()` on an
@@ -36,39 +36,39 @@ with C, and other common languages in the extended C family (C++, Objective-C,
 Java, C#, Javascript, etc).  People coming to Swift from these other languages
 may reasonably expect these operators to exist.  That said, there are also
 popular languages which have kept the majority of C operators but dropped these
-ones (e.g. Python).
+(e.g. Python).
 
 
-## Disadvantages of these Operators
+## Disadvantages of These Operators
 
-1) These operators increase the burden to learn Swift as a first programming
+1. These operators increase the burden to learn Swift as a first programming
 language (or in other cases where you don't already know these operators from a
 different language).
 
-2) Their expressive advantage is minimal, e.g. `x++` is not much shorter
+2. Their expressive advantage is minimal, e.g. `x++` is not much shorter
 than `x += 1`.  The later is also more clear to a reader.
 
-3) Swift already deviates from C in that the `=`, `+=` and other assignment-like
+3. Swift already deviates from C in that the `=`, `+=` and other assignment-like
 operations returns Void (for a number of reasons).  These operators are
 inconsistent with that model.
 
-4) Swift has powerful features that eliminate many of the common reasons you'd
+4. Swift has powerful features that eliminate many of the common reasons you'd
 use `++i` in a C-style for loop in other languages, so these are relatively
 infrequently used in well-written Swift code.  These include features like
 the `for-in` loop, ranges, `enumerate`, `map`, etc.
 
-5) Code that actually uses the result value of these operators is often
+5. Code that actually uses the result value of these operators is often
 confusing and subtle to a reader/maintainer of code.  They encourage "overly
 tricky" code which may be cute, but difficult to understand.
 
-6) While Swift has well defined order of evaluation, any code that dependend on
+6. While Swift has well defined order of evaluation, any code that dependend on
 it (like `foo(++a, a++)`) would be undesirable even if it was well-defined.
 
-7) These operators are applicable to relatively few types: integer and floating
+7. These operators are applicable to relatively few types: integer and floating
 point scalars, and iterator-like concepts. They do not apply to complex numbers,
 matrices, etc.  
 
-8) Having to support these could add complexity to the forthcoming Swift 3
+8. Having to support these could add complexity to the forthcoming Swift 3
 revised numerics model.
 
 Finally, these fail the metric of "if we didn't already have these, would we add
