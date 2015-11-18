@@ -37,7 +37,7 @@ This release is focused on several key areas:
 
 (No specific proposals have been accepted)
 
-## Development minor version:  Swift 2.5
+## Development minor version:  Swift 2.2
 
 Expected release date: Spring 2016
 
