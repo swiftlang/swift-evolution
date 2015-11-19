@@ -19,12 +19,28 @@ There is a natural tension between these two goals. Open evolution processes are
 
 Everyone is welcome to propose, discuss, and review ideas to improve
 the Swift language and standard library on the [swift-evolution
-mailing list][swift-evolution-mailing-list].
+mailing list][swift-evolution-mailing-list]. Before posting a review,
+please see the section "What goes into a review?" below.
 
 The Swift [core team](www.swift.org/community.html#core-team) is
 responsible for the strategic direction of Swift. Core team members
 initiate, participate in, and manage the public review of proposals
 and have the authority to accept or reject changes to Swift.
+
+## What goes into a review?
+
+The goal of the review process is to improve the proposal under review
+through constructive criticism and, eventually, determine the
+direction of Swift. When writing your review, here are some questions
+you might want to answer in your review:
+
+* What is your evaluation of the proposal?
+* Is the problem being addressed significant enough to warrant a change to Swift?
+* Does this proposal fit well with the feel and direction of Swift?
+* If you have you used other languages or libraries with a similar feature, how do you feel that this proposal compares to those?
+* How much effort did you put into your review? A glance, a quick reading, or an in-depth study?
+
+Please state explicitly whether you believe that the proposal should be accepted into Swift.
 
 ## How to propose a change
 
@@ -50,9 +66,9 @@ When the scheduled review period arrives, the review manager will post
 the proposal to the [swift-evolution mailing
 list][swift-evolution-mailing-list] with the subject "[Review]"
 followed by the proposal title and update the list of active
-reviews. It is important that the proposal authors be available to
-answer questions, address feedback, and clarify their intent during
-the review period.
+reviews. To avoid delays, it is important that the proposal authors be
+available to answer questions, address feedback, and clarify their
+intent during the review period.
 
 After the review has completed, the core team will make a decision on
 the proposal. The review manager is responsible for determining
@@ -64,18 +80,23 @@ repository][swift-evolution-repo] to reflect that decision.
 ## Proposal states
 A given proposal can be in one of several states:
 
-* **Review**: the proposal is awaiting or undergoing review. Once
-  known, the dates for the actual review will be placed in the
-  proposal document.
+* **Awaiting review**: the proposal is awaiting review. Once known,
+  the dates for the actual review will be placed in the proposal
+  document and updated in the [review schedule](schedule.md). When the
+  review period begins, the review manager will update the state to
+  *under review*.
+* **Under review**: the proposal is undergoing public review on the [swift-evolution mailing list][swift-evolution-mailing-list]. 
 * **Under revision**: the proposal is undergoing revision by the
   author(s) based on feedback from the review.
-* **Deferred**: consideration of the proposal has been deferred until
-  the next major Swift release.
+* **Deferred**: consideration of the proposal has been deferred
+  because it does not meet the [goals of the upcoming major Swift
+  release](README.md). Deferred proposals will be reconsidered when
+  scoping the next major Swift release.
 * **Accepted**: the proposal has been accepted and is either awaiting
   implementation or is actively being implemented. Once a proposal
   enters the "accepted" state, it gets placed into its [target Swift
   release](README.md).
-* **Dismissed**: the proposal has been considered and rejected.
+* **Rejected**: the proposal has been considered and rejected.
 
 [swift-evolution-repo]: https://github.com/apple/swift-evolution  "Swift evolution repository"
-[swift-evolution-mailing-list]: mailto:swift-evolution@swift.org  "Swift evolution mailing list"
+[swift-evolution-mailing-list]: https://swift.org/community/#swift-evolution  "Swift evolution mailing list"
