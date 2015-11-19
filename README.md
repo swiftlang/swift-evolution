@@ -37,6 +37,16 @@ concretely, this release is focused on several key areas:
 * **Type system cleanup and documentation**: Revisit and document the various subtyping and conversion rules in the type system, as well as their implementation in the compiler's type checker. The intent is to converge on a smaller, simpler type system that is more rigorously defined and more faithfully represented by the type checker.
 * **Complete generics**: Generics are used pervasively in a number of Swift libraries, especially the standard library. However, there are a number of generics features the standard library requires to fully realize its vision, including recursive protocol constraints, the ability to make a constrained extension conform to a new protocol (i.e., an array of `Equatable` elements is `Equatable`), and so on. Swift 3.0 should provide those generics features needed by the standard library, because they affect the standard library's ABI.
 * **Focus and refine the language**: Despite being a relatively young language, Swift's rapid development has meant that it has accumulated some language features and library APIs that don't fit will with the language as a whole. Swift 3 will remove or improve those features to provide better overall consistency for Swift.
+* **API design guidelines**: The way in which Swift is used in popular
+  libraries has almost as much of an effect on the character of Swift
+  code as the Swift language itself. The [API design
+  guidelines](https://swift.org/api-guidelines) provide guidance fore
+  building great Swift APIs. For Swift 3.0, the Swift standard library
+  and core libraries are being updated to match these guidelines, and
+  Swift's Objective-C importer will automtically map from the [Cocoa
+  guidelines for
+  Objective-C](https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/CodingGuidelines/CodingGuidelines.html)
+  to the Swift API guidelines.
 
 ### Out of Scope
 
