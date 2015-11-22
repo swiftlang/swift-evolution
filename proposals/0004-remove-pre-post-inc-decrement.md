@@ -68,9 +68,6 @@ it (like `foo(++a, a++)`) would be undesirable even if it was well-defined.
 point scalars, and iterator-like concepts. They do not apply to complex numbers,
 matrices, etc.  
 
-8. Having to support these could add complexity to the potential 
-revised numerics model.
-
 Finally, these fail the metric of "if we didn't already have these, would we add
 them to Swift 3?"
 
