@@ -43,8 +43,7 @@ concretely, this release is focused on several key areas:
   guidelines](https://swift.org/api-guidelines) provide guidance for
   building great Swift APIs. For Swift 3.0, the Swift standard library
   and core libraries are being updated to match these guidelines, and
-  Swift's Objective-C importer will automtically map from the [Cocoa
-  guidelines for
+  Swift's Objective-C importer will [automatically map](proposals/0005-objective-c-name-translation.md) from the [Cocoa guidelines for
   Objective-C](https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/CodingGuidelines/CodingGuidelines.html)
   to the Swift API guidelines.
 
@@ -74,6 +73,7 @@ A significant part of delivering a major release is in deciding what
 
 ### Accepted proposals
 
+* [Better Translation of Objective-C APIs Into Swift](proposals/0005-objective-c-name-translation.md)
 * [Removing currying `func` declaration syntax](proposals/0002-remove-currying.md)
 * [Removing `var` from Function Parameters and Pattern Matching](proposals/0003-remove-var-parameters-patterns.md)
 * [Remove the `++` and `--` operators](proposals/0004-remove-pre-post-inc-decrement.md)
