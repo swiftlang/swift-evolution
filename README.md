@@ -73,7 +73,7 @@ sampling of potentially good ideas that are not in scope for Swift
   interoperability with C++ is a significant undertaking that is out
   of scope for Swift 3.0.
 
-### Accepted proposals
+### Accepted proposals for Swift 3.0
 
 * [Better Translation of Objective-C APIs Into Swift](proposals/0005-objective-c-name-translation.md)
 * [Removing currying `func` declaration syntax](proposals/0002-remove-currying.md)
@@ -94,7 +94,7 @@ fundamentally change the way Swift is used. As a step toward Swift
 changes in Swift 3.0 so that users can begin migrating their code
 sooner.
 
-### Accepted proposals
+### Accepted proposals for Swift 2.2
 
 * [Allow (most) keywords as argument labels](proposals/0001-keywords-as-argument-labels.md)
 
