@@ -19,7 +19,7 @@ to follow the guidelines.
 ## Proposed solution
 
 The actual work is being performed on the [swift-3-api-guidelines
-branch][swift-3-api-guidelines-repo] of the [Swift repository][swift-repo].
+branch][swift-3-api-guidelines-branch] of the [Swift repository][swift-repo].
 On high level, the changes can be summarized as follows.
 
 * Strip `Type` suffix from remaining protocol names.  In a few special cases
@@ -48,5 +48,5 @@ that allows the compiler to produce good error messages and emit Fix-Its.
 
 [api-design-guidelines]: https://swift.org/documentation/api-design-guidelines.html  "API Design Guidelines"
 [swift-repo]: https://github.com/apple/swift  "Swift repository"
-[swift-3-api-guidelines-repo]: https://github.com/apple/swift-3-api-guidelines-review  "Swift 3 API Design Guidelines review repository"
+[swift-3-api-guidelines-branch]: https://github.com/apple/swift/tree/swift-3-api-guidelines  "Swift 3 API Design Guidelines preview"
 
