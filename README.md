@@ -50,7 +50,9 @@ concretely, this release is focused on several key areas:
 ### Out of Scope
 
 A significant part of delivering a major release is in deciding what
-*not* to do, which means deferring many good ideas. The foll
+*not* to do, which means deferring many good ideas. The following is a
+sampling of potentially good ideas that are not in scope for Swift
+3.0:
 
 * **Full source compatibility**: Swift 3.0 will not provide full
   source compatibility. Rather, it can and will introduce
