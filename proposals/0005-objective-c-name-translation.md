@@ -1,6 +1,6 @@
 # Better Translation of Objective-C APIs Into Swift
 
-* Proposal: [SE-0005](https://github.com/apple/swift-evolution/proposals/NNNN-name.md)
+* Proposal: [SE-0005](https://github.com/apple/swift-evolution/proposals/0005-objective-c-name-translation.md)
 * Author(s): [Doug Gregor](https://github.com/DougGregor), [Dave Abrahams](https://github.com/dabrahams)
 * Status: **Accepted**
 
