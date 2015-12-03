@@ -4,7 +4,7 @@ Swift is a powerful and intuitive programming language that is designed to make 
 
 ## Scope
 
-The Swift evolution process covers all changes to the Swift language and the public interface of the Swift standard library, including new language features and APIs (no matter how small), changes to existing language features or APIs, removal of existing features, and so on. Smaller changes, such as bug fixes, optimizations, or diagnostic improvements can be contributed via the normal contribution process; see [Contributing to Swift](http://www.swift.org/contributing.html).
+The Swift evolution process covers all changes to the Swift language and the public interface of the Swift standard library, including new language features and APIs (no matter how small), changes to existing language features or APIs, removal of existing features, and so on. Smaller changes, such as bug fixes, optimizations, or diagnostic improvements can be contributed via the normal contribution process; see [Contributing to Swift](https://swift.org/community/#contributing).
 
 ## Goals
 
