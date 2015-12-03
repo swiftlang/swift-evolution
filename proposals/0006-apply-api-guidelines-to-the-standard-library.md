@@ -31,6 +31,8 @@ On high level, the changes can be summarized as follows.
 
 * `IndexingGenerator` is renamed to `DefaultCollectionIterator`.
 
+**More changes will be summarized here as they are implemented.**
+
 ## API diffs
 
 Differences between Swift 2.2 Standard library API and the proposed API are
