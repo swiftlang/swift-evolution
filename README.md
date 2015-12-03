@@ -97,5 +97,9 @@ sooner.
 ### Accepted proposals
 
 * [Allow (most) keywords as argument labels](proposals/0001-keywords-as-argument-labels.md)
+* [Removing currying func declaration syntax](proposals/0002-remove-currying.md)
+* [Removing var from Function Parameters and Pattern Matching](proposals/0003-remove-var-parameters-patterns.md)
+* [Remove the ++ and -- operators](proposals/0004-remove-pre-post-inc-decrement.md)
+* [Better Translation of Objective-C APIs Into Swift](proposals/0005-objective-c-name-translation.md)
 
 [swift-evolution-mailing-list]: mailto:swift-evolution@swift.org  "The swift-evolution mailing list"
