@@ -78,7 +78,7 @@ A second alternative is to focus on `in` itself, which is by far the
 most common keyword argument in imported APIs. In a brief survey of
 imported APIs, `in` accounted for 90% of the conflicts with existing
 keywords. Moreover, the keyword `in` is only used in two places in the
-Swift grammer--for loops and closures--so it could be made
+Swift grammar--for loops and closures--so it could be made
 context-sensitive. However, this solution is somewhat more complicated
 (because it requires more context-sensitive keyword parsing) and less
 general.
