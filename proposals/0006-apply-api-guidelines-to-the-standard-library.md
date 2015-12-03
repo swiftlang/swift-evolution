@@ -2,14 +2,19 @@
 
 * Proposal: [SE-0006](https://github.com/apple/swift-evolution/proposals/0006-apply-api-guidelines-to-the-standard-library.md)
 * Author(s): [Dave Abrahams](https://github.com/dabrahams), [Dmitri Gribenko](https://github.com/gribozavr), [Maxim Moiseev](https://github.com/moiseev)
-* Status: **Review**
-* Review manager: TBD
+* Status: **Awaiting Review**
+* Review manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction
 
-The entire Swift standard library is being reviewed and updated to follow the
-[Swift API Design Guidelines][api-design-guidelines] being developed as part of
-Swift 3.
+[Swift API Design Guidelines][api-design-guidelines] being developed as
+part of Swift 3.  It is important that the Standard Library is an exemplar of
+Swift API Design Guidelines: the APIs from the Standard Library are, probably,
+the most frequently used Swift APIs in any application domain; the Standard
+Library also sets precedent for other libraries.
+
+In this project, we are reviewing the entire Standard Library and updating it
+to follow the guidelines.
 
 ## Proposed solution
 
