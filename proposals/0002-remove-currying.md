@@ -59,7 +59,7 @@ can be transformed to explicitly return a closure instead:
 
   // After:
   func curried(x: Int) -> (String) -> Float {
-    return {(y: String -> Float in
+    return {(y: String -> Float) in
       return Float(x) + Float(y)!
     }
   }
