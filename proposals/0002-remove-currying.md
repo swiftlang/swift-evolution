@@ -41,7 +41,7 @@ the ML argument model.
 Many users have observed the uselessness of our currying feature, and asked for
 Scala-style `f(_, 1)` freeform partial application as an alternative. The fact
 that even functionally-oriented users don't see much value in our currying
-feature makes feel like we might be better off without it. It definitely fails
+feature makes me feel like we might be better off without it. It definitely fails
 the "would we add it if we didn't have it already" test.
 
 ## Detailed design
