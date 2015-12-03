@@ -22,7 +22,7 @@ the Swift language and standard library on the [swift-evolution
 mailing list][swift-evolution-mailing-list]. Before posting a review,
 please see the section "What goes into a review?" below.
 
-The Swift [core team](www.swift.org/community.html#core-team) is
+The Swift [core team](https://swift.org/community/#core-team) is
 responsible for the strategic direction of Swift. Core team members
 initiate, participate in, and manage the public review of proposals
 and have the authority to accept or reject changes to Swift.
