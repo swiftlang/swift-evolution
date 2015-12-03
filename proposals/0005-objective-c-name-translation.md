@@ -22,7 +22,7 @@ Swift. For example:
     let contentString = listItemView.stringValue.stringByTrimmingCharactersInSet(
        NSCharacterSet.whitespaceAndNewlineCharacterSet())
 
-The APIs used here follow the Objective-C guidelines. A more "Swifty
+The APIs used here follow the Objective-C guidelines. A more "Swifty"
 version of the same code might instead look like this:
 
     let content = listItem.stringValue.trimming(.whitespaceAndNewlines)
