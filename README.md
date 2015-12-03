@@ -25,7 +25,7 @@ The primary goal of this release is to stabilize the binary interface
 of the language and standard library. As part of this process, we will
 focus and refine the language to provide better overall consistency in
 feel and implementation. Swift 3.0 will contain *source-breaking*
-changes from Swift 2.x where necessarily to support these goals. More
+changes from Swift 2.x where necessary to support these goals. More
 concretely, this release is focused on several key areas:
 
 * **Stable ABI**: Stabilize the binary interface (ABI) to guarantee a level of binary compatibility moving forward. This involves finalizing runtime data structures, name mangling, calling conventions, and so on, as well as finalizing some of the details of the language itself that have an impact on its ABI. Stabilizing the ABI also extends to the Standard Library; its data types are core algorithms. Successful ABI stabilization means that applications and libraries compiled with future versions of Swift can interact at a binary level with applications and libraries compiled with Swift 3.0, even if the source language changes.
