@@ -40,7 +40,7 @@ concretely, this release is focused on several key areas:
 * **API design guidelines**: The way in which Swift is used in popular
   libraries has almost as much of an effect on the character of Swift
   code as the Swift language itself. The [API design
-  guidelines](https://swift.org/blog/swift-3-api-design/) provide guidance for
+  guidelines](https://swift.org/documentation/api-design-guidelines.html) provide guidance for
   building great Swift APIs. For Swift 3.0, the Swift standard library
   and core libraries are being updated to match these guidelines, and
   Swift's Objective-C importer will [automatically map](proposals/0005-objective-c-name-translation.md) from the [Cocoa guidelines for
