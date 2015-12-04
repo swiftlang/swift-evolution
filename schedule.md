@@ -10,11 +10,11 @@ proposals in that process.
 
 ## Upcoming reviews
 
-(No upcoming reviews)
+* December 7, 2015 -- December 10, 2015: [Remove C-style for-loops with conditions and incrementers](https://github.com/apple/swift-evolution/blob/master/proposals/0007-remove-c-style-for-loops.md)
 
 ## Proposals awaiting scheduling
 
-* [Remove C-style for-loops with conditions and incrementers](https://github.com/apple/swift-evolution/blob/master/proposals/0007-remove-c-style-for-loops.md)
+(No proposals awaiting scheduling)
 
 [evolution-process]: process.md  "The Swift evolution process"
 
