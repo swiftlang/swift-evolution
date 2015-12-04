@@ -1,13 +1,13 @@
 # Allow Type Annotation on Throws
 
 * Proposal: [SE-NNNN](#)
-* Author(s): [David Owens II](Da)(https://github.com/owensd)
+* Author(s): [David Owens II](https://github.com/owensd) (https://github.com/owensd)
 * Status: **Review**
 * Review manager: TBD
 
 ## Introduction
 
-One of the strengths of Swift is its pursuit of type-safeness. After all, one of Swift’s primary goals is “to make writing and maintaining *correct* programs easier for the developer.”[^1] The current implementation of `throws` makes this challenging. 
+One of the strengths of Swift is its pursuit of type-safeness. After all, one of Swift’s primary goals is “to make writing and maintaining *correct* programs easier for the developer.”<sup>[1](https://swift.org/about/)</sup> The current implementation of `throws` makes this challenging. 
 
 ## Proposed solution
 
