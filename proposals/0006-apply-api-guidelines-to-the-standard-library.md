@@ -37,7 +37,7 @@ On high level, the changes can be summarized as follows.
 
 Differences between Swift 2.2 Standard library API and the proposed API are
 added to this section as they are being implemented on the
-[swift-3-api-guidelines branch][swift-3-api-guidelines-repo].
+[swift-3-api-guidelines branch][swift-3-api-guidelines-branch].
 
 ## Impact on existing code
 
