@@ -37,7 +37,7 @@ Allow the use of all keywords except `inout`, `var`, and `let` as argument label
 
 * Call expressions, such as the examples above. Here, we have no grammatic ambiguities, because "<keyword> \`:\`" does not appear in any grammar production within a parenthesized expression list. This is, by far, the most important case.
 
-* Function/subscript/initializer declarations: aside from the three exclusions above, there is no ambiguity here because the keyword will always be followed by an identifier, ‘:’, or ‘_'. For example:
+* Function/subscript/initializer declarations: aside from the three exclusions above, there is no ambiguity here because the keyword will always be followed by an identifier, ‘:’, or ‘_’. For example:
 
 ```
 func touchesMatching(phase: NSTouchPhase, in view: NSView?) -> Set<NSTouch>
