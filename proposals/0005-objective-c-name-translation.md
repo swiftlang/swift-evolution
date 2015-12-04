@@ -75,13 +75,13 @@ renaming of any C or Objective-C entity when it is imported into
 Swift, allowing authors of C or Objective-C APIs more fine-grained
 control over the process.
 
-2. **Prune redundant type names**: The Objective-C Coding Guidelines for Cocoa require that the method describe each argument. When those descriptions restate the type of the corresponding parameter, the name conflicts with the [omit needless words](https://swift.org/documentation/api-design-guidelines#omit-needless-words) guideline for Swift APIs. Therefore, we prune these type names during import.
+2. **Prune redundant type names**: The Objective-C Coding Guidelines for Cocoa require that the method describe each argument. When those descriptions restate the type of the corresponding parameter, the name conflicts with the [omit needless words](https://swift.org/documentation/api-design-guidelines.html#omit-needless-words) guideline for Swift APIs. Therefore, we prune these type names during import.
 
 3. **Add default arguments**: In cases where the Objective-C API strongly hints at the need for a default argument, infer the default argument when importing the API. For example, an option-set parameter can be defaulted to `[]`.
 
-4. **Add first argument labels**: If the first parameter of a method is defaulted, [it should have an argument label](https://swift.org/documentation/api-design-guidelines#first-argument-label). Determine a first argument label for that method.
+4. **Add first argument labels**: If the first parameter of a method is defaulted, [it should have an argument label](https://swift.org/documentation/api-design-guidelines.html#first-argument-label). Determine a first argument label for that method.
 
-5. **Prepend "is" to Boolean properties**: [Boolean properties should read as assertions on the receiver](https://swift.org/documentation/api-design-guidelines#first-argument-label), but the Objective-C Coding Guidelines for Cocoa [prohibit the use of "is" on properties](https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/CodingGuidelines/Articles/NamingIvarsAndTypes.html#//apple_ref/doc/uid/20001284-BAJGIIJE). Import such properties with "is" prepended.
+5. **Prepend "is" to Boolean properties**: [Boolean properties should read as assertions on the receiver](https://swift.org/documentation/api-design-guidelines.html#first-argument-label), but the Objective-C Coding Guidelines for Cocoa [prohibit the use of "is" on properties](https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/CodingGuidelines/Articles/NamingIvarsAndTypes.html#//apple_ref/doc/uid/20001284-BAJGIIJE). Import such properties with "is" prepended.
 
 6. **Strip the "NS" prefix from Foundation APIs**: Foundation is a
 fundamental part of the [Swift Core Libraries][core-libraries], and
@@ -180,7 +180,7 @@ The descriptions in this section are described in terms of the incoming Objectiv
 
 Objective-C API names often contain names of parameter and/or result
 types that would be omitted in a Swift API. The following rules are
-designed to identify and remove these words. [[Omit Needless Words](https://swift.org/documentation/api-design-guidelines#omit-needless-words)]
+designed to identify and remove these words. [[Omit Needless Words](https://swift.org/documentation/api-design-guidelines.html#omit-needless-words)]
 
 #### Identifying type names
 
@@ -209,7 +209,7 @@ a suffix of a string called the **type name**, which is defined as follows:
   `NSUInteger`, or `CGFloat` (which follow the first rule above),
   the *type name* is that of the underlying type. For example, when
   the Objective-C type is `UILayoutPriority`, which is a typedef for
-  `float`, we try to match the string "`Float`". [[Compensate for Weak Type Information](https://swift.org/documentation/api-design-guidelines#weak-type-information)]
+  `float`, we try to match the string "`Float`". [[Compensate for Weak Type Information](https://swift.org/documentation/api-design-guidelines.html#weak-type-information)]
 
 #### Matching
 
