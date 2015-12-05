@@ -1,50 +1,86 @@
 # Feature name
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-name.md)
-* Author(s): [Swift Developer](https://github.com/swiftdev)
+* Proposal: [SE-0008](https://github.com/apple/swift-evolution/blob/master/proposals/0008-external-variable-in-extension.md)
+* Author(s): [Swift Developer](https://github.com/chenyunguiMilook)
 * Status: **Review**
 * Review manager: TBD
 
 ## Introduction
 
-A short description of what the feature is. Try to keep it to a
-single-paragraph "elevator pitch" so the reader understands what
-problem this proposal is addressing.
+Extension for a class is very good, but the limitation is we can not add local
+variable to it, some thing is very hard to implement
+For example: 
+
+```swift
+
+public class Racer {
+
+    public var name:String
+    
+    public init(name:String) {
+        self.name = name
+    }
+}
+
+public extension Racer {
+    
+    public var winTimes:Int {
+        // requires access local variable
+    }
+    
+    public func win() {
+        // need to update local variable
+    }
+}
+
+```
 
 ## Motivation
 
-Describe the problems that this proposal seeks to address. If the
-problem is that some common pattern is currently hard to express, show
-how one can currently get a similar effect and describe its
-drawbacks. If it's completely new functionality that cannot be
-emulated, motivate why this new functionality would help Swift
-developers create better Swift code.
+If enabled add variable in the extention, will may get these benefit:
+- more clean and readable code, easy to manage extensions
+- get more flexible code structure
+- able to extends system classes with custom attributes
 
 ## Proposed solution
 
-Describe your solution to the problem. Provide examples and describe
-how they work. Show how your solution is better than current
-workarounds: is a cleaner, safer, or more efficient?
+- use `external` keyword to define a namespace (it is against to `internal`)
+- defined variable in extension default namespace is `external`
+- all `external var` need init with a default value
+- if same name with class variable, `external` variable will get higher priority
+- extension method only can access `external` variable in same scrop
 
 ## Detailed design
 
-Describe the design of the solution in detail. If it involves new
-syntax in the language, show the additions and changes to the Swift
-grammar. If it's a new API, show the full API and its documentation
-comments detailing what it does. The detail in this section should be
-sufficient for someone who is *not* one of the authors to be able to
-reasonably implement the feature.
+
+```swift
+public class Racer {
+
+    public var name:String
+
+    public init(name:String) {
+        self.name = name
+    }
+}
+
+public extension Racer {
+
+    external var _winTimes:Int = 0
+
+    public var winTimes:Int {
+        return _winTimes
+    }
+
+    public func win() {
+        _winTimes++
+    }
+}
+```
 
 ## Impact on existing code
 
-Describe the impact this change will have on existing code. Will some
-Swift applications stop compiling due to this change? Will applications still
-compile but produce different behavior than they used to? Is it
-possible to migrate existing Swift code to use a new feature or API
-automatically?
+I think this is addtional feature for swift, will not impact current code.
 
 ## Alternatives considered
 
-Describe alternative approaches to addressing the same problem, and
-why you chose this approach instead.
 
