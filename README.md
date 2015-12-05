@@ -1,5 +1,7 @@
 # Swift Programming Language Evolution
 
+**Before you initiate a pull request**, please read the process document. Ideas should be thoroughly discussed on the swift-evolution mailing list first.
+
 This repository tracks the ongoing evolution of Swift. It contains:
 
 * Goals for upcoming Swift releases (this document)
