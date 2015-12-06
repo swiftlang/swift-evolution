@@ -204,7 +204,7 @@ func mkdtemp(var prefix: String?) -> Path {
 only uses immutable values:
 
 ```swift
-func mkdtemp(prefix: String) -> Path {
+func mkdtemp(prefix: String?) -> Path {
   return Path(prefix ?? getenv("TMPDIR") ?? "/tmp", getUniqueSuffix())
 }
 ```
