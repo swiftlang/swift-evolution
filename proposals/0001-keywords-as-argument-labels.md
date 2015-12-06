@@ -70,7 +70,7 @@ does not change the behavior of any well-formed code.
 The primarily alternative here is to do nothing: Swift APIs will
 continue to avoid keywords for argument labels, even when they are the
 most natural word for the label, and imported APIs will either
-continue to use backticks to will need to be renamed. This alternative
+continue to use backticks or will need to be renamed. This alternative
 leaves a large number of imported APIs (nearly 200) requiring either
 some level of renaming of the API or backticks at the call site.
 
