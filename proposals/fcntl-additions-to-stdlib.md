@@ -45,6 +45,15 @@ calls the underlying fcntl() "C" library function.  This new code
 would be added to the existing overlay system for both Darwin and
 Glibc.
 
+**Note:** There are a number of other variadic functions that are
+currently supplied via the Darwin overlay but are not currently 
+present in Glibc overlay. This proposal would expose those APIs as
+well in Glibc. The following APIs are in Darwin and would be ported
+as part of this effort over to Glibc overlay:
+```
+open(), openat(), sem_open()
+```
+
 ## Impact on existing code
 
 Since this API is currently not exposed, there's no impact on any
