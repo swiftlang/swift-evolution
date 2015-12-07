@@ -40,6 +40,43 @@ The API Design Guidelines are meant for writing APIs but I still think they repr
 
 And I believe that the proposition is directly in line with those objectives.
 
+## Counter-argument
+
+The counter-argument brought up by two members of the community is that the current behaviour "makes the capturing semantics of self stand out more in closures". While this is true, the author finds it's usefulness lacking.
+
+In the folloring lines of code, we know without a shadow of a doubt that `foobar` is a throwing function and that `barfoo` does not throw.
+
+```
+try foobar()
+barfoo()
+```
+
+But with an example of `self` in a closure:
+
+```
+foobar({
+	print(self.description)
+})
+```
+
+The `self` keyword in the previous lines of code gives a hint but does not bring any certitudes:
+
+* `self` might have been forced by the compiler to hint at possible memory issues,
+* `self` might have been a programmer choice if the closure is non-escaping.
+
+And in the reverse example:
+
+```
+barfoo({
+	print(description)
+})
+```
+
+* the closure might be non-escaping,
+* the `description` might be referring to a local variable (which we missed the declaration of) shadowing the instance property in an escaping closure.
+
+In both of these examples, the `self` keyword does not tell us with any certainty that we should or not be careful about reference cycle issues without checking the signature of the called function. With the proposition, `self` gets some meaning back: it indicates which are local and which are instance properties.
+
 ## Proposed Solution
 
 I suggest that not using `self` for accessing instance properties and functions is applied in two stages. In Swift 2.x, it could start as a warning and Xcode could provide a Fix-It. Then, it could become a compiler error in Swift 3 and the migrator would help transition code over.  
