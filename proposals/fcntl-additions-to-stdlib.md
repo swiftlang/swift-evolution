@@ -41,7 +41,9 @@ func fcntl(fd: CInt, cmd: CInt, ptr: UnsafeMutablePointer<Void>) ->CInt
 ```
 
 Underlying each of these APIs would be an internal Swift shim that 
-calls the underlying fcntl() "C" library function.
+calls the underlying fcntl() "C" library function.  This new code
+would be added to the existing overlay system for both Darwin and
+Glibc.
 
 ## Impact on existing code
 
