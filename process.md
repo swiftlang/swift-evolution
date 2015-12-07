@@ -8,11 +8,11 @@ This document explains how a feature grows from rough ideas to an implementation
 
 ## So you've got a great idea! Now what?
 
-Congratulations on your idea. Before moving further, perform this sanity check. Is your potential change appropriate for this repository:
-* Is it an evolutionary change to the Swift language or Swift standard library public interface?
-* Is it a new language features or APIs? (no matter how small!)
-* Does it change existing language features and APIs? 
-* Does it removal of existing features from the language?
+Congratulations on your idea. Before moving further, perform this sanity check to test whether your change is appropriate for this repository:
+* Is it an evolutionary change to the Swift language or to the Swift standard library public interface?
+* Is it a new language feature or API? (no matter how small!)
+* Does it change any existing language features and APIs? 
+* Does it propose to remove any existing features from the language?
 
 If so, great. You're starting off at the right place!
 
