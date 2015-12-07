@@ -7,11 +7,11 @@
 
 ## Introduction
 
-At the present time Swift does not support the calling of variadic / va_list
-functions in other languages.  There are a number of these functions in the 
-standard "C" library that are critical for various programming tasks.  One of 
-these is fcntl(2) which is used to manipulate POSIX file descriptors.  The need
-for exposing this API in Swift is readily apparent when doing socket programming 
+At the present time Swift does not support the calling of variadic functions in 
+other languages.  There are a number of these functions in the standard "C" 
+library that are critical for various programming tasks.  One of these is 
+fcntl(2) which is used to manipulate POSIX file descriptors.  The need for
+exposing this API in Swift is readily apparent when doing socket programming 
 since it's this API that's used to make a socket non-blocking.
 
 ## Motivation
