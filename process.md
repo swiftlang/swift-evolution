@@ -81,7 +81,7 @@ A given proposal can be in one of several states:
 
 * **Awaiting review**: the proposal is awaiting review. Once known,
   the dates for the actual review will be placed in the proposal
-  document and updated in the [review schedule](schedule.md). When the
+  document and updated in the [review schedule](https://github.com/apple/swift-evolution/blob/master/schedule.md). When the
   review period begins, the review manager will update the state to
   *under review*.
 * **Under review**: the proposal is undergoing public review on the [swift-evolution mailing list][swift-evolution-mailing-list]. 
@@ -89,12 +89,12 @@ A given proposal can be in one of several states:
   author(s) based on feedback from the review.
 * **Deferred**: consideration of the proposal has been deferred
   because it does not meet the [goals of the upcoming major Swift
-  release](README.md). Deferred proposals will be reconsidered when
+  release](https://github.com/apple/swift-evolution/blob/master/README.md). Deferred proposals will be reconsidered when
   scoping the next major Swift release.
 * **Accepted**: the proposal has been accepted and is either awaiting
   implementation or is actively being implemented. Once a proposal
   enters the "accepted" state, it gets placed into its [target Swift
-  release](README.md).
+  release](https://github.com/apple/swift-evolution/blob/master/README.md).
 * **Rejected**: the proposal has been considered and rejected.
 
 ## Participating in the Review
