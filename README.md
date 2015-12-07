@@ -75,6 +75,19 @@ sampling of potentially good ideas that are not in scope for Swift
   interoperability with C++ is a significant undertaking that is out
   of scope for Swift 3.0.
 
+* **Hygenic Macros**: A first-class macro system is something we may consider
+  in future releases.  We don't want the existence of a macro system to be a
+  workaround that reduces the incentive for making the core language great.
+
+* **Major new Library Functionality**: The Swift Standard Library is focused on
+  providing core "language" functionality as well as common datastructures.  The
+  "corelibs" projects are focused on providing existing Foundation functionality
+  in a portable way.  Major new libraries (e.g. a new Logging subsystem) are
+  best developed as independent projects on GitHub (or elsewhere) and organized
+  with the Swift Package Manager.  Beyond Swift 3 we may consider standardizing
+  popular packages or expanding the scope of the project.  We *will* consider
+  minor extensions to the existing feature set.
+
 ### Accepted proposals for Swift 3.0
 
 * [Better Translation of Objective-C APIs Into Swift](proposals/0005-objective-c-name-translation.md)
