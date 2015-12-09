@@ -35,9 +35,9 @@ Three new APIs would be added to both Glibc and Darwin packages.  The
 signatures are below:
 
 ```
-func fcntl(fd: CInt, cmd: CInt) ->CInt
-func fcntl(fd: CInt, cmd: CInt, value: CInt) ->CInt
-func fcntl(fd: CInt, cmd: CInt, ptr: UnsafeMutablePointer<Void>) ->CInt
+func fcntl(fd: CInt, _ cmd: CInt) ->CInt
+func fcntl(fd: CInt, _ cmd: CInt, _ value: CInt) ->CInt
+func fcntl(fd: CInt, _ cmd: CInt, _ ptr: UnsafeMutablePointer<Void>) ->CInt
 ```
 
 Underlying each of these APIs would be an internal Swift shim that 
