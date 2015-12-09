@@ -79,14 +79,16 @@ sampling of potentially good ideas that are not in scope for Swift
   in future releases.  We don't want the existence of a macro system to be a
   workaround that reduces the incentive for making the core language great.
 
-* **Major new Library Functionality**: The Swift Standard Library is focused on
-  providing core "language" functionality as well as common datastructures.  The
+* **Major new library functionality**: The Swift Standard Library is focused on
+  providing core "language" functionality as well as common data structures.  The
   "corelibs" projects are focused on providing existing Foundation functionality
-  in a portable way.  Major new libraries (e.g. a new Logging subsystem) are
+  in a portable way.  We *will* consider minor extensions to their existing
+  feature sets to round out these projects.
+ 
+  On the other hand, major new libraries (e.g. a new Logging subsystem) are
   best developed as independent projects on GitHub (or elsewhere) and organized
   with the Swift Package Manager.  Beyond Swift 3 we may consider standardizing
-  popular packages or expanding the scope of the project.  We *will* consider
-  minor extensions to the existing feature set.
+  popular packages or expanding the scope of the project.  
 
 ### Accepted proposals for Swift 3.0
 
