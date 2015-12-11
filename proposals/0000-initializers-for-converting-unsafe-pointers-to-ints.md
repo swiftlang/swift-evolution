@@ -39,6 +39,7 @@ it will be cleaner in that users will not be forced to write C code.
 ## 
 The initializers will be implemented using the built-in ptrtoint_Word function.
 
+```swift
 extension UInt {
   init<T>(_ bitPattern: UnsafePointer<T>) {
     self = UInt(Builtin.ptrtoint_Word(bitPattern._rawValue))
@@ -58,9 +59,12 @@ extension Int {
     self = Int(Builtin.ptrtoint_Word(bitPattern._rawValue))
   }
 }
+```
+
 As an example, these initializers will allow the user to get the next address of
 an XOR linked list in Swift.
 
+```swift
 struct XORLinkedList<T> {
   let address: UnsafePointer<T>
 
@@ -70,6 +74,7 @@ struct XORLinkedList<T> {
     return XorLinkedList(UnsafePointer<T>(UInt(address) ^ UInt(predecessor.address)))
   }
 }
+```
 
 ## Impact on existing code
 ## 
