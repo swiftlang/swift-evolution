@@ -75,7 +75,7 @@ sampling of potentially good ideas that are not in scope for Swift
   interoperability with C++ is a significant undertaking that is out
   of scope for Swift 3.0.
 
-* **Hygenic Macros**: A first-class macro system is something we may consider
+* **Hygienic Macros**: A first-class macro system is something we may consider
   in future releases.  We don't want the existence of a macro system to be a
   workaround that reduces the incentive for making the core language great.
 
