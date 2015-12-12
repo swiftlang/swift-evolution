@@ -1,7 +1,7 @@
 # Remove C-style Semicolons for end of line
 
 * Author(s): [João Nunes](https://github.com/jonasman)
-* Status: *Proposed** (December 12, 2015)
+* Status: *Proposed* (December 12, 2015)
 
 ## Introduction
 
