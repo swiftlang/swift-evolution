@@ -46,7 +46,7 @@ Or, for simpler projects:
     └── Tests
         └── TestFoo.swift
         
-The filename: `TestFoo.swift` is arbituary.
+The filename: `TestFoo.swift` is arbitrary.
 
 In the examples above
 a test case is created for the module `Foo`
