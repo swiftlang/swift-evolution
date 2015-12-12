@@ -17,6 +17,7 @@ proposals in that process.
 * [SE-0008](proposals/0008-lazy-flatmap-for-optionals.md)
 * [SE-0009](proposals/0009-require-self-for-accessing-instance-members.md)
 * [SE-0010](proposals/0010-add-staticstring-unicodescalarview.md)
+* [SE-0011](proposals/0011-replace-typealias-associated.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 
