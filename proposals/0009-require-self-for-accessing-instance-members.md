@@ -20,7 +20,7 @@ This proposal makes it obvious which are instance properties vs local variables,
 
 One example of a bug avoidable by the proposal ([provided by Rudolf Adamkovic](https://lists.swift.org/pipermail/swift-evolution/2015-December/000243.html)):
 
-```
+```swift
 class MyViewController : UIViewController {
 	@IBOutlet var button: UIButton!
         var name: String = "David"
@@ -46,14 +46,14 @@ The counter-argument brought up by two members of the community is that the curr
 
 In the folloring lines of code, we know without a shadow of a doubt that `foobar` is a throwing function and that `barfoo` does not throw.
 
-```
+```swift
 try foobar()
 barfoo()
 ```
 
 But with an example of `self` in a closure:
 
-```
+```swift
 foobar({
 	print(self.description)
 })
@@ -66,7 +66,7 @@ The `self` keyword in the previous lines of code gives a hint but does not bring
 
 And in the reverse example:
 
-```
+```swift
 barfoo({
 	print(description)
 })
@@ -83,7 +83,7 @@ I suggest that not using `self` for accessing instance properties and functions 
 
 The following code which used to compile would generate an error at the docummented lines:
 
-```
+```swift
 class Person {
 	var name: String = "David"
 	
@@ -99,7 +99,7 @@ class Person {
 
 The code would have to be modified as so to compile correctly:
 
-```
+```swift
 class Person {
 	var name: String = "David"
 	
