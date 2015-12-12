@@ -1,7 +1,7 @@
 # Pass Array [T] to Variadic Function with type T
 
 * Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-name.md)
-* Author(s): [Swift Developer](https://github.com/swiftdev)
+* Author(s): [Arthur Ariel Sabintsev](https://github.com/artsabintsev)
 * Status: **Review**
 * Review manager: TBD
 
