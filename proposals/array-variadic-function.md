@@ -46,14 +46,14 @@ func a(v: [String]) {}
 
 ## Proposed solution
 
-Special syntax could be passed denoting that the argument being passed is an array. In the references above, others have mentioned the adoption of ruby's [Splat](http://ruby-doc.org/core-2.2.0/doc/syntax/calling_methods_rdoc.html) operator syntax, `*[T]`.
+Special syntax could be passed denoting that the argument being passed is an array. In the references above, others have mentioned the adoption of Ruby's [Splat](http://ruby-doc.org/core-2.2.0/doc/syntax/calling_methods_rdoc.html) operator syntax, `*[T]`.
 
 
 ## Detailed design
 
 For a variadic function to accept both arrays of and variable argument, a new syntax should be introduced and prepended to arrays.
 
-Revisiting the example from the [Motivation](#Motivation) section with this newly proposed syntax:
+Revisiting the example from the [Motivation](#motivation) section with this newly proposed syntax:
 
 ```
 func a(v: Int...) {
@@ -70,4 +70,4 @@ This change should not negatively affect existing code as it's introducing new f
 
 ## Alternatives considered
 
-The alternative is to overload a function as denoted in the [Proposed solution](#Proposed solution) section.
+The alternative is to overload a function as denoted in the [Proposed solution](#proposed-solution) section.
