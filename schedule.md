@@ -14,7 +14,7 @@ proposals in that process.
 
 ## Proposals awaiting scheduling
 
-(No proposals awaiting scheduling)
+* [SE-0008](proposals/0008-lazy-flatmap-for-optionals.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 

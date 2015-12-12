@@ -1,9 +1,9 @@
 # Add a Lazy flatMap for Sequences of Optionals #
 
-* Proposal: [SE-NNNN](#)
+* Proposal: [SE-0008](https://github.com/apple/swift-evolution/blob/master/proposals/0008-lazy-flatmap-for-optionals.md)
 * Author(s): [Oisin Kidney](https://github.com/oisdk)
-* Status: **Review**
-* Review Manager: TBD
+* Status: **Awaiting review**
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction ##
 
