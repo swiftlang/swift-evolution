@@ -7,13 +7,13 @@
 
 ## Introduction
 
-The current version of Swift (2.1) requires using `self` when accessing instance members in closures. The proposal suggests extending this to all member accesses (as is intrinsically the case in Objective-C). It has the benifit of documenting instance properties vs local variables and instance functions vs local functions or closures.
+The current version of Swift (2.1) requires using `self` when accessing instance members in closures. The proposal suggests extending this to all member accesses (as is intrinsically the case in Objective-C). It has the benefit of documenting instance properties vs local variables and instance functions vs local functions or closures.
 
 ## Motivation
 
 This proposal makes it obvious which are instance properties vs local variables, as well as which are instance functions vs local functions/closures. This has several advantages:
 
-* More readabile at the point of use. 
+* More readable at the point of use. 
 * More consistent than only requiring `self` in closure contexts.
 * Less confusing from a learning point of view.
 * Lets the compiler warn users (and avoids bugs) where the authors mean to use a local variable but instead are unknowingly using an instance property (and the other way round).
@@ -42,9 +42,9 @@ And I believe that the proposition is directly in line with those objectives.
 
 ## Counter-argument
 
-The counter-argument brought up by two members of the community is that the current behaviour "makes the capturing semantics of self stand out more in closures". While this is true, the author finds it's usefulness lacking.
+The counter-argument brought up by two members of the community is that the current behaviour "makes the capturing semantics of self stand out more in closures". While this is true, the author finds its usefulness lacking.
 
-In the folloring lines of code, we know without a shadow of a doubt that `foobar` is a throwing function and that `barfoo` does not throw.
+In the following lines of code, we know without a shadow of a doubt that `foobar` is a throwing function and that `barfoo` does not throw.
 
 ```
 try foobar()
@@ -81,7 +81,7 @@ In both of these examples, the `self` keyword does not tell us with any certaint
 
 I suggest that not using `self` for accessing instance properties and functions is applied in two stages. In Swift 2.x, it could start as a warning and Xcode could provide a Fix-It. Then, it could become a compiler error in Swift 3 and the migrator would help transition code over.
 
-The following code which used to compile would generate an error at the docummented lines:
+The following code which used to compile would generate an error at the documented lines:
 
 ```
 class Person {
