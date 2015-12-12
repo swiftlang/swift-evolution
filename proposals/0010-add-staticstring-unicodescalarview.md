@@ -1,9 +1,9 @@
 # Add StaticString.UnicodeScalarView
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-name.md)
+* Proposal: [SE-0010](https://github.com/apple/swift-evolution/blob/master/proposals/0010-add-staticstring-unicodescalarview.md)
 * Author: [Kevin Ballard](https://github.com/kballard)
-* Status: **Review**
-* Review manager: TBD
+* Status: **Awaiting review**
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction
 
