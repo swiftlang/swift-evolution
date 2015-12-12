@@ -39,7 +39,7 @@ Allow the use of all keywords except `inout`, `var`, and `let` as argument label
 
 * Function/subscript/initializer declarations: aside from the three exclusions above, there is no ambiguity here because the keyword will always be followed by an identifier, ‘:’, or ‘_’. For example:
 
-```
+```swift
 func touchesMatching(phase: NSTouchPhase, in view: NSView?) -> Set<NSTouch>
 ```
 
@@ -48,13 +48,13 @@ func touchesMatching(phase: NSTouchPhase, in view: NSView?) -> Set<NSTouch>
 meanings. If we invent an API that uses such keywords, they will still
 need to be back-ticked:
 
-```
+```swift
 func addParameter(name: String, `inout`: Bool)
 ```
 
 * Function types: these are actually easier than #2, because the parameter name is always followed by a ‘:’:
 
-```
+```swift
 (NSTouchPhase, in: NSView?) -> Set<NSTouch>
 (String, inout: Bool) -> Void
 ```
