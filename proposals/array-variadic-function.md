@@ -1,4 +1,4 @@
-# Pass Array [T] to Variadic Function with type T
+# Pass Array [T] to Variadic Function with Type T
 
 * Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-name.md)
 * Author(s): [Arthur Ariel Sabintsev](https://github.com/artsabintsev)
@@ -22,7 +22,7 @@ a(1, 2, 3) // Works
 a([1, 2, 3]) // error: cannot invoke 'a' with an argument list of type '([Int])'
 ```
 
-This is not a new request as can be inferred by the following articles:
+This is not a new request as can be inferred from the following articles:
 - Original Radar: [rdar://12134482](rdar://12134482)
 - Duplicate Radar: [http://www.openradar.me/17284891](http://www.openradar.me/17284891)
 - Swift Bug Report: [https://bugs.swift.org/browse/SR-128](https://bugs.swift.org/browse/SR-128)
