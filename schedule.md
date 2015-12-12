@@ -15,6 +15,7 @@ proposals in that process.
 ## Proposals awaiting scheduling
 
 * [SE-0008](proposals/0008-lazy-flatmap-for-optionals.md)
+* [SE-0009](https://github.com/apple/swift-evolution/blob/master/proposals/0009-require-self-for-accessing-instance-members.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 
