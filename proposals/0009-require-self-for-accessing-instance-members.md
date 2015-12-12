@@ -42,7 +42,7 @@ And I believe that the proposition is directly in line with those objectives.
 
 ## Counter-argument
 
-The counter-argument brought up by two members of the community is that the current behaviour "makes the capturing semantics of self stand out more in closures". While this is true, the author finds it's usefulness lacking.
+The counter-argument brought up by two members of the community is that the current behaviour "makes the capturing semantics of self stand out more in closures". While this is true, the author finds its usefulness lacking.
 
 In the following lines of code, we know without a shadow of a doubt that `foobar` is a throwing function and that `barfoo` does not throw.
 
