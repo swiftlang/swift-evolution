@@ -23,10 +23,10 @@ One example of a bug avoidable by the proposal ([provided by Rudolf Adamkovic](h
 ```
 class MyViewController : UIViewController {
 	@IBOutlet var button: UIButton!
-        var name: String = “David"
+        var name: String = "David"
 
 	func updateButton() {
-		// var title = “Hello \(name)”
+		// var title = "Hello \(name)"
 		button.setTitle(title, forState: .Normal) // forgot to comment this line but the compiler does not complain and title is now referencing UIViewController’s title by mistake
 		button.setTitleColor(UIColor.blackColor(), forState: .Normal)
 	}
