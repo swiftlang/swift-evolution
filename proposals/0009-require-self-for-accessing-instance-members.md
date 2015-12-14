@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0009](https://github.com/apple/swift-evolution/blob/master/proposals/0009-require-self-for-accessing-instance-members.md)
 * Author(s): [David Hart](https://github.com/hartbit)
-* Status: **Awaiting review**
+* Status: **Awaiting review** (scheduled for December 16--20, 2015)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction
