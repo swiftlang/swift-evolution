@@ -12,6 +12,7 @@ proposals in that process.
 
 * December 15--17, 2015: [SE-0008](proposals/0008-lazy-flatmap-for-optionals.md)
 * December 16--20, 2015: [SE-0009](proposals/0009-require-self-for-accessing-instance-members.md)
+* December 18--21, 2015: [SE-0014](proposals/0014-constrained-AnySequence.md)
 
 ## Proposals awaiting scheduling
 
@@ -19,7 +20,6 @@ proposals in that process.
 * [SE-0011](proposals/0011-replace-typealias-associated.md)
 * [SE-0012](proposals/0012-add-noescape-to-public-library-api.md)
 * [SE-0013](proposals/0013-remove-partial-application-super.md)
-* [SE-0014](proposals/0014-constrained-AnySequence.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 
