@@ -1,10 +1,9 @@
 # Constraining `AnySequence.init`
 
-* Proposal:
-* [SE-0008](https://github.com/apple/swift-evolution/blob/master/proposals/0008-constrained-AnySequence.md)
+* Proposal: [SE-0014](https://github.com/apple/swift-evolution/blob/master/proposals/0014-constrained-AnySequence.md)
 * Author(s): [Max Moiseev](https://github.com/moiseev)
-* Status: **Review**
-* Review manager: TBD
+* Status: **Awaiting review**
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction
 
