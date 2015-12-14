@@ -96,6 +96,7 @@ sampling of potentially good ideas that are not in scope for Swift
 * [Removing currying `func` declaration syntax](proposals/0002-remove-currying.md)
 * [Removing `var` from Function Parameters and Pattern Matching](proposals/0003-remove-var-parameters-patterns.md)
 * [Remove the `++` and `--` operators](proposals/0004-remove-pre-post-inc-decrement.md)
+* [Remove C-style for-loops with conditions and incrementers](proposals/0007-remove-c-style-for-loops.md)
 
 ## Development minor version:  Swift 2.2
 
