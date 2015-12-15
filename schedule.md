@@ -6,11 +6,10 @@ proposals in that process.
 
 ## Active reviews
 
-(No proposals under active review)
+* December 15--17, 2015: [SE-0008](proposals/0008-lazy-flatmap-for-optionals.md)
 
 ## Upcoming reviews
 
-* December 15--17, 2015: [SE-0008](proposals/0008-lazy-flatmap-for-optionals.md)
 * December 16--20, 2015: [SE-0009](proposals/0009-require-self-for-accessing-instance-members.md)
 * December 18--21, 2015: [SE-0014](proposals/0014-constrained-AnySequence.md)
 
