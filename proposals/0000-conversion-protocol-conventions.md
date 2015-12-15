@@ -9,7 +9,7 @@
 
 This proposal describes how we can improve the naming convention established by the standard library for conversion related protocols.  It assigns specific meaning to conventional suffixes and requires renaming `CustomStringConvertible` to `CustomStringProjectable` and `CustomDebugStringConvertible` to `CustomDebugStringProjectable` so they conform to the more precise convention.
 
-Swift-evolution thread: [link to the discussion thread for that proposal](https://lists.swift.org/pipermail/swift-evolution)
+Swift-evolution thread: [Proposal: conversion protocol naming conventions](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151207/002052.html)
 
 ## Motivation
 
