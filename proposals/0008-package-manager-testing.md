@@ -181,6 +181,21 @@ We expect that such an implementation would take the form of
 a Swift protocol that the package manager defines,
 which other testing frameworks can adopt.
 
+
+### Command Line Interface
+
+The command line should accept the names of specific test cases to run:
+
+    swift build -t FooTestCase
+
+Or specific tests:
+
+    swift build -t FooTestCase.test1
+
+swiftpm would forward arguments to the underlying testing framework and it
+would decide how to interpret them.
+
+
 ## Impact On Existing Code
 
 Current releases of the package manager already exclude directories named
