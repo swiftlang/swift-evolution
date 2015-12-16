@@ -211,6 +211,20 @@ Or specific tests:
 SwiftPM would forward arguments to the underlying testing framework and it
 would decide how to interpret them.
 
+---
+
+Sometimes test sources cannot compile and fixing them is no the most
+pressing priority. Thus it will be posssible to skip building tests
+with an additional flag:
+
+    swift build --without-tests
+
+---
+
+It is desirable to sometimes specify to only build specific tests, the
+command line for this will fall out of future work that allows specification
+of targets that `swift build` should speficially build in isolation.
+
 
 ## Impact On Existing Code
 
