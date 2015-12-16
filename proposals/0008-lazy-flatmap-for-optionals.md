@@ -79,9 +79,7 @@ extension LazyCollectionType {
 
 However, a "bidirectional" version cannot be written in this way, since no `FilterBidirectionalCollection` exists.
 
-The other form of `flatMap` uses a `flatten` method on nested sequences, which has both a `CollectionType` form and a form for `CollectionType`s with `BidirectionalIndexType`s. 
-
-However, Swift's current type system doesn't allow a similar method to be defined on sequences of `Optional`s. This means we have to rely on `filter`, which only has a `SequenceType` and `CollectionType` implementation.
+The other form of `flatMap` uses a `flatten` method on nested sequences, which has both a `CollectionType` form and a form for `CollectionType`s with `BidirectionalIndexType`s. Swift's current type system doesn't allow a similar method to be defined on sequences of `Optional`s. This means we have to rely on `filter`, which only has a `SequenceType` and `CollectionType` implementation.
 
 ## Impact on existing code ##
 
@@ -128,4 +126,59 @@ This would involve adding a `FilterBidirectionalCollection` to the standard libr
 
 ### Make Optional Conform to SequenceType ###
 
-This is a far-reaching, separate proposal, but it would solve the issue that this proposal seeks to solve. It's worth bearing in mind, though, that `Optional` *probably* wouldn't have a `BidirectionalIndexType`, so the bidirectional version of `flatMap` wouldn't exist on `Optional`s, anyway.
+This is a far-reaching, separate proposal, but it would solve the issue that this proposal seeks to solve. 
+
+### New CollectionOfZeroOrOne struct ###
+
+This would be a kind of half-way to making `Optional` conform to `SequenceType`. If a new struct were added to the standard library:
+
+```swift
+public struct CollectionOfZeroOrOne<Element> : CollectionType {
+
+  public typealias Index = Bit
+  
+  public init(_ element: Element?) {
+    self.element = element
+  }
+  
+  public var startIndex: Index {
+    return .Zero
+  }
+  
+  public var endIndex: Index {
+    switch element {
+    case .Some: return .One
+    case .None: return .Zero
+    }
+  }
+  
+  public func generate() -> GeneratorOfOne<Element> {
+    return GeneratorOfOne(element)
+  }
+  
+  public subscript(position: Index) -> Element {
+    if case .Zero = position, let result = element {
+      return result
+    } else {
+      fatalError("Index out of range")
+    }
+  }
+  
+  let element: Element?
+}
+```
+
+Then `flatMap` could be implemented in terms of the already-existing `flatMap`:
+
+```swift
+extension LazySequenceType {
+
+  @warn_unused_result
+  public func flatMap<T>(transform: Elements.Generator.Element -> T?)
+    -> LazySequence<FlattenSequence<LazyMapSequence<Elements, CollectionOfZeroOrOne<T>>>> {
+      return self.flatMap { e in CollectionOfZeroOrOne(transform(e)) }
+  }
+}
+```
+
+This has the advantage of leveraging the already-existing `flatMap`s, so the `CollectionType` and bidirectional versions can similarly be added in a few lines. It also doesn't change the behaviour of `Optional`s, since the conversion to a collection is explicit. However, it adds a new type to the standard library. It's possible that a `FilterBidirectionalCollection` will be implemented in the future, regardless of the outcome of this proposal, which would mean that the `filter` option could achieve the same thing as this, with no new types.
