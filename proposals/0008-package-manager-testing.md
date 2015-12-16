@@ -52,6 +52,22 @@ In the examples above
 a test case is created for the module `Foo`
 based on the sources in the relevant subdirectories.
 
+A test-module is created per subdirectory of Tests, so:
+
+    Package
+    ├── Sources
+    │   └── Foo
+    │       └──Foo.swift
+    └── Tests
+        └── Foo
+            └── Test.swift
+        └── Bar
+            └── Test.swift
+
+Would create two test-modules. The modules in this example may
+test different aspects of the module Foo, it is entirely up
+to the package author.
+
 Additionally we will support directories called `FooTests`.
 This layout style is prevalent in existing open source projects
 and supporting it will minimize vexation for their authors.
@@ -192,7 +208,7 @@ Or specific tests:
 
     swift build -t FooTestCase.test1
 
-swiftpm would forward arguments to the underlying testing framework and it
+SwiftPM would forward arguments to the underlying testing framework and it
 would decide how to interpret them.
 
 
