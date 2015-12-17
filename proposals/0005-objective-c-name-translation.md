@@ -294,7 +294,7 @@ func arrange<b>Objects</b>(_: <b>[</b>Any<b>Object]</b>) -> [AnyObject]
     <pre>
 func writableTypesFor<b>SaveOperation</b>(_: NS<b>SaveOperation</b><i>Type</i>) -> [String]
 func objectFor<b>Key</b>(_: <b>Key</b><i>Type</i>) -> AnyObject
-func startWith<b>Queue</b>(_: dispatch<b>queue</b><i>_t</i>, completionHandler: MKMapSnapshotCompletionhandler)
+func startWith<b>Queue</b>(_: dispatch_<b>queue</b><i>_t</i>, completionHandler: MKMapSnapshotCompletionhandler)
 </pre>
 
   * The empty string in the selector piece matches *one or more digits

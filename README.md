@@ -1,5 +1,7 @@
 # Swift Programming Language Evolution
 
+**Before you initiate a pull request**, please read the process document. Ideas should be thoroughly discussed on the [swift-evolution mailing list](https://swift.org/community/#swift-evolution) first.
+
 This repository tracks the ongoing evolution of Swift. It contains:
 
 * Goals for upcoming Swift releases (this document)
@@ -73,12 +75,28 @@ sampling of potentially good ideas that are not in scope for Swift
   interoperability with C++ is a significant undertaking that is out
   of scope for Swift 3.0.
 
+* **Hygienic Macros**: A first-class macro system is something we may consider
+  in future releases.  We don't want the existence of a macro system to be a
+  workaround that reduces the incentive for making the core language great.
+
+* **Major new library functionality**: The Swift Standard Library is focused on
+  providing core "language" functionality as well as common data structures.  The
+  "corelibs" projects are focused on providing existing Foundation functionality
+  in a portable way.  We *will* consider minor extensions to their existing
+  feature sets to round out these projects.
+ 
+  On the other hand, major new libraries (e.g. a new Logging subsystem) are
+  best developed as independent projects on GitHub (or elsewhere) and organized
+  with the Swift Package Manager.  Beyond Swift 3 we may consider standardizing
+  popular packages or expanding the scope of the project.  
+
 ### Accepted proposals for Swift 3.0
 
 * [Better Translation of Objective-C APIs Into Swift](proposals/0005-objective-c-name-translation.md)
 * [Removing currying `func` declaration syntax](proposals/0002-remove-currying.md)
 * [Removing `var` from Function Parameters and Pattern Matching](proposals/0003-remove-var-parameters-patterns.md)
 * [Remove the `++` and `--` operators](proposals/0004-remove-pre-post-inc-decrement.md)
+* [Remove C-style for-loops with conditions and incrementers](proposals/0007-remove-c-style-for-loops.md)
 
 ## Development minor version:  Swift 2.2
 

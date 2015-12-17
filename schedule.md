@@ -6,15 +6,19 @@ proposals in that process.
 
 ## Active reviews
 
-(No active reviews)
+* December 15--17, 2015: [SE-0008](proposals/0008-lazy-flatmap-for-optionals.md)
+* December 16--20, 2015: [SE-0009](proposals/0009-require-self-for-accessing-instance-members.md)
 
 ## Upcoming reviews
 
-* December 7, 2015 -- December 10, 2015: [Remove C-style for-loops with conditions and incrementers](https://github.com/apple/swift-evolution/blob/master/proposals/0007-remove-c-style-for-loops.md)
+* December 18--21, 2015: [SE-0014](proposals/0014-constrained-AnySequence.md)
 
 ## Proposals awaiting scheduling
 
-(No proposals awaiting scheduling)
+* [SE-0010](proposals/0010-add-staticstring-unicodescalarview.md)
+* [SE-0011](proposals/0011-replace-typealias-associated.md)
+* [SE-0012](proposals/0012-add-noescape-to-public-library-api.md)
+* [SE-0013](proposals/0013-remove-partial-application-super.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 
