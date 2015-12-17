@@ -1,7 +1,7 @@
 # Scoped Access Level
 
 * Proposal: [SE-0015](https://github.com/apple/swift-evolution/blob/master/proposals/0015-scoped-access-level.md)
-* Author(s): Ilya Belenkiy, Matthew Johnson
+* Author(s): Ilya Belenkiy
 * Status: **Review**
 * Review manager: TBD
 
