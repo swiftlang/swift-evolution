@@ -50,7 +50,7 @@ We believe these conventions better convey protocol conversion roles to Swift de
 
 This proposal affects the following standard library protocols.
 
-#### Creatable protocols
+#### Current protocols fulfilling the new Creatable convention:
 
 * `ArrayLiteralConvertible`
 * `BooleanLiteralConvertible`
@@ -62,12 +62,12 @@ This proposal affects the following standard library protocols.
 * `StringInterpolationConvertible`
 
 
-#### Convertible protocols
+#### Current protocols fulfilling the new Convertible convention:
 
 * `RawRepresentable`
 
 
-#### Representable protocols
+#### Current protocols fulfilling the new Representable convention:
 
 * `CustomStringConvertible`
 * `CustomDebugStringConvertible`
