@@ -20,7 +20,7 @@ And another which flattens a sequence of `Optional`s:
 ```swift
 (1...10)
   .flatMap { n in n % 2 == 0 ? n/2 : nil }
-[1, 2, 3, 4, 5]
+// [1, 2, 3, 4, 5]
 ```
 
 However, there is only a lazy implementation for the first version:
