@@ -12,14 +12,14 @@ proposals in that process.
 
 ## Upcoming reviews
 
+* December 21--22, 2015: [SE-0015: Tuple comparison operators](proposals/0015-tuple-comparison-operators.md)
+* January 3--6, 2016: [SE-0011: Replace `typealias` keyword with `associated` for associated type declarations](proposals/0011-replace-typealias-associated.md)
 
 ## Proposals awaiting scheduling
 
 * [SE-0010: Add StaticString.UnicodeScalarView](proposals/0010-add-staticstring-unicodescalarview.md)
-* [SE-0011: Replace `typealias` keyword with `associated` for associated type declarations](proposals/0011-replace-typealias-associated.md)
 * [SE-0012: Add `@noescape` to public library API](proposals/0012-add-noescape-to-public-library-api.md)
 * [SE-0013: Remove Partial Application of Non-Final Super Methods](proposals/0013-remove-partial-application-super.md)
-* [SE-0015: Tuple comparison operators](proposals/0015-tuple-comparison-operators.md)
 * [SE-0016: Adding initializers to Int and Uint to convert from UnsafePointer and UnsafeMutablePointer](proposals/0016-initializers-for-converting-unsafe-pointers-to-ints.md)
 * [SE-0017: Change `Unmanaged` to use `UnsafePointer`](proposals/0017-convert-unmanaged-to-use-unsafepointer.md)
 
