@@ -19,6 +19,7 @@ proposals in that process.
 * [SE-0011](proposals/0011-replace-typealias-associated.md)
 * [SE-0012](proposals/0012-add-noescape-to-public-library-api.md)
 * [SE-0013](proposals/0013-remove-partial-application-super.md)
+* [SE-0015](proposals/0015-tuple-comparison-operators.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 

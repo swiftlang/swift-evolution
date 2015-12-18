@@ -1,9 +1,9 @@
 # Tuple comparison operators
 
-* Proposal: TBD
+* Proposal: [SE-0015](https://github.com/apple/swift-evolution/blob/master/proposals/0015-tuple-comparison-operators.md)
 * Author(s): [Kevin Ballard](https://github.com/kballard)
-* Status: **Review**
-* Review manager: TBD
+* Status: **Awaiting review**
+* Review manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction
 
