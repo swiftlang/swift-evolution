@@ -232,7 +232,7 @@ Further, if functions where to ever gain the ability to be marked as `async`, th
 From the earlier threads on the swift-evolution mailing list, there are a few primary points of contention about this proposal.
 
 ##### Aren’t we just creating Java checked-exceptions, which we all know are terrible?
-No. The primary reason is that a function can only return a single error-type. The other major reason is that the error philosophy is very different in Swift than in Java.
+No. The primary reason is that a function can only return a single error-type. This already greatly reduces the deep class-based, exception-type model to a single, polymorphic error type (for class-based `ErrorType` implementations). Swift also takes a different model than Java; this was mostly laid out here: [Error Handling Rationale](https://github.com/apple/swift/blob/master/docs/ErrorHandlingRationale.rst "Error Handling Rationale"). But briefly, many of the numerous exceptions that are thrown in Java are of the "Universal Error" classification, which Swift's error model doesn't handle.
 
 ##### Aren’t we creating fragile APIs that can cause breaking changes?
 Potentially, yes. This depends on how the ABI is handled in Swift 3 for enums. The same problem exists today, although at a lesser extent, for any API that returns an enum today.
@@ -251,3 +251,14 @@ For APIs that return non-enum based `ErrorType` implementations, then no, this d
 This is a philosophical debate. I’ll simply state that I believe that simply re-throwing an error, say some type of IO error, from your API that is not an IO-based API is design flaw: you are exposing implementation details to users. This  creates a fragile API surface.
 
 Also, since the type annotation is opt-in, I feel like this is a really minor argument. If your function is really able to throw errors from various different API calls, then just stick with the default `ErrorType`.
+
+However, it is the case that if you do wish to propogate the errors out, then yes, you need to create wrappers. The Rust language does this today as well.
+
+##### Why are multiple error types not allowed to be specified?
+To clear, it's not because of “Java checked exceptions” (as it might be inferred because of the defense to Java's checked exceptions). Rather, it’s because nowhere else in the language are types allowed to be essentially annotated in a sum-like fashion. We can’t directly say a function returns an Int or a String. We can’t say a parameter can take an Int or a Double. Similarly, I propose we can’t say a function can return an error A or B.
+
+Thus, the primary reason is about type-system consistency.
+
+Swift already supports a construct to create sum types: associated enums. What it doesn’t allow is the ability to create them in a syntactic shorthand. In this way, my error proposal does the same thing as Rust: multiple return types need to be combined into a single-type - enum.
+
+If Swift is updated to allow the creation of sum-types and use them as qualifiers for type declarations, then I don't see how they wouldn't simply fall inline here as well.
