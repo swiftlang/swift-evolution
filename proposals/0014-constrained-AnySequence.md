@@ -24,7 +24,7 @@ ignored without delegation.
 See the implementation in [this PR](https://github.com/apple/swift/pull/220).
 
 In order for this kind of delegation to become possible, `_SequenceBox` needs to
-be able to 'wrap' not only the base sequence but also it's associated
+be able to 'wrap' not only the base sequence but also its associated
 `SubSequence`. So instead of being declared like this:
 
 ~~~~Swift
@@ -44,7 +44,7 @@ internal class _SequenceBox<
 > : _AnySequenceBox<S.Generator.Element> { ... }
 ~~~~
 
-Which, in it's turn, will lead to `AnySequence.init` getting a new set of
+Which, in its turn, will lead to `AnySequence.init` getting a new set of
 constraints as follows.
 
 Before the change:
