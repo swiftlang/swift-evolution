@@ -192,7 +192,7 @@ data first, the use of `Left` and `Right` and `Either` becomes less nebulous.  M
 name does not matter so much as the structure, so possibilities for a
 renaming including cases are:
 
-- Result: Error, Value
+- Result: Value, Error
 - Sum: Left, Right
 - Alternative: First, Second
 - These: This, That
