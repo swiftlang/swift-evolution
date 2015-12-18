@@ -1,7 +1,7 @@
 # Allow Type Annotation on Throws
 
-* Proposal: [SE-NNNN](#)(#)
-* Author(s): [David Owens II](#)(https://github.com/owensd) (https://github.com/owensd)
+* Proposal: [SE-NNNN](#)
+* Author(s): [David Owens II](https://github.com/owensd) (https://github.com/owensd)
 * Status: **Pending Approval for Review**
 * Review manager: TBD
 
