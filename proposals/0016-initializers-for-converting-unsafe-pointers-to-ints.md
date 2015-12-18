@@ -1,8 +1,8 @@
-# Feature name
+# Add initializers to Int and Uint to convert from UnsafePointer and UnsafeMutablePointer
 
-* Proposal: [SE-0000](https://github.com/apple/swift-evolution/blob/master/proposals/0000-initializers-for-converting-unsafe-pointers-to-ints.md)
+* Proposal: [SE-0016](https://github.com/apple/swift-evolution/blob/master/proposals/0016-initializers-for-converting-unsafe-pointers-to-ints.md)
 * Author(s): [Michael Buckley](https://github.com/MichaelBuckley)
-* Status: **Review**
+* Status: **Awaiting Review**
 * Review manager: TBD
 
 ## Introduction

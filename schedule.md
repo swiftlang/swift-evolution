@@ -20,6 +20,7 @@ proposals in that process.
 * [SE-0012: Add `@noescape` to public library API](proposals/0012-add-noescape-to-public-library-api.md)
 * [SE-0013: Remove Partial Application of Non-Final Super Methods](proposals/0013-remove-partial-application-super.md)
 * [SE-0015: Tuple comparison operators](proposals/0015-tuple-comparison-operators.md)
+* [SE-0016: Adding initializers to Int and Uint to convert from UnsafePointer and UnsafeMutablePointer](proposals/0016-initializers-for-converting-unsafe-pointers-to-ints.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 
