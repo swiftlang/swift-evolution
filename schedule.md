@@ -15,11 +15,11 @@ proposals in that process.
 
 ## Proposals awaiting scheduling
 
-* [SE-0010](proposals/0010-add-staticstring-unicodescalarview.md)
-* [SE-0011](proposals/0011-replace-typealias-associated.md)
-* [SE-0012](proposals/0012-add-noescape-to-public-library-api.md)
-* [SE-0013](proposals/0013-remove-partial-application-super.md)
-* [SE-0015](proposals/0015-tuple-comparison-operators.md)
+* [SE-0010: Add StaticString.UnicodeScalarView](proposals/0010-add-staticstring-unicodescalarview.md)
+* [SE-0011: Replace `typealias` keyword with `associated` for associated type declarations](proposals/0011-replace-typealias-associated.md)
+* [SE-0012: Add `@noescape` to public library API](proposals/0012-add-noescape-to-public-library-api.md)
+* [SE-0013: Remove Partial Application of Non-Final Super Methods](proposals/0013-remove-partial-application-super.md)
+* [SE-0015: Tuple comparison operators](proposals/0015-tuple-comparison-operators.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 
