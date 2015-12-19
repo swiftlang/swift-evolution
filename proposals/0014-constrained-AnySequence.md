@@ -12,7 +12,7 @@ its initializer should have extra constraints.
 
 ## Motivation
 
-At the moment `AnyCollection` does not delegate calls to `SequenceType` protocol
+At the moment `AnySequence` does not delegate calls to `SequenceType` protocol
 methods to the underlying base sequence, which results in dynamic downcasts in
 places where this behavior is needed (see default implementations of
 `SequenceType.dropFirst` or `SequenceType.prefix`). Besides, and this is even
@@ -76,7 +76,10 @@ public struct AnySequence<Element> : SequenceType {
 
 These constraints, in fact, should be applied to `SequenceType` protocol itself
 (although, that is not currently possible), as we expect every `SequenceType`
-implementation to satisfy them already.
+implementation to satisfy them already. Worth mentioning that technically
+`S.SubSequence.SubSequence == S.SubSequence` does not have to be this strict,
+as any sequence with the same element type would do, but that is currently not
+representable.
 
 ## Impact on existing code
 
