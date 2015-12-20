@@ -98,10 +98,7 @@ For declaring associated types, I suggest adding `associated` and deprecating
 As it simply replaces one keyword for another, the transition to `associated`
 could be easily automated without any risk of breaking existing code.
 
-## Community Responses
+## Mailing List
 
-- "I think this is a great idea; re-using typealias for associated types was a mistake." -John McCall
-- "Agreed." -Chris Lattner
-- "+1 to the proposal, emphasizing the distinction is important; and I
-like "associated" as the keyword for this purpose, too." -Dmitri Gribenko
-- "+1 for using a distinct keyword for associated types" -Ilya Belenkiy
+- [Original](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151130/000470.html)
+- [Alternative Keywords](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/003551.html)
