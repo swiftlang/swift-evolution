@@ -98,6 +98,14 @@ sampling of potentially good ideas that are not in scope for Swift
 * [Remove the `++` and `--` operators](proposals/0004-remove-pre-post-inc-decrement.md)
 * [Remove C-style for-loops with conditions and incrementers](proposals/0007-remove-c-style-for-loops.md)
 
+### Commonly Proposed Changes 
+
+* [Replace `{}` Brace Syntax](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/003656.html)
+* [Replace logical operators (`&&` `||` etc) with natural language](https://lists.swift.org/pipermail/swift-evolution/2015-December/000032.html)
+* [Replace `?:` Ternary Operator](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/002609.html)
+* [Rewrite the Swift compiler in Swift](https://github.com/apple/swift/blob/2c7b0b22831159396fe0e98e5944e64a483c356e/www/FAQ.rst)	
+
+
 ## Development minor version:  Swift 2.2
 
 Expected release date: Spring 2016
