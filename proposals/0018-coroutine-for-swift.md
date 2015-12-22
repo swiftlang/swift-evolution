@@ -35,7 +35,7 @@ Array(GeneratorSequence(factorialList(5)))  // [1, 2, 6, 24, 120]
 Swift compiler can convert `yield` to a state machine with closure. the above code is equivalent to:
 ```swift
 func factorialList(var x: Int) -> AnyGenerator<Int> {
-    // capture variables should be safe to release
+    // captured variables should be safe to release
     var state = 0
     var result = 1
     var _variable_0001 = (1...x).generate()
