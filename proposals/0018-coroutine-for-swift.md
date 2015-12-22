@@ -35,6 +35,7 @@ Array(GeneratorSequence(factorialList(5)))  // [1, 2, 6, 24, 120]
 Swift compiler can convert `yield` to a state machine with closure. the above code is equivalent to:
 ```swift
 func factorialList(var x: Int) -> AnyGenerator<Int> {
+    // capture variables should be safe to release
     var state = 0
     var result = 1
     var _variable_0001 = (1...x).generate()
@@ -63,17 +64,9 @@ func factorialList(var x: Int) -> AnyGenerator<Int> {
 
 ## Detailed design
 
-Describe the design of the solution in detail. If it involves new
-syntax in the language, show the additions and changes to the Swift
-grammar. If it's a new API, show the full API and its documentation
-comments detailing what it does. The detail in this section should be
-sufficient for someone who is *not* one of the authors to be able to
-reasonably implement the feature.
-
-## Impact on existing code
-
-
+If a function have `yield` statement, result type of function should be a form of `GeneratorType`.
 
 ## Alternatives considered
 
-
+Provide a distinct class, other than `AnyGenerator`, to contain coroutine object. Which would more clear with difference of `CoroutineType` and `AnyGenerator`.
+`CoroutineType` confirmed to `SequenceType` are welcome.
