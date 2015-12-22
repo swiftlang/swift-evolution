@@ -44,7 +44,7 @@ func factorialList(var x: Int) -> AnyGenerator<Int> {
         switch state {
             case 0: @goto(State_0)  // jump to start point
             case 1: @goto(State_1)  // jump to State_1
-            case -1: return nil
+            default: return nil
         }
         @label(State_0)
         if x == 0 {
