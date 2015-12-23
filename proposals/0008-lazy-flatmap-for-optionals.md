@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0008](https://github.com/apple/swift-evolution/blob/master/proposals/0008-lazy-flatmap-for-optionals.md)
 * Author(s): [Oisin Kidney](https://github.com/oisdk)
-* Status: **Under review** (December 15--17, 2015)
+* Status: **Accepted for Swift 2.2** ([Bug](https://bugs.swift.org/browse/SR-361))
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction ##

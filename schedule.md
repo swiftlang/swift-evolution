@@ -6,7 +6,6 @@ proposals in that process.
 
 ## Active reviews
 
-* December 15--17, 2015: [SE-0008: Add a Lazy flatMap for Sequences of Optionals](proposals/0008-lazy-flatmap-for-optionals.md)
 * December 16--20, 2015: [SE-0009: Require self for accessing instance members  ](proposals/0009-require-self-for-accessing-instance-members.md)
 * December 18--21, 2015: [SE-0014: Constraining `AnySequence.init`](proposals/0014-constrained-AnySequence.md)
 
