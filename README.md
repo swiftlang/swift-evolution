@@ -113,8 +113,11 @@ fundamentally change the way Swift is used. As a step toward Swift
 changes in Swift 3.0 so that users can begin migrating their code
 sooner.
 
-### Accepted proposals for Swift 2.2
+### Implemented proposals for Swift 2.2
 
 * [Allow (most) keywords as argument labels](proposals/0001-keywords-as-argument-labels.md)
+
+### Accepted proposals for Swift 2.2
+
 
 [swift-evolution-mailing-list]: mailto:swift-evolution@swift.org  "The swift-evolution mailing list"
