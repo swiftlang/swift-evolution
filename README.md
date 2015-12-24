@@ -4,10 +4,10 @@
 
 This repository tracks the ongoing evolution of Swift. It contains:
 
-* [Commonly Proposed Changes](commonly_proposed.md) to Swift
-* Goals for upcoming Swift releases (this document)
-* The [Swift evolution review schedule](schedule.md) tracking proposals to change Swift
+* Goals for upcoming Swift releases (this document).
+* The [Swift evolution review schedule](schedule.md) tracking proposals to change Swift.
 * The [Swift evolution process](process.md) that governs the evolution of Swift.
+* [Commonly Rejected Changes](commonly_proposed.md), proposals which have been denied in the past.
 
 This document describes goals for the Swift language on a per-release
 basis, usually listing minor releases adding to the currently shipping
