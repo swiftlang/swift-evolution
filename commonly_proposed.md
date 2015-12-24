@@ -8,5 +8,7 @@
  * [Remove `default` in Switch statements](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151207/001422.html)
  * [Replace `in` with `->` in Closures] (https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/002583.html)
  * [`if/else` and `switch` as expressions](https://lists.swift.org/pipermail/swift-evolution/2015-December/000393.html)
+ * [Single-quotes `''` for Character	literals](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151221/003977.html)
+ * [Replace `continue` keyword](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151221/004407.html)
  
  
