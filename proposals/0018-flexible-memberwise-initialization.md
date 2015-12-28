@@ -1,6 +1,6 @@
 # Flexible Memberwise Initialization
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-flexible-memberwise-initializers.md)
+* Proposal: [SE-0018](https://github.com/apple/swift-evolution/blob/master/proposals/0018-flexible-memberwise-initializers.md)
 * Author(s): [Matthew Johnson](https://github.com/anandabits)
 * Status: **Review**
 * Review manager: Chris Lattner
