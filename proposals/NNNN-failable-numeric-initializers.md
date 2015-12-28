@@ -42,11 +42,13 @@ init(exact value: Float80) throws
 #endif
 ```
 
-Foundation should also extend all numeric types as well as `Bool` with a failable conversion initializer accepting `NSNumber`: 
+Foundation should extend all numeric types as well as `Bool` with a failable conversion initializer accepting `NSNumber`: 
 
 ```swift
 init(exact value: NSNumber) throws
 ```
+
+Finally, Foundation should extend `NSDecimal` and `NSDecimalNumber` with the entire familly of throwing numeric conversion initializers, including `NSNumber`.
 
 ## Detailed design
 
