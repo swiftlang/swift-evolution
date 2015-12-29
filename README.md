@@ -22,7 +22,7 @@ definitive list of notable changes in each release.
 
 ## Development major version:  Swift 3.0
 
-Expected release date: Fall 2016
+Expected release date: 2016 Q4 / Fall 2016
 
 The primary goal of this release is to stabilize the binary interface
 of the language and standard library. As part of this process, we will
