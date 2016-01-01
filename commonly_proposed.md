@@ -1,6 +1,6 @@
 ### Commonly Rejected Changes 
  
-This is a list of changes to the Swift language that are frequently proposed, but that are unlikely to be accepted.  If you're interested in pursuing something in this space, please familiarize yourself with the discussions that we have already have.  In order to bring one of these topics up, you'll be expected to add new information to the discussion, not just say "I really want this" or "This exists in some other language and I liked it there".
+This is a list of changes to the Swift language that are frequently proposed, but that are unlikely to be accepted.  If you're interested in pursuing something in this space, please familiarize yourself with the discussions that we have already had.  In order to bring one of these topics up, you'll be expected to add new information to the discussion, not just say "I really want this" or "This exists in some other language and I liked it there".
 
 Several of the discussions below refer to "C Family" languages.  This is intended to mean the extended family of languages that resemble C at a syntactic level.  This includes languages like C++, C#, Objective-C, Java, Javascript, etc.
 
