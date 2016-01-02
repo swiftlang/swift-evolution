@@ -4,7 +4,7 @@
   [Max Howell](https://github.com/mxcl),
   [Daniel Dunbar](https://github.com/ddunbar),
   [Mattt Thompson](https://github.com/mattt)
-* Status: **Review**
+* Status: **Awaiting review** (scheduled for January 5-7, 2016)
 * Review Manager: Rick Ballard
 
 ## Introduction
