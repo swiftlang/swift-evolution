@@ -9,10 +9,10 @@ proposals in that process.
 * December 16--20, 2015: [SE-0009: Require self for accessing instance members  ](proposals/0009-require-self-for-accessing-instance-members.md)
 * December 18--21, 2015: [SE-0014: Constraining `AnySequence.init`](proposals/0014-constrained-AnySequence.md)
 * December 21--22, 2015: [SE-0015: Tuple comparison operators](proposals/0015-tuple-comparison-operators.md)
+* January 3--6, 2016: [SE-0011: Replace `typealias` keyword with `associatedtype` for associated type declarations](proposals/0011-replace-typealias-associated.md)
 
 ## Upcoming reviews
 
-* January 3--6, 2016: [SE-0011: Replace `typealias` keyword with `associated` for associated type declarations](proposals/0011-replace-typealias-associated.md)
 * January 6...10, 2016: [SE-0018: Flexible Memberwise Initialization](proposals/0018-flexible-memberwise-initialization.md)
 
 ## Proposals awaiting scheduling
