@@ -20,6 +20,7 @@ Several of the discussions below refer to "C Family" languages.  This is intende
 
  * [Replace `continue` keyword with synonyms from other scripting languages (e.g. next, skip, advance, etc)](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151221/004407.html): Swift is designed to feel like a member of the C family of languages.  Switching keywords away from C precedent without strong motivation is a non-goal.
 
+* [Replace the do/try/repeat keywords with C++-style syntax](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151228/004630.html): Swift's error handling approach is carefully designed to make it  obvious to maintainers of code when a call can "throw" an error.  It is intentionally designed to be syntactically similar in some ways - but different in other key ways - to exception handling in other languages.  Its design is a careful balance that favors maintainers of code that uses errors, to make sure someone reading the code understands what can throw.  Before proposing a change to this system, please read the [Error Handling Rationale Document](https://github.com/apple/swift/blob/master/docs/ErrorHandlingRationale.rst) in full to understand why the current design is the way it is, and be ready to explain why your changes would be worth unbalancing this design.
 
 Here are some other less-commonly proposed changes that have also been rejected:
  
