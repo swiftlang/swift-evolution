@@ -4,7 +4,7 @@ This is a list of changes to the Swift language that are frequently proposed, bu
 
 Several of the discussions below refer to "C Family" languages.  This is intended to mean the extended family of languages that resemble C at a syntactic level.  This includes languages like C++, C#, Objective-C, Java, Javascript, etc.
 
- * [Replace `{}` Brace Syntax with Python-style indentation](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/003656.html): Surely a polarizing issue, but Swift will not change to use indentation for scoping instead of curly braces..
+ * [Replace `{}` Brace Syntax with Python-style indentation](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/003656.html): Surely a polarizing issue, but Swift will not change to use indentation for scoping instead of curly braces.
 
  * [Replace Logical Operators (`&&`, `||`, etc) with words like "and" and "or"](https://lists.swift.org/pipermail/swift-evolution/2015-December/000032.html): The operator and identifier grammars are intentionally partitioned in Swift, which is a key part to how user defined overloaded operators are supported.
 
