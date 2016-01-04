@@ -312,7 +312,7 @@ On the other hand, variables of existential types, which have `Self` or associat
 
 ```swift
 func compareTwo(first: Comparable, _ second: Comparable) -> Int {  // ok
-  if first < second {  // error!
+  if first < second {                                              // error!
     return -1
   }
   //...
