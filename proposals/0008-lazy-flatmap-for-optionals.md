@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0008](https://github.com/apple/swift-evolution/blob/master/proposals/0008-lazy-flatmap-for-optionals.md)
 * Author(s): [Oisin Kidney](https://github.com/oisdk)
-* Status: **Awaiting review**
+* Status: **Accepted for Swift 2.2** ([Bug](https://bugs.swift.org/browse/SR-361))
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction ##
@@ -20,7 +20,7 @@ And another which flattens a sequence of `Optional`s:
 ```swift
 (1...10)
   .flatMap { n in n % 2 == 0 ? n/2 : nil }
-[1, 2, 3, 4, 5]
+// [1, 2, 3, 4, 5]
 ```
 
 However, there is only a lazy implementation for the first version:

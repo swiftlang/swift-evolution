@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0009](https://github.com/apple/swift-evolution/blob/master/proposals/0009-require-self-for-accessing-instance-members.md)
 * Author(s): [David Hart](https://github.com/hartbit)
-* Status: **Awaiting review**
+* Status: **Under review** (December 16--20, 2015)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction
@@ -128,7 +128,7 @@ An alternative would be to demote from a compiler error to a warning.
 * "I actually encountered at least two bugs in my app introduced by this implicit "self" behavior. It can be dangerous and hard to track down." -- Rudolf Adamkovic, salutis@me.com
 * "Given this, some teams use underscores for their iVars which is very unfortunate. Myself, I use self whenever possible to be explicit. I'd like the language to force us to be clear." -- Dan, robear18@gmail.com
 * "I'm not sure how many Swift users this effects, but I'm colorblind and I really struggle with the local vs properties syntax coloring." -- Tyler Cloutier, cloutiertyler@aol.com
-* "+1 I've had a lot of weird things happen that I've traced to mistakes in properties having the same name as function arguments. I've hardly ever had this issue in modern Obj-C." -- Coli Cornaby, colin.cornaby@mac.com
+* "+1 I've had a lot of weird things happen that I've traced to mistakes in properties having the same name as function arguments. I've hardly ever had this issue in modern Obj-C." -- Colin Cornaby, colin.cornaby@mac.com
 * "Teaching wise, its much less confusing for self to be required so students don't mix up instance properties and local vars. Especially when self is required in closures, it confuses students. If self is mandatory for all instance properties, it would be so much clearer and much easier to read." -- Yichen Cao, ycao@me.com
 * "this avoids confusion, maintains a consistent language approach, and thus helps reducing bugs. Sure, it might lead to less poetic haiku code, but that is not necessarily a bad thing in medium to large scale software products with more than one person working on it and possible/eventual change of people on the project over time." -- Panajev
 * "I'm +1 on this, for the reasons already stated by others, but not as strongly as I was a year ago. I was very worried about this with Swift 1 was first released, but since then, I haven't actually made this mistake, possibly because I'm so paranoid about it." -- Michael Buckley, michael@buckleyisms.com

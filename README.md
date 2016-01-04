@@ -4,9 +4,10 @@
 
 This repository tracks the ongoing evolution of Swift. It contains:
 
-* Goals for upcoming Swift releases (this document)
-* The [Swift evolution review schedule](schedule.md) tracking proposals to change Swift
+* Goals for upcoming Swift releases (this document).
+* The [Swift evolution review schedule](schedule.md) tracking proposals to change Swift.
 * The [Swift evolution process](process.md) that governs the evolution of Swift.
+* [Commonly Rejected Changes](commonly_proposed.md), proposals which have been denied in the past.
 
 This document describes goals for the Swift language on a per-release
 basis, usually listing minor releases adding to the currently shipping
@@ -21,7 +22,7 @@ definitive list of notable changes in each release.
 
 ## Development major version:  Swift 3.0
 
-Expected release date: Fall 2016
+Expected release date: Late 2016
 
 The primary goal of this release is to stabilize the binary interface
 of the language and standard library. As part of this process, we will
@@ -96,6 +97,7 @@ sampling of potentially good ideas that are not in scope for Swift
 * [Removing currying `func` declaration syntax](proposals/0002-remove-currying.md)
 * [Removing `var` from Function Parameters and Pattern Matching](proposals/0003-remove-var-parameters-patterns.md)
 * [Remove the `++` and `--` operators](proposals/0004-remove-pre-post-inc-decrement.md)
+* [Remove C-style for-loops with conditions and incrementers](proposals/0007-remove-c-style-for-loops.md)
 
 ## Development minor version:  Swift 2.2
 
@@ -111,8 +113,12 @@ fundamentally change the way Swift is used. As a step toward Swift
 changes in Swift 3.0 so that users can begin migrating their code
 sooner.
 
-### Accepted proposals for Swift 2.2
+### Implemented proposals for Swift 2.2
 
 * [Allow (most) keywords as argument labels](proposals/0001-keywords-as-argument-labels.md)
+
+### Accepted proposals for Swift 2.2
+* [Add a Lazy flatMap for Sequences of Optionals](proposals/0008-lazy-flatmap-for-optionals.md)
+
 
 [swift-evolution-mailing-list]: mailto:swift-evolution@swift.org  "The swift-evolution mailing list"

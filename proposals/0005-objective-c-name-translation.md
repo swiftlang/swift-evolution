@@ -383,7 +383,7 @@ button.<b>setText</b>(.red())      <b>// appears to be setting the text!</b>
 
   This heuristic has the effect of preventing us from producing
   too-generic names for methods that conceptually modify a property
-  of the classs.
+  of the class.
 
   <pre>
 var <b>gestureRecognizers</b>: [UIGestureRecognizer]
