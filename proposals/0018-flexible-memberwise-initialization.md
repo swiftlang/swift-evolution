@@ -290,7 +290,7 @@ struct S {
 
 The rules of the current proposal are designed to synthesize memberwise parameters for the correct set of properties as best as possible.  Of course there will be times when the rules don't match what is desired.
 
-Introducing a `memberwise` delcaration modifier for properties would allow programmers to specify exactly which properties should participate in memberwise initialization synthesis.  It allows full control and has the clarity afforeded by being explicit.
+Introducing a `memberwise` declaration modifier for properties would allow programmers to specify exactly which properties should participate in memberwise initialization synthesis.  It allows full control and has the clarity afforded by being explicit.
 
 Specifc use cases this feature would support include allowing `private` properties to receive synthesized memberwise parameters in a `public` initializer, or allow `public` properties to be ommitted from parameter synthesis.
 
@@ -299,12 +299,12 @@ An example of this
 ```swift
 struct S {
   // both properties receive memberwise initialization parameters
-  // regarless of access control
+  // regardless of access control.
   memberwise public let s: String
   memberwise private let i: Int
 
-  // neither property receives a memberwis initialization parameter
-  // regardless of access control
+  // neither property receives a memberwise initialization parameter
+  // regardless of access control.
   public var s2 = ""
   private var i2 = 42
 
@@ -438,7 +438,7 @@ This is a reasonable option and and I expect a healthy debate about which defaul
 3. Stored properties with **less visibility** than a memberwise initializer are not eligible for memberwise initialization.  No annotation is required to indicate that and it is usually not desired.
 4. The *automatic* model cannot exist unless it is the default.  The *opt-in* model can exist alongside the *automatic* model and itself be opted-into simply by specifying the `memberwise` declaration modifier on one or more properties.
 
-I do think a strong argument can be made that it may be **more clear** to require a `memberwise` declaration modifier on stored properties in order to *opt-in* to memberwise initialization.  Community members who would prefer to use the *opt-in* model are encouraged to voice their opinion and support following this proposal up with an enhancement proposal adding that option.
+I do think a strong argument can be made that it may be **more clear** to require a `memberwise` declaration modifier on stored properties in order to *opt-in* to memberwise initialization.  
 
 ### Allow all initializers to participate in memberwise initialization
 
