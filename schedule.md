@@ -22,7 +22,7 @@ proposals in that process.
 * [SE-0013: Remove Partial Application of Non-Final Super Methods](proposals/0013-remove-partial-application-super.md)
 * [SE-0016: Adding initializers to Int and Uint to convert from UnsafePointer and UnsafeMutablePointer](proposals/0016-initializers-for-converting-unsafe-pointers-to-ints.md)
 * [SE-0017: Change `Unmanaged` to use `UnsafePointer`](proposals/0017-convert-unmanaged-to-use-unsafepointer.md)
-
+* [SE-0020: Swift Language Version Build Configuration](proposals/0020-if-swift-version.md)
 
 
 [evolution-process]: process.md  "The Swift evolution process"

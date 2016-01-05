@@ -1,9 +1,9 @@
 # Swift Language Version Build Configuration
 
-* Proposal: [SE-0018](https://github.com/apple/swift-evolution/blob/master/proposals/0018-if-swift-version.md)
+* Proposal: [SE-0020](https://github.com/apple/swift-evolution/blob/master/proposals/0020-if-swift-version.md)
 * Author(s): [David Farler](https://github.com/bitjammer)
-* Status: **Review**
-* Review manager: TBD
+* Status: **Awaiting review**
+* Review manager: Doug Gregor
 
 ## Introduction
 
