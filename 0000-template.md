@@ -2,7 +2,7 @@
 
 * Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-name.md)
 * Author(s): [Swift Developer](https://github.com/swiftdev)
-* Status: **Review**
+* Status: **Awaiting rview**
 * Review manager: TBD
 
 ## Introduction
