@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0010](https://github.com/apple/swift-evolution/blob/master/proposals/0010-add-staticstring-unicodescalarview.md)
 * Author: [Kevin Ballard](https://github.com/kballard)
-* Status: **Awaiting review**
+* Status: **Awaiting review** (January 6...7, 2016)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction
