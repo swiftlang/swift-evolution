@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0015](https://github.com/apple/swift-evolution/blob/master/proposals/0015-tuple-comparison-operators.md)
 * Author(s): [Kevin Ballard](https://github.com/kballard)
-* Status: **Awaiting review** (December 21--22, 2015)
+* Status: **Implemented in Swift 2.2** ([Pull request](https://github.com/apple/swift/pull/408))
 * Review manager: [Dave Abrahams](https://github.com/dabrahams)
 
 ## Introduction
