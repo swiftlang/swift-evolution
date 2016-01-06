@@ -119,6 +119,7 @@ sooner.
 
 ### Accepted proposals for Swift 2.2
 * [Add a Lazy flatMap for Sequences of Optionals](proposals/0008-lazy-flatmap-for-optionals.md)
+* [Constraining `AnySequence.init`](proposals/0014-constrained-AnySequence.md)
 
 
 [swift-evolution-mailing-list]: mailto:swift-evolution@swift.org  "The swift-evolution mailing list"
