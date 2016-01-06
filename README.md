@@ -117,10 +117,10 @@ sooner.
 
 * [Allow (most) keywords as argument labels](proposals/0001-keywords-as-argument-labels.md)
 * [Tuple comparison operators](proposals/0015-tuple-comparison-operators.md)
+* [Constraining `AnySequence.init`](proposals/0014-constrained-AnySequence.md)
 
 ### Accepted proposals for Swift 2.2
 * [Add a Lazy flatMap for Sequences of Optionals](proposals/0008-lazy-flatmap-for-optionals.md)
-* [Constraining `AnySequence.init`](proposals/0014-constrained-AnySequence.md)
 
 
 [swift-evolution-mailing-list]: mailto:swift-evolution@swift.org  "The swift-evolution mailing list"
