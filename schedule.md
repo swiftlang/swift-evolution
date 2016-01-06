@@ -6,7 +6,6 @@ proposals in that process.
 
 ## Active reviews
 
-* December 16...20, 2015: [SE-0009: Require self for accessing instance members  ](proposals/0009-require-self-for-accessing-instance-members.md)
 * January 3...6, 2016: [SE-0011: Replace `typealias` keyword with `associatedtype` for associated type declarations](proposals/0011-replace-typealias-associated.md)
 
 ## Upcoming reviews

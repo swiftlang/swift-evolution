@@ -28,3 +28,4 @@ Here are some other less-commonly proposed changes that have also been rejected:
 
 * [Remove support for `default:` in Switch, and just use `case _:`](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151207/001422.html): `default` is widely used, `case _` is too magical, and default is widely precedented in many C family languages.
 
+* [SE-0009: Require self for accessing instance members  ](proposals/0009-require-self-for-accessing-instance-members.md)
