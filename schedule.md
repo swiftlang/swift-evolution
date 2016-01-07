@@ -8,10 +8,10 @@ proposals in that process.
 
 * January 3...6, 2016: [SE-0011: Replace `typealias` keyword with `associatedtype` for associated type declarations](proposals/0011-replace-typealias-associated.md)
 * January 6...10, 2016: [SE-0018: Flexible Memberwise Initialization](proposals/0018-flexible-memberwise-initialization.md)
+* January 6...8, 2016: [SE-0010: Add StaticString.UnicodeScalarView](proposals/0010-add-staticstring-unicodescalarview.md)
 
 ## Upcoming reviews
 
-* January 6...7, 2016: [SE-0010: Add StaticString.UnicodeScalarView](proposals/0010-add-staticstring-unicodescalarview.md)
 * January 7...11, 2016: [SE-0013: Remove Partial Application of Non-Final Super Methods](proposals/0013-remove-partial-application-super.md)
 
 ## Proposals awaiting scheduling
