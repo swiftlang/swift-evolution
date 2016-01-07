@@ -81,7 +81,7 @@ control over the process.
 
 4. **Add first argument labels**: If the first parameter of a method is defaulted, [it should have an argument label](https://swift.org/documentation/api-design-guidelines.html#first-argument-label). Determine a first argument label for that method.
 
-5. **Prepend "is" to Boolean properties**: [Boolean properties should read as assertions on the receiver](https://swift.org/documentation/api-design-guidelines.html#first-argument-label), but the Objective-C Coding Guidelines for Cocoa [prohibit the use of "is" on properties](https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/CodingGuidelines/Articles/NamingIvarsAndTypes.html#//apple_ref/doc/uid/20001284-BAJGIIJE). Import such properties with "is" prepended.
+5. **Prepend "is" to Boolean properties**: [Boolean properties should read as assertions on the receiver](https://swift.org/documentation/api-design-guidelines.html#boolean-assertions), but the Objective-C Coding Guidelines for Cocoa [prohibit the use of "is" on properties](https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/CodingGuidelines/Articles/NamingIvarsAndTypes.html#//apple_ref/doc/uid/20001284-BAJGIIJE). Import such properties with "is" prepended.
 
 6. **Strip the "NS" prefix from Foundation APIs**: Foundation is a
 fundamental part of the [Swift Core Libraries][core-libraries], and
