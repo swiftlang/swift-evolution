@@ -225,11 +225,13 @@ The *implicitly* synthesized initializer will be identical to an initializer dec
 
 NOTE: Because the `memberwise` declaration modifier only applies to designated initializers, it may not be used with class initializers defined in an extension.  It may be used with struct initializers defined in an extension as long as all of the struct's stored properties are visible to the extension.
 
-The changes described in this proposal are *almost* entirely additive.  The only impact on existing code will be in the case of structs with stored `private` properties or `var` properties that have `private` setters which had been receiving an `internal` implicitly synthesized memberwise initializer.  Options for addressing this impact are:
+The changes described in this proposal are *almost* entirely additive.  The only existing code that will break will be in the case of structs with stored `private` properties or `var` properties that have `private` setters which had been receiving an `internal` implicitly synthesized memberwise initializer.  Options for addressing this impact are:
 
 1. If the implicitly synthesized memberwise initializer was only used *within* the same source file no change is necessary.  An implicit `private` memberwise initializer will still be synthesized by the compiler.
 2. A mechanical migration could generate the explicit code necessary to declare the previously implicit initializer.  This would be an `internal` memberwise initializer with *explicit* parameters used to manually initialize the stored properties with `private` setters.
 3. If the "Access control for init" enhancement were accepted the `private` members could have their access control modified to `private internal(init)` which would allow the implict memberwise intializer to continue to have `internal` visibility as all stored properties would be eligible for parameter synthesis by an `internal` memberwise initializer.
+
+The only other impact on existing code is that memberwise parameters corresponding to `var` properties with initial values will now have default values.  This will be a change in the behavior of the implicit memberwise initializer but will not break any code.  The change will simply allow new code to use that initializer without providing an argument for such parameters.
 
 ## Future enhancements
 
