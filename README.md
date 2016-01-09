@@ -121,6 +121,7 @@ sooner.
 
 ### Accepted proposals for Swift 2.2
 * [Add a Lazy flatMap for Sequences of Optionals](proposals/0008-lazy-flatmap-for-optionals.md)
+* [Replace `typealias` keyword with `associatedtype` for associated type declarations](proposals/0011-replace-typealias-associated.md)
 
 
 [swift-evolution-mailing-list]: mailto:swift-evolution@swift.org  "The swift-evolution mailing list"
