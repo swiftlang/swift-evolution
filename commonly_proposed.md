@@ -6,7 +6,7 @@ Several of the discussions below refer to "C Family" languages.  This is intende
 
  * [Replace `{}` Brace Syntax with Python-style indentation](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/003656.html): Surely a polarizing issue, but Swift will not change to use indentation for scoping instead of curly braces.
 
- * [Replace Logical Operators (`&&`, `||`, etc) with words like "and" and "or"](https://lists.swift.org/pipermail/swift-evolution/2015-December/000032.html): The operator and identifier grammars are intentionally partitioned in Swift, which is a key part to how user defined overloaded operators are supported.
+ * [Replace Logical Operators (`&&`, `||`, etc) with words like "and" and "or"](https://lists.swift.org/pipermail/swift-evolution/2015-December/000032.html), [allowing non-punctuation as operators](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160104/005669.html) and infix functions: The operator and identifier grammars are intentionally partitioned in Swift, which is a key part to how user defined overloaded operators are supported.  Requiring the compiler to see the "operator" declaration to know how to parse a file would break the ability to be able to parse a Swift file without parsing all of its imports.  This has a major negative effect on tooling support.
 
  * [Replace `?:` Ternary Operator](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/002609.html): Definitely magical, but it serves a very important use-case for terse selection of different values.  Proposals for alternatives have been intensely discussed, but none have been "better enough" for it to make sense to diverge from the precedent established by the C family of languages.
 
