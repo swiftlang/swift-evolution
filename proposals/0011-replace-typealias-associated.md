@@ -6,7 +6,7 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction
-y
+
 The `typealias` keyword is currently used to declare two kinds of types:
 
 1. Type Aliases (alternative name for an existing type)
