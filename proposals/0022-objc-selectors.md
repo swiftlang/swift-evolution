@@ -65,7 +65,7 @@ translate string-literals-as-selectors into method references. Doing
 this well is non-trivial, requiring the compiler/migrator to find all
 of the declarations with a particular Objective-C selector and
 determine which one to reference. However, it should be feasible, and
-we can migrator other references to a specific, string-based
+we can migrate other references to a specific, string-based
 initialization syntax (e.g., `Selector("insertSubview:atIndex:")`).
 
 ## Detailed design
@@ -125,3 +125,8 @@ APIs (100-ish), and many of those have blocks/closure-based variants
 that are preferred anyway. Therefore, we should implement the simpler
 feature in this proposal rather than the far more complicated (but
 admittedly more type-safe) alternative approach.
+
+Syntactically, `@selector(method reference)` would match Objective-C
+more closely, but it doesn't make sense in Swift where `@` always
+refers to attributes. `Selector` initialization syntax is far cleaner,
+since we are constructing an instance of a `Selector`.
