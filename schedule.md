@@ -12,6 +12,9 @@ proposals in that process.
 
 ## Upcoming reviews
 
+* January 13...18, 2016: [SE-0021: Naming Functions with Argument Labels](proposals/0021-generalized-naming.md)
+* January 17...22, 2016: [SE-0022: Referencing the Objective-C selector of a method
+](proposals/0022-objc-selectors.md)
 
 ## Proposals awaiting scheduling
 

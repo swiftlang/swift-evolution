@@ -1,9 +1,9 @@
 # Referencing the Objective-C selector of a method
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-objc-selectors.md)
+* Proposal: [SE-0022](https://github.com/apple/swift-evolution/blob/master/proposals/0022-objc-selectors.md)
 * Author(s): [Doug Gregor](https://github.com/DougGregor)
 * Status: **Awaiting review**
-* Review manager: TBD
+* Review manager: [Joe Groff](https://github.com/jckarter)
 
 ## Introduction
 

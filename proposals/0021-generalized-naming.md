@@ -1,9 +1,9 @@
 # Naming Functions with Argument Labels
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/0000-generalized-naming.md)
+* Proposal: [SE-0021](https://github.com/apple/swift-evolution/blob/master/proposals/0021-generalized-naming.md)
 * Author(s): [Doug Gregor](https://github.com/DougGregor)
 * Status: **Awaiting Review**
-* Review manager: TBD
+* Review manager: [Joe Groff](https://github.com/jckarter)
 
 ## Introduction
 
