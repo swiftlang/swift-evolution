@@ -4,6 +4,7 @@
 * Author(s): [Doug Gregor](https://github.com/DougGregor)
 * Status: **Awaiting Review**
 * Review manager: [Joe Groff](https://github.com/jckarter)
+* Implementation: [Here](https://github.com/DougGregor/swift/tree/se-0021-generalized-naming)
 
 ## Introduction
 
