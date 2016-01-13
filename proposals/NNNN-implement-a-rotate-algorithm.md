@@ -131,7 +131,7 @@ Extensions to CollectionType will be added. These extensions will rotate element
 ```Swift
 extension CollectionType where Index : ForwardIndexType {
     @warn_unused_result
-    public mutating func rotatingFirstFrom(middle: Index) -> Index {
+    public mutating func rotateFirstFrom(middle: Index) -> Index {
         if middle == startIndex { return startIndex }
 
         // Implement ForwardIndexType algorithm
@@ -142,7 +142,7 @@ extension CollectionType where Index : ForwardIndexType {
 
 extension CollectionType where Index : BidirectionalIndexType {
     @warn_unused_result
-    public mutating func rotatingFirstFrom(middle: Index) -> Index {
+    public mutating func rotateFirstFrom(middle: Index) -> Index {
         if middle == startIndex { return startIndex }
         
         // Implement BidirectionalIndexType algorithm
@@ -153,7 +153,7 @@ extension CollectionType where Index : BidirectionalIndexType {
 
 extension CollectionType where Index : RandomAccessIndexType {
     @warn_unused_result
-    public mutating func rotatingFirstFrom(middle: Index) -> Index {
+    public mutating func rotateFirstFrom(middle: Index) -> Index {
         if middle == startIndex { return startIndex }
         
         // Implement RandomAccessIndexType algorithm
@@ -167,21 +167,21 @@ Extensions to LazyCollectionType will be added:
 ```Swift
 extension LazyCollectionType where Index : ForwardIndexType {
     @warn_unused_result
-    public func rotatingFirstFrom(middle: Index) /* -> Return Type */ {
+    public func rotateFirstFrom(middle: Index) /* -> Return Type */ {
         // An eager algorithm can be implemented by copying lazy views to an array.
     }
 }
 
 extension LazyCollectionType where Index : BidirectionalIndexType {
     @warn_unused_result
-    public func rotatingFirstFrom(middle: Index) /* -> Return Type */ {
+    public func rotateFirstFrom(middle: Index) /* -> Return Type */ {
         // An eager algorithm can be implemented by copying lazy views to an array.
     }
 }
 
 extension LazyCollectionType where Index : RandomAccessIndexType {
     @warn_unused_result
-    public func rotatingFirstFrom(middle: Index) /* -> Return Type */ {
+    public func rotateFirstFrom(middle: Index) /* -> Return Type */ {
         // An eager algorithm can be implemented by copying lazy views to an array.
     }
 }
@@ -194,13 +194,15 @@ Unit tests will be implemented in `swift/test/1_stdlib/Rotate.swift`
 Example of rotating all elements of the collection:
 
 ```Swift
-let n1 = [1, 2, 3, 4, 5, 6, 7, 8, 9]
-let rotated = n1.rotatingFirstFrom(3)
-// rotated contains [4, 5, 6, 7, 8, 9, 1, 2, 3]
+var numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+numbers.rotateFirstFrom(3)
+expectEqual(numbers, [4, 5, 6, 7, 8, 9, 1, 2, 3])
+```
 
-var n2 = [1, 2, 3, 4, 5, 6, 7, 8, 9]
-n2.rotatingFirstFrom(3)
-// n2 contains [4, 5, 6, 7, 8, 9, 1, 2, 3]
+```Swift
+var numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+let rotated = numbers.rotatedFirstFrom(3)
+expectEqual(rotated, [4, 5, 6, 7, 8, 9, 1, 2, 3])
 ```
 
 ## Impact on existing code
