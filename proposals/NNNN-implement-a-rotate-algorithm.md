@@ -113,12 +113,15 @@ Implementation will return rotated sequence and an index of the old first elemen
 ```Swift
 extension CollectionType {
     @warn_unused_result
-    public func rotatingFirstFrom(middle: Index) -> (SubSequence, Index) {
-        // This should be handled by slicing and rotating slices.
-        // let sequence1 = self[middle..<endIndex]
-        // let sequence2 = self[startIndex..<middle]
-        // let result = [sequence1, sequence2].flatten()
-        // return (result, calculateIndexOfMidPoint())
+    public func rotatedFirstFrom(middle: Index) -> (FlattenSequence<Array<Self.SubSequence>>, Index) {
+        let slice1 = self[middle..<endIndex]
+        let slice2 = self[startIndex..<middle]
+        let flatten = [slice1, slice2].flatten()
+
+        let distance = middle.distanceTo(endIndex)
+        let index = startIndex.advancedBy(distance, limit: endIndex)
+
+        return (flatten, index)
     }
 }
 ```
