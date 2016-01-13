@@ -125,7 +125,7 @@ should be sent to the swift-evolution mailing list at
 or, if you would like to keep your feedback private, directly to the review
 manager.
 
-What goes into a review?
+##### What goes into a review?
 
 The goal of the review process is to improve the proposal under review
 through constructive criticism and, eventually, determine the direction of
