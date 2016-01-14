@@ -38,7 +38,7 @@ Or:
         └── Tests
             └── Test.swift
 
-Or, for simpler projects:
+Or, for projects with a single module:
 
     Package
     ├── Sources
@@ -46,6 +46,7 @@ Or, for simpler projects:
     └── Tests
         └── TestFoo.swift
         
+
 The filename: `TestFoo.swift` is arbitrary.
 
 In the examples above
@@ -68,19 +69,6 @@ Would create two test-modules. The modules in this example may
 test different aspects of the module Foo, it is entirely up
 to the package author.
 
-Additionally we will support directories called `FooTests`.
-This layout style is prevalent in existing open source projects
-and supporting it will minimize vexation for their authors.
-However in the interest of consistency and the corresponding 
-reduction of cognitive-load when examining new Swift packages
-we will not recommend this layout. For example:
-
-    Package
-    └── Sources
-    │   └── Foo.swift
-    └── FooTests
-        └── Test.swift
-
 Additionally, we propose that building a module
 also builds that module's corresponding tests.
 Although this would result in slightly increased build times,
@@ -95,25 +83,54 @@ not build tests because for release builds we should not enable
 testability. However, considering the need for release-mode testing
 this will be a future direction.
 
+This feature is controversial; many are worried always building
+tests will slow debug cycles. We understand these concerns but
+think knowing quickly tests have been broken by code changes is
+important. However we will provide an command line option to not
+build tests and will be open to reversing this decision in future
+should it be proven unwise.
+
+
 ### Command-Line Interface
 
-We propose the following syntax to execute tests:
-
-    $ swift build --test
-
-Or:
-
-    $ swift build -t
-
-In the future, we may choose to promote the `--test` option
-to be a subcommand of the `swift` command itself:
+We propose the following syntax to execute all tests:
 
     $ swift test
 
-However, any such decision would warrant extensive design consideration,
-so as to avoid polluting or crowding the command-line interface.
-Should there be sufficient demand and justification for it, though,
-it would be straightforward to add this functionality.
+The command line should accept the names of specific test cases to run:
+
+    swift test FooTestCase
+
+Or specific tests:
+
+    swift test FooTestCase.test1
+
+In the future we would like to support running specific kinds of tests:
+
+    swift test --kind=performance
+
+`swift test` would forward any other arguments to the underlying testing framework and it
+would decide how to interpret them.
+
+---
+
+Sometimes test sources cannot compile and fixing them is no the most
+pressing priority. Thus it will be posssible to skip building tests
+with an additional flag:
+
+    swift build --without-tests
+
+---
+
+It is desirable to sometimes specify to only build specific tests, the
+command line for this will fall out of future work that allows specification
+of targets that `swift build` should speficially build in isolation.
+
+---
+
+Users should be able to run the tests of all their dependencies.
+This is not the default behavior, but a flag will be provided.
+
 
 ### Command Output
 
@@ -147,14 +164,32 @@ An additional option may be passed to the testing command
 to output JUnit-style XML or other formats that can be integrated
 with continuous integration (CI) and other systems.
 
-### Backwards Compatibility
+Running `swift test` will not trigger a build. If the tests
+are not built, the tool will prompt the user to run
+`swift build` first.
 
-In order to accomodate existing packages,
-we will allow test module targets and their targets
-to be overridden in the `Package.swift` manifest file.
-However, this functionality will likely not be implemented
-in the initial release of this feature,
-and instead be added at a later point in time.
+
+### Test-only Dependencies
+
+There is already a mechanism to specify test-only dependencies.
+It is very basic, but a new proposal should be made for more
+advanced `Package.swift` functionality.
+
+This proposal also does not cover the need for utility code, ie.
+a module that is built for tests to consume that is provided as
+part of a package and is not desired to be an external package.
+This is something we would like to add as part of a future proposal.
+
+
+### Test-target configuration
+
+This proposal does not allow a test-module to have module dependencies
+from its own package, and thus there is no provided mechanism to 
+specify or configure tests in the `Package.swift` file.
+
+This will be added, but as part of a broader proposal for the future
+of the `Package.swift` file.
+
 
 ### Automatic Dependency Determination
 
@@ -167,6 +202,7 @@ a test for "Foo" will depend on compilation of the library target `Foo`.
 Any additional dependencies or dependencies that could not be automatically determined
 would need to be specified in a package manifest separately.
 
+
 ### Debug / Release Configuration
 
 Although tests built in debug configuration
@@ -177,12 +213,19 @@ such as when building in a release configuration to execute performance tests.
 We would like to eventually support these use cases,
 however this will not be present in the initial implementation of this feature.
 
+
 ### Testability
 
 Swift can build modules with "testability",
 which allows tests to access entities with `internal` access control.
 Because it would be tedious for users to specify this requirement for tests,
 we intend to build debug builds with testability by default.
+
+It is desirable that modules that are built for testing can identify this
+fact in their sources. Thus we will provide a define `-DSWIFT_TEST` for
+such test modules. This will be applied to any external dependencies specified
+in a `Pacakge.swift` `testDependencies` section (an existing feature).
+
 
 ### Test Frameworks
 
@@ -197,35 +240,6 @@ We expect that such an implementation would take the form of
 a Swift protocol that the package manager defines,
 which other testing frameworks can adopt.
 
-
-### Command Line Interface
-
-The command line should accept the names of specific test cases to run:
-
-    swift build -t FooTestCase
-
-Or specific tests:
-
-    swift build -t FooTestCase.test1
-
-SwiftPM would forward arguments to the underlying testing framework and it
-would decide how to interpret them.
-
----
-
-Sometimes test sources cannot compile and fixing them is no the most
-pressing priority. Thus it will be possible to skip building tests
-with an additional flag:
-
-    swift build --without-tests
-
----
-
-It is desirable to sometimes specify to only build specific tests, the
-command line for this will fall out of future work that allows specification
-of targets that `swift build` should specifically build in isolation.
-
-
 ## Impact On Existing Code
 
 Current releases of the package manager already exclude directories named
@@ -233,7 +247,43 @@ Current releases of the package manager already exclude directories named
 excluded, but as it stands this is a cause of compile failure, so in fact
 these changes will positively impact existing code.
 
+
 ## Alternatives Considered
 
-Because this is a relatively broad proposal,
-no complete alternatives were considered.
+We considered supporting the following layout:
+
+    Package
+    └── Sources
+    │   └── Foo.swift
+    └── FooTests
+        └── Test.swift
+
+This was considered because of the vast number of existing
+Xcode projects out there that are laid out in the fashion.
+However it was decided that the rules for these layouts are
+inconsistent with our existing simple set. When users experience
+unexpected consequences of layouts with our convention approach
+it can be confusing and tricky to diagnose, so we should instead
+submit another proposal in the future that allows easy
+configuration of targets in `Package.swift`.
+
+---
+We considered decoupling testing from SwiftPM altogether.
+
+However, since tests must be built and dependencies of tests
+must be managed complete decoupling is not possible. The coupling
+will be minimal, with a separate library and executable for tests,
+this is about as far as we think it is prudent to go.
+
+---
+
+We considered not baking in support for XCTest and only having
+a protocol for testing.
+
+We would like to get testing up to speed as soon as possible.
+Using XCTest allows this to occur. We also think there is value
+in packages being able to depend on a testing framework being 
+provided by the Swift system.
+
+However nothing stops us eventually making the support for XCTest
+work via our protocol system.
