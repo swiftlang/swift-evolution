@@ -7,9 +7,9 @@
 
 ## Introduction
 
-Going back and forth from Strings to their byte representations is an important part of solving many problems, including object serialization, binary and text file formats, wire/network interfaces, and cryptography. Swift has such utilities, currently only exposed through `String.Type.fromCString(_:)`.
+Going back and forth from Strings to their byte representations is an important part of solving many problems, including object serialization, binary and text file formats, wire/network interfaces, and cryptography. Swift has such utilities, but currently only exposed through `String.Type.fromCString(_:)` and `String.Type.fromCStringRepairingIllFormedUTF8(_:)`.
 
-See swift-evolution [thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160104/005951.html).
+See swift-evolution [thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160104/005951.html) and [draft proposal](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160111/006295.html).
 
 ## Motivation
 
@@ -17,42 +17,53 @@ In developing a parser, a coworker did the yeoman's work of benchmarking Swift's
 
 After reading through stdlib source and doing my own testing, this is no wives' tale. `fromCString` is essentially the only public-facing user of `String.Type._fromCodeUnitSequence(_:input:)`, which serves the exact role of both efficient and safe initialization-by-buffer-copy. After many attempts, I've concluded that the currently available `String` APIs are deficient, as they provide much worse performance without guaranteeing more Unicode safety.
 
-Of course, `fromCString(_:)` isn't a silver bullet; it has to have a null sentinel, and forces a UTF-8 encoding. This requires either a copy of the origin buffer if a terminator needs to be added or the much slower character-by-character append path, as is the case with formats that specify the length up front, or unstructured payloads that use unescaped double quotes as the terminator. It also prevents the string itself from containing the null character. Finally, the `fromCString(_:)` constructor requires a call to `strlen`, even if that's already been calculated in client
+Of course, `fromCString(_:)` isn't a silver bullet; it forces a UTF-8 encoding with a null sentinel, requiring either a copy of the origin buffer or regressing to the much slower character-by-character append path if a terminator needs to be added. This is the case with formats that specify the length up front, or unstructured payloads that use another terminator). It also prevents the string itself from containing the null character. Finally, the `fromCString(_:)` constructor requires a call to `strlen`, even if that's already been calculated in users' code.
 
 # Proposed solution
 
-I'd like to expose `String.Type._fromCodeUnitSequence(_:input:)` as public API:
+I'd like to expose an equivalent to `String.Type._fromCodeUnitSequence(_:input:)` as public API:
 
 ```swift
-init?<Input: CollectionType, Encoding: UnicodeCodecType where Encoding.CodeUnit == Input.Generator.Element>(codeUnits input: Input, encoding: Encoding.Type)
+static func decodeCString<Encoding: UnicodeCodecType, Input: CollectionType where Input.Generator.Element == Encoding.CodeUnit>(_: Input, as: Encoding.Type, repairingInvalidCodeUnits: Bool = default)
 ```
 
-And, for consistency with `String.Type.fromCStringRepairingIllFormedUTF8(_:)`,
-exposing `String.Type._fromCodeUnitSequenceWithRepair(_:input:)`:
+For convenience, the `Bool` flag here is also separated out to a more common-case pair of `String` initializers:
+
+```
+init<...>(cString: Input, as: Encoding.Type)
+init?<...>(validatingCString: Input, as: Encoding.Type)
+```
+
+Finally, for more direct compatibility with `String.Type.fromCString(_:)` and `String.Type.fromCStringRepairingIllFormedUTF8(_:)`, these constructors are overloaded for pointer-based strings of unknown length:
 
 ```swift
-static func fromCodeUnitsWithRepair<Input: CollectionType, Encoding: UnicodeCodecType where Encoding.CodeUnit == Input.Generator.Element>(input: Input, encoding: Encoding.Type)
+init(cString: UnsafePointer<CChar>)
+init?(validatingCString: UnsafePointer<CChar>)
 ```
 
 ## Detailed design
 
 See [full implementation](https://github.com/apple/swift/compare/master...zwaldowski:string-from-code-units).
 
-This is a fairly straightforward renaming of the internal APIs.
+We start by backporting the [Swift 3.0](https://github.com/apple/swift/commit/f4aaece75e97379db6ba0a1fdb1da42c231a1c3b) versions of the `CString` constructors, then making them generic over their input and codec.
 
-The initializer, its labels, and their order were chosen to match other non-cast initializers in the stdlib. "Sequence" was removed, as it was a misnomer. "input" was kept as a generic name in order to allow for future refinements.
+This is a fairly straightforward renaming of the internal APIs. The initializer, its labels, and their order were chosen to match other non-cast initializers in the stdlib. "Sequence" was removed, as it was a misnomer. "input" was kept as a generic name in order to allow for future refinements.
 
-The static initializer made the same changes, but was otherwise kept as a factory function due to its multiple return values.
+These new constructors swap the expectations for the default: `fromCString` could fail on invalid code unit sequences, but `init(cString:)` will unconditionally succeed. This, as proposed against Swift 3, should "most probably [be] the right thing".
 
-`String.Type._fromWellFormedCodeUnitSequence(_:input:)` was kept as-is for internal use. I assume it wouldn't be good to expose publicly because, for lack of a better phrase, we only "trust" the stdlib to accurately know the wellformedness of their code units. Since it is a simple call through, its use could be elided throughout the stdlib.
+The backported constructors follow the Swift 3.0 naming guidelines, and presumably won't require any more changes after implementing this proposal.
 
-The new exposure can continue to work the old way through the use of `strlen`, while also allowing users to specify arbitrary code unit sequences through `UnsafeBufferPointer`.
+The new API has overloads that continue to work the old `strlen` way, while allowing users to specify arbitrary code unit sequences through `UnsafeBufferPointer`. Low-level performance benefits like these are extremely important to performance-sensitive code. In the case of reading from buffers of unknown length, keeping copies low is vital.
 
-Low-level performance benefits like these are extremely important to performance-sensitive code. In the case of reading from buffers of unknown length, keeping copies low is vital.
+The use of `String.Type._fromWellFormedCodeUnitSequence(_:input:)` was replaced with the new public API.
+
+The consistent use of `CString` for this new family of methods may cause some concern, depending on how pedantic ones' definition of a "C string" is. Ultimately, "CString" was chosen for consistency over "codeUnits" (like `_StringCore` or "bytes" (like `NSString`) to bridge the gap between C compatibility and intentionally low-level code without going full-bore and naming things "unsafe". Plus, `decodeCodeUnits` sounds annoying.
 
 ## Impact on existing code
 
-This is an additive change to the API.
+`String.Type.fromCString(_:)` and `String.Type.fromCStringRepairingIllFormedUTF8(_:)` are replaced with `String.init(validatingCString:)` and `String.init(cString:)`, respectively. Do note that this is a reversal of the default expectations, as discussed above.
+
+The old methods forward to the new signatures with deprecation attributes, presumably to be removed in Swift 3.0.
 
 ## Alternatives considered
 
@@ -60,10 +71,6 @@ This is an additive change to the API.
 
 This seems suboptimal. For many use cases, `String` lacking this constructor is
 a limiting factor on performance for many kinds of pure-Swift implementations.
-
-* Adapt `fromCString(_:)`.
-
-Seems to be the tack taken in [Swift 3](https://github.com/apple/swift/commit/f4aaece75e97379db6ba0a1fdb1da42c231a1c3b) thus far. That's less API surface area, and with internal clients using the same public API. That would constitute an API change, though.
 
 * A protocol-oriented API.
 
