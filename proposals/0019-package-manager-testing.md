@@ -93,17 +93,18 @@ should it be proven unwise.
 
 ### Command-Line Interface
 
-We propose the following syntax to execute all tests:
+We propose the following syntax to execute all tests (though not the tests
+of any dependent packages):
 
     $ swift test
 
 The command line should accept the names of specific test cases to run:
 
-    swift test FooTestCase
+    swift test TestModule.FooTestCase
 
 Or specific tests:
 
-    swift test FooTestCase.test1
+    swift test TestModule.FooTestCase.test1
 
 In the future we would like to support running specific kinds of tests:
 
@@ -164,9 +165,10 @@ An additional option may be passed to the testing command
 to output JUnit-style XML or other formats that can be integrated
 with continuous integration (CI) and other systems.
 
-Running `swift test` will not trigger a build. If the tests
-are not built, the tool will prompt the user to run
-`swift build` first.
+Running `swift test` will firstly trigger a build. We feel this
+is the most expected result considering tests must be built before
+they can be run and almost all other tools build before running
+tests. However we will provide a flag to not build first.
 
 
 ### Test-only Dependencies
@@ -222,9 +224,7 @@ Because it would be tedious for users to specify this requirement for tests,
 we intend to build debug builds with testability by default.
 
 It is desirable that modules that are built for testing can identify this
-fact in their sources. Thus we will provide a define `-DSWIFT_TEST` for
-such test modules. This will be applied to any external dependencies specified
-in a `Pacakge.swift` `testDependencies` section (an existing feature).
+fact in their sources. Thus at a future time we will provide a define.
 
 
 ### Test Frameworks
