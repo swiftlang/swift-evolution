@@ -2,9 +2,9 @@
 
 ## Under review
 
-* [0010 Add StaticString.UnicodeScalarView](0010-add-staticstring-unicodescalarview.md)
-* [0013 Remove Partial Application of Non-Final Super Methods (Swift 2.2)](0013-remove-partial-application-super.md)
-* [0020 Swift Language Version Build Configuration](0020-if-swift-version.md)
+* [0010 Add StaticString.UnicodeScalarView](0010-add-staticstring-unicodescalarview.md) (January 6...8, 2016)
+* [0013 Remove Partial Application of Non-Final Super Methods (Swift 2.2)](0013-remove-partial-application-super.md) (January 9...13, 2016)
+* [0020 Swift Language Version Build Configuration](0020-if-swift-version.md) (January 12...17, 2016)
 * [0021 Naming Functions with Argument Labels](0021-generalized-naming.md)
 
 ## Awaiting review
@@ -43,4 +43,3 @@ None.
 
 * [0009 Require self for accessing instance members](0009-require-self-for-accessing-instance-members.md)
 * [0018 Flexible Memberwise Initialization](0018-flexible-memberwise-initialization.md)
-
