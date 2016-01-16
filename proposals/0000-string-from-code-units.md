@@ -24,14 +24,14 @@ Of course, `fromCString(_:)` isn't a silver bullet; it forces a UTF-8 encoding w
 I'd like to expose an equivalent to `String.Type._fromCodeUnitSequence(_:input:)` as public API:
 
 ```swift
-static func decodeCString<Encoding: UnicodeCodecType, Input: CollectionType where Input.Generator.Element == Encoding.CodeUnit>(_: Input, as: Encoding.Type, repairingInvalidCodeUnits: Bool = default)
+static func decode<Encoding: UnicodeCodecType, Input: CollectionType where Input.Generator.Element == Encoding.CodeUnit>(_: Input, as: Encoding.Type, repairingInvalidCodeUnits: Bool = default)
 ```
 
 For convenience, the `Bool` flag here is also separated out to a more common-case pair of `String` initializers:
 
 ```
-init<...>(cString: Input, as: Encoding.Type)
-init?<...>(validatingCString: Input, as: Encoding.Type)
+init<...>(codeUnits: Input, as: Encoding.Type)
+init?<...>(validatingCodeUnits: Input, as: Encoding.Type)
 ```
 
 Finally, for more direct compatibility with `String.Type.fromCString(_:)` and `String.Type.fromCStringRepairingIllFormedUTF8(_:)`, these constructors are overloaded for pointer-based strings of unknown length:
@@ -49,7 +49,7 @@ We start by backporting the [Swift 3.0](https://github.com/apple/swift/commit/f4
 
 This is a fairly straightforward renaming of the internal APIs. The initializer, its labels, and their order were chosen to match other non-cast initializers in the stdlib. "Sequence" was removed, as it was a misnomer. "input" was kept as a generic name in order to allow for future refinements.
 
-These new constructors swap the expectations for the default: `fromCString` could fail on invalid code unit sequences, but `init(cString:)` will unconditionally succeed. This, as proposed against Swift 3, should "most probably [be] the right thing".
+These new constructors swap the expectations for the default: `fromCString` could fail on invalid code unit sequences, but `init(cString:)` will unconditionally succeed. This, as developed against Swift 3, should "most probably [be] the right thing".
 
 The backported constructors follow the Swift 3.0 naming guidelines, and presumably won't require any more changes after implementing this proposal.
 
@@ -57,13 +57,11 @@ The new API has overloads that continue to work the old `strlen` way, while allo
 
 The use of `String.Type._fromWellFormedCodeUnitSequence(_:input:)` was replaced with the new public API.
 
-The consistent use of `CString` for this new family of methods may cause some concern, depending on how pedantic ones' definition of a "C string" is. Ultimately, "CString" was chosen for consistency over "codeUnits" (like `_StringCore` or "bytes" (like `NSString`) to bridge the gap between C compatibility and intentionally low-level code without going full-bore and naming things "unsafe". Plus, `decodeCodeUnits` sounds annoying.
-
 ## Impact on existing code
 
 `String.Type.fromCString(_:)` and `String.Type.fromCStringRepairingIllFormedUTF8(_:)` are replaced with `String.init(validatingCString:)` and `String.init(cString:)`, respectively. Do note that this is a reversal of the default expectations, as discussed above.
 
-The old methods forward to the new signatures with deprecation attributes, presumably to be removed in Swift 3.0.
+The old methods refer to the new signatures using deprecation attributes, presumably for removal in Swift 3.0.
 
 ## Alternatives considered
 
