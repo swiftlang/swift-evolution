@@ -136,6 +136,7 @@ sooner.
 * [Remove Partial Application of Non-Final Super Methods (Swift 2.2)](proposals/0013-remove-partial-application-super.md) (SE-0013, Jan 9-13)
 * [Swift Language Version Build Configuration](proposals/0020-if-swift-version.md) (SE-0020, Jan 12-17)
 * [Naming Functions with Argument Labels](proposals/0021-generalized-naming.md) (SE-0021, Jan 13-18)
+* [Referencing the Objective-C selector of a method](proposals/0022-objc-selectors.md) (SE-0022, Jan 17-22)
 
 ### Scheduled for Review
 
@@ -144,7 +145,6 @@ sooner.
 * [Add @noescape to public library API](proposals/0012-add-noescape-to-public-library-api.md) (SE-0012)
 * [Add initializers to Int and Uint to convert from UnsafePointer and UnsafeMutablePointer](proposals/0016-initializers-for-converting-unsafe-pointers-to-ints.md) (SE-0016)
 * [Change Unmanaged to use UnsafePointer](proposals/0017-convert-unmanaged-to-use-unsafepointer.md) (SE-0017)
-* [Referencing the Objective-C selector of a method](proposals/0022-objc-selectors.md) (SE-0022)
 
 ### Returned for Revision
 * [Flexible Memberwise Initialization](proposals/0018-flexible-memberwise-initialization.md) (SE-0018)
