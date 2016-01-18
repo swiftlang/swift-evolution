@@ -67,8 +67,15 @@ The old methods refer to the new signatures using deprecation attributes, presum
 
 * Do nothing.
 
-This seems suboptimal. For many use cases, `String` lacking this constructor is
-a limiting factor on performance for many kinds of pure-Swift implementations.
+This seems suboptimal. For many use cases, `String` lacking this constructor is a limiting factor on performance for many kinds of pure-Swift implementations.
+
+* A `String.UTF8View` and `String.UTF16View` solution
+
+(See also "Make `String.append(_:)` faster")
+
+Make `String.UTF8View` and `String.UTF16View` mutable (a la `String.UnicodeScalarView`) with amortized O(1) `append(_:)`/`appendContentsOf(_:)`. At least on the `String.UTF16View` side, this would be a simple change lifting the `append(_:)` from `String.UnicodeScalarView`. This would serve advanced use cases well, including supplanting `String.Type._fromWellFormedCodeUnitSequence(_:input:)`.
+
+This might be the better long-term solution from the perspective of API maintenance, but in the meantime this proposal has a fairly low impact.
 
 * A protocol-oriented API.
 
