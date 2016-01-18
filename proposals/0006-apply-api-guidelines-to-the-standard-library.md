@@ -29,7 +29,7 @@ On high level, the changes can be summarized as follows.
 
 * The concept of `generator` is renamed to `iterator`.
 
-* `IndexingGenerator` is renamed to `DefaultCollectionIterator`.
+* `IndexingGenerator` is renamed to `CollectionDefaultIterator`.
 
 **More changes will be summarized here as they are implemented.**
 
