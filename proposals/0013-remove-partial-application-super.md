@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0013](https://github.com/apple/swift-evolution/blob/master/proposals/0013-remove-partial-application-super.md)
 * Author(s): [David Farler](https://github.com/bitjammer)
-* Status: **Awaiting review**
+* Status: **Under review** (January 9...13, 2016)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction

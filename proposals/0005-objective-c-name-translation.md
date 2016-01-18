@@ -81,13 +81,15 @@ control over the process.
 
 4. **Add first argument labels**: If the first parameter of a method is defaulted, [it should have an argument label](https://swift.org/documentation/api-design-guidelines.html#first-argument-label). Determine a first argument label for that method.
 
-5. **Prepend "is" to Boolean properties**: [Boolean properties should read as assertions on the receiver](https://swift.org/documentation/api-design-guidelines.html#first-argument-label), but the Objective-C Coding Guidelines for Cocoa [prohibit the use of "is" on properties](https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/CodingGuidelines/Articles/NamingIvarsAndTypes.html#//apple_ref/doc/uid/20001284-BAJGIIJE). Import such properties with "is" prepended.
+5. **Prepend "is" to Boolean properties**: [Boolean properties should read as assertions on the receiver](https://swift.org/documentation/api-design-guidelines.html#boolean-assertions), but the Objective-C Coding Guidelines for Cocoa [prohibit the use of "is" on properties](https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/CodingGuidelines/Articles/NamingIvarsAndTypes.html#//apple_ref/doc/uid/20001284-BAJGIIJE). Import such properties with "is" prepended.
 
 6. **Strip the "NS" prefix from Foundation APIs**: Foundation is a
 fundamental part of the [Swift Core Libraries][core-libraries], and
 having the prefixes on these cross-platform APIs feels
 anachronistic. Therefore, remove the "NS" prefix from entities defined
 in the Foundation module (and other specifically identified modules where it makes sense).
+
+7. **Adopt Comparable to classes that implement** `compare(_:) -> NSComparisonResult`: The objective-c classes that implement compare all have declared a capability of being compared in an ordered manner. `Comparable` formalizes this declaration into an implementable operator by the import process.
 
 To get a sense of what these transformations do, consider a portion of
 the imported `UIBezierPath` API in Swift 2:
@@ -383,7 +385,7 @@ button.<b>setText</b>(.red())      <b>// appears to be setting the text!</b>
 
   This heuristic has the effect of preventing us from producing
   too-generic names for methods that conceptually modify a property
-  of the classs.
+  of the class.
 
   <pre>
 var <b>gestureRecognizers</b>: [UIGestureRecognizer]
@@ -657,6 +659,29 @@ ways to address this problem, including:
 * Introduce some notion of submodules into Swift, so that these
   classes would exist in a submodule for reference-semantic types
   (e.g., one would refer to `Foundation.ReferenceTypes.Array` or similar).
+  
+### Conformance of implementers of compare method
+
+Currently, in comparing protocols, for example developers usually have
+to extend `NSDate` to make it to conform to `Comparable`, or use 
+`compare(_:) -> NSComparisonResult` method of `NSDate` directly. In
+this case Using comparison operators on `NSDate`s will make the code 
+more readable, such as `someDate < today`, rather than 
+`someDate.compare(today) == .OrderedAscending`. Since the import process
+can determine if a class implements the objective-c method for 
+comparison all classes that implement this method will then be imported
+as adopting `Comparable`. 
+
+A survey of Foundation classes reveals not just NSDate but a few
+other classes that would be affected by this change.
+
+<pre>
+func compare(other: NSDate) -> NSComparisonResult
+func compare(decimalNumber: NSNumber) -> NSComparisonResult
+func compare(otherObject: NSIndexPath) -> NSComparisonResult
+func compare(string: String) -> NSComparisonResult
+func compare(otherNumber: NSNumber) -> NSComparisonResult
+</pre>
 
 ## Impact on existing code
 
@@ -677,6 +702,10 @@ The automatic translation described in this proposal has been
 developed as part of the effort to produce the [Swift API Design
 Guidelines][api-design-guidelines] with Dmitri Hrybenko, Ted Kremenek,
 Chris Lattner, Alex Migicovsky, Max Moiseev, Ali Ozer, and Tony Parker.
+
+The addendum of comparable was originally proposed to the [core-libraries]
+mailing list by [Chris Amanse](https://github.com/chrisamanse) and modified
+to fit to this proposal after review by Philippe Hausler.
 
 [objc-cocoa-guidelines]: https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/CodingGuidelines/CodingGuidelines.html  "Coding Guidelines for Cocoa"
 [api-design-guidelines]: https://swift.org/documentation/api-design-guidelines.html  "API Design Guidelines"

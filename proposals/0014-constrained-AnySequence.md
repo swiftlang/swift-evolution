@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0014](https://github.com/apple/swift-evolution/blob/master/proposals/0014-constrained-AnySequence.md)
 * Author(s): [Max Moiseev](https://github.com/moiseev)
-* Status: **Awaiting review** (schedule December 18--21, 2015)
+* Status: **Accepted for Swift 2.2** ([Bug](https://bugs.swift.org/browse/SR-474))
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction
@@ -12,7 +12,7 @@ its initializer should have extra constraints.
 
 ## Motivation
 
-At the moment `AnyCollection` does not delegate calls to `SequenceType` protocol
+At the moment `AnySequence` does not delegate calls to `SequenceType` protocol
 methods to the underlying base sequence, which results in dynamic downcasts in
 places where this behavior is needed (see default implementations of
 `SequenceType.dropFirst` or `SequenceType.prefix`). Besides, and this is even
@@ -24,7 +24,7 @@ ignored without delegation.
 See the implementation in [this PR](https://github.com/apple/swift/pull/220).
 
 In order for this kind of delegation to become possible, `_SequenceBox` needs to
-be able to 'wrap' not only the base sequence but also it's associated
+be able to 'wrap' not only the base sequence but also its associated
 `SubSequence`. So instead of being declared like this:
 
 ~~~~Swift
@@ -44,7 +44,7 @@ internal class _SequenceBox<
 > : _AnySequenceBox<S.Generator.Element> { ... }
 ~~~~
 
-Which, in it's turn, will lead to `AnySequence.init` getting a new set of
+Which, in its turn, will lead to `AnySequence.init` getting a new set of
 constraints as follows.
 
 Before the change:
@@ -76,7 +76,10 @@ public struct AnySequence<Element> : SequenceType {
 
 These constraints, in fact, should be applied to `SequenceType` protocol itself
 (although, that is not currently possible), as we expect every `SequenceType`
-implementation to satisfy them already.
+implementation to satisfy them already. Worth mentioning that technically
+`S.SubSequence.SubSequence == S.SubSequence` does not have to be this strict,
+as any sequence with the same element type would do, but that is currently not
+representable.
 
 ## Impact on existing code
 

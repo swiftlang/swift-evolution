@@ -169,7 +169,7 @@ In summary, the problems that motivate this change are:
 ## Design
 
 The above changes can be made almost entirely in the parser, triggering error
-diagnostics.  Function parameters explictly marked with `let` will be a warning
+diagnostics.  Function parameters explicitly marked with `let` will be a warning
 because they are immutable by default. In addition, the compiler will stop
 suggesting `var` when trying to directly mutate function arguments.
 
