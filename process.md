@@ -136,7 +136,7 @@ answer in your review:
 * Is the problem being addressed significant enough to warrant a
   change to Swift?
 * Does this proposal fit well with the feel and direction of Swift?
-* If you have you used other languages or libraries with a similar
+* If you have used other languages or libraries with a similar
   feature, how do you feel that this proposal compares to those?
 * How much effort did you put into your review? A glance, a quick
   reading, or an in-depth study?
