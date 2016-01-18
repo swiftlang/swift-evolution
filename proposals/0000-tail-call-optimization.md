@@ -8,6 +8,8 @@
 
 Tail call optimization can be a powerful tool when implementing certain types of algorithms. Unfortunately, Tail call optimization cannot be consistently used in Swift code. Developers cannot be sure that opportunities for this particular optimization to be applied are, in fact, being realized. This discrepancy can cause dramatic differences from expected and actual performance. An attribute, similar to Scala's `tailrec`, along with LLVM warnings, could allow a clear indicator of when such optimizations are not guaranteed to work.
 
+Swift-evolution thread: https://lists.swift.org/pipermail/swift-evolution/2015-December/000359.html
+
 ## Motivation
 
 LLVM will perform tail call optimization when possible but cannot currently guarantee when applied. This is partially explained by Joe Groff in swift-evolution
