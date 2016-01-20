@@ -4,6 +4,28 @@
 * Author(s): [Doug Gregor](https://github.com/DougGregor), [Dave Abrahams](https://github.com/dabrahams)
 * Status: **Awaiting review** (January 21...31, 2016)
 
+## Reviewer notes
+
+This review is part of a group of three related reviews, running
+concurrently:
+
+* [SE-0023 API Design Guidelines](https://github.com/apple/swift-evolution/blob/master/proposals/0023-api-guidelines.md)
+* [SE-0006 Apply API Guidelines to the Standard Library](https://github.com/apple/swift-evolution/blob/master/proposals/0006-apply-api-guidelines-to-the-standard-library.md)
+* [SE-0005 Better Translation of Objective-C APIs Into Swift](https://github.com/apple/swift-evolution/blob/master/proposals/0005-objective-c-name-translation.md)
+
+These reviews are running concurrently because they interact strongly
+(e.g., an API change in the standard library will correspond to a
+particular guideline, or an importer rule implements a particular
+guideline, etc.). Because of these interactions, and to keep
+discussion manageable, we ask that you:
+
+* **Please get a basic understanding of all three documents** before
+  posting review commentary
+* **Please post your review of each individual document in response to
+  its review announcement**. It's okay (and encouraged) to make
+  cross-references between the documents in your review where it helps
+  you make a point.
+
 ## Introduction
 
 This proposal describes how we can improve Swift's "Clang Importer", which is responsible for mapping C and Objective-C APIs into Swift, to translate the names of Objective-C functions, types, methods, properties, etc. into names that more closely align with the [Swift API Design Guidelines][api-design-guidelines] being developed as part of Swift 3. Our approach focuses on the differences between the Objective-C [Coding Guidelines for Cocoa][objc-cocoa-guidelines] and the Swift API Design Guidelines, using some simple linguistic analysis to aid the automatic translation from Objective-C names to more "Swifty" names.
