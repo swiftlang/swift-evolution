@@ -22,14 +22,30 @@ The actual work is being performed on the [swift-3-api-guidelines
 branch][swift-3-api-guidelines-branch] of the [Swift repository][swift-repo].
 On high level, the changes can be summarized as follows.
 
-* Strip `Type` suffix from remaining protocol names.  In a few special cases
+* Strip `Type` suffix from protocol names.  In a few special cases
   this means adding a `Protocol` suffix to get out of the way of type
   names that are primary (though most of these we expect to be
   obsoleted by Swift 3 language features).
 
-* The concept of `generator` is renamed to `iterator`.
+* The concept of `generator` is renamed to `iterator` across all APIs.
 
 * `IndexingGenerator` is renamed to `DefaultCollectionIterator`.
+
+* The type `Bit`, which was only used as the index for `CollectionOfOne`, was
+  removed.  We recommend using `Int` instead.
+
+* The generic parameter name in unsafe pointer types was renamed from `Memory`
+  to `Pointee`.
+
+* No-argument initializers were removed from unsafe pointer types.  We
+  recommend using the `nil` literal instead.
+
+* `PermutationGenerator` was removed.
+
+* `MutableSliceable` was removed.  Use `CollectionType where SubSequence :
+  MutableCollectionType` instead.
+
+* `sort()` => `sorted()`, `sortInPlace()` => `sort()`.
 
 **More changes will be summarized here as they are implemented.**
 
@@ -38,6 +54,203 @@ On high level, the changes can be summarized as follows.
 Differences between Swift 2.2 Standard library API and the proposed API are
 added to this section as they are being implemented on the
 [swift-3-api-guidelines branch][swift-3-api-guidelines-branch].
+
+For repetitive changes that affect many types, only one representative instance
+is shown in the diff.  For example, `generate()` was renamed to `iterator()`.
+We only show the diff for the protocol requirement, and all other renames of
+this method are implied.
+
+* Strip `Type` suffix from protocol names.
+
+```swift
+-public protocol CollectionType : ... { ... }
++public protocol Collection : ... { ... }
+
+-public protocol MutableCollectionType : ... { ... }
++public protocol MutableCollection : ... { ... }
+
+-protocol RangeReplaceableCollectionType : ... { ... }
++protocol RangeReplaceableCollection : ... { ... }
+```
+
+* The concept of `generator` is renamed to `iterator` across all APIs.
+
+```swift
+ public protocol Collection : ... {
+-  typealias Generator : GeneratorType = IndexingGenerator<Self>
++  typealias Iterator : IteratorProtocol = DefaultCollectionIterator<Self>
+
+-  func generate() -> Generator
++  func iterator() -> Iterator
+ }
+
+-public struct IndexingGenerator<Elements : Indexable> : ... { ... }
++public struct DefaultCollectionIterator<Elements : Indexable> : ... { ... }
+```
+
+* The type `Bit`, which was only used as the index for `CollectionOfOne`, was
+  removed.  We recommend using `Int` instead.
+
+```swift
+-public enum Bit : ... { ... }
+```
+
+* `PermutationGenerator` was removed.
+
+```swift
+-public struct PermutationGenerator<
+-  C : CollectionType, Indices: SequenceType
+-  where C.Index == Indices.Generator.Element
+-> : ... { ... }
+```
+
+* `MutableSliceable` was removed.  Use `CollectionType where SubSequence :
+  MutableCollectionType` instead.
+
+```swift
+-public protocol MutableSliceable : CollectionType, MutableCollectionType {
+-  subscript(_: Range<Index>) -> SubSequence { get set }
+-}
+```
+
+* The generic parameter name in unsafe pointer types was renamed from `Memory`
+  to `Pointee`.
+
+* No-argument initializers were removed from unsafe pointer types.  We
+  recommend using the `nil` literal instead.
+
+```swift
+ public struct AutoreleasingUnsafeMutablePointer<
+-  Memory
++  Pointee
+ > ... : {
+
+-  public var memory: Memory
++  public var pointee: Pointee
+
+   // Use `nil` instead.
+-  public init()
+
+ }
+
+-public func unsafeUnwrap<T>(nonEmpty: T?) -> T
+ extension Optional {
++  public var unsafelyUnwrapped: Wrapped { get }
+ }
+
+-public struct COpaquePointer : ... {
++public struct OpaquePointer : ... {
+
+   // Use `nil` instead.
+-  public init()
+
+}
+
+```
+
+* `sort()` => `sorted()`, `sortInPlace()` => `sort()`.
+
+```swift
+extension Sequence where Self.Generator.Element : Comparable {
+  @warn_unused_result
+-  public func sort() -> [Generator.Element]
++  public func sorted() -> [Generator.Element]
+}
+
+extension Sequence {
+  @warn_unused_result
+-  public func sort(
++  public func sorted(
+    @noescape isOrderedBefore: (Generator.Element, Generator.Element) -> Bool
+  ) -> [Generator.Element]
+}
+
+extension MutableCollection where Self.Generator.Element : Comparable {
+  @warn_unused_result(mutable_variant="sort")
+-  public func sort() -> [Generator.Element]
++  public func sorted() -> [Generator.Element]
+}
+
+extension MutableCollection {
+  @warn_unused_result(mutable_variant="sort")
+-  public func sort(
++  public func sorted(
+    @noescape isOrderedBefore: (Generator.Element, Generator.Element) -> Bool
+  ) -> [Generator.Element]
+}
+
+ extension MutableCollection
+   where
+   Self.Index : RandomAccessIndex,
+   Self.Generator.Element : Comparable {
+
+-  public mutating func sortInPlace()
++  public mutating func sort()
+
+ }
+
+ extension MutableCollection where Self.Index : RandomAccessIndex {
+-  public mutating func sortInPlace(
++  public mutating func sort(
+     @noescape isOrderedBefore: (Generator.Element, Generator.Element) -> Bool
+   )
+ }
+```
+
+* Miscellaneous changes.
+
+```swift
+-public struct EnumerateGenerator<Base : GeneratorType> : ... {
++public struct EnumeratedIterator<Base : IteratorProtocol> : ... {
+
+-  public typealias Element = (index: Int, element: Base.Element)
++  public typealias Element = (offset: Int, element: Base.Element)
+
+ }
+
+ public struct Array<Element> : ... {
+   // Same changes were also applied to `ArraySlice` and `ContiguousArray`.
+
+-  public init(count: Int, repeatedValue: Element)
++  public init(repeating: Element, count: Int)
+
+ }
+
+ public protocol Collection : ... {
+-  public func underestimateCount() -> Int
++  public var underestimatedCount: Int
+
+   @warn_unused_result
+   public func split(
+-    maxSplit: Int = Int.max,
++    maxSplits: Int = Int.max,
+-    allowEmptySlices: Bool = false,
++    omitEmptySubsequences: Bool = true,
+     @noescape isSeparator: (Generator.Element) throws -> Bool
+   ) rethrows -> [SubSequence]
+ }
+
+ // Changes to this protocol affect `Array`, `ArraySlice`, `ContiguousArray` and
+ // other types.
+ protocol RangeReplaceableCollection : ... {
+
+-  public mutating func insert(newElement: Element, atIndex i: Int)
++  public mutating func insert(newElement: Element, at i: Int)
+
+-  public mutating func removeAtIndex(index: Int) -> Element
++  public mutating func removeAt(index: Int) -> Element
+
+-  public mutating func removeAll(keepCapacity keepCapacity: Bool = false)
++  public mutating func removeAll(keepingCapacity keepingCapacity: Bool = false)
+
+-  public mutating func replaceRange<
++  public mutating func replaceSubrange<
+     C : CollectionType where C.Generator.Element == _Buffer.Element
+   >(
+     subRange: Range<Int>, with newElements: C
+   )
+ }
+```
 
 ## Impact on existing code
 
