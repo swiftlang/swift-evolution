@@ -139,37 +139,36 @@ NSCopying with a simple call to `foo.copy()` instead of calling
 
 ## Implementation Experience
 
-An experimental, partial implementation of this proposal is available
-in the main Swift tree behind a set of experimental compiler
-flags. With these flags, one can see the results of applying this
-proposal to imported Objective-C APIs (e.g., via the script in
+An experimental implementation of this proposal is available in the
+main Swift repository. There are a set of compiler flags that one can
+use to see the results of applying this proposal to imported
+Objective-C APIs (e.g., via the script in
 `utils/omit-needless-words.py`) and to Swift code itself. The flags
 are:
 
 * `-enable-omit-needless-words`: this flag enables most of the changes
   to the Clang importer (bullets 1, 2, 4, and 5 in the prior
   section). It is currently suitable only for printing the Swift
-  interface to Objective-C modules (e.g., via `swift-ide-test`).
+  interface to Objective-C modules (e.g., via `swift-ide-test`) in the
+  Swift master branch and [Swift 2.2 branch][swift-2_2-branch], and is enabled on the [Swift 3 API Guidelines branch][swift-3-api-guidelines-branch].
 
 * `-enable-infer-default-arguments`: this flag enables inference of
   default arguments in the Clang importer (bullet 3 in the prior
   section).
 
-* `-Womit-needless-words`: this flag enables a set of compiler
-  warnings that helps illustrate what Swift code looks like after
-  following the rules described in this proposal. The most important
-  part of each warning is its corresponding Fix-It, which updates the
-  code according to the rules. Tied together with other compiler flags
-  (e.g., `-fixit-code`, `-fixit-all`) and a script to collect and apply
-  Fix-Its (in `utils/apply-fixit-edits.py`), this flag provides a
-  rudimentary migrator that lets us see how Swift code would look
-  under the proposed changes, updating both declarations and use
-  sites. It is currently suitable only for printing the Swift
-  interface to Objective-C modules (e.g., via `swift-ide-test`).
+* `-swift3-migration`: only available on the [Swift 2.2
+  branch][swift-2_2-branch], this flag performs basic migration from
+  Swift 2 names to the Swift 3 names via Fix-Its. Tied together with
+  other compiler flags (e.g., `-fixit-code`, `-fixit-all`) and a
+  script to collect and apply Fix-Its (in
+  `utils/apply-fixit-edits.py`), this flag provides a rudimentary
+  migrator that lets us see how Swift code would look under the
+  proposed changes, updating both declarations and use sites.
 
-While the implementation is far from complete, it is enough to see the
-effects that the proposal has on Objective-C APIs and code that uses
-them.
+To actually get the "Swift 3 experience" of compiling code using these
+names, one can use the [Swift 3 API Guidelines
+branch][swift-3-api-guidelines-branch], which enables these features
+by default along with the changes to the standard library.
 
 ## Detailed design
 
@@ -507,6 +506,22 @@ if self.managedObjectContext.<b>parent</b> != changedContext { return }
 foregroundColor = .<b>darkGray</b>()
 </pre>
 
+3. **Prune a match for the enclosing type from the base name of a method so long as the match starts after a verb**. For example,
+
+   <pre>
+extension UI<b>ViewController</b> {
+&nbsp;&nbsp;func dismiss<b>ViewController</b>Animated(flag: Bool, completion: (() -> Void)? = nil)
+}
+</pre>
+
+   becomes:
+
+   <pre>
+extension UIViewController {
+&nbsp;&nbsp;func dismissAnimated(flag: Bool, completion: (() -> Void)? = nil)
+}
+</pre>
+
 ##### Why Does Order Matter?
 
 Some steps below prune matches from the head of the first selector
@@ -552,6 +567,8 @@ arguments are added to parameters in the following cases:
 * **Nullable NSZone parameters** are given a default value of `nil`. Zones are essentially unused in Swift and should always be ``nil``.
 
 * **Option set types** whose type name contain the word "Options" are given a default value of `[]` (the empty option set).
+
+* **NSDictionary parameters** with names that involve "options", "attributes", or "info" are given a default value of `[:]`. 
 
 Together, these heuristics allow code like:
 
@@ -611,27 +628,13 @@ array.enumerateObjects() {               // OK
 }
 </pre>
 
-#### Prepend "is" to Boolean Properties
+#### Use getter names for Boolean Properties
 
-**Unless the name of a Boolean property contains**
+**For Boolean properties, use the name of the getter as the property
+  name in Swift*. For example:
 
-* **an auxiliary verb** such as "is", "has", "may", "should", or
-  "will"
-
-* **or, a word ending in "s"** , indicating either a plural (for which
-  prepending "is" would be incorrect) or a verb in the continuous
-  tense (which indicates its Boolean nature, e.g., "translates" in
-  "`translatesCoordinates`")
-
-**prepend "is" to its name**.
-
-For example:
-
-    extension NSBezierPath {
-      var empty: Bool
-    }
-
-    if path.empty { ... }
+    @interface NSBezierPath : NSObject
+    @property (readonly,getter=isEmpty) BOOL empty;
 
 will become
 
@@ -651,14 +654,24 @@ global symbols defined within that module that can be performed in the
 Clang importer. Note that this removal can create conflicts with the
 standard library. For example, `NSString` and `NSArray` will become
 `String` and `Array`, respectively, and Foundation's versions will
-shadow the standard library's versions. We are investigating several
-ways to address this problem, including:
+shadow the standard library's versions. In cases where the Swift 3
+names of standard library entities conflict with prefix-stripped
+Foundation entities, we retain the `NS` prefix. These Foundation
+entities are: `NSArray`, `NSDictionary`, `NSInteger`, `NSRange`,
+`NSSet`, and `NSString`.
 
-* Retain the `NS` prefix on such classes.
+When the `NS` prefix is stripped from a non-type, lowercase the
+initial word. For example:
 
-* Introduce some notion of submodules into Swift, so that these
-  classes would exist in a submodule for reference-semantic types
-  (e.g., one would refer to `Foundation.ReferenceTypes.Array` or similar).
+<pre>
+var NSDateComponentUndefined: Int { get }
+</pre>
+
+will become
+
+<pre>
+var dateComponentUndefined: Int { get }
+</pre>
   
 ### Conformance of implementers of compare method
 
@@ -687,7 +700,7 @@ func compare(otherNumber: NSNumber) -> NSComparisonResult
 
 The proposed changes are massively source-breaking for Swift code that
 makes use of Objective-C frameworks, and will require a migrator to
-translate Swift 2 code into Swift 3 code. The `-Womit-needless-words`
+translate Swift 2 code into Swift 3 code. The `-swift3-migration`
 flag described in the [Implementation
 Experience](#implementation-experience) section can provide the basics
 for such a migrator. Additionally, the compiler needs to provide good
@@ -710,3 +723,5 @@ to fit to this proposal after review by Philippe Hausler.
 [objc-cocoa-guidelines]: https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/CodingGuidelines/CodingGuidelines.html  "Coding Guidelines for Cocoa"
 [api-design-guidelines]: https://swift.org/documentation/api-design-guidelines.html  "API Design Guidelines"
 [core-libraries]: https://swift.org/core-libraries/  "Swift Core Libraries"
+[swift-3-api-guidelines-branch]: https://github.com/apple/swift/tree/swift-3-api-guidelines  "Swift 3 API Guidelines branch"
+[swift-2_2-branch]: https://github.com/apple/swift/tree/swift-2.2-branch  "Swift 2.2 branch"
