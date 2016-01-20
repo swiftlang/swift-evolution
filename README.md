@@ -143,6 +143,7 @@ sooner.
 * [Apply API Guidelines to the Standard Library](proposals/0006-apply-api-guidelines-to-the-standard-library.md)
 
 ### Awaiting Review
+* January 21...31, 2016: [SE-0023: API Design Guidelines](proposals/0006-apply-api-guidelines-to-the-standard-library.md)
 * [Apply API Guidelines to the Standard Library](proposals/0006-apply-api-guidelines-to-the-standard-library.md) (SE-0006)
 * [Add @noescape to public library API](proposals/0012-add-noescape-to-public-library-api.md) (SE-0012)
 * [Add initializers to Int and Uint to convert from UnsafePointer and UnsafeMutablePointer](proposals/0016-initializers-for-converting-unsafe-pointers-to-ints.md) (SE-0016)
