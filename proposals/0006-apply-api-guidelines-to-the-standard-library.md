@@ -62,7 +62,7 @@ this method are implied.
 
 * Strip `Type` suffix from protocol names.
 
-```swift
+```diff
 -public protocol CollectionType : ... { ... }
 +public protocol Collection : ... { ... }
 
@@ -75,7 +75,7 @@ this method are implied.
 
 * The concept of `generator` is renamed to `iterator` across all APIs.
 
-```swift
+```diff
  public protocol Collection : ... {
 -  typealias Generator : GeneratorType = IndexingGenerator<Self>
 +  typealias Iterator : IteratorProtocol = DefaultCollectionIterator<Self>
@@ -91,13 +91,13 @@ this method are implied.
 * The type `Bit`, which was only used as the index for `CollectionOfOne`, was
   removed.  We recommend using `Int` instead.
 
-```swift
+```diff
 -public enum Bit : ... { ... }
 ```
 
 * `PermutationGenerator` was removed.
 
-```swift
+```diff
 -public struct PermutationGenerator<
 -  C : CollectionType, Indices: SequenceType
 -  where C.Index == Indices.Generator.Element
@@ -107,7 +107,7 @@ this method are implied.
 * `MutableSliceable` was removed.  Use `CollectionType where SubSequence :
   MutableCollectionType` instead.
 
-```swift
+```diff
 -public protocol MutableSliceable : CollectionType, MutableCollectionType {
 -  subscript(_: Range<Index>) -> SubSequence { get set }
 -}
@@ -119,7 +119,7 @@ this method are implied.
 * No-argument initializers were removed from unsafe pointer types.  We
   recommend using the `nil` literal instead.
 
-```swift
+```diff
  public struct AutoreleasingUnsafeMutablePointer<
 -  Memory
 +  Pointee
@@ -150,7 +150,7 @@ this method are implied.
 
 * `sort()` => `sorted()`, `sortInPlace()` => `sort()`.
 
-```swift
+```diff
 extension Sequence where Self.Generator.Element : Comparable {
   @warn_unused_result
 -  public func sort() -> [Generator.Element]
@@ -199,7 +199,7 @@ extension MutableCollection {
 
 * Miscellaneous changes.
 
-```swift
+```diff
 -public struct EnumerateGenerator<Base : GeneratorType> : ... {
 +public struct EnumeratedIterator<Base : IteratorProtocol> : ... {
 
