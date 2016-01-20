@@ -139,6 +139,8 @@ sooner.
 * [Referencing the Objective-C selector of a method](proposals/0022-objc-selectors.md) (SE-0022, Jan 17-22)
 
 ### Scheduled for Review
+* [Better Translation of Objective-C APIs Into Swift](proposals/0005-objective-c-name-translation.md)
+* [Apply API Guidelines to the Standard Library](proposals/0006-apply-api-guidelines-to-the-standard-library.md)
 
 ### Awaiting Review
 * [Apply API Guidelines to the Standard Library](proposals/0006-apply-api-guidelines-to-the-standard-library.md) (SE-0006)
