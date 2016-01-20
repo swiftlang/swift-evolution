@@ -5,6 +5,28 @@
 * Status: **Awaiting Review** (January 21...31, 2016)
 * Review manager: [Doug Gregor](https://github.com/DougGregor)
 
+## Reviewer notes
+
+This review is part of a group of three related reviews, running
+concurrently:
+
+* [SE-0023 API Design Guidelines](https://github.com/apple/swift-evolution/blob/master/proposals/0023-api-guidelines.md)
+* [SE-0006 Apply API Guidelines to the Standard Library](https://github.com/apple/swift-evolution/blob/master/proposals/0006-apply-api-guidelines-to-the-standard-library.md)
+* [SE-0005 Better Translation of Objective-C APIs Into Swift](https://github.com/apple/swift-evolution/blob/master/proposals/0005-objective-c-name-translation.md)
+
+These reviews are running concurrently because they interact strongly
+(e.g., an API change in the standard library will correspond to a
+particular guideline, or an importer rule implements a particular
+guideline, etc.). Because of these interactions, and to keep
+discussion manageable, we ask that you:
+
+* **Please get a basic understanding of all three documents** before
+  posting review commentary
+* **Please post your review of each individual document in response to
+  its review announcement**. It's okay (and encouraged) to make
+  cross-references between the documents in your review where it helps
+  you make a point.
+
 ## Introduction
 
 [Swift API Design Guidelines][api-design-guidelines] being developed as
