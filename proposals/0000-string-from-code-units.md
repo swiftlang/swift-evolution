@@ -24,7 +24,7 @@ Of course, `fromCString(_:)` isn't a silver bullet; it forces a UTF-8 encoding w
 I'd like to expose an equivalent to `String.Type._fromCodeUnitSequence(_:input:)` as public API:
 
 ```swift
-static func decode<Encoding: UnicodeCodecType, Input: CollectionType where Input.Generator.Element == Encoding.CodeUnit>(_: Input, as: Encoding.Type, repairingInvalidCodeUnits: Bool = default)
+static func decode<Encoding: UnicodeCodecType, Input: CollectionType where Input.Generator.Element == Encoding.CodeUnit>(_: Input, as: Encoding.Type, repairingInvalidCodeUnits: Bool = default) -> (result: String, repairsMade: Bool)?
 ```
 
 For convenience, the `Bool` flag here is also separated out to a more common-case pair of `String` initializers:
