@@ -42,13 +42,13 @@ type inference, generics, and overloading. As a result, Objective-C
 APIs that feel right in Objective-C can feel wordy when used in
 Swift. For example:
 
-    let contentString = listItemView.stringValue.stringByTrimmingCharactersInSet(
+    let content = listItemView.text.stringByTrimmingCharactersInSet(
        NSCharacterSet.whitespaceAndNewlineCharacterSet())
 
 The APIs used here follow the Objective-C guidelines. A more "Swifty"
 version of the same code might instead look like this:
 
-    let content = listItem.stringValue.trimming(.whitespaceAndNewlines)
+    let content = listItemView.text.trimming(.whitespaceAndNewlines)
 
 The latter example more closely adheres to the [Swift API Design
 Guidelines][api-design-guidelines], in particular, omitting "needless"
