@@ -12,7 +12,7 @@ Swift Standard Library.  Earlier attempts at adding this have been too
 specifically focused on error handling (duplicating functionality
 `throws` already provides), whereas this implementation will focus on
 data, organization, and type safety.  We believe that adding the type
-to the standard library and simultaneously emphasizing its use cases 
+to the standard library and simultaneously emphasizing its use cases
 -that is, when you need a type that represents exactly 2 disjoint possibilities-
 can dispel the confusion caused in other languages
 and quell the conflict with `throws`.
@@ -32,9 +32,9 @@ convention to simply be a generic type, which is what we propose.
 As before, unlike `throws`, a disjoint union type can be applied in arbitrary
 positions, used as a member, and easily checked for completeness
 at compile time.  In addition, the lack of a standard union type has
-led the Swift community to create [numerous](https://github.com/search?utf8=✓&q=Either+language%3Aswift) duplicate implementations of the 
-same mutually incompatible types over and over and over again.  In the 
-interest of promoting a type that there has received clear interest by the 
+led the Swift community to create [numerous](https://github.com/search?utf8=✓&q=Either+language%3Aswift) duplicate implementations of the
+same mutually incompatible types over and over and over again.  In the
+interest of promoting a type that there has received clear interest by the
 community, the addition to the Standard Library is necessary.
 
 ## Proposed solution
@@ -160,6 +160,79 @@ public func != <LeftValue : Equatable, RightValue : Equatable>(lhs : Either<Left
 	return !(lhs == rhs)
 }
 ```
+
+## Motivating Examples
+
+Bailing out of a function with a value instead of an exception.
+
+```swift
+public enum ArithmeticErrorType : ErrorType {
+    case DivideByZero(triedValue : Double)
+		// ...
+}
+
+public func / (value : Double, by : Double) -> Either<Double, ArithmeticErrorType> {
+    if by == 0 {
+        return .Right(.DivideByZero(triedValue: value))
+    }
+    return .Left(value / by)
+}
+```
+
+A safer and richer bit cast function:
+
+```swift
+public enum CastErrorType : ErrorType {
+    case BadCast(reason : String)
+}
+
+extension Either {
+    public static func safeBitCast<T, U>(x : T) -> Either<U, CastErrorType> {
+        if let castX = x as? U {
+            return .Left(castX)
+        }
+        return .Right(.BadCast(reason: "Cannot cast value of type \(T.self) to type \(U.self)"))
+    }
+}
+```
+
+(h/t @robrix) Using `Either` to introduce early returns from a call to reduce.
+
+```swift
+extension SequenceType {
+    /// Return the result of repeatedly calling `combine` with an
+    /// accumulated value initialized to `initial` and each element of
+    /// `self`, in turn, or until .Right is encountered.
+    @warn_unused_result
+    public func reduceEarly<T>(initial: T, combine: (T, Self.Generator.Element) -> Either<T, T>) -> T {
+        switch self.reduce(Either.Left(initial), combine: { (acc, i) in acc.flatMap { combine($0, i) } }) {
+        case let .Left(v):
+            return v
+        case let .Right(v):
+            return v
+        }
+    }
+}
+```
+
+For `Either` in the large, see
+
+- [SwiftCheck](https://github.com/typelift/SwiftCheck/blob/master/SwiftCheck/Test.swift#L468) where it's used to bail out of a bad testing run.
+- The parser-combinator framework [Madness](https://github.com/robrix/Madness) and the [Kaleidoscope Language](https://github.com/bencochran/KaleidoscopeLang/blob/master/KaleidoscopeLang/Parser.swift#L102-L129)
+it powers.
+- Dave Delong's [DDMathParser](https://github.com/davedelong/DDMathParser/blob/master/MathParser/TokenGenerator.swift)
+framework's expression tokenizer.
+- The JSON parsing framework [Tyro](https://github.com/typelift/Tyro/blob/c611aec772aaf055d5b7c560b5ffe222f9f9f3ad/Tyro/Instances.swift)
+for typed errors.
+- Typed errors in the core of the [Tesseract](https://github.com/antitypical/TesseractCore) programming language.
+- Eigengo's `lift` application for [typed errors](https://github.com/eigengo/lift/blob/master/ios/Lift/Device/Pebble/PebbleDevice.swift).
+- Typed errors in [KittyKit](https://github.com/a2/Kitty).
+
+It even makes an appearance (albeit in a different form) in
+- [Swift's test suite](https://github.com/apple/swift/blob/master/test/Interpreter/enum.swift#L494-L499).
+- [RxSwift](https://github.com/ReactiveX/RxSwift/blob/master/RxSwift/Event.swift)'s eventing mechanism.
+- All over [ReactiveCocoa](https://github.com/ReactiveCocoa/ReactiveCocoa) in the form of `Result<T, E>`.
+- [And many more](https://github.com/search?utf8=✓&q=Result+language%3Aswift&type=Code&ref=searchresults).
 
 ## Impact on existing code
 
