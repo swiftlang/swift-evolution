@@ -51,8 +51,6 @@ On high level, the changes can be summarized as follows.
 
 * The concept of `generator` is renamed to `iterator` across all APIs.
 
-* `IndexingGenerator` is renamed to `DefaultCollectionIterator`.
-
 * The type `Bit`, which was only used as the index for `CollectionOfOne`, was
   removed.  We recommend using `Int` instead.
 
@@ -68,6 +66,17 @@ On high level, the changes can be summarized as follows.
   MutableCollectionType` instead.
 
 * `sort()` => `sorted()`, `sortInPlace()` => `sort()`.
+
+* `reverse()` => `reversed()`.
+
+* `enumerate()` => `enumerated()`.
+
+* `SequenceType.minElement()` => `.min()`, `.maxElement()` => `.max()`.
+
+* Some initializers for sequence and collection adapters were removed.  We
+  suggest calling the corresponding algorithm function or method instead.
+
+* Some functions were changed into properties and vice versa.
 
 **More changes will be summarized here as they are implemented.**
 
@@ -85,29 +94,134 @@ this method are implied.
 * Strip `Type` suffix from protocol names.
 
 ```diff
+-public protocol BooleanType { ... }
++public protocol Boolean { ... }
+
+-public protocol SequenceType { ... }
+-public protocol Sequence { ... }
+
 -public protocol CollectionType : ... { ... }
 +public protocol Collection : ... { ... }
 
 -public protocol MutableCollectionType : ... { ... }
 +public protocol MutableCollection : ... { ... }
 
--protocol RangeReplaceableCollectionType : ... { ... }
-+protocol RangeReplaceableCollection : ... { ... }
+-public protocol RangeReplaceableCollectionType : ... { ... }
++public protocol RangeReplaceableCollection : ... { ... }
+
+-public protocol AnyCollectionType : ... { ... }
++public protocol AnyCollectionProtocol : ... { ... }
+
+-public protocol IntegerType : ... { ... }
++public protocol Integer : ... { ... }
+
+-public protocol SignedIntegerType : ... { ... }
++public protocol SignedInteger : ... { ... }
+
+-public protocol UnsignedIntegerType : ... { ... }
++public protocol UnsignedInteger : ... { ... }
+
+-public protocol FloatingPointType : ... { ... }
++public protocol FloatingPoint : ... { ... }
+
+-public protocol ForwardIndexType { ... }
++public protocol ForwardIndex { ... }
+
+-public protocol BidirectionalIndexType : ... { ... }
++public protocol BidirectionalIndex : ... { ... }
+
+-public protocol RandomAccessIndexType : ... { ... }
++public protocol RandomAccessIndex : ... { ... }
+
+-public protocol IntegerArithmeticType : ... { ... }
++public protocol IntegerArithmetic : ... { ... }
+
+-public protocol SignedNumberType : ... { ... }
++public protocol SignedNumber : ... { ... }
+
+-public protocol IntervalType : ... { ... }
++public protocol Interval : ... { ... }
+
+-public protocol LazyCollectionType : ... { ... }
++public protocol LazyCollectionProtocol : ... { ... }
+
+-public protocol LazySequenceType : ... { ... }
++public protocol LazySequenceProtocol : ... { ... }
+
+-public protocol OptionSetType : ... { ... }
++public protocol OptionSet : ... { ... }
+
+-public protocol OutputStreamType : ... { ... }
++public protocol OutputStream : ... { ... }
+
+-public protocol BitwiseOperationsType { ... }
++public protocol BitwiseOperations { ... }
+
+-public protocol ReverseIndexType : ... { ... }
++public protocol ReverseIndexProtocol : ... { ... }
+
+-public protocol SetAlgebraType : ... { ... }
++public protocol SetAlgebra : ... { ... }
+
+-public protocol UnicodeCodecType { ... }
++public protocol UnicodeCodec { ... }
+
 ```
 
 * The concept of `generator` is renamed to `iterator` across all APIs.
 
 ```diff
+-public protocol GeneratorType { ... }
++public protocol IteratorProtocol { ... }
+
  public protocol Collection : ... {
 -  typealias Generator : GeneratorType = IndexingGenerator<Self>
-+  typealias Iterator : IteratorProtocol = DefaultCollectionIterator<Self>
++  typealias Iterator : IteratorProtocol = IndexingIterator<Self>
 
 -  func generate() -> Generator
 +  func iterator() -> Iterator
  }
 
 -public struct IndexingGenerator<Elements : Indexable> : ... { ... }
-+public struct DefaultCollectionIterator<Elements : Indexable> : ... { ... }
++public struct IndexingIterator<Elements : Indexable> : ... { ... }
+
+-public struct GeneratorOfOne<Element> : ... { ... }
++public struct IteratorOverOne<Element> : ... { ... }
+
+-public struct EmptyGenerator<Element> : ... { ... }
++public struct EmptyIterator<Element> : ... { ... }
+
+-public protocol ErrorType { ... }
++public protocol ErrorProtocol { ... }
+
+-public struct AnyGenerator<Element> : ... { ... }
++public struct AnyIterator<Element> : ... { ... }
+
+-public struct LazyFilterGenerator<Base : GeneratorType> : ... { ... }
++public struct LazyFilterIterator<Base : IteratorProtocol> : ... { ... }
+
+-public struct FlattenGenerator<Base : ...> : ... { ... }
++public struct FlattenIterator<Base : ...> : ... { ... }
+
+-public struct JoinGenerator<Base : ...> : ... { ... }
++public struct JoinIterator<Base : ...> : ... { ... }
+
+-public struct LazyMapGenerator<Base : ...> ... { ... }
++public struct LazyMapIterator<Base : ...> ... { ... }
+
+-public struct RangeGenerator<Element : ForwardIndexType> : ... { ... }
++public struct RangeIterator<Element : ForwardIndex> : ... { ... }
+
+-public struct GeneratorSequence<Base : GeneratorType> : ... { ... }
++public struct IteratorSequence<Base : IteratorProtocol> : ... { ... }
+
+-public struct StrideToGenerator<Element : Strideable> : ... { ... }
++public struct StrideToIterator<Element : Strideable> : ... { ... }
+
+-public struct StrideThroughGenerator<Element : Strideable> : ... { ... }
++public struct StrideThroughIterator<Element : Strideable> : ... { ... }
+
+
 ```
 
 * The type `Bit`, which was only used as the index for `CollectionOfOne`, was
@@ -121,7 +235,7 @@ this method are implied.
 
 ```diff
 -public struct PermutationGenerator<
--  C : CollectionType, Indices: SequenceType
+-  C : CollectionType, Indices : SequenceType
 -  where C.Index == Indices.Generator.Element
 -> : ... { ... }
 ```
@@ -147,17 +261,11 @@ this method are implied.
 +  Pointee
  > ... : {
 
--  public var memory: Memory
-+  public var pointee: Pointee
+-  public var memory: Memory { get set }
++  public var pointee: Pointee { get set }
 
    // Use `nil` instead.
 -  public init()
-
- }
-
--public func unsafeUnwrap<T>(nonEmpty: T?) -> T
- extension Optional {
-+  public var unsafelyUnwrapped: Wrapped { get }
  }
 
 -public struct COpaquePointer : ... {
@@ -167,44 +275,43 @@ this method are implied.
 -  public init()
 
 }
-
 ```
 
 * `sort()` => `sorted()`, `sortInPlace()` => `sort()`.
 
 ```diff
-extension Sequence where Self.Generator.Element : Comparable {
-  @warn_unused_result
+ extension Sequence where Self.Iterator.Element : Comparable {
+   @warn_unused_result
 -  public func sort() -> [Generator.Element]
-+  public func sorted() -> [Generator.Element]
-}
++  public func sorted() -> [Iterator.Element]
+ }
 
-extension Sequence {
-  @warn_unused_result
+ extension Sequence {
+   @warn_unused_result
 -  public func sort(
 +  public func sorted(
-    @noescape isOrderedBefore: (Generator.Element, Generator.Element) -> Bool
-  ) -> [Generator.Element]
-}
+     @noescape isOrderedBefore: (Iterator.Element, Iterator.Element) -> Bool
+   ) -> [Iterator.Element]
+ }
 
-extension MutableCollection where Self.Generator.Element : Comparable {
-  @warn_unused_result(mutable_variant="sort")
+ extension MutableCollection where Self.Iterator.Element : Comparable {
+   @warn_unused_result(mutable_variant="sort")
 -  public func sort() -> [Generator.Element]
-+  public func sorted() -> [Generator.Element]
-}
++  public func sorted() -> [Iterator.Element]
+ }
 
-extension MutableCollection {
-  @warn_unused_result(mutable_variant="sort")
+ extension MutableCollection {
+   @warn_unused_result(mutable_variant="sort")
 -  public func sort(
 +  public func sorted(
-    @noescape isOrderedBefore: (Generator.Element, Generator.Element) -> Bool
-  ) -> [Generator.Element]
-}
+    @noescape isOrderedBefore: (Iterator.Element, Iterator.Element) -> Bool
+   ) -> [Iterator.Element]
+ }
 
  extension MutableCollection
    where
    Self.Index : RandomAccessIndex,
-   Self.Generator.Element : Comparable {
+   Self.Iterator.Element : Comparable {
 
 -  public mutating func sortInPlace()
 +  public mutating func sort()
@@ -214,20 +321,178 @@ extension MutableCollection {
  extension MutableCollection where Self.Index : RandomAccessIndex {
 -  public mutating func sortInPlace(
 +  public mutating func sort(
-     @noescape isOrderedBefore: (Generator.Element, Generator.Element) -> Bool
+     @noescape isOrderedBefore: (Iterator.Element, Iterator.Element) -> Bool
    )
  }
+```
+
+* `reverse()` => `reversed()`.
+
+```diff
+ extension SequenceType {
+-  public func reverse() -> [Generator.Element]
++  public func reversed() -> [Iterator.Element]
+ }
+
+ extension CollectionType where Index : BidirectionalIndexType {
+-  public func reverse() -> ReverseCollection<Self>
++  public func reversed() -> ReverseCollection<Self>
+ }
+
+ extension CollectionType where Index : RandomAccessIndexType {
+-  public func reverse() -> ReverseRandomAccessCollection<Self>
++  public func reversed() -> ReverseRandomAccessCollection<Self>
+ }
+
+ extension LazyCollectionProtocol
+   where Index : BidirectionalIndexType, Elements.Index : BidirectionalIndexType {
+
+-  public func reverse()
++  public func reversed()
+     -> LazyCollection<ReverseCollection<Elements>>
+ }
+
+ extension LazyCollectionProtocol
+   where Index : RandomAccessIndexType, Elements.Index : RandomAccessIndexType {
+
+-  public func reverse()
++  public func reversed()
+     -> LazyCollection<ReverseRandomAccessCollection<Elements>>
+ }
+```
+
+* `enumerate()` => `enumerated()`.
+
+```diff
+ extension Sequence {
+-  public func enumerate() -> EnumerateSequence<Self>
++  public func enumerated() -> EnumeratedSequence<Self>
+ }
+
+-public struct EnumerateSequence<Base : SequenceType> : ... { ... }
++public struct EnumeratedSequence<Base : Sequence> : ... { ... }
+
+-public struct EnumerateGenerator<Base : GeneratorType> : ... { ... }
++public struct EnumeratedIterator<Base : IteratorProtocol> : ... { ... }
+```
+
+* `SequenceType.minElement()` => `.min()`, `.maxElement()` => `.max()`.
+
+```diff
+ extension Sequence {
+-  public func minElement(
++  public func minElement(
+     @noescape isOrderedBefore: (Iterator.Element, Iterator.Element) throws -> Bool
+   ) rethrows -> Iterator.Element?
+
+-  public func maxElement(
++  public func maxElement(
+     @noescape isOrderedBefore: (Iterator.Element, Iterator.Element) throws -> Bool
+   ) rethrows -> Iterator.Element?
+ }
+
+ extension Sequence where Iterator.Element : Comparable {
+-  public func minElement() -> Iterator.Element?
++  public func minElement() -> Iterator.Element?
+
+-  public func maxElement() -> Iterator.Element?
++  public func maxElement() -> Iterator.Element?
+ }
+```
+
+* Some initializers for sequence, collection and iterator adapters were
+  removed.  We suggest calling the corresponding algorithm function or
+  method instead.
+
+```diff
+ public struct LazyMapSequence<Base : Sequence, Element> : ... {
+   // Call `.lazy.map` on the sequence instead.
+-  public init(_ base: Base, transform: (Base.Generator.Element) -> Element)
+ }
+
+ public struct LazyMapCollection<Base : Collection, Element> : ... {
+   // Call `.lazy.map` on the collection instead.
+-  public init(_ base: Base, transform: (Base.Generator.Element) -> Element)
+ }
+
+ public struct RangeIterator<Element : ForwardIndex> : ... {
+   // Use the 'generate()' method on the collection instead.
+-  public init(_ bounds: Range<Element>)
+
+   // Use the '..<' operator.
+-  public init(start: Element, end: Element)
+ }
+
+ public struct ReverseCollection<Base : ...> : ... {
+   // Use the 'reverse()' method on the collection.
+-  public init(_ base: Base)
+ }
+
+ public struct ReverseRandomAccessCollection<Base : ...> : ... {
+   // Use the 'reverse()' method on the collection.
+-  public init(_ base: Base)
+ }
+
+ public struct Slice<Base : Indexable> : ... {
+   // Use the slicing syntax.
+-  public init(base: Base, bounds: Range<Index>)
+ }
+
+ public struct MutableSlice<Base : MutableIndexable> : ... {
+   // Use the slicing syntax.
+-  public init(base: Base, bounds: Range<Index>)
+ }
+```
+
+* Some functions were changed into properties and vice versa.
+
+```diff
+-public func unsafeUnwrap<T>(nonEmpty: T?) -> T
+ extension Optional {
++  public var unsafelyUnwrapped: Wrapped { get }
+ }
+
+ public struct Mirror {
+-  public func superclassMirror() -> Mirror?
++  public var superclassMirror: Mirror? { get }
+ }
+
+ public protocol CustomReflectable {
+-  func customMirror() -> Mirror
++  var customMirror: Mirror { get }
+ }
+
+ public protocol Collection : ... {
+-  public func underestimateCount() -> Int
++  public var underestimatedCount: Int { get }
+ }
+
+ public protocol CustomPlaygroundQuickLookable {
+-  func customPlaygroundQuickLook() -> PlaygroundQuickLook
++  var customPlaygroundQuickLook: PlaygroundQuickLook { get }
+ }
+
+ extension String {
+-  public var lowercaseString: String { get }
++  public func lowercased()
+
+-  public var uppercaseString: String { get }
++  public func uppercased()
+ }
+
+ public enum UnicodeDecodingResult {
+-  public func isEmptyInput() -> Bool {
++  public var isEmptyInput: Bool
+ }
+
 ```
 
 * Miscellaneous changes.
 
 ```diff
--public struct EnumerateGenerator<Base : GeneratorType> : ... {
-+public struct EnumeratedIterator<Base : IteratorProtocol> : ... {
-
+ public struct EnumeratedIterator<Base : IteratorProtocol> : ... {
 -  public typealias Element = (index: Int, element: Base.Element)
 +  public typealias Element = (offset: Int, element: Base.Element)
-
  }
 
  public struct Array<Element> : ... {
@@ -235,43 +500,166 @@ extension MutableCollection {
 
 -  public init(count: Int, repeatedValue: Element)
 +  public init(repeating: Element, count: Int)
-
  }
 
- public protocol Collection : ... {
--  public func underestimateCount() -> Int
-+  public var underestimatedCount: Int
-
-   @warn_unused_result
+ public protocol Sequence : ... {
    public func split(
 -    maxSplit: Int = Int.max,
 +    maxSplits: Int = Int.max,
 -    allowEmptySlices: Bool = false,
 +    omitEmptySubsequences: Bool = true,
-     @noescape isSeparator: (Generator.Element) throws -> Bool
+     @noescape isSeparator: (Iterator.Element) throws -> Bool
    ) rethrows -> [SubSequence]
+ }
+
+ extension Sequence where Iterator.Element : Equatable {
+   public func split(
+     separator: Iterator.Element,
+-    maxSplit: Int = Int.max,
++    maxSplits: Int = Int.max,
+-    allowEmptySlices: Bool = false
++    omitEmptySubsequences: Bool = true
+   ) -> [AnySequence<Iterator.Element>] {
  }
 
  // Changes to this protocol affect `Array`, `ArraySlice`, `ContiguousArray` and
  // other types.
- protocol RangeReplaceableCollection : ... {
-
--  public mutating func insert(newElement: Element, atIndex i: Int)
-+  public mutating func insert(newElement: Element, at i: Int)
-
--  public mutating func removeAtIndex(index: Int) -> Element
-+  public mutating func removeAt(index: Int) -> Element
-
--  public mutating func removeAll(keepCapacity keepCapacity: Bool = false)
-+  public mutating func removeAll(keepingCapacity keepingCapacity: Bool = false)
-
--  public mutating func replaceRange<
-+  public mutating func replaceSubrange<
-     C : CollectionType where C.Generator.Element == _Buffer.Element
+ public protocol RangeReplaceableCollection : ... {
+-  mutating func replaceRange<
++  mutating func replaceSubrange<
+     C : CollectionType where C.Iterator.Element == Generator.Element
    >(
      subRange: Range<Int>, with newElements: C
    )
+
+-  mutating func insert(newElement: Element, atIndex i: Int)
++  mutating func insert(newElement: Element, at i: Int)
+
+-  mutating func removeAtIndex(index: Int) -> Element
++  mutating func removeAt(index: Int) -> Element
+
+-  mutating func removeAll(keepCapacity keepCapacity: Bool = false)
++  mutating func removeAll(keepingCapacity keepingCapacity: Bool = false)
+
+-  mutating func removeRange(subRange: Range<Index>)
+-  mutating func removeSubrange(subRange: Range<Index>)
  }
+
+ public struct Set<Element : Hashable> : ... {
+-  public mutating func removeAtIndex(index: Index) -> Element
++  public mutating func removeAt(index: Index) -> Element
+ }
+
+ public struct Dictionary<Key : Hashable, Value> : ... {
+-  public typealias Element = (Key, Value)
++  public typealias Element = (key: Key, value: Value)
+
+-  public mutating func removeAtIndex(index: Index) -> Element
++  public mutating func removeAt(index: Index) -> Element
+ }
+
+ extension String {
+-  public mutating func appendContentsOf(other: String) {
++  public mutating func append(other: String) {
+
+-  public mutating func replaceRange<
++  mutating func replaceSubrange<
+     C: CollectionType where C.Generator.Element == Character
+   >(
+     subRange: Range<Index>, with newElements: C
+   )
+
+-  public mutating func replaceRange(
++  public mutating func replaceSubrange(
+     subRange: Range<Index>, with newElements: String
+   )
+
+-  public mutating func insert(newElement: Character, atIndex i: Index)
++  public mutating func insert(newElement: Character, at i: Index)
+
+-  public mutating func removeAtIndex(i: Index) -> Character
++  public mutating func removeAt(i: Index) -> Character
+
+-  public mutating func removeRange(subRange: Range<Index>)
++  public mutating func removeSubrange(subRange: Range<Index>)
+
+-  mutating func removeAll(keepCapacity keepCapacity: Bool = false)
++  mutating func removeAll(keepingCapacity keepingCapacity: Bool = false)
+
+-  public init(count: Int, repeatedValue c: Character)
++  public init(repeating repeatedValue: Character, length: Int)
+
+-  public init(count: Int, repeatedValue c: UnicodeScalar)
++  public init(repeating repeatedValue: UnicodeScalar, length: Int)
+ }
+
+ public enum UnicodeDecodingResult {
+-  case Result(UnicodeScalar)
++  case ScalarValue(UnicodeScalar)
+   case EmptyInput
+   case Error
+ }
+
+ public struct ManagedBufferPointer<Value, Element> : ... {
+-  public var allocatedElementCount: Int { get }
++  public var capacity: Int { get }
+ }
+
+ public struct RangeIterator<Element : ForwardIndex> : ... {
+-  public var startIndex: Element { get set }
+-  public var endIndex: Element { get set }
+ }
+
+ public struct ObjectIdentifier : ... {
+-  public var uintValue: UInt { get }
+ }
+ extension UInt {
++  /// Create a `UInt` that captures the full value of `objectID`.
++  public init(_ objectID: ObjectIdentifier)
+ }
+ extension Int {
++  /// Create an `Int` that captures the full value of `objectID`.
++  public init(_ objectID: ObjectIdentifier)
+ }
+
+-public struct Repeat<Element> : ... { ... }
++public struct Repeated<Element> : ... { ... }
+
+ extension Repeated {
+-  public init(count: Int, repeatedValue: Element)
+ }
++/// Return a collection containing `n` repetitions of `elementInstance`.
++public func repeatElement<T>(element: T, count n: Int) -> Repeated<T>
+
+ public struct StaticString : ... {
+-  public var byteSize: Int { get }
++  public var lengthInBytes: Int { get } // FIXME: byteCount?  utf8Count?  don't touch?
+
+   // Use the 'String(_:)' initializer.
+-  public var stringValue: String { get }
+ }
+
+ extension Strideable {
+-  public func stride(to end: Self, by stride: Stride) -> StrideTo<Self>
++  public func strideTo(end: Self, by stride: Stride) -> StrideTo<Self>
+ }
+
+ extension Strideable {
+-  public func stride(through end: Self, by stride: Stride) -> StrideThrough<Self>
++  public func strideThrough(end: Self, by stride: Stride) -> StrideThrough<Self>
+ }
+
+ public func transcode<
+   Input : GeneratorType,
+   InputEncoding : UnicodeCodecType,
+   OutputEncoding : UnicodeCodecType
+   where InputEncoding.CodeUnit == Input.Element>(
+   inputEncoding: InputEncoding.Type, _ outputEncoding: OutputEncoding.Type,
+   _ input: Input, _ output: (OutputEncoding.CodeUnit) -> Void,
+-  stopOnError: Bool
++  stoppingOnError: Bool
+ ) -> Bool
+
 ```
 
 ## Impact on existing code
