@@ -119,6 +119,7 @@ sooner.
 * [Tuple comparison operators](proposals/0015-tuple-comparison-operators.md) (SE-0015)
 * [Constraining `AnySequence.init`](proposals/0014-constrained-AnySequence.md) (SE-0014)
 * [Replace `typealias` keyword with `associatedtype` for associated type declarations](proposals/0011-replace-typealias-associated.md) (SE-0011)
+* [Naming Functions with Argument Labels](proposals/0021-generalized-naming.md) (SE-0021)
 
 ### Accepted proposals for Swift 2.2
 * [Add a Lazy flatMap for Sequences of Optionals](proposals/0008-lazy-flatmap-for-optionals.md) (SE-0008)
@@ -135,7 +136,6 @@ sooner.
 * [Add StaticString.UnicodeScalarView](proposals/0010-add-staticstring-unicodescalarview.md) (SE-0010, Jan 6-8)
 * [Remove Partial Application of Non-Final Super Methods (Swift 2.2)](proposals/0013-remove-partial-application-super.md) (SE-0013, Jan 9-13)
 * [Swift Language Version Build Configuration](proposals/0020-if-swift-version.md) (SE-0020, Jan 12-17)
-* [Naming Functions with Argument Labels](proposals/0021-generalized-naming.md) (SE-0021, Jan 13-18)
 * [Referencing the Objective-C selector of a method](proposals/0022-objc-selectors.md) (SE-0022, Jan 17-22)
 
 ### Scheduled for Review
