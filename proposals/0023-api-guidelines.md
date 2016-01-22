@@ -2,7 +2,8 @@
 
 * Proposal: [SE-0023](https://github.com/apple/swift-evolution/blob/master/proposals/0023-api-guidelines.md)
 * Author(s): Dave Abrahams, Doug Gregor, Dmitri Hrybenko, Ted Kremenek, Chris Lattner, Alex Migicovsky, Max Moiseev, Ali Ozer, Tony Parker
-* Status: **Awaiting review** (January 21...31, 2016)
+* Status: **Under Review** (January 22...31, 2016)
+* Review manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Reviewer notes
 

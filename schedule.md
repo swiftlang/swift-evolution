@@ -9,12 +9,13 @@ proposals in that process.
 * January 6...8, 2016: [SE-0010: Add StaticString.UnicodeScalarView](proposals/0010-add-staticstring-unicodescalarview.md)
 * January 12...17, 2016: [SE-0020: Swift Language Version Build Configuration](proposals/0020-if-swift-version.md)
 * January 18...23, 2016: [SE-0022: Referencing the Objective-C selector of a method](proposals/0022-objc-selectors.md)
+* January 22...31, 2016: [SE-0023: API Design Guidelines](proposals/0006-apply-api-guidelines-to-the-standard-library.md)
+* January 22...31, 2016: [SE-0006: Apply API Guidelines to the Standard Library](proposals/0006-apply-api-guidelines-to-the-standard-library.md)
+* January 22...31, 2016: [SE-0005: Better Translation of Objective-C APIs Into Swift](proposals/0005-objective-c-name-translation.md)
 
 ## Upcoming reviews
 
-* January 21...31, 2016: [SE-0023: API Design Guidelines](proposals/0006-apply-api-guidelines-to-the-standard-library.md)
-* January 21...31, 2016: [SE-0006: Apply API Guidelines to the Standard Library](proposals/0006-apply-api-guidelines-to-the-standard-library.md)
-* January 21...31, 2016: [SE-0005: Better Translation of Objective-C APIs Into Swift](proposals/0005-objective-c-name-translation.md)
+(None at the moment)
 
 ## Proposals awaiting scheduling
 
