@@ -107,7 +107,7 @@ implied.
 +public protocol Boolean { ... }
 
 -public protocol SequenceType { ... }
--public protocol Sequence { ... }
++public protocol Sequence { ... }
 
 -public protocol CollectionType : ... { ... }
 +public protocol Collection : ... { ... }
@@ -736,6 +736,8 @@ public struct OpaquePointer : ... {
  // Changes to this protocol affect `Array`, `ArraySlice`, `ContiguousArray` and
  // other types.
  public protocol RangeReplaceableCollection : ... {
++  public init(repeating: Element, count: Int)
+
 -  mutating func replaceRange<
 +  mutating func replaceSubrange<
      C : CollectionType where C.Iterator.Element == Generator.Element
