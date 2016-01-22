@@ -258,14 +258,14 @@ be equivalent to `(A?, B?)` with convenience methods to extract values
 and induct on the "cases" of each side of the tuple.
 
 In addition, the name `Either` does not lend much to the imagination,
-and the use of `Left` and `Right` cause considerable confusion to
-novices in Haskell precisely because the type is used mostly for error
-handling.  If that case were discouraged, and this type treated like
-data first, the use of `Left` and `Right` and `Either` becomes less nebulous.  Mostly, the
-name does not matter so much as the structure, so possibilities for a
-renaming including cases are:
+and the use of `Left` and `Right` have the potential to cause confusion to
+novices expecting a `Result<T>` precisely because that particular incarnation of
+this type is used mostly for error handling.  If that case were discouraged, and
+this type treated like data first, the use of `Left` and `Right` and `Either` 
+becomes less nebulous.  Mostly, the name does not matter so much as the 
+structure, so possibilities for a renaming including cases are:
 
-- Result: Value, Error
+- Choice: Left, Right / This, That
 - Sum: Left, Right
 - Alternative: First, Second
 - These: This, That
