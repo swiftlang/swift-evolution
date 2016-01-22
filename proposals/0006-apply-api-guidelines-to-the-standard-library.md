@@ -71,12 +71,19 @@ On high level, the changes can be summarized as follows.
 
 * `enumerate()` => `enumerated()`.
 
+* `partition()` API was simplified.  It composes better with collection slicing
+  now.
+
 * `SequenceType.minElement()` => `.min()`, `.maxElement()` => `.max()`.
 
 * Some initializers for sequence and collection adapters were removed.  We
   suggest calling the corresponding algorithm function or method instead.
 
 * Some functions were changed into properties and vice versa.
+
+* `Unmanaged` was renamed to `UnsafeReference` and redesigned.
+
+* `precondition` was renamed to `require`.
 
 **More changes will be summarized here as they are implemented.**
 
@@ -89,7 +96,9 @@ added to this section as they are being implemented on the
 For repetitive changes that affect many types, only one representative instance
 is shown in the diff.  For example, `generate()` was renamed to `iterator()`.
 We only show the diff for the protocol requirement, and all other renames of
-this method are implied.
+this method are implied.  If a type was renamed, we show only the diff for the
+type declaration, all other effects on the API where the name is used are
+implied.
 
 * Strip `Type` suffix from protocol names.
 
@@ -166,6 +175,8 @@ this method are implied.
 -public protocol UnicodeCodecType { ... }
 +public protocol UnicodeCodec { ... }
 
+-public protocol CVarArgType { ... }
++public protocol CVarArg { ... }
 ```
 
 * The concept of `generator` is renamed to `iterator` across all APIs.
@@ -175,8 +186,8 @@ this method are implied.
 +public protocol IteratorProtocol { ... }
 
  public protocol Collection : ... {
--  typealias Generator : GeneratorType = IndexingGenerator<Self>
-+  typealias Iterator : IteratorProtocol = IndexingIterator<Self>
+-  associatedtype Generator : GeneratorType = IndexingGenerator<Self>
++  associatedtype Iterator : IteratorProtocol = IndexingIterator<Self>
 
 -  func generate() -> Generator
 +  func iterator() -> Iterator
@@ -221,7 +232,8 @@ this method are implied.
 -public struct StrideThroughGenerator<Element : Strideable> : ... { ... }
 +public struct StrideThroughIterator<Element : Strideable> : ... { ... }
 
-
+-public struct UnsafeBufferPointerGenerator<Element> : ... { ... }
++public struct UnsafeBufferPointerIterator<Element> : ... { ... }
 ```
 
 * The type `Bit`, which was only used as the index for `CollectionOfOne`, was
@@ -256,11 +268,12 @@ this method are implied.
   recommend using the `nil` literal instead.
 
 ```diff
- public struct AutoreleasingUnsafeMutablePointer<
+ // The same changes applied to `UnsafePointer`, `UnsafeMutablePointer` and
+ // `AutoreleasingUnsafeMutablePointer`.
+ public struct UnsafePointer<
 -  Memory
 +  Pointee
  > ... : {
-
 -  public var memory: Memory { get set }
 +  public var pointee: Pointee { get set }
 
@@ -268,12 +281,9 @@ this method are implied.
 -  public init()
  }
 
--public struct COpaquePointer : ... {
-+public struct OpaquePointer : ... {
-
+public struct OpaquePointer : ... {
    // Use `nil` instead.
 -  public init()
-
 }
 ```
 
@@ -376,6 +386,25 @@ this method are implied.
 +public struct EnumeratedIterator<Base : IteratorProtocol> : ... { ... }
 ```
 
+* `partition()` API was simplified.  It composes better with collection slicing
+  now.
+
+```diff
+ extension MutableCollection where Index : RandomAccessIndex {
+   public mutating func partition(
+-    range: Range<Index>,
+     isOrderedBefore: (Iterator.Element, Iterator.Element) -> Bool
+   ) -> Index
+ }
+
+ extension MutableCollection
+   where Index : RandomAccessIndex, Iterator.Element : Comparable {
+
+-  public mutating func partition(range: Range<Index>) -> Index
++  public mutating func partition() -> Index
+}
+```
+
 * `SequenceType.minElement()` => `.min()`, `.maxElement()` => `.max()`.
 
 ```diff
@@ -415,6 +444,14 @@ this method are implied.
 -  public init(_ base: Base, transform: (Base.Generator.Element) -> Element)
  }
 
+ public struct LazyFilterIterator<Base : IteratorProtocol> : ... {
+   // Call `.lazy.filter` on the sequence instead.
+-  public init(
+-    _ base: Base,
+-    whereElementsSatisfy predicate: (Base.Element) -> Bool
+-  )
+ }
+
  public struct RangeIterator<Element : ForwardIndex> : ... {
    // Use the 'generate()' method on the collection instead.
 -  public init(_ bounds: Range<Element>)
@@ -441,6 +478,16 @@ this method are implied.
  public struct MutableSlice<Base : MutableIndexable> : ... {
    // Use the slicing syntax.
 -  public init(base: Base, bounds: Range<Index>)
+ }
+
+ public struct EnumeratedIterator<Base : IteratorProtocol> : ... {
+   // Use the 'enumerated()' method.
+   public init(_ base: Base)
+ }
+
+ public struct EnumeratedSequence<Base : IteratorProtocol> : ... {
+   // Use the 'enumerated()' method.
+   public init(_ base: Base)
  }
 ```
 
@@ -485,6 +532,170 @@ this method are implied.
 +  public var isEmptyInput: Bool
  }
 
+```
+
+* `Unmanaged` was renamed to `UnsafeReference` and redesigned.
+
+```diff
+-public struct Unmanaged<Instance : AnyObject> {
+   // New API: `UnsafeReference(bitPattern:)`.
+-  public static func fromOpaque(value: COpaquePointer) -> Unmanaged
+
+   // New API: `OpaquePointer(bitPattern:)`.
+-  public func toOpaque() -> COpaquePointer
+
+   // New API: `UnsafeReference(retaining:)`.
+-  public static func passRetained(value: Instance) -> Unmanaged
+
+   // New API: `UnsafeReference(withoutRetaining:)`.
+-  public static func passUnretained(value: Instance) -> Unmanaged
+
+   // New API: `UnsafeReference.object`.
+-  public func takeUnretainedValue() -> Instance
+
+   // New API: `UnsafeReference.release()`.
+-  public func takeRetainedValue() -> Instance
+
+   // New API: none.
+-  public func retain() -> Unmanaged
+-  public func release()
+-  public func autorelease() -> Unmanaged
+-}
+
++/// Holds an instance of `Object`, carrying ownership semantics that
++/// are not known to the type system and not represented in memory.
++///
++/// `UnsafeReference<T>` appears as a return type or "out" parameter
++/// in [Core
++/// Foundation](https://developer.apple.com/library/mac/documentation/CoreFoundation/Reference/CoreFoundation_Collection/)
++/// APIs that have not been
++/// [annotated](https://developer.apple.com/library/ios/documentation/Swift/Conceptual/BuildingCocoaApps/WorkingWithCocoaDataTypes.html#//apple_ref/doc/uid/TP40014216-CH6-ID79)
++/// with information that allows clients to receive a safe `T`
++/// directly.
++///
++/// An `UnsafeReference` instance `u` can be in one of three
++/// "ownership states":
++///
++///  1. **Unretained**, where `u.object` yields a valid `T` and will
++///     do so through any number of accesses to the `.object`
++///     properties of `UnsafeReference` instances.  The behavior of
++///     `u.release()` is undefined, and any other operations may cause
++///     `u` to transition to the *released* state.
++///
++///  2. **Retained**, where `u.release()` yields a valid `T` and will
++///     do so exactly once.  Calling `.release()` transitions `u` and
++///     all its copies to the *released* state.
++///
++///  3. **Released**, where the behavior of both `u.object` and
++///     `u.release()` is undefined.  A released `UnsafeReference`
++///     can't be used for anything.
++///
++/// The ownership state of an `UnsafeReference` is not
++/// programmatically detectable, so careful documentation is
++/// essential.  When an `UnsafeReference` is returned in the
++/// *retained* state, it is usual to document that "the caller is
++/// responsible for releasing the object"" or that the API "follows
++/// the [create
++/// rule](https://developer.apple.com/library/ios/documentation/CoreFoundation/Conceptual/CFMemoryMgmt/Concepts/Ownership.html#//apple_ref/doc/writerid/cfCreateRule)."
++/// Other `UnsafeReferences` are assumed to be in the *unretained*
++/// state.  No API should pass or return a *released*
++/// `UnsafeReference`
++///
++/// The safest way to deal with an instance of `UnsafeReference<T>` is
++/// to immediately extract a safe `T` from it exactly once (via
++/// `.object` or `.release()` according to its state), and let it go
++/// out of scope.
++///
++/// In the common case where the `UnsafeReference` is a return value,
++/// it's best to do the extraction as part of the call, e.g.:
++/// ~~~~
++/// let names: CFArray = CFHostGetNames(host).object
++/// let url: CFURL = CFHTTPMessageCopyRequestURL(message).release()
++/// ~~~
++///
++/// When the `UnsafeReference` is an "out" parameter, you can limit
++/// its scope by creating and unwrapping it in a closure:
++/// ~~~~
++/// var properties: CFPropertyList = try {
++///   var properties: UnsafeReference<CFPropertyList>?
++///   let error = MIDIObjectGetProperties(midiClient, &properties, true)
++///   if error != noErr {
++///     throw NSError(domain: "midi", code: Int(error), userInfo: nil)
++///   }
++///   return properties!.object
++/// }()
++/// ~~~~
++public struct UnsafeReference<Object : AnyObject> {
++
++  /// Relinquishes ownership of the `Object` and returns it as a safe
++  /// reference.
++  ///
++  /// - Requires: `self` is in the *retained* state.
++  ///
++  /// - Postcondition: `self` and all its copies are in the *released* state.
++  ///
++  /// - Warning: Calling `.release()` on an *unretained* or *released*
++  ///   `UnsafeReference` is a severe programming error yielding
++  ///   undefined behavior.
++  ///
++  /// - Warning: After this method is invoked once, invoking any
++  ///   methods on the same instance, or a copy thereof, is a severe
++  ///   programming error yielding undefined behavior.
++  public func release() -> Object
++
++  /// A safe reference to the `Object` instance.
++  ///
++  /// - Warning: if `self`` is in the *retained* state, you must
++  ///   eventually call `.release()`, or the resulting object will be
++  ///   leaked.  It's better to just capture the result of invoking
++  ///   `.release()` in that case.
++  public var object: Object
+
++  /// Creates an unsafe holder of `safeObject` in the *unretained*
++  /// state; the held object can be accessed via the `.object` property.
++  public init(withoutRetaining safeObject: Object)
++
++  /// Creates an unsafe holder of `safeObject` in the *retained*
++  /// state; the held object can be accessed via the `release()`
++  /// method.
++  public init(retaining safeObject: Object)
++
++  /// Creates an unsafe holder of an object having the given
++  /// `bitPattern`.
++  public init(bitPattern: OpaquePointer)
++
++  internal unowned(unsafe) var _storage: Object
++}
++
++extension OpaquePointer {
++  /// Unsafely convert an unmanaged class reference to an opaque
++  /// C pointer.
++  ///
++  /// This operation does not change reference counts.
++  ///
++  ///     let str0: CFString = "boxcar"
++  ///     let bits = OpaquePointer(bitPattern: UnsafeReference(withoutRetaining: str0))
++  ///     let str1 = UnsafeReference<CFString>(bitPattern: bits).object
++  public init<T>(bitPattern bits: UnsafeReference<T>)
++}
+```
+
+* `precondition` was renamed to `require`.
+
+```diff
+-public func precondition(
++public func require(
+   @autoclosure condition: () -> Bool,
+   @autoclosure _ message: () -> String = String(),
+   file: StaticString = __FILE__, line: UInt = __LINE__
+ )
+
+@noreturn
+-public func preconditionFailure(
++public func requirementFailure(
+   @autoclosure message: () -> String = String(),
+   file: StaticString = __FILE__, line: UInt = __LINE__
+ )
 ```
 
 * Miscellaneous changes.
@@ -587,10 +798,10 @@ this method are implied.
 +  mutating func removeAll(keepingCapacity keepingCapacity: Bool = false)
 
 -  public init(count: Int, repeatedValue c: Character)
-+  public init(repeating repeatedValue: Character, length: Int)
++  public init(repeating repeatedValue: Character, count: Int)
 
 -  public init(count: Int, repeatedValue c: UnicodeScalar)
-+  public init(repeating repeatedValue: UnicodeScalar, length: Int)
++  public init(repeating repeatedValue: UnicodeScalar, count: Int)
  }
 
  public enum UnicodeDecodingResult {
@@ -633,7 +844,7 @@ this method are implied.
 
  public struct StaticString : ... {
 -  public var byteSize: Int { get }
-+  public var lengthInBytes: Int { get } // FIXME: byteCount?  utf8Count?  don't touch?
++  public var utf8CodeUnitCount: Int { get }
 
    // Use the 'String(_:)' initializer.
 -  public var stringValue: String { get }
@@ -660,6 +871,35 @@ this method are implied.
 +  stoppingOnError: Bool
  ) -> Bool
 
+ extension UnsafeMutablePointer {
+-  public static func alloc(num: Int) -> UnsafeMutablePointer<Pointee>
++  public init(allocatingCapacity count: Int)
+
+-  public func dealloc(num: Int)
++  public func deallocateCapacity(count: Int)
+
+-  public func initialize(newvalue: Memory)
++  public func initializePointee(newValue: Pointee, count: Int = 1)
+
+-  public func move() -> Memory
++  public func take() -> Memory
+
+-  public func destroy()
+-  public func destroy(count: Int)
++  public func deinitializePointee(count count: Int = 1)
+ }
+
+-public struct COpaquePointer : ... { ... }
++public struct OpaquePointer : ... { ... }
+
+-public struct RawByte {}
+
+-final public class VaListBuilder {}
+
+-public func withVaList<R>(
+-  builder: VaListBuilder,
+-  @noescape _ f: CVaListPointer -> R)
+--> R
 ```
 
 ## Impact on existing code
