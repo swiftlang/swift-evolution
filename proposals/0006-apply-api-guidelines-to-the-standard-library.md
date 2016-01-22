@@ -435,6 +435,12 @@ public struct OpaquePointer : ... {
   method instead.
 
 ```diff
+ extension Repeated {
+-  public init(count: Int, repeatedValue: Element)
+ }
++/// Return a collection containing `n` repetitions of `elementInstance`.
++public func repeatElement<T>(element: T, count n: Int) -> Repeated<T>
+
  public struct LazyMapSequence<Base : Sequence, Element> : ... {
    // Call `.lazy.map` on the sequence instead.
 -  public init(_ base: Base, transform: (Base.Generator.Element) -> Element)
@@ -847,12 +853,6 @@ public struct OpaquePointer : ... {
 
 -public struct Repeat<Element> : ... { ... }
 +public struct Repeated<Element> : ... { ... }
-
- extension Repeated {
--  public init(count: Int, repeatedValue: Element)
- }
-+/// Return a collection containing `n` repetitions of `elementInstance`.
-+public func repeatElement<T>(element: T, count n: Int) -> Repeated<T>
 
  public struct StaticString : ... {
 -  public var byteSize: Int { get }
