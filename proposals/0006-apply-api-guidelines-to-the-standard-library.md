@@ -85,8 +85,6 @@ On high level, the changes can be summarized as follows.
 
 * `precondition` was renamed to `require`.
 
-**More changes will be summarized here as they are implemented.**
-
 ## API diffs
 
 Differences between Swift 2.2 Standard library API and the proposed API are
