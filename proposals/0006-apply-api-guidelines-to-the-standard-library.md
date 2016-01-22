@@ -664,8 +664,6 @@ public struct OpaquePointer : ... {
 +  /// Creates an unsafe holder of an object having the given
 +  /// `bitPattern`.
 +  public init(bitPattern: OpaquePointer)
-+
-+  internal unowned(unsafe) var _storage: Object
 +}
 +
 +extension OpaquePointer {
