@@ -129,13 +129,13 @@ sooner.
 
 ### Rejected proposals
 * [Require self for accessing instance members](proposals/0009-require-self-for-accessing-instance-members.md) (SE-0009)
+* [Remove Partial Application of Non-Final Super Methods (Swift 2.2)](proposals/0013-remove-partial-application-super.md) (SE-0013, Jan 9-13)
 
 ## Review
 [Swift Evolution Review Schedule](https://github.com/apple/swift-evolution/blob/master/schedule.md)
 
 ### Under Review
 * [Add StaticString.UnicodeScalarView](proposals/0010-add-staticstring-unicodescalarview.md) (SE-0010, Jan 6-8)
-* [Remove Partial Application of Non-Final Super Methods (Swift 2.2)](proposals/0013-remove-partial-application-super.md) (SE-0013, Jan 9-13)
 * [Referencing the Objective-C selector of a method](proposals/0022-objc-selectors.md) (SE-0022, Jan 17-22)
 
 ### Scheduled for Review

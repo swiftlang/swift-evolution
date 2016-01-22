@@ -7,7 +7,6 @@ proposals in that process.
 ## Active reviews
 
 * January 6...8, 2016: [SE-0010: Add StaticString.UnicodeScalarView](proposals/0010-add-staticstring-unicodescalarview.md)
-* January 9...13, 2016: [SE-0013: Remove Partial Application of Non-Final Super Methods](proposals/0013-remove-partial-application-super.md)
 * January 12...17, 2016: [SE-0020: Swift Language Version Build Configuration](proposals/0020-if-swift-version.md)
 * January 18...23, 2016: [SE-0022: Referencing the Objective-C selector of a method](proposals/0022-objc-selectors.md)
 
