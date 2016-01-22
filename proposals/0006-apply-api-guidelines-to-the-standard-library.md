@@ -736,17 +736,17 @@ public struct OpaquePointer : ... {
  // Changes to this protocol affect `Array`, `ArraySlice`, `ContiguousArray` and
  // other types.
  public protocol RangeReplaceableCollection : ... {
-+  public init(repeating: Element, count: Int)
++  public init(repeating: Iterator.Element, count: Int)
 
 -  mutating func replaceRange<
 +  mutating func replaceSubrange<
-     C : CollectionType where C.Iterator.Element == Generator.Element
+     C : CollectionType where C.Iterator.Element == Iterator.Element
    >(
      subRange: Range<Int>, with newElements: C
    )
 
--  mutating func insert(newElement: Element, atIndex i: Int)
-+  mutating func insert(newElement: Element, at i: Int)
+-  mutating func insert(newElement: Iterator.Element, atIndex i: Int)
++  mutating func insert(newElement: Iterator.Element, at i: Int)
 
 -  mutating func removeAtIndex(index: Int) -> Element
 +  mutating func removeAt(index: Int) -> Element
@@ -777,7 +777,7 @@ public struct OpaquePointer : ... {
 
 -  public mutating func replaceRange<
 +  mutating func replaceSubrange<
-     C: CollectionType where C.Generator.Element == Character
+     C: CollectionType where C.Iterator.Element == Character
    >(
      subRange: Range<Index>, with newElements: C
    )
@@ -863,9 +863,9 @@ public struct OpaquePointer : ... {
  }
 
  public func transcode<
-   Input : GeneratorType,
-   InputEncoding : UnicodeCodecType,
-   OutputEncoding : UnicodeCodecType
+   Input : IteratorProtocol,
+   InputEncoding : UnicodeCodec,
+   OutputEncoding : UnicodeCodec
    where InputEncoding.CodeUnit == Input.Element>(
    inputEncoding: InputEncoding.Type, _ outputEncoding: OutputEncoding.Type,
    _ input: Input, _ output: (OutputEncoding.CodeUnit) -> Void,
