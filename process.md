@@ -122,8 +122,16 @@ should be sent to the swift-evolution mailing list at
 
 > <https://lists.swift.org/mailman/listinfo/swift-evolution>
 
-or, if you would like to keep your feedback private, directly to the review
-manager.
+or, if you would like to keep your feedback private, directly to the
+review manager. When replying, please try to keep the proposal link at
+the top of the message:
+
+> Proposal link:
+>>  http://linkToProposal
+
+>  Reply text
+
+>>  Other replies
 
 ##### What goes into a review?
 
