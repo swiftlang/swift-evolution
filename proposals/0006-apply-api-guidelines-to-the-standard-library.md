@@ -411,22 +411,22 @@ public struct OpaquePointer : ... {
 ```diff
  extension Sequence {
 -  public func minElement(
-+  public func minElement(
++  public func min(
      @noescape isOrderedBefore: (Iterator.Element, Iterator.Element) throws -> Bool
    ) rethrows -> Iterator.Element?
 
 -  public func maxElement(
-+  public func maxElement(
++  public func max(
      @noescape isOrderedBefore: (Iterator.Element, Iterator.Element) throws -> Bool
    ) rethrows -> Iterator.Element?
  }
 
  extension Sequence where Iterator.Element : Comparable {
 -  public func minElement() -> Iterator.Element?
-+  public func minElement() -> Iterator.Element?
++  public func min() -> Iterator.Element?
 
 -  public func maxElement() -> Iterator.Element?
-+  public func maxElement() -> Iterator.Element?
++  public func max() -> Iterator.Element?
  }
 ```
 
