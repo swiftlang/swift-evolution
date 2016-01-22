@@ -483,12 +483,12 @@ public struct OpaquePointer : ... {
 
  public struct EnumeratedIterator<Base : IteratorProtocol> : ... {
    // Use the 'enumerated()' method.
-   public init(_ base: Base)
+-  public init(_ base: Base)
  }
 
  public struct EnumeratedSequence<Base : IteratorProtocol> : ... {
    // Use the 'enumerated()' method.
-   public init(_ base: Base)
+-  public init(_ base: Base)
  }
 ```
 
