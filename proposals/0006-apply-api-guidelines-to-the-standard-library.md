@@ -1630,7 +1630,7 @@ required transformations.  In addition, to the extent the language allows, the
 library will keep old names as unavailable symbols with a `renamed` annotation,
 that allows the compiler to produce good error messages and emit Fix-Its.
 
-[api-design-guidelines]: https://swift.org/documentation/api-design-guidelines.html  "API Design Guidelines"
+[api-design-guidelines]: https://swift.org/documentation/api-design-guidelines  "API Design Guidelines"
 [swift-repo]: https://github.com/apple/swift  "Swift repository"
 [swift-3-api-guidelines-branch]: https://github.com/apple/swift/tree/swift-3-api-guidelines  "Swift 3 API Design Guidelines preview"
 
