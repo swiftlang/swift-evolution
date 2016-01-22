@@ -177,6 +177,9 @@ implied.
 
 -public protocol CVarArgType { ... }
 +public protocol CVarArg { ... }
+
+-public protocol MirrorPathType { ... }
++public protocol MirrorPath { ... }
 ```
 
 * The concept of `generator` is renamed to `iterator` across all APIs.
@@ -736,7 +739,7 @@ public struct OpaquePointer : ... {
  // Changes to this protocol affect `Array`, `ArraySlice`, `ContiguousArray` and
  // other types.
  public protocol RangeReplaceableCollection : ... {
-+  public init(repeating: Iterator.Element, count: Int)
++  public init(repeating repeatedValue: Iterator.Element, count: Int)
 
 -  mutating func replaceRange<
 +  mutating func replaceSubrange<
@@ -762,6 +765,8 @@ public struct OpaquePointer : ... {
 -  public mutating func removeAtIndex(index: Index) -> Element
 +  public mutating func removeAt(index: Index) -> Element
  }
+
++extension Set : SetAlgebra {}
 
  public struct Dictionary<Key : Hashable, Value> : ... {
 -  public typealias Element = (Key, Value)
@@ -804,6 +809,15 @@ public struct OpaquePointer : ... {
 
 -  public init(count: Int, repeatedValue c: UnicodeScalar)
 +  public init(repeating repeatedValue: UnicodeScalar, count: Int)
+
+-  public var utf8: UTF8View { get }
++  public var utf8: UTF8View { get set }
+
+-  public var utf16: UTF16View { get }
++  public var utf16: UTF16View { get set }
+
+-  public var characters: CharacterView { get }
++  public var characters: CharacterView { get set }
  }
 
  public enum UnicodeDecodingResult {
