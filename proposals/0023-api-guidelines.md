@@ -39,7 +39,7 @@ design guidelines consistently.
 ## Proposed solution
 
 The proposed API Design Guidelines are available at
-[https://swift.org/documentation/api-design-guidelines.html](https://swift.org/documentation/api-design-guidelines.html).
+[https://swift.org/documentation/api-design-guidelines/](https://swift.org/documentation/api-design-guidelines/).
 
 ## Impact on existing code
 
