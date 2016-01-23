@@ -601,7 +601,7 @@ public struct OpaquePointer : ... {
 +/// programmatically detectable, so careful documentation is
 +/// essential.  When an `UnsafeReference` is returned in the
 +/// *retained* state, it is usual to document that "the caller is
-+/// responsible for releasing the object"" or that the API "follows
++/// responsible for releasing the object" or that the API "follows
 +/// the [create
 +/// rule](https://developer.apple.com/library/ios/documentation/CoreFoundation/Conceptual/CFMemoryMgmt/Concepts/Ownership.html#//apple_ref/doc/writerid/cfCreateRule)."
 +/// Other `UnsafeReferences` are assumed to be in the *unretained*
@@ -652,7 +652,7 @@ public struct OpaquePointer : ... {
 +
 +  /// A safe reference to the `Object` instance.
 +  ///
-+  /// - Warning: if `self`` is in the *retained* state, you must
++  /// - Warning: if `self` is in the *retained* state, you must
 +  ///   eventually call `.release()`, or the resulting object will be
 +  ///   leaked.  It's better to just capture the result of invoking
 +  ///   `.release()` in that case.
