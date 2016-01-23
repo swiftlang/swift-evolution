@@ -569,8 +569,8 @@ func <b>with</b>Matrix(_: CGAffineTransform) -> UIFontDescriptor
 </pre>
 
 If we instead began by pruning `SymbolicTraits` from the tail of
-the first method name, the prohibition against creating `absurdly
-vacuous names`_ would prevent us from pruning "`fontDescriptorWith`"
+the first method name, the prohibition against creating absurdly
+vacuous names would prevent us from pruning "`fontDescriptorWith`"
 down to "`with`", resulting in:
 
 <pre>
