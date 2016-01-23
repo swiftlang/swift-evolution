@@ -61,7 +61,7 @@ The code above yields an error, and rightfully so, because if the real types of 
 
 On the other side, `Drawable` can also be used in static contexts if we know the actual specific types at compile time:
 
-```swift```
+```swift
 func canvasWithObject<T: Drawable>(object: T) -> Canvas {
   var canvas = Canvas()
   object.draw(canvas)
