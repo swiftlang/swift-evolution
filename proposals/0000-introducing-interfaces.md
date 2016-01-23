@@ -249,7 +249,7 @@ interface IntAddable {
 
 ### Inheritance
 
-As protocols may have associated types and interfaces may not, an interface cannot inherit from a protocol:
+As protocols can have associated types and interfaces cannot, an interface cannot inherit from a protocol:
 
 ```swift
 interface Drawable : Comparable { /*...*/ }  // error!
