@@ -62,8 +62,8 @@ On high level, the changes can be summarized as follows.
 
 * `PermutationGenerator` was removed.
 
-* `MutableSliceable` was removed.  Use `CollectionType where SubSequence :
-  MutableCollectionType` instead.
+* `MutableSliceable` was removed.  Use `Collection where SubSequence :
+  MutableCollection` instead.
 
 * `sort()` => `sorted()`, `sortInPlace()` => `sort()`.
 
@@ -253,8 +253,8 @@ implied.
 -> : ... { ... }
 ```
 
-* `MutableSliceable` was removed.  Use `CollectionType where SubSequence :
-  MutableCollectionType` instead.
+* `MutableSliceable` was removed.  Use `Collection where SubSequence :
+  MutableCollection` instead.
 
 ```diff
 -public protocol MutableSliceable : CollectionType, MutableCollectionType {
