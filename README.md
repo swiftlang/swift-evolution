@@ -98,6 +98,7 @@ sampling of potentially good ideas that are not in scope for Swift
 * [Removing `var` from Function Parameters and Pattern Matching](proposals/0003-remove-var-parameters-patterns.md) (SE-0003)
 * [Remove the `++` and `--` operators](proposals/0004-remove-pre-post-inc-decrement.md) (SE-0004)
 * [Remove C-style for-loops with conditions and incrementers](proposals/0007-remove-c-style-for-loops.md) (SE-0007)
+* [Swift Testing](proposals/0019-package-manager-testing.md) (SE-0019)
 
 ## Development minor version:  Swift 2.2
 
@@ -136,4 +137,3 @@ sooner.
 
 ### Returned for Revision
 * [Flexible Memberwise Initialization](proposals/0018-flexible-memberwise-initialization.md) (SE-0018)
-* [Swift Testing](proposals/0019-package-manager-testing.md) (SE-0019)
