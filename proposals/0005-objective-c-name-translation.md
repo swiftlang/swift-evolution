@@ -510,7 +510,7 @@ foregroundColor = .<b>darkGray</b>()
 ##### Why Does Order Matter?
 
 Some steps below prune matches from the head of the first selector
-piece, and some prune from the tail.  When `pruning restrictions`_
+piece, and some prune from the tail.  When [pruning restrictions](#pruning-restrictions)
 prevent both the head and tail from being pruned, prioritizing
 head-pruning steps can keep method families together.  For example,
 in NSFontDescriptor:
