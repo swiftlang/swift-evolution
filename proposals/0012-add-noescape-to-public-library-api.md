@@ -116,7 +116,12 @@ Note that Objective-C library methods tend to come in three variants:
 - `mergesort()`, `mergesort_b()`
 - `psort()`, `psort_b()`
 - `qsort()`, `qsort_b()`
-
+- `ManagedProtoBuffer<Value, Element>.withUnsafeMutablePointerToValue<R>(_: (UnsafeMutablePointer<Value>) -> R) -> R`
+- `ManagedProtoBuffer<Value, Element>.withUnsafeMutablePointerToElements<R>(_: (UnsafeMutablePointer<Element>) -> R) -> R`
+- `ManagedProtoBuffer<Value, Element>.withUnsafeMutablePointers<R>(_: (UnsafeMutablePointer<Value>, UnsafeMutablePointer<Element>)) -> R) -> R`
+- `ManagedBufferPointer<Value, Element>.withUnsafeMutablePointerToValue<R>(_: (UnsafeMutablePointer<Value>) -> R) -> R`
+- `ManagedBufferPointer<Value, Element>.withUnsafeMutablePointerToElements<R>(_: (UnsafeMutablePointer<Element>) -> R) -> R`
+- `ManagedBufferPointer<Value, Element>.withUnsafeMutablePointers<R>(_: (UnsafeMutablePointer<Value>, UnsafeMutablePointer<Element>) -> R) -> R`
 
 ### libdispatch
 
