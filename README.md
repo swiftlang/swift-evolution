@@ -125,6 +125,7 @@ sooner.
 ### Accepted proposals for Swift 2.2
 * [Add a Lazy flatMap for Sequences of Optionals](proposals/0008-lazy-flatmap-for-optionals.md) (SE-0008)
 * [Swift Language Version Build Configuration](proposals/0020-if-swift-version.md) (SE-0020)
+* [Referencing the Objective-C selector of a method](proposals/0022-objc-selectors.md) (SE-0022)
 
 # Other Proposals
 
