@@ -111,11 +111,11 @@ control over the process.
 
 4. **Add first argument labels**: If the first parameter of a method
    is defaulted,
-   [it should have an argument label](https://swift.org/documentation/api-design-guidelines.html#first-argument-label). Determine
+   [it should have an argument label](https://swift.org/documentation/api-design-guidelines#first-argument-label). Determine
    a first argument label for that method.
 
 5. **Prepend "is" to Boolean properties**:
-   [Boolean properties should read as assertions on the receiver](https://swift.org/documentation/api-design-guidelines.html#boolean-assertions),
+   [Boolean properties should read as assertions on the receiver](https://swift.org/documentation/api-design-guidelines#boolean-assertions),
    but the Objective-C Coding Guidelines for Cocoa
    [prohibit the use of "is" on properties](https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/CodingGuidelines/Articles/NamingIvarsAndTypes.html#//apple_ref/doc/uid/20001284-BAJGIIJE). Import
    such properties with "is" prepended.
@@ -219,7 +219,7 @@ The descriptions in this section are described in terms of the incoming Objectiv
 Objective-C API names often contain names of parameter and/or result
 types that would be omitted in a Swift API. The following rules are
 designed to identify and remove these
-words. [[Omit Needless Words](https://swift.org/documentation/api-design-guidelines.html#omit-needless-words)]
+words. [[Omit Needless Words](https://swift.org/documentation/api-design-guidelines#omit-needless-words)]
 
 #### Identifying type names
 
@@ -249,7 +249,7 @@ a suffix of a string called the **type name**, which is defined as follows:
   *type name* is that of the underlying type. For example, when the
   Objective-C type is `UILayoutPriority`, which is a typedef for
   `float`, we try to match the string
-  "`Float`". [[Compensate for Weak Type Information](https://swift.org/documentation/api-design-guidelines.html#weak-type-information)]
+  "`Float`". [[Compensate for Weak Type Information](https://swift.org/documentation/api-design-guidelines#weak-type-information)]
 
 #### Matching
 
@@ -733,7 +733,7 @@ mailing list by [Chris Amanse](https://github.com/chrisamanse) and modified
 to fit to this proposal after review by Philippe Hausler.
 
 [objc-cocoa-guidelines]: https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/CodingGuidelines/CodingGuidelines.html  "Coding Guidelines for Cocoa"
-[api-design-guidelines]: https://swift.org/documentation/api-design-guidelines.html "API Design Guidelines"
+[api-design-guidelines]: https://swift.org/documentation/api-design-guidelines "API Design Guidelines"
 [core-libraries]: https://swift.org/core-libraries/  "Swift Core Libraries"
 [swift-3-api-guidelines-branch]: https://github.com/apple/swift/tree/swift-3-api-guidelines  "Swift 3 API Guidelines branch"
 [swift-2_2-branch]: https://github.com/apple/swift/tree/swift-2.2-branch  "Swift 2.2 branch"
