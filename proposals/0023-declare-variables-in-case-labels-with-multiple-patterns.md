@@ -17,7 +17,7 @@ enum MyEnum {
     case Case2(Float,Int)
 }
 switch value {
-case let .Case1(x, 2), .Case2(2, x):
+case let .Case1(x, 2), let .Case2(2, x):
     print(x)
 case .Case1, .Case2:
     break
@@ -54,9 +54,9 @@ enum MyEnum {
 These cases should be possible:
 
 ```swift
-case let .Case1(x, _), .Case2(_, x):
-case let .Case1(y, x), .Case2(x, y):
-case let .Case1(x), .Case2(x):
+case let .Case1(x, _), let .Case2(_, x):
+case let .Case1(y, x), let .Case2(x, y):
+case let .Case1(x), let .Case2(x):
 case .Case1(let x, _), .Case2(_, let x):
 ```
 
@@ -64,7 +64,7 @@ Likewise for other uses of patterns:
 
 ```swift
 let value = MyEnum.Case1(1, 2)
-if case let .Case1(x, _), .Case2(_, x) = value {
+if case let .Case1(x, _), let .Case2(_, x) = value {
   ...
 }
 ```
