@@ -12,8 +12,8 @@ Swift Standard Library.  Earlier attempts at adding this have been too
 specifically focused on error handling (duplicating functionality
 `throws` already provides), whereas this implementation will focus on
 data, organization, and type safety.  We believe that adding the type
-to the standard library and simultaneously emphasizing its use cases
--that is, when you need a type that represents exactly 2 disjoint possibilities-
+to the standard library and simultaneously emphasizing its broader use cases
+- that is, when you need a type that represents exactly 2 disjoint possibilities -
 can dispel the confusion caused in other languages
 and quell the conflict with `throws`.
 
@@ -24,10 +24,7 @@ to handle finite-argument disjoint variants with a data type as was
 done in C++, C#, D, F#, SML, Haskell, Scala, ALGOL, and many others.
 When coupled with a strong, static type system they can be made even
 more useful because support for totality checking and safety come from
-the language itself.  Recently, certain prominent implementations have
-chosen to use an `Either` type to represent control flows that can
-possibly raise errors.  But Either can be written without this
-convention to simply be a generic type, which is what we propose.
+the language itself.
 
 As before, unlike `throws`, a disjoint union type can be applied in arbitrary
 positions, used as a member, and easily checked for completeness
@@ -62,7 +59,7 @@ public enum Either<LeftValue, RightValue> {
 	/// Much like the ?? operator for `Optional` types, takes a value and a
 	/// function, and if the receiver is `.Right`, returns the value, otherwise
 	/// maps the function over the value in `.Left` and returns that value.
-	public func fold<U>(value : U, @noescape f : (LeftValue) throws -> U) rethrows -> U {
+	public func fold<U>(value: U, @noescape f: (LeftValue) throws -> U) rethrows -> U {
 		return try self.either(onLeft: f, onRight: { _ in value });
 	}
 
@@ -93,7 +90,7 @@ public enum Either<LeftValue, RightValue> {
 	///
 	/// If the value is `.Left(a)`, apply the first function to `a`. If it is
 	/// `.Right(b)`, apply the second function to `b`.
-	public func either<U>(@noescape onLeft onLeft : (LeftValue) throws -> U, @noescape onRight : (RightValue) throws -> U) rethrows -> U {
+	public func either<U>(@noescape onLeft onLeft: (LeftValue) throws -> U, @noescape onRight: (RightValue) throws -> U) rethrows -> U {
 		switch self {
 		case let .Left(e):
 			return try onLeft(e)
@@ -103,7 +100,7 @@ public enum Either<LeftValue, RightValue> {
 	}
 
 	/// Reverses the order of values of the receiver.
-	public var flip : Either<RightValue, LeftValue> {
+	public var flip: Either<RightValue, LeftValue> {
 		switch self {
 		case let .Left(l):
 			return .Right(l)
@@ -113,7 +110,7 @@ public enum Either<LeftValue, RightValue> {
 	}
 
 	/// Determines if this `Either` value is a `Left`.
-	public var isLeft : Bool {
+	public var isLeft: Bool {
 		switch self {
 		case .Left(_):
 			return true
@@ -123,7 +120,7 @@ public enum Either<LeftValue, RightValue> {
 	}
 
 	/// Determines if this `Either` value is a `Right`.
-	public var isRight : Bool {
+	public var isRight: Bool {
 		switch self {
 		case .Right(_):
 			return true
@@ -133,9 +130,9 @@ public enum Either<LeftValue, RightValue> {
 	}
 }
 
-extension Either : CustomStringConvertible {
+extension Either: CustomStringConvertible {
 	/// A textual representation of `self`.
-	public var description : String {
+	public var description: String {
 		switch self {
 		case let .Left(l):
 			return "Left(\(l))"
@@ -145,7 +142,7 @@ extension Either : CustomStringConvertible {
 	}
 }
 
-public func == <LeftValue : Equatable, RightValue : Equatable>(lhs : Either<LeftValue, RightValue>, rhs : Either<LeftValue, RightValue>) -> Bool {
+public func == <LeftValue: Equatable, RightValue: Equatable>(lhs: Either<LeftValue, RightValue>, rhs: Either<LeftValue, RightValue>) -> Bool {
 	switch (lhs, rhs) {
 	case let (.Left(l), .Left(r)) where l == r:
 		return true
@@ -156,7 +153,7 @@ public func == <LeftValue : Equatable, RightValue : Equatable>(lhs : Either<Left
 	}
 }
 
-public func != <LeftValue : Equatable, RightValue : Equatable>(lhs : Either<LeftValue, RightValue>, rhs : Either<LeftValue, RightValue>) -> Bool {
+public func != <LeftValue: Equatable, RightValue: Equatable>(lhs: Either<LeftValue, RightValue>, rhs: Either<LeftValue, RightValue>) -> Bool {
 	return !(lhs == rhs)
 }
 ```
@@ -166,12 +163,12 @@ public func != <LeftValue : Equatable, RightValue : Equatable>(lhs : Either<Left
 Bailing out of a function with a value instead of an exception.
 
 ```swift
-public enum ArithmeticErrorType : ErrorType {
-    case DivideByZero(triedValue : Double)
+public enum ArithmeticErrorType: ErrorType {
+    case DivideByZero(triedValue: Double)
 		// ...
 }
 
-public func / (value : Double, by : Double) -> Either<Double, ArithmeticErrorType> {
+public func / (value: Double, by: Double) -> Either<Double, ArithmeticErrorType> {
     if by == 0 {
         return .Right(.DivideByZero(triedValue: value))
     }
@@ -182,12 +179,12 @@ public func / (value : Double, by : Double) -> Either<Double, ArithmeticErrorTyp
 A safer and richer bit cast function:
 
 ```swift
-public enum CastErrorType : ErrorType {
-    case BadCast(reason : String)
+public enum CastErrorType: ErrorType {
+    case BadCast(reason: String)
 }
 
 extension Either {
-    public static func safeBitCast<T, U>(x : T) -> Either<U, CastErrorType> {
+    public static func safeBitCast<T, U>(x: T) -> Either<U, CastErrorType> {
         if let castX = x as? U {
             return .Left(castX)
         }
@@ -215,7 +212,7 @@ extension SequenceType {
 }
 ```
 
-For `Either` in the large, see
+For examples of this type in the large, see
 
 - [SwiftCheck](https://github.com/typelift/SwiftCheck/blob/master/SwiftCheck/Test.swift#L468) where it's used to bail out of a bad testing run.
 - The parser-combinator framework [Madness](https://github.com/robrix/Madness) and the [Kaleidoscope Language](https://github.com/bencochran/KaleidoscopeLang/blob/master/KaleidoscopeLang/Parser.swift#L102-L129)
@@ -237,8 +234,8 @@ It even makes an appearance (albeit in a different form) in
 ## Impact on existing code
 
 As this is an addition to the Standard Library, no existing code should be affected
-unless the author happens to be using the identifier Either - in which case
-there is a strong chance that their Either and our Either are the same
+unless the author happens to be using the identifier settled on - in which case
+there is a strong chance that their Sum type and our Sum type are the same
 thing, aligning with the goal of removing duplicate implementations of
 this common type.
 
@@ -246,25 +243,30 @@ The fears of the previous proposal that attempted to put a `Result<T>`
 type in the Standard Library, of duplicating existing functionality with respect to
 `throws` remain, but as noted before `throws` is not as
 flexible or declarative enough for all possible cases.  If necessary,
-a note can be left in the documentation warning away users of the
-`Either` type that really need `throws`.
+a note can be left in the documentation warning away users of the type that
+really need `throws`.
 
 ## Alternatives considered
 
-The bias in this definition of Either may be a sticking point, but the
-presence of an unbiased Either would lead to confusion as to what both
+The bias in this definition above may be a sticking point, but the
+presence of an unbiased sum type would lead to confusion as to what both
 lobes of the type were for.  [As noted in the mailing list](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151207/001423.html), such a type would
 be equivalent to `(A?, B?)` with convenience methods to extract values
-and induct on the "cases" of each side of the tuple.
+and induct on the "cases" of each side of the tuple.  As for the matter of
+left or right bias, we chose left bias partially because that is the
+direction recent programming languages have taken, and partially because
+we wish to emphasize the successful case over the failure case.  What
+better way than to put it first?
 
 In addition, the name `Either` does not lend much to the imagination,
 and the use of `Left` and `Right` have the potential to cause confusion to
 novices expecting a `Result<T>` precisely because that particular incarnation of
 this type is used mostly for error handling.  If that case were discouraged, and
-this type treated like data first, the use of `Left` and `Right` and `Either` 
-becomes less nebulous.  Mostly, the name does not matter so much as the 
+this type treated like data first, the use of `Left` and `Right` and `Either`
+becomes less nebulous.  Mostly, the name does not matter so much as the
 structure, so possibilities for a renaming including cases are:
 
+- Result: Value, Error / Success, Error
 - Choice: Left, Right / This, That
 - Sum: Left, Right
 - Alternative: First, Second
