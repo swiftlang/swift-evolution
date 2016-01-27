@@ -12,8 +12,8 @@ Swift Standard Library.  Earlier attempts at adding this have been too
 specifically focused on error handling (duplicating functionality
 `throws` already provides), whereas this implementation will focus on
 data, organization, and type safety.  We believe that adding the type
-to the standard library and simultaneously emphasizing its broader use cases
-- that is, when you need a type that represents exactly 2 disjoint possibilities -
+to the standard library and simultaneously emphasizing its broader use cases, 
+that is, when you need a type that represents exactly 2 disjoint possibilities,
 can dispel the confusion caused in other languages
 and quell the conflict with `throws`.
 
@@ -29,9 +29,10 @@ the language itself.
 As before, unlike `throws`, a disjoint union type can be applied in arbitrary
 positions, used as a member, and easily checked for completeness
 at compile time.  In addition, the lack of a standard union type has
-led the Swift community to create [numerous](https://github.com/search?utf8=✓&q=Either+language%3Aswift) duplicate implementations of the
+led the Swift community to create [numerous](https://github.com/search?utf8=✓&q=Either+language%3Aswift) 
+[duplicate](https://github.com/search?utf8=✓&q=Result+language%3Aswift) implementations of the
 same mutually incompatible types over and over and over again.  In the
-interest of promoting a type that there has received clear interest by the
+interest of promoting a type that has received clear interest by the
 community, the addition to the Standard Library is necessary.
 
 ## Proposed solution
