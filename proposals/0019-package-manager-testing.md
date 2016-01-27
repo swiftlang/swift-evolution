@@ -4,7 +4,7 @@
   [Max Howell](https://github.com/mxcl),
   [Daniel Dunbar](https://github.com/ddunbar),
   [Mattt Thompson](https://github.com/mattt)
-* Status: **Under review** (scheduled for January 15-19, 2016)
+* Status: **Accepted** ([Bug](https://bugs.swift.org/browse/SR-592))
 * Review Manager: Rick Ballard
 
 ## Introduction

@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0022](https://github.com/apple/swift-evolution/blob/master/proposals/0022-objc-selectors.md)
 * Author(s): [Doug Gregor](https://github.com/DougGregor)
-* Status: **Awaiting review**
+* Status: **Accepted**
 * Review manager: [Joe Groff](https://github.com/jckarter)
 
 ## Introduction
@@ -78,7 +78,7 @@ extension Selector {
 }
 ```
 
-with some additional semantic restrictions that require that input be a reference to an `objc` method. Specifically, the input expression must be a direct reference to an Objective-C method, possibly parenthesized and possible with an "as" cast (which can be used to disambiguate same-named Swift methods). For example, here is a "highly general" example:
+with some additional semantic restrictions that require that input be a reference to an `objc` method. Specifically, the input expression must be a direct reference to an Objective-C method, possibly parenthesized and possibly with an "as" cast (which can be used to disambiguate same-named Swift methods). For example, here is a "highly general" example:
 
 ```swift
 let sel = Selector(((UIKit.UIView.insertSubview(_:at:)) as (UIView) -> (UIView, Int) -> Void))
