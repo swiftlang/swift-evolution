@@ -117,8 +117,7 @@ admittedly more type-safe) alternative approach.
 
 Syntactically, `@selector(method reference)` would match Objective-C
 more closely, but it doesn't make sense in Swift where `@` always
-refers to attributes. `Selector` initialization syntax is far cleaner,
-since we are constructing an instance of a `Selector`.
+refers to attributes.
 
 The original version of this proposal suggested using a magic
 `Selector` initializer, e.g.:
