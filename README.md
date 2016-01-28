@@ -121,11 +121,11 @@ sooner.
 * [Constraining `AnySequence.init`](proposals/0014-constrained-AnySequence.md) (SE-0014)
 * [Replace `typealias` keyword with `associatedtype` for associated type declarations](proposals/0011-replace-typealias-associated.md) (SE-0011)
 * [Naming Functions with Argument Labels](proposals/0021-generalized-naming.md) (SE-0021)
+*  [Referencing the Objective-C selector of a method](proposals/0022-objc-selectors.md) (SE-0022)
 
 ### Accepted proposals for Swift 2.2
 * [Add a Lazy flatMap for Sequences of Optionals](proposals/0008-lazy-flatmap-for-optionals.md) (SE-0008)
 * [Swift Language Version Build Configuration](proposals/0020-if-swift-version.md) (SE-0020)
-* [Referencing the Objective-C selector of a method](proposals/0022-objc-selectors.md) (SE-0022)
 
 # Other Proposals
 
