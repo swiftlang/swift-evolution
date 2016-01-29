@@ -7,13 +7,13 @@
 
 ## Introduction
 
-Function calls (which include several syntactic forms that apply an argument list to something of function type) currently have a dual nature in Swift.  Given something like:
+Function call expressions (which include several syntactic forms that apply an argument list to something of function type) currently have a dual nature in Swift.  Given something like:
 
 ```swift
 func foo(a : Int, b : Int) {}
 ```
 
-You can call it either with with the typical syntactic form that passes arguments to each of its parameters:
+You can call it either with the typical syntactic form that passes arguments to each of its parameters:
 
 ```swift
 foo(42, b : 17)
@@ -35,9 +35,9 @@ Swift-evolution thread: [Proposal: Remove implicit tuple splat behavior	from fun
 
 This behavior is cute, precedented in other functional languages, and has some advantages, but it also has several major disadvantages, which are all related to its syntactic form.
 
-* A call to foo(x) looks like a call to an overloaded version of foo, both to the compiler and to the human who maintains the code.  This is extremely confusing if you don't know the feature exists.
+* A call to `foo(x)` looks like a call to an overloaded version of `foo`, both to the compiler and to the human who maintains the code.  This is extremely confusing if you don't know the feature exists.
 * There are real ambiguities in the syntax, e.g. involving Any arguments and situations where you want to pass a tuple value as a single parameter.
-* The current implementation has a ton of implementation bugs - it doesn’t work reliably.
+* The current implementation has a ton of implementation bugs - it doesn't work reliably.
 * The current implementation adds complexity to the type checker, slowing it down and adding maintenance burden.
 * The current implementation doesn't work the way we would want a tuple splat operation to work.  For example, arguably, you should be able to call foo with:
 
@@ -54,7 +54,7 @@ foo(bar())
 ```
 
 
-This makes this feature very difficult to use in practice, because you have to _'ize a lot of parameters (violating naming conventions), perform manual shuffling (defeating the sugar benefits of the feature), or add parameter labels to the result of functions (which leads to odd tying between callers and callees).
+This makes this feature very difficult to use in practice, because you have to `_`'ize a lot of parameters (violating naming conventions), perform manual shuffling (defeating the sugar benefits of the feature), or add parameter labels to the result of functions (which leads to odd tying between callers and callees).
 
 
 The root problem here is that we use exactly the same syntax for both forms of function application.  If the two forms were differentiated (an option considered in “alternatives considered” below) then some of these problems would be defined away.
@@ -70,7 +70,7 @@ The proposed solution is simple, we should just remove this feature from the Swi
 
 One interesting aspect of this feature is that some people we’ve spoken to are very fond of it.  However, when pressed, they admit that they are not actually using it widely in their code, or if they are using it, they are abusing naming conventions (distorting their code) in order to use it.  This doesn’t seem like a positive contribution - this seems like a "clever" feature, not a practical one.
 
-Note: a common point of confusion about this proposal is that it does not remove the ability to pass tuples as values to functions.  For example, this is still perfectly valid:
+*Note:* a common point of confusion about this proposal is that it does not propose removing the ability to pass tuples as values to functions.  For example, this will still be perfectly valid:
 
 ```swift
 func f1(a : (Int, Int)) { ... }
@@ -81,7 +81,7 @@ f1(x)
 as are cases using generics:
 
 ```swift
-func f2(a : T) -> T { ... }
+func f2<T>(a : T) -> T { ... }
 let x = (1, 2)
 f2(x)
 ```
