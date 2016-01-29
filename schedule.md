@@ -11,6 +11,7 @@ proposals in that process.
 * January 22...31, 2016: [SE-0023: API Design Guidelines](proposals/0006-apply-api-guidelines-to-the-standard-library.md)
 * January 22...31, 2016: [SE-0006: Apply API Guidelines to the Standard Library](proposals/0006-apply-api-guidelines-to-the-standard-library.md)
 * January 22...31, 2016: [SE-0005: Better Translation of Objective-C APIs Into Swift](proposals/0005-objective-c-name-translation.md)
+* January 29...Feb 2, 2016: [SE-0028: Modernizing Swift's Debugging Identifiers](proposals/0028-modernizing-debug-identifiers.md)
 
 ## Upcoming reviews
 
@@ -25,7 +26,6 @@ proposals in that process.
 * [SE-0025: Scoped Access Level](proposals/0025-scoped-access-level.md)
 * [SE-0026: Abstract classes and methods](proposals/0026-abstract-classes-and-methods.md)
 * [SE-0027: Expose code unit initializers on String](proposals/0027-string-from-code-units.md)
-* [SE-0028: Modernizing Swift's Debugging Identifiers](proposals/0028-modernizing-debug-identifiers.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 
