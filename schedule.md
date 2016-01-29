@@ -21,6 +21,7 @@ proposals in that process.
 * [SE-0012: Add `@noescape` to public library API](proposals/0012-add-noescape-to-public-library-api.md)
 * [SE-0016: Adding initializers to Int and Uint to convert from UnsafePointer and UnsafeMutablePointer](proposals/0016-initializers-for-converting-unsafe-pointers-to-ints.md)
 * [SE-0017: Change `Unmanaged` to use `UnsafePointer`](proposals/0017-convert-unmanaged-to-use-unsafepointer.md)
+* [SE-0024: Optional Value Setter `??=`](https://github.com/apple/swift-evolution/blob/master/proposals/0024-optional-value-setter.md)
 
 
 [evolution-process]: process.md  "The Swift evolution process"
