@@ -24,6 +24,7 @@ proposals in that process.
 * [SE-0024: Optional Value Setter `??=`](proposals/0024-optional-value-setter.md)
 * [SE-0025: Scoped Access Level](proposals/0025-scoped-access-level.md)
 * [SE-0026: Abstract classes and methods](proposals/0026-abstract-classes-and-methods.md)
+* [SE-0027: Expose code unit initializers on String](proposals/0027-string-from-code-units.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 
