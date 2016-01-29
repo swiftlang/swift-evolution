@@ -8,7 +8,7 @@
 ## Introduction
 
 The `inout` keyword indicates copy-in/copy-out argument behavior. In its current implementation
-the keyword prepands argument names. We propose to move the `inout` keyword to the right
+the keyword prepends argument names. We propose to move the `inout` keyword to the right
 side of the colon to decorate the type instead of the parameter label.
 
 *The initial Swift-Evolution discussion of this topic took place in the "Replace 'inout' with &" thread.*
