@@ -36,7 +36,7 @@ This proposal renames the following identifiers:
 * `__COLUMN__` -> `#column`
 * `__DSO_HANDLE__` -> `#dsohandle`
 
-These identifiers retain the magic behavior of the existing `__LINE__` features: in a normal expression context, they expand to the the location at that point.  In a default argument context, they expand to the location of the caller. 
+These identifiers retain the magic behavior of the existing `__LINE__` features: in a normal expression context, they expand to the location at that point.  In a default argument context, they expand to the location of the caller. 
 
 Additional points to be considered by the Swift team for inclusion:
 
