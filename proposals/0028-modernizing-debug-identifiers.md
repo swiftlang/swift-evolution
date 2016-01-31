@@ -7,7 +7,7 @@
 
 ## Introduction
 
-This proposal aims to eliminate Swift's use of "[screaming snake case](https://en.wikipedia.org/wiki/Snake_case)" like `__FILE__` and `__FUNCTION__` and replacing identifier instances with common [octothorpe-prefixed](https://en.wiktionary.org/wiki/octothorpe) [lower camel case](https://en.wikipedia.org/wiki/CamelCase) `#identifier` representations.
+This proposal aims to eliminate Swift's use of "[screaming snake case](https://en.wikipedia.org/wiki/Snake_case)" like `__FILE__` and `__FUNCTION__` and replacing identifier instances with common [octothorpe-prefixed](https://en.wiktionary.org/wiki/octothorpe) lowercase `#identifier` representations.
 
 *The Swift-Evolution discussion of this topic took place in the "[Review] SE-0022: Referencing the Objective-C selector of a method" thread and then in its own "[Proposal] Eliminating Swift's Screaming Snake Case Identifiers" thread*
 
