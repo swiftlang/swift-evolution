@@ -34,26 +34,26 @@ This proposal renames the following identifiers:
 * `__FILE__` -> `#file`. 
 * `__LINE__` -> `#line`
 * `__COLUMN__` -> `#column`
-* `__DSO_HANDLE__` -> `#dsohandle`
+* `__DSO_HANDLE__` -> `#dsoHandle`
 
 These identifiers retain the magic behavior of the existing `__LINE__` features: in a normal expression context, they expand to the location at that point.  In a default argument context, they expand to the location of the caller. 
 
 Additional points to be considered by the Swift team for inclusion:
 
 * Adding `#filename` to avoid using `lastPathComponent` on `#file` references.
-* Adopting a lower-case naming standard including `#dsohandle` and a potential future `#sourcelocation`.
+* Adopting a lower-case naming standard including `#dsoHandle` and a potential future `#sourceLocation`.
 * Retaining `__FUNCTION__` to be renamed as `#function`.
 * Introducing `#symbol`, (e.g. Swift.Dictionary.Init(x:Int,y:String)), which summarizes context including module, type, and function. A fully qualified symbol enables users to access exactly the information they desire. It should contain parameter type information to properly identify member overloads.
 
 
 ## Possible Future Extensions
 
-[SR-198](https://bugs.swift.org/browse/SR-198) requested the coalescing of existing identifiers. A structured `#sourcelocation` identifier could be added as a follow-on if and when the Swift team decides to tackle a standardized source location type, which would provide individual field or keyword access.
+[SR-198](https://bugs.swift.org/browse/SR-198) requested the coalescing of existing identifiers. A structured `#sourceLocation` identifier could be added as a follow-on if and when the Swift team decides to tackle a standardized source location type, which would provide individual field or keyword access.
 
 In support of summaries, Remy Demerest writes, "[I] love the idea that source location would be one object that you can print to get the full story while still retaining the possibility to use each individual components as needed, which is probably the rarer case. I never find myself wanting only some of properties and usually don't include them simply because it takes longer to write the format properly, if I can get them all in one go it's certainly a win."
 
-Should such a type be adopted, I'd recommend support for common output summary representations suitably differentiated for debug and release logging. Alternatively `#context`, `#releasecontext`, and `#debugcontext` summaries could be added independently of the adoption of `#sourcelocation`.
+Should such a type be adopted, I'd recommend support for common output summary representations suitably differentiated for debug and release logging. Alternatively `#context`, `#releaseContext`, and `#debugContext` summaries could be added independently of the adoption of `#sourceLocation`.
 
 ## Implementation notes
 
-The octothorpe-delineated `#line` identifier already exists in Swift for resetting line numbers. Constraining the current `#line` directive to be the first token after a newline would disambiguate use. Alternatively, the context `#line` identifier could be renamed `#linenumber`.
+The octothorpe-delineated `#line` identifier already exists in Swift for resetting line numbers. Constraining the current `#line` directive to be the first token after a newline would disambiguate use. Alternatively, the context `#line` identifier could be renamed `#lineNumber`.
