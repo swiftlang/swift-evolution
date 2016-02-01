@@ -15,7 +15,7 @@ This proposal aims to eliminate Swift's use of "[screaming snake case](https://e
 
 Swift offers built-in `__FILE__`, `__LINE__`, `__COLUMN__`, `__FUNCTION__`, and `__DSO_HANDLE__` identifiers. The first four expand to string and integer literals corresponding to a current location in source code. The last provides an `UnsafePointer` to the current dynamic shared object (.dylib or .so file). These features provide high utility for logging, both tracing execution and enabling developers to [capture error context](http://ericasadun.com/2015/08/27/capturing-context-swiftlang/).
 
-The current identifiers owe their syntax to C's `__FILE__` and `__LINE__` macros. These are built into C's preprocessor and expanded before running the C-language parser. Swift's implementation differs from C's but offers similar functionality and, unfortunately, similar symbols. This proposal aims to break free of the historic chains of their unsightly screaming camel case, which look like boa constrictors [trying to digest](https://s-media-cache-ak0.pinimg.com/originals/59/ea/ee/59eaee788c31463b70e6e3d4fca5508f.jpg) fully swallowed keywords.
+The current identifiers owe their syntax to C's `__FILE__` and `__LINE__` macros. These are built into C's preprocessor and expanded before running the C-language parser. Swift's implementation differs from C's but offers similar functionality and, unfortunately, similar symbols. This proposal aims to break free of the historic chains of their unsightly screaming snake case, which look like boa constrictors [trying to digest](https://s-media-cache-ak0.pinimg.com/originals/59/ea/ee/59eaee788c31463b70e6e3d4fca5508f.jpg) fully swallowed keywords.
 
 ## Proposed solution
 
