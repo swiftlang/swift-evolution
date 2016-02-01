@@ -28,23 +28,6 @@ array[ifExists: 0] = 42 // same as array[0] = 42
 array[ifExists: 3] = 42 // out of bounds, no operation
 ```
 
-## Detailed design
-
-Include an alternative `subscript` with the `ifExists` label:
-
-```swift
-subscript(ifExists index: Index) -> Element? {
-    get {
-        return self.indices ~= index ? self[index] : nil 
-    }
-    set {
-        if self.indices ~= index {
-            self[index] = newValue
-        }
-    }
-}
-```
-
 ## Impact on existing code
 
 No existing code is affected.
