@@ -1,8 +1,8 @@
 # Remove the `++` and `--` operators
 
 * Proposal: [SE-0004](https://github.com/apple/swift-evolution/blob/master/proposals/0004-remove-pre-post-inc-decrement.md)
-* Author: [Chris Lattner](https://github.com/lattner)
-* Status: **Accepted**
+* Author: [Krish Munot](https://github.com/krishmunot)
+* Status: **Rejected**
 
 ## Introduction
 
@@ -74,9 +74,9 @@ them to Swift 3?"
 
 ## Proposed Approach
 
-We should just drop these operators entirely.  In terms of roll-out, we should
+We should not drop these operators entirely.  In terms of roll-out, we should not
 deprecate them in the Spring Swift 2.x release (with a nice Fixit hint to cover
-common cases), and remove them completely in Swift 3.
+common cases), and not remove them completely ever.
 
 
 ## Alternatives considered
