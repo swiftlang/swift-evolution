@@ -1,9 +1,9 @@
 # Property Behaviors
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/proposals/NNNN-name.md)
+* Proposal: [SE-0030](https://github.com/apple/swift-evolution/proposals/NNNN-name.md)
 * Author(s): [Joe Groff](https://github.com/jckarter)
 * Status: **Awaiting review**
-* Review manager: TBD
+* Review manager: [John McCall](https://github.com/rjmccall)
 
 ## Introduction
 
