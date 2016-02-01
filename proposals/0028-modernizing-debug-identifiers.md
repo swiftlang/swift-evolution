@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0028](https://github.com/apple/swift-evolution/blob/master/proposals/0028-modernizing-debug-identifiers.md)
 * Author(s): [Erica Sadun](http://github.com/erica)
-* Status: Awaiting review
+* Status: Under review through Feb 2
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction
