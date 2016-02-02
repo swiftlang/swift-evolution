@@ -95,7 +95,7 @@ sampling of potentially good ideas that are not in scope for Swift
 
 * [Better Translation of Objective-C APIs Into Swift](proposals/0005-objective-c-name-translation.md) (SE-0005)
 * [Removing currying `func` declaration syntax](proposals/0002-remove-currying.md) (SE-0002)
-* [Removing `var` from Function Parameters and Pattern Matching](proposals/0003-remove-var-parameters-patterns.md) (SE-0003)
+* [Removing `var` from Function Parameters](proposals/0003-remove-var-parameters.md)
 * [Remove the `++` and `--` operators](proposals/0004-remove-pre-post-inc-decrement.md) (SE-0004)
 * [Remove C-style for-loops with conditions and incrementers](proposals/0007-remove-c-style-for-loops.md) (SE-0007)
 * [Swift Testing](proposals/0019-package-manager-testing.md) (SE-0019)
