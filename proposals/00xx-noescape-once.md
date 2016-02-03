@@ -54,18 +54,24 @@ assigning to `x` more than once.
 
 ## Detailed design
 
-Only one closure parameter can be marked as `@noescape(once)` in a function
-signature.
-
 In addition to the regular advantages and constraints applied to `@noescape`
 parameters, `@noescape(once)` parameters must be called exactly once on any code
-path where the function returns normally. Specifically:
+path where the function returns. Specifically:
 
 * passing it to another function that accepts a `@noescape(once)` closure of the
 	same type is allowed and counts as executing it once;
-* it is not required to be executed on a code path that throws;
+* it is required to be executed on code paths that throw;
 * it is not required to be executed on a code path that calls a function that
 	does not return.
+
+A `@noescape(once)` closure may only read from variables that were initialized
+before it was formed. For instance, in an example with two `@noescape(once)`
+closures, the compiler cannot assume that one closure runs before the other.
+
+    func f(@noescape(once) a: () -> (), @noescape(once) b: () -> ()) { /* snip */ }
+    
+    let x: Int
+    f({x = 1}) { print(x) } // invalid: x has not been initialized
 
 A `@noescape(once)` parameter may only be passed as a parameter to another
 function that accepts a `@noescape(once)` parameter. In that case, it counts as
