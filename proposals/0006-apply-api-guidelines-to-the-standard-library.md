@@ -894,7 +894,7 @@ public struct OpaquePointer : ... {
 +  public func initializePointee(newValue: Pointee, count: Int = 1)
 
 -  public func move() -> Memory
-+  public func take() -> Memory
++  public func take() -> Pointee
 
 -  public func destroy()
 -  public func destroy(count: Int)
