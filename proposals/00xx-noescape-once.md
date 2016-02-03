@@ -58,11 +58,12 @@ In addition to the regular advantages and constraints applied to `@noescape`
 parameters, `@noescape(once)` parameters must be called exactly once on any code
 path where the function returns. Specifically:
 
+* it **must** either be called or passed as a `@noescape(once)` parameter to
+	another function on any code path that returns normally;
+* it **must not** be executed on any path that throws;
+* there is no requirement for paths that lead to a function that does not return;
 * passing it to another function that accepts a `@noescape(once)` closure of the
-	same type is allowed and counts as executing it once;
-* it is required to be executed on code paths that throw;
-* it is not required to be executed on a code path that calls a function that
-	does not return.
+	same type is allowed and counts as executing it.
 
 A `@noescape(once)` closure may only read from variables that were initialized
 before it was formed. For instance, in an example with two `@noescape(once)`
@@ -89,9 +90,30 @@ expected.
 
 ## Alternatives considered
 
+### A `@once` parameter
+
 It was mentioned in the discussion that the "once" behavior and `@noescape` look
 orthogonal, and the "once" behavior could be useful on closures that escape.
 However, it is only possible to verify that a closure has been executed exactly
 once if it does not escape. Because of this, "once" and `@noescape` are better
 left together.
 
+### Calling on paths that throw
+
+It must either be guaranteed that the closure will be executed, or that it will
+not be executed, on a path that throws. It appears best to guarantee that it
+will not, since this allows the function to bail out without calling the closure
+in the event that it can't provide the guarantee that it's trying to get. For
+instance:
+
+	do {
+		let foo: Int
+		try withLock(someLock, timeout: 0.5) {
+			foo = sharedThing.foo
+		}
+	} catch {
+		print("couldn't acquire lock fast enough")
+	}
+
+A function like this would be awkward to express if the closure had to test
+a parameter to tell if the lock was acquired or not.
