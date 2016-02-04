@@ -99,6 +99,7 @@ sampling of potentially good ideas that are not in scope for Swift
 * [Remove the `++` and `--` operators](proposals/0004-remove-pre-post-inc-decrement.md) (SE-0004)
 * [Remove C-style for-loops with conditions and incrementers](proposals/0007-remove-c-style-for-loops.md) (SE-0007)
 * [Swift Testing](proposals/0019-package-manager-testing.md) (SE-0019)
+* [Modernizing Swift's Debugging Identifiers (__FILE__, etc)](proposals/0028-modernizing-debug-identifiers.md)
 
 ## Development minor version:  Swift 2.2
 
