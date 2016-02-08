@@ -21,13 +21,13 @@ Currently if you have a protocol with associated types you cannot use it as a "n
 For example a node protocol:
 
 ```swift
-  protocol NodeType {
-    associated T
-    var element: T { get }
-    
-    associated Node: NodeType where Node.T == T // where clause prohibited
-    var next: Node? { get }
-  }
+protocol NodeType {
+  associated T
+  var element: T { get }
+  
+  associated Node: NodeType where Node.T == T // where clause prohibited
+  var next: Node? { get }
+}
 ```
 
 ## Proposed solution
@@ -39,45 +39,45 @@ workarounds: is a cleaner, safer, or more efficient?
 Using the `NodeType` example:
 
 ```swift
-  protocol NodeType {
-    associated T
-    var element: T { get }
-    var next: NodeType<Self.T == T>? { get } // Self.T is associated to the type of `next`
-  }
+protocol NodeType {
+  associated T
+  var element: T { get }
+  var next: NodeType<Self.T == T>? { get } // Self.T is associated to the type of `next`
+}
 ```
 
 It looks much cleaner and is easier to understand. In addition `NodeType<Self.T == T>` is considered a "normal" type and you can use more specific node types like this:
 
 ```swift
-  var intNode: NodeType<Self.T == Int> = IntNode()
-  intNode = GenericNode<Int>()
-  
-  intNode.element // Int
-  intNode.next // NodeType<Self.T == Int>
+var intNode: NodeType<Self.T == Int> = IntNode()
+intNode = GenericNode<Int>()
+
+intNode.element // Int
+intNode.next // NodeType<Self.T == Int>
 ```
 
 `SequenceType` in generic functions:
 
 ```swift
-  // old version which can still be used
-  func sum<S: SequenceType where Generator.Element == Int>(seq: S) -> Int { ... }
-  
-  // new version
-  func sum(seq: SequenceType<Self.Generator.Element == Int>) -> Int { ... }
+// old version which can still be used
+func sum<S: SequenceType where Generator.Element == Int>(seq: S) -> Int { ... }
+
+// new version
+func sum(seq: SequenceType<Self.Generator.Element == Int>) -> Int { ... }
 ```
 
 In case of abstract types like protocols you can use both `==` and `:` :
 
 ```swift
-  protocol P {}
-  
-  // old version which can still be used
-  func sum<S: SequenceType where Generator.Element == P>(seq: S) -> Int { ... }
-  func sum<S: SequenceType where Generator.Element: P>(seq: S) -> Int { ... }
-  
-  // new version
-  func sum(seq: SequenceType<Self.Generator.Element == P>) -> Int { ... }
-  func sum(seq: SequenceType<Self.Generator.Element: P>) -> Int { ... }
+protocol P {}
+
+// old version which can still be used
+func sum<S: SequenceType where Generator.Element == P>(seq: S) -> Int { ... }
+func sum<S: SequenceType where Generator.Element: P>(seq: S) -> Int { ... }
+
+// new version
+func sum(seq: SequenceType<Self.Generator.Element == P>) -> Int { ... }
+func sum(seq: SequenceType<Self.Generator.Element: P>) -> Int { ... }
 ```
 
 ## Detailed design
