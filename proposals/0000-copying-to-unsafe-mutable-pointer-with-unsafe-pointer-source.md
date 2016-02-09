@@ -24,7 +24,7 @@ destination.assignFrom(UnsafeMutablePointer(source), count: count)
 ```
 
 These casts are unnecessary visual noise as non-destructively copying from an `UnsafePointer` source is perfectly safe.
-Furthermore, these casts are a source of confusion and increased cognitive load on a reader of code since any case of an `UnsafePointer` to its mutable variant is likely to throw up a red flag at first.
+Furthermore, these casts are a source of confusion and increased cognitive load on a reader since any such cast is likely to throw up a red flag at first.
 
 ## Proposed solution
 
@@ -62,7 +62,7 @@ The following methods are added to `UnsafeMutablePointer`:
 ```swift
 /// Assign from `count` values beginning at source into initialized
 /// memory, proceeding from the first element to the last.
-public func assignFrom(source: UnsafePointer<Memory>, count: Int)
+public func assignFrom(source: UnsafePointer<Pointee>, count: Int)
   
   
 /// Assign from `count` values beginning at `source` into
@@ -71,7 +71,7 @@ public func assignFrom(source: UnsafePointer<Memory>, count: Int)
 /// with the source range.
 ///
 /// - Requires: Either `source` precedes `self` or follows `self + count`.
-public func assignBackwardFrom(source: UnsafePointer<Memory>, count: Int)
+public func assignBackwardFrom(source: UnsafePointer<Pointee>, count: Int)
   
   
 /// Copy `count` values beginning at source into raw memory.
@@ -79,7 +79,7 @@ public func assignBackwardFrom(source: UnsafePointer<Memory>, count: Int)
 /// - Precondition: The memory is not initialized.
 ///
 /// - Requires: `self` and `source` may not overlap.
-public func initializeFrom(source: UnsafePointer<Memory>, count: Int)
+public func initializeFrom(source: UnsafePointer<Pointee>, count: Int)
 ```
 
 ## Impact on existing code
@@ -92,4 +92,4 @@ This proposal is additive and does not impact existing code.
 
 * **Introduce a `PointerProtocol` protocol**: A common protocol could be used to avoid the need for overloads in this case. However, without additional use cases this seems like severe over-engineering for this simple issue. This would also require a lot more design work, performance considerations, etc...
 
-* **Leverage implicit conversions**: The implicit conversions from `UnsafeMutablePointer<T>` to `UnsafePointer<T>` could be leveraged to work around the need for overloads by dropping the existing methods taking `UnsafeMutablePointer` source arguments. Adding explicit overloads seems a better solution than depending on compiler magic and is clearer from a documentation and auto-completion perspective.
+* **Leverage implicit conversions**: The implicit conversions from `UnsafeMutablePointer` to `UnsafePointer` could be leveraged to work around the need for overloads by dropping the existing methods taking `UnsafeMutablePointer` source arguments. Adding explicit overloads seems a better solution than depending on compiler magic and is clearer from a documentation and auto-completion perspective.
