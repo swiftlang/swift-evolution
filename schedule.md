@@ -15,6 +15,7 @@ proposals in that process.
 
 ## Upcoming reviews
 
+* February 11...February 15, 2016: [SE-0031: Adjusting inout Declarations for Type Decoration](proposals/0031-adjusting-inout-declarations.md)
 
 ## Proposals awaiting scheduling
 

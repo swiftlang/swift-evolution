@@ -1,9 +1,9 @@
 # Adjusting `inout` Declarations for Type Decoration
 
-* Proposal: TBD
+* Proposal: [SE-0031](https://github.com/apple/swift-evolution/blob/master/proposals/0031-adjusting-inout-declarations.md)
 * Author(s): [Joe Groff](https://github.com/jckarter), [Erica Sadun](http://github.com/erica)
-* Status: TBD
-* Review manager: TBD
+* Status: **Awaiting review**
+* Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction
 
@@ -29,6 +29,11 @@ types instead of labels offers identifiable advantages:
     func foo(inOut x: T) // foo(inOut:), type (T) -> Void
     func foo(inout x: T) // foo(_:), type (inout T) -> Void
     ```
+
+* Moving it would allow `inout` to be used as a parameter label.  While this
+  isn't a particularly strong motivation by itself, currently `inout` is the 
+  *only* keyword not allowed as a parameter label in Swift 3.  Removing this
+  restriction would simplify the language.
 
 * It better matches similar patterns in other languages such as borrowing in Rust, that may be later introduced back to Swift
 
