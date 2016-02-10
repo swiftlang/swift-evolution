@@ -76,9 +76,11 @@ sampling of potentially good ideas that are not in scope for Swift
   interoperability with C++ is a significant undertaking that is out
   of scope for Swift 3.0.
 
-* **Hygienic Macros**: A first-class macro system is something we may consider
-  in future releases.  We don't want the existence of a macro system to be a
-  workaround that reduces the incentive for making the core language great.
+* **Hygienic Macros** and **Compile-Time Evaluation**: A first-class macro
+  system, or support for compile-time code execution in general, is something
+  we may consider in future releases.  We don't want the existence of a macro
+  system to be a workaround that reduces the incentive for making the core
+  language great.
 
 * **Major new library functionality**: The Swift Standard Library is focused on
   providing core "language" functionality as well as common data structures.  The
@@ -100,6 +102,7 @@ sampling of potentially good ideas that are not in scope for Swift
 * [Remove C-style for-loops with conditions and incrementers](proposals/0007-remove-c-style-for-loops.md) (SE-0007)
 * [Swift Testing](proposals/0019-package-manager-testing.md) (SE-0019)
 * [Modernizing Swift's Debugging Identifiers (__FILE__, etc)](proposals/0028-modernizing-debug-identifiers.md)
+* [Remove implicit tuple splat behavior from function applications](proposals/0029-remove-implicit-tuple-splat.md)
 
 ## Development minor version:  Swift 2.2
 

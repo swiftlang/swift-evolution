@@ -11,7 +11,6 @@ proposals in that process.
 * January 22...February 5, 2016: [SE-0023: API Design Guidelines](proposals/0006-apply-api-guidelines-to-the-standard-library.md)
 * January 22...February 5, 2016: [SE-0006: Apply API Guidelines to the Standard Library](proposals/0006-apply-api-guidelines-to-the-standard-library.md)
 * January 22...February 5, 2016: [SE-0005: Better Translation of Objective-C APIs Into Swift](proposals/0005-objective-c-name-translation.md)
-* February 5...February 9, 2016: [SE-0029: Remove implicit tuple splat behavior from function applications](proposals/0029-remove-implicit-tuple-splat.md)
 
 ## Upcoming reviews
 
