@@ -27,6 +27,7 @@ proposals in that process.
 * [SE-0026: Abstract classes and methods](proposals/0026-abstract-classes-and-methods.md)
 * [SE-0027: Expose code unit initializers on String](proposals/0027-string-from-code-units.md)
 * [SE-0032: Add `find` method to `SequenceType`](proposals/0032-sequencetype-find.md)
+* [SE-0033: Import Objective-C Constants as Swift Types](proposals/0033-import-objc-constants.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 
