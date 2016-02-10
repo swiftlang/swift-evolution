@@ -16,6 +16,7 @@ proposals in that process.
 
 * February 10...February 16, 2016: [SE-0030: Property Behaviors](proposals/0030-property-behavior-decls.md)
 * February 11...February 15, 2016: [SE-0031: Adjusting inout Declarations for Type Decoration](proposals/0031-adjusting-inout-declarations.md)
+* February 12...February 17, 2016: [SE-0024: Optional Value Setter `??=`](proposals/0024-optional-value-setter.md)
 
 ## Proposals awaiting scheduling
 
