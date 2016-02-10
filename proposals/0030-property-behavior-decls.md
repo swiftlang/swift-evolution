@@ -1,6 +1,6 @@
 # Property Behaviors
 
-* Proposal: [SE-0030](https://github.com/apple/swift-evolution/proposals/NNNN-name.md)
+* Proposal: [SE-0030](https://github.com/apple/swift-evolution/blob/master/proposals/0030-property-behavior-decls.md)
 * Author(s): [Joe Groff](https://github.com/jckarter)
 * Status: **Awaiting review**
 * Review manager: [John McCall](https://github.com/rjmccall)
