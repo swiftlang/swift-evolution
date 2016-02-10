@@ -18,6 +18,7 @@ proposals in that process.
 * February 11...February 15, 2016: [SE-0031: Adjusting inout Declarations for Type Decoration](proposals/0031-adjusting-inout-declarations.md)
 * February 11...February 16, 2016: [SE-0027: Expose code unit initializers on String](proposals/0027-string-from-code-units.md)
 * February 12...February 17, 2016: [SE-0024: Optional Value Setter `??=`](proposals/0024-optional-value-setter.md)
+* February 18...February 23, 2016: [SE-0033: Import Objective-C Constants as Swift Types](proposals/0033-import-objc-constants.md)
 
 ## Proposals awaiting scheduling
 
@@ -27,7 +28,6 @@ proposals in that process.
 * [SE-0025: Scoped Access Level](proposals/0025-scoped-access-level.md)
 * [SE-0026: Abstract classes and methods](proposals/0026-abstract-classes-and-methods.md)
 * [SE-0032: Add `find` method to `SequenceType`](proposals/0032-sequencetype-find.md)
-* [SE-0033: Import Objective-C Constants as Swift Types](proposals/0033-import-objc-constants.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 
