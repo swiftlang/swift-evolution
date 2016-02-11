@@ -7,15 +7,14 @@ proposals in that process.
 ## Active reviews
 
 * January 6...8, 2016: [SE-0010: Add StaticString.UnicodeScalarView](proposals/0010-add-staticstring-unicodescalarview.md)
-* January 12...17, 2016: [SE-0020: Swift Language Version Build Configuration](proposals/0020-if-swift-version.md)
 * January 22...February 5, 2016: [SE-0023: API Design Guidelines](proposals/0006-apply-api-guidelines-to-the-standard-library.md)
 * January 22...February 5, 2016: [SE-0006: Apply API Guidelines to the Standard Library](proposals/0006-apply-api-guidelines-to-the-standard-library.md)
 * January 22...February 5, 2016: [SE-0005: Better Translation of Objective-C APIs Into Swift](proposals/0005-objective-c-name-translation.md)
+* February 10...February 16, 2016: [SE-0030: Property Behaviors](proposals/0030-property-behavior-decls.md)
+* February 11...February 15, 2016: [SE-0031: Adjusting inout Declarations for Type Decoration](proposals/0031-adjusting-inout-declarations.md)
 
 ## Upcoming reviews
 
-* February 10...February 16, 2016: [SE-0030: Property Behaviors](proposals/0030-property-behavior-decls.md)
-* February 11...February 15, 2016: [SE-0031: Adjusting inout Declarations for Type Decoration](proposals/0031-adjusting-inout-declarations.md)
 * February 11...February 16, 2016: [SE-0027: Expose code unit initializers on String](proposals/0027-string-from-code-units.md)
 * February 12...February 17, 2016: [SE-0024: Optional Value Setter `??=`](proposals/0024-optional-value-setter.md)
 * February 18...February 23, 2016: [SE-0033: Import Objective-C Constants as Swift Types](proposals/0033-import-objc-constants.md)
