@@ -19,6 +19,7 @@ proposals in that process.
 * February 11...February 16, 2016: [SE-0027: Expose code unit initializers on String](proposals/0027-string-from-code-units.md)
 * February 12...February 17, 2016: [SE-0024: Optional Value Setter `??=`](proposals/0024-optional-value-setter.md)
 * February 18...February 23, 2016: [SE-0033: Import Objective-C Constants as Swift Types](proposals/0033-import-objc-constants.md)
+* February 17...February 22, 2016: [SE-0034: Disambiguating Line Control Statements from Debugging Identifiers](proposals/0034-disambiguating-line.md)
 
 ## Proposals awaiting scheduling
 
