@@ -101,7 +101,7 @@ sampling of potentially good ideas that are not in scope for Swift
 * [Remove the `++` and `--` operators](proposals/0004-remove-pre-post-inc-decrement.md) (SE-0004)
 * [Remove C-style for-loops with conditions and incrementers](proposals/0007-remove-c-style-for-loops.md) (SE-0007)
 * [Swift Testing](proposals/0019-package-manager-testing.md) (SE-0019)
-* [Modernizing Swift's Debugging Identifiers (__FILE__, etc)](proposals/0028-modernizing-debug-identifiers.md)
+* [Modernizing Swift's Debugging Identifiers (\__FILE__, etc)](proposals/0028-modernizing-debug-identifiers.md)
 * [Remove implicit tuple splat behavior from function applications](proposals/0029-remove-implicit-tuple-splat.md)
 
 ## Development minor version:  Swift 2.2
@@ -125,7 +125,7 @@ sooner.
 * [Constraining `AnySequence.init`](proposals/0014-constrained-AnySequence.md) (SE-0014)
 * [Replace `typealias` keyword with `associatedtype` for associated type declarations](proposals/0011-replace-typealias-associated.md) (SE-0011)
 * [Naming Functions with Argument Labels](proposals/0021-generalized-naming.md) (SE-0021)
-*  [Referencing the Objective-C selector of a method](proposals/0022-objc-selectors.md) (SE-0022)
+* [Referencing the Objective-C selector of a method](proposals/0022-objc-selectors.md) (SE-0022)
 
 ### Accepted proposals for Swift 2.2
 * [Add a Lazy flatMap for Sequences of Optionals](proposals/0008-lazy-flatmap-for-optionals.md) (SE-0008)
