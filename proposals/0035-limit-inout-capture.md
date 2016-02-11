@@ -1,9 +1,9 @@
 # Limiting `inout` capture to `@noescape` contexts
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-name.md)
+* Proposal: [SE-0035](https://github.com/apple/swift-evolution/blob/master/proposals/0035-limit-inout-capture.md)
 * Author(s): [Joe Groff](https://github.com/jckarter)
-* Status: **Awaiting review**
-* Review manager: TBD
+* Status: **Scheduled** for February 16...19, 2016
+* Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction
 
