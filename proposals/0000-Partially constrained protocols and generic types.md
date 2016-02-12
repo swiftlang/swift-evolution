@@ -8,7 +8,7 @@
 
 ## Introduction
 
-This proposal adds generics to protocols and generic types which can be partially constrained. It can replace `where` clauses in many cases and it also allows you to use protocols with associated types as abstract types. Therefore replacing `AnyXXX` types as return types which are only generic wrappers.
+This proposal adds generics to protocols and generic types which can be partially constrained. It can replace `where`-clauses in many cases and it also allows you to use protocols with associated types as abstract types. Therefore they can replace `AnyXXX` types as return types which are only generic wrappers.
 
 Swift-evolution thread: [link to the discussion thread for that proposal](https://lists.swift.org/pipermail/swift-evolution)
 
@@ -17,7 +17,7 @@ Swift-evolution thread: [link to the discussion thread for that proposal](https:
 
 Currently if you have a protocol with associated types you cannot use it as a "normal" type. Like `SequenceType` it can only be used as generic constraint where you have to use `where` clauses instead of a simple `SequenceType<Int>`.
 
-`Where` clauses on associated types are also disallowed which allows for too much flexibility on these types.
+`Where` clauses on associated types are also disallowed which allow far too much flexibility on these types.
 
 For example a node protocol:
 
@@ -31,10 +31,10 @@ protocol NodeType {
 }
 ```
 
-In this case you cannot model the type of `Node` such that it conforms to `NodeType` and has the same `element` of type `T`.
+In this case you cannot model the type of `Node` in the way that it conforms to `NodeType` and also has the same `element` of type `T`.
 
 
-In the standard library there are some `AnyXXX` types. In this case it would be `AnyNode`:
+In the Standard Library there are some `AnyXXX` types. In this case it would be `AnyNode`:
 
 ```swift
 class AnyNode<T>: NodeType {
@@ -45,17 +45,17 @@ class AnyNode<T>: NodeType {
 		/*	init cannot be implemented since
 			N.Node has to have the same requirements
 			as N in oder to initialize `next`.
-			Therefore introducing a recursive type requirement
-			which cannot be resolved.
+			Therefore it introduces a recursive type
+			requirement which cannot be resolved.
 		*/
 	}
 }
 ```
 
-It would be better to represent a `Node` which can be any `Node` through a more generic `Node` protocol rather than another type. So the type would be only a constrained protocol without introducing yet another type.
+It would be better to represent a generic `Node` through a more generic `Node` protocol rather than another type. So the type would be only a constrained protocol without introducing yet another type.
 
 
-A more practical example like a simple `Sequence`:
+A more practical example like a simple `Sequence` is:
 
 ```swift
 protocol Sequence {
@@ -73,14 +73,14 @@ extension Sequence {
 }
 ```
 
-Constraining `SubSequence` to `Sequence` doesn't work due to the recursive type requirement and it should also have the same `Element` type. Thus having no constriant on `SubSequence` where only the name implies that it should be a `Sequence`.
+Constraining `SubSequence` to `Sequence` doesn't work due to the recursive type requirement and it should also have the same `Element` type. Thus having no constraint on `SubSequence` as only the name implies that it should be a `Sequence`.
 
 
 ## Proposed solution
 
 Describe your solution to the problem. Provide examples and describe
 how they work. Show how your solution is better than current
-workarounds: is a cleaner, safer, or more efficient?
+workarounds: is **it fhdjsfk dshfkjdshfkjdhfkdsjfhkj**a cleaner, safer, or more efficient?
 
 We make protocols and generic types partially constraint. In addition they can be used as variable type.
 For example using the former `NodeType`:
@@ -95,7 +95,7 @@ protocol NodeType {
 }
 ```
 
-It looks much cleaner, it is easier to understand and allows to further constrain associated types. In addition `NodeType<Self.T == T>` is also considered a "normal" type and you can use more specific node types like this:
+It looks much cleaner, it is easier to understand and allows to use further constraints on associated types. In addition `NodeType<Self.T == T>` is also considered a "normal" type and you can use more specific node types like this:
 
 ```swift
 var intNode: NodeType<Self.T == Int> = IntNode()
@@ -103,7 +103,7 @@ intNode = GenericNode<Int>()
 
 intNode.element // Int
 intNode.next 	// is automatically inferred to Optional<GenericNode<Int>.Node>
-				// further information on this type inference in "Detailed design"
+		// further information on this type inference in "Detailed design"
 ```
 
 This allows you to program on a more abstract level without having generic wrapper types as return types.
@@ -222,7 +222,9 @@ var seqenceArray: Array<Self.Element: SequenceType<Self.Generator.Element == Int
 // seqenceArray.dynamicType.Generator.Element.Generator == Generator<Self.Element == Int>
 ```
 
-Since constraining a type with `:` is kind of related to covariance and contravariance here an illustration:
+Constraining a type with `:` is kind of related to covariance and contravariance.
+
+Here an illustration:
 
 ```swift
 protocol P {
@@ -252,12 +254,12 @@ if condition {
  	p = B()
 }
 
-// parameter of `p.getReturn` is of type `P.T: Q0` which isn't unambiguously defined (can be Q0Class or Q1Class)
+// parameter of `p.getReturn` is of type `P.T: Q0` which is ambiguously defined (can be Q0Class or Q1Class)
 // so this method cannot be called here
 p.getReturn(...) // would return Q0
 ```
 
-In case of return values the compiler returns the most possible constrained type. For function parameters the passed type has to be a concrete type therefore all of its associated types have to be explicitly or implicitly constrianed by `==`.
+In case of return values the compiler returns the most possible constrained type. For function parameters the passed type has to be a concrete type. Therefore all of its associated types have to be explicitly or implicitly constrianed by `==`.
 
 
 ### Grammar
@@ -275,11 +277,11 @@ primary-expression  -> idendifier  generic-parameter-clause[opt]
 // explicit-member-expression  ->  postfix-expression  .  identifier  generic-parameter-clause[opt]
 ```
 
-There is no change in the grammar of Swift since a "generic-argument-clause" after the protocol name is grammarwise allowed.
+There is no change in the grammar of Swift since a "generic-argument-clause" after the protocol name is grammatically allowed.
 
 ## Impact on existing code
 
-Describe the impact this change will have on existing code. Will some
+Describe the impact **that** this change will have on existing code. Will some
 Swift applications stop compiling due to this change? Will applications still
 compile but produce different behavior than they used to? Is it
 possible to migrate existing Swift code to use a new feature or API
