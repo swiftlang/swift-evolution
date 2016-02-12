@@ -1,6 +1,6 @@
-# Feature name
+# Add `find` method to `SequenceType`
 
-* Proposal: TBD
+* Proposal: [SE-0032](https://github.com/apple/swift-evolution/blob/master/proposals/0032-sequencetype-find.md)
 * Author(s): [Kevin Ballard](https://github.com/kballard)
 * Status: **Awaiting review**
 * Review manager: TBD
