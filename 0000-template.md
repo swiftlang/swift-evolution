@@ -26,7 +26,7 @@ developers create better Swift code.
 
 Describe your solution to the problem. Provide examples and describe
 how they work. Show how your solution is better than current
-workarounds: is a cleaner, safer, or more efficient?
+workarounds: is it cleaner, safer, or more efficient?
 
 ## Detailed design
 
@@ -39,7 +39,7 @@ reasonably implement the feature.
 
 ## Impact on existing code
 
-Describe the impact this change will have on existing code. Will some
+Describe the impact that this change will have on existing code. Will some
 Swift applications stop compiling due to this change? Will applications still
 compile but produce different behavior than they used to? Is it
 possible to migrate existing Swift code to use a new feature or API
