@@ -75,7 +75,11 @@ enum Coin {
     case heads, tails
     static func doSomething() { print("Something") }
     static func staticFunc() { doSomething() } // does not require leading dot
+<<<<<<< HEAD
     static func staticFunc2() { let foo = tails } // does not require leading dot, following static convention
+=======
+    static func staticFunc2() { let foo = .tails } // requires leading dot, even in static function
+>>>>>>> 9870cb0226a1073bdc1344ea5a85335a93db6e53
     func instanceFunc() { self.dynamicType.doSomething() } // requires full qualification
     func otherFunc() { if self == .heads ... } // requires leading dot, also initializers
 
