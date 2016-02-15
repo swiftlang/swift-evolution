@@ -1,8 +1,8 @@
 # Requiring Leading Dot Prefixes for Enum Instance Member Implementations
 
-* Proposal: TBD
+* Proposal: [SE-0036](https://github.com/apple/swift-evolution/blob/master/proposals/0035-limit-inout-capture.md)
 * Author(s): [Erica Sadun](http://github.com/erica), [Chris Lattner](https://github.com/lattner)
-* Status: TBD
+* Status: *Awaiting review*
 * Review manager: TBD
 
 ## Introduction

@@ -29,6 +29,7 @@ proposals in that process.
 * [SE-0025: Scoped Access Level](proposals/0025-scoped-access-level.md)
 * [SE-0026: Abstract classes and methods](proposals/0026-abstract-classes-and-methods.md)
 * [SE-0032: Add `find` method to `SequenceType`](proposals/0032-sequencetype-find.md)
+* [SE-0036: Requiring Leading Dot Prefixes for Enum Instance Member Implementations](proposals/0035-limit-inout-capture.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 
