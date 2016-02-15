@@ -16,8 +16,7 @@ proposal lifts the blanket restriction while still enforcing safety.
 > class itself. This proposal only applies to extensions declared in a
 > different module.
 
-<!--swift-evolution thread: [link to the discussion thread for that
-proposal](https://lists.swift.org/pipermail/swift-evolution)-->
+swift-evolution thread: ["[Pitch] Overridable Members in Extensions"](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160208/009624.html)
 
 
 ## Motivation
@@ -79,8 +78,8 @@ properties, and subscripts) by requiring an alternate dispatch mechanism that
 can be arbitrarily extended. To preserve safety and correctness, a new,
 narrower restriction will be put in place:
 
-**If an extension in module `B` is extending a class in module `A`, it may only
-override members added in module `B`.**
+**If an extension in module `B` is extending a class in module `A`, the
+extension may only override members added in module `B`.**
 
 Any other rule can result in two modules trying to add an override for the same
 method on the same class.
@@ -147,14 +146,12 @@ useful, or they aren't.
 
 The restriction that an extension cannot override a method from another module
 is intended for safety purposes, preventing two modules from each adding their
-own override. It's possible to make this a link-time failure rather than a
-compile-time failure by emitting a dummy symbol representing the (class,
-member) pair. Because of this, it may be useful to have an "I know what I'm
-doing" annotation that promises that no one else will add the same member; if
-it does happen then the program will fail to link.
-
-(Indeed, we probably should do this anyway for `@objc` overrides, which run the
-risk of run-time collision because of Objective-C language semantics.)
+own override. It may be useful to have an "I know what I'm doing" annotation
+that promises that no one else will add the same member; however, we'd want to
+make sure that produced a run-time error if the condition was violated. On
+Linux, we could emit a dummy symbol representing the (class, member) pair, but
+OS X's two-level symbol namespace makes that not a conflict unless another
+binary tries to access the symbol directly.
 
 If we ever have an "SPI" feature that allows public API to be restricted to
 certain clients, it would be reasonable to consider relaxing the safety
