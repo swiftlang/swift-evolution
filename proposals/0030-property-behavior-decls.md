@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0030](https://github.com/apple/swift-evolution/blob/master/proposals/0030-property-behavior-decls.md)
 * Author(s): [Joe Groff](https://github.com/jckarter)
-* Status: **Under review** (February 10...February 16, 2016)
+* Status: **Under review** (February 10...February 23, 2016)
 * Review manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction
@@ -50,13 +50,11 @@ which means it can't be accessed from an immutable value.  Inline storage is
 also suboptimal for many memoization tasks, since the cache cannot be reused
 across copies of the value. A value-oriented memoized property implementation
 might look very different, using a class instance to store the cached value
-out-of-line in order to avoid mutation of the value itself. Lazy properties are
-also unable to surface any additional operations over a regular property, such
-as to reset a lazy property's storage to be recomputed again.
+out-of-line in order to avoid mutation of the value itself.
 
-There are important property patterns outside of lazy initialization.
-It often makes sense to have "delayed",
-once-assignable-then-immutable properties to support multi-phase initialization:
+There are important property patterns outside of lazy initialization.  It often
+makes sense to have "delayed", once-assignable-then-immutable properties to
+support multi-phase initialization:
 
 ```swift
 class Foo {
@@ -77,20 +75,20 @@ class Foo {
 ```
 
 Implicitly-unwrapped optionals allow this in a pinch, but give up a lot of
-safety compared to a non-optional 'let'. Using IUO for multi-phase initialization
-gives up both immutability and nil-safety.
+safety compared to a non-optional 'let'. Using IUO for multi-phase
+initialization gives up both immutability and nil-safety.
 
 We also have other application-specific property features like
 `didSet`/`willSet` that add language complexity for
 limited functionality. Beyond what we've baked into the language already,
 there's a seemingly endless set of common property behaviors, including
-resetting, synchronized access, and various kinds of proxying, all begging for
+synchronized access, copying, and various kinds of proxying, all begging for
 language attention to eliminate their boilerplate.
 
 ## Proposed solution
 
 I suggest we allow for **property behaviors** to be implemented within the
-language.  A `var` or `let` declaration can specify its **behaviors** in square
+language.  A `var` declaration can specify its **behaviors** in square
 brackets after the keyword:
 
 ```swift
@@ -125,13 +123,7 @@ behavior var [lazy] _: Value = initialValue {
 Property behaviors can control the storage,
 initialization, and access of affected properties, obviating the need for
 special language support for `lazy`, observers, and other
-special-case property features. Property behaviors can also provide additional
-operations on properties, such as `clear`-ing a lazy property, accessed with
-`property.[behavior]` syntax:
-
-```swift
-foo.[lazy].clear()
-```
+special-case property features.
 
 ## Examples
 
@@ -173,12 +165,6 @@ public behavior var [lazy] _: Value = initialValue {
   set {
     value = newValue
   }
-
-  // Behaviors can also declare methods to attach to the property.
-  // These can be accessed with `property.[behavior].method` syntax.
-  public mutating func clear() {
-    value = nil
-  }
 }
 ```
 
@@ -189,13 +175,6 @@ storage and accessors from the behavior:
 var [lazy] x = 1738 // Allocates an Int? behind the scenes, inited to nil
 print(x) // Invokes the `lazy` getter, initializing the property
 x = 679 // Invokes the `lazy` setter
-```
-
-Visible members of the behavior can also be accessed under
-`property.[behavior]`:
-
-```swift
-x.[lazy].clear() // Invokes `lazy`'s `clear` method
 ```
 
 ### Delayed Initialization
@@ -219,15 +198,6 @@ public behavior var [delayedMutable] _: Value {
   set {
     value = newValue
   }
-
-  // Perform an explicit initialization, trapping if the
-  // value is already initialized.
-  public mutating func initialize(initialValue: Value) {
-    if let _ = value {
-      fatalError("property initialized twice")
-    }
-    value = initialValue
-  }
 }
 ```
 
@@ -245,9 +215,9 @@ public behavior var [delayedImmutable] _: Value {
     return value
   }
 
-  // Perform an explicit initialization, trapping if the
+  // Perform an initialization, trapping if the
   // value is already initialized.
-  public mutating func initialize(initialValue: Value) {
+  set {
     if let _ = value {
       fatalError("property initialized twice")
     }
@@ -267,52 +237,13 @@ class Foo {
   }
 
   func initializeX(x: Int) {
-    self.x.[delayedImmutable].initialize(x) // Will crash if 'self.x' is already initialized
+    self.x = x // Will crash if 'self.x' is already initialized
   }
 
   func getX() -> Int {
     return x // Will crash if 'self.x' wasn't initialized
   }
 }
-```
-
-### Resettable properties
-
-There's a common pattern in Cocoa where properties are used as optional
-customization points, but can be reset to nil to fall back to a non-public
-default value. In Swift, properties that follow this pattern currently must be
-imported as ImplicitlyUnwrappedOptional, even though the property can only be
-*set* to nil. If expressed as a behavior, the `reset` operation can be
-decoupled from the type, allowing the property to be exported as non-optional:
-
-```swift
-public behavior var [resettable] _: Value = initialValue {
-  var value: Value = initialValue
-
-  get {
-    return value
-  }
-  set {
-    value = newValue
-  }
-
-  // Reset the property to its original initialized value.
-  mutating func reset() {
-    value = initialValue
-  }
-}
-```
-
-For example:
-
-
-```
-var [resettable] foo: Int = 22
-print(foo) // => 22
-foo = 44
-print(foo) // => 44
-foo.[resettable].reset()
-print(foo) // => 22
 ```
 
 ### Property Observers
@@ -357,7 +288,8 @@ value really changed to a value not equal to the old value, can be implemented
 as a new behavior:
 
 ```swift
-public behavior var [changeObserved] _: Value = initialValue {
+public behavior var [changeObserved] _: Value = initialValue
+    where Value: Equatable {
   var value = initialValue
 
   mutating accessor didChange(oldValue: Value) { }
@@ -378,7 +310,7 @@ public behavior var [changeObserved] _: Value = initialValue {
 For example:
 
 ```swift
-var [changeObserved] x = 1 {
+var [changeObserved] x: Int = 1 {
   didChange { print("\(oldValue) => \(x)") }
 }
 
@@ -388,7 +320,7 @@ x = 2 // Prints 1 => 2
 
 (Note that, like `didSet`/`willSet` today, neither behavior implementation
 will observe changes through class references that mutate a referenced
-class instance without changing the reference itself.)
+class instance without changing the reference itself. As written, the)
 
 ### Synchronized Property Access
 
@@ -621,26 +553,6 @@ that public behaviors must use storage with types that are either public
 or internal-with-availability, similar to the restrictions on inlineable
 functions.
 
-The properties and methods of the
-behavior are accessible from properties using the behavior, if they
-have sufficient visibility.
-
-```swift
-behavior var [runcible] _: Value {
-  private var x: Int = 0
-  var y: String = ""
-
-  func foo() {}
-}
-
-// In a different file...
-
-var [runcible] a: Int
-_ = a.[runcible].x // Error, runcible.x is private
-_ = a.[runcible].y // OK
-a.runcible.foo() // OK
-```
-
 Method and computed property implementations have only immutable access to
 `self` and their storage by default, unless they are `mutating`. (As with
 computed properties, setters are `mutating` by default unless explicitly
@@ -841,63 +753,14 @@ also do not allow for out-of-line initialization of properties. Both of these
 restrictions can be lifted by future extensions; see the **Future directions**
 section below.
 
-### Accessing Behavior Members on Properties
-
-A behavior's properties and methods can be accessed on properties using the
-behavior under `property.[behavior]`:
-
-```swift
-behavior var [foo] _: Value = initial {
-  var storage: Value = initial
-  func method() { }
-  get { return storage }
-}
-
-var [foo] x: Int = 0
-print(x.[foo].storage)
-x.[foo].method()
-```
-
-To access a behavior member, code must have visibility of both the property's
-behavior, and the behavior's member. Behaviors are `private` by default,
-unless declared with a higher visibility. A behavior cannot be more visible
-than the property it applies to.
-
-```swift
-// foo.swift
-behavior var [foo] _: Value = initial {
-  private var storage: Value = initial
-  func method() { }
-  get { return storage }
-}
-
-
-// bar.swift
-var [foo] bar: Int
-var [internal foo] internalFoo: Int
-var [public foo] publicFoo: Int // Error, behavior more visible than property
-
-_ = bar.[foo].storage // Error, `storage` is private to behavior
-bar.[foo].method() // OK
-
-// bas.swift
-bar.[foo].method() // Error, `foo` behavior is private
-internalFoo.[foo].method() // OK
-```
-
-Methods, properties, and nested types within the behavior can be accessed.
-It is not allowed to access a behavior's `init` declaration, initializer
-or accessor requirements, or core accessors from outside the behavior
-declaration.
-
 ## Impact on existing code
 
 By itself, this is an additive feature that doesn't impact
-existing code. However, it potentially obsoletes `lazy`, `willSet`/`didSet`,
-and `@NSCopying` as hardcoded language features.  We could grandfather these
-in, but my preference would be to phase them out by migrating them to
-library-based property behavior implementations. (Removing them should be its
-own separate proposal, though.)
+existing code. However, with some of the future directions suggested, it
+can potentially obsolete `lazy`, `willSet`/`didSet`, and `@NSCopying` as
+hardcoded language features.  We could grandfather these in, but my preference
+would be to phase them out by migrating them to library-based property behavior
+implementations. (Removing them should be its own separate proposal, though.)
 
 ## Alternatives considered
 
@@ -972,29 +835,6 @@ Alternatives to the proposed `var [behavior] propertyName` syntax include:
 - Use a new keyword, as in `var x: T by behavior`.
 - Something on the right side of the colon, such as `var x: lazy(T)`.  To me
   this reads like `lazy(T)` is a type of some kind, which it really isn't.
-- Something resembling the lookup syntax, such as `var x.[lazy]: T`.
-
-### Syntax for accessing the backing property
-
-The proposal suggests `x.[behaviorName]` for accessing the underlying backing
-property of `var [behaviorName] x`.  Some alternatives to consider:
-
-- Reserving a keyword and syntactic form to refer to the backing property, such
-  as `foo.x.behavior` or `foo.behavior(x)`. The problems with this are that
-  reserving a keyword is undesirable, and that `behavior` is a vague term that
-  requires more context for a reader to understand what's going on. If we
-  support multiple behaviors on a property, it also doesn't provide a mechanism
-  to distinguish between behaviors.
-- Doing member lookup in both the property's type and its behaviors (favoring
-  the declared property when there are conflicts). If `foo` is known to be
-  `lazy`, it's attractive for `foo.clear()` to Just Work without additional
-  syntax.  This has the usual ambiguity problems of overloading, of course; if
-  the behavior's members are shadowed by the fronting type, something would be
-  necessary to disambiguate.
-- Treat the behavior name alone as a member of the property, so that
-  `foo.lazy.clear()` works. This reduces the surface area for potential
-  namespace collision, but still fundamentally has the same disambiguation
-  problems as the previous alternative.
 
 ## Future directions
 
@@ -1139,15 +979,6 @@ var [echo] echo: String
 print(echo) // => echo
 ```
 
-### Extensions on behaviors
-
-It might be interesting to allow behaviors to have new functionality added
-via `extension`s. This feature would come with some runtime costs, however; any
-`public` behavior on a property would have to export a vtable representing
-that property's implementation of the behavior in order for extensions in
-other modules to be able to interact with it. This fights the
-"zero-cost abstraction" goal we have for the feature.
-
 ### Overloading behaviors
 
 It may be useful for behaviors to be overloadable, for instance to give a
@@ -1160,7 +991,6 @@ behavior var [foo] _: Value = initialValue
   var value: Value = initialValue
   get { ... }
   set { ... }
-  }
 }
 
 // Same behavior for computed properties...
@@ -1177,3 +1007,17 @@ We could resolve overloads by accessors, type constraints on `Value`, and/or
 initializer requirements. However, determining what this overload signature
 should be, and also the exciting interactions with type inference from
 initializer expressions, should be a separate discussion.
+
+### Accessing "out-of-band" behavior members
+
+It is useful to add out-of-band operations to a property that aren't normal
+members of its formal type, for instance, to `clear` a lazy property to be
+recomputed later, or to reset a property to an implementation-defined default
+value. This is useful, but it complicates the design of the feature. Aside from
+the obvious surface-level concerns of syntax for accessing these members, this
+also exposes behaviors as interface rather than purely an implementation
+detail, meaning their interaction with resilience, protocols, class
+inheritance, and other abstractions needs to be designed. It's also a fair
+question whether out-of- band members should be tied to behaviors at all--it
+could be useful to design out-of-band members as an independent feature
+independent with behaviors.

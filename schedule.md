@@ -10,7 +10,7 @@ proposals in that process.
 * January 22...February 5, 2016: [SE-0023: API Design Guidelines](proposals/0006-apply-api-guidelines-to-the-standard-library.md)
 * January 22...February 5, 2016: [SE-0006: Apply API Guidelines to the Standard Library](proposals/0006-apply-api-guidelines-to-the-standard-library.md)
 * January 22...February 5, 2016: [SE-0005: Better Translation of Objective-C APIs Into Swift](proposals/0005-objective-c-name-translation.md)
-* February 10...16, 2016: [SE-0030: Property Behaviors](proposals/0030-property-behavior-decls.md)
+* February 10...23, 2016: [SE-0030: Property Behaviors](proposals/0030-property-behavior-decls.md)
 * February 11...15, 2016: [SE-0031: Adjusting inout Declarations for Type Decoration](proposals/0031-adjusting-inout-declarations.md)
 * February 11...16, 2016: [SE-0027: Expose code unit initializers on String](proposals/0027-string-from-code-units.md)
 * February 12...18, 2016: [SE-0024: Optional Value Setter `??=`](proposals/0024-optional-value-setter.md)
