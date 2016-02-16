@@ -30,6 +30,7 @@ proposals in that process.
 * [SE-0026: Abstract classes and methods](proposals/0026-abstract-classes-and-methods.md)
 * [SE-0032: Add `find` method to `SequenceType`](proposals/0032-sequencetype-find.md)
 * [SE-0036: Requiring Leading Dot Prefixes for Enum Instance Member Implementations](proposals/0036-enum-dot.md)
+* [SE-0037: Clarify interaction between comments & operators](proposals/0037-clarify-comments-and-operators.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 
