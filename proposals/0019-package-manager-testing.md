@@ -115,7 +115,7 @@ would decide how to interpret them.
 
 ---
 
-Sometimes test sources cannot compile and fixing them is no the most
+Sometimes test sources cannot compile and fixing them is not the most
 pressing priority. Thus it will be posssible to skip building tests
 with an additional flag:
 
