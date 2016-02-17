@@ -1,9 +1,9 @@
 # Package Manager C Language Target Support
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-swiftpm-c-language-targets.md)
+* Proposal: [SE-0038](https://github.com/apple/swift-evolution/blob/master/proposals/0038-swiftpm-c-language-targets.md)
 * Author(s): [Daniel Dunbar](https://github.com/ddunbar)
-* Status: **Review**
-* Review manager: TBD
+* Status: **Under review** (scheduled for February 17-22, 2016)
+* Review manager: Rick Ballard
 
 ## Introduction
 
