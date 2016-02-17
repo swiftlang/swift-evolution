@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0038](https://github.com/apple/swift-evolution/blob/master/proposals/0038-swiftpm-c-language-targets.md)
 * Author(s): [Daniel Dunbar](https://github.com/ddunbar)
-* Status: **Under review** (scheduled for February 17-22, 2016)
+* Status: **Under review** (scheduled for February 16-22, 2016)
 * Review manager: Rick Ballard
 
 ## Introduction
