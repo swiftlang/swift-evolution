@@ -93,16 +93,20 @@ sampling of potentially good ideas that are not in scope for Swift
   with the Swift Package Manager.  Beyond Swift 3 we may consider standardizing
   popular packages or expanding the scope of the project.  
 
+### Implemented proposals for Swift 3
+
+* [SE-0005: Better Translation of Objective-C APIs Into Swift](proposals/0005-objective-c-name-translation.md) (SE-0005)
+* [SE-0019: Swift Testing](proposals/0019-package-manager-testing.md) (SE-0019)
+
 ### Accepted proposals for Swift 3.0
 
-* [Better Translation of Objective-C APIs Into Swift](proposals/0005-objective-c-name-translation.md) (SE-0005)
-* [Removing currying `func` declaration syntax](proposals/0002-remove-currying.md) (SE-0002)
-* [Removing `var` from Function Parameters](proposals/0003-remove-var-parameters.md)
-* [Remove the `++` and `--` operators](proposals/0004-remove-pre-post-inc-decrement.md) (SE-0004)
-* [Remove C-style for-loops with conditions and incrementers](proposals/0007-remove-c-style-for-loops.md) (SE-0007)
-* [Swift Testing](proposals/0019-package-manager-testing.md) (SE-0019)
-* [Modernizing Swift's Debugging Identifiers (\__FILE__, etc)](proposals/0028-modernizing-debug-identifiers.md)
-* [Remove implicit tuple splat behavior from function applications](proposals/0029-remove-implicit-tuple-splat.md)
+* [SE-0002: Removing currying `func` declaration syntax](proposals/0002-remove-currying.md) (SE-0002)
+* [SE-0003: Removing `var` from Function Parameters](proposals/0003-remove-var-parameters.md)
+* [SE-0004: Remove the `++` and `--` operators](proposals/0004-remove-pre-post-inc-decrement.md) (SE-0004)
+* [SE-0007: Remove C-style for-loops with conditions and incrementers](proposals/0007-remove-c-style-for-loops.md) (SE-0007)
+* [SE-0028: Modernizing Swift's Debugging Identifiers (\__FILE__, etc)](proposals/0028-modernizing-debug-identifiers.md)
+* [SE-0029: Remove implicit tuple splat behavior from function applications](proposals/0029-remove-implicit-tuple-splat.md)
+* [SE-0031: Adjusting inout Declarations for Type Decoration](proposals/0031-adjusting-inout-declarations.md)
 
 ## Development minor version:  Swift 2.2
 
