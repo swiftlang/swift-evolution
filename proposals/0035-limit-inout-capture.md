@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0035](https://github.com/apple/swift-evolution/blob/master/proposals/0035-limit-inout-capture.md)
 * Author(s): [Joe Groff](https://github.com/jckarter)
-* Status: **Scheduled** for February 16...19, 2016
+* Status: **Active** February 16...19, 2016
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction
