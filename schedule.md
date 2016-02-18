@@ -15,6 +15,7 @@ proposals in that process.
 * February 11...16, 2016: [SE-0027: Expose code unit initializers on String](proposals/0027-string-from-code-units.md)
 * February 12...18, 2016: [SE-0024: Optional Value Setter `??=`](proposals/0024-optional-value-setter.md)
 * February 16...19, 2016: [SE-0035: Limiting `inout` capture to `@noescape` contexts](proposals/0035-limit-inout-capture.md)
+* February 16...22, 2016: [SE-0038: Package Manager C Language Target Support](proposals/0038-swiftpm-c-language-targets.md)
 
 ## Upcoming reviews
 
@@ -31,6 +32,7 @@ proposals in that process.
 * [SE-0032: Add `find` method to `SequenceType`](proposals/0032-sequencetype-find.md)
 * [SE-0036: Requiring Leading Dot Prefixes for Enum Instance Member Implementations](proposals/0036-enum-dot.md)
 * [SE-0037: Clarify interaction between comments & operators](proposals/0037-clarify-comments-and-operators.md)
+* [SE-0039: Modernizing Playground Literals](proposals/0039-playgroundliterals.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 

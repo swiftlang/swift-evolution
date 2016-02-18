@@ -1,8 +1,8 @@
 # Modernizing Playground Literals
 
-* Proposal: TBD
+* Proposal: [SE-0039](https://github.com/apple/swift-evolution/blob/master/proposals/0039-playgroundliterals.md)
 * Author(s): [Erica Sadun](http://github.com/erica)
-* Status: TBD
+* Status: *Awaiting review*
 * Review manager: TBD
 
 ## Introduction
