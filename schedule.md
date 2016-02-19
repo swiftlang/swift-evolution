@@ -32,6 +32,7 @@ proposals in that process.
 * [SE-0036: Requiring Leading Dot Prefixes for Enum Instance Member Implementations](proposals/0036-enum-dot.md)
 * [SE-0037: Clarify interaction between comments & operators](proposals/0037-clarify-comments-and-operators.md)
 * [SE-0039: Modernizing Playground Literals](proposals/0039-playgroundliterals.md)
+* [SE-0040: Replacing Equal Signs with Colons For Attribute Arguments](proposals/0040-attributecolons.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 
