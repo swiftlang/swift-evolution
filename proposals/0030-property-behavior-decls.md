@@ -99,8 +99,9 @@ which implements the property `foo` in a way described by the **property
 behavior declaration** for `lazy`:
 
 ```swift
-var behavior lazy<Value> = initialValue {
+var behavior lazy<Value>: Value {
   var value: Value? = nil
+  initialValue
 
   mutating get {
     if let value = value {
