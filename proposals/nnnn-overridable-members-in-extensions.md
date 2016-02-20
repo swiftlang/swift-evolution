@@ -82,7 +82,8 @@ narrower restriction will be put in place:
 extension may only override members added in module `B`.**
 
 Any other rule can result in two modules trying to add an override for the same
-method on the same class.
+method on the same class. Such an extension is known as a _cross-module
+extension._
 
 > Note: This rule applies to `@objc` members as well as non-`@objc` members.
 
@@ -93,6 +94,9 @@ or in an extension in the same module.
 
 
 ## Detailed design
+
+Methods introduced in an extension may be marked ``final`` just like methods
+declared within classes.
 
 Besides safety, the other reason we didn't add this feature is because the
 Swift method dispatch mechanism uses a single virtual dispatch table for a
@@ -114,14 +118,42 @@ an extension on the base class, as long as the original declaration is not
 removed entirely. The new entry point will forward over to the original entry
 point in order to preserve binary compatibility.
 
+Inlineable methods in extensions follow [the same rules][] as inlineable
+methods declared within classes: calls may only be inlined if they are
+devirtualized. That is, a call may be inlined only if the caller can prove that
+this specific override will be called.
+
 [any other method]:
 https://github.com/apple/swift/blob/master/docs/LibraryEvolution.rst#classes
+[the same rules]: https://github.com/apple/swift/blob/master/docs/LibraryEvolution.rst#methods
+
+
+### Method Replacement
+
+This proposal does not allow the *replacement* of existing methods by
+reimplementing them in cross-module extensions, which is the behavior of
+methods declared in categories in Objective-C. This would violate the safety
+rule described above: if two modules provide replacements for the same method,
+it's not clear which one should "win".
+
+People have expressed interest in this, particularly for testing; the likely
+direction to go here is to come up with a native Swift version of `dynamic`,
+and then provide a way of restricting that to testing builds only. Any such
+feature is out of scope for this proposal.
+
+There is still a potential run-time issue here if an Objective-C class has an
+unpublished method with the same selector as a method added in an extension. In
+this case the method in the extension may replace the implementation found in
+the class, as it would with an Objective-C category. A possible way to mitigate
+this would be to treat all methods in cross-module extensions as `@nonobjc` by
+default; however, this would make the rules concerning which methods are
+exposed to Objective-C more complicated.
 
 
 ## Impact on existing code
 
-No existing semantics will be affected. Dispatch for methods in extensions may
-get slower, since it's no longer using a direct call.
+No existing semantics will be affected. Dispatch for methods in cross-module
+extensions may get slower, since it's no longer using a direct call.
 
 
 ## Alternatives considered
@@ -136,10 +168,10 @@ try to do (with or without `@objc`).
 ### `@objc` extension methods are overridable, non-`@objc` methods are not
 
 This is a practical answer, since it requires no further implementation work.
-We could require members in extensions to be explicitly annotated `dynamic` and
-`final`, respectively, so that the semantics are at least clear. However, it's
-not a very principled design choice: either overridable extension members are
-useful, or they aren't.
+We could require members in cross-module extensions to be explicitly annotated
+`dynamic` and `final`, respectively, so that the semantics are at least clear.
+However, it's not a very principled design choice: either overridable extension
+members are useful, or they aren't.
 
 
 ## Future extensions
