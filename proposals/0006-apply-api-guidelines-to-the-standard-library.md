@@ -730,7 +730,8 @@ public struct OpaquePointer : ... {
 
  extension Sequence where Iterator.Element : Equatable {
    public func split(
-     separator: Iterator.Element,
+-    separator: Iterator.Element,
++    by separator: Iterator.Element,
 -    maxSplit: Int = Int.max,
 +    maxSplits: Int = Int.max,
 -    allowEmptySlices: Bool = false
