@@ -1,6 +1,6 @@
 # Replacing Equal Signs with Colons For Attribute Arguments
 
-* Proposal: [SE-0036](https://github.com/apple/swift-evolution/blob/master/proposals/0040-attributecolons.md)
+* Proposal: [SE-0040](https://github.com/apple/swift-evolution/blob/master/proposals/0040-attributecolons.md)
 * Author(s): [Erica Sadun](http://github.com/erica)
 * Status: TBD
 * Review manager: TBD
