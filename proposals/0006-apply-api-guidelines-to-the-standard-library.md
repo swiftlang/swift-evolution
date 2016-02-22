@@ -81,10 +81,6 @@ On high level, the changes can be summarized as follows.
 
 * Some functions were changed into properties and vice versa.
 
-* `Unmanaged` was renamed to `UnsafeReference` and redesigned.
-
-* `precondition` was renamed to `require`.
-
 ## API diffs
 
 Differences between Swift 2.2 Standard library API and the proposed API are
@@ -288,7 +284,8 @@ public struct OpaquePointer : ... {
 }
 ```
 
-* `sort()` => `sorted()`, `sortInPlace()` => `sort()`.
+* `sort()` => `sorted()`, `sortInPlace()` => `sort()`.  We also added argument
+  labels to closures.
 
 ```diff
  extension Sequence where Self.Iterator.Element : Comparable {
@@ -301,7 +298,8 @@ public struct OpaquePointer : ... {
    @warn_unused_result
 -  public func sort(
 +  public func sorted(
-     @noescape isOrderedBefore: (Iterator.Element, Iterator.Element) -> Bool
+-    @noescape                 isOrderedBefore: (Iterator.Element, Iterator.Element) -> Bool
++    @noescape isOrderedBefore isOrderedBefore: (Iterator.Element, Iterator.Element) -> Bool
    ) -> [Iterator.Element]
  }
 
@@ -315,7 +313,8 @@ public struct OpaquePointer : ... {
    @warn_unused_result(mutable_variant="sort")
 -  public func sort(
 +  public func sorted(
-    @noescape isOrderedBefore: (Iterator.Element, Iterator.Element) -> Bool
+-   @noescape                 isOrderedBefore: (Iterator.Element, Iterator.Element) -> Bool
++   @noescape isOrderedBefore isOrderedBefore: (Iterator.Element, Iterator.Element) -> Bool
    ) -> [Iterator.Element]
  }
 
@@ -332,7 +331,8 @@ public struct OpaquePointer : ... {
  extension MutableCollection where Self.Index : RandomAccessIndex {
 -  public mutating func sortInPlace(
 +  public mutating func sort(
-     @noescape isOrderedBefore: (Iterator.Element, Iterator.Element) -> Bool
+-    @noescape                 isOrderedBefore: (Iterator.Element, Iterator.Element) -> Bool
++    @noescape isOrderedBefore isOrderedBefore: (Iterator.Element, Iterator.Element) -> Bool
    )
  }
 ```
@@ -387,14 +387,17 @@ public struct OpaquePointer : ... {
 +public struct EnumeratedIterator<Base : IteratorProtocol> : ... { ... }
 ```
 
-* `partition()` API was simplified.  It composes better with collection slicing
-  now.
+* `partition()` API was simplified: the range argument was removed.  It
+  composes better with collection slicing now, and is more uniform with other
+  collection algorithms.  We also added `@noescape` and an argument label to
+  the closure.
 
 ```diff
  extension MutableCollection where Index : RandomAccessIndex {
    public mutating func partition(
 -    range: Range<Index>,
-     isOrderedBefore: (Iterator.Element, Iterator.Element) -> Bool
+-                              isOrderedBefore: (Iterator.Element, Iterator.Element) -> Bool
++    @noescape isOrderedBefore isOrderedBefore: (Iterator.Element, Iterator.Element) -> Bool
    ) -> Index
  }
 
@@ -406,18 +409,21 @@ public struct OpaquePointer : ... {
 }
 ```
 
-* `SequenceType.minElement()` => `.min()`, `.maxElement()` => `.max()`.
+* `SequenceType.minElement()` => `.min()`, `.maxElement()` => `.max()`.  We
+  also added argument labels to closures.
 
 ```diff
  extension Sequence {
 -  public func minElement(
 +  public func min(
-     @noescape isOrderedBefore: (Iterator.Element, Iterator.Element) throws -> Bool
+-    @noescape                 isOrderedBefore: (Iterator.Element, Iterator.Element) throws -> Bool
++    @noescape isOrderedBefore isOrderedBefore: (Iterator.Element, Iterator.Element) throws -> Bool
    ) rethrows -> Iterator.Element?
 
 -  public func maxElement(
 +  public func max(
-     @noescape isOrderedBefore: (Iterator.Element, Iterator.Element) throws -> Bool
+-    @noescape                 isOrderedBefore: (Iterator.Element, Iterator.Element) throws -> Bool
++    @noescape isOrderedBefore isOrderedBefore: (Iterator.Element, Iterator.Element) throws -> Bool
    ) rethrows -> Iterator.Element?
  }
 
@@ -496,6 +502,21 @@ public struct OpaquePointer : ... {
    // Use the 'enumerated()' method.
 -  public init(_ base: Base)
  }
+
+ public struct IndexingIterator<Elements : Indexable> : ... {
+   // Call 'iterator()' on the collection instead.
+-  public init(_elements: Elements)
+ }
+
+ public struct HalfOpenInterval<Bound : Comparable> : ... {
+   // Use the '..<' operator.
+-  public init(_ start: Bound, _ end: Bound)
+ }
+
+ public struct ClosedInterval<Bound : Comparable> : ... {
+   // Use the '...' operator.
+-  public init(_ start: Bound, _ end: Bound)
+ }
 ```
 
 * Some functions were changed into properties and vice versa.
@@ -541,166 +562,193 @@ public struct OpaquePointer : ... {
 
 ```
 
-* `Unmanaged` was renamed to `UnsafeReference` and redesigned.
+* Base names and argument labels were changed to follow guidelines about first
+  argument labels.  (Some changes in this category are already specified
+  elsewhere in the diff and are not repeated.)
 
 ```diff
--public struct Unmanaged<Instance : AnyObject> {
-   // New API: `UnsafeReference(bitPattern:)`.
--  public static func fromOpaque(value: COpaquePointer) -> Unmanaged
+ public protocol ForwardIndex {
+-  func advancedBy(n: Distance) -> Self
++  func advanced(by n: Distance) -> Self
 
-   // New API: `OpaquePointer(bitPattern:)`.
--  public func toOpaque() -> COpaquePointer
+-  func advancedBy(n: Distance, limit: Self) -> Self
++  func advanced(by n: Distance, limit: Self) -> Self
 
-   // New API: `UnsafeReference(retaining:)`.
--  public static func passRetained(value: Instance) -> Unmanaged
+-  func distanceTo(end: Self) -> Distance
++  func distance(to end: Self) -> Distance
+ }
 
-   // New API: `UnsafeReference(withoutRetaining:)`.
--  public static func passUnretained(value: Instance) -> Unmanaged
+ public struct Set<Element : Hashable> : ... {
+-  public mutating func removeAtIndex(index: Index) -> Element
++  public mutating func remove(at index: Index) -> Element
+ }
 
-   // New API: `UnsafeReference.object`.
--  public func takeUnretainedValue() -> Instance
+ public struct Dictionary<Key : Hashable, Value> : ... {
+-  public mutating func removeAtIndex(index: Index) -> Element
++  public mutating func remove(at index: Index) -> Element
 
-   // New API: `UnsafeReference.release()`.
--  public func takeRetainedValue() -> Instance
+-  public func indexForKey(key: Key) -> Index?
++  public func index(forKey key: Key) -> Index?
 
-   // New API: none.
--  public func retain() -> Unmanaged
--  public func release()
--  public func autorelease() -> Unmanaged
--}
+-  public mutating func removeValueForKey(key: Key) -> Value?
++  public mutating func removeValue(forKey key: Key) -> Value?
+ }
 
-+/// Holds an instance of `Object`, carrying ownership semantics that
-+/// are not known to the type system and not represented in memory.
-+///
-+/// `UnsafeReference<T>` appears as a return type or "out" parameter
-+/// in [Core
-+/// Foundation](https://developer.apple.com/library/mac/documentation/CoreFoundation/Reference/CoreFoundation_Collection/)
-+/// APIs that have not been
-+/// [annotated](https://developer.apple.com/library/ios/documentation/Swift/Conceptual/BuildingCocoaApps/WorkingWithCocoaDataTypes.html#//apple_ref/doc/uid/TP40014216-CH6-ID79)
-+/// with information that allows clients to receive a safe `T`
-+/// directly.
-+///
-+/// An `UnsafeReference` instance `u` can be in one of three
-+/// "ownership states":
-+///
-+///  1. **Unretained**, where `u.object` yields a valid `T` and will
-+///     do so through any number of accesses to the `.object`
-+///     properties of `UnsafeReference` instances.  The behavior of
-+///     `u.release()` is undefined, and any other operations may cause
-+///     `u` to transition to the *released* state.
-+///
-+///  2. **Retained**, where `u.release()` yields a valid `T` and will
-+///     do so exactly once.  Calling `.release()` transitions `u` and
-+///     all its copies to the *released* state.
-+///
-+///  3. **Released**, where the behavior of both `u.object` and
-+///     `u.release()` is undefined.  A released `UnsafeReference`
-+///     can't be used for anything.
-+///
-+/// The ownership state of an `UnsafeReference` is not
-+/// programmatically detectable, so careful documentation is
-+/// essential.  When an `UnsafeReference` is returned in the
-+/// *retained* state, it is usual to document that "the caller is
-+/// responsible for releasing the object" or that the API "follows
-+/// the [create
-+/// rule](https://developer.apple.com/library/ios/documentation/CoreFoundation/Conceptual/CFMemoryMgmt/Concepts/Ownership.html#//apple_ref/doc/writerid/cfCreateRule)."
-+/// Other `UnsafeReferences` are assumed to be in the *unretained*
-+/// state.  No API should pass or return a *released*
-+/// `UnsafeReference`
-+///
-+/// The safest way to deal with an instance of `UnsafeReference<T>` is
-+/// to immediately extract a safe `T` from it exactly once (via
-+/// `.object` or `.release()` according to its state), and let it go
-+/// out of scope.
-+///
-+/// In the common case where the `UnsafeReference` is a return value,
-+/// it's best to do the extraction as part of the call, e.g.:
-+/// ~~~~
-+/// let names: CFArray = CFHostGetNames(host).object
-+/// let url: CFURL = CFHTTPMessageCopyRequestURL(message).release()
-+/// ~~~
-+///
-+/// When the `UnsafeReference` is an "out" parameter, you can limit
-+/// its scope by creating and unwrapping it in a closure:
-+/// ~~~~
-+/// var properties: CFPropertyList = try {
-+///   var properties: UnsafeReference<CFPropertyList>?
-+///   let error = MIDIObjectGetProperties(midiClient, &properties, true)
-+///   if error != noErr {
-+///     throw NSError(domain: "midi", code: Int(error), userInfo: nil)
-+///   }
-+///   return properties!.object
-+/// }()
-+/// ~~~~
-+public struct UnsafeReference<Object : AnyObject> {
-+
-+  /// Relinquishes ownership of the `Object` and returns it as a safe
-+  /// reference.
-+  ///
-+  /// - Requires: `self` is in the *retained* state.
-+  ///
-+  /// - Postcondition: `self` and all its copies are in the *released* state.
-+  ///
-+  /// - Warning: Calling `.release()` on an *unretained* or *released*
-+  ///   `UnsafeReference` is a severe programming error yielding
-+  ///   undefined behavior.
-+  ///
-+  /// - Warning: After this method is invoked once, invoking any
-+  ///   methods on the same instance, or a copy thereof, is a severe
-+  ///   programming error yielding undefined behavior.
-+  public func release() -> Object
-+
-+  /// A safe reference to the `Object` instance.
-+  ///
-+  /// - Warning: if `self` is in the *retained* state, you must
-+  ///   eventually call `.release()`, or the resulting object will be
-+  ///   leaked.  It's better to just capture the result of invoking
-+  ///   `.release()` in that case.
-+  public var object: Object
+ extension Sequence where Iterator.Element : Sequence {
+   // joinWithSeparator(_:) => join(separator:)
+-  public func joinWithSeparator<
++  public func join<
+     Separator : Sequence
+     where
+     Separator.Iterator.Element == Iterator.Element.Iterator.Element
+-  >(separator: Separator) -> JoinSequence<Self>
++  >(separator separator: Separator) -> JoinSequence<Self>
+ }
 
-+  /// Creates an unsafe holder of `safeObject` in the *unretained*
-+  /// state; the held object can be accessed via the `.object` property.
-+  public init(withoutRetaining safeObject: Object)
-+
-+  /// Creates an unsafe holder of `safeObject` in the *retained*
-+  /// state; the held object can be accessed via the `release()`
-+  /// method.
-+  public init(retaining safeObject: Object)
-+
-+  /// Creates an unsafe holder of an object having the given
-+  /// `bitPattern`.
-+  public init(bitPattern: OpaquePointer)
-+}
-+
-+extension OpaquePointer {
-+  /// Unsafely convert an unmanaged class reference to an opaque
-+  /// C pointer.
-+  ///
-+  /// This operation does not change reference counts.
-+  ///
-+  ///     let str0: CFString = "boxcar"
-+  ///     let bits = OpaquePointer(bitPattern: UnsafeReference(withoutRetaining: str0))
-+  ///     let str1 = UnsafeReference<CFString>(bitPattern: bits).object
-+  public init<T>(bitPattern bits: UnsafeReference<T>)
-+}
+ extension Sequence where Iterator.Element == String {
+-  public func joinWithSeparator(separator: String) -> String
++  public func join(separator separator: String) -> String
+ }
+
+ public class ManagedBuffer<Value, Element> : ... {
+   public final class func create(
+-    minimumCapacity: Int,
++    minimumCapacity minimumCapacity: Int,
+     initialValue: (ManagedProtoBuffer<Value, Element>) -> Value
+   ) -> ManagedBuffer<Value, Element>
+ }
 ```
 
-* `precondition` was renamed to `require`.
+* Lowercase enum cases.
 
 ```diff
--public func precondition(
-+public func require(
-   @autoclosure condition: () -> Bool,
-   @autoclosure _ message: () -> String = String(),
-   file: StaticString = __FILE__, line: UInt = __LINE__
- )
+ public enum FloatingPointClassification {
+-  case SignalingNaN
++  case signalingNaN
 
-@noreturn
--public func preconditionFailure(
-+public func requirementFailure(
-   @autoclosure message: () -> String = String(),
-   file: StaticString = __FILE__, line: UInt = __LINE__
- )
+-  case QuietNaN
++  case quietNaN
+
+-  case NegativeInfinity
++  case negativeInfinity
+
+-  case NegativeNormal
++  case negativeNormal
+
+-  case NegativeSubnormal
++  case negativeSubnormal
+
+-  case NegativeZero
++  case negativeZero
+
+-  case PositiveZero
++  case positiveZero
+
+-  case PositiveSubnormal
++  case positiveSubnormal
+
+-  case PositiveNormal
++  case positiveNormal
+
+-  case PositiveInfinity
++  case positiveInfinity
+ }
+
+ public enum ImplicitlyUnwrappedOptional<Wrapped> : ... {
+-  case None
++  case none
+
+-  case Some(Wrapped)
++  case some(Wrapped)
+ }
+
+ public enum Optional<Wrapped> : ... {
+-  case None
++  case none
+
+-  case Some(Wrapped)
++  case some(Wrapped)
+ }
+
+ public struct Mirror {
+   public enum AncestorRepresentation {
+-    case Generated
++    case generated
+
+-    case Customized(() -> Mirror)
++    case customized(() -> Mirror)
+
+-    case Suppressed
++    case suppressed
+   }
+
+   public enum DisplayStyle {
+-    case struct, class, enum, tuple, optional, collection
++    case `struct`, `class`, `enum`, tuple, optional, collection
+
+-    case dictionary, `set`
++    case dictionary, `set`
+   }
+ }
+
+ public enum PlaygroundQuickLook {
+-  case Text(String)
++  case text(String)
+
+-  case Int(Int64)
++  case int(Int64)
+
+-  case UInt(UInt64)
++  case uInt(UInt64)
+
+-  case Float(Float32)
++  case float(Float32)
+
+-  case Double(Float64)
++  case double(Float64)
+
+-  case Image(Any)
++  case image(Any)
+
+-  case Sound(Any)
++  case sound(Any)
+
+-  case Color(Any)
++  case color(Any)
+
+-  case BezierPath(Any)
++  case bezierPath(Any)
+
+-  case AttributedString(Any)
++  case attributedString(Any)
+
+-  case Rectangle(Float64,Float64,Float64,Float64)
++  case rectangle(Float64,Float64,Float64,Float64)
+
+-  case Point(Float64,Float64)
++  case point(Float64,Float64)
+
+-  case Size(Float64,Float64)
++  case size(Float64,Float64)
+
+-  case Logical(Bool)
++  case bool(Bool)
+
+-  case Range(Int64, Int64)
++  case range(Int64, Int64)
+
+-  case View(Any)
++  case view(Any)
+
+-  case Sprite(Any)
++  case sprite(Any)
+
+-  case URL(String)
++  case url(String)
+
+-  case _Raw([UInt8], String)
++  case _raw([UInt8], String)
+ }
 ```
 
 * Miscellaneous changes.
@@ -721,21 +769,32 @@ public struct OpaquePointer : ... {
  public protocol Sequence : ... {
    public func split(
 -    maxSplit: Int = Int.max,
-+    maxSplits: Int = Int.max,
++    maxSplits maxSplits: Int = Int.max,
 -    allowEmptySlices: Bool = false,
-+    omitEmptySubsequences: Bool = true,
++    omittingEmptySubsequences: Bool = true,
      @noescape isSeparator: (Iterator.Element) throws -> Bool
    ) rethrows -> [SubSequence]
  }
 
  extension Sequence where Iterator.Element : Equatable {
    public func split(
-     separator: Iterator.Element,
+     by separator: Iterator.Element,
 -    maxSplit: Int = Int.max,
-+    maxSplits: Int = Int.max,
++    maxSplits maxSplits: Int = Int.max,
 -    allowEmptySlices: Bool = false
-+    omitEmptySubsequences: Bool = true
++    omittingEmptySubsequences: Bool = true
    ) -> [AnySequence<Iterator.Element>] {
+ }
+
+ public protocol Collection : ... {
+-  func prefixUpTo(end: Index) -> SubSequence
++  func prefix(upTo end: Index) -> SubSequence
+
+-  func suffixFrom(start: Index) -> SubSequence
++  func suffix(from start: Index) -> SubSequence
+
+-  func prefixThrough(position: Index) -> SubSequence
++  func prefix(through position: Index) -> SubSequence
  }
 
  // Changes to this protocol affect `Array`, `ArraySlice`, `ContiguousArray` and
@@ -754,7 +813,7 @@ public struct OpaquePointer : ... {
 +  mutating func insert(newElement: Iterator.Element, at i: Int)
 
 -  mutating func removeAtIndex(index: Int) -> Element
-+  mutating func removeAt(index: Int) -> Element
++  mutating func remove(at index: Int) -> Element
 
 -  mutating func removeAll(keepCapacity keepCapacity: Bool = false)
 +  mutating func removeAll(keepingCapacity keepingCapacity: Bool = false)
@@ -763,19 +822,16 @@ public struct OpaquePointer : ... {
 -  mutating func removeSubrange(subRange: Range<Index>)
  }
 
- public struct Set<Element : Hashable> : ... {
--  public mutating func removeAtIndex(index: Index) -> Element
-+  public mutating func removeAt(index: Index) -> Element
- }
-
 +extension Set : SetAlgebra {}
 
  public struct Dictionary<Key : Hashable, Value> : ... {
 -  public typealias Element = (Key, Value)
 +  public typealias Element = (key: Key, value: Value)
+ }
 
--  public mutating func removeAtIndex(index: Index) -> Element
-+  public mutating func removeAt(index: Index) -> Element
+ public struct DictionaryLiteral<Key, Value> : ... {
+-  public typealias Element = (Key, Value)
++  public typealias Element = (key: Key, value: Value)
  }
 
  extension String {
@@ -798,7 +854,7 @@ public struct OpaquePointer : ... {
 +  public mutating func insert(newElement: Character, at i: Index)
 
 -  public mutating func removeAtIndex(i: Index) -> Character
-+  public mutating func removeAt(i: Index) -> Character
++  public mutating func remove(at i: Index) -> Character
 
 -  public mutating func removeRange(subRange: Range<Index>)
 +  public mutating func removeSubrange(subRange: Range<Index>)
@@ -903,6 +959,40 @@ public struct OpaquePointer : ... {
 
 -public struct COpaquePointer : ... { ... }
 +public struct OpaquePointer : ... { ... }
+
+-public func unsafeBitCast<T, U>(x: T, _: U.Type) -> U
++public func unsafeBitCast<T, U>(x: T, to: U.Type) -> U
+
+-public func unsafeDowncast<T : AnyObject>(x: AnyObject) -> T
++public func unsafeDowncast<T : AnyObject>(x: AnyObject, to: T.Type) -> T
+
+-public func print<Target: OutputStream>(
++public func print<Target : OutputStream>(
+   items: Any...,
+   separator: String = " ",
+   terminator: String = "\n",
+-  inout toStream output: Target
++  inout to output: Target
+ )
+
+-public func debugPrint<Target: OutputStream>(
++public func debugPrint<Target : OutputStream>(
+   items: Any...,
+   separator: String = " ",
+   terminator: String = "\n",
+-  inout toStream output: Target
++  inout to output: Target
+ )
+
+ public struct Unmanaged<Instance : AnyObject> {
+-  public func toOpaque() -> COpaquePointer
+ }
+ extension OpaquePointer {
++  public init<T>(bitPattern bits: Unmanaged<T>)
+ }
+
+-public func readLine(stripNewline stripNewline: Bool = true) -> String?
++public func readLine(strippingNewline strippingNewline: Bool = true) -> String?
 
 -public struct RawByte {}
 
