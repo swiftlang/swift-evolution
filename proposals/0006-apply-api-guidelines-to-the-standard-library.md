@@ -632,6 +632,17 @@ public struct OpaquePointer : ... {
    maxDepth: Int = .max,
    maxItems: Int = .max
  ) -> T
+
+ extension CollectionType where Iterator.Element : Equatable {
+-  public func indexOf(element: Iterator.Element) -> Index?
++  public func index(of element: Iterator.Element) -> Index?
+ }
+
+ extension CollectionType {
+-  public func indexOf(predicate: (Iterator.Element) throws -> Bool) rethrows -> Index?
++  public func index(where predicate: (Iterator.Element) throws -> Bool) rethrows -> Index?
+ }
+
 ```
 
 * Lowercase enum cases.
