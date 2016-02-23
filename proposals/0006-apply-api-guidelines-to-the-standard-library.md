@@ -88,11 +88,11 @@ added to this section as they are being implemented on the
 [swift-3-api-guidelines branch][swift-3-api-guidelines-branch].
 
 For repetitive changes that affect many types, only one representative instance
-is shown in the diff.  For example, `generate()` was renamed to `iterator()`.
-We only show the diff for the protocol requirement, and all other renames of
-this method are implied.  If a type was renamed, we show only the diff for the
-type declaration, all other effects on the API where the name is used are
-implied.
+is shown in the diff.  For example, `generate()` was renamed to
+`makeIterator()`.  We only show the diff for the protocol requirement, and all
+other renames of this method are implied.  If a type was renamed, we show only
+the diff for the type declaration, all other effects on the API where the name
+is used are implied.
 
 * Strip `Type` suffix from protocol names.
 
@@ -187,7 +187,7 @@ implied.
 +  associatedtype Iterator : IteratorProtocol = IndexingIterator<Self>
 
 -  func generate() -> Generator
-+  func iterator() -> Iterator
++  func makeIterator() -> Iterator
  }
 
 -public struct IndexingGenerator<Elements : Indexable> : ... { ... }
