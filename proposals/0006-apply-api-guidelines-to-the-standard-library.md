@@ -836,6 +836,9 @@ public struct OpaquePointer : ... {
 
 -  mutating func removeRange(subRange: Range<Index>)
 +  mutating func removeSubrange(subRange: Range<Index>)
+
+-  mutating func appendContentsOf<S : SequenceType>(newElements: S)
++  mutating func appendContents<S : SequenceType>(of newElements: S)
  }
 
 +extension Set : SetAlgebra {}
@@ -853,6 +856,9 @@ public struct OpaquePointer : ... {
  extension String {
 -  public mutating func appendContentsOf(other: String) {
 +  public mutating func append(other: String) {
+
+-  public mutating appendContentsOf<S : SequenceType>(newElements: S)
++  public mutating appendContents<S : SequenceType>(of newElements: S)
 
 -  public mutating func replaceRange<
 +  mutating func replaceSubrange<
