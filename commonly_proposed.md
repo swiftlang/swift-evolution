@@ -37,3 +37,5 @@ Here are some other less-commonly proposed changes that have also been rejected:
 * [SE-0024: Optional Value Setter `??=`](proposals/0024-optional-value-setter.md)
 
 * [SE-0027: Expose code unit initializers on String](proposals/0027-string-from-code-units.md)
+
+* [SE-0010: Add StaticString.UnicodeScalarView](proposals/0010-add-staticstring-unicodescalarview.md)
