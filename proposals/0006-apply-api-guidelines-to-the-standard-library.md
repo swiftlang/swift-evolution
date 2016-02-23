@@ -622,6 +622,16 @@ public struct OpaquePointer : ... {
 -  func writeTo<Target : OutputStream>(inout target: Target)
 +  func write<Target : OutputStream>(inout to target: Target)
  }
+
+ public func dump<T, TargetStream : OutputStream>(
+   value: T,
+-  inout _ target: TargetStream,
++  inout to target: TargetStream,
+   name: String? = nil,
+   indent: Int = 0,
+   maxDepth: Int = .max,
+   maxItems: Int = .max
+ ) -> T
 ```
 
 * Lowercase enum cases.
