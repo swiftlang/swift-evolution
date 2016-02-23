@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0033](https://github.com/apple/swift-evolution/blob/master/proposals/0033-import-objc-constants.md)
 * Author(s): [Jeff Kelley](https://github.com/SlaunchaMan)
-* Status: **Awaiting review** (scheduled February 18...February 23, 2016)
+* Status: **Under review** (February 18...February 23, 2016)
 * Review manager: [John McCall](https://github.com/rjmccall)
 
 ## Introduction

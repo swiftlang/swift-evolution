@@ -14,10 +14,11 @@ proposals in that process.
 * February 16...19, 2016: [SE-0035: Limiting `inout` capture to `@noescape` contexts](proposals/0035-limit-inout-capture.md)
 * February 16...22, 2016: [SE-0038: Package Manager C Language Target Support](proposals/0038-swiftpm-c-language-targets.md)
 * February 17...22, 2016: [SE-0034: Disambiguating Line Control Statements from Debugging Identifiers](proposals/0034-disambiguating-line.md)
+* February 18...23, 2016: [SE-0033: Import Objective-C Constants as Swift Types](proposals/0033-import-objc-constants.md)
 
 ## Upcoming reviews
 
-* February 18...23, 2016: [SE-0033: Import Objective-C Constants as Swift Types](proposals/0033-import-objc-constants.md)
+Nothing currently scheduled.
 
 ## Proposals awaiting scheduling
 
