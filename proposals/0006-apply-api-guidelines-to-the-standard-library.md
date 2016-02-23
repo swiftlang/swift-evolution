@@ -861,7 +861,7 @@ public struct OpaquePointer : ... {
 +  public mutating appendContents<S : SequenceType>(of newElements: S)
 
 -  public mutating func replaceRange<
-+  mutating func replaceSubrange<
++  public mutating func replaceSubrange<
      C: CollectionType where C.Iterator.Element == Character
    >(
      subRange: Range<Index>, with newElements: C
