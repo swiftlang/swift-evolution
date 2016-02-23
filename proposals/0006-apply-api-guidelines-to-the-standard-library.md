@@ -617,6 +617,11 @@ public struct OpaquePointer : ... {
      initialValue: (ManagedProtoBuffer<Value, Element>) -> Value
    ) -> ManagedBuffer<Value, Element>
  }
+
+ public protocol Streamable {
+-  func writeTo<Target : OutputStream>(inout target: Target)
++  func write<Target : OutputStream>(inout to target: Target)
+ }
 ```
 
 * Lowercase enum cases.
