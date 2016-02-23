@@ -31,6 +31,7 @@ Nothing currently scheduled.
 * [SE-0037: Clarify interaction between comments & operators](proposals/0037-clarify-comments-and-operators.md)
 * [SE-0039: Modernizing Playground Literals](proposals/0039-playgroundliterals.md)
 * [SE-0040: Replacing Equal Signs with Colons For Attribute Arguments](proposals/0040-attributecolons.md)
+* [SE-0041: Updating Protocol Naming Conventions for Conversions](proposals/0041-conversion-protocol-conventions.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 
