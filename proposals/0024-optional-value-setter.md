@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0024](https://github.com/apple/swift-evolution/blob/master/proposals/0024-optional-value-setter.md)
 * Author(s): [James Campbell](https://github.com/jcampbell05)
-* Status: **Under review** (February 12...February 18, 2016)
+* Status: **Rejected** ([Rationale](http://news.gmane.org/gmane.comp.lang.swift.evolution))
 * Review manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction
