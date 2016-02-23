@@ -835,7 +835,7 @@ public struct OpaquePointer : ... {
 +  mutating func removeAll(keepingCapacity keepingCapacity: Bool = false)
 
 -  mutating func removeRange(subRange: Range<Index>)
--  mutating func removeSubrange(subRange: Range<Index>)
++  mutating func removeSubrange(subRange: Range<Index>)
  }
 
 +extension Set : SetAlgebra {}
