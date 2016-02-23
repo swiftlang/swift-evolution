@@ -212,7 +212,7 @@ implied.
 +public struct FlattenIterator<Base : ...> : ... { ... }
 
 -public struct JoinGenerator<Base : ...> : ... { ... }
-+public struct JoinIterator<Base : ...> : ... { ... }
++public struct JoinedIterator<Base : ...> : ... { ... }
 
 -public struct LazyMapGenerator<Base : ...> ... { ... }
 +public struct LazyMapIterator<Base : ...> ... { ... }
@@ -597,17 +597,17 @@ public struct OpaquePointer : ... {
  extension Sequence where Iterator.Element : Sequence {
    // joinWithSeparator(_:) => join(separator:)
 -  public func joinWithSeparator<
-+  public func join<
++  public func joined<
      Separator : Sequence
      where
      Separator.Iterator.Element == Iterator.Element.Iterator.Element
 -  >(separator: Separator) -> JoinSequence<Self>
-+  >(separator separator: Separator) -> JoinSequence<Self>
++  >(separator separator: Separator) -> JoinedSequence<Self>
  }
 
  extension Sequence where Iterator.Element == String {
 -  public func joinWithSeparator(separator: String) -> String
-+  public func join(separator separator: String) -> String
++  public func joined(separator separator: String) -> String
  }
 
  public class ManagedBuffer<Value, Element> : ... {
@@ -778,7 +778,8 @@ public struct OpaquePointer : ... {
 
  extension Sequence where Iterator.Element : Equatable {
    public func split(
-     by separator: Iterator.Element,
+-    separator: Iterator.Element,
++    separator separator: Iterator.Element,
 -    maxSplit: Int = Int.max,
 +    maxSplits maxSplits: Int = Int.max,
 -    allowEmptySlices: Bool = false
