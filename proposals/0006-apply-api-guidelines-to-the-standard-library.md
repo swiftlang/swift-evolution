@@ -179,7 +179,7 @@ is used are implied.
 +public protocol MirrorPath { ... }
 ```
 
-* The concept of `generator` is renamed to `iterator` across all APIs.
+* The concept of "generator" is renamed to "iterator" across all APIs.
 
 ```diff
 -public protocol GeneratorType { ... }
@@ -635,6 +635,25 @@ public struct OpaquePointer : ... {
    maxDepth: Int = .max,
    maxItems: Int = .max
  ) -> T
+
+ extension Sequence {
+-  public func startsWith<
++  public func starts<
+     PossiblePrefix : Sequence where PossiblePrefix.Iterator.Element == Iterator.Element
+   >(
+-    possiblePrefix: PossiblePrefix,
++    with possiblePrefix: PossiblePrefix,
+     @noescape isEquivalent: (Iterator.Element, Iterator.Element) throws -> Bool
+   ) rethrows -> Bool
+
+-  public func startsWith<
++  public func starts<
+     PossiblePrefix : Sequence where PossiblePrefix.Iterator.Element == Iterator.Element
+   >(
+-    possiblePrefix: PossiblePrefix
++    with possiblePrefix: PossiblePrefix
+   ) -> Bool
+ }
 
  extension CollectionType where Iterator.Element : Equatable {
 -  public func indexOf(element: Iterator.Element) -> Index?
