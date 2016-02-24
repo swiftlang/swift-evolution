@@ -853,6 +853,26 @@ public struct OpaquePointer : ... {
    ) -> [AnySequence<Iterator.Element>] {
  }
 
+
+ public protocol Sequence : ... {
+-  public func lexicographicalCompare<
++  public func lexicographicallyPrecedes<
+     OtherSequence : Sequence where OtherSequence.Iterator.Element == Iterator.Element
+   >(
+     other: OtherSequence,
+     @noescape isOrderedBefore: (Iterator.Element, Iterator.Element) throws -> Bool
+   ) rethrows -> Bool {
+ }
+
+ extension Sequence where Iterator.Element : Equatable {
+-  public func lexicographicalCompare<
++  public func lexicographicallyPrecedes<
+     OtherSequence : Sequence where OtherSequence.Iterator.Element == Iterator.Element
+   >(
+     other: OtherSequence
+   ) -> Bool {
+ }
+
  public protocol Collection : ... {
 -  func prefixUpTo(end: Index) -> SubSequence
 +  func prefix(upTo end: Index) -> SubSequence
