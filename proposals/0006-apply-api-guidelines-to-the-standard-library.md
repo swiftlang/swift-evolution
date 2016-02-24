@@ -1415,13 +1415,13 @@ public struct OpaquePointer : ... {
 
  extension Strideable {
 -  public func stride(to end: Self, by stride: Stride) -> StrideTo<Self>
-+  public func strideTo(end: Self, by stride: Stride) -> StrideTo<Self>
  }
++public func stride<T : Strideable>(from start: T, to end: T, by stride: T.Stride) -> StrideTo<T>
 
  extension Strideable {
 -  public func stride(through end: Self, by stride: Stride) -> StrideThrough<Self>
-+  public func strideThrough(end: Self, by stride: Stride) -> StrideThrough<Self>
  }
++public func stride<T : Strideable>(from start: T, through end: T, by stride: T.Stride) -> StrideThrough<T>
 
  public func transcode<
    Input : IteratorProtocol,
