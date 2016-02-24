@@ -81,6 +81,9 @@ On high level, the changes can be summarized as follows.
 
 * Some functions were changed into properties and vice versa.
 
+* `String` factory methods dealing with nul-terminated UTF-8 data (a.k.a.
+  C-strings) became initializers.
+
 ## API diffs
 
 Differences between Swift 2.2 Standard library API and the proposed API are
@@ -774,6 +777,24 @@ public struct OpaquePointer : ... {
 
 -  case _Raw([UInt8], String)
 +  case _raw([UInt8], String)
+ }
+```
+
+* `String` factory methods dealing with nul-terminated UTF-8 data (a.k.a.
+  C-strings) became initializers.
+
+```diff
+ extension String {
+-  public static func fromCString(cs: UnsafePointer<CChar>) -> String?
++  public init?(validatingUTF8 cString: UnsafePointer<CChar>)
+
+-  public static func fromCStringRepairingIllFormedUTF8(cs: UnsafePointer<CChar>) -> (String?, hadError: Bool)
++  public init(cString: UnsafePointer<CChar>)
++  public static func decodeCString<Encoding : UnicodeCodec>(
++    cString: UnsafePointer<Encoding.CodeUnit>,
++    as encoding: Encoding.Type,
++    repairingInvalidCodeUnits isReparing: Bool = true)
++      -> (result: String, repairsMade: Bool)?
  }
 ```
 
