@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0030](https://github.com/apple/swift-evolution/blob/master/proposals/0030-property-behavior-decls.md)
 * Author(s): [Joe Groff](https://github.com/jckarter)
-* Status: **Under review** (February 10...February 23, 2016)
+* Status: **Under revision** ([Result of February 10...February 23, 2016 review](http://thread.gmane.org/gmane.comp.lang.swift.evolution/7735))
 * Review manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction
