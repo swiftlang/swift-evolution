@@ -817,6 +817,408 @@ public struct OpaquePointer : ... {
  }
 ```
 
+* `String` methods that mirror imported methods on NSString are renamed to reflect the new importing rules.
+
+```diff
+ extension String {
+-  public static func localizedNameOfStringEncoding(
+-    encoding: NSStringEncoding
+-  ) -> String
++  public static func localizedName(
++    ofStringEncoding encoding: NSStringEncoding
++  ) -> String
+ 
+-  public static func pathWithComponents(components: [String]) -> String
++  public static func path(withComponents components: [String]) -> String
+ 
+-  public init?(UTF8String bytes: UnsafePointer<CChar>)
++  public init?(utf8String bytes: UnsafePointer<CChar>)
+
+-  public func canBeConvertedToEncoding(encoding: NSStringEncoding) -> Bool
++  public func canBeConverted(toEncoding encoding: NSStringEncoding) -> Bool
+ 
+-  public var capitalizedString: String
++  public var capitalized: String
+ 
+-  public var localizedCapitalizedString: String
++  public var localizedCapitalized: String
+ 
+-  public func capitalizedStringWithLocale(locale: NSLocale?) -> String
++  public func capitalizedString(with locale: NSLocale?) -> String
+ 
+-  public func commonPrefixWithString(
+-    aString: String, options: NSStringCompareOptions) -> String
++  public func commonPrefix(
++    with aString: String, options: NSStringCompareOptions = []) -> String
+ 
+-  public func completePathIntoString(
+-    outputName: UnsafeMutablePointer<String> = nil,
+-    caseSensitive: Bool,
+-    matchesIntoArray: UnsafeMutablePointer<[String]> = nil,
+-    filterTypes: [String]? = nil
+-  ) -> Int
++  public func completePath(
++    into outputName: UnsafeMutablePointer<String> = nil,
++    caseSensitive: Bool,
++    matchesInto matchesIntoArray: UnsafeMutablePointer<[String]> = nil,
++    filterTypes: [String]? = nil
++  ) -> Int
+
+-  public func componentsSeparatedByCharactersInSet(
+-    separator: NSCharacterSet
+-  ) -> [String]
++  public func componentsSeparatedByCharacters(
++    in separator: NSCharacterSet
++  ) -> [String]
+ 
+-  public func componentsSeparatedByString(separator: String) -> [String]
++  public func componentsSeparated(by separator: String) -> [String]
+
+-  public func cStringUsingEncoding(encoding: NSStringEncoding) -> [CChar]?
++  public func cString(usingEncoding encoding: NSStringEncoding) -> [CChar]?
+ 
+-  public func dataUsingEncoding(
+-    encoding: NSStringEncoding,
+-    allowLossyConversion: Bool = false
+-  ) -> NSData?
++  public func data(
++    usingEncoding encoding: NSStringEncoding,
++    allowLossyConversion: Bool = false
++  ) -> NSData?
+ 
+-  public func enumerateLinguisticTagsInRange(
+-    range: Range<Index>,
+-    scheme tagScheme: String,
+-    options opts: NSLinguisticTaggerOptions,
+-    orthography: NSOrthography?,
+-    _ body:
+-      (String, Range<Index>, Range<Index>, inout Bool) -> ()
+-  )
++  public func enumerateLinguisticTags(
++    in range: Range<Index>,
++    scheme tagScheme: String,
++    options opts: NSLinguisticTaggerOptions = [],
++    orthography: NSOrthography? = nil,
++    _ body:
++      (String, Range<Index>, Range<Index>, inout Bool) -> ()
++  )
+
+-  public func enumerateSubstringsInRange(
+-    range: Range<Index>,
+-    options opts:NSStringEnumerationOptions,
+-    _ body: (
+-      substring: String?, substringRange: Range<Index>,
+-      enclosingRange: Range<Index>, inout Bool
+-    ) -> ()
+-  )
++  public func enumerateSubstrings(
++    in range: Range<Index>,
++    options opts:NSStringEnumerationOptions = [],
++    _ body: (
++      substring: String?, substringRange: Range<Index>,
++      enclosingRange: Range<Index>, inout Bool
++    ) -> ()
++  )
+
+-  public func fileSystemRepresentation() -> [CChar]
++  public var fileSystemRepresentation: [CChar]
+ 
+-  public func getBytes(
+-    inout buffer: [UInt8],
+-    maxLength maxBufferCount: Int,
+-    usedLength usedBufferCount: UnsafeMutablePointer<Int>,
+-    encoding: NSStringEncoding,
+-    options: NSStringEncodingConversionOptions,
+-    range: Range<Index>,
+-    remainingRange leftover: UnsafeMutablePointer<Range<Index>>
+-  ) -> Bool
++  public func getBytes(
++    inout buffer: [UInt8],
++    maxLength maxBufferCount: Int,
++    usedLength usedBufferCount: UnsafeMutablePointer<Int>,
++    encoding: NSStringEncoding,
++    options: NSStringEncodingConversionOptions = [],
++    range: Range<Index>,
++    remaining leftover: UnsafeMutablePointer<Range<Index>>
++  ) -> Bool
+ 
+-  public func getLineStart(
+-    start: UnsafeMutablePointer<Index>,
+-    end: UnsafeMutablePointer<Index>,
+-    contentsEnd: UnsafeMutablePointer<Index>,
+-    forRange: Range<Index>
+-  )
++  public func getLineStart(
++    start: UnsafeMutablePointer<Index>,
++    end: UnsafeMutablePointer<Index>,
++    contentsEnd: UnsafeMutablePointer<Index>,
++    for range: Range<Index>
++  )
+
+-  public func getParagraphStart(
+-    start: UnsafeMutablePointer<Index>,
+-    end: UnsafeMutablePointer<Index>,
+-    contentsEnd: UnsafeMutablePointer<Index>,
+-    forRange: Range<Index>
+-  )
++  public func getParagraphStart(
++    start: UnsafeMutablePointer<Index>,
++    end: UnsafeMutablePointer<Index>,
++    contentsEnd: UnsafeMutablePointer<Index>,
++    for range: Range<Index>
++  )
+
+   public init(
+-    contentsOfURL url: NSURL,
++    contentsOf url: NSURL,
+     encoding enc: NSStringEncoding
+   ) throws
+ 
+   public init(
+-    contentsOfURL url: NSURL,
++    contentsOf url: NSURL,
+     usedEncoding enc: UnsafeMutablePointer<NSStringEncoding> = nil
+   ) throws
+ 
+   public init?(
+-    CString: UnsafePointer<CChar>,
++    cString: UnsafePointer<CChar>,
+     encoding enc: NSStringEncoding
+   )
+
+-  public init(format: String, _ arguments: CVarArgType...)
++  public init(format: String, _ arguments: CVarArg...)
+
+-  public init(format: String, arguments: [CVarArgType])
++  public init(format: String, arguments: [CVarArg])
+ 
+-  public init(format: String, locale: NSLocale?, _ args: CVarArgType...)
++  public init(format: String, locale: NSLocale?, _ args: CVarArg...)
+ 
+-  public init(format: String, locale: NSLocale?, arguments: [CVarArgType])
++  public init(format: String, locale: NSLocale?, arguments: [CVarArg])
+
+-  public func lengthOfBytesUsingEncoding(encoding: NSStringEncoding) -> Int
++  public func lengthOfBytes(usingEncoding encoding: NSStringEncoding) -> Int
+ 
+-  public func lineRangeForRange(aRange: Range<Index>) -> Range<Index>
++  public func lineRange(for aRange: Range<Index>) -> Range<Index>
+ 
+-  public func linguisticTagsInRange(
+-    range: Range<Index>,
+-    scheme tagScheme: String,
+-    options opts: NSLinguisticTaggerOptions = [],
+-    orthography: NSOrthography? = nil,
+-    tokenRanges: UnsafeMutablePointer<[Range<Index>]> = nil // FIXME:Can this be nil?
+-  ) -> [String]
++  public func linguisticTags(
++    in range: Range<Index>,
++    scheme tagScheme: String,
++    options opts: NSLinguisticTaggerOptions = [],
++    orthography: NSOrthography? = nil,
++    tokenRanges: UnsafeMutablePointer<[Range<Index>]> = nil // FIXME:Can this be nil?
++  ) -> [String]
+
+-  public var localizedLowercaseString: String
++  public var localizedLowercase: String
+ 
+-  public func lowercaseStringWithLocale(locale: NSLocale?) -> String
++  public func lowercaseString(with locale: NSLocale?) -> String
+ 
+-  func maximumLengthOfBytesUsingEncoding(encoding: NSStringEncoding) -> Int
++  func maximumLengthOfBytes(usingEncoding encoding: NSStringEncoding) -> Int
+ 
+-  public func paragraphRangeForRange(aRange: Range<Index>) -> Range<Index>
++  public func paragraphRange(for aRange: Range<Index>) -> Range<Index>
+ 
+-  public func rangeOfCharacterFromSet(
+-    aSet: NSCharacterSet,
+-    options mask:NSStringCompareOptions = [],
+-    range aRange: Range<Index>? = nil
+-  ) -> Range<Index>?
++  public func rangeOfCharacter(
++    from aSet: NSCharacterSet,
++    options mask:NSStringCompareOptions = [],
++    range aRange: Range<Index>? = nil
++  ) -> Range<Index>?
+ 
+-  func rangeOfComposedCharacterSequenceAtIndex(anIndex: Index) -> Range<Index>
++  func rangeOfComposedCharacterSequence(at anIndex: Index) -> Range<Index>
+ 
+-  public func rangeOfComposedCharacterSequencesForRange(
+-    range: Range<Index>
+-  ) -> Range<Index>
++  public func rangeOfComposedCharacterSequences(
++    for range: Range<Index>
++  ) -> Range<Index>
+ 
+-  public func rangeOfString(
+-    aString: String,
+-    options mask: NSStringCompareOptions = [],
+-    range searchRange: Range<Index>? = nil,
+-    locale: NSLocale? = nil
+-  ) -> Range<Index>?
++  public func range(
++    of aString: String,
++    options mask: NSStringCompareOptions = [],
++    range searchRange: Range<Index>? = nil,
++    locale: NSLocale? = nil
++  ) -> Range<Index>?
+ 
+-  public func localizedStandardContainsString(string: String) -> Bool
++  public func localizedStandardContains(string: String) -> Bool
+ 
+-  public func localizedStandardRangeOfString(string: String) -> Range<Index>?
++  public func localizedStandardRange(of string: String) -> Range<Index>?
+ 
+-  public var stringByAbbreviatingWithTildeInPath: String
++  public var abbreviatingWithTildeInPath: String
+ 
+-  public func stringByAddingPercentEncodingWithAllowedCharacters(
+-    allowedCharacters: NSCharacterSet
+-  ) -> String?
++  public func addingPercentEncoding(
++    withAllowedCharaters allowedCharacters: NSCharacterSet
++  ) -> String?
+
+-  public func stringByAddingPercentEscapesUsingEncoding(
+-    encoding: NSStringEncoding
+-  ) -> String?
++  public func addingPercentEscapes(
++    usingEncoding encoding: NSStringEncoding
++  ) -> String?
+ 
+-  public func stringByAppendingFormat(
+-    format: String, _ arguments: CVarArgType...
+-  ) -> String
++  public func stringByAppendingFormat(
++    format: String, _ arguments: CVarArg...
++  ) -> String
+ 
+-  public func stringByAppendingPathComponent(aString: String) -> String
++  public func appendingPathComponent(aString: String) -> String
+ 
+-  public func stringByAppendingPathExtension(ext: String) -> String?
++  public func appendingPathExtension(ext: String) -> String?
+ 
+-  public func stringByAppendingString(aString: String) -> String
++  public func appending(aString: String) -> String
+ 
+-  public var stringByDeletingLastPathComponent: String
++  public var deletingLastPathComponent: String
+ 
+-  public var stringByDeletingPathExtension: String
++  public var deletingPathExtension: String
+ 
+-  public var stringByExpandingTildeInPath: String
++  public var expandingTildeInPath: String
+ 
+-  public func stringByFoldingWithOptions(
+-    options: NSStringCompareOptions, locale: NSLocale?
+-  ) -> String
++  public func folding(
++    options: NSStringCompareOptions = [], locale: NSLocale?
++  ) -> String
+ 
+-  public func stringByPaddingToLength(
+-    newLength: Int, withString padString: String, startingAtIndex padIndex: Int
+-  ) -> String
++  public func padding(
++    toLength newLength: Int,
++    with padString: String,
++    startingAt padIndex: Int
++  ) -> String
+ 
+-  public var stringByRemovingPercentEncoding: String?
++  public var removingPercentEncoding: String?
+
+-  public func stringByReplacingCharactersInRange(
+-    range: Range<Index>, withString replacement: String
+-  ) -> String
++  public func replacingCharacters(
++    in range: Range<Index>, with replacement: String
++  ) -> String
+ 
+-  public func stringByReplacingOccurrencesOfString(
+-    target: String,
+-    withString replacement: String,
+-    options: NSStringCompareOptions = [],
+-    range searchRange: Range<Index>? = nil
+-  ) -> String
++  public func replacingOccurrences(
++    of target: String,
++    with replacement: String,
++    options: NSStringCompareOptions = [],
++    range searchRange: Range<Index>? = nil
++  ) -> String
+ 
+-  public func stringByReplacingPercentEscapesUsingEncoding(
+-    encoding: NSStringEncoding
+-  ) -> String?
++  public func replacingPercentEscapes(
++    usingEncoding encoding: NSStringEncoding
++  ) -> String?
+ 
+-  public var stringByResolvingSymlinksInPath: String
++  public var resolvingSymlinksInPath: String
+ 
+-  public var stringByStandardizingPath: String
++  public var standardizingPath: String
+ 
+-  public func stringByTrimmingCharactersInSet(set: NSCharacterSet) -> String
++  public func trimmingCharacters(in set: NSCharacterSet) -> String
+ 
+-  public func stringsByAppendingPaths(paths: [String]) -> [String]
++  public func strings(byAppendingPaths paths: [String]) -> [String]
+ 
+-  public func substringFromIndex(index: Index) -> String
++  public func substring(from index: Index) -> String
+ 
+-  public func substringToIndex(index: Index) -> String
++  public func substring(to index: Index) -> String
+ 
+-  public func substringWithRange(aRange: Range<Index>) -> String
++  public func substring(with aRange: Range<Index>) -> String
+ 
+-  public var localizedUppercaseString: String
++  public var localizedUppercase: String
+ 
+-  public func uppercaseStringWithLocale(locale: NSLocale?) -> String
++  public func uppercaseString(with locale: NSLocale?) -> String
+ 
+-  public func writeToFile(
+-    path: String, atomically useAuxiliaryFile:Bool,
+-    encoding enc: NSStringEncoding
+-  ) throws
++  public func write(
++    toFile path: String, atomically useAuxiliaryFile:Bool,
++    encoding enc: NSStringEncoding
++  ) throws
+ 
+-  public func writeToURL(
+-    url: NSURL, atomically useAuxiliaryFile: Bool,
+-    encoding enc: NSStringEncoding
+-  ) throws
++  public func write(
++    to url: NSURL, atomically useAuxiliaryFile: Bool,
++    encoding enc: NSStringEncoding
++  ) throws
+ 
+-  public func stringByApplyingTransform(
+-    transform: String, reverse: Bool
+-  ) -> String?
++  public func applyingTransform(
++    transform: String, reverse: Bool
++  ) -> String?
+ 
+-  public func containsString(other: String) -> Bool
++  public func contains(other: String) -> Bool
+
+-  public func localizedCaseInsensitiveContainsString(other: String) -> Bool
++  public func localizedCaseInsensitiveContains(other: String) -> Bool
+ }
+```
+
 * Miscellaneous changes.
 
 ```diff
