@@ -126,25 +126,25 @@ sooner.
 
 ### Implemented proposals for Swift 2.2
 
-* [Allow (most) keywords as argument labels](proposals/0001-keywords-as-argument-labels.md) (SE-0001)
-* [Tuple comparison operators](proposals/0015-tuple-comparison-operators.md) (SE-0015)
-* [Constraining `AnySequence.init`](proposals/0014-constrained-AnySequence.md) (SE-0014)
-* [Replace `typealias` keyword with `associatedtype` for associated type declarations](proposals/0011-replace-typealias-associated.md) (SE-0011)
-* [Naming Functions with Argument Labels](proposals/0021-generalized-naming.md) (SE-0021)
-* [Referencing the Objective-C selector of a method](proposals/0022-objc-selectors.md) (SE-0022)
+* [SE-0001: Allow (most) keywords as argument labels](proposals/0001-keywords-as-argument-labels.md)
+* [SE-0015: Tuple comparison operators](proposals/0015-tuple-comparison-operators.md)
+* [SE-0014: Constraining `AnySequence.init`](proposals/0014-constrained-AnySequence.md)
+* [SE-0011: Replace `typealias` keyword with `associatedtype` for associated type declarations](proposals/0011-replace-typealias-associated.md)
+* [SE-0021: Naming Functions with Argument Labels](proposals/0021-generalized-naming.md)
+* [SE-0022: Referencing the Objective-C selector of a method](proposals/0022-objc-selectors.md)
 
 ### Accepted proposals for Swift 2.2
-* [Add a Lazy flatMap for Sequences of Optionals](proposals/0008-lazy-flatmap-for-optionals.md) (SE-0008)
-* [Swift Language Version Build Configuration](proposals/0020-if-swift-version.md) (SE-0020)
+* [SE-0008: Add a Lazy flatMap for Sequences of Optionals](proposals/0008-lazy-flatmap-for-optionals.md)
+* [SE-0020: Swift Language Version Build Configuration](proposals/0020-if-swift-version.md)
 
 # Other Proposals
 
 ### Rejected proposals
-* [Require self for accessing instance members](proposals/0009-require-self-for-accessing-instance-members.md) (SE-0009)
-* [Remove Partial Application of Non-Final Super Methods (Swift 2.2)](proposals/0013-remove-partial-application-super.md) (SE-0013, Jan 9-13)
+* [SE-0009: Require self for accessing instance members](proposals/0009-require-self-for-accessing-instance-members.md)
+* [SE-0013: Remove Partial Application of Non-Final Super Methods (Swift 2.2)](proposals/0013-remove-partial-application-super.md)
 
 ## Review
 [Swift Evolution Review Schedule](https://github.com/apple/swift-evolution/blob/master/schedule.md)
 
 ### Returned for Revision
-* [Flexible Memberwise Initialization](proposals/0018-flexible-memberwise-initialization.md) (SE-0018)
+* [SE-0018: Flexible Memberwise Initialization](proposals/0018-flexible-memberwise-initialization.md)
