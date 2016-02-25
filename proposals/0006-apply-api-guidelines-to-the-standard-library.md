@@ -710,9 +710,28 @@ public struct OpaquePointer : ... {
  }
 ```
 
-* Lowercase enum cases.
+* Lowercase enum cases and static properties.
 
 ```diff
+ public struct Float {
+-  public static var NaN: Float
++  public static var nan: Float
+ }
+
+ public struct Double {
+-  public static var NaN: Double
++  public static var nan: Double
+
+ public struct CGFloat {
+-  public static var NaN: CGFloat
++  public static var nan: CGFloat
+ }
+
+ public protocol FloatingPoint : ... {
+-  static var NaN: Self { get }
++  static var nan: Self { get }
+ }
+
  public enum FloatingPointClassification {
 -  case SignalingNaN
 +  case signalingNaN
@@ -1344,6 +1363,12 @@ public struct OpaquePointer : ... {
 -  mutating func insert(newElement: Iterator.Element, atIndex i: Int)
 +  mutating func insert(newElement: Iterator.Element, at i: Int)
 
+-  mutating func insertContentsOf<
++  mutating func insertContents<
+     S : Collection where S.Iterator.Element == Iterator.Element
+-  >(newElements: S, at i: Index)
++  >(of newElements: S, at i: Index)
+
 -  mutating func removeAtIndex(index: Int) -> Element
 +  mutating func remove(at index: Int) -> Element
 
@@ -1391,6 +1416,12 @@ public struct OpaquePointer : ... {
 -  public mutating func insert(newElement: Character, atIndex i: Index)
 +  public mutating func insert(newElement: Character, at i: Index)
 
+-  public mutating func insertContentsOf<
++  public mutating func insertContents<
+     S : Collection where S.Iterator.Element == Character
+-  >(newElements: S, at i: Index)
++  >(of newElements: S, at i: Index)
+
 -  public mutating func removeAtIndex(i: Index) -> Character
 +  public mutating func remove(at i: Index) -> Character
 
@@ -1418,9 +1449,11 @@ public struct OpaquePointer : ... {
 
  public enum UnicodeDecodingResult {
 -  case Result(UnicodeScalar)
-+  case ScalarValue(UnicodeScalar)
-   case EmptyInput
-   case Error
+-  case EmptyInput
+-  case Error
++  case scalarValue(UnicodeScalar)
++  case emptyInput
++  case error
  }
 
  public struct ManagedBufferPointer<Value, Element> : ... {
@@ -1497,6 +1530,9 @@ public struct OpaquePointer : ... {
 
 -public struct COpaquePointer : ... { ... }
 +public struct OpaquePointer : ... { ... }
+
+-public func unsafeAddressOf(object: AnyObject) -> UnsafePointer<Void>
++public func unsafeAddress(of object: AnyObject) -> UnsafePointer<Void>
 
 -public func unsafeBitCast<T, U>(x: T, _: U.Type) -> U
 +public func unsafeBitCast<T, U>(x: T, to: U.Type) -> U
