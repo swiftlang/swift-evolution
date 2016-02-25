@@ -710,9 +710,28 @@ public struct OpaquePointer : ... {
  }
 ```
 
-* Lowercase enum cases.
+* Lowercase enum cases and static properties.
 
 ```diff
+ public struct Float {
+-  public static var NaN: Float
++  public static var nan: Float
+ }
+
+ public struct Double {
+-  public static var NaN: Double
++  public static var nan: Double
+
+ public struct CGFloat {
+-  public static var NaN: CGFloat
++  public static var nan: CGFloat
+ }
+
+ public protocol FloatingPoint : ... {
+-  static var NaN: Self { get }
++  static var nan: Self { get }
+ }
+
  public enum FloatingPointClassification {
 -  case SignalingNaN
 +  case signalingNaN
@@ -1418,9 +1437,11 @@ public struct OpaquePointer : ... {
 
  public enum UnicodeDecodingResult {
 -  case Result(UnicodeScalar)
-+  case ScalarValue(UnicodeScalar)
-   case EmptyInput
-   case Error
+-  case EmptyInput
+-  case Error
++  case scalarValue(UnicodeScalar)
++  case emptyInput
++  case error
  }
 
  public struct ManagedBufferPointer<Value, Element> : ... {
