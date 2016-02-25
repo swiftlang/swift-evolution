@@ -1581,6 +1581,22 @@ public struct OpaquePointer : ... {
 +  public func escaped(asASCII forceASCII: Bool) -> String
  }
 
+ public func transcode<
+   Input : IteratorProtocol,
+   InputEncoding : UnicodeCodec,
+   OutputEncoding : UnicodeCodec
+   where InputEncoding.CodeUnit == Input.Element
+ >(
+-  inputEncoding: InputEncoding.Type, _ outputEncoding: OutputEncoding.Type,
+-  _ input: Input, _ output: (OutputEncoding.CodeUnit) -> Void,
+-  stoppingOnError stopOnError: Bool
++  input: Input,
++  from inputEncoding: InputEncoding.Type,
++  to outputEncoding: OutputEncoding.Type,
++  stoppingOnError stopOnError: Bool,
++  sendingOutputTo processCodeUnit: (OutputEncoding.CodeUnit) -> Void
+ ) -> Bool
+
 -public struct RawByte {}
 
 -final public class VaListBuilder {}
