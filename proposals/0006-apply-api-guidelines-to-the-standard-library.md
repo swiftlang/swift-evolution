@@ -1573,6 +1573,11 @@ public struct OpaquePointer : ... {
 -public func readLine(stripNewline stripNewline: Bool = true) -> String?
 +public func readLine(strippingNewline strippingNewline: Bool = true) -> String?
 
+ struct UnicodeScalar {
+   // Use 'UnicodeScalar("\0")' instead.
+-  init()
+ }
+
 -public struct RawByte {}
 
 -final public class VaListBuilder {}
