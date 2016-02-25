@@ -1576,6 +1576,9 @@ public struct OpaquePointer : ... {
  struct UnicodeScalar {
    // Use 'UnicodeScalar("\0")' instead.
 -  init()
+
+-  public func escape(asASCII forceASCII: Bool) -> String
++  public func escaped(asASCII forceASCII: Bool) -> String
  }
 
 -public struct RawByte {}
