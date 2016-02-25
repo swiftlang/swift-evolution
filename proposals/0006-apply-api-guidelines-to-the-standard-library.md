@@ -665,6 +665,49 @@ public struct OpaquePointer : ... {
 +  public func index(where predicate: (Iterator.Element) throws -> Bool) rethrows -> Index?
  }
 
+ extension String.Index {
+-  public func samePositionIn(utf8: String.UTF8View) -> String.UTF8View.Index
++  public func samePosition(in utf8: String.UTF8View) -> String.UTF8View.Index
+
+-  public func samePositionIn(utf16: String.UTF16View) -> String.UTF16View.Index
++  public func samePosition(in utf16: String.UTF16View) -> String.UTF16View.Index
+
+-  public func samePositionIn(unicodeScalars: String.UnicodeScalarView) -> String.UnicodeScalarView.Index
++  public func samePosition(in unicodeScalars: String.UnicodeScalarView) -> String.UnicodeScalarView.Index
+ }
+
+ extension String.UTF16View.Index {
+-  public func samePositionIn(characters: String) -> String.Index
++  public func samePosition(in characters: String) -> String.Index
+
+-  public func samePositionIn(utf8: String.UTF8View) -> String.UTF8View.Index
++  public func samePosition(in utf8: String.UTF8View) -> String.UTF8View.Index
+
+-  public func samePositionIn(unicodeScalars: String.UnicodeScalarView) -> String.UnicodeScalarView.Index
++  public func samePosition(in unicodeScalars: String.UnicodeScalarView) -> String.UnicodeScalarView.Index
+ }
+
+ extension String.UTF8View.Index {
+-  public func samePositionIn(characters: String) -> String.Index
++  public func samePosition(in characters: String) -> String.Index
+
+-  public func samePositionIn(utf16: String.UTF16View) -> String.UTF16View.Index
++  public func samePosition(in utf16: String.UTF16View) -> String.UTF16View.Index
+
+-  public func samePositionIn(unicodeScalars: String.UnicodeScalarView) -> String.UnicodeScalarView.Index
++  public func samePosition(in unicodeScalars: String.UnicodeScalarView) -> String.UnicodeScalarView.Index
+ }
+
+ extension String.UnicodeScalarView.Index {
+-  public func samePositionIn(characters: String) -> String.Index
++  public func samePosition(in characters: String) -> String.Index
+
+-  public func samePositionIn(utf16: String.UTF16View) -> String.UTF16View.Index
++  public func samePosition(in utf16: String.UTF16View) -> String.UTF16View.Index
+
+-  public func samePositionIn(utf16: String.UTF16View) -> String.UTF16View.Index
++  public func samePosition(in utf16: String.UTF16View) -> String.UTF16View.Index
+ }
 ```
 
 * Lowercase enum cases.
