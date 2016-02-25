@@ -1565,6 +1565,11 @@ public struct OpaquePointer : ... {
 +  public init<T>(bitPattern bits: Unmanaged<T>)
  }
 
+ public enum UnicodeDecodingResult
++  : Equatable {
+-  public var isEmptyInput: Bool
+}
+
 -public func readLine(stripNewline stripNewline: Bool = true) -> String?
 +public func readLine(strippingNewline strippingNewline: Bool = true) -> String?
 
