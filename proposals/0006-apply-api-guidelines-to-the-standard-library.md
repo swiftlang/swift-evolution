@@ -1597,6 +1597,20 @@ public struct OpaquePointer : ... {
 +  sendingOutputTo processCodeUnit: (OutputEncoding.CodeUnit) -> Void
  ) -> Bool
 
+ extension UTF16 {
+-  public static func measure<
++  public static func transcodedLength<
+     Encoding : UnicodeCodec, Input : IteratorProtocol
+     where Encoding.CodeUnit == Input.Element
+   >(
+-    _: Encoding.Type, input: Input, repairIllFormedSequences: Bool
++    of input: Input,
++    decodedAs sourceEncoding: Encoding.Type,
++    repairingIllFormedSequences: Bool
+-  ) -> (Int, Bool)?
++  ) -> (count: Int, isASCII: Bool)? {
+ }
+
 -public struct RawByte {}
 
 -final public class VaListBuilder {}
