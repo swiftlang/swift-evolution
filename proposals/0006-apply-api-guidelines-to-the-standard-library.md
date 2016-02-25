@@ -1364,10 +1364,10 @@ public struct OpaquePointer : ... {
 +  mutating func insert(newElement: Iterator.Element, at i: Int)
 
 -  mutating func insertContentsOf<
-+  mutating func insertContents<
++  mutating func insert<
      S : Collection where S.Iterator.Element == Iterator.Element
 -  >(newElements: S, at i: Index)
-+  >(of newElements: S, at i: Index)
++  >(contentsOf newElements: S, at i: Index)
 
 -  mutating func removeAtIndex(index: Int) -> Element
 +  mutating func remove(at index: Int) -> Element
@@ -1379,7 +1379,7 @@ public struct OpaquePointer : ... {
 +  mutating func removeSubrange(subRange: Range<Index>)
 
 -  mutating func appendContentsOf<S : SequenceType>(newElements: S)
-+  mutating func appendContents<S : SequenceType>(of newElements: S)
++  mutating func append<S : SequenceType>(contentsOf newElements: S)
  }
 
 +extension Set : SetAlgebra {}
@@ -1399,7 +1399,7 @@ public struct OpaquePointer : ... {
 +  public mutating func append(other: String) {
 
 -  public mutating appendContentsOf<S : SequenceType>(newElements: S)
-+  public mutating appendContents<S : SequenceType>(of newElements: S)
++  public mutating append<S : SequenceType>(contentsOf newElements: S)
 
 -  public mutating func replaceRange<
 +  public mutating func replaceSubrange<
@@ -1417,10 +1417,10 @@ public struct OpaquePointer : ... {
 +  public mutating func insert(newElement: Character, at i: Index)
 
 -  public mutating func insertContentsOf<
-+  public mutating func insertContents<
++  public mutating func insert<
      S : Collection where S.Iterator.Element == Character
 -  >(newElements: S, at i: Index)
-+  >(of newElements: S, at i: Index)
++  >(contentsOf newElements: S, at i: Index)
 
 -  public mutating func removeAtIndex(i: Index) -> Character
 +  public mutating func remove(at i: Index) -> Character
