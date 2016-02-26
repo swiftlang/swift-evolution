@@ -46,7 +46,15 @@ composed only of C sources. The conventions will be amended as follows:
    is an established convention for organizing C language header files, and
    there does not seem to be a better alternative.
 
-3. As with Swift targets, we will use the presence of a source file named
+3. If the include directory contains a header whose name matches that of the
+   target, then that header will be treated as an "umbrella header" for the
+   purposes of module map construction.
+
+4. If the include directory includes any file named "module.modulemap", then
+   those will be presumed to define the modules for the target, and no module
+   maps will be synthesized.
+
+5. As with Swift targets, we will use the presence of a source file named
    `main.c` (or `main.cpp`, etc.) to indicate an executable versus a library.
 
 The following example layout would define a package containing a C library and a
@@ -67,6 +75,12 @@ The package manager will naturally gain support for building these targets:
    of the exported API headers, for use in Swift, and (b) will provide a header
    search path to this directory to any targets which transitively depend on
    this one.
+
+   Module maps will only be synthesized for targets which either have a
+   completely flat header layout (e.g., ``src/foo/include/*.h``) or a single
+   subdirectory (e.g., ``src/foo/include/foo/**.h``). Any other structure
+   requires the library author to provide explicit module maps. We may revisit
+   this as we gain practical experience with it.
 
 2. Most packages are encouraged to include the package or target name as a
    subfolder of the include directory, to clarify use (e.g.,
