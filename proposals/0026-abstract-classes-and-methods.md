@@ -3,7 +3,7 @@
 * Proposal: [SE-0026](https://github.com/apple/swift-evolution/blob/master/proposals/0026-abstract-classes-and-methods.md)
 * Author(s): David Scrève
 * Status: **Awaiting review**
-* Review manager: TBD
+* Review manager: [Joe Groff](https://github.com/jckarter/)
 
 ## Introduction
 
