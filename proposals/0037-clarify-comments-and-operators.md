@@ -2,8 +2,8 @@
 
 * Proposal: [SE-0037](https://github.com/apple/swift-evolution/blob/master/proposals/0037-clarify-comments-and-operators.md)
 * Author(s): [Jesse Rusak](https://github.com/jder)
-* Status: **Awaiting review**
-* Review manager: TBD
+* Status: **Scheduled** for March 2...4, 2016
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 

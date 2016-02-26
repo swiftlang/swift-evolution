@@ -2,8 +2,8 @@
 
 * Proposal: [SE-0025](https://github.com/apple/swift-evolution/blob/master/proposals/0025-scoped-access-level.md)
 * Author(s): Ilya Belenkiy
-* Status: **Awaiting review**
-* Review manager: TBD
+* Status: **Scheduled** for March 4...8, 2016
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
