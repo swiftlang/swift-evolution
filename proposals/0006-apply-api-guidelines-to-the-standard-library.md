@@ -1153,7 +1153,7 @@ public struct OpaquePointer : ... {
 -  public func stringByAppendingFormat(
 -    format: String, _ arguments: CVarArgType...
 -  ) -> String
-+  public func stringByAppendingFormat(
++  public func appendingFormat(
 +    format: String, _ arguments: CVarArg...
 +  ) -> String
  
