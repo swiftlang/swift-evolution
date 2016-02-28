@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0034](https://github.com/apple/swift-evolution/blob/master/proposals/0034-disambiguating-line.md)
 * Author(s): [Erica Sadun](http://github.com/erica)
-* Status: **Under review** from Feb 17...22
+* Status: **Accepted** ([Implementation Bug](https://bugs.swift.org/browse/SR-840))
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction

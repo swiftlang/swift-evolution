@@ -9,8 +9,6 @@ proposals in that process.
 * January 22...February 5, 2016: [SE-0023: API Design Guidelines](proposals/0006-apply-api-guidelines-to-the-standard-library.md)
 * January 22...February 5, 2016: [SE-0006: Apply API Guidelines to the Standard Library](proposals/0006-apply-api-guidelines-to-the-standard-library.md)
 * January 22...February 5, 2016: [SE-0005: Better Translation of Objective-C APIs Into Swift](proposals/0005-objective-c-name-translation.md)
-* February 16...22, 2016: [SE-0038: Package Manager C Language Target Support](proposals/0038-swiftpm-c-language-targets.md)
-* February 17...22, 2016: [SE-0034: Disambiguating Line Control Statements from Debugging Identifiers](proposals/0034-disambiguating-line.md)
 * February 18...23, 2016: [SE-0033: Import Objective-C Constants as Swift Types](proposals/0033-import-objc-constants.md)
 * February 26...March 4, 2016: [SE-0026: Abstract classes and methods](proposals/0026-abstract-classes-and-methods.md)
 * February 26...March 3, 2016: [SE-0025: Scoped Access Level](proposals/0025-scoped-access-level.md)
