@@ -30,6 +30,7 @@ proposals in that process.
 * [SE-0032: Add `find` method to `SequenceType`](proposals/0032-sequencetype-find.md)
 * [SE-0036: Requiring Leading Dot Prefixes for Enum Instance Member Implementations](proposals/0036-enum-dot.md)
 * [SE-0041: Updating Protocol Naming Conventions for Conversions](proposals/0041-conversion-protocol-conventions.md)
+* [SE-0042: Flattening the function type of unapplied method references](proposals/0042-flatten-method-types.md)
 * [SE-0030: Property Behaviors](proposals/0030-property-behavior-decls.md)
 
 [evolution-process]: process.md  "The Swift evolution process"

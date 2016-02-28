@@ -1,6 +1,6 @@
 # Flattening the function type of unapplied method references
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-name.md)
+* Proposal: [SE-0042](https://github.com/apple/swift-evolution/blob/master/proposals/0042-flatten-method-types.md)
 * Author(s): [Joe Groff](https://github.com/jckarter)
 * Status: **Awaiting review**
 * Review manager: TBD
