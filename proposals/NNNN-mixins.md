@@ -15,7 +15,10 @@ Swift-evolution thread: [link](https://lists.swift.org/pipermail/swift-evolution
 
 ### Fixing drawbacks of abstract classes
 
-A popular request for Swift is to add [abstract classes](https://en.wikipedia.org/wiki/Abstract_type) to couple interface (requirements) with implementation of methods that use them and stored properties needed for their operation. Consider two such abstract classes:
+A popular request for Swift is to add [abstract classes](https://en.wikipedia.org/wiki/Abstract_type). Abstract classes have two fundamental limitations on their usage:
+
+1. Only classes can inherit from abstract base classes, while some types wishing this kind of composition would more naturally have value semantics.
+2. Multiple inheritance is forbidden for classes, while a single class may want to benefit from multiple of these standard "bricks". An example of such abstract classes is given below.
 
 ```swift
 class CachingSerializable {
@@ -47,12 +50,6 @@ class SignalSender {
   }
 }
 ```
-
-Firstly, only classes can inherit from abstract classes, while it can be easily seen that some subclasses of `CachingSerializable` or `SignalSender` would be better represesnted as value types.
-
-Secondly, multiple inheritance is forbidden for classes. No object can inherit both the ability to be serializable and to send signals, in the form shown. We would need to make `CachingSerializable` a subclass of `SignalSender` or the reverse, but in practice there could be both "serializable, not signaling" and "signaling, not serializable" classes. Abstract classes on themselves provide no solution to this problem.
-
-As a result of such semantics of classes, many framewords have "master classes", from which every abstract class inherits. In Qt, for example, every object must inherit from a base class similar to `SignalSender`. Many of those classes don't ever send signals, but this overhead is required to imitate double inheritance by inheriting every other class from that one.
 
 ### Example with logging
 
