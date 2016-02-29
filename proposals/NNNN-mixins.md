@@ -1,6 +1,6 @@
 # Mixins
 
-* Proposal: [SE-NNNN](https://github.com/Anton3/swift-evolution/blob/interfaces/proposals/NNNN-mixins.md)
+* Proposal: [SE-NNNN](https://github.com/Anton3/swift-evolution/blob/mixins/proposals/NNNN-mixins.md)
 * Author(s): [Anton3](https://github.com/Anton3)
 * Status: **Awaiting review**
 * Review manager: TBD
