@@ -204,19 +204,28 @@ These initialized properties are prepended to all initializers. If no initialize
 
 ### Initializers
 
-Mixins can have implemented initializers. They act like initializers of classes. `super` initializer calls are prefixed with parent protocol name for disambiguation purposes. `super` initializer must be explicitly called in initializer of subtype. The syntax for that is `SuperMixinName.super.init()`
-
-The only exception of that rule is that default initializer of parent mixin is implicitly prepended to initializers of subtype, if only a single mixin and possibly multiple protocols are being inherited from.
+Mixins can have implemented initializers. They act like initializers of classes. `super` initializer calls are prefixed with parent protocol name for disambiguation purposes. `super` initializer must be explicitly called in initializer of subtype. The syntax for that is `SuperMixinName.super.init()`:
 
 ```swift
-mixin P {
-  var path: String
-  init(newPath: String) { path = newPath }
+mixin A {
+  init(newPath: String) { }
 }
 
-mixin S : P {
-  init(id: Int) {
-    P.super.init("base/path/\(id)")
+mixin B: A {
+  override init(newPath: String) { }
+}
+```
+
+Default `super` initializers also need to be called explicitly. In multiple inheritance, it is a responsibility of subtype to ensure that initialization order matches semantics of mixins it mixes in:
+
+```swift
+mixin A { }
+mixin B { }
+
+mixin C: A, B {
+  init() {
+    A.super.init()
+    B.super.init()
   }
 }
 ```
@@ -248,22 +257,6 @@ mixin BSelf { }
 mixin CSelf { }
 struct D: ASelf, BSelf, CSelf { }
 ```
-
-Default super initializers need to be explicitly called in presence of multiple inheritance:
-
-```swift
-mixin A { }
-mixin B { }
-
-mixin C: A, B {
-  init() {
-    A.super.init()
-    B.super.init()
-  }
-}
-```
-
-It is a responsibility of mixin `C` to ensure that initialization order matches semantics of `A` and `B`.
 
 ### Multiple inheritance support summarized
 
