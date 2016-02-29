@@ -2,12 +2,36 @@
 
 * Proposal: [SE-0005](https://github.com/apple/swift-evolution/blob/master/proposals/0005-objective-c-name-translation.md)
 * Author(s): [Doug Gregor](https://github.com/DougGregor), [Dave Abrahams](https://github.com/dabrahams)
-* Status: **Accepted**
+* Status: **Under Review** (January 22...February 5, 2016)
+* Review manager: [Doug Gregor](https://github.com/DougGregor)
+
+## Reviewer notes
+
+This review is part of a group of three related reviews, running
+concurrently:
+
+* [SE-0023 API Design Guidelines](https://github.com/apple/swift-evolution/blob/master/proposals/0023-api-guidelines.md)
+* [SE-0006 Apply API Guidelines to the Standard Library](https://github.com/apple/swift-evolution/blob/master/proposals/0006-apply-api-guidelines-to-the-standard-library.md)
+* [SE-0005 Better Translation of Objective-C APIs Into Swift](https://github.com/apple/swift-evolution/blob/master/proposals/0005-objective-c-name-translation.md)
+
+These reviews are running concurrently because they interact strongly
+(e.g., an API change in the standard library will correspond to a
+particular guideline, or an importer rule implements a particular
+guideline, etc.). Because of these interactions, and to keep
+discussion manageable, we ask that you:
+
+* **Please get a basic understanding of all three documents** before
+  posting review commentary
+* **Please post your review of each individual document in response to
+  its review announcement**. It's okay (and encouraged) to make
+  cross-references between the documents in your review where it helps
+  you make a point.
 
 ## Introduction
 
 This proposal describes how we can improve Swift's "Clang Importer", which is responsible for mapping C and Objective-C APIs into Swift, to translate the names of Objective-C functions, types, methods, properties, etc. into names that more closely align with the [Swift API Design Guidelines][api-design-guidelines] being developed as part of Swift 3. Our approach focuses on the differences between the Objective-C [Coding Guidelines for Cocoa][objc-cocoa-guidelines] and the Swift API Design Guidelines, using some simple linguistic analysis to aid the automatic translation from Objective-C names to more "Swifty" names.
 
+The results of this transformation can be seen in the [Swift 3 API Guidelines Review](https://github.com/apple/swift-3-api-guidelines-review) repository, which contains Swift projections of Objective-C APIs in Swift 2 ([`swift-2` branch](https://github.com/apple/swift-3-api-guidelines-review/tree/swift-2)) and Swift 3 ([`swift-3` branch](https://github.com/apple/swift-3-api-guidelines-review/tree/swift-3)) along with partially-migrated sample code. One can also see the overall changes by [comparing the two branches](https://github.com/apple/swift-3-api-guidelines-review/compare/swift-2...swift-3).
 
 ## Motivation
 
@@ -19,13 +43,13 @@ type inference, generics, and overloading. As a result, Objective-C
 APIs that feel right in Objective-C can feel wordy when used in
 Swift. For example:
 
-    let contentString = listItemView.stringValue.stringByTrimmingCharactersInSet(
+    let content = listItemView.text.stringByTrimmingCharactersInSet(
        NSCharacterSet.whitespaceAndNewlineCharacterSet())
 
 The APIs used here follow the Objective-C guidelines. A more "Swifty"
 version of the same code might instead look like this:
 
-    let content = listItem.stringValue.trimming(.whitespaceAndNewlines)
+    let content = listItemView.text.trimming(.whitespaceAndNewlines)
 
 The latter example more closely adheres to the [Swift API Design
 Guidelines][api-design-guidelines], in particular, omitting "needless"
@@ -81,13 +105,15 @@ control over the process.
 
 4. **Add first argument labels**: If the first parameter of a method is defaulted, [it should have an argument label](https://swift.org/documentation/api-design-guidelines.html#first-argument-label). Determine a first argument label for that method.
 
-5. **Prepend "is" to Boolean properties**: [Boolean properties should read as assertions on the receiver](https://swift.org/documentation/api-design-guidelines.html#first-argument-label), but the Objective-C Coding Guidelines for Cocoa [prohibit the use of "is" on properties](https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/CodingGuidelines/Articles/NamingIvarsAndTypes.html#//apple_ref/doc/uid/20001284-BAJGIIJE). Import such properties with "is" prepended.
+5. **Prepend "is" to Boolean properties**: [Boolean properties should read as assertions on the receiver](https://swift.org/documentation/api-design-guidelines.html#boolean-assertions), but the Objective-C Coding Guidelines for Cocoa [prohibit the use of "is" on properties](https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/CodingGuidelines/Articles/NamingIvarsAndTypes.html#//apple_ref/doc/uid/20001284-BAJGIIJE). Import such properties with "is" prepended.
 
 6. **Strip the "NS" prefix from Foundation APIs**: Foundation is a
 fundamental part of the [Swift Core Libraries][core-libraries], and
 having the prefixes on these cross-platform APIs feels
 anachronistic. Therefore, remove the "NS" prefix from entities defined
 in the Foundation module (and other specifically identified modules where it makes sense).
+
+7. **Adopt Comparable to classes that implement** `compare(_:) -> NSComparisonResult`: The objective-c classes that implement compare all have declared a capability of being compared in an ordered manner. `Comparable` formalizes this declaration into an implementable operator by the import process.
 
 To get a sense of what these transformations do, consider a portion of
 the imported `UIBezierPath` API in Swift 2:
@@ -137,37 +163,36 @@ NSCopying with a simple call to `foo.copy()` instead of calling
 
 ## Implementation Experience
 
-An experimental, partial implementation of this proposal is available
-in the main Swift tree behind a set of experimental compiler
-flags. With these flags, one can see the results of applying this
-proposal to imported Objective-C APIs (e.g., via the script in
+An experimental implementation of this proposal is available in the
+main Swift repository. There are a set of compiler flags that one can
+use to see the results of applying this proposal to imported
+Objective-C APIs (e.g., via the script in
 `utils/omit-needless-words.py`) and to Swift code itself. The flags
 are:
 
 * `-enable-omit-needless-words`: this flag enables most of the changes
   to the Clang importer (bullets 1, 2, 4, and 5 in the prior
   section). It is currently suitable only for printing the Swift
-  interface to Objective-C modules (e.g., via `swift-ide-test`).
+  interface to Objective-C modules (e.g., via `swift-ide-test`) in the
+  Swift master branch and [Swift 2.2 branch][swift-2_2-branch], and is enabled on the [Swift 3 API Guidelines branch][swift-3-api-guidelines-branch].
 
 * `-enable-infer-default-arguments`: this flag enables inference of
   default arguments in the Clang importer (bullet 3 in the prior
   section).
 
-* `-Womit-needless-words`: this flag enables a set of compiler
-  warnings that helps illustrate what Swift code looks like after
-  following the rules described in this proposal. The most important
-  part of each warning is its corresponding Fix-It, which updates the
-  code according to the rules. Tied together with other compiler flags
-  (e.g., `-fixit-code`, `-fixit-all`) and a script to collect and apply
-  Fix-Its (in `utils/apply-fixit-edits.py`), this flag provides a
-  rudimentary migrator that lets us see how Swift code would look
-  under the proposed changes, updating both declarations and use
-  sites. It is currently suitable only for printing the Swift
-  interface to Objective-C modules (e.g., via `swift-ide-test`).
+* `-swift3-migration`: only available on the [Swift 2.2
+  branch][swift-2_2-branch], this flag performs basic migration from
+  Swift 2 names to the Swift 3 names via Fix-Its. Tied together with
+  other compiler flags (e.g., `-fixit-code`, `-fixit-all`) and a
+  script to collect and apply Fix-Its (in
+  `utils/apply-fixit-edits.py`), this flag provides a rudimentary
+  migrator that lets us see how Swift code would look under the
+  proposed changes, updating both declarations and use sites.
 
-While the implementation is far from complete, it is enough to see the
-effects that the proposal has on Objective-C APIs and code that uses
-them.
+To actually get the "Swift 3 experience" of compiling code using these
+names, one can use the [Swift 3 API Guidelines
+branch][swift-3-api-guidelines-branch], which enables these features
+by default along with the changes to the standard library.
 
 ## Detailed design
 
@@ -505,10 +530,26 @@ if self.managedObjectContext.<b>parent</b> != changedContext { return }
 foregroundColor = .<b>darkGray</b>()
 </pre>
 
+3. **Prune a match for the enclosing type from the base name of a method so long as the match starts after a verb**. For example,
+
+   <pre>
+extension UI<b>ViewController</b> {
+&nbsp;&nbsp;func dismiss<b>ViewController</b>Animated(flag: Bool, completion: (() -> Void)? = nil)
+}
+</pre>
+
+   becomes:
+
+   <pre>
+extension UIViewController {
+&nbsp;&nbsp;func dismissAnimated(flag: Bool, completion: (() -> Void)? = nil)
+}
+</pre>
+
 ##### Why Does Order Matter?
 
 Some steps below prune matches from the head of the first selector
-piece, and some prune from the tail.  When `pruning restrictions`_
+piece, and some prune from the tail.  When [pruning restrictions](#pruning-restrictions)
 prevent both the head and tail from being pruned, prioritizing
 head-pruning steps can keep method families together.  For example,
 in NSFontDescriptor:
@@ -528,8 +569,8 @@ func <b>with</b>Matrix(_: CGAffineTransform) -> UIFontDescriptor
 </pre>
 
 If we instead began by pruning `SymbolicTraits` from the tail of
-the first method name, the prohibition against creating `absurdly
-vacuous names`_ would prevent us from pruning "`fontDescriptorWith`"
+the first method name, the prohibition against creating absurdly
+vacuous names would prevent us from pruning "`fontDescriptorWith`"
 down to "`with`", resulting in:
 
 <pre>
@@ -550,6 +591,8 @@ arguments are added to parameters in the following cases:
 * **Nullable NSZone parameters** are given a default value of `nil`. Zones are essentially unused in Swift and should always be ``nil``.
 
 * **Option set types** whose type name contain the word "Options" are given a default value of `[]` (the empty option set).
+
+* **NSDictionary parameters** with names that involve "options", "attributes", or "info" are given a default value of `[:]`. 
 
 Together, these heuristics allow code like:
 
@@ -609,27 +652,13 @@ array.enumerateObjects() {               // OK
 }
 </pre>
 
-#### Prepend "is" to Boolean Properties
+#### Use getter names for Boolean Properties
 
-**Unless the name of a Boolean property contains**
+**For Boolean properties, use the name of the getter as the property
+  name in Swift*. For example:
 
-* **an auxiliary verb** such as "is", "has", "may", "should", or
-  "will"
-
-* **or, a word ending in "s"** , indicating either a plural (for which
-  prepending "is" would be incorrect) or a verb in the continuous
-  tense (which indicates its Boolean nature, e.g., "translates" in
-  "`translatesCoordinates`")
-
-**prepend "is" to its name**.
-
-For example:
-
-    extension NSBezierPath {
-      var empty: Bool
-    }
-
-    if path.empty { ... }
+    @interface NSBezierPath : NSObject
+    @property (readonly,getter=isEmpty) BOOL empty;
 
 will become
 
@@ -649,20 +678,53 @@ global symbols defined within that module that can be performed in the
 Clang importer. Note that this removal can create conflicts with the
 standard library. For example, `NSString` and `NSArray` will become
 `String` and `Array`, respectively, and Foundation's versions will
-shadow the standard library's versions. We are investigating several
-ways to address this problem, including:
+shadow the standard library's versions. In cases where the Swift 3
+names of standard library entities conflict with prefix-stripped
+Foundation entities, we retain the `NS` prefix. These Foundation
+entities are: `NSArray`, `NSDictionary`, `NSInteger`, `NSRange`,
+`NSSet`, and `NSString`.
 
-* Retain the `NS` prefix on such classes.
+When the `NS` prefix is stripped from a non-type, lowercase the
+initial word. For example:
 
-* Introduce some notion of submodules into Swift, so that these
-  classes would exist in a submodule for reference-semantic types
-  (e.g., one would refer to `Foundation.ReferenceTypes.Array` or similar).
+<pre>
+var NSDateComponentUndefined: Int { get }
+</pre>
+
+will become
+
+<pre>
+var dateComponentUndefined: Int { get }
+</pre>
+  
+### Conformance of implementers of compare method
+
+Currently, in comparing protocols, for example developers usually have
+to extend `NSDate` to make it to conform to `Comparable`, or use 
+`compare(_:) -> NSComparisonResult` method of `NSDate` directly. In
+this case Using comparison operators on `NSDate`s will make the code 
+more readable, such as `someDate < today`, rather than 
+`someDate.compare(today) == .OrderedAscending`. Since the import process
+can determine if a class implements the objective-c method for 
+comparison all classes that implement this method will then be imported
+as adopting `Comparable`. 
+
+A survey of Foundation classes reveals not just NSDate but a few
+other classes that would be affected by this change.
+
+<pre>
+func compare(other: NSDate) -> NSComparisonResult
+func compare(decimalNumber: NSNumber) -> NSComparisonResult
+func compare(otherObject: NSIndexPath) -> NSComparisonResult
+func compare(string: String) -> NSComparisonResult
+func compare(otherNumber: NSNumber) -> NSComparisonResult
+</pre>
 
 ## Impact on existing code
 
 The proposed changes are massively source-breaking for Swift code that
 makes use of Objective-C frameworks, and will require a migrator to
-translate Swift 2 code into Swift 3 code. The `-Womit-needless-words`
+translate Swift 2 code into Swift 3 code. The `-swift3-migration`
 flag described in the [Implementation
 Experience](#implementation-experience) section can provide the basics
 for such a migrator. Additionally, the compiler needs to provide good
@@ -678,6 +740,12 @@ developed as part of the effort to produce the [Swift API Design
 Guidelines][api-design-guidelines] with Dmitri Hrybenko, Ted Kremenek,
 Chris Lattner, Alex Migicovsky, Max Moiseev, Ali Ozer, and Tony Parker.
 
+The addendum of comparable was originally proposed to the [core-libraries]
+mailing list by [Chris Amanse](https://github.com/chrisamanse) and modified
+to fit to this proposal after review by Philippe Hausler.
+
 [objc-cocoa-guidelines]: https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/CodingGuidelines/CodingGuidelines.html  "Coding Guidelines for Cocoa"
 [api-design-guidelines]: https://swift.org/documentation/api-design-guidelines.html  "API Design Guidelines"
 [core-libraries]: https://swift.org/core-libraries/  "Swift Core Libraries"
+[swift-3-api-guidelines-branch]: https://github.com/apple/swift/tree/swift-3-api-guidelines  "Swift 3 API Guidelines branch"
+[swift-2_2-branch]: https://github.com/apple/swift/tree/swift-2.2-branch  "Swift 2.2 branch"

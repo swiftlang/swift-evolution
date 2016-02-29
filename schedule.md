@@ -6,24 +6,30 @@ proposals in that process.
 
 ## Active reviews
 
-* December 16--20, 2015: [SE-0009: Require self for accessing instance members  ](proposals/0009-require-self-for-accessing-instance-members.md)
-* December 18--21, 2015: [SE-0014: Constraining `AnySequence.init`](proposals/0014-constrained-AnySequence.md)
-* December 21--22, 2015: [SE-0015: Tuple comparison operators](proposals/0015-tuple-comparison-operators.md)
-* January 3--6, 2016: [SE-0011: Replace `typealias` keyword with `associatedtype` for associated type declarations](proposals/0011-replace-typealias-associated.md)
+* January 22...February 5, 2016: [SE-0023: API Design Guidelines](proposals/0006-apply-api-guidelines-to-the-standard-library.md)
+* January 22...February 5, 2016: [SE-0006: Apply API Guidelines to the Standard Library](proposals/0006-apply-api-guidelines-to-the-standard-library.md)
+* January 22...February 5, 2016: [SE-0005: Better Translation of Objective-C APIs Into Swift](proposals/0005-objective-c-name-translation.md)
+* February 18...23, 2016: [SE-0033: Import Objective-C Constants as Swift Types](proposals/0033-import-objc-constants.md)
+* February 26...March 4, 2016: [SE-0026: Abstract classes and methods](proposals/0026-abstract-classes-and-methods.md)
+* February 26...March 3, 2016: [SE-0025: Scoped Access Level](proposals/0025-scoped-access-level.md)
 
 ## Upcoming reviews
 
-* January 6...10, 2016: [SE-0018: Flexible Memberwise Initialization](proposals/0018-flexible-memberwise-initialization.md)
+* March 2...4, 2016 [SE-0040: Replacing Equal Signs with Colons For Attribute Arguments](proposals/0040-attributecolons.md)
+* March 7...9, 2016 [SE-0039: Modernizing Playground Literals](proposals/0039-playgroundliterals.md)
+* March 9...13, 2016 [SE-0037: Clarify interaction between comments & operators](proposals/0037-clarify-comments-and-operators.md)
+
 
 ## Proposals awaiting scheduling
 
-* [SE-0010: Add StaticString.UnicodeScalarView](proposals/0010-add-staticstring-unicodescalarview.md)
 * [SE-0012: Add `@noescape` to public library API](proposals/0012-add-noescape-to-public-library-api.md)
-* [SE-0013: Remove Partial Application of Non-Final Super Methods](proposals/0013-remove-partial-application-super.md)
 * [SE-0016: Adding initializers to Int and Uint to convert from UnsafePointer and UnsafeMutablePointer](proposals/0016-initializers-for-converting-unsafe-pointers-to-ints.md)
 * [SE-0017: Change `Unmanaged` to use `UnsafePointer`](proposals/0017-convert-unmanaged-to-use-unsafepointer.md)
-
-
+* [SE-0032: Add `find` method to `SequenceType`](proposals/0032-sequencetype-find.md)
+* [SE-0036: Requiring Leading Dot Prefixes for Enum Instance Member Implementations](proposals/0036-enum-dot.md)
+* [SE-0041: Updating Protocol Naming Conventions for Conversions](proposals/0041-conversion-protocol-conventions.md)
+* [SE-0042: Flattening the function type of unapplied method references](proposals/0042-flatten-method-types.md)
+* [SE-0030: Property Behaviors](proposals/0030-property-behavior-decls.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 

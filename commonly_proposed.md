@@ -4,9 +4,9 @@ This is a list of changes to the Swift language that are frequently proposed, bu
 
 Several of the discussions below refer to "C Family" languages.  This is intended to mean the extended family of languages that resemble C at a syntactic level.  This includes languages like C++, C#, Objective-C, Java, Javascript, etc.
 
- * [Replace `{}` Brace Syntax with Python-style indentation](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/003656.html): Surely a polarizing issue, but Swift will not change to use indentation for scoping instead of curly braces..
+ * [Replace `{}` Brace Syntax with Python-style indentation](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/003656.html): Surely a polarizing issue, but Swift will not change to use indentation for scoping instead of curly braces.
 
- * [Replace Logical Operators (`&&`, `||`, etc) with words like "and" and "or"](https://lists.swift.org/pipermail/swift-evolution/2015-December/000032.html): The operator and identifier grammars are intentionally partitioned in Swift, which is a key part to how user defined overloaded operators are supported.
+ * [Replace Logical Operators (`&&`, `||`, etc) with words like "and" and "or"](https://lists.swift.org/pipermail/swift-evolution/2015-December/000032.html), [allowing non-punctuation as operators](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160104/005669.html) and infix functions: The operator and identifier grammars are intentionally partitioned in Swift, which is a key part to how user defined overloaded operators are supported.  Requiring the compiler to see the "operator" declaration to know how to parse a file would break the ability to be able to parse a Swift file without parsing all of its imports.  This has a major negative effect on tooling support.
 
  * [Replace `?:` Ternary Operator](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/002609.html): Definitely magical, but it serves a very important use-case for terse selection of different values.  Proposals for alternatives have been intensely discussed, but none have been "better enough" for it to make sense to diverge from the precedent established by the C family of languages.
 
@@ -22,9 +22,20 @@ Several of the discussions below refer to "C Family" languages.  This is intende
 
 * [Replace the do/try/repeat keywords with C++-style syntax](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151228/004630.html): Swift's error handling approach is carefully designed to make it  obvious to maintainers of code when a call can "throw" an error.  It is intentionally designed to be syntactically similar in some ways - but different in other key ways - to exception handling in other languages.  Its design is a careful balance that favors maintainers of code that uses errors, to make sure someone reading the code understands what can throw.  Before proposing a change to this system, please read the [Error Handling Rationale Document](https://github.com/apple/swift/blob/master/docs/ErrorHandlingRationale.rst) in full to understand why the current design is the way it is, and be ready to explain why your changes would be worth unbalancing this design.
 
+* [Rename `guard` to `unless`](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160104/005534.html): It is a common request to ask that `guard` be renamed `unless`. People requesting this change argue that `guard` is simply a logically-inverted `if` statement, and therefore `unless` is a more obvious keyword. However, such requests stem from a fundamental misunderstanding of the functionality provided by `guard`. Unlike `if`, `guard` *enforces* that the code within its curly braces provides an early exit from the codepath. In other words, a `guard` block **must** `return`, `throw`, `break`, `continue` or call a `@noreturn` function such as `fatalError()`. This differs from `if` quite significantly, and therefore the parallels assumed between `guard` and `if` are not valid.
+
+* [Use Garbage Collection instead of ARC](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160208/009403.html): Mark and sweep garbage collection is a well known technique used in many popular and widely used languages (e.g. Java and Javascript) and it has the advantage of automatically collecting reference cycles that ARC requires the programmer to reason about.  That said, garbage collection has a [large number of disadvantages](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160208/009422.html) and using it would prevent Swift from successfully targeting a number of systems programming domains.  For example, real time systems (video or audio processing), deeply embedded controllers, and most kernels find GC to be generally unsuitable.  Further, GC is only efficient when given 3-4x more memory to work with than the process is using at any time, and this tradeoff is not acceptable for Swift.
+
 Here are some other less-commonly proposed changes that have also been rejected:
  
 * [Remove `;` Semicolons](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/002421.html): Semicolons within a line are an intentional expressivity feature.  Semicolons at the end of the line should be handled by a "linter", not by the compiler.
 
 * [Remove support for `default:` in Switch, and just use `case _:`](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151207/001422.html): `default` is widely used, `case _` is too magical, and default is widely precedented in many C family languages.
 
+* [SE-0009: Require self for accessing instance members  ](proposals/0009-require-self-for-accessing-instance-members.md)
+
+* [SE-0024: Optional Value Setter `??=`](proposals/0024-optional-value-setter.md)
+
+* [SE-0027: Expose code unit initializers on String](proposals/0027-string-from-code-units.md)
+
+* [SE-0010: Add StaticString.UnicodeScalarView](proposals/0010-add-staticstring-unicodescalarview.md)

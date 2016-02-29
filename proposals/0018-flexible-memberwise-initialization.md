@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0018](https://github.com/apple/swift-evolution/blob/master/proposals/0018-flexible-memberwise-initializers.md)
 * Author(s): [Matthew Johnson](https://github.com/anandabits)
-* Status: **Review**
+* Status: This draft is rejected ([Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160111/006469.html))
 * Review manager: Chris Lattner
 
 ## Introduction
@@ -225,11 +225,13 @@ The *implicitly* synthesized initializer will be identical to an initializer dec
 
 NOTE: Because the `memberwise` declaration modifier only applies to designated initializers, it may not be used with class initializers defined in an extension.  It may be used with struct initializers defined in an extension as long as all of the struct's stored properties are visible to the extension.
 
-The changes described in this proposal are *almost* entirely additive.  The only impact on existing code will be in the case of structs with stored `private` properties or `var` properties that have `private` setters which had been receiving an `internal` implicitly synthesized memberwise initializer.  Options for addressing this impact are:
+The changes described in this proposal are *almost* entirely additive.  The only existing code that will break will be in the case of structs with stored `private` properties or `var` properties that have `private` setters which had been receiving an `internal` implicitly synthesized memberwise initializer.  Options for addressing this impact are:
 
 1. If the implicitly synthesized memberwise initializer was only used *within* the same source file no change is necessary.  An implicit `private` memberwise initializer will still be synthesized by the compiler.
 2. A mechanical migration could generate the explicit code necessary to declare the previously implicit initializer.  This would be an `internal` memberwise initializer with *explicit* parameters used to manually initialize the stored properties with `private` setters.
 3. If the "Access control for init" enhancement were accepted the `private` members could have their access control modified to `private internal(init)` which would allow the implict memberwise intializer to continue to have `internal` visibility as all stored properties would be eligible for parameter synthesis by an `internal` memberwise initializer.
+
+The only other impact on existing code is that memberwise parameters corresponding to `var` properties with initial values will now have default values.  This will be a change in the behavior of the implicit memberwise initializer but will not break any code.  The change will simply allow new code to use that initializer without providing an argument for such parameters.
 
 ## Future enhancements
 
@@ -494,3 +496,59 @@ Under the current proposal full control is still available.  It requires initial
 I believe the `memberwise` declaration modifier on the initializer and the placeholder in the parameter list make it clear that the compiler will synthesize additional parameters.  Furthermore, IDEs and generated documentation will contain the full, synthesized signature of the initializer.  
 
 Finally, this idea is not mutually exclusive with the current proposal.  It could even work in the declaration of a memberwise initializer, so long the corresponding property was made ineligible for memberwise intialization synthesis.
+
+### Adopt "type parameter list" syntax like Kotlin and Scala
+
+Several commenters in the mailing list thread have suggested using syntax like Kotlin and Scala that looks like this:
+
+```swift
+struct Rect(var origin: Point = Point(), var size: Size = Size()) {}
+```
+
+Which would expand to:
+
+```swift
+struct Rect {}
+  // Whether the initial value is included here or not is unclear.
+  // Mailing list suggestions have not included it.
+  var origin: Point // = Point()
+  var size: Size // = Size()
+  init(origin: Point = Point(), size: Size = Size()) {
+    self.origin = origin
+    self.size = size
+  }
+```
+
+This approach was not chosen because it is not compatible with the goal of this proposal to provide a flexible and scalable solution for memberwise initialization.  Specific reasons include:
+
+1. This proposal supports partial memberwise initialization.  
+	Initializers can receive non-memberwise parameters and can initialize private state manually while still exposing public properties for direct initialization by callers via memberwise initialization.
+2. This proposal supports multiple memberwise initializers.
+	It may be necessary to support more than one way to initialize private state while still desiring direct initialization of public properties via memberwise initialization.
+3. This proposal supports more flexibility for organizing property declarations.
+	The Scala / Kotlin syntax may be acceptable in really simple cases.  Unfortunately it requires placing property declarations in a single list at the beginning of the type declaration.  This is extremely limiting.  
+	It is especially unfortunatey for types which contain generic parameters and inheritance clauses.  Property declarations would be sandwiched in between those two clauses cluttering up type-level information with member-level information
+
+This proposal is not mutually exclusive with supporting the "type parameter list" syntax.  They are aimed at solving different problems and could live side-by-side.  A future proposal could introduce similar syntax.  One option for such a proposal would be to provide a simple expansion into property declarations, allowing the current proposal to drive synthesis of the initializer (assuming the default parameter values for `let` properties problem is solved by that time). 
+
+In fairness I would like to repeat the advantages of the Scala / Kotlin syntax that have been mentioned:
+
+1. It might support default values for parameters corresponding to `let` properties.
+2. It could allow parameter labels to be specified.
+3. It is more concise than the current proposal in some cases.
+
+Responses to these points follow:
+
+1. If the expansion of this syntax does not supply initial values to the synthesized properties and only uses the default value for parameters of the synthesized initializer this is true.  The downside of doing this is that `var` properties no longer have an initial value which may be desirable if you write additional initializers for the type.
+	I believe we should continue the discussion about default values for `let` properties.  Ideally we can find an acceptable solution that will work with the current proposal, as well as any additional syntactic sugar we add in the future.
+2. I don't believe allowing parameter labels for memberwise initialization parameters is a good idea.  Callers are directly initializing a property and are best served by a label that matches the name of the property.  If you really need to provide a different name you can still do so by writing your initializer manually.  With future enhancements to the current proposal you may be able to use memberwise intialization for properties that do not require a custom label while manually initialzing properties that do need one.
+3. The Scala / Kotlin syntax is indeed more concise in some cases, but not in all cases.  Under this proposal the example given above is actually more concise than it is with that syntax:
+
+```swift
+struct Rect { var origin: Point = Point(), size: Size = Size() }
+```
+vs
+```swift
+struct Rect(var origin: Point = Point(), var size: Size = Size()) {}
+```
+
