@@ -13,7 +13,7 @@ Swift-evolution thread: [link](https://lists.swift.org/pipermail/swift-evolution
 
 ## Motivation
 
-### Inheriting contained properties for `struct`s
+### WIP Inheriting contained properties for `struct`s 
 
 Consider the following code (this could be part of a game engine):
 
