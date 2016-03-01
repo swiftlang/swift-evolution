@@ -13,6 +13,26 @@ Swift-evolution thread: [link](https://lists.swift.org/pipermail/swift-evolution
 
 ## Motivation
 
+### Inheriting contained properties for `struct`s
+
+Consider the following code (this could be part of a game engine):
+
+```swift
+protocol WorldObject {
+  mutating func update(timeElapsed: CGFloat)
+  mutating func draw
+}
+
+struct Enemy: WorldObject {
+  var position: CGPoint
+  var speed: CGVector = 0
+  init()
+  mutating func move() {
+    position = 
+  }
+}
+```
+
 ### Fixing drawbacks of abstract classes
 
 A popular request for Swift is to add [abstract classes](https://en.wikipedia.org/wiki/Abstract_type). Abstract classes have two fundamental limitations on their usage:
