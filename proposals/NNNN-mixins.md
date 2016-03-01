@@ -13,63 +13,84 @@ Swift-evolution thread: [link](https://lists.swift.org/pipermail/swift-evolution
 
 ## Motivation
 
-### WIP Inheriting contained properties for `struct`s 
+### World objects example
 
-Consider the following code (this could be part of a game engine):
+Consider the following code (this could be part of a game):
 
 ```swift
-protocol WorldObject {
-  mutating func update(timeElapsed: CGFloat)
-  mutating func draw
-}
-
-struct Enemy: WorldObject {
+struct Enemy {
   var position: CGPoint
-  var speed: CGVector = 0
-  init()
-  mutating func move() {
-    position = 
+  var speed: CGVector = CGVector()
+
+  init(position: CGPoint) {
+    self.position = position
+    // ...
   }
+  mutating func move(timeElapsed: CGFloat) {
+    position = CGPoint(x: position.x + timeElapsed * speed.dx, y: position.y + timeElapsed * speed.dy)
+  }
+  // ...
+}
+
+struct Arrow {
+  var position: CGPoint
+  var speed: CGVector
+
+  init(position: CGPoint, speed: CGVector) {
+    self.position = positon
+    self.speed = speed
+    // ...
+  }
+  mutating func move(timeElapsed: CGFloat) {
+    position = CGPoint(x: position.x + timeElapsed * speed.dx, y: position.y + timeElapsed * speed.dy)
+  }
+  // ...
 }
 ```
 
-### Fixing drawbacks of abstract classes
+We can clearly see DRY violation: `position`, `speed`, `move`, part of `init` are all repeated. We can improve our code using protocols:
 
-A popular request for Swift is to add [abstract classes](https://en.wikipedia.org/wiki/Abstract_type). Abstract classes have two fundamental limitations on their usage:
 
-1. Only classes can inherit from abstract base classes, while some types wishing this kind of composition would more naturally have value semantics.
-2. Multiple inheritance is forbidden for classes, while a single class may want to benefit from multiple of these standard "bricks". An example of such abstract classes is given below.
-
-```swift
-class CachingSerializable {
-  private var cache: String? = nil
-  
-  abstract func toString() -> String
-  
-  func serialize() -> String {
-    cache = cache ?? toString()
-    return cache
-  }
-  
-  func invalidateCache() {
-    cache = nil
+```
+protocol MovingObject {
+  var position: CGPoint { get set }
+  var speed: CGVector { get set }
+}
+extension MovingObject {
+  mutating func move(timeElapsed: CGFloat) {
+    position = CGPoint(x: position.x + timeElapsed * speed.dx, y: position.y + timeElapsed * speed.dy)
   }
 }
 
-class SignalSender {
-  private var slots: [String: [() -> ()]] = []
-  
-  final func connect(signal: String, slot: () -> ()) {
-    slots[signal] = slot
+struct Enemy: MovingObject {
+  var position: CGPoint
+  var speed: CGVector = CGVector()
+
+  init(position: CGPoint) {
+    self.position = position
+    // ...
   }
-  
-  final func notify(signal: String) {
-    for slot in slots[signal] {
-      slot()
-    }
+  // ...
+}
+
+struct Arrow: MovingObject {
+  var position: CGPoint
+  var speed: CGVector
+
+  init(position: CGPoint, speed: CGVector) {
+    self.position = positon
+    self.speed = speed
+    // ...
   }
+  // ...
 }
 ```
+
+We have factored out `move()`, but definitions of `position` and `speed` are still causing significant code bloat.
+
+An obvious solution is changing `MovingObject` to be a `class`. It will then be able to contain stored properties `position` and `speed`, as well as their initialization. However, it could more logical for `Enemy` and `Arrow` to remain value types (structs) in a particular context.
+
+There is a more strong reason. In game development, objects are often broken down into simple pieces (traits), so along with `MovingObject`, there would be `RenderableObject`, `TexturedObject`. Such code structure is currently impossible in Swift, because multiple inheritance is prohibited. A pseudo-solution would be to repeat the same fields used by these traits, in each world object. Mixins would provide a more clean solution.
 
 ### Example with logging
 
@@ -116,24 +137,49 @@ Methods, computed properties, subscripts, initializer definitions can be declare
 
 Mixins can be inherited from, or mixed in, in the body declaration of a struct or class. This type must satisfy all the requirements, and will get all defined members of the mixin.
 
-### Example
-
-The problem with abstract classes can be solved using mixins. We just need to modify headers of the declarations:
+### World objects example
 
 ```swift
-mixin CachingSerializable {
-  // the same
-}
-mixin SignalSender {
-  // the same
+mixin MovingObject {
+  var position: CGPoint
+  var speed: CGVector
+
+  init(position: CGPoint, speed: CGVector) {
+    self.position = position
+    self.speed = speed
+  }
+
+  mutating func move(timeElapsed: CGFloat) {
+    position = CGPoint(x: position.x + timeElapsed * speed.dx, y: position.y + timeElapsed * speed.dy)
+  }
 }
 
-struct BestOfBothWorlds: CachingSerializable, SignalSender {
+struct Enemy: MovingObject {
+  init(position: CGPoint) {
+    MovingObject.super.init(position: position, speed: CGVector())
+    // ...
+  }
+  // ...
+}
+
+struct Arrow: MovingObject {
+  init(position: CGPoint, speed: CGVector) {
+    MovingObject.super.init(position: position, speed: speed)
+    // ...
+  }
   // ...
 }
 ```
 
-Multiple inheritance is allowed for mixins.
+The code is as DRY as possible, and our data types still can be structs. Moreover, multiple inheritance is allowed for mixins, so adding other parts of behaviour is not a problem:
+
+```swift
+mixin MovingObject { /*...*/ }
+mixin AnimatedObject { /*...*/ }
+
+struct Enemy: MovingObject, AnimatedObject { /*...*/ }
+struct Arrow: MovingObject { /*...*/ }
+```
 
 ### Example with logging
 
