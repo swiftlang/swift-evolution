@@ -63,7 +63,9 @@ This proposal is meant to clarify when tail call optimization will be applied an
 
 - allowing tail calls between functions in the same module, so that the compiler has enough information to use the tail-callable convention only where needed,
 - allowing tail calls between functions in the same module or external functions marked with a '@tail_callable' attribute.
+
 ## Alternatives considered ##
+
 - We could add the keyword without expanding the supported cases in any way. 
 - We could allow deferred blocks to be executed before the expression in a `tail return` if there is a motivating reason. 
 	- Slava Pestov pointed out that this could prove troublesome for code similar to
