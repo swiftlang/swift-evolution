@@ -51,7 +51,7 @@ struct Arrow {
 We can clearly see DRY violation: `position`, `speed`, `move`, part of `init` are all repeated. We can improve our code using protocols:
 
 
-```
+```swift
 protocol MovingObject {
   var position: CGPoint { get set }
   var speed: CGVector { get set }
