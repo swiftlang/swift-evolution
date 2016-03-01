@@ -48,7 +48,7 @@ struct Arrow {
 }
 ```
 
-We can clearly see DRY violation: `position`, `speed`, `move`, part of `init` are all repeated. We can improve our code using protocols:
+We can clearly see DRY violation: `position`, `speed`, `move`, and a part of `init` are all repeated. We can improve our code using protocols:
 
 
 ```swift
