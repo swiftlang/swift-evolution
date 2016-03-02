@@ -313,12 +313,38 @@ mixin CSelf { }
 struct D: ASelf, BSelf, CSelf { }
 ```
 
-Members with conflicting signatures inherited from two different places result in compile error.
+Members with conflicting signatures inherited from two different places result in that the members are only accessible in subtype via `super` and are not accessible for outside world.
 
 ```swift
 mixin A { var x: Int = 0 }
 mixin B { var x: Int = 1 }
-mixin C : A, B { }  // error
+struct C : A, B { func show() { print(A.x); print(B.x) } }
+C().show()  //=> 01
+C().x       // error
+```
+
+### Conflict resolving (WIP)
+
+When including mixins containing conflicting members, we can rename one of them. After that both members become accessible to the outside world:
+
+```swift
+mixin A { var x: Int = 0 }
+mixin B { var x: Int = 1 }
+struct C : A, B { var y = B.x }
+print(C().x)  //=> 0
+
+mixin D { func f() { print(0) } }
+mixin E { func f() { print(1) } }
+mixin F: D, E { func g() = E.f }
+```
+
+The same syntax allows to keep both of conflicting members in diamond pattern:
+
+```swift
+mixin A { var x: Int = 0 }
+mixin B: A { }
+mixin C: A { }
+struct S: B, C { var y = C.x }
 ```
 
 ### Multiple inheritance support summarized
@@ -378,43 +404,9 @@ Currently, POP has strictly less abilities at its disposal than OOP. Mixins are 
 
 ## Impact on existing code
 
-`mixin` will be taken as a keyword or a local keyword, so `mixin` names will no longer be available in some to all places.
+`mixin` will be taken as a keyword, so all `mixin` entities will migrate to ``mixin``.
 
 ## Future directions
-
-### Conflict resolving
-
-When including mixins containing the same property or function, we could allow to disambiguate the implementation by some means:
-
-```swift
-mixin A { func f() { print(1) } }
-mixin B { func f() { print(2) } }
-mixin C: A, B { func f() = A.f }
-
-mixin D { var x: Int = 1 }
-mixin E { var x: Int = 2 }
-mixin F : D, E { var x = B.x }
-```
-
-The same syntax allows to keep two copies of the same member in diamond inheritance:
-
-```swift
-mixin A {
-  var x: Int = 0
-  func show() { print(x) }
-}
-mixin B {
-  var x: Int = 1
-  func show() { print(x) }
-}
-struct C: A, B {
-  var x1 = A.x
-  var x2 = B.x
-  // no override for show()
-}
-let c = C()
-c.show()  //=> 0 or 1?
-```
 
 ### `class` mixins and `deinit`
 
