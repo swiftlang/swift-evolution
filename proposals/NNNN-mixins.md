@@ -295,15 +295,7 @@ mixin C: A, B {
 
 ### Mixin inheritance
 
-Problem of members with same signatures inherited from two different places results in compile error.
-
-```swift
-mixin A { var x: Int = 0 }
-mixin B { var x: Int = 1 }
-mixin C : A, B { }  // error
-```
-
-Diamond problem is solved by keeping only one copy of mixins mixed-in in the final struct/class. Example:
+If a single mixin is mixed-in using different paths, then only one copy of it will be kept in the final struct/class. Example:
 
 ```swift
 mixin A { var x: Int = 1 }
@@ -319,6 +311,14 @@ mixin ASelf { var x: Int = 1 }
 mixin BSelf { }
 mixin CSelf { }
 struct D: ASelf, BSelf, CSelf { }
+```
+
+Members with conflicting signatures inherited from two different places result in compile error.
+
+```swift
+mixin A { var x: Int = 0 }
+mixin B { var x: Int = 1 }
+mixin C : A, B { }  // error
 ```
 
 ### Multiple inheritance support summarized
@@ -387,18 +387,33 @@ Currently, POP has strictly less abilities at its disposal than OOP. Mixins are 
 When including mixins containing the same property or function, we could allow to disambiguate the implementation by some means:
 
 ```swift
+mixin A { func f() { print(1) } }
+mixin B { func f() { print(2) } }
+mixin C: A, B { func f() = A.f }
+
+mixin D { var x: Int = 1 }
+mixin E { var x: Int = 2 }
+mixin F : D, E { var x = B.x }
+```
+
+The same syntax allows to keep two copies of the same member in diamond inheritance:
+
+```swift
 mixin A {
-  func f() { print(1) }
-  var x: Int = 1
+  var x: Int = 0
+  func show() { print(x) }
 }
 mixin B {
-  func f() { print(2) }
-  var x: Int = 2
+  var x: Int = 1
+  func show() { print(x) }
 }
-mixin C: A, B {
-  func f() { A.f() }
-  var x: Int = B.x
+struct C: A, B {
+  var x1 = A.x
+  var x2 = B.x
+  // no override for show()
 }
+let c = C()
+c.show()  //=> 0 or 1?
 ```
 
 ### `class` mixins and `deinit`
@@ -412,17 +427,19 @@ mixin HelloOnDeinit: class {
 }
 ```
 
-In case of multiple inheritance, the order of `deinit` of neighbor mixins is undefined, but submixins are deinited first:
+In case of multiple inheritance, the order of `deinit` of neighbor mixins should not matter, but submixins are deinited first. UB is not an option in Swift, so let's define `deinit`s in multiple inheritance to be executed left-to-right.
 
 ```swift
-mixin A { deinit { print(0) } }
-mixin B: A { deinit { print(1) } }
-mixin C: A { deinit { print(2) } }
-struct D: B, C { }
+mixin A { deinit { print("A") } }
+mixin B { deinit { print("B") } }
+mixin C { deinit { print("C") } }
+mixin D: A, B { deinit { print("D") } }
+mixin E: A, C { deinit { print("E") } }
+struct S: D, E { }
 
 do {
-  _ = D()
-}  // 120 and 210 are valid outputs
+  _ = S()
+}  //=> ABCDE, although CBAED and ABDCE would also make sense
 ```
 
 ### `@objc` mixins
