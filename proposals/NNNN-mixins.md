@@ -395,7 +395,7 @@ This pattern helps preserve [UAC](https://en.wikipedia.org/wiki/Uniform_access_p
 ### Limitations of mixins, compared to protocols
 
 - Mixins must be declared in the declaration of a subtype. Mixins *cannot* be mixed-in in extensions, retroactively.
-- Subtypes *must* add `override` to be reimplement methods of a mixin, while default methods of protocols do not require that.
+- Subtypes *must* add `override` to redefine methods of a mixin, while default methods of protocols do not require that.
 - Multiple inheritance of mixins is limited, by comparison with protocols. Duplicate member definitions *cannot* occur.
 
 ### Impact on OOP and POP
