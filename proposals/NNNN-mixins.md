@@ -383,7 +383,7 @@ mixin PartialImplementation: Interface {
   func requiredPiece()
 }
 
-// Code smell: Relying of implementation
+// Code smell: relying on implementation
 func apiFunc(obj: PartialImplementation) { /*...*/ }
 
 // Much better
