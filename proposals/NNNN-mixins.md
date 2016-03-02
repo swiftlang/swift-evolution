@@ -90,7 +90,7 @@ We have factored out `move()`, but definitions of `position` and `speed` are sti
 
 An obvious solution is changing `MovingObject` to be a `class`. It will then be able to contain stored properties `position` and `speed`, as well as their initialization. However, it could more logical for `Enemy` and `Arrow` to remain value types (structs) in a particular context.
 
-There is a more strong reason. In game development, objects are often broken down into simple pieces (traits), so along with `MovingObject`, there would be `RenderableObject`, `TexturedObject`. Such code structure is currently impossible in Swift, because multiple inheritance is prohibited.
+There is a more strong reason why `MovingObject` cannot be a class. In game development, objects are often broken down into simple pieces (traits), so along with `MovingObject`, there would be `RenderableObject`, `TexturedObject`. Such code structure is currently impossible in Swift, because multiple inheritance is prohibited.
 
 ### Example with logging
 
