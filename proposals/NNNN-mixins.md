@@ -109,7 +109,7 @@ class LoggingObject {
 
 class SomeComputer: LoggingObject {
   init(logger: Logger) {
-    super.init(logger)
+    super.init(logger: logger)
   }
   func compute() {
     logger.log("Starting", 1)
@@ -201,8 +201,8 @@ class GenericComputer {
 
 class SomeComputer: GenericComputer, LoggingObject {
   init(logger: Logger, options: Options) {
-    LoggingObject.super.init(logger)
-    super.init(logger)
+    LoggingObject.super.init(logger: logger)
+    super.init(options: options)
   }
   
   override func compute() {
