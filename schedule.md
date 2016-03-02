@@ -30,6 +30,7 @@ proposals in that process.
 * [SE-0041: Updating Protocol Naming Conventions for Conversions](proposals/0041-conversion-protocol-conventions.md)
 * [SE-0042: Flattening the function type of unapplied method references](proposals/0042-flatten-method-types.md)
 * [SE-0030: Property Behaviors](proposals/0030-property-behavior-decls.md)
+* [SE-0043: Declare variables in 'case' labels with multiple patterns](proposals/0043-declare-variables-in-case-labels-with-multiple-patterns.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 

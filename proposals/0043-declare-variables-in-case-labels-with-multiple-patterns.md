@@ -1,9 +1,9 @@
 # Declare variables in 'case' labels with multiple patterns 
 
-* Proposal: [SE-NNNN](https://github.com/therealbnut/swift-evolution/blob/therealbnut-case-match/proposals/0023-declare-variables-in-case-labels-with-multiple-patterns.md)
+* Proposal: [SE-0043](https://github.com/apple/swift-evolution/blob/master/proposals/0043-declare-variables-in-case-labels-with-multiple-patterns.md)
 * Author(s): [Andrew Bennett](https://github.com/therealbnut)
 * Status: ***Awaiting review***
-* Review manager: ***TBD***
+* Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction
 
