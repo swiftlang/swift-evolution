@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0005](https://github.com/apple/swift-evolution/blob/master/proposals/0005-objective-c-name-translation.md)
 * Author(s): [Doug Gregor](https://github.com/DougGregor), [Dave Abrahams](https://github.com/dabrahams)
-* Status: **Under Review** (January 22...February 5, 2016)
+* Status: **Accepted** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/8590))
 * Review manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Reviewer notes
