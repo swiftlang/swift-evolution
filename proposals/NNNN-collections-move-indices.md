@@ -815,7 +815,7 @@ for i in c.indices {
 }
 ```
 
-If ARC can prove that the collection does contain indices where
+If ARC can prove that the collection does not contain indices where
 `i.isRed` is true, then it can deinit the collection right after
 constructing the index collection, before starting the loop.  Then, the
 first time we need to advance the index, dereferencing the unowned
