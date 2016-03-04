@@ -339,13 +339,10 @@ mixin A { var x: Int = 0 }
 mixin B { var x: Int = 1 }
 struct C : A, B { var y = B.x }
 print(C().x)         //=> 0
-print((C() as B).x)  //=> 1
 
 mixin D { func f() { print(0) } }
 mixin E { func f() { print(1) } }
 mixin F: D, E { func g() = E.f }
-print(F().f())         //=> 0
-print((F() as E).f())  //=> 1
 ```
 
 ### Two kinds of inheritance in a diamond pattern
