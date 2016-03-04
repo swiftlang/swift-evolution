@@ -293,6 +293,8 @@ mixin C: A, B {
 }
 ```
 
+Note that `super` syntax can also be used for calling supertype members, as in classes.
+
 ### Mixin inheritance
 
 If a single mixin is mixed-in using different paths, then only one copy of it will be kept in the final struct/class. Example:
@@ -313,38 +315,59 @@ mixin CSelf { }
 struct D: ASelf, BSelf, CSelf { }
 ```
 
-Members with conflicting signatures inherited from two different places result in that the members are only accessible in subtype via `super` and are not accessible for outside world.
+Members with conflicting signatures inherited from two different places result in a compilation error.
 
 ```swift
 mixin A { var x: Int = 0 }
 mixin B { var x: Int = 1 }
-struct C : A, B { func show() { print(A.x); print(B.x) } }
-C().show()  //=> 01
-C().x       // error
+struct C : A, B { }  // error
 ```
 
-### Conflict resolving (WIP)
+### Resolving conflicts
 
-When including mixins containing conflicting members, we can rename one of them. After that both members become accessible to the outside world:
+We can resolve conflicts by renaming one or both of the conflicting members. Syntax for renaming conflicting members is:
+
+```swift
+var y = B.x
+func g(arg: Type) -> Return = B.f
+```
+
+Example:
 
 ```swift
 mixin A { var x: Int = 0 }
 mixin B { var x: Int = 1 }
 struct C : A, B { var y = B.x }
-print(C().x)  //=> 0
+print(C().x)         //=> 0
+print((C() as B).x)  //=> 1
 
 mixin D { func f() { print(0) } }
 mixin E { func f() { print(1) } }
 mixin F: D, E { func g() = E.f }
+print(F().f())         //=> 0
+print((F() as E).f())  //=> 1
 ```
 
-The same syntax allows to keep both of conflicting members in diamond pattern:
+### Two kinds of inheritance in a diamond pattern
+
+By default, in a diamond pattern `A -> (B, C) -> D`, `D` contains a single copy of A for usage by `B`, `C` and `D`. That is not always desired. Sometimes we want to duplicate state and methods of `A`, one copy for use by `B` and another for use by `C`.
+
+This is the second case where we can use renaming:
 
 ```swift
 mixin A { var x: Int = 0 }
 mixin B: A { }
 mixin C: A { }
 struct S: B, C { var y = C.x }
+```
+
+Once a single member of a duplicated super-mixin is renamed, all other members of that mixin become conflicting:
+
+```swift
+mixin A { var x: Int = 0; func f() { } }
+mixin B: A { }
+mixin C: A { }
+struct S: B, C { var y = C.x }  // error: conflict with `f` is not resolved
 ```
 
 ### Multiple inheritance support summarized
