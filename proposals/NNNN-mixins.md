@@ -329,7 +329,7 @@ We can resolve conflicts by renaming one or both of the conflicting members. Syn
 
 ```swift
 var y = B.x
-func g(arg: Type) -> Return = B.f
+func g(arg: Type) = B.f
 ```
 
 Example:
