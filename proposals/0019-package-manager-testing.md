@@ -116,7 +116,7 @@ would decide how to interpret them.
 ---
 
 Sometimes test sources cannot compile and fixing them is not the most
-pressing priority. Thus it will be posssible to skip building tests
+pressing priority. Thus it will be possible to skip building tests
 with an additional flag:
 
     swift build --without-tests
@@ -125,7 +125,7 @@ with an additional flag:
 
 It is desirable to sometimes specify to only build specific tests, the
 command line for this will fall out of future work that allows specification
-of targets that `swift build` should speficially build in isolation.
+of targets that `swift build` should specifically build in isolation.
 
 ---
 
@@ -198,7 +198,7 @@ of the `Package.swift` file.
 Testing is important and it is important to make the barrier to testing
 as minimal as possible. Thus, by analyzing the names of test targets,
 we will automatically determine the most likely dependency of that test
-and accomodate accordingly.
+and accommodate accordingly.
 For example,
 a test for "Foo" will depend on compilation of the library target `Foo`.
 Any additional dependencies or dependencies that could not be automatically determined
@@ -232,7 +232,7 @@ fact in their sources. Thus at a future time we will provide a define.
 Initially,
 the Swift Package Manager will use `XCTest` as its underlying test framework.
 
-However, testing is an evolving artform,
+However, testing is an evolving art form,
 so we'd like to support other approaches
 that might allow frameworks other than XCTest
 to be supported by the package manager.
