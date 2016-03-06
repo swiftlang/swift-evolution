@@ -28,6 +28,7 @@ proposals in that process.
 * [SE-0042: Flattening the function type of unapplied method references](proposals/0042-flatten-method-types.md)
 * [SE-0030: Property Behaviors](proposals/0030-property-behavior-decls.md)
 * [SE-0043: Declare variables in 'case' labels with multiple patterns](proposals/0043-declare-variables-in-case-labels-with-multiple-patterns.md)
+* [SE-0044: Import as member](proposals/0044-import-as-member.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 

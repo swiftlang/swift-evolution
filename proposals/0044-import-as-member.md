@@ -1,6 +1,6 @@
 # Import as member
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-name.md)
+* Proposal: [SE-0044](https://github.com/apple/swift-evolution/blob/master/proposals/0044-import-as-member.md)
 * Author(s): [Michael Ilseman](https://github.com/milseman)
 * Status: **Awaiting review**
 * Review manager: TBD
