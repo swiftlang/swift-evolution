@@ -8,10 +8,10 @@ proposals in that process.
 
 * February 26...March 3, 2016: [SE-0025: Scoped Access Level](proposals/0025-scoped-access-level.md)
 * March 2...4, 2016 [SE-0040: Replacing Equal Signs with Colons For Attribute Arguments](proposals/0040-attributecolons.md)
+* March 7...9, 2016 [SE-0039: Modernizing Playground Literals](proposals/0039-playgroundliterals.md)
 
 ## Upcoming reviews
 
-* March 7...9, 2016 [SE-0039: Modernizing Playground Literals](proposals/0039-playgroundliterals.md)
 * March 9...13, 2016 [SE-0037: Clarify interaction between comments & operators](proposals/0037-clarify-comments-and-operators.md)
 
 

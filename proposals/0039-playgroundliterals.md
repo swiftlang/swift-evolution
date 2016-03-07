@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0039](https://github.com/apple/swift-evolution/blob/master/proposals/0039-playgroundliterals.md)
 * Author(s): [Erica Sadun](http://github.com/erica)
-* Status: **Scheduled** for March 7...9, 2016
+* Status: **Active** for March 7...9, 2016
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction
