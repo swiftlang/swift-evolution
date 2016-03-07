@@ -80,6 +80,8 @@ This is simpily remove falliable initlisers. We could introduce some standard Er
 
 ## Impact on existing code
 
+### Swift
+
 This would break all existing code. One way we can mitigate this is to introduce a warning initially. When we finally remove falliable initlisers we could introduce a fix-it provided we had some standard error types in the language, like so:
 
 ```swift
@@ -103,6 +105,8 @@ class Model {
 
 try? Model()
 ```
+
+### Objective-C
 
 When importing Objective-C types we could have two choices:
 
