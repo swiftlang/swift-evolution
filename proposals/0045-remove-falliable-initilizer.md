@@ -104,6 +104,14 @@ class Model {
 try? Model()
 ```
 
+When importing Objective-C types we could have two choices:
+
+Choice 1) Instead of importing them as `init?()` we would import them as `init() throws`. Like above we would have a fix-it provided for call-sites to convert `init()` to `try? init()`.
+
+Provided we had some sort of generic error types in the language, the swift library could throw this generic error when the Objective-C initlizer returns nil. 
+
+Choice 2) Since alot of the libraries use Objective-C code, this may cause a penalty hit when bridging from Objective-C and wonky code when bridging back to Objective-C from Swift. We could instead only allow `init?` when working with Swift classes marked with the `@objc` attribute. This would fit nicely with other magic Objective-C functionality and API (Like KVC) which is exposed to Swift which only works when marked as `@objc`
+
 ## Alternatives considered
 
 An alternative is to change the falliable initiliser to have the optional symbol required at the call-site:
@@ -112,5 +120,5 @@ An alternative is to change the falliable initiliser to have the optional symbol
 MyModel?()
 ```
 
-In addition to this we should update the forthcoming API Guidelines to provide guidence on when and when-not to use falliable initilisers and throwing initilisers. Currently the decision behind the error handling system in swift is burried in the Swift Repo. I think it would benefit the community to have a consistent approach to error handling applied across all API especially the inilizers.
+In addition to this we should update the forthcoming API Guidelines to provide guidence on when and when-not to use falliable initilisers and throwing initilisers. Currently the decision behind the error handling system in swift is burried in the Swift Repo. I think it would benefit the community to have a consistent approach to error handling applied across all API especially the initizers.
 
