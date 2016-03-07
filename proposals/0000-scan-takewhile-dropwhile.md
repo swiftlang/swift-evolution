@@ -13,7 +13,7 @@ Add 3 new `SequenceType` functions `scan(_:combine:)`, `takeWhile(_:)`, and
 `iterate(_:apply:)`.
 
 Swift-evolution thread:
-[Proposal: Add scan, takeWhile, dropWhile, and iterate to the stdlib](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151228/004690.html)
+[Proposal: Add scan, takeWhile, dropWhile, and iterate to the stdlib](http://thread.gmane.org/gmane.comp.lang.swift.evolution/1515)
 
 ## Motivation
 
@@ -31,7 +31,9 @@ extension SequenceType {
   ///
   ///     p.reduce(initial, combine: combine)
   ///
-  /// for each prefix `p` of `self`, in order from shortest to longest.
+  /// for each prefix `p` of `self` in order from shortest to longest, starting
+  /// with the empty prefix and ending with `self`.
+  ///
   /// For example:
   ///
   ///     (1..<6).scan(0, combine: +) // [0, 1, 3, 6, 10, 15]
