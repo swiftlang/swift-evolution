@@ -239,7 +239,7 @@ However, it reduces the usability of packages for traditional C libraries which
 do not install their headers in this format. It also reduces the ability of the
 project to impose additional organization on their own headers. For example,
 LLVM has a convention of laying out top-level headers into both ``llvm`` and
-`llvm-c`` (for the C++ vs C API).
+``llvm-c`` (for the C++ vs C API).
 
 Since we did not have other features or areas of development where we felt it
 was important to restrict the layout of the headers, we felt it was best to

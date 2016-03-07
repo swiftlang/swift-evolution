@@ -40,7 +40,7 @@ But this leads to unintuitive results when the closure escapes, since the *shado
 persisted independently of the original argument:
 
 ```swift
-func captureAndEscape(inout x: Int) -> (Int) -> Void {
+func captureAndEscape(inout x: Int) -> () -> Void {
   let closure = { x += 1 }
   closure()
   return closure

@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0006](https://github.com/apple/swift-evolution/blob/master/proposals/0006-apply-api-guidelines-to-the-standard-library.md)
 * Author(s): [Dave Abrahams](https://github.com/dabrahams), [Dmitri Gribenko](https://github.com/gribozavr), [Maxim Moiseev](https://github.com/moiseev)
-* Status: **Under Review** (January 22...February 5, 2016)
+* Status: **Accepted** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/8586))
 * Review manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Reviewer notes

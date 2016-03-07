@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0005](https://github.com/apple/swift-evolution/blob/master/proposals/0005-objective-c-name-translation.md)
 * Author(s): [Doug Gregor](https://github.com/DougGregor), [Dave Abrahams](https://github.com/dabrahams)
-* Status: **Under Review** (January 22...February 5, 2016)
+* Status: **Accepted** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/8590))
 * Review manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Reviewer notes
@@ -107,11 +107,11 @@ control over the process.
 
 5. **Prepend "is" to Boolean properties**: [Boolean properties should read as assertions on the receiver](https://swift.org/documentation/api-design-guidelines.html#boolean-assertions), but the Objective-C Coding Guidelines for Cocoa [prohibit the use of "is" on properties](https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/CodingGuidelines/Articles/NamingIvarsAndTypes.html#//apple_ref/doc/uid/20001284-BAJGIIJE). Import such properties with "is" prepended.
 
-6. **Strip the "NS" prefix from Foundation APIs**: Foundation is a
-fundamental part of the [Swift Core Libraries][core-libraries], and
-having the prefixes on these cross-platform APIs feels
-anachronistic. Therefore, remove the "NS" prefix from entities defined
-in the Foundation module (and other specifically identified modules where it makes sense).
+6. **Lowercase values**: The Swift API Design Guidelines have non-type
+declarations lowercased. Lowercase non-prefixed values whenever they
+are imported, including enumerators (whether they end up in Swift as
+enum cases or option sets) and any other properties/functions (e.g., a
+property named `URLHandler` will be lowercased to `urlHandler`).
 
 7. **Adopt Comparable to classes that implement** `compare(_:) -> NSComparisonResult`: The objective-c classes that implement compare all have declared a capability of being compared in an ordered manner. `Comparable` formalizes this declaration into an implementable operator by the import process.
 
@@ -137,21 +137,21 @@ the imported `UIBezierPath` API in Swift 2:
 
 And the same API imported under our current, experimental implementation of this proposal:
 
-    class UIBezierPath : Object, Copying, Coding {
-      convenience init(ovalIn: CGRect)
-      func moveTo(_: CGPoint)
-      func addLineTo(_: CGPoint)
-      func addCurveTo(_: CGPoint, controlPoint1: CGPoint, controlPoint2: CGPoint)
-      func addQuadCurveTo(_: CGPoint, controlPoint: CGPoint)
-      func append(_: UIBezierPath)
+    class UIBezierPath : NSObject, NSCopying, NSCoding {
+      convenience init(ovalIn rect: CGRect)
+      func move(to point: CGPoint)
+      func addLine(to point: CGPoint)
+      func addCurve(to endPoint: CGPoint, controlPoint1 controlPoint1: CGPoint, controlPoint2 controlPoint2: CGPoint)
+      func addQuadCurve(to endPoint: CGPoint, controlPoint controlPoint: CGPoint)
+      func append(_ bezierPath: UIBezierPath)
       func reversing() -> UIBezierPath
-      func apply(_: CGAffineTransform)
+      func apply(_ transform: CGAffineTransform)
       var isEmpty: Bool { get }
-      func contains(_: CGPoint) -> Bool
-      func fillWith(_: CGBlendMode, alpha: CGFloat)
-      func strokeWith(_: CGBlendMode, alpha: CGFloat)
-      func copy(zone _: Zone = nil) -> AnyObject
-      func encodeWith(_: Coder)
+      func contains(_ point: CGPoint) -> Bool
+      func fill(_ blendMode: CGBlendMode, alpha alpha: CGFloat)
+      func stroke(_ blendMode: CGBlendMode, alpha alpha: CGFloat)
+      func copy(with zone: NSZone = nil) -> AnyObject
+      func encode(with aCoder: NSCoder)
     }
 
 In the latter case, a number of words that restated type information
@@ -612,18 +612,18 @@ to become:
 
 #### Add First Argument Labels
 
-When the first parameter of a method is defaulted, **split the first
-selector piece if it contains a preposition**, turning everything
+If the first selector piece contains a preposition, **split the first
+selector piece at the last preposition**, turning everything
 starting with the last preposition into a *required* label for the
-first argument. If the generated first argument label starts with the
-word "with", drop the "with".
+first argument.
 
-This heuristic eliminates words that refer only to the first
+As well as creating first argument label for a significant number of
+APIs, this heuristic eliminates words that refer only to the first
 argument from call sites where the argument's default value is
 used. For example, instead of:
 
 <pre>
-extension NSArray {
+extension UIBezierPath {
   func enumerateObjects<b>With</b>(_: NSEnumerationOptions <b>= []</b>, using: (AnyObject, UnsafeMutablePointer<ObjCBool>) -> Void)
 }
 
@@ -670,33 +670,6 @@ extension NSBezierPath {
 if path.<b>isEmpty</b> { ... }
 </pre>
 
-### Stripping the "NS" Prefix
-
-The removal of the "NS" prefix for the Foundation module (or other
-specifically identified modules) is a mechanical translation for all
-global symbols defined within that module that can be performed in the
-Clang importer. Note that this removal can create conflicts with the
-standard library. For example, `NSString` and `NSArray` will become
-`String` and `Array`, respectively, and Foundation's versions will
-shadow the standard library's versions. In cases where the Swift 3
-names of standard library entities conflict with prefix-stripped
-Foundation entities, we retain the `NS` prefix. These Foundation
-entities are: `NSArray`, `NSDictionary`, `NSInteger`, `NSRange`,
-`NSSet`, and `NSString`.
-
-When the `NS` prefix is stripped from a non-type, lowercase the
-initial word. For example:
-
-<pre>
-var NSDateComponentUndefined: Int { get }
-</pre>
-
-will become
-
-<pre>
-var dateComponentUndefined: Int { get }
-</pre>
-  
 ### Conformance of implementers of compare method
 
 Currently, in comparing protocols, for example developers usually have
