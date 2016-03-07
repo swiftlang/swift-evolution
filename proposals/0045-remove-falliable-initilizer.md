@@ -1,4 +1,4 @@
-# Remove Falliable Initilizers
+# Remove Failable Optional Initilizers
 
 * Proposal: [SE-0045](https://github.com/apple/swift-evolution/blob/master/proposals/0045-name.md)
 * Author(s): [Swift Developer](https://github.com/jcampbell05)
@@ -7,9 +7,9 @@
 
 ## Introduction
 
-Falliable initilizers were originally introduced in Swift 1.1 because of the lack of an ability to indicate an object wasn't able to be constructed. They have played a key part in the migration from Objective-C to Swift since in the former you could return nil in the initilizer.
+Failable optional initilizers were originally introduced in Swift 1.1 because of the lack of an ability to indicate an object wasn't able to be constructed. They have played a key part in the migration from Objective-C to Swift since in the former you could return nil in the initilizer.
 
-However in Swift 2.0 it is now possible to throw errors instead. Intilizers are complex machines and many things can fail, by allowing a user to return nil we are encouraging a user to build initlisers which return nil for reasons that may not be clear without spending the time to debug.
+However in Swift 2.0 it is now possible to throw errors to instead. Intilizers are complex machines and many things can fail, by allowing a user to return nil we are encouraging a user to build initlisers which return nil for reasons that may not be clear without spending the time to debug.
 
 In addition Swift has the `try?` and `try!` keywords to return nil upon an error or to trigger an exception. It is my opinion this makes it more explicit and that an initliser can fail.
 
@@ -29,11 +29,11 @@ Swift-evolution thread: [link to the discussion thread for that proposal](https:
 
 ## Motivation
 
-The purpose of this proposal is to improve the information initilisers provide about failing. Additionally as a by-product of this proposal wheather if removing falliable initilisers is approved or not, I would like to see additions added to the upcoming API Guideline on reccomendations for when to return nil or to throw an error. If rejected there should be some consistency between initilisers that return nil and those that throw errors.
+The purpose of this proposal is to improve the information initilisers provide about failing. Additionally as a by-product of this proposal wheather if removing Failable optional initilisers is approved or not, I would like to see additions added to the upcoming API Guideline on reccomendations for when to return nil or to throw an error. If rejected there should be some consistency between initilisers that return nil and those that throw errors.
 
 ## Proposed solution
 
-Take this Model which takes a Dictionary of JSON data, with fallaible initlisers we have this:
+Take this Model which takes a Dictionary of JSON data, with fallaible optional initlisers we have this:
 
 ```swift
 class Model {
@@ -76,13 +76,13 @@ With this we know instantly what the issue is and we can easily still use `try?`
 
 ## Detailed design
 
-This is simpily remove falliable initlisers. We could introduce some standard ErrorTypes in the stdlib to remove the need to define your own in common cases.
+This is simpily remove failable optional initlisers. We could introduce some standard ErrorTypes in the stdlib to remove the need to define your own in common cases.
 
 ## Impact on existing code
 
 ### Swift
 
-This would break all existing code. One way we can mitigate this is to introduce a warning initially. When we finally remove falliable initlisers we could introduce a fix-it provided we had some standard error types in the language, like so:
+This would break all existing code. One way we can mitigate this is to introduce a warning initially. When we finally remove Failable optional initlisers we could introduce a fix-it provided we had some standard error types in the language, like so:
 
 ```swift
 class Model {
@@ -99,7 +99,7 @@ Would become:
 ```swift
 class Model {
   init() throws {
-    return GenericError
+    throw GenericError
   }
 }
 
@@ -112,17 +112,16 @@ When importing Objective-C types we could have two choices:
 
 Choice 1) Instead of importing them as `init?()` we would import them as `init() throws`. Like above we would have a fix-it provided for call-sites to convert `init()` to `try? init()`.
 
-Provided we had some sort of generic error types in the language, the swift library could throw this generic error when the Objective-C initlizer returns nil. 
+Provided we had some sort of generic error types in the language, the swift library could throw this generic error when the Objective-C initlizer returns nil.
 
-Choice 2) Since alot of the libraries use Objective-C code, this may cause a penalty hit when bridging from Objective-C and wonky code when bridging back to Objective-C from Swift. We could instead only allow `init?` when working with Swift classes marked with the `@objc` attribute. This would fit nicely with other magic Objective-C functionality and API (Like KVC) which is exposed to Swift which only works when marked as `@objc`
+Choice 2) Since alot of the libraries use Objective-C code, this may cause a penalty hit when bridging from Objective-C and wonky code when bridging back to Objective-C from Swift. We could instead only allow `init?` when working with Swift classes marked with the `@objc` attribute. This would fit nicely with other magic Objective-C functionality and API (Like KVC) which is exposed to Swift and only works when marked as `@objc`
 
 ## Alternatives considered
 
-An alternative is to change the falliable initiliser to have the optional symbol required at the call-site:
+An alternative is to change the falliable optional initiliser to have the optional symbol required at the call-site:
 
 ```swift
 MyModel?()
 ```
 
-In addition to this we should update the forthcoming API Guidelines to provide guidence on when and when-not to use falliable initilisers and throwing initilisers. Currently the decision behind the error handling system in swift is burried in the Swift Repo. I think it would benefit the community to have a consistent approach to error handling applied across all API especially the initizers.
-
+In addition to this we should update the forthcoming API Guidelines to provide guidence on when and when-not to use Failable optional initilisers and failable throwing initilisers. Currently the decision behind the error handling system in swift is burried in the Swift Repo. I think it would benefit the community to have a consistent approach to error handling applied across all API especially the initizers.
