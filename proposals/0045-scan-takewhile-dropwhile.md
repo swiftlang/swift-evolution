@@ -1,6 +1,6 @@
-# Feature name
+# Add scan, takeWhile, dropWhile, and iterate to the stdlib
 
-* Proposal: TBD
+* Proposal: SE-0045
 * Author(s): [Kevin Ballard](https://github.com/kballard)
 * Status: **Awaiting review**
 * Review manager: TBD
