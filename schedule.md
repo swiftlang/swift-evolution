@@ -7,7 +7,6 @@ proposals in that process.
 ## Active reviews
 
 * February 18...23, 2016: [SE-0033: Import Objective-C Constants as Swift Types](proposals/0033-import-objc-constants.md)
-* February 26...March 4, 2016: [SE-0026: Abstract classes and methods](proposals/0026-abstract-classes-and-methods.md)
 * February 26...March 3, 2016: [SE-0025: Scoped Access Level](proposals/0025-scoped-access-level.md)
 * March 2...4, 2016 [SE-0040: Replacing Equal Signs with Colons For Attribute Arguments](proposals/0040-attributecolons.md)
 

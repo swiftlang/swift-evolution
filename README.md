@@ -150,4 +150,9 @@ sooner.
 [Swift Evolution Review Schedule](https://github.com/apple/swift-evolution/blob/master/schedule.md)
 
 ### Returned for Revision
+
 * [SE-0018: Flexible Memberwise Initialization](proposals/0018-flexible-memberwise-initialization.md)
+
+### Deferred for Future Discussion
+
+* [SE-0026: Abstract classes and methods](proposals/0026-abstract-classes-and-methods.md)
