@@ -114,19 +114,18 @@ extension LazySequenceType {
 The types `LazyScanSequence`, `LazyDropWhileSequence`, and
 `LazyTakeWhileSequence` all conform to `LazySequenceType`.
 
-Extend `LazyCollectionType` with collection variants for `dropWhile(_:)` and
-`takeWhile(_:)` (but not `scan(_:combine:)` because there's no way to recover
-the value from an index without re-scanning from the start):
+Extend `LazyCollectionType` with collection variants for the functions:
 
 ```swift
 extension LazyCollectionType {
+  func scan<T>(initial: T, combine: (T, Self.Generator.Element) -> T) -> LazyScanCollection<Self.Elements, T>
   func dropWhile(dropElement: (Self.Generator.Element) -> Bool) -> LazyDropWhileCollection<Self.Elements>
   func takeWhile(takeElement: (Self.Generator.Element) -> Bool) -> LazyTakeWhileCollection<Self.Elements>
 }
 ```
 
-The types `LazyDropWhileCollection` and `LazyTakeWhileCollection` conform to
-`LazyCollectionType`.
+The types `LazyScanCollection`, `LazyDropWhileCollection`, and
+`LazyTakeWhileCollection` conform to `LazyCollectionType`.
 
 The type `IterateSequence` from the function `iterate(_:apply:)` conforms to
 `SequenceType`.
