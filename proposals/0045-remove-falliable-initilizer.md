@@ -1,52 +1,116 @@
-# Feature name
+# Remove Falliable Initilizers
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-name.md)
-* Author(s): [Swift Developer](https://github.com/swiftdev)
+* Proposal: [SE-0045](https://github.com/apple/swift-evolution/blob/master/proposals/0045-name.md)
+* Author(s): [Swift Developer](https://github.com/jcampbell05)
 * Status: **Awaiting review**
 * Review manager: TBD
 
 ## Introduction
 
-A short description of what the feature is. Try to keep it to a
-single-paragraph "elevator pitch" so the reader understands what
-problem this proposal is addressing.  
+Falliable initilizers were originally introduced in Swift 1.1 because of the lack of an ability to indicate an object wasn't able to be constructed. They have played a key part in the migration from Objective-C to Swift since in the former you could return nil in the initilizer.
 
-Swift-evolution thread: [link to the discussion thread for that proposal](https://lists.swift.org/pipermail/swift-evolution)
+However in Swift 2.0 it is now possible to throw errors instead. Intilizers are complex machines and many things can fail, by allowing a user to return nil we are encouraging a user to build initlisers which return nil for reasons that may not be clear without spending the time to debug.
+
+In addition Swift has the `try?` and `try!` keywords to return nil upon an error or to trigger an exception. It is my opinion this makes it more explicit and that an initliser can fail.
+
+```swift
+MyObject() //Not obvious that is a init?
+try? MyObject() //This one fails so it forces us to handle it.
+```
+
+To quote Tino Heth:
+
+"Without "try?", it would be really inconvenient to not have "init?" — but failable initializers as they are now are somewhat odd, because they are half-function and half-procedure:
+Regular init-methods have no return, so you can basically think of them as a configuration that is called on an allocated object.
+This isn't true anymore for "init?", as it not only it turns a "void-function" into something that returns an optional, but also doesn't explicitly model the non-nil case (there is no "return self").
+Replacing this mechanism with an error would actually make initializers more method-like, and less special."
+
+Swift-evolution thread: [link to the discussion thread for that proposal](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160229/thread.html#11631)
 
 ## Motivation
 
-Describe the problems that this proposal seeks to address. If the
-problem is that some common pattern is currently hard to express, show
-how one can currently get a similar effect and describe its
-drawbacks. If it's completely new functionality that cannot be
-emulated, motivate why this new functionality would help Swift
-developers create better Swift code.
+The purpose of this proposal is to improve the information initilisers provide about failing. Additionally as a by-product of this proposal wheather if removing falliable initilisers is approved or not, I would like to see additions added to the upcoming API Guideline on reccomendations for when to return nil or to throw an error. If rejected there should be some consistency between initilisers that return nil and those that throw errors.
 
 ## Proposed solution
 
-Describe your solution to the problem. Provide examples and describe
-how they work. Show how your solution is better than current
-workarounds: is it cleaner, safer, or more efficient?
+Take this Model which takes a Dictionary of JSON data, with fallaible initlisers we have this:
+
+```swift
+class Model {
+
+let name: String
+let age: Int
+
+init?(json: [String: AnyObject]) {
+
+guard name = json["name"] as? String else {
+ return nil
+}
+
+guard age = json["age"] as? Int else {
+ return nil
+}
+```
+
+You could combine these into one guard statement to make it concise, but you wouldn't know if it failed. Was it because the key doesn't exist? was it the correct type?.
+
+
+```swift
+class Model {
+
+let name: String
+let age: Int
+
+init(json: [String: AnyObject]) throws {
+
+guard name = json["name"] as? String else {
+ throw Error.FailedToParse("Name", to:String)
+}
+
+guard age = json["age"] as? Int else {
+ throw Error.FailedToParse("Age", to:Int)
+}
+```
+
+With this we know instantly what the issue is and we can easily still use `try?` to convert it to an optional where we need it.
 
 ## Detailed design
 
-Describe the design of the solution in detail. If it involves new
-syntax in the language, show the additions and changes to the Swift
-grammar. If it's a new API, show the full API and its documentation
-comments detailing what it does. The detail in this section should be
-sufficient for someone who is *not* one of the authors to be able to
-reasonably implement the feature.
+This is simpily remove falliable initlisers. We could introduce some standard ErrorTypes in the stdlib to remove the need to define your own in common cases.
 
 ## Impact on existing code
 
-Describe the impact that this change will have on existing code. Will some
-Swift applications stop compiling due to this change? Will applications still
-compile but produce different behavior than they used to? Is it
-possible to migrate existing Swift code to use a new feature or API
-automatically?
+This would break all existing code. One way we can mitigate this is to introduce a warning initially. When we finally remove falliable initlisers we could introduce a fix-it provided we had some standard error types in the language, like so:
+
+```swift
+class Model {
+  init?() {
+    return nil
+  }
+}
+
+Model()
+```
+
+Would become:
+
+```swift
+class Model {
+  init() throws {
+    return GenericError
+  }
+}
+
+try? Model()
+```
 
 ## Alternatives considered
 
-Describe alternative approaches to addressing the same problem, and
-why you chose this approach instead.
+An alternative is to change the falliable initiliser to have the optional symbol required at the call-site:
+
+```swift
+MyModel?()
+```
+
+In addition to this we should update the forthcoming API Guidelines to provide guidence on when and when-not to use falliable initilisers and throwing initilisers. Currently the decision behind the error handling system in swift is burried in the Swift Repo. I think it would benefit the community to have a consistent approach to error handling applied across all API especially the inilizers.
 
