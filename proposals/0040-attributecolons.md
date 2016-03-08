@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0040](https://github.com/apple/swift-evolution/blob/master/proposals/0040-attributecolons.md)
 * Author(s): [Erica Sadun](http://github.com/erica)
-* Status: **Active** March 2...4, 2016
+* Status: **Accepted for Swift 3**
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction

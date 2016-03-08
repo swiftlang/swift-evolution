@@ -7,7 +7,6 @@ proposals in that process.
 ## Active reviews
 
 * February 26...March 3, 2016: [SE-0025: Scoped Access Level](proposals/0025-scoped-access-level.md)
-* March 2...4, 2016 [SE-0040: Replacing Equal Signs with Colons For Attribute Arguments](proposals/0040-attributecolons.md)
 * March 7...9, 2016 [SE-0039: Modernizing Playground Literals](proposals/0039-playgroundliterals.md)
 
 ## Upcoming reviews
