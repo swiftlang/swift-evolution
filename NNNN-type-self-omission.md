@@ -56,7 +56,7 @@ Make the use of `.self` optional everywhere.
 
 ## Detailed design
 
-Types can be passed anywhere by simply typing the name of the Type.
+Types can be passed anywhere by simply typing the name of the Type. This will require coming up with an alternative way to disambiguate generics `Foo<T>` from less than expressions `Foo < T`. This is currently done by looking for a `.` or a `(`.
 
 ## Impact on existing code
 
