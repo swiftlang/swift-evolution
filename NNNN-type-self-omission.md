@@ -13,12 +13,31 @@ Allow Types to be passable to functions without needing to explicitly reference 
 
 `.self` is unnecessary and can clutter a clean API. Take the following example of a web framework built in Swift.
 
+### Desired Code
+
 ```swift
 app.get("users", Int, "posts", String) { request, userId, postName in
 	print("You requested the post named \(postName) from user #\(userId)")
 }
 // http://api.example.io/users/5/posts/foo
 // prints "You requested the post named foo from user #5"
+```
+
+### Current State
+
+```swift
+app.get("users", Int.self, "posts", String.self) { request, userId, postName in
+...
+```
+
+or
+
+```swift
+let i = Int.self
+let s = String.self
+
+app.get("users", i, "posts", s) { request, userId, postName in
+...
 ```
 
 With `.self` required, more code is necessary that ultimately provides less clarity and concision. Additionally, the current state of requiring `.self` in some places, and not requiring it in others is confusing to developers.
