@@ -1,4 +1,4 @@
-# Feature name
+# Making `.self` After `Type` Optional
 
 * Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-name.md)
 * Author(s): [Tanner Nelson](https://github.com/tannernelson)
