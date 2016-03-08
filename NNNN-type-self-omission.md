@@ -7,7 +7,7 @@
 
 ## Introduction
 
-Allow Types to be passable to functions without needing to explicitly reference `.self`. This is currently allowed for functions with only one parameter. 
+Allow Types to be passable to functions without needing to explicitly reference `.self`. This is currently allowed for functions with only one parameter. [Bug Report](https://bugs.swift.org/browse/SR-899)
 
 ## Motivation
 
