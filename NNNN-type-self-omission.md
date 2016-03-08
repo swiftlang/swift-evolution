@@ -21,7 +21,7 @@ app.get("users", Int, "posts", String) { request, userId, postName in
 // prints "You requested the post named foo from user #5"
 ```
 
-With `.self` required, more code is required that provides less clarity and concision. Additionally, the current state of requiring `.self` in some places, and not requiring it in others is confusing to developers.
+With `.self` required, more code is necessary that ultimately provides less clarity and concision. Additionally, the current state of requiring `.self` in some places, and not requiring it in others is confusing to developers.
 
 ## Proposed solution
 
@@ -37,11 +37,11 @@ Current Swift code uses a combination of just `Type` and `Type.self`. Making `.s
 
 ## Alternatives considered
 
-### Making `.self` required
+#### Making `.self` required
 
 This fixes the confusion of being able to use both methods, but `.self` is unnecessary and clutters clean syntax.
 
-### Making `Type` (without `.self`) required
+#### Making `Type` (without `.self`) required
 
 This would be less confusing to developers, but would break old code. 
 
