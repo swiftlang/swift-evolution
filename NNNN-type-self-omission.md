@@ -42,7 +42,13 @@ app.get("users", i, "posts", s) { request, userId, postName in
 ...
 ```
 
-With `.self` required, more code is necessary that ultimately provides less clarity and concision. Additionally, the current state of requiring `.self` in some places, and not requiring it in others is confusing to developers.
+With `.self` required, more code is necessary that ultimately provides less clarity and concision. The current state of requiring `.self` in some places, and not requiring it in others is confusing to developers. 
+
+Additionally, `.self` can be chained unlimited times and still produce the same result. 
+
+```swift
+Int == Int.self.self.self.self.self.self.self.self.self //true
+```
 
 ## Proposed solution
 
