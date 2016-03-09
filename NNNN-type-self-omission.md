@@ -74,7 +74,7 @@ Types can be passed anywhere by simply typing the name of the Type. This will re
 Ideas
 - Require spaces around less than expressions
 - Remove less than overload for comparing a type
-- <Your idea here>
+- (Your idea here)
 
 If at all possible, challenges in disambiguation should be a burden to the compiler, not the developer. 
 
