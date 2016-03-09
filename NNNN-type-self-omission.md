@@ -63,12 +63,6 @@ test(Int.self, two: "")
 test(Int, two: "") //Expected member name or constructor call after type name
 ``` 
 
-Additionally, `.self` can be chained unlimited times and still produce the same result. 
-
-```swift
-Int == Int.self.self.self.self.self.self.self.self.self //true
-```
-
 ## Proposed solution
 
 Make the use of `.self` optional everywhere. 
