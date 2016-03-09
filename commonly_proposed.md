@@ -14,7 +14,7 @@ Several of the discussions below refer to "C Family" languages.  This is intende
 
  * [Rewrite the Swift compiler in Swift](https://github.com/apple/swift/blob/2c7b0b22831159396fe0e98e5944e64a483c356e/www/FAQ.rst): This would be a lot of fun someday, but (unless you include rewriting all of LLVM) requires the ability to import C++ APIs into Swift.  Additionally, there are lots of higher priority ways to make Swift better.
 
- * [Change closure literal syntax] (https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/002583.html): Closure syntax in Swift has been carefully debated internally, and aspects of the design have strong motivations.  It is unlikely that we'll find something better, and any proposals to change it should have a very detailed understanding of the Swift grammar.
+ * [Change closure literal syntax](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/002583.html): Closure syntax in Swift has been carefully debated internally, and aspects of the design have strong motivations.  It is unlikely that we'll find something better, and any proposals to change it should have a very detailed understanding of the Swift grammar.
 
  * [Single-quotes `''` for Character literals](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151221/003977.html): Swift takes the approach of highly valuing Unicode.  However, there are multiple concepts of a character that could make sense in Unicode, and none is so much more commonly used than the others that it makes sense to privilege them.  We'd rather save single quoted literals for a greater purpose (e.g. non-escaped string literals).
 
