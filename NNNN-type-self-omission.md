@@ -13,7 +13,9 @@ Here is the initial [Bug Report](https://bugs.swift.org/browse/SR-899) that led 
 
 ## Motivation
 
-`.self` is unnecessary and can clutter a clean API. Take the following example of a web framework built in Swift.
+`.self` is unnecessary and can clutter a clean API.
+
+ Take the following example of a web framework built in Swift.
 
 ### Desired Code
 
@@ -42,7 +44,24 @@ app.get("users", i, "posts", s) { request, userId, postName in
 ...
 ```
 
-With `.self` required, more code is necessary that ultimately provides less clarity and concision. The current state of requiring `.self` in some places, and not requiring it in others is confusing to developers. 
+With `.self` required, more code is necessary that ultimately provides less clarity and concision. The current state of requiring `.self` in some places, and not requiring it in others is confusing to developers.
+
+Here is a demonstration of the current inconsistency. 
+```swift
+func test<T: Any>(type: T.Type, two: String) {
+    print(type)
+}
+
+func test<T: Any>(type: T.Type) {
+    print(type)
+}
+
+test(Int.self)
+test(Int)
+
+test(Int.self, two: "")
+test(Int, two: "") //Expected member name or constructor call after type name
+``` 
 
 Additionally, `.self` can be chained unlimited times and still produce the same result. 
 
@@ -56,7 +75,14 @@ Make the use of `.self` optional everywhere.
 
 ## Detailed design
 
-Types can be passed anywhere by simply typing the name of the Type. This will require coming up with an alternative way to disambiguate generics `Foo<T>` from less than expressions `Foo < T`. This is currently done by looking for a `.` or a `(`.
+Types can be passed anywhere by simply typing the name of the Type. This will require coming up with an alternative way to disambiguate generics `Foo<T>` from less than expressions `Foo < T`. This is currently done by looking for a `.` or a `(` which makes the `.self` member variable required.
+
+Ideas
+- Require spaces around less than expressions
+- Remove less than overload for comparing a type
+- <Your idea here>
+
+If at all possible, challenges in disambiguation should be a burden to the compiler, not the developer. 
 
 ## Impact on existing code
 
