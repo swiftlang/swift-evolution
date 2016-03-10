@@ -15,7 +15,7 @@ The use of string literals for key paths is extremely error-prone: there is no c
 
 ## Proposed solution
 
-Introduce a new expression `#keypath` that allows one to build a `String` from a key-path:
+Introduce a new expression `#keypath` that allows one to build a compile-time string literal from a key-path (to allow it be used as `StaticString` and `StringLiteralConvertible`):
 
 ```swift
 class Person: NSObject {
@@ -48,9 +48,19 @@ chris.valueForKeyPath(#keypath(Person.friends.firstName)) // => ["Joe", "Douglas
 
 By having the `#keypath` expression do the work to form the Objective-C key-path string, we free the developer from having to do the manual typing and get static checking that the key-path exists and is exposed to Objective-C.
 
+It would also be very convenient for the `#keypath` to accept value (instead of static) expressions:
+
+```
+extension Person {
+	class func find(name: String) -> [Person] {
+		return DB.find("SELECT * FROM Person WHERE \(#keypath(firstName)) LIKE '%\(name)%' OR \(#keypath(lastName)) LIKE '%\(name)%'")
+	}
+}
+```
+
 ## Impact on existing code
 
-The introduction of the `#keypath` expression has no impact on existing code as it returns a `String`. It is simply a modification-safe alternative to using literal strings for referencing key-paths.
+The introduction of the `#keypath` expression has no impact on existing code as it returns a literal string. It is simply a modification-safe alternative to using literal strings directly for referencing key-paths.
 
 ## Alternatives considered
 
