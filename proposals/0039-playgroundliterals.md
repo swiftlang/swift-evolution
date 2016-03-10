@@ -65,3 +65,23 @@ In this design:
 ## Alternatives Considered
 
 `#resourceliteral` may better describe a file resource than `#fileliteral`.
+
+## Accepted Form and Modifications
+
+The community and core team uniformly agree that this proposal increases uniformity in the Swift language. This proposal is accepted with the following modifications.
+
+#### Casing
+After discussing how to rationalize naming and capitalization of identifiers in the “#” namespace, the core Swift team has adopted a [lower camel case](https://en.wikipedia.org/wiki/CamelCase) model for identifiers.
+
+#### Argument labels
+The argument label for `imageLiteral` is renamed to `resourceName`. This better describes the parameter's role and avoids needless words. This modification follows [SE-0006](https://github.com/apple/swift-evolution/blob/master/proposals/0006-apply-api-guidelines-to-the-standard-library.md)'s naming guidance.
+
+#### Accepted design
+
+The accepted design for the literals are:
+
+```swift
+#colorLiteral(red: 0, green: 0, blue: 0, alpha: 0)
+#imageLiteral(resourceName: "foo")
+#fileLiteral(resourceName: "bar")
+```
