@@ -1,9 +1,9 @@
-# Establish consistent label behavior across all parameters including first labels.
+# Establish consistent label behavior across all parameters including first labels
 
-* Proposal: TBD
-* Author(s): [Joe Groff](http://github.com/jckarter), [Jake Carter](https://github.com/JakeCarter), [Erica Sadun](http://github.com/erica)
-* Status: TBD
-* Review manager: TBD
+* Proposal: [SE-0046](https://github.com/apple/swift-evolution/blob/master/proposals/0046-first-label.md)
+* Author(s): [Erica Sadun](http://github.com/erica)
+* Status: **Awaiting review**
+* Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction
 We propose to normalize the first parameter declaration in methods 
@@ -28,7 +28,7 @@ duplicate local names as external labels. Under these Swift 2 rules, a declarati
 ```swift
 func foo(a: T, b: U, c: V)
 ```
-declares `foo(_:b:c:)` and not `foo(a:b:c)`.
+declares `foo(_:b:c:)` and not `foo(a:b:c:)`.
 
 Historically, this label behavior was normalized in Swift 2, unifying parameter naming rules for
 methods and functions, which had previously used separate defaults behaviors. 
