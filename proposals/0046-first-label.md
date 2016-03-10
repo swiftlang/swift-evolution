@@ -96,6 +96,15 @@ Alternatively, this fixit behavior can be swapped. The callsite can update (`foo
 
 Ideally the migrator will locate patterns where the last letters of a function name match the first parameter name, for example `tintWithColor(color: UIColor)`, and insert a `FIXME:` warning suggesting manual migration. Swift's automatic Objective-C import code might be repurposed to detect a prepositional phrase and parameter match to automate a fixit for `tint(color: UIColor)` but this would involve a more complicated implementation.
 
+#### Note
+
+This proposal does not affect the behavior of Swift subscripts in any way.  Subscripts act
+as an indexing shortcut for accessing the member elements of a type. Although subscripts
+*can* use optional labels, there is no parallel between their use of labels and the function
+and method parameters discussed in this proposal. You remain free to implement 
+subscripts in the most appropriate way for your particular type's functionality,
+with or without labels.
+
 ## Alternatives Considered
 
 There are no alternatives considered at this time.
