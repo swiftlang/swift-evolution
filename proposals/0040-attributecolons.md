@@ -24,7 +24,7 @@ Common attributes include `@noescape` for parameters that cannot outlive the lif
 offers about a dozen distinct attributes, and is likely to expand this vocabulary in future language updates.
 
 Some attributes accept arguments: `@attribute-name(attribute-arguments)` including, at this time,
-`@available` and `@warn_unused_result`. In the current grammar, an equal sign separates attribute 
+`@available`, `@warn_unused_result` and `@swift3_migration`. In the current grammar, an equal sign separates attribute 
 argument keywords from values.
 
 ```swift
