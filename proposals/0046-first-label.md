@@ -86,15 +86,15 @@ explicitly declares `foo(_:y:)`
 
 ## Impact on Existing Code
 
-This proposal will impact existing code, requiring migration support from Xcode. We propose
-the following solution:
+This proposal will impact existing code, requiring migration support from Xcode. We propose the following solution:
 
 * Function declarations that do not include explicit first item external labels (for example, `func foo(x: Int, y: Int)`) will translate to `func foo(_ x: Int, y: Int)`.
 * Function call sites (e.g. `foo(2, y: 3)`) will remain unaffected.
+* Selector mentions (e.g. `#selector(ViewController.foo(_:y:))`) will remain unaffected
  
-Alternatively, this fixit behavior can be swapped. The callsite can update (`foo(x:2, y:3)`) and the declaration left as is. We feel the latter approach has a greater impact on existing code as functions are more often called than declared.
+We do not recommend swapping the fixit behavior. Functions are more often called and mentioned than declared. Under a swap, the callsite would update to `foo(x:2, y:3)`, selector mentions would update to `#selector(ViewController.foo(x:y:)`  and the declaration left as is, to be interpreted as an explicitly named first label.
 
-Ideally the migrator will locate patterns where the last letters of a function name match the first parameter name, for example `tintWithColor(color: UIColor)`, and insert a `FIXME:` warning suggesting manual migration. Swift's automatic Objective-C import code might be repurposed to detect a prepositional phrase and parameter match to automate a fixit for `tint(color: UIColor)` but this would involve a more complicated implementation.
+Ideally the migrator will locate patterns where the last letters of a function name match the first parameter name, for example `tintWithColor(color: UIColor)`, and insert a `FIXME:` warning suggesting manual migration. Swift's automatic Objective-C import code might be repurposed to detect a prepositional phrase and parameter match to automate a fixit for `tint(color: UIColor)` or `tint(withColor: UIColor)` but this would involve a more complicated implementation.
 
 #### Note
 
