@@ -11,6 +11,7 @@ proposals in that process.
 ## Upcoming reviews
 
 * March 9...13, 2016 [SE-0037: Clarify interaction between comments & operators](proposals/0037-clarify-comments-and-operators.md)
+* March 11...15, 2016 [SE-0046: Establish consistent label behavior across all parameters including first labels](https://github.com/apple/swift-evolution/blob/master/proposals/0046-first-label.md)
 
 
 ## Proposals awaiting scheduling
@@ -26,7 +27,6 @@ proposals in that process.
 * [SE-0043: Declare variables in 'case' labels with multiple patterns](proposals/0043-declare-variables-in-case-labels-with-multiple-patterns.md)
 * [SE-0044: Import as member](proposals/0044-import-as-member.md)
 * [SE-0045: Add scan, takeWhile, dropWhile, and iterate to the stdlib](proposals/0045-scan-takewhile-dropwhile.md)
-* [SE-0046: Establish consistent label behavior across all parameters including first labels](https://github.com/apple/swift-evolution/blob/master/proposals/0046-first-label.md)
 
 
 [evolution-process]: process.md  "The Swift evolution process"
