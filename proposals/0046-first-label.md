@@ -12,7 +12,7 @@ the existing behavior of the second and later parameters.
 All parameters, regardless of position, will behave
 uniformly. This will create a simple, consistent approach to parameter
 declaration throughout the Swift programming language and bring 
-method and function declarations in-sync with initalizers, which
+method and function declarations in-sync with initializers, which
 already use this standard.
 
 *Discussion took place on the Swift Evolution mailing list in the [Make the first parameter in a function declaration follow the same rules as the others](http://article.gmane.org/gmane.comp.lang.swift.evolution/9029) thread.*
@@ -88,7 +88,7 @@ explicitly declares `foo(_:y:)`
 
 This proposal will impact existing code, requiring migration support from Xcode. We propose the following solution:
 
-* Function declarations that do not include explicit first item external labels (for example, `func foo(x: Int, y: Int)`) will translate to `func foo(_ x: Int, y: Int)`.
+* Function declarations that do not include explicit first item external labels will explicitly remove the first argument's label (e.g. `func foo(x: Int, y: Int)` will translate to `func foo(_ x: Int, y: Int)`).
 * Function call sites (e.g. `foo(2, y: 3)`) will remain unaffected.
 * Selector mentions (e.g. `#selector(ViewController.foo(_:y:))`) will remain unaffected
  
