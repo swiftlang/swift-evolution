@@ -2,7 +2,8 @@
 
 * Proposal: [SE-0039](https://github.com/apple/swift-evolution/blob/master/proposals/0039-playgroundliterals.md)
 * Author(s): [Erica Sadun](http://github.com/erica)
-* Status: **Active** for March 7...9, 2016
+* Status: **Accepted** ([Bug](https://bugs.swift.org/browse/SR-917))
+
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction
@@ -42,16 +43,16 @@ There are several issues with this approach:
 
 Simplifying constructors to [octothorpe](https://en.wikipedia.org/wiki/Octothorpe)-delineated identifiers 
 cleans up the language, removes potential grammar conflicts, and follows precedent for other identifiers
-used in modern Swift. Our proposed identifiers are `#colorliteral`, `#imageliteral`, and `#fileliteral`.
+used in modern Swift. Our proposed identifiers are `#colorLiteral`, `#imageLiteral`, and `#fileLiteral`.
 
 ```swift
-color-literal → #colorliteral(red: unit-floating-point-literal, green: unit-floating-point-literal, blue: unit-floating-point-literal, alpha: unit-floating-point-literal)
+color-literal → #colorLiteral(red: unit-floating-point-literal, green: unit-floating-point-literal, blue: unit-floating-point-literal, alpha: unit-floating-point-literal)
 unit-floating-point-literal → floating point number greater or equal to zero, less than or equal to one
 
-image-literal → #imageliteral(imageName: image-resource-name)
+image-literal → #imageLiteral(resourceName: image-resource-name)
 image-resource-name → static-string-literal referring to image resource name
 
-file-literal → #fileliteral(resourceName: file-resource-name)
+file-literal → #fileLiteral(resourceName: file-resource-name)
 file-resource-name → static-string-literal referring to local resource name
 ```
 
@@ -60,7 +61,7 @@ In this design:
 * Each redesigned identifier uses lower case, to match existing Swift literals.
 * Arguments use lower camel case labels, as is conventional.
 * The word `literal` is added to identifiers denoting each item's role.
-* The arguments are simplified and standardized to `red`, `green`, `blue`, `alpha`, `imageName`, and `resourceName`.
+* The arguments are simplified and standardized to `red`, `green`, `blue`, `alpha`, and `resourceName`.
 
 ## Alternatives Considered
 

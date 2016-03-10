@@ -112,6 +112,7 @@ sampling of potentially good ideas that are not in scope for Swift
 * [SE-0007: Remove C-style for-loops with conditions and incrementers](proposals/0007-remove-c-style-for-loops.md)
 * [SE-0029: Remove implicit tuple splat behavior from function applications](proposals/0029-remove-implicit-tuple-splat.md)
 * [SE-0035: Limiting `inout` capture to `@noescape` contexts](proposals/0035-limit-inout-capture.md)
+* [SE-0039: Modernizing Playground Literals](proposals/0039-playgroundliterals.md)
 * [SE-0040: Replacing Equal Signs with Colons For Attribute Arguments](proposals/0040-attributecolons.md)
 
 ## Development minor version:  Swift 2.2
