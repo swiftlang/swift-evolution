@@ -1,7 +1,7 @@
 # Establish consistent label behavior across all parameters including first labels
 
 * Proposal: [SE-0046](https://github.com/apple/swift-evolution/blob/master/proposals/0046-first-label.md)
-* Author(s): [Erica Sadun](http://github.com/erica)
+* Author(s): [Jake Carter](https://github.com/JakeCarter), [Erica Sadun](http://github.com/erica)
 * Status: **Awaiting review**
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
