@@ -1,6 +1,6 @@
 # Move @noescape and @autoclosure to be type attributes
 
-* Proposal: [SE-0049: Move @noescape and @autoclosure to be type attributes](proposals/0049-noescape-autoclosure-type-attrs.md)
+* Proposal: [SE-0049: Move @noescape and @autoclosure to be type attributes](0049-noescape-autoclosure-type-attrs.md)
 * Author: [Chris Lattner](https://github.com/lattner)
 * Status: **To be scheduled**
 * Review manager: [Doug Gregor](https://github.com/DougGregor)
@@ -10,14 +10,15 @@
 This proposal suggests moving the existing `@noescape` and `@autoclosure`
 attributes from being declaration attributes on a parameter to being type
 attributes.  This improves consistency and reduces redundancy within the
-language, e.g. aligning with the previous Swift 3 decision to move "inout",
-and making declaration and type syntax more consistent. 
+language, e.g. aligning with [SE-0031](0031-adjusting-inout-declarations.md), 
+which moved `inout`, making declaration and type syntax more consistent. 
 
 Swift-evolution thread: [here](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160307/012292.html)
 
 ## Motivation
 
-Chris Eidhof noticed an emergent result of removing our currying syntax: it
+[Chris Eidhof](https://github.com/chriseidhof) 
+noticed an emergent result of removing our currying syntax: it
 broke some useful code using `@noescape`, because we only allowed it on
 parameter declarations, not on general things-of-function-type.  This meant that
 manually curried code like this:
