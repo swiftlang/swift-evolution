@@ -1,6 +1,6 @@
 # Conventionalizing `stride` semantics
 
-* Proposal: SE-00NN
+* Proposal: SE-0051
 * Author(s): [Erica Sadun](http://github.com/erica)
 * Status: TBD
 * Review manager: TBD
