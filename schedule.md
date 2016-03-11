@@ -28,7 +28,8 @@ proposals in that process.
 * [SE-0030: Property Behaviors](proposals/0030-property-behavior-decls.md)
 * [SE-0044: Import as member](proposals/0044-import-as-member.md)
 * [SE-0045: Add scan, takeWhile, dropWhile, and iterate to the stdlib](proposals/0045-scan-takewhile-dropwhile.md)
-
+* [SE-0048: Generic Type Aliases](proposals/0048-generic-typealias.md)
+* [SE-0049: Move @noescape and @autoclosure to be type attributes](proposals/0049-noescape-autoclosure-type-attrs.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 
