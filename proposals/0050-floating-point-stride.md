@@ -1,6 +1,6 @@
 # Decoupling Floating Point Strides from Generic Implementations
 
-* Proposal: SE-00XX
+* Proposal: SE-0050
 * Author(s): [Erica Sadun](http://github.com/erica)
 * Status: TBD
 * Review manager: TBD
