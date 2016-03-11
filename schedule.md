@@ -13,6 +13,8 @@ proposals in that process.
 ## Upcoming reviews
 
 * March 16...21, 2016 [SE-0047: Defaulting non-Void functions so they warn on unused results](proposals/0047-nonvoid-warn.md)
+* March 16...21, 2016 [SE-0042: Flattening the function type of unapplied method references](proposals/0042-flatten-method-types.md)
+* March 16...21, 2016 [SE-0043: Declare variables in 'case' labels with multiple patterns](proposals/0043-declare-variables-in-case-labels-with-multiple-patterns.md)
 
 
 ## Proposals awaiting scheduling
@@ -23,9 +25,7 @@ proposals in that process.
 * [SE-0032: Add `find` method to `SequenceType`](proposals/0032-sequencetype-find.md)
 * [SE-0036: Requiring Leading Dot Prefixes for Enum Instance Member Implementations](proposals/0036-enum-dot.md)
 * [SE-0041: Updating Protocol Naming Conventions for Conversions](proposals/0041-conversion-protocol-conventions.md)
-* [SE-0042: Flattening the function type of unapplied method references](proposals/0042-flatten-method-types.md)
 * [SE-0030: Property Behaviors](proposals/0030-property-behavior-decls.md)
-* [SE-0043: Declare variables in 'case' labels with multiple patterns](proposals/0043-declare-variables-in-case-labels-with-multiple-patterns.md)
 * [SE-0044: Import as member](proposals/0044-import-as-member.md)
 * [SE-0045: Add scan, takeWhile, dropWhile, and iterate to the stdlib](proposals/0045-scan-takewhile-dropwhile.md)
 
