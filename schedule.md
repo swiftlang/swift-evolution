@@ -10,7 +10,7 @@ proposals in that process.
 
 ## Upcoming reviews
 
-* March 9...13, 2016 [SE-0037: Clarify interaction between comments & operators](proposals/0037-clarify-comments-and-operators.md)
+* March 11...15, 2016 [SE-0037: Clarify interaction between comments & operators](proposals/0037-clarify-comments-and-operators.md)
 * March 11...15, 2016 [SE-0046: Establish consistent label behavior across all parameters including first labels](proposals/0046-first-label.md)
 * March 16...21, 2016 [SE-0047: Defaulting non-Void functions so they warn on unused results](proposals/0047-nonvoid-warn.md)
 
