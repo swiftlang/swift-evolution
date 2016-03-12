@@ -6,7 +6,6 @@ proposals in that process.
 
 ## Active reviews
 
-* February 26...March 3, 2016: [SE-0025: Scoped Access Level](proposals/0025-scoped-access-level.md)
 * March 11...15, 2016 [SE-0037: Clarify interaction between comments & operators](proposals/0037-clarify-comments-and-operators.md)
 * March 11...15, 2016 [SE-0046: Establish consistent label behavior across all parameters including first labels](proposals/0046-first-label.md)
 
@@ -32,6 +31,7 @@ proposals in that process.
 * [SE-0049: Move @noescape and @autoclosure to be type attributes](proposals/0049-noescape-autoclosure-type-attrs.md)
 * [SE-0050: Decoupling Floating Point Strides from Generic Implementations](proposals/0050-floating-point-stride.md)
 * [SE-0051: Conventionalizing Stride Semantics](proposals/0051-stride-semantics.md)
+* [SE-0025: Scoped Access Level](proposals/0025-scoped-access-level.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 

@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0025](https://github.com/apple/swift-evolution/blob/master/proposals/0025-scoped-access-level.md)
 * Author(s): Ilya Belenkiy
-* Status: **Under review** (February 26...March 3, 2016)
+* Status: **Under revision** ([First review result](http://thread.gmane.org/gmane.comp.lang.swift.evolution/12010))
 * Review manager: [Doug Gregor](http://github.com/DougGregor)
 
 ## Introduction
