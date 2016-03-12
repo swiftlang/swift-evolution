@@ -50,6 +50,7 @@ The accepted syntax for the line control statement will be modified as follows:
 
 ```swift
 #sourceLocation(file: "foo", line: 42) 
+#sourceLocation()    // reset to original position. 
 ```
 
 * After discussing how to rationalize naming and capitalization of identifiers in the `#`-namespace, the core Swift team adopted a [lower camel case](https://en.wikipedia.org/wiki/CamelCase) model for identifiers. The line control statement will use lower camel case and be renamed `#sourceLocation`. 
