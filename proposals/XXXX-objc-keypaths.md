@@ -58,6 +58,10 @@ extension Person {
 }
 ```
 
+## Collection Operators
+
+This proposal purposely does not attempt to implement Collection Operators as the current functionality stands on its own and is useful even without the Objective-C runtime (as can be seen in the previous example). On the contrary, collection operators will require more design, and are only useable with `valueForKeyPath:` which is not available on Linux.
+
 ## Impact on existing code
 
 The introduction of the `#keypath` expression has no impact on existing code as it returns a literal string. It is simply a modification-safe alternative to using literal strings directly for referencing key-paths.
