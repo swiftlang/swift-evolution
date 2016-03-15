@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0016](https://github.com/apple/swift-evolution/blob/master/proposals/0016-initializers-for-converting-unsafe-pointers-to-ints.md)
 * Author(s): [Michael Buckley](https://github.com/MichaelBuckley)
-* Status: **Awaiting Review**
+* Status: **Scheduled for Review March 22...25**
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction
@@ -41,21 +41,21 @@ The initializers will be implemented using the built-in ptrtoint_Word function.
 
 ```swift
 extension UInt {
-  init<T>(_ bitPattern: UnsafePointer<T>) {
+  init<T>(bitPattern: UnsafePointer<T>) {
     self = UInt(Builtin.ptrtoint_Word(bitPattern._rawValue))
   }
 
-  init<T>(_ bitPattern: UnsafeMutablePointer<T>) {
+  init<T>(bitPattern: UnsafeMutablePointer<T>) {
     self = UInt(Builtin.ptrtoint_Word(bitPattern._rawValue))
   }
 }
 
 extension Int {
-  init<T>(_ bitPattern: UnsafePointer<T>) {
+  init<T>(bitPattern: UnsafePointer<T>) {
     self = Int(Builtin.ptrtoint_Word(bitPattern._rawValue))
   }
 
-  init<T>(_ bitPattern: UnsafeMutablePointer<T>) {
+  init<T>(bitPattern: UnsafeMutablePointer<T>) {
     self = Int(Builtin.ptrtoint_Word(bitPattern._rawValue))
   }
 }
@@ -71,7 +71,8 @@ struct XORLinkedList<T> {
   ...
 
   func successor(_ predecessor: XORLinkedList<T>) -> XORLinkedList<T> {
-    return XorLinkedList(UnsafePointer<T>(UInt(address) ^ UInt(predecessor.address)))
+    let next =  UInt(bitPattern: address) ^ UInt(bitPattern: predecessor.address)
+    return XorLinkedList(UnsafePointer<T>(bitPattern: next))
   }
 }
 ```
