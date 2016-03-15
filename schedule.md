@@ -8,6 +8,7 @@ proposals in that process.
 
 * March 11...15, 2016 [SE-0037: Clarify interaction between comments & operators](proposals/0037-clarify-comments-and-operators.md)
 * March 11...15, 2016 [SE-0046: Establish consistent label behavior across all parameters including first labels](proposals/0046-first-label.md)
+* March 16...22, 2016 [SE-0044: Import as Member](proposals/0044-import-as-member.md)
 
 ## Upcoming reviews
 
@@ -25,7 +26,6 @@ proposals in that process.
 * [SE-0036: Requiring Leading Dot Prefixes for Enum Instance Member Implementations](proposals/0036-enum-dot.md)
 * [SE-0041: Updating Protocol Naming Conventions for Conversions](proposals/0041-conversion-protocol-conventions.md)
 * [SE-0030: Property Behaviors](proposals/0030-property-behavior-decls.md)
-* [SE-0044: Import as member](proposals/0044-import-as-member.md)
 * [SE-0045: Add scan, takeWhile, dropWhile, and iterate to the stdlib](proposals/0045-scan-takewhile-dropwhile.md)
 * [SE-0048: Generic Type Aliases](proposals/0048-generic-typealias.md)
 * [SE-0049: Move @noescape and @autoclosure to be type attributes](proposals/0049-noescape-autoclosure-type-attrs.md)
