@@ -29,8 +29,6 @@ proposals in that process.
 * [SE-0045: Add scan, takeWhile, dropWhile, and iterate to the stdlib](proposals/0045-scan-takewhile-dropwhile.md)
 * [SE-0048: Generic Type Aliases](proposals/0048-generic-typealias.md)
 * [SE-0049: Move @noescape and @autoclosure to be type attributes](proposals/0049-noescape-autoclosure-type-attrs.md)
-* [SE-0050: Decoupling Floating Point Strides from Generic Implementations](proposals/0050-floating-point-stride.md)
-* [SE-0051: Conventionalizing Stride Semantics](proposals/0051-stride-semantics.md)
 * [SE-0025: Scoped Access Level](proposals/0025-scoped-access-level.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
