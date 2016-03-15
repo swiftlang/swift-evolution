@@ -7,11 +7,11 @@
 
 ## Introduction
 ## 
-Just as users can create Unsafe[Mutable]Pointers from Ints and UInts, they
-should be able to create Ints and UInts from Unsafe[Mutable]Pointers. This will
-allow users to call C functions with intptr_t and uintptr_t parameters, and will
+Just as users can create `Unsafe[Mutable]Pointer`s from `Int`s and `UInt`s, they
+should be able to create Ints and UInts from `Unsafe[Mutable]Pointer`s. This will
+allow users to call C functions with `intptr_t` and `uintptr_t` parameters, and will
 allow users to perform more advanced pointer arithmetic than is allowed by
-UnsafePointers.
+`UnsafePointer`s.
 
 ## Motivation
 ## 
@@ -21,14 +21,14 @@ pointers (for working with XOR linked lists, for example). As a systems
 programming language, Swift ought to be able to solve these problems natively
 and concisely.
 
-Additionally, since some C functions take intptr_t and uintptr_t parameters,
+Additionally, since some C functions take `intptr_t` and `uintptr_t` parameters,
 Swift currently has no ability to call these functions directly. Users must wrap
 calls to these functions in C code.
 
 ## Proposed solution
 ## 
-Initializers will be added to Int and UInt to convert from UnsafePointer and
-UnsafeMutablePointer.
+Initializers will be added to `Int` and `UInt` to convert from `UnsafePointer` and
+`UnsafeMutablePointer`.
 
 Currently, the only workaround which can solve these problems is to write any
 code that requires pointer arithmetic in C. Writing this code in Swift will be
@@ -37,7 +37,7 @@ it will be cleaner in that users will not be forced to write C code.
 
 ## Detailed design
 ## 
-The initializers will be implemented using the built-in ptrtoint_Word function.
+The initializers will be implemented using the built-in `ptrtoint_Word` function.
 
 ```swift
 extension UInt {
@@ -71,7 +71,7 @@ struct XORLinkedList<T> {
   ...
 
   func successor(_ predecessor: XORLinkedList<T>) -> XORLinkedList<T> {
-    let next =  UInt(bitPattern: address) ^ UInt(bitPattern: predecessor.address)
+    let next = UInt(bitPattern: address) ^ UInt(bitPattern: predecessor.address)
     return XorLinkedList(UnsafePointer<T>(bitPattern: next))
   }
 }
@@ -85,18 +85,18 @@ There is no impact on existing code.
 ## 
 Three alternatives were considered.
 
-The first alternative was to add an intValue function to Unsafe[Mutable]Pointer.
+The first alternative was to add an `intValue` function to `Unsafe[Mutable]Pointer`.
 This alternative was rejected because it is preferred that type conversions be
 implemented as initializers where possible.
 
-The next alternative was to add functions to Unsafe[Mutable]Pointer which
+The next alternative was to add functions to `Unsafe[Mutable]Pointer` which
 covered the identified pointer arithmetic cases. This alternative was rejected
 because it either would have required us to imagine every use-case of pointer
 arithmetic and write functions for them, which is an impossible task, or it
 would have required adding a full suite of arithmetic and bitwise operators to
-Unsafe[Mutable]Pointer. Because some of these operations are defined only on
+`Unsafe[Mutable]Pointer`. Because some of these operations are defined only on
 signed integers, and others on unsigned, it would have required splitting
-Unsafe[Mutable]Pointer into signed and unsigned variants, which would have
+`Unsafe[Mutable]Pointer` into signed and unsigned variants, which would have
 complicated things for users who did not need to do pointer arithmetic.
 Additionally, the implementations of these operations would have probably
 converted the pointers to integers, perform a single operation, and then convert
