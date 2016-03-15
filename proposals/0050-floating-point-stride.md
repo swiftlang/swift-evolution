@@ -2,7 +2,7 @@
 
 * Proposal: SE-0050
 * Author(s): [Erica Sadun](http://github.com/erica)
-* Status: TBD
+* Status: Withdrawn by Submitter
 * Review manager: TBD
 
 Swift strides create progressions along "notionally continuous one-dimensional values" using
