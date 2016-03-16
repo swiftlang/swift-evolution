@@ -2,14 +2,14 @@
 
 * Proposal: [SE-0028](https://github.com/apple/swift-evolution/blob/master/proposals/0028-modernizing-debug-identifiers.md)
 * Author(s): [Erica Sadun](http://github.com/erica)
-* Status: Under review through Feb 2
+* Status: *Accepted* (Bug: [SR-669](https://bugs.swift.org/browse/SR-669))
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction
 
 This proposal aims to eliminate Swift's use of "[screaming snake case](https://en.wikipedia.org/wiki/Snake_case)" like `__FILE__` and `__FUNCTION__` and replacing identifier instances with common [octothorpe-prefixed](https://en.wiktionary.org/wiki/octothorpe) lowercase `#identifier` representations.
 
-*The Swift-Evolution discussion of this topic took place in the "[Review] SE-0022: Referencing the Objective-C selector of a method" thread and then in its own "[Proposal] Eliminating Swift's Screaming Snake Case Identifiers" thread*
+*The Swift-Evolution discussion of this topic took place in the "[Review] SE-0022: Referencing the Objective-C selector of a method" thread and then in its own "[\[Proposal\] Eliminating Swift's Screaming Snake Case Identifiers](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160118/007347.html)" thread*
 
 ## Motivation
 
@@ -31,9 +31,10 @@ Using octothorpe-prefixed keywords offers several advantages:
 
 This proposal renames the following identifiers:
 
-* `__FILE__` -> `#file`. 
+* `__FILE__` -> `#file`
 * `__LINE__` -> `#line`
 * `__COLUMN__` -> `#column`
+* `__FUNCTION__` -> `#function` (*Added during review*)
 * `__DSO_HANDLE__` -> `#dsohandle`
 
 These identifiers retain the magic behavior of the existing `__LINE__` features: in a normal expression context, they expand to the location at that point.  In a default argument context, they expand to the location of the caller. 
@@ -41,8 +42,8 @@ These identifiers retain the magic behavior of the existing `__LINE__` features:
 Additional points to be considered by the Swift team for inclusion:
 
 * Adding `#filename` to avoid using `lastPathComponent` on `#file` references.
+* Retaining `__FUNCTION__` to be renamed as `#function`. (*Accepted during review*)
 * Adopting a lower-case naming standard including `#dsohandle` and a potential future `#sourcelocation`.
-* Retaining `__FUNCTION__` to be renamed as `#function`.
 * Introducing `#symbol`, (e.g. Swift.Dictionary.Init(x:Int,y:String)), which summarizes context including module, type, and function. A fully qualified symbol enables users to access exactly the information they desire. It should contain parameter type information to properly identify member overloads.
 
 
@@ -57,3 +58,13 @@ Should such a type be adopted, I'd recommend support for common output summary r
 ## Implementation notes
 
 The octothorpe-delineated `#line` identifier already exists in Swift for resetting line numbers. Constraining the current `#line` directive to be the first token after a newline would disambiguate use. Alternatively, the context `#line` identifier could be renamed `#linenumber`.
+
+## Review Acceptance and Modifications
+
+The review of SE-0028 "Modernizing Swift's Debugging Identifiers" ran from January 29… February 2, 2016. The proposal has been *accepted*, with modifications:
+
+* The core team agrees that we should rename all of the existing `__FILE__`, `__LINE__`, `__COLUMN__`, `__FUNCTION__`, and `__DSO_HANDLE__` symbols to lowercase equivalents in the `#` namespace: `#file`, `#line`, `#column`, `#function`, `#dsohandle`.  This includes keeping `__FUNCTION__`, and making `#line` have the dual behavior of being a directive when it is the first token on a line, but an expression otherwise.  Renaming these symbols improves uniformity within the Swift language, and keeping all of them provides a smooth transition path from the old syntax to the new syntax.
+
+* The core team isn’t thrilled with the magic “first token on a line” whitespace behavior that `#line` will be getting, and would like to start a discussion about renaming the old `#line` directive to something more specific and tailored to its purpose.   Once that name and syntax is settled, we can rename the directive and remove the whitespace rule.
+
+* The core team requests that `#symbol` be split out into a separate proposal, because it needs more detailed design work, and is an additive feature.  For example, it might be appealing to provide a `#mangledname` expression that provides the current symbol as a mangled name: when fed into a demangler, a more structured form of the current symbol would be available.

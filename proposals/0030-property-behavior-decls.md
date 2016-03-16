@@ -1,9 +1,9 @@
 # Property Behaviors
 
-* Proposal: [SE-0030](https://github.com/apple/swift-evolution/proposals/NNNN-name.md)
+* Proposal: [SE-0030](https://github.com/apple/swift-evolution/blob/master/proposals/0030-property-behavior-decls.md)
 * Author(s): [Joe Groff](https://github.com/jckarter)
-* Status: **Awaiting review**
-* Review manager: [John McCall](https://github.com/rjmccall)
+* Status: **Under revision** ([Result of February 10...February 23, 2016 review](http://thread.gmane.org/gmane.comp.lang.swift.evolution/7735))
+* Review manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction
 
@@ -50,13 +50,11 @@ which means it can't be accessed from an immutable value.  Inline storage is
 also suboptimal for many memoization tasks, since the cache cannot be reused
 across copies of the value. A value-oriented memoized property implementation
 might look very different, using a class instance to store the cached value
-out-of-line in order to avoid mutation of the value itself. Lazy properties are
-also unable to surface any additional operations over a regular property, such
-as to reset a lazy property's storage to be recomputed again.
+out-of-line in order to avoid mutation of the value itself.
 
-There are important property patterns outside of lazy initialization.
-It often makes sense to have "delayed",
-once-assignable-then-immutable properties to support multi-phase initialization:
+There are important property patterns outside of lazy initialization.  It often
+makes sense to have "delayed", once-assignable-then-immutable properties to
+support multi-phase initialization:
 
 ```swift
 class Foo {
@@ -77,20 +75,20 @@ class Foo {
 ```
 
 Implicitly-unwrapped optionals allow this in a pinch, but give up a lot of
-safety compared to a non-optional 'let'. Using IUO for multi-phase initialization
-gives up both immutability and nil-safety.
+safety compared to a non-optional 'let'. Using IUO for multi-phase
+initialization gives up both immutability and nil-safety.
 
 We also have other application-specific property features like
 `didSet`/`willSet` that add language complexity for
 limited functionality. Beyond what we've baked into the language already,
 there's a seemingly endless set of common property behaviors, including
-resetting, synchronized access, and various kinds of proxying, all begging for
+synchronized access, copying, and various kinds of proxying, all begging for
 language attention to eliminate their boilerplate.
 
 ## Proposed solution
 
 I suggest we allow for **property behaviors** to be implemented within the
-language.  A `var` or `let` declaration can specify its **behaviors** in square
+language.  A `var` declaration can specify its **behaviors** in square
 brackets after the keyword:
 
 ```swift
@@ -101,8 +99,9 @@ which implements the property `foo` in a way described by the **property
 behavior declaration** for `lazy`:
 
 ```swift
-behavior var [lazy] _: Value = initialValue {
+var behavior lazy<Value>: Value {
   var value: Value? = nil
+  initialValue
 
   mutating get {
     if let value = value {
@@ -115,23 +114,13 @@ behavior var [lazy] _: Value = initialValue {
   set {
     value = newValue
   }
-
-  mutating func clear() {
-    value = nil
-  }
 }
 ```
 
 Property behaviors can control the storage,
 initialization, and access of affected properties, obviating the need for
 special language support for `lazy`, observers, and other
-special-case property features. Property behaviors can also provide additional
-operations on properties, such as `clear`-ing a lazy property, accessed with
-`property.[behavior]` syntax:
-
-```swift
-foo.[lazy].clear()
-```
+special-case property features.
 
 ## Examples
 
@@ -143,14 +132,14 @@ potential applications for behaviors.
 The current `lazy` property feature can be reimplemented as a property behavior.
 
 ```swift
-// Property behaviors are declared using the `behavior var` keyword cluster.
-// The declaration is designed to look similar to a property declaration
-// using the behavior. Identifiers in the name, type, and initializer position
-// of the declaration bind to the name as a string, type as a generic parameter,
-// and initializer as a computed property, respectively.
-public behavior var [lazy] _: Value = initialValue {
+// Property behaviors are declared using the `var behavior` keyword cluster.
+public var behavior lazy<Value>: Value {
   // Behaviors can declare storage that backs the property.
   private var value: Value?
+
+  // Behaviors can bind the property's initializer expression with an
+  // `initialValue` property declaration.
+  initialValue
 
   // Behaviors can declare initialization logic for the storage.
   // (Stored properties can also be initialized in-line.)
@@ -173,12 +162,6 @@ public behavior var [lazy] _: Value = initialValue {
   set {
     value = newValue
   }
-
-  // Behaviors can also declare methods to attach to the property.
-  // These can be accessed with `property.[behavior].method` syntax.
-  public mutating func clear() {
-    value = nil
-  }
 }
 ```
 
@@ -191,13 +174,6 @@ print(x) // Invokes the `lazy` getter, initializing the property
 x = 679 // Invokes the `lazy` setter
 ```
 
-Visible members of the behavior can also be accessed under
-`property.[behavior]`:
-
-```swift
-x.[lazy].clear() // Invokes `lazy`'s `clear` method
-```
-
 ### Delayed Initialization
 
 A property behavior can model "delayed" initialization behavior, where the DI
@@ -207,7 +183,7 @@ initialization. We can implement both a mutable variant, which
 allows for reassignment like a `var`:
 
 ```swift
-public behavior var [delayedMutable] _: Value {
+public var behavior delayedMutable<Value>: Value {
   private var value: Value? = nil
 
   get {
@@ -219,15 +195,6 @@ public behavior var [delayedMutable] _: Value {
   set {
     value = newValue
   }
-
-  // Perform an explicit initialization, trapping if the
-  // value is already initialized.
-  public mutating func initialize(initialValue: Value) {
-    if let _ = value {
-      fatalError("property initialized twice")
-    }
-    value = initialValue
-  }
 }
 ```
 
@@ -235,7 +202,7 @@ and an immutable variant, which only allows a single initialization like
 a `let`:
 
 ```swift
-public behavior var [delayedImmutable] _: Value {
+public var behavior delayedImmutable<Value>: Value {
   private var value: Value? = nil
 
   get {
@@ -245,9 +212,9 @@ public behavior var [delayedImmutable] _: Value {
     return value
   }
 
-  // Perform an explicit initialization, trapping if the
+  // Perform an initialization, trapping if the
   // value is already initialized.
-  public mutating func initialize(initialValue: Value) {
+  set {
     if let _ = value {
       fatalError("property initialized twice")
     }
@@ -267,7 +234,7 @@ class Foo {
   }
 
   func initializeX(x: Int) {
-    self.x.[delayedImmutable].initialize(x) // Will crash if 'self.x' is already initialized
+    self.x = x // Will crash if 'self.x' is already initialized
   }
 
   func getX() -> Int {
@@ -276,52 +243,15 @@ class Foo {
 }
 ```
 
-### Resettable properties
-
-There's a common pattern in Cocoa where properties are used as optional
-customization points, but can be reset to nil to fall back to a non-public
-default value. In Swift, properties that follow this pattern currently must be
-imported as ImplicitlyUnwrappedOptional, even though the property can only be
-*set* to nil. If expressed as a behavior, the `reset` operation can be
-decoupled from the type, allowing the property to be exported as non-optional:
-
-```swift
-public behavior var [resettable] _: Value = initialValue {
-  var value: Value = initialValue
-
-  get {
-    return value
-  }
-  set {
-    value = newValue
-  }
-
-  // Reset the property to its original initialized value.
-  mutating func reset() {
-    value = initialValue
-  }
-}
-```
-
-For example:
-
-
-```
-var [resettable] foo: Int = 22
-print(foo) // => 22
-foo = 44
-print(foo) // => 44
-foo.[resettable].reset()
-print(foo) // => 22
-```
-
 ### Property Observers
 
 A property behavior can also approximate the built-in behavior of
 `didSet`/`willSet` observers, by declaring support for custom accessors:
 
 ```swift
-public behavior var [observed] _: Value = initialValue {
+public var behavior observed<Value>: Value {
+  initialValue
+
   var value = initialValue
 
   // A behavior can declare accessor requirements, the implementations of
@@ -357,7 +287,9 @@ value really changed to a value not equal to the old value, can be implemented
 as a new behavior:
 
 ```swift
-public behavior var [changeObserved] _: Value = initialValue {
+public var behavior changeObserved<Value: Equatable>: Value {
+  initialValue
+
   var value = initialValue
 
   mutating accessor didChange(oldValue: Value) { }
@@ -378,7 +310,7 @@ public behavior var [changeObserved] _: Value = initialValue {
 For example:
 
 ```swift
-var [changeObserved] x = 1 {
+var [changeObserved] x: Int = 1 {
   didChange { print("\(oldValue) => \(x)") }
 }
 
@@ -388,7 +320,10 @@ x = 2 // Prints 1 => 2
 
 (Note that, like `didSet`/`willSet` today, neither behavior implementation
 will observe changes through class references that mutate a referenced
-class instance without changing the reference itself.)
+class instance without changing the reference itself. Also, as currently
+proposed, behaviors would force the property to be initialized in-line, which
+is not acceptable for instance properties. That's a limitation that can
+be lifted by future extensions.)
 
 ### Synchronized Property Access
 
@@ -408,8 +343,9 @@ public protocol Synchronizable: class {
 // Behaviors can refer to a property's containing type using
 // the implicit `Self` generic parameter. Constraints can be
 // applied using a 'where' clause, like in an extension.
-public behavior var [synchronized] _: Value = initialValue
-    where Self: Synchronizable {
+public var behavior synchronized<Value where Self: Synchronizable>: Value {
+  initialValue
+
   var value: Value = initialValue
 
   get {
@@ -433,7 +369,9 @@ them behavior like Objective-C's `@property(copy)`, invoking the `copy` method
 on new objects when the property is set. We can turn this into a behavior:
 
 ```swift
-public behavior var [copying] _: Value = initialValue {
+public var behavior copying<Value: NSCopying>: Value {
+  initialValue
+
   // Copy the value on initialization.
   var value: Value = initialValue.copy()
 
@@ -454,18 +392,16 @@ proposed design in detail:
 
 ### Property behavior declarations
 
-A **property behavior declaration** is introduced by the `behavior var`
+A **property behavior declaration** is introduced by the `var behavior`
 contextual keyword cluster. The declaration is designed to resemble the
 syntax of a property using the behavior:
 
 ```text
 property-behavior-decl ::=
   attribute* decl-modifier*
-  'behavior' 'var' '[' identifier ']' // behavior name
-  (identifier | '_')                  // property name binding
-  ':' identifier                      // property type binding
-  ('=' identifier)?                   // property initial value binding
-  ('where' generic-constraints)?      // generic constraints
+  'var' 'behavior' identifier         // behavior name
+  generic-signature?
+  ':' type
   '{'
     property-behavior-member-decl*
   '}'
@@ -473,46 +409,18 @@ property-behavior-decl ::=
 
 Inside the behavior declaration, standard initializer, property, method, and
 nested type declarations are allowed, as are **core accessor** declarations
-—`get` and `set`. **Accessor requirement declarations** are also recognized
+—`get` and `set`. **Accessor requirement declarations** and **initial
+value requirement declarations** are also recognized
 contextually within the declaration:
 
 ```text
 property-behavior-member-decl ::= decl
 property-behavior-member-decl ::= accessor-decl // get, set
 property-behavior-member-decl ::= accessor-requirement-decl
+property-behavior-member-decl ::= initial-value-requirement-decl
 ```
 
 ### Bindings within Behavior Declarations
-
-The property behavior declaration can declare bindings in the name, type,
-and initializer positions of the `var`, which bind the corresponding
-aspects of a property definition using the behavior:
-
-- A `_` placeholder is required in the name position. (A future extension
-  of behaviors may allow the property name to be bound as a string literal
-  here.)
-- An identifier in the type position is required, which binds to the type
-  of the property as a generic parameter. This generic parameter can
-  be constrained in a behavior's `where` clause, and can be used as a type
-  in declarations inside the behavior.
-
-- A behavior may optionally bind an identifier to the initializer expression
-  used to initialize a property:
-
-    ```swift
-    behavior var [reevaluateOnEveryAccess] _: Value = initialValue {
-      get {
-        return initialValue
-      }
-    }
-    ```
-
-  This imposes an **initializer requirement** on the behavior. Any
-  property using the behavior must be declared with an initial value;
-  that initial value is coerced to the property's type and bound within
-  the behavior as a computed, get-only property. The initial value expression
-  is evaluated when the binding is semantically loaded from (in other words,
-  when its getter is called).
 
 Inside a behavior declaration, `self` is implicitly bound to the value that
 contains the property instantiated using this behavior. For a freestanding
@@ -529,9 +437,7 @@ protocol Fungible {
   func funge() -> Fungus
 }
 
-behavior var [runcible] _: Value
-    where Self: Fungible, Self.Fungus == Value
-{
+var behavior runcible<Value where Self: Fungible, Self.Fungus == Value>: Value {
   get {
     return self.funge()
   }
@@ -552,7 +458,7 @@ on the behavior's name (since `self` is already taken to mean the containing
 value):
 
 ```swift
-behavior var [foo] _: Value {
+var behavior foo<Value>: Value {
   var x: Int
 
   init() {
@@ -560,17 +466,16 @@ behavior var [foo] _: Value {
   }
 
   mutating func update(x: Int) {
-    [foo].x = x // Disambiguate reference to behavior storage
+    foo.x = x // Disambiguate reference to behavior storage
   }
 }
 ```
-
 
 If the behavior includes *accessor requirement declarations*, then the
 declared accessor names are bound as functions with labeled arguments:
 
 ```swift
-behavior var [fakeComputed] _: Value {
+var behavior fakeComputed<Value>: Value {
   accessor get() -> Value
   mutating accessor set(newValue: Value)
 
@@ -586,11 +491,9 @@ behavior var [fakeComputed] _: Value {
 Note that the behavior's own *core accessor* implementations `get { ... }`
 and `set { ... }` are *not* referenceable this way.
 
-### Nested Types in Behaviors
-
-Behavior declarations may nest type declarations as a namespacing mechanism.
-As with other type declarations, the nested type cannot reference members
-from its enclosing behavior.
+If the behavior includes an *initial value requirement declaration*, then
+the identifier `initialValue` is bound as a get-only computed property that
+evaluates the initial value expression for the property
 
 ### Properties and Methods in Behaviors
 
@@ -599,7 +502,7 @@ by behavior properties is expanded into the containing scope of a property
 using the behavior.
 
 ```swift
-behavior var [runcible] _: Value {
+var behavior runcible<Value>: Value {
   var x: Int = 0
   let y: String = ""
   ...
@@ -621,26 +524,6 @@ that public behaviors must use storage with types that are either public
 or internal-with-availability, similar to the restrictions on inlineable
 functions.
 
-The properties and methods of the
-behavior are accessible from properties using the behavior, if they
-have sufficient visibility.
-
-```swift
-behavior var [runcible] _: Value {
-  private var x: Int = 0
-  var y: String = ""
-
-  func foo() {}
-}
-
-// In a different file...
-
-var [runcible] a: Int
-_ = a.[runcible].x // Error, runcible.x is private
-_ = a.[runcible].y // OK
-a.runcible.foo() // OK
-```
-
 Method and computed property implementations have only immutable access to
 `self` and their storage by default, unless they are `mutating`. (As with
 computed properties, setters are `mutating` by default unless explicitly
@@ -652,12 +535,12 @@ The storage of a behavior must be initialized, either by inline initialization,
 or by an `init` declaration within the initializer:
 
 ```swift
-behavior var [inlineInitialized] _: Value {
+var behavior inlineInitialized<Value>: Value {
   var x: Int = 0 // initialized inline
   ...
 }
 
-behavior var [initInitialized] _: Value {
+var behavior initInitialized<Value>: Value {
   var x: Int
 
   init() {
@@ -672,10 +555,45 @@ is always as visible as the behavior itself. Neither inline initializers nor
 `init` declaration bodies may reference `self`, since they will be executed
 during the initialization of a property's containing value.
 
+### Initial Value Requirement Declaration
+
+An *initial value requirement declaration* specifies that a behavior
+requires any property declared using the behavior to be declared with an
+initial value expression.
+
+```swift
+initial-value-requirement-decl ::= 'initialValue'
+```
+
+The initial value expression from the property declaration is coerced to
+the property's type and bound to the `initialValue` identifier in the scope
+of the behavior. Loading from `initialValue` behaves like a get-only computed
+property, evaluating the expression every time it is loaded:
+
+```swift
+var behavior evalTwice<Value>: Value {
+  initialValue
+
+  get {
+    // Evaluate the initial value twice, for whatever reason.
+    _ = initialValue
+    return initialValue
+  }
+}
+
+var [evalTwice] test: () = print("test")
+
+// Prints "test" twice
+_ = evalTwice
+```
+
+A property declared with a behavior must have an initial value expression
+if and only if the behavior has an initial value requirement.
+
 ### Accessor Requirement Declarations
 
 An *accessor requirement declaration* specifies that a behavior requires
-any property declared to use the behavior to provide an accessor
+any property declared using the behavior to provide an accessor
 implementation. An accessor requirement declaration is introduced by the
 contextual `accessor` keyword:
 
@@ -693,7 +611,7 @@ arguments) are bound as functions within the behavior declaration:
 
 ```swift
 // Reinvent computed properties
-behavior var [foobar] _: Value {
+var behavior foobar<Value>: Value {
   accessor foo() -> Value
   mutating accessor bar(bas: Value)
 
@@ -712,11 +630,11 @@ var [foobar] foo: Int {
   }
 }
 
-var [computed] bar: Int {
-  get {
+var [foobar] bar: Int {
+  foo {
     return 0
   }
-  set(myNewValue) {
+  bar(myNewValue) {
     // Parameter name can be overridden as well
     print(myNewValue)
   }
@@ -728,10 +646,10 @@ implementation:
 
 ```swift
 // Reinvent property observers
-behavior var [observed] _: Value = initialValue {
-  init() {
-    value = initialValue
-  }
+var behavior observed<Value>: Value {
+  // Requirements
+
+  initialValue
   mutating accessor willSet(newValue: Value) {
     // do nothing by default
   }
@@ -739,6 +657,11 @@ behavior var [observed] _: Value = initialValue {
     // do nothing by default
   }
 
+  // Implementation
+
+  init() {
+    value = initialValue
+  }
   get {
     return value
   }
@@ -807,7 +730,7 @@ parameters, the parameter labels from the behavior's accessor requirement
 declaration are implicitly bound by default.
 
 ```swift
-behavior var [foo] _: Value {
+var behavior foo<Value>: Value {
   accessor bar(arg: Int)
   ...
 }
@@ -835,69 +758,22 @@ does not have a behavior requirement, then it is an error to use an inline
 initializer expression. Conversely, it is an error not to provide an
 initializer expression to a behavior that requires one.
 
+Properties cannot be declared using behaviors inside protocols.
+
 Under this proposal, even if a property with a behavior has an initial value
 expression, the type is always required to be explicitly declared. Behaviors
 also do not allow for out-of-line initialization of properties. Both of these
 restrictions can be lifted by future extensions; see the **Future directions**
 section below.
 
-### Accessing Behavior Members on Properties
-
-A behavior's properties and methods can be accessed on properties using the
-behavior under `property.[behavior]`:
-
-```swift
-behavior var [foo] _: Value = initial {
-  var storage: Value = initial
-  func method() { }
-  get { return storage }
-}
-
-var [foo] x: Int = 0
-print(x.[foo].storage)
-x.[foo].method()
-```
-
-To access a behavior member, code must have visibility of both the property's
-behavior, and the behavior's member. Behaviors are `private` by default,
-unless declared with a higher visibility. A behavior cannot be more visible
-than the property it applies to.
-
-```swift
-// foo.swift
-behavior var [foo] _: Value = initial {
-  private var storage: Value = initial
-  func method() { }
-  get { return storage }
-}
-
-
-// bar.swift
-var [foo] bar: Int
-var [internal foo] internalFoo: Int
-var [public foo] publicFoo: Int // Error, behavior more visible than property
-
-_ = bar.[foo].storage // Error, `storage` is private to behavior
-bar.[foo].method() // OK
-
-// bas.swift
-bar.[foo].method() // Error, `foo` behavior is private
-internalFoo.[foo].method() // OK
-```
-
-Methods, properties, and nested types within the behavior can be accessed.
-It is not allowed to access a behavior's `init` declaration, initializer
-or accessor requirements, or core accessors from outside the behavior
-declaration.
-
 ## Impact on existing code
 
 By itself, this is an additive feature that doesn't impact
-existing code. However, it potentially obsoletes `lazy`, `willSet`/`didSet`,
-and `@NSCopying` as hardcoded language features.  We could grandfather these
-in, but my preference would be to phase them out by migrating them to
-library-based property behavior implementations. (Removing them should be its
-own separate proposal, though.)
+existing code. However, with some of the future directions suggested, it
+can potentially obsolete `lazy`, `willSet`/`didSet`, and `@NSCopying` as
+hardcoded language features.  We could grandfather these in, but my preference
+would be to phase them out by migrating them to library-based property behavior
+implementations. (Removing them should be its own separate proposal, though.)
 
 ## Alternatives considered
 
@@ -956,7 +832,23 @@ of behaviors (or being subsumed by an all-encompassing macro system). For
 instance, a future `func behavior` could conceivably provide Python
 decorator-like behavior for transforming function bodies.
 
-### Declaration syntax
+### "Template"-style behavior declaration syntax
+
+John McCall proposed a "template"-like syntax for property behaviors, used
+in a previous revision of this proposal:
+
+```swift
+behavior var [lazy] name: Value = initialValue {
+  ...
+}
+```
+
+It's appealing from a declaration-follows-use standpoint, and provides
+convenient places to slot in name, type, and initial value bindings. However,
+this kind of syntax is unprecedented in Swift, and in initial review, was
+not popular.
+
+### Declaration syntax for properties using behaviors
 
 Alternatives to the proposed `var [behavior] propertyName` syntax include:
 
@@ -972,29 +864,6 @@ Alternatives to the proposed `var [behavior] propertyName` syntax include:
 - Use a new keyword, as in `var x: T by behavior`.
 - Something on the right side of the colon, such as `var x: lazy(T)`.  To me
   this reads like `lazy(T)` is a type of some kind, which it really isn't.
-- Something resembling the lookup syntax, such as `var x.[lazy]: T`.
-
-### Syntax for accessing the backing property
-
-The proposal suggests `x.[behaviorName]` for accessing the underlying backing
-property of `var [behaviorName] x`.  Some alternatives to consider:
-
-- Reserving a keyword and syntactic form to refer to the backing property, such
-  as `foo.x.behavior` or `foo.behavior(x)`. The problems with this are that
-  reserving a keyword is undesirable, and that `behavior` is a vague term that
-  requires more context for a reader to understand what's going on. If we
-  support multiple behaviors on a property, it also doesn't provide a mechanism
-  to distinguish between behaviors.
-- Doing member lookup in both the property's type and its behaviors (favoring
-  the declared property when there are conflicts). If `foo` is known to be
-  `lazy`, it's attractive for `foo.clear()` to Just Work without additional
-  syntax.  This has the usual ambiguity problems of overloading, of course; if
-  the behavior's members are shadowed by the fronting type, something would be
-  necessary to disambiguate.
-- Treat the behavior name alone as a member of the property, so that
-  `foo.lazy.clear()` works. This reduces the surface area for potential
-  namespace collision, but still fundamentally has the same disambiguation
-  problems as the previous alternative.
 
 ## Future directions
 
@@ -1019,7 +888,7 @@ when the behavior introduces constraints on the property type. If you have
 something like this:
 
 ```swift
-behavior var [uint16only] _: Value where Value == UInt16 { ... }
+var behavior uint16only: UInt16 { ... }
 
 var [uint16only] x = 1738
 ```
@@ -1053,9 +922,9 @@ of composition can be treacherous, since it allows for "incorrect"
 compositions of behaviors. One of `lazy • synchronized` or
 `synchronized • lazy` is going to do the wrong thing. This possibility
 can be handled somewhat by allowing certain compositions to be open-coded;
-John McCall has suggested allowing `behavior var [lazy, synchronized]` to
-work and define the behavior implementation of `lazy` and `synchronized`
-composed distinct from their individual implementations. That of course
+John McCall has suggested that every composition ought to be directly 
+implemented as an entirely distinct behavior.
+That of course
 has an obvious exponential explosion problem; it's infeasible to anticipate
 and hand-code every useful combination of behaviors. These issues deserve
 careful separate consideration, so I'm leaving behavior composition out of this
@@ -1126,27 +995,19 @@ initialization behavior in any way.
 
 There are a number of clever things you can do with the name of a property
 if it can be referenced as a string, such as using it to look up a value in
-a map, to log, or to serialize. The declaration-follows-use syntax proposed
-here naturally extends to allowing a behavior to bind the name as a string
-(and/or potentially as a projection function):
+a map, to log, or to serialize. We could conceivably support a `name`
+requirement declaration:
 
 ```swift
-behavior var [echo] name: Value where Value: StringLiteralConvertible {
+var behavior echo<Value: StringLiteralConvertible>: Value {
+  name: String
+
   get { return name }
 }
 
 var [echo] echo: String
 print(echo) // => echo
 ```
-
-### Extensions on behaviors
-
-It might be interesting to allow behaviors to have new functionality added
-via `extension`s. This feature would come with some runtime costs, however; any
-`public` behavior on a property would have to export a vtable representing
-that property's implementation of the behavior in order for extensions in
-other modules to be able to interact with it. This fights the
-"zero-cost abstraction" goal we have for the feature.
 
 ### Overloading behaviors
 
@@ -1155,16 +1016,18 @@ different implementation to computed and stored variants of a concept:
 
 ```swift
 // A behavior for stored properties...
-behavior var [foo] _: Value = initialValue
-{
+var behavior foo<Value>: Value {
+  initialValue
+
   var value: Value = initialValue
   get { ... }
   set { ... }
-  }
 }
 
 // Same behavior for computed properties...
-behavior var [foo] _: Value {
+var behavior foo<Value>: Value {
+  initialValue
+
   accessor get() -> Value
   accessor set(newValue: Value)
 
@@ -1177,3 +1040,17 @@ We could resolve overloads by accessors, type constraints on `Value`, and/or
 initializer requirements. However, determining what this overload signature
 should be, and also the exciting interactions with type inference from
 initializer expressions, should be a separate discussion.
+
+### Accessing "out-of-band" behavior members
+
+It is useful to add out-of-band operations to a property that aren't normal
+members of its formal type, for instance, to `clear` a lazy property to be
+recomputed later, or to reset a property to an implementation-defined default
+value. This is useful, but it complicates the design of the feature. Aside from
+the obvious surface-level concerns of syntax for accessing these members, this
+also exposes behaviors as interface rather than purely an implementation
+detail, meaning their interaction with resilience, protocols, class
+inheritance, and other abstractions needs to be designed. It's also a fair
+question whether out-of- band members should be tied to behaviors at all--it
+could be useful to design out-of-band members as an independent feature
+independent with behaviors.
