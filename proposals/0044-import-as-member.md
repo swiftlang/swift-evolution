@@ -131,9 +131,12 @@ The inference system analyzes C global names and types, attempting to find an
 imported Swift type to extend with a method, initializer, or property from this
 global.
 
-This inference system's goal for the is to be able to automatically handle the
-majority of global variables and functions in CF-style frameworks, and in the
-future be extensible to benefit other well structured, disciplined APIs.
+This inference system's goal is to be able to automatically handle the majority
+of global variables and functions in CF-style frameworks, and in the future be
+extensible to benefit other well structured, disciplined APIs.
+
+*Amendment:*  Automatic inference will not be used by default for all C
+APIs, but will be opt-in.
 
 ### Maps directly onto C calling convention
 
