@@ -6,7 +6,6 @@
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction
-
 In Swift's current incarnation, annotating methods and functions with `@warn_unused_result` informs the compiler that a non-void return type *should be consumed*. It is an affirmative declaration. In its absence, ignored results do not raise warnings or errors.
 
 In its present form, this declaration attribute primarily differentiate between mutating and non-mutating pairs. It  offers an optional `mutable_variant` for when an expected return value is not consumed. For example, when `sort` is called with an unused result, the compiler suggests using `sortInPlace` for unused results.
@@ -54,7 +53,7 @@ In the four examples mentioned here, this proposal makes the following recommend
 * Collections example: This could be argued either way. In such a situation, should be left unmarked. Leaving the implementation unmarked encourages an act from the consumer to either handle the result or actively dimiss the warning.
 * `printf` example: importing C calls is left as an exercise for the Swift team
 
-*Note: This proposal does not ignore the positive utility of pairing in-place/procedural and value-returning/functional implementations.and retains the ability to enable Xcode system to cross reference between the two.*
+*Note: This proposal does not ignore the positive utility of pairing in-place/procedural and value-returning/functional implementations and retains the ability to enable Xcode system to cross reference between the two. We propose that the declaration attribute surrenders that responsibility and passes it to the rich documentation comment system.*
 
 ## Detail Design
 
@@ -64,31 +63,25 @@ Under this proposal, the Swift compiler emits a warning when any method or funct
 _ = discardableResult()
 ```
 
-While this workaround makes it clear that the consumption of the result is intentionally discarded, it offers no traceable intent as to whether the API designer meant for this use to be valid.  Including an explicite attribute ensures the discardable return value use is one that has been considered and approved by the API author.
+While this workaround makes it clear that the consumption of the result is intentionally discarded, it offers no traceable intent as to whether the API designer meant for this use to be valid.  Including an explicit attribute ensures the discardable return value use is one that has been considered and approved by the API author.
 
 The approach takes the following form:
 
 ```swift
-func f() -> T {} // defaults to warn on unused result
-func g() -> @discardable T {} // may be called as a procedure as g() 
-                              // without emitting a compiler warning
+@discardableResult func f() -> T {} // may be called as a procedure as g() 
+                                    // without emitting a compiler warning
+func g() -> T {} // defaults to warn on unused result
 func h() {} // Void return type, does not fall under the umbrella of this proposal
 ```
 
-Decorating the return type makes it clear that it's the result that can be optionally treated as discardable rather than the function whose role it is to police its use.
-
-`@discardable T` offers a covariant specialization of `T` and Void, enabling it to satisfy non-discardable requirements:
+The following examples demonstrate the `@discardableResult` behavior:
 
 ```swift
-func f() -> @discardable T {}
-func g() -> T {}
-func h() {} // h() -> Void
-
-let c1: () -> T = f // no compiler warning
-let c2: () -> Void = f // no compiler warning
-let c3: () -> @discardable T = f // no compiler warning
-let c4: () -> @discardable T = g // compiler warning about incompatible types
-let c5: () -> @discardable T = h // compiler warning about incompatible types
+let c1: () -> T = f    // no compiler warning, OK
+let c2: () -> Void = f // compiler error, not allowed
+let c3 = f // assignment does not preserve @discardableResult attribute
+c3()       // warning unused result
+_ = c3()   // no compiler warning, OK
 ```
 
 ### Mutating Variants
@@ -102,19 +95,24 @@ This proposal recommends introducing two further comment fields, specifically `m
 
 The `message` argument that formerly provided a textual warning when a function or method was called with an unused result will be discarded entirely and subsumed by document comments. Under this scheme, whatever attribute name is chosen to modify function names or return types will not use arguments.
 
-## Conventional Alternatives Considered
+## Alternative Names Considered
 
-Other keywords considered for decorating the type included: `@ignorable`, `@incidental`, `@elective`, `@discretionary`, `@voluntary`, `@voidable`, `@throwaway`, and `@_` (underscore).
+Alternative names considered included names were considered: `@allowUnusedResult`, `@optionalResult`, `@suppressUnusedResultWarning`, `@noWarnUnusedResult`, `@ignorableResult`, `@incidentalResult`, and `@discretionaryResult`.
 
-Our alternative approach takes a prefix form, marking the declaration with an attribute:
+## Future directions
+
+The Swift Evolution community also discussed decorating the type rather than the declaration. 
+Decorating the return type makes it clear that it's the result that can be optionally treated as discardable rather than the function whose role it is to police its use.
 
 ```swift
-@attribute func f() -> T {}
+func f() -> @discardable T {} // may be called as a procedure as f() 
+                              // without emitting a compiler warning
 ```
 
-The attribute retains the placement of `@warn_unused_result`, for example `@allowUnusedResult`. 
+This approach was discarded to reduce the type system impact and complexity of the proposal.  When not coordinated with the base function type, currying or "taking the address" of a function could effectively remove the @discardableResult attribute. This means some use of an otherwise `@discardable` function value would have to use `_ =`.  While this approach was considered more elegant, the additional implementation costs means that it's best to delay adopting type decoration 
+until such time as there's a strong motivation to use such an approach.
 
-For prefix attributes, the following names were considered: `@allowUnusedResult`, `@optionalResult`, `@suppressUnusedResultWarning`, `@discardableResult`, `@noWarnUnusedResult`, `@ignorableResult`, `@incidentalResult`, and `@discretionaryResult`.
+Keywords considered for decorating the type included: `@discardable`, `@ignorable`, `@incidental`, `@elective`, `@discretionary`, `@voluntary`, `@voidable`, `@throwaway`, and `@_` (underscore).
 
 ## Unconventional Alternatives
 
@@ -143,7 +141,7 @@ surmounted, this would offer a simple, elegant solution.
 
 ## Snake Case
 
-It should be noted that this proposal, if accepted, removes two of the last remaining instances of snake_case in the Swift language. This further brings the language into a coherent and universal use of lowercase and camelcase variants.
+It should be noted that this proposal, if accepted, removes two of the last remaining instances of snake_case in the Swift language. This further brings the language into a coherent and universal use of lowercase and camel case variants.
 
 ## Acknowledgements
 
