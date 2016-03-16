@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0047](proposals/0047-nonvoid-warn.md)
 * Author(s): [Erica Sadun](http://github.com/erica), [Adrian Kashivskyy](https://github.com/akashivskyy)
-* Status: **Scheduled for review* March 16...21, 2016
+* Status: **Scheduled for review** March 16...21, 2016
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction
