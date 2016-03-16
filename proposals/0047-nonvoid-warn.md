@@ -68,7 +68,7 @@ While this workaround makes it clear that the consumption of the result is inten
 The approach takes the following form:
 
 ```swift
-@discardableResult func f() -> T {} // may be called as a procedure as g() 
+@discardableResult func f() -> T {} // may be called as a procedure as f()
                                     // without emitting a compiler warning
 func g() -> T {} // defaults to warn on unused result
 func h() {} // Void return type, does not fall under the umbrella of this proposal
@@ -77,11 +77,11 @@ func h() {} // Void return type, does not fall under the umbrella of this propos
 The following examples demonstrate the `@discardableResult` behavior:
 
 ```swift
-let c1: () -> T = f    // no compiler warning, OK
-let c2: () -> Void = f // compiler error, not allowed
+let c1: () -> T = f    // no compiler warning
+let c2: () -> Void = f // compiler error, invalid conversion
 let c3 = f // assignment does not preserve @discardableResult attribute
-c3()       // warning unused result
-_ = c3()   // no compiler warning, OK
+c3()       // compiler warning, unused result
+_ = c3()   // no compiler warning
 ```
 
 ### Mutating Variants
