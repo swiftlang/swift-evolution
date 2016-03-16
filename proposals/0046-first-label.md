@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0046](https://github.com/apple/swift-evolution/blob/master/proposals/0046-first-label.md)
 * Author(s): [Jake Carter](https://github.com/JakeCarter), [Erica Sadun](http://github.com/erica)
-* Status: **Active Review** March 11...15, 2016
+* Status: **Accepted** ([Bug](https://bugs.swift.org/browse/SR-961))
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction
