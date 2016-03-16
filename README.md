@@ -113,8 +113,10 @@ sampling of potentially good ideas that are not in scope for Swift
 * [SE-0029: Remove implicit tuple splat behavior from function applications](proposals/0029-remove-implicit-tuple-splat.md)
 * [SE-0033: Import Objective-C Constants as Swift Types](proposals/0033-import-objc-constants.md)
 * [SE-0035: Limiting `inout` capture to `@noescape` contexts](proposals/0035-limit-inout-capture.md)
+* [SE-0037: Clarify interaction between comments & operators](proposals/0037-clarify-comments-and-operators.md)
 * [SE-0038: Package Manager C Language Target Support](proposals/0038-swiftpm-c-language-targets.md)
 * [SE-0039: Modernizing Playground Literals](proposals/0039-playgroundliterals.md)
+* [SE-0046: Establish consistent label behavior across all parameters including first labels](proposals/0046-first-label.md)
 
 ## Development minor version:  Swift 2.2
 

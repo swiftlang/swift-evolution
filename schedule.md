@@ -6,8 +6,6 @@ proposals in that process.
 
 ## Active reviews
 
-* March 11...15, 2016 [SE-0037: Clarify interaction between comments & operators](proposals/0037-clarify-comments-and-operators.md)
-* March 11...15, 2016 [SE-0046: Establish consistent label behavior across all parameters including first labels](proposals/0046-first-label.md)
 * March 16...22, 2016 [SE-0044: Import as Member](proposals/0044-import-as-member.md)
 
 ## Upcoming reviews
