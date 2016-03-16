@@ -7,12 +7,12 @@ proposals in that process.
 ## Active reviews
 
 * March 16...22, 2016 [SE-0044: Import as Member](proposals/0044-import-as-member.md)
+* March 16...21, 2016 [SE-0042: Flattening the function type of unapplied method references](proposals/0042-flatten-method-types.md)
+* March 16...21, 2016 [SE-0043: Declare variables in 'case' labels with multiple patterns](proposals/0043-declare-variables-in-case-labels-with-multiple-patterns.md)
 
 ## Upcoming reviews
 
 * March 16...21, 2016 [SE-0047: Defaulting non-Void functions so they warn on unused results](proposals/0047-nonvoid-warn.md)
-* March 16...21, 2016 [SE-0042: Flattening the function type of unapplied method references](proposals/0042-flatten-method-types.md)
-* March 16...21, 2016 [SE-0043: Declare variables in 'case' labels with multiple patterns](proposals/0043-declare-variables-in-case-labels-with-multiple-patterns.md)
 * March 22...25, 2016 [SE-0016: Adding initializers to Int and UInt to convert from UnsafePointer and UnsafeMutablePointer](proposals/0016-initializers-for-converting-unsafe-pointers-to-ints.md)
 
 

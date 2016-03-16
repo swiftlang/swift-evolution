@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0043](https://github.com/apple/swift-evolution/blob/master/proposals/0043-declare-variables-in-case-labels-with-multiple-patterns.md)
 * Author(s): [Andrew Bennett](https://github.com/therealbnut)
-* Status: **Scheduled for review** March 16...21, 2016
+* Status: **Active** March 16...21, 2016
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction
