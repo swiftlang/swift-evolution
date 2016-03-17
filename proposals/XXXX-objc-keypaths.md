@@ -58,6 +58,22 @@ extension Person {
 }
 ```
 
+## Collection Keypaths
+
+One aspect of the design which seems potentially problematic is the reference to key-paths into collections. As Foundation types are not strongly-typed, paths that reference:
+
+* a type conforming to `SequenceType` are allowed to add a key to reference properties on that type and properties on the `Element` type
+* a type conforming to `NSArray`, `NSDictionary`, `NSSet` are allowed to add a key to reference properties on that type but not on the contained objects
+
+```swift
+let swiftArray = ["Chris", "Joe", "Douglas"]
+let nsArray = NSArray(array: swiftArray)
+swiftArray.valueForKeyPath(#keypath(swiftArray.count)) // => 3
+swiftArray.valueForKeyPath(#keypath(swiftArray.uppercaseString)) // => ["CHRIS", "JOE", "DOUGLAS"]
+swiftArray.valueForKeyPath(#keypath(nsArray.count)) // => 3
+swiftArray.valueForKeyPath(#keypath(nsArray.uppercaseString)) // compiler error
+```
+
 ## Collection Operators
 
 This proposal purposely does not attempt to implement Collection Operators as the current functionality stands on its own and is useful even without the Objective-C runtime (as can be seen in the previous example). On the contrary, collection operators will require more design, and are only useable with `valueForKeyPath:` which is not available on Linux.
@@ -68,10 +84,4 @@ The introduction of the `#keypath` expression has no impact on existing code as 
 
 ## Alternatives considered
 
-One aspect of the design which seems potentially complicated is the reference to key-paths which include an collection in the middle of the path.
-
-```swift
-chris.valueForKeyPath(#keypath(Person.friends.firstName))
-```
-
- The above example is potentially harder to implement because the argument of `#keypath` is not a valid Swift expression, compared to the other two examples. An alternative would be to remove the ability to reference those key-paths, making the proposal less useful, but easier to implement.
+There does not seem to be any obvious alternatives. The only point of discussion was on the name of the expression. `#key` was proposed: it is shorted but does not seem to express that the expression accepts paths.
