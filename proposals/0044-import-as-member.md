@@ -131,9 +131,12 @@ The inference system analyzes C global names and types, attempting to find an
 imported Swift type to extend with a method, initializer, or property from this
 global.
 
-This inference system's goal for the is to be able to automatically handle the
-majority of global variables and functions in CF-style frameworks, and in the
-future be extensible to benefit other well structured, disciplined APIs.
+This inference system's goal is to be able to automatically handle the majority
+of global variables and functions in CF-style frameworks, and in the future be
+extensible to benefit other well structured, disciplined APIs.
+
+*Amendment:*  Automatic inference will not be used by default for all C
+APIs, but will be opt-in.
 
 ### Maps directly onto C calling convention
 
@@ -179,7 +182,7 @@ extern struct Point3D identityPoint
 __attribute__((swift_name("Point3D.identity")));
 
 // Import as static computed property
-Point3D getZeroPoint()
+Point3D getZeroPoint(void)
 __attribute__((swift_name("getter:Point3D.zero()")));
 void setZeroPoint(Point3D point)
 __attribute__((swift_name("setter:Point3D.zero(_:)")));
@@ -191,6 +194,8 @@ The string present in swift_name will additionally support the following:
 * ``self`` to denote which parameter to treat as self for an instance
    method/property, otherwise this will be a static method/property
 * ``getter:`` and ``setter:`` to denote the function as a property getter/setter
+
+*Amendment:* swift_name is not valid on non-prototyped function declarations.
 
 ### Automatic inference heuristics
 
