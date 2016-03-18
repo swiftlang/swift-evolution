@@ -79,7 +79,7 @@ branching can usually optimized away.
 - Not having the post-`nil` guarantee can sometimes add storage and performance
 burden for the caller instead, e.g. when an iterator somehow buffers it's
 underlying iterator. This in contrast can usually not be optimized away. For
-example, the standard library's UTF8/UTF16 decoding has 4 instead of 3 branches
+example, the standard library's UTF-8/UTF-16 decoding has 4 instead of 3 branches
 per character for ASCII because of this.
 
 ## Detailed design
