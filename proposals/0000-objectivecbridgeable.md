@@ -34,22 +34,25 @@ Choice #1 is not practical in the real world with ship dates, resulting in most 
 
 Today you can adopt the private protocol `_ObjectiveCBridgeable` and when a bridged collection (like `Array` &lt;--&gt; `NSArray`) is passed between Swift and Objective-C, Swift will automatically call the appropriate functions to  control the way the type bridges. This allows a Swift type to have a completely different representation in Objective-C.
 
-The solution proposed is to expose the existing protocol as a public protocol `ObjectiveCBridgeable` and have the compiler generate the appropriate Objective-C bridging thunks for any member of an `@objc` type, not just for values inside collections.
+The solution proposed is to expose a new protocol `ObjectiveCBridgeable` and have the compiler generate the appropriate Objective-C bridging thunks for any function or property of an `@objc` type, not just for values inside collections. The default implementation of `ObjectiveCBridgeable` will provide partial conformance to `_ObjectiveCBridgeable` so the existing functionality will work as expected for types adopting the new protocol.
 
-**Note:** Expressing a more generalized mapping mechanism (eg: `NSInteger` to `Int`) is not currently within the scope of this proposal.Allowing Objective-C code to control its manifestation to a Swift consumer is also outside the scope of this proposal.
+**Note:** Expressing a more generalized mapping mechanism (eg: `NSInteger` to `Int`) is not currently within the scope of this proposal. Allowing Objective-C code to control its manifestation to a Swift consumer is also outside the scope of this proposal.
 
 ## ObjectiveCBridgeable Protocol
 
 ```
 /// A type adopting `ObjectiveCBridgeable` will be exposed
 /// to Objective-C as the type `ObjectiveCType`
-public protocol ObjectiveCBridgeable {
+public protocol ObjectiveCBridgeable: _ObjectiveCBridgeable {
     associatedtype ObjectiveCType : AnyObject
+    associatedtype _ObjectiveCType = ObjectiveCType
 
     /// Returns `true` iff instances of `Self` can be converted to
     /// Objective-C.  Even if this method returns `true`, a given
     /// instance of `Self._ObjectiveCType` may, or may not, convert
-    /// successfully to `Self`
+    /// successfully to `Self`.
+    ///
+    /// A default implementation returns `true`.
     @warn_unused_result
     static func isBridgedToObjectiveC() -> Bool
 
@@ -57,53 +60,64 @@ public protocol ObjectiveCBridgeable {
     @warn_unused_result
     func bridgeToObjectiveC() -> ObjectiveCType
 
-    /// Bridge from an Objective-C object of the bridged class type to a
-    /// value of the Self type.
+    /// Try to construct a value of the Self type from
+    /// an Objective-C object of the bridged class type.
     ///
-    /// This bridging operation is used for forced downcasting (e.g.,
-    /// via as!), and may defer complete checking until later.
-    ///
-    /// - parameter result: The location where the result is written. The optional
-    ///   will always contain a value.
-    static func forceBridgeFromObjectiveC(
-        source: ObjectiveCType,
-        inout result: Self?
-    )
+    /// If the conversion fails this initializer returns `nil`.
+    init?(bridgedFromObjectiveC: ObjectiveCType)
+}
 
-    /// Try to bridge from an Objective-C object of the bridged class
-    /// type to a value of the Self type.
-    ///
-    /// This conditional bridging operation is used for conditional
-    /// downcasting (e.g., via as?) and therefore must perform a
-    /// complete conversion to the value type; it cannot defer checking
-    /// to a later time.
-    ///
-    /// - parameter result: The location where the result is written.
-    ///
-    /// - Returns: `true` if bridging succeeded, `false` otherwise. This redundant
-    ///   information is provided for the convenience of the runtime's `dynamic_cast`
-    ///   implementation, so that it need not look into the optional representation
-    ///   to determine success.
-    static func conditionallyBridgeFromObjectiveC(
+public extension ObjectiveCBridgeable {
+    static func isBridgedToObjectiveC() -> Bool { return true }
+}
+
+/// Provides default partial conformance to the private
+/// protocol _ObjectiveCBridgeable
+public extension ObjectiveCBridgeable {
+    static func _isBridgedToObjectiveC() -> Bool {
+        return isBridgedToObjectiveC()
+    }
+
+    static func _getObjectiveCType() -> Any.Type {
+        return ObjectiveCType.self
+    }
+
+    func _bridgeToObjectiveC() -> ObjectiveCType {
+        return bridgeToObjectiveC()
+    }
+
+    static func _forceBridgeFromObjectiveC(
         source: ObjectiveCType,
         inout result: Self?
-        ) -> Bool
+    ) {
+        result = Self.init(bridgedFromObjectiveC: source)
+        precondition(result != nil)
+    }
+
+    static func _conditionallyBridgeFromObjectiveC(
+        source: ObjectiveCType,
+        inout result: Self?
+    ) -> Bool {
+        result = Self.init(bridgedFromObjectiveC: source)
+        return result != nil
+    }
 }
 ```
 
 # Detailed Design
 
-1. Expose the protocol `ObjectiveCBridgeable` (essentially a renamed `_ObjectiveCBridgeable`)
+1. Expose the protocol `ObjectiveCBridgeable`
+  1. Any type adopting `ObjectiveCBridgeable` will gain conformance to `_ObjectiveCBridgeable`
 2. When generating an Objective-C interface for an `@objc` type:
   1. When a function contains parameters or return types that are `@nonobjc` but those types adopt `ObjectiveCBridgeable`:
      1. Create `@objc` thunks that call the Swift functions but substitute the corresponding `ObjectiveCType`.
      2. The thunks will call the appropriate protocol functions to perform the conversion.
   2. If any `@nonobjc` types do not adopt `ObjectiveCBridgeable`, the function itself is not exposed to Objective-C (current behavior).
-3. Collection bridging will be updated to use the new protocol names but otherwise works just as it does today.
+3. Collection bridging works just as it does today since conforming types also adopt the existing private protocol.
 4. The `ObjectiveCType` must be defined in Swift. If a `-swift.h` header is generated, it will include a `SWIFT_BRIDGED()` macro where the parameter indicates the Swift type with which the `ObjectiveCType` bridges. The macro will be applied to the `ObjectiveCType` and any subclasses.
 5. It is an error for bridging to be ambiguous.
   1. A Swift type may bridge to an Objective-C base class, then provide different subclass instances at runtime but no other Swift type may bridge to that base class or any of its subclasses.
-  2. The compiler may emit a diagnostic when it detects two Swift types attempting to bridge to the same `ObjectiveCType`. 
+  2. The compiler must emit a diagnostic when it detects two Swift types attempting to bridge to the same `ObjectiveCType`. 
 6. The Swift type and `ObjectiveCType` must be defined in the same module
 
 
@@ -121,9 +135,7 @@ enum Fizzer {
 
 extension Fizzer: ObjectiveCBridgeable {
     typealias ObjectiveCType = ObjCFizzer
-    static func isBridgedToObjectiveC() -> Bool {
-        return true
-    }
+
     func bridgeToObjectiveC() -> ObjCFizzer {
         let bridge = ObjCFizzer()
         switch self {
@@ -134,21 +146,15 @@ extension Fizzer: ObjectiveCBridgeable {
         }
         return bridge
     }
-    static func conditionallyBridgeFromObjectiveC(source: ObjCFizzer, inout result: Fizzer?) -> Bool {
+
+    init?(bridgedFromObjectiveC source: ObjCFizzer) {
         if let stringValue = source._case1 {
-            result = Fizzer.Case1(stringValue)
+            self = Fizzer.Case1(stringValue)
         } else if let tupleValue = source._case2 {
-            result = Fizzer.Case2(tupleValue.0, tupleValue.1)
+            self = Fizzer.Case2(tupleValue.0, tupleValue.1)
         } else {
-            return false
+            return nil
         }
-        return true
-    }
-    static func forceBridgeFromObjectiveC(source: ObjCFizzer, inout result: Fizzer?) {
-        precondition(
-            conditionallyBridgeFromObjectiveC(source, result: &result),
-            "Failed to cast from Objective-C type"
-        )
     }
 }
 
@@ -172,66 +178,9 @@ class ObjCFizzer: NSObject {
 }
 ```
 
-## Generic Example
-
-This example demonstrates how an API author could expose a Generic class to Objective-C. Making the constructor of `ObjCBar` available means Objective-C consumers can construct new instances, which are handled by deferring creation of an actual `Bar<T>` instance until bridging occurs. 
-
-*As mentioned previously, there are a million ways to bikeshed the bridging. It should go without saying that allowing Objective-C code to construct new instances provides less type safety owing to the nature of Objective-C.*
-
-```
-struct Bar<T> {
-    var storage: T
-}
-
-extension Bar: ObjectiveCBridgeable {
-    typealias ObjectiveCType = ObjCBar
-    static func isBridgedToObjectiveC() -> Bool {
-        return true
-    }
-    func bridgeToObjectiveC() -> ObjCBar {
-        return ObjCBar(storage: self)
-    }
-    static func conditionallyBridgeFromObjectiveC(source: ObjCBar, inout result: Bar?) -> Bool {
-        if let instance = source._storage as? Bar<T> {
-            result = instance
-            return true
-        } else if let value = source._storage as? T {
-            result = Bar<T>(storage: value)
-            return true
-        }
-        return false
-    }
-    static func forceBridgeFromObjectiveC(source: ObjCBar, inout result: Bar?) {
-        precondition(
-            conditionallyBridgeFromObjectiveC(source, result: &result),
-            "Failed to cast from Objective-C type"
-        )
-    }
-}
-
-class ObjCBar: NSObject {
-    private var _storage: Any
-    init(storage: Any) {
-        _storage = storage
-    }
-    init(object: AnyObject) {
-        _storage = object
-    }
-}
-
-let objCValue = ObjCBar(object: NSString(string: "my string"))
-var dest: Bar<String>? = nil
-let success = Bar<String>.conditionallyBridgeFromObjectiveC(objCValue, result: &dest)
-
-// success = true
-// dest = Bar<string> instance
-```
-
 # Impact on existing code
 
-Almost None. There are no breaking changes and adoption is opt-in.
-
-If user code is currently adopting the private protocol then some minor renaming would be required but in theory no one should be using a private protocol.
+None. There are no breaking changes and adoption is opt-in.
 
 
 # Alternatives considered
