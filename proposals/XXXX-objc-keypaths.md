@@ -11,11 +11,11 @@ In Objective-C and Swift, key-paths used by KVC and KVO are represented as strin
 
 ## Motivation
 
-The use of string literals for key paths is extremely error-prone: there is no checking that the string corresponds to a valid key-path. In a similar manner to the proposal for the Objective-C selector expression [SE-0022](https://github.com/apple/swift-evolution/blob/master/proposals/0022-objc-selectors.md), this proposal introduces a syntax for referencing compiler-checked key-paths. When the referenced properties and methods are renamed or deleted, the programmer will be notified by a compiler error.
+The use of string literals for key paths is extremely error-prone: there is no compile-time assurance that the string corresponds to a valid key-path. In a similar manner to the proposal for the Objective-C selector expression [SE-0022](https://github.com/apple/swift-evolution/blob/master/proposals/0022-objc-selectors.md), this proposal introduces syntax for referencing compiler-checked key-paths. When the referenced properties and methods are renamed or deleted, the programmer will be notified by a compiler error.
 
 ## Proposed solution
 
-Introduce a new expression `#keypath` that allows one to build a compile-time string literal from a key-path (to allow it be used as `StaticString` and `StringLiteralConvertible`):
+Introduce a new expression `#keypath()` that allows one to build a compile-time valid key-path string literal (to allow it be used as `StaticString` and `StringLiteralConvertible`):
 
 ```swift
 class Person: NSObject {
@@ -43,7 +43,6 @@ chris.valueForKey(#keypath(Person.firstName)) // => Chris
 chris.valueForKeyPath(#keypath(Person.bestFriend.lastName)) // => Groff
 #keypath(Person.friends.firstName) // => "friends.firstName"
 chris.valueForKeyPath(#keypath(Person.friends.firstName)) // => ["Joe", "Douglas"]
-
 ```
 
 By having the `#keypath` expression do the work to form the Objective-C key-path string, we free the developer from having to do the manual typing and get static checking that the key-path exists and is exposed to Objective-C.
@@ -53,14 +52,16 @@ It would also be very convenient for the `#keypath` to accept value (instead of 
 ```
 extension Person {
 	class func find(name: String) -> [Person] {
-		return DB.find("SELECT * FROM Person WHERE \(#keypath(firstName)) LIKE '%\(name)%' OR \(#keypath(lastName)) LIKE '%\(name)%'")
+		return DB.execute("SELECT * FROM Person WHERE \(#keypath(firstName)) LIKE '%\(name)%'")
 	}
 }
 ```
 
+In this case, `#keypath(firstName)` is understood to represent `#keypath(Person.firstName)`.
+
 ## Collection Keypaths
 
-One aspect of the design which seems potentially problematic is the reference to key-paths into collections. As Foundation types are not strongly-typed, paths that reference:
+One aspect of the design which seems potentially problematic is the reference to key-paths into collections. As Foundation types are not strongly-typed, keys-paths that reference:
 
 * a type conforming to `SequenceType` are allowed to add a key to reference properties on that type and properties on the `Element` type
 * a type conforming to `NSArray`, `NSDictionary`, `NSSet` are allowed to add a key to reference properties on that type but not on the contained objects
@@ -80,7 +81,7 @@ This proposal purposely does not attempt to implement Collection Operators as th
 
 ## Impact on existing code
 
-The introduction of the `#keypath` expression has no impact on existing code as it returns a literal string. It is simply a modification-safe alternative to using literal strings directly for referencing key-paths.
+The introduction of the `#keypath` expression has no impact on existing code, and is simply a modification-safe alternative to using strings literal for referencing key-paths.
 
 ## Alternatives considered
 
