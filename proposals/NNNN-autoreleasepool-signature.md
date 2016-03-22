@@ -30,6 +30,7 @@ accidentally unwrapping a `nil` value.
 
 For example:
 
+    ```swift
     func doWork() throws -> Result {
         var result: Result? = nil
         var error: ErrorProtocol? = nil
@@ -42,9 +43,10 @@ For example:
         }
         guard let result = result else {
             throw error!
-	    }
-	    return result!
-	}
+        }
+        return result!
+    }
+    ```
 
 ## Proposed solution
 
@@ -57,11 +59,13 @@ allowing a `throw` of an error:
 The case above becomes much more clear and less error-prone since the compiler
 can enforce that exactly one of the error and result are used:
 
+    ```swift
     func doWork() throws -> Result {
         return try autoreleasepool {
             ... actual computation which either returns or throws ...
-	    }
-	}
+        }
+    }
+    ```
 
 As an aside, since this proposes changing the signature already, I would like
 to further propose changing the argument label from `code` to `body`. This seems
@@ -72,6 +76,7 @@ but isn't central to this proposal.
 
 The updated standard library function would read:
 
+    ```swift
     public func autoreleasepool<Result>(@noescape body: () throws -> Result) rethrows -> Result {
         let pool = __pushAutoreleasePool()
         defer {
@@ -79,6 +84,7 @@ The updated standard library function would read:
         }
         return try body()
     }
+    ```
 
 ## Impact on existing code
 
@@ -93,6 +99,7 @@ return type would be better.
 I also explored whether third-party code could wrap `autoreleasepool` themselves
 with something like:
 
+    ```swift
     func autoreleasepool_generic<ResultType>(@noescape code: Void throws -> ResultType) rethrows -> ResultType {
         var result:ResultType?
         var error:ErrorProtocol?
@@ -111,6 +118,7 @@ with something like:
   
         throw error! // Doesn't compile.
     }
+    ```
   
 but this doesn't compile, since in a function with `rethrows`, only the call to
 the passed in function that is marked as `throws` is allowed to throw.
