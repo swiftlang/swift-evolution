@@ -1,9 +1,9 @@
 # Abolish `ImplicitlyUnwrappedOptional` type
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-name.md)
+* Proposal: [SE-0054](0054-abolish-iuo.md)
 * Author: [Chris Willmore](http://github.com/cwillmor)
 * Status: **Awaiting review**
-* Review Manager: TBD
+* Review Manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction
 
