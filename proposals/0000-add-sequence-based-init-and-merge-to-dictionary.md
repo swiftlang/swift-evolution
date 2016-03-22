@@ -1,7 +1,7 @@
 # Add sequence-based initializers and merge methods to Dictionary
 
 * Proposal: TBD
-* Author(s): [Nate Cook](https://github.com/natecook1000)
+* Author: [Nate Cook](https://github.com/natecook1000)
 * Status: **Awaiting review**
 * Review manager: TBD
 
@@ -42,14 +42,14 @@ for (key, value) in evenOnly {
     viaIteration[key] = value
 }
     
-let viaReduce: [String: Int] = evenOnly.reduce([:]) { (cumulative, keyValue) in
-    var mutableDictionary = cumulative        // making a copy every time?
-    mutableDictionary[keyValue.0] = keyValue.1
-    return mutableDictionary
+let viaReduce: [String: Int] = evenOnly.reduce([:]) { (cumulative, kv) in
+    var dict = cumulative
+    dict[kv.key] = kv.value
+    return dict
 }
 ```
 
-Beyond initialization, `Array` and `Set` both also provide a method to add a new block of elements to an existing collection. `Array` provides this via `appendContentsOf(_:)` for the common appending case or `replaceRange(_:with:)` for general inserting or replacing, while the unordered `Set` type lets you pass any sequence to `unionInPlace(_:)` to add elements to an existing set.
+Beyond initialization, `Array` and `Set` both also provide a method to add a new block of elements to an existing collection. `Array` provides this via `append(contentsOf:)` for the common appending case or `replaceSubrange(_:with:)` for general inserting or replacing, while the unordered `Set` type lets you pass any sequence to `unionInPlace(_:)` to add elements to an existing set.
 
 Once again, `Dictionary` has no corresponding API -- looping and adding elements one at a time as shown above is the only way to merge new elements into an existing dictionary.
 
@@ -63,8 +63,8 @@ This proposal puts forward two new ways to convert `(Key, Value)` sequences to d
 The proposed solution would add a new, failable initializer to `Dictionary` that accepts any sequence of `(Key, Value)` tuple pairs:
 
 ```swift
-init?<S: SequenceType where S.Generator.Element == (Key, Value)>(
-        _ sequence: S)
+init?<S: Sequence where S.Iterator.Element == (key: Key, value: Value)>(
+    _ keysAndValues: S)
 ```
 
 Instead of the techniques for recovering a `Dictionary` instance shown above, the proposed initializer would allow a much cleaner syntax:
@@ -96,35 +96,37 @@ The new initializer allows for some convenient uses that aren't currently possib
 
     ```swift
     let names = ["Cagney", "Lacey", "Bensen"]
-    let dict = Dictionary(names.enumerate().map { (i, val) in (i + 1, val) })!
+    let dict = Dictionary(names.enumerated().map { (i, val) in (i + 1, val) })!
     // [2: "Lacey", 3: "Bensen", 1: "Cagney"]
     ```
 
 - Initializing from a pair of zipped sequences (examples abound): 
 
     ```swift
-    let letters = "abcdefghij".characters.lazy.map { String($0) }
+    let letters = "abcdef".characters.lazy.map { String($0) }
     let dictFromZip = Dictionary(zip(letters, 1...10))!
-    // ["b": 2, "a": 1, "i": 9, "j": 10, "c": 3, "e": 5, "f": 6, "g": 7, "d": 4, "h": 8]
+    // ["b": 2, "e": 5, "a": 1, "f": 6, "d": 4, "c": 3]
     ```
+    
+    > This particular use is currently blocked by [SR-922](https://bugs.swift.org/browse/SR-922). As a workaround, add `.map {(key: $0, value: $1)}`.
         
-    That last one might feel familiar to Cocoa developers accustomed to `dictionaryWithObjects:forKeys:`.
+That last one might feel familiar to Cocoa developers accustomed to `dictionaryWithObjects:forKeys:`.
 
 ### Merging initializer and methods
 
 Creating a `Dictionary` from a dictional literal currently checks the keys for uniqueness, trapping on a duplicate. The sequence-based initializer shown above has the same requirements, failing and returning `nil` when encountering duplicate keys:
 
 ```swift
-let duplicateLetters = [("a", 1), ("b", 2), ("a", 3), ("b", 4)]
-let letterDict = Dictionary(duplicateLetters)
+let dupes: DictionaryLiteral = ["a": 1, "b": 2, "a": 3, "b": 4]
+let letterDict = Dictionary(dupes)
 // nil
 ```
 
 However, some use cases can be forgiving of duplicate keys, so this proposal includes a second new initializer. This initializer allows the caller to supply, along with the sequence, a combining closure that's called with the old and new values for any duplicate keys. Since the caller has to explicitly handle each case of duplication, this initializer doesn't need to be failable:
 
 ```swift
-init<S: SequenceType where S.Generator.Element == (Key, Value)>(
-    merging sequence: S, 
+init<S: Sequence where S.Iterator.Element == (key: Key, value: Value)>(
+    merging keysAndValues: S, 
     @noescape combine: (Value, Value) throws -> Value
     ) rethrows
 ```
@@ -132,22 +134,22 @@ init<S: SequenceType where S.Generator.Element == (Key, Value)>(
 This example shows how one could keep the first value of all those supplied for a duplicate key:
 
 ```swift
-let letterDict2 = Dictionary(merging: duplicateLetters, combine: { (first, _) in first })
+let letterDict2 = Dictionary(merging: dupes, combine: { (first, _) in first })
 // ["b": 2, "a": 1]
 ```
 
 Or the largest value for any duplicate keys:
 
 ```swift
-let letterDict3 = Dictionary(merging: duplicateLetters, combine: max)
+let letterDict3 = Dictionary(merging: dupes, combine: max)
 // ["b": 4, "a": 3]
 ```
 
 At other times the merging initializer could be used to intentionally combine values for duplicate keys. Donnacha Oisín Kidney wrote a neat `frequencies()` method for sequences as an example of such a use in the thread:
 
 ```swift
-extension SequenceType where Generator.Element: Hashable {
-    func frequencies() -> [Generator.Element: Int] {
+extension Sequence where Iterator.Element: Hashable {
+    func frequencies() -> [Iterator.Element: Int] {
         return Dictionary(merging: self.lazy.map { v in (v, 1) }, combine: +)
     }
 }
@@ -158,14 +160,14 @@ extension SequenceType where Generator.Element: Hashable {
 This proposal also includes new mutating and non-mutating methods for `Dictionary` that merge the contents of a sequence of `(Key, Value)` tuples into an existing dictionary:
 
 ```swift
-mutating func mergeContentsOf<
-    S: SequenceType where S.Generator.Element == (Key, Value)>(
-    _ sequence: S, 
+mutating func merge<
+    S: Sequence where S.Iterator.Element == (key: Key, value: Value)>(
+    contentsOf other: S, 
     @noescape combine: (Value, Value) throws -> Value
     ) rethrows
-func mergedWith<
-    S: SequenceType where S.Generator.Element == (Key, Value)>(
-    _ sequence: S, 
+func merged<
+    S: Sequence where S.Iterator.Element == (key: Key, value: Value)>(
+    with other: S, 
     @noescape combine: (Value, Value) throws -> Value
     ) rethrows -> [Key: Value]
 ```
@@ -176,13 +178,13 @@ As above, there are a wide variety of uses for the merge. The most common might 
 // Adding default values
 let defaults: [String: Bool] = ["foo": false, "bar": false, "baz": false]
 var options: [String: Bool] = ["foo": true, "bar": false]
-options.mergeContentsOf(defaults) { (old, _) in old }
+options.merge(contentsOf: defaults) { (old, _) in old }
 // options is now ["foo": true, "bar": false, "baz": false]
     
 // Summing counts repeatedly
 var bugCounts: [String: Int] = ["bees": 9, "ants": 112, ...]
 while bugCountingSource.hasMoreData() {
-    bugCounts.mergeContentsOf(bugCountingSource.countMoreBugs(), combine: +)
+    bugCounts.merge(contentsOf: bugCountingSource.countMoreBugs(), combine: +)
 }
 ```
     
@@ -193,31 +195,33 @@ The design is simple enough -- loop through the sequence and update the new or e
 Collected in one place, the new APIs for `Dictionary` look like this:
 
 ```swift
+typealias Element = (key: Key, value: Value)
+
 /// Creates a new dictionary using the key/value pairs in the given sequence.
 /// If the given sequence has any duplicate keys, the result is `nil`.
-init?<S: SequenceType where S.Generator.Element == (Key, Value)>(
-    _ sequence: S)
+init?<S: Sequence where S.Iterator.Element == Element>(
+    _ keysAndValues: S)
 
 /// Creates a new dictionary using the key/value pairs in the given sequence,
 /// using a combining closure to determine the value for any duplicate keys.
-init<S: SequenceType where S.Generator.Element == (Key, Value)>(
-    merging sequence: S, 
+init<S: Sequence where S.Iterator.Element == Element>(
+    merging keysAndValues: S, 
     @noescape combine: (Value, Value) throws -> Value
     ) rethrows
     
 /// Merges the key/value pairs in the given sequence into the dictionary,
 /// using a combining closure to determine the value for any duplicate keys.
-mutating func mergeContentsOf<
-    S: SequenceType where S.Generator.Element == (Key, Value)>(
-    _ sequence: S, 
+mutating func merge<
+    S: Sequence where S.Iterator.Element == Element>(
+    contentsOf other: S, 
     @noescape combine: (Value, Value) throws -> Value
     ) rethrows
 
 /// Returns a new dictionary created by merging the key/value pairs in the 
 /// given sequence into the dictionary, using a combining closure to determine 
 /// the value for any duplicate keys.
-func mergedWith<S: SequenceType where S.Generator.Element == (Key, Value)>(
-    _ sequence: S, 
+func merged<S: Sequence where S.Iterator.Element == Element>(
+    with other: S, 
     @noescape combine: (Value, Value) throws -> Value
     ) rethrows -> [Key: Value]
 ```
@@ -231,7 +235,7 @@ As a new API, this will have no impact on existing code.
 
 ## Alternatives considered
 
-As suggested in the thread, a method could be added to `SequenceType` that would build a dictionary. This approach seems less of a piece with the rest of the standard library, and overly verbose when used with a `Dictionary` that is only passing through filtering or mapping operations. In addition, I don't think the current protocol extension system could handle a passthrough case (i.e., something like `extension SequenceType where Generator.Element == (Key, Value)`).
+As suggested in the thread, a method could be added to `Sequence` that would build a dictionary. This approach seems less of a piece with the rest of the standard library, and overly verbose when used with a `Dictionary` that is only passing through filtering or mapping operations. In addition, I don't think the current protocol extension system could handle a passthrough case (i.e., something like `extension Sequence where Generator.Element == (Key, Value)`).
 
 An earlier version of this proposal suggested a non-failable version of the sequence-based initializer that would implicitly choose the final value passed as the "winner". This option makes too strong an assumption about the desired behavior for duplicate keys, leading to an unpredictable and opaque API.
 
