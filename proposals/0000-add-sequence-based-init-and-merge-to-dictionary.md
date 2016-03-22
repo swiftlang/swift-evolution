@@ -15,21 +15,21 @@ Swift-evolution thread: [First message of thread](https://lists.swift.org/piperm
 
 ## Motivation
 
-`Array` and `Set` both have initializers that create a new instance from a sequence of elements. The `Array` initializer is useful for converting other sequences and collections to the "standard" collection type, while the `Set` initializer is essential for recovering set operations after performing any functional operations on a set. For example, filtering a set produces a collection without any kind of set operations available:
+`Array` and `Set` both have initializers that create a new instance from a sequence of elements. The `Array` initializer is useful for converting other sequences and collections to the "standard" collection type, while the `Set` initializer is essential for recovering set operations after performing any functional operations on a set. For example, filtering a set produces a collection without any kind of set operations available.
 
 ```swift
 let numberSet = Set(1 ... 100)
 let fivesOnly = numberSet.lazy.filter { $0 % 5 == 0 }
 ```
 
-`fivesOnly` is a `LazyFilterCollection<Set<Int>>` instead of a `Set` -- sending that back through the `Set` sequence initializer restores the expected methods:
+`fivesOnly` is a `LazyFilterCollection<Set<Int>>` instead of a `Set` -- sending that back through the `Set` sequence initializer restores the expected methods.
 
 ```swift
 let fivesOnlySet = Set(numberSet.lazy.filter { $0 % 5 == 0 })
 fivesOnlySet.isSubsetOf(numberSet) // true
 ```
 
-`Dictionary`, on the other hand, has no such initializer, so a similar operation leaves no room except for building a mutable `Dictionary` via iteration or functional methods with dubious performance. These techniques also don't support type inference from the source sequence, increasing verbosity:
+`Dictionary`, on the other hand, has no such initializer, so a similar operation leaves no room except for building a mutable `Dictionary` via iteration or functional methods with dubious performance. These techniques also don't support type inference from the source sequence, increasing verbosity.
 
 ```swift
 let numberDictionary = ["one": 1, "two": 2, "three": 3, "four": 4]
@@ -60,14 +60,14 @@ This proposal puts forward two new ways to convert `(Key, Value)` sequences to d
 
 ### Sequence-based initializer
 
-The proposed solution would add a new, failable initializer to `Dictionary` that accepts any sequence of `(Key, Value)` tuple pairs:
+The proposed solution would add a new, failable initializer to `Dictionary` that accepts any sequence of `(Key, Value)` tuple pairs.
 
 ```swift
 init?<S: Sequence where S.Iterator.Element == (key: Key, value: Value)>(
     _ keysAndValues: S)
 ```
 
-Instead of the techniques for recovering a `Dictionary` instance shown above, the proposed initializer would allow a much cleaner syntax:
+Instead of the techniques for recovering a `Dictionary` instance shown above, the proposed initializer would allow a much cleaner syntax.
 
 ```swift
 let viaProposed = Dictionary(evenOnly)!
@@ -77,14 +77,14 @@ Like `Array.init(_:)` and `Set.init(_:)`, this is a full-width initializer. To e
 
 The new initializer allows for some convenient uses that aren't currently possible.
 
-- Initializing from a `DictionaryLiteral` (the type, not an actual literal): 
+- Initializing from a `DictionaryLiteral` (the type, not an actual literal)
 
     ```swift
     let literal: DictionaryLiteral = ["a": 1, "b": 2, "c": 3, "d": 4]
     let dictFromDL = Dictionary(literal)!
     ```
 
-- Swapping keys and values of an existing dictionary:
+- Swapping keys and values of an existing dictionary
 
     ```swift
     guard let reversedDict = Dictionary(dictFromDL.map { ($1, $0) }) 
@@ -92,7 +92,7 @@ The new initializer allows for some convenient uses that aren't currently possib
     // [2: "b", 4: "d", 1: "a", 3: "c"]
     ```
     
-- Converting an array to an indexed dictionary (popular on the thread):
+- Converting an array to an indexed dictionary (popular on the thread)
 
     ```swift
     let names = ["Cagney", "Lacey", "Bensen"]
@@ -100,7 +100,7 @@ The new initializer allows for some convenient uses that aren't currently possib
     // [2: "Lacey", 3: "Bensen", 1: "Cagney"]
     ```
 
-- Initializing from a pair of zipped sequences (examples abound): 
+- Initializing from a pair of zipped sequences (examples abound)
 
     ```swift
     let letters = "abcdef".characters.lazy.map { String($0) }
@@ -114,15 +114,15 @@ That last one might feel familiar to Cocoa developers accustomed to `dictionaryW
 
 ### Merging initializer and methods
 
-Creating a `Dictionary` from a dictional literal currently checks the keys for uniqueness, trapping on a duplicate. The sequence-based initializer shown above has the same requirements, failing and returning `nil` when encountering duplicate keys:
+Creating a `Dictionary` from a dictional literal currently checks the keys for uniqueness, trapping on a duplicate. The sequence-based initializer shown above has the same requirements, failing and returning `nil` when encountering duplicate keys.
 
 ```swift
-let dupes: DictionaryLiteral = ["a": 1, "b": 2, "a": 3, "b": 4]
-let letterDict = Dictionary(dupes)
+let duplicates: DictionaryLiteral = ["a": 1, "b": 2, "a": 3, "b": 4]
+let letterDict = Dictionary(duplicates)
 // nil
 ```
 
-However, some use cases can be forgiving of duplicate keys, so this proposal includes a second new initializer. This initializer allows the caller to supply, along with the sequence, a combining closure that's called with the old and new values for any duplicate keys. Since the caller has to explicitly handle each case of duplication, this initializer doesn't need to be failable:
+However, some use cases can be forgiving of duplicate keys, so this proposal includes a second new initializer. This initializer allows the caller to supply, along with the sequence, a combining closure that's called with the old and new values for any duplicate keys. Since the caller has to explicitly handle each case of duplication, this initializer doesn't need to be failable.
 
 ```swift
 init<S: Sequence where S.Iterator.Element == (key: Key, value: Value)>(
@@ -131,21 +131,21 @@ init<S: Sequence where S.Iterator.Element == (key: Key, value: Value)>(
     ) rethrows
 ```
 
-This example shows how one could keep the first value of all those supplied for a duplicate key:
+This example shows how one could keep the first value of all those supplied for a duplicate key.
 
 ```swift
-let letterDict2 = Dictionary(merging: dupes, combine: { (first, _) in first })
+let letterDict2 = Dictionary(merging: duplicates, combine: { (first, _) in first })
 // ["b": 2, "a": 1]
 ```
 
-Or the largest value for any duplicate keys:
+Or the largest value for any duplicate keys.
 
 ```swift
-let letterDict3 = Dictionary(merging: dupes, combine: max)
+let letterDict3 = Dictionary(merging: duplicates, combine: max)
 // ["b": 4, "a": 3]
 ```
 
-At other times the merging initializer could be used to intentionally combine values for duplicate keys. Donnacha Oisín Kidney wrote a neat `frequencies()` method for sequences as an example of such a use in the thread:
+At other times the merging initializer could be used to intentionally combine values for duplicate keys. Donnacha Oisín Kidney wrote a neat `frequencies()` method for sequences as an example of such a use in the thread.
 
 ```swift
 extension Sequence where Iterator.Element: Hashable {
@@ -157,7 +157,7 @@ extension Sequence where Iterator.Element: Hashable {
 // [2: 4, 4: 1, 5: 1, 3: 3, 1: 3]
 ```
 
-This proposal also includes new mutating and non-mutating methods for `Dictionary` that merge the contents of a sequence of `(Key, Value)` tuples into an existing dictionary:
+This proposal also includes new mutating and non-mutating methods for `Dictionary` that merge the contents of a sequence of `(Key, Value)` tuples into an existing dictionary, `merge(contentsOf:)` and `merged(with:)`.
 
 ```swift
 mutating func merge<
@@ -172,7 +172,7 @@ func merged<
     ) rethrows -> [Key: Value]
 ```
 
-As above, there are a wide variety of uses for the merge. The most common might be merging two dictionaries together:
+As above, there are a wide variety of uses for the merge. The most common might be merging two dictionaries together.
 
 ```swift
 // Adding default values
