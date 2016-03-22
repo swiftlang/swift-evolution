@@ -2,9 +2,8 @@
 
 * Proposal: [SE-0021](https://github.com/apple/swift-evolution/blob/master/proposals/0021-generalized-naming.md)
 * Author(s): [Doug Gregor](https://github.com/DougGregor)
-* Status: **Under Review**
+* Status: **Accepted** (implemented in Swift 2.2)
 * Review manager: [Joe Groff](https://github.com/jckarter)
-* Implementation: [Here](https://github.com/DougGregor/swift/tree/se-0021-generalized-naming)
 
 ## Introduction
 

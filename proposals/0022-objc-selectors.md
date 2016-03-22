@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0022](https://github.com/apple/swift-evolution/blob/master/proposals/0022-objc-selectors.md)
 * Author(s): [Doug Gregor](https://github.com/DougGregor)
-* Status: **Awaiting review**
+* Status: **Accepted**
 * Review manager: [Joe Groff](https://github.com/jckarter)
 
 ## Introduction
@@ -30,10 +30,10 @@ reason about the actual Objective-C selectors being used.
 
 ## Proposed solution
 
-Introduce `Selector` initialization syntax that allows one to build a selector from a reference to a method, e.g.,
+Introduce a new expression `#selector` that allows one to build a selector from a reference to a method, e.g.,
 
 ```swift
-control.sendAction(Selector(MyApplication.doSomething), to: target, forEvent: event)
+control.sendAction(#selector(MyApplication.doSomething), to: target, forEvent: event)
 ```
 
 where “doSomething” is a method of MyApplication, which might even have a completely-unrelated name in Objective-C:
@@ -45,7 +45,7 @@ extension MyApplication {
 }
 ```
 
-By naming the Swift method and having the `Selector` initializer do
+By naming the Swift method and having the `#selector` expression do
 the work to form the Objective-C selector, we free the developer from
 having to do the naming translation manually and get static checking
 that the method exists and is exposed to Objective-C.
@@ -53,9 +53,9 @@ that the method exists and is exposed to Objective-C.
 This proposal composes with the [Naming Functions with Argument Labels
 proposal](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160111/006262.html), which lets us name methods along with their argument labels, e.g.:
 
-	let sel = Selector(UIView.insertSubview(_:at:)) // produces the Selector "insertSubview:atIndex:"
+	let sel = #selector(UIView.insertSubview(_:at:)) // produces the Selector "insertSubview:atIndex:"
 
-With the introduction of the `Selector` syntax, we should deprecate
+With the introduction of the `#selector` syntax, we should deprecate
 the use of string literals to form selectors. Ideally, we could
 perform the deprecation in Swift 2.2 and remove the syntax entirely
 from Swift 3.
@@ -70,31 +70,20 @@ initialization syntax (e.g., `Selector("insertSubview:atIndex:")`).
 
 ## Detailed design
 
-The proposed `Selector` initializer "almost" has the signature:
+The subexpression of the `#selector` expression must be a reference to an `objc` method. Specifically, the input expression must be a direct reference to an Objective-C method, possibly parenthesized and possibly with an "as" cast (which can be used to disambiguate same-named Swift methods). For example, here is a "highly general" example:
 
 ```swift
-extension Selector {
-  init<T, U>(_ fn: (T) -> U)
-}
+let sel = #selector(((UIView.insertSubview(_:at:)) as (UIView) -> (UIView, Int) -> Void))
 ```
-
-with some additional semantic restrictions that require that input be a reference to an `objc` method. Specifically, the input expression must be a direct reference to an Objective-C method, possibly parenthesized and possible with an "as" cast (which can be used to disambiguate same-named Swift methods). For example, here is a "highly general" example:
-
-```swift
-let sel = Selector(((UIKit.UIView.insertSubview(_:at:)) as (UIView) -> (UIView, Int) -> Void))
-```
-
-The actual implementation will introduce some magic in the type
-checker to only support references to methods within the `Selector`
-initialization syntax.
+Note that the subexpression will not be evaluated, so any side effects present in the expression will not occur.
 
 ## Impact on existing code
 
-The introduction of the `Selector` initialization syntax has no
+The introduction of the `#selector` expression has no
 impact on existing code. However, deprecating and removing the
 string-literal-as-selector syntax is a source-breaking
-change. We can migrate the uses to either the new `Selector`
-initialization syntax or to explicit initialization of a `Selector`
+change. We can migrate the uses to either the new `#selector`
+expression or to explicit initialization of a `Selector`
 from a string.
 
 ## Alternatives considered
@@ -128,5 +117,17 @@ admittedly more type-safe) alternative approach.
 
 Syntactically, `@selector(method reference)` would match Objective-C
 more closely, but it doesn't make sense in Swift where `@` always
-refers to attributes. `Selector` initialization syntax is far cleaner,
-since we are constructing an instance of a `Selector`.
+refers to attributes.
+
+The original version of this proposal suggested using a magic
+`Selector` initializer, e.g.:
+
+```swift
+let sel = Selector(((UIView.insertSubview(_:at:)) as (UIView) -> (UIView, Int) -
+```
+
+However, concerns over this being magic syntax that looks like
+instance construction (but is not actually representable in Swift as
+an initializer), along with existing uses of `#` to denote special
+expressions (e.g., `#available`), caused the change to the `#selector`
+syntax at the completion of the public review.

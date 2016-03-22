@@ -4,7 +4,7 @@
   [Max Howell](https://github.com/mxcl),
   [Daniel Dunbar](https://github.com/ddunbar),
   [Mattt Thompson](https://github.com/mattt)
-* Status: **Under revision**
+* Status: **Accepted** ([Bug](https://bugs.swift.org/browse/SR-592))
 * Review Manager: Rick Ballard
 
 ## Introduction
@@ -93,17 +93,18 @@ should it be proven unwise.
 
 ### Command-Line Interface
 
-We propose the following syntax to execute all tests:
+We propose the following syntax to execute all tests (though not the tests
+of any dependent packages):
 
     $ swift test
 
 The command line should accept the names of specific test cases to run:
 
-    swift test FooTestCase
+    swift test TestModule.FooTestCase
 
 Or specific tests:
 
-    swift test FooTestCase.test1
+    swift test TestModule.FooTestCase.test1
 
 In the future we would like to support running specific kinds of tests:
 
@@ -114,8 +115,8 @@ would decide how to interpret them.
 
 ---
 
-Sometimes test sources cannot compile and fixing them is no the most
-pressing priority. Thus it will be posssible to skip building tests
+Sometimes test sources cannot compile and fixing them is not the most
+pressing priority. Thus it will be possible to skip building tests
 with an additional flag:
 
     swift build --without-tests
@@ -124,7 +125,7 @@ with an additional flag:
 
 It is desirable to sometimes specify to only build specific tests, the
 command line for this will fall out of future work that allows specification
-of targets that `swift build` should speficially build in isolation.
+of targets that `swift build` should specifically build in isolation.
 
 ---
 
@@ -164,9 +165,10 @@ An additional option may be passed to the testing command
 to output JUnit-style XML or other formats that can be integrated
 with continuous integration (CI) and other systems.
 
-Running `swift test` will not trigger a build. If the tests
-are not built, the tool will prompt the user to run
-`swift build` first.
+Running `swift test` will firstly trigger a build. We feel this
+is the most expected result considering tests must be built before
+they can be run and almost all other tools build before running
+tests. However we will provide a flag to not build first.
 
 
 ### Test-only Dependencies
@@ -196,7 +198,7 @@ of the `Package.swift` file.
 Testing is important and it is important to make the barrier to testing
 as minimal as possible. Thus, by analyzing the names of test targets,
 we will automatically determine the most likely dependency of that test
-and accomodate accordingly.
+and accommodate accordingly.
 For example,
 a test for "Foo" will depend on compilation of the library target `Foo`.
 Any additional dependencies or dependencies that could not be automatically determined
@@ -222,9 +224,7 @@ Because it would be tedious for users to specify this requirement for tests,
 we intend to build debug builds with testability by default.
 
 It is desirable that modules that are built for testing can identify this
-fact in their sources. Thus we will provide a define `-DSWIFT_TEST` for
-such test modules. This will be applied to any external dependencies specified
-in a `Pacakge.swift` `testDependencies` section (an existing feature).
+fact in their sources. Thus at a future time we will provide a define.
 
 
 ### Test Frameworks
@@ -232,7 +232,7 @@ in a `Pacakge.swift` `testDependencies` section (an existing feature).
 Initially,
 the Swift Package Manager will use `XCTest` as its underlying test framework.
 
-However, testing is an evolving artform,
+However, testing is an evolving art form,
 so we'd like to support other approaches
 that might allow frameworks other than XCTest
 to be supported by the package manager.

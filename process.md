@@ -122,8 +122,16 @@ should be sent to the swift-evolution mailing list at
 
 > <https://lists.swift.org/mailman/listinfo/swift-evolution>
 
-or, if you would like to keep your feedback private, directly to the review
-manager.
+or, if you would like to keep your feedback private, directly to the
+review manager. When replying, please try to keep the proposal link at
+the top of the message:
+
+> Proposal link:
+>>  http://linkToProposal
+
+>  Reply text
+
+>>  Other replies
 
 ##### What goes into a review?
 
@@ -136,7 +144,7 @@ answer in your review:
 * Is the problem being addressed significant enough to warrant a
   change to Swift?
 * Does this proposal fit well with the feel and direction of Swift?
-* If you have you used other languages or libraries with a similar
+* If you have used other languages or libraries with a similar
   feature, how do you feel that this proposal compares to those?
 * How much effort did you put into your review? A glance, a quick
   reading, or an in-depth study?
