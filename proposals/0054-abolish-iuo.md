@@ -101,6 +101,23 @@ Because IUOs are an attribute on declarations rather than on types, the
 `ImplicitlyUnwrappedOptional<T>` syntax, is removed. Types with nested IUOs are
 no longer allowed. This includes types such as `[Int!]` and `(Int!, Int!)`.
 
+Type aliases may not have IUO information associated with them. Thus the
+statement `typealias X = Int!` is illegal. This includes type aliases resulting
+from imported `typedef` statements. For example, the Objective-C type
+declaration
+
+```Objective-C
+typedef void (^ViewHandler)(NSView *);
+```
+
+... is imported as the Swift type declaration
+
+```Swift
+typealias ViewHandler = (NSView?) -> ()
+```
+
+Note that the parameter type is `NSView?`, not `NSView!`.
+
 ## Examples
 
 ```Swift
