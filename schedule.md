@@ -10,10 +10,10 @@ proposals in that process.
 * March 16...21, 2016 [SE-0042: Flattening the function type of unapplied method references](proposals/0042-flatten-method-types.md)
 * March 16...21, 2016 [SE-0043: Declare variables in 'case' labels with multiple patterns](proposals/0043-declare-variables-in-case-labels-with-multiple-patterns.md)
 * March 16...21, 2016 [SE-0047: Defaulting non-Void functions so they warn on unused results](proposals/0047-nonvoid-warn.md)
+* March 22...25, 2016 [SE-0016: Adding initializers to Int and UInt to convert from UnsafePointer and UnsafeMutablePointer](proposals/0016-initializers-for-converting-unsafe-pointers-to-ints.md)
 
 ## Upcoming reviews
 
-* March 22...25, 2016 [SE-0016: Adding initializers to Int and UInt to convert from UnsafePointer and UnsafeMutablePointer](proposals/0016-initializers-for-converting-unsafe-pointers-to-ints.md)
 
 
 ## Proposals awaiting scheduling

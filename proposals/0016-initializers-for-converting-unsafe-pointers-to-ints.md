@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0016](https://github.com/apple/swift-evolution/blob/master/proposals/0016-initializers-for-converting-unsafe-pointers-to-ints.md)
 * Author(s): [Michael Buckley](https://github.com/MichaelBuckley)
-* Status: **Scheduled for Review March 22...25**
+* Status: **Active Review March 22...25**
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction
