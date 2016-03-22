@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0020](https://github.com/apple/swift-evolution/blob/master/proposals/0020-if-swift-version.md)
 * Author(s): [David Farler](https://github.com/bitjammer)
-* Status: **Accepted** for Swift 2.2
+* Status: **Implemented** in Swift 2.2
 * Review manager: Doug Gregor
 
 ## Introduction
