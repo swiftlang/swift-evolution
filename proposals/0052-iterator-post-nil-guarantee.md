@@ -54,33 +54,33 @@ except when passing the rare iterator that doesn't repeat `nil`.
 Bring the guarantee in line with the common expectation, and require iterators
 to return `nil` indefinitely.
 
-Requiring `nil` to be returned indefinitely does require the implementors of
-custom `IteratorType` conformances to respect this, but this is likely already
-the expectation for most users. Most iterators already get this as a natural
-consequence of their implementation (as is the case with all current standard
-library iterators), but otherwise they can simply track a `done` flag to do so.
-It should be noted that this requirement would also affect closures passed to
-`AnyIterator`.
+The rest of this section will compare the current guarantee (post-`nil` unspecified)
+with the proposed guarantee (post-`nil` always `nil`) on a few different areas.
+
+### Safety
+In both cases, there is someone that could make a mistake with post-`nil` behavior:
+- **Current:** Callers could be unaware that iterators don't always keep returning `nil`.
+- **Proposed:** Implementors of custom iterators could be unaware they should keep returning `nil`.
+
+Both cases are silent, i.e. they don't show with most usage. However the mistake is less likely in the proposed case:
+- Iterators returning `nil` indefinitely is probably what most people expect, especially since all iterators in the standard library do this (and likely many custom iterators as well).
+- Implementors are probably more likely than callers to check the API contract.
+
+Some have argued that it's risky to rely on people adhering to the API contract, an argument that can be made for either case:
+a) "Writing an iterator that doesn't repeat `nil` is risky as the caller might not adhere to the API contract, so just make all iterators repeat `nil` anyway."
+b) "Writing code that relies on the iterator repeating `nil` is risky as the implementor might not adhere to the API contract, so just track state and branch in that code anyway."
+This however kind of defeats the purpose of having an API contract.
+
+### Frequency
+In both cases, sometimes code needs to track extra state and branch:
+- **Current:** Callers sometimes need to track a bool and branch. The standard library currently has 3 occurrences of this being necessary ([#1](https://github.com/apple/swift/blob/master/stdlib/public/core/Sequence.swift#L435), [#2](https://github.com/apple/swift/blob/master/stdlib/public/core/Unicode.swift#L128), [#3](https://github.com/apple/swift/blob/master/stdlib/public/core/Unicode.swift#L373)).
+- **Proposed:** Iterator implementations sometimes need to track a bool and branch. The standard library currently has no occurrences of this being necessary. If [SE-0045](https://github.com/apple/swift-evolution/blob/master/proposals/0045-scan-takewhile-dropwhile.md) is excepted, it will introduce the first case (out of 30 iterators), `TakeWhileIterator`.
 
 ### Performance considerations
-The original rationale for introducing the precondition was because of concerns
-it might add storage and performance burden to some implementations of
-`IteratorType` (see [here](http://article.gmane.org/gmane.comp.lang.swift.evolution/8532)).
+In both cases, the extra state and branching that is sometimes needed has potential for performance implications. Though performance is not the *key* concern, iterators are often used in tight loops and can affect very commonly used algorithms. The original rationale for introducing the precondition was in fact because of concerns it might add storage and performance burden to some implementations of `IteratorType` (see [here](http://article.gmane.org/gmane.comp.lang.swift.evolution/8532)). However in light of implementation experience, it appears including the guarantee would likely be beneficial for performance:
 
-However, in light of implementation experience, there are a few observations we
-can make:
-- These cases are rare. The standard library currently has no iterators that
-require extra state or branches to return `nil` indefinitely. The iterator for
-the proposed `takeWhile()` ([SE-0045](https://github.com/apple/swift-evolution/blob/master/proposals/0045-scan-takewhile-dropwhile.md))
-would be the first occurance in the standard library.
-- Even in such cases, in the common case the calling code doesn't rely on
-post-`nil` behavior (e.g. `for in`, `map`, etc.) this extra storage and
-branching can usually optimized away.
-- Not having the post-`nil` guarantee can sometimes add storage and performance
-burden for the caller instead, e.g. when an iterator somehow buffers it's
-underlying iterator. This in contrast can usually not be optimized away. For
-example, the standard library's UTF-8/UTF-16 decoding has 4 instead of 3 branches
-per character for ASCII because of this.
+- **Current:** Callers sometimes need to track a bool and branch, which can usually not be optimized away. This can be somewhat significant, for example UTF-8 decoding would be ~25% faster on ASCII input with the proposed guarantee (see [here](https://gist.github.com/PatrickPijnappel/3241bba66acab9c8913f)).
+- **Proposed:** Iterator implementations sometimes need to track a bool and branch, which can usually be optimized away when not needed by the caller (e.g. in a `for in` loop). Note that when post-`nil` behavior is relied upon, the caller would have had to track state and branch already if the iterator didn't.
 
 ## Detailed design
 
@@ -114,6 +114,11 @@ the new guarantee. It is likely most existing custom iterators will as well,
 however some might be rendered in violation of their guarantee by the change.
 
 ## Alternatives considered
+
+- Add a `FuseIterator` type to the standard library that can wrap any iterator
+to make it return `nil` indefinitely (constructed using `.fuse()`), and leave
+the guarantee for `next()` as is. This however doesn't really solve most problems
+described in this proposal and adds a rarely used type to the standard library.
 
 - Require `IteratorType` to not crash but keep the return value up to specific
 implementations. This allows them to use it for other behavior e.g. repeating
