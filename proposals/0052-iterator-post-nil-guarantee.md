@@ -115,6 +115,11 @@ however some might be rendered in violation of their guarantee by the change.
 
 ## Alternatives considered
 
+- Add a `FuseIterator` type to the standard library that can wrap any iterator
+to make it return `nil` indefinitely (constructed using `.fuse()`), and leave
+the guarantee for `next()` as is. This however doesn't really solve most problems
+described in this proposal and adds a rarely used type to the standard library.
+
 - Require `IteratorType` to not crash but keep the return value up to specific
 implementations. This allows them to use it for other behavior e.g. repeating
 the sequence after `nil` is returned. This however retains most of the problems
