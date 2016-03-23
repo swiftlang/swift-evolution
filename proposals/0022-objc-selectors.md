@@ -135,12 +135,20 @@ syntax at the completion of the public review.
 ## Polymorphic Selectors
 
 It's common to use identical method names in different classes when the methods do the same conceptual thing.
-For example, several view classes might use the method name `panned` as the action selector
-for a pan gesture recognizer. While the `#selector(MyViewClass.panned)` syntax handles the monomorphic case, 
-when the same method name is used for several classes, the selector, even though it still works correctly,
-incorrectly implies monomorphism in only that particular class.
 
-An appropriate way to handle this type of polymorphic usage is to define an `@objc` protocol for the method, 
+A method name might occur:
+* in isolation
+* in polymorphic methods on classes in an inheritance hierarchy
+* in methods on classes completely unrelated by inheritance
+* in methods dynamically created on the fly
+
+In the isolated case, the selector would be `#selector(ClassName.methodName)`, and in the inheritance case,
+a useful selector name might be qualified by the base class name: `#selector(BaseClass.methodName)`.
+But for methods in unrelated classes, and for dynamic methods, it's not obvious to the programmer
+whether or how the selector should be qualified. Qualifying it with an arbitrary class name incorrectly
+implies that it refers only to the method on that class. And not qualifying it at all is not syntactically valid.
+
+An appropriate way to handle these latter two usages is to define an `@objc` protocol for the method,
 and use the protocol-qualified method name in the #selector.
 
 ````
