@@ -131,3 +131,22 @@ instance construction (but is not actually representable in Swift as
 an initializer), along with existing uses of `#` to denote special
 expressions (e.g., `#available`), caused the change to the `#selector`
 syntax at the completion of the public review.
+
+## Polymorphic Selectors
+
+It's common to use identical method names in different classes when the methods do the same conceptual thing.
+For example, several view classes might use the method name `panned` as the action selector
+for a pan gesture recognizer. While the `#selector(MyViewClass.panned)` syntax handles the monomorphic case, 
+when the same method name is used for several classes, the selector, even though it still works correctly,
+incorrectly implies monomorphism in only that particular class.
+
+An appropriate way to handle this type of polymorphic usage is to define an `@objc` protocol for the method, 
+and use the protocol-qualified method name in the #selector.
+
+````
+@objc protocol Pannable {
+  func panned()
+}
+
+let panned = #selector(Pannable.panned)
+````
