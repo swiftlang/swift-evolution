@@ -34,91 +34,110 @@ Choice #1 is not practical in the real world with ship dates, resulting in most 
 
 Today you can adopt the private protocol `_ObjectiveCBridgeable` and when a bridged collection (like `Array` &lt;--&gt; `NSArray`) is passed between Swift and Objective-C, Swift will automatically call the appropriate functions to  control the way the type bridges. This allows a Swift type to have a completely different representation in Objective-C.
 
-The solution proposed is to expose a new protocol `ObjectiveCBridgeable` and have the compiler generate the appropriate Objective-C bridging thunks for any function or property of an `@objc` type, not just for values inside collections. The default implementation of `ObjectiveCBridgeable` will provide partial conformance to `_ObjectiveCBridgeable` so the existing functionality will work as expected for types adopting the new protocol.
+The solution proposed is to expose a new protocol `ObjectiveCBridgeable` and have the compiler generate the appropriate Objective-C bridging thunks for any function or property of an `@objc` type, not just for values inside collections. 
 
-**Note:** Expressing a more generalized mapping mechanism (eg: `NSInteger` to `Int`) is not currently within the scope of this proposal. Allowing Objective-C code to control its manifestation to a Swift consumer is also outside the scope of this proposal.
 
 ## ObjectiveCBridgeable Protocol
 
 ```
 /// A type adopting `ObjectiveCBridgeable` will be exposed
 /// to Objective-C as the type `ObjectiveCType`
-public protocol ObjectiveCBridgeable: _ObjectiveCBridgeable {
-    associatedtype ObjectiveCType : AnyObject
-    associatedtype _ObjectiveCType = ObjectiveCType
+public protocol ObjectiveCBridgeable {
+    associatedtype ObjectiveCType : NSObject
 
     /// Returns `true` iff instances of `Self` can be converted to
     /// Objective-C.  Even if this method returns `true`, a given
-    /// instance of `Self._ObjectiveCType` may, or may not, convert
+    /// instance of `Self.ObjectiveCType` may, or may not, convert
     /// successfully to `Self`.
     ///
-    /// A default implementation returns `true`.
+    /// A default implementation returns `true`. If a Swift type is 
+    /// generic and should only be bridged for some type arguments,
+    /// provide alternate implementations in extensions 
+    /// and return `false` in those cases.
+    ///
+    ///     struct Foo<T>: ObjectiveCBridgeable { ... }
+    ///     extension Foo where T: NonBridgedType {
+    ///         static func isBridgedToObjectiveC() -> Bool { 
+    ///             return false 
+    ///         }
+    ///     }
+    ///
     @warn_unused_result
     static func isBridgedToObjectiveC() -> Bool
 
-    /// Convert `self` to Objective-C.
+    /// Convert `self` to an instance of 
+    /// `ObjectiveCType` (or one of its subclasses)
     @warn_unused_result
     func bridgeToObjectiveC() -> ObjectiveCType
 
-    /// Try to construct a value of the Self type from
-    /// an Objective-C object of the bridged class type.
+    /// Bridge from an Objective-C object of the bridged class type to a
+    /// value of the Self type.
+    ///
+    /// This bridging operation is used for unconditional bridging when
+    /// interoperating with Objective-C code, either in the body of an
+    /// Objective-C thunk or when calling Objective-C code, and may
+    /// defer complete checking until later. For example, when bridging
+    /// from `NSArray` to `Array<Element>`, we can defer the checking
+    /// for the individual elements of the array.
+    ///
+    /// - parameter source: The Objective-C object from which we are
+    /// bridging. This optional value will only be `nil` in cases where
+    /// an Objective-C method has returned a `nil` despite being marked
+    /// as `_Nonnull`/`nonnull`. In most such cases, bridging will
+    /// generally force the value immediately. However, this gives
+    /// bridging the flexibility to substitute a default value to cope
+    /// with historical decisions, e.g., an existing Objective-C method
+    /// that returns `nil` to for "empty result" rather than (say) an
+    /// empty array. In such cases, when `nil` does occur, the
+    /// implementation of `Swift.Array`'s conformance to
+    /// `ObjectiveCBridgeable` will produce an empty array rather than
+    /// dynamically failing.
+    ///
+    /// A default implementation calls `init(unconditionallyBridgedFromObjectiveC:)`
+    static func unconditionallyBridgeFromObjectiveC(source: ObjectiveCType?)
+        -> Self
+
+    /// Attempt to construct a value of the `Self` type from
+    /// an Objective-C object of the bridged class type
     ///
     /// If the conversion fails this initializer returns `nil`.
     init?(bridgedFromObjectiveC: ObjectiveCType)
+
+    /// Unconditionally construct a value of the `Self` type
+    /// from an Objective-C object of the bridged class type.
+    ///
+    /// A default implementation calls `init?(bridgedFromObjectiveC:)`
+    /// and aborts if the conversion fails.
+    init(unconditionallyBridgedFromObjectiveC: ObjectiveCType?)
 }
 
 public extension ObjectiveCBridgeable {
     static func isBridgedToObjectiveC() -> Bool { return true }
-}
-
-/// Provides default partial conformance to the private
-/// protocol _ObjectiveCBridgeable
-public extension ObjectiveCBridgeable {
-    static func _isBridgedToObjectiveC() -> Bool {
-        return isBridgedToObjectiveC()
+    static func unconditionallyBridgeFromObjectiveC(source: ObjectiveCType?) -> Self {
+        return Self.init(unconditionallyBridgedFromObjectiveC: source)
     }
-
-    static func _getObjectiveCType() -> Any.Type {
-        return ObjectiveCType.self
-    }
-
-    func _bridgeToObjectiveC() -> ObjectiveCType {
-        return bridgeToObjectiveC()
-    }
-
-    static func _forceBridgeFromObjectiveC(
-        source: ObjectiveCType,
-        inout result: Self?
-    ) {
-        result = Self.init(bridgedFromObjectiveC: source)
-        precondition(result != nil)
-    }
-
-    static func _conditionallyBridgeFromObjectiveC(
-        source: ObjectiveCType,
-        inout result: Self?
-    ) -> Bool {
-        result = Self.init(bridgedFromObjectiveC: source)
-        return result != nil
+    init(unconditionallyBridgedFromObjectiveC source: ObjectiveCType?) {
+        self.init(bridgedFromObjectiveC: source!)!
     }
 }
 ```
 
 # Detailed Design
 
-1. Expose the protocol `ObjectiveCBridgeable`
-  1. Any type adopting `ObjectiveCBridgeable` will gain conformance to `_ObjectiveCBridgeable`
-2. When generating an Objective-C interface for an `@objc` type:
+1. Expose the protocol `ObjectiveCBridgeable`. This protocol will replace the old private protocol `_ObjectiveCBridgeable`.
+2. When generating an Objective-C interface for an `@objc` class type:
   1. When a function contains parameters or return types that are `@nonobjc` but those types adopt `ObjectiveCBridgeable`:
      1. Create `@objc` thunks that call the Swift functions but substitute the corresponding `ObjectiveCType`.
      2. The thunks will call the appropriate protocol functions to perform the conversion.
   2. If any `@nonobjc` types do not adopt `ObjectiveCBridgeable`, the function itself is not exposed to Objective-C (current behavior).
-3. Collection bridging works just as it does today since conforming types also adopt the existing private protocol.
-4. The `ObjectiveCType` must be defined in Swift. If a `-swift.h` header is generated, it will include a `SWIFT_BRIDGED()` macro where the parameter indicates the Swift type with which the `ObjectiveCType` bridges. The macro will be applied to the `ObjectiveCType` and any subclasses.
+3. Swift Standard library types like `String`, `Array`, `Dictionary`, and `Set` will adopt the new protocol, thus demoting their bridging behavior from *magic* to regular behavior.
+4. A clang attribute will be provided to indicate which Swift type bridges to an Objective-C class. A convenience `SWIFT_BRIDGED()` macro will be provided.
+  1. If the `ObjectiveCType` is defined in Objective-C, the programmer must annotate the `@interface` declaration with `SWIFT_BRIDGED("SwiftTypeName")`.
+  2. If the `ObjectiveCType` is defined in Swift, it must be an `@objc` class type. The compiler will annotate the generated bridging header with `SWIFT_BRIDGED()` automatically.
 5. It is an error for bridging to be ambiguous.
   1. A Swift type may bridge to an Objective-C base class, then provide different subclass instances at runtime but no other Swift type may bridge to that base class or any of its subclasses.
-  2. The compiler must emit a diagnostic when it detects two Swift types attempting to bridge to the same `ObjectiveCType`. 
-6. The Swift type and `ObjectiveCType` must be defined in the same module
+  2. The compiler must emit a diagnostic when it detects two Swift types attempting to bridge to the same `ObjectiveCType`.
+6. The Swift type and `ObjectiveCType` must be defined in the same module. If the `ObjectiveCType` is defined in Objective-C then it must come from the same-named Objective-C module.
 
 
 ## Example
@@ -187,5 +206,11 @@ None. There are no breaking changes and adoption is opt-in.
 
 The main alternative, as stated above, is not to adopt Swift features that cannot be expressed in Objective-C. 
 
-The less fesible alternative is to provide bridging manually by segmenting methods and properties into `@objc` and `@nonobjc` variants, then manually converting at all the touch points. In practice I don't expect this to be very common due to the painful overhead it imposes. Developers are much more likely to avoid using Swift features (even subconsciously).
+The less feasible alternative is to provide bridging manually by segmenting methods and properties into `@objc` and `@nonobjc` variants, then manually converting at all the touch points. In practice I don't expect this to be very common due to the painful overhead it imposes. Developers are much more likely to avoid using Swift features (even subconsciously).
 
+
+# Future Directions
+
+## Conditional Conformance
+
+It is intended that when and if Swift 3 adopts conditional protocol conformance that the standard library types such as `Array` and `Dictionary` will declare conditional conformance to `ObjectiveCBridgeable` if their element types are `ObjectiveCBridgeable` (with explicitly declared conformance for built-ins like `Int`).
