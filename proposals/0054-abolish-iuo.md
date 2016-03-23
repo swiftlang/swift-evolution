@@ -122,7 +122,7 @@ Note that the parameter type is `NSView?`, not `NSView!`.
 
 ```Swift
 func f() -> Int! { return 3 } // f: () -> Int?, has IUO attribute
-let x1 = f() // succeeds; x1: Int? == 3
+let x1 = f() // succeeds; x1: Int? = 3
 let x2: Int? = f() // succeeds; x2: Int? = .some(3)
 let x3: Int! = f() // succeeds; x3: Int? = .some(3), has IUO attribute
 let x4: Int = f() // succeeds; x4: Int = 3
