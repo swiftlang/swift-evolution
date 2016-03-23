@@ -66,6 +66,11 @@ Both cases are silent, i.e. they don't show with most usage. However the mistake
 - Iterators returning `nil` indefinitely is probably what most people expect, especially since all iterators in the standard library do this (and likely many custom iterators as well).
 - Implementors are probably more likely than callers to check the API contract.
 
+Some have argued that it's risky to rely on people adhering to the API contract, an argument that can be made for either case:
+a) "Writing an iterator that doesn't repeat `nil` is risky as the caller might not adhere to the API contract, so just make all iterators repeat `nil` anyway."
+b) "Writing code that relies on the iterator repeating `nil` is risky as the implementor might not adhere to the API contract, so just track state and branch in that code anyway."
+This however kind of defeats the purpose of having an API contract.
+
 ### Frequency
 In both cases, sometimes code needs to track extra state and branch:
 - **Current:** Callers sometimes need to track a bool and branch. The standard library currently has 3 occurrences of this being necessary ([#1](https://github.com/apple/swift/blob/master/stdlib/public/core/Sequence.swift#L435), [#2](https://github.com/apple/swift/blob/master/stdlib/public/core/Unicode.swift#L128), [#3](https://github.com/apple/swift/blob/master/stdlib/public/core/Unicode.swift#L373)).
