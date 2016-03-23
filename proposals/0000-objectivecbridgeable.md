@@ -1,7 +1,7 @@
 # Allow Swift types to provide custom Objective-C representations
 
 * Proposal: SE-NNNN
-* Author(s): [Russ Bishop](https://github.com/russbishop)
+* Author(s): [Russ Bishop](https://github.com/russbishop), [Doug Gregor](https://github.com/DougGregor)
 * Status: **Awaiting review**
 * Review manager: TBD
 
@@ -39,10 +39,13 @@ The solution proposed is to expose a new protocol `ObjectiveCBridgeable` and hav
 
 ## ObjectiveCBridgeable Protocol
 
-```
+```swift
 /// A type adopting `ObjectiveCBridgeable` will be exposed
-/// to Objective-C as the type `ObjectiveCType`
+/// to Objective-C as the type `ObjectiveCType` (or one of its
+/// subclasses).
 public protocol ObjectiveCBridgeable {
+    /// The `@objc` class (or base class) type
+    /// representing `Self` in Objective-C.
     associatedtype ObjectiveCType : NSObject
 
     /// Returns `true` iff instances of `Self` can be converted to
@@ -52,13 +55,12 @@ public protocol ObjectiveCBridgeable {
     ///
     /// A default implementation returns `true`. If a Swift type is 
     /// generic and should only be bridged for some type arguments,
-    /// provide alternate implementations in extensions 
-    /// and return `false` in those cases.
+    /// provide your own implementation that returns `false` for
+    /// non-bridged type parameters.
     ///
-    ///     struct Foo<T>: ObjectiveCBridgeable { ... }
-    ///     extension Foo where T: NonBridgedType {
-    ///         static func isBridgedToObjectiveC() -> Bool { 
-    ///             return false 
+    ///     struct Foo<T>: ObjectiveCBridgeable {
+    ///         static func isBridgedToObjectiveC() -> Bool {
+    ///             return !(T is NonBridgedType)
     ///         }
     ///     }
     ///
@@ -126,18 +128,27 @@ public extension ObjectiveCBridgeable {
 
 1. Expose the protocol `ObjectiveCBridgeable`. This protocol will replace the old private protocol `_ObjectiveCBridgeable`.
 2. When generating an Objective-C interface for an `@objc` class type:
-  1. When a function contains parameters or return types that are `@nonobjc` but those types adopt `ObjectiveCBridgeable`:
-     1. Create `@objc` thunks that call the Swift functions but substitute the corresponding `ObjectiveCType`.
-     2. The thunks will call the appropriate protocol functions to perform the conversion.
-  2. If any `@nonobjc` types do not adopt `ObjectiveCBridgeable`, the function itself is not exposed to Objective-C (current behavior).
+    1. When a function contains parameters or return types that are `@nonobjc` but those types adopt `ObjectiveCBridgeable`:
+        1. Create `@objc` thunks that call the Swift functions but substitute the corresponding `ObjectiveCType`.
+        2. The thunks will call the appropriate protocol functions to perform the conversion.
+    2. If any `@nonobjc` types do not adopt `ObjectiveCBridgeable`, the function itself is not exposed to Objective-C (current behavior).
 3. Swift Standard library types like `String`, `Array`, `Dictionary`, and `Set` will adopt the new protocol, thus demoting their bridging behavior from *magic* to regular behavior.
 4. A clang attribute will be provided to indicate which Swift type bridges to an Objective-C class. A convenience `SWIFT_BRIDGED()` macro will be provided.
-  1. If the `ObjectiveCType` is defined in Objective-C, the programmer must annotate the `@interface` declaration with `SWIFT_BRIDGED("SwiftTypeName")`.
-  2. If the `ObjectiveCType` is defined in Swift, it must be an `@objc` class type. The compiler will annotate the generated bridging header with `SWIFT_BRIDGED()` automatically.
-5. It is an error for bridging to be ambiguous.
-  1. A Swift type may bridge to an Objective-C base class, then provide different subclass instances at runtime but no other Swift type may bridge to that base class or any of its subclasses.
-  2. The compiler must emit a diagnostic when it detects two Swift types attempting to bridge to the same `ObjectiveCType`.
-6. The Swift type and `ObjectiveCType` must be defined in the same module. If the `ObjectiveCType` is defined in Objective-C then it must come from the same-named Objective-C module.
+    1. If the `ObjectiveCType` is defined in Objective-C, the programmer should annotate the `@interface` declaration with `SWIFT_BRIDGED("SwiftTypeName")`.
+    2. If the `ObjectiveCType` is defined in Swift, it must be an `@objc` class type. The compiler will annotate the generated bridging header with `SWIFT_BRIDGED()` automatically.
+5. The Swift type and `ObjectiveCType` must be defined in the same module. If the `ObjectiveCType` is defined in Objective-C then it must come from the same-named Objective-C module.
+
+## Ambiguity and Casting
+
+Resolving bridged types adopts the general principle of automatic thunk generation only when there is no ambiguity, but always using the protocol implementation when explicitly casting or when bridging collection types.
+
+1. For `ObjectiveCType`s defined in Objective-C:
+    1. Omitting the `SWIFT_BRIDGED()` attribute causes Objective-C APIs using the `ObjectiveCType` to import without automatic bridging. A user may resolve the ambiguity in Swift by explicitly casting to an `ObjectiveCBridgeable` Swift type (eg: `NSObject as! Foo<T>`)
+    2. Bridged collection types will still observe the protocol conformance if cast to a Swift type (eg: `NSArray as? [Int]` will call the `ObjectiveCBridgeable` implementation of `Int`) 
+2. For `ObjectiveCType`s defined in Swift:
+    1. If multiple Swift types bridge to the same `@objc` type then automatic thunk generation (from Rule #2) is disabled and the property or method will not be exposed in the generated bridging header. The user may provide an `@objc` alternative to resolve the ambiguity by explicitly casting (eg: `return Foo<T> as! SomeObjcObject`)
+    2. If a collection type is passed to an Objective-C API, the collection will still call the protocol to perform the conversion (eg: passing `[String]` to `- (void)printStrings:(NSArray <NSString *> *)strings` will call the `ObjectiveCBridgeable` implementation of `String`).
+
 
 
 ## Example
@@ -146,15 +157,13 @@ Here is an enum with associated values that adopts the protocol and bridges by c
 
 *Note: The ways you can represent the type in Objective-C are endless; I’d prefer not to bikeshed that particular bit :) The Objective-C type is merely one representation you could choose to allow getting and setting the enum's associated values*
 
-```
+```swift
 enum Fizzer {
     case Case1(String)
     case Case2(Int, Int)
 }
 
 extension Fizzer: ObjectiveCBridgeable {
-    typealias ObjectiveCType = ObjCFizzer
-
     func bridgeToObjectiveC() -> ObjCFizzer {
         let bridge = ObjCFizzer()
         switch self {
@@ -196,6 +205,7 @@ class ObjCFizzer: NSObject {
     }
 }
 ```
+
 
 # Impact on existing code
 
