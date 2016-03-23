@@ -188,6 +188,16 @@ void setZeroPoint(Point3D point)
 __attribute__((swift_name("setter:Point3D.zero(_:)")));
 ```
 
+*Ammendment:* Also allow for importing as subscript.
+
+```C
+// Import as subscript
+float Point3DGetPointAtIndex(int idx, Point3D point)
+__attribute__((swift_name("getter:subscript(_:self:)")))
+void Point3DSetPointAtIndex(int idx, Point3D point, float val)
+__attribute__((swift_name("getter:subscript(_:self:newValue:)")))
+```
+
 The string present in swift_name will additionally support the following:
 
 * A type name proceeded by ``.`` to denote the context to import onto
@@ -195,7 +205,15 @@ The string present in swift_name will additionally support the following:
    method/property, otherwise this will be a static method/property
 * ``getter:`` and ``setter:`` to denote the function as a property getter/setter
 
+*Amendment:*
+* ``newValue`` to denote which parameter to treat as a subscript setter's new value
+
 *Amendment:* swift_name is not valid on non-prototyped function declarations.
+
+*Amendment:* swift_name can be used to add instance members onto an extension
+of the named protocol, but they are limited to instance members. Importing as
+static method or init is not supported. Instance members are imported into a
+protocol extension, enforcing static dispatch.
 
 ### Automatic inference heuristics
 
