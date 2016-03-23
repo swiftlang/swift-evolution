@@ -26,6 +26,7 @@ things like:
 
 ```swift
 typealias StringDictionary<T> = Dictionary<String, T>
+typealias DictionaryOfStrings<T : Hashable> = Dictionary<T, String>
 typealias IntFunction<T> = (T) -> Int
 typealias Vec3<T> = (T, T, T)
 typealias BackwardTriple<T1,T2,T3> = (T3, T2, T1)
@@ -37,16 +38,27 @@ directly into the model.
 ## Detail Design
 
 This is a minimal proposal for introducing type aliases into Swift, and
-intentionally chooses to keep them limited to being "aliases".  As such,
-additional constraints are not allowed in this base proposal, e.g. you can't
-write:
+intentionally chooses to keep them limited to being "aliases".  These aliases
+are required to declare the constraints of the aliasee (e.g. the 
+`DictionaryOfStrings` example above redeclares the Hashable constraint) to make
+the requirements of the declaration obvious.  Leaving off the constraint would
+produce the expected error (potentially with a Fixit hint to add it):
 
 ```swift
-typealias StringDictionary<T where T : Hashable> = Dictionary<String, T>
+typealias DictionaryOfStrings<T>  = Dictionary<T, String>
+  // error: type 'T' does not conform to protocol 'Hashable'
+```
+
+However, because this proposal is targetted at supporting aliases, it does not
+allow *additional* constraints to be added to type parameters.  For example, you
+can't write:
+
+```swift
+typealias ComparableArray<T where T : Comparable> = Array<T>
 ```
 
 If there is a compelling reason to add this, we can consider extending the
-model to support them in the future.
+model to support them in the future, based on the merits of those reasons.
 
 Otherwise, generic type aliases follow the model of type aliases and the
 precedent of the other generic declarations in Swift.  For example, they allow
