@@ -12,6 +12,7 @@ proposals in that process.
 ## Upcoming reviews
 
 * March 24...29, 2016 [SE-0055: Make unsafe pointer nullability explicit using Optional](proposals/0055-optional-unsafe-pointers.md)
+* March 24...27, 2016 [SE-0053: Remove explicit use of `let` from Function Parameters](proposals/0053-remove-let-from-function-parameters.md)
 * March 25...30, 2016 [SE-0054: Abolish `ImplicitlyUnwrappedOptional` type](proposals/0054-abolish-iuo.md)
 
 
