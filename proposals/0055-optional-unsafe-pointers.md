@@ -242,17 +242,17 @@ With this proposal, the `baseAddress` property becomes optional:
 
 ````diff
    /// Construct an Unsafe${Mutable}Pointer over the `count` contiguous
-    /// `Element` instances beginning at `start`.
- -  public init(start: Unsafe${Mutable}Pointer<Element>, count: Int) {
- +  ///
- +  /// If `start` is nil, `count` must be 0. However, `count` may be 0 even for
- +  /// a nonzero `start`.
- +  public init(start: Unsafe${Mutable}Pointer<Element>?, count: Int) {
+   /// `Element` instances beginning at `start`.
+-  public init(start: Unsafe${Mutable}Pointer<Element>, count: Int) {
++  ///
++  /// If `start` is nil, `count` must be 0. However, `count` may be 0 even for
++  /// a nonzero `start`.
++  public init(start: Unsafe${Mutable}Pointer<Element>?, count: Int) {
 ````
 
 ````diff
- -  public var baseAddress: Unsafe${Mutable}Pointer<Element> {
- +  public var baseAddress: Unsafe${Mutable}Pointer<Element>? {
+-  public var baseAddress: Unsafe${Mutable}Pointer<Element> {
++  public var baseAddress: Unsafe${Mutable}Pointer<Element>? {
 ````
 
 This does force clients using `baseAddress` to consider the possibility that
