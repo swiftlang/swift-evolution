@@ -32,7 +32,7 @@ error messages in some of the most common cases where a developer accidentally
 tries to do this. 
 
 However, while this approach makes sense for `if` and `while` statements, it
-does not make sense for ‘guard': The body of a guard statement is delineated by
+does not make sense for `guard`: The body of a `guard` statement is delineated by
 the `else` keyword, so there is no ambiguity.  A brace is always the start of a
 trailing closure.
 
@@ -57,7 +57,7 @@ guard let object = someSequence.findElement { $0.passesTest() } else {
 ## Detailed design
 
 The compiler change to do this is extremely straight-forward, the patch is
-[available here](https://lists.swift.org/pipermail/swift-evolution/attachments/20160322/50c40166/attachment.obj)
+[available here](https://lists.swift.org/pipermail/swift-evolution/attachments/20160322/50c40166/attachment.obj).
 
 ## Impact on existing code
 
@@ -67,22 +67,23 @@ start being accepted.
 ## Alternatives considered
 
 There are three primary alternatives: do nothing, expand the scope of ‘if' and
-‘while’ conditions as well, and significantly change the syntax of guard.
+‘while’ conditions as well, and significantly change the syntax of `guard`.
 
- * *Do nothing*: It can be argued that this change would make guard inconsistent
-   with the restrictions of ‘if’ and ‘while’ and that inconsistency would be
+ * *Do nothing*: It can be argued that this change would make `guard` inconsistent
+   with the restrictions of `if` and `while` and that inconsistency would be
    confusing.  On the other hand, I am arguing that this is an arbitrary
    restriction.
 
  * *Expand the scope of `if` and `while` statements*:  Through enough heroics
    and lookahead we could consider relaxing the trailing closure requirements on
    `if` and `while` statements as well.  While this could be interesting, it
-   raises several ambiguity questions.  However, since any such direction would
+   raises several ambiguity questions, which makes it non-obvious that it is the
+   right thing to do.  In any case, since this expansion would
    be compatible with this proposal, I see it as a separable potential extension
    on top of this basic proposal.
 
  * *Change the syntax of `guard`*: I only list this for completeness, but we
-   could eliminate the `else` keyword, making guard more similar to `if` and 
+   could eliminate the `else` keyword, making `guard` more similar to `if` and 
    `while`.  I personally think that this is a really bad idea though: the 
    `guard` statement is not a general `unless` statement, and its current syntax
    was very very carefully evaluated, iterated on, discussed, and re-evaluated
