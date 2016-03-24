@@ -66,8 +66,7 @@ start being accepted.
 
 ## Alternatives considered
 
-There are three primary alternatives: do nothing, expand the scope of ‘if' and
-‘while’ conditions as well, and significantly change the syntax of `guard`.
+There are four primary alternatives:
 
  * *Do nothing*: It can be argued that this change would make `guard` inconsistent
    with the restrictions of `if` and `while` and that inconsistency would be
@@ -89,3 +88,19 @@ There are three primary alternatives: do nothing, expand the scope of ‘if' and
    was very very carefully evaluated, iterated on, discussed, and re-evaluated
    in the Swift 2 timeframe.  I feel that it has stood the test of time well
    since then.
+
+ * *Change the syntax of `if` and `while`*: Brent Royal-Gordon points out that
+   we could change `if` and `while` to use a keyword after their condition as
+   well, e.g.:
+
+```swift
+if expr then {
+while expr do {
+for elem in expr do { code }
+switch expr among { code }
+```
+
+   This would make it easy to support trailing closures in if and while, but it
+   has some disadvantages: it takes a new keyword (`then`), it diverges
+   unnecessarily from the rest of the C family of languages.
+
