@@ -28,6 +28,7 @@ proposals in that process.
 * [SE-0041: Updating Protocol Naming Conventions for Conversions](proposals/0041-conversion-protocol-conventions.md)
 * [SE-0030: Property Behaviors](proposals/0030-property-behavior-decls.md)
 * [SE-0045: Add scan, takeWhile, dropWhile, and iterate to the stdlib](proposals/0045-scan-takewhile-dropwhile.md)
+* [SE-0052: Change IteratorType post-nil guarantee](proposals/0052-iterator-post-nil-guarantee.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 
