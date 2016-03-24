@@ -116,7 +116,10 @@ sampling of potentially good ideas that are not in scope for Swift
 * [SE-0037: Clarify interaction between comments & operators](proposals/0037-clarify-comments-and-operators.md)
 * [SE-0038: Package Manager C Language Target Support](proposals/0038-swiftpm-c-language-targets.md)
 * [SE-0039: Modernizing Playground Literals](proposals/0039-playgroundliterals.md)
+* [SE-0042: Flattening the function type of unapplied method references](proposals/0042-flatten-method-types.md)
+* [SE-0043: Declare variables in 'case' labels with multiple patterns](proposals/0043-declare-variables-in-case-labels-with-multiple-patterns.md)
 * [SE-0046: Establish consistent label behavior across all parameters including first labels](proposals/0046-first-label.md)
+* [SE-0047: Defaulting non-Void functions so they warn on unused results](proposals/0047-nonvoid-warn.md)
 
 ## Development minor version:  Swift 2.2
 
