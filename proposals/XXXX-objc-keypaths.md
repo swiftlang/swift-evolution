@@ -15,7 +15,7 @@ The use of string literals for key paths is extremely error-prone: there is no c
 
 ## Proposed solution
 
-Introduce a new expression `#keypath()` that allows one to build a compile-time valid key-path string literal (to allow it be used as `StaticString` and `StringLiteralConvertible`):
+Introduce a new expression `#keyPath()` that allows one to build a compile-time valid key-path string literal (to allow it be used as `StaticString` and `StringLiteralConvertible`):
 
 ```swift
 class Person: NSObject {
@@ -37,43 +37,41 @@ chris.friends = [joe, douglas]
 chris.bestFriend = joe
 
 
-#keypath(Person.firstName) // => "firstName"
-chris.valueForKey(#keypath(Person.firstName)) // => Chris
-#keypath(Person.bestFriend.lastName) // => "bestFriend.lastName"
-chris.valueForKeyPath(#keypath(Person.bestFriend.lastName)) // => Groff
-#keypath(Person.friends.firstName) // => "friends.firstName"
-chris.valueForKeyPath(#keypath(Person.friends.firstName)) // => ["Joe", "Douglas"]
+#keyPath(Person.firstName) // => "firstName"
+chris.valueForKey(#keyPath(Person.firstName)) // => Chris
+#keyPath(Person.bestFriend.lastName) // => "bestFriend.lastName"
+chris.valueForKeyPath(#keyPath(Person.bestFriend.lastName)) // => Groff
+#keyPath(Person.friends.firstName) // => "friends.firstName"
+chris.valueForKeyPath(#keyPath(Person.friends.firstName)) // => ["Joe", "Douglas"]
 ```
 
-By having the `#keypath` expression do the work to form the Objective-C key-path string, we free the developer from having to do the manual typing and get static checking that the key-path exists and is exposed to Objective-C.
+By having the `#keyPath` expression do the work to form the Objective-C key-path string, we free the developer from having to do the manual typing and get static checking that the key-path exists and is exposed to Objective-C.
 
-It would also be very convenient for the `#keypath` to accept value (instead of static) expressions:
+It would also be very convenient for the `#keyPath` to accept value (instead of static) expressions:
 
 ```
 extension Person {
 	class func find(name: String) -> [Person] {
-		return DB.execute("SELECT * FROM Person WHERE \(#keypath(firstName)) LIKE '%\(name)%'")
+		return DB.execute("SELECT * FROM Person WHERE \(#keyPath(firstName)) LIKE '%\(name)%'")
 	}
 }
 ```
 
-In this case, `#keypath(firstName)` is understood to represent `#keypath(Person.firstName)`.
+In this case, `#keyPath(firstName)` is understood to represent `#keyPath(Person.firstName)`.
 
 ## Collection Keypaths
 
-One aspect of the design which seems potentially problematic is the reference to key-paths into collections. As Foundation types are not strongly-typed, keys-paths that reference:
-
-* a type conforming to `SequenceType` are allowed to add a key to reference properties on that type and properties on the `Element` type
-* a type conforming to `NSArray`, `NSDictionary`, `NSSet` are allowed to add a key to reference properties on that type but not on the contained objects
+As Foundation types are not strongly-typed, the key-path expression should only accept traversing `SequenceType` conforming types:
 
 ```swift
 let swiftArray = ["Chris", "Joe", "Douglas"]
 let nsArray = NSArray(array: swiftArray)
-swiftArray.valueForKeyPath(#keypath(swiftArray.count)) // => 3
-swiftArray.valueForKeyPath(#keypath(swiftArray.uppercaseString)) // => ["CHRIS", "JOE", "DOUGLAS"]
-swiftArray.valueForKeyPath(#keypath(nsArray.count)) // => 3
-swiftArray.valueForKeyPath(#keypath(nsArray.uppercaseString)) // compiler error
+swiftArray.valueForKeyPath(#keyPath(swiftArray.count)) // => 3
+swiftArray.valueForKeyPath(#keyPath(swiftArray.uppercased)) // => ["CHRIS", "JOE", "DOUGLAS"]
+swiftArray.valueForKeyPath(#keyPath(nsArray.count)) // => 3
+swiftArray.valueForKeyPath(#keyPath(nsArray.uppercaseString)) // compiler error
 ```
+There is some implicit bridging going on here that could use some detailed design. If I refer to `Person.lastName.uppercased`, that's a method on the value type `String`. At runtime, we're depending on getting the `uppercaseString` method on `NSString`. This may be as simple as saying that we follow the `_ObjectiveCBridgeable` conformance for any value type encountered along the way.
 
 ## Collection Operators
 
@@ -81,8 +79,8 @@ This proposal purposely does not attempt to implement Collection Operators as th
 
 ## Impact on existing code
 
-The introduction of the `#keypath` expression has no impact on existing code, and is simply a modification-safe alternative to using strings literal for referencing key-paths.
+The introduction of the `#keyPath` expression has no impact on existing code, and is simply a modification-safe alternative to using strings literal for referencing key-paths.
 
 ## Alternatives considered
 
-There does not seem to be any obvious alternatives. The only point of discussion was on the name of the expression. `#key` was proposed: it is shorted but does not seem to express that the expression accepts paths.
+There does not seem to be any obvious alternatives. The only point of discussion was on the name of the expression. `#key` was proposed: it is shorter but does not seem to express that the expression accepts paths.
