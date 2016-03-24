@@ -49,7 +49,7 @@ public protocol ObjectiveCBridgeable {
     associatedtype ObjectiveCType : NSObject
 
     /// Returns `true` iff instances of `Self` can be converted to
-    /// Objective-C.  Even if this method returns `true`, a given
+    /// Objective-C.  Even if this property returns `true`, a given
     /// instance of `Self.ObjectiveCType` may, or may not, convert
     /// successfully to `Self`.
     ///
@@ -59,13 +59,12 @@ public protocol ObjectiveCBridgeable {
     /// non-bridged type parameters.
     ///
     ///     struct Foo<T>: ObjectiveCBridgeable {
-    ///         static func isBridgedToObjectiveC() -> Bool {
+    ///         static var isBridgedToObjectiveC: Bool {
     ///             return !(T is NonBridgedType)
     ///         }
     ///     }
     ///
-    @warn_unused_result
-    static func isBridgedToObjectiveC() -> Bool
+    static var isBridgedToObjectiveC: Bool { get }
 
     /// Convert `self` to an instance of 
     /// `ObjectiveCType` (or one of its subclasses)
@@ -114,7 +113,7 @@ public protocol ObjectiveCBridgeable {
 }
 
 public extension ObjectiveCBridgeable {
-    static func isBridgedToObjectiveC() -> Bool { return true }
+    static var isBridgedToObjectiveC: Bool { return true }
     static func unconditionallyBridgeFromObjectiveC(source: ObjectiveCType?) -> Self {
         return Self.init(unconditionallyBridgedFromObjectiveC: source)
     }
@@ -138,17 +137,19 @@ public extension ObjectiveCBridgeable {
     2. If the `ObjectiveCType` is defined in Swift, it must be an `@objc` class type. The compiler will annotate the generated bridging header with `SWIFT_BRIDGED()` automatically.
 5. The Swift type and `ObjectiveCType` must be defined in the same module. If the `ObjectiveCType` is defined in Objective-C then it must come from the same-named Objective-C module.
 
+
 ## Ambiguity and Casting
 
-Resolving bridged types adopts the general principle of automatic thunk generation only when there is no ambiguity, but always using the protocol implementation when explicitly casting or when bridging collection types.
+The compiler generates automatic thunks only when there is no ambiguity, while explicit casts and bridged collection types always use the protocol implementation.
+
 
 1. For `ObjectiveCType`s defined in Objective-C:
-    1. Omitting the `SWIFT_BRIDGED()` attribute causes Objective-C APIs using the `ObjectiveCType` to import without automatic bridging. A user may resolve the ambiguity in Swift by explicitly casting to an `ObjectiveCBridgeable` Swift type (eg: `NSObject as! Foo<T>`)
-    2. Bridged collection types will still observe the protocol conformance if cast to a Swift type (eg: `NSArray as? [Int]` will call the `ObjectiveCBridgeable` implementation of `Int`) 
-2. For `ObjectiveCType`s defined in Swift:
-    1. If multiple Swift types bridge to the same `@objc` type then automatic thunk generation (from Rule #2) is disabled and the property or method will not be exposed in the generated bridging header. The user may provide an `@objc` alternative to resolve the ambiguity by explicitly casting (eg: `return Foo<T> as! SomeObjcObject`)
-    2. If a collection type is passed to an Objective-C API, the collection will still call the protocol to perform the conversion (eg: passing `[String]` to `- (void)printStrings:(NSArray <NSString *> *)strings` will call the `ObjectiveCBridgeable` implementation of `String`).
-
+    1. Omitting the `SWIFT_BRIDGED()` attribute causes Objective-C APIs using the `ObjectiveCType` to import without automatic bridging.
+    2. There are no implicit conversions from the Swift type to its Objective-C bridged type; if an Objective-C parameter imports as `SomeObjectiveCType`, attempting to pass `Foo<T>` is an error. However a user *may* explicitly cast to an `ObjectiveCBridgeable` Swift type (eg: `funcTakingObjCObject(Foo<T> as! SomeObjectiveCType`).
+    3. Bridged collection types will still observe the protocol conformance if cast to a Swift type (eg: `NSArray as? [Int]` will call the `ObjectiveCBridgeable` implementation on `Array`, which itself will call the implementation on `Int` for the elements)
+2. A Swift type may bridge to an Objective-C base class then provide different subclass instances at runtime, but no other Swift type may bridge to that base class or any of its subclasses.
+    1. The compiler should emit a diagnostic when it detects two Swift types attempting to bridge to the same `ObjectiveCType`.
+3. An exception to these rules exists for trivially convertable built-in types like `NSInteger` &lt;--&gt; `Int` when specified outside of a bridged collection type. In those cases the compiler will continue the existing behavior, bypassing the `ObjectiveCBridgeable` protocol. The effect is that types like `Int` will not bridge to `NSNumber` unless contained inside a collection type (see `BuiltInBridgeable below`).
 
 
 ## Example
@@ -218,9 +219,25 @@ The main alternative, as stated above, is not to adopt Swift features that canno
 
 The less feasible alternative is to provide bridging manually by segmenting methods and properties into `@objc` and `@nonobjc` variants, then manually converting at all the touch points. In practice I don't expect this to be very common due to the painful overhead it imposes. Developers are much more likely to avoid using Swift features (even subconsciously).
 
+## Ambiguity
+
+The idea of allowing multiple Swift types to bridge to the same Objective-C type was discussed. It should technically be possible since the same-module rule wouldn't allow the shape of an imported API to vary based on which modules you imported. The compiler *could* skip generating the thunks in this case and the user would need to provide `@objc` equivalent members that performed casting to resolve the ambiguity.
+
+However there doesn't appear to be a convincing case to support such complex behavior so in the interests of simplicity this proposal keeps this kind of ambiguity an error. It can always be relaxed in the future if desired.
+
+
+## BuiltInBridgeable
+
+On the mailing list the idea of a protocol to supercede `ObjectiveCBridgeable` for built-in types like `Int` was brought up but not considered essential for this proposal. (The protocol would be decorative only, not having any functions or properties).
+
+These types are special because they bridge differently inside collections vs outside. The compiler already has *magic* knowledge of these types and I don't anticipate the list of types will ever get any longer. The only benefit of a `BuiltInBridgeable` protocol would be to explicitly declare which types have this "magic".
+
+This can always be implemented in the future if it is desired.
+
 
 # Future Directions
 
 ## Conditional Conformance
 
 It is intended that when and if Swift 3 adopts conditional protocol conformance that the standard library types such as `Array` and `Dictionary` will declare conditional conformance to `ObjectiveCBridgeable` if their element types are `ObjectiveCBridgeable` (with explicitly declared conformance for built-ins like `Int`).
+
