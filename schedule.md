@@ -6,7 +6,6 @@ proposals in that process.
 
 ## Active reviews
 
-* March 16...22, 2016 [SE-0044: Import as Member](proposals/0044-import-as-member.md)
 * March 22...25, 2016 [SE-0016: Adding initializers to Int and UInt to convert from UnsafePointer and UnsafeMutablePointer](proposals/0016-initializers-for-converting-unsafe-pointers-to-ints.md)
 
 ## Upcoming reviews

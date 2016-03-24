@@ -120,6 +120,7 @@ sampling of potentially good ideas that are not in scope for Swift
 * [SE-0042: Flattening the function type of unapplied method references](proposals/0042-flatten-method-types.md)
 * [SE-0046: Establish consistent label behavior across all parameters including first labels](proposals/0046-first-label.md)
 * [SE-0047: Defaulting non-Void functions so they warn on unused results](proposals/0047-nonvoid-warn.md)
+* [SE-0044: Import as Member](proposals/0044-import-as-member.md)
 
 ## Development minor version:  Swift 2.2
 

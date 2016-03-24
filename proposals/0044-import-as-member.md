@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0044](https://github.com/apple/swift-evolution/blob/master/proposals/0044-import-as-member.md)
 * Author(s): [Michael Ilseman](https://github.com/milseman)
-* Status: **Under review** (March 15...22, 2016)
+* Status: **Accepted** ([Discussion](http://thread.gmane.org/gmane.comp.lang.swift.evolution/12842), [Bug](https://bugs.swift.org/browse/SR-1053))
 * Review manager: [Doug Gregor](https://github.com/DougGregor)
 * Implementation: [GitHub branch](https://github.com/apple/swift/tree/import-as-member)
 
