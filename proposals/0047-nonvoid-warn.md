@@ -84,7 +84,12 @@ c3()       // compiler warning, unused result
 _ = c3()   // no compiler warning
 ```
 
+* During the review period on Swift Evolution, the term `@discardable` was preferred over `@discardableResult`. 
+* Community members strongly encouraged picking a short keyword.
+* Alternative names considered included: `@allowUnusedResult`, `@optionalResult`, `@suppressUnusedResultWarning`, `@noWarnUnusedResult`, `@ignorableResult`, `@incidentalResult`, and `@discretionaryResult`. 
+
 ### Mutating Variants
+
 The Swift [master change log](https://github.com/apple/swift/blob/master/CHANGELOG.md) notes 
 the introduction of doc comment fields that engage with the code completion engine to 
 deliver better results:
@@ -95,13 +100,20 @@ This proposal recommends introducing two further comment fields, specifically `m
 
 The `message` argument that formerly provided a textual warning when a function or method was called with an unused result will be discarded entirely and subsumed by document comments. Under this scheme, whatever attribute name is chosen to modify function names or return types will not use arguments.
 
-## Alternative Names Considered
+## Migration and Impact On Existing Code
 
-Alternative names considered included names were considered: `@allowUnusedResult`, `@optionalResult`, `@suppressUnusedResultWarning`, `@noWarnUnusedResult`, `@ignorableResult`, `@incidentalResult`, and `@discretionaryResult`.
+Flipping Swift's default behavior to automatically warn on unused results should expose overlooked errors in existing code. Community review has convinced us that simply removing the existing attributes from Swift code will not be the best solution for all developers. 
+
+* For many developers, removing `@warn_unused_result` could be sufficient, enabling warnings to drive code audits. However, deprecating `@warn_unused_result` instead of remove-on-migration, would better allow inspection of any code that is not `@warn_unused_result`.
+
+* Some developers have requested an on-demand inversion (marking un-marked functions) for code they believe is well audited and will resist any issues with masking inherent problems. Brent Royal-Gordan wrote, "If you have done a reasonably thorough audit, deleting the annotations instead of inverting them is a *destructive* change. When Swift 2 changed the documentation format, the migrator didn't delete all the old doc comments. Deleting @warn_unused_result in audited codebases is akin to that."
+
+* Concerns were raised over imported functions written in discardable-by-default environments, especially for C-language sources where community members felt imported functions should match the default behavior of the C-language. Global functions that return scalar values from Objective-C sources might be treated in the same way. We believe any Objective-C method or function that returns an `NSObject` should warn on ignored result unless explicitly marked.  `removeLast()` and other `pop()`-like functions are examples of functions that will most probably be marked with `@discartableResult` attribute. 
 
 ## Future directions
 
-The Swift Evolution community also discussed decorating the type rather than the declaration. 
+#### Decorating Type
+The Swift Evolution community discussed decorating the type rather than the declaration. 
 Decorating the return type makes it clear that it's the result that can be optionally treated as discardable rather than the function whose role it is to police its use.
 
 ```swift
@@ -114,30 +126,13 @@ until such time as there's a strong motivation to use such an approach.
 
 Keywords considered for decorating the type included: `@discardable`, `@ignorable`, `@incidental`, `@elective`, `@discretionary`, `@voluntary`, `@voidable`, `@throwaway`, and `@_` (underscore).
 
-## Unconventional Alternatives
+#### Objective-C Annotation
 
-David Owens suggests introducing a non-attribute solution for unwarned results, by overloading based on return-type. The
-approach goes like this:
+During review, some community members requested a new attribute enabling exceptional imported functions to be properly annotated from Objective-C source.
 
-```swift
-// Create a normal version with a return type
-func removeLast() -> Self.Generator.Element { ... }
+#### Swift Type Annotation
 
-// Create a Void version that consumes the return value
-func removeLast() { _ = removeLast() }
-
-// If you do not use the return value, there's no warning
-// because a Void variation exists
-foo.removeLast()
-
-// The original, non-Void version continues to work as well
-let item = foo.removeLast()
-```
-
-This alternative requires no custom attributes and enables developers to customize any 
-side-effects for Void versions of their functions However, as Owens notes, "Of the problems 
-[of Swift] is that it's just not good at picking the one you want". If this obstacle could be 
-surmounted, this would offer a simple, elegant solution.
+Haravikk requested that the attribute annotate types as well as functions. This would allow "the default behavior to be changed on a per-type basis, as this would be useful for types that are specifically designed with method chaining for example (where most results are discardable as standard). While the choice of default will never satisfy everyone, this would make it easy to tweak for your own needs."
 
 ## Snake Case
 
