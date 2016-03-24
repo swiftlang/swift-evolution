@@ -1,9 +1,9 @@
 # Remove explicit use of `let` from Function Parameters
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-name.md)
+* Proposal: [SE-0053](0053-remove-let-from-function-parameters.md)
 * Author(s): [Nicholas Maccharoli](https://github.com/nirma)
-* Status: **Awaiting review**
-* Review manager: TBD
+* Status: **Scheduled for review** March 24...27, 2016
+* Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction
 
