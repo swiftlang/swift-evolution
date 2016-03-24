@@ -103,6 +103,7 @@ sampling of potentially good ideas that are not in scope for Swift
 * [SE-0028: Modernizing Swift's Debugging Identifiers (\__FILE__, etc)](proposals/0028-modernizing-debug-identifiers.md)
 * [SE-0034: Disambiguating Line Control Statements from Debugging Identifiers](proposals/0034-disambiguating-line.md)
 * [SE-0040: Replacing Equal Signs with Colons For Attribute Arguments](proposals/0040-attributecolons.md)
+* [SE-0043: Declare variables in 'case' labels with multiple patterns](proposals/0043-declare-variables-in-case-labels-with-multiple-patterns.md)
 
 ### Accepted proposals for Swift 3.0
 
@@ -117,7 +118,6 @@ sampling of potentially good ideas that are not in scope for Swift
 * [SE-0038: Package Manager C Language Target Support](proposals/0038-swiftpm-c-language-targets.md)
 * [SE-0039: Modernizing Playground Literals](proposals/0039-playgroundliterals.md)
 * [SE-0042: Flattening the function type of unapplied method references](proposals/0042-flatten-method-types.md)
-* [SE-0043: Declare variables in 'case' labels with multiple patterns](proposals/0043-declare-variables-in-case-labels-with-multiple-patterns.md)
 * [SE-0046: Establish consistent label behavior across all parameters including first labels](proposals/0046-first-label.md)
 * [SE-0047: Defaulting non-Void functions so they warn on unused results](proposals/0047-nonvoid-warn.md)
 
