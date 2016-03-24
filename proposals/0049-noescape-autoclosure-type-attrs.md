@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0049: Move @noescape and @autoclosure to be type attributes](0049-noescape-autoclosure-type-attrs.md)
 * Author: [Chris Lattner](https://github.com/lattner)
-* Status: **To be scheduled**
+* Status: **Awaiting review** (scheduled March 25...30, 2016)
 * Review manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction

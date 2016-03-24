@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0048: Generic Type Aliases](0048-generic-typealias.md)
 * Author: [Chris Lattner](https://github.com/lattner)
-* Status: **To be scheduled**
+* Status: **Under review** (March 24...29, 2016)
 * Review manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction

@@ -2,8 +2,8 @@
 
 * Proposal: [SE-0056](0056-trailing-closures-in-guard.md)
 * Author: [Chris Lattner](https://github.com/lattner)
-* Status: **Awaiting review**
-* Review Manager: Some brave soul
+* Status: **Awaiting review** (scheduled March 31...April 5, 2016)
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction and Motivation
 
