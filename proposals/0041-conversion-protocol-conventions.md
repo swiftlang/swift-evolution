@@ -36,13 +36,13 @@ This proposal establishes precise conventional meanings for three protocol suffi
 The following conventions communicate the kinds of functionality required from conforming types. This naming scheme excludes any implementation details, such as whether an initializer or static factory method is used to create an instance or how members must be named.
 
 1. `Creatable`
-The `Creatable` suffix designates protocols that convert *from* a type or associated type mentioned in the protocol name such as `IntegerLiteralConvertible`, `StringLiteralConvertible`, etc. The standard library currently includes many examples.
+  > The `Creatable` suffix designates protocols that convert *from* a type or associated type mentioned in the protocol name such as `IntegerLiteralConvertible`, `StringLiteralConvertible`, etc. The standard library currently includes many examples.
 
 2. `Convertible`
-The `Convertible` suffix designates protocols that both project to and convert from a type or associated type mentioned in the protocol name.  The standard library currently includes `RawRepresentable`.
+  > The `Convertible` suffix designates protocols that both project to and convert from a type or associated type mentioned in the protocol name.  The standard library currently includes `RawRepresentable`.
 
 3. `Representable`
-The `Representable` suffix designates protocols that project *to* a type or associated type mentioned in the protocol name.  The standard library currently includes `CustomStringConvertible` and `CustomDebugStringConvertible`.
+  > The `Representable` suffix designates protocols that project *to* a type or associated type mentioned in the protocol name.  The standard library currently includes `CustomStringConvertible` and `CustomDebugStringConvertible`.
 
 We believe these conventions better convey protocol conversion roles to Swift developers.
 
@@ -92,9 +92,11 @@ In addition:
 ## Alternatives considered
 
 The original draft of this proposal suggested the following convention:
+
 1. `Convertible` when converting *from* the type mentioned in the protocol name.
 2. `Representable` for bidirectional conversion.
 3. `Projectable` when converting *to* the type mentioned in the protocol name.
+
 These choices minimize the changes needed to establish a clear and consistent convention.  This modified proposal presents what the authors believe is the best convention among the possibilities discussed on the mailing list.
 
 Additional names considered for each class of protocol include:
