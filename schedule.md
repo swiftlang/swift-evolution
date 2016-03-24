@@ -14,6 +14,7 @@ proposals in that process.
 
 ## Upcoming reviews
 
+* March 24...29, 2016 [SE-0055: Make unsafe pointer nullability explicit using Optional](proposals/0055-optional-unsafe-pointers.md)
 
 
 ## Proposals awaiting scheduling

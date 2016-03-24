@@ -1,9 +1,9 @@
-# Make pointer nullability explicit using Optional
+# Make unsafe pointer nullability explicit using Optional
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-name.md)
+* Proposal: [SE-0055](0055-optional-unsafe-pointers.md)
 * Author(s): [Jordan Rose](https://github.com/jrose-apple)
-* Status: **Awaiting review**
-* Review manager: TBD
+* Status: **Scheduled for review** March 24...29, 2016
+* Review manager: [Chris Lattner](https://github.com/lattner)
 
 
 ## Introduction
