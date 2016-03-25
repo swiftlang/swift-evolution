@@ -121,7 +121,7 @@ present in the declaration; arguments for defaulted or variadic
 parameters cannot be skipped. For example:
 
 ```swift
-func foo(x: Int, y: Int = 7, strings: String...) { ... }
+func foo(x x: Int, y: Int = 7, strings: String...) { ... }
 
 let fn1 = foo(x:y:strings:) // okay
 let fn2 = foo(x:) // error: no function named 'foo(x:)'
