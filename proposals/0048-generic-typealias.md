@@ -20,7 +20,7 @@ functions, etc) with generic parameters.
 
 ## Proposed Solution
 
-The solution solution is straight-forward: allow type aliases to introduce type
+The solution is straight-forward: allow type aliases to introduce type
 parameters, which are in scope for their definition.  This allows one to express
 things like:
 
