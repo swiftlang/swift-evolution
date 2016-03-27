@@ -9,23 +9,6 @@
 
 `NSOperatingSystemVersion` is a struct in Foundation that contains information about the operating system of the current machine: `majorVersion`, `minorVersion`, and `patchVersion`. I believe that implementing `Comparable` on `NSOperatingSystemVersion` would make it more convenient to use.
 
-Also, I propose adding this initializer:
-
-
-	public init(_ majorVersion: Int, _ minorVersion: Int, _ patchVersion: Int) {
- 	       self.init(majorVersion: majorVersion, minorVersion: minorVersion, patchVersion: patchVersion)
-	}
-
-
-
-This is not just an improvement in terms of brevity, but also in terms of clarity. It's the difference between
-
-`NSOperatingSystemVersion(majorVersion: 10, minorVersion: 11, patchVersion: 4)`
-
-and
-
-`NSOperatingSystemVersion(10,11,4)`
-
 
 ## Motivation
 
@@ -33,11 +16,7 @@ I ran this past [Robert Widmann](https://github.com/CodaFi/), and I liked his wa
 
 ## Proposed solution
 
-	extension NSOperatingSystemVersion : Comparable {
-        public init(_ majorVersion: Int, _ minorVersion: Int, _ patchVersion: Int) {
-            self.init(majorVersion: majorVersion, minorVersion: minorVersion, patchVersion: patchVersion)
-        }
-    }
+	extension NSOperatingSystemVersion : Comparable {}
 	
 	public func ==(lhs: NSOperatingSystemVersion, rhs: NSOperatingSystemVersion) -> Bool {
 		let lhsTuple = (lhs.majorVersion, lhs.minorVersion, lhs.patchVersion)
