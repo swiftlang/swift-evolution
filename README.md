@@ -43,7 +43,7 @@ concretely, this release is focused on several key areas:
 * **API design guidelines**: The way in which Swift is used in popular
   libraries has almost as much of an effect on the character of Swift
   code as the Swift language itself. The [API design
-  guidelines](https://swift.org/documentation/api-design-guidelines.html) provide guidance for
+  guidelines](https://swift.org/documentation/api-design-guidelines/) provide guidance for
   building great Swift APIs. For Swift 3.0, the Swift standard library
   and core libraries are being updated to match these guidelines, and
   Swift's Objective-C importer will [automatically map](proposals/0005-objective-c-name-translation.md) from the [Cocoa guidelines for
@@ -76,9 +76,11 @@ sampling of potentially good ideas that are not in scope for Swift
   interoperability with C++ is a significant undertaking that is out
   of scope for Swift 3.0.
 
-* **Hygienic Macros**: A first-class macro system is something we may consider
-  in future releases.  We don't want the existence of a macro system to be a
-  workaround that reduces the incentive for making the core language great.
+* **Hygienic Macros** and **Compile-Time Evaluation**: A first-class macro
+  system, or support for compile-time code execution in general, is something
+  we may consider in future releases.  We don't want the existence of a macro
+  system to be a workaround that reduces the incentive for making the core
+  language great.
 
 * **Major new library functionality**: The Swift Standard Library is focused on
   providing core "language" functionality as well as common data structures.  The
@@ -91,14 +93,34 @@ sampling of potentially good ideas that are not in scope for Swift
   with the Swift Package Manager.  Beyond Swift 3 we may consider standardizing
   popular packages or expanding the scope of the project.  
 
+### Implemented proposals for Swift 3
+
+* [SE-0005: Better Translation of Objective-C APIs Into Swift](proposals/0005-objective-c-name-translation.md)
+* [SE-0006: Apply API Guidelines to the Standard Library](proposals/0006-apply-api-guidelines-to-the-standard-library.md)
+* [SE-0019: Swift Testing](proposals/0019-package-manager-testing.md)
+* [SE-0031: Adjusting inout Declarations for Type Decoration](proposals/0031-adjusting-inout-declarations.md)
+* [SE-0023: API Design Guidelines](proposals/0006-apply-api-guidelines-to-the-standard-library.md)
+* [SE-0028: Modernizing Swift's Debugging Identifiers (\__FILE__, etc)](proposals/0028-modernizing-debug-identifiers.md)
+* [SE-0034: Disambiguating Line Control Statements from Debugging Identifiers](proposals/0034-disambiguating-line.md)
+* [SE-0040: Replacing Equal Signs with Colons For Attribute Arguments](proposals/0040-attributecolons.md)
+* [SE-0043: Declare variables in 'case' labels with multiple patterns](proposals/0043-declare-variables-in-case-labels-with-multiple-patterns.md)
+
 ### Accepted proposals for Swift 3.0
 
-* [Better Translation of Objective-C APIs Into Swift](proposals/0005-objective-c-name-translation.md) (SE-0005)
-* [Removing currying `func` declaration syntax](proposals/0002-remove-currying.md) (SE-0002)
-* [Removing `var` from Function Parameters and Pattern Matching](proposals/0003-remove-var-parameters-patterns.md) (SE-0003)
-* [Remove the `++` and `--` operators](proposals/0004-remove-pre-post-inc-decrement.md) (SE-0004)
-* [Remove C-style for-loops with conditions and incrementers](proposals/0007-remove-c-style-for-loops.md) (SE-0007)
-* [Swift Testing](proposals/0019-package-manager-testing.md) (SE-0019)
+* [SE-0002: Removing currying `func` declaration syntax](proposals/0002-remove-currying.md)
+* [SE-0003: Removing `var` from Function Parameters](proposals/0003-remove-var-parameters.md)
+* [SE-0004: Remove the `++` and `--` operators](proposals/0004-remove-pre-post-inc-decrement.md)
+* [SE-0007: Remove C-style for-loops with conditions and incrementers](proposals/0007-remove-c-style-for-loops.md)
+* [SE-0029: Remove implicit tuple splat behavior from function applications](proposals/0029-remove-implicit-tuple-splat.md)
+* [SE-0033: Import Objective-C Constants as Swift Types](proposals/0033-import-objc-constants.md)
+* [SE-0035: Limiting `inout` capture to `@noescape` contexts](proposals/0035-limit-inout-capture.md)
+* [SE-0037: Clarify interaction between comments & operators](proposals/0037-clarify-comments-and-operators.md)
+* [SE-0038: Package Manager C Language Target Support](proposals/0038-swiftpm-c-language-targets.md)
+* [SE-0039: Modernizing Playground Literals](proposals/0039-playgroundliterals.md)
+* [SE-0042: Flattening the function type of unapplied method references](proposals/0042-flatten-method-types.md)
+* [SE-0046: Establish consistent label behavior across all parameters including first labels](proposals/0046-first-label.md)
+* [SE-0047: Defaulting non-Void functions so they warn on unused results](proposals/0047-nonvoid-warn.md)
+* [SE-0044: Import as Member](proposals/0044-import-as-member.md)
 
 ## Development minor version:  Swift 2.2
 
@@ -116,25 +138,35 @@ sooner.
 
 ### Implemented proposals for Swift 2.2
 
-* [Allow (most) keywords as argument labels](proposals/0001-keywords-as-argument-labels.md) (SE-0001)
-* [Tuple comparison operators](proposals/0015-tuple-comparison-operators.md) (SE-0015)
-* [Constraining `AnySequence.init`](proposals/0014-constrained-AnySequence.md) (SE-0014)
-* [Replace `typealias` keyword with `associatedtype` for associated type declarations](proposals/0011-replace-typealias-associated.md) (SE-0011)
-* [Naming Functions with Argument Labels](proposals/0021-generalized-naming.md) (SE-0021)
+* [SE-0001: Allow (most) keywords as argument labels](proposals/0001-keywords-as-argument-labels.md)
+* [SE-0011: Replace `typealias` keyword with `associatedtype` for associated type declarations](proposals/0011-replace-typealias-associated.md)
+* [SE-0014: Constraining `AnySequence.init`](proposals/0014-constrained-AnySequence.md)
+* [SE-0015: Tuple comparison operators](proposals/0015-tuple-comparison-operators.md)
+* [SE-0020: Swift Language Version Build Configuration](proposals/0020-if-swift-version.md)
+* [SE-0021: Naming Functions with Argument Labels](proposals/0021-generalized-naming.md)
+* [SE-0022: Referencing the Objective-C selector of a method](proposals/0022-objc-selectors.md)
 
 ### Accepted proposals for Swift 2.2
-* [Add a Lazy flatMap for Sequences of Optionals](proposals/0008-lazy-flatmap-for-optionals.md) (SE-0008)
-* [Swift Language Version Build Configuration](proposals/0020-if-swift-version.md) (SE-0020)
-* [Referencing the Objective-C selector of a method](proposals/0022-objc-selectors.md) (SE-0022)
+* [SE-0008: Add a Lazy flatMap for Sequences of Optionals](proposals/0008-lazy-flatmap-for-optionals.md)
 
 # Other Proposals
 
 ### Rejected proposals
-* [Require self for accessing instance members](proposals/0009-require-self-for-accessing-instance-members.md) (SE-0009)
-* [Remove Partial Application of Non-Final Super Methods (Swift 2.2)](proposals/0013-remove-partial-application-super.md) (SE-0013, Jan 9-13)
+* [SE-0009: Require self for accessing instance members](proposals/0009-require-self-for-accessing-instance-members.md)
+* [SE-0010: Add StaticString.UnicodeScalarView](proposals/0010-add-staticstring-unicodescalarview.md)
+* [SE-0013: Remove Partial Application of Non-Final Super Methods (Swift 2.2)](proposals/0013-remove-partial-application-super.md)
+* [SE-0024: Optional Value Setter `??=`](proposals/0024-optional-value-setter.md)
+* [SE-0027: Expose code unit initializers on String](proposals/0027-string-from-code-units.md)
 
 ## Review
 [Swift Evolution Review Schedule](https://github.com/apple/swift-evolution/blob/master/schedule.md)
 
 ### Returned for Revision
-* [Flexible Memberwise Initialization](proposals/0018-flexible-memberwise-initialization.md) (SE-0018)
+
+* [SE-0018: Flexible Memberwise Initialization](proposals/0018-flexible-memberwise-initialization.md)
+* [SE-0025: Scoped Access Level](proposals/0025-scoped-access-level.md)
+* [SE-0030: Property Behaviors](proposals/0030-property-behavior-decls.md)
+
+### Deferred for Future Discussion
+
+* [SE-0026: Abstract classes and methods](proposals/0026-abstract-classes-and-methods.md)

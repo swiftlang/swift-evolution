@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0006](https://github.com/apple/swift-evolution/blob/master/proposals/0006-apply-api-guidelines-to-the-standard-library.md)
 * Author(s): [Dave Abrahams](https://github.com/dabrahams), [Dmitri Gribenko](https://github.com/gribozavr), [Maxim Moiseev](https://github.com/moiseev)
-* Status: **Under Review** (January 22...31, 2016)
+* Status: **Accepted** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/8586))
 * Review manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Reviewer notes
@@ -81,9 +81,8 @@ On high level, the changes can be summarized as follows.
 
 * Some functions were changed into properties and vice versa.
 
-* `Unmanaged` was renamed to `UnsafeReference` and redesigned.
-
-* `precondition` was renamed to `require`.
+* `String` factory methods dealing with nul-terminated UTF-8 data (a.k.a.
+  C-strings) became initializers.
 
 ## API diffs
 
@@ -92,11 +91,11 @@ added to this section as they are being implemented on the
 [swift-3-api-guidelines branch][swift-3-api-guidelines-branch].
 
 For repetitive changes that affect many types, only one representative instance
-is shown in the diff.  For example, `generate()` was renamed to `iterator()`.
-We only show the diff for the protocol requirement, and all other renames of
-this method are implied.  If a type was renamed, we show only the diff for the
-type declaration, all other effects on the API where the name is used are
-implied.
+is shown in the diff.  For example, `generate()` was renamed to
+`makeIterator()`.  We only show the diff for the protocol requirement, and all
+other renames of this method are implied.  If a type was renamed, we show only
+the diff for the type declaration, all other effects on the API where the name
+is used are implied.
 
 * Strip `Type` suffix from protocol names.
 
@@ -180,7 +179,7 @@ implied.
 +public protocol MirrorPath { ... }
 ```
 
-* The concept of `generator` is renamed to `iterator` across all APIs.
+* The concept of "generator" is renamed to "iterator" across all APIs.
 
 ```diff
 -public protocol GeneratorType { ... }
@@ -191,7 +190,7 @@ implied.
 +  associatedtype Iterator : IteratorProtocol = IndexingIterator<Self>
 
 -  func generate() -> Generator
-+  func iterator() -> Iterator
++  func makeIterator() -> Iterator
  }
 
 -public struct IndexingGenerator<Elements : Indexable> : ... { ... }
@@ -216,7 +215,7 @@ implied.
 +public struct FlattenIterator<Base : ...> : ... { ... }
 
 -public struct JoinGenerator<Base : ...> : ... { ... }
-+public struct JoinIterator<Base : ...> : ... { ... }
++public struct JoinedIterator<Base : ...> : ... { ... }
 
 -public struct LazyMapGenerator<Base : ...> ... { ... }
 +public struct LazyMapIterator<Base : ...> ... { ... }
@@ -288,7 +287,8 @@ public struct OpaquePointer : ... {
 }
 ```
 
-* `sort()` => `sorted()`, `sortInPlace()` => `sort()`.
+* `sort()` => `sorted()`, `sortInPlace()` => `sort()`.  We also added argument
+  labels to closures.
 
 ```diff
  extension Sequence where Self.Iterator.Element : Comparable {
@@ -301,7 +301,8 @@ public struct OpaquePointer : ... {
    @warn_unused_result
 -  public func sort(
 +  public func sorted(
-     @noescape isOrderedBefore: (Iterator.Element, Iterator.Element) -> Bool
+-    @noescape                 isOrderedBefore: (Iterator.Element, Iterator.Element) -> Bool
++    @noescape isOrderedBefore isOrderedBefore: (Iterator.Element, Iterator.Element) -> Bool
    ) -> [Iterator.Element]
  }
 
@@ -315,7 +316,8 @@ public struct OpaquePointer : ... {
    @warn_unused_result(mutable_variant="sort")
 -  public func sort(
 +  public func sorted(
-    @noescape isOrderedBefore: (Iterator.Element, Iterator.Element) -> Bool
+-   @noescape                 isOrderedBefore: (Iterator.Element, Iterator.Element) -> Bool
++   @noescape isOrderedBefore isOrderedBefore: (Iterator.Element, Iterator.Element) -> Bool
    ) -> [Iterator.Element]
  }
 
@@ -332,7 +334,8 @@ public struct OpaquePointer : ... {
  extension MutableCollection where Self.Index : RandomAccessIndex {
 -  public mutating func sortInPlace(
 +  public mutating func sort(
-     @noescape isOrderedBefore: (Iterator.Element, Iterator.Element) -> Bool
+-    @noescape                 isOrderedBefore: (Iterator.Element, Iterator.Element) -> Bool
++    @noescape isOrderedBefore isOrderedBefore: (Iterator.Element, Iterator.Element) -> Bool
    )
  }
 ```
@@ -387,14 +390,17 @@ public struct OpaquePointer : ... {
 +public struct EnumeratedIterator<Base : IteratorProtocol> : ... { ... }
 ```
 
-* `partition()` API was simplified.  It composes better with collection slicing
-  now.
+* `partition()` API was simplified: the range argument was removed.  It
+  composes better with collection slicing now, and is more uniform with other
+  collection algorithms.  We also added `@noescape` and an argument label to
+  the closure.
 
 ```diff
  extension MutableCollection where Index : RandomAccessIndex {
    public mutating func partition(
 -    range: Range<Index>,
-     isOrderedBefore: (Iterator.Element, Iterator.Element) -> Bool
+-                              isOrderedBefore: (Iterator.Element, Iterator.Element) -> Bool
++    @noescape isOrderedBefore isOrderedBefore: (Iterator.Element, Iterator.Element) -> Bool
    ) -> Index
  }
 
@@ -406,18 +412,21 @@ public struct OpaquePointer : ... {
 }
 ```
 
-* `SequenceType.minElement()` => `.min()`, `.maxElement()` => `.max()`.
+* `SequenceType.minElement()` => `.min()`, `.maxElement()` => `.max()`.  We
+  also added argument labels to closures.
 
 ```diff
  extension Sequence {
 -  public func minElement(
 +  public func min(
-     @noescape isOrderedBefore: (Iterator.Element, Iterator.Element) throws -> Bool
+-    @noescape                 isOrderedBefore: (Iterator.Element, Iterator.Element) throws -> Bool
++    @noescape isOrderedBefore isOrderedBefore: (Iterator.Element, Iterator.Element) throws -> Bool
    ) rethrows -> Iterator.Element?
 
 -  public func maxElement(
 +  public func max(
-     @noescape isOrderedBefore: (Iterator.Element, Iterator.Element) throws -> Bool
+-    @noescape                 isOrderedBefore: (Iterator.Element, Iterator.Element) throws -> Bool
++    @noescape isOrderedBefore isOrderedBefore: (Iterator.Element, Iterator.Element) throws -> Bool
    ) rethrows -> Iterator.Element?
  }
 
@@ -496,6 +505,21 @@ public struct OpaquePointer : ... {
    // Use the 'enumerated()' method.
 -  public init(_ base: Base)
  }
+
+ public struct IndexingIterator<Elements : Indexable> : ... {
+   // Call 'iterator()' on the collection instead.
+-  public init(_elements: Elements)
+ }
+
+ public struct HalfOpenInterval<Bound : Comparable> : ... {
+   // Use the '..<' operator.
+-  public init(_ start: Bound, _ end: Bound)
+ }
+
+ public struct ClosedInterval<Bound : Comparable> : ... {
+   // Use the '...' operator.
+-  public init(_ start: Bound, _ end: Bound)
+ }
 ```
 
 * Some functions were changed into properties and vice versa.
@@ -541,166 +565,720 @@ public struct OpaquePointer : ... {
 
 ```
 
-* `Unmanaged` was renamed to `UnsafeReference` and redesigned.
+* Base names and argument labels were changed to follow guidelines about first
+  argument labels.  (Some changes in this category are already specified
+  elsewhere in the diff and are not repeated.)
 
 ```diff
--public struct Unmanaged<Instance : AnyObject> {
-   // New API: `UnsafeReference(bitPattern:)`.
--  public static func fromOpaque(value: COpaquePointer) -> Unmanaged
+ public protocol ForwardIndex {
+-  func advancedBy(n: Distance) -> Self
++  func advanced(by n: Distance) -> Self
 
-   // New API: `OpaquePointer(bitPattern:)`.
--  public func toOpaque() -> COpaquePointer
+-  func advancedBy(n: Distance, limit: Self) -> Self
++  func advanced(by n: Distance, limit: Self) -> Self
 
-   // New API: `UnsafeReference(retaining:)`.
--  public static func passRetained(value: Instance) -> Unmanaged
+-  func distanceTo(end: Self) -> Distance
++  func distance(to end: Self) -> Distance
+ }
 
-   // New API: `UnsafeReference(withoutRetaining:)`.
--  public static func passUnretained(value: Instance) -> Unmanaged
+ public struct Set<Element : Hashable> : ... {
+-  public mutating func removeAtIndex(index: Index) -> Element
++  public mutating func remove(at index: Index) -> Element
+ }
 
-   // New API: `UnsafeReference.object`.
--  public func takeUnretainedValue() -> Instance
+ public struct Dictionary<Key : Hashable, Value> : ... {
+-  public mutating func removeAtIndex(index: Index) -> Element
++  public mutating func remove(at index: Index) -> Element
 
-   // New API: `UnsafeReference.release()`.
--  public func takeRetainedValue() -> Instance
+-  public func indexForKey(key: Key) -> Index?
++  public func index(forKey key: Key) -> Index?
 
-   // New API: none.
--  public func retain() -> Unmanaged
--  public func release()
--  public func autorelease() -> Unmanaged
--}
+-  public mutating func removeValueForKey(key: Key) -> Value?
++  public mutating func removeValue(forKey key: Key) -> Value?
+ }
 
-+/// Holds an instance of `Object`, carrying ownership semantics that
-+/// are not known to the type system and not represented in memory.
-+///
-+/// `UnsafeReference<T>` appears as a return type or "out" parameter
-+/// in [Core
-+/// Foundation](https://developer.apple.com/library/mac/documentation/CoreFoundation/Reference/CoreFoundation_Collection/)
-+/// APIs that have not been
-+/// [annotated](https://developer.apple.com/library/ios/documentation/Swift/Conceptual/BuildingCocoaApps/WorkingWithCocoaDataTypes.html#//apple_ref/doc/uid/TP40014216-CH6-ID79)
-+/// with information that allows clients to receive a safe `T`
-+/// directly.
-+///
-+/// An `UnsafeReference` instance `u` can be in one of three
-+/// "ownership states":
-+///
-+///  1. **Unretained**, where `u.object` yields a valid `T` and will
-+///     do so through any number of accesses to the `.object`
-+///     properties of `UnsafeReference` instances.  The behavior of
-+///     `u.release()` is undefined, and any other operations may cause
-+///     `u` to transition to the *released* state.
-+///
-+///  2. **Retained**, where `u.release()` yields a valid `T` and will
-+///     do so exactly once.  Calling `.release()` transitions `u` and
-+///     all its copies to the *released* state.
-+///
-+///  3. **Released**, where the behavior of both `u.object` and
-+///     `u.release()` is undefined.  A released `UnsafeReference`
-+///     can't be used for anything.
-+///
-+/// The ownership state of an `UnsafeReference` is not
-+/// programmatically detectable, so careful documentation is
-+/// essential.  When an `UnsafeReference` is returned in the
-+/// *retained* state, it is usual to document that "the caller is
-+/// responsible for releasing the object" or that the API "follows
-+/// the [create
-+/// rule](https://developer.apple.com/library/ios/documentation/CoreFoundation/Conceptual/CFMemoryMgmt/Concepts/Ownership.html#//apple_ref/doc/writerid/cfCreateRule)."
-+/// Other `UnsafeReferences` are assumed to be in the *unretained*
-+/// state.  No API should pass or return a *released*
-+/// `UnsafeReference`
-+///
-+/// The safest way to deal with an instance of `UnsafeReference<T>` is
-+/// to immediately extract a safe `T` from it exactly once (via
-+/// `.object` or `.release()` according to its state), and let it go
-+/// out of scope.
-+///
-+/// In the common case where the `UnsafeReference` is a return value,
-+/// it's best to do the extraction as part of the call, e.g.:
-+/// ~~~~
-+/// let names: CFArray = CFHostGetNames(host).object
-+/// let url: CFURL = CFHTTPMessageCopyRequestURL(message).release()
-+/// ~~~
-+///
-+/// When the `UnsafeReference` is an "out" parameter, you can limit
-+/// its scope by creating and unwrapping it in a closure:
-+/// ~~~~
-+/// var properties: CFPropertyList = try {
-+///   var properties: UnsafeReference<CFPropertyList>?
-+///   let error = MIDIObjectGetProperties(midiClient, &properties, true)
-+///   if error != noErr {
-+///     throw NSError(domain: "midi", code: Int(error), userInfo: nil)
-+///   }
-+///   return properties!.object
-+/// }()
-+/// ~~~~
-+public struct UnsafeReference<Object : AnyObject> {
-+
-+  /// Relinquishes ownership of the `Object` and returns it as a safe
-+  /// reference.
-+  ///
-+  /// - Requires: `self` is in the *retained* state.
-+  ///
-+  /// - Postcondition: `self` and all its copies are in the *released* state.
-+  ///
-+  /// - Warning: Calling `.release()` on an *unretained* or *released*
-+  ///   `UnsafeReference` is a severe programming error yielding
-+  ///   undefined behavior.
-+  ///
-+  /// - Warning: After this method is invoked once, invoking any
-+  ///   methods on the same instance, or a copy thereof, is a severe
-+  ///   programming error yielding undefined behavior.
-+  public func release() -> Object
-+
-+  /// A safe reference to the `Object` instance.
-+  ///
-+  /// - Warning: if `self` is in the *retained* state, you must
-+  ///   eventually call `.release()`, or the resulting object will be
-+  ///   leaked.  It's better to just capture the result of invoking
-+  ///   `.release()` in that case.
-+  public var object: Object
+ extension Sequence where Iterator.Element : Sequence {
+   // joinWithSeparator(_:) => join(separator:)
+-  public func joinWithSeparator<
++  public func joined<
+     Separator : Sequence
+     where
+     Separator.Iterator.Element == Iterator.Element.Iterator.Element
+-  >(separator: Separator) -> JoinSequence<Self>
++  >(separator separator: Separator) -> JoinedSequence<Self>
+ }
 
-+  /// Creates an unsafe holder of `safeObject` in the *unretained*
-+  /// state; the held object can be accessed via the `.object` property.
-+  public init(withoutRetaining safeObject: Object)
-+
-+  /// Creates an unsafe holder of `safeObject` in the *retained*
-+  /// state; the held object can be accessed via the `release()`
-+  /// method.
-+  public init(retaining safeObject: Object)
-+
-+  /// Creates an unsafe holder of an object having the given
-+  /// `bitPattern`.
-+  public init(bitPattern: OpaquePointer)
-+}
-+
-+extension OpaquePointer {
-+  /// Unsafely convert an unmanaged class reference to an opaque
-+  /// C pointer.
-+  ///
-+  /// This operation does not change reference counts.
-+  ///
-+  ///     let str0: CFString = "boxcar"
-+  ///     let bits = OpaquePointer(bitPattern: UnsafeReference(withoutRetaining: str0))
-+  ///     let str1 = UnsafeReference<CFString>(bitPattern: bits).object
-+  public init<T>(bitPattern bits: UnsafeReference<T>)
-+}
+ extension Sequence where Iterator.Element == String {
+-  public func joinWithSeparator(separator: String) -> String
++  public func joined(separator separator: String) -> String
+ }
+
+ public class ManagedBuffer<Value, Element> : ... {
+   public final class func create(
+-    minimumCapacity: Int,
++    minimumCapacity minimumCapacity: Int,
+     initialValue: (ManagedProtoBuffer<Value, Element>) -> Value
+   ) -> ManagedBuffer<Value, Element>
+ }
+
+ public protocol Streamable {
+-  func writeTo<Target : OutputStream>(inout target: Target)
++  func write<Target : OutputStream>(inout to target: Target)
+ }
+
+ public func dump<T, TargetStream : OutputStream>(
+   value: T,
+-  inout _ target: TargetStream,
++  inout to target: TargetStream,
+   name: String? = nil,
+   indent: Int = 0,
+   maxDepth: Int = .max,
+   maxItems: Int = .max
+ ) -> T
+
+ extension Sequence {
+-  public func startsWith<
++  public func starts<
+     PossiblePrefix : Sequence where PossiblePrefix.Iterator.Element == Iterator.Element
+   >(
+-    possiblePrefix: PossiblePrefix,
++    with possiblePrefix: PossiblePrefix,
+     @noescape isEquivalent: (Iterator.Element, Iterator.Element) throws -> Bool
+   ) rethrows -> Bool
+
+-  public func startsWith<
++  public func starts<
+     PossiblePrefix : Sequence where PossiblePrefix.Iterator.Element == Iterator.Element
+   >(
+-    possiblePrefix: PossiblePrefix
++    with possiblePrefix: PossiblePrefix
+   ) -> Bool
+ }
+
+ extension CollectionType where Iterator.Element : Equatable {
+-  public func indexOf(element: Iterator.Element) -> Index?
++  public func index(of element: Iterator.Element) -> Index?
+ }
+
+ extension CollectionType {
+-  public func indexOf(predicate: (Iterator.Element) throws -> Bool) rethrows -> Index?
++  public func index(where predicate: (Iterator.Element) throws -> Bool) rethrows -> Index?
+ }
+
+ extension String.Index {
+-  public func samePositionIn(utf8: String.UTF8View) -> String.UTF8View.Index
++  public func samePosition(in utf8: String.UTF8View) -> String.UTF8View.Index
+
+-  public func samePositionIn(utf16: String.UTF16View) -> String.UTF16View.Index
++  public func samePosition(in utf16: String.UTF16View) -> String.UTF16View.Index
+
+-  public func samePositionIn(unicodeScalars: String.UnicodeScalarView) -> String.UnicodeScalarView.Index
++  public func samePosition(in unicodeScalars: String.UnicodeScalarView) -> String.UnicodeScalarView.Index
+ }
+
+ extension String.UTF16View.Index {
+-  public func samePositionIn(characters: String) -> String.Index
++  public func samePosition(in characters: String) -> String.Index
+
+-  public func samePositionIn(utf8: String.UTF8View) -> String.UTF8View.Index
++  public func samePosition(in utf8: String.UTF8View) -> String.UTF8View.Index
+
+-  public func samePositionIn(unicodeScalars: String.UnicodeScalarView) -> String.UnicodeScalarView.Index
++  public func samePosition(in unicodeScalars: String.UnicodeScalarView) -> String.UnicodeScalarView.Index
+ }
+
+ extension String.UTF8View.Index {
+-  public func samePositionIn(characters: String) -> String.Index
++  public func samePosition(in characters: String) -> String.Index
+
+-  public func samePositionIn(utf16: String.UTF16View) -> String.UTF16View.Index
++  public func samePosition(in utf16: String.UTF16View) -> String.UTF16View.Index
+
+-  public func samePositionIn(unicodeScalars: String.UnicodeScalarView) -> String.UnicodeScalarView.Index
++  public func samePosition(in unicodeScalars: String.UnicodeScalarView) -> String.UnicodeScalarView.Index
+ }
+
+ extension String.UnicodeScalarView.Index {
+-  public func samePositionIn(characters: String) -> String.Index
++  public func samePosition(in characters: String) -> String.Index
+
+-  public func samePositionIn(utf16: String.UTF16View) -> String.UTF16View.Index
++  public func samePosition(in utf16: String.UTF16View) -> String.UTF16View.Index
+
+-  public func samePositionIn(utf16: String.UTF16View) -> String.UTF16View.Index
++  public func samePosition(in utf16: String.UTF16View) -> String.UTF16View.Index
+ }
 ```
 
-* `precondition` was renamed to `require`.
+* Lowercase enum cases and static properties.
 
 ```diff
--public func precondition(
-+public func require(
-   @autoclosure condition: () -> Bool,
-   @autoclosure _ message: () -> String = String(),
-   file: StaticString = __FILE__, line: UInt = __LINE__
- )
+ public struct Float {
+-  public static var NaN: Float
++  public static var nan: Float
+ }
 
-@noreturn
--public func preconditionFailure(
-+public func requirementFailure(
-   @autoclosure message: () -> String = String(),
-   file: StaticString = __FILE__, line: UInt = __LINE__
- )
+ public struct Double {
+-  public static var NaN: Double
++  public static var nan: Double
+
+ public struct CGFloat {
+-  public static var NaN: CGFloat
++  public static var nan: CGFloat
+ }
+
+ public protocol FloatingPoint : ... {
+-  static var NaN: Self { get }
++  static var nan: Self { get }
+ }
+
+ public enum FloatingPointClassification {
+-  case SignalingNaN
++  case signalingNaN
+
+-  case QuietNaN
++  case quietNaN
+
+-  case NegativeInfinity
++  case negativeInfinity
+
+-  case NegativeNormal
++  case negativeNormal
+
+-  case NegativeSubnormal
++  case negativeSubnormal
+
+-  case NegativeZero
++  case negativeZero
+
+-  case PositiveZero
++  case positiveZero
+
+-  case PositiveSubnormal
++  case positiveSubnormal
+
+-  case PositiveNormal
++  case positiveNormal
+
+-  case PositiveInfinity
++  case positiveInfinity
+ }
+
+ public enum ImplicitlyUnwrappedOptional<Wrapped> : ... {
+-  case None
++  case none
+
+-  case Some(Wrapped)
++  case some(Wrapped)
+ }
+
+ public enum Optional<Wrapped> : ... {
+-  case None
++  case none
+
+-  case Some(Wrapped)
++  case some(Wrapped)
+ }
+
+ public struct Mirror {
+   public enum AncestorRepresentation {
+-    case Generated
++    case generated
+
+-    case Customized(() -> Mirror)
++    case customized(() -> Mirror)
+
+-    case Suppressed
++    case suppressed
+   }
+
+   public enum DisplayStyle {
+-    case struct, class, enum, tuple, optional, collection
++    case `struct`, `class`, `enum`, tuple, optional, collection
+
+-    case dictionary, `set`
++    case dictionary, `set`
+   }
+ }
+
+ public enum PlaygroundQuickLook {
+-  case Text(String)
++  case text(String)
+
+-  case Int(Int64)
++  case int(Int64)
+
+-  case UInt(UInt64)
++  case uInt(UInt64)
+
+-  case Float(Float32)
++  case float(Float32)
+
+-  case Double(Float64)
++  case double(Float64)
+
+-  case Image(Any)
++  case image(Any)
+
+-  case Sound(Any)
++  case sound(Any)
+
+-  case Color(Any)
++  case color(Any)
+
+-  case BezierPath(Any)
++  case bezierPath(Any)
+
+-  case AttributedString(Any)
++  case attributedString(Any)
+
+-  case Rectangle(Float64,Float64,Float64,Float64)
++  case rectangle(Float64,Float64,Float64,Float64)
+
+-  case Point(Float64,Float64)
++  case point(Float64,Float64)
+
+-  case Size(Float64,Float64)
++  case size(Float64,Float64)
+
+-  case Logical(Bool)
++  case bool(Bool)
+
+-  case Range(Int64, Int64)
++  case range(Int64, Int64)
+
+-  case View(Any)
++  case view(Any)
+
+-  case Sprite(Any)
++  case sprite(Any)
+
+-  case URL(String)
++  case url(String)
+
+-  case _Raw([UInt8], String)
++  case _raw([UInt8], String)
+ }
+```
+
+* `String` factory methods dealing with nul-terminated UTF-8 data (a.k.a.
+  C-strings) became initializers.
+
+```diff
+ extension String {
+-  public static func fromCString(cs: UnsafePointer<CChar>) -> String?
++  public init?(validatingUTF8 cString: UnsafePointer<CChar>)
+
+-  public static func fromCStringRepairingIllFormedUTF8(cs: UnsafePointer<CChar>) -> (String?, hadError: Bool)
++  public init(cString: UnsafePointer<CChar>)
++  public static func decodeCString<Encoding : UnicodeCodec>(
++    cString: UnsafePointer<Encoding.CodeUnit>,
++    as encoding: Encoding.Type,
++    repairingInvalidCodeUnits isReparing: Bool = true)
++      -> (result: String, repairsMade: Bool)?
+ }
+```
+
+* `String` methods that mirror imported methods on NSString are renamed to reflect the new importing rules.
+
+```diff
+ extension String {
+-  public static func localizedNameOfStringEncoding(
+-    encoding: NSStringEncoding
+-  ) -> String
++  public static func localizedName(
++    ofStringEncoding encoding: NSStringEncoding
++  ) -> String
+ 
+-  public static func pathWithComponents(components: [String]) -> String
++  public static func path(withComponents components: [String]) -> String
+ 
+-  public init?(UTF8String bytes: UnsafePointer<CChar>)
++  public init?(utf8String bytes: UnsafePointer<CChar>)
+
+-  public func canBeConvertedToEncoding(encoding: NSStringEncoding) -> Bool
++  public func canBeConverted(toEncoding encoding: NSStringEncoding) -> Bool
+ 
+-  public var capitalizedString: String
++  public var capitalized: String
+ 
+-  public var localizedCapitalizedString: String
++  public var localizedCapitalized: String
+ 
+-  public func capitalizedStringWithLocale(locale: NSLocale?) -> String
++  public func capitalizedString(with locale: NSLocale?) -> String
+ 
+-  public func commonPrefixWithString(
+-    aString: String, options: NSStringCompareOptions) -> String
++  public func commonPrefix(
++    with aString: String, options: NSStringCompareOptions = []) -> String
+ 
+-  public func completePathIntoString(
+-    outputName: UnsafeMutablePointer<String> = nil,
+-    caseSensitive: Bool,
+-    matchesIntoArray: UnsafeMutablePointer<[String]> = nil,
+-    filterTypes: [String]? = nil
+-  ) -> Int
++  public func completePath(
++    into outputName: UnsafeMutablePointer<String> = nil,
++    caseSensitive: Bool,
++    matchesInto matchesIntoArray: UnsafeMutablePointer<[String]> = nil,
++    filterTypes: [String]? = nil
++  ) -> Int
+
+-  public func componentsSeparatedByCharactersInSet(
+-    separator: NSCharacterSet
+-  ) -> [String]
++  public func componentsSeparatedByCharacters(
++    in separator: NSCharacterSet
++  ) -> [String]
+ 
+-  public func componentsSeparatedByString(separator: String) -> [String]
++  public func componentsSeparated(by separator: String) -> [String]
+
+-  public func cStringUsingEncoding(encoding: NSStringEncoding) -> [CChar]?
++  public func cString(usingEncoding encoding: NSStringEncoding) -> [CChar]?
+ 
+-  public func dataUsingEncoding(
+-    encoding: NSStringEncoding,
+-    allowLossyConversion: Bool = false
+-  ) -> NSData?
++  public func data(
++    usingEncoding encoding: NSStringEncoding,
++    allowLossyConversion: Bool = false
++  ) -> NSData?
+ 
+-  public func enumerateLinguisticTagsInRange(
+-    range: Range<Index>,
+-    scheme tagScheme: String,
+-    options opts: NSLinguisticTaggerOptions,
+-    orthography: NSOrthography?,
+-    _ body:
+-      (String, Range<Index>, Range<Index>, inout Bool) -> ()
+-  )
++  public func enumerateLinguisticTags(
++    in range: Range<Index>,
++    scheme tagScheme: String,
++    options opts: NSLinguisticTaggerOptions = [],
++    orthography: NSOrthography? = nil,
++    _ body:
++      (String, Range<Index>, Range<Index>, inout Bool) -> ()
++  )
+
+-  public func enumerateSubstringsInRange(
+-    range: Range<Index>,
+-    options opts:NSStringEnumerationOptions,
+-    _ body: (
+-      substring: String?, substringRange: Range<Index>,
+-      enclosingRange: Range<Index>, inout Bool
+-    ) -> ()
+-  )
++  public func enumerateSubstrings(
++    in range: Range<Index>,
++    options opts:NSStringEnumerationOptions = [],
++    _ body: (
++      substring: String?, substringRange: Range<Index>,
++      enclosingRange: Range<Index>, inout Bool
++    ) -> ()
++  )
+
+-  public func fileSystemRepresentation() -> [CChar]
++  public var fileSystemRepresentation: [CChar]
+ 
+-  public func getBytes(
+-    inout buffer: [UInt8],
+-    maxLength maxBufferCount: Int,
+-    usedLength usedBufferCount: UnsafeMutablePointer<Int>,
+-    encoding: NSStringEncoding,
+-    options: NSStringEncodingConversionOptions,
+-    range: Range<Index>,
+-    remainingRange leftover: UnsafeMutablePointer<Range<Index>>
+-  ) -> Bool
++  public func getBytes(
++    inout buffer: [UInt8],
++    maxLength maxBufferCount: Int,
++    usedLength usedBufferCount: UnsafeMutablePointer<Int>,
++    encoding: NSStringEncoding,
++    options: NSStringEncodingConversionOptions = [],
++    range: Range<Index>,
++    remaining leftover: UnsafeMutablePointer<Range<Index>>
++  ) -> Bool
+ 
+-  public func getLineStart(
+-    start: UnsafeMutablePointer<Index>,
+-    end: UnsafeMutablePointer<Index>,
+-    contentsEnd: UnsafeMutablePointer<Index>,
+-    forRange: Range<Index>
+-  )
++  public func getLineStart(
++    start: UnsafeMutablePointer<Index>,
++    end: UnsafeMutablePointer<Index>,
++    contentsEnd: UnsafeMutablePointer<Index>,
++    for range: Range<Index>
++  )
+
+-  public func getParagraphStart(
+-    start: UnsafeMutablePointer<Index>,
+-    end: UnsafeMutablePointer<Index>,
+-    contentsEnd: UnsafeMutablePointer<Index>,
+-    forRange: Range<Index>
+-  )
++  public func getParagraphStart(
++    start: UnsafeMutablePointer<Index>,
++    end: UnsafeMutablePointer<Index>,
++    contentsEnd: UnsafeMutablePointer<Index>,
++    for range: Range<Index>
++  )
+
+   public init(
+-    contentsOfURL url: NSURL,
++    contentsOf url: NSURL,
+     encoding enc: NSStringEncoding
+   ) throws
+ 
+   public init(
+-    contentsOfURL url: NSURL,
++    contentsOf url: NSURL,
+     usedEncoding enc: UnsafeMutablePointer<NSStringEncoding> = nil
+   ) throws
+ 
+   public init?(
+-    CString: UnsafePointer<CChar>,
++    cString: UnsafePointer<CChar>,
+     encoding enc: NSStringEncoding
+   )
+
+-  public init(format: String, _ arguments: CVarArgType...)
++  public init(format: String, _ arguments: CVarArg...)
+
+-  public init(format: String, arguments: [CVarArgType])
++  public init(format: String, arguments: [CVarArg])
+ 
+-  public init(format: String, locale: NSLocale?, _ args: CVarArgType...)
++  public init(format: String, locale: NSLocale?, _ args: CVarArg...)
+ 
+-  public init(format: String, locale: NSLocale?, arguments: [CVarArgType])
++  public init(format: String, locale: NSLocale?, arguments: [CVarArg])
+
+-  public func lengthOfBytesUsingEncoding(encoding: NSStringEncoding) -> Int
++  public func lengthOfBytes(usingEncoding encoding: NSStringEncoding) -> Int
+ 
+-  public func lineRangeForRange(aRange: Range<Index>) -> Range<Index>
++  public func lineRange(for aRange: Range<Index>) -> Range<Index>
+ 
+-  public func linguisticTagsInRange(
+-    range: Range<Index>,
+-    scheme tagScheme: String,
+-    options opts: NSLinguisticTaggerOptions = [],
+-    orthography: NSOrthography? = nil,
+-    tokenRanges: UnsafeMutablePointer<[Range<Index>]> = nil // FIXME:Can this be nil?
+-  ) -> [String]
++  public func linguisticTags(
++    in range: Range<Index>,
++    scheme tagScheme: String,
++    options opts: NSLinguisticTaggerOptions = [],
++    orthography: NSOrthography? = nil,
++    tokenRanges: UnsafeMutablePointer<[Range<Index>]> = nil // FIXME:Can this be nil?
++  ) -> [String]
+
+-  public var localizedLowercaseString: String
++  public var localizedLowercase: String
+ 
+-  public func lowercaseStringWithLocale(locale: NSLocale?) -> String
++  public func lowercaseString(with locale: NSLocale?) -> String
+ 
+-  func maximumLengthOfBytesUsingEncoding(encoding: NSStringEncoding) -> Int
++  func maximumLengthOfBytes(usingEncoding encoding: NSStringEncoding) -> Int
+ 
+-  public func paragraphRangeForRange(aRange: Range<Index>) -> Range<Index>
++  public func paragraphRange(for aRange: Range<Index>) -> Range<Index>
+ 
+-  public func rangeOfCharacterFromSet(
+-    aSet: NSCharacterSet,
+-    options mask:NSStringCompareOptions = [],
+-    range aRange: Range<Index>? = nil
+-  ) -> Range<Index>?
++  public func rangeOfCharacter(
++    from aSet: NSCharacterSet,
++    options mask:NSStringCompareOptions = [],
++    range aRange: Range<Index>? = nil
++  ) -> Range<Index>?
+ 
+-  func rangeOfComposedCharacterSequenceAtIndex(anIndex: Index) -> Range<Index>
++  func rangeOfComposedCharacterSequence(at anIndex: Index) -> Range<Index>
+ 
+-  public func rangeOfComposedCharacterSequencesForRange(
+-    range: Range<Index>
+-  ) -> Range<Index>
++  public func rangeOfComposedCharacterSequences(
++    for range: Range<Index>
++  ) -> Range<Index>
+ 
+-  public func rangeOfString(
+-    aString: String,
+-    options mask: NSStringCompareOptions = [],
+-    range searchRange: Range<Index>? = nil,
+-    locale: NSLocale? = nil
+-  ) -> Range<Index>?
++  public func range(
++    of aString: String,
++    options mask: NSStringCompareOptions = [],
++    range searchRange: Range<Index>? = nil,
++    locale: NSLocale? = nil
++  ) -> Range<Index>?
+ 
+-  public func localizedStandardContainsString(string: String) -> Bool
++  public func localizedStandardContains(string: String) -> Bool
+ 
+-  public func localizedStandardRangeOfString(string: String) -> Range<Index>?
++  public func localizedStandardRange(of string: String) -> Range<Index>?
+ 
+-  public var stringByAbbreviatingWithTildeInPath: String
++  public var abbreviatingWithTildeInPath: String
+ 
+-  public func stringByAddingPercentEncodingWithAllowedCharacters(
+-    allowedCharacters: NSCharacterSet
+-  ) -> String?
++  public func addingPercentEncoding(
++    withAllowedCharaters allowedCharacters: NSCharacterSet
++  ) -> String?
+
+-  public func stringByAddingPercentEscapesUsingEncoding(
+-    encoding: NSStringEncoding
+-  ) -> String?
++  public func addingPercentEscapes(
++    usingEncoding encoding: NSStringEncoding
++  ) -> String?
+ 
+-  public func stringByAppendingFormat(
+-    format: String, _ arguments: CVarArgType...
+-  ) -> String
++  public func appendingFormat(
++    format: String, _ arguments: CVarArg...
++  ) -> String
+ 
+-  public func stringByAppendingPathComponent(aString: String) -> String
++  public func appendingPathComponent(aString: String) -> String
+ 
+-  public func stringByAppendingPathExtension(ext: String) -> String?
++  public func appendingPathExtension(ext: String) -> String?
+ 
+-  public func stringByAppendingString(aString: String) -> String
++  public func appending(aString: String) -> String
+ 
+-  public var stringByDeletingLastPathComponent: String
++  public var deletingLastPathComponent: String
+ 
+-  public var stringByDeletingPathExtension: String
++  public var deletingPathExtension: String
+ 
+-  public var stringByExpandingTildeInPath: String
++  public var expandingTildeInPath: String
+ 
+-  public func stringByFoldingWithOptions(
+-    options: NSStringCompareOptions, locale: NSLocale?
+-  ) -> String
++  public func folding(
++    options: NSStringCompareOptions = [], locale: NSLocale?
++  ) -> String
+ 
+-  public func stringByPaddingToLength(
+-    newLength: Int, withString padString: String, startingAtIndex padIndex: Int
+-  ) -> String
++  public func padding(
++    toLength newLength: Int,
++    with padString: String,
++    startingAt padIndex: Int
++  ) -> String
+ 
+-  public var stringByRemovingPercentEncoding: String?
++  public var removingPercentEncoding: String?
+
+-  public func stringByReplacingCharactersInRange(
+-    range: Range<Index>, withString replacement: String
+-  ) -> String
++  public func replacingCharacters(
++    in range: Range<Index>, with replacement: String
++  ) -> String
+ 
+-  public func stringByReplacingOccurrencesOfString(
+-    target: String,
+-    withString replacement: String,
+-    options: NSStringCompareOptions = [],
+-    range searchRange: Range<Index>? = nil
+-  ) -> String
++  public func replacingOccurrences(
++    of target: String,
++    with replacement: String,
++    options: NSStringCompareOptions = [],
++    range searchRange: Range<Index>? = nil
++  ) -> String
+ 
+-  public func stringByReplacingPercentEscapesUsingEncoding(
+-    encoding: NSStringEncoding
+-  ) -> String?
++  public func replacingPercentEscapes(
++    usingEncoding encoding: NSStringEncoding
++  ) -> String?
+ 
+-  public var stringByResolvingSymlinksInPath: String
++  public var resolvingSymlinksInPath: String
+ 
+-  public var stringByStandardizingPath: String
++  public var standardizingPath: String
+ 
+-  public func stringByTrimmingCharactersInSet(set: NSCharacterSet) -> String
++  public func trimmingCharacters(in set: NSCharacterSet) -> String
+ 
+-  public func stringsByAppendingPaths(paths: [String]) -> [String]
++  public func strings(byAppendingPaths paths: [String]) -> [String]
+ 
+-  public func substringFromIndex(index: Index) -> String
++  public func substring(from index: Index) -> String
+ 
+-  public func substringToIndex(index: Index) -> String
++  public func substring(to index: Index) -> String
+ 
+-  public func substringWithRange(aRange: Range<Index>) -> String
++  public func substring(with aRange: Range<Index>) -> String
+ 
+-  public var localizedUppercaseString: String
++  public var localizedUppercase: String
+ 
+-  public func uppercaseStringWithLocale(locale: NSLocale?) -> String
++  public func uppercaseString(with locale: NSLocale?) -> String
+ 
+-  public func writeToFile(
+-    path: String, atomically useAuxiliaryFile:Bool,
+-    encoding enc: NSStringEncoding
+-  ) throws
++  public func write(
++    toFile path: String, atomically useAuxiliaryFile:Bool,
++    encoding enc: NSStringEncoding
++  ) throws
+ 
+-  public func writeToURL(
+-    url: NSURL, atomically useAuxiliaryFile: Bool,
+-    encoding enc: NSStringEncoding
+-  ) throws
++  public func write(
++    to url: NSURL, atomically useAuxiliaryFile: Bool,
++    encoding enc: NSStringEncoding
++  ) throws
+ 
+-  public func stringByApplyingTransform(
+-    transform: String, reverse: Bool
+-  ) -> String?
++  public func applyingTransform(
++    transform: String, reverse: Bool
++  ) -> String?
+ 
+-  public func containsString(other: String) -> Bool
++  public func contains(other: String) -> Bool
+
+-  public func localizedCaseInsensitiveContainsString(other: String) -> Bool
++  public func localizedCaseInsensitiveContains(other: String) -> Bool
+ }
 ```
 
 * Miscellaneous changes.
@@ -721,21 +1299,53 @@ public struct OpaquePointer : ... {
  public protocol Sequence : ... {
    public func split(
 -    maxSplit: Int = Int.max,
-+    maxSplits: Int = Int.max,
++    maxSplits maxSplits: Int = Int.max,
 -    allowEmptySlices: Bool = false,
-+    omitEmptySubsequences: Bool = true,
++    omittingEmptySubsequences: Bool = true,
      @noescape isSeparator: (Iterator.Element) throws -> Bool
    ) rethrows -> [SubSequence]
  }
 
  extension Sequence where Iterator.Element : Equatable {
    public func split(
-     separator: Iterator.Element,
+-    separator: Iterator.Element,
++    separator separator: Iterator.Element,
 -    maxSplit: Int = Int.max,
-+    maxSplits: Int = Int.max,
++    maxSplits maxSplits: Int = Int.max,
 -    allowEmptySlices: Bool = false
-+    omitEmptySubsequences: Bool = true
++    omittingEmptySubsequences: Bool = true
    ) -> [AnySequence<Iterator.Element>] {
+ }
+
+
+ public protocol Sequence : ... {
+-  public func lexicographicalCompare<
++  public func lexicographicallyPrecedes<
+     OtherSequence : Sequence where OtherSequence.Iterator.Element == Iterator.Element
+   >(
+     other: OtherSequence,
+     @noescape isOrderedBefore: (Iterator.Element, Iterator.Element) throws -> Bool
+   ) rethrows -> Bool {
+ }
+
+ extension Sequence where Iterator.Element : Equatable {
+-  public func lexicographicalCompare<
++  public func lexicographicallyPrecedes<
+     OtherSequence : Sequence where OtherSequence.Iterator.Element == Iterator.Element
+   >(
+     other: OtherSequence
+   ) -> Bool {
+ }
+
+ public protocol Collection : ... {
+-  func prefixUpTo(end: Index) -> SubSequence
++  func prefix(upTo end: Index) -> SubSequence
+
+-  func suffixFrom(start: Index) -> SubSequence
++  func suffix(from start: Index) -> SubSequence
+
+-  func prefixThrough(position: Index) -> SubSequence
++  func prefix(through position: Index) -> SubSequence
  }
 
  // Changes to this protocol affect `Array`, `ArraySlice`, `ContiguousArray` and
@@ -753,19 +1363,23 @@ public struct OpaquePointer : ... {
 -  mutating func insert(newElement: Iterator.Element, atIndex i: Int)
 +  mutating func insert(newElement: Iterator.Element, at i: Int)
 
+-  mutating func insertContentsOf<
++  mutating func insert<
+     S : Collection where S.Iterator.Element == Iterator.Element
+-  >(newElements: S, at i: Index)
++  >(contentsOf newElements: S, at i: Index)
+
 -  mutating func removeAtIndex(index: Int) -> Element
-+  mutating func removeAt(index: Int) -> Element
++  mutating func remove(at index: Int) -> Element
 
 -  mutating func removeAll(keepCapacity keepCapacity: Bool = false)
 +  mutating func removeAll(keepingCapacity keepingCapacity: Bool = false)
 
 -  mutating func removeRange(subRange: Range<Index>)
--  mutating func removeSubrange(subRange: Range<Index>)
- }
++  mutating func removeSubrange(subRange: Range<Index>)
 
- public struct Set<Element : Hashable> : ... {
--  public mutating func removeAtIndex(index: Index) -> Element
-+  public mutating func removeAt(index: Index) -> Element
+-  mutating func appendContentsOf<S : SequenceType>(newElements: S)
++  mutating func append<S : SequenceType>(contentsOf newElements: S)
  }
 
 +extension Set : SetAlgebra {}
@@ -773,17 +1387,22 @@ public struct OpaquePointer : ... {
  public struct Dictionary<Key : Hashable, Value> : ... {
 -  public typealias Element = (Key, Value)
 +  public typealias Element = (key: Key, value: Value)
+ }
 
--  public mutating func removeAtIndex(index: Index) -> Element
-+  public mutating func removeAt(index: Index) -> Element
+ public struct DictionaryLiteral<Key, Value> : ... {
+-  public typealias Element = (Key, Value)
++  public typealias Element = (key: Key, value: Value)
  }
 
  extension String {
 -  public mutating func appendContentsOf(other: String) {
 +  public mutating func append(other: String) {
 
+-  public mutating appendContentsOf<S : SequenceType>(newElements: S)
++  public mutating append<S : SequenceType>(contentsOf newElements: S)
+
 -  public mutating func replaceRange<
-+  mutating func replaceSubrange<
++  public mutating func replaceSubrange<
      C: CollectionType where C.Iterator.Element == Character
    >(
      subRange: Range<Index>, with newElements: C
@@ -797,8 +1416,14 @@ public struct OpaquePointer : ... {
 -  public mutating func insert(newElement: Character, atIndex i: Index)
 +  public mutating func insert(newElement: Character, at i: Index)
 
+-  public mutating func insertContentsOf<
++  public mutating func insert<
+     S : Collection where S.Iterator.Element == Character
+-  >(newElements: S, at i: Index)
++  >(contentsOf newElements: S, at i: Index)
+
 -  public mutating func removeAtIndex(i: Index) -> Character
-+  public mutating func removeAt(i: Index) -> Character
++  public mutating func remove(at i: Index) -> Character
 
 -  public mutating func removeRange(subRange: Range<Index>)
 +  public mutating func removeSubrange(subRange: Range<Index>)
@@ -824,9 +1449,11 @@ public struct OpaquePointer : ... {
 
  public enum UnicodeDecodingResult {
 -  case Result(UnicodeScalar)
-+  case ScalarValue(UnicodeScalar)
-   case EmptyInput
-   case Error
+-  case EmptyInput
+-  case Error
++  case scalarValue(UnicodeScalar)
++  case emptyInput
++  case error
  }
 
  public struct ManagedBufferPointer<Value, Element> : ... {
@@ -864,13 +1491,13 @@ public struct OpaquePointer : ... {
 
  extension Strideable {
 -  public func stride(to end: Self, by stride: Stride) -> StrideTo<Self>
-+  public func strideTo(end: Self, by stride: Stride) -> StrideTo<Self>
  }
++public func stride<T : Strideable>(from start: T, to end: T, by stride: T.Stride) -> StrideTo<T>
 
  extension Strideable {
 -  public func stride(through end: Self, by stride: Stride) -> StrideThrough<Self>
-+  public func strideThrough(end: Self, by stride: Stride) -> StrideThrough<Self>
  }
++public func stride<T : Strideable>(from start: T, through end: T, by stride: T.Stride) -> StrideThrough<T>
 
  public func transcode<
    Input : IteratorProtocol,
@@ -894,7 +1521,7 @@ public struct OpaquePointer : ... {
 +  public func initializePointee(newValue: Pointee, count: Int = 1)
 
 -  public func move() -> Memory
-+  public func take() -> Memory
++  public func take() -> Pointee
 
 -  public func destroy()
 -  public func destroy(count: Int)
@@ -903,6 +1530,86 @@ public struct OpaquePointer : ... {
 
 -public struct COpaquePointer : ... { ... }
 +public struct OpaquePointer : ... { ... }
+
+-public func unsafeAddressOf(object: AnyObject) -> UnsafePointer<Void>
++public func unsafeAddress(of object: AnyObject) -> UnsafePointer<Void>
+
+-public func unsafeBitCast<T, U>(x: T, _: U.Type) -> U
++public func unsafeBitCast<T, U>(x: T, to: U.Type) -> U
+
+-public func unsafeDowncast<T : AnyObject>(x: AnyObject) -> T
++public func unsafeDowncast<T : AnyObject>(x: AnyObject, to: T.Type) -> T
+
+-public func print<Target: OutputStream>(
++public func print<Target : OutputStream>(
+   items: Any...,
+   separator: String = " ",
+   terminator: String = "\n",
+-  inout toStream output: Target
++  inout to output: Target
+ )
+
+-public func debugPrint<Target: OutputStream>(
++public func debugPrint<Target : OutputStream>(
+   items: Any...,
+   separator: String = " ",
+   terminator: String = "\n",
+-  inout toStream output: Target
++  inout to output: Target
+ )
+
+ public struct Unmanaged<Instance : AnyObject> {
+-  public func toOpaque() -> COpaquePointer
+ }
+ extension OpaquePointer {
++  public init<T>(bitPattern bits: Unmanaged<T>)
+ }
+
+ public enum UnicodeDecodingResult
++  : Equatable {
+-  public var isEmptyInput: Bool
+}
+
+-public func readLine(stripNewline stripNewline: Bool = true) -> String?
++public func readLine(strippingNewline strippingNewline: Bool = true) -> String?
+
+ struct UnicodeScalar {
+   // Use 'UnicodeScalar("\0")' instead.
+-  init()
+
+-  public func escape(asASCII forceASCII: Bool) -> String
++  public func escaped(asASCII forceASCII: Bool) -> String
+ }
+
+ public func transcode<
+   Input : IteratorProtocol,
+   InputEncoding : UnicodeCodec,
+   OutputEncoding : UnicodeCodec
+   where InputEncoding.CodeUnit == Input.Element
+ >(
+-  inputEncoding: InputEncoding.Type, _ outputEncoding: OutputEncoding.Type,
+-  _ input: Input, _ output: (OutputEncoding.CodeUnit) -> Void,
+-  stoppingOnError stopOnError: Bool
++  input: Input,
++  from inputEncoding: InputEncoding.Type,
++  to outputEncoding: OutputEncoding.Type,
++  stoppingOnError stopOnError: Bool,
++  sendingOutputTo processCodeUnit: (OutputEncoding.CodeUnit) -> Void
+ ) -> Bool
+
+ extension UTF16 {
+-  public static func measure<
++  public static func transcodedLength<
+     Encoding : UnicodeCodec, Input : IteratorProtocol
+     where Encoding.CodeUnit == Input.Element
+   >(
+-    _: Encoding.Type, input: Input, repairIllFormedSequences: Bool
++    of input: Input,
++    decodedAs sourceEncoding: Encoding.Type,
++    repairingIllFormedSequences: Bool
+-  ) -> (Int, Bool)?
++  ) -> (count: Int, isASCII: Bool)? {
+ }
 
 -public struct RawByte {}
 
