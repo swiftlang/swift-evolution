@@ -25,19 +25,28 @@ The existing solutions are in some ways similar to those for untyped collections
 
 Add another access level modifier that is meant to express that the API is visible only within the scope in which it is defined. Properties, functions, and nested types marked this way would be completely hidden outside the class or class extension definition.
 
+After the first review, the core team decided that it would be best to use `private` for this access level and rename other access level modifiers for consistency. The most popular set of names is:
+
+public: symbol visible outside the current module
+moduleprivate: symbol visible within the current module
+fileprivate: symbol visible within the current file
+private: symbol visible within the current declaration
+
+(names proposed by Chris Lattner as an adjustment from names proposed by James Berry)
+
 ## Detailed design
 
-When a function or a property is defined with a scoped access modifier, it is visible only within that lexical scope. For example:
+When a function or a property is defined with `private` access modifier, it is visible only within that lexical scope. For example:
 
 ```swift
 class A {
-   local var counter = 0
+   private var counter = 0
 
    // public API that hides the internal state
    func incrementCount() { ++counter }
 
    // hidden API, not visible outside of this lexical scope
-   local func advanceCount(dx: Int) { counter += dx }
+   private func advanceCount(dx: Int) { counter += dx }
 
    // incrementTwice() is not visible here
 }
@@ -49,7 +58,7 @@ extension A {
    // may be useful only to implement some other methods of the extension
    // hidden from anywhere else, so incrementTwice() doesn’t show up in 
    // code completion outside of this extension
-   local func incrementTwice() {
+   private func incrementTwice() {
       incrementCount()
       incrementCount()
    }
@@ -58,10 +67,13 @@ extension A {
 
 ## Impact on existing code
 
-The existing code is completely unaffected.
+The existing code will need to rename `private` to `fileprivate` to achieve the same semantics. In many cases the new meaning of `private` is likely to compile as well and the code will then run exactly as before.
 
 ## Alternatives considered
 
 1. Do nothing and use `_` and `/` or split the code into more files and use the private modifier. The proposed solution makes the intent much clearer, it would be enforced by the compiler, and the language does not dictate how the code must be organized.
 
 2. Introduce a scoped namespace that would make it possible to hide APIs in part of the file. This introduces an extra level of grouping and nesting and forces APIs to be grouped by access level instead of a logical way that may make more sense.
+
+3. Introduce a different access modifier and keep the current names unchanged. The proposal followed this approach to be completely compatible with the existing code, but the core team decided that it was better to use `private` for this modifier because it’s much closer to what the term means in other languages.
+
