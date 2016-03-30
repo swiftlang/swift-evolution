@@ -13,9 +13,9 @@ Here is the initial [Bug Report](https://bugs.swift.org/browse/SR-899) that led 
 
 ## Motivation
 
-`.self` is unnecessary and can clutter a clean API.
+Inconsistencies in the requirement of `.self` are confusing to developers. Additionally, the `.self` requirement is unnecessary given Swift's robust type safety and can clutter a clean API.
 
- Take the following example of a web framework built in Swift.
+Take the following example of a web framework built in Swift.
 
 ### Desired Code
 
