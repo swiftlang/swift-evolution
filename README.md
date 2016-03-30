@@ -95,20 +95,21 @@ sampling of potentially good ideas that are not in scope for Swift
 
 ### Implemented proposals for Swift 3
 
+* [SE-0003: Removing `var` from Function Parameters](proposals/0003-remove-var-parameters.md)
 * [SE-0005: Better Translation of Objective-C APIs Into Swift](proposals/0005-objective-c-name-translation.md)
 * [SE-0006: Apply API Guidelines to the Standard Library](proposals/0006-apply-api-guidelines-to-the-standard-library.md)
 * [SE-0019: Swift Testing](proposals/0019-package-manager-testing.md)
-* [SE-0031: Adjusting inout Declarations for Type Decoration](proposals/0031-adjusting-inout-declarations.md)
 * [SE-0023: API Design Guidelines](proposals/0006-apply-api-guidelines-to-the-standard-library.md)
 * [SE-0028: Modernizing Swift's Debugging Identifiers (\__FILE__, etc)](proposals/0028-modernizing-debug-identifiers.md)
+* [SE-0031: Adjusting inout Declarations for Type Decoration](proposals/0031-adjusting-inout-declarations.md)
 * [SE-0034: Disambiguating Line Control Statements from Debugging Identifiers](proposals/0034-disambiguating-line.md)
 * [SE-0040: Replacing Equal Signs with Colons For Attribute Arguments](proposals/0040-attributecolons.md)
 * [SE-0043: Declare variables in 'case' labels with multiple patterns](proposals/0043-declare-variables-in-case-labels-with-multiple-patterns.md)
+* [SE-0053: Remove explicit use of `let` from Function Parameters](proposals/0053-remove-let-from-function-parameters.md)
 
 ### Accepted proposals for Swift 3.0
 
 * [SE-0002: Removing currying `func` declaration syntax](proposals/0002-remove-currying.md)
-* [SE-0003: Removing `var` from Function Parameters](proposals/0003-remove-var-parameters.md)
 * [SE-0004: Remove the `++` and `--` operators](proposals/0004-remove-pre-post-inc-decrement.md)
 * [SE-0007: Remove C-style for-loops with conditions and incrementers](proposals/0007-remove-c-style-for-loops.md)
 * [SE-0029: Remove implicit tuple splat behavior from function applications](proposals/0029-remove-implicit-tuple-splat.md)
@@ -121,7 +122,6 @@ sampling of potentially good ideas that are not in scope for Swift
 * [SE-0044: Import as Member](proposals/0044-import-as-member.md)
 * [SE-0046: Establish consistent label behavior across all parameters including first labels](proposals/0046-first-label.md)
 * [SE-0047: Defaulting non-Void functions so they warn on unused results](proposals/0047-nonvoid-warn.md)
-* [SE-0053: Remove explicit use of `let` from Function Parameters](proposals/0053-remove-let-from-function-parameters.md)
 
 ## Development minor version:  Swift 2.2
 
