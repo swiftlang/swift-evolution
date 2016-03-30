@@ -48,11 +48,14 @@ app.get("users", i, "posts", s) { request, userId, postName in
 ...
 ```
 
-With `.self` required, more code is necessary that ultimately provides less clarity and concision. The current state of requiring `.self` in some places, and not requiring it in others is confusing to developers.
+With `.self` required, more code is necessary that ultimately provides less clarity and concision.
 
 ### Inconsistency 
 
+The current state of requiring `.self` in some places, and not requiring it in others is confusing to developers.
+
 Here is a demonstration of the current inconsistency. 
+
 ```swift
 func test<T: Any>(type: T.Type, two: String) {
     print(type)
