@@ -27,14 +27,18 @@ app.get("users", Int, "posts", String) { request, userId, postName in
 // prints "You requested the post named foo from user #5"
 ```
 
+Here we are trying to specify the type of item we would like to receive in our handler closure by simply passing the name of the type.
+
 ### Current State
+
+However, the compiler currently complains that `.self` is required after type names. The compiling code looks like the following:
 
 ```swift
 app.get("users", Int.self, "posts", String.self) { request, userId, postName in
 ...
 ```
 
-or
+or, by tricking the compiler a bit:
 
 ```swift
 let i = Int.self
@@ -45,6 +49,8 @@ app.get("users", i, "posts", s) { request, userId, postName in
 ```
 
 With `.self` required, more code is necessary that ultimately provides less clarity and concision. The current state of requiring `.self` in some places, and not requiring it in others is confusing to developers.
+
+### Inconsistency 
 
 Here is a demonstration of the current inconsistency. 
 ```swift
@@ -62,6 +68,20 @@ test(Int)
 test(Int.self, two: "")
 test(Int, two: "") //Expected member name or constructor call after type name
 ``` 
+
+### From Joe Groff
+
+"As the designer in question, I've come around to this as well; our type system is sufficiently stronger than that other language that I think the consequences of accidentally typing `let x = Int` when you meant `let x = Int()` are far easier to understand."
+
+### Community Response
+
+"It seemed like there was general agreement to do something about the “.self” requirement when referencing types. I would personally like to see it go away."
+
+"+1 for junking the .self requirement"
+
+"Nice to see that this might be fixed. Evolution is making me happier and happier lately :)"
+
+"Swift's type-checking engine is strong enough to merit not needing the redundant `.self` safety check. It feels like I'm doing something wrong when I need to use `.self`."
 
 ## Proposed solution
 
@@ -91,4 +111,3 @@ This fixes the confusion of being able to use both methods, but `.self` is unnec
 #### Making `Type` (without `.self`) required
 
 This would be less confusing to developers, but would break old code. 
-
