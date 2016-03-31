@@ -1,9 +1,9 @@
 # Allow Swift types to provide custom Objective-C representations
 
-* Proposal: SE-NNNN
+* Proposal: SE-0058
 * Author(s): [Russ Bishop](https://github.com/russbishop), [Doug Gregor](https://github.com/DougGregor)
 * Status: **Awaiting review**
-* Review manager: TBD
+* Review manager: [Joe Groff](https://github.com/jckarter)
 
 
 # Introduction
