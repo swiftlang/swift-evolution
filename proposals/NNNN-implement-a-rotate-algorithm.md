@@ -136,6 +136,7 @@ extension MutableCollection { // where Index: ForwardIndex
     ///
     /// - Returns: The new index of the element that was first
     ///   pre-rotation.
+    @discardableResult
     public mutating func rotate(firstFrom middle: Index) -> Index
 }
 
@@ -148,6 +149,7 @@ extension MutableCollection where Index: BidirectionalIndex {
     ///
     /// - Returns: The new index of the element that was first
     ///   pre-rotation.
+    @discardableResult
     public mutating func rotate(firstFrom middle: Index) -> Index
 }
 
@@ -160,6 +162,7 @@ extension MutableCollection where Index: RandomAccessIndex {
     ///
     /// - Returns: The new index of the element that was first
     ///   pre-rotation.
+    @discardableResult
     public mutating func rotate(firstFrom middle: Index) -> Index
 }
 ```
@@ -176,7 +179,6 @@ extension Collection where Index: ForwardIndex,
     /// Returns a rotated view of the elements of the collection, where the
     /// element at `middle` ends up first, and the index of the element that
     /// was previously first.
-    @warn_unused_result
     func rotated(firstFrom middle: Index) ->
         (collection: FlattenCollection<[Self.SubSequence]>,
         rotatedStart: FlattenCollectionIndex<[Self.SubSequence]>)
@@ -188,7 +190,6 @@ extension Collection where Index: BidirectionalIndex,
     /// Returns a rotated view of the elements of the collection, where the
     /// element at `middle` ends up first, and the index of the element that
     /// was previously first.
-    @warn_unused_result
     func rotated(firstFrom middle: Index) ->
         (collection: FlattenBidirectionalCollection<[Self.SubSequence]>,
         rotatedStart: FlattenBidirectionalCollectionIndex<[Self.SubSequence]>)
@@ -219,7 +220,6 @@ extension Collection where Index: RandomAccessIndex,
     /// Returns a rotated view of the elements of the collection, where the
     /// element at `middle` ends up first, and the index of the element that
     /// was previously first.
-    @warn_unused_result
     func rotated(firstFrom middle: Index) -> (collection: RotatedCollection<Self>,
         rotatedStart: RotatedCollectionIndex<Self.Index>)
 }
@@ -233,7 +233,6 @@ extension LazyCollection where
     Elements.SubSequence.Index == Elements.Index, Elements.Index == Index
 {
     /// Returns...
-    @warn_unused_result
     func rotated(firstFrom middle: Index) ->
         (collection: LazyCollection<FlattenCollection<[Elements.SubSequence]>>,
         rotatedStart: FlattenCollectionIndex<[Elements.SubSequence]>)
@@ -244,7 +243,6 @@ extension LazyCollection where Elements.Index: BidirectionalIndex,
     Elements.Index == Index
 {
     /// Returns...
-    @warn_unused_result
     func rotated(firstFrom middle: Index) ->
         (collection: LazyCollection<FlattenBidirectionalCollection<[Elements.SubSequence]>>,
         rotatedStart: FlattenBidirectionalCollectionIndex<[Elements.SubSequence]>)
@@ -255,7 +253,6 @@ extension LazyCollection where
     Elements.SubSequence.Index == Elements.Index, Elements.Index == Index
 {
     /// Returns...
-    @warn_unused_result
     func rotated(firstFrom middle: Index) ->
         (collection: LazyCollection<RotatedCollection<Elements>>,
         rotatedStart: RotatedCollectionIndex<Elements.Index>)
