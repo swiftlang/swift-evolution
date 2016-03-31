@@ -106,7 +106,7 @@ Chris Lattner drew an [analogy to `forEach`](https://lists.swift.org/pipermail/s
 and pointed out that `@autoreleasepool` *is* a statement in Objective-C, while
 Jordan Rose found this case [more like `withCString`, or
 `withUnsafeMutablePointer`](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160328/013698.html),
-where having them return a value yeilds nice simplifications and avoids optional
+where having them return a value yields nice simplifications and avoids optional
 `var`s.
 
 I also explored whether third-party code could wrap `autoreleasepool` themselves
