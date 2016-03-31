@@ -269,46 +269,44 @@ The new in-place `reverse()` method will be added to
 
 ## Usage examples
 
-Examples of the new APIs:
+*In-place rotation:*
 
-- *In-place rotation:*
+```swift
+var numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+numbers.rotate(firstFrom: 3)
+expectEqual(numbers, [4, 5, 6, 7, 8, 9, 1, 2, 3])
 
-    ```swift
-    var numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9]
-    numbers.rotate(firstFrom: 3)
-    expectEqual(numbers, [4, 5, 6, 7, 8, 9, 1, 2, 3])
+var toMerge = [2, 4, 6, 8, 10, 3, 5, 7, 9]
+let i = toMerge[2..<7].rotate(firstFrom: 5)
+expectEqual(toMerge, [2, 4, 3, 5, 6, 8, 10, 7, 9])
+expectEqual(i, 4)
+```
 
-    var toMerge = [2, 4, 6, 8, 10, 3, 5, 7, 9]
-    let i = toMerge[2..<7].rotate(firstFrom: 5)
-    expectEqual(toMerge, [2, 4, 3, 5, 6, 8, 10, 7, 9])
-    expectEqual(i, 4)
-    ```
+*Nonmutating rotation:*
 
-- *Nonmutating rotation:*
+```swift
+let numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+let (rotated, i) = numbers.rotated(firstFrom: 3)
+expectEqual(rotated, [4, 5, 6, 7, 8, 9, 1, 2, 3])
+```
 
-    ```swift
-    let numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9]
-    let (rotated, i) = numbers.rotated(firstFrom: 3)
-    expectEqual(rotated, [4, 5, 6, 7, 8, 9, 1, 2, 3])
-    ```
+*Lazy rotation:*
 
-- *Lazy rotation:*
+```swift
+let numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+let (rotated, i) = numbers.lazy.rotated(firstFrom: 3)
+expectEqual(rotated.first!, 4)
+```
 
-    ```swift
-    let numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9]
-    let (rotated, i) = numbers.lazy.rotated(firstFrom: 3)
-    expectEqual(rotated.first!, 4)
-    ```
+*Reversing in place:*
 
-- *Reversing in place:*
-
-    ```swift
-    var numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9]
-    numbers.reverse()
-    expectEqual(numbers, [9, 8, 7, 6, 5, 4, 3, 2, 1])
-    numbers[0..<5].reverse()
-    expectEqual(numbers, [5, 6, 7, 8, 9, 4, 3, 2, 1])
-    ```
+```swift
+var numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+numbers.reverse()
+expectEqual(numbers, [9, 8, 7, 6, 5, 4, 3, 2, 1])
+numbers[0..<5].reverse()
+expectEqual(numbers, [5, 6, 7, 8, 9, 4, 3, 2, 1])
+```
 
 ## Impact on existing code
 
