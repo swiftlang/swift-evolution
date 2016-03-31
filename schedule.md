@@ -14,6 +14,7 @@ proposals in that process.
 
 * March 31...April 5, 2016 [SE-0056: Allow trailing closures in `guard` conditions](proposals/0056-trailing-closures-in-guard.md)
 * March 31...April 5, 2016 [SE-0036: Requiring Leading Dot Prefixes for Enum Instance Member Implementations](proposals/0036-enum-dot.md)
+* March 31...April 5, 2016 [SE-0057: Importing Objective-C Lightweight Generics](proposals/0057-importing-objc-generics.md)
 
 ## Proposals awaiting scheduling
 

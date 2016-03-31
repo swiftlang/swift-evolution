@@ -1,9 +1,9 @@
 # Importing Objective-C Lightweight Generics
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-importing-objc-generics.md)
+* Proposal: [SE-0057](https://github.com/apple/swift-evolution/blob/master/proposals/0057-importing-objc-generics.md)
 * Author: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Awaiting review**
-* Review manager: TBD
+* Status: **Awaiting review** (scheduled March 31...April 5, 2016)
+* Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction
 
