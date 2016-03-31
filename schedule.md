@@ -6,7 +6,6 @@ proposals in that process.
 
 ## Active reviews
 
-* March 22...25, 2016 [SE-0016: Adding initializers to Int and UInt to convert from UnsafePointer and UnsafeMutablePointer](proposals/0016-initializers-for-converting-unsafe-pointers-to-ints.md)
 * March 24...29, 2016 [SE-0048: Generic Type Aliases](proposals/0048-generic-typealias.md)
 * March 24...29, 2016 [SE-0055: Make unsafe pointer nullability explicit using Optional](proposals/0055-optional-unsafe-pointers.md)
 * March 25...30, 2016 [SE-0054: Abolish `ImplicitlyUnwrappedOptional` type](proposals/0054-abolish-iuo.md)
