@@ -82,6 +82,12 @@ sampling of potentially good ideas that are not in scope for Swift
   system to be a workaround that reduces the incentive for making the core
   language great.
 
+* **Implicit conversions between numeric types**: We may do this in a future
+  release, but there is simply too much work to be done first.  Before we can
+  loosen these type rules, we will need to speed up the type checker, redesign
+  the numerics protocols, and implement a subtyping feature to express the 
+  permitted conversions.  This won't all come together before Swift 3.0 ships.
+
 * **Major new library functionality**: The Swift Standard Library is focused on
   providing core "language" functionality as well as common data structures.  The
   "corelibs" projects are focused on providing existing Foundation functionality

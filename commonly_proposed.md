@@ -39,3 +39,5 @@ Here are some other less-commonly proposed changes that have also been rejected:
 * [SE-0027: Expose code unit initializers on String](proposals/0027-string-from-code-units.md)
 
 * [SE-0010: Add StaticString.UnicodeScalarView](proposals/0010-add-staticstring-unicodescalarview.md)
+
+Finally, the readme file includes a list of changes we want to make eventually, but which are [out of scope for the next major release of Swift](README.md#out-of-scope) because we don't have time to do them right before then. Proposals for out-of-scope changes will not be scheduled for review.
