@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0055](0055-optional-unsafe-pointers.md)
 * Author(s): [Jordan Rose](https://github.com/jrose-apple)
-* Status: **Active for Review** March 24...29, 2016
+* Status: **Accepted for Swift 3** March 24...29, 2016
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 

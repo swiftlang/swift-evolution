@@ -7,7 +7,6 @@ proposals in that process.
 ## Active reviews
 
 * March 24...29, 2016 [SE-0048: Generic Type Aliases](proposals/0048-generic-typealias.md)
-* March 24...29, 2016 [SE-0055: Make unsafe pointer nullability explicit using Optional](proposals/0055-optional-unsafe-pointers.md)
 * March 28...31, 2016 [SE-0049: Move @noescape and @autoclosure to be type attributes](proposals/0049-noescape-autoclosure-type-attrs.md)
 * March 31...April 5, 2016 [SE-0057: Importing Objective-C Lightweight Generics](proposals/0057-importing-objc-generics.md)
 
