@@ -403,7 +403,8 @@ public protocol FloatingPoint: SignedArithmetic, Comparable, SignedNumber {
 
   /// `value` converted to `Self` if this can be done without rounding.
   init?<Source: Integer>(exact value: Source)
-}```
+}
+```
 
 The `BinaryFloatingPoint` protocol provides a number of additional conformances
 that only make sense for types with fixed radix 2:
