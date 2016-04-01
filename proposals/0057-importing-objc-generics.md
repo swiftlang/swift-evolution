@@ -19,7 +19,7 @@ collections (`NSArray`, `NSDictionary`, `NSSet`) don't benefit in
 Swift. This proposal introduces a way to import the type parameters of
 Objective-C classes into Swift.
 
-Swift-evolution thread: [TODO](https://lists.swift.org/pipermail/swift-evolution)
+Swift-evolution thread: [here](http://thread.gmane.org/gmane.comp.lang.swift.evolution/2886)
 
 ## Motivation
 
