@@ -1,9 +1,9 @@
 # Update API Naming Guidelines and Rewrite Set APIs Accordingly
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-autoreleasepool-signature.md)
+* Proposal: [SE-0059](https://github.com/apple/swift-evolution/blob/master/proposals/0059-updated-set-apis.md)
 * Author(s): [Dave Abrahams](https://github.com/dabrahams)
-* Status: **Awaiting review**
-* Review manager: TBD
+* Status: **Active for review** (March 31...April 5, 2016)
+* Review manager: Doug Gregor
 
 ## Introduction
 
@@ -12,7 +12,7 @@ When
 was proposed, the lack of an acceptable naming convention for some
 mutating/nonmutating method pairs meant that the APIs of `SetAlgebra`,
 `Set<T>` and `OptionSet<T>` were not adjusted accordingly.  This
-proposal remedies both problems by: 
+proposal remedies both problems by:
 
 1. establishing the necessary naming conventions and 
 
