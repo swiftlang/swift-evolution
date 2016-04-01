@@ -22,10 +22,9 @@ proposal remedies both problems by:
 For reference as you read this proposal, you may be interested in the
 following links:
 
-* [Updated API guidelines](http://dabrahams.github.io/swift-internals/api-design-guidelines)
-* [Updated `SetAlgebra` API](https://github.com/apple/swift/blob/set-api/stdlib/public/core/SetAlgebra.swift)
-* [Full standard library changes](https://github.com/apple/swift/pull/2002)
-* [API guideline changes](https://github.com/apple/swift-internals/pull/8)
+* [Updated API guidelines](http://dabrahams.github.io/swift-internals/api-design-guidelines) ([diff](https://github.com/apple/swift-internals/pull/8))
+* [Updated `SetAlgebra` API](https://github.com/apple/swift/blob/set-api/stdlib/public/core/SetAlgebra.swift) ([diff](https://github.com/apple/swift/pull/2002))
+
 
 ## Fixing the API Guidelines
 
