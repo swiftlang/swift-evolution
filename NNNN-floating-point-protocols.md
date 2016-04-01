@@ -409,7 +409,7 @@ public protocol FloatingPoint: SignedArithmetic, Comparable, SignedNumber {
 The `BinaryFloatingPoint` protocol provides a number of additional conformances
 that only make sense for types with fixed radix 2:
 
-```
+```swift
 public protocol BinaryFloatingPoint: FloatingPoint {
 
   /// The number of bits used to represent the exponent.
