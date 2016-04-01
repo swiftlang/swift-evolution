@@ -28,12 +28,12 @@ following links:
 
 ## Fixing the API Guidelines
 
-The guidelines suggest that method calls with side-effects should read
+The guidelines say that method calls with side-effects should read
 as verb phrases, and those without side-effects should read as noun
 phrases.  They also describe how to name mutating/nonmutating method
 pairs accordingly: starting with the assumption that the fundamental
-operation can be described by a verb, we are to use one of two
-suffixes to create a noun phrase for the nonmutating operation.  
+operation can be described by a verb, we are to use the `ed` or `ing`
+suffix to create a noun phrase for the nonmutating operation.
 
 The problem is that in some cases, the operation's only natural
 description is as a noun. Consider the **union** of two sets, or the
