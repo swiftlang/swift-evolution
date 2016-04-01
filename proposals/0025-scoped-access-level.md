@@ -27,10 +27,10 @@ Add another access level modifier that is meant to express that the API is visib
 
 After the first review, the core team decided that it would be best to use `private` for this access level and rename other access level modifiers for consistency. The most popular set of names is:
 
-public: symbol visible outside the current module
-moduleprivate: symbol visible within the current module
-fileprivate: symbol visible within the current file
-private: symbol visible within the current declaration
+- public: symbol visible outside the current module
+- moduleprivate: symbol visible within the current module
+- fileprivate: symbol visible within the current file
+- private: symbol visible within the current declaration
 
 (names proposed by Chris Lattner as an adjustment from names proposed by James Berry)
 
