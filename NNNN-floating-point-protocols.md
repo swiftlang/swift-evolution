@@ -507,7 +507,7 @@ Finally, the necessary support is added to `Float`, `Double`, `Float80` and
 Some of this work is dependent on the new Integer protocols that are still
 being developed.  Most of it can be done independently; a functional
 implementation of almost all of these operations is available on the branch
-floating-point-revision of my fork git@github.com:stephentyrone/swift.git
+floating-point-revision of [my fork](git@github.com:stephentyrone/swift.git)
 
 ## Impact on existing code
 
