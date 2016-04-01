@@ -40,7 +40,7 @@ description is as a noun. Consider the **union** of two sets, or the
 **remainder** when dividing two integers.  In these cases, we have a
 suitable name for the non-mutating operation, and we need to create a
 name that reads as a verb phrase for its mutating counterpart. The
-proposed solution is to use the prefix `form`, so that
+proposed solution is to use the `form` prefix, so that
 
 ```swift
 x.formUnion(y)
