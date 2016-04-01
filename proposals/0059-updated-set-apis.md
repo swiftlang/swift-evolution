@@ -119,7 +119,7 @@ renaming:
   `Element` is a class, instances may be distinguished using the `===`
   operator.  The new behavior matches that of `NSMutableSet.insert`,
   and is also likely to be more efficient.  Users needing the old
-  behavior can always use the new `replace` method, described below.
+  behavior can always use the new `update(with:)` method, described below.
   In practice this change only affects `Set`, not `OptionSet`.
 
 * `someSet.insert(newMember)` now returns a (discardable) pair
