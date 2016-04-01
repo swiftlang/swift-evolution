@@ -44,6 +44,13 @@ operations, as well as conformance to `SignedArithmetic`, `Equatable`, and
 `Comparable`:
 
 ```swift
+/// A floating-point type that provides most of the IEEE 754 basic (clause 5)
+/// operations.  The base, precision, and exponent range are not fixed in
+/// any way by this protocol, but it enforces the basic requirements of
+/// any IEEE 754 floating-point type.
+///
+/// The BinaryFloatingPoint protocol refines these requirements and provides
+/// some additional useful operations as well.
 public protocol FloatingPoint: SignedArithmetic, Comparable, SignedNumber {
 
   /// An unsigned integer type that can represent any significand.
@@ -410,6 +417,8 @@ The `BinaryFloatingPoint` protocol provides a number of additional conformances
 that only make sense for types with fixed radix 2:
 
 ```swift
+/// A radix-2 (binary) floating-point type that follows the IEEE 754 encoding
+/// conventions.
 public protocol BinaryFloatingPoint: FloatingPoint {
 
   /// The number of bits used to represent the exponent.
