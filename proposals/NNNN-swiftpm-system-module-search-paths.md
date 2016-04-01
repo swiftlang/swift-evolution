@@ -18,15 +18,18 @@ a number of caveats that must be addressed.
 
 [swift-evolution thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160321/013201.html)
 
+
 ## Terminology
 
-* **Swift Package**: A package consumed by SwiftPM that comes with sources that SwiftPM builds into modules
-* **Swift System Package**: A package consumed by SwiftPM that refers to a modular system library not installed by SwiftPM
+* **SwiftPM Source Package**: A package consumed by SwiftPM that comes with sources that SwiftPM builds into modules
+* **SwiftPM System Package**: A package consumed by SwiftPM that refers to a modular system library not installed by SwiftPM
+* **System Package**: A package provided by a system packager like, eg. `apt`, `pacman` or `brew`.
+* **System Packager**: A system package manager like, eg. `apt`, `pacman` or `brew`.
 
 
 ## Motivation
 
-The current implementation of Swift System Packages have a number of problems:
+The current implementation of SwiftPM System Packages have a number of problems:
 
  1. Install locations vary across platforms and `.modulemap` files require absolute paths
  2. `/usr/lib:/usr/local/lib` is not always a sufficient `-L` linker search path
@@ -39,7 +42,7 @@ the `gtk.h` header can be sourced for the complete modular definition of GTK.
 
 For example to import a module map representing the GTK library a user must first have
 a copy of GTK and its headers installed. On Debian based systems the install name for
-this system package is `libgtk-3-0-dev` which is not entirely intuitive.
+this System Package is `libgtk-3-0-dev` which is not entirely intuitive.
 
 For example, Homebrew and MacPorts on OS X install to prefixes other than `/usr`.
 `.modulemap` files must specify headers with absolute paths. The standard we
@@ -73,15 +76,15 @@ A system library should provide a pkg-config file (`.pc`) which describes:
  2. Supplementary flags that should be used when compiling against this library
  3. Supplementary flags that should be used when linking against this library
 
-If SwiftPM read the `.pc` file that comes with packages, this solves problems 1 through 3.
+If SwiftPM read the `.pc` file that comes with System Packages, this solves problems 1 through 3.
 
-Of the tickets we currently have open describing issues using Swift-system-module-packages,
+Of the tickets we currently have open describing issues using SwiftPM System Packages,
 reading the `.pc` file would fix all of them.
 
 It is a convention to name the `.pc` file after the library link-name, so we can determine
-which `.pc` file to ask `pkg-config` for by parsing the `.modulemap` file in the Swift
-package. However sometimes this is not true, (eg. GTK-3 on Ubuntu), so we will allow an
-override in the `Package.swift` file, for example:
+which `.pc` file to ask `pkg-config` for by parsing the `.modulemap` file in the SwiftPM Package.
+However sometimes this is not true, (eg. GTK-3 on Ubuntu), so we will allow an override in
+the `Package.swift` file, for example:
 
 ```swift
 let package = Package(
@@ -92,14 +95,14 @@ let package = Package(
 
 Thus we would search for a filename: `gtk-3.pc`.
 
-We don’t want to depend on `pkg-config`, so we will implement the reading of `.pc` files
-according to the pkg-config specification, including:
+We don’t want to introduce a new dependency (on `pkg-config`) to Swift, so we will
+implement the reading of `.pc` files according to the pkg-config specification, including:
 
  1. Obeying the correct search .pc file search paths
  2. Following overrides due to any `PKG_CONFIG_PATH` environment variable
 
 
-### Providing Package Install Names
+### Hinting At System-Package Install-Names
 
 `Package.swift` would be supplemented like so:
 
@@ -115,7 +118,7 @@ let package = Package(
 ```
 
 Thus, in the event of build failure for modules that depend on this
-package we would provide additional help to the user:
+SwiftPM Package we would output additional help to the user:
 
 ```
 error: failed to build module `bar'
@@ -127,7 +130,7 @@ note: you may need to install `foo' using your system-packager:
 Since the syntax to provide this information uses an explicit enum we can
 add code for each enum to detect which system packagers should be 
 recommended. The community will need to write the code for their own
-platforms. It also means that if a specific packager requires additional
+platforms. It also means that if a specific system-packager requires additional
 parameters, they can be added on a per enum basis.
 
 #### Install-names are not standard
@@ -168,9 +171,9 @@ an existing feature making new code possible.
 
 ## Alternatives Considered
 
-A clear alternative is allowing additional flags to be specified in a system-module package’s `Package.swift`.
+A clear alternative is allowing additional flags to be specified in a SwiftPM System Package’s `Package.swift`.
 
-However since these paths and flags will vary by platform this would because a large matrix that is quite a maintenance burden. Really this information is recorded already, in the system package itself, and in fact almost all packages nowadays provide it in a `.pc` `pkg-config` file.
+However since these paths and flags will vary by platform this would because a large matrix that is quite a maintenance burden. Really this information is recorded already, in the System Package itself, and in fact almost all System Packages nowadays provide it in a `.pc` `pkg-config` file.
 
 Also we do not want to allow arbitrary flags to be specified in `Package.swift`, this allows packages too much power
 to break a large dependency graph with bad compiles. The only entity that understands the whole graph and can manage
@@ -191,7 +194,7 @@ are affected before potentially offering a solution here.
 
 ## Future Directions
 
-The build system could be made more reliable by having the specific packager provide the information that this
+The build system could be made more reliable by having the specific system packager provide the information that this
 proposal garners from `pkg-config`. For example, Homebrew installs everything into independent directories, using these
 directories instead of more general POSIX search paths means there is no danger of edge-case search path collisions and the wrong libraries being picked up.
 
