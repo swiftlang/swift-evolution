@@ -39,7 +39,7 @@ The problem is that in some cases, the operation's only natural
 description is as a noun. Consider the **union** of two sets, or the
 **remainder** when dividing two integers.  In these cases, we have a
 suitable name for the non-mutating operation, and we need to create a
-name that reads as a verb phrase for the mutating operation. The
+name that reads as a verb phrase for its mutating counterpart. The
 proposed solution is to use the prefix `form`, so that
 
 ```swift
