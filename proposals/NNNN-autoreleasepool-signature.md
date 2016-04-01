@@ -98,6 +98,17 @@ The [original request, SR-842](https://bugs.swift.org/browse/SR-842) only
 suggested adding `throws`, but Dmitri Gribenko pointed out that adding a generic
 return type would be better.
 
+Further discussion raised the question of [whether `autoreleasepool` should
+behave like a statement](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160328/013697.html)
+in the future, or whether it should behave like an expression by returning the
+result of the passed in body, with some weighing in on either side.
+Chris Lattner drew an [analogy to `forEach`](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160328/013697.html)
+and pointed out that `@autoreleasepool` *is* a statement in Objective-C, while
+Jordan Rose found this case [more like `withCString`, or
+`withUnsafeMutablePointer`](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160328/013698.html),
+where having them return a value yields nice simplifications and avoids optional
+`var`s.
+
 I also explored whether third-party code could wrap `autoreleasepool` themselves
 with something like:
 
