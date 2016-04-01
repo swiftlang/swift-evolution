@@ -108,20 +108,19 @@ renaming:
   option” with several bits set in its `rawValue`, and option set `s`
   has a strict subset of those bits set in its raw value,
   `s.remove(e)` no longer returns `nil`.  Instead, it returns
-  `s.intersection(e)`.  This change only affects `OptionSet`s, not
-  `Set`s.
+  `s.intersection(e)`.  This change only affects `OptionSet`, not
+  `Set`.
 
 * The semantics of `someSet.insert(newMember)` method have been
   changed slightly, so that if `newMember` was already a member of
   `someSet`, it has no effect.  This change in behavior is
   unnoticeable under most circumstances, but can be observed if equal
   `Element` instances can be distinguished.  For example, when
-  `Element` is a class, instances may be distinguished using the
-  `===` operator.  The new behavior matches that of
-  `NSMutableSet.insert`, and is also likely to be more efficient.
-  Users needing the old behavior can always use the new `replace`
-  method, described below.  This change only affects `Set`s, not
-  `OptionSet`s.
+  `Element` is a class, instances may be distinguished using the `===`
+  operator.  The new behavior matches that of `NSMutableSet.insert`,
+  and is also likely to be more efficient.  Users needing the old
+  behavior can always use the new `replace` method, described below.
+  In practice this change only affects `Set`, not `OptionSet`.
 
 * `someSet.insert(newMember)` now returns a (discardable) pair
   containing an indication of whether the insertion took place and the
@@ -152,7 +151,7 @@ newMember)`, though the chances that a user actually wants the
 semantics of `update(with:_)` where she has used `insert(_)` seem
 quite slim.
 
-The slight change to the result of `remove` are unlikely to affect
+The slight change to the result of `remove` is unlikely to affect
 anyone, but one could consider issuing a warning during migration to
 inspect the usage if the returned value from `someOptionSet.remove(x)`
 is not discarded.
@@ -177,8 +176,8 @@ a few major weaknesses:
   
 * `InPlace` could more grammatically be applied to a verb, which means
   you'd really need to read the guidelines carefully to understand how
-  to use it properly.  Their knowledge of common English doesn't
-  direct designers toward properly applying it.
+  to use it properly.  A knowledge of common English doesn't lead
+  toward properly applying it.
   
 * `InPlace` is visually heavyweight when compared to `form`, and quite
   distasteful to some.
