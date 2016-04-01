@@ -7,7 +7,7 @@
 
 ## Introduction
 
-This proposal seeks to add an additional type of initializer to the Swift language, a factory initializer, to compliment the existing required and convenience initializers. Unlike these other initializers, a factory initializer will allow for returning an instance of a type directly that either conforms to or is a subtype of the type declaring the factory initializer.
+We propose adding an additional type of initializer to the Swift language, a `factory` initializer. A `factory` initializer will provide a facility to return an instance that is not the exact type implied by the declaration context. When declared in a class, an instance of the class or one of its subclasses will be returned. When declared in a protocol extension, an instance of a conforming type will be returned.
 
 Swift-evolution thread: [[Proposal] Factory Initializers](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/003192.html)
 
@@ -17,7 +17,7 @@ The "factory" pattern is common in many languages, including Objective-C. Essent
 
 ## Proposed solution
 
-Rather than have a separate factory method, I propose we build the factory pattern right into Swift, by way of specialized “factory initializers”. The exact syntax was proposed by Philippe Hausler from a [previous Swift-Evolution thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151207/001328.html), and I think it is an excellent solution:
+Rather than have a separate factory method, I propose we build the factory pattern right into Swift, by way of specialized “factory initializers”. The exact syntax was proposed by Philippe Hausler from a [previous Swift-Evolution 	thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151207/001328.html), and I think it is an excellent solution:
 
     public class AbstractBase {
 		    
