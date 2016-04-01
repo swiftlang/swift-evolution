@@ -7,28 +7,51 @@
 
 ## Introduction
 
-This is one of the most important algorithms. It is a fundamental tool used in many 
-other algorithms with applications even in GUI programming. 
+This proposal is to add rotation and in-place reversing methods to Swift's
+standard library collections.
 
 Swift-evolution thread: [link to the discussion thread for that proposal](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/002213.html)
 
 ## Motivation
 
-std::rotate() method performs a left rotation on a range of elements. 
-Specifically, it swaps the elements in the range [first, last) 
-in such a way that the element middle becomes the first element 
-of the new range and middle - 1 becomes the last element.
-A precondition of this function is that [first, n_first) and 
-[middle, last) are valid ranges.
+Rotation is one of the most important algorithms. It is a fundamental tool used in many
+other algorithms with applications even in GUI programming.
 
-There are 3 different versions of rotate algorithm for ForwardIndexType, 
-BidirectionalIndexType and RandomAccessIndexType protocols. 
+The "rotate" algorithm performs a left rotation on a range of elements.
+Specifically, it swaps the elements in the range `startIndex..<endIndex`
+according to a `middle` index in such a way that the element at `middle` becomes
+the first element of the new range and `middle - 1` becomes the last element.
+The result of the algorithm is the new index of the element that was originally
+first in the collection.
 
-The **Forward indices** are the simplest and most general and support 
+```swift
+var a = [10, 20, 30, 40, 50, 60, 70]
+let i = a.rotate(firstFrom: 2)
+// a == [30, 40, 50, 60, 70, 10, 20]
+// i == 5
+```
+
+The index returned from a rotation can be used as the `middle` argument in a second
+rotation to return the collection to its original state, like this:
+
+```swift
+a.rotate(firstFrom: i)
+// a == [10, 20, 30, 40, 50, 60, 70]
+```
+
+There are three different versions of the rotate algorithm, optimized for
+collections with forward, bidirectional, and random access indices. The
+complexity of the implementation of these algorithms makes the generic rotate
+algorithm a perfect candidate for the standard library.
+
+<details>
+  <summary>**Example C++ Implementations**</summary>
+
+**Forward indices** are the simplest and most general type of index and support
 only one-directional traversal.
 
-The C++ implementation of the rotate algorithm for the ForwardIterator 
-(ForwardIndexType in Swift's' stdlib) may look like this:
+The C++ implementation of the rotate algorithm for the `ForwardIterator`
+(`ForwardIndex` in Swift) may look like this:
 
 ```C++
 template <ForwardIterator I>
@@ -52,8 +75,8 @@ I rotate(I f, I m, I l, std::forward_iterator_tag) {
 **Bidirectional indices** are a refinement of forward indices that
 additionally support reverse traversal.
 
-The C++ implementation of the rotate algorithm for the BidirectionalIterator 
-(BidirectionalIndexType in Swift's stdlib) may look like this:
+The C++ implementation of the rotate algorithm for the `BidirectionalIterator`
+(`BidirectionalIndex` in Swift) may look like this:
 
 ```C++
 template <BidirectionalIterator I>
@@ -69,8 +92,8 @@ I rotate(I f, I m, I l, bidirectional_iterator_tag) {
 
 **Random access indices** access to any element in constant time (both far and fast).
 
-The C++ implementation of the rotate algorithm for the RandomAccessIterator 
-(RandomAccessIndexType in Swift's stdlib) may look like this:
+The C++ implementation of the rotate algorithm for the `RandomAccessIterator`
+(`RandomAccessIndex` in Swift) may look like this:
 
 ```C++
 template <RandomAccessIterator I>
@@ -84,125 +107,202 @@ I rotate(I f, I m, I l, std::random_access_iterator_tag) {
 }
 ```
 
-The complexity of the implementation of these algorithms makes the generic rotate algorithm 
-a perfect candidate for the standard library.
+</details>
+
 
 ## Proposed solution
 
-The Swift standard library should provide generic implementations of the rotate algorithms 
-for all CollectionTypes.
+The Swift standard library should provide generic implementations of the
+"rotate" algorithm for all three index types, in both mutating and nonmutating
+forms. The mutating form is called `rotate(firstFrom:)` and rotates the elements
+of a collection in-place. The nonmutating form of the "rotate"
+algorithm is called `rotated(firstFrom:)` and return views onto the original
+collection with the elements rotated, preserving the level of the original
+collection's index type.
 
-Standard library will provide implementations of algorithm for all 3 index types:
-- ForwardIndexType
-- BidirectionalIndexType
-- RandomAccessIndexType
-
-Different collection types conforms to different index types, therefore the user will use the 
-most optimal algorithm for his collection type.
+In addition, since the bidirectional algorithm depends on reversing the
+collection's elements in-place, the standard library should also provide an
+in-place `reverse()` method to complement the existing nonmutating `reversed()`
+collection method.
 
 ## Detailed design
 
-Rotated algorithms, structs and extensions will be implemented in `swift/stdlib/public/core/Rotate.swift`
+The mutating methods will have the following declarations:
 
-A precondition of this function is that:
-0 <= first <= middle <= last < count
+```swift
+extension MutableCollection { // where Index: ForwardIndex
+    /// Rotates the elements of the collection so that the element
+    /// at `middle` ends up first.
+    ///
+    /// - Returns: The new index of the element that was first
+    ///   pre-rotation.
+    @discardableResult
+    public mutating func rotate(firstFrom middle: Index) -> Index
+}
 
-Extension to CollectionType with generic implementation will be added. 
-Implementation will return rotated sequence and an index of the old first element: 
+extension MutableCollection where Index: BidirectionalIndex {
+    /// Reverses the elements of the collection in-place.
+    public mutating func reverse()
 
-```Swift
-extension CollectionType {
-    @warn_unused_result
-    public func rotatedFirstFrom(middle: Index) -> (FlattenSequence<Array<Self.SubSequence>>, Index) {
-        let slice1 = self[middle..<endIndex]
-        let slice2 = self[startIndex..<middle]
-        let flatten = [slice1, slice2].flatten()
+    /// Rotates the elements of the collection so that the element
+    /// at `middle` ends up first.
+    ///
+    /// - Returns: The new index of the element that was first
+    ///   pre-rotation.
+    @discardableResult
+    public mutating func rotate(firstFrom middle: Index) -> Index
+}
 
-        let distance = middle.distanceTo(endIndex)
-        let index = startIndex.advancedBy(distance, limit: endIndex)
+extension MutableCollection where Index: RandomAccessIndex {
+    /// Reverses the elements of the collection in-place.
+    public mutating func reverse()
 
-        return (flatten, index)
-    }
+    /// Rotates the elements of the collection so that the element
+    /// at `middle` ends up first.
+    ///
+    /// - Returns: The new index of the element that was first
+    ///   pre-rotation.
+    @discardableResult
+    public mutating func rotate(firstFrom middle: Index) -> Index
 }
 ```
 
-Extensions to CollectionType will be added. These extensions will rotate elements in place:
+The nonmutating methods will return a tuple containing both a rotated view of
+the original collection and the new index of the element that was previously
+first. For forward- and bidirectional-collections, these methods will return
+`FlattenCollection` and `FlattenBidirectionalCollection` instances, respectively:
 
-```Swift
-extension CollectionType where Index : ForwardIndexType {
-    @warn_unused_result
-    public mutating func rotateFirstFrom(middle: Index) -> Index {
-        if middle == startIndex { return startIndex }
-
-        // Implement ForwardIndexType algorithm
-        // Return the index of the old start element
-    }
+```swift
+extension Collection where Index: ForwardIndex,
+    SubSequence: Collection, SubSequence.Index == Index
+{
+    /// Returns a rotated view of the elements of the collection, where the
+    /// element at `middle` ends up first, and the index of the element that
+    /// was previously first.
+    func rotated(firstFrom middle: Index) ->
+        (collection: FlattenCollection<[Self.SubSequence]>,
+        rotatedStart: FlattenCollectionIndex<[Self.SubSequence]>)
 }
 
-
-extension CollectionType where Index : BidirectionalIndexType {
-    @warn_unused_result
-    public mutating func rotateFirstFrom(middle: Index) -> Index {
-        if middle == startIndex { return startIndex }
-        
-        // Implement BidirectionalIndexType algorithm
-        // Return the index of the old start element
-    }
-}
-
-
-extension CollectionType where Index : RandomAccessIndexType {
-    @warn_unused_result
-    public mutating func rotateFirstFrom(middle: Index) -> Index {
-        if middle == startIndex { return startIndex }
-        
-        // Implement RandomAccessIndexType algorithm
-        // Return the index of the old start element
-    }
+extension Collection where Index: BidirectionalIndex,
+    SubSequence: Collection, SubSequence.Index == Index
+{
+    /// Returns a rotated view of the elements of the collection, where the
+    /// element at `middle` ends up first, and the index of the element that
+    /// was previously first.
+    func rotated(firstFrom middle: Index) ->
+        (collection: FlattenBidirectionalCollection<[Self.SubSequence]>,
+        rotatedStart: FlattenBidirectionalCollectionIndex<[Self.SubSequence]>)
 }
 ```
 
-Extensions to LazyCollectionType will be added:
+There isn't a random-access `FlattenCollection`, since it can't walk an unknown
+number of subcollections in O(1) time. However, a rotated random-access
+collection has exactly two subcollections, so a specialized type can be created
+to provide the rotated elements with a random-access index. This type will be
+added as `RotatedCollection`:
 
-```Swift
-extension LazyCollectionType where Index : ForwardIndexType {
-    @warn_unused_result
-    public func rotateFirstFrom(middle: Index) /* -> Return Type */ {
-        // An eager algorithm can be implemented by copying lazy views to an array.
-    }
+```swift
+/// A rotated view of an underlying random-access collection.
+public struct RotatedCollection<
+    Base: Collection where Base.Index: RandomAccessIndex>: Collection {
+    // standard collection innards
 }
 
-extension LazyCollectionType where Index : BidirectionalIndexType {
-    @warn_unused_result
-    public func rotateFirstFrom(middle: Index) /* -> Return Type */ {
-        // An eager algorithm can be implemented by copying lazy views to an array.
-    }
+/// The index type for a `RotatedCollection`.
+public struct RotatedCollectionIndex<Base: RandomAccessIndex>: RandomAccessIndex {
+    // standard index innards
 }
 
-extension LazyCollectionType where Index : RandomAccessIndexType {
-    @warn_unused_result
-    public func rotateFirstFrom(middle: Index) /* -> Return Type */ {
-        // An eager algorithm can be implemented by copying lazy views to an array.
-    }
+extension Collection where Index: RandomAccessIndex,
+    SubSequence: Collection, SubSequence.Index == Index
+{
+    /// Returns a rotated view of the elements of the collection, where the
+    /// element at `middle` ends up first, and the index of the element that
+    /// was previously first.
+    func rotated(firstFrom middle: Index) -> (collection: RotatedCollection<Self>,
+        rotatedStart: RotatedCollectionIndex<Self.Index>)
 }
 ```
 
-Unit tests will be implemented in `swift/test/1_stdlib/Rotate.swift`
+Lazy collections will also be extended with rotate methods that provide lazy rotation:
+
+```swift
+extension LazyCollection where
+    Elements.Index: ForwardIndex, Elements.SubSequence: Collection,
+    Elements.SubSequence.Index == Elements.Index, Elements.Index == Index
+{
+    /// Returns...
+    func rotated(firstFrom middle: Index) ->
+        (collection: LazyCollection<FlattenCollection<[Elements.SubSequence]>>,
+        rotatedStart: FlattenCollectionIndex<[Elements.SubSequence]>)
+}
+
+extension LazyCollection where Elements.Index: BidirectionalIndex,
+    Elements.SubSequence: Collection, Elements.SubSequence.Index == Elements.Index,
+    Elements.Index == Index
+{
+    /// Returns...
+    func rotated(firstFrom middle: Index) ->
+        (collection: LazyCollection<FlattenBidirectionalCollection<[Elements.SubSequence]>>,
+        rotatedStart: FlattenBidirectionalCollectionIndex<[Elements.SubSequence]>)
+}
+
+extension LazyCollection where
+    Elements.Index: RandomAccessIndex, Elements.SubSequence: Collection,
+    Elements.SubSequence.Index == Elements.Index, Elements.Index == Index
+{
+    /// Returns...
+    func rotated(firstFrom middle: Index) ->
+        (collection: LazyCollection<RotatedCollection<Elements>>,
+        rotatedStart: RotatedCollectionIndex<Elements.Index>)
+}
+```
+
+Rotation algorithms, structs and extensions will be implemented in
+`stdlib/public/core/Rotate.swift`, with tests in `test/1_stdlib/Rotate.swift`.
+The new in-place `reverse()` method will be added to
+`stdlib/public/core/Reverse.swift`.
 
 ## Usage examples
 
-Example of rotating all elements of the collection:
+*In-place rotation:*
 
-```Swift
+```swift
 var numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9]
-numbers.rotateFirstFrom(3)
+numbers.rotate(firstFrom: 3)
 expectEqual(numbers, [4, 5, 6, 7, 8, 9, 1, 2, 3])
+
+var toMerge = [2, 4, 6, 8, 10, 3, 5, 7, 9]
+let i = toMerge[2..<7].rotate(firstFrom: 5)
+expectEqual(toMerge, [2, 4, 3, 5, 6, 8, 10, 7, 9])
+expectEqual(i, 4)
 ```
 
-```Swift
-var numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9]
-let rotated = numbers.rotatedFirstFrom(3)
+*Nonmutating rotation:*
+
+```swift
+let numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+let (rotated, i) = numbers.rotated(firstFrom: 3)
 expectEqual(rotated, [4, 5, 6, 7, 8, 9, 1, 2, 3])
+```
+
+*Lazy rotation:*
+
+```swift
+let numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+let (rotated, i) = numbers.lazy.rotated(firstFrom: 3)
+expectEqual(rotated.first!, 4)
+```
+
+*Reversing in place:*
+
+```swift
+var numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+numbers.reverse()
+expectEqual(numbers, [9, 8, 7, 6, 5, 4, 3, 2, 1])
+numbers[0..<5].reverse()
+expectEqual(numbers, [5, 6, 7, 8, 9, 4, 3, 2, 1])
 ```
 
 ## Impact on existing code
@@ -211,5 +311,5 @@ This is an additive feature that doesn’t impact existing code.
 
 ## Alternatives considered
 
-The alternative is to keep the current behaviour, but the user will need to develop 
+The alternative is to keep the current behaviour, but the user will need to develop
 their custom implementation of the rotate algorithms tailored for their needs.
