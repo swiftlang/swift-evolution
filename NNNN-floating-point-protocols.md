@@ -34,14 +34,112 @@ a uniform interface for arithmetic scalar types.
 
 ## Detailed design
 
+A new protocol, `Arithmetic`, will be introduced that provides the most basic
+operations (add, subtract, multiply and divide) as well as `Equatable` and
+`IntegerLiteralConvertible`, and is conformed to by both integer and floating-
+point types:
+
+```swift
+/// Arithmetic protocol declares methods backing binary arithmetic operators,
+/// such as  `+`, `-` and `*`; and their mutating counterparts. These methods
+/// operate on arguments of the same type.
+///
+/// Both mutating and non-mutating operations are declared in the protocol, but
+/// only the mutating ones are required. Should conforming type omit
+/// non-mutating implementations, they will be provided by a protocol extension.
+/// Implementation in that case will copy `self`, perform a mutating operation
+/// on it and return the resulting value.
+public protocol Arithmetic: Equatable, IntegerLiteralConvertible {
+  /// Initialize to zero
+  init()
+
+  // defaulted using an in-place counterpart, but can be used as an
+  // optimization hook
+  @warn_unused_result
+  func adding( rhs: Self) -> Self
+
+  // implementation hook
+  mutating func add( rhs: Self)
+
+  // defaulted using an in-place counterpart, but can be used as an
+  // optimization hook
+  @warn_unused_result
+  func subtracting( rhs: Self) -> Self
+
+  // implementation hook
+  mutating func subtract( rhs: Self)
+
+  // defaulted using an in-place counterpart, but can be used as an
+  // optimization hook
+  @warn_unused_result
+  func multiplied(by rhs: Self) -> Self
+
+  // implementation hook
+  mutating func multiply(by rhs: Self)
+
+  // defaulted using an in-place counterpart, but can be used as an
+  // optimization hook
+  @warn_unused_result
+  func divided(by rhs: Self) -> Self
+
+  // implementation hook
+  mutating func divide(by rhs: Self)
+}
+
+extension Arithmetic {
+  public func adding( rhs: Self) -> Self {
+    var lhs = self
+    lhs.add(rhs)
+    return lhs
+  }
+
+  public func subtracting( rhs: Self) -> Self {
+    var lhs = self
+    lhs.subtract(rhs)
+    return lhs
+  }
+
+  public func multiplied(by rhs: Self) -> Self {
+    var lhs = self
+    lhs.multiply(by: rhs)
+    return lhs
+  }
+
+  public func divided(by rhs: Self) -> Self {
+    var lhs = self
+    lhs.divide(by: rhs)
+    return lhs
+  }
+}
+
+/// SignedArithmetic protocol will only be conformed to by signed numbers,
+/// otherwise it would be possible to negate an unsigned value.
+///
+/// The only method of this protocol has the default implementation in an
+/// extension, that uses a parameterless initializer and subtraction.
+public protocol SignedArithmetic : Arithmetic {
+  func negate() -> Self
+}
+
+extension SignedArithmetic {
+  public func negate() -> Self {
+    return Self() - self
+  }
+}
+```
+
+We do not expect that a lot of generic code will want to abstract across 
+floating-point and integer, but it is nonetheless useful to have a single
+conformance with an obvious name to aid in discoverability.  The arithmetic
+*operators* are then defined in terms of these implementation hooks.
+
 The `FloatingPoint` protocol is split into two parts; `FloatingPoint` and
 `BinaryFloatingPoint`, which conforms to `FloatingPoint`.  If decimal
 types were added at some future point, they would conform to
 `DecimalFloatingPoint`.
 
 `FloatingPoint` will be expanded to contain most of the IEEE 754 basic
-operations, as well as conformance to `SignedArithmetic`, `Equatable`, and
-`Comparable`:
+operations, as well as conformance to `SignedArithmetic` and `Comparable`.
 
 ```swift
 /// A floating-point type that provides most of the IEEE 754 basic (clause 5)
@@ -51,7 +149,7 @@ operations, as well as conformance to `SignedArithmetic`, `Equatable`, and
 ///
 /// The BinaryFloatingPoint protocol refines these requirements and provides
 /// some additional useful operations as well.
-public protocol FloatingPoint: SignedArithmetic, Comparable, SignedNumber {
+public protocol FloatingPoint: SignedArithmetic, Comparable {
 
   /// An unsigned integer type that can represent any significand.
   associatedtype RawSignificand: UnsignedInteger
@@ -283,6 +381,10 @@ public protocol FloatingPoint: SignedArithmetic, Comparable, SignedNumber {
   /// Returns `x` if `x <= y`, `y` if `y < x`, and whichever of `x` or `y`
   /// is a number if the other is NaN.  The result is NaN only if both 
   /// arguments are NaN.
+  ///
+  /// This function is an implementation hook to be used by the free function
+  /// min(Self, Self) -> Self so that we get the IEEE 754 behavior with regard
+  /// to NaNs.
   @warn_unused_result
   static func minimum(x: Self, _ y: Self) -> Self
   
@@ -291,6 +393,10 @@ public protocol FloatingPoint: SignedArithmetic, Comparable, SignedNumber {
   /// Returns `x` if `x >= y`, `y` if `y > x`, and whichever of `x` or `y`
   /// is a number if the other is NaN.  The result is NaN only if both
   /// arguments are NaN.
+  ///
+  /// This function is an implementation hook to be used by the free function
+  /// max(Self, Self) -> Self so that we get the IEEE 754 behavior with regard
+  /// to NaNs.
   @warn_unused_result
   static func maximum(x: Self, _ y: Self) -> Self
   
