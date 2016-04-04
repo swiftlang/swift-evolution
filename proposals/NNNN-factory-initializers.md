@@ -21,14 +21,14 @@ Rather than have a separate factory method, I propose we build the factory patte
 
     public class AbstractBase {
 		    
-		private init(type: InformationToSwitchOn) {}
+		private init(privateType: InformationToSwitchOn) {}
     
         public factory init(type: InformationToSwitchOn) {
             if … {
-                return ConcreteImplementationOne(type)
+                return ConcreteImplementationOne(privateType: type)
             }
             else {
-                return ConcreteImplementationTwo(type)
+                return ConcreteImplementationTwo(privateType: type)
             }
         }
     }
@@ -42,15 +42,33 @@ Additionally, factory initializers should be available for protocols as well, su
 
     public protocol MyProtocol {
         public factory init(type: InformationToSwitchOn) {
-            return ConformingStruct(type)
+            return ConformingStruct(privateType: type)
         }
     }
 
     private struct ConformingStruct: MyProtocol {
-        init(type: InformationToSwitchOn) {}
+        init(privateType: InformationToSwitchOn) {}
     }
 
 This would allow developers to expose a protocol, and provide a way to instantiate a “default” type for the protocol, without having to also declare the default type as public. This is similar in part to instantiating an anonymous class conforming to a particular interface in Java.
+
+Furthermore, the factory initializer _must_ have a different method signature than the type's other initializers. This way, it is possible to call any other initializer on Self without ambiguity, allowing us to return an instance of Self in addition to any subclasses, such as here:
+
+    public class Base {
+		    
+		private init(privateType: InformationToSwitchOn) {}
+    
+        public factory init(type: InformationToSwitchOn) {
+            if … {
+                return Base(privateType: type) // Returns instance of type Self
+            }
+            else {
+                return SpecificBase(privateType: type) // Returns instance of subclass of Self
+            }
+        }
+    }
+
+    class SpecificBase : Base {}
 
 ## Examples
 
