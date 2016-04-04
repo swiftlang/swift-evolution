@@ -2,7 +2,7 @@
 
 * Proposal: SE-0058
 * Author(s): [Russ Bishop](https://github.com/russbishop), [Doug Gregor](https://github.com/DougGregor)
-* Status: **Awaiting review**
+* Status: **Review**
 * Review manager: [Joe Groff](https://github.com/jckarter)
 
 

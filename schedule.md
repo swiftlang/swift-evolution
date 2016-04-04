@@ -12,10 +12,10 @@ proposals in that process.
 * March 31...April 5, 2016 [SE-0056: Allow trailing closures in `guard` conditions](proposals/0056-trailing-closures-in-guard.md)
 * March 31...April 5, 2016 [SE-0036: Requiring Leading Dot Prefixes for Enum Instance Member Implementations](proposals/0036-enum-dot.md)
 * March 31...April 5, 2016 [SE-0059: Update API Naming Guidelines and Rewrite Set APIs Accordingly](proposals/0059-updated-set-apis.md)
+* April 4...11, 2016 [SE-0058: Allow Swift types to provide custom Objective-C representations](proposals/0058-objectivecbridgeable.md)
 
 ## Upcoming reviews
 
-* April 4...11, 2016 [SE-0058: Allow Swift types to provide custom Objective-C representations](proposals/0058-objectivecbridgeable.md)
 
 ## Proposals awaiting scheduling
 
