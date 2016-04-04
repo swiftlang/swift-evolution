@@ -36,7 +36,7 @@ Rather than have a separate factory method, I propose we build the factory patte
     class ConcreteImplementationOne : AbstractBase {}
     class ConcreteImplementationTwo : AbstractBase {}
 
-Unlike the existing Swift initializers, an instance of a type can be returned directly from the factory initializer. This is similar to Objective-C’s handling of initializers, and allows for more flexibility.
+Unlike the existing Swift initializers, an instance of a type can be returned directly from the factory initializer. This is similar to Objective-C’s handling of initializers, and allows for more flexibility. As for overriding, just like convenience initializers, factory initializers should _not_ be able to be overridden by subclasses.
 
 Additionally, factory initializers should be available for protocols as well, such as the following instance:
 
