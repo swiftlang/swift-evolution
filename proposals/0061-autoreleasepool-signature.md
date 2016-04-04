@@ -1,6 +1,6 @@
 # Add Generic Result and Error Handling to autoreleasepool()
 
-* Proposal: [SE-0057](0057-autoreleasepool-signature.md)
+* Proposal: [SE-0061](0061-autoreleasepool-signature.md)
 * Author(s): [Timothy J. Wood](https://github.com/tjw)
 * Status: **Awaiting review**
 * Review manager: TBD

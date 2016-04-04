@@ -27,8 +27,8 @@ proposals in that process.
 * [SE-0030: Property Behaviors](proposals/0030-property-behavior-decls.md)
 * [SE-0045: Add scan, takeWhile, dropWhile, and iterate to the stdlib](proposals/0045-scan-takewhile-dropwhile.md)
 * [SE-0052: Change IteratorType post-nil guarantee](proposals/0052-iterator-post-nil-guarantee.md)
-* [SE-0057: Add Generic Result and Error Handling to autoreleasepool()](proposals/0057-autoreleasepool-signature.md)
 * [SE-0060: Enforcing order of defaulted parameters](proposals/0060-defaulted-parameter-order.md)
+* [SE-0061: Add Generic Result and Error Handling to autoreleasepool()](proposals/0061-autoreleasepool-signature.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 
