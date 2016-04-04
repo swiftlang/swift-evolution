@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0047](proposals/0047-nonvoid-warn.md)
 * Author(s): [Erica Sadun](http://github.com/erica), [Adrian Kashivskyy](https://github.com/akashivskyy)
-* Status: **Accepted for Swift 3** ([Bug](https://bugs.swift.org/browse/SR-1052))
+* Status: **Accepted (with [revisions](http://article.gmane.org/gmane.comp.lang.swift.evolution/12833))**
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction
@@ -19,19 +19,25 @@ This proposal flips this default behavior. Unused results are more likely to ind
 
 This proposal was discussed on-list in a variety of threads, most recently [Make non-void functions <at> warn_unused_result	by default](http://article.gmane.org/gmane.comp.lang.swift.evolution/8417).
 
+#### Acceptance Notes
+
+The Core Team and much of the community agreed that this proposal directly aligns with the spirit of the Swift language, enabling the compiler to warn about obvious omissions in code that may be bugs. 
+
+The `@discardableResult` attribute enables API authors to indicate when their functions and methods produce a non-essential result and should not produce a warning. Clients of unannotated APIs may employ the simple and local solution to silence the warning and willfully ignore the result. This code (the `_ =` pattern) expresses thoughtful intent and communicates this intent to future maintainers of a codebase.
+
+The Core Team requested the proposal be revised to update the Detail Design section to add the default import scheme for the Clang importer. "Once the basic pure-Swift implementation of this lands, we can evaluate extending these rules to imported declarations as well, but that discussion should include empirical evidence that evaluates the impact on real-world code."
+
 ## Motivation
 
-In current Swift, the following code compiles and run without warning:
+In current Swift, the following code compiles and runs without warning:
 
 ```swift
-import Darwin
-
-sin(M_PI_4)
+4 + 5
 ```
 
-Outside of a playground, where evaluation results are of interest in and of themselves, it's unlikely any programmer would write this code intending to execute a Sine function and then discard the result.
+Outside of a playground, where evaluation results are of interest in and of themselves, it's unlikely any programmer would write this code intending to execute an addition and then discard the result.  Inverting Swift's default warning polarity ensures that developers can locate and inspect unconventional uses. If they approve the code, they can silence warnings by adding a `_=` pattern. This should significantly reduce real-world bugs due to the accidental omission of code that consumes results. 
 
-It is exceedingly rare to find a real world example where it makes sense from a compiler point of view to discard non-Void results. I was able to track down discardable results in application code in `NSUserDefaults`' `synchronize` function (returns `Bool`) and, to stretch a little, `printf` (returns an `int`). Many collection methods return elements upon removing them, whether those elements are needed by a receiver or not:
+Real world situations where it makes sense from a compiler point of view to discard non-Void results are rare. Examples of these API calls include `NSUserDefaults`' `synchronize` function (returns `Bool`) and mutating collection methods that return elements upon removing them. These examples belongs to a subset of methods that are primarily executed for their side effects although they also provide a return value. These methods should not generate a warning or require `_=` as  return value use is truly optional. 
 
 ```swift
 /// Remove an element from the end of the ArraySlice in O(1).
@@ -40,20 +46,7 @@ It is exceedingly rare to find a real world example where it makes sense from a 
 public mutating func removeLast() -> Element
 ```
 
-Some APIs return opaque objects, including tokens, that aren't always needed. `NSNotificationCenter` returns an observer object when you call its `addObserverForName(_:object:queue:usingBlock:)` method. For short-lived observers, you save the reference and later call `removeObserver(_:)`. When the observer lasts the lifetime of an application, the return value may not ever be used.
-
-The proposed change forces developers to *intentionally* allow discarded results by annotating their declarations for those rare times when discarded results are explicitly allowed by the API. This should significantly reduce real-world bugs due to the accidental omission of code that consumes results.
-
-Consumers can work around unaudited APIs by introducing a `_ = *some call*` pattern when they truly do not wish to handle a return value. In such cases, this proposal recommends a general policy of copious commenting. Any further nagging is left as an exercise for third party linters. This is an easily recognizable pattern.
-
-In the four examples mentioned here, this proposal makes the following recommendations:
-
-* `NSUserDefaults` example: probably (but not absolutely) marked as a discardable result. The highly conventional use of this call never checks that state. It does, however, return an error state. Whether one *should* call `synchronize` or not lies outside the scope of this proposal. 
-* `NSObservervationCenter` example: should not be marked. Most observer lifetimes will be shorter than the application's lifetime and view controllers should clean up after themselves when dismissed, hidden, or otherwise put away. The compiler should emit warnings about this use that the developer must override.
-* Collections example: This could be argued either way. In such a situation, should be left unmarked. Leaving the implementation unmarked encourages an act from the consumer to either handle the result or actively dimiss the warning.
-* `printf` example: importing C calls is left as an exercise for the Swift team
-
-*Note: This proposal does not ignore the positive utility of pairing in-place/procedural and value-returning/functional implementations and retains the ability to enable Xcode system to cross reference between the two. We propose that the declaration attribute surrenders that responsibility and passes it to the rich documentation comment system.*
+To solve this problem, we propose introducing a `@discardableResult` attribute to automatically silence compiler warnings, enabling calling functions for side effects.  The proposed change enables developers to *intentionally* permit discarded results by annotating their declarations. 
 
 ## Detail Design
 
@@ -84,24 +77,47 @@ c3()       // compiler warning, unused result
 _ = c3()   // no compiler warning
 ```
 
-### Mutating Variants
-The Swift [master change log](https://github.com/apple/swift/blob/master/CHANGELOG.md) notes 
-the introduction of doc comment fields that engage with the code completion engine to 
-deliver better results:
 
-> Three new document comment fields, namely - keyword:, - recommended: and - recommendedover:, allow Swift users to cooperate with code completion engine to deliver more effective code completion results. The - keyword: field specifies concepts that are not fully manifested in declaration names. - recommended: indicates other declarations are preferred to the one decorated; to the contrary, - recommendedover: indicates the decorated declaration is preferred to those declarations whose names are specified.
+#### Review Period Notes
 
-This proposal recommends introducing two further comment fields, specifically `mutatingVariant` and `nonmutatingVariant` to take over the role of the former `mutable_variant:` argument and offer recommendations in both directions. It's worth noting the disadvantage of this approach in that this excludes compile-time verified method/function signatures for alternative implementations.
+* During the review period on Swift Evolution, the term `@discardable` was preferred over `@discardableResult`. Community members encouraged picking a shorter keyword.
+* Alternative names considered included: `@allowUnusedResult`, `@optionalResult`, `@suppressUnusedResultWarning`, `@noWarnUnusedResult`, `@ignorableResult`, `@incidentalResult`,  `@discretionaryResult`, `@discardable`, `@ignorable`, `@incidental`, `@elective`, `@discretionary`, `@voluntary`, `@voidable`, `@throwaway`, and `@_` (underscore).
 
-The `message` argument that formerly provided a textual warning when a function or method was called with an unused result will be discarded entirely and subsumed by document comments. Under this scheme, whatever attribute name is chosen to modify function names or return types will not use arguments.
 
-## Alternative Names Considered
+#### Mutating Variants
 
-Alternative names considered included names were considered: `@allowUnusedResult`, `@optionalResult`, `@suppressUnusedResultWarning`, `@noWarnUnusedResult`, `@ignorableResult`, `@incidentalResult`, and `@discretionaryResult`.
+The original design for `@warn_unused_result` provides optional arguments 
+for `message` and `mutable_variant` parameters. These parameters customize warnings
+when a  method or function is called without consuming a result.
+This proposal introduces two new document comment fields, 
+`MutatingCounterpart` and `NonmutatingCounterpart`. 
+These replace the roles of the former `mutable_variant` and `message` arguments. 
+Under this scheme, `@discardableResult` will not use arguments.
+Documentation comment fields will, instead, supply usage recommendations in both directions. 
+We hope these keywords will cooperate with the code completion engine the [same way](https://github.com/apple/swift/blob/master/CHANGELOG.md) 
+that Swift currently handles `Recommended` and `RecommendedOver`.
+
+Documentation-based cross referencing provides a valuable tool for developers seeking 
+correspondence between two related functions. By adding a highlighted field to documentation, 
+both the mutating and non-mutating variations can direct developer attention to their counterpart.
+Named keywords instantly identify why the documentation is calling these items
+out rather than establishing some general relationship with the more generic `SeeAlso` documentation field. 
+QuickHelp highlighted keywords support the expert and guide the beginner. Mutation pair keywords add value in a way `SeeAlso` cannot.
+
+**Being a documentation expansion, this approach excludes compile-time verification of method/function signatures.**
+
+#### Default Migration Behavior
+
+While `@discardableResult` and a "warn on unused result" default seems like a great direction for the standard library and other pure-Swift code, its impact on imported C and Objective-C APIs remains less clear.  The Core Team expressed significant concern that warnings would be widespread and overwhelm users with a flurry of confusing, useless cautions.  
+
+__As such, the Core Team decided that the Clang importer will default to _automatically add_ the `@discardableResult` attribute to all non-Void imported declarations (specifically, ones that are not marked with the Clang `((warn_unused_result))` attribute) upon adoption of this proposal.__
+
+Once the basic pure-Swift implementation of this lands, the Core Team and the extended Swift community can evaluate extending these rules to imported declarations as well. That discussion should and will include empirical evidence that evaluates impact on real-world code. 
 
 ## Future directions
 
-The Swift Evolution community also discussed decorating the type rather than the declaration. 
+#### Decorating Type
+The Swift Evolution community discussed decorating the type rather than the declaration. 
 Decorating the return type makes it clear that it's the result that can be optionally treated as discardable rather than the function whose role it is to police its use.
 
 ```swift
@@ -112,39 +128,19 @@ func f() -> @discardable T {} // may be called as a procedure as f()
 This approach was discarded to reduce the type system impact and complexity of the proposal.  When not coordinated with the base function type, currying or "taking the address" of a function could effectively remove the @discardableResult attribute. This means some use of an otherwise `@discardable` function value would have to use `_ =`.  While this approach was considered more elegant, the additional implementation costs means that it's best to delay adopting type decoration 
 until such time as there's a strong motivation to use such an approach.
 
-Keywords considered for decorating the type included: `@discardable`, `@ignorable`, `@incidental`, `@elective`, `@discretionary`, `@voluntary`, `@voidable`, `@throwaway`, and `@_` (underscore).
+#### Objective-C Annotation
 
-## Unconventional Alternatives
+During review, some community members requested a new attribute enabling exceptional imported functions to be properly annotated from Objective-C source.
 
-David Owens suggests introducing a non-attribute solution for unwarned results, by overloading based on return-type. The
-approach goes like this:
+#### Swift Type Annotation
 
-```swift
-// Create a normal version with a return type
-func removeLast() -> Self.Generator.Element { ... }
-
-// Create a Void version that consumes the return value
-func removeLast() { _ = removeLast() }
-
-// If you do not use the return value, there's no warning
-// because a Void variation exists
-foo.removeLast()
-
-// The original, non-Void version continues to work as well
-let item = foo.removeLast()
-```
-
-This alternative requires no custom attributes and enables developers to customize any 
-side-effects for Void versions of their functions However, as Owens notes, "Of the problems 
-[of Swift] is that it's just not good at picking the one you want". If this obstacle could be 
-surmounted, this would offer a simple, elegant solution.
+Another topic raised during review requested that the attribute annotate types as well as functions. This would allow "the default behavior to be changed on a per-type basis, as this would be useful for types that are specifically designed with method chaining for example (where most results are discardable as standard). While the choice of default will never satisfy everyone, this would make it easy to tweak for your own needs."
 
 ## Snake Case
 
-It should be noted that this proposal, if accepted, removes two of the last remaining instances of snake_case in the Swift language. This further brings the language into a coherent and universal use of lowercase and camel case variants.
+Upon acceptance, this proposal removes two of the last remaining instances of snake_case in the Swift language. This further brings the language into a coherent and universal use of lowercase and camel case variants.
 
 ## Acknowledgements
 
-Changing the behavior of non-void functions to use default warnings for unused results was initially introduced by Adrian Kashivskyy. Additional thanks go out to Chris Lattner, Gwendal Roué, Dmitri Gribenko, Jeff Kelley, David Owens, 
-Stephen Cellis, Ankit Aggarwal, Paul Ossenbruggen,
+Changing the behavior of non-void functions to use default warnings for unused results was initially introduced by Adrian Kashivskyy. Additional thanks go out to Chris Lattner, Gwendal Roué, Dmitri Gribenko, Jeff Kelley, David Owens, Jed Lewison, Stephen Cellis, Ankit Aggarwal, Paul Ossenbruggen,Brent Royal-Gordon, Tino Heth, Haravikk, Félix Cloutier,Yuta Koshizawa, 
 for their feedback on this topic.
