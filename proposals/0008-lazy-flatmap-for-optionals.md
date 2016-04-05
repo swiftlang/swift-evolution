@@ -37,6 +37,8 @@ However, there is only a lazy implementation for the first version:
 // [1, 2, 3, 4, 5]
 ```
 
+Swift Evolution Discussions: [Lazy flatMap for Optionals](http://thread.gmane.org/gmane.comp.lang.swift.evolution/9365), [Review](http://thread.gmane.org/gmane.comp.lang.swift.evolution/11423)
+
 ## Motivation ##
 
 Seeing as the already-existing `flatMap` has a lazy version for nested sequences, a missing lazy version for sequences of `Optional`s seems like a gap. The usefulness of lazy sequences is well documented, especially when refactoring imperative nested for-loops into chains of methods, which can unnecessarily allocate intermediate arrays if done eagerly.
