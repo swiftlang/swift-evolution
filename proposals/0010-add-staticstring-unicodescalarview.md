@@ -10,7 +10,7 @@
 There is no way to create a substring of a `StaticString` that is still typed
 as `StaticString`. There should be.
 
-[Swift Evolution Discussion Thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/9366/focus=9368)
+[Swift Evolution Discussion Thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/9366), [Review](http://thread.gmane.org/gmane.comp.lang.swift.evolution/2434)
 
 ## Motivation
 
