@@ -18,7 +18,7 @@ confusion surrounding the use of associated types.
 
 The proposed new keyword is `associatedtype`.
 
-[Swift Evolution Discussion Thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/9301/focus=9405)
+[Swift Evolution Discussion Thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/9301)
 
 ## Motivation
 
