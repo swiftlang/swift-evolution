@@ -809,35 +809,37 @@ repeatedly slicing off elements.  Once you have found an element that
 you would like to mutate, it is not clear how to actually change the
 original collection, if the collection and its slice are value types?
 
+----
+
 [^1]: `Dictionary` and `Set` use a double-indirection trick to avoid
-      disturbing the reference count of the storage with indices.
+disturbing the reference count of the storage with indices.
 
-      ```
-          +--+    class                       struct
-          |RC|---------+          +-----------------+
-          +--+ Storage |<---------| DictionaryIndex |
-            |          |          | value           |
-            +----------+          +-----------------+
-                ^
-          +--+  |     class                struct
-          |RC|-------------+        +------------+
-          +--+ Indirection |<-------| Dictionary |
-            |  ("owner")   |        | value      |
-            +--------------+        +------------+
-      ```
+```
+    +--+    class                       struct
+    |RC|---------+          +-----------------+
+    +--+ Storage |<---------| DictionaryIndex |
+      |          |          | value           |
+      +----------+          +-----------------+
+          ^
+    +--+  |     class                struct
+    |RC|-------------+        +------------+
+    +--+ Indirection |<-------| Dictionary |
+      |  ("owner")   |        | value      |
+      +--------------+        +------------+
+```
 
-      Instances of `Dictionary` point to an indirection, while
-      instances of `DictionaryIndex` point to the storage itself.
-      This allows us to have two separate reference counts.  One of
-      the refcounts tracks just the live `Dictionary` instances, which
-      allows us to perform precise uniqueness checks.
+Instances of `Dictionary` point to an indirection, while
+instances of `DictionaryIndex` point to the storage itself.
+This allows us to have two separate reference counts.  One of
+the refcounts tracks just the live `Dictionary` instances, which
+allows us to perform precise uniqueness checks.
 
-      The issue that we were previously unaware of is that this scheme
-      is not thread-safe.  When uniquely-referenced storage is being
-      mutated in place, indices can be concurrently being incremented
-      (on a different thread).  This would be a read/write data race.
+The issue that we were previously unaware of is that this scheme
+is not thread-safe.  When uniquely-referenced storage is being
+mutated in place, indices can be concurrently being incremented
+(on a different thread).  This would be a read/write data race.
 
-      Fixing this data race (to provide memory safety) would require
-      locking dictionary storage on every access, which would be an
-      unacceptable performance penalty.
+Fixing this data race (to provide memory safety) would require
+locking dictionary storage on every access, which would be an
+unacceptable performance penalty.
 
