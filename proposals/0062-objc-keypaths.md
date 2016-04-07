@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0062](https://github.com/apple/swift-evolution/blob/master/proposals/0062-objc-keypaths.md)
 * Author(s): [David Hart](https://github.com/hartbit)
-* Status: **Under review** (April 6...12, 2016)
+* Status: **Under review** (April 7...12, 2016)
 * Review manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction
