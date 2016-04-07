@@ -1,9 +1,9 @@
 # Referencing Objective-C key-paths
 
-* Proposal: [SE-XXXX](https://github.com/apple/swift-evolution/blob/master/proposals/XXXX-objc-keypaths.md)
+* Proposal: [SE-0062](https://github.com/apple/swift-evolution/blob/master/proposals/0062-objc-keypaths.md)
 * Author(s): [David Hart](https://github.com/hartbit)
-* Status: TBD
-* Review manager: TBD
+* Status: **Under review** (April 6...12, 2016)
+* Review manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction
 
