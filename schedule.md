@@ -14,6 +14,7 @@ proposals in that process.
 * March 31...April 5, 2016 [SE-0059: Update API Naming Guidelines and Rewrite Set APIs Accordingly](proposals/0059-updated-set-apis.md)
 * April 4...11, 2016 [SE-0058: Allow Swift types to provide custom Objective-C representations](proposals/0058-objectivecbridgeable.md)
 * April 6...12, 2016 [SE-0062: Referencing Objective-C key-paths](proposals/0062-objc-keypaths.md)
+* April 7...13, 2016 [SE-0063: SwiftPM System Module Search Paths](proposals/0063-swiftpm-system-module-search-paths.md)
 
 ## Upcoming reviews
 

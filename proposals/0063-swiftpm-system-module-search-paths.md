@@ -1,9 +1,9 @@
 # SwiftPM System Module Search Paths
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-swiftpm-system-module-search-paths.md)
+* Proposal: [SE-0063](https://github.com/apple/swift-evolution/blob/master/proposals/0063-swiftpm-system-module-search-paths.md)
 * Author: [Max Howell](https://github.com/mxcl)
-* Status: **Awaiting review**
-* Review manager: Anders Bertelrud
+* Status: **Under review** (April 7...13, 2016)
+* Review manager: [Anders Bertelrud](https://github.com/abertelrud)
 
 
 ## Introduction
