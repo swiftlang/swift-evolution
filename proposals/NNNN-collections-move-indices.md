@@ -1,107 +1,81 @@
 # New collections model
 
 * Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-collections-move-indices.md)
-* Author(s): [Dmitri Gribenko](https://github.com/gribozavr), [Dave Abrahams](https://github.com/dabrahams), [Maxim Moiseev](https://github.com/moiseev)
+* Author(s): [Dmitri Gribenko](https://github.com/gribozavr),
+  [Dave Abrahams](https://github.com/dabrahams),
+  [Maxim Moiseev](https://github.com/moiseev)
+* [Swift-evolution thread](http://news.gmane.org/find-root.php?message_id=CA%2bY5xYfqKR6yC2Q%2dG7D9N7FeY%3dxs1x3frq%3d%3dsyGoqYpOcL9yrw%40mail.gmail.com)
 * Status: **Awaiting review**
 * Review manager: TBD
 
-## Introduction
+## Summary
 
-We are proposing a new model for collections, where indices can only be
-advanced forward or backward by the corresponding collection instance.
-Indices become opaque tokens representing collection positions, that can
-be produced and consumed by collection APIs.  This allows us to reduce
-the amount of data stored in indices to the bare minimum.
+We propose a new model for `Collection`s wherein responsibility for
+index traversal is moved from the index to the collection itself.  For
+example, instead of writing `i.successor()`, one would write
+`c.successor(i)`.  We also propose the following changes as a
+consequence of the new model:
 
-Compared to the current state, the new scheme simplifies implementation
-of non-trivial indices, and fixes concurrency issues in `Set` and
-`Dictionary` indices.  It also allows us to eliminate reference-counted
-stored properties from most indices, including non-trivial ones, like
-`Set.Index` and `Dictionary.Index`, creating more optimizable code.
-
-Out of scope for this proposal:
-
-* Expanding the set of concrete collections provided by the standard
-  library.
-
-* Expanding the set of collection protocols to provide functionality
-  beyond what is already provided (for example, protocols for sorted
-  collections, queues etc.)  Discussing how other concrete collections
-  fit into the current protocol hierarchy is in scope, though.
-
-Swift-evolution thread: [link to the discussion thread for that proposal](https://lists.swift.org/pipermail/swift-evolution)
+* A collection's `Index` can be any `Comparable` type.
+* The distinction between intervals and ranges disappears, leaving
+  only ranges.
+* A closed range that includes the maximal value of its `Bound` type
+  is now representable and does not trap.
+* Make existing “private” in-place index traversal methods available
+  publicly.
 
 ## Motivation
 
-Swift standard library defines one basic `Collection` protocol, and
-three kinds of collection indices: forward, bidirectional and random
-access.  A concrete collection type uses one of these indices based on
-the capabilities of the backing data structure.  For example, a
-singly-linked list can only have forward indices, a tree with parent
-pointers has bidirectional indices, while `Array` and `Deque` have
-random access indices.
+In collections that don't support random access, (string views, sets,
+dictionaries, trees, etc.) it's very common that deriving one index
+value from another requires somehow inspecting the collection's data.
+For example, you could represent an index into a hash table as an
+offset into the underlying storage, except that one needs to actually
+look at *structure* of the hash table to reach the next bucket.  In
+the current model, supporting `i.successor()` means that the index
+must additionally store not just an offset, but a reference to the
+collection's structure.
 
-In our experience implementing non-trivial collections it turned out
-that instances of forward and bidirectional indices need to hold a
-reference to the storage of the collection that they traverse, in order
-to implement `successor()` and `predecessor()` APIs.  For example,
-imagine an index into a hashtable with open addressing: in order to find
-the next element after a given one, we need to inspect the storage
-contents to skip empty buckets in the hashtable.
-
-Indices that store references to underlying collection's storage have
-disadvantages:
+The consequences for performance aren't pretty:
 
 * Code that handles indices has to perform reference counting, which
   blocks some optimizations, and definitely means more work at runtime.
 
-* Indices that keep references to collections' storage conflict with
-  copy-on-write.  A live index makes underlying storage non-uniquely
-  referenced, forcing unnecessary copies when the collection is mutated.
+* Indices that keep references to collections' storage block the
+  copy-on-write optimization.  A live index makes underlying storage
+  non-uniquely referenced, forcing unnecessary copies when the
+  collection is mutated.  In the standard library, `Dictionary` and
+  `Set` use a double-indirection trick to work around this issue.
+  Unfortunately, even this trick is not a solution, because (as we
+  have just realized) it isn't threadsafe. [^1]
 
-In the standard library, `Dictionary` and `Set` have to use a
-double-indirection trick to avoid forcing a copy of the storage when
-there is a live index.  Unfortunately, this trick is not thread-safe: it
-allows a data race when an index is incremented concurrently with the
-collection being mutated.
+By giving responsibility for traversal to the collection, we ensure
+that operations that need the collection's structure always have it,
+without the costs of holding references in indices.
 
-Our experience working with the current collection protocols suggests
-that we should consider other schemes that don't require such
-double-indirection tricks or other undue performance burdens.
+## Other Benefits
 
-### Why Dictionary and Set indices are not thread-safe
+Although this change is primarily motivated by performance, it has
+other significant benefits:
 
-`Dictionary` and `Set` use a double-indirection trick to avoid
-disturbing the reference count of the storage with indices.
+* Simplifies implementation of non-trivial indices.
+* Allows us to eliminate the `Range`/`Interval` distinction.
+* Makes it feasible to fix existing concurrency issues in `Set` and
+  `Dictionary` indices.
+* Allows `String` views to share a single index type, letting us
+  eliminate the need for cumbersome index conversion functions (not
+  part of this proposal, but planned).
 
-```
-    +--+    class                       struct
-    |RC|---------+          +-----------------+
-    +--+ Storage |<---------| DictionaryIndex |
-      |          |          | value           |
-      +----------+          +-----------------+
-          ^
-    +--+  |     class                struct
-    |RC|-------------+        +------------+
-    +--+ Indirection |<-------| Dictionary |
-      |  ("owner")   |        | value      |
-      +--------------+        +------------+
-```
+## Out of Scope
 
-Instances of `Dictionary` point to an indirection, while instances of
-`DictionaryIndex` point to the storage itself.  This allows us to have
-two separate reference counts.  One of the refcounts tracks just the
-live `Dictionary` instances, which allows us to perform precise
-uniqueness checks.
+This proposal intentionally does not:
 
-The issue that we were previously unaware of is that this scheme is not
-thread-safe.  When uniquely-referenced storage is being mutated in
-place, indices can be concurrently being incremented (on a different
-thread).  This would be a read/write data race.
-
-Fixing this data race (to provide memory safety) would require locking
-dictionary storage on every access, which would be an unacceptable
-performance penalty.
+* Expand the set of concrete collections provided by the standard
+  library.
+* Expand the set of collection protocols to provide functionality
+  beyond what is already provided (for example, protocols for sorted
+  collections, queues etc.)  Discussing how other concrete collections
+  fit into the current protocol hierarchy is in scope, though.
 
 ## Proposed solution
 
@@ -834,4 +808,36 @@ mutable value-typed collections.  In D, you process a collection by
 repeatedly slicing off elements.  Once you have found an element that
 you would like to mutate, it is not clear how to actually change the
 original collection, if the collection and its slice are value types?
+
+[^1]: `Dictionary` and `Set` use a double-indirection trick to avoid
+      disturbing the reference count of the storage with indices.
+
+      ```
+          +--+    class                       struct
+          |RC|---------+          +-----------------+
+          +--+ Storage |<---------| DictionaryIndex |
+            |          |          | value           |
+            +----------+          +-----------------+
+                ^
+          +--+  |     class                struct
+          |RC|-------------+        +------------+
+          +--+ Indirection |<-------| Dictionary |
+            |  ("owner")   |        | value      |
+            +--------------+        +------------+
+      ```
+
+      Instances of `Dictionary` point to an indirection, while
+      instances of `DictionaryIndex` point to the storage itself.
+      This allows us to have two separate reference counts.  One of
+      the refcounts tracks just the live `Dictionary` instances, which
+      allows us to perform precise uniqueness checks.
+
+      The issue that we were previously unaware of is that this scheme
+      is not thread-safe.  When uniquely-referenced storage is being
+      mutated in place, indices can be concurrently being incremented
+      (on a different thread).  This would be a read/write data race.
+
+      Fixing this data race (to provide memory safety) would require
+      locking dictionary storage on every access, which would be an
+      unacceptable performance penalty.
 
