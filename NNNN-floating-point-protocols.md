@@ -165,7 +165,7 @@ public protocol FloatingPoint: SignedArithmetic, Comparable {
 
   /// A quiet NaN (not-a-number).  Compares not equal to every value,
   /// including itself.
-  static var nan: Self { get }
+  static var NaN: Self { get }
 
   /// NaN with specified `payload`.
   ///
@@ -175,7 +175,7 @@ public protocol FloatingPoint: SignedArithmetic, Comparable {
   /// NaN `payloads`.  `FloatingPoint` types should either treat inadmissible
   /// payloads as zero, or mask them to create an admissible payload.
   @warn_unused_result
-  static func nan(payload payload: RawSignificand, signaling: Bool) -> Self
+  static func NaN(payload payload: RawSignificand, signaling: Bool) -> Self
 
   /// The greatest finite number.
   ///
