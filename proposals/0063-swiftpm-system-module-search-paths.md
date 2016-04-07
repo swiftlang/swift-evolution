@@ -54,9 +54,10 @@ if it is installed with Homebrew or MacPorts.
 ## Proposed Solution
 
 We propose that SwiftPM gains the ability to read `.pc` files written for the
-cross-platform `pkg-config` tool. These files specify the install location of
-system libraries and will allow SwiftPM to preprocess the modulemap changing
-the specified header prefixes.
+cross-platform `pkg-config` tool. These files describe the missing search paths		
+that SwiftPM requires. They also specify the install location of system libraries
+and will allow SwiftPM to preprocess the modulemap changing the specified header 
+prefixes.
 
 We propose that `Package.swift` is supplemented with metadata that provides the
 package-install-name for specific platforms.
