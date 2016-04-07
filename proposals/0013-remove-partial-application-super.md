@@ -22,6 +22,8 @@ those mechanisms, I propose that we disallow partial application of
 non-final methods through `super`, except where the `self` parameter is
 implicitly captured.
 
+[Swift Evolution Discussion Thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/9778)
+
 ## Motivation
 
 The motivation of this change is partially motivated by implementation
