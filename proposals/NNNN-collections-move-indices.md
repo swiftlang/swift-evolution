@@ -134,13 +134,13 @@ The proposal adds several new types and protocols to support ranges:
                        |
           +------------+---------------------+
           |                                  |
-+---------+-----------+    :      +----------+--------+
-|HalfOpenRangeProtocol|    :      |ClosedRangeProtocol|
-+----+------+---------+    |      +-------+------+----+
-     |      |              |              |      |
-+----+---+  |  +-----------+-----------+  |  +---+----------+
-|Range<T>|  |  | RandomAccessCollection|  |  |ClosedRange<T>|
-+========+  |  +----+---------------+--+  |  +==============+
++---------+-----------+           +----------+--------+
+|HalfOpenRangeProtocol|           |ClosedRangeProtocol|
++----+------+---------+    :      +-------+------+----+
+     |      |              :              |      |
++----+---+  |  +...........+...........+  |  +---+----------+
+|Range<T>|  |  : RandomAccessCollection:  |  |ClosedRange<T>|
++========+  |  +....+...............+..+  |  +==============+
             |       |               |     |
        +----+-------+----+       +--+-----+--------------+
        |CountableRange<T>|       |CountableClosedRange<T>|
