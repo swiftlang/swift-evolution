@@ -77,60 +77,97 @@ This proposal intentionally does not:
   collections, queues etc.)  Discussing how other concrete collections
   fit into the current protocol hierarchy is in scope, though.
 
-## Proposed solution
+## Changes in Detail
 
-We propose to allow implementing collections whose indices don't have
-reference-countable stored properties.
+### Collection Protocol Hierarchy
 
-From the API standpoint, this implies that indices can't be moved
-forward or backward by themselves (for example, calling `i.successor()`
-is not possible anymore for an arbitrary index).  Only the corresponding
-collection instance can advance indices (e.g., `c.next(i)`).  By
-removing API requirements from indices, we reduce the required amount of
-information that indices need to store or reference.
+In the proposed model, indices don't have any requirements beyond
+`Comparable`, so index protocols are eliminated.  Instead, we
+introduce `BidirectionalCollection` and `RandomAccessCollection` to
+provide the same index traversal distinctions, as shown here:
 
-In this model indices can store the minimal amount of information only
-about the element position in the collection.  Usually index can be
-represented a few of word-sized integers (typically, just one) that
-efficiently encode the "path" in the data structure from the root to the
-element.  Since one is free to choose the encoding of the "path", we
-think that it should be possible to choose it in such a way that indices
-are cheaply comparable.
+```
+                     +--------+
+                     |Sequence|
+                     +---+----+
+                         |                                                                               .
+                    +----+-----+
+                    |Collection|
+                    +----+-----+
+                         |
+          +--------------+-------------+
+          |              |             |
+          |     +--------+--------+    |
+          |     |MutableCollection|    |
+          |     +-----------------+    |
+          |                            |
++---------+-------------+    +---------+----------------+
+|BidirectionalCollection|    |RangeReplaceableCollection|
++---------+-------------+    +--------------------------+
+          |
+ +--------+-------------+
+ |RandomAccessCollection|
+ +----------------------+
+```
 
-### Protocol hierarchy
-
-In the proposed model indices don't have any method or property
-requirements (these APIs were moved to Collection), so index protocols
-are eliminated.  Instead, we are introducing `BidirectionalCollection`
-and `RandomAccessCollection`.  These protocols naturally compose with
-existing `MutableCollection` and `RangeReplaceableCollection` to
-describe the collection's capabilities:
+These protocols compose naturally with the existing protocols
+`MutableCollection` and `RangeReplaceableCollection` to describe a
+collection's capabilities, e.g.
 
 ```swift
-protocol Sequence { ... }
-protocol Collection : Sequence { ... }
-
-protocol MutableCollection : Collection { ... }
-protocol RangeReplaceableCollection : Collection { ... }
-
-protocol BidirectionalCollection : Collection { ... } // new
-protocol RandomAccessCollection : BidirectionalCollection { ... } // new
+struct Array<Element> 
+  : RandomAccessCollection, 
+    MutableCollection, 
+    RangeReplaceableCollection { ... }
+    
+struct UnicodeScalarView : BidirectionalCollection { ... }
 ```
 
+### Range Protocols and Types
+
+The proposal adds several new types and protocols to support ranges:
+
+```              +-------------+
+                 |RangeProtocol|
+                 +-----+-------+
+                       |
+          +------------+---------------------+
+          |                                  |
++---------+-----------+    :      +----------+--------+
+|HalfOpenRangeProtocol|    :      |ClosedRangeProtocol|
++----+------+---------+    |      +-------+------+----+
+     |      |              |              |      |
++----+---+  |  +-----------+-----------+  |  +---+----------+
+|Range<T>|  |  | RandomAccessCollection|  |  |ClosedRange<T>|
++========+  |  +----+---------------+--+  |  +==============+
+            |       |               |     |
+       +----+-------+----+       +--+-----+--------------+
+       |CountableRange<T>|       |CountableClosedRange<T>|
+       +=================+       +=======================+
 ```
-                         Sequence
-                            ^
-                            |
-                            +
-                        Collection
-                         ^      ^
-                         |      +--------+
-    BidirectionalCollection     |        |
-                         ^      |   MutableCollection
-                         |      |
-                         |      |
-     RandomAccessCollection    RangeReplaceableCollection
-```
+
+* The old `Range<T>`, `ClosedInterval<T>`, and
+  `OpenInterval<T>` are replaced with four new generic range types:
+
+  * Two for general ranges whose bounds are `Comparable`:
+    `Range<T>` and `ClosedRange<T>`.
+  
+  * Two for ranges that additionally conform to
+    `RandomAccessCollection`, requiring bounds that are `Strideable`
+    with `Stride` conforming to `Integer` : `CountableRange<T>` and
+    `CountableClosedRange<T>`. [These types can be folded into 
+    `Range` and `ClosedRange` when Swift acquires conditional 
+    conformance capability.]
+
+We also introduce three new protocols:
+
+* `RangeProtocol`
+* `HalfOpenRangeProtocol`
+* `ClosedRangeProtocol`
+
+These protocols mostly exist facilitate implementation-sharing among
+the range types, and would seldom need to be implemented outside the
+standard library.
 
 ### Analysis
 
@@ -193,6 +230,26 @@ Disadvantages of the proposed collections model:
   non-trivial way.
 
 * Collection's API now includes methods for advancing indices.
+
+## The `Comparable` Requirement on Indices
+
+In this model indices store the minimal amount of information required
+to describe an element's position.  Usually an index can be
+represented with one or two `Int`s that efficiently encode the path to
+the element from the root of a data structure.  Since one is free to
+choose the encoding of the “path”, we think it is possible to choose
+it in such a way that indices are cheaply comparable.  That has been
+the case for all of the indices required to implement the standard
+library, and a few others we investigated while researching this
+change.
+
+It's worth noting that this requirement isn't strictly
+necessary. Without it, though, indices would have no requirements
+beyond `Equatable`, and creation of a `Range<T>` would have to be
+allowed for any `T` conforming to `Equatable`. As a consequence, most
+interesting range operations, such as containment checks, would be
+unavailable unless `T` were also `Comparable`, and we'd be unable to
+provide comple bounds-checking in the general case.
 
 ### Implementation difficulties
 
@@ -842,4 +899,3 @@ mutated in place, indices can be concurrently being incremented
 Fixing this data race (to provide memory safety) would require
 locking dictionary storage on every access, which would be an
 unacceptable performance penalty.
-
