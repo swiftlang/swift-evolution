@@ -150,8 +150,10 @@ The proposal adds several new types and protocols to support ranges:
 * The old `Range<T>`, `ClosedInterval<T>`, and
   `OpenInterval<T>` are replaced with four new generic range types:
 
-  * Two for general ranges whose bounds are `Comparable`:
-    `Range<T>` and `ClosedRange<T>`.
+  * Two for general ranges whose bounds are `Comparable`: `Range<T>`
+    and `ClosedRange<T>`.  Having a separate `ClosedRange` type allows
+    us to address the vexing inability of the old `Range` to represent
+    a range containing the maximal value of its bound.
   
   * Two for ranges that additionally conform to
     `RandomAccessCollection`, requiring bounds that are `Strideable`
