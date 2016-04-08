@@ -38,16 +38,18 @@ collection's structure.
 
 The consequences for performance aren't pretty:
 
-* Code that handles indices has to perform reference counting, which
-  blocks some optimizations, and definitely means more work at runtime.
+* Code that handles indices has to perform atomic reference counting,
+  which has significant overhead and can prevent the optimizer from
+  making other improvements.
 
-* Indices that keep references to collections' storage block the
-  copy-on-write optimization.  A live index makes underlying storage
+* Additional references to a collections storage block the
+  library-level copy-on-write optimization: in-place mutation of
+  uniquely-referenced data.  A live index makes underlying storage
   non-uniquely referenced, forcing unnecessary copies when the
   collection is mutated.  In the standard library, `Dictionary` and
   `Set` use a double-indirection trick to work around this issue.
   Unfortunately, even this trick is not a solution, because (as we
-  have just realized) it isn't threadsafe. [^1]
+  have recently realized) it isn't threadsafe. [^1]
 
 By giving responsibility for traversal to the collection, we ensure
 that operations that need the collection's structure always have it,
