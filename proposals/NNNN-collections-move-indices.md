@@ -127,7 +127,8 @@ struct UnicodeScalarView : BidirectionalCollection { ... }
 
 The proposal adds several new types and protocols to support ranges:
 
-```              +-------------+
+```
+                 +-------------+
                  |RangeProtocol|
                  +-----+-------+
                        |
