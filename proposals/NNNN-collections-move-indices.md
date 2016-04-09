@@ -62,6 +62,10 @@ other significant benefits:
 
 * Simplifies implementation of non-trivial indices.
 * Allows us to eliminate the `Range`/`Interval` distinction.
+* Making traversal a direct property of the `Collection` protocol,
+  rather than its associated `Index` type, is closer to most peoples'
+  mental model for collections, and simplifies the writing of many
+  generic constraints.
 * Makes it feasible to fix existing concurrency issues in `Set` and
   `Dictionary` indices.
 * Allows `String` views to share a single index type, letting us
@@ -79,7 +83,12 @@ This proposal intentionally does not:
   collections, queues etc.)  Discussing how other concrete collections
   fit into the current protocol hierarchy is in scope, though.
 
-## Changes in Detail
+## Overview of Changes
+
+To facilitate evaluation, we've submitted a
+[pull request](https://github.com/apple/swift/pull/2108) for the code
+and documentation changes implementing this proposal.  See below for a 
+discussion of the major points.
 
 ### Collection Protocol Hierarchy
 
@@ -174,69 +183,7 @@ These protocols mostly exist facilitate implementation-sharing among
 the range types, and would seldom need to be implemented outside the
 standard library.
 
-### Analysis
-
-Advantages of the proposed model:
-
-* Indices don't need to keep a reference to the collection.
-  - Indices are simpler to implement.
-  - Indices are not reference-countable, and thus cheaper to
-    handle.
-  - Handling indices does not cause refcounting, and does not block
-    optimizations.
-
-* The hierarchy of index protocols is removed, and is replaced with
-  protocols for forward, bidirectional and random-access
-  collections.
-  - This is closer to how people generally talk about collections.
-  - Writing a generic constraint for bidirectional and
-    random-access collections becomes simpler.
-
-* Indices can conform to `Comparable` without incurring extra
-  memory overhead.  Indices need to store all the necessary data
-  anyway.
-
-  This allows, for example, to relax the precondition on the
-  `distance(from:to:)` method: even for forward collections, it is now
-  possible to measure the distance from a later index to an earlier
-  index.
-
-* `Dictionary` and `Set` indices (and other non-trivial indices) can't
-  create opportunities for data races.
-
-* While this model allows to design indices that are not
-  reference-countable, it does not prohibit defining indices that
-  *are* reference countable.
-  - All existing collection designs are still possible to
-    implement, but some are less efficient than the new model allows.
-  - If there is a specialized collection that needs
-    reference-countable indices for algorithmic or memory
-    efficiency, where such tradeoff is reasonable, such a
-    collection is still possible to implement in the new model.
-    See the discussion of trees below, the tree design (2)(c).
-
-Neutral as compared to the current collections:
-
-* A value-typed linked list still can't conform to `Collection`.
-  A reference-typed one can.
-
-Disadvantages of the proposed collections model:
-
-* Advancing an index forward or backward becomes harder -- the statement
-  now includes two entities (collection and index):
-
-  ```
-    j = c.next(i)    vs.    j = i.successor()
-  ```
-
-  In practice though, we found that when the code is performing index
-  manipulations, the collection is typically still around stored in a
-  variable, so the code does not need to reach out for it in a
-  non-trivial way.
-
-* Collection's API now includes methods for advancing indices.
-
-## The `Comparable` Requirement on Indices
+### The `Comparable` Requirement on Indices
 
 In this model indices store the minimal amount of information required
 to describe an element's position.  Usually an index can be
@@ -256,176 +203,70 @@ interesting range operations, such as containment checks, would be
 unavailable unless `T` were also `Comparable`, and we'd be unable to
 provide comple bounds-checking in the general case.
 
-### Implementation difficulties
+That said, the requirement has real benefits.  For example, it allows
+us to support distance measurement between arbitrary indices, even in
+collections without random access traversal.  In the old model,
+`x.distance(to: y)` for these collections had the undetectable
+precondition that `x` precede `y`, with unpredictable consequences for
+violation in the general case.
 
-We have a couple of implementation difficulties that will be solved with
-further improvements to the compiler or the generics system.  These
-issues will cause the new API to be suboptimal in the short term, but as
-the necessary compiler features will be implemented, the API will
-improve.  We don't consider any of these issues to be blockers to adopt
-the proposed collections model.
+## Downsides
 
-* `Range` has conflicting requirements:
+The proposed approach has several disadvantages, which we explore here
+in the interest of full disclosure:
 
-  - range bounds need to be comparable and incrementable, in order
-     for `Range` to conform to `Collection`,
+* Index movement is more complex in principle, since it now involves
+  not only the index, but the collection as well. The impact of this
+  complexity is limited somewhat because it's very common that code
+  moving indices occurs in a method of the collection type, where
+  “implicit `self`” kicks in.  The net result is that index
+  manipulations end up looking like free function calls:
+      
+  ```swift
+  let j = successor(i)            // self.successor(i)
+  let k = index(5, stepsFrom: j)  // self.index(5, stepsFrom: j)
+  ```
+  
+* The
+  [new index manipulation methods](https://github.com/apple/swift/blob/swift-3-indexing-model/stdlib/public/core/Collection.swift#L135)
+  increase the API surface area of `Collection`, which is already
+  quite large since algorithms are implemented as extensions.
 
-  - we frequently want to use `Range` as a "transport" data type, just
-    to carry a pair of indices around (for example, as an argument for
-    `removeSubrange(_:)`).  Indices are neither comparable nor
-    incrementable.
+* Because Swift is unable to express conditional protocol
+  conformances, implementing this change has required us to create a
+  great deal of complexity in the standard library API.  Aside from
+  the two excess “`Countable`” range types, there are new overloads
+  for slicing and twelve distinct slice types that capture all the
+  combinations of traversal, mutability, and range-replaceability.
+  While these costs are probably temporary, they are very real in the
+  meantime.
+  
+* The API complexity mentioned above stresses the type checker,
+  requiring
+  [several](https://github.com/apple/swift/commit/1a875cb922fa0c98d51689002df8e202993db2d3)
+  [changes](https://github.com/apple/swift/commit/6c56af5c1bc319825872a25041ec33ab0092db05)
+  just to get our test code to type-check in reasonable time.  Again,
+  an ostensibly temporary—but still real—cost.
 
-  Solution: add conditional a conformance for `Range` to `Collection`
-  when the bounds conform to `Strideable`.  We don't have this compiler
-  feature now.  As a workaround, we will introduce a parallel type,
-  `StrideableRange`.
+## Limitations of the Model
 
-2. We can't specify constraints on associated types.  This forces many
-   algorithms to specify constraints that should be implied by
-   `Sequence` or `Collection` conformances.
+Ideally, our collection model would allow us to implement every
+interesting data structure with memory safety, optimal performance,
+value semantics, and a variety of other useful properties such as
+minimal invalidation of indexes upon mutation.  In practice, these
+goals and the Swift language model interact in complicated ways,
+preventing some designs altogether, and suggesting a variety of
+implementation strategies for others that can be selected based on
+one's priorities.  We've done some in-depth investigation of these
+implications, but presenting and explaining them is well beyond the
+scope of this proposal.
 
-   Solution: constraints on associated types are a desirable
-   language feature, part of the Swift generics model.  This issue
-   will be fixed by compiler improvements.
-
-## Case study: trees
-
-Trees are very interesting data structures with many unique
-requirements.  We are interested in allowing efficient and memory-safe
-implementations of collections based on a search trees (e.g., RB trees
-or B-trees).  The specific requirements are as follows.
-
-- The collection and indices should be memory-safe.  They should provide
-  good QoI in the form of precondition traps.  Ensuring memory-safety
-  shouldn't cause unreasonable performance or memory overhead.
-
-- Collection instances should be able to share nodes on mutation
-  (persistent data structures).
-
-- Subscript on an index should cost at worst amortized O(1).
-
-- Advancing an index to the next or previous position should cost
-  at worst amortized O(1).
-
-- Indices should not contain reference countable stored properties.
-
-- Mutating or deleting an element in the collection should not
-  invalidate indices pointing at other elements.
-
-  This design constraint needs some extra motivation, because it might
-  not be obvious.  Preserving index validity across mutation is
-  important for algorithms that iterate over the tree and mutate it in
-  place, for example, removing a subrange of elements between two
-  indices, or removing elements that don't satisfy a predicate.  When
-  implementing such an algorithm, you would typically have an index that
-  points to the current element.  You can copy the index, advance it,
-  and then remove the previous element using its index.  If the mutation
-  of the tree invalidates all indices, it is not possible to continue
-  the iteration.  Thus, it is desired to invalidate just one index for
-  the element that was deleted.
-
-It is not possible to satisfy all of these requirements at the same
-time.  Designs that cover some of the requirements are possible.
-
-1. Persistent trees with O(log n) subscripting and advancing, and strict
-   index invalidation.
-
-   If we choose to make a persistent data structure with node reuse,
-   then the tree nodes can't have parent pointers (a node can have
-   multiple different parents in different trees).  This means that it
-   is not possible to advance an index in O(1).  If we need to go up the
-   tree while advancing the index, without parent pointers we would need
-   to traverse the tree starting from the root in O(log n).
-
-   Thus, index has to essentially store a path through the tree from the
-   root to the node (it is usually possible to encode this path in a
-   64-bit number).  Since the index stores the path, subscripting on
-   such an index would also cost O(log n).
-
-   We should note that persistent trees typically use B-trees, so the
-   base of the logarithm would be typically large (e.g., 32).  We also
-   know that the size of the RAM is limited.  Thus, we could treat the
-   O(log n) complexity as effectively constant for all practical
-   purposes.  But the constant factor will be much larger than in other
-   designs.
-
-   Swift's collection index model does not change anything as compared
-   to other languages.  The important point is that the proposed index
-   model allows such implementations of persistent collections.
-
-2. Trees with O(1) subscripting and advancing.
-
-   If we want subscripting to be O(1), then the index has to store a
-   pointer to a tree node.  Since we want avoid reference countable
-   properties in indices, the node pointer should either be
-   `unsafe(unowned)` or an `UnsafePointer`.  These pointers can't be
-   dereferenced safely without knowing in advance that it is safe to do
-   so.  We need some way to quickly check if it is safe to dereference
-   the pointer stored in the node.
-
-   A pointer to a tree node can become invalid when the node was
-   deallocated.  A tree node can be deallocated if the corresponding
-   element is removed from the tree.
-
-   (a) Trees with O(1) subscripting and advancing, and strict index
-       invalidation.
-
-       One simple way to perform the safety check when
-       dereferencing the unsafe pointer stored within the index
-       would be to detect any tree mutation between the index
-       creation and index use.  It is simple to do with version
-       numbers: we add an ID number to every tree.  This ID would
-       be unique among all trees created within the process, and it
-       would be re-generated on every mutation.  The tree ID is
-       copied into every index.  When the index is used with the
-       collection, we check that the ID of the tree matches the
-       tree ID stored in the index.  This fast check ensures memory
-       safety.
-
-   (b) Trees with O(1) subscripting and advancing, permissive index
-       invalidation, and extra storage to ensure memory safety.
-
-       Another way to perform the safety check would be to directly
-       check if the unsafe pointer stored in the index is actually
-       linked into the tree.  To do that with acceptable time
-       complexity, we would need to have an extra data structure
-       for every tree, for example, a hash table-based set of all
-       node pointers.  With this design, all index operations get
-       an O(1) hit for the hash table lookup for the safety check,
-       but we get an O(log n) memory overhead for the extra data
-       structure.  On the other hand, a tree already has O(log n)
-       memory overhead for allocating nodes themselves, thus the
-       extra data structure would only increase the constant factor
-       on memory overhead.
-
-|                                      | (1)      | (2)(a)  | (2)(b) |
-| -------------------------------------|----------|---------|------- |
-|                          Memory-safe | Yes      | Yes     | Yes    |
-|    Indices are not reference-counted | Yes      | Yes     | Yes    |
-|                         Shares nodes | Yes      | No      | No     |
-|             Subscripting on an index | O(log n) | O(1)    | O(1)   |
-|                   Advancing an index | O(log n) | O(1)    | O(1)   |
-| Deleting does not invalidate indices | No       | No      | Yes    |
-| Extra O(n) storage just for safety checks | No       | No      | Yes |
-
-Each of the designs discussed above has its uses, but the intuition
-is that (2)(a) is the one most commonly needed in practice.  (2)(a)
-does not have the desired index invalidation properties.  There is
-a small number of commonly used algorithms that require that
-property, and they can be provided as methods on the collection,
-for example `removeAll(in: Range<Index>)` and
-`removeAll(_: (Element)->Bool)`.
-
-If we were to allow reference-counted indices (basically, the
-current collections model), then an additional design is possible
--- let's call it (2)(c) for the purpose of discussion.  This design
-would be like (2)(b), but won't require extra storage that is used
-only for safety checks.  Instead, every index would pay a RC
-penalty and carry a strong reference to the tree node.
-
-Note that (2)(c) is still technically possible to implement in the
-new collection index model, it just goes against a goal of having
-indices free of reference-counted stored properties.
+We can, however, be fairly sure that this change does not regress our
+ability to build any Collections that could have been built in Swift
+2.2.  After all, it is still *possible* to implement indices that store
+references and have the old traversal methods (the collection's
+traversal methods would simply forward to those of the index), so we
+haven't lost the ability to express anything.
 
 ## Collection APIs
 
