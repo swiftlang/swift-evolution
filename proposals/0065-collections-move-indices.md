@@ -5,8 +5,8 @@
   [Dave Abrahams](https://github.com/dabrahams),
   [Maxim Moiseev](https://github.com/moiseev)
 * [Swift-evolution thread](http://news.gmane.org/find-root.php?message_id=CA%2bY5xYfqKR6yC2Q%2dG7D9N7FeY%3dxs1x3frq%3d%3dsyGoqYpOcL9yrw%40mail.gmail.com)
-* Status: **Awaiting review**
-* Review manager: TBD
+* Status: **Under Active review** April 10...18, 2016
+* Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Summary
 

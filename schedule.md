@@ -16,6 +16,7 @@ proposals in that process.
 * April 7...12, 2016 [SE-0062: Referencing Objective-C key-paths](proposals/0062-objc-keypaths.md)
 * April 7...13, 2016 [SE-0063: SwiftPM System Module Search Paths](proposals/0063-swiftpm-system-module-search-paths.md)
 * April 7...12, 2016 [SE-0064: Referencing the Objective-C selector of property getters and setters](proposals/0064-property-selectors.md)
+* April 10...18, 2016 [SE-0065: A New Model For Collections and Indices](proposals/0065-collections-move-indices.md)
 
 ## Upcoming reviews
 
@@ -32,7 +33,6 @@ proposals in that process.
 * [SE-0052: Change IteratorType post-nil guarantee](proposals/0052-iterator-post-nil-guarantee.md)
 * [SE-0060: Enforcing order of defaulted parameters](proposals/0060-defaulted-parameter-order.md)
 * [SE-0061: Add Generic Result and Error Handling to autoreleasepool()](proposals/0061-autoreleasepool-signature.md)
-* [SE-0065: A New Model For Collections and Indices](proposals/0065-collections-move-indices.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 
