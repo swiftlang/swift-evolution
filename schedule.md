@@ -32,7 +32,7 @@ proposals in that process.
 * [SE-0052: Change IteratorType post-nil guarantee](proposals/0052-iterator-post-nil-guarantee.md)
 * [SE-0060: Enforcing order of defaulted parameters](proposals/0060-defaulted-parameter-order.md)
 * [SE-0061: Add Generic Result and Error Handling to autoreleasepool()](proposals/0061-autoreleasepool-signature.md)
-* [SE-0065: A New Model For Collections and Indices)](proposals/0065-collections-move-indices.md)
+* [SE-0065: A New Model For Collections and Indices](proposals/0065-collections-move-indices.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 
