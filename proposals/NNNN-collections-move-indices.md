@@ -619,36 +619,10 @@ Code that **needs to change**:
   require a redesign.  Implementing this in an automated migrator might
   be possible, but would be a heroic migration for a rare case.
 
-## Implementation status
+## Implementation Status
 
-Since this is a large change to the collection model, to evaluate it, we have
-prepared [a prototype
-implementation](https://github.com/apple/swift/blob/master/test/Prototypes/CollectionsMoveIndices.swift).
-Shawn Erickson and Austin Zheng have been working on re-implementing the
-prototype in the core library on the [swift-3-indexing-model
-branch](https://github.com/apple/swift/tree/swift-3-indexing-model).
-
-The prototype and this proposal have one major difference around the use
-of unowned references.  In the prototype, we are suggesting to use
-unowned references to implement `c.indices`.  Unfortunately, we realized
-that this design can create an unpredictable user model.  For example:
-
-```swift
-let c = getCollection()
-for i in c.indices {
-  if i.isRed {
-    print(c[i])
-  }
-  print("no")
-}
-```
-
-If ARC can prove that the collection does not contain indices where
-`i.isRed` is true, then it can deinit the collection right after
-constructing the index collection, before starting the loop.  Then, the
-first time we need to advance the index, dereferencing the unowned
-reference to the collection storage (which is gone now) will cause a
-trap.
+[This pull request](https://github.com/apple/swift/pull/2108) contains
+a complete implementation.
 
 ## Alternatives considered
 
@@ -661,7 +635,7 @@ how to adjust the concept of D's range (similar to `Slice` in Swift) for
 mutable value-typed collections.  In D, you process a collection by
 repeatedly slicing off elements.  Once you have found an element that
 you would like to mutate, it is not clear how to actually change the
-original collection, if the collection and its slice are value types?
+original collection, if the collection and its slice are value types.
 
 ----
 
