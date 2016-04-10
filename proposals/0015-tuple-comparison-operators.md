@@ -9,6 +9,10 @@
 
 Implement comparison operators on tuples up to some arity.
 
+[Initial Discussion](http://article.gmane.org/gmane.comp.lang.swift.evolution/980/match=tuple+comparison), [General Discussion](http://thread.gmane.org/gmane.comp.lang.swift.evolution/9723), [Review](http://thread.gmane.org/gmane.comp.lang.swift.evolution/11423/focus=732)
+
+Note: The review was initially started on the wrong thread with the wrong title and subsequently corrected.
+
 ## Motivation
 
 It's annoying to try and compare tuples of comparable values and discover that
