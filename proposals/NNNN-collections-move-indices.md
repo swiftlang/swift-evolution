@@ -246,12 +246,114 @@ violation in the general case.
 
 ## Detailed API Changes
 
-In this section we describe the new APIs at a high level
+This section describes changes to methods, properties, and associated
+types at a high level.  Details related to working around compiler
+limitations have been omitted.  For a complete view of the the code
+and documentation changes implementing this proposal, please see this
+[pull request](https://github.com/apple/swift/pull/2108).
 
-To facilitate evaluation, we've submitted a
-[pull request](https://github.com/apple/swift/pull/2108) for the code
-and documentation changes implementing this proposal.  See below for a
-discussion of the major points.
+### `Collection`s
+
+The following APIs were added:
+
+```swift
+protocol Collection {
+  ...
+  /// A type that can represent the number of steps between pairs of
+  /// `Index` values where one value is reachable from the other.
+  ///
+  /// Reachability is defined by the ability to produce one value from
+  /// the other via zero or more applications of `successor(of:)`.
+  associatedtype IndexDistance : SignedInteger = Int
+
+  /// A collection type whose elements are the indices of `self` that
+  /// are valid for subscripting, in ascending order.
+  associatedtype Indices : Collection = DefaultIndices<Self>
+
+  /// The indices that are valid for subscripting `self`, in ascending order.
+  ///
+  /// - Note: `indices` can hold a strong reference to the collection itself,
+  ///   causing the collection to be non-uniquely referenced.  If you need to
+  ///   mutate the collection while iterating over its indices, use the
+  ///   `successor(of:)` method starting with `startIndex` to produce indices
+  ///   instead.
+  /// 
+  ///   ```
+  ///   var c = [10, 20, 30, 40, 50]
+  ///   var i = c.startIndex
+  ///   while i != c.endIndex {
+  ///       c[i] /= 5
+  ///       i = c.successor(of: i)
+  ///   }
+  ///   // c == [2, 4, 6, 8, 10]
+  ///   ```
+  var indices: Indices { get }
+
+  /// Returns the result of advancing `i` by `n` positions.
+  ///
+  /// - Returns:
+  ///   - If `n > 0`, the `n`th successor of `i`.
+  ///   - If `n < 0`, the `n`th predecessor of `i`.
+  ///   - Otherwise, `i` unmodified.
+  ///
+  /// - Precondition: `n >= 0` unless `Self` conforms to
+  ///   `BidirectionalCollection`.
+  /// - Precondition:
+  ///   - If `n > 0`, `n <= self.distance(from: i, to: self.endIndex)`
+  ///   - If `n < 0`, `n >= self.distance(from: i, to: self.startIndex)`
+  ///
+  /// - Complexity:
+  ///   - O(1) if `Self` conforms to `RandomAccessCollection`.
+  ///   - O(`abs(n)`) otherwise.
+  func index(n: IndexDistance, stepsFrom i: Index) -> Index
+
+  /// Returns the result of advancing `i` by `n` positions, or until it
+  /// equals `limit`.
+  ///
+  /// - Returns:
+  ///   - If `n > 0`, the `n`th successor of `i` or `limit`, whichever
+  ///     is reached first.
+  ///   - If `n < 0`, the `n`th predecessor of `i` or `limit`, whichever
+  ///     is reached first.
+  ///   - Otherwise, `i` unmodified.
+  ///
+  /// - Precondition: `n >= 0` unless `Self` conforms to
+  ///   `BidirectionalCollection`.
+  ///
+  /// - Complexity:
+  ///   - O(1) if `Self` conforms to `RandomAccessCollection`.
+  ///   - O(`abs(n)`) otherwise.
+  func index(
+    n: IndexDistance, stepsFrom i: Index, limitedBy limit: Index
+  ) -> Index
+
+  /// Returns the distance between `start` and `end`.
+  ///
+  /// - Precondition: `start <= end` unless `Self` conforms to
+  ///   `BidirectionalCollection`.
+  /// - Complexity:
+  ///   - O(1) if `Self` conforms to `RandomAccessCollection`.
+  ///   - O(`n`) otherwise, where `n` is the method's result.
+  func distance(from start: Index, to end: Index) -> IndexDistance
+}
+
+protocol BidirectionalCollection {
+  /// Returns the position immediately preceding `i`.
+  ///
+  /// - Precondition: `i > startIndex && i <= endIndex` 
+  func predecessor(of i: Index) -> Index
+
+  /// Replaces `i` with its predecessor.
+  ///
+  /// - Precondition: `i > startIndex && i <= endIndex`
+  func formPredecessor(i: inout Index)
+}
+```
+
+Note that `RandomAccessCollection` does not add any *syntactic*
+requirements beyond those of `BidirectionalCollection`.  Instead, it
+places tighter performance bounds on operations such as `c.index(n,
+stepsFrom: i)` (O(1) instead of O(`n`)).
 
 ## Downsides
 
