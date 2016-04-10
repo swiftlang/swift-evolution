@@ -13,6 +13,8 @@ allow users to call C functions with `intptr_t` and `uintptr_t` parameters, and 
 allow users to perform more advanced pointer arithmetic than is allowed by
 `UnsafePointer`s.
 
+[Swift Evolution Discussion](http://thread.gmane.org/gmane.comp.lang.swift.evolution/10044), [Review](http://thread.gmane.org/gmane.comp.lang.swift.evolution/12696)
+
 ## Motivation
 ## 
 Swift currently lacks the ability to perform many complex operations on
