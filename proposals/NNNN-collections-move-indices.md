@@ -309,6 +309,15 @@ protocol Collection {
   ///   ```
   var indices: Indices { get }
 
+  /// Returns the position immediately after `i`.
+  ///
+  /// - Precondition: `(startIndex..<endIndex).contains(i)`
+  @warn_unused_result
+  func successor(of i: Index) -> Index
+
+  /// Replaces `i` with its successor.
+  func formSuccessor(i: inout Index)
+
   /// Returns the result of advancing `i` by `n` positions.
   ///
   /// - Returns:
@@ -347,6 +356,31 @@ protocol Collection {
     n: IndexDistance, stepsFrom i: Index, limitedBy limit: Index
   ) -> Index
 
+  /// Advances `i` by `n` positions.
+  ///
+  /// - Precondition: `n >= 0` unless `Self` conforms to
+  ///   `BidirectionalCollection`.
+  /// - Precondition:
+  ///   - If `n > 0`, `n <= self.distance(from: i, to: self.endIndex)`
+  ///   - If `n < 0`, `n >= self.distance(from: i, to: self.startIndex)`
+  ///
+  /// - Complexity:
+  ///   - O(1) if `Self` conforms to `RandomAccessCollection`.
+  ///   - O(`abs(n)`) otherwise.
+  func formIndex(n: IndexDistance, stepsFrom i: inout Index)
+
+  /// Advances `i` by `n` positions, or until it equals `limit`.
+  ///
+  /// - Precondition: `n >= 0` unless `Self` conforms to
+  ///   `BidirectionalCollection`.
+  ///
+  /// - Complexity:
+  ///   - O(1) if `Self` conforms to `RandomAccessCollection`.
+  ///   - O(`abs(n)`) otherwise.
+  func formIndex(
+    n: IndexDistance, stepsFrom i: inout Index, limitedBy limit: Index
+  )
+
   /// Returns the distance between `start` and `end`.
   ///
   /// - Precondition: `start <= end` unless `Self` conforms to
@@ -370,10 +404,17 @@ protocol BidirectionalCollection {
 }
 ```
 
-Note that `RandomAccessCollection` does not add any *syntactic*
-requirements beyond those of `BidirectionalCollection`.  Instead, it
-places tighter performance bounds on operations such as `c.index(n,
-stepsFrom: i)` (O(1) instead of O(`n`)).
+Note:
+
+* The mutating `formSuccessor`, `formPredecessor`, and the `formIndex`
+  overloads essentially enshrine the previously-hidden
+  `_successorInPlace` et al., which can be important for performance
+  when handling the rare heavyweight index type such as `AnyIndex`.
+
+* `RandomAccessCollection` does not add any *syntactic* requirements
+  beyond those of `BidirectionalCollection`.  Instead, it places
+  tighter performance bounds on operations such as `c.index(n,
+  stepsFrom: i)` (O(1) instead of O(`n`)).
 
 ## `Range`s
 
