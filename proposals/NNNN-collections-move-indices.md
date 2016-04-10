@@ -83,19 +83,22 @@ This proposal intentionally does not:
   collections, queues etc.)  Discussing how other concrete collections
   fit into the current protocol hierarchy is in scope, though.
 
-## Overview of Changes
+## Overview of Type And Protocol Changes
 
-To facilitate evaluation, we've submitted a
-[pull request](https://github.com/apple/swift/pull/2108) for the code
-and documentation changes implementing this proposal.  See below for a 
-discussion of the major points.
+This section covers the proposed structural changes to the library at
+a high level.  Details such as protocols introduced purely to work
+around compiler limitations (e.g. `Indexable` or `IndexableBase`) have
+been omitted.  For a complete view of the the code
+and documentation changes implementing this proposal, please see this
+[pull request](https://github.com/apple/swift/pull/2108).
 
 ### Collection Protocol Hierarchy
 
 In the proposed model, indices don't have any requirements beyond
-`Comparable`, so index protocols are eliminated.  Instead, we
-introduce `BidirectionalCollection` and `RandomAccessCollection` to
-provide the same index traversal distinctions, as shown here:
+`Comparable`, so the `ForwardIndex`, `BidirectionalIndex`, and
+`RandomAccessIndex` protocols are eliminated.  Instead, we introduce
+`BidirectionalCollection` and `RandomAccessCollection` to provide the
+same traversal distinctions, as shown here:
 
 ```
                      +--------+
@@ -126,9 +129,9 @@ These protocols compose naturally with the existing protocols
 collection's capabilities, e.g.
 
 ```swift
-struct Array<Element> 
-  : RandomAccessCollection, 
-    MutableCollection, 
+struct Array<Element>
+  : RandomAccessCollection,
+    MutableCollection,
     RangeReplaceableCollection { ... }
     
 struct UnicodeScalarView : BidirectionalCollection { ... }
@@ -139,9 +142,9 @@ struct UnicodeScalarView : BidirectionalCollection { ... }
 The proposal adds several new types and protocols to support ranges:
 
 ```
-                 +-------------+
-                 |RangeProtocol|
-                 +-----+-------+
+                +-------------+
+                |RangeProtocol|
+                +------+------+
                        |
           +------------+---------------------+
           |                                  |
@@ -168,9 +171,9 @@ The proposal adds several new types and protocols to support ranges:
   
   * Two for ranges that additionally conform to
     `RandomAccessCollection`, requiring bounds that are `Strideable`
-    with `Stride` conforming to `Integer` : `CountableRange<T>` and
-    `CountableClosedRange<T>`. [These types can be folded into 
-    `Range` and `ClosedRange` when Swift acquires conditional 
+    with `Stride` conforming to `Integer`: `CountableRange<T>` and
+    `CountableClosedRange<T>`. [These types can be folded into
+    `Range` and `ClosedRange` when Swift acquires conditional
     conformance capability.]
 
 We also introduce three new protocols:
@@ -183,8 +186,39 @@ These protocols mostly exist facilitate implementation-sharing among
 the range types, and would seldom need to be implemented outside the
 standard library.
 
-### The `Comparable` Requirement on Indices
+### The Associated `Indices` Type
 
+The following code iterates over the indices of all elements in
+`collection`:
+
+```swift
+for index in collection.indices { ... }
+```
+
+In Swift 2, `collection.indices` returned a `Range<Index>`, but
+because a range is a simple pair of indices and indices can no longer
+be advanced on their own, `Range<Index>` is no longer iterable.
+
+In order to keep code like the above working, `Collection` has
+acquired an associated `Indices` type that is always iterable, and
+three generic types were introduced to provide a default `Indices` for
+each `Collection` traversal category: `DefaultIndices<C>`,
+`DefaultBidirectionalIndices<C>`, and `DefaultRandomAccessIndices<C>`.
+These types store the underlying collection as a means of traversal.
+Collections like `Array` whose `Indices` don't need the collection
+simply use `typealias Indices = CountableRange<Index>`.
+
+### Expanded Default Slice Types
+      
+Because Swift doesn't support conditional protocol conformances and
+the three traversal distinctions have been moved into the `Collection`
+hierarchy, the four generic types `Slice`, `MutableSlice`,
+`RangeReplaceableSlice`, and `MutableRangeReplaceableSlice` have
+become twelve, with the addition of variations such as
+`RangeReplaceableBidirectionalSlice`.
+      
+### The `Comparable` Requirement on Indices
+      
 In this model indices store the minimal amount of information required
 to describe an element's position.  Usually an index can be
 represented with one or two `Int`s that efficiently encode the path to
@@ -209,6 +243,15 @@ collections without random access traversal.  In the old model,
 `x.distance(to: y)` for these collections had the undetectable
 precondition that `x` precede `y`, with unpredictable consequences for
 violation in the general case.
+  
+## Detailed API Changes
+
+In this section we describe the new APIs at a high level
+
+To facilitate evaluation, we've submitted a
+[pull request](https://github.com/apple/swift/pull/2108) for the code
+and documentation changes implementing this proposal.  See below for a
+discussion of the major points.
 
 ## Downsides
 
@@ -267,324 +310,6 @@ ability to build any Collections that could have been built in Swift
 references and have the old traversal methods (the collection's
 traversal methods would simply forward to those of the index), so we
 haven't lost the ability to express anything.
-
-## Collection APIs
-
-This is a rough sketch of the API.
-
-There are a few API details that we can't express in Swift today because of the
-missing compiler features, or extra APIs that only exist as workarounds.  It is
-important to see what they are to understand the grand plan, so we marked them
-with `FIXME(compiler limitation)` below.
-
-There are a few minor open questions that are marked with `FIXME(design)`.
-
-```swift
-// No changes from the current scheme.
-public protocol IteratorProtocol {
-  associatedtype Element
-  mutating func next() -> Element?
-}
-
-// No changes from the current scheme.
-public protocol Sequence {
-  associatedtype Iterator : IteratorProtocol
-
-  /// A type that represents a subsequence of some of the elements.
-  associatedtype SubSequence
-  // FIXME(compiler limitation):
-  // associatedtype SubSequence : Sequence
-  //   where Iterator.Element == SubSequence.Iterator.Element
-
-  func makeIterator() -> Iterator
-
-  // Defaulted requirements, algorithms.
-
-  @warn_unused_result
-  func map<T>(
-    @noescape transform: (Generator.Element) throws -> T
-  ) rethrows -> [T]
-
-  @warn_unused_result
-  func dropFirst(n: Int) -> SubSequence
-
-  // Other algorithms have been omitted for brevity since their signatures
-  // didn't change.
-}
-
-/*
-FIXME(compiler limitation): we can't write this extension now because
-concrete typealiases in extensions don't work well.
-
-extension Sequence {
-  /// The type of elements that the sequence contains.
-  ///
-  /// It is just a shorthand to simplify generic constraints.
-   typealias Element = Iterator.Element
-}
-*/
-
-// `Indexable` protocol is an unfortunate workaround for a compiler limitation.
-// Without this workaround it is not possible to implement `IndexingIterator`.
-//
-// FIXME(compiler limitation): remove `Indexable`, and move all of its
-// requirements to `Collection`.
-public protocol Indexable {
-  /// A type that represents a valid position in the collection.
-  ///
-  /// Valid indices consist of the position of every element and a
-  /// "past the end" position that's not valid for use as a subscript.
-  associatedtype Index : Comparable
-
-  associatedtype _Element
-  var startIndex: Index { get }
-  var endIndex: Index { get }
-
-  /// Returns the element at the given `position`.
-  ///
-  /// - Complexity: O(1).
-  subscript(position: Index) -> _Element { get }
-
-  /// Returns the next consecutive index after `i`.
-  ///
-  /// - Precondition: `self` has a well-defined successor.
-  ///
-  /// - Complexity: O(1).
-  @warn_unused_result
-  func next(i: Index) -> Index
-
-  /// Equivalent to `i = self.next(i)`, but can be faster because it
-  /// does not need to create a new index.
-  ///
-  /// - Precondition: `self` has a well-defined successor.
-  ///
-  /// - Complexity: O(1).
-  func _nextInPlace(i: inout Index)
-  // This method has a default implementation.
-
-  /// Traps if `index` is not in `bounds`, or performs
-  /// a no-op if such a check is not possible to implement in O(1).
-  ///
-  /// Use this method to implement cheap fail-fast checks in algorithms
-  /// and wrapper data structures to bring the failure closer to the
-  /// source of the bug.
-  ///
-  /// Do not use this method to implement checks that guarantee memory
-  /// safety.  This method is allowed to be implemented as a no-op.
-  ///
-  /// - Complexity: O(1).
-  func _failEarlyRangeCheck(index: Index, inBounds: Range<Index>)
-  // This method has a default implementation.
-  // FIXME(design): this API can be generally useful, maybe we should
-  // de-underscore it, and make it a public API?
-
-  /// Traps if `subRange` is not in `bounds`, or performs
-  /// a no-op if such a check is not possible to implement in O(1).
-  ///
-  /// Use this method to implement cheap fail-fast checks in algorithms
-  /// and wrapper data structures to bring the failure closer to the
-  /// source of the bug.
-  ///
-  /// Do not use this method to implement checks that guarantee memory
-  /// safety.  This method is allowed to be implemented as a no-op.
-  ///
-  /// - Complexity: O(1).
-  func _failEarlyRangeCheck(subRange: Range<Index>, inBounds: Range<Index)
-  // This method has a default implementation.
-  // FIXME(design): this API can be generally useful, maybe we should
-  // de-underscore it, and make it a public API?
-}
-
-/// A multi-pass sequence with addressable positions.
-///
-/// Positions are represented by an associated `Index` type.  Whereas
-/// an arbitrary sequence may be consumed as it is traversed, a
-/// collection is multi-pass: any element may be revisited merely by
-/// saving its index.
-///
-/// The sequence view of the elements is identical to the collection
-/// view.  In other words, the following code binds the same series of
-/// values to `x` as does `for x in self {}`:
-///
-///     for i in startIndex..<endIndex {
-///       let x = self[i]
-///     }
-public protocol Collection : Sequence, Indexable {
-  /// A type that provides the sequence's iteration interface and
-  /// encapsulates its iteration state.
-  ///
-  /// By default, a `Collection` satisfies `Sequence` by
-  /// supplying a `IndexingIterator` as its associated `Iterator`
-  /// type.
-  associatedtype Iterator : IteratorProtocol = IndexingIterator<Self>
-
-  /// A type that represents a slice of some of the elements.
-  associatedtype SubSequence : Sequence, Indexable = Slice<Self>
-  // FIXME(compiler limitation):
-  // associatedtype SubSequence : Collection
-  //   where
-  //   Iterator.Element == SubSequence.Iterator.Element,
-  //   SubSequence.SubSequence == SubSequence
-  //
-  // These constraints allow processing collections in generic code by
-  // repeatedly slicing them in a loop.
-
-  /// A signed integer type that can represent the number of steps between any
-  /// two indices.
-  associatedtype IndexDistance : SignedIntegerType = Int
-
-  /// Returns the result of advancing `i` by `n` positions.
-  ///
-  /// - Returns:
-  ///   - If `n > 0`, the result of applying `next` to `i` `n` times.
-  ///   - If `n < 0`, the result of applying `previous` to `i` `-n` times.
-  ///   - Otherwise, `i`.
-  ///
-  /// - Precondition: `n >= 0` if `self` only conforms to `Collection`.
-  /// - Complexity:
-  ///   - O(1) if `self` conforms to `RandomAccessCollection`.
-  ///   - O(`abs(n)`) otherwise.
-  @warn_unused_result
-  func advance(i: Index, by n: IndexDistance) -> Index
-  // This method has a default implementation.
-
-  /// Returns the result of advancing `i` by `n` positions or until it reaches
-  /// `limit`.
-  ///
-  /// - Returns:
-  ///   - If `n > 0`, the result of applying `next` to `i` `n` times,
-  ///     but not past `limit`.
-  ///   - If `n < 0`, the result of applying `previous` to `i` `-n` times,
-  ///     but not past `limit`.
-  ///   - Otherwise, `i`.
-  ///
-  /// - Precondition: `n >= 0` if `self` only conforms to `Collection`.
-  /// - Complexity:
-  ///   - O(1) if `self` conforms to `RandomAccessCollection`.
-  ///   - O(`abs(n)`) otherwise.
-  @warn_unused_result
-  func advance(i: Index, by n: IndexDistance, limit: Index) -> Index
-  // This method has a default implementation.
-
-  /// Measure the distance between `start` and `end`.
-  ///
-  /// - Precondition: `start` and `end` are valid indices into this
-  ///   collection.
-  ///
-  /// - Complexity:
-  ///   - O(1) if `self` conforms to `RandomAccessCollection`.
-  ///   - O(`abs(n)`) otherwise, where `n` is the function's result.
-  @warn_unused_result
-  func distance(from start: Index, to end: Index) -> IndexDistance
-  // This method has a default implementation.
-
-  /// A type for the collection of indices for this collection.
-  ///
-  /// An instance of `Indices` can hold a strong reference to the collection
-  /// itself, causing the collection to be non-uniquely referenced.  If you
-  /// need to mutate the collection while iterating over its indices, use the
-  /// `next()` method to produce indices instead.
-  associatedtype Indices : Sequence, Indexable = DefaultCollectionIndices<Self>
-  // FIXME(compiler limitation):
-  // associatedtype Indices : Collection
-  //   where
-  //   Indices.Iterator.Element == Index,
-  //   Indices.Index == Index,
-  //   Indices.SubSequence == Indices
-
-  /// A collection of indices for this collection.
-  var indices: IndexRange { get }
-  // This property has a default implementation.
-
-  /// Returns the number of elements.
-  ///
-  /// - Complexity: O(1) if `self` conforms to `RandomAccessCollection`;
-  ///   O(N) otherwise.
-  var count: IndexDistance { get }
-  // This property has a default implementation.
-
-  /// Returns the element at the given `position`.
-  ///
-  /// - Complexity: O(1).
-  subscript(position: Index) -> Generator.Element { get }
-
-  /// - Complexity: O(1).
-  subscript(bounds: Range<Index>) -> SubSequence { get }
-  // This property has a default implementation.
-
-  // Other algorithms (including `first`, `isEmpty`, `index(of:)`, `sorted()`
-  // etc.) have been omitted for brevity since their signatures didn't change.
-}
-
-/// A collection whose indices can be advanced backwards.
-public protocol BidirectionalCollection : Collection {
-  // FIXME(compiler limitation):
-  // associatedtype SubSequence : BidirectionalCollection
-
-  // FIXME(compiler limitation):
-  // associatedtype Indices : BidirectionalCollection
-
-  /// Returns the previous consecutive index before `i`.
-  ///
-  /// - Precondition: `self` has a well-defined predecessor.
-  ///
-  /// - Complexity: O(1).
-  @warn_unused_result
-  func previous(i: Index) -> Index
-
-  /// Equivalent to `i = self.previous(i)`, but can be faster because it
-  /// does not need to create a new index.
-  ///
-  /// - Precondition: `self` has a well-defined predecessor.
-  ///
-  /// - Complexity: O(1).
-  func _previousInPlace(i: inout Index)
-  // This method has a default implementation.
-
-  // Other algorithms (including `last`, `popLast(_:)`, `dropLast(_:)`,
-  // `suffix(_:)` etc.) have been omitted for brevity since their
-  // signatures didn't change.
-}
-
-/// A collection whose indices can be advanced by an arbitrary number of
-/// positions in O(1).
-public protocol RandomAccessCollection : BidirectionalCollection {
-  // FIXME(compiler limitation):
-  // associatedtype SubSequence : RandomAccessCollection
-
-  // FIXME(compiler limitation):
-  // associatedtype Indices : RandomAccessCollection
-
-  associatedtype Index : Strideable
-  // FIXME(compiler limitation): where Index.Distance == IndexDistance
-  // FIXME(design): does this requirement to conform to `Strideable`
-  // limit possible collection designs?
-}
-
-public protocol MyMutableCollectionType : MyForwardCollectionType {
-  associatedtype SubSequence : Collection = MutableSlice<Self>
-  // FIXME(compiler limitation):
-  // associatedtype SubSequence : MutableCollection
-
-  /// Access the element at `position`.
-  ///
-  /// - Precondition: `position` indicates a valid position in `self` and
-  ///   `position != endIndex`.
-  ///
-  /// - Complexity: O(1)
-  subscript(i: Index) -> Generator.Element { get set }
-
-  /// Returns a collection representing a contiguous sub-range of
-  /// `self`'s elements.
-  ///
-  /// - Complexity: O(1) for the getter, O(`bounds.count`) for the setter.
-  subscript(bounds: Range<Index>) -> SubSequence { get set }
-  // This subscript has a default implementation.
-}
-
-// No changes from the current scheme.
-public protocol RangeReplaceableCollection : Collection { ... }
-```
 
 ## Impact on existing code
 
