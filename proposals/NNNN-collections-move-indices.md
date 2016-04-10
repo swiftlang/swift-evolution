@@ -104,7 +104,7 @@ same traversal distinctions, as shown here:
                      +--------+
                      |Sequence|
                      +---+----+
-                         |                                                                               .
+                         |
                     +----+-----+
                     |Collection|
                     +----+-----+
@@ -133,7 +133,7 @@ struct Array<Element>
   : RandomAccessCollection,
     MutableCollection,
     RangeReplaceableCollection { ... }
-    
+
 struct UnicodeScalarView : BidirectionalCollection { ... }
 ```
 
@@ -168,7 +168,7 @@ The proposal adds several new types and protocols to support ranges:
     and `ClosedRange<T>`.  Having a separate `ClosedRange` type allows
     us to address the vexing inability of the old `Range` to represent
     a range containing the maximal value of its bound.
-  
+
   * Two for ranges that additionally conform to
     `RandomAccessCollection`, requiring bounds that are `Strideable`
     with `Stride` conforming to `Integer`: `CountableRange<T>` and
@@ -209,16 +209,16 @@ Collections like `Array` whose `Indices` don't need the collection
 simply use `typealias Indices = CountableRange<Index>`.
 
 ### Expanded Default Slice Types
-      
+
 Because Swift doesn't support conditional protocol conformances and
 the three traversal distinctions have been moved into the `Collection`
 hierarchy, the four generic types `Slice`, `MutableSlice`,
 `RangeReplaceableSlice`, and `MutableRangeReplaceableSlice` have
 become twelve, with the addition of variations such as
 `RangeReplaceableBidirectionalSlice`.
-      
+
 ### The `Comparable` Requirement on Indices
-      
+
 In this model indices store the minimal amount of information required
 to describe an element's position.  Usually an index can be
 represented with one or two `Int`s that efficiently encode the path to
@@ -243,7 +243,7 @@ collections without random access traversal.  In the old model,
 `x.distance(to: y)` for these collections had the undetectable
 precondition that `x` precede `y`, with unpredictable consequences for
 violation in the general case.
-  
+
 ## Detailed API Changes
 
 In this section we describe the new APIs at a high level
@@ -264,12 +264,12 @@ in the interest of full disclosure:
   moving indices occurs in a method of the collection type, where
   “implicit `self`” kicks in.  The net result is that index
   manipulations end up looking like free function calls:
-      
+
   ```swift
   let j = successor(i)            // self.successor(i)
   let k = index(5, stepsFrom: j)  // self.index(5, stepsFrom: j)
   ```
-  
+
 * The
   [new index manipulation methods](https://github.com/apple/swift/blob/swift-3-indexing-model/stdlib/public/core/Collection.swift#L135)
   increase the API surface area of `Collection`, which is already
@@ -283,7 +283,7 @@ in the interest of full disclosure:
   combinations of traversal, mutability, and range-replaceability.
   While these costs are probably temporary, they are very real in the
   meantime.
-  
+
 * The API complexity mentioned above stresses the type checker,
   requiring
   [several](https://github.com/apple/swift/commit/1a875cb922fa0c98d51689002df8e202993db2d3)
