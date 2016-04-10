@@ -13,6 +13,8 @@ Testing is an essential part of modern software development.
 Tight integration of testing into the Swift Package Manager
 will help ensure a stable and reliable packaging ecosystem.
 
+[SE Review Link](http://thread.gmane.org/gmane.comp.lang.swift.evolution/3583)
+
 ## Proposed Solution
 
 We propose to extend our conventional package directory layout
