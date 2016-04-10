@@ -360,6 +360,16 @@ stepsFrom: i)` (O(1) instead of O(`n`)).
 The proposed approach has several disadvantages, which we explore here
 in the interest of full disclosure:
 
+* In Swift 2, `RandomAccessIndex` has operations like `+` that provide
+  easy access to arbitrary position offsets in some collections.  That
+  could also be seen as discouragement from trying to do random access
+  operations with less-refined index protocols, because in those cases
+  one has to resort to constructs like `i.advancedBy(n)`.  In this
+  proposal, there is only `c.index(n, stepsFrom: i)`, which makes
+  random access equally (in)convenient for all collections, and there
+  is no particular syntactic penalty for doing things that might turn
+  out to be inefficient.
+
 * Index movement is more complex in principle, since it now involves
   not only the index, but the collection as well. The impact of this
   complexity is limited somewhat because it's very common that code
