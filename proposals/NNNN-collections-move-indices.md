@@ -164,17 +164,17 @@ The proposal adds several new types and protocols to support ranges:
 * The old `Range<T>`, `ClosedInterval<T>`, and
   `OpenInterval<T>` are replaced with four new generic range types:
 
-  * Two for general ranges whose bounds are `Comparable`: `Range<T>`
+  * Two for general ranges (whose bounds are `Comparable`): `Range<T>`
     and `ClosedRange<T>`.  Having a separate `ClosedRange` type allows
     us to address the vexing inability of the old `Range` to represent
     a range containing the maximal value of its bound.
 
   * Two for ranges that additionally conform to
-    `RandomAccessCollection`, requiring bounds that are `Strideable`
-    with `Stride` conforming to `Integer`: `CountableRange<T>` and
-    `CountableClosedRange<T>`. [These types can be folded into
+    `RandomAccessCollection` (requiring bounds that are `Strideable`
+    with `Stride` conforming to `Integer`): `CountableRange<T>` and
+    `CountableClosedRange<T>`. These types can be folded into
     `Range` and `ClosedRange` when Swift acquires conditional
-    conformance capability.]
+    conformance capability.
 
 We also introduce three new protocols:
 
@@ -355,6 +355,104 @@ requirements beyond those of `BidirectionalCollection`.  Instead, it
 places tighter performance bounds on operations such as `c.index(n,
 stepsFrom: i)` (O(1) instead of O(`n`)).
 
+## `Range`s
+
+The `RangeProtocol` shown below, along with the description of 
+[Range Protocols and Types](#range-protocols-and-types) above, provide
+a complete picture of the changes to ranges.
+
+```swift
+/// A type that represents a contiguous range of any comparable value.
+///
+/// A range contains at least every value `x` where `lowerBound < x` and
+/// `x < upperBound`. Individual types that conform to `RangeProtocol` must
+/// specify their containment rules for the bounds of the range.
+///
+/// The standard library defines two kinds of ranges: closed ranges,
+/// represented by `ClosedRangeProtocol`, and half-open ranges, represented by
+/// `HalfOpenRangeProtocol`. A closed range contains both its lower and upper
+/// bounds, and therefore cannot be empty. A half-open range, on the other
+/// hand, contains its lower bound when nonempty but never its upper bound.
+///
+///     let closed: ClosedRange = 5...10
+///     closed.contains(5)      // true
+///     closed.contains(10)     // true
+///
+///     let halfOpen: Range = 5..<10
+///     halfOpen.contains(5)    // true
+///     halfOpen.contains(10)   // false
+///
+/// Not all empty ranges are equal; the bounds of two empty ranges must also be
+/// equal for the ranges to be equal.
+public protocol RangeProtocol : Equatable {
+  
+  /// The representation of the range's endpoints and the values
+  /// contained in it.
+  associatedtype Bound : Comparable
+
+  /// Creates an instance with the given bounds.
+  ///
+  /// - Note: As this initializer does not check its precondition, it
+  ///   should be used as an optimization only, when one is absolutely
+  ///   certain that `lower <= upper`.  In general, the `..<` and `...`
+  ///   operators are to be preferred for forming ranges.
+  ///
+  /// - Precondition: `lower <= upper`
+  init(uncheckedBounds: (lower: Bound, upper: Bound))
+
+  /// Returns `true` if the range contains the `value`.
+  ///
+  /// Any type of range contains every value `x` where
+  /// `lowerBound < x < upperBound`. `RangeProtocol` makes no requirement as
+  /// to whether individual range types must contain either their lower or
+  /// upper bound.
+  func contains(value: Bound) -> Bool
+  
+  /// Returns `true` iff `self` and `other` contain a value in common.
+  /// 
+  /// Any type of range contains every value `x` where
+  /// `lowerBound < x < upperBound`. `RangeProtocol` makes no requirement as
+  /// to whether individual range types must contain either their lower or
+  /// upper bound.
+  func overlaps(other: Self) -> Bool
+
+  /// Returns `true` iff `self.contains(x)` is `false` for all values of `x`.
+  var isEmpty: Bool { get }
+  
+  // Note: When the range is also a collection, it is crucial to
+  // enforce the invariant that lowerBound <= upperBound, or it may be
+  // empty with startIndex != endIndex.
+
+  /// The range's lower bound.
+  ///
+  /// Depending on the concrete type of the range, `lowerBound` may or may not
+  /// be contained in the range.
+  var lowerBound: Bound { get }
+  
+  /// The range's upper bound.
+  ///
+  /// Depending on the concrete type of the range, `upperBound` may or may not
+  /// be contained in the range.
+  var upperBound: Bound { get }
+  
+  /// Returns `self` clamped to `limits`.
+  ///
+  /// The bounds of the result, even if it is empty, are always
+  /// limited to the bounds of `limits`.
+  func clamped(to limits: Self) -> Self
+}
+```
+
+Note in particular:
+
+* In `Range<T>`, `T` is `Comparable` rather than an index
+  type that can be advanced, so a generalized range is no longer a
+  `Collection`, and `startIndex`/`endIndex` have become
+  `lowerBound`/`upperBound`.
+* The semantic order of `Interval`'s `clamp` method, which was
+  unclear at its use-site, has been inverted and updated with a
+  preposition for clarity.
+  
 ## Downsides
 
 The proposed approach has several disadvantages, which we explore here
