@@ -13,7 +13,7 @@
 We propose a new model for `Collection`s wherein responsibility for
 index traversal is moved from the index to the collection itself.  For
 example, instead of writing `i.successor()`, one would write
-`c.successor(i)`.  We also propose the following changes as a
+`c.successor(of: i)`.  We also propose the following changes as a
 consequence of the new model:
 
 * A collection's `Index` can be any `Comparable` type.
@@ -21,7 +21,7 @@ consequence of the new model:
   only ranges.
 * A closed range that includes the maximal value of its `Bound` type
   is now representable and does not trap.
-* Make existing “private” in-place index traversal methods available
+* Existing “private” in-place index traversal methods are now available
   publicly.
 
 ## Motivation
@@ -255,7 +255,7 @@ beyond `Equatable`, and creation of a `Range<T>` would have to be
 allowed for any `T` conforming to `Equatable`. As a consequence, most
 interesting range operations, such as containment checks, would be
 unavailable unless `T` were also `Comparable`, and we'd be unable to
-provide comple bounds-checking in the general case.
+provide bounds-checking in the general case.
 
 That said, the requirement has real benefits.  For example, it allows
 us to support distance measurement between arbitrary indices, even in
@@ -537,7 +537,7 @@ in the interest of full disclosure:
   manipulations end up looking like free function calls:
 
   ```swift
-  let j = successor(i)            // self.successor(i)
+  let j = successor(of: i)        // self.successor(of: i)
   let k = index(5, stepsFrom: j)  // self.index(5, stepsFrom: j)
   ```
 
@@ -572,7 +572,7 @@ Code that **does not need to change**:
 * Code that operates on arbitrary collections and indices (on concrete
   instances or in generic context), but does no index traversal.
 
-* Iteration over collection's indices with `c.indices` does not change.
+* Iteration over collections' indices with `c.indices` does not change.
 
 * APIs of high-level collection algorithms don't change, even for
   algorithms that accept indices as parameters or return indices (e.g.,
@@ -587,17 +587,17 @@ Code that **needs to change**:
 
   ```swift
   // Before:
-  var i = c.indexOf { $0 % 2 == 0 }
+  var i = c.index { $0 % 2 == 0 }
   let j = i.successor()
   print(c[j])
 
   // After:
-  var i = c.indexOf { $0 % 2 == 0 } // No change in algorithm API.
-  let j = c.successor(i)            // Advancing an index requires a collection instance.
+  var i = c.index { $0 % 2 == 0 }   // No change in algorithm API.
+  let j = c.successor(of: i)        // Advancing an index requires a collection instance.
   print(c[j])                       // No change in subscripting.
   ```
 
-  The transformation from `i.successor()` to `c.successor(i)` is
+  The transformation from `i.successor()` to `c.successor(of: i)` is
   non-trivial.  Performing it correctly requires knowing how to get
   the corresponding collection.  In general, it is not possible to
   perform this migration automatically.  A very sophisticated migrator
