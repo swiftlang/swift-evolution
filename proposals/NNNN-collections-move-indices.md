@@ -83,6 +83,26 @@ This proposal intentionally does not:
   collections, queues etc.)  Discussing how other concrete collections
   fit into the current protocol hierarchy is in scope, though.
 
+## Limitations of the Model
+
+Ideally, our collection model would allow us to implement every
+interesting data structure with memory safety, optimal performance,
+value semantics, and a variety of other useful properties such as
+minimal invalidation of indexes upon mutation.  In practice, these
+goals and the Swift language model interact in complicated ways,
+preventing some designs altogether, and suggesting a variety of
+implementation strategies for others that can be selected based on
+one's priorities.  We've done some in-depth investigation of these
+implications, but presenting and explaining them is well beyond the
+scope of this proposal.
+
+We can, however, be fairly sure that this change does not regress our
+ability to build any Collections that could have been built in Swift
+2.2.  After all, it is still *possible* to implement indices that store
+references and have the old traversal methods (the collection's
+traversal methods would simply forward to those of the index), so we
+haven't lost the ability to express anything.
+
 ## Overview of Type And Protocol Changes
 
 This section covers the proposed structural changes to the library at
@@ -500,26 +520,6 @@ in the interest of full disclosure:
   [changes](https://github.com/apple/swift/commit/6c56af5c1bc319825872a25041ec33ab0092db05)
   just to get our test code to type-check in reasonable time.  Again,
   an ostensibly temporary—but still real—cost.
-
-## Limitations of the Model
-
-Ideally, our collection model would allow us to implement every
-interesting data structure with memory safety, optimal performance,
-value semantics, and a variety of other useful properties such as
-minimal invalidation of indexes upon mutation.  In practice, these
-goals and the Swift language model interact in complicated ways,
-preventing some designs altogether, and suggesting a variety of
-implementation strategies for others that can be selected based on
-one's priorities.  We've done some in-depth investigation of these
-implications, but presenting and explaining them is well beyond the
-scope of this proposal.
-
-We can, however, be fairly sure that this change does not regress our
-ability to build any Collections that could have been built in Swift
-2.2.  After all, it is still *possible* to implement indices that store
-references and have the old traversal methods (the collection's
-traversal methods would simply forward to those of the index), so we
-haven't lost the ability to express anything.
 
 ## Impact on existing code
 
