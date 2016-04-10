@@ -42,7 +42,7 @@ The consequences for performance aren't pretty:
   which has significant overhead and can prevent the optimizer from
   making other improvements.
 
-* Additional references to a collections storage block the
+* Additional references to a collection's storage block the
   library-level copy-on-write optimization: in-place mutation of
   uniquely-referenced data.  A live index makes underlying storage
   non-uniquely referenced, forcing unnecessary copies when the
