@@ -566,38 +566,13 @@ in the interest of full disclosure:
 
 Code that **does not need to change**:
 
-* Code that works with `Array`, `ArraySlice`, `ContiguousArray`, their
-  indices (`Int`s), performs index arithmetic.
+* Code that works with `Array`, `ArraySlice`, `ContiguousArray`, and
+  their indices.
 
 * Code that operates on arbitrary collections and indices (on concrete
-  instances or in generic context), but does not advance indices
+  instances or in generic context), but does no index traversal.
 
-* Iteration over collection's indices with `c.indices` does not change
-  when:
-  - the underlying collection is not mutated,
-  - or it is known that `c.indices` is trivial (for example, in
-    `Array`),
-  - or when performance is not a concern:
-
-  ```swift
-  // No change, because 'c' is not mutated, only read.
-  for i in c.indices {
-    print(i, c[i])
-  }
-
-  // No change, because Array's index collection is trivial and does not
-  // hold a reference to Array's storage.  There is no performance
-  // impact.
-  for i in myArray.indices {
-    c[i] *= 2
-  }
-
-  // No change, because 'c' is known to be small, and doing a copy on
-  // the first loop iteration is acceptable.
-  for i in c.indices {
-    c[i] *= 2
-  }
-  ```
+* Iteration over collection's indices with `c.indices` does not change.
 
 * APIs of high-level collection algorithms don't change, even for
   algorithms that accept indices as parameters or return indices (e.g.,
@@ -613,20 +588,20 @@ Code that **needs to change**:
   ```swift
   // Before:
   var i = c.indexOf { $0 % 2 == 0 }
-  i = i.successor()
-  print(c[i])
+  let j = i.successor()
+  print(c[j])
 
   // After:
   var i = c.indexOf { $0 % 2 == 0 } // No change in algorithm API.
-  i = c.next(i)                     // Advancing an index requires a collection instance.
-  print(c[i])                       // No change in subscripting.
+  let j = c.successor(i)            // Advancing an index requires a collection instance.
+  print(c[j])                       // No change in subscripting.
   ```
 
-  The transformation from `i.successor()` to `c.next(i)` is non-trivial.
-  Performing it correctly requires knowing extra information -- how to
-  get the corresponding collection.  In the general case, it is not
-  possible to perform this migration automatically.  In some cases, a
-  sophisticated migrator could handle the easy cases.
+  The transformation from `i.successor()` to `c.successor(i)` is
+  non-trivial.  Performing it correctly requires knowing how to get
+  the corresponding collection.  In general, it is not possible to
+  perform this migration automatically.  A very sophisticated migrator
+  could handle some easy cases.
 
 * Custom collection implementations need to change.  A simple fix would
   be to just move the the methods from indices to collections to satisfy
@@ -634,7 +609,7 @@ Code that **needs to change**:
   does not require design work.  This fix would allow the code to
   compile and run.
 
-  In order to take advantage of the performance improvements in
+  In order to take advantage of performance improvements in
   the new model, and remove reference-counted stored properties from
   indices, the representation of the index might need to be redesigned.
 
