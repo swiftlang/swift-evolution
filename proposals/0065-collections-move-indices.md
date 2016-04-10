@@ -1,6 +1,6 @@
 # A New Model for Collections and Indices
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-collections-move-indices.md)
+* Proposal: [SE-0065](https://github.com/apple/swift-evolution/blob/master/proposals/0065-collections-move-indices.md)
 * Author(s): [Dmitri Gribenko](https://github.com/gribozavr),
   [Dave Abrahams](https://github.com/dabrahams),
   [Maxim Moiseev](https://github.com/moiseev)
