@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0040](https://github.com/apple/swift-evolution/blob/master/proposals/0040-attributecolons.md)
 * Author(s): [Erica Sadun](http://github.com/erica)
-* Status: **Active** March 2...4, 2016
+* Status: **Accepted for Swift 3**
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction
@@ -24,7 +24,7 @@ Common attributes include `@noescape` for parameters that cannot outlive the lif
 offers about a dozen distinct attributes, and is likely to expand this vocabulary in future language updates.
 
 Some attributes accept arguments: `@attribute-name(attribute-arguments)` including, at this time,
-`@available` and `@warn_unused_result`. In the current grammar, an equal sign separates attribute 
+`@available`, `@warn_unused_result` and `@swift3_migration`. In the current grammar, an equal sign separates attribute 
 argument keywords from values.
 
 ```swift

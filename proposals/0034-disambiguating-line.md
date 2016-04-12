@@ -43,3 +43,16 @@ A more flexible grammar was suggested, however, as Kevin Ballard pointed out:
 > This feature isn't something end users are going to use. And it's not something that will ever reasonably apply to anything except `#file` and `#line`. This feature is only ever intended to be used by tools that auto-generate source files. The most important concerns here really should just be that whatever we use is trivial to generate correctly by even the simplest of tools and is readable. And since this won't ever apply to anything beyond `#file` and `#line`, there's no need to try to generalize this feature at all.
 
 A variety of other keywords were put forward in the discussion and can be found in the online discussion.
+
+## Accepted form and modified design
+
+The accepted syntax for the line control statement will be modified as follows:
+
+```swift
+#sourceLocation(file: "foo", line: 42) 
+#sourceLocation()    // reset to original position. 
+```
+
+* After discussing how to rationalize naming and capitalization of identifiers in the `#`-namespace, the core Swift team adopted a [lower camel case](https://en.wikipedia.org/wiki/CamelCase) model for identifiers. The line control statement will use lower camel case and be renamed `#sourceLocation`. 
+
+* The syntax for `#setline` was inconsistent with the other #-directives in that it didn't use parentheses.  After discussion, the core team adjusted the call to use parentheses and comma-separated colon-delimited argument and value pairs for the `file` and `line` arguments. 

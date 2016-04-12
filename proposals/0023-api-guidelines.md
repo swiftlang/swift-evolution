@@ -42,6 +42,11 @@ design guidelines consistently.
 The proposed API Design Guidelines are available at
 [https://swift.org/documentation/api-design-guidelines/](https://swift.org/documentation/api-design-guidelines/).
 
+The sources for these guidelines are available at
+https://github.com/apple/swift-internals.  Pull requests for trivial
+copyediting changes are most welcome.  More substantive changes should
+be handled as part of the review process.
+
 ## Impact on existing code
 
 The existence of API Design Guidelines has no specific impact on
