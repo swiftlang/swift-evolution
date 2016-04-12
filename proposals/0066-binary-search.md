@@ -1,6 +1,6 @@
 # Implementation of Binary Search functions
 
-* Proposal: [SE-0047](https://github.com/apple/swift-evolution/blob/master/proposals/0047-binary-search.md)
+* Proposal: [SE-0066](https://github.com/apple/swift-evolution/blob/master/proposals/0066-binary-search.md)
 * Authors: [Lorenzo Racca](https://github.com/lorenzoracca), [Jeff Hajewski](https://github.com/j-haj), [Nate Cook](https://github.com/natecook1000)
 * Status: **Awaiting review**
 * Review manager: TBD
