@@ -39,12 +39,12 @@ It is an inevitable consequence of current design: it will be impossible to inse
 
 ### Problems with a single precedence hierarchy
 
-Currently, if an operator wants to define precedence by comparison to one operator, it must do so for all other operators.
+Currently, if an operator needs to define precedence by comparison to one operator, it must do so for all other operators.
 
-In many cases, this is not wished. Example: `a & b < c` is a common error pattern. `a / b as Double` is another one. C++ compilers sometimes emit warnings on these. Swift does not.
+In many cases, this is undesirable. For example, `a & b < c` and `a / b as Double` are common error patterns. C++ compilers sometimes emit warnings on these, but Swift does not.
 
-The root of the problem is that precedence is defined between all operators.
-If `&` had precedence defined only by comparison to other bitwise operators and `/` – only to arithmetic operators, we would have to place parentheses in such places, not get subtle bugs, and not ever have to look at the huge operator precedence table.
+The root of the problem is that precedence is currently defined for any pair of operators.
+If `&` had its precedence defined only in relation to other bitwise operators and `/` – only to arithmetic operators, we would have to use parentheses in the preceding examples. This would avoid subtle bugs.
 
 ### Problems with current operator definition syntax
 
