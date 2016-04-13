@@ -17,7 +17,7 @@
 We propose a new model for `Collection`s wherein responsibility for
 index traversal is moved from the index to the collection itself.  For
 example, instead of writing `i.successor()`, one would write
-`c.successor(of: i)`.  We also propose the following changes as a
+`c.successor(i)`.  We also propose the following changes as a
 consequence of the new model:
 
 * A collection's `Index` can be any `Comparable` type.
@@ -287,7 +287,7 @@ protocol Collection {
   /// `Index` values where one value is reachable from the other.
   ///
   /// Reachability is defined by the ability to produce one value from
-  /// the other via zero or more applications of `successor(of:)`.
+  /// the other via zero or more applications of `successor(_)`.
   associatedtype IndexDistance : SignedInteger = Int
 
   /// A collection type whose elements are the indices of `self` that
@@ -299,7 +299,7 @@ protocol Collection {
   /// - Note: `indices` can hold a strong reference to the collection itself,
   ///   causing the collection to be non-uniquely referenced.  If you need to
   ///   mutate the collection while iterating over its indices, use the
-  ///   `successor(of:)` method starting with `startIndex` to produce indices
+  ///   `successor(_)` method starting with `startIndex` to produce indices
   ///   instead.
   /// 
   ///   ```
@@ -307,7 +307,7 @@ protocol Collection {
   ///   var i = c.startIndex
   ///   while i != c.endIndex {
   ///       c[i] /= 5
-  ///       i = c.successor(of: i)
+  ///       i = c.successor(i)
   ///   }
   ///   // c == [2, 4, 6, 8, 10]
   ///   ```
@@ -317,7 +317,7 @@ protocol Collection {
   ///
   /// - Precondition: `(startIndex..<endIndex).contains(i)`
   @warn_unused_result
-  func successor(of i: Index) -> Index
+  func successor(_ i: Index) -> Index
 
   /// Replaces `i` with its successor.
   func formSuccessor(i: inout Index)
@@ -399,7 +399,7 @@ protocol BidirectionalCollection {
   /// Returns the position immediately preceding `i`.
   ///
   /// - Precondition: `i > startIndex && i <= endIndex` 
-  func predecessor(of i: Index) -> Index
+  func predecessor(_ i: Index) -> Index
 
   /// Replaces `i` with its predecessor.
   ///
@@ -553,7 +553,7 @@ in the interest of full disclosure:
   manipulations end up looking like free function calls:
 
   ```swift
-  let j = successor(of: i)        // self.successor(of: i)
+  let j = successor(i)        // self.successor(i)
   let k = index(5, stepsFrom: j)  // self.index(5, stepsFrom: j)
   ```
 
@@ -609,11 +609,11 @@ Code that **needs to change**:
 
   // After:
   var i = c.index { $0 % 2 == 0 }   // No change in algorithm API.
-  let j = c.successor(of: i)        // Advancing an index requires a collection instance.
+  let j = c.successor(i)        // Advancing an index requires a collection instance.
   print(c[j])                       // No change in subscripting.
   ```
 
-  The transformation from `i.successor()` to `c.successor(of: i)` is
+  The transformation from `i.successor()` to `c.successor(i)` is
   non-trivial.  Performing it correctly requires knowing how to get
   the corresponding collection.  In general, it is not possible to
   perform this migration automatically.  A very sophisticated migrator
