@@ -180,3 +180,4 @@ sooner.
 ### Deferred for Future Discussion
 
 * [SE-0026: Abstract classes and methods](proposals/0026-abstract-classes-and-methods.md)
+* [SE-0058: Allow Swift types to provide custom Objective-C representations](proposals/0058-objectivecbridgeable.md)
