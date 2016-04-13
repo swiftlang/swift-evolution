@@ -7,6 +7,10 @@
 * [Swift-evolution thread](http://news.gmane.org/find-root.php?message_id=CA%2bY5xYfqKR6yC2Q%2dG7D9N7FeY%3dxs1x3frq%3d%3dsyGoqYpOcL9yrw%40mail.gmail.com)
 * Status: **Under Active review** April 10...18, 2016
 * Review manager: [Chris Lattner](https://github.com/lattner)
+* Revision: 2
+* Previous Revisions:
+  [1](https://github.com/apple/swift-evolution/blob/21fac2e8034e79e4f44c1c8799808fc8cba83395/proposals/0065-collections-move-indices.md)
+  (as submitted)
 
 ## Summary
 
@@ -501,6 +505,18 @@ public protocol RangeProtocol : Equatable {
   /// The bounds of the result, even if it is empty, are always
   /// limited to the bounds of `limits`.
   func clamped(to limits: Self) -> Self
+}
+
+/// Conversion from one range to another.
+extension RangeProtocol where Bound : Strideable, Bound.Stride : Integer {
+  /// Creates an instance equivalent to `other`.
+  ///
+  /// - Precondition: an equivalent range is representable as an
+  ///   instance of `Self`.  For example, `Range(0...Int.max)`
+  ///   violates this precondition because an equivalent `Range<Int>`
+  ///   would need an `upperBound` equal to `Int.max + 1`, which
+  ///   is unrepresentable as an `Int`.
+  public init<Other: RangeProtocol where Other.Bound == Bound>(_ other: Other)
 }
 ```
 
