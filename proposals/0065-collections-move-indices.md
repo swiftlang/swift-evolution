@@ -7,10 +7,11 @@
 * [Swift-evolution thread](http://news.gmane.org/find-root.php?message_id=CA%2bY5xYfqKR6yC2Q%2dG7D9N7FeY%3dxs1x3frq%3d%3dsyGoqYpOcL9yrw%40mail.gmail.com)
 * Status: **Under Active review** April 10...18, 2016
 * Review manager: [Chris Lattner](https://github.com/lattner)
-* Revision: 2
+* Revision: 3
 * Previous Revisions:
   [1](https://github.com/apple/swift-evolution/blob/21fac2e8034e79e4f44c1c8799808fc8cba83395/proposals/0065-collections-move-indices.md)
-  (as submitted)
+  (as submitted),
+  [2](https://github.com/apple/swift-evolution/blob/1a821cf7ccbdf1d7566e9ce2e991bdd835ba3b7d/proposals/0065-collections-move-indices.md)
 
 ## Summary
 
@@ -338,7 +339,7 @@ protocol Collection {
   /// - Complexity:
   ///   - O(1) if `Self` conforms to `RandomAccessCollection`.
   ///   - O(`abs(n)`) otherwise.
-  func index(n: IndexDistance, stepsFrom i: Index) -> Index
+  func location(i: Index, offsetBy n: IndexDistance) -> Index
 
   /// Returns the result of advancing `i` by `n` positions, or until it
   /// equals `limit`.
@@ -356,9 +357,8 @@ protocol Collection {
   /// - Complexity:
   ///   - O(1) if `Self` conforms to `RandomAccessCollection`.
   ///   - O(`abs(n)`) otherwise.
-  func index(
-    n: IndexDistance, stepsFrom i: Index, limitedBy limit: Index
-  ) -> Index
+  func location(
+    i: Index, offsetBy n: IndexDistance, limitedBy limit: Index) -> Index
 
   /// Advances `i` by `n` positions.
   ///
@@ -371,7 +371,7 @@ protocol Collection {
   /// - Complexity:
   ///   - O(1) if `Self` conforms to `RandomAccessCollection`.
   ///   - O(`abs(n)`) otherwise.
-  func formIndex(n: IndexDistance, stepsFrom i: inout Index)
+  func formLocation(i: inout Index, offsetBy n: IndexDistance)
 
   /// Advances `i` by `n` positions, or until it equals `limit`.
   ///
@@ -381,9 +381,8 @@ protocol Collection {
   /// - Complexity:
   ///   - O(1) if `Self` conforms to `RandomAccessCollection`.
   ///   - O(`abs(n)`) otherwise.
-  func formIndex(
-    n: IndexDistance, stepsFrom i: inout Index, limitedBy limit: Index
-  )
+  func formLocation(
+    i: inout Index, offsetBy n: IndexDistance, limitedBy limit: Index)
 
   /// Returns the distance between `start` and `end`.
   ///
@@ -417,8 +416,8 @@ Note:
 
 * `RandomAccessCollection` does not add any *syntactic* requirements
   beyond those of `BidirectionalCollection`.  Instead, it places
-  tighter performance bounds on operations such as `c.index(n,
-  stepsFrom: i)` (O(1) instead of O(`n`)).
+  tighter performance bounds on operations such as `c.location(i,
+  offsetBy: n)` (O(1) instead of O(`n`)).
 
 ## `Range`s
 
@@ -540,7 +539,7 @@ in the interest of full disclosure:
   could also be seen as discouragement from trying to do random access
   operations with less-refined index protocols, because in those cases
   one has to resort to constructs like `i.advancedBy(n)`.  In this
-  proposal, there is only `c.index(n, stepsFrom: i)`, which makes
+  proposal, there is only `c.location(i, offsetBy: n)`, which makes
   random access equally (in)convenient for all collections, and there
   is no particular syntactic penalty for doing things that might turn
   out to be inefficient.
@@ -554,7 +553,7 @@ in the interest of full disclosure:
 
   ```swift
   let j = successor(i)        // self.successor(i)
-  let k = index(5, stepsFrom: j)  // self.index(5, stepsFrom: j)
+  let k = location(j, offsetBy: 5)  // self.location(j, offsetBy: 5)
   ```
 
 * The
