@@ -125,6 +125,7 @@ sampling of potentially good ideas that are not in scope for Swift
 * [SE-0029: Remove implicit tuple splat behavior from function applications](proposals/0029-remove-implicit-tuple-splat.md)
 * [SE-0033: Import Objective-C Constants as Swift Types](proposals/0033-import-objc-constants.md)
 * [SE-0035: Limiting `inout` capture to `@noescape` contexts](proposals/0035-limit-inout-capture.md)
+* [SE-0036: Requiring Leading Dot Prefixes for Enum Instance Member Implementations](proposals/0036-enum-dot.md)
 * [SE-0038: Package Manager C Language Target Support](proposals/0038-swiftpm-c-language-targets.md)
 * [SE-0039: Modernizing Playground Literals](proposals/0039-playgroundliterals.md)
 * [SE-0042: Flattening the function type of unapplied method references](proposals/0042-flatten-method-types.md)

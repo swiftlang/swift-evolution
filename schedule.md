@@ -7,7 +7,6 @@ proposals in that process.
 ## Active reviews
 
 * March 31...April 5, 2016 [SE-0056: Allow trailing closures in `guard` conditions](proposals/0056-trailing-closures-in-guard.md)
-* March 31...April 5, 2016 [SE-0036: Requiring Leading Dot Prefixes for Enum Instance Member Implementations](proposals/0036-enum-dot.md)
 * March 31...April 5, 2016 [SE-0059: Update API Naming Guidelines and Rewrite Set APIs Accordingly](proposals/0059-updated-set-apis.md)
 * April 7...12, 2016 [SE-0062: Referencing Objective-C key-paths](proposals/0062-objc-keypaths.md)
 * April 7...13, 2016 [SE-0063: SwiftPM System Module Search Paths](proposals/0063-swiftpm-system-module-search-paths.md)

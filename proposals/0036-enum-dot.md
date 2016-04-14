@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0036](https://github.com/apple/swift-evolution/blob/master/proposals/0036-enum-dot.md)
 * Author(s): [Erica Sadun](http://github.com/erica), [Chris Lattner](https://github.com/lattner)
-* Status: **Under review** (March 31...April 5, 2016)
+* Status: **Accepted for Swift 3** ([Bug](https://bugs.swift.org/browse/SR-1236))
 * Review manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction
