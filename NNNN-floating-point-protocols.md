@@ -11,21 +11,19 @@ The current FloatingPoint protocol is quite limited, and provides only a small
 subset of the features expected of an IEEE 754 conforming type.  This proposal
 expands the protocol to cover most of the expected basic operations, and adds
 a second protocol, BinaryFloatingPoint, that provides a number of useful tools
-for generic programming with FloatingPoint types.
-
-Swift-evolution thread: [link to the discussion thread for that proposal](https://lists.swift.org/pipermail/swift-evolution)
+for generic programming with the most commonly used types.
 
 ## Motivation
 
 Beside the high-level motivation provided by the introduction, the proposed
-prototype schema addresses a number of issues that have been reported:
+prototype schema addresses a number of issues and requests that we've received
+from programmers:
 
 - FloatingPoint should conform to Equatable, and Comparable
 - FloatingPoint should conform to FloatLiteralConvertible
 - Deprecate the `%` operator for floating-point types
 - Provide basic constants (analogues of C's DBL_MAX, etc.)
 - Make Float80 conform to FloatingPoint
-- Add public initializer and property for integer representation
 
 It also puts FloatingPoint much more tightly in sync with the work that is
 being done on protocols for Integers, which will make it easier to provide
@@ -47,11 +45,11 @@ intended that "number-like" types should provide these APIs.
 
 ```swift
 /// Arithmetic protocol declares methods backing binary arithmetic operators,
-/// such as  `+`, `-` and `*`; and their mutating counterparts. These methods
+/// such as  `+`, `-` and `*`; and their mutating counterparts.  These methods
 /// operate on arguments of the same type.
 ///
 /// Both mutating and non-mutating operations are declared in the protocol, but
-/// only the mutating ones are required. Should conforming type omit
+/// only the mutating ones are required.  Should conforming type omit
 /// non-mutating implementations, they will be provided by a protocol extension.
 /// Implementation in that case will copy `self`, perform a mutating operation
 /// on it and return the resulting value.
@@ -106,9 +104,10 @@ public protocol SignedArithmetic : Arithmetic {
 }
 ```
 
-The arithmetic operators are then defined in terms of the implementation hooks
-provided by `Arithmetic` and `SignedArithmetic`, so providing those operations
-are all that is necessary for a type to present a "number-like" interface.
+The usual arithmetic operators are then defined in terms of the implementation
+hooks provided by `Arithmetic` and `SignedArithmetic`, so providing those
+operations are all that is necessary for a type to present a "number-like"
+interface.
 
 The `FloatingPoint` protocol is split into two parts; `FloatingPoint` and
 `BinaryFloatingPoint`, which conforms to `FloatingPoint`.  If decimal
@@ -128,7 +127,12 @@ operations, as well as conformance to `SignedArithmetic` and `Comparable`.
 /// some additional useful operations as well.
 public protocol FloatingPoint: SignedArithmetic, Comparable {
 
-  /// An unsigned integer type that can represent any significand.
+  /// An unsigned integer type that can represent the significand of any value.
+  ///
+  /// The significand (http://en.wikipedia.org/wiki/Significand) is frequently
+  /// also called the "mantissa", but this terminology is slightly incorrect
+  /// (see the "Use of 'mantissa'" section on the linked Wikipedia page for
+  /// more details).  "Significand" is the preferred terminology in IEEE 754.
   associatedtype RawSignificand: UnsignedInteger
 
   /// 2 for binary floating-point types, 10 for decimal.
@@ -157,7 +161,9 @@ public protocol FloatingPoint: SignedArithmetic, Comparable {
   /// The greatest finite number.
   ///
   /// Compares greater than or equal to all finite numbers, but less than
-  /// infinity.
+  /// infinity.  Corresponds to the C macros `FLT_MAX`, `DBL_MAX`, etc.
+  /// The naming of those macros is slightly misleading, because infinity
+  /// is greater than this value.
   static var greatestFiniteMagnitude: Self { get }
 
   // NOTE: Rationale for "ulp" instead of "epsilon":
@@ -179,7 +185,7 @@ public protocol FloatingPoint: SignedArithmetic, Comparable {
   ///
   /// This is the weight of the least significant bit of the significand of 1.0,
   /// or the positive difference between 1.0 and the next greater representable
-  /// number.
+  /// number.  Corresponds to the C macros `FLT_EPSILON`, `DBL_EPSILON`, etc.
   static var ulp: Self { get }
 
   /// The unit in the last place of `self`.
@@ -196,10 +202,13 @@ public protocol FloatingPoint: SignedArithmetic, Comparable {
   ///   number.  On targets that do not support subnormals, `x.ulp` may be
   ///   flushed to zero.
   ///
-  /// This quantity, or a related quantity is sometimes called "[machine]
-  /// epsilon".  We avoid that term because it has different meanings in
-  /// different languages, which can lead to confusion.
-  /// (see https://en.wikipedia.org/wiki/Machine_epsilon)
+  /// This quantity, or a related quantity is sometimes called "epsilon" or
+  /// "machine epsilon".  We avoid that name because it has different meanings
+  /// in different languages, which can lead to confusion, and because it
+  /// suggests that it is an good tolerance to use for comparisons,
+  /// which is almost never is.
+  ///
+  /// (See https://en.wikipedia.org/wiki/Machine_epsilon for more detail)
   var ulp: Self { get }
 
   /// The least positive normal number.
@@ -207,6 +216,9 @@ public protocol FloatingPoint: SignedArithmetic, Comparable {
   /// Compares less than or equal to all positive normal numbers.  There may
   /// be smaller positive numbers, but they are "subnormal", meaning that
   /// they are represented with less precision than normal numbers.
+  /// Corresponds to the C macros `FLT_MIN`, `DBL_MIN`, etc.  The naming of
+  /// those macros is slightly misleading, because subnormals, zeros, and
+  /// negative numbers are smaller than this value.
   static var leastNormalMagnitude: Self { get }
 
   /// The least positive number.
@@ -222,7 +234,11 @@ public protocol FloatingPoint: SignedArithmetic, Comparable {
   /// Note that this is not the same as `self < 0`.  In particular, this
   /// property is true for `-0` and some NaNs, both of which compare not
   /// less than zero.
-  var isSignMinus: Bool { get }
+  //  TODO: strictly speaking a bit and a bool are slightly different
+  //  concepts.  Is another name more appropriate for this property?
+  //  `isNegative` is incorrect because of -0 and NaN.  `isSignMinus` might
+  //  be acceptable, but isn't great.  `signBit` is the IEEE 754 name.
+  var signBit: Bool { get }
 
   /// The integer part of the base-r logarithm of the magnitude of `self`,
   /// where r is the radix (2 for binary, 10 for decimal).  Implements the
@@ -234,14 +250,15 @@ public protocol FloatingPoint: SignedArithmetic, Comparable {
   /// - If `x` is +/-infinity or NaN, then `x.exponent` is `Int.max`
   var exponent: Int { get }
 
-  /// The mathematical `significand` (sometimes erroneously called the
-  /// "mantissa").
+  /// The significand satisfies:
   ///
-  /// `significand` is computed as though the exponent range of `Self` were
-  /// unbounded; if `x` is a finite non-zero number, then `1 <= x.significand`
-  /// and `x.significand < 2`.
+  /// ~~~
+  /// self = (signBit ? -1 : 1) * significand * radix**exponent
+  /// ~~~
   ///
-  /// For other values of `x`, `x.significand` is defined as follows:
+  /// If radix is 2 (the most common case), then for finite non-zero numbers
+  /// `1 <= significand` and `significand < 2`.  For other values of `x`,
+  /// `x.significand` is defined as follows:
   ///
   /// - If `x` is zero, then `x.significand` is 0.0.
   /// - If `x` is infinity, then `x.significand` is 1.0.
@@ -250,15 +267,11 @@ public protocol FloatingPoint: SignedArithmetic, Comparable {
   /// For all floating-point `x`, if we define y by:
   ///
   /// ~~~
-  ///    let y = Self(signBit: x.isSignMinus, exponent: x.exponent,
-  ///                 significand: x.significand)
+  /// let y = Self(signBit: x.signBit, exponent: x.exponent,
+  ///              significand: x.significand)
   /// ~~~
   ///
   /// then `y` is equivalent to `x`, meaning that `y` is `x` canonicalized.
-  /// For types that do not have non-canonical encodings, this implies that
-  /// `y` has the same encoding as `x`.  Note that this is a stronger
-  /// statement than `x == y`, as it implies that both the sign of zero and
-  /// the payload of NaN are preserved.
   var significand: Self { get }
 
   /// Initialize from signBit, exponent, and significand.
@@ -266,14 +279,14 @@ public protocol FloatingPoint: SignedArithmetic, Comparable {
   /// The result is:
   ///
   /// ~~~
-  /// (isSignMinus ? -1 : 1) * significand * r**exponent
+  /// (signBit ? -1 : 1) * significand * radix**exponent
   /// ~~~
   ///
-  /// (where `r` is the floating-point radix--2 for binary formats-- and `**`
-  /// is exponentiation) computed as if by a single correctly-rounded floating-
-  /// point operation.  If this value is outside the representable range of
-  /// `Self`, overflow or underflow will occur, and zero, a subnormal value,
-  /// or infinity is returned, as with any basic operation.  Other edge cases:
+  /// (where `**` is exponentiation) computed as if by a single correctly-
+  /// rounded floating-point operation.  If this value is outside the
+  /// representable range of the type, overflow or underflow occurs, and zero,
+  /// a subnormal value, or infinity may result, as with any basic operation.
+  /// Other edge cases:
   ///
   /// - If `significand` is zero or infinite, the result is zero or infinite,
   ///   regardless of the value of `exponent`.
@@ -286,17 +299,16 @@ public protocol FloatingPoint: SignedArithmetic, Comparable {
   ///         exponent: x.exponent,
   ///         significand: x.significand)`
   ///
-  /// is "the same" as `x` (if `x` is NaN, then this result is also `NaN`, but
-  /// it might be a different NaN).
+  /// is "the same" as `x`; it is `x` canonicalized.
   ///
-  /// Because of these properties, this initializer also implements the
-  /// IEEE 754 `scaleB` operation.
+  /// Because of these properties, this initializer implements the IEEE 754
+  /// `scaleB` operation.
   init(signBit: Bool, exponent: Int, significand: Self)
 
   /// A floating point value whose exponent and signficand are taken from
   /// `magnitude` and whose signBit is taken from `signOf`.  Implements the
   /// IEEE 754 `copysign` operation.
-  //  Note: are there better argument names here?
+  //  TODO: better argument names would be great.
   init(magnitudeOf magnitude: Self, signOf: Self)
 
   /// The least representable value that compares greater than `self`.
@@ -533,17 +545,17 @@ public protocol BinaryFloatingPoint: FloatingPoint {
   /// For fixed-width floating-point types, this is the number of fractional
   /// significand bits.
   ///
+  /// For extensible floating-point types, `significandBitCount` should be
+  /// the maximum allowed significand width (without counting any leading
+  /// integral bit of the significand).  If there is no upper limit, then
+  /// `significandBitCount` should be `Int.max`.
+  ///
   /// Note that `Float80.significandBitCount` is 63, even though 64 bits
   /// are used to store the significand in the memory representation of a
   /// `Float80` (unlike other floating-point types, `Float80` explicitly
   /// stores the leading integral significand bit, but the
   /// `BinaryFloatingPoint` APIs provide an abstraction so that users don't
   /// need to be aware of this detail).
-  ///
-  /// For extensible floating-point types, `significandBitCount` should be
-  /// the maximum allowed significand width (without counting any leading
-  /// integral bit of the significand).  If there is no upper limit, then
-  /// `significandBitCount` should be `Int.max`.
   static var significandBitCount: Int { get }
 
   /// The raw encoding of the exponent field of the floating-point value.
@@ -557,9 +569,6 @@ public protocol BinaryFloatingPoint: FloatingPoint {
 
   /// Combines `signBit`, `exponent` and `significand` bit patterns to produce
   /// a floating-point value.
-  ///
-  /// The bit patterns are masked before being assembled, clamping them to the
-  /// allowed range of the floating-point type.
   init(signBit: Bool,
        exponentBitPattern: UInt,
        significandBitPattern: RawSignificand)
@@ -568,7 +577,7 @@ public protocol BinaryFloatingPoint: FloatingPoint {
   ///
   /// If `x` is `+/-significand * 2**exponent`, then `x.binade` is
   /// `+/- 2**exponent`; i.e. the floating point number with the same sign
-  /// and exponent, but a significand of 1.0.
+  /// and exponent, but with a significand of 1.0.
   var binade: Self { get }
 
   /// The number of bits required to represent significand.
@@ -602,12 +611,12 @@ public protocol BinaryFloatingPoint: FloatingPoint {
 }
 ```
 
-Finally, the necessary support is added to `Float`, `Double`, `Float80` and
-`CGFloat` to conform to these protocols.
+`Float`, `Double`, `Float80` and `CGFloat` will conform to all of these
+protocols.
 
 A small portion of the implementation of these APIs is dependent on new
 Integer protocols that will be proposed separately.  Everything else is
-implemented in draft from on the branch floating-point-revision of
+implemented in draft form on the branch floating-point-revision of
 [my fork](https://github.com/stephentyrone/swift).
 
 ## Impact on existing code
