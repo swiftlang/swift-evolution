@@ -8,7 +8,6 @@ proposals in that process.
 
 * March 31...April 5, 2016 [SE-0056: Allow trailing closures in `guard` conditions](proposals/0056-trailing-closures-in-guard.md)
 * March 31...April 5, 2016 [SE-0059: Update API Naming Guidelines and Rewrite Set APIs Accordingly](proposals/0059-updated-set-apis.md)
-* April 7...12, 2016 [SE-0062: Referencing Objective-C key-paths](proposals/0062-objc-keypaths.md)
 * April 7...13, 2016 [SE-0063: SwiftPM System Module Search Paths](proposals/0063-swiftpm-system-module-search-paths.md)
 * April 7...12, 2016 [SE-0064: Referencing the Objective-C selector of property getters and setters](proposals/0064-property-selectors.md)
 * April 10...18, 2016 [SE-0065: A New Model For Collections and Indices](proposals/0065-collections-move-indices.md)
