@@ -6,7 +6,6 @@ proposals in that process.
 
 ## Active reviews
 
-* March 24...29, 2016 [SE-0048: Generic Type Aliases](proposals/0048-generic-typealias.md)
 * March 28...31, 2016 [SE-0049: Move @noescape and @autoclosure to be type attributes](proposals/0049-noescape-autoclosure-type-attrs.md)
 * March 31...April 5, 2016 [SE-0056: Allow trailing closures in `guard` conditions](proposals/0056-trailing-closures-in-guard.md)
 * March 31...April 5, 2016 [SE-0036: Requiring Leading Dot Prefixes for Enum Instance Member Implementations](proposals/0036-enum-dot.md)

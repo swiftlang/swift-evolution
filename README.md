@@ -113,6 +113,7 @@ sampling of potentially good ideas that are not in scope for Swift
 * [SE-0040: Replacing Equal Signs with Colons For Attribute Arguments](proposals/0040-attributecolons.md)
 * [SE-0043: Declare variables in 'case' labels with multiple patterns](proposals/0043-declare-variables-in-case-labels-with-multiple-patterns.md)
 * [SE-0046: Establish consistent label behavior across all parameters including first labels](proposals/0046-first-label.md)
+* [SE-0048: Generic Type Aliases](proposals/0048-generic-typealias.md)
 * [SE-0053: Remove explicit use of `let` from Function Parameters](proposals/0053-remove-let-from-function-parameters.md)
 
 ### Accepted proposals for Swift 3.0
