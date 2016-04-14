@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0064](https://github.com/apple/swift-evolution/blob/master/proposals/0064-property-selectors.md)
 * Author(s): [David Hart](https://github.com/hartbit)
-* Status: **Under review** (April 7...12, 2016)
+* Status: **Accepted for Swift 3** ([Bug](https://bugs.swift.org/browse/SR-1239))
 * Review manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction
