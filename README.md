@@ -113,7 +113,7 @@ sampling of potentially good ideas that are not in scope for Swift
 * [SE-0040: Replacing Equal Signs with Colons For Attribute Arguments](proposals/0040-attributecolons.md)
 * [SE-0043: Declare variables in 'case' labels with multiple patterns](proposals/0043-declare-variables-in-case-labels-with-multiple-patterns.md)
 * [SE-0046: Establish consistent label behavior across all parameters including first labels](proposals/0046-first-label.md)
-* [SE-0048: Generic Type Aliases](proposals/0048-generic-typealias.md)
+* [SE-0049: Move @noescape and @autoclosure to be type attributes](proposals/0049-noescape-autoclosure-type-attrs.md)
 * [SE-0053: Remove explicit use of `let` from Function Parameters](proposals/0053-remove-let-from-function-parameters.md)
 
 ### Accepted proposals for Swift 3.0
@@ -131,7 +131,7 @@ sampling of potentially good ideas that are not in scope for Swift
 * [SE-0042: Flattening the function type of unapplied method references](proposals/0042-flatten-method-types.md)
 * [SE-0044: Import as Member](proposals/0044-import-as-member.md)
 * [SE-0047: Defaulting non-Void functions so they warn on unused results](proposals/0047-nonvoid-warn.md)
-* [SE-0049: Move @noescape and @autoclosure to be type attributes](proposals/0049-noescape-autoclosure-type-attrs.md)
+* [SE-0048: Generic Type Aliases](proposals/0048-generic-typealias.md)
 * [SE-0054: Abolish `ImplicitlyUnwrappedOptional` type](proposals/0054-abolish-iuo.md)
 * [SE-0055: Make unsafe pointer nullability explicit using Optional](proposals/0055-optional-unsafe-pointers.md)
 * [SE-0057: Importing Objective-C Lightweight Generics](proposals/0057-importing-objc-generics.md)
