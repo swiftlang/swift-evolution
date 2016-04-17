@@ -122,6 +122,7 @@ sampling of potentially good ideas that are not in scope for Swift
 
 * [SE-0004: Remove the `++` and `--` operators](proposals/0004-remove-pre-post-inc-decrement.md)
 * [SE-0007: Remove C-style for-loops with conditions and incrementers](proposals/0007-remove-c-style-for-loops.md)
+* [SE-0025: Scoped Access Level](proposals/0025-scoped-access-level.md)
 * [SE-0029: Remove implicit tuple splat behavior from function applications](proposals/0029-remove-implicit-tuple-splat.md)
 * [SE-0033: Import Objective-C Constants as Swift Types](proposals/0033-import-objc-constants.md)
 * [SE-0035: Limiting `inout` capture to `@noescape` contexts](proposals/0035-limit-inout-capture.md)
@@ -139,23 +140,24 @@ sampling of potentially good ideas that are not in scope for Swift
 * [SE-0063: SwiftPM System Module Search Paths](proposals/0063-swiftpm-system-module-search-paths.md)
 * [SE-0064: Referencing the Objective-C selector of property getters and setters](proposals/0064-property-selectors.md)
 
-## Development minor version:  Swift 2.2
+## Swift 2.2 - Released on March 21, 2016
 
-Expected release date: Spring 2016
+[This release](https://swift.org/blog/swift-2-2-released/) focused on fixing
+bugs, improving quality-of-implementation (QoI)
+with better warnings and diagnostics, improving compile times, and improving
+performance.  It put some finishing touches on features introduced in Swift 2.0, 
+and included some small additive features that don't break Swift code or
+fundamentally change the way Swift is used. As a step toward Swift 3, it
+introduced warnings about upcoming source-incompatible changes in Swift 3
+so that users can begin migrating their code sooner.
 
-This release will focus on fixing bugs, improving
-quality-of-implementation (QoI) with better warnings and diagnostics,
-improving compile times, and improving performance.  It may also put
-some finishing touches on features introduced in Swift 2.0, and
-include some small additive features that don't break Swift code or
-fundamentally change the way Swift is used. As a step toward Swift
-3.0, it will introduce warnings about upcoming source-incompatible
-changes in Swift 3.0 so that users can begin migrating their code
-sooner.
+Aside from warnings, a major goal of this release was to be as source compatible
+as practical with Swift 2.0.
 
-### Implemented proposals for Swift 2.2
+### Implemented proposals in Swift 2.2
 
 * [SE-0001: Allow (most) keywords as argument labels](proposals/0001-keywords-as-argument-labels.md)
+* [SE-0008: Add a Lazy flatMap for Sequences of Optionals](proposals/0008-lazy-flatmap-for-optionals.md)
 * [SE-0011: Replace `typealias` keyword with `associatedtype` for associated type declarations](proposals/0011-replace-typealias-associated.md)
 * [SE-0014: Constraining `AnySequence.init`](proposals/0014-constrained-AnySequence.md)
 * [SE-0015: Tuple comparison operators](proposals/0015-tuple-comparison-operators.md)
@@ -163,8 +165,6 @@ sooner.
 * [SE-0021: Naming Functions with Argument Labels](proposals/0021-generalized-naming.md)
 * [SE-0022: Referencing the Objective-C selector of a method](proposals/0022-objc-selectors.md)
 
-### Accepted proposals for Swift 2.2
-* [SE-0008: Add a Lazy flatMap for Sequences of Optionals](proposals/0008-lazy-flatmap-for-optionals.md)
 
 # Other Proposals
 
@@ -181,7 +181,6 @@ sooner.
 ### Returned for Revision
 
 * [SE-0018: Flexible Memberwise Initialization](proposals/0018-flexible-memberwise-initialization.md)
-* [SE-0025: Scoped Access Level](proposals/0025-scoped-access-level.md)
 * [SE-0030: Property Behaviors](proposals/0030-property-behavior-decls.md)
 
 ### Deferred for Future Discussion
