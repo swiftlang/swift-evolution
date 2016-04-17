@@ -9,8 +9,9 @@
 
 Function types in Swift use parentheses around their parameter list (aligning
 with the function declaration syntax, as well as the syntax used to call a
-function).  However, in the degenerate case of a single non-variadic unlabeled
-argument, Swift allows the parentheses to be omitted.  For example, these types:
+function).  However, in the degenerate case of a single non-variadic, unlabeled
+argument with no attributes, Swift allows the parentheses to be omitted.  For
+example, these types:
 
 ```swift
 (Int) -> Float
@@ -28,8 +29,8 @@ T -> U
 
 While this saves some parentheses, it introduces some minor problems, is not
 consistent with other parts of the Swift grammar, reduces consistency within
-function types themselves, and offers now additional expressive capability (this
-is just syntax sugar).  This proposal suggests that we simply eliminate the
+function types themselves, and offers no additional expressive capability (this
+is just syntactic sugar).  This proposal suggests that we simply eliminate the
 special case and require parentheses on all argument lists for function types.
 
 Swift-evolution thread: [[pitch] Eliminate the "T1 -> T2" syntax, require "(T1) -> T2"](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160411/014986.html)
@@ -82,7 +83,7 @@ this, then what else would align to it.  While we cannot predict the future of
 where the Swift community will want to go, this section states the opinion of 
 the author on these topics.
 
-# Should function return types be parenthesized?
+### Should function return types be parenthesized?
 
 In my opinion, no.  Unlike arguments, there is no precedent already in Swift
 that leads to the result type of functions being parenthesized (e.g. in
@@ -94,7 +95,7 @@ written in code - almost every function and method has one.  In contrast,
 function types are very rarely written - typically only when writing higher
 order functions.
 
-# Should we require parentheses in closure expression parameter lists?
+### Should we require parentheses in closure expression parameter lists?
 
 In my opinion, no.  Swift currently supports a number of syntactic shortcuts in
 closure parameter lists, which are important for expressiveness of simple
@@ -111,7 +112,9 @@ Many people use:
 y = x.sorted { lhs, rhs in rhs < lhs }
 ```
 
-Or they use the even shorter form of `{ $1 < $0 }`.  Some folks have asked
+Or they use the even shorter form of `{ $1 < $0 }`.
+
+Some folks have asked
 whether it would make sense to start requiring the parentheses around the
 parameter lists for consistency with function types.  However, note that this is
 structurally a different kind of syntactic sugar: you are allowed to elide the
@@ -119,7 +122,7 @@ parens even when you have multiple arguments, you are allowed to omit the return
 type, you are allowed to omit the types, and you're even allowed to omit the
 parameter list in its entirety.  Short of a complete rethink of closure syntax
 (something that I'm not suggesting - I'm personally very happy with our 
-closure syntax), requiring parentheses here would not improve the language in an
+closure syntax!), requiring parentheses here would not improve the language in an
 apparent way.
 
 
