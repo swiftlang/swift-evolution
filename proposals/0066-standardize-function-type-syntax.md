@@ -1,6 +1,6 @@
 # Standardize function type argument syntax to require parentheses
 
-* Proposal: [SE-0062](https://github.com/apple/swift-evolution/blob/master/proposals/0062-standardize-function-type-syntax.md)
+* Proposal: [SE-0066](https://github.com/apple/swift-evolution/blob/master/proposals/0066-standardize-function-type-syntax.md)
 * Author: [Chris Lattner](https://github.com/lattner)
 * Status: **Waiting for scheduling** 
 * Review manager: **TBD**
