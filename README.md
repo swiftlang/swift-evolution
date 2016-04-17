@@ -103,12 +103,14 @@ sampling of potentially good ideas that are not in scope for Swift
 
 * [SE-0002: Removing currying `func` declaration syntax](proposals/0002-remove-currying.md)
 * [SE-0003: Removing `var` from Function Parameters](proposals/0003-remove-var-parameters.md)
+* [SE-0004: Remove the `++` and `--` operators](proposals/0004-remove-pre-post-inc-decrement.md)
 * [SE-0005: Better Translation of Objective-C APIs Into Swift](proposals/0005-objective-c-name-translation.md)
 * [SE-0006: Apply API Guidelines to the Standard Library](proposals/0006-apply-api-guidelines-to-the-standard-library.md)
 * [SE-0016: Adding initializers to Int and UInt to convert from UnsafePointer and UnsafeMutablePointer](proposals/0016-initializers-for-converting-unsafe-pointers-to-ints.md)
 * [SE-0019: Swift Testing](proposals/0019-package-manager-testing.md)
 * [SE-0023: API Design Guidelines](proposals/0006-apply-api-guidelines-to-the-standard-library.md)
 * [SE-0028: Modernizing Swift's Debugging Identifiers (\__FILE__, etc)](proposals/0028-modernizing-debug-identifiers.md)
+* [SE-0029: Remove implicit tuple splat behavior from function applications](proposals/0029-remove-implicit-tuple-splat.md)
 * [SE-0031: Adjusting inout Declarations for Type Decoration](proposals/0031-adjusting-inout-declarations.md)
 * [SE-0034: Disambiguating Line Control Statements from Debugging Identifiers](proposals/0034-disambiguating-line.md)
 * [SE-0037: Clarify interaction between comments & operators](proposals/0037-clarify-comments-and-operators.md)
@@ -120,10 +122,8 @@ sampling of potentially good ideas that are not in scope for Swift
 
 ### Accepted proposals for Swift 3.0
 
-* [SE-0004: Remove the `++` and `--` operators](proposals/0004-remove-pre-post-inc-decrement.md)
 * [SE-0007: Remove C-style for-loops with conditions and incrementers](proposals/0007-remove-c-style-for-loops.md)
 * [SE-0025: Scoped Access Level](proposals/0025-scoped-access-level.md)
-* [SE-0029: Remove implicit tuple splat behavior from function applications](proposals/0029-remove-implicit-tuple-splat.md)
 * [SE-0033: Import Objective-C Constants as Swift Types](proposals/0033-import-objc-constants.md)
 * [SE-0035: Limiting `inout` capture to `@noescape` contexts](proposals/0035-limit-inout-capture.md)
 * [SE-0036: Requiring Leading Dot Prefixes for Enum Instance Member Implementations](proposals/0036-enum-dot.md)
