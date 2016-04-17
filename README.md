@@ -120,9 +120,10 @@ sampling of potentially good ideas that are not in scope for Swift
 * [SE-0049: Move @noescape and @autoclosure to be type attributes](proposals/0049-noescape-autoclosure-type-attrs.md)
 * [SE-0053: Remove explicit use of `let` from Function Parameters](proposals/0053-remove-let-from-function-parameters.md)
 
-### Accepted proposals for Swift 3.0
+### Accepted proposals which do not have a complete implementation
 
 * [SE-0007: Remove C-style for-loops with conditions and incrementers](proposals/0007-remove-c-style-for-loops.md)
+* [SE-0008: Add a Lazy flatMap for Sequences of Optionals](proposals/0008-lazy-flatmap-for-optionals.md)
 * [SE-0025: Scoped Access Level](proposals/0025-scoped-access-level.md)
 * [SE-0033: Import Objective-C Constants as Swift Types](proposals/0033-import-objc-constants.md)
 * [SE-0035: Limiting `inout` capture to `@noescape` contexts](proposals/0035-limit-inout-capture.md)
@@ -157,7 +158,6 @@ as practical with Swift 2.0.
 ### Implemented proposals in Swift 2.2
 
 * [SE-0001: Allow (most) keywords as argument labels](proposals/0001-keywords-as-argument-labels.md)
-* [SE-0008: Add a Lazy flatMap for Sequences of Optionals](proposals/0008-lazy-flatmap-for-optionals.md)
 * [SE-0011: Replace `typealias` keyword with `associatedtype` for associated type declarations](proposals/0011-replace-typealias-associated.md)
 * [SE-0014: Constraining `AnySequence.init`](proposals/0014-constrained-AnySequence.md)
 * [SE-0015: Tuple comparison operators](proposals/0015-tuple-comparison-operators.md)
