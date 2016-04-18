@@ -172,17 +172,17 @@ from possible Swift operators. Only `->` is infix, but it is applied to types, a
 
 *operator-declaration* → *prefix-operator-declaration* | *postfix-operator-declaration* | *infix-operator-declaration*
 
-*prefix-operator-declaration* → `prefix` `operator` *operator-name*
+*prefix-operator-declaration* → `prefix` `operator` *operator*
 
-*postfix-operator-declaration* → `postfix` `operator` *operator-name*
+*postfix-operator-declaration* → `postfix` `operator` *operator*
 
-*infix-operator-declaration* → `infix` `operator` *operator-name* *infix-operator-group<sub>opt</sub>*
+*infix-operator-declaration* → `infix` `operator` *infix-operator-name* *infix-operator-group<sub>opt</sub>*
 
 *infix-operator-group* → `:` *precedence-group-name*
 
-*operator-name* → *operator* | *operator-builtin*
+*infix-operator-name* → *operator* | *infix-operator-builtin*
 
-*operator-builtin* → `is` | `as` | `as?` | `as!` | `=`
+*infix-operator-builtin* → `is` | `as` | `as?` | `as!` | `=`
 
 *precedence-group-declaration* → `precedencegroup` *precedence-group-name* `{` *precedence-group-attributes* `}`
 
