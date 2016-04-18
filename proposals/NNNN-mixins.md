@@ -245,7 +245,7 @@ func name(arg: Type) -> Result { }
 
 There is no notion of default methods in mixins. Methods of mixins require `override` to redefine them in types and can be `final`. 
 
-Mixins consider themselves as value types, as protocols and structs. Every member and requirement, which needs to mutate `self`, needs to be declared as `mutating`.
+Mixins consider themselves as value types, as protocols and structs. Every member and requirement, which needs to mutate `self`, must be declared as `mutating`.
 
 Subscript requirements and definitions.
 
@@ -424,7 +424,7 @@ Currently, POP has strictly less abilities at its disposal than OOP. Mixins are 
 
 ## Impact on existing code
 
-`mixin` will be taken as a keyword, so all `mixin` entities will migrate to ``mixin``.
+`mixin` will be taken as a keyword, so all `mixin` entities will migrate to ``` `mixin` ```.
 
 ## Future directions
 
@@ -442,9 +442,9 @@ mixin HelloOnDeinit: class {
 In case of multiple inheritance, the order of `deinit` of neighbor mixins should not matter, but submixins are deinited first. UB is not an option in Swift, so let's define `deinit`s in multiple inheritance to be executed left-to-right.
 
 ```swift
-mixin A { deinit { print("A") } }
-mixin B { deinit { print("B") } }
-mixin C { deinit { print("C") } }
+mixin A : class { deinit { print("A") } }
+mixin B : class { deinit { print("B") } }
+mixin C : class { deinit { print("C") } }
 mixin D: A, B { deinit { print("D") } }
 mixin E: A, C { deinit { print("E") } }
 struct S: D, E { }
@@ -453,6 +453,8 @@ do {
   _ = S()
 }  //=> ABCDE, although CBAED and ABDCE would also make sense
 ```
+
+Additionally, all methods of `class` mixins are `mutating` by default.
 
 ### `@objc` mixins
 
