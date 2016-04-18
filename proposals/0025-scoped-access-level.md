@@ -9,6 +9,8 @@
 
 Scoped access level allows to hide implementation details of a class or a class extension at the class/extension level, instead of a file. It is a concise expression of the intent that a particular part of a class or extension definition is there only to implement a public API for other classes or extensions, and must not be used directly anywhere outside of the scope of the class or the extension.
 
+[Swift Evolution Discussion](http://thread.gmane.org/gmane.comp.lang.swift.evolution/9334), [Next Steps Discussion](http://thread.gmane.org/gmane.comp.lang.swift.evolution/12183)
+
 ## Motivation
 
 Currently, the only reliable way to hide implementations details of a class is to put the code in a separate file and mark it as private. This is not ideal for the following reasons:
