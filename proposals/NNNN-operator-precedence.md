@@ -147,24 +147,31 @@ The only mechanisms to interact with existing precedence groups is adding new op
 
 ## Detailed design
 
+### Precedence
+
+Compiler will represent all precedence groups as a Directed Acyclic Graph.
+
+This would require developers of Swift compiler to solve the problem of [Reachability](https://en.wikipedia.org/wiki/Reachability) and ensure that corresponding algorithm does not have observable impact on compilation time.
+
 ### Special operators
 
-Built-ins `is`, `as`, `as?`, `as!`, `=` have stated precedence, but cannot currently be declared using Swift syntax.
-This problem will be fixed by specifically allowing these tokens in operator declaration. It will allow the following declarations in the Standard Library:
+Built-ins `is`, `as`, `as?`, `as!`, `=`, `?:` have stated precedence, but cannot be declared using Swift syntax.
+
+They will be hardcoded in the compiler and assigned to appropriate precedence groups,
+**as if** the following declarations took place:
 
 ```swift
+// NOT valid Swift
 infix operator is : Cast
 infix operator as : Cast
 infix operator as? : Cast
 infix operator as! : Cast
+ternary operator ?: : Ternary
 infix operator = : Assignment
 ```
 
-Ternary `?:` operator is not infix and will still not be able to be declared as a custom operator.
-It will be hardcoded in the compiler with right associativity and precedence group `Ternary`.
-
 Built-ins `&` (as a prefix operator), `->`, `?`, and `!` (as a postfix operator) are explicitly excluded
-from possible Swift operators. Only `->` is infix, but it is applied to types, and would not have a precedence group.
+from possible Swift operators. Precedence is not applicable to their built-in operator-like usage.
 
 ### Grammar
 
@@ -176,13 +183,9 @@ from possible Swift operators. Only `->` is infix, but it is applied to types, a
 
 *postfix-operator-declaration* → `postfix` `operator` *operator*
 
-*infix-operator-declaration* → `infix` `operator` *infix-operator-name* *infix-operator-group<sub>opt</sub>*
+*infix-operator-declaration* → `infix` `operator` *operator* *infix-operator-group<sub>opt</sub>*
 
 *infix-operator-group* → `:` *precedence-group-name*
-
-*infix-operator-name* → *operator* | *infix-operator-builtin*
-
-*infix-operator-builtin* → `is` | `as` | `as?` | `as!` | `=`
 
 *precedence-group-declaration* → `precedencegroup` *precedence-group-name* `{` *precedence-group-attributes* `}`
 
@@ -200,12 +203,6 @@ from possible Swift operators. Only `->` is infix, but it is applied to types, a
 *precedence-group-relation-option* → `<` | `>` | `=`
 
 *precedence-group-name* → *identifier*
-
-### Precedence
-
-Compiler will represent all precedence groups as a Directed Acyclic Graph.
-
-This would require developers of Swift compiler to solve the problem of [Reachability](https://en.wikipedia.org/wiki/Reachability) and ensure that corresponding algorithm does not have observable impact on compilation time.
 
 ### Standard library changes
 
@@ -259,7 +256,6 @@ precedencegroup BitwiseShift {
   precedence(> Multiplicative)
 }
 
-infix operator = : Assignment
 infix operator *= : Assignment
 infix operator /= : Assignment
 infix operator %= : Assignment
@@ -286,11 +282,6 @@ infix operator === : Comparative
 infix operator ~= : Comparative
 
 infix operator ?? : NilCoalescing
-
-infix operator is : Cast
-infix operator as : Cast
-infix operator as? : Cast
-infix operator as! : Cast
 
 infix operator ..< : Range
 infix operator ... : Range
@@ -413,11 +404,6 @@ infix operator & : BitwiseAnd
 infix operator ..< : Range
 infix operator ... : Range
 
-infix operator is : Cast
-infix operator as : Cast
-infix operator as? : Cast
-infix operator as! : Cast
-
 infix operator ?? : NilCoalescing
 
 infix operator < : Comparative
@@ -432,7 +418,6 @@ infix operator ~= : Comparative
 infix operator && : LogicalAnd
 infix operator || : LogicalOr
 
-infix operator = : Assignment
 infix operator *= : Assignment
 infix operator /= : Assignment
 infix operator %= : Assignment
