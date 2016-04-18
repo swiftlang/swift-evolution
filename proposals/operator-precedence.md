@@ -162,8 +162,7 @@ infix operator = : Assignment
 ```
 
 Built-ins `&` (as a prefix operator), `->`, `?`, and `!` (as a postfix operator) are explicitly excluded
-from possible Swift operators. Only `->` is infix, but it is applied to types, and also will not logically have a precedence group.
-These exceptions can be reviewed as a future direction.
+from possible Swift operators. Only `->` is infix, but it is applied to types, and would not have a precedence group.
 
 ### Grammar
 
