@@ -382,7 +382,7 @@ precedencegroup BitwiseOr {
 }
 precedencegroup BitwiseXor {
   associativity(left)
-  precedence(> Comparative)  // not connected with other bitwise
+  precedence(> Comparative)
 }
 precedencegroup BitwiseAnd {
   associativity(left)
