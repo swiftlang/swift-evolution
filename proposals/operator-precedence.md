@@ -149,7 +149,7 @@ The only mechanisms to interact with existing precedence groups is adding new op
 
 ### Special operators
 
-Built-ins `is`, `as`, `as?`, `as!`, `?:`, `=` have stated precedence, but cannot currently be declared using Swift syntax.
+Built-ins `is`, `as`, `as?`, `as!`, `=` have stated precedence, but cannot currently be declared using Swift syntax.
 This problem will be fixed by specifically allowing these tokens in operator declaration. It will allow the following declarations in the Standard Library:
 
 ```swift
@@ -157,9 +157,11 @@ infix operator is : Cast
 infix operator as : Cast
 infix operator as? : Cast
 infix operator as! : Cast
-infix operator ?: : Ternary
 infix operator = : Assignment
 ```
+
+Ternary `?:` operator is not infix and will still not be able to be declared as a custom operator.
+It will be hardcoded in the compiler with right associativity and precedence group `Ternary`.
 
 Built-ins `&` (as a prefix operator), `->`, `?`, and `!` (as a postfix operator) are explicitly excluded
 from possible Swift operators. Only `->` is infix, but it is applied to types, and would not have a precedence group.
@@ -180,7 +182,7 @@ from possible Swift operators. Only `->` is infix, but it is applied to types, a
 
 *operator-name* → *operator* | *operator-builtin*
 
-*operator-builtin* → `is` | `as` | `as?` | `as!` | `=` | `?:`
+*operator-builtin* → `is` | `as` | `as?` | `as!` | `=`
 
 *precedence-group-declaration* → `precedencegroup` *precedence-group-name* `{` *precedence-group-attributes* `}`
 
@@ -271,8 +273,6 @@ infix operator |= : Assignment
 infix operator &&= : Assignment
 infix operator ||= : Assignment
 
-infix operator ?: : Ternary
-
 infix operator && : LogicalAnd
 infix operator || : LogicalOr
 
@@ -334,77 +334,92 @@ prefix operator ~
 prefix operator +
 prefix operator -
 
+precedencegroup Assignment {
+}
+precedencegroup Ternary {
+  precedence(> Assignment)
+}
 precedencegroup Default {
   precedence(> Ternary)
+}
+
+precedencegroup LogicalOr {
+  associativity(left)
+  precedence(> Ternary)
+}
+precedencegroup LogicalAnd {
+  associativity(left)
+  precedence(> LogicalOr)
+}
+precedencegroup Comparative {
+  precedence(> LogicalAnd)
+}
+
+precedencegroup NilCoalescing {
+  associativity(right)
+  precedence(> Comparative)
+}
+precedencegroup Cast {
+  associativity(left)
+  precedence(> Comparative)
+}
+precedencegroup Range {
+  precedence(> Comparative)
 }
 
 precedencegroup Additive {
   associativity(left)
   precedence(> Comparative)
 }
-infix operator + : Additive
-infix operator - : Additive
-infix operator &+ : Additive
-infix operator &- : Additive
-
 precedencegroup Multiplicative {
   associativity(left)
   precedence(> Additive)
 }
-infix operator * : Multiplicative
-infix operator / : Multiplicative
-infix operator % : Multiplicative
-infix operator &* : Multiplicative
-
-precedencegroup BitwiseShift {
-  members(<<, >>)
-  precedence(> Comparative)
-}
-infix operator << : BitwiseShift
-infix operator >> : BitwiseShift
 
 precedencegroup BitwiseOr {
   associativity(left)
   precedence(> Comparative)
 }
-infix operator | : BitwiseOr
-
 precedencegroup BitwiseXor {
   associativity(left)
   precedence(> Comparative)  // not connected with other bitwise
 }
-infix operator ^ : BitwiseXor
-
 precedencegroup BitwiseAnd {
   associativity(left)
   precedence(> BitwiseOr)
 }
-infix operator & : BitwiseAnd
-
-precedencegroup Range {
+precedencegroup BitwiseShift {
+  members(<<, >>)
   precedence(> Comparative)
 }
+
+infix operator + : Additive
+infix operator - : Additive
+infix operator &+ : Additive
+infix operator &- : Additive
+
+infix operator * : Multiplicative
+infix operator / : Multiplicative
+infix operator % : Multiplicative
+infix operator &* : Multiplicative
+
+infix operator << : BitwiseShift
+infix operator >> : BitwiseShift
+
+infix operator | : BitwiseOr
+infix operator ^ : BitwiseXor
+infix operator & : BitwiseAnd
+
 infix operator ..< : Range
 infix operator ... : Range
 
-precedencegroup Cast {
-  associativity(left)
-  precedence(> Comparative)
-}
 infix operator is : Cast
 infix operator as : Cast
 infix operator as? : Cast
 infix operator as! : Cast
 
-precedencegroup NilCoalescing {
-  associativity(right)
-  precedence(> Comparative)
-}
 infix operator ?? : NilCoalescing
 
-precedencegroup Comparative {
-  precedence(> LogicalAnd)
-}
 infix operator < : Comparative
 infix operator <= : Comparative
 infix operator > : Comparative
@@ -414,25 +429,9 @@ infix operator != : Comparative
 infix operator === : Comparative
 infix operator ~= : Comparative
 
-precedencegroup LogicalAnd {
-  associativity(left)
-  precedence(> LogicalOr)
-}
 infix operator && : LogicalAnd
-
-precedencegroup LogicalOr {
-  associativity(left)
-  precedence(> Ternary)
-}
 infix operator || : LogicalOr
 
-precedencegroup Ternary {
-  precedence(> Assignment)
-}
-infix operator ?: : Ternary
-
-precedencegroup Assignment {
-}
 infix operator = : Assignment
 infix operator *= : Assignment
 infix operator /= : Assignment
