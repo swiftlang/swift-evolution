@@ -235,7 +235,7 @@ precedencegroup Comparative {
   associativity(left)
   precedence(> LogicalAnd)
 }
-precedencegroup NilCoalesting {
+precedencegroup NilCoalescing {
   associativity(right)
   precedence(> Comparative)
 }
@@ -397,11 +397,11 @@ infix operator as : Cast
 infix operator as? : Cast
 infix operator as! : Cast
 
-precedencegroup NilCoalesting {
+precedencegroup NilCoalescing {
   associativity(right)
   precedence(> Comparative)
 }
-infix operator ?? : NilCoalesting
+infix operator ?? : NilCoalescing
 
 precedencegroup Comparative {
   precedence(> LogicalAnd)
