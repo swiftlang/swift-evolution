@@ -167,7 +167,7 @@ These exceptions can be reviewed as a future direction.
 
 ### Grammar
 
-`precedencegroup` keyword will be added.
+`precedencegroup` keyword will be added. `assignment` local keyword will be removed.
 
 *operator-declaration* → *prefix-operator-declaration* | *postfix-operator-declaration* | *infix-operator-declaration*
 
