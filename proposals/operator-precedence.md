@@ -215,7 +215,6 @@ prefix operator +
 prefix operator -
 
 precedencegroup Assignment {
-  associativity(right)
 }
 precedencegroup Ternary {
   associativity(right)
@@ -434,7 +433,6 @@ precedencegroup Ternary {
 infix operator ?: : Ternary
 
 precedencegroup Assignment {
-  associativity(right)
 }
 infix operator = : Assignment
 infix operator *= : Assignment
