@@ -7,7 +7,6 @@ proposals in that process.
 ## Active reviews
 
 * March 31...April 5, 2016 [SE-0056: Allow trailing closures in `guard` conditions](proposals/0056-trailing-closures-in-guard.md)
-* March 31...April 5, 2016 [SE-0059: Update API Naming Guidelines and Rewrite Set APIs Accordingly](proposals/0059-updated-set-apis.md)
 * April 10...18, 2016 [SE-0065: A New Model For Collections and Indices](proposals/0065-collections-move-indices.md)
 
 ## Upcoming reviews

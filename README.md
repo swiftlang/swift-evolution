@@ -140,6 +140,7 @@ sampling of potentially good ideas that are not in scope for Swift
 * [SE-0062: Referencing Objective-C key-paths](proposals/0062-objc-keypaths.md)
 * [SE-0063: SwiftPM System Module Search Paths](proposals/0063-swiftpm-system-module-search-paths.md)
 * [SE-0064: Referencing the Objective-C selector of property getters and setters](proposals/0064-property-selectors.md)
+* [SE-0059: Update API Naming Guidelines and Rewrite Set APIs Accordingly](proposals/0059-updated-set-apis.md)
 
 ## Swift 2.2 - Released on March 21, 2016
 
