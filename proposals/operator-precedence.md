@@ -241,7 +241,7 @@ precedencegroup NilCoalescing {
 }
 precedencegroup Cast {
   associativity(left)
-  precedence(> NilCoalesting)
+  precedence(> NilCoalescing)
 }
 precedencegroup Range {
   precedence(> Cast)
@@ -286,7 +286,7 @@ infix operator != : Comparative
 infix operator === : Comparative
 infix operator ~= : Comparative
 
-infix operator ?? : NilCoalesting
+infix operator ?? : NilCoalescing
 
 infix operator is : Cast
 infix operator as : Cast
