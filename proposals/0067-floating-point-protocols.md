@@ -596,6 +596,7 @@ a NaN with specified payload:
   /// Compares not equal to every value, including itself.  Most operations
   /// with a NaN operand will produce a NaN result.
   init(nan payload: Self.RawSignificand, signaling: Bool)
+```
 
 ## Impact on existing code
 
