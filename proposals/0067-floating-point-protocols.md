@@ -205,10 +205,6 @@ public protocol FloatingPoint: Comparable, IntegerLiteralConvertible {
   /// Note that this is not the same as `self < 0`.  In particular, this
   /// property is true for `-0` and some NaNs, both of which compare not
   /// less than zero.
-  //  TODO: strictly speaking a bit and a bool are slightly different
-  //  concepts.  Is another name more appropriate for this property?
-  //  `isNegative` is incorrect because of -0 and NaN.  `isSignMinus` might
-  //  be acceptable, but isn't great.  `signBit` is the IEEE 754 name.
   var signBit: Bool { get }
 
   /// The integer part of the base-r logarithm of the magnitude of `self`,
