@@ -52,7 +52,7 @@ It would also be very convenient for the `#keyPath` to accept value (instead of 
 ```
 extension Person {
 	class func find(name: String) -> [Person] {
-		return DB.execute("SELECT * FROM Person WHERE \(#keyPath(firstName)) LIKE '%\(name)%'")
+		return DB.execute("SELECT * FROM Person WHERE \(#keyPath(firstName)) LIKE '%s'", name)
 	}
 }
 ```
