@@ -17,6 +17,7 @@ language.
 
 The value of this construct is limited and I believe its removal should be seriously considered.
 
+This proposal was discussed on the Swift Evolution list in the [C-style For Loops](http://news.gmane.org/find-root.php?message_id=40642775%2dF58D%2d49B0%2d9BF3%2d38913FD6924C%40ericasadun.com) thread and reviewed in the [\[Review\] Remove C-style for-loops with conditions	and incrementers](http://thread.gmane.org/gmane.comp.lang.swift.evolution/9744/focus=10621) thread.
 
 ## Advantages of For Loops
 

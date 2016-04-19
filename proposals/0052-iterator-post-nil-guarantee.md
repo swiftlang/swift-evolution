@@ -19,7 +19,7 @@ repeating `nil` (it's a silent corner case).
 
 Swift-evolution thread: [\[Proposal\] Change guarantee for GeneratorType.next() to always return nil past end](http://thread.gmane.org/gmane.comp.lang.swift.evolution/8519)
 
-Pull-request: [#1702](https://github.com/apple/swift/pull/1702)
+Pull-request: [\#1702](https://github.com/apple/swift/pull/1702)
 
 ## Motivation
 

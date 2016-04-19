@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0057](https://github.com/apple/swift-evolution/blob/master/proposals/0057-importing-objc-generics.md)
 * Author: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Active for review** (March 31...April 5, 2016)
+* Status: **Accepted for Swift 3**
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction

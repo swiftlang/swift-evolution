@@ -13,6 +13,8 @@ languages). This proposal is limited in scope to only supporting targets
 consisting entirely of C languages; there is no provision for supporting targets
 which include both C and Swift sources.
 
+[Swift Evolution Review Thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/7293)
+
 ## Motivation
 
 Swift has easy interoperability with C based languages through the use of the

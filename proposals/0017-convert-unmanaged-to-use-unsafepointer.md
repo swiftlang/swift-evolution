@@ -9,6 +9,8 @@
 
 The standard library [`Unmanaged<Instance>` struct](https://github.com/apple/swift/blob/master/stdlib/public/core/Unmanaged.swift) provides a type-safe object wrapper that does not participate in ARC; it allows the user to make manual retain/release calls.
 
+[Swift Evolution Discussion](http://thread.gmane.org/gmane.comp.lang.swift.evolution/9877), [Proposed Rewrite Discussion](http://thread.gmane.org/gmane.comp.lang.swift.evolution/68/)
+
 ## Motivation
 
 The following methods are provided for converting to/from Unmanaged:

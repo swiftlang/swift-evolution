@@ -10,6 +10,8 @@
 In order to allow `AnySequence` delegate calls to the underlying sequence,
 its initializer should have extra constraints.
 
+[Swift Evolution Discussion](http://thread.gmane.org/gmane.comp.lang.swift.evolution/1893)
+
 ## Motivation
 
 At the moment `AnySequence` does not delegate calls to `SequenceType` protocol

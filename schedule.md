@@ -6,16 +6,11 @@ proposals in that process.
 
 ## Active reviews
 
-* March 24...29, 2016 [SE-0048: Generic Type Aliases](proposals/0048-generic-typealias.md)
-* March 28...31, 2016 [SE-0049: Move @noescape and @autoclosure to be type attributes](proposals/0049-noescape-autoclosure-type-attrs.md)
-* March 31...April 5, 2016 [SE-0057: Importing Objective-C Lightweight Generics](proposals/0057-importing-objc-generics.md)
 * March 31...April 5, 2016 [SE-0056: Allow trailing closures in `guard` conditions](proposals/0056-trailing-closures-in-guard.md)
-* March 31...April 5, 2016 [SE-0036: Requiring Leading Dot Prefixes for Enum Instance Member Implementations](proposals/0036-enum-dot.md)
-* March 31...April 5, 2016 [SE-0059: Update API Naming Guidelines and Rewrite Set APIs Accordingly](proposals/0059-updated-set-apis.md)
+* April 10...18, 2016 [SE-0065: A New Model For Collections and Indices](proposals/0065-collections-move-indices.md)
 
 ## Upcoming reviews
 
-* April 4...11, 2016 [SE-0058: Allow Swift types to provide custom Objective-C representations](proposals/0058-objectivecbridgeable.md)
 
 ## Proposals awaiting scheduling
 
@@ -27,6 +22,9 @@ proposals in that process.
 * [SE-0030: Property Behaviors](proposals/0030-property-behavior-decls.md)
 * [SE-0045: Add scan, takeWhile, dropWhile, and iterate to the stdlib](proposals/0045-scan-takewhile-dropwhile.md)
 * [SE-0052: Change IteratorType post-nil guarantee](proposals/0052-iterator-post-nil-guarantee.md)
+* [SE-0060: Enforcing order of defaulted parameters](proposals/0060-defaulted-parameter-order.md)
+* [SE-0061: Add Generic Result and Error Handling to autoreleasepool()](proposals/0061-autoreleasepool-signature.md)
+* [SE-0066: Standardize function type argument syntax to require parentheses](proposals/0066-standardize-function-type-syntax.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 

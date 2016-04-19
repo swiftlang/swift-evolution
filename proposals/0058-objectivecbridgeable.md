@@ -2,7 +2,7 @@
 
 * Proposal: SE-0058
 * Author(s): [Russ Bishop](https://github.com/russbishop), [Doug Gregor](https://github.com/DougGregor)
-* Status: **Awaiting review**
+* Status: **[Deferred](#rationale)**
 * Review manager: [Joe Groff](https://github.com/jckarter)
 
 
@@ -242,4 +242,23 @@ This can always be implemented in the future if it is desired.
 ## Conditional Conformance
 
 It is intended that when and if Swift 3 adopts conditional protocol conformance that the standard library types such as `Array` and `Dictionary` will declare conditional conformance to `ObjectiveCBridgeable` if their element types are `ObjectiveCBridgeable` (with explicitly declared conformance for built-ins like `Int`).
+
+-------------------------------------------------------------------------------
+
+# Rationale
+
+On April 12, 2016, the core team decided to **defer** this proposal from
+Swift 3. We agree that it would be valuable to give library authors the
+ability to bridge their own types from Objective-C into Swift using the
+same mechanisms as Foundation. However, we lack the confidence and 
+implementation experience to commit to `_ObjectiveCBridgeable` in its
+current form as public API. In its current form, as its name suggests, the
+protocol was designed to accommodate the specific needs of bridging
+Objective-C object types to Swift value types. In the future, we may
+want to bridge with other platforms, including C++ value types or 
+other object systems such as COM, GObject, JVM, or CLR. It isn't clear at
+this point whether these would be served by a generalization of the existing
+mechanism, or by bespoke bridging protocols tailored to each case. This
+is a valuable area to explore, but we feel that it is too early at this
+point to accept our current design as public API.
 

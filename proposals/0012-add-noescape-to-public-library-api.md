@@ -17,6 +17,8 @@
 *  We propose exposing this attribute in CF and Foundation as `CF_NOESCAPE` and `NS_NOESCAPE`
 *  We also propose applying this declaration to a number of closure-taking APIs in CF and Foundation 
 
+[Swift Evolution Discussion Thread](http://thread.gmane.org/gmane.comp.lang.swift.corelibs/53)
+
 ## Introduction
 
 ### `@noescape`

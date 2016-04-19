@@ -15,10 +15,8 @@ authors to specify the capability of importing functions and variables as
 members on imported Swift types. It also seeks to provide an automatic inference
 option for APIs that follow a consistent, disciplined naming convention.
 
-<!--
-Swift-evolution thread: [link to the discussion thread for that
-proposal](https://lists.swift.org/pipermail/swift-evolution)
- -->
+[Swift-evolution thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/8437)<br />
+[Review](http://thread.gmane.org/gmane.comp.lang.swift.evolution/12274)
 ## Motivation
 
 C APIs and frameworks currently import into Swift as global functions and global
