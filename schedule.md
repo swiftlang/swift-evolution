@@ -8,6 +8,7 @@ proposals in that process.
 
 * March 31...April 5, 2016 [SE-0056: Allow trailing closures in `guard` conditions](proposals/0056-trailing-closures-in-guard.md)
 * April 10...18, 2016 [SE-0065: A New Model For Collections and Indices](proposals/0065-collections-move-indices.md)
+* April 19...25, 2016 [SE-0067: Enhanced Floating Point Protocols](proposals/0067-floating-point-protocols.md)
 
 ## Upcoming reviews
 
@@ -25,6 +26,7 @@ proposals in that process.
 * [SE-0060: Enforcing order of defaulted parameters](proposals/0060-defaulted-parameter-order.md)
 * [SE-0061: Add Generic Result and Error Handling to autoreleasepool()](proposals/0061-autoreleasepool-signature.md)
 * [SE-0066: Standardize function type argument syntax to require parentheses](proposals/0066-standardize-function-type-syntax.md)
+
 
 [evolution-process]: process.md  "The Swift evolution process"
 
