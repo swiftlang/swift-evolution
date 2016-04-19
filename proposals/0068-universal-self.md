@@ -1,9 +1,9 @@
 # Expanding Swift `Self` to class members and value types
 
-* Proposal: [SE-XXXX](https://gist.github.com/erica/5a26d523f3d6ffb74e34d179740596f7)
+* Proposal: [SE-0068](0066-standardize-function-type-syntax.md)
 * Author(s): [Erica Sadun](http://github.com/erica)
 * Status: TBD
-* Review manager: TBD
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
