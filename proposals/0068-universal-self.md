@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0068](0068-universal-self.md)
 * Author(s): [Erica Sadun](http://github.com/erica)
-* Status: **Review scheduled for April 20...25, 2016**
+* Status: **Active Review April 20...25, 2016**
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction

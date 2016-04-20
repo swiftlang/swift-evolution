@@ -9,7 +9,7 @@ proposals in that process.
 * March 31...April 5, 2016 [SE-0056: Allow trailing closures in `guard` conditions](proposals/0056-trailing-closures-in-guard.md)
 * April 10...18, 2016 [SE-0065: A New Model For Collections and Indices](proposals/0065-collections-move-indices.md)
 * April 19...25, 2016 [SE-0067: Enhanced Floating Point Protocols](proposals/0067-floating-point-protocols.md)
-* April 20...25, 2016 [SE-0068: Expanding Swift `Self` to class members and value types](proposals/0068-niversal-self.md)
+* April 20...25, 2016 [SE-0068: Expanding Swift `Self` to class members and value types](proposals/0068-universal-self.md)
 * April 28...May 2, 2016 [SE-0045: Add scan, takeWhile, dropWhile, and iterate to the stdlib](proposals/0045-scan-takewhile-dropwhile.md)
 
 ## Upcoming reviews
