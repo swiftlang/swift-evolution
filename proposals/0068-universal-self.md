@@ -42,7 +42,8 @@ Introducing `Self` addresses the following issues:
 * Code using hardwired type names is less portable than code that automatically knows its type.
 * Renaming a type means updating any `TypeName` references in code.
 * Using `self.dynamicType` fights against Swift's goals of concision and clarity in that it is both noisy and esoteric.
-* `self.dynamicType.classMember` and `TypeName.classMember` may not be synonyms in class types with non-final members.
+
+Note that `self.dynamicType.classMember` and `TypeName.classMember` may not be synonyms in class types with non-final members.
 
 ## Detail Design
 
