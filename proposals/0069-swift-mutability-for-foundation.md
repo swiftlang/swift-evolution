@@ -1,6 +1,6 @@
 # Mutability and Foundation Value Types
 
-* Proposal: SE-NNNN
+* Proposal: [SE-0069](https://github.com/apple/swift-evolution/blob/master/proposals/0069-swift-mutability-for-foundation.md)
 * Author(s): Tony Parker <anthony.parker@apple.com>
 * Status: **Awaiting review**
 * Review Manager: TBD

@@ -26,7 +26,7 @@ proposals in that process.
 * [SE-0060: Enforcing order of defaulted parameters](proposals/0060-defaulted-parameter-order.md)
 * [SE-0061: Add Generic Result and Error Handling to autoreleasepool()](proposals/0061-autoreleasepool-signature.md)
 * [SE-0066: Standardize function type argument syntax to require parentheses](proposals/0066-standardize-function-type-syntax.md)
-
+* [SE-0069: Mutability and Foundation Value Types](proposals/0069-swift-mutability-for-foundation.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 
