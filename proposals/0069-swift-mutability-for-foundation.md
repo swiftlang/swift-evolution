@@ -304,7 +304,7 @@ Here is an over-simplified look at the `Data` structure [^moreimpldetails]:
 
 ```swift
 public struct Data : Equatable, Hashable, Coding, MutableCollectionType {
-    private var _box : _DataBox // Holds a NSData pointer
+    private var _box : _DataBox // Holds an NSData pointer
     
     public var count : Int {
         let reference = ... // Get reference out of the box
@@ -322,7 +322,7 @@ Note that this structure is only 1 word in size, the same as a `class Data` poin
 The `struct Data` may be initialized with any `NSData`:
 
 ```swift
-/// Create a Data with a custom backing reference type.
+/// Create Data with a custom backing reference type.
 class MyData : NSData { }
 
 let dataReference = MyData()
