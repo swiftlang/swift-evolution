@@ -206,6 +206,7 @@ Value Type | Class Type
 AffineTransform | NSAffineTransform
 CharacterSet | NSCharacterSet, NSMutableCharacterSet
 Date | NSDate
+DateComponents | NSDateComponents
 Data | NSData, NSMutableData
 IndexSet | NSIndexSet, NSMutableIndexSet
 IndexPath | NSIndexPath
