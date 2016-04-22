@@ -9,6 +9,7 @@ proposals in that process.
 * April 10...18, 2016 [SE-0065: A New Model For Collections and Indices](proposals/0065-collections-move-indices.md)
 * April 19...25, 2016 [SE-0067: Enhanced Floating Point Protocols](proposals/0067-floating-point-protocols.md)
 * April 20...25, 2016 [SE-0068: Expanding Swift `Self` to class members and value types](proposals/0068-universal-self.md)
+* April 22...26, 2016 [SE-0061: Add Generic Result and Error Handling to autoreleasepool()](proposals/0061-autoreleasepool-signature.md)
 
 ## Upcoming reviews
 
@@ -24,7 +25,6 @@ proposals in that process.
 * [SE-0030: Property Behaviors](proposals/0030-property-behavior-decls.md)
 * [SE-0052: Change IteratorType post-nil guarantee](proposals/0052-iterator-post-nil-guarantee.md)
 * [SE-0060: Enforcing order of defaulted parameters](proposals/0060-defaulted-parameter-order.md)
-* [SE-0061: Add Generic Result and Error Handling to autoreleasepool()](proposals/0061-autoreleasepool-signature.md)
 * [SE-0066: Standardize function type argument syntax to require parentheses](proposals/0066-standardize-function-type-syntax.md)
 * [SE-0069: Mutability and Foundation Value Types](proposals/0069-swift-mutability-for-foundation.md)
 
