@@ -1,0 +1,185 @@
+# Make Optional Requirements Objective-C-only
+
+* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-optional-requirements.md)
+* Author(s): [Doug Gregor](https://github.com/DougGregor)
+* Status: **Awaiting review**
+* Review manager: TBD
+
+## Introduction
+
+Swift currently has support for "optional" requirements in Objective-C
+protocols, to match with the corresponding feature of Objective-C. We
+don't want to make optional requirements a feature of Swift protocols
+(for reasons described below), nor can we completely eliminate the
+notion of the language (for different reasons also described
+below). Therefore, to prevent confusion about our direction, this
+proposal changes the `optional` keyword `objcoptional` to indicate
+that this is an Objective-C compatibility feature.
+
+Swift-evolution threads:
+[eliminate optional requirements](http://thread.gmane.org/gmane.comp.lang.swift.evolution/14046),
+[make Swift protocols support optional requirements](http://thread.gmane.org/gmane.comp.lang.swift.devel/1316) and
+[make optional protocol requirements first class citizens](http://thread.gmane.org/gmane.comp.lang.swift.evolution/13347).
+
+## Motivation
+
+Having `optional` only work for Objective-C requirements is very
+weird: it feels like a general feature with a compiler bug that
+prevents it from working generally. However, we don't want to make it
+a feature of Swift protocols and we can't eliminate it (see
+[alternatives considered](#alternatives-considered)), so we propose to
+rename the keyword to make it clear that this feature is intended only
+for compatibility with Objective-C.
+
+## Proposed solution
+
+Rename the `optional` contextual keyword to `objcoptional`. Note that:
+
+* It would read better as `objc_optional` or `objcOptional`, but
+  keywords in Swift run the words together, and
+
+* It should not be an attribute `@objcOptional` because it changes the
+  effective type of the declaration. Referencing an optional
+  requirement wraps the result in one more level of optional, which is
+  used to test whether the requirement was implemented.
+
+This means that:
+
+```swift
+@objc protocol NSTableViewDelegate {
+  optional func tableView(_: NSTableView, viewFor: NSTableColumn, row: Int) -> NSView?
+  optional func tableView(_: NSTableView, heightOfRow: Int) -> CGFloat
+}
+```
+
+becomes:
+
+```swift
+@objc protocol NSTableViewDelegate {
+  objcoptional func tableView(_: NSTableView, viewFor: NSTableColumn, row: Int) -> NSView?
+  objcoptional func tableView(_: NSTableView, heightOfRow: Int) -> CGFloat
+}
+```
+
+## Impact on existing code
+
+Any code that declares `@objc` protocols with `optional` requirements
+will need to be changed to use the `objcoptional` keyword. However, it
+is trivial for the migrator to update the code and for the compiler to
+provide Fix-Its, so the actual impact on users should be small.
+
+## Alternatives considered
+
+It's a fairly common request to make optional requirements work in
+Swift protocols (as in the aforementioned threads,
+[here](http://thread.gmane.org/gmane.comp.lang.swift.devel/1316) and
+[here](http://thread.gmane.org/gmane.comp.lang.swift.evolution/13347)).
+However, such proposals have generally met with resistance because
+optional requirements have significant overlap with other protocol
+features: "default" implementations via protocol extensions and
+protocol inheritance. For the former case, the author of the protocol
+can provide a "default" implementation via a protocol extension that
+encodes the default case (rather than putting it at the call site). In
+the latter case, the protocol author can separate the optional
+requirements into a different protocol that a type can adopt to
+opt-in to whatever behavior they customize. While not *exactly* the
+same as optional requirements, which allow one to perform
+per-requirement checking to determine whether the type implemented
+that requirement, the gist of the threads is that doing so is
+generally considered an anti-pattern: one would be better off
+factoring the protocol in a different way. Therefore, we do not
+propose to make optional requirements work for Swift protocols.
+
+The second alternative would be to eliminate optional requirements
+entirely from the language. The primary challenge here is Cocoa
+interoperability, because Cocoa's protocols (primarily delegates and
+data sources) have a large number of optional requirements that would
+have to be handled somehow in Swift. These optional requirements would
+have to be mapped to some other construct in Swift, but the code
+generation model must remain the same because the Cocoa frameworks
+rely on the ability to ask the question "was this requirement
+implemented by the type?" in Objective-C code at run time.
+
+The most popular approach to try to map optional requirements into
+existing Swift constructs is to turn an optional method requirement
+into a property of optional closure type. For example, this
+Objective-C protocol:
+
+```
+@protocol NSTableViewDelegate
+@optional
+- (nullable NSView *)tableView:(NSTableView *)tableView viewForTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row;
+- (CGFloat)tableView:(NSTableView *)tableView heightOfRow:(NSInteger)row;
+@end
+```
+
+which currently imports into Swift as:
+
+```swift
+@objc protocol NSTableViewDelegate {
+  optional func tableView(_: NSTableView, viewFor: NSTableColumn, row: Int) -> NSView?
+  optional func tableView(_: NSTableView, heightOfRow: Int) -> CGFloat
+}
+```
+
+would become, e.g.,
+
+```swift
+@objc protocol NSTableViewDelegate {
+  var tableView: ((NSTableView, viewFor: NSTableColumn, row: Int) -> NSView?)? { get }
+  var tableView: ((NSTableView, heightOfRow: Int) -> CGFloat)? { get }
+}
+```
+
+Unfortunately, this introduces an overloaded property named
+`tableView`. To really make this work, we would need to introduce the
+ability for a property to have a compound name, which would also let
+us take the labels out of the function type:
+
+```swift
+@objc protocol NSTableViewDelegate {
+  var tableView(_:viewFor:row:): ((NSTableView, NSTableColumn, Int) -> NSView?)? { get }
+  var tableView(_:heightOfRow:): ((NSTableView, Int) -> CGFloat)? { get }
+}
+```
+
+By itself, that is a good feature. However, we're not dont, because we
+would need yet another extension to the language: one
+would want to be able to provide a *method* in a class that is used to
+conform to a *property* in the protocol, e.g.,
+
+```swift
+class MyDelegate : NSObject, NSTableViewDelegate {
+  func tableView(_: NSTableView, viewFor: NSTableColumn, row: Int) -> NSView? { ... }
+  func tableView(_: NSTableView, heightOfRow: Int) -> CGFloat { ... }
+}
+```
+
+Indeed, the Objective-C implementation model effectively requires us
+to satisfy these property-of-optional-closure requirements with
+methods so that Objective-C clients can use `-respondsToSelector:`. In
+other words, one would not be able to implement these requirements in
+by copy-pasting from the protocol to the implementing class:
+
+```swift
+class MyDelegate : NSObject, NSTableViewDelegate {
+  // Note: The Objective-C entry points for these would return blocks, which is incorrect
+  var tableView(_:viewFor:row:): ((NSTableView, NSTableColumn, Int) -> NSView?)? { return ...   }
+  var tableView(_:heightOfRow:): ((NSTableView, Int) -> CGFloat)? { return ... }
+}
+```
+
+That is both a strange technical restriction that would be limited to
+Objective-C protocols and a serious usability problem: the easiest way
+to stub out the contents of your type when it conforms to a given
+protocol is to copy the declarations from the protocol into your type,
+then fill in the details. This change would break that usage scenario
+badly.
+
+There have been other ideas to eliminate optional requirements. For
+example, Objective-C protocols could be annotated with attributes that
+say what the default implementation for each optional requirement is
+(to be used only in Swift), but such a massive auditing effort is
+impractical. There is a related notion of [caller-site default
+implementations](http://thread.gmane.org/gmane.comp.lang.swift.evolution/14046)
+that was not well-received due to its complexity.
