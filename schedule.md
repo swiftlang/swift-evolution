@@ -13,6 +13,7 @@ proposals in that process.
 
 ## Upcoming reviews
 
+* April 25 ... May 2, 2016 [SE-0070: Make Optional Requirements Objective-C-only](proposals/0070-optional-requirements.md)
 * April 28...May 2, 2016 [SE-0045: Add scan, takeWhile, dropWhile, and iterate to the stdlib](proposals/0045-scan-takewhile-dropwhile.md)
 
 

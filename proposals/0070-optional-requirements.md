@@ -1,9 +1,9 @@
 # Make Optional Requirements Objective-C-only
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-optional-requirements.md)
+* Proposal: [SE-0070](0070-optional-requirements.md)
 * Author(s): [Doug Gregor](https://github.com/DougGregor)
-* Status: **Awaiting review**
-* Review manager: TBD
+* Status: **Scheduled for review April 25 ... May 2**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
