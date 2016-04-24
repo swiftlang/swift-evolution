@@ -143,7 +143,7 @@ us take the labels out of the function type:
 }
 ```
 
-By itself, that is a good feature. However, we're not dont, because we
+By itself, that is a good feature. However, we're not done, because we
 would need yet another extension to the language: one
 would want to be able to provide a *method* in a class that is used to
 conform to a *property* in the protocol, e.g.,
