@@ -58,13 +58,13 @@ to `FloatLiteralConvertible`).
 /// additional operations that only make sense for a fixed radix, and also
 /// provides default implementations of some of the FloatingPoint APIs.
 public protocol FloatingPoint: Comparable, IntegerLiteralConvertible, SignedNumber {
-  
+
   /// An integer type that can represent any written exponent.
   associatedtype Exponent: SignedInteger
-  
+
   /// Initialize to zero
   init()
-  
+
   /// Initialize from sign, exponent, and significand.
   ///
   /// The result is:
@@ -94,35 +94,35 @@ public protocol FloatingPoint: Comparable, IntegerLiteralConvertible, SignedNumb
   ///
   /// This initializer implements the IEEE 754 `scaleB` operation.
   init(sign: Sign, exponent: Exponent, significand: Self)
-  
+
   /// A floating point value whose exponent and signficand are taken from
   /// `magnitude` and whose sign is taken from `signOf`.  Implements the
   /// IEEE 754 `copysign` operation.
   init(signOf: Self, magnitudeOf other: Self)
-  
+
   //  NOTE: --------------------------------------------------------------------
   //  The next two APIs are not implementable without a revised integer
   //  protocol.  Nonetheless, I believe that it makes sense to consider them
   //  with the rest of this proposal, with the understanding that they will
   //  be implemented when it becomes possible to do so.
-  
+
   /// The closest representable value to the argument.
   init<Source: Integer>(_ value: Source)
-  
+
   /// Fails if the argument cannot be exactly represented.
   init?<Source: Integer>(exactly value: Source)
   //  --------------------------------------------------------------------------
-  
+
   /// 2 for binary floating-point types, 10 for decimal.
   ///
   /// A conforming type may use any integer radix, but values other than
   /// 2 or 10 are extraordinarily rare in practice.
   static var radix: Int { get }
-  
+
   /// A quiet NaN (not-a-number).  Compares not equal to every value,
   /// including itself.
   static var nan: Self { get }
-  
+
   /// A signaling NaN (not-a-number).
   ///
   /// The default IEEE 754 behavior of operations involving a signaling NaN
@@ -133,10 +133,10 @@ public protocol FloatingPoint: Comparable, IntegerLiteralConvertible, SignedNumb
   /// in which operating on a signaling NaN is a `fatalError()` or results in
   /// a diagnostic for debugging purposes.
   static var signalingNaN: Self { get }
-  
+
   /// Positive infinity.  Compares greater than all finite numbers.
   static var infinity: Self { get }
-  
+
   /// The greatest finite number.
   ///
   /// Compares greater than or equal to all finite numbers, but less than
@@ -144,13 +144,13 @@ public protocol FloatingPoint: Comparable, IntegerLiteralConvertible, SignedNumb
   /// The naming of those macros is slightly misleading, because infinity
   /// is greater than this value.
   static var greatestFiniteMagnitude: Self { get }
-  
+
   /// The mathematical constant π = 3.14159...
   ///
   /// Extensible floating-point types might provide additional APIs to obtain
   /// this value to caller-specified precision.
   static var pi: Self { get }
-  
+
   // NOTE: Rationale for "ulp" instead of "epsilon":
   // We do not use that name because it is ambiguous at best and misleading
   // at worst:
@@ -165,7 +165,7 @@ public protocol FloatingPoint: Comparable, IntegerLiteralConvertible, SignedNumb
   // - Inexperienced users often believe that "epsilon" should be used as a
   //   tolerance for floating-point comparisons, because of the name.  It is
   //   nearly always the wrong value to use for this purpose.
-  
+
   /// The unit in the last place of `self`.
   ///
   /// This is the unit of the least significant digit in the significand of
@@ -188,13 +188,13 @@ public protocol FloatingPoint: Comparable, IntegerLiteralConvertible, SignedNumb
   ///
   /// (See https://en.wikipedia.org/wiki/Machine_epsilon for more detail)
   var ulp: Self { get }
-  
+
   /// The unit in the last place of 1.0.
   ///
   /// The positive difference between 1.0 and the next greater representable
   /// number.  Corresponds to the C macros `FLT_EPSILON`, `DBL_EPSILON`, etc.
   static var ulpOfOne: Self { get }
-  
+
   /// The least positive normal number.
   ///
   /// Compares less than or equal to all positive normal numbers.  There may
@@ -204,14 +204,14 @@ public protocol FloatingPoint: Comparable, IntegerLiteralConvertible, SignedNumb
   /// those macros is slightly misleading, because subnormals, zeros, and
   /// negative numbers are smaller than this value.
   static var leastNormalMagnitude: Self { get }
-  
+
   /// The least positive number.
   ///
   /// Compares less than or equal to all positive numbers, but greater than
   /// zero.  If the target supports subnormal values, this is smaller than
   /// `leastNormalMagnitude`; otherwise they are equal.
   static var leastNonzeroMagnitude: Self { get }
-  
+
   /// `Minus` if the signbit of `self` is set, and `Plus` otherwise.
   /// Implements the IEEE 754 `signbit` operation.
   ///
@@ -220,7 +220,7 @@ public protocol FloatingPoint: Comparable, IntegerLiteralConvertible, SignedNumb
   /// `x < 0` is always false if `x` is NaN, `x.sign` could be either `.Plus`
   /// or `.Minus`.
   var sign: Sign { get }
-  
+
   /// The integer part of the base-r logarithm of the magnitude of `self`,
   /// where r is the radix (2 for binary, 10 for decimal).  Implements the
   /// IEEE 754 `logB` operation.
@@ -230,7 +230,7 @@ public protocol FloatingPoint: Comparable, IntegerLiteralConvertible, SignedNumb
   /// - If `x` is zero, then `x.exponent` is `Int.min`.
   /// - If `x` is +/-infinity or NaN, then `x.exponent` is `Int.max`
   var exponent: Exponent { get }
-  
+
   /// The significand satisfies:
   ///
   /// ~~~
@@ -254,58 +254,58 @@ public protocol FloatingPoint: Comparable, IntegerLiteralConvertible, SignedNumb
   ///
   /// then `y` is equivalent to `x`, meaning that `y` is `x` canonicalized.
   var significand: Self { get }
-  
+
   /// Sum of `self` and `other` rounded to a representable value.  The IEEE
   /// 754 addition operation.
   ///
   /// A default implementation is provided in terms of `add()`.
   @warn_unused_result
   func adding(other: Self) -> Self
-  
+
   /// Replace `self` with the sum of `self` and `other` rounded to a
   /// representable value.
   mutating func add(other: Self)
-  
+
   /// Additive inverse of `self`.  Always exact.
   @warn_unused_result
   func negated() -> Self
-  
+
   /// Replace `self` with its additive inverse.
   mutating func negate()
-  
+
   /// Sum of `self` and the additive inverse of `other` rounded to a
   /// representable value.  The IEEE 754 subtraction operation.
   ///
   /// A default implementation is provided in terms of `subtract()`.
   @warn_unused_result
   func subtracting(other: Self) -> Self
-  
+
   /// Replace `self` with the sum of `self` and the additive inverse of `other`
   /// rounded to a representable value.
   mutating func subtract(other: Self)
-  
+
   /// Product of `self` and `other` rounded to a representable value.  The
   /// IEEE 754 multiply operation.
   ///
   /// A default implementation is provided in terms of `multiply(by:)`.
   @warn_unused_result
   func multiplied(by other: Self) -> Self
-  
+
   /// Replace `self` with the product of `self` and `other` rounded to a
   /// representable value.
   mutating func multiply(by other: Self)
-  
+
   /// Quotient of `self` and `other` rounded to a representable value.  The
   /// IEEE 754 divide operation.
   ///
   /// A default implementation is provided in terms of `divide(by:)`.
   @warn_unused_result
   func divided(by other: Self) -> Self
-  
+
   /// Replace `self` with the quotient of `self` and `other` rounded to a
   /// representable value.
   mutating func divide(by other: Self)
-  
+
   /// Remainder of `self` divided by `other`.  This is the IEEE 754 remainder
   /// operation.
   ///
@@ -322,10 +322,10 @@ public protocol FloatingPoint: Comparable, IntegerLiteralConvertible, SignedNumb
   /// `remainder` is always exact.
   @warn_unused_result
   func remainder(dividingBy other: Self) -> Self
-  
+
   /// Mutating form of `remainder`.
   mutating func formRemainder(dividingBy other: Self)
-  
+
   /// Remainder of `self` divided by `other` using truncating division.
   /// Equivalent to the C standard library function `fmod`.
   ///
@@ -337,25 +337,25 @@ public protocol FloatingPoint: Comparable, IntegerLiteralConvertible, SignedNumb
   /// `truncatingRemainder` is always exact.
   @warn_unused_result
   func truncatingRemainder(dividingBy other: Self) -> Self
-  
+
   /// Mutating form of `truncatingRemainder`.
   mutating func formTruncatingRemainder(dividingBy other: Self)
-  
+
   /// Square root of `self`.
   @warn_unused_result
   func squareRoot() -> Self
-  
+
   /// Mutating form of square root.
   mutating func formSquareRoot()
-  
+
   /// `self + lhs*rhs` computed without intermediate rounding.  Implements the
   /// IEEE 754 `fusedMultiplyAdd` operation.
   @warn_unused_result
   func addingProduct(lhs: Self, _ rhs: Self) -> Self
-  
+
   /// Fused multiply-add, accumulating the product of `lhs` and `rhs` to `self`.
   mutating func addProduct(lhs: Self, _ rhs: Self)
-  
+
   /// The minimum of `x` and `y`.  Implements the IEEE 754 `minNum` operation.
   ///
   /// Returns `x` if `x <= y`, `y` if `y < x`, and whichever of `x` or `y`
@@ -367,7 +367,7 @@ public protocol FloatingPoint: Comparable, IntegerLiteralConvertible, SignedNumb
   /// to NaNs.
   @warn_unused_result
   static func minimum(x: Self, _ y: Self) -> Self
-  
+
   /// The maximum of `x` and `y`.  Implements the IEEE 754 `maxNum` operation.
   ///
   /// Returns `x` if `x >= y`, `y` if `y > x`, and whichever of `x` or `y`
@@ -379,7 +379,7 @@ public protocol FloatingPoint: Comparable, IntegerLiteralConvertible, SignedNumb
   /// to NaNs.
   @warn_unused_result
   static func maximum(x: Self, _ y: Self) -> Self
-  
+
   /// Whichever of `x` or `y` has lesser magnitude.  Implements the IEEE 754
   /// `minNumMag` operation.
   ///
@@ -388,7 +388,7 @@ public protocol FloatingPoint: Comparable, IntegerLiteralConvertible, SignedNumb
   /// only if both arguments are NaN.
   @warn_unused_result
   static func minimumMagnitude(x: Self, _ y: Self) -> Self
-  
+
   /// Whichever of `x` or `y` has greater magnitude.  Implements the IEEE 754
   /// `maxNumMag` operation.
   ///
@@ -397,7 +397,7 @@ public protocol FloatingPoint: Comparable, IntegerLiteralConvertible, SignedNumb
   /// only if both arguments are NaN.
   @warn_unused_result
   static func maximumMagnitude(x: Self, _ y: Self) -> Self
-  
+
   /// The least representable value that compares greater than `self`.
   ///
   /// - If `x` is `-infinity`, then `x.nextUp` is `-greatestMagnitude`.
@@ -406,19 +406,19 @@ public protocol FloatingPoint: Comparable, IntegerLiteralConvertible, SignedNumb
   /// - If `x` is `greatestMagnitude`, then `x.nextUp` is `infinity`.
   /// - If `x` is `infinity` or `NaN`, then `x.nextUp` is `x`.
   var nextUp: Self { get }
-  
+
   /// The greatest representable value that compares less than `self`.
   ///
   /// `x.nextDown` is equivalent to `-(-x).nextUp`
   var nextDown: Self { get }
-  
+
   /// IEEE 754 equality predicate.
   ///
   /// -0 compares equal to +0, and NaN compares not equal to anything,
   /// including itself.
   @warn_unused_result
   func isEqual(to other: Self) -> Bool
-  
+
   /// IEEE 754 less-than predicate.
   ///
   /// NaN compares not less than anything.  -infinity compares less than
@@ -426,7 +426,7 @@ public protocol FloatingPoint: Comparable, IntegerLiteralConvertible, SignedNumb
   /// +infinity compares less than +infinity.
   @warn_unused_result
   func isLess(than other: Self) -> Bool
-  
+
   /// IEEE 754 less-than-or-equal predicate.
   ///
   /// NaN compares not less than or equal to anything, including itself.
@@ -443,7 +443,7 @@ public protocol FloatingPoint: Comparable, IntegerLiteralConvertible, SignedNumb
   /// are totally ordered.
   @warn_unused_result
   func isLessThanOrEqualTo(_ other: Self) -> Bool
-  
+
   /// True if and only if `self` preceeds `other` in the IEEE 754 total order
   /// relation.
   ///
@@ -453,23 +453,23 @@ public protocol FloatingPoint: Comparable, IntegerLiteralConvertible, SignedNumb
   /// comparisons, there is no operator form of this relation.
   @warn_unused_result
   func isTotallyOrdered(below other: Self) -> Bool
-  
+
   /// True if and only if `self` is normal.
   ///
   /// A normal number uses the full precision available in the format.  Zero
   /// is not a normal number.
   var isNormal: Bool { get }
-  
+
   /// True if and only if `self` is finite.
   ///
   /// If `x.isFinite` is `true`, then one of `x.isZero`, `x.isSubnormal`, or
   /// `x.isNormal` is also `true`, and `x.isInfinite` and `x.isNaN` are
   /// `false`.
   var isFinite: Bool { get }
-  
+
   /// True iff `self` is zero.  Equivalent to `self == 0`.
   var isZero: Bool { get }
-  
+
   /// True if and only if `self` is subnormal.
   ///
   /// A subnormal number does not use the full precision available to normal
@@ -479,23 +479,23 @@ public protocol FloatingPoint: Comparable, IntegerLiteralConvertible, SignedNumb
   /// are simply different names for the same concept.  IEEE 754 prefers the
   /// name "subnormal", and we follow that usage.
   var isSubnormal: Bool { get }
-  
+
   /// True if and only if `self` is infinite.
   ///
   /// Note that `isFinite` and `isInfinite` do not form a dichotomy, because
   /// they are not total.  If `x` is `NaN`, then both properties are `false`.
   var isInfinite: Bool { get }
-  
+
   /// True if and only if `self` is NaN ("not a number"); this property is
   /// true for both quiet and signaling NaNs.
   var isNaN: Bool { get }
-  
+
   /// True if and only if `self` is a signaling NaN.
   var isSignalingNaN: Bool { get }
-  
+
   /// The IEEE 754 "class" of this type.
   var floatingPointClass: FloatingPointClassification { get }
-  
+
   /// True if and only if `self` is canonical.
   ///
   /// Every floating-point value of type Float or Double is canonical, but
@@ -711,10 +711,10 @@ public protocol BinaryFloatingPoint: FloatingPoint, FloatLiteralConvertible {
 
   @warn_unused_result
   func isEqual<Other: BinaryFloatingPoint>(to other: Other) -> Bool
-  
+
   @warn_unused_result
   func isLess<Other: BinaryFloatingPoint>(than other: Other) -> Bool
-  
+
   @warn_unused_result
   func isLessThanOrEqual<Other: BinaryFloatingPoint>(to other: Other) -> Bool
 
