@@ -7,11 +7,12 @@
 * [Swift-evolution thread](http://news.gmane.org/find-root.php?message_id=CA%2bY5xYfqKR6yC2Q%2dG7D9N7FeY%3dxs1x3frq%3d%3dsyGoqYpOcL9yrw%40mail.gmail.com)
 * Status: **Under Active review** April 10...18, 2016
 * Review manager: [Chris Lattner](https://github.com/lattner)
-* Revision: 3
+* Revision: 4
 * Previous Revisions:
   [1](https://github.com/apple/swift-evolution/blob/21fac2e8034e79e4f44c1c8799808fc8cba83395/proposals/0065-collections-move-indices.md)
-  (as submitted),
-  [2](https://github.com/apple/swift-evolution/blob/1a821cf7ccbdf1d7566e9ce2e991bdd835ba3b7d/proposals/0065-collections-move-indices.md)
+  (as submitted for review),
+  [2](https://github.com/apple/swift-evolution/blob/1a821cf7ccbdf1d7566e9ce2e991bdd835ba3b7d/proposals/0065-collections-move-indices.md),
+  [3](https://github.com/apple/swift-evolution/blob/d44c3e7c189ba39ddf8a914ae8b78b71f88fdcdf/proposals/0065-collections-move-indices.md)
 
 ## Summary
 
@@ -162,29 +163,9 @@ struct Array<Element>
 struct UnicodeScalarView : BidirectionalCollection { ... }
 ```
 
-### Range Protocols and Types
+### Range Types
 
-The proposal adds several new types and protocols to support ranges:
-
-```
-                +-------------+
-                |RangeProtocol|
-                +------+------+
-                       |
-          +------------+---------------------+
-          |                                  |
-+---------+-----------+           +----------+--------+
-|HalfOpenRangeProtocol|           |ClosedRangeProtocol|
-+----+------+---------+    :      +-------+------+----+
-     |      |              :              |      |
-+----+---+  |  +...........+...........+  |  +---+----------+
-|Range<T>|  |  : RandomAccessCollection:  |  |ClosedRange<T>|
-+========+  |  +....+...............+..+  |  +==============+
-            |       |               |     |
-       +----+-------+----+       +--+-----+--------------+
-       |CountableRange<T>|       |CountableClosedRange<T>|
-       +=================+       +=======================+
-```
+The proposal adds several new types to support ranges:
 
 * The old `Range<T>`, `ClosedInterval<T>`, and
   `OpenInterval<T>` are replaced with four new generic range types:
@@ -200,16 +181,6 @@ The proposal adds several new types and protocols to support ranges:
     `CountableClosedRange<T>`. These types can be folded into
     `Range` and `ClosedRange` when Swift acquires conditional
     conformance capability.
-
-We also introduce three new protocols:
-
-* `RangeProtocol`
-* `HalfOpenRangeProtocol`
-* `ClosedRangeProtocol`
-
-These protocols mostly exist facilitate implementation-sharing among
-the range types, and would seldom need to be implemented outside the
-standard library.
 
 ### The Associated `Indices` Type
 
@@ -421,39 +392,12 @@ Note:
 
 ## `Range`s
 
-The `RangeProtocol` shown below, along with the description of 
-[Range Protocols and Types](#range-protocols-and-types) above, provide
-a complete picture of the changes to ranges.
+The four range [Range Types](#range-types) share the common interface
+shown below:
 
 ```swift
-/// A type that represents a contiguous range of any comparable value.
-///
-/// A range contains at least every value `x` where `lowerBound < x` and
-/// `x < upperBound`. Individual types that conform to `RangeProtocol` must
-/// specify their containment rules for the bounds of the range.
-///
-/// The standard library defines two kinds of ranges: closed ranges,
-/// represented by `ClosedRangeProtocol`, and half-open ranges, represented by
-/// `HalfOpenRangeProtocol`. A closed range contains both its lower and upper
-/// bounds, and therefore cannot be empty. A half-open range, on the other
-/// hand, contains its lower bound when nonempty but never its upper bound.
-///
-///     let closed: ClosedRange = 5...10
-///     closed.contains(5)      // true
-///     closed.contains(10)     // true
-///
-///     let halfOpen: Range = 5..<10
-///     halfOpen.contains(5)    // true
-///     halfOpen.contains(10)   // false
-///
-/// Not all empty ranges are equal; the bounds of two empty ranges must also be
-/// equal for the ranges to be equal.
-public protocol RangeProtocol : Equatable {
+public struct Range<Bound: Comparable> : Equatable {
   
-  /// The representation of the range's endpoints and the values
-  /// contained in it.
-  associatedtype Bound : Comparable
-
   /// Creates an instance with the given bounds.
   ///
   /// - Note: As this initializer does not check its precondition, it
@@ -465,38 +409,18 @@ public protocol RangeProtocol : Equatable {
   init(uncheckedBounds: (lower: Bound, upper: Bound))
 
   /// Returns `true` if the range contains the `value`.
-  ///
-  /// Any type of range contains every value `x` where
-  /// `lowerBound < x < upperBound`. `RangeProtocol` makes no requirement as
-  /// to whether individual range types must contain either their lower or
-  /// upper bound.
   func contains(value: Bound) -> Bool
   
   /// Returns `true` iff `self` and `other` contain a value in common.
-  /// 
-  /// Any type of range contains every value `x` where
-  /// `lowerBound < x < upperBound`. `RangeProtocol` makes no requirement as
-  /// to whether individual range types must contain either their lower or
-  /// upper bound.
   func overlaps(other: Self) -> Bool
 
   /// Returns `true` iff `self.contains(x)` is `false` for all values of `x`.
   var isEmpty: Bool { get }
   
-  // Note: When the range is also a collection, it is crucial to
-  // enforce the invariant that lowerBound <= upperBound, or it may be
-  // empty with startIndex != endIndex.
-
   /// The range's lower bound.
-  ///
-  /// Depending on the concrete type of the range, `lowerBound` may or may not
-  /// be contained in the range.
   var lowerBound: Bound { get }
   
   /// The range's upper bound.
-  ///
-  /// Depending on the concrete type of the range, `upperBound` may or may not
-  /// be contained in the range.
   var upperBound: Bound { get }
   
   /// Returns `self` clamped to `limits`.
@@ -505,18 +429,14 @@ public protocol RangeProtocol : Equatable {
   /// limited to the bounds of `limits`.
   func clamped(to limits: Self) -> Self
 }
+```
 
-/// Conversion from one range to another.
-extension RangeProtocol where Bound : Strideable, Bound.Stride : Integer {
-  /// Creates an instance equivalent to `other`.
-  ///
-  /// - Precondition: an equivalent range is representable as an
-  ///   instance of `Self`.  For example, `Range(0...Int.max)`
-  ///   violates this precondition because an equivalent `Range<Int>`
-  ///   would need an `upperBound` equal to `Int.max + 1`, which
-  ///   is unrepresentable as an `Int`.
-  public init<Other: RangeProtocol where Other.Bound == Bound>(_ other: Other)
-}
+In addition, every implementable lossless conversion between range
+types is provided as a label-less `init` with one argument:
+
+```swift
+let a = 1..<10
+let b = ClosedRange(a) // <=== Here
 ```
 
 Note in particular:
