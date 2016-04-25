@@ -11,7 +11,7 @@
 One of the core principles of Swift is "mutability when you need it." This is espoused by Apple's official documentation about Swift:
 
 * [Value and Reference Types - Swift Developer Blog](https://developer.apple.com/swift/blog/?id=10)
-* [Building Better Apps with Value Types in Swift - WWDC 2015 (Doug Gregor)](https://developer.apple.com/videos/play/wwdc2015-414/)
+* [Building Better Apps with Value Types in Swift - WWDC 2015 (Doug Gregor)](https://developer.apple.com/videos/play/wwdc2015/414/)
 * [Swift Programming Language - Classes and Structures](https://developer.apple.com/library/ios/documentation/Swift/Conceptual/Swift_Programming_Language/ClassesAndStructures.html#//apple_ref/doc/uid/TP40014097-CH13-ID82)
 
 This concept is so important that it is literally the second thing taught in _The Swift Programming Language_, right after `print("Hello, world!")`:
