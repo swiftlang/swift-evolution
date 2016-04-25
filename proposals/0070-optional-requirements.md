@@ -13,8 +13,9 @@ don't want to make optional requirements a feature of Swift protocols
 (for reasons described below), nor can we completely eliminate the
 notion of the language (for different reasons also described
 below). Therefore, to prevent confusion about our direction, this
-proposal changes the `optional` keyword `objcoptional` to indicate
-that this is an Objective-C compatibility feature.
+proposal requires an explicit '@objc' attribute on each `optional`
+requirement to indicate that this is an Objective-C compatibility
+feature.
 
 Swift-evolution threads:
 [eliminate optional requirements](http://thread.gmane.org/gmane.comp.lang.swift.evolution/14046),
@@ -33,40 +34,24 @@ for compatibility with Objective-C.
 
 ## Proposed solution
 
-Rename the `optional` contextual keyword to `objcoptional`. Note that:
-
-* It would read better as `objc_optional` or `objcOptional`, but
-  keywords in Swift run the words together, and
-
-* It should not be an attribute `@objcOptional` because it changes the
-  effective type of the declaration. Referencing an optional
-  requirement wraps the result in one more level of optional, which is
-  used to test whether the requirement was implemented.
-
-This means that:
+Require an explicit `@objc` attribute on each `optional` requirement:
 
 ```swift
 @objc protocol NSTableViewDelegate {
-  optional func tableView(_: NSTableView, viewFor: NSTableColumn, row: Int) -> NSView?
-  optional func tableView(_: NSTableView, heightOfRow: Int) -> CGFloat
-}
-```
+  @objc optional func tableView(_: NSTableView, viewFor: NSTableColumn, row: Int) -> NSView? // correct
 
-becomes:
-
-```swift
-@objc protocol NSTableViewDelegate {
-  objcoptional func tableView(_: NSTableView, viewFor: NSTableColumn, row: Int) -> NSView?
-  objcoptional func tableView(_: NSTableView, heightOfRow: Int) -> CGFloat
+  optional func tableView(_: NSTableView, heightOfRow: Int) -> CGFloat  // error: 'optional' requirements are an Objective-C compatibility feature; add '@objc'
 }
 ```
 
 ## Impact on existing code
 
-Any code that declares `@objc` protocols with `optional` requirements
-will need to be changed to use the `objcoptional` keyword. However, it
-is trivial for the migrator to update the code and for the compiler to
-provide Fix-Its, so the actual impact on users should be small.
+Code that declares `@objc` protocols with `optional` requirements will
+need to be changed to add the `@objc` attribute. However, it is
+trivial for the migrator to update the code and for the compiler to
+provide Fix-Its, so the actual impact on users should be
+small. Moreover, explicitly writing `@objc` on optional requirements
+has always been permitted.
 
 ## Alternatives considered
 
@@ -183,3 +168,7 @@ say what the default implementation for each optional requirement is
 impractical. There is a related notion of [caller-site default
 implementations](http://thread.gmane.org/gmane.comp.lang.swift.evolution/14046)
 that was not well-received due to its complexity.
+
+Initially, this proposal introduce a new keyword
+`objcoptional`. However, that keyword was really ugly. Thank you to
+Xiaodi Wu for the suggestion to require an explicit `@objc`!
