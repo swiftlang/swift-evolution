@@ -1,16 +1,16 @@
-# Add scan, takeWhile, dropWhile, and iterate to the stdlib
+# Add scan, prefix(while:), drop(while:), and iterate to the stdlib
 
-* Proposal: SE-0045
+* Proposal: [SE-0045](0045-scan-takewhile-dropwhile.md)
 * Author(s): [Kevin Ballard](https://github.com/kballard)
-* Status: **Awaiting review**
-* Review manager: TBD
+* Status: **Review scheduled for April 28...May 2, 2016**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
-Add 3 new `SequenceType` functions `scan(_:combine:)`, `takeWhile(_:)`, and
-`dropWhile(_:)`, with overrides as appropriate on `CollectionType`,
-`LazySequenceType`, and `LazyCollectionType`, as well as a global function
-`iterate(_:apply:)`.
+Add 3 new `Sequence` functions `scan(_:combine:)`, `prefix(while:)`, and
+`drop(while:)`, with overrides as appropriate on `Collection`,
+`LazySequenceProtocol`, and `LazyCollectionProtocol`, as well as a global
+function `iterate(_:apply:)`.
 
 Swift-evolution thread:
 [Proposal: Add scan, takeWhile, dropWhile, and iterate to the stdlib](http://thread.gmane.org/gmane.comp.lang.swift.evolution/1515)
@@ -23,10 +23,10 @@ are quite useful.
 
 ## Proposed solution
 
-Add the following extension to `SequenceType`:
+Add the following extension to `Sequence`:
 
 ```swift
-extension SequenceType {
+extension Sequence {
   /// Returns an array containing the results of
   ///
   ///     p.reduce(initial, combine: combine)
@@ -43,28 +43,27 @@ extension SequenceType {
 }
 ```
 
-Modify the declaration of `SequenceType` with two new members:
+Modify the declaration of `Sequence` with two new members:
 
 ```swift
-protocol SequenceType {
+protocol Sequence {
   // ...
-  /// Returns a subsequence by skipping elements while `dropElement` returns
+  /// Returns a subsequence by skipping elements while `predicate` returns
   /// `true` and returning the remainder.
-  func dropWhile(@noescape dropElement: (Self.Generator.Element) throws -> Bool) rethrows -> Self.SubSequence
-  /// Returns a subsequence containing the elements until `takeElement` returns
-  /// `false` and skipping the remainder.
-  func takeWhile(@noescape takeElement: (Self.Generator.Element) throws -> Bool) rethrows -> Self.SubSequence
+  func drop(@noescape while predicate: (Self.Generator.Element) throws -> Bool) rethrows -> Self.SubSequence
+  /// Returns a subsequence containing the initial elements until `predicate`
+  /// returns `false` and skipping the remainder.
+  func prefix(@noescape while predicate: (Self.Generator.Element) throws -> Bool) rethrows -> Self.SubSequence
 }
 ```
 
-Also provide default implementations on `SequenceType` that return
-`AnySequence`, and default implementations on `CollectionType` that return a
-slice.
+Also provide default implementations on `Sequence` that return `AnySequence`,
+and default implementations on `Collection` that return a slice.
 
-`LazySequenceType` and `LazyCollectionType` will also be extended with
-implementations of `scan(_:combine:)`, `dropWhile(_:)`, and `takeWhile(_:)`
+`LazySequenceProtocol` and `LazyCollectionProtocol` will also be extended with
+implementations of `scan(_:combine:)`, `drop(while:)`, and `prefix(while:)`
 that return lazy sequence/collection types. Like the lazy `filter(_:)`,
-`dropWhile(_:)` will perform the filtering when `startIndex` is accessed.
+`drop(while:)` will perform the filtering when `startIndex` is accessed.
 
 Add a global function:
 
@@ -84,51 +83,51 @@ are handled:
 
 ```swift
 extension SequenceType {
-  func dropWhile(@noescape dropElement: (Self.Generator.Element) throws -> Bool) rethrows -> AnySequence<Self.Generator.Element>
-  func takeWhile(@noescape takeElement: (Self.Generator.Element) throws -> Bool) rethrows -> AnySequence<Self.Generator.Element>
+  func drop(@noescape while predicate: (Self.Generator.Element) throws -> Bool) rethrows -> AnySequence<Self.Generator.Element>
+  func prefix(@noescape while predicate: (Self.Generator.Element) throws -> Bool) rethrows -> AnySequence<Self.Generator.Element>
 }
 ```
 
 These default implementations produce an `AnySequence` that wraps an `Array`
 (as the functions must be implemented eagerly to match expected behavior).
 
-Provide default implementations on `CollectionType` as well:
+Provide default implementations on `Collection` as well:
 
 ```swift
-extension CollectionType {
-  func dropWhile(@noescape dropElement: (Self.Generator.Element) throws -> Bool) rethrows -> Self.SubSequence
-  func takeWhile(@noescape takeElement: (Self.Generator.Element) throws -> Bool) rethrows -> Self.SubSequence
+extension Collection {
+  func drop(@noescape while predicate: (Self.Generator.Element) throws -> Bool) rethrows -> Self.SubSequence
+  func prefix(@noescape while predicate: (Self.Generator.Element) throws -> Bool) rethrows -> Self.SubSequence
 }
 ```
 
-Extend `LazySequenceType` with lazy versions of the functions:
+Extend `LazySequenceProtocol` with lazy versions of the functions:
 
 ```swift
 extension LazySequenceType {
   func scan<T>(initial: T, combine: (T, Self.Generator.Element) -> T) -> LazyScanSequence<Self.Elements, T>
-  func dropWhile(dropElement: (Self.Generator.Element) -> Bool) -> LazyDropWhileSequence<Self.Elements>
-  func takeWhile(takeElement: (Self.Generator.Element) -> Bool) -> LazyTakeWhileSequence<Self.Elements>
+  func drop(while predicate: (Self.Generator.Element) -> Bool) -> LazyDropWhileSequence<Self.Elements>
+  func prefix(while predicate: (Self.Generator.Element) -> Bool) -> LazyPrefixWhileSequence<Self.Elements>
 }
 ```
 
 The types `LazyScanSequence`, `LazyDropWhileSequence`, and
-`LazyTakeWhileSequence` all conform to `LazySequenceType`.
+`LazyPrefixWhileSequence` all conform to `LazySequenceProtocol`.
 
-Extend `LazyCollectionType` with collection variants for the functions:
+Extend `LazyCollectionProtocol` with collection variants for the functions:
 
 ```swift
 extension LazyCollectionType {
   func scan<T>(initial: T, combine: (T, Self.Generator.Element) -> T) -> LazyScanCollection<Self.Elements, T>
-  func dropWhile(dropElement: (Self.Generator.Element) -> Bool) -> LazyDropWhileCollection<Self.Elements>
-  func takeWhile(takeElement: (Self.Generator.Element) -> Bool) -> LazyTakeWhileCollection<Self.Elements>
+  func drop(while predicate: (Self.Generator.Element) -> Bool) -> LazyDropWhileCollection<Self.Elements>
+  func prefix(while predicate: (Self.Generator.Element) -> Bool) -> LazyPrefixWhileCollection<Self.Elements>
 }
 ```
 
 The types `LazyScanCollection`, `LazyDropWhileCollection`, and
-`LazyTakeWhileCollection` conform to `LazyCollectionType`.
+`LazyPrefixWhileCollection` conform to `LazyCollectionProtocol`.
 
 The type `IterateSequence` from the function `iterate(_:apply:)` conforms to
-`SequenceType`.
+`Sequence`.
 
 ## Impact on existing code
 
@@ -136,38 +135,36 @@ None, this feature is purely additive.
 
 ## Alternatives considered
 
-#### API Guidelines
-
-With the new API Guidelines for Swift 3, it's possible that `takeWhile(_:)` and
-`dropWhile(_:)` should be renamed to `take(while:)` and `drop(while:)`. I'm not
-quite sure if this is actually the case.
-
 #### Naming
 
 The names here are likely to cause some bikeshedding. Here are some alternatives
 I've heard proposed:
 
-* `suffixFrom(firstElementSatisfying:)` instead of `dropWhile(_:)` – Not only is
+* `suffixFrom(firstElementSatisfying:)` instead of `drop(while:)` – Not only is
   it rather long, it's also focusing on taking a suffix while the actual
   expected usage of the function is focused around skipping elements at the
   start. There's also the potential confusion around whether it's the first
   element from the beginning or the first element from the end (since the term
   "suffix" implies working from the end backwards).
-* `skipWhile(_:)` instead of `dropWhile(_:)` – I'm actually partial to this one,
+* `skip(while:)` instead of `drop(while:)` – I'm actually partial to this one,
   but we'd need to rename `dropFirst(_:)` as well. The benefit of this is it
   removes the potential confusion around whether the method is mutating.
-* `prefixWhile(_:)` instead of `takeWhile(_:)` – This one doesn't make much
-  sense as "prefix" is a noun (the verb form means something different).
-* `prefixTo(_:)` instead of `takeWhile(_:)` – The name here doesn't make it
+* `take(while:)` instead of `prefix(while:)` – This was actually the original
+  name proposed, and it matches precedent from other languages, but I eventually
+  decided that consistency with `prefix(_:)` was desired. However, there is an
+  argument to be made that `prefix(while:)` is using the term "prefix" like a
+  verb instead of a noun, and the verb form means something different.
+* `prefix(to:)` instead of `prefix(while:)` – The name here doesn't make it
   obvious that the argument is a predicate, and this also requires inverting the
   meaning of the predicate which I don't like. The focus of this function is on
   retaining the initial elements that have a desired characteristic, which
   suggests that the predicate should describe the characteristic the desired
   elements have, not the inverse.
-* `prefixHaving(_:)` or `prefix(having:)` instead of `takeWhile(_:)` – Not bad,
-  I still prefer `takeWhile(_:)` since that matches existing terminology in FP
-  languages, but it has potential.
-* `reducedPrefixes(_:combine:)` instead of `scan(_:combine:)` – Seems rather
+* `prefix(having:)` instead of `prefix(while:)` – Reasonable. I chose
+  `prefix(while:)` for consistency with `drop(while:)` but `prefix(having:)`
+  makes more grammatical sense (since we're using the noun meaning of prefix
+  rather than the verb meaning).
+* `reducedPrefixes(_:combine:)` instead of `scan(_:combine:)` – Seems somewhat
   awkward.
 
 I haven't heard any alternative suggestions for `iterate(_:apply:)`.

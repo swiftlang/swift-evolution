@@ -115,6 +115,7 @@ sampling of potentially good ideas that are not in scope for Swift
 * [SE-0031: Adjusting inout Declarations for Type Decoration](proposals/0031-adjusting-inout-declarations.md)
 * [SE-0034: Disambiguating Line Control Statements from Debugging Identifiers](proposals/0034-disambiguating-line.md)
 * [SE-0037: Clarify interaction between comments & operators](proposals/0037-clarify-comments-and-operators.md)
+* [SE-0039: Modernizing Playground Literals](proposals/0039-playgroundliterals.md)
 * [SE-0040: Replacing Equal Signs with Colons For Attribute Arguments](proposals/0040-attributecolons.md)
 * [SE-0043: Declare variables in 'case' labels with multiple patterns](proposals/0043-declare-variables-in-case-labels-with-multiple-patterns.md)
 * [SE-0046: Establish consistent label behavior across all parameters including first labels](proposals/0046-first-label.md)
@@ -129,7 +130,6 @@ sampling of potentially good ideas that are not in scope for Swift
 * [SE-0035: Limiting `inout` capture to `@noescape` contexts](proposals/0035-limit-inout-capture.md)
 * [SE-0036: Requiring Leading Dot Prefixes for Enum Instance Member Implementations](proposals/0036-enum-dot.md)
 * [SE-0038: Package Manager C Language Target Support](proposals/0038-swiftpm-c-language-targets.md)
-* [SE-0039: Modernizing Playground Literals](proposals/0039-playgroundliterals.md)
 * [SE-0042: Flattening the function type of unapplied method references](proposals/0042-flatten-method-types.md)
 * [SE-0044: Import as Member](proposals/0044-import-as-member.md)
 * [SE-0047: Defaulting non-Void functions so they warn on unused results](proposals/0047-nonvoid-warn.md)
@@ -137,10 +137,10 @@ sampling of potentially good ideas that are not in scope for Swift
 * [SE-0054: Abolish `ImplicitlyUnwrappedOptional` type](proposals/0054-abolish-iuo.md)
 * [SE-0055: Make unsafe pointer nullability explicit using Optional](proposals/0055-optional-unsafe-pointers.md)
 * [SE-0057: Importing Objective-C Lightweight Generics](proposals/0057-importing-objc-generics.md)
+* [SE-0059: Update API Naming Guidelines and Rewrite Set APIs Accordingly](proposals/0059-updated-set-apis.md)
 * [SE-0062: Referencing Objective-C key-paths](proposals/0062-objc-keypaths.md)
 * [SE-0063: SwiftPM System Module Search Paths](proposals/0063-swiftpm-system-module-search-paths.md)
 * [SE-0064: Referencing the Objective-C selector of property getters and setters](proposals/0064-property-selectors.md)
-* [SE-0059: Update API Naming Guidelines and Rewrite Set APIs Accordingly](proposals/0059-updated-set-apis.md)
 
 ## Swift 2.2 - Released on March 21, 2016
 
@@ -175,6 +175,7 @@ as practical with Swift 2.0.
 * [SE-0013: Remove Partial Application of Non-Final Super Methods (Swift 2.2)](proposals/0013-remove-partial-application-super.md)
 * [SE-0024: Optional Value Setter `??=`](proposals/0024-optional-value-setter.md)
 * [SE-0027: Expose code unit initializers on String](proposals/0027-string-from-code-units.md)
+* [SE-0056: Allow trailing closures in `guard` conditions](proposals/0056-trailing-closures-in-guard.md)
 
 ## Review
 [Swift Evolution Review Schedule](https://github.com/apple/swift-evolution/blob/master/schedule.md)

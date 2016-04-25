@@ -2,8 +2,8 @@
 
 * Proposal: [SE-0067](https://github.com/apple/swift-evolution/blob/master/proposals/0067-floating-point-protocols.md)
 * Author(s): [Stephen Canon](https://github.com/stephentyrone)
-* Status: **Waiting for Scheduling**
-* Review manager: TBD
+* Status: **In active review April 19...25, 2016**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
