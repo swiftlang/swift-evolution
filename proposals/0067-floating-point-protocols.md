@@ -21,7 +21,7 @@ with the goal of reducing the number of overloads for basic operations.  This
 change was requested by some members of the core langauge team.
 
 Revision 2 also incorporates a number of suggestions from the review list and
-corrects some typos; thanks especially ot Xiaodi Wu for thoughtful feedback.
+corrects some typos; thanks especially to Xiaodi Wu for thoughtful feedback.
 Consult the changelog at the end of this document for full details.
 
 ## Motivation
