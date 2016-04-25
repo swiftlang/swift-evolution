@@ -3,7 +3,7 @@
 * Proposal: SE-NNNN
 * Author(s): [Daniel Dunbar](https://github.com/ddunbar)
 * Status: **Under construction**
-* Review manager: Rick Ballard
+* Review manager: Anders Bertelrud
 
 ## Introduction
 
@@ -95,8 +95,17 @@ package manager:
   hope it is more explicit when a user is building against a canonical set of
   package versions versus a packages which may have been modified.
 
-This also gives us a new place to add workflow behaviors to help make the
-interactions with editable packages safer or more flexible. For example, the
+We defined this feature in terms of behavior of `swift build` -- as opposed to
+changes to a "lockfiles" or "package pinning" mechanism -- because the
+expectation is that the decision to use an editable version of a Package versus
+the canonically resolved version is ultimately up to the individual
+developer. We do not yet have a clear feature for supporting the situation where
+a team of developers typically wants to edit the same group of packages (e.g.,
+all the ones they own), but anticipate that this mechanism can evolve to support
+that.
+
+This feature also gives us a new place to add workflow behaviors to help make
+the interactions with editable packages safer or more flexible. For example, the
 following are possible features for future extension:
 
 * We could infer (or allow user specification of) the next semantic version that
@@ -149,7 +158,21 @@ Concretely, we will take the following steps:
    ```
    have the exact same results for each build step.
 
-5. We *may* introduce a metadata file to record the project state and what
+5. We would like to introduce a `--end-edit <NAME>` subcommand (exact name is
+   TBD), which will revert the package manager to the behavior of using the
+   canonically resolved package.
+
+   As described, this will require removing the `Packages/<NAME>` checkout. We
+   need to be very careful about doing this, but this also gives us a good
+   opportunity to communicate to the user if the state on the repository they
+   are editing has not been pushed back into what would be the canonically
+   resolved package.
+
+   We will most likely defer this feature from the initial implementation and
+   document that users can `rm -rf Packages/<NAME>` to stop editing, until the
+   feature is introduced.
+
+6. We *may* introduce a metadata file to record the project state and what
    packages are editable. This would potentially allow us to provide better
    diagnostics to the user, it would also allow us to record an alternate
    location for the editable package. The latter would be useful when an author
@@ -157,6 +180,9 @@ Concretely, we will take the following steps:
    location on their file system, and would like other packages to refer to for
    iterative development. Initially, that behavior can be emulated using
    symbolic links within the `Packages` directory.
+
+7. We will consider a `swift build --edit-all` flag for immediately moving all
+   packages to editable mode.
 
 
 ## Impact on existing packages
@@ -177,3 +203,24 @@ mechanism we use to support package pinning/lockfiles to enable the iterative
 development workflows. The motivation for this proposal was in part based on the
 difficulties in defining the exact semantics for package pinning in conjunction
 with the existing semantics around the `Packages` directory.
+
+We have discussed whether or not hiding the sources for non-editable packages is
+the right default. The motivation for hiding the sources is that in a large,
+mature, stable ecosystem there are likely to be a large number of packages
+involved in any particular project build, and many of those are likely to be
+uninteresting to the package developer. In particular, while a project developer
+might be interested in the source of their direct dependencies, the sources of
+that packages own dependencies is an "implementation detail" from the
+perspective of the project developer.
+
+The downside of hiding sources by default is that it adds extra hoops for
+developers to go through to see those sources. In practice, we anticipate a
+workflow where a developer can easily transition between `--edit` and
+`--end-edit` efficiently if they need to easily inspect sources for one-off
+instances. For long-lived requirements (for example, needing to access a
+packages documentation), we anticipate that this problem will be solved by other
+mechanisms (for example, web hosted documentation or other mechanisms for
+browsing the source).
+
+We will revisit this default behavior if it proves problematic, and implement
+this feature with the flexibility to easily change the default.
