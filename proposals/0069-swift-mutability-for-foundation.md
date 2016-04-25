@@ -2,8 +2,9 @@
 
 * Proposal: [SE-0069](https://github.com/apple/swift-evolution/blob/master/proposals/0069-swift-mutability-for-foundation.md)
 * Author(s): Tony Parker <anthony.parker@apple.com>
-* Status: **Awaiting review**
-* Review Manager: TBD
+* Status: **Active review Apr 25 - May 4**
+* Review Manager: [Chris Lattner](https://github.com/lattner)
+
 
 ## Introduction
 

@@ -11,6 +11,7 @@ proposals in that process.
 * April 20...25, 2016 [SE-0068: Expanding Swift `Self` to class members and value types](proposals/0068-universal-self.md)
 * April 22...26, 2016 [SE-0061: Add Generic Result and Error Handling to autoreleasepool()](proposals/0061-autoreleasepool-signature.md)
 * April 25 ... May 2, 2016 [SE-0070: Make Optional Requirements Objective-C-only](proposals/0070-optional-requirements.md)
+* April 25 ... May 4, 2016 [SE-0069: Mutability and Foundation Value Types](proposals/0069-swift-mutability-for-foundation.md)
 
 ## Upcoming reviews
 
@@ -27,7 +28,6 @@ proposals in that process.
 * [SE-0052: Change IteratorType post-nil guarantee](proposals/0052-iterator-post-nil-guarantee.md)
 * [SE-0060: Enforcing order of defaulted parameters](proposals/0060-defaulted-parameter-order.md)
 * [SE-0066: Standardize function type argument syntax to require parentheses](proposals/0066-standardize-function-type-syntax.md)
-* [SE-0069: Mutability and Foundation Value Types](proposals/0069-swift-mutability-for-foundation.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 
