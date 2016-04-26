@@ -38,7 +38,7 @@ For this reason, we decided to make a compromise. We would require explicit brid
 With the introduction of Objective-C generics last year, along with all of the awesome improvements to API importing happening for Swift 3, I think it’s time that we take another look at completing this work. Taking a look back at last year’s “problematic” APIs, all of them now surface richer type information when imported into Swift 3. As a result, the remaining implicit bridging conversions now feel far less necessary, since Objective-C APIs are now more commonly exposed in terms of their appropriate bridged Swift value types. (For instance, in Swift 3, the above reference to attrs will import as ```[String : AnyObject]```.)
 
 ## Proposed solution
-I propose that we fully eliminate implicit bridging conversions in Swift 3. This would mean that some users might have to introduce introduce more explicit casts in their code, but we would remove another special case from Swift's type system and be able to further simplify the compiler. 
+I propose that we fully eliminate implicit bridging conversions in Swift 3. This would mean that some users might have to introduce more explicit casts in their code, but we would remove another special case from Swift's type system and be able to further simplify the compiler. 
 
 ## Impact on existing code
 Code that previously relied on implicit conversions between Swift value types and their associated bridged Objective-C type will now require a manual coercion via an ```as``` cast.
