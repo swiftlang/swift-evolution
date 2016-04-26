@@ -1,9 +1,9 @@
 # Allow (most) keywords in member references
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-member-keywords.md)
+* Proposal: [SE-0071](0071-member-keywords.md)
 * Author(s): [Doug Gregor](https://github.com/DougGregor)
-* Status: **[Awaiting review](#rationale)**
-* Review manager: TBD
+* Status: **In active review April 25 ... 29**
+* Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction
 
@@ -20,7 +20,7 @@ after a ".", similarly to how
 [SE-0001](https://github.com/apple/swift-evolution/blob/master/proposals/0001-keywords-as-argument-labels.md)
 allows keywords are argument labels.
 
-Swift-evolution thread: [link to the discussion thread for that proposal](http://thread.gmane.org/gmane.comp.lang.swift.evolution/7991)
+This idea was initially discussed in [this swift-evolution thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/7991).
 
 ## Motivation
 
