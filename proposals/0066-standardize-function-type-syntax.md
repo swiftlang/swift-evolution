@@ -17,6 +17,7 @@ example, these types:
 (Int) -> Float
 (String) -> Int
 (T) -> U
+(Int) -> (Float) -> String
 ```
 
 May be written as:
@@ -25,6 +26,7 @@ May be written as:
 Int -> Float
 String -> Int
 T -> U
+Int -> Float -> String
 ```
 
 While this saves some parentheses, it introduces some minor problems, is not
@@ -125,5 +127,34 @@ parameter list in its entirety.  Short of a complete rethink of closure syntax
 closure syntax!), requiring parentheses here would not improve the language in an
 apparent way.
 
+### Common objection
+
+The most common objection to this proposal cites a reduction in clarity for 
+higher order functions that take one parameter.  Consider a (simplified)
+implementation of `map` for example, written with the parentheses:
+
+```swift
+extension LazySequenceProtocol {
+  /// Returns a `LazyMapSequence` over this `Sequence`.  The elements of
+  /// the result are computed lazily, each time they are read, by
+  /// calling `transform` function on a base element.
+  func map<U>(_ transform: (Elements.Iterator.Element) -> U) -> LazyMapSequence<Self.Elements, U>
+}
+```
+
+The author is unconvinced by the claims that requiring parentheses on the
+`transform` parameter.  Consider:
+
+ * Many higher order functions are generic, which mean that they often take
+   long names like "Element" (where the parens do not add much clutter), or
+   an excessively short name (e.g. "T") where the parentheses add structure.
+
+ * The claims of "parentheses blindness" are a possible issue, but they are
+   no worse than the similar issue of "arrow blindness" as demonstrated by the
+   example above.
+
+Further, the declaration of a higher order functions is very rare (use of one is
+much more common, and is unaffected by this proposal), so it is not worth
+deploying sugar to syntax optimize.
 
 
