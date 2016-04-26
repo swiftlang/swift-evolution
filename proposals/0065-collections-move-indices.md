@@ -311,7 +311,7 @@ protocol Collection {
   /// - Complexity:
   ///   - O(1) if `Self` conforms to `RandomAccessCollection`.
   ///   - O(`abs(n)`) otherwise.
-  func location(i: Index, offsetBy n: IndexDistance) -> Index
+  func index(i: Index, offsetBy n: IndexDistance) -> Index
 
   /// Returns the result of advancing `i` by `n` positions, or until it
   /// equals `limit`.
@@ -329,7 +329,7 @@ protocol Collection {
   /// - Complexity:
   ///   - O(1) if `Self` conforms to `RandomAccessCollection`.
   ///   - O(`abs(n)`) otherwise.
-  func location(
+  func index(
     i: Index, offsetBy n: IndexDistance, limitedBy limit: Index) -> Index
 
   /// Advances `i` by `n` positions.
@@ -343,7 +343,7 @@ protocol Collection {
   /// - Complexity:
   ///   - O(1) if `Self` conforms to `RandomAccessCollection`.
   ///   - O(`abs(n)`) otherwise.
-  func formLocation(i: inout Index, offsetBy n: IndexDistance)
+  func formIndex(i: inout Index, offsetBy n: IndexDistance)
 
   /// Advances `i` by `n` positions, or until it equals `limit`.
   ///
@@ -353,7 +353,7 @@ protocol Collection {
   /// - Complexity:
   ///   - O(1) if `Self` conforms to `RandomAccessCollection`.
   ///   - O(`abs(n)`) otherwise.
-  func formLocation(
+  func formIndex(
     i: inout Index, offsetBy n: IndexDistance, limitedBy limit: Index)
 
   /// Returns the distance between `start` and `end`.
@@ -387,7 +387,7 @@ Note:
 
 * `RandomAccessCollection` does not add any *syntactic* requirements
   beyond those of `BidirectionalCollection`.  Instead, it places
-  tighter performance bounds on operations such as `c.location(i,
+  tighter performance bounds on operations such as `c.index(i,
   offsetBy: n)` (O(1) instead of O(`n`)).
 
 ## `Range`s
@@ -459,7 +459,7 @@ in the interest of full disclosure:
   could also be seen as discouragement from trying to do random access
   operations with less-refined index protocols, because in those cases
   one has to resort to constructs like `i.advancedBy(n)`.  In this
-  proposal, there is only `c.location(i, offsetBy: n)`, which makes
+  proposal, there is only `c.index(i, offsetBy: n)`, which makes
   random access equally (in)convenient for all collections, and there
   is no particular syntactic penalty for doing things that might turn
   out to be inefficient.
