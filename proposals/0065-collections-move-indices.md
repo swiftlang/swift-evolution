@@ -330,7 +330,7 @@ protocol Collection {
   ///   - O(1) if `Self` conforms to `RandomAccessCollection`.
   ///   - O(`abs(n)`) otherwise.
   func index(
-    i: Index, offsetBy n: IndexDistance, limitedBy limit: Index) -> Index
+    _ i: Index, offsetBy n: IndexDistance, limitedBy limit: Index) -> Index
 
   /// Advances `i` by `n` positions.
   ///
@@ -354,7 +354,7 @@ protocol Collection {
   ///   - O(1) if `Self` conforms to `RandomAccessCollection`.
   ///   - O(`abs(n)`) otherwise.
   func formIndex(
-    i: inout Index, offsetBy n: IndexDistance, limitedBy limit: Index)
+    _ i: inout Index, offsetBy n: IndexDistance, limitedBy limit: Index)
 
   /// Returns the distance between `start` and `end`.
   ///
