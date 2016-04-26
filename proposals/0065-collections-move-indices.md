@@ -7,19 +7,20 @@
 * [Swift-evolution thread](http://news.gmane.org/find-root.php?message_id=CA%2bY5xYfqKR6yC2Q%2dG7D9N7FeY%3dxs1x3frq%3d%3dsyGoqYpOcL9yrw%40mail.gmail.com)
 * Status: **Under Active review** April 10...18, 2016
 * Review manager: [Chris Lattner](https://github.com/lattner)
-* Revision: 4
+* Revision: 5
 * Previous Revisions:
   [1](https://github.com/apple/swift-evolution/blob/21fac2e8034e79e4f44c1c8799808fc8cba83395/proposals/0065-collections-move-indices.md)
   (as submitted for review),
   [2](https://github.com/apple/swift-evolution/blob/1a821cf7ccbdf1d7566e9ce2e991bdd835ba3b7d/proposals/0065-collections-move-indices.md),
   [3](https://github.com/apple/swift-evolution/blob/d44c3e7c189ba39ddf8a914ae8b78b71f88fdcdf/proposals/0065-collections-move-indices.md)
+  [4](https://github.com/apple/swift-evolution/blob/57639040dc08d2f0b16d9bda527db069589b58d1/proposals/0065-collections-move-indices.md)
 
 ## Summary
 
 We propose a new model for `Collection`s wherein responsibility for
 index traversal is moved from the index to the collection itself.  For
 example, instead of writing `i.successor()`, one would write
-`c.successor(i)`.  We also propose the following changes as a
+`c.location(after: i)`.  We also propose the following changes as a
 consequence of the new model:
 
 * A collection's `Index` can be any `Comparable` type.
@@ -259,7 +260,7 @@ protocol Collection {
   /// `Index` values where one value is reachable from the other.
   ///
   /// Reachability is defined by the ability to produce one value from
-  /// the other via zero or more applications of `successor(_)`.
+  /// the other via zero or more applications of `location(after: _)`.
   associatedtype IndexDistance : SignedInteger = Int
 
   /// A collection type whose elements are the indices of `self` that
@@ -271,7 +272,7 @@ protocol Collection {
   /// - Note: `indices` can hold a strong reference to the collection itself,
   ///   causing the collection to be non-uniquely referenced.  If you need to
   ///   mutate the collection while iterating over its indices, use the
-  ///   `successor(_)` method starting with `startIndex` to produce indices
+  ///   `location(after: _)` method starting with `startIndex` to produce indices
   ///   instead.
   /// 
   ///   ```
@@ -279,7 +280,7 @@ protocol Collection {
   ///   var i = c.startIndex
   ///   while i != c.endIndex {
   ///       c[i] /= 5
-  ///       i = c.successor(i)
+  ///       i = c.location(after: i)
   ///   }
   ///   // c == [2, 4, 6, 8, 10]
   ///   ```
@@ -289,16 +290,16 @@ protocol Collection {
   ///
   /// - Precondition: `(startIndex..<endIndex).contains(i)`
   @warn_unused_result
-  func successor(_ i: Index) -> Index
+  func location(after i: Index) -> Index
 
   /// Replaces `i` with its successor.
-  func formSuccessor(i: inout Index)
+  func formLocation(after i: inout Index)
 
   /// Returns the result of advancing `i` by `n` positions.
   ///
   /// - Returns:
-  ///   - If `n > 0`, the `n`th successor of `i`.
-  ///   - If `n < 0`, the `n`th predecessor of `i`.
+  ///   - If `n > 0`, the `n`th index after `i`.
+  ///   - If `n < 0`, the `n`th index before `i`.
   ///   - Otherwise, `i` unmodified.
   ///
   /// - Precondition: `n >= 0` unless `Self` conforms to
@@ -316,9 +317,9 @@ protocol Collection {
   /// equals `limit`.
   ///
   /// - Returns:
-  ///   - If `n > 0`, the `n`th successor of `i` or `limit`, whichever
+  ///   - If `n > 0`, the `n`th index after `i` or `limit`, whichever
   ///     is reached first.
-  ///   - If `n < 0`, the `n`th predecessor of `i` or `limit`, whichever
+  ///   - If `n < 0`, the `n`th index before `i` or `limit`, whichever
   ///     is reached first.
   ///   - Otherwise, `i` unmodified.
   ///
@@ -369,19 +370,18 @@ protocol BidirectionalCollection {
   /// Returns the position immediately preceding `i`.
   ///
   /// - Precondition: `i > startIndex && i <= endIndex` 
-  func predecessor(_ i: Index) -> Index
+  func location(before i: Index) -> Index
 
   /// Replaces `i` with its predecessor.
   ///
   /// - Precondition: `i > startIndex && i <= endIndex`
-  func formPredecessor(i: inout Index)
+  func formLocation(before i: inout Index)
 }
 ```
 
 Note:
 
-* The mutating `formSuccessor`, `formPredecessor`, and the `formIndex`
-  overloads essentially enshrine the previously-hidden
+* The `formIndex` overloads essentially enshrine the previously-hidden
   `_successorInPlace` et al., which can be important for performance
   when handling the rare heavyweight index type such as `AnyIndex`.
 
@@ -472,8 +472,8 @@ in the interest of full disclosure:
   manipulations end up looking like free function calls:
 
   ```swift
-  let j = successor(i)        // self.successor(i)
-  let k = location(j, offsetBy: 5)  // self.location(j, offsetBy: 5)
+  let j = location(after: i)           // self.successor(i)
+  let k = location(j, offsetBy: 5)     // self.location(j, offsetBy: 5)
   ```
 
 * The
@@ -511,7 +511,7 @@ Code that **does not need to change**:
 
 * APIs of high-level collection algorithms don't change, even for
   algorithms that accept indices as parameters or return indices (e.g.,
-  `index(of:)`, `min()`, `sort()`, `prefix()`, `prefix(upTo:)` etc.)
+  `location(of:)`, `min()`, `sort()`, `prefix()`, `prefix(upTo:)` etc.)
 
 Code that **needs to change**:
 
@@ -528,11 +528,11 @@ Code that **needs to change**:
 
   // After:
   var i = c.index { $0 % 2 == 0 }   // No change in algorithm API.
-  let j = c.successor(i)        // Advancing an index requires a collection instance.
+  let j = c.location(after: i)      // Advancing an index requires a collection instance.
   print(c[j])                       // No change in subscripting.
   ```
 
-  The transformation from `i.successor()` to `c.successor(i)` is
+  The transformation from `i.successor()` to `c.location(after: i)` is
   non-trivial.  Performing it correctly requires knowing how to get
   the corresponding collection.  In general, it is not possible to
   perform this migration automatically.  A very sophisticated migrator
