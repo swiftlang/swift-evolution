@@ -143,18 +143,20 @@ extension LazySequenceProtocol {
 ```
 
 The author is unconvinced by the claims that requiring parentheses on the
-`transform` parameter.  Consider:
+`transform` parameter unacceptably reduce readability.  Consider:
 
  * Many higher order functions are generic, which mean that they often take
-   long names like "Element" (where the parens do not add much clutter), or
-   an excessively short name (e.g. "T") where the parentheses add structure.
+   long names like `Element` (where the parens do not add much clutter), or
+   an excessively short name (e.g. `T`) where the parentheses add structure.
 
- * The claims of "parentheses blindness" are a possible issue, but they are
-   no worse than the similar issue of "arrow blindness" as demonstrated by the
+ * The claims of "parentheses blindness" are a possible issue, but they help
+   offset the similar issue of "arrow blindness", as demonstrated by the
    example above.
 
 Further, the declaration of a higher order functions is very rare (use of one is
 much more common, and is unaffected by this proposal), so it is not worth
-deploying sugar to syntax optimize.
+deploying sugar to syntax optimize.  If Swift 1 required parentheses on
+function types, we would almost certainly reject a proposal to syntax optimize
+them away.
 
 
