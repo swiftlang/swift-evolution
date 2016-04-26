@@ -311,7 +311,7 @@ protocol Collection {
   /// - Complexity:
   ///   - O(1) if `Self` conforms to `RandomAccessCollection`.
   ///   - O(`abs(n)`) otherwise.
-  func index(i: Index, offsetBy n: IndexDistance) -> Index
+  func index(_ i: Index, offsetBy n: IndexDistance) -> Index
 
   /// Returns the result of advancing `i` by `n` positions, or until it
   /// equals `limit`.
@@ -343,7 +343,7 @@ protocol Collection {
   /// - Complexity:
   ///   - O(1) if `Self` conforms to `RandomAccessCollection`.
   ///   - O(`abs(n)`) otherwise.
-  func formIndex(i: inout Index, offsetBy n: IndexDistance)
+  func formIndex(_ i: inout Index, offsetBy n: IndexDistance)
 
   /// Advances `i` by `n` positions, or until it equals `limit`.
   ///
@@ -409,10 +409,10 @@ public struct Range<Bound: Comparable> : Equatable {
   init(uncheckedBounds: (lower: Bound, upper: Bound))
 
   /// Returns `true` if the range contains the `value`.
-  func contains(value: Bound) -> Bool
+  func contains(_ value: Bound) -> Bool
   
   /// Returns `true` iff `self` and `other` contain a value in common.
-  func overlaps(other: Self) -> Bool
+  func overlaps(_ other: Self) -> Bool
 
   /// Returns `true` iff `self.contains(x)` is `false` for all values of `x`.
   var isEmpty: Bool { get }
