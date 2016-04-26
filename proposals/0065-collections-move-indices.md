@@ -20,7 +20,7 @@
 We propose a new model for `Collection`s wherein responsibility for
 index traversal is moved from the index to the collection itself.  For
 example, instead of writing `i.successor()`, one would write
-`c.location(after: i)`.  We also propose the following changes as a
+`c.index(after: i)`.  We also propose the following changes as a
 consequence of the new model:
 
 * A collection's `Index` can be any `Comparable` type.
@@ -260,7 +260,7 @@ protocol Collection {
   /// `Index` values where one value is reachable from the other.
   ///
   /// Reachability is defined by the ability to produce one value from
-  /// the other via zero or more applications of `location(after: _)`.
+  /// the other via zero or more applications of `index(after: _)`.
   associatedtype IndexDistance : SignedInteger = Int
 
   /// A collection type whose elements are the indices of `self` that
@@ -272,7 +272,7 @@ protocol Collection {
   /// - Note: `indices` can hold a strong reference to the collection itself,
   ///   causing the collection to be non-uniquely referenced.  If you need to
   ///   mutate the collection while iterating over its indices, use the
-  ///   `location(after: _)` method starting with `startIndex` to produce indices
+  ///   `index(after: _)` method starting with `startIndex` to produce indices
   ///   instead.
   /// 
   ///   ```
@@ -280,7 +280,7 @@ protocol Collection {
   ///   var i = c.startIndex
   ///   while i != c.endIndex {
   ///       c[i] /= 5
-  ///       i = c.location(after: i)
+  ///       i = c.index(after: i)
   ///   }
   ///   // c == [2, 4, 6, 8, 10]
   ///   ```
@@ -290,10 +290,10 @@ protocol Collection {
   ///
   /// - Precondition: `(startIndex..<endIndex).contains(i)`
   @warn_unused_result
-  func location(after i: Index) -> Index
+  func index(after i: Index) -> Index
 
   /// Replaces `i` with its successor.
-  func formLocation(after i: inout Index)
+  func formIndex(after i: inout Index)
 
   /// Returns the result of advancing `i` by `n` positions.
   ///
@@ -370,12 +370,12 @@ protocol BidirectionalCollection {
   /// Returns the position immediately preceding `i`.
   ///
   /// - Precondition: `i > startIndex && i <= endIndex` 
-  func location(before i: Index) -> Index
+  func index(before i: Index) -> Index
 
   /// Replaces `i` with its predecessor.
   ///
   /// - Precondition: `i > startIndex && i <= endIndex`
-  func formLocation(before i: inout Index)
+  func formIndex(before i: inout Index)
 }
 ```
 
@@ -472,8 +472,8 @@ in the interest of full disclosure:
   manipulations end up looking like free function calls:
 
   ```swift
-  let j = location(after: i)           // self.successor(i)
-  let k = location(j, offsetBy: 5)     // self.location(j, offsetBy: 5)
+  let j = index(after: i)           // self.successor(i)
+  let k = index(j, offsetBy: 5)     // self.index(j, offsetBy: 5)
   ```
 
 * The
@@ -511,7 +511,7 @@ Code that **does not need to change**:
 
 * APIs of high-level collection algorithms don't change, even for
   algorithms that accept indices as parameters or return indices (e.g.,
-  `location(of:)`, `min()`, `sort()`, `prefix()`, `prefix(upTo:)` etc.)
+  `index(of:)`, `min()`, `sort()`, `prefix()`, `prefix(upTo:)` etc.)
 
 Code that **needs to change**:
 
@@ -528,11 +528,11 @@ Code that **needs to change**:
 
   // After:
   var i = c.index { $0 % 2 == 0 }   // No change in algorithm API.
-  let j = c.location(after: i)      // Advancing an index requires a collection instance.
+  let j = c.index(after: i)         // Advancing an index requires a collection instance.
   print(c[j])                       // No change in subscripting.
   ```
 
-  The transformation from `i.successor()` to `c.location(after: i)` is
+  The transformation from `i.successor()` to `c.index(after: i)` is
   non-trivial.  Performing it correctly requires knowing how to get
   the corresponding collection.  In general, it is not possible to
   perform this migration automatically.  A very sophisticated migrator
