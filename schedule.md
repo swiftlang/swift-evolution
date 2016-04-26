@@ -12,6 +12,7 @@ proposals in that process.
 * April 22...26, 2016 [SE-0061: Add Generic Result and Error Handling to autoreleasepool()](proposals/0061-autoreleasepool-signature.md)
 * April 25...29, 2016 [SE-0071: Allow (most) keywords in member references](proposals/0071-member-keywords.md)
 * April 25 ... May 2, 2016 [SE-0070: Make Optional Requirements Objective-C-only](proposals/0070-optional-requirements.md)
+* April 25...May 2, 2016 [SE-0066: Standardize function type argument syntax to require parentheses](proposals/0066-standardize-function-type-syntax.md)
 * April 25 ... May 4, 2016 [SE-0069: Mutability and Foundation Value Types](proposals/0069-swift-mutability-for-foundation.md)
 
 
@@ -29,7 +30,6 @@ proposals in that process.
 * [SE-0030: Property Behaviors](proposals/0030-property-behavior-decls.md)
 * [SE-0052: Change IteratorType post-nil guarantee](proposals/0052-iterator-post-nil-guarantee.md)
 * [SE-0060: Enforcing order of defaulted parameters](proposals/0060-defaulted-parameter-order.md)
-* [SE-0066: Standardize function type argument syntax to require parentheses](proposals/0066-standardize-function-type-syntax.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 
