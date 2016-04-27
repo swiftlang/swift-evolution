@@ -51,6 +51,27 @@ be written to exactly once. It can now be marked as a `let` variable:
 
 This new form is safer and cleaner.
 
+`@noescape(once)` can also be seen as a natural extension to [SE-0061](https://github.com/apple/swift-evolution/blob/master/proposals/0061-autoreleasepool-signature.md) in that we go from:
+
+	// Current Swift:
+	var x: Int = 0 // `var` declaration, with some irrelevant value
+	autoreleasepool {
+	    x = 1
+	}
+	
+	// Should SE-0061 be accepted:
+	let x = autoreleasepool {
+	    return 1
+	}
+	
+	// Should this proposal be accepted:
+	let x: Int
+	let y: String
+	autoreleasepool {
+	    x = 1
+	    y = "foo"
+	}
+
 
 ## Detailed design
 
