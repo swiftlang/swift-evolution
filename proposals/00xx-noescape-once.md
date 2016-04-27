@@ -113,6 +113,13 @@ expected.
 
 ## Alternatives considered
 
+## Not requiring exactly one execution
+
+Assuming that the main goal of this proposal is to relax initialization
+requirements, a unique invocation of the closure is not stricly required.
+However the requirement of unique invocation makes the proposal simpler to
+understand.
+
 ### A `@once` parameter
 
 It was mentioned in the discussion that the "once" behavior and `@noescape` look
