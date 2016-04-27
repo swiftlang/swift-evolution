@@ -49,8 +49,7 @@ be written to exactly once. It can now be marked as a `let` variable:
 	f { x = 1 }
 	print(x)    // Guaranteed to be initialized
 
-This new form is safer and cleaner, as the compiler will prevent you from
-assigning to `x` more than once.
+This new form is safer and cleaner.
 
 
 ## Detailed design
