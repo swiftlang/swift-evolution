@@ -150,8 +150,9 @@ a parameter to tell if the lock was acquired or not.
 
 ## Future directions
 
-`@noescape(once)` is contagious: such a closure must be called once, or passed
-to another function which provides the same guarantees.
+As soon as a method does not provide the `@noescape(once)` guarantee, it
+prevents all functions that call it from providing it (see detailed design
+above).
 
 The value of this proposal will thus be hampered until methods and functions in
 the standard and core libraries that can provide this guarantee adopt
