@@ -153,16 +153,15 @@ a parameter to tell if the lock was acquired or not.
 `@noescape(once)` is contagious: such a closure must be called once, or passed
 to another function which provides the same guarantees.
 
-This proposal will thus be of little value until methods and functions in the
-standard and core libraries that can provide this guarantee adopt
+The value of this proposal will thus be hampered until methods and functions in
+the standard and core libraries that can provide this guarantee adopt
 `@noescape(once)`.
 
-This includes:
+This includes (full list to be done):
 
-	- `autoreleasepool`
-	- `withUnsafeBufferPointer`
-	- `dispatch_sync`
-	- etc. (full list to be done)
+- `autoreleasepool`
+- `withUnsafeBufferPointer`
+- `dispatch_sync` et al.
 
 Those modifications to standard and core libraries will however be part of
 future proposals.
