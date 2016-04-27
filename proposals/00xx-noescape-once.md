@@ -90,18 +90,21 @@ A `@noescape(once)` closure may only read from variables that were initialized
 before it was formed. For instance, in an example with two `@noescape(once)`
 closures, the compiler cannot assume that one closure runs before the other.
 
-    func f(a: @noescape(once) () -> (), b: @noescape(once) () -> ()) { /* snip */ }
-    
-    let x: Int
-    f(a: {x = 1}, b: {print(x)}) // invalid: x has not been initialized
+	func f(a: @noescape(once) () -> (), b: @noescape(once) () -> ()) { /* snip */ }
+	
+	let x: Int
+	f(a: {x = 1}, b: {print(x)}) // invalid: x has not been initialized
 
-A `@noescape(once)` parameter may only be passed as a parameter to another
-function that accepts a `@noescape(once)` parameter. In that case, it counts as
+A `@noescape(once)` closure may only be passed as a parameter to another
+function that accepts a `@noescape(once)` closure. In that case, it counts as
 having been called.
 
-A closure passed with a `@noescape(once)` parameter may initialize `let` or
+A `@noescape(once)` closure may initialize `let` or
 `var` variables from its parent scope as if it was executed at the call site.
 
+Since [SE-0049](https://github.com/apple/swift-evolution/blob/master/proposals/0049-noescape-autoclosure-type-attrs.md),
+`@noescape` is a type attribute. The `@noescape(once)` modifier marks the
+closure type as noescape.
 
 ## Impact on existing code
 
