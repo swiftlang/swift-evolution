@@ -1,7 +1,7 @@
 # Marking closures as executing exactly once
 
 * Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-name.md)
-* Author(s): [Swift Developer](https://github.com/swiftdev)
+* Author(s): [Félix Cloutier](https://github.com/zneak), [Gwendal Roué](https://github.com/groue)
 * Status: **Awaiting review**
 * Review manager: TBD
 
@@ -38,7 +38,7 @@ By adding the `@noescape(once)` attribute to the closure parameter, we tell the
 compiler that the function will be executed exactly once on any code path that
 leaves the function's scope:
 
-	func f(@noescape(once) closure: () -> ()) {
+	func f(closure: @noescape(once) () -> ()) {
 	    closure()
 	}
 
@@ -51,6 +51,7 @@ be written to exactly once. It can now be marked as a `let` variable:
 
 This new form is safer and cleaner, as the compiler will prevent you from
 assigning to `x` more than once.
+
 
 ## Detailed design
 
@@ -69,10 +70,10 @@ A `@noescape(once)` closure may only read from variables that were initialized
 before it was formed. For instance, in an example with two `@noescape(once)`
 closures, the compiler cannot assume that one closure runs before the other.
 
-    func f(@noescape(once) a: () -> (), @noescape(once) b: () -> ()) { /* snip */ }
+    func f(a: @noescape(once) () -> (), b: @noescape(once) () -> ()) { /* snip */ }
     
     let x: Int
-    f({x = 1}) { print(x) } // invalid: x has not been initialized
+    f(a: {x = 1}, b: {print(x)}) // invalid: x has not been initialized
 
 A `@noescape(once)` parameter may only be passed as a parameter to another
 function that accepts a `@noescape(once)` parameter. In that case, it counts as
@@ -81,7 +82,6 @@ having been called.
 A closure passed with a `@noescape(once)` parameter may initialize `let` or
 `var` variables from its parent scope as if it was executed at the call site.
 
-(Probably incomplete?)
 
 ## Impact on existing code
 
