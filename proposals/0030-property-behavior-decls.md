@@ -12,6 +12,9 @@ Rather than hardcode a fixed set of patterns into the compiler,
 we should provide a general "property behavior" mechanism to allow
 these patterns to be defined as libraries.
 
+[Swift Evolution Discussion](http://thread.gmane.org/gmane.comp.lang.swift.evolution/11976)<br/>
+[Review](http://thread.gmane.org/gmane.comp.lang.swift.evolution/6426)
+
 ## Motivation
 
 We've tried to accommodate several important patterns for properties with

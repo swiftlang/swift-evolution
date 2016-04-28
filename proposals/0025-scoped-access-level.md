@@ -2,12 +2,14 @@
 
 * Proposal: [SE-0025](https://github.com/apple/swift-evolution/blob/master/proposals/0025-scoped-access-level.md)
 * Author(s): Ilya Belenkiy
-* Status: **Under revision** ([First review result](http://thread.gmane.org/gmane.comp.lang.swift.evolution/12010))
+* Status: **Accepted for Swift 3** ([Bug](https://bugs.swift.org/browse/SR-1275))
 * Review manager: [Doug Gregor](http://github.com/DougGregor)
 
 ## Introduction
 
 Scoped access level allows to hide implementation details of a class or a class extension at the class/extension level, instead of a file. It is a concise expression of the intent that a particular part of a class or extension definition is there only to implement a public API for other classes or extensions, and must not be used directly anywhere outside of the scope of the class or the extension.
+
+[Swift Evolution Discussion](http://thread.gmane.org/gmane.comp.lang.swift.evolution/9334), [Next Steps Discussion](http://thread.gmane.org/gmane.comp.lang.swift.evolution/12183)
 
 ## Motivation
 
@@ -28,7 +30,7 @@ Add another access level modifier that is meant to express that the API is visib
 After the first review, the core team decided that it would be best to use `private` for this access level and rename other access level modifiers for consistency. The most popular set of names is:
 
 - public: symbol visible outside the current module
-- moduleprivate: symbol visible within the current module
+- internal: symbol visible within the current module
 - fileprivate: symbol visible within the current file
 - private: symbol visible within the current declaration
 

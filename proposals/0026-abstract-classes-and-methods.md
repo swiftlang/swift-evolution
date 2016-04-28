@@ -13,7 +13,7 @@ they cannot have attributes as classes have.
 A partial class combines the behavior of a class with the requirement of implementing methods
 in inherited class like protocols.
 
-Swift-evolution thread: https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160104/005728.html
+[Swift-Evolution Discussion](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160104/005728.html) 
 
 ## Motivation
 

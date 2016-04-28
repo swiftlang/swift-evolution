@@ -2,8 +2,8 @@
 
 * Proposal: [SE-0061](0061-autoreleasepool-signature.md)
 * Author(s): [Timothy J. Wood](https://github.com/tjw)
-* Status: **Awaiting review**
-* Review manager: TBD
+* Status: **Active Review April 22...26, 2016**
+* Review manager: [Dave Abrahams](http://github.com/dabrahams)
 
 ## Introduction
 

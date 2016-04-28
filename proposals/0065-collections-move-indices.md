@@ -5,15 +5,22 @@
   [Dave Abrahams](https://github.com/dabrahams),
   [Maxim Moiseev](https://github.com/moiseev)
 * [Swift-evolution thread](http://news.gmane.org/find-root.php?message_id=CA%2bY5xYfqKR6yC2Q%2dG7D9N7FeY%3dxs1x3frq%3d%3dsyGoqYpOcL9yrw%40mail.gmail.com)
-* Status: **Under Active review** April 10...18, 2016
+* Status: **Accepted**
 * Review manager: [Chris Lattner](https://github.com/lattner)
+* Revision: 5
+* Previous Revisions:
+  [1](https://github.com/apple/swift-evolution/blob/21fac2e8034e79e4f44c1c8799808fc8cba83395/proposals/0065-collections-move-indices.md)
+  (as submitted for review),
+  [2](https://github.com/apple/swift-evolution/blob/1a821cf7ccbdf1d7566e9ce2e991bdd835ba3b7d/proposals/0065-collections-move-indices.md),
+  [3](https://github.com/apple/swift-evolution/blob/d44c3e7c189ba39ddf8a914ae8b78b71f88fdcdf/proposals/0065-collections-move-indices.md)
+  [4](https://github.com/apple/swift-evolution/blob/57639040dc08d2f0b16d9bda527db069589b58d1/proposals/0065-collections-move-indices.md)
 
 ## Summary
 
 We propose a new model for `Collection`s wherein responsibility for
 index traversal is moved from the index to the collection itself.  For
 example, instead of writing `i.successor()`, one would write
-`c.successor(of: i)`.  We also propose the following changes as a
+`c.index(after: i)`.  We also propose the following changes as a
 consequence of the new model:
 
 * A collection's `Index` can be any `Comparable` type.
@@ -157,29 +164,9 @@ struct Array<Element>
 struct UnicodeScalarView : BidirectionalCollection { ... }
 ```
 
-### Range Protocols and Types
+### Range Types
 
-The proposal adds several new types and protocols to support ranges:
-
-```
-                +-------------+
-                |RangeProtocol|
-                +------+------+
-                       |
-          +------------+---------------------+
-          |                                  |
-+---------+-----------+           +----------+--------+
-|HalfOpenRangeProtocol|           |ClosedRangeProtocol|
-+----+------+---------+    :      +-------+------+----+
-     |      |              :              |      |
-+----+---+  |  +...........+...........+  |  +---+----------+
-|Range<T>|  |  : RandomAccessCollection:  |  |ClosedRange<T>|
-+========+  |  +....+...............+..+  |  +==============+
-            |       |               |     |
-       +----+-------+----+       +--+-----+--------------+
-       |CountableRange<T>|       |CountableClosedRange<T>|
-       +=================+       +=======================+
-```
+The proposal adds several new types to support ranges:
 
 * The old `Range<T>`, `ClosedInterval<T>`, and
   `OpenInterval<T>` are replaced with four new generic range types:
@@ -195,16 +182,6 @@ The proposal adds several new types and protocols to support ranges:
     `CountableClosedRange<T>`. These types can be folded into
     `Range` and `ClosedRange` when Swift acquires conditional
     conformance capability.
-
-We also introduce three new protocols:
-
-* `RangeProtocol`
-* `HalfOpenRangeProtocol`
-* `ClosedRangeProtocol`
-
-These protocols mostly exist facilitate implementation-sharing among
-the range types, and would seldom need to be implemented outside the
-standard library.
 
 ### The Associated `Indices` Type
 
@@ -283,7 +260,7 @@ protocol Collection {
   /// `Index` values where one value is reachable from the other.
   ///
   /// Reachability is defined by the ability to produce one value from
-  /// the other via zero or more applications of `successor(of:)`.
+  /// the other via zero or more applications of `index(after: _)`.
   associatedtype IndexDistance : SignedInteger = Int
 
   /// A collection type whose elements are the indices of `self` that
@@ -295,7 +272,7 @@ protocol Collection {
   /// - Note: `indices` can hold a strong reference to the collection itself,
   ///   causing the collection to be non-uniquely referenced.  If you need to
   ///   mutate the collection while iterating over its indices, use the
-  ///   `successor(of:)` method starting with `startIndex` to produce indices
+  ///   `index(after: _)` method starting with `startIndex` to produce indices
   ///   instead.
   /// 
   ///   ```
@@ -303,7 +280,7 @@ protocol Collection {
   ///   var i = c.startIndex
   ///   while i != c.endIndex {
   ///       c[i] /= 5
-  ///       i = c.successor(of: i)
+  ///       i = c.index(after: i)
   ///   }
   ///   // c == [2, 4, 6, 8, 10]
   ///   ```
@@ -313,16 +290,16 @@ protocol Collection {
   ///
   /// - Precondition: `(startIndex..<endIndex).contains(i)`
   @warn_unused_result
-  func successor(of i: Index) -> Index
+  func index(after i: Index) -> Index
 
   /// Replaces `i` with its successor.
-  func formSuccessor(i: inout Index)
+  func formIndex(after i: inout Index)
 
   /// Returns the result of advancing `i` by `n` positions.
   ///
   /// - Returns:
-  ///   - If `n > 0`, the `n`th successor of `i`.
-  ///   - If `n < 0`, the `n`th predecessor of `i`.
+  ///   - If `n > 0`, the `n`th index after `i`.
+  ///   - If `n < 0`, the `n`th index before `i`.
   ///   - Otherwise, `i` unmodified.
   ///
   /// - Precondition: `n >= 0` unless `Self` conforms to
@@ -334,15 +311,15 @@ protocol Collection {
   /// - Complexity:
   ///   - O(1) if `Self` conforms to `RandomAccessCollection`.
   ///   - O(`abs(n)`) otherwise.
-  func index(n: IndexDistance, stepsFrom i: Index) -> Index
+  func index(_ i: Index, offsetBy n: IndexDistance) -> Index
 
   /// Returns the result of advancing `i` by `n` positions, or until it
   /// equals `limit`.
   ///
   /// - Returns:
-  ///   - If `n > 0`, the `n`th successor of `i` or `limit`, whichever
+  ///   - If `n > 0`, the `n`th index after `i` or `limit`, whichever
   ///     is reached first.
-  ///   - If `n < 0`, the `n`th predecessor of `i` or `limit`, whichever
+  ///   - If `n < 0`, the `n`th index before `i` or `limit`, whichever
   ///     is reached first.
   ///   - Otherwise, `i` unmodified.
   ///
@@ -353,8 +330,7 @@ protocol Collection {
   ///   - O(1) if `Self` conforms to `RandomAccessCollection`.
   ///   - O(`abs(n)`) otherwise.
   func index(
-    n: IndexDistance, stepsFrom i: Index, limitedBy limit: Index
-  ) -> Index
+    _ i: Index, offsetBy n: IndexDistance, limitedBy limit: Index) -> Index
 
   /// Advances `i` by `n` positions.
   ///
@@ -367,7 +343,7 @@ protocol Collection {
   /// - Complexity:
   ///   - O(1) if `Self` conforms to `RandomAccessCollection`.
   ///   - O(`abs(n)`) otherwise.
-  func formIndex(n: IndexDistance, stepsFrom i: inout Index)
+  func formIndex(_ i: inout Index, offsetBy n: IndexDistance)
 
   /// Advances `i` by `n` positions, or until it equals `limit`.
   ///
@@ -378,8 +354,7 @@ protocol Collection {
   ///   - O(1) if `Self` conforms to `RandomAccessCollection`.
   ///   - O(`abs(n)`) otherwise.
   func formIndex(
-    n: IndexDistance, stepsFrom i: inout Index, limitedBy limit: Index
-  )
+    _ i: inout Index, offsetBy n: IndexDistance, limitedBy limit: Index)
 
   /// Returns the distance between `start` and `end`.
   ///
@@ -395,62 +370,34 @@ protocol BidirectionalCollection {
   /// Returns the position immediately preceding `i`.
   ///
   /// - Precondition: `i > startIndex && i <= endIndex` 
-  func predecessor(of i: Index) -> Index
+  func index(before i: Index) -> Index
 
   /// Replaces `i` with its predecessor.
   ///
   /// - Precondition: `i > startIndex && i <= endIndex`
-  func formPredecessor(i: inout Index)
+  func formIndex(before i: inout Index)
 }
 ```
 
 Note:
 
-* The mutating `formSuccessor`, `formPredecessor`, and the `formIndex`
-  overloads essentially enshrine the previously-hidden
+* The `formIndex` overloads essentially enshrine the previously-hidden
   `_successorInPlace` et al., which can be important for performance
   when handling the rare heavyweight index type such as `AnyIndex`.
 
 * `RandomAccessCollection` does not add any *syntactic* requirements
   beyond those of `BidirectionalCollection`.  Instead, it places
-  tighter performance bounds on operations such as `c.index(n,
-  stepsFrom: i)` (O(1) instead of O(`n`)).
+  tighter performance bounds on operations such as `c.index(i,
+  offsetBy: n)` (O(1) instead of O(`n`)).
 
 ## `Range`s
 
-The `RangeProtocol` shown below, along with the description of 
-[Range Protocols and Types](#range-protocols-and-types) above, provide
-a complete picture of the changes to ranges.
+The four range [Range Types](#range-types) share the common interface
+shown below:
 
 ```swift
-/// A type that represents a contiguous range of any comparable value.
-///
-/// A range contains at least every value `x` where `lowerBound < x` and
-/// `x < upperBound`. Individual types that conform to `RangeProtocol` must
-/// specify their containment rules for the bounds of the range.
-///
-/// The standard library defines two kinds of ranges: closed ranges,
-/// represented by `ClosedRangeProtocol`, and half-open ranges, represented by
-/// `HalfOpenRangeProtocol`. A closed range contains both its lower and upper
-/// bounds, and therefore cannot be empty. A half-open range, on the other
-/// hand, contains its lower bound when nonempty but never its upper bound.
-///
-///     let closed: ClosedRange = 5...10
-///     closed.contains(5)      // true
-///     closed.contains(10)     // true
-///
-///     let halfOpen: Range = 5..<10
-///     halfOpen.contains(5)    // true
-///     halfOpen.contains(10)   // false
-///
-/// Not all empty ranges are equal; the bounds of two empty ranges must also be
-/// equal for the ranges to be equal.
-public protocol RangeProtocol : Equatable {
+public struct Range<Bound: Comparable> : Equatable {
   
-  /// The representation of the range's endpoints and the values
-  /// contained in it.
-  associatedtype Bound : Comparable
-
   /// Creates an instance with the given bounds.
   ///
   /// - Note: As this initializer does not check its precondition, it
@@ -462,38 +409,18 @@ public protocol RangeProtocol : Equatable {
   init(uncheckedBounds: (lower: Bound, upper: Bound))
 
   /// Returns `true` if the range contains the `value`.
-  ///
-  /// Any type of range contains every value `x` where
-  /// `lowerBound < x < upperBound`. `RangeProtocol` makes no requirement as
-  /// to whether individual range types must contain either their lower or
-  /// upper bound.
-  func contains(value: Bound) -> Bool
+  func contains(_ value: Bound) -> Bool
   
   /// Returns `true` iff `self` and `other` contain a value in common.
-  /// 
-  /// Any type of range contains every value `x` where
-  /// `lowerBound < x < upperBound`. `RangeProtocol` makes no requirement as
-  /// to whether individual range types must contain either their lower or
-  /// upper bound.
-  func overlaps(other: Self) -> Bool
+  func overlaps(_ other: Self) -> Bool
 
   /// Returns `true` iff `self.contains(x)` is `false` for all values of `x`.
   var isEmpty: Bool { get }
   
-  // Note: When the range is also a collection, it is crucial to
-  // enforce the invariant that lowerBound <= upperBound, or it may be
-  // empty with startIndex != endIndex.
-
   /// The range's lower bound.
-  ///
-  /// Depending on the concrete type of the range, `lowerBound` may or may not
-  /// be contained in the range.
   var lowerBound: Bound { get }
   
   /// The range's upper bound.
-  ///
-  /// Depending on the concrete type of the range, `upperBound` may or may not
-  /// be contained in the range.
   var upperBound: Bound { get }
   
   /// Returns `self` clamped to `limits`.
@@ -502,6 +429,14 @@ public protocol RangeProtocol : Equatable {
   /// limited to the bounds of `limits`.
   func clamped(to limits: Self) -> Self
 }
+```
+
+In addition, every implementable lossless conversion between range
+types is provided as a label-less `init` with one argument:
+
+```swift
+let a = 1..<10
+let b = ClosedRange(a) // <=== Here
 ```
 
 Note in particular:
@@ -524,7 +459,7 @@ in the interest of full disclosure:
   could also be seen as discouragement from trying to do random access
   operations with less-refined index protocols, because in those cases
   one has to resort to constructs like `i.advancedBy(n)`.  In this
-  proposal, there is only `c.index(n, stepsFrom: i)`, which makes
+  proposal, there is only `c.index(i, offsetBy: n)`, which makes
   random access equally (in)convenient for all collections, and there
   is no particular syntactic penalty for doing things that might turn
   out to be inefficient.
@@ -537,8 +472,8 @@ in the interest of full disclosure:
   manipulations end up looking like free function calls:
 
   ```swift
-  let j = successor(of: i)        // self.successor(of: i)
-  let k = index(5, stepsFrom: j)  // self.index(5, stepsFrom: j)
+  let j = index(after: i)           // self.successor(i)
+  let k = index(j, offsetBy: 5)     // self.index(j, offsetBy: 5)
   ```
 
 * The
@@ -593,11 +528,11 @@ Code that **needs to change**:
 
   // After:
   var i = c.index { $0 % 2 == 0 }   // No change in algorithm API.
-  let j = c.successor(of: i)        // Advancing an index requires a collection instance.
+  let j = c.index(after: i)         // Advancing an index requires a collection instance.
   print(c[j])                       // No change in subscripting.
   ```
 
-  The transformation from `i.successor()` to `c.successor(of: i)` is
+  The transformation from `i.successor()` to `c.index(after: i)` is
   non-trivial.  Performing it correctly requires knowing how to get
   the corresponding collection.  In general, it is not possible to
   perform this migration automatically.  A very sophisticated migrator

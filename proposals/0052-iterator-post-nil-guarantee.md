@@ -2,8 +2,8 @@
 
 * Proposal: [SE-0052](https://github.com/apple/swift-evolution/blob/master/proposals/0052-iterator-post-nil-guarantee.md)
 * Author(s): [Patrick Pijnappel](https://github.com/PatrickPijnappel)
-* Status: **Awaiting review**
-* Review manager: TBD
+* Status: **Review scheduled for April 28...May 3, 2016**
+* Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction
 
@@ -19,7 +19,7 @@ repeating `nil` (it's a silent corner case).
 
 Swift-evolution thread: [\[Proposal\] Change guarantee for GeneratorType.next() to always return nil past end](http://thread.gmane.org/gmane.comp.lang.swift.evolution/8519)
 
-Pull-request: [#1702](https://github.com/apple/swift/pull/1702)
+Pull-request: [\#1702](https://github.com/apple/swift/pull/1702)
 
 ## Motivation
 

@@ -29,8 +29,8 @@ calls to these functions in C code.
 
 ## Proposed solution
 ## 
-Initializers will be added to `Int` and `UInt` to convert from `UnsafePointer` and
-`UnsafeMutablePointer`.
+Initializers will be added to `Int` and `UInt` to convert from `UnsafePointer`,
+`UnsafeMutablePointer`, and `OpaquePointer`.
 
 Currently, the only workaround which can solve these problems is to write any
 code that requires pointer arithmetic in C. Writing this code in Swift will be
@@ -50,6 +50,10 @@ extension UInt {
   init<T>(bitPattern: UnsafeMutablePointer<T>) {
     self = UInt(Builtin.ptrtoint_Word(bitPattern._rawValue))
   }
+
+  init(bitPattern: OpaquePointer) {
+    self = UInt(Builtin.ptrtoint_Word(bitPattern._rawValue))
+  }
 }
 
 extension Int {
@@ -58,6 +62,10 @@ extension Int {
   }
 
   init<T>(bitPattern: UnsafeMutablePointer<T>) {
+    self = Int(Builtin.ptrtoint_Word(bitPattern._rawValue))
+  }
+
+  init(bitPattern: OpaquePointer) {
     self = Int(Builtin.ptrtoint_Word(bitPattern._rawValue))
   }
 }
@@ -108,3 +116,10 @@ conversions.
 The last alternative was to forgo these initializers and force users to write
 all their complicated pointer code in C. This alternative was rejected because
 it makes Swift less useful as a systems programming language.
+
+## Revision History
+##
+
+- 2016-04-21: The proposal was amended post-acceptance to include 
+  `OpaquePointer`. Originally it only included `UnsafePointer` and
+  `UnsafeMutablePointer`.
