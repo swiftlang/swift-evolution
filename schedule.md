@@ -28,6 +28,9 @@ proposals in that process.
 * [SE-0030: Property Behaviors](proposals/0030-property-behavior-decls.md)
 * [SE-0052: Change IteratorType post-nil guarantee](proposals/0052-iterator-post-nil-guarantee.md)
 * [SE-0060: Enforcing order of defaulted parameters](proposals/0060-defaulted-parameter-order.md)
+* [SE-0073: Marking closures as executing exactly once](proposals/0073-noescape-once.md)
+* [SE-0074: Implementation of Binary Search functions](proposals/0074-binary-search.md)
+
 
 [evolution-process]: process.md  "The Swift evolution process"
 
