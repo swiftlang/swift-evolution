@@ -30,6 +30,11 @@ proposals in that process.
 * [SE-0060: Enforcing order of defaulted parameters](proposals/0060-defaulted-parameter-order.md)
 * [SE-0073: Marking closures as executing exactly once](proposals/0073-noescape-once.md)
 * [SE-0074: Implementation of Binary Search functions](proposals/0074-binary-search.md)
+* [SE-0075: Adding a Build Configuration Import Test](proposals/0075-import-test.md)
+* [SE-0076: Add overrides taking an UnsafePointer source to non-destructive copying methods on UnsafeMutablePointer](proposals/0076-copying-to-unsafe-mutable-pointer-with-unsafe-pointer-source.md)
+* [SE-0077: Improved operator declarations](proposals/0077-operator-precedence.md)
+* [SE-0078: Implement a rotate algorithm, equivalent to std::rotate() in C++](proposals/0078-rotate-algorithm.md)
+* [SE-0079: Allow using optional binding to upgrade `self` from a weak to strong reference](proposals/0079-upgrade-self-from-weak-to-strong.md)
 
 
 [evolution-process]: process.md  "The Swift evolution process"

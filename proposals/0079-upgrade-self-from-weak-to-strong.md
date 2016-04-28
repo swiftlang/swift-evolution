@@ -1,6 +1,6 @@
 # Allow using optional binding to upgrade `self` from a weak to strong reference
 
-* Proposal: SE-NNNN
+* Proposal: [SE-0079](0079-upgrade-self-from-weak-to-strong.md)
 * Author: [Evan Maloney](https://github.com/emaloney)
 * Status: **Awaiting Review**
 * Review manager: TBD

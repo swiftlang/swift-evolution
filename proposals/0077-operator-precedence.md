@@ -1,7 +1,7 @@
-# Operator precedence
+# Improved operator declarations
 
-* Proposal: [SE-NNNN](https://github.com/Anton3/swift-evolution/blob/operator-precedence/proposals/NNNN-operator-precedence.md)
-* Author(s): [Anton Zhilin](https://github.com/Anton3)
+* Proposal: [SE-0077](0077-operator-precedence.md)
+* Author: [Anton Zhilin](https://github.com/Anton3)
 * Status: **Awaiting review**
 * Review manager: TBD
 

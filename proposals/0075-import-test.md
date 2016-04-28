@@ -1,6 +1,6 @@
 # Adding a Build Configuration Import Test
 
-* Proposal: SE-00XX
+* Proposal: [SE-0075](0075-import-test.md)
 * Author(s): [Erica Sadun](http://github.com/erica)
 * Status: TBD
 * Review manager: TBD

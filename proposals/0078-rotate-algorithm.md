@@ -1,7 +1,7 @@
 # Implement a rotate algorithm, equivalent to std::rotate() in C++
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-implement-a-rotate-algorithm.md)
-* Author(s): [Nate Cook](https://github.com/natecook1000), [Sergey Bolshedvorsky](https://github.com/bolshedvorsky)
+* Proposal: [SE-0078](0078-rotate-algorithm.md)
+* Authors: [Nate Cook](https://github.com/natecook1000), [Sergey Bolshedvorsky](https://github.com/bolshedvorsky)
 * Status: **Awaiting review**
 * Review manager: TBD
 
