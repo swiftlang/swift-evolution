@@ -11,11 +11,8 @@ Within a class scope, `Self` means "the dynamic class of `self`". This proposal 
 by renaming `dynamicType` to `Self`. This establishes a universal and consistent
 way to refer to the dynamic type of the current receiver. 
 
-Under this proposal `Self` provides the special associated type member that exists 
-in every type just like `dynamicType` does now. Unifying these concepts,
-eliminates the `dynamicType` keyword and replaces it with `x.Self`. 
 
-*This proposal was discussed on the Swift Evolution list in the [\[Pitch\] Adding a Self type name shortcut for static member access](http://thread.gmane.org/gmane.comp.lang.swift.evolution/13708/focus=13712) thread and [\[Pitch\] Rename `x.dynamicType` to `x.Self`](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160411/014869.html)*
+*This proposal was discussed on the Swift Evolution list in the [\[Pitch\] Adding a Self type name shortcut for static member access](http://thread.gmane.org/gmane.comp.lang.swift.evolution/13708/focus=13712) thread.*
 
 ## Motivation
 
