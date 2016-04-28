@@ -6,7 +6,6 @@ proposals in that process.
 
 ## Active reviews
 
-* April 10...18, 2016 [SE-0065: A New Model For Collections and Indices](proposals/0065-collections-move-indices.md)
 * April 19...29, 2016 [SE-0067: Enhanced Floating Point Protocols](proposals/0067-floating-point-protocols.md)
 * April 20...25, 2016 [SE-0068: Expanding Swift `Self` to class members and value types](proposals/0068-universal-self.md)
 * April 22...26, 2016 [SE-0061: Add Generic Result and Error Handling to autoreleasepool()](proposals/0061-autoreleasepool-signature.md)
