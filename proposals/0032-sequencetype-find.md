@@ -44,7 +44,7 @@ extension SequenceType {
   public func find(@noescape predicate: (Self.Generator.Element) throws -> Bool) rethrows -> Self.Generator.Element? {
     for elt in self {
       if try predicate(elt) {
-	return elt
+        return elt
       }
     }
     return nil
