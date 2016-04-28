@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0045](0045-scan-takewhile-dropwhile.md)
 * Author(s): [Kevin Ballard](https://github.com/kballard)
-* Status: **Review scheduled for April 28...May 3, 2016**
+* Status: **Active review: April 28...May 3, 2016**
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction

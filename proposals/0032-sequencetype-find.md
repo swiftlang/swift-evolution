@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0032](https://github.com/apple/swift-evolution/blob/master/proposals/0032-sequencetype-find.md)
 * Author(s): [Kevin Ballard](https://github.com/kballard)
-* Status: **Review scheduled for April 28...May 3, 2016**
+* Status: **Active review: April 28...May 3, 2016**
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction

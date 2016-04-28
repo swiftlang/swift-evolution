@@ -13,13 +13,13 @@ proposals in that process.
 * April 25...May 2, 2016 [SE-0066: Standardize function type argument syntax to require parentheses](proposals/0066-standardize-function-type-syntax.md)
 * April 25 ... May 4, 2016 [SE-0069: Mutability and Foundation Value Types](proposals/0069-swift-mutability-for-foundation.md)
 * April 26 ... May 2, 2016 [SE-0072: Fully eliminate implicit bridging conversions from Swift](proposals/0072-eliminate-implicit-bridging-conversions.md)
+* April 28...May 3, 2016 [SE-0017: Change `Unmanaged` to use `UnsafePointer`](proposals/0017-convert-unmanaged-to-use-unsafepointer.md)
+* April 28...May 3, 2016 [SE-0032: Add `find` method to `SequenceType`](proposals/0032-sequencetype-find.md)
+* April 28...May 3, 2016 [SE-0045: Add scan, prefix(while:), drop(while:), and iterate to the stdlib](proposals/0045-scan-takewhile-dropwhile.md)
+* April 28...May 3, 2016 [SE-0052: Change IteratorType post-nil guarantee](proposals/0052-iterator-post-nil-guarantee.md)
 
 ## Upcoming reviews
 
-* April 28...May 3, 2016 [SE-0017: Change `Unmanaged` to use `UnsafePointer`](proposals/0017-convert-unmanaged-to-use-unsafepointer.md)
-* April 28...May 3, 2016 [SE-0032: Add `find` method to `SequenceType`](proposals/0032-sequencetype-find.md)
-* April 28...May 3, 2016 [SE-0045: Add scan, takeWhile, dropWhile, and iterate to the stdlib](proposals/0045-scan-takewhile-dropwhile.md)
-* April 28...May 3, 2016 [SE-0052: Change IteratorType post-nil guarantee](proposals/0052-iterator-post-nil-guarantee.md)
 
 
 ## Proposals awaiting scheduling
