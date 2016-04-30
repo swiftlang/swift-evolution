@@ -41,7 +41,7 @@ Add the following extension to `Sequence`:
 extension Sequence {
   /// Returns the first element where `predicate` returns `true`, or `nil`
   /// if such value is not found.
-  public func find(@noescape predicate: (Self.Iterator.Element) throws -> Bool) rethrows -> Self.Iterator.Element? {
+  public func find( _ predicate: @noescape (Self.Iterator.Element) throws -> Bool) rethrows -> Self.Iterator.Element? {
     for elt in self {
       if try predicate(elt) {
         return elt
