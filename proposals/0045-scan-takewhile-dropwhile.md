@@ -101,7 +101,7 @@ as well as an override:
 ///
 /// The sequence terminates when `applying` returns `nil`.
 @warn_unused_result
-public func unfold<T>(_ initialElement: T, apply: T -> T) -> UnfoldSequence<T>
+public func unfold<T>(_ initialElement: T, applying: T -> T) -> UnfoldSequence<T>
 ```
 
 ## Detailed design
