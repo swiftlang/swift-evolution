@@ -154,7 +154,7 @@ extension MutableCollection where Self: BidirectionalCollection,
     public mutating func rotate(firstFrom middle: Index) -> Index
 }
 
-extension MutableCollection where Selft: RandomAccessCollection {
+extension MutableCollection where Self: RandomAccessCollection {
     /// Reverses the elements of the collection in-place.
     public mutating func reverse()
 
