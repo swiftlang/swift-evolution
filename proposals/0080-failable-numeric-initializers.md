@@ -1,8 +1,8 @@
 # Failable Numeric Conversion Initializers
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-failable-numeric-initializers.md)
+* Proposal: [SE-0080](0080-failable-numeric-initializers.md)
 * Author(s): [Matthew Johnson](https://github.com/anandabits)
-* Status: **Review**
+* Status: **Awaiting Review**
 * Review manager: TBD
 
 ## Introduction

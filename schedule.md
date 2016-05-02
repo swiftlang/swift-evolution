@@ -34,7 +34,7 @@ proposals in that process.
 * [SE-0077: Improved operator declarations](proposals/0077-operator-precedence.md)
 * [SE-0078: Implement a rotate algorithm, equivalent to std::rotate() in C++](proposals/0078-rotate-algorithm.md)
 * [SE-0079: Allow using optional binding to upgrade `self` from a weak to strong reference](proposals/0079-upgrade-self-from-weak-to-strong.md)
-
+* [SE-0080: Failable Numeric Conversion Initializers](proposals/0080-failable-numeric-initializers.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 
