@@ -1,7 +1,7 @@
 # Failable Numeric Conversion Initializers
 
 * Proposal: [SE-0080](0080-failable-numeric-initializers.md)
-* Author(s): [Matthew Johnson](https://github.com/anandabits)
+* Author: [Matthew Johnson](https://github.com/anandabits)
 * Status: **Awaiting Review**
 * Review manager: TBD
 

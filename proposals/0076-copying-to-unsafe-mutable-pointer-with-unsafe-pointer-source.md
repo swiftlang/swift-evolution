@@ -1,7 +1,7 @@
 # Add overrides taking an UnsafePointer source to non-destructive copying methods on UnsafeMutablePointer
 
 * Proposal: [SE-0076](0076-copying-to-unsafe-mutable-pointer-with-unsafe-pointer-source.md)
-* Author(s): [Janosch Hildebrand](https://github.com/Jnosh)
+* Author: [Janosch Hildebrand](https://github.com/Jnosh)
 * Status: **Awaiting review**
 * Review manager: TBD
 

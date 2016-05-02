@@ -1,7 +1,7 @@
 # Updating Protocol Naming Conventions for Conversions
 
 * Proposal: TBD
-* Author(s): [Matthew Johnson](https://github.com/anandabits), [Erica Sadun](http://github.com/erica)
+* Authors: [Matthew Johnson](https://github.com/anandabits), [Erica Sadun](http://github.com/erica)
 * Status: TBD
 * Review manager: TBD
 

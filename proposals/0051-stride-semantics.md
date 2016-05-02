@@ -1,7 +1,7 @@
 # Conventionalizing `stride` semantics
 
 * Proposal: SE-0051
-* Author(s): [Erica Sadun](http://github.com/erica)
+* Author: [Erica Sadun](http://github.com/erica)
 * Status: Withdrawn by Submitter
 * Review manager: TBD
 

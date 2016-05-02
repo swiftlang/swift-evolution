@@ -1,7 +1,7 @@
 # Change IteratorType post-nil guarantee
 
 * Proposal: [SE-0052](https://github.com/apple/swift-evolution/blob/master/proposals/0052-iterator-post-nil-guarantee.md)
-* Author(s): [Patrick Pijnappel](https://github.com/PatrickPijnappel)
+* Author: [Patrick Pijnappel](https://github.com/PatrickPijnappel)
 * Status: **Active review: April 28...May 3, 2016**
 * Review manager: [Chris Lattner](https://github.com/lattner)
 

@@ -1,7 +1,7 @@
 # Marking closures as executing exactly once
 
 * Proposal: [SE-0073](0073-noescape-once.md)
-* Author(s): [Félix Cloutier](https://github.com/zneak), [Gwendal Roué](https://github.com/groue)
+* Authors: [Félix Cloutier](https://github.com/zneak), [Gwendal Roué](https://github.com/groue)
 * Status: **Awaiting review**
 * Review manager: TBD
 

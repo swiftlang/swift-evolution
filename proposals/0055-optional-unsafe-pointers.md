@@ -1,7 +1,7 @@
 # Make unsafe pointer nullability explicit using Optional
 
 * Proposal: [SE-0055](0055-optional-unsafe-pointers.md)
-* Author(s): [Jordan Rose](https://github.com/jrose-apple)
+* Author: [Jordan Rose](https://github.com/jrose-apple)
 * Status: **Accepted for Swift 3** 
 * Review manager: [Chris Lattner](https://github.com/lattner)
 

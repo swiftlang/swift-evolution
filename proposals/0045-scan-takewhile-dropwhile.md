@@ -1,7 +1,7 @@
 # Add scan, prefix(while:), drop(while:), and unfold to the stdlib
 
 * Proposal: [SE-0045](0045-scan-takewhile-dropwhile.md)
-* Author(s): [Kevin Ballard](https://github.com/kballard)
+* Author: [Kevin Ballard](https://github.com/kballard)
 * Status: **Active review: April 28...May 3, 2016**
 * Review manager: [Chris Lattner](http://github.com/lattner)
 * Revision: 3

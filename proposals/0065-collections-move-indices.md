@@ -1,7 +1,7 @@
 # A New Model for Collections and Indices
 
 * Proposal: [SE-0065](https://github.com/apple/swift-evolution/blob/master/proposals/0065-collections-move-indices.md)
-* Author(s): [Dmitri Gribenko](https://github.com/gribozavr),
+* Authors: [Dmitri Gribenko](https://github.com/gribozavr),
   [Dave Abrahams](https://github.com/dabrahams),
   [Maxim Moiseev](https://github.com/moiseev)
 * [Swift-evolution thread](http://news.gmane.org/find-root.php?message_id=CA%2bY5xYfqKR6yC2Q%2dG7D9N7FeY%3dxs1x3frq%3d%3dsyGoqYpOcL9yrw%40mail.gmail.com)

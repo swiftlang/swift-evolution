@@ -1,7 +1,7 @@
 # Referencing the Objective-C selector of property getters and setters
 
 * Proposal: [SE-0064](https://github.com/apple/swift-evolution/blob/master/proposals/0064-property-selectors.md)
-* Author(s): [David Hart](https://github.com/hartbit)
+* Author: [David Hart](https://github.com/hartbit)
 * Status: **Accepted for Swift 3** ([Bug](https://bugs.swift.org/browse/SR-1239))
 * Review manager: [Doug Gregor](https://github.com/DougGregor)
 

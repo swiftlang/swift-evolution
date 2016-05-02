@@ -1,7 +1,7 @@
 # Enhanced Floating Point Protocols
 
 * Proposal: [SE-0067](https://github.com/apple/swift-evolution/blob/master/proposals/0067-floating-point-protocols.md)
-* Author(s): [Stephen Canon](https://github.com/stephentyrone)
+* Author: [Stephen Canon](https://github.com/stephentyrone)
 * Status: **Under Active Review through Apr 29, 2016**
 * Review manager: [Chris Lattner](https://github.com/lattner)
 * Revision: 2

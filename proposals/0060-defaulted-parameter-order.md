@@ -1,7 +1,7 @@
 # Enforcing order of defaulted parameters
 
 * Proposal: [SE-NNNN](0060-defaulted-parameter-order.md)
-* Author(s): [Joe Groff](https://github.com/jckarter)
+* Author: [Joe Groff](https://github.com/jckarter)
 * Status: **Awaiting review**
 * Review manager: TBD
 

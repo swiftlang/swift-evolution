@@ -1,7 +1,7 @@
 # Remove explicit use of `let` from Function Parameters
 
 * Proposal: [SE-0053](0053-remove-let-from-function-parameters.md)
-* Author(s): [Nicholas Maccharoli](https://github.com/nirma)
+* Author: [Nicholas Maccharoli](https://github.com/nirma)
 * Status: **Accepted for Swift 3**
 * Review manager: [Chris Lattner](https://github.com/lattner)
 

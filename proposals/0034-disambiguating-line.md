@@ -1,7 +1,7 @@
 # Disambiguating Line Control Statements from Debugging Identifiers
 
 * Proposal: [SE-0034](https://github.com/apple/swift-evolution/blob/master/proposals/0034-disambiguating-line.md)
-* Author(s): [Erica Sadun](http://github.com/erica)
+* Author: [Erica Sadun](http://github.com/erica)
 * Status: **Accepted** ([Implementation Bug](https://bugs.swift.org/browse/SR-840))
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
