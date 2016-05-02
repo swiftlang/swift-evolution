@@ -1,8 +1,8 @@
-# Move where clause to end of declaration
+# Move `where` clause to end of declaration
 
-* Proposal: [SE-XXXX](https://github.com/apple/swift-evolution/blob/master/proposals/XXXX-move-where-expression.md)
-* Author(s): [David Hart](https://github.com/hartbit), [Robert Widmann](devteam.codafi@gmail.com), [Pry Jahkola](pyry.jahkola@iki.fi)
-* Status: TBD
+* Proposal: [SE-0081](0081-move-where-expression.md)
+* Authors: [David Hart](https://github.com/hartbit), [Robert Widmann](devteam.codafi@gmail.com), [Pry Jahkola](pyry.jahkola@iki.fi)
+* Status: **Awaiting Scheduling**
 * Review manager: TBD
 
 ## Introduction

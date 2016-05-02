@@ -35,6 +35,8 @@ proposals in that process.
 * [SE-0078: Implement a rotate algorithm, equivalent to std::rotate() in C++](proposals/0078-rotate-algorithm.md)
 * [SE-0079: Allow using optional binding to upgrade `self` from a weak to strong reference](proposals/0079-upgrade-self-from-weak-to-strong.md)
 * [SE-0080: Failable Numeric Conversion Initializers](proposals/0080-failable-numeric-initializers.md)
+* [SE-0081: Move `where` clause to end of declaration](proposals/0081-move-where-expression.md)
+
 
 [evolution-process]: process.md  "The Swift evolution process"
 
