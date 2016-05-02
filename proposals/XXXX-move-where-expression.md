@@ -9,7 +9,7 @@
 
 This proposal suggests moving the `where` clause to the end of the declaration syntax, but before the body, for readability reasons. It has been discussed at length on the following swift-evolution thread:
 
-[[Pitch] Moving where Clauses Out Of Parameter Lists](GMANE_DOWN_FOR_NOW)
+[[Pitch] Moving where Clauses Out Of Parameter Lists](http://thread.gmane.org/gmane.comp.lang.swift.evolution/13886/focus=13899)
 
 ## Motivation
 
