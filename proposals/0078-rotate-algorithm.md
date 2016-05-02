@@ -130,7 +130,7 @@ collection method.
 The mutating methods will have the following declarations:
 
 ```swift
-extension MutableCollection { // where Index: ForwardIndex
+extension MutableCollection {
     /// Rotates the elements of the collection so that the element
     /// at `middle` ends up first.
     ///
@@ -140,7 +140,8 @@ extension MutableCollection { // where Index: ForwardIndex
     public mutating func rotate(firstFrom middle: Index) -> Index
 }
 
-extension MutableCollection where Index: BidirectionalIndex {
+extension MutableCollection where Self: BidirectionalCollection,
+  SubSequence: MutableCollection, SubSequence: BidirectionalCollection {
     /// Reverses the elements of the collection in-place.
     public mutating func reverse()
 
@@ -153,7 +154,7 @@ extension MutableCollection where Index: BidirectionalIndex {
     public mutating func rotate(firstFrom middle: Index) -> Index
 }
 
-extension MutableCollection where Index: RandomAccessIndex {
+extension MutableCollection where Selft: RandomAccessCollection {
     /// Reverses the elements of the collection in-place.
     public mutating func reverse()
 
@@ -173,9 +174,7 @@ first. For forward- and bidirectional-collections, these methods will return
 `FlattenCollection` and `FlattenBidirectionalCollection` instances, respectively:
 
 ```swift
-extension Collection where Index: ForwardIndex,
-    SubSequence: Collection, SubSequence.Index == Index
-{
+extension Collection where SubSequence: Collection {
     /// Returns a rotated view of the elements of the collection, where the
     /// element at `middle` ends up first, and the index of the element that
     /// was previously first.
@@ -184,9 +183,7 @@ extension Collection where Index: ForwardIndex,
         rotatedStart: FlattenCollectionIndex<[Self.SubSequence]>)
 }
 
-extension Collection where Index: BidirectionalIndex,
-    SubSequence: Collection, SubSequence.Index == Index
-{
+extension Collection where SubSequence: BidirectionalCollection {
     /// Returns a rotated view of the elements of the collection, where the
     /// element at `middle` ends up first, and the index of the element that
     /// was previously first.
@@ -205,57 +202,55 @@ added as `RotatedCollection`:
 ```swift
 /// A rotated view of an underlying random-access collection.
 public struct RotatedCollection<
-    Base: Collection where Base.Index: RandomAccessIndex>: Collection {
+    Base: RandomAccessCollection>: RandomAccessCollection {
     // standard collection innards
 }
 
 /// The index type for a `RotatedCollection`.
-public struct RotatedCollectionIndex<Base: RandomAccessIndex>: RandomAccessIndex {
+public struct RotatedCollectionIndex<Base: Comparable>: Comparable {
     // standard index innards
 }
 
-extension Collection where Index: RandomAccessIndex,
-    SubSequence: Collection, SubSequence.Index == Index
-{
+extension RandomAccessCollection {
     /// Returns a rotated view of the elements of the collection, where the
     /// element at `middle` ends up first, and the index of the element that
     /// was previously first.
     func rotated(firstFrom middle: Index) -> (collection: RotatedCollection<Self>,
-        rotatedStart: RotatedCollectionIndex<Self.Index>)
+        rotatedFirst: RotatedCollectionIndex<Self>)
 }
 ```
 
 Lazy collections will also be extended with rotate methods that provide lazy rotation:
 
 ```swift
-extension LazyCollection where
-    Elements.Index: ForwardIndex, Elements.SubSequence: Collection,
-    Elements.SubSequence.Index == Elements.Index, Elements.Index == Index
-{
-    /// Returns...
-    func rotated(firstFrom middle: Index) ->
+extension LazyCollectionProtocol where Elements.SubSequence: Collection,
+    Index == Elements.Index {
+    /// Returns a rotated view of the elements of the collection, where the
+    /// element at `middle` ends up first, and the index of the element that
+    /// was previously first.
+    public func rotated(firstFrom middle: Elements.Index) ->
         (collection: LazyCollection<FlattenCollection<[Elements.SubSequence]>>,
         rotatedStart: FlattenCollectionIndex<[Elements.SubSequence]>)
 }
 
-extension LazyCollection where Elements.Index: BidirectionalIndex,
-    Elements.SubSequence: Collection, Elements.SubSequence.Index == Elements.Index,
-    Elements.Index == Index
-{
-    /// Returns...
-    func rotated(firstFrom middle: Index) ->
-        (collection: LazyCollection<FlattenBidirectionalCollection<[Elements.SubSequence]>>,
+extension LazyCollectionProtocol where Self: BidirectionalCollection,
+    Elements.SubSequence: BidirectionalCollection, Index == Elements.Index {
+    /// Returns a rotated view of the elements of the collection, where the
+    /// element at `middle` ends up first, and the index of the element that
+    /// was previously first.
+    public func rotated(firstFrom middle: Elements.Index) -> (collection:
+        LazyCollection<FlattenBidirectionalCollection<[Elements.SubSequence]>>,
         rotatedStart: FlattenBidirectionalCollectionIndex<[Elements.SubSequence]>)
 }
 
-extension LazyCollection where
-    Elements.Index: RandomAccessIndex, Elements.SubSequence: Collection,
-    Elements.SubSequence.Index == Elements.Index, Elements.Index == Index
-{
-    /// Returns...
-    func rotated(firstFrom middle: Index) ->
+extension LazyCollectionProtocol where Self: RandomAccessCollection,
+    Elements: RandomAccessCollection, Index == Elements.Index {
+    /// Returns a rotated view of the elements of the collection, where the
+    /// element at `middle` ends up first, and the index of the element that
+    /// was previously first.
+    public func rotated(firstFrom middle: Elements.Index) ->
         (collection: LazyCollection<RotatedCollection<Elements>>,
-        rotatedStart: RotatedCollectionIndex<Elements.Index>)
+        rotatedStart: RotatedCollectionIndex<Elements>)
 }
 ```
 
