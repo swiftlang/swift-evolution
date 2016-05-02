@@ -22,7 +22,7 @@ The proposal suggests moving the `where` clause at the end of the declaration, b
 ``` swift
 func anyCommonElements<T : SequenceType, U : SequenceType where
     T.Generator.Element: Equatable,
-    T.Generator.Element == U.Generator.Element>(lhs: T, _ rhs: U) -> Bool where
+    T.Generator.Element == U.Generator.Element>(lhs: T, _ rhs: U) -> Bool
 {
     ...
 }
@@ -73,4 +73,15 @@ This proposal impacts all declarations which contain where clauses expect for ex
 
 The first post in the swift-evolution thread originally proposed moving the `where` clause just after the generic type declaration. Since then, the original author and many other participants in the thread have agreed that the current proposal is superior.
 
-It was also proposed to remove the simple inheritance constraints from the generic parameter list, but several arguments were brought up that it would complicate declarations of simple generics which only needed inheritance constraints.
+It was also proposed to remove the simple inheritance constraints from the generic parameter list, but several arguments were brought up that it would complicate declarations of simple generics which only needed inheritance constraints. Moreover, the current proposal allows moving simple constraints in the `where` clause:
+
+```swift
+func anyCommonElements<T, U>(lhs: T, _ rhs: U) -> Bool where
+    T : SequenceType,
+    U : SequenceType,
+    T.Generator.Element: Equatable,
+    T.Generator.Element == U.Generator.Element
+{
+    ...
+}
+```
