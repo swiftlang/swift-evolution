@@ -144,6 +144,7 @@ subsequent release.
 * [SE-0055: Make unsafe pointer nullability explicit using Optional](proposals/0055-optional-unsafe-pointers.md)
 * [SE-0057: Importing Objective-C Lightweight Generics](proposals/0057-importing-objc-generics.md)
 * [SE-0059: Update API Naming Guidelines and Rewrite Set APIs Accordingly](proposals/0059-updated-set-apis.md)
+* [SE-0061: Add Generic Result and Error Handling to autoreleasepool()](proposals/0061-autoreleasepool-signature.md)
 * [SE-0062: Referencing Objective-C key-paths](proposals/0062-objc-keypaths.md)
 * [SE-0063: SwiftPM System Module Search Paths](proposals/0063-swiftpm-system-module-search-paths.md)
 * [SE-0064: Referencing the Objective-C selector of property getters and setters](proposals/0064-property-selectors.md)

@@ -2,7 +2,10 @@
 
 * Proposal: [SE-0061](0061-autoreleasepool-signature.md)
 * Author: [Timothy J. Wood](https://github.com/tjw)
-* Status: **Active Review April 22...26, 2016**
+* Status: **Accepted for Swift 3**  ([Bug](https://bugs.swift.org/browse/SR-1394))
+
+https://github.com/apple/swift-evolution/blob/master/proposals/0061-autoreleasepool-signature.md
+]
 * Review manager: [Dave Abrahams](http://github.com/dabrahams)
 
 ## Introduction
