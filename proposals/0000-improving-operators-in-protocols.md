@@ -304,6 +304,26 @@ for a concrete type (such as one that takes `(Foo, Foo)` as its arguments),
 which would bypass the trampoline operator. While we would not recommend that a
 user do this, it's not necessarily compelling to forbid it either.
 
+### Prohibit operator type members that do not satisfy a protocol requirement
+
+The ability to define operator methods inside a type is provided solely to
+express protocol requirements and to provide a hook for generic trampoline
+operators to call. Since the name lookup does not automatically, methods with
+operator names that do not satisfy a protocol requirement provide little value.
+As such, we propose the following language restrictions around them:
+
+* Methods with operator names must be `static` (or `class`, inside classes).
+  Non-static methods with operator names are an error. (_Special case: in a
+  protocol, non-static operator methods are marked deprecated until removed._)
+
+* Methods with operator names must satisfy the same function signature
+  requirements as global operator functions (infix operators take two arguments,
+  prefix/postfix operators take one argument, and so forth).
+
+* Inside a concrete type (`struct`, `class`, `enum`) or an extension, methods
+  with operator names must satisfy a protocol requirement. Methods that do not
+  do so are an error.
+
 ## Impact on existing code
 
 The ability to declare operators as static/class functions inside a type is a
