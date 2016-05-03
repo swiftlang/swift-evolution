@@ -129,7 +129,8 @@ func == <T: Equatable>(lhs: T, rhs: T) -> Bool {
 ```
 
 Types conforming to a protocol that contains static operators would implement
-the operators as static methods defined _within_ the type:
+the operators as static methods (or class methods for class types) defined
+_within_ the type:
 
 ```swift
 struct Foo: Equatable {
