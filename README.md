@@ -151,6 +151,7 @@ subsequent release.
 * [SE-0065: A New Model For Collections and Indices](proposals/0065-collections-move-indices.md)
 * [SE-0067: Enhanced Floating Point Protocols](proposals/0067-floating-point-protocols.md)
 * [SE-0068: Expanding Swift `Self` to class members and value types](proposals/0068-universal-self.md)
+* [SE-0070: Make Optional Requirements Objective-C-only](proposals/0070-optional-requirements.md)
 
 
 ## Swift 2.2 - Released on March 21, 2016

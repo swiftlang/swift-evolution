@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0070](0070-optional-requirements.md)
 * Author: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Active review April 25 ... May 2**
+* Status: **Accepted for Swift 3**  ([Bug](https://bugs.swift.org/browse/SR-1395))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
