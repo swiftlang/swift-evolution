@@ -121,6 +121,7 @@ sampling of potentially good ideas that are not in scope for Swift
 * [SE-0046: Establish consistent label behavior across all parameters including first labels](proposals/0046-first-label.md)
 * [SE-0049: Move @noescape and @autoclosure to be type attributes](proposals/0049-noescape-autoclosure-type-attrs.md)
 * [SE-0053: Remove explicit use of `let` from Function Parameters](proposals/0053-remove-let-from-function-parameters.md)
+* [SE-0055: Make unsafe pointer nullability explicit using Optional](proposals/0055-optional-unsafe-pointers.md)
 * [SE-0071: Allow (most) keywords in member references](proposals/0071-member-keywords.md)
 
 ### Accepted proposals which do not have a complete implementation
@@ -141,7 +142,6 @@ subsequent release.
 * [SE-0047: Defaulting non-Void functions so they warn on unused results](proposals/0047-nonvoid-warn.md)
 * [SE-0048: Generic Type Aliases](proposals/0048-generic-typealias.md)
 * [SE-0054: Abolish `ImplicitlyUnwrappedOptional` type](proposals/0054-abolish-iuo.md)
-* [SE-0055: Make unsafe pointer nullability explicit using Optional](proposals/0055-optional-unsafe-pointers.md)
 * [SE-0057: Importing Objective-C Lightweight Generics](proposals/0057-importing-objc-generics.md)
 * [SE-0059: Update API Naming Guidelines and Rewrite Set APIs Accordingly](proposals/0059-updated-set-apis.md)
 * [SE-0061: Add Generic Result and Error Handling to autoreleasepool()](proposals/0061-autoreleasepool-signature.md)
