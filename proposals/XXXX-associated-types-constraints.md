@@ -42,7 +42,21 @@ protocol IntSequence : Sequence where Iterator.Element == Int {
 }
 ```
 
-Name lookup semantics in the `where` clause only looks at associated types in the parent protocols.
+Name lookup semantics in the protocol declaration `where` clause only looks at associated types in the parent protocols. For example, the following code would cause an error:
+
+```swift
+protocol IntSequence : Sequence where Counter: Int { // error: Use of undefined associated type 'Counter'
+    associatedtype Counter
+}
+```
+
+But instead should be written on the associated type itself:
+
+```swift
+protocol IntSequence : Sequence {
+    associatedtype Counter: Int
+}
+```
  
 ## Alternatives
 
