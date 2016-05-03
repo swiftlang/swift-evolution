@@ -159,13 +159,15 @@ named methods, reducing user confusion. This also will lead to better
 consistency going forward, as various authors of such protocols will not be
 providing their own method names.
 
-For a particular operator, this approach also reduces the number of global
-instances of that operator. Instead of there being one instance per concrete
-type conforming to that protocol, there is a single generic one per protocol.
-This should have a positive impact on type checker performance by splitting the
-lookup of an operator's implementation from searching through a very large set
-to searching through a much smaller set to find the generic trampoline and then
-using the bound type to quickly resolve the actual implementation.
+This approach also significantly reduces the number of symbols in the global
+namespace. Consider a protocol like `Equatable`, which requires a global
+definition of `==` for _every_ type that conforms to it. This approach replaces
+those _N_ global operators with a single generic global operator.
+
+The reduction in the number of global operators should have a positive impact on
+type checker performance as well. The search set at the global level becomes
+much smaller, and then the generic trampoline uses the bound type to quickly
+resolve the actual implementation.
 
 Similarly, this behavior allows users to be more explicit when referring to
 operator functions as first-class operations. Passing an operator function like
@@ -348,8 +350,9 @@ it in an extension.
 One alternative would be to do nothing. This would leave us with the problems
 cited above:
 
-* Concrete types either provide their own global operator overloads, increasing
-  the workload of the type checker...
+* Concrete types either provide their own global operator overloads, potentially
+  exploding the global namespace and increasing the workload of the type
+  checker...
 * ..._or_ they define generic operators that delegate to named methods, but
   those named methods bloat the public interface of the type.
 * Furthermore, there is no consistency required for these named methods among
