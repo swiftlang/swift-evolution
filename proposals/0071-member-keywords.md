@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0071](0071-member-keywords.md)
 * Author: [Doug Gregor](https://github.com/DougGregor)
-* Status: **In active review April 25 ... 29**
+* Status: **Accepted for Swift 3**
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction
