@@ -202,129 +202,22 @@ postfix func ++ <T: SomeProtocol>(value: inout T) -> T {
 }
 ```
 
-### Open issue: Class types and inheritance
+### Class types and inheritance
 
-While this approach works well for value types, these static operators may not
-work as expected for class types when inheritance is involved, and more work may
-be needed here.
+While this approach works well for value types, operators may not work as
+expected for class types when inheritance is involved. We expect classes to
+implement the static operators in the protocol using `class` methods instead of
+`static` methods, which allows subclases to override them. However, note that
+this requires the subclass's method signature to match the superclass's,
+meaning that `Base.==(lhs: Base, rhs: Base)` would have to be overridden using
+`Subclass.==(lhs: Base, rhs: Base)` (note the parameter types).
 
-We can currently model the behavior we'd like to achieve by using a named `eq`
-method instead of the operator itself. (Note that we are _not_ proposing that
-the function be named `eq` in the final design; this was done simply to perform
-the experiment with today's compiler.) Then we implement both the new method and
-the current `==` operator and compare their behaviors. For example:
-
-```swift
-protocol ProposedEquatable {
-  static func eq(lhs: Self, _ rhs: Self) -> Bool
-}
-
-class Base: ProposedEquatable, Equatable {
-  static func eq(lhs: Base, _ rhs: Base) -> Bool {
-    print("Base.eq")
-    return true
-  }
-}
-func ==(lhs: Base, rhs: Base) -> Bool {
-  print("==(Base, Base)")
-  return true
-}
-
-class Subclass: Base {
-  static func eq(lhs: Subclass, _ rhs: Subclass) -> Bool {
-    print("Subclass.eq(Subclass, Subclass)")
-    return true
-  }
-}
-func ==(lhs: Subclass, rhs: Subclass) -> Bool {
-  print("==(Subclass, Subclass)")
-  return true
-}
-
-func eq<T: ProposedEquatable>(lhs: T, _ rhs: T) -> Bool {
-  return T.eq(lhs, rhs)
-}
-
-let x = Subclass()
-let y = Subclass()
-let z = y as Base
-
-eq(x, y)  // prints "Base.eq"
-eq(x, z)  // prints "Base.eq"
-
-x == y    // prints "==(Subclass, Subclass)"
-x == z    // prints "==(Base, Base)"
-```
-
-The result of `eq(x, y)` was a bit surprising, since the generic argument `T` is
-bound to `Subclass` and there should be no dynamic dispatch at play there. (Is
-the issue that since `Base` is the class explicitly conforming to
-`ProposedEquatable`, this is locking in `Self` being bound as `Base`, causing
-that overload to be found in the compiler's search? Or is this a bug?)
-
-An attempt was also made to fix this using dynamic dispatch, by implementing
-`eq` as a `class` method instead of a `static` method:
-
-```swift
-protocol ProposedEquatable {
-  static func eq(lhs: Self, _ rhs: Self) -> Bool
-}
-
-class Base: ProposedEquatable, Equatable {
-  class func eq(lhs: Base, _ rhs: Base) -> Bool {
-    print("Base.eq")
-    return true
-  }
-}
-func ==(lhs: Base, rhs: Base) -> Bool {
-  print("==(Base, Base)")
-  return true
-}
-
-class Subclass: Base {
-  override class func eq(lhs: Base, _ rhs: Base) -> Bool {
-    print("Subclass.eq(Base, Base)")
-    return true
-  }
-  class func eq(lhs: Subclass, _ rhs: Subclass) -> Bool {
-    print("Subclass.eq(Subclass, Subclass)")
-    return true
-  }
-}
-func ==(lhs: Subclass, rhs: Subclass) -> Bool {
-  print("==(Subclass, Subclass)")
-  return true
-}
-
-func eq<T: ProposedEquatable>(lhs: T, _ rhs: T) -> Bool {
-  return T.eq(lhs, rhs)
-}
-
-let x = Subclass()
-let y = Subclass()
-let z = y as Base
-
-eq(x, y)  // prints "Subclass.eq(Base, Base)"
-eq(x, z)  // prints "Base.eq"
-
-x == y    // prints "==(Subclass, Subclass)"
-x == z    // prints "==(Base, Base)"
-```
-
-This helped slightly, since at least it resulting in a method on the expected
-subclass being called, but this still means that anyone implementing this
-operator on subclasses would have to do some casting, and it's awkward that
-subclasses would be expected to write its operator in terms of the conforming
-base class.
-
-It should also be noted (code not provided here) that using instance methods
-does not solve this problem, presumably for the same dispatch-related reasons
-that the class methods called the version with `Base` arguments.
-
-However, the lack of multiple dispatch in Swift means that the operators we have
-today don't necessarily work the way a user would expect (for example, the
-`x == z` expression above), so it's debatable whether this is a significant
-concern.
+Note, however, that operators as implemented today have similar issues. For
+example, the lack of multiple dispatch means that a comparison between a
+`Subclass` and a `Subclass as Base` would call `==(Base, Base)`, even if there
+exists a more specific `==(Subclass, Subclass)`. We acknowledge that this is a
+problem in both cases and do not address it in this proposal, since the proposed
+model is not a regression of current behavior.
 
 ## Detailed design
 
