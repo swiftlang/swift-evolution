@@ -310,9 +310,10 @@ user do this, it's not necessarily compelling to forbid it either.
 
 The ability to define operator methods inside a type is provided solely to
 express protocol requirements and to provide a hook for generic trampoline
-operators to call. Since the name lookup does not automatically, methods with
-operator names that do not satisfy a protocol requirement provide little value.
-As such, we propose the following language restrictions around them:
+operators to call. Since the name lookup does not automatically find type
+member operators, methods with operator names that do not satisfy a protocol
+requirement provide little value. As such, we propose the following language
+restrictions around them:
 
 * Methods with operator names must be `static` (or `class`, inside classes).
   Non-static methods with operator names are an error. (_Special case: in a
