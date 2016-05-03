@@ -121,6 +121,7 @@ sampling of potentially good ideas that are not in scope for Swift
 * [SE-0046: Establish consistent label behavior across all parameters including first labels](proposals/0046-first-label.md)
 * [SE-0049: Move @noescape and @autoclosure to be type attributes](proposals/0049-noescape-autoclosure-type-attrs.md)
 * [SE-0053: Remove explicit use of `let` from Function Parameters](proposals/0053-remove-let-from-function-parameters.md)
+* [SE-0071: Allow (most) keywords in member references](proposals/0071-member-keywords.md)
 
 ### Accepted proposals which do not have a complete implementation
 
@@ -149,7 +150,6 @@ subsequent release.
 * [SE-0065: A New Model For Collections and Indices](proposals/0065-collections-move-indices.md)
 * [SE-0067: Enhanced Floating Point Protocols](proposals/0067-floating-point-protocols.md)
 * [SE-0068: Expanding Swift `Self` to class members and value types](proposals/0068-universal-self.md)
-* [SE-0071: Allow (most) keywords in member references](proposals/0071-member-keywords.md)
 
 
 ## Swift 2.2 - Released on March 21, 2016
