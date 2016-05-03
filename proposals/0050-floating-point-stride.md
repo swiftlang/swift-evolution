@@ -5,13 +5,13 @@
 * Status: **Awaiting Review**
 * Review manager: TBD
 
-Swift strides create progressions along "notionally continuous one-dimensional values" using a series of offset values. This proposal supplements Swift's generic stride implementation with separate algorithms for floating point strides to avoid error accumulation.
+Swift strides create progressions along "notionally continuous one-dimensional values" using a series of offset values. This proposal supplements Swift's generic stride implementation with separate algorithms for floating point strides that avoid error accumulation.
 
 This proposal was discussed on-list in the ["\[Discussion\] stride behavior and a little bit of a call-back to digital numbers"](http://article.gmane.org/gmane.comp.lang.swift.evolution/8014) thread.
 
 ## Motivation
 
-`Strideable` is genericized across both integer and floating point types. A single implementation causes floating point strides to accumulate errors through repeatedly adding `by` intervals. Floating point types deserve their own floating point-aware implementation that minimizes errors.
+`Strideable` is genericized across both integer and floating point types. Writing a single piece of code to operate on both integer and floating point types is rarely a good idea. Swift's current implementation causes floating point strides to accumulate errors when repeatedly adding `by` intervals. Floating point types deserve a separate floating point-aware implementation that minimizes errors.
 
 ## Current Art
 
@@ -36,7 +36,7 @@ print(zip(Array(1.0.stride(through: 2.01, by: 0.1)), ideal).map(-))
   errors become larger towards the end of the progress. This is an artifact of
   the generic implementation.
 
-The same issues occur with C-style for loops. This is an artifact of floating point math and is not specific to Swift statements.
+The same issues occur with C-style for loops. This problem is a fundamental artifact of floating point math and is not specific to Swift statements.
 
 ## Detail Design
 
@@ -134,18 +134,31 @@ public func stride<T : Strideable where T.Stride : BinaryFloatingPoint>(
 }
 ```
 
-Initially, one proposed implementation used a step counter of type `Int`, but as Stephen Canon pointed out, there is a performance hit involved in performing an integer-to-floating point conversion at every iteration and in using multi-word arithmetic on 32-bit systems.
+Some salient design points deserve mention:
 
-The implications of using a floating point step counter is that the maximum supported number of iterations for endpoints of type `Double` is 2<sup>53</sup>; that number of steps should be indistinguishable from an infinite loop for currently available consumer systems. For endpoints of type `Float`, however, meaningful loops may exist with more than 2<sup>31</sup> iterations and catastrophic cancellation is a realistic concern. Therefore, it is a decision to be made on review if it is advisable to implement `Float`-specific versions of these algorithms where internal state is represented using `Double`, thus improving precision beyond that obtainable by manually computing (`self`, `self + 1.0 * stride`, `self + 2.0 * stride`, ... *last*) using `Float`.
+* We propose that only floating point types use this slightly more computationally intensive "new" stride; all other types retain the "classic" stride. If accepted, this new code could be appended to Stride.swift.gyb and exist alongside current code, which does not need to be modified.
+
+* It has become clear (based on some of Dave Abrahams's insights) that what determines whether a `StrideTo<T>` accumulates error isn't `T` but rather `T.Stride`; thus, we determine that "new" stride applies where `T.Stride : BinaryFloatingPoint`.
+
+* With newly adopted `FloatingPoint` and `BinaryFloatingPoint` protocols, `Float80` will conform to `BinaryFloatingPoint` and so will be opted into "new" stride.
+
+* We have considered Dave Abrahams's suggestion to explore whether we could avoid introducing new types, instead modifying the existing `StrideToIterator` and `StrideThroughIterator` and relying on compiler optimization to transform "new" stride into "classic" stride for `StrideTo<Int>`; however, because the differences between "classic" stride and "new" stride
+extend beyond the iterator's `next()` method (see below), we determined it would be best to keep the floating point logic in distinct types.
+
+* This "new" stride algorithm must take a different approach to handling the edge case of strides requiring an excessively large number of iterations. Consensus feedback has been that such strides should not devolve into infinite loops. As a result, the number of steps required to stride from start to end is computed during initialization. A "BigInt" step counter could remove this limitation, but use of such a type would degrade performance for more common use cases, and of course no such type exists in the Standard Library. Thus, we have settled on the use of a floating point step counter.
+
+* One implication of using a floating point step counter is that the maximum supported number of iterations for endpoints of type `Double` is 2<sup>53</sup>. That number of steps should be indistinguishable from an infinite loop for currently available consumer systems. Alternatives include a step counter of type `Int`, but as Stephen Canon has pointed out, there is a performance hit involved in performing an integer-to-floating point conversion at every iteration and in using multi-word arithmetic on 32-bit systems.
+
+* For endpoints of type `Float`, meaningful loops may exist with more than 2<sup>31</sup> iterations and catastrophic cancellation is a realistic concern; therefore, it is a decision to be made on review if it is advisable to implement `Float`-specific versions of these algorithms where internal state is represented using `Double`, thus improving precision beyond that obtainable by manually computing (`self`, `self + 1.0 * stride`, `self + 2.0 * stride`, ... *last*) using `Float`.
 
 ### Out of Scope
 
-We and others intend to propose additional changes about striding under separate cover. Specifically, the following topics are under discussion but are orthogonal to this proposal:
+We (and others) intend to propose further changes to striding under separate cover. The following topics remain under discussion but are orthogonal to this proposal:
 
 * Adding a method to be named `striding(by:)` or `by(_:)` to `Range`
 * Conforming strides to `Collection` rather than `Sequence`, and enabling striding over all types conforming to `Collection` (or even all types conforming to `Sequence`)
 
-Other suggestions regarding strides have been mooted but are also out of scope for this proposal:
+Other out-of-scope suggestions that may no longer apply to Swift 3 include:
 
 * Changing the name of parameter labels `to:` and `through:` to clarify their meaning
 * Changing internal implementation details of `StrideToIterator` and `StrideThroughIterator` to reduce the number of branches without relying on compiler optimizations to elide them
@@ -153,7 +166,7 @@ Other suggestions regarding strides have been mooted but are also out of scope f
 
 ## Alternatives Considered
 
-More precise results can be obtained by converting floating point values to integer math as in the following function. This works by calculating a precision multiplier derived from the whole and fractional parts of the start value, end value, and stride value to determine a multiplier that enables fully integer math without losing precision. This algorithm introduces significant overhead both for initialization and at each step, making it a non-ideal candidate for real-world implementation beyond trivial stride progressions. What is really needed here is a fast, well-implemented decimal type.
+Converting floating point values to integer math can produce more precise results. This approach works by calculating a precision multiplier. The multiplier is derived from the whole and fractional parts of the start value, end value, and stride value, enabling fully integer math that guards against lost precision. We do not recommend this solution because it introduces significant overhead both during initialization and at each step. This overhead limits real-world utility beyond trivial stride progressions. A fast, well-implemented decimal type would be a better fit than this jerry-rigged alternative.
 
 #### Integer Math
 
