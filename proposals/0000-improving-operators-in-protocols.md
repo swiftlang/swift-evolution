@@ -219,6 +219,19 @@ exists a more specific `==(Subclass, Subclass)`. We acknowledge that this is a
 problem in both cases and do not address it in this proposal, since the proposed
 model is not a regression of current behavior.
 
+### Deprecation of non-static protocol operators
+
+Because the proposed solution serves as a replacement and improvement for the
+existing syntax used to declare operator requirements in protocols, we propose
+that the non-static operator method syntax be **deprecated** in Swift 2 and
+**removed** in Swift 3. In Swift 3, static member operators should be the _only_
+way to define operators that are required for protocol conformance. This is a
+breaking change for existing code, but supporting two kinds of operators with
+different declaration and use syntax would lead to significant user confusion.
+
+Global operator functions would be unaffected by this change. Users would still
+be able to define them as before.
+
 ## Detailed design
 
 Currently, the Swift language allows the use of operators as the names of
@@ -298,14 +311,9 @@ explicitly reference the operator function of a type (e.g., `Int.+` or
 `Int.+(5, 7)` would not affect existing code.
 
 Changing the way operators are declared in protocols (static instead of
-non-static) would be a breaking change. However, since the syntax forms are
-mutually exclusive, we may wish to let them coëxist for the time being. That is,
-protocols that declare non-static operators would have them satisfied by global
-functions, and protocols that declare static operators would have them satisfied
-by static methods. While this provides two ways for developers to do the same
-thing, reducing breakage is a greater goal. We can consider deprecating
-non-static operators in protocols to lead developers to the new syntax and then
-remove it in a later version of Swift.
+non-static) would be a breaking change. As described above, we propose
+deprecating the current non-static protocol operator syntax and then removing it
+entirely in Swift 3.
 
 Applying this change to the protocols already in the Swift standard library
 (such as `Equatable`) would be a breaking change, because it would change the
