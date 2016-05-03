@@ -147,6 +147,7 @@ subsequent release.
 * [SE-0063: SwiftPM System Module Search Paths](proposals/0063-swiftpm-system-module-search-paths.md)
 * [SE-0064: Referencing the Objective-C selector of property getters and setters](proposals/0064-property-selectors.md)
 * [SE-0065: A New Model For Collections and Indices](proposals/0065-collections-move-indices.md)
+* [SE-0067: Enhanced Floating Point Protocols](proposals/0067-floating-point-protocols.md)
 * [SE-0068: Expanding Swift `Self` to class members and value types](proposals/0068-universal-self.md)
 
 
