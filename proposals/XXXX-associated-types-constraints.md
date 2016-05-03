@@ -26,7 +26,7 @@ protocol Sequence {
 }
 ```
 
-## Detail Design
+## Detailed Design
 
 With this proposal, the grammar for protocols associated types would be modified to:
 
