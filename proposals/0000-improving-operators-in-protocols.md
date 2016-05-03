@@ -258,6 +258,38 @@ _implicit-member-expression_ → **.** _operator­_
 **Open question:** Are there any potential ambiguities between the dot in the
 member expression and dots in operators?
 
+### Name lookup for operators
+
+We do not propose altering the existing name lookup for operators. An expression
+`a * b` will only search the _global_ namespace for operators named `*` with
+matching types. For example,
+
+```swift
+protocol FooProtocol {
+  static func *(lhs: Self, rhs: Self) -> Self
+}
+func * <T: FooProtocol>(lhs: T, rhs: T) -> T {
+  return T.*(lhs, rhs)
+}
+struct Foo: FooProtocol { ... }
+
+let a = Foo()
+let b = Foo()
+let x = a * b
+```
+
+This would only search the global namespace and find `* <T: FooProtocol>` as a
+match. The name lookup will _not_ search for operators defined as type members,
+so the concrete implementation of `Foo.*` would be ignored; the trampoline
+operator would explicitly call it. The only way to reference a type member
+operator is to fully-qualify it with its type's name, and it may only be called
+using function-call syntax.
+
+This implies that a user could implement a more specific overload of global `*`
+for a concrete type (such as one that takes `(Foo, Foo)` as its arguments),
+which would bypass the trampoline operator. While we would not recommend that a
+user do this, it's not necessarily compelling to forbid it either.
+
 ## Impact on existing code
 
 The ability to declare operators as static/class functions inside a type is a
