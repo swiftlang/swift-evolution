@@ -39,7 +39,7 @@ This proposal has no impact on extension declarations with constraints because t
 
 ## Detailed design
 
-First of all, the grammar of *generic-parameter-clause* is modified to loose the *requirement- clause*:
+First of all, the grammar of *generic-parameter-clause* is modified to lose the *requirement-clause*:
 
 *generic-parameter-clause* → **<** *­generic-parameter-list­­* **>­**
 
@@ -67,7 +67,7 @@ The grammar of declarations are then amended to gain the *requirement-clause*:
 
 ## Impact on existing code
 
-This proposal impacts all declarations which contain where clauses expect for extension declarations and will therefore require a Fix-It. 
+This proposal impacts all declarations which contain `where` clauses (except for extension declarations) and will therefore require a Fix-It.
 
 ## Alternatives considered
 
