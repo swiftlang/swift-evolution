@@ -20,6 +20,7 @@ proposals in that process.
 * May 3...9, 2016 [SE-0076: Add overrides taking an UnsafePointer source to non-destructive copying methods on UnsafeMutablePointer](proposals/0076-copying-to-unsafe-mutable-pointer-with-unsafe-pointer-source.md)
 * May 3...9, 2016 [SE-0078: Implement a rotate algorithm, equivalent to std::rotate() in C++](proposals/0078-rotate-algorithm.md)
 * May 3...9, 2016 [SE-0080: Failable Numeric Conversion Initializers](proposals/0080-failable-numeric-initializers.md)
+* May 4...7, 2016 [SE-0082: Package Manager Editable Packages](proposals/0082-swiftpm-package-edit.md)
 
 ## Upcoming reviews
 
