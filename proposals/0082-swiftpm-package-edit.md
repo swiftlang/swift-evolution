@@ -1,8 +1,8 @@
 # Package Manager Editable Packages
 
-* Proposal: SE-0082(https://github.com/apple/swift-evolution/blob/master/proposals/0082-swiftpm-package-edit.md)
+* Proposal: SE-0082
 * Author(s): [Daniel Dunbar](https://github.com/ddunbar)
-* Status: **Under Review** (May 4..May 7, 2016)
+* Status: **Active review** May 4...May 7, 2016
 * Review manager: Anders Bertelrud
 
 ## Introduction
