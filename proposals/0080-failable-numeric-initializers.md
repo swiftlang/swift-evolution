@@ -2,8 +2,8 @@
 
 * Proposal: [SE-0080](0080-failable-numeric-initializers.md)
 * Author: [Matthew Johnson](https://github.com/anandabits)
-* Status: **Awaiting Review**
-* Review manager: TBD
+* Status: **Active review May 3...9, 2016**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 

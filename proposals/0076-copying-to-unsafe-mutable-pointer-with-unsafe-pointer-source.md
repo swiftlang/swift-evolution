@@ -2,8 +2,8 @@
 
 * Proposal: [SE-0076](0076-copying-to-unsafe-mutable-pointer-with-unsafe-pointer-source.md)
 * Author: [Janosch Hildebrand](https://github.com/Jnosh)
-* Status: **Awaiting review**
-* Review manager: TBD
+* Status: **Active review May 3...9, 2016**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 

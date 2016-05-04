@@ -2,8 +2,8 @@
 
 * Proposal: [SE-0078](0078-rotate-algorithm.md)
 * Authors: [Nate Cook](https://github.com/natecook1000), [Sergey Bolshedvorsky](https://github.com/bolshedvorsky)
-* Status: **Awaiting review**
-* Review manager: TBD
+* Status: **Active review May 3...9, 2016**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
