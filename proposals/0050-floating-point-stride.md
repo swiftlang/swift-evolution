@@ -40,17 +40,13 @@ The same issues occur with C-style for loops. This problem is a fundamental arti
 
 ## Detail Design
 
-Floating point strides are inherently dissimilar to and should not be genericized with integer strides. We propose that `BinaryFloatingPointStrideTo` and `BinaryFloatingPointStrideThrough` should each return a sequence of values (`self`, `self + 1.0 * stride`, `self + 2.0 * stride`, ... *last*). The following example provides a rough sketch at what a revamp for `BinaryFloatingPointStrideTo` might look like (incorporating the `BinaryFloatingPoint` protocol as adopted in SE-0067):
+Floating point strides are inherently dissimilar to and should not be genericized with integer strides. We propose that `FloatingPointStrideTo` and `FloatingPointStrideThrough` should each return a sequence of values (`self`, `self + 1.0 * stride`, `self + 2.0 * stride`, ... *last*). The following example provides a rough sketch at what a revamp for `FloatingPointStrideTo` might look like (incorporating the `FloatingPoint` protocol as adopted in SE-0067):
 
 ```swift
 /// An iterator for the result of `stride(to:...)` that advances without
-/// accumulating error for binary floating point types.
-///
-/// - Note: The total number of steps required to stride over the interval
-///   cannot exceed 2 ** `(Element.Stride.significandBitCount + 1)`, where
-///   ** represents exponentiation.
-public struct BinaryFloatingPointStrideToIterator<
-  Element : Strideable where Element.Stride : BinaryFloatingPoint
+/// accumulating error for floating point types.
+public struct FloatingPointStrideToIterator<
+  Element : Strideable where Element.Stride : FloatingPoint
 > : IteratorProtocol {
   internal var _step: Element.Stride = 0
   internal let _start: Element
@@ -69,43 +65,36 @@ public struct BinaryFloatingPointStrideToIterator<
   }
 
   internal init(_start: Element, end: Element, stride: Element.Stride) {
-    // Attempting to compute the exact number of steps from start to end
-    // by stride is inadvisable because that result may not be exactly
-    // representable if it is too large; instead, determine if 2 ** 
-    // `(Element.Stride.significandBitCount + 1)` steps would advance past
-    // the end
-    let steps = Element.Stride(sign: .plus,
-      exponent: Element.Stride.Exponent(Element.Stride.significandBitCount + 1),
-      significand: 1)
-    let limit = _start + steps * stride
+    let quotient = (end - _start) / stride
+    // FIXME: Maximum supported number of steps could be slightly larger
     _precondition(
-      stride > 0 ? limit >= end : limit <= end,
-      "can't construct BinaryFloatingPointStrideToIterator: maximum supported number of steps exceeded")
+      quotient > 0 && quotient.ulp <= 1.0,
+      "can't construct FloatingPointStrideToIterator: maximum supported number of steps exceeded")
     self._start = _start
     self._end = end
     self._stride = stride
   }
 }
 
-/// A `Sequence` of values formed by striding over a binary floating point
+/// A `Sequence` of values formed by striding over a floating point
 /// half-open interval without accumulating error.
-public struct BinaryFloatingPointStrideTo<
-  Element : Strideable where Element.Stride : BinaryFloatingPoint
+public struct FloatingPointStrideTo<
+  Element : Strideable where Element.Stride : FloatingPoint
 > : Sequence, CustomReflectable {
   // FIXME: should really be a CollectionType, as it is multipass
 
   /// Returns an iterator over the elements of this sequence.
   ///
   /// - Complexity: O(1).
-  public func makeIterator() -> BinaryFloatingPointStrideToIterator<Element> {
-    return BinaryFloatingPointStrideToIterator(
+  public func makeIterator() -> FloatingPointStrideToIterator<Element> {
+    return FloatingPointStrideToIterator(
       _start: _start, end: _end, stride: _stride)
   }
 
   internal init(_start: Element, end: Element, stride: Element.Stride) {
     // The endpoint is constrained by a step counter of type Element.Stride
-    // in BinaryFloatingPointStrideToIterator, but it does not otherwise need
-    // to be finite.
+    // in FloatingPointStrideToIterator, but it does not otherwise need to
+    // be finite.
     _precondition(
       stride.isFinite && !stride.isZero,
       "stride size must be finite and non-zero")
@@ -127,10 +116,10 @@ public struct BinaryFloatingPointStrideTo<
 /// 2.0 * stride`, ... *last*) where *last* is the last value in
 /// the progression that is less than `end`.
 @warn_unused_result
-public func stride<T : Strideable where T.Stride : BinaryFloatingPoint>(
+public func stride<T : Strideable where T.Stride : FloatingPoint>(
   from start: T, to end: T, by stride: T.Stride
-) -> BinaryFloatingPointStrideTo<T> {
-  return BinaryFloatingPointStrideTo(_start: start, end: end, stride: stride)
+) -> FloatingPointStrideTo<T> {
+  return FloatingPointStrideTo(_start: start, end: end, stride: stride)
 }
 ```
 
@@ -138,18 +127,18 @@ Some salient design points deserve mention:
 
 * We propose that only floating point types use this slightly more computationally intensive "new" stride; all other types retain the "classic" stride. If accepted, this new code could be appended to Stride.swift.gyb and exist alongside current code, which does not need to be modified.
 
-* It has become clear (based on some of Dave Abrahams's insights) that what determines whether a `StrideTo<T>` accumulates error isn't `T` but rather `T.Stride`; thus, we determine that "new" stride applies where `T.Stride : BinaryFloatingPoint`.
+* It has become clear (based on some of Dave Abrahams's insights) that what determines whether a `StrideTo<T>` accumulates error isn't `T` but rather `T.Stride`; thus, we determine that "new" stride applies where `T.Stride : FloatingPoint`.
 
-* With newly adopted `FloatingPoint` and `BinaryFloatingPoint` protocols, `Float80` will conform to `BinaryFloatingPoint` and so will be opted into "new" stride.
+* With newly adopted `FloatingPoint` protocols, `Float80` will conform to `FloatingPoint` and so will be opted into "new" stride.
 
 * We have considered Dave Abrahams's suggestion to explore whether we could avoid introducing new types, instead modifying the existing `StrideToIterator` and `StrideThroughIterator` and relying on compiler optimization to transform "new" stride into "classic" stride for `StrideTo<Int>`; however, because the differences between "classic" stride and "new" stride
 extend beyond the iterator's `next()` method (see below), we determined it would be best to keep the floating point logic in distinct types.
 
 * This "new" stride algorithm must take a different approach to handling the edge case of strides requiring an excessively large number of iterations. Consensus feedback has been that such strides should not devolve into infinite loops. As a result, the number of steps required to stride from start to end is computed during initialization. A "BigInt" step counter could remove this limitation, but use of such a type would degrade performance for more common use cases, and of course no such type exists in the Standard Library. Thus, we have settled on the use of a floating point step counter.
 
-* One implication of using a floating point step counter is that the maximum supported number of iterations for endpoints of type `Double` is 2<sup>53</sup>. That number of steps should be indistinguishable from an infinite loop for currently available consumer systems. Alternatives include a step counter of type `Int`, but as Stephen Canon has pointed out, there is a performance hit involved in performing an integer-to-floating point conversion at every iteration and in using multi-word arithmetic on 32-bit systems.
+* One implication of using a floating point step counter is that the maximum supported number of iterations for endpoints of type `Double` is 2<sup>53</sup> &minus; 1. That number of steps should be indistinguishable from an infinite loop for currently available consumer systems. Alternatives include a step counter of type `Int`, but as Stephen Canon has pointed out, there is a performance hit involved in performing an integer-to-floating point conversion at every iteration and in using multi-word arithmetic on 32-bit systems.
 
-* For endpoints of type `Float`, meaningful loops may exist with more than 2<sup>31</sup> iterations and catastrophic cancellation is a realistic concern; therefore, it is a decision to be made on review if it is advisable to implement `Float`-specific versions of these algorithms where internal state is represented using `Double`, thus improving precision beyond that obtainable by manually computing (`self`, `self + 1.0 * stride`, `self + 2.0 * stride`, ... *last*) using `Float`.
+* For endpoints of type `Float`, meaningful loops may exist with more than 2<sup>24</sup> &minus; 1 iterations and catastrophic cancellation is a realistic concern; therefore, it is a decision to be made on review if it is advisable to implement `Float`-specific versions of these algorithms where internal state is represented using `Double`, thus improving precision beyond that obtainable by manually computing (`self`, `self + 1.0 * stride`, `self + 2.0 * stride`, ... *last*) using `Float`.
 
 ### Out of Scope
 
