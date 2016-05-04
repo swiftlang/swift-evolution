@@ -124,6 +124,7 @@ sampling of potentially good ideas that are not in scope for Swift
 * [SE-0059: Update API Naming Guidelines and Rewrite Set APIs Accordingly](proposals/0059-updated-set-apis.md)
 * [SE-0055: Make unsafe pointer nullability explicit using Optional](proposals/0055-optional-unsafe-pointers.md)
 * [SE-0065: A New Model For Collections and Indices](proposals/0065-collections-move-indices.md)
+* [SE-0069: Mutability and Foundation Value Types](proposals/0069-swift-mutability-for-foundation.md)
 * [SE-0071: Allow (most) keywords in member references](proposals/0071-member-keywords.md)
 
 ### Accepted proposals which do not have a complete implementation
@@ -134,15 +135,19 @@ them.  If they are not implemented in time for Swift 3, they will roll into a
 subsequent release.
 
 * [SE-0008: Add a Lazy flatMap for Sequences of Optionals](proposals/0008-lazy-flatmap-for-optionals.md)
+* [SE-0017: Change `Unmanaged` to use `UnsafePointer`](proposals/0017-convert-unmanaged-to-use-unsafepointer.md)
 * [SE-0025: Scoped Access Level](proposals/0025-scoped-access-level.md)
+* [SE-0032: Add `find` method to `SequenceType`](proposals/0032-sequencetype-find.md)
 * [SE-0033: Import Objective-C Constants as Swift Types](proposals/0033-import-objc-constants.md)
 * [SE-0035: Limiting `inout` capture to `@noescape` contexts](proposals/0035-limit-inout-capture.md)
 * [SE-0036: Requiring Leading Dot Prefixes for Enum Instance Member Implementations](proposals/0036-enum-dot.md)
 * [SE-0038: Package Manager C Language Target Support](proposals/0038-swiftpm-c-language-targets.md)
 * [SE-0042: Flattening the function type of unapplied method references](proposals/0042-flatten-method-types.md)
 * [SE-0044: Import as Member](proposals/0044-import-as-member.md)
+* [SE-0045: Add scan, prefix(while:), drop(while:), and iterate to the stdlib](proposals/0045-scan-takewhile-dropwhile.md)
 * [SE-0047: Defaulting non-Void functions so they warn on unused results](proposals/0047-nonvoid-warn.md)
 * [SE-0048: Generic Type Aliases](proposals/0048-generic-typealias.md)
+* [SE-0052: Change IteratorType post-nil guarantee](proposals/0052-iterator-post-nil-guarantee.md)
 * [SE-0054: Abolish `ImplicitlyUnwrappedOptional` type](proposals/0054-abolish-iuo.md)
 * [SE-0057: Importing Objective-C Lightweight Generics](proposals/0057-importing-objc-generics.md)
 * [SE-0061: Add Generic Result and Error Handling to autoreleasepool()](proposals/0061-autoreleasepool-signature.md)
