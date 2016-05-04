@@ -2,7 +2,7 @@
 
 * Proposal: SE-NNNN
 * Author(s): [Daniel Dunbar](https://github.com/ddunbar)
-* Status: **Under construction**
+* Status: **Awaiting review**
 * Review manager: Anders Bertelrud
 
 ## Introduction
@@ -150,7 +150,8 @@ Concretely, we will take the following steps:
    tag that would have been chosen via dependency resolution, and clone that
    repository to `Packages/<NAME>` checked out to the tag.
 
-   The desired invariant here is that the following sequence:
+   The desired invariant here is that the following sequence (starting from
+   having no editable dependencies):
    ```
    swift build
    swift build --edit <NAME>
@@ -180,6 +181,11 @@ Concretely, we will take the following steps:
    location on their file system, and would like other packages to refer to for
    iterative development. Initially, that behavior can be emulated using
    symbolic links within the `Packages` directory.
+
+   If such a file is introduced, the file system representation of the editable
+   packages will always be the "canonical" source of data, and the metadata file
+   will simply be used for additional diagnostics or information which cannot be
+   inferred from the file system.
 
 7. We will consider a `swift build --edit-all` flag for immediately moving all
    packages to editable mode.
