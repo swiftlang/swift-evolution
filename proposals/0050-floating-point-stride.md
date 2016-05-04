@@ -68,7 +68,7 @@ public struct FloatingPointStrideToIterator<
     let quotient = (end - _start) / stride
     // FIXME: Maximum supported number of steps could be slightly larger
     _precondition(
-      quotient > 0 && quotient.ulp <= 1,
+      quotient >= 0 && quotient.ulp <= 1,
       "can't construct FloatingPointStrideToIterator: maximum supported number of steps exceeded")
     self._start = _start
     self._end = end
