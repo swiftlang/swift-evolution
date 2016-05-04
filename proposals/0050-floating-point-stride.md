@@ -38,7 +38,7 @@ print(zip(Array(1.0.stride(through: 2.01, by: 0.1)), ideal).map(-))
 
 The same issues occur with C-style for loops. This problem is a fundamental artifact of floating point math and is not specific to Swift statements.
 
-## Detail Design
+## Detailed Design
 
 Floating point strides are inherently dissimilar to and should not be genericized with integer strides. We propose that `FloatingPointStrideTo` and `FloatingPointStrideThrough` should each return a sequence of values (`self`, `self + 1.0 * stride`, `self + 2.0 * stride`, ... *last*). The following example provides a rough sketch at what a revamp for `FloatingPointStrideTo` might look like (incorporating the `FloatingPoint` protocol as adopted in SE-0067):
 
