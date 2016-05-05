@@ -7,7 +7,7 @@
 
 ## Introduction
 
-Replace syntax of operator definition, and replace numerical precedence with partial ordering of operators:
+Replace syntax of operator declaration, and replace numerical precedence with partial ordering of operators:
 
 ```swift
 // Before
@@ -21,7 +21,7 @@ precedencegroup Comparative {
 infix operator <> : Comparative
 ```
 
-Swift-evolution thread: [link to the discussion thread for that proposal](https://lists.swift.org/pipermail/swift-evolution)
+Swift-evolution thread: [link to the discussion thread for that proposal](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160328/014062.html)
 
 ## Motivation
 
@@ -46,15 +46,14 @@ In many cases, this is undesirable. For example, `a & b < c` and `a / b as Doubl
 The root of the problem is that precedence is currently defined for any pair of operators.
 If `&` had its precedence defined only in relation to other bitwise operators and `/` – only to arithmetic operators, we would have to use parentheses in the preceding examples. This would avoid subtle bugs.
 
-### Problems with current operator definition syntax
+### Problems with current operator declaration syntax
 
-Current operator definition syntax is basically an unstructured bag of words.
-Such definitions are not used anywhere else in Swift.
-I attempt to make it at least partially consistent with other Swift declarations.
+Current operator declaration syntax is basically an unstructured bag of words.
+This proposal appempts to make it at least partially consistent with other Swift declarations.
 
 ## Proposed solution
 
-### Syntax for definitions of operators and groups
+### Syntax for declaration of operators and groups
 
 Operator declarations no longer have body:
 
@@ -64,7 +63,7 @@ infix operator +
 ```
 
 Precedence groups declare optional associativity (`left` or `right`).
-Infix operators declare their precedence groups at definition using inheritance-like syntax:
+Infix operators declare their precedence groups using inheritance-like syntax:
 
 ```swift
 precedencegroup Additive {
@@ -105,6 +104,9 @@ infix operator & : BitwiseAnd
 
 Precedence equality can only be defined for precedence groups with same associativity.
 
+Only one declaration of the same operator / precedence group is allowed,
+meaning that new precedence relations between existing groups cannot be added.
+
 ### Transitive precedence propagation
 
 Compiler will apply transitivity axiom to compare precedence of two given precedence groups. Example:
@@ -132,18 +134,12 @@ precedencegroup Default {
 }
 ```
 
-So the following two statements are equivalent:
+The following two statements are equivalent:
 
 ```swift
 infix operator |> : Default
 infix operator |>
 ```
-
-### Avoiding conflicts
-
-No such mechanism is proposed currently, meaning that operators and precedence groups can only be defined once.
-
-The only mechanisms to interact with existing precedence groups is adding new operators to them and declaring precedence relation between it and a new precedence group.
 
 ## Detailed design
 
@@ -151,7 +147,7 @@ The only mechanisms to interact with existing precedence groups is adding new op
 
 Compiler will represent all precedence groups as a Directed Acyclic Graph.
 
-This would require developers of Swift compiler to solve the problem of [Reachability](https://en.wikipedia.org/wiki/Reachability) and ensure that corresponding algorithm does not have observable impact on compilation time.
+This will require developers of Swift compiler to solve the problem of [Reachability](https://en.wikipedia.org/wiki/Reachability) and ensure that corresponding algorithm does not have observable impact on compilation time.
 
 ### Special operators
 
@@ -166,12 +162,9 @@ infix operator is : Cast
 infix operator as : Cast
 infix operator as? : Cast
 infix operator as! : Cast
-ternary operator ?: : Ternary
+infix operator ?: : Ternary
 infix operator = : Assignment
 ```
-
-Built-ins `&` (as a prefix operator), `->`, `?`, and `!` (as a postfix operator) are explicitly excluded
-from possible Swift operators. Precedence is not applicable to their built-in operator-like usage.
 
 ### Grammar
 
@@ -310,14 +303,16 @@ Standard library operator declarations will be rewritten, and precedence groups 
 User defined operators will need to be rewritten as well.
 Migration tool will remove bodies of operator declarations. `infix` operators will be implicitly added to `Default` group.
 
-More importantly, some code may rely on precedence rules being removed.
-No automatic conversion for these cases is suggested, because they might represent existing bugs.
+Code, which relies on precedence relations of user-defined operators being implicitly defined, may be broken.
+This will need to be fixed manually by adding them to desired precedence group.
 
 ## Future directions
 
 ### Change precedence of the Standard Library operators
 
 Actually, this is one of the main reasons why this proposal was created: break single hierarchy of operators from Standard Library.
+
+This is a draft; actual precedence relationships will be discussed in another proposal.
 
 ```swift
 prefix operator !
@@ -430,4 +425,38 @@ infix operator ^= : Assignment
 infix operator |= : Assignment
 infix operator &&= : Assignment
 infix operator ||= : Assignment
+```
+
+## Alternatives considered
+
+### Use `operator` instead of `precedencegroup`
+
+This would avoid introducing a new keyword.
+
+On the other hand, `precedencegroup` more clearly represents what it declares.
+Additionally, `operator` remains a local keyword.
+
+### Define precedence relationships outside of group declarations
+
+```swift
+precedencerelation Additive < Multiplicative
+```
+
+Precedence groups are closed in this proposal.
+It discourages recreating a single hierarchy of standard library operators.
+
+### Do not use precedence groups
+
+It would make each operator define precedence relationships.
+
+The graph of relationships would be considerably larger and less understandable in this case.
+
+Precedence groups concept would still be present, but it would make one operator in each group "priveleged":
+
+```swift
+precedencerelation - = +
+precedencerelation &+ = +
+precedencerelation / = *
+precedencerelation % = *
+precedencerelation * > +
 ```
