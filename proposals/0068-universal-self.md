@@ -5,6 +5,8 @@
 * Status: **Accepted** ([Bug](https://bugs.swift.org/browse/SR-1340))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
+* Previous version: [Review](https://github.com/apple/swift-evolution/blob/13d9771e86c5639b8320f05e5daa31a62bac0f07/proposals/0068-universal-self.md)
+
 ## Introduction
 
 Within a class scope, `Self` means "the dynamic class of `self`". This proposal extends that courtesy to value types and to the bodies of class members
