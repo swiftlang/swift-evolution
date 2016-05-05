@@ -18,14 +18,16 @@ proposals in that process.
 
 ## Upcoming reviews
 
+* May 10...16, 2016 [SE-0041: Updating Protocol Naming Conventions for Conversions](proposals/0041-conversion-protocol-conventions.md)
+* May 10...16, 2016 [SE-0075: Adding a Build Configuration Import Test](proposals/0075-import-test.md)
+* May 10...16, 2016 [SE-0081: Move `where` clause to end of declaration](proposals/0081-move-where-expression.md)
+* May 10...16, 2016 [SE-0083: Remove bridging conversion behavior from dynamic casts](proposals/0083-remove-bridging-from-dynamic-casts.md)
+
 ## Proposals awaiting scheduling
 
 * [SE-0012: Add `@noescape` to public library API](proposals/0012-add-noescape-to-public-library-api.md)
-* [SE-0041: Updating Protocol Naming Conventions for Conversions](proposals/0041-conversion-protocol-conventions.md)
-* [SE-0075: Adding a Build Configuration Import Test](proposals/0075-import-test.md)
 * [SE-0077: Improved operator declarations](proposals/0077-operator-precedence.md)
 * [SE-0079: Allow using optional binding to upgrade `self` from a weak to strong reference](proposals/0079-upgrade-self-from-weak-to-strong.md)
-* [SE-0081: Move `where` clause to end of declaration](proposals/0081-move-where-expression.md)
 
 
 [evolution-process]: process.md  "The Swift evolution process"

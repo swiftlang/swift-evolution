@@ -1,9 +1,9 @@
 # Remove bridging conversion behavior from dynamic casts
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/XXXX-remove-bridging-from-dynamic-casts.md)
-* Author(s): [Joe Groff](https://github.com/jckarter)
-* Status: **[Awaiting review](#rationale)**
-* Review manager: TBD
+* Proposal: [SE-0083](0083-remove-bridging-from-dynamic-casts.md)
+* Author: [Joe Groff](https://github.com/jckarter)
+* Status: **Scheduled for review: May 10...16, 2016**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 

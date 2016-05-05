@@ -1,9 +1,9 @@
 # Updating Protocol Naming Conventions for Conversions
 
-* Proposal: TBD
+* Proposal: [SE-00041](0041-conversion-protocol-conventions.md)
 * Authors: [Matthew Johnson](https://github.com/anandabits), [Erica Sadun](http://github.com/erica)
-* Status: TBD
-* Review manager: TBD
+* Status: **Scheduled for review: May 10...16, 2016**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
