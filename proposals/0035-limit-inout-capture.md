@@ -42,7 +42,6 @@ persisted independently of the original argument:
 ```swift
 func captureAndEscape(inout x: Int) -> () -> Void {
   let closure = { x += 1 }
-  closure()
   return closure
 }
 
