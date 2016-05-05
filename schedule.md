@@ -22,6 +22,7 @@ proposals in that process.
 * May 10...16, 2016 [SE-0075: Adding a Build Configuration Import Test](proposals/0075-import-test.md)
 * May 10...16, 2016 [SE-0081: Move `where` clause to end of declaration](proposals/0081-move-where-expression.md)
 * May 10...16, 2016 [SE-0083: Remove bridging conversion behavior from dynamic casts](proposals/0083-remove-bridging-from-dynamic-casts.md)
+* May 10...16, 2016 [SE-0084: Allow trailing commas in parameter lists and tuples](proposals/0084-trailing-commas.md)
 
 ## Proposals awaiting scheduling
 
