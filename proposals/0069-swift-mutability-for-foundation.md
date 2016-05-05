@@ -28,7 +28,7 @@ This proposal describes a straightforward concept for providing this capability.
 
 1. Improve the developer experience, 
 2. Increase performance for small types like `Date`
-3. Preserving the ability for developers to customize the behavior of most types.
+3. Preserve the ability for developers to customize the behavior of most types.
 
 This proposal describes the fundamental ideas and provides general justification.
 
