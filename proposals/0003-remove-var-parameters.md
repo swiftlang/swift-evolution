@@ -35,6 +35,10 @@ directly.  For that to happen to value types, you have to mark the parameter
 with `inout`:
 
 ```swift
+func doSomethingWithVar(var i: Int) {
+  i = 2 // This will NOT have an effect on the caller's Int that was passed, but i can be modified locally
+}
+
 func doSomethingWithInout(inout i: Int) {
   i = 2 // This will have an effect on the caller's Int that was passed.
 }
