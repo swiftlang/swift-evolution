@@ -1,4 +1,4 @@
-# Add `find(where:)` method to `Sequence`
+# Add `first(where:)` method to `Sequence`
 
 * Proposal: [SE-0032](https://github.com/apple/swift-evolution/blob/master/proposals/0032-sequencetype-find.md)
 * Author: [Kevin Ballard](https://github.com/kballard)
@@ -11,7 +11,7 @@
 
 ## Introduction
 
-Add a new extension method to `Sequence` called `find(where:)` that returns the
+Add a new extension method to `Sequence` called `first(where:)` that returns the
 found element.
 
 Swift-evolution thread: [Proposal: Add function SequenceType.find()](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151228/004814.html)
@@ -33,7 +33,7 @@ aware of this, which means they end up doing a lot more work than expected.
 
 ## Proposed solution
 
-Extend `Sequence` with a method called `find(where:)` that takes a predicate and
+Extend `Sequence` with a method called `first(where:)` that takes a predicate and
 returns an optional value of the first element that passes the predicate, if
 any.
 
@@ -45,7 +45,7 @@ Add the following extension to `Sequence`:
 extension Sequence {
   /// Returns the first element where `predicate` returns `true`, or `nil`
   /// if such value is not found.
-  public func find(where predicate: @noescape (Self.Iterator.Element) throws -> Bool) rethrows -> Self.Iterator.Element? {
+  public func first(where predicate: @noescape (Self.Iterator.Element) throws -> Bool) rethrows -> Self.Iterator.Element? {
     for elt in self {
       if try predicate(elt) {
         return elt
@@ -62,7 +62,7 @@ None, this feature is purely additive.
 
 In theory, we might provide an automatic conversion from
 `seq.filter(predicate).first` or `seq.lazy.filter(predicate).first` to
-`seq.find(where: predicate)`, although the existing code would continue to
+`seq.first(where: predicate)`, although the existing code would continue to
 compile just fine.
 
 ## Alternatives considered
