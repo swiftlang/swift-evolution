@@ -7,7 +7,6 @@ proposals in that process.
 ## Active reviews
 
 * April 25...May 2, 2016 [SE-0066: Standardize function type argument syntax to require parentheses](proposals/0066-standardize-function-type-syntax.md)
-* April 26 ... May 2, 2016 [SE-0072: Fully eliminate implicit bridging conversions from Swift](proposals/0072-eliminate-implicit-bridging-conversions.md)
 * May 3...9, 2016 [SE-0060: Enforcing order of defaulted parameters](proposals/0060-defaulted-parameter-order.md)
 * May 3...9, 2016 [SE-0073: Marking closures as executing exactly once](proposals/0073-noescape-once.md)
 * May 3...9, 2016 [SE-0074: Implementation of Binary Search functions](proposals/0074-binary-search.md)
