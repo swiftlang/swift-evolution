@@ -9,7 +9,7 @@
 
 Swift numeric types all currently have a family of conversion initializers.  In many use cases they leave a lot to be desired.  Initializing an integer type with a floating point value will truncate any fractional portion of the number.  Initializing with an out-of-range value traps.  
 
-This proposal is to add a new family of conversion initializers to all numeric types that either complete successfully without loss of information or throw an error.
+This proposal is to add a new family of conversion initializers to all numeric types that either complete successfully without loss of information or return nil.
 
 Swift-evolution thread: [Proposal: failable numeric conversion initializers](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151130/000623.html)
 
@@ -23,29 +23,29 @@ Add a new family of numeric conversion initializers with the following signature
 
 ```swift
 //  Conversions from all integer types.
-init?(exact value: Int8)
-init?(exact value: Int16)
-init?(exact value: Int32)
-init?(exact value: Int64)
-init?(exact value: Int)
-init?(exact value: UInt8)
-init?(exact value: UInt16)
-init?(exact value: UInt32)
-init?(exact value: UInt64)
-init?(exact value: UInt)
+init?(exactly value: Int8)
+init?(exactly value: Int16)
+init?(exactly value: Int32)
+init?(exactly value: Int64)
+init?(exactly value: Int)
+init?(exactly value: UInt8)
+init?(exactly value: UInt16)
+init?(exactly value: UInt32)
+init?(exactly value: UInt64)
+init?(exactly value: UInt)
 
 //  Conversions from all floating-point types.
-init?(exact value: Float)
-init?(exact value: Double)
+init?(exactly value: Float)
+init?(exactly value: Double)
 #if arch(i386) || arch(x86_64)
-init?(exact value: Float80)
+init?(exactly value: Float80)
 #endif
 ```
 
 Foundation should extend all numeric types as well as `Bool` with a failable conversion initializer accepting `NSNumber`: 
 
 ```swift
-init?(exact value: NSNumber)
+init?(exactly value: NSNumber)
 ```
 
 Finally, Foundation should extend `NSDecimal` and `NSDecimalNumber` with the entire familly of throwing numeric conversion initializers, including `NSNumber`.
