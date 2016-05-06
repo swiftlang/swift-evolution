@@ -188,20 +188,34 @@ protocol SomeProtocol {
   static func +=(lhs: inout Self, rhs: Self)
   static prefix func ~(value: Self) -> Self
 
-  // This one is deprecated, of course, but used here just to serve as an
+  // These are deprecated, of course, but used here just to serve as an
   // example.
+  static prefix func ++(value: inout Self) -> Self
   static postfix func ++(value: inout Self) -> Self
 }
+```
 
-// Trampolines
+The trampoline implementation requires some special care, because they call the
+operators using function call syntax instead of operator syntax. If a protocol
+defines prefix and postfix operators with the same name, we must be able to
+differentiate them when calling them or referencing them (for example, as a
+first class function).
+
+To achieve this, we propose requiring `prefix:` and `postfix:` argument labels
+when calling such operators:
+
+```swift
 func += <T: SomeProtocol>(lhs: inout T, rhs T) {
   T.+=(&lhs, rhs)
 }
 prefix func ~ <T: SomeProtocol>(value: T) -> T {
-  return T.~(value)
+  return T.~(prefix: value)
+}
+prefix func ++ <T: SomeProtocol>(value: inout T) -> T {
+  return T.++(prefix: &value)
 }
 postfix func ++ <T: SomeProtocol>(value: inout T) -> T {
-  return T.++(&value)
+  return T.++(postfix: &value)
 }
 ```
 
@@ -221,6 +235,9 @@ example, the lack of multiple dispatch means that a comparison between a
 exists a more specific `==(Subclass, Subclass)`. We acknowledge that this is a
 problem in both cases and do not address it in this proposal, since the proposed
 model is not a regression of current behavior.
+
+For users who wish to go down this path, we should ensure that expressions using
+`super`, like `super.==(lhs, rhs)`, work as expected inside such class methods.
 
 ### Deprecation of non-static protocol operators
 
