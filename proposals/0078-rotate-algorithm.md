@@ -172,7 +172,7 @@ public struct RotatedCollection<Base: Collection>: Collection {
 }
 
 /// A rotated view of an underlying bidirectional collection.
-public struct RotatedBidirectionalCollection<Base: Collection>: Collection {
+public struct RotatedBidirectionalCollection<Base: BidirectionalCollection>: BidirectionalCollection {
     // standard collection innards
     
     /// The shifted position of the base collection's `startIndex`.
@@ -180,7 +180,7 @@ public struct RotatedBidirectionalCollection<Base: Collection>: Collection {
 }
 
 /// A rotated view of an underlying random-access collection.
-public struct RotatedRandomAccessCollection<Base: Collection>: Collection {
+public struct RotatedRandomAccessCollection<Base: RandomAccessCollection>: RandomAccessCollection {
     // standard collection innards
     
     /// The shifted position of the base collection's `startIndex`.
