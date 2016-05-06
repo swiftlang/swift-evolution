@@ -4,9 +4,10 @@
 
 This repository tracks the ongoing evolution of Swift. It contains:
 
-* Goals for upcoming Swift releases (this document)
-* The [Swift evolution review schedule](schedule.md) tracking proposals to change Swift
+* Goals for upcoming Swift releases (this document).
+* The [Swift evolution review schedule](schedule.md) tracking proposals to change Swift.
 * The [Swift evolution process](process.md) that governs the evolution of Swift.
+* [Commonly Rejected Changes](commonly_proposed.md), proposals which have been denied in the past.
 
 This document describes goals for the Swift language on a per-release
 basis, usually listing minor releases adding to the currently shipping
@@ -21,7 +22,7 @@ definitive list of notable changes in each release.
 
 ## Development major version:  Swift 3.0
 
-Expected release date: Fall 2016
+Expected release date: Late 2016
 
 The primary goal of this release is to stabilize the binary interface
 of the language and standard library. As part of this process, we will
@@ -42,7 +43,7 @@ concretely, this release is focused on several key areas:
 * **API design guidelines**: The way in which Swift is used in popular
   libraries has almost as much of an effect on the character of Swift
   code as the Swift language itself. The [API design
-  guidelines](https://swift.org/documentation/api-design-guidelines.html) provide guidance for
+  guidelines](https://swift.org/documentation/api-design-guidelines/) provide guidance for
   building great Swift APIs. For Swift 3.0, the Swift standard library
   and core libraries are being updated to match these guidelines, and
   Swift's Objective-C importer will [automatically map](proposals/0005-objective-c-name-translation.md) from the [Cocoa guidelines for
@@ -75,9 +76,17 @@ sampling of potentially good ideas that are not in scope for Swift
   interoperability with C++ is a significant undertaking that is out
   of scope for Swift 3.0.
 
-* **Hygienic Macros**: A first-class macro system is something we may consider
-  in future releases.  We don't want the existence of a macro system to be a
-  workaround that reduces the incentive for making the core language great.
+* **Hygienic Macros** and **Compile-Time Evaluation**: A first-class macro
+  system, or support for compile-time code execution in general, is something
+  we may consider in future releases.  We don't want the existence of a macro
+  system to be a workaround that reduces the incentive for making the core
+  language great.
+
+* **Implicit conversions between numeric types**: We may do this in a future
+  release, but there is simply too much work to be done first.  Before we can
+  loosen these type rules, we will need to speed up the type checker, redesign
+  the numerics protocols, and implement a subtyping feature to express the 
+  permitted conversions.  This won't all come together before Swift 3.0 ships.
 
 * **Major new library functionality**: The Swift Standard Library is focused on
   providing core "language" functionality as well as common data structures.  The
@@ -90,29 +99,110 @@ sampling of potentially good ideas that are not in scope for Swift
   with the Swift Package Manager.  Beyond Swift 3 we may consider standardizing
   popular packages or expanding the scope of the project.  
 
-### Accepted proposals for Swift 3.0
+### Implemented proposals for Swift 3
 
-* [Better Translation of Objective-C APIs Into Swift](proposals/0005-objective-c-name-translation.md)
-* [Removing currying `func` declaration syntax](proposals/0002-remove-currying.md)
-* [Removing `var` from Function Parameters and Pattern Matching](proposals/0003-remove-var-parameters-patterns.md)
-* [Remove the `++` and `--` operators](proposals/0004-remove-pre-post-inc-decrement.md)
+* [SE-0002: Removing currying `func` declaration syntax](proposals/0002-remove-currying.md)
+* [SE-0003: Removing `var` from Function Parameters](proposals/0003-remove-var-parameters.md)
+* [SE-0004: Remove the `++` and `--` operators](proposals/0004-remove-pre-post-inc-decrement.md)
+* [SE-0005: Better Translation of Objective-C APIs Into Swift](proposals/0005-objective-c-name-translation.md)
+* [SE-0006: Apply API Guidelines to the Standard Library](proposals/0006-apply-api-guidelines-to-the-standard-library.md)
+* [SE-0007: Remove C-style for-loops with conditions and incrementers](proposals/0007-remove-c-style-for-loops.md)
+* [SE-0016: Adding initializers to Int and UInt to convert from UnsafePointer and UnsafeMutablePointer](proposals/0016-initializers-for-converting-unsafe-pointers-to-ints.md)
+* [SE-0019: Swift Testing](proposals/0019-package-manager-testing.md)
+* [SE-0023: API Design Guidelines](proposals/0006-apply-api-guidelines-to-the-standard-library.md)
+* [SE-0028: Modernizing Swift's Debugging Identifiers (\__FILE__, etc)](proposals/0028-modernizing-debug-identifiers.md)
+* [SE-0029: Remove implicit tuple splat behavior from function applications](proposals/0029-remove-implicit-tuple-splat.md)
+* [SE-0031: Adjusting inout Declarations for Type Decoration](proposals/0031-adjusting-inout-declarations.md)
+* [SE-0034: Disambiguating Line Control Statements from Debugging Identifiers](proposals/0034-disambiguating-line.md)
+* [SE-0037: Clarify interaction between comments & operators](proposals/0037-clarify-comments-and-operators.md)
+* [SE-0039: Modernizing Playground Literals](proposals/0039-playgroundliterals.md)
+* [SE-0040: Replacing Equal Signs with Colons For Attribute Arguments](proposals/0040-attributecolons.md)
+* [SE-0043: Declare variables in 'case' labels with multiple patterns](proposals/0043-declare-variables-in-case-labels-with-multiple-patterns.md)
+* [SE-0046: Establish consistent label behavior across all parameters including first labels](proposals/0046-first-label.md)
+* [SE-0049: Move @noescape and @autoclosure to be type attributes](proposals/0049-noescape-autoclosure-type-attrs.md)
+* [SE-0053: Remove explicit use of `let` from Function Parameters](proposals/0053-remove-let-from-function-parameters.md)
+* [SE-0059: Update API Naming Guidelines and Rewrite Set APIs Accordingly](proposals/0059-updated-set-apis.md)
+* [SE-0055: Make unsafe pointer nullability explicit using Optional](proposals/0055-optional-unsafe-pointers.md)
+* [SE-0061: Add Generic Result and Error Handling to autoreleasepool()](proposals/0061-autoreleasepool-signature.md)
+* [SE-0065: A New Model For Collections and Indices](proposals/0065-collections-move-indices.md)
+* [SE-0069: Mutability and Foundation Value Types](proposals/0069-swift-mutability-for-foundation.md)
+* [SE-0071: Allow (most) keywords in member references](proposals/0071-member-keywords.md)
 
-## Development minor version:  Swift 2.2
+### Accepted proposals which do not have a complete implementation
 
-Expected release date: Spring 2016
+This is the list of proposals which have been accepted for inclusion into Swift,
+but they are not implemented yet, and may not have anyone signed up to implement
+them.  If they are not implemented in time for Swift 3, they will roll into a
+subsequent release.
 
-This release will focus on fixing bugs, improving
-quality-of-implementation (QoI) with better warnings and diagnostics,
-improving compile times, and improving performance.  It may also put
-some finishing touches on features introduced in Swift 2.0, and
-include some small additive features that don't break Swift code or
-fundamentally change the way Swift is used. As a step toward Swift
-3.0, it will introduce warnings about upcoming source-incompatible
-changes in Swift 3.0 so that users can begin migrating their code
-sooner.
+* [SE-0008: Add a Lazy flatMap for Sequences of Optionals](proposals/0008-lazy-flatmap-for-optionals.md)
+* [SE-0017: Change `Unmanaged` to use `UnsafePointer`](proposals/0017-convert-unmanaged-to-use-unsafepointer.md)
+* [SE-0025: Scoped Access Level](proposals/0025-scoped-access-level.md)
+* [SE-0032: Add `find` method to `SequenceType`](proposals/0032-sequencetype-find.md)
+* [SE-0033: Import Objective-C Constants as Swift Types](proposals/0033-import-objc-constants.md)
+* [SE-0035: Limiting `inout` capture to `@noescape` contexts](proposals/0035-limit-inout-capture.md)
+* [SE-0036: Requiring Leading Dot Prefixes for Enum Instance Member Implementations](proposals/0036-enum-dot.md)
+* [SE-0038: Package Manager C Language Target Support](proposals/0038-swiftpm-c-language-targets.md)
+* [SE-0042: Flattening the function type of unapplied method references](proposals/0042-flatten-method-types.md)
+* [SE-0044: Import as Member](proposals/0044-import-as-member.md)
+* [SE-0045: Add scan, prefix(while:), drop(while:), and iterate to the stdlib](proposals/0045-scan-takewhile-dropwhile.md)
+* [SE-0047: Defaulting non-Void functions so they warn on unused results](proposals/0047-nonvoid-warn.md)
+* [SE-0048: Generic Type Aliases](proposals/0048-generic-typealias.md)
+* [SE-0052: Change IteratorType post-nil guarantee](proposals/0052-iterator-post-nil-guarantee.md)
+* [SE-0054: Abolish `ImplicitlyUnwrappedOptional` type](proposals/0054-abolish-iuo.md)
+* [SE-0057: Importing Objective-C Lightweight Generics](proposals/0057-importing-objc-generics.md)
+* [SE-0062: Referencing Objective-C key-paths](proposals/0062-objc-keypaths.md)
+* [SE-0063: SwiftPM System Module Search Paths](proposals/0063-swiftpm-system-module-search-paths.md)
+* [SE-0064: Referencing the Objective-C selector of property getters and setters](proposals/0064-property-selectors.md)
+* [SE-0067: Enhanced Floating Point Protocols](proposals/0067-floating-point-protocols.md)
+* [SE-0068: Expanding Swift `Self` to class members and value types](proposals/0068-universal-self.md)
+* [SE-0070: Make Optional Requirements Objective-C-only](proposals/0070-optional-requirements.md)
 
-### Accepted proposals for Swift 2.2
 
-* [Allow (most) keywords as argument labels](proposals/0001-keywords-as-argument-labels.md)
+## Swift 2.2 - Released on March 21, 2016
 
-[swift-evolution-mailing-list]: mailto:swift-evolution@swift.org  "The swift-evolution mailing list"
+[This release](https://swift.org/blog/swift-2-2-released/) focused on fixing
+bugs, improving quality-of-implementation (QoI)
+with better warnings and diagnostics, improving compile times, and improving
+performance.  It put some finishing touches on features introduced in Swift 2.0, 
+and included some small additive features that don't break Swift code or
+fundamentally change the way Swift is used. As a step toward Swift 3, it
+introduced warnings about upcoming source-incompatible changes in Swift 3
+so that users can begin migrating their code sooner.
+
+Aside from warnings, a major goal of this release was to be as source compatible
+as practical with Swift 2.0.
+
+### Implemented proposals in Swift 2.2
+
+* [SE-0001: Allow (most) keywords as argument labels](proposals/0001-keywords-as-argument-labels.md)
+* [SE-0011: Replace `typealias` keyword with `associatedtype` for associated type declarations](proposals/0011-replace-typealias-associated.md)
+* [SE-0014: Constraining `AnySequence.init`](proposals/0014-constrained-AnySequence.md)
+* [SE-0015: Tuple comparison operators](proposals/0015-tuple-comparison-operators.md)
+* [SE-0020: Swift Language Version Build Configuration](proposals/0020-if-swift-version.md)
+* [SE-0021: Naming Functions with Argument Labels](proposals/0021-generalized-naming.md)
+* [SE-0022: Referencing the Objective-C selector of a method](proposals/0022-objc-selectors.md)
+
+
+# Other Proposals
+
+### Rejected proposals
+* [SE-0009: Require self for accessing instance members](proposals/0009-require-self-for-accessing-instance-members.md)
+* [SE-0010: Add StaticString.UnicodeScalarView](proposals/0010-add-staticstring-unicodescalarview.md)
+* [SE-0013: Remove Partial Application of Non-Final Super Methods (Swift 2.2)](proposals/0013-remove-partial-application-super.md)
+* [SE-0024: Optional Value Setter `??=`](proposals/0024-optional-value-setter.md)
+* [SE-0027: Expose code unit initializers on String](proposals/0027-string-from-code-units.md)
+* [SE-0056: Allow trailing closures in `guard` conditions](proposals/0056-trailing-closures-in-guard.md)
+
+## Review
+[Swift Evolution Review Schedule](https://github.com/apple/swift-evolution/blob/master/schedule.md)
+
+### Returned for Revision
+
+* [SE-0018: Flexible Memberwise Initialization](proposals/0018-flexible-memberwise-initialization.md)
+* [SE-0030: Property Behaviors](proposals/0030-property-behavior-decls.md)
+
+### Deferred for Future Discussion
+
+* [SE-0026: Abstract classes and methods](proposals/0026-abstract-classes-and-methods.md)
+* [SE-0058: Allow Swift types to provide custom Objective-C representations](proposals/0058-objectivecbridgeable.md)

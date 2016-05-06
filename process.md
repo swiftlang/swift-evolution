@@ -44,6 +44,8 @@ Please state explicitly whether you believe that the proposal should be accepted
 
 ## How to propose a change
 
+* **Check prior proposals**: many ideas come up frequently, and may either be in active discussion on the mailing list, or may have been discussed already and have joined the [Commonly Rejected Proposals](commonly_proposed.md) list.  Please check the mailing list archives and this list for context before proposing something new.
+
 * **Socialize the idea**: propose a rough sketch of the idea on the [swift-evolution mailing list][swift-evolution-mailing-list], the problems it solves, what the solution looks like, etc., to gauge interest from the community.
 * **Develop the proposal**: expand the rough sketch into a complete proposal, using the [proposal template](0000-template.md), and continue to refine the proposal on the evolution mailing list. Prototyping an implementation and its uses along with the proposal is encouraged, because it helps ensure both technical feasibility of the proposal as well as validating that the proposal solves the problems it is meant to solve.
 * **Request a review**: initiate a pull request to the [swift-evolution repository][swift-evolution-repo] to indicate to the core team that you would like the proposal to be reviewed. When the proposal is sufficiently detailed and clear, and addresses feedback from earlier discussions of the idea, the pull request will be accepted. The proposal will be assigned a proposal number as well as a core team member to manage the review.
@@ -100,3 +102,61 @@ A given proposal can be in one of several states:
 
 [swift-evolution-repo]: https://github.com/apple/swift-evolution  "Swift evolution repository"
 [swift-evolution-mailing-list]: https://swift.org/community/#swift-evolution  "Swift evolution mailing list"
+
+## Review announcement
+
+When a proposal enters review, an email using the following template will be
+sent to the swift-evolution-announce and swift-evolution mailing lists:
+
+---
+
+Hello Swift community,
+
+The review of "\<\<PROPOSAL NAME>>" begins now and runs through \<\<REVIEW
+END DATE>>. The proposal is available here:
+
+> <https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-proposal.md>
+
+Reviews are an important part of the Swift evolution process. All reviews
+should be sent to the swift-evolution mailing list at
+
+> <https://lists.swift.org/mailman/listinfo/swift-evolution>
+
+or, if you would like to keep your feedback private, directly to the
+review manager. When replying, please try to keep the proposal link at
+the top of the message:
+
+> Proposal link:
+>>  http://linkToProposal
+
+>  Reply text
+
+>>  Other replies
+
+##### What goes into a review?
+
+The goal of the review process is to improve the proposal under review
+through constructive criticism and, eventually, determine the direction of
+Swift. When writing your review, here are some questions you might want to
+answer in your review:
+
+* What is your evaluation of the proposal?
+* Is the problem being addressed significant enough to warrant a
+  change to Swift?
+* Does this proposal fit well with the feel and direction of Swift?
+* If you have used other languages or libraries with a similar
+  feature, how do you feel that this proposal compares to those?
+* How much effort did you put into your review? A glance, a quick
+  reading, or an in-depth study?
+
+More information about the Swift evolution process is available at
+
+> <https://github.com/apple/swift-evolution/blob/master/process.md>
+
+Thank you,
+
+-\<\<REVIEW MANAGER NAME>>
+
+Review Manager
+
+---

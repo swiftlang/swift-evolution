@@ -2,13 +2,15 @@
 
 * Proposal: [SE-0010](https://github.com/apple/swift-evolution/blob/master/proposals/0010-add-staticstring-unicodescalarview.md)
 * Author: [Kevin Ballard](https://github.com/kballard)
-* Status: **Awaiting review**
+* Status: **Rejected** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/7697))
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction
 
 There is no way to create a substring of a `StaticString` that is still typed
 as `StaticString`. There should be.
+
+[Swift Evolution Discussion Thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/9366), [Review](http://thread.gmane.org/gmane.comp.lang.swift.evolution/2434)
 
 ## Motivation
 
@@ -42,7 +44,7 @@ The API looks like this:
 ```swift
 extension StaticString {
   /// The value of `self` as a collection of [Unicode scalar values](http://www.unicode.org/glossary/#unicode_scalar_value).
-  public var unicodeScalars: UnicodeScalarView
+  public var unicodeScalars: UnicodeScalarView { get }
 
   /// Construct the `StaticString` corresponding to the given
   /// `UnicodeScalarView`.
@@ -75,19 +77,19 @@ extension StaticString {
 
     /// The position of the first `UnicodeScalar` if the `StaticString` is
     /// non-empty; identical to `endIndex` otherwise.
-    public var startIndex: Index
+    public var startIndex: Index { get }
 
     /// The "past the end" position.
     ///
     /// `endIndex` is not a valid argument to `subscript`, and is always
     /// reachable from `startIndex` by zero or more applications of
     /// `successor()`.
-    public var endIndex: Index
+    public var endIndex: Index { get }
 
     /// Returns `true` iff `self` is empty.
-    public var isEmpty: Bool
+    public var isEmpty: Bool { get }
 
-    public subscript(position: Index) -> UnicodeScalar
+    public subscript(position: Index) -> UnicodeScalar { get }
   }
 }
 ```
