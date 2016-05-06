@@ -1,8 +1,8 @@
 # Remove Partial Application of Non-Final Super Methods (Swift 2.2)
 
 * Proposal: [SE-0013](https://github.com/apple/swift-evolution/blob/master/proposals/0013-remove-partial-application-super.md)
-* Author(s): [David Farler](https://github.com/bitjammer)
-* Status: **Awaiting review**
+* Author: [David Farler](https://github.com/bitjammer)
+* Status: **Rejected** ([Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160118/007316.html))
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction
@@ -21,6 +21,8 @@ will be removed in Swift 3.0 so, rather than invest more engineering in
 those mechanisms, I propose that we disallow partial application of
 non-final methods through `super`, except where the `self` parameter is
 implicitly captured.
+
+[Swift Evolution Discussion Thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/9778), [Review](http://thread.gmane.org/gmane.comp.lang.swift.evolution/2880)
 
 ## Motivation
 

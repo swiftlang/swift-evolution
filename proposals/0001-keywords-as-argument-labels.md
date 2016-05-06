@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0001](https://github.com/apple/swift-evolution/blob/master/proposals/0001-keywords-as-argument-labels.md)
 * Author: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted**
+* Status: **Accepted** and [implemented in Swift 2.2](https://github.com/apple/swift/commit/c8dd8d066132683aa32c2a5740b291d057937367) ([Bug](https://bugs.swift.org/browse/SR-344))
 
 ## Introduction
 

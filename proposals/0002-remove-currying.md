@@ -1,7 +1,7 @@
 # Removing currying `func` declaration syntax
 
 * Proposal: [SE-0002](https://github.com/apple/swift-evolution/blob/master/proposals/0002-remove-currying.md)
-* Author(s): [Joe Groff](https://github.com/jckarter)
+* Author: [Joe Groff](https://github.com/jckarter)
 * Status: **Accepted**
 
 ## Introduction
