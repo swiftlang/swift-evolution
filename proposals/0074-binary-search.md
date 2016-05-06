@@ -15,7 +15,7 @@ This proposal seeks to add a few different functions that implement the binary s
 
 ## Motivation
 
-Searching through wide arrays (more than 100k elements) is inherently inefficient as the existing `SequenceType.contains(_:)` performs a linear search that has to test the given condition for every element of the array.
+Searching through wide arrays (more than 100k elements) is inherently inefficient as the existing `Sequence.contains(_:)` performs a linear search that has to test the given condition for every element of the array.
 
 Storing data in a sorted array would typically improve the efficiency of this search from O(n) to O(log n) by allowing a binary search algorithm that cuts the search space in half with each iteration. Unfortunately, the standard library has no built-in ability to search on a collection that is known to be sorted.
 
@@ -76,7 +76,7 @@ extension MutableCollection {
     ///   collection that does not match the predicate.
     @discardableResult
     mutating func partition(
-        @noescape where predicate: (Iterator.Element) throws-> Bool
+        where predicate: @noescape (Iterator.Element) throws-> Bool
         ) rethrows -> Index
 }
 
@@ -88,12 +88,12 @@ extension Collection {
     /// predicate, as if `x.partition(where: predicate)` had already
     /// been called.
     func partitionedIndex(
-        @noescape where predicate: (Iterator.Element) throws -> Bool
+        where predicate: @noescape (Iterator.Element) throws -> Bool
         ) rethrows -> Index
         var low = self.startIndex, high = self.endIndex
         while low != high {
-            let mid = low.advancedBy(low.distanceTo(high) / 2)
-            if try predicate(self[mid]) { low = mid.successor() }
+            let mid = index(low, offsetBy: distance(from: low, to: high) / 2)
+            if try predicate(self[mid]) { low = index(after: mid) }
             else { high = mid }
         }
         return low
@@ -108,7 +108,7 @@ extension Collection {
     /// - Returns: The index of `element`, or `nil` if `element` isn't
     ///   found.
     func sortedIndex(of element: Iterator.Element,
-        @noescape isOrderedBefore: (Iterator.Element, Iterator.Element)
+        isOrderedBefore: @noescape (Iterator.Element, Iterator.Element)
             throws -> Bool
         ) rethrows -> Index?
         {
@@ -128,7 +128,7 @@ extension Collection {
     ///   equivalent to `element`, or an empty range with its
     ///   `startIndex` equal to the insertion point for `element`.
     func sortedRange(of element: Iterator.Element,
-        @noescape isOrderedBefore: (Iterator.Element, Iterator.Element)
+        isOrderedBefore: @noescape (Iterator.Element, Iterator.Element)
             throws -> Bool
         ) rethrows -> Range<Index>
 }
