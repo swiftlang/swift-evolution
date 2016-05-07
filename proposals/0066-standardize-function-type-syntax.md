@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0066](https://github.com/apple/swift-evolution/blob/master/proposals/0066-standardize-function-type-syntax.md)
 * Author: [Chris Lattner](https://github.com/lattner)
-* Status: **Under review** (April 25...May 2, 2016)
+* Status: **Accepted** for Swift 3
 * Review manager: [Doug Gregor](https://github/com/DougGregor)
 
 ## Introduction
@@ -160,3 +160,8 @@ function types, we would almost certainly reject a proposal to syntax optimize
 them away.
 
 
+-------------------------------------------------------------------------------
+
+# Rationale
+
+On May 5, 2016, the core team decided to **accept** this proposal.
