@@ -15,7 +15,7 @@ struct ResourceManager {
 }
 ```
 
-Swift-evolution thread: [link to the discussion thread for that proposal](https://lists.swift.org/pipermail/swift-evolution)
+Swift-evolution thread: [link to the discussion thread for that proposal](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160502/016325.html)
 
 ## Motivation
 
