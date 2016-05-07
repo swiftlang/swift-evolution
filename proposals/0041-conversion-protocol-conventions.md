@@ -106,3 +106,48 @@ Additional names considered for each class of protocol include:
 * can be represented as and instantiated by: Convertible, Representable
 
 We also considered proposing separate conventions for instantiation by initializer and instantiation by factory method. Names potentially applicable to the latter include Building, Producer/Producing and Establishable.  We rejected this approach for being too implementation oriented. 
+
+## Response to Design Team Feedback
+
+The Standard Library design team raises the following concerns:
+
+> While we agree with the basic intention of the proposal, we
+don't agree with the proposed answer.
+>
+> In particular, we think the “LiteralConvertible” names are the only ones
+that can be improved upon by anything we've seen proposed or have been
+able to think of.  In particular, swapping “Representable” and “Convertible”
+doesn't do anything to clarify directionality, and for us, “XXXConvertible”
+has exactly the connotation of “convertibility to XXX”
+
+**Our Response** 
+
+We picked these names after significant research and consideration:
+
+* *Convertible* implies a commutative or two-way relation. For example, a convertible car can be converted to a sedan style or an open style. A convertible sofa can act as a bed or a sofa. Convertible suggests a R b as well as b R a. The word means to change into a different form and be used in a different way. 
+
+* To *represent* means to serve as or to take the place of by accruing characteristics or qualities. This suggests that a R b is not the same as b R a. My lawyer can represent my legal interests but I cannot represent my lawyer in court. 
+
+* To *create* means to produce something new and cause it to exist. This is semantically distant from initializing. The current (badly named) IntegerLiteralConvertible means "a conforming construct can use an integer literal to establish an instance of itself". 
+
+> For the “Literalconvertible” names, we think the optimal answer would be
+to sink them into a subnamespace of Swift called “Swift.Syntax” and
+rename them by dropping “Convertible” (and changing
+StringInterpolationConvertible to InterpolatedStringLiteral).  Lacking
+that language feature, we'd propose to underscore the canonical names of
+these protocols and create typealiases in an empty enum called “Syntax.”
+That would lead to, e.g. `extension ArraySlice : Syntax.ArrayLiteral, ...  {  }`
+>
+
+**Our Response**
+
+These are implementation details that fall outside the scope of our proposal. This proposal concerns itself with core semantic conventions for protocol names and does not address how those names are otherwise formed, structured, or applied.
+
+> We don't think there are enough
+real examples of outside the “Literal” category to start nailing down
+conventions for them.  We only have 3 of those, and only 2 of them are
+particularly similar to one another.
+
+**Our Response**
+
+The semantics cover "converting to a type", "converting from a type", and "converting to and from a type". We have examples from our own code and from third party code on github that suggest conversion tasks are common enough that standardizing API naming conventions will be valuable.
