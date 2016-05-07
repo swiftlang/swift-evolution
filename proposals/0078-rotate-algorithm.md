@@ -1,59 +1,47 @@
 # Implement a rotate algorithm, equivalent to std::rotate() in C++
 
-* Proposal: [SE-0078](0078-rotate-algorithm.md)
-* Authors: [Nate Cook](https://github.com/natecook1000), [Sergey Bolshedvorsky](https://github.com/bolshedvorsky)
-* Status: **Active review May 3...9, 2016**
-* Review manager: [Chris Lattner](http://github.com/lattner)
+- Proposal: [SE-0078](0078-rotate-algorithm.md)
+- Authors: [Nate Cook](https://github.com/natecook1000) & [Sergey Bolshedvorsky](https://github.com/bolshedvorsky)
+- Status: **Active review May 3...9, 2016**
+- Review manager: [Chris Lattner](http://github.com/lattner)
+- Revision: 2
+- Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/f5936651da1a08e2335a4991831db61da29aba15/proposals/0078-rotate-algorithm.md) (as submitted for review)
 
 ## Introduction
 
-This proposal is to add rotation and in-place reversing methods to Swift's
-standard library collections.
+This proposal is to add rotation and in-place reversing methods to Swift's standard library collections.
 
-Swift-evolution thread: [link to the discussion thread for that proposal](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/002213.html)
+Swift-evolution thread: [link to the discussion thread for that proposal](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/002213.html), [Proposal review feedback](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160502/016642.html)
 
 ## Motivation
 
-Rotation is one of the most important algorithms. It is a fundamental tool used in many
-other algorithms with applications even in GUI programming.
+Rotation is one of the most important algorithms. It is a fundamental tool used in many other algorithms with applications even in GUI programming.
 
-The "rotate" algorithm performs a left rotation on a range of elements.
-Specifically, it swaps the elements in the range `startIndex..<endIndex`
-according to a `middle` index in such a way that the element at `middle` becomes
-the first element of the new range and `middle - 1` becomes the last element.
-The result of the algorithm is the new index of the element that was originally
-first in the collection.
+The "rotate" algorithm performs a left rotation on a range of elements. Specifically, it swaps the elements in the range `startIndex..<endIndex` according to a `middle` index in such a way that the element at `middle` becomes the first element of the new range and `middle - 1` becomes the last element. The result of the algorithm is the new index of the element that was originally first in the collection.
 
 ```swift
 var a = [10, 20, 30, 40, 50, 60, 70]
-let i = a.rotate(firstFrom: 2)
+let i = a.rotate(shiftingToStart: 2)
 // a == [30, 40, 50, 60, 70, 10, 20]
 // i == 5
 ```
 
-The index returned from a rotation can be used as the `middle` argument in a second
-rotation to return the collection to its original state, like this:
+The index returned from a rotation can be used as the `middle` argument in a second rotation to return the collection to its original state, like this:
 
 ```swift
-a.rotate(firstFrom: i)
+a.rotate(shiftingToStart: i)
 // a == [10, 20, 30, 40, 50, 60, 70]
 ```
 
-There are three different versions of the rotate algorithm, optimized for
-collections with forward, bidirectional, and random access indices. The
-complexity of the implementation of these algorithms makes the generic rotate
-algorithm a perfect candidate for the standard library.
+There are three different versions of the rotate algorithm, optimized for collections with forward, bidirectional, and random access indices. The complexity of the implementation of these algorithms makes the generic rotate algorithm a perfect candidate for the standard library.
 
-<details>
-  <summary>**Example C++ Implementations**</summary>
+<details> <summary>**Example C++ Implementations**</summary>
 
-**Forward indices** are the simplest and most general type of index and support
-only one-directional traversal.
+**Forward indices** are the simplest and most general type of index and support only one-directional traversal.
 
-The C++ implementation of the rotate algorithm for the `ForwardIterator`
-(`ForwardIndex` in Swift) may look like this:
+The C++ implementation of the rotate algorithm for the `ForwardIterator` (`ForwardIndex` in Swift) may look like this:
 
-```C++
+```c++
 template <ForwardIterator I>
 I rotate(I f, I m, I l, std::forward_iterator_tag) {
     if (f == m) return l;
@@ -72,13 +60,11 @@ I rotate(I f, I m, I l, std::forward_iterator_tag) {
 }
 ```
 
-**Bidirectional indices** are a refinement of forward indices that
-additionally support reverse traversal.
+**Bidirectional indices** are a refinement of forward indices that additionally support reverse traversal.
 
-The C++ implementation of the rotate algorithm for the `BidirectionalIterator`
-(`BidirectionalIndex` in Swift) may look like this:
+The C++ implementation of the rotate algorithm for the `BidirectionalIterator` (`BidirectionalIndex` in Swift) may look like this:
 
-```C++
+```c++
 template <BidirectionalIterator I>
 I rotate(I f, I m, I l, bidirectional_iterator_tag) {
     reverse(f, m);
@@ -92,10 +78,9 @@ I rotate(I f, I m, I l, bidirectional_iterator_tag) {
 
 **Random access indices** access to any element in constant time (both far and fast).
 
-The C++ implementation of the rotate algorithm for the `RandomAccessIterator`
-(`RandomAccessIndex` in Swift) may look like this:
+The C++ implementation of the rotate algorithm for the `RandomAccessIterator` (`RandomAccessIndex` in Swift) may look like this:
 
-```C++
+```c++
 template <RandomAccessIterator I>
 I rotate(I f, I m, I l, std::random_access_iterator_tag) {
     if (f == m) return l;
@@ -112,46 +97,50 @@ I rotate(I f, I m, I l, std::random_access_iterator_tag) {
 
 ## Proposed solution
 
-The Swift standard library should provide generic implementations of the
-"rotate" algorithm for all three index types, in both mutating and nonmutating
-forms. The mutating form is called `rotate(firstFrom:)` and rotates the elements
-of a collection in-place. The nonmutating form of the "rotate"
-algorithm is called `rotated(firstFrom:)` and return views onto the original
-collection with the elements rotated, preserving the level of the original
-collection's index type.
+The Swift standard library should provide generic implementations of the "rotate" algorithm for all three index types, in both mutating and nonmutating forms. The mutating form is called `rotate(shiftingToStart:)` and rotates the elements of a collection in-place. The nonmutating form of the "rotate" algorithm is called `rotated(shiftingToStart:)` and returns views onto the original collection with the elements rotated, preserving the level of the original collection's index type.
 
-In addition, since the bidirectional algorithm depends on reversing the
-collection's elements in-place, the standard library should also provide an
-in-place `reverse()` method to complement the existing nonmutating `reversed()`
-collection method.
+In addition, since the rotate algorithm for bidirectional collections depends on reversing the collection's elements in-place, the standard library should also provide an in-place `reverse()` method to complement the existing nonmutating `reversed()` collection method.
 
 ## Detailed design
 
-The mutating methods will have the following declarations:
+#### `rotate(shiftingToStart:)` and `rotated(shiftingToStart:)`
+
+The mutating rotation method will be added to the `MutableCollection` protocol requirements, with traversal-specific default implementations. This will allow the correct algorithm to be selected even in a generic context. These methods will have the following declarations:
 
 ```swift
+protocol MutableCollection {
+    // existing declarations
+    
+    /// Rotates the elements of the collection so that the element
+    /// at `middle` ends up first.
+    ///
+    /// - Returns: The new index of the element that was first
+    ///   pre-rotation.
+    /// - Complexity: O(*n*)
+    @discardableResult
+    public mutating func rotate(shiftingToStart middle: Index) -> Index
+}
+
 extension MutableCollection {
     /// Rotates the elements of the collection so that the element
     /// at `middle` ends up first.
     ///
     /// - Returns: The new index of the element that was first
     ///   pre-rotation.
+    /// - Complexity: O(*n*)
     @discardableResult
-    public mutating func rotate(firstFrom middle: Index) -> Index
+    public mutating func rotate(shiftingToStart middle: Index) -> Index
 }
 
-extension MutableCollection where Self: BidirectionalCollection,
-  SubSequence: MutableCollection, SubSequence: BidirectionalCollection {
-    /// Reverses the elements of the collection in-place.
-    public mutating func reverse()
-
+extension MutableCollection where Self: BidirectionalCollection {
     /// Rotates the elements of the collection so that the element
     /// at `middle` ends up first.
     ///
     /// - Returns: The new index of the element that was first
     ///   pre-rotation.
+    /// - Complexity: O(*n*)
     @discardableResult
-    public mutating func rotate(firstFrom middle: Index) -> Index
+    public mutating func rotate(shiftingToStart middle: Index) -> Index
 }
 
 extension MutableCollection where Self: RandomAccessCollection {
@@ -163,47 +152,39 @@ extension MutableCollection where Self: RandomAccessCollection {
     ///
     /// - Returns: The new index of the element that was first
     ///   pre-rotation.
+    /// - Complexity: O(*n*)
     @discardableResult
-    public mutating func rotate(firstFrom middle: Index) -> Index
+    public mutating func rotate(shiftingToStart middle: Index) -> Index
 }
 ```
 
-The nonmutating methods will return a tuple containing both a rotated view of
-the original collection and the new index of the element that was previously
-first. For forward- and bidirectional-collections, these methods will return
-`FlattenCollection` and `FlattenBidirectionalCollection` instances, respectively:
+The nonmutating methods depend on three new specialized types: `RotatedCollection`, `RotatedBidirectionalCollection`, and `RotatedRandomAccessCollection`. These collections present a rotated view onto the elements of a collection without reallocating storage, and thus are able to do so in O(1) time. 
+
+In addition to the standard `Collection` requirements, the rotated collections also define a `shiftedStartIndex` property that holds the rotated position of the base collection's `startIndex`. The three collections can share a single index type, `RotatedCollectionIndex`.
 
 ```swift
-extension Collection where SubSequence: Collection {
-    /// Returns a rotated view of the elements of the collection, where the
-    /// element at `middle` ends up first, and the index of the element that
-    /// was previously first.
-    func rotated(firstFrom middle: Index) ->
-        (collection: FlattenCollection<[Self.SubSequence]>,
-        rotatedStart: FlattenCollectionIndex<[Self.SubSequence]>)
-}
-
-extension Collection where SubSequence: BidirectionalCollection {
-    /// Returns a rotated view of the elements of the collection, where the
-    /// element at `middle` ends up first, and the index of the element that
-    /// was previously first.
-    func rotated(firstFrom middle: Index) ->
-        (collection: FlattenBidirectionalCollection<[Self.SubSequence]>,
-        rotatedStart: FlattenBidirectionalCollectionIndex<[Self.SubSequence]>)
-}
-```
-
-There isn't a random-access `FlattenCollection`, since it can't walk an unknown
-number of subcollections in O(1) time. However, a rotated random-access
-collection has exactly two subcollections, so a specialized type can be created
-to provide the rotated elements with a random-access index. This type will be
-added as `RotatedCollection`:
-
-```swift
-/// A rotated view of an underlying random-access collection.
-public struct RotatedCollection<
-    Base: RandomAccessCollection>: RandomAccessCollection {
+/// A rotated view of an underlying collection.
+public struct RotatedCollection<Base: Collection>: Collection {
     // standard collection innards
+    
+    /// The shifted position of the base collection's `startIndex`.
+    public var shiftedStartIndex: RotatedCollectionIndex<Self>
+}
+
+/// A rotated view of an underlying bidirectional collection.
+public struct RotatedBidirectionalCollection<Base: BidirectionalCollection>: BidirectionalCollection {
+    // standard collection innards
+    
+    /// The shifted position of the base collection's `startIndex`.
+    public var shiftedStartIndex: RotatedCollectionIndex<Self>
+}
+
+/// A rotated view of an underlying random-access collection.
+public struct RotatedRandomAccessCollection<Base: RandomAccessCollection>: RandomAccessCollection {
+    // standard collection innards
+    
+    /// The shifted position of the base collection's `startIndex`.
+    public var shiftedStartIndex: RotatedCollectionIndex<Self>
 }
 
 /// The index type for a `RotatedCollection`.
@@ -211,53 +192,104 @@ public struct RotatedCollectionIndex<Base: Comparable>: Comparable {
     // standard index innards
 }
 
+extension Collection {
+    /// Returns a rotated view of the elements of the collection, where the
+    /// element at `middle` ends up first.
+    ///
+    /// - Complexity: O(1)
+    func rotated(shiftingToStart middle: Index) -> 
+        RotatedCollection<Self>
+}
+
+extension BidirectionalCollection {
+    /// Returns a rotated view of the elements of the collection, where the
+    /// element at `middle` ends up first.
+    ///
+    /// - Complexity: O(1)
+    func rotated(shiftingToStart middle: Index) -> 
+        RotatedBidirectionalCollection<Self>
+}
+
 extension RandomAccessCollection {
     /// Returns a rotated view of the elements of the collection, where the
-    /// element at `middle` ends up first, and the index of the element that
-    /// was previously first.
-    func rotated(firstFrom middle: Index) -> (collection: RotatedCollection<Self>,
-        rotatedFirst: RotatedCollectionIndex<Self>)
+    /// element at `middle` ends up first.
+    ///
+    /// - Complexity: O(1)
+    func rotated(shiftingToStart middle: Index) -> 
+        RotatedRandomAccessCollection<Self>
 }
 ```
 
 Lazy collections will also be extended with rotate methods that provide lazy rotation:
 
 ```swift
-extension LazyCollectionProtocol where Elements.SubSequence: Collection,
-    Index == Elements.Index {
-    /// Returns a rotated view of the elements of the collection, where the
-    /// element at `middle` ends up first, and the index of the element that
-    /// was previously first.
-    public func rotated(firstFrom middle: Elements.Index) ->
-        (collection: LazyCollection<FlattenCollection<[Elements.SubSequence]>>,
-        rotatedStart: FlattenCollectionIndex<[Elements.SubSequence]>)
+extension LazyCollectionProtocol where Index == Elements.Index {
+    /// Returns a lazy rotated view of the elements of the collection, where the
+    /// element at `middle` ends up first.
+    public func rotated(shiftingToStart middle: Elements.Index) ->
+        LazyCollection<RotatedCollection<Elements>>
 }
 
-extension LazyCollectionProtocol where Self: BidirectionalCollection,
-    Elements.SubSequence: BidirectionalCollection, Index == Elements.Index {
-    /// Returns a rotated view of the elements of the collection, where the
-    /// element at `middle` ends up first, and the index of the element that
-    /// was previously first.
-    public func rotated(firstFrom middle: Elements.Index) -> (collection:
-        LazyCollection<FlattenBidirectionalCollection<[Elements.SubSequence]>>,
-        rotatedStart: FlattenBidirectionalCollectionIndex<[Elements.SubSequence]>)
+extension LazyCollectionProtocol where Index == Elements.Index,
+    Self: BidirectionalCollection, Elements: BidirectionalCollection {
+    /// Returns a lazy rotated view of the elements of the collection, where the
+    /// element at `middle` ends up first.
+    public func rotated(shiftingToStart middle: Elements.Index) ->
+        LazyBidirectionalCollection<RotatedBidirectionalCollection<Elements>>
 }
 
-extension LazyCollectionProtocol where Self: RandomAccessCollection,
-    Elements: RandomAccessCollection, Index == Elements.Index {
-    /// Returns a rotated view of the elements of the collection, where the
-    /// element at `middle` ends up first, and the index of the element that
-    /// was previously first.
-    public func rotated(firstFrom middle: Elements.Index) ->
-        (collection: LazyCollection<RotatedCollection<Elements>>,
-        rotatedStart: RotatedCollectionIndex<Elements>)
+extension LazyCollectionProtocol where Index == Elements.Index,
+    Self: RandomAccessCollection, Elements: RandomAccessCollection {
+    /// Returns a lazy rotated view of the elements of the collection, where the
+    /// element at `middle` ends up first.
+    public func rotated(shiftingToStart middle: Elements.Index) ->
+        LazyRandomAccessCollection<RotatedRandomAccessCollection<Elements>>
 }
 ```
 
-Rotation algorithms, structs and extensions will be implemented in
-`stdlib/public/core/Rotate.swift`, with tests in `test/1_stdlib/Rotate.swift`.
-The new in-place `reverse()` method will be added to
-`stdlib/public/core/Reverse.swift`.
+Rotation algorithms will be implemented in `stdlib/public/core/CollectionAlgorithms.swift`. The three rotated collection types and collection extensions will be implemented in `stdlib/public/core/Rotate.swift`. Tests will be implemented in `test/1_stdlib/Rotate.swift`.
+
+## `reverse()`
+
+To make a mutating `reverse()` method available only on mutable bidirectional and random-access collections, using dynamic dispatch, will require a bit of indirection. We propose to add a `_customReverse()` method requirement to the `MutableCollection` protocol with appropriate default implementations for bidirectional and random-access collections, as well as a default implementation that traps on `MutableCollection` itself. The `reverse()` method is added in an extension to `MutableCollection where Self: BidirectionalCollection` and simply calls `_customReverse()`. (Thanks to Dmitri for this strategy!)
+
+```swift
+protocol MutableCollection {
+    // existing declarations
+    
+    /// A customization point for collections that can reverse their elements.
+    func _customReverse()
+}
+
+extension MutableCollection {
+    func _customReverse() {
+        _preconditionFailure("Can only reverse a BidirectionalCollection")
+    }
+}
+
+extension MutableCollection where Self: BidirectionalCollection {
+    /// Reverses the elements of the collection in place.
+    ///
+    /// - Complexity: O(*n*)
+    public mutating func reverse() {
+        _customReverse()
+    }
+    
+    /// Reverse algorithm specific to bidirectional collections
+    /// Requires n/2 swaps and n/2 index comparisons
+    public func _customReverse() {
+        // ...
+    }
+}
+
+extension MutableCollection where Self: RandomAccessCollection {
+    /// Reverse algorithm specific to random-access collections
+    /// Requires n/2 swaps
+    public func _customReverse() {
+        // ...
+    }
+}
+```
 
 ## Usage examples
 
@@ -265,11 +297,11 @@ The new in-place `reverse()` method will be added to
 
 ```swift
 var numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9]
-numbers.rotate(firstFrom: 3)
+numbers.rotate(shiftingToStart: 3)
 expectEqual(numbers, [4, 5, 6, 7, 8, 9, 1, 2, 3])
 
 var toMerge = [2, 4, 6, 8, 10, 3, 5, 7, 9]
-let i = toMerge[2..<7].rotate(firstFrom: 5)
+let i = toMerge[2..<7].rotate(shiftingToStart: 5)
 expectEqual(toMerge, [2, 4, 3, 5, 6, 8, 10, 7, 9])
 expectEqual(i, 4)
 ```
@@ -278,16 +310,17 @@ expectEqual(i, 4)
 
 ```swift
 let numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9]
-let (rotated, i) = numbers.rotated(firstFrom: 3)
-expectEqual(rotated, [4, 5, 6, 7, 8, 9, 1, 2, 3])
+let r = numbers.rotated(shiftingToStart: 3)
+expectEqual(Array(r), [4, 5, 6, 7, 8, 9, 1, 2, 3])
+expectEqual(r[r.shiftedStartIndex], 1)
 ```
 
 *Lazy rotation:*
 
 ```swift
 let numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9]
-let (rotated, i) = numbers.lazy.rotated(firstFrom: 3)
-expectEqual(rotated.first!, 4)
+let r = numbers.lazy.rotated(shiftingToStart: 3)
+expectEqual(r.first!, 4)
 ```
 
 *Reversing in place:*
@@ -302,9 +335,12 @@ expectEqual(numbers, [5, 6, 7, 8, 9, 4, 3, 2, 1])
 
 ## Impact on existing code
 
-This is an additive feature that doesn’t impact existing code.
+The rotation methods are an additive feature that doesn’t impact existing code.
+
+The addition of the mutating `reverse()` method makes it slightly more challenging to migrate from Swift 2, where `reverse()` is the nonmutating method. The renaming of the `sort()`/`sorted()`/`sortInPlace()` methods presents a similar challenge, and the compiler responses in that case (warning when assigning the result of a `Void` function, preventing mutating method calls on immutable instances) will help here as well.
 
 ## Alternatives considered
 
-The alternative is to keep the current behaviour, but the user will need to develop
-their custom implementation of the rotate algorithms tailored for their needs.
+The primary alternative is to not include these methods in the standard library, but the user will need to develop their custom implementation of the rotate algorithms tailored for their needs.
+
+The first revision of this proposal used `firstFrom` as the parameter name for the `rotate` method and didn't add either `rotate` or `reverse` as protocol requirements. In addition, the `RotatedCollection` type was only used for random-access collections—other collections used the existing `FlattenCollection` instead.
