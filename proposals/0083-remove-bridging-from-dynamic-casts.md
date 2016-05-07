@@ -152,7 +152,7 @@ enumerating all the things dynamic casts are currently able to do:
 
     func fooIfYouCanFoo<T>(value: T) {
       if let fooable = value as? Fooable {
-        return fooable.foo()
+        fooable.foo()
       }
     }
 
