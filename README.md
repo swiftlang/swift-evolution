@@ -127,6 +127,7 @@ sampling of potentially good ideas that are not in scope for Swift
 * [SE-0061: Add Generic Result and Error Handling to autoreleasepool()](proposals/0061-autoreleasepool-signature.md)
 * [SE-0065: A New Model For Collections and Indices](proposals/0065-collections-move-indices.md)
 * [SE-0069: Mutability and Foundation Value Types](proposals/0069-swift-mutability-for-foundation.md)
+* [SE-0070: Make Optional Requirements Objective-C-only](proposals/0070-optional-requirements.md)
 * [SE-0071: Allow (most) keywords in member references](proposals/0071-member-keywords.md)
 * [SE-0072: Fully eliminate implicit bridging conversions from Swift](proposals/0072-eliminate-implicit-bridging-conversions.md)
 
@@ -158,7 +159,6 @@ subsequent release.
 * [SE-0066: Standardize function type argument syntax to require parentheses](proposals/0066-standardize-function-type-syntax.md)
 * [SE-0067: Enhanced Floating Point Protocols](proposals/0067-floating-point-protocols.md)
 * [SE-0068: Expanding Swift `Self` to class members and value types](proposals/0068-universal-self.md)
-* [SE-0070: Make Optional Requirements Objective-C-only](proposals/0070-optional-requirements.md)
 
 ## Swift 2.2 - Released on March 21, 2016
 
