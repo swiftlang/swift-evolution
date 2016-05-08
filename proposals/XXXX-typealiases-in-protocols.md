@@ -37,6 +37,7 @@ func sum<T: Sequence where T.Element == Int>(sequence: T) -> Int {
 The following grammar rules needs to be added:
 
 *protocol-member-declaration* → *protocol-typealias-declaration*
+
 *protocol-typealias-declaration* → *typealias-declaration*
 
 ## Impact on existing code
