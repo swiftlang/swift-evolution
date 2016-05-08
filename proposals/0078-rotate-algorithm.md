@@ -4,8 +4,11 @@
 - Authors: [Nate Cook](https://github.com/natecook1000) & [Sergey Bolshedvorsky](https://github.com/bolshedvorsky)
 - Status: **Active review May 3...9, 2016**
 - Review manager: [Chris Lattner](http://github.com/lattner)
-- Revision: 2
-- Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/f5936651da1a08e2335a4991831db61da29aba15/proposals/0078-rotate-algorithm.md) (as submitted for review)
+- Revision: 3
+- Previous Revisions: [1][rev-2] (as submitted for review), [2][rev-2]
+
+[rev-1]: https://github.com/apple/swift-evolution/blob/f5936651da1a08e2335a4991831db61da29aba15/proposals/0078-rotate-algorithm.md
+[rev-2]: https://github.com/apple/swift-evolution/blob/8d45024ed7baacce94e22080d74f136bebc5c075/proposals/0078-rotate-algorithm.md
 
 ## Introduction
 
@@ -251,43 +254,14 @@ Rotation algorithms will be implemented in `stdlib/public/core/CollectionAlgorit
 
 ## `reverse()`
 
-To make a mutating `reverse()` method available only on mutable bidirectional and random-access collections, using dynamic dispatch, will require a bit of indirection. We propose to add a `_customReverse()` method requirement to the `MutableCollection` protocol with appropriate default implementations for bidirectional and random-access collections, as well as a default implementation that traps on `MutableCollection` itself. The `reverse()` method is added in an extension to `MutableCollection where Self: BidirectionalCollection` and simply calls `_customReverse()`. (Thanks to Dmitri for this strategy!)
+The new mutating `reverse()` method is added in an extension to `MutableCollection where Self: BidirectionalCollection`.
 
 ```swift
-protocol MutableCollection {
-    // existing declarations
-    
-    /// A customization point for collections that can reverse their elements.
-    func _customReverse()
-}
-
-extension MutableCollection {
-    func _customReverse() {
-        _preconditionFailure("Can only reverse a BidirectionalCollection")
-    }
-}
-
 extension MutableCollection where Self: BidirectionalCollection {
     /// Reverses the elements of the collection in place.
     ///
     /// - Complexity: O(*n*)
-    public mutating func reverse() {
-        _customReverse()
-    }
-    
-    /// Reverse algorithm specific to bidirectional collections
-    /// Requires n/2 swaps and n/2 index comparisons
-    public func _customReverse() {
-        // ...
-    }
-}
-
-extension MutableCollection where Self: RandomAccessCollection {
-    /// Reverse algorithm specific to random-access collections
-    /// Requires n/2 swaps
-    public func _customReverse() {
-        // ...
-    }
+    public mutating func reverse()
 }
 ```
 
@@ -343,4 +317,6 @@ The addition of the mutating `reverse()` method makes it slightly more challengi
 
 The primary alternative is to not include these methods in the standard library, but the user will need to develop their custom implementation of the rotate algorithms tailored for their needs.
 
-The first revision of this proposal used `firstFrom` as the parameter name for the `rotate` method and didn't add either `rotate` or `reverse` as protocol requirements. In addition, the `RotatedCollection` type was only used for random-access collections—other collections used the existing `FlattenCollection` instead.
+The [first revision of this proposal][rev-1] used `firstFrom` as the parameter name for the `rotate` method and didn't add either `rotate` or `reverse` as protocol requirements. In addition, the `RotatedCollection` type was only used for random-access collections—other collections used the existing `FlattenCollection` instead.
+
+[Another version][rev-2] also made the `reverse()` method choose different algorithms for bidirectional and random-access collections. Without evidence that this would offer a significant performance benefit, this aspect of the proposal has been removed. 
