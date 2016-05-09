@@ -1,9 +1,9 @@
 # Package Manager Command Names
 
-* Proposal: SE-XXXX
+* Proposal: [SE-0085](0085-package-manager-command-name.md)
 * Author(s): [Rick Ballard](https://github.com/rballard)
-* Status: **Pending Review**
-* Review manager: TBD
+* Status: **Scheduled for review: May 9...12, 2016**
+* Review manager: [Daniel Dunbar](http://github.com/ddunbar)
 
 ## Introduction
 
