@@ -1,8 +1,9 @@
-# Swiftification: Drop NS Prefix in Swift Foundation
+# Drop NS Prefix in Swift Foundation
 
-* Proposal: SE-NNNN
+* Proposal: [SE-0086](https://github.com/apple/swift-evolution/blob/master/proposals/0086-drop-foundation-ns.md)
 * Author(s): Tony Parker <anthony.parker@apple.com>, Philippe Hausler <phausler@apple.com>
-* Status: **Awaiting Review**
+* Status: **Under Review** (May 9...16, 2016)
+* Review manager:  [Doug Gregor](https://github.com/DougGregor)
 
 ##### Related radars or Swift bugs
 

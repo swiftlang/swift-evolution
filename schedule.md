@@ -13,6 +13,7 @@ proposals in that process.
 * May 3...9, 2016 [SE-0078: Implement a rotate algorithm, equivalent to std::rotate() in C++](proposals/0078-rotate-algorithm.md)
 * May 3...9, 2016 [SE-0080: Failable Numeric Conversion Initializers](proposals/0080-failable-numeric-initializers.md)
 * May 4...7, 2016 [SE-0082: Package Manager Editable Packages](proposals/0082-swiftpm-package-edit.md)
+* May 9...16, 2016 [SE-0086: Drop NS Prefix in Swift Foundation](proposals/0086-drop-foundation-ns.md)
 
 ## Upcoming reviews
 
