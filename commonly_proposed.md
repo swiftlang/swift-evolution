@@ -34,6 +34,8 @@ Here are some other less-commonly proposed changes that have also been rejected:
 
 * [Remove support for `default:` in `switch`, and just use `case _:`](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151207/001422.html): `default` is widely used, `case _` is too magical, and `default` is widely precedented in many C family languages.
 
+* [Use pattern-matching in `if let` instead of optional-unwrapping](http://thread.gmane.org/gmane.comp.lang.swift.evolution/5787/): We actually tried this and got a lot of negative feedback. Optionals are unwrapped too often for the average developer to be comfortable writing `if let name? = optionalCondition`.
+
 * [SE-0009: Require self for accessing instance members  ](proposals/0009-require-self-for-accessing-instance-members.md)
 
 * [SE-0024: Optional Value Setter `??=`](proposals/0024-optional-value-setter.md)
