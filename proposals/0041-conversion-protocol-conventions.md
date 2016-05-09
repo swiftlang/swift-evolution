@@ -128,7 +128,7 @@ We picked these names after significant research and consideration:
 
 * To *represent* means to serve as or to take the place of by accruing characteristics or qualities. This suggests that a R b is not the same as b R a. My lawyer can represent my legal interests but I cannot represent my lawyer in court. 
 
-* To *create* means to produce something new and cause it to exist. This is semantically distant from initializing. The current (badly named) IntegerLiteralConvertible means "a conforming construct can use an integer literal to establish an instance of itself". 
+* To *create* means to produce something new and cause it to exist. While semantically distant from initializing, the terms overlap in practical use. The current (badly named) IntegerLiteralConvertible means "a conforming construct can use an integer literal to establish an instance of itself". 
 
 > For the “Literalconvertible” names, we think the optimal answer would be
 to sink them into a subnamespace of Swift called “Swift.Syntax” and
