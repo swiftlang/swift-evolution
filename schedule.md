@@ -26,9 +26,9 @@ proposals in that process.
 ## Proposals awaiting scheduling
 
 * [SE-0012: Add `@noescape` to public library API](proposals/0012-add-noescape-to-public-library-api.md)
+* [SE-0050: Decoupling Floating Point Strides from Generic Implementations](proposals/0087-floating-point-stride.md)
 * [SE-0077: Improved operator declarations](proposals/0077-operator-precedence.md)
 * [SE-0079: Allow using optional binding to upgrade `self` from a weak to strong reference](proposals/0079-upgrade-self-from-weak-to-strong.md)
-
 
 [evolution-process]: process.md  "The Swift evolution process"
 

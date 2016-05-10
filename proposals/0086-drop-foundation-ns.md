@@ -1,7 +1,7 @@
 # Drop NS Prefix in Swift Foundation
 
 * Proposal: [SE-0086](https://github.com/apple/swift-evolution/blob/master/proposals/0086-drop-foundation-ns.md)
-* Author(s): Tony Parker <anthony.parker@apple.com>, Philippe Hausler <phausler@apple.com>
+* Authors: Tony Parker <anthony.parker@apple.com>, Philippe Hausler <phausler@apple.com>
 * Status: **Under Review** (May 9...16, 2016)
 * Review manager:  [Doug Gregor](https://github.com/DougGregor)
 
@@ -538,4 +538,6 @@ If, in the future, a time comes when we wish to introduce a new concept that may
 * Code migration
 * Extend existing name with new API
 * Deprecation of existing name and replacement with new name
-* Use a different name  We have used all of these techniques successfully in the past for Objective-C and Swift API.
+* Use a different name
+
+We have used all of these techniques successfully in the past for Objective-C and Swift API.

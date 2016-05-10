@@ -1,6 +1,6 @@
 # Decoupling Floating Point Strides from Generic Implementations
 
-* Proposal: SE-0050
+* Proposal: [SE-0050](0050-floating-point-stride.md)
 * Authors: [Erica Sadun](http://github.com/erica), [Xiaodi Wu](http://github.com/xwu)
 * Status: **Awaiting Review**
 * Review manager: TBD
