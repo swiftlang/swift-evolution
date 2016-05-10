@@ -186,7 +186,7 @@ void setZeroPoint(Point3D point)
 __attribute__((swift_name("setter:Point3D.zero(_:)")));
 ```
 
-*Ammendment:* Also allow for importing as subscript.
+*Amendment:* Also allow for importing as subscript.
 
 ```C
 // Import as subscript
