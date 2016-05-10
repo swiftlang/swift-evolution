@@ -1,6 +1,6 @@
 # Rename `lazy` to `@lazy`
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-name.md)
+* Proposal: [SE-0087](0087-lazy-attribute.md)
 * Author: [Anton3](https://github.com/Anton3)
 * Status: **[Awaiting review](#rationale)**
 * Review manager: TBD
