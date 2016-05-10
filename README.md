@@ -159,6 +159,7 @@ subsequent release.
 * [SE-0066: Standardize function type argument syntax to require parentheses](proposals/0066-standardize-function-type-syntax.md)
 * [SE-0067: Enhanced Floating Point Protocols](proposals/0067-floating-point-protocols.md)
 * [SE-0068: Expanding Swift `Self` to class members and value types](proposals/0068-universal-self.md)
+* [SE-0082: Package Manager Editable Packages](proposals/0082-swiftpm-package-edit.md)
 
 ## Swift 2.2 - Released on March 21, 2016
 
