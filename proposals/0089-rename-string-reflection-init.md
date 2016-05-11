@@ -1,7 +1,7 @@
 # Renaming `String.init<T>(_: T)`
 
 * Proposal: [SE-0089](0089-rename-string-reflection-init.md)
-* Author(s): [Austin Zheng](https://github.com/austinzheng)
+* Author: [Austin Zheng](https://github.com/austinzheng)
 * Status: **Awaiting review**
 * Review manager: TBD
 
