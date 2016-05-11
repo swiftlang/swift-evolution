@@ -18,7 +18,7 @@ proposals in that process.
 * May 10...16, 2016 [SE-0081: Move `where` clause to end of declaration](proposals/0081-move-where-expression.md)
 * May 10...16, 2016 [SE-0083: Remove bridging conversion behavior from dynamic casts](proposals/0083-remove-bridging-from-dynamic-casts.md)
 * May 10...16, 2016 [SE-0084: Allow trailing commas in parameter lists and tuples](proposals/0084-trailing-commas.md)
-* May 10...16, 2016 [SE-0088: Modernize libdispatch for Swift 3 naming conventions](proposals/0088-libdispatch-for-swift3.md)
+* May 10...17, 2016 [SE-0088: Modernize libdispatch for Swift 3 naming conventions](proposals/0088-libdispatch-for-swift3.md)
 
 ## Upcoming reviews
 
