@@ -30,6 +30,7 @@ proposals in that process.
 * [SE-0077: Improved operator declarations](proposals/0077-operator-precedence.md)
 * [SE-0079: Allow using optional binding to upgrade `self` from a weak to strong reference](proposals/0079-upgrade-self-from-weak-to-strong.md)
 * [SE-0087: Rename `lazy` to `@lazy`](proposals/0087-lazy-attribute.md)
+* [SE-0089: Renaming `String.init<T>(_: T)`](proposals/0089-rename-string-reflection-init.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 

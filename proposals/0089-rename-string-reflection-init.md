@@ -1,8 +1,8 @@
 # Renaming `String.init<T>(_: T)`
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-rename-string-reflection-init.md)
+* Proposal: [SE-0089](0089-rename-string-reflection-init.md)
 * Author(s): [Austin Zheng](https://github.com/austinzheng)
-* Status: **[Awaiting review](#rationale)**
+* Status: **Awaiting review**
 * Review manager: TBD
 
 ## Introduction
