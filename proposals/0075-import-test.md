@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0075](0075-import-test.md)
 * Author: [Erica Sadun](http://github.com/erica)
-* Status: **Scheduled for review: May 10...16, 2016**
+* Status: **Active review: May 10...16, 2016**
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction

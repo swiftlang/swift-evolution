@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0084](0084-trailing-commas.md)
 * Authors: [Grant Paul](https://github.com/grp), [Erica Sadun](http://github.com/erica)
-* Status: **Scheduled for review: May 10...16, 2016**
+* Status: **Active review: May 10...16, 2016**
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
