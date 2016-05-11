@@ -14,6 +14,8 @@ proposals in that process.
 * May 3...9, 2016 [SE-0080: Failable Numeric Conversion Initializers](proposals/0080-failable-numeric-initializers.md)
 * May 9...16, 2016 [SE-0086: Drop NS Prefix in Swift Foundation](proposals/0086-drop-foundation-ns.md)
 
+* May 10...16, 2016 [SE-0088: Modernize libdispatch for Swift 3 naming conventions](proposals/0088-libdispatch-for-swift3.md)
+
 ## Upcoming reviews
 
 * May 10...16, 2016 [SE-0041: Updating Protocol Naming Conventions for Conversions](proposals/0041-conversion-protocol-conventions.md)

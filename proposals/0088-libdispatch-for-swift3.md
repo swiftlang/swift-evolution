@@ -1,9 +1,9 @@
-# Update libdispatch overlay
+# Modernize libdispatch for Swift 3 naming conventions
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-libdispatch-swift3-overlay.md)
+* Proposal: [SE-0088](0088-libdispatch-for-swift3.md)
 * Author(s): [Matt Wright](https://github.com/mwwa)
-* Status: **Awaiting review**
-* Review manager: TBD
+* Status: **Active Review: May 10 ... May 17**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
