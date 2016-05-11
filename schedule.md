@@ -6,12 +6,7 @@ proposals in that process.
 
 ## Active reviews
 
-* May 3...9, 2016 [SE-0060: Enforcing order of defaulted parameters](proposals/0060-defaulted-parameter-order.md)
-* May 3...9, 2016 [SE-0073: Marking closures as executing exactly once](proposals/0073-noescape-once.md)
-* May 3...9, 2016 [SE-0074: Implementation of Binary Search functions](proposals/0074-binary-search.md)
-* May 3...9, 2016 [SE-0076: Add overrides taking an UnsafePointer source to non-destructive copying methods on UnsafeMutablePointer](proposals/0076-copying-to-unsafe-mutable-pointer-with-unsafe-pointer-source.md)
 * May 3...9, 2016 [SE-0078: Implement a rotate algorithm, equivalent to std::rotate() in C++](proposals/0078-rotate-algorithm.md)
-* May 3...9, 2016 [SE-0080: Failable Numeric Conversion Initializers](proposals/0080-failable-numeric-initializers.md)
 * May 9...16, 2016 [SE-0086: Drop NS Prefix in Swift Foundation](proposals/0086-drop-foundation-ns.md)
 * May 10...16, 2016 [SE-0041: Updating Protocol Naming Conventions for Conversions](proposals/0041-conversion-protocol-conventions.md)
 * May 10...16, 2016 [SE-0075: Adding a Build Configuration Import Test](proposals/0075-import-test.md)

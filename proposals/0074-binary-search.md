@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0074](0074-binary-search.md)
 * Authors: [Lorenzo Racca](https://github.com/lorenzoracca), [Jeff Hajewski](https://github.com/j-haj), [Nate Cook](https://github.com/natecook1000)
-* Status: **Active review May 3...9, 2016**
+* Status: **Rejected for Swift 3**
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction

@@ -153,12 +153,15 @@ subsequent release.
 * [SE-0047: Defaulting non-Void functions so they warn on unused results](proposals/0047-nonvoid-warn.md)
 * [SE-0048: Generic Type Aliases](proposals/0048-generic-typealias.md)
 * [SE-0052: Change IteratorType post-nil guarantee](proposals/0052-iterator-post-nil-guarantee.md)
+* [SE-0060: Enforcing order of defaulted parameters](proposals/0060-defaulted-parameter-order.md)
 * [SE-0062: Referencing Objective-C key-paths](proposals/0062-objc-keypaths.md)
 * [SE-0063: SwiftPM System Module Search Paths](proposals/0063-swiftpm-system-module-search-paths.md)
 * [SE-0064: Referencing the Objective-C selector of property getters and setters](proposals/0064-property-selectors.md)
 * [SE-0066: Standardize function type argument syntax to require parentheses](proposals/0066-standardize-function-type-syntax.md)
 * [SE-0067: Enhanced Floating Point Protocols](proposals/0067-floating-point-protocols.md)
 * [SE-0068: Expanding Swift `Self` to class members and value types](proposals/0068-universal-self.md)
+* [SE-0076: Add overrides taking an UnsafePointer source to non-destructive copying methods on UnsafeMutablePointer](proposals/0076-copying-to-unsafe-mutable-pointer-with-unsafe-pointer-source.md)
+* [SE-0080: Failable Numeric Conversion Initializers](proposals/0080-failable-numeric-initializers.md)
 * [SE-0082: Package Manager Editable Packages](proposals/0082-swiftpm-package-edit.md)
 
 ## Swift 2.2 - Released on March 21, 2016
@@ -195,6 +198,8 @@ as practical with Swift 2.0.
 * [SE-0024: Optional Value Setter `??=`](proposals/0024-optional-value-setter.md)
 * [SE-0027: Expose code unit initializers on String](proposals/0027-string-from-code-units.md)
 * [SE-0056: Allow trailing closures in `guard` conditions](proposals/0056-trailing-closures-in-guard.md)
+* [SE-0073: Marking closures as executing exactly once](proposals/0073-noescape-once.md)
+* [SE-0074: Implementation of Binary Search functions](proposals/0074-binary-search.md)
 
 ## Review
 [Swift Evolution Review Schedule](https://github.com/apple/swift-evolution/blob/master/schedule.md)
