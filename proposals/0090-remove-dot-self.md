@@ -1,7 +1,7 @@
 # Remove `.self` and freely allow type references in expressions
 
 * Proposal: [SE-0090](0090-remove-dot-self.md)
-* Author: [Joe Groff](https://github.com/jckarter), [Tanner Nelson](https://github.com/tannernelson)
+* Authors: [Joe Groff](https://github.com/jckarter), [Tanner Nelson](https://github.com/tannernelson)
 * Status: **[Awaiting review]**
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
