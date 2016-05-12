@@ -127,7 +127,7 @@ However, some use cases can be forgiving of duplicate keys, so this proposal inc
 ```swift
 init<S: Sequence where S.Iterator.Element == (key: Key, value: Value)>(
     merging keysAndValues: S, 
-    @noescape combine: (Value, Value) throws -> Value
+    combine: @noescape (Value, Value) throws -> Value
     ) rethrows
 ```
 
@@ -163,12 +163,12 @@ This proposal also includes new mutating and non-mutating methods for `Dictionar
 mutating func merge<
     S: Sequence where S.Iterator.Element == (key: Key, value: Value)>(
     contentsOf other: S, 
-    @noescape combine: (Value, Value) throws -> Value
+    combine: @noescape (Value, Value) throws -> Value
     ) rethrows
 func merged<
     S: Sequence where S.Iterator.Element == (key: Key, value: Value)>(
     with other: S, 
-    @noescape combine: (Value, Value) throws -> Value
+    combine: @noescape (Value, Value) throws -> Value
     ) rethrows -> [Key: Value]
 ```
 
@@ -206,7 +206,7 @@ init?<S: Sequence where S.Iterator.Element == Element>(
 /// using a combining closure to determine the value for any duplicate keys.
 init<S: Sequence where S.Iterator.Element == Element>(
     merging keysAndValues: S, 
-    @noescape combine: (Value, Value) throws -> Value
+    combine: @noescape (Value, Value) throws -> Value
     ) rethrows
     
 /// Merges the key/value pairs in the given sequence into the dictionary,
@@ -214,7 +214,7 @@ init<S: Sequence where S.Iterator.Element == Element>(
 mutating func merge<
     S: Sequence where S.Iterator.Element == Element>(
     contentsOf other: S, 
-    @noescape combine: (Value, Value) throws -> Value
+    combine: @noescape (Value, Value) throws -> Value
     ) rethrows
 
 /// Returns a new dictionary created by merging the key/value pairs in the 
@@ -222,7 +222,7 @@ mutating func merge<
 /// the value for any duplicate keys.
 func merged<S: Sequence where S.Iterator.Element == Element>(
     with other: S, 
-    @noescape combine: (Value, Value) throws -> Value
+    combine: @noescape (Value, Value) throws -> Value
     ) rethrows -> [Key: Value]
 ```
 
