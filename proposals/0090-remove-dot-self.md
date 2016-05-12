@@ -1,9 +1,9 @@
 # Remove `.self` and freely allow type references in expressions
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/XXXX-remove-dot-self.md)
-* Author(s): [Joe Groff](https://github.com/jckarter)
-* Status: **[Awaiting review](#rationale)**
-* Review manager: TBD
+* Proposal: [SE-0090](0090-remove-dot-self.md)
+* Author: [Joe Groff](https://github.com/jckarter)
+* Status: **[Awaiting review]**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 

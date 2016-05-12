@@ -107,6 +107,7 @@ sampling of potentially good ideas that are not in scope for Swift
 * [SE-0005: Better Translation of Objective-C APIs Into Swift](proposals/0005-objective-c-name-translation.md)
 * [SE-0006: Apply API Guidelines to the Standard Library](proposals/0006-apply-api-guidelines-to-the-standard-library.md)
 * [SE-0007: Remove C-style for-loops with conditions and incrementers](proposals/0007-remove-c-style-for-loops.md)
+* [SE-0008: Add a Lazy flatMap for Sequences of Optionals](proposals/0008-lazy-flatmap-for-optionals.md)
 * [SE-0016: Adding initializers to Int and UInt to convert from UnsafePointer and UnsafeMutablePointer](proposals/0016-initializers-for-converting-unsafe-pointers-to-ints.md)
 * [SE-0019: Swift Testing](proposals/0019-package-manager-testing.md)
 * [SE-0023: API Design Guidelines](proposals/0006-apply-api-guidelines-to-the-standard-library.md)
@@ -139,7 +140,6 @@ but they are not implemented yet, and may not have anyone signed up to implement
 them.  If they are not implemented in time for Swift 3, they will roll into a
 subsequent release.
 
-* [SE-0008: Add a Lazy flatMap for Sequences of Optionals](proposals/0008-lazy-flatmap-for-optionals.md)
 * [SE-0017: Change `Unmanaged` to use `UnsafePointer`](proposals/0017-convert-unmanaged-to-use-unsafepointer.md)
 * [SE-0025: Scoped Access Level](proposals/0025-scoped-access-level.md)
 * [SE-0032: Add `find` method to `SequenceType`](proposals/0032-sequencetype-find.md)
