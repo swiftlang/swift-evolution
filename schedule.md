@@ -6,28 +6,27 @@ proposals in that process.
 
 ## Active reviews
 
-* February 26...March 3, 2016: [SE-0025: Scoped Access Level](proposals/0025-scoped-access-level.md)
-* March 2...4, 2016 [SE-0040: Replacing Equal Signs with Colons For Attribute Arguments](proposals/0040-attributecolons.md)
-* March 7...9, 2016 [SE-0039: Modernizing Playground Literals](proposals/0039-playgroundliterals.md)
+* May 3...9, 2016 [SE-0078: Implement a rotate algorithm, equivalent to std::rotate() in C++](proposals/0078-rotate-algorithm.md)
+* May 9...16, 2016 [SE-0086: Drop NS Prefix in Swift Foundation](proposals/0086-drop-foundation-ns.md)
+* May 10...16, 2016 [SE-0041: Updating Protocol Naming Conventions for Conversions](proposals/0041-conversion-protocol-conventions.md)
+* May 10...16, 2016 [SE-0075: Adding a Build Configuration Import Test](proposals/0075-import-test.md)
+* May 10...16, 2016 [SE-0081: Move `where` clause to end of declaration](proposals/0081-move-where-expression.md)
+* May 10...16, 2016 [SE-0083: Remove bridging conversion behavior from dynamic casts](proposals/0083-remove-bridging-from-dynamic-casts.md)
+* May 10...16, 2016 [SE-0084: Allow trailing commas in parameter lists and tuples](proposals/0084-trailing-commas.md)
+* May 10...17, 2016 [SE-0088: Modernize libdispatch for Swift 3 naming conventions](proposals/0088-libdispatch-for-swift3.md)
 
 ## Upcoming reviews
-
-* March 9...13, 2016 [SE-0037: Clarify interaction between comments & operators](proposals/0037-clarify-comments-and-operators.md)
 
 
 ## Proposals awaiting scheduling
 
 * [SE-0012: Add `@noescape` to public library API](proposals/0012-add-noescape-to-public-library-api.md)
-* [SE-0016: Adding initializers to Int and Uint to convert from UnsafePointer and UnsafeMutablePointer](proposals/0016-initializers-for-converting-unsafe-pointers-to-ints.md)
-* [SE-0017: Change `Unmanaged` to use `UnsafePointer`](proposals/0017-convert-unmanaged-to-use-unsafepointer.md)
-* [SE-0032: Add `find` method to `SequenceType`](proposals/0032-sequencetype-find.md)
-* [SE-0036: Requiring Leading Dot Prefixes for Enum Instance Member Implementations](proposals/0036-enum-dot.md)
-* [SE-0041: Updating Protocol Naming Conventions for Conversions](proposals/0041-conversion-protocol-conventions.md)
-* [SE-0042: Flattening the function type of unapplied method references](proposals/0042-flatten-method-types.md)
-* [SE-0030: Property Behaviors](proposals/0030-property-behavior-decls.md)
-* [SE-0043: Declare variables in 'case' labels with multiple patterns](proposals/0043-declare-variables-in-case-labels-with-multiple-patterns.md)
-* [SE-0044: Import as member](proposals/0044-import-as-member.md)
-* [SE-0045: Add scan, takeWhile, dropWhile, and iterate to the stdlib](proposals/0045-scan-takewhile-dropwhile.md)
+* [SE-0050: Decoupling Floating Point Strides from Generic Implementations](proposals/0087-floating-point-stride.md)
+* [SE-0077: Improved operator declarations](proposals/0077-operator-precedence.md)
+* [SE-0079: Allow using optional binding to upgrade `self` from a weak to strong reference](proposals/0079-upgrade-self-from-weak-to-strong.md)
+* [SE-0087: Rename `lazy` to `@lazy`](proposals/0087-lazy-attribute.md)
+* [SE-0089: Renaming `String.init<T>(_: T)`](proposals/0089-rename-string-reflection-init.md)
+* [SE-0090: Remove `.self` and freely allow type references in expressions](proposals/0090-remove-dot-self.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 

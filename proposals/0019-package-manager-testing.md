@@ -1,5 +1,6 @@
 # Swift Testing
 
+* Proposal: [SE-0019](https://github.com/apple/swift-evolution/blob/master/proposals/0019-package-manager-testing.md)
 * Authors:
   [Max Howell](https://github.com/mxcl),
   [Daniel Dunbar](https://github.com/ddunbar),
@@ -12,6 +13,8 @@
 Testing is an essential part of modern software development.
 Tight integration of testing into the Swift Package Manager
 will help ensure a stable and reliable packaging ecosystem.
+
+[SE Review Link](http://thread.gmane.org/gmane.comp.lang.swift.evolution/3583)
 
 ## Proposed Solution
 

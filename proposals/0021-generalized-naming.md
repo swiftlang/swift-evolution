@@ -1,7 +1,7 @@
 # Naming Functions with Argument Labels
 
 * Proposal: [SE-0021](https://github.com/apple/swift-evolution/blob/master/proposals/0021-generalized-naming.md)
-* Author(s): [Doug Gregor](https://github.com/DougGregor)
+* Author: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Accepted** (implemented in Swift 2.2)
 * Review manager: [Joe Groff](https://github.com/jckarter)
 
@@ -121,7 +121,7 @@ present in the declaration; arguments for defaulted or variadic
 parameters cannot be skipped. For example:
 
 ```swift
-func foo(x: Int, y: Int = 7, strings: String...) { ... }
+func foo(x x: Int, y: Int = 7, strings: String...) { ... }
 
 let fn1 = foo(x:y:strings:) // okay
 let fn2 = foo(x:) // error: no function named 'foo(x:)'

@@ -1,7 +1,7 @@
 # Referencing the Objective-C selector of a method
 
 * Proposal: [SE-0022](https://github.com/apple/swift-evolution/blob/master/proposals/0022-objc-selectors.md)
-* Author(s): [Doug Gregor](https://github.com/DougGregor)
+* Author: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Accepted**
 * Review manager: [Joe Groff](https://github.com/jckarter)
 
@@ -53,7 +53,7 @@ that the method exists and is exposed to Objective-C.
 This proposal composes with the [Naming Functions with Argument Labels
 proposal](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160111/006262.html), which lets us name methods along with their argument labels, e.g.:
 
-	let sel = #selector(UIView.insertSubview(_:at:)) // produces the Selector "insertSubview:atIndex:"
+	let sel = #selector(UIView.insertSubview(_:atIndex:)) // produces the Selector "insertSubview:atIndex:"
 
 With the introduction of the `#selector` syntax, we should deprecate
 the use of string literals to form selectors. Ideally, we could

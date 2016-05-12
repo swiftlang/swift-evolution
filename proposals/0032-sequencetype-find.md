@@ -1,13 +1,17 @@
-# Add `find` method to `SequenceType`
+# Add `first(where:)` method to `Sequence`
 
 * Proposal: [SE-0032](https://github.com/apple/swift-evolution/blob/master/proposals/0032-sequencetype-find.md)
-* Author(s): [Kevin Ballard](https://github.com/kballard)
-* Status: **Awaiting review**
-* Review manager: TBD
+* Author: [Kevin Ballard](https://github.com/kballard)
+* Status: **Accepted for Swift 3**
+* Review manager: [Chris Lattner](https://github.com/lattner)
+* Revision: 2
+* Previous Revisions: [1][rev-1]
+
+[rev-1]: https://github.com/apple/swift-evolution/blob/d709546002e1636a10350d14da84eb9e554c3aac/proposals/0032-sequencetype-find.md
 
 ## Introduction
 
-Add a new extension method to `SequenceType` called `find()` that returns the
+Add a new extension method to `Sequence` called `first(where:)` that returns the
 found element.
 
 Swift-evolution thread: [Proposal: Add function SequenceType.find()](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151228/004814.html)
@@ -15,36 +19,36 @@ Swift-evolution thread: [Proposal: Add function SequenceType.find()](https://lis
 ## Motivation
 
 It's often useful to find the first element of a sequence that passes some given
-predicate. For `CollectionType`s you can call `indexOf()` and pass the resulting
-index back into the `subscript`, but this is a bit awkward. For `SequenceType`s,
+predicate. For `Collection`s you can call `index(of:)` or `index(where:)` and pass the resulting
+index back into the `subscript`, but this is a bit awkward. For `Sequence`s,
 there's no easy way to do this besides a manual loop that doesn't require
 filtering the entire sequence and producing an array.
 
 I have seen people write code like `seq.lazy.filter(predicate).first`, but this
 doesn't actually work lazily because `.first` is only a method on
-`CollectionType`, which means the call to `filter()` ends up resolving to the
-`SequenceType.filter()` that returns an Array instead of to
-`LazySequenceType.filter()` that returns a lazy sequence. Users typically aren't
+`Collection`, which means the call to `filter()` ends up resolving to the
+`Sequence.filter()` that returns an Array instead of to
+`LazySequenceProtocol.filter()` that returns a lazy sequence. Users typically aren't
 aware of this, which means they end up doing a lot more work than expected.
 
 ## Proposed solution
 
-Extend `SequenceType` with a method called `find()` that takes a predicate and
+Extend `Sequence` with a method called `first(where:)` that takes a predicate and
 returns an optional value of the first element that passes the predicate, if
 any.
 
 ## Detailed design
 
-Add the following extension to `SequenceType`:
+Add the following extension to `Sequence`:
 
 ```swift
-extension SequenceType {
+extension Sequence {
   /// Returns the first element where `predicate` returns `true`, or `nil`
   /// if such value is not found.
-  public func find(@noescape predicate: (Self.Generator.Element) throws -> Bool) rethrows -> Self.Generator.Element? {
+  public func first(where predicate: @noescape (Self.Iterator.Element) throws -> Bool) rethrows -> Self.Iterator.Element? {
     for elt in self {
       if try predicate(elt) {
-	return elt
+        return elt
       }
     }
     return nil
@@ -58,8 +62,8 @@ None, this feature is purely additive.
 
 In theory, we might provide an automatic conversion from
 `seq.filter(predicate).first` or `seq.lazy.filter(predicate).first` to
-`seq.find(predicate)`, although the existing code would continue to compile just
-fine.
+`seq.first(where: predicate)`, although the existing code would continue to
+compile just fine.
 
 ## Alternatives considered
 

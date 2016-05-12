@@ -1,7 +1,7 @@
 # Constraining `AnySequence.init`
 
 * Proposal: [SE-0014](https://github.com/apple/swift-evolution/blob/master/proposals/0014-constrained-AnySequence.md)
-* Author(s): [Max Moiseev](https://github.com/moiseev)
+* Author: [Max Moiseev](https://github.com/moiseev)
 * Status: **Accepted for Swift 2.2** ([Bug](https://bugs.swift.org/browse/SR-474))
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 
@@ -9,6 +9,8 @@
 
 In order to allow `AnySequence` delegate calls to the underlying sequence,
 its initializer should have extra constraints.
+
+[Swift Evolution Discussion](http://thread.gmane.org/gmane.comp.lang.swift.evolution/1893)
 
 ## Motivation
 

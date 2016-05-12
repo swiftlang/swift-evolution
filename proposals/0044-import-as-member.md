@@ -1,9 +1,10 @@
 # Import as member
 
 * Proposal: [SE-0044](https://github.com/apple/swift-evolution/blob/master/proposals/0044-import-as-member.md)
-* Author(s): [Michael Ilseman](https://github.com/milseman)
-* Status: **Awaiting review**
-* Review manager: TBD
+* Author: [Michael Ilseman](https://github.com/milseman)
+* Status: **Implemented in Swift 3** ([Discussion](http://thread.gmane.org/gmane.comp.lang.swift.evolution/12842), [Bug](https://bugs.swift.org/browse/SR-1053))
+* Review manager: [Doug Gregor](https://github.com/DougGregor)
+* Implementation: [GitHub branch](https://github.com/apple/swift/tree/import-as-member)
 
 ## Introduction
 
@@ -14,10 +15,8 @@ authors to specify the capability of importing functions and variables as
 members on imported Swift types. It also seeks to provide an automatic inference
 option for APIs that follow a consistent, disciplined naming convention.
 
-<!--
-Swift-evolution thread: [link to the discussion thread for that
-proposal](https://lists.swift.org/pipermail/swift-evolution)
- -->
+[Swift-evolution thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/8437)<br />
+[Review](http://thread.gmane.org/gmane.comp.lang.swift.evolution/12274)
 ## Motivation
 
 C APIs and frameworks currently import into Swift as global functions and global
@@ -130,9 +129,12 @@ The inference system analyzes C global names and types, attempting to find an
 imported Swift type to extend with a method, initializer, or property from this
 global.
 
-This inference system's goal for the is to be able to automatically handle the
-majority of global variables and functions in CF-style frameworks, and in the
-future be extensible to benefit other well structured, disciplined APIs.
+This inference system's goal is to be able to automatically handle the majority
+of global variables and functions in CF-style frameworks, and in the future be
+extensible to benefit other well structured, disciplined APIs.
+
+*Amendment:*  Automatic inference will not be used by default for all C
+APIs, but will be opt-in.
 
 ### Maps directly onto C calling convention
 
@@ -178,10 +180,20 @@ extern struct Point3D identityPoint
 __attribute__((swift_name("Point3D.identity")));
 
 // Import as static computed property
-Point3D getZeroPoint()
+Point3D getZeroPoint(void)
 __attribute__((swift_name("getter:Point3D.zero()")));
 void setZeroPoint(Point3D point)
 __attribute__((swift_name("setter:Point3D.zero(_:)")));
+```
+
+*Amendment:* Also allow for importing as subscript.
+
+```C
+// Import as subscript
+float Point3DGetPointAtIndex(int idx, Point3D point)
+__attribute__((swift_name("getter:subscript(_:self:)")))
+void Point3DSetPointAtIndex(int idx, Point3D point, float val)
+__attribute__((swift_name("getter:subscript(_:self:newValue:)")))
 ```
 
 The string present in swift_name will additionally support the following:
@@ -190,6 +202,16 @@ The string present in swift_name will additionally support the following:
 * ``self`` to denote which parameter to treat as self for an instance
    method/property, otherwise this will be a static method/property
 * ``getter:`` and ``setter:`` to denote the function as a property getter/setter
+
+*Amendment:*
+* ``newValue`` to denote which parameter to treat as a subscript setter's new value
+
+*Amendment:* swift_name is not valid on non-prototyped function declarations.
+
+*Amendment:* swift_name can be used to add instance members onto an extension
+of the named protocol, but they are limited to instance members. Importing as
+static method or init is not supported. Instance members are imported into a
+protocol extension, enforcing static dispatch.
 
 ### Automatic inference heuristics
 

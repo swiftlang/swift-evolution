@@ -2,7 +2,7 @@
 
 * Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-name.md)
 * Author(s): [Swift Developer](https://github.com/swiftdev)
-* Status: **Awaiting review**
+* Status: **[Awaiting review](#rationale)**
 * Review manager: TBD
 
 ## Introduction
@@ -50,3 +50,10 @@ automatically?
 Describe alternative approaches to addressing the same problem, and
 why you chose this approach instead.
 
+-------------------------------------------------------------------------------
+
+# Rationale
+
+On [Date], the core team decided to **(TBD)** this proposal.
+When the core team makes a decision regarding this proposal,
+their rationale for the decision will be written here.

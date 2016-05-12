@@ -1,13 +1,15 @@
 # Change `Unmanaged` to use `UnsafePointer`
 
 * Proposal: [SE-0017](https://github.com/apple/swift-evolution/blob/master/proposals/0017-convert-unmanaged-to-use-unsafepointer.md)
-* Author(s): [Jacob Bandes-Storch](https://github.com/jtbandes)
-* Status: **Awaiting Review**
-* Review manager: TBD
+* Author: [Jacob Bandes-Storch](https://github.com/jtbandes)
+* Status: **Accepted for Swift 3**
+* Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction
 
 The standard library [`Unmanaged<Instance>` struct](https://github.com/apple/swift/blob/master/stdlib/public/core/Unmanaged.swift) provides a type-safe object wrapper that does not participate in ARC; it allows the user to make manual retain/release calls.
+
+[Swift Evolution Discussion](http://thread.gmane.org/gmane.comp.lang.swift.evolution/9877), [Proposed Rewrite Discussion](http://thread.gmane.org/gmane.comp.lang.swift.evolution/68/)
 
 ## Motivation
 

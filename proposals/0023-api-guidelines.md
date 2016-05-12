@@ -1,7 +1,7 @@
 # API Design Guidelines
 
 * Proposal: [SE-0023](https://github.com/apple/swift-evolution/blob/master/proposals/0023-api-guidelines.md)
-* Author(s): Dave Abrahams, Doug Gregor, Dmitri Hrybenko, Ted Kremenek, Chris Lattner, Alex Migicovsky, Max Moiseev, Ali Ozer, Tony Parker
+* Authors: Dave Abrahams, Doug Gregor, Dmitri Hrybenko, Ted Kremenek, Chris Lattner, Alex Migicovsky, Max Moiseev, Ali Ozer, Tony Parker
 * Status: **Accepted** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/8585))
 * Review manager: [Doug Gregor](https://github.com/DougGregor)
 
@@ -41,6 +41,11 @@ design guidelines consistently.
 
 The proposed API Design Guidelines are available at
 [https://swift.org/documentation/api-design-guidelines/](https://swift.org/documentation/api-design-guidelines/).
+
+The sources for these guidelines are available at
+https://github.com/apple/swift-internals.  Pull requests for trivial
+copyediting changes are most welcome.  More substantive changes should
+be handled as part of the review process.
 
 ## Impact on existing code
 

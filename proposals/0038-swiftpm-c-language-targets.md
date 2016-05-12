@@ -1,7 +1,7 @@
 # Package Manager C Language Target Support
 
 * Proposal: [SE-0038](https://github.com/apple/swift-evolution/blob/master/proposals/0038-swiftpm-c-language-targets.md)
-* Author(s): [Daniel Dunbar](https://github.com/ddunbar)
+* Author: [Daniel Dunbar](https://github.com/ddunbar)
 * Status: **Accepted** ([Bug](https://bugs.swift.org/browse/SR-821))
 * Review manager: Rick Ballard
 
@@ -12,6 +12,8 @@ Objective-C, and Objective-C++ languages (henceforth, simply referred to as "C"
 languages). This proposal is limited in scope to only supporting targets
 consisting entirely of C languages; there is no provision for supporting targets
 which include both C and Swift sources.
+
+[Swift Evolution Review Thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/7293)
 
 ## Motivation
 

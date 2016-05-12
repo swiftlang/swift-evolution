@@ -1,7 +1,7 @@
 # Removing `var` from Function Parameters
 
 * Proposal: [SE-0003](https://github.com/apple/swift-evolution/blob/master/proposals/0003-remove-var-parameters-patterns.md)
-* Author(s): [David Farler](https://github.com/bitjammer)
+* Author: [David Farler](https://github.com/bitjammer)
 * Status: **Accepted**
 * Review manager: [Joe Pamer](https://github.com/jopamer)
 
@@ -35,6 +35,10 @@ directly.  For that to happen to value types, you have to mark the parameter
 with `inout`:
 
 ```swift
+func doSomethingWithVar(var i: Int) {
+  i = 2 // This will NOT have an effect on the caller's Int that was passed, but i can be modified locally
+}
+
 func doSomethingWithInout(inout i: Int) {
   i = 2 // This will have an effect on the caller's Int that was passed.
 }
