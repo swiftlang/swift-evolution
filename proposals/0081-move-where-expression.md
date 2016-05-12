@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0081](0081-move-where-expression.md)
 * Authors: [David Hart](https://github.com/hartbit), [Robert Widmann](devteam.codafi@gmail.com), [Pry Jahkola](pyry.jahkola@iki.fi)
-* Status: **Scheduled for review: May 10...16, 2016**
+* Status: **Active review: May 10...16, 2016**
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction

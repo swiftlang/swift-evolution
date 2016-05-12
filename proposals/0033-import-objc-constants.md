@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0033](https://github.com/apple/swift-evolution/blob/master/proposals/0033-import-objc-constants.md)
 * Author: [Jeff Kelley](https://github.com/SlaunchaMan)
-* Status: **Accepted** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/8817))
+* Status: **Implemented in Swift 3** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/8817))
 * Review manager: [John McCall](https://github.com/rjmccall)
 
 ## Introduction

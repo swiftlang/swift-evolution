@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0080](0080-failable-numeric-initializers.md)
 * Author: [Matthew Johnson](https://github.com/anandabits)
-* Status: **Active review May 3...9, 2016**
+* Status: **Accepted with Revisions for Swift 3** ([Bug](https://bugs.swift.org/browse/SR-1491))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
@@ -15,7 +15,7 @@ Swift-evolution thread: [Proposal: failable numeric conversion initializers](htt
 
 ## Motivation
 
-It is extremely common to recieve loosely typed data from an external source such as json.  This data usually has an expected schema with more precise types.  When initializing model objects with such data runtime conversion must be performed.  It is extremely desirable to be able to do so in a safe and recoverable manner.  The best way to accomplish that is to support failable numeric conversions in the standard library.
+It is extremely common to receive loosely typed data from an external source such as json.  This data usually has an expected schema with more precise types.  When initializing model objects with such data runtime conversion must be performed.  It is extremely desirable to be able to do so in a safe and recoverable manner.  The best way to accomplish that is to support failable numeric conversions in the standard library.
 
 ## Proposed solution
 

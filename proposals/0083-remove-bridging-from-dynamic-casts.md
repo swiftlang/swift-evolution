@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0083](0083-remove-bridging-from-dynamic-casts.md)
 * Author: [Joe Groff](https://github.com/jckarter)
-* Status: **Scheduled for review: May 10...16, 2016**
+* Status: **Active review: May 10...16, 2016**
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
@@ -152,7 +152,7 @@ enumerating all the things dynamic casts are currently able to do:
 
     func fooIfYouCanFoo<T>(value: T) {
       if let fooable = value as? Fooable {
-        return fooable.foo()
+        fooable.foo()
       }
     }
 

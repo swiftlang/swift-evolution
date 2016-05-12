@@ -2,7 +2,7 @@
 
 * Proposal: SE-0082
 * Author(s): [Daniel Dunbar](https://github.com/ddunbar)
-* Status: **Active review** May 4...May 7, 2016
+* Status: **Accepted for Swift 3**
 * Review manager: Anders Bertelrud
 
 ## Introduction

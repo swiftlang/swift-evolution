@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0074](0074-binary-search.md)
 * Authors: [Lorenzo Racca](https://github.com/lorenzoracca), [Jeff Hajewski](https://github.com/j-haj), [Nate Cook](https://github.com/natecook1000)
-* Status: **Active review May 3...9, 2016**
+* Status: **Rejected for Swift 3**
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
@@ -276,3 +276,11 @@ The authors considered a few alternatives to the current proposal:
 - `lower_bound` / `upper_bound`: The C++ STL includes two functions that help when searching sorted collections and when sorting or merging. However, both are subsumed by the functionality of `partition_point` and its unary predicate, and as such are not needed. Whether these methods should accept unary or binary predicates was also a matter of discussion.
 
 - `binary_search`: The STL function analogous to the proposed `sortedIndex(of:)` method returns only a Boolean value. We determined that a method returning an optional index was more useful: the `.none` case conveys "not found", and the returned index (when found) provides easy access to the matched element.
+
+# Rationale
+
+On May 11, 2016, the core team decided to **Reject** this proposal.  The
+feedback on the proposal was generally positive about the concept of adding
+binary search functionality, but  negative about the proposal as written, with
+feedback that it was adding too much complexity to the API.
+

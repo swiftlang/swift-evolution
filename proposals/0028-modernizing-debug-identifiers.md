@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0028](https://github.com/apple/swift-evolution/blob/master/proposals/0028-modernizing-debug-identifiers.md)
 * Author: [Erica Sadun](http://github.com/erica)
-* Status: *Accepted* (Bug: [SR-669](https://bugs.swift.org/browse/SR-669))
+* Status: **Implemented in Swift 2.2** (Bug: [SR-669](https://bugs.swift.org/browse/SR-669))
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction
