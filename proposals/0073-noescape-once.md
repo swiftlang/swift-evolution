@@ -179,3 +179,19 @@ This includes (full list to be done):
 
 Those modifications to standard and core libraries will however be part of
 future proposals.
+
+# Rationale
+
+On May 11, 2016, the core team decided to **Reject** this proposal for Swift 3.
+
+The feedback on the proposal was generally positive both from the community and
+core team.  That said, it is being rejected for Swift 3 two reasons:
+
+1) The surface level syntax of @noescape needs to be reconsidered.  At the minimum, we need to rename @noescape to @nonescaping for consistency with our previously agreed attribute naming scheme. However, it is also work discussing whether @nonescaping should be the default: if so, the attribute should actually become @escaping, and the functionality proposed in SE-0073 would be named @once.
+
+2) Separate from the surface level issues, the implementation underlying this work has some significant challenges that are doable but would require major engineering work.  Specifically, the definite initialization pass needs to “codegen” booleans in some cases for conditional initialization/overwrite cases, and these state values would have to be added to closure capture lists.  This would require enough engineering work that it seems unlikely that it would happen in the Swift 3 timeframe, and beyond that this could theoretically be subsumed into a more general system that allowed control-flow-like functions to have closures that break/continue/throw/return out of their enclosing function, or a general macro system.
+
+Overall, everyone desires the ability to produce more control-flow like functions, but Swift 3 isn’t in a place where it can make sense to tackle this work.
+
+
+
