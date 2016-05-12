@@ -42,13 +42,6 @@ init?(exactly value: Float80)
 #endif
 ```
 
-Foundation should extend all numeric types as well as `Bool` with a failable conversion initializer accepting `NSNumber`: 
-
-```swift
-init?(exactly value: NSNumber)
-```
-
-Finally, Foundation should extend `NSDecimal` and `NSDecimalNumber` with the entire familly of throwing numeric conversion initializers, including `NSNumber`.
 
 ## Detailed design
 
