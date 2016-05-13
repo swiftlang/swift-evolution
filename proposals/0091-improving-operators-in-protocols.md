@@ -1,9 +1,9 @@
 # Improving operator requirements in protocols
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-improving-operators-in-protocols.md)
-* Author(s): [Tony Allevato](https://github.com/allevato)
-* Status: TBD
-* Review manager: TBD
+* Proposal: [SE-0091](0091-improving-operators-in-protocols.md)
+* Author: [Tony Allevato](https://github.com/allevato)
+* Status: **Scheduled for Review: May 17...23**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 

@@ -2,8 +2,8 @@
 
 * Proposal: [SE-0077](0077-operator-precedence.md)
 * Author: [Anton Zhilin](https://github.com/Anton3)
-* Status: **Awaiting review**
-* Review manager: TBD
+* Status: **Scheduled for Review: May 17...23**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 

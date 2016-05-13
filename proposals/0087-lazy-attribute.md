@@ -2,8 +2,8 @@
 
 * Proposal: [SE-0087](0087-lazy-attribute.md)
 * Author: [Anton3](https://github.com/Anton3)
-* Status: **[Awaiting review](#rationale)**
-* Review manager: TBD
+* Status: **Scheduled for Review: May 17...23**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
