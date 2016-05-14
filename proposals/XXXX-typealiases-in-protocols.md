@@ -11,13 +11,13 @@ This proposal is from the [Generics Manifesto](https://github.com/apple/swift/bl
 
 ## Motivation
 
-In Swift versions prior to 2.2, the `typelias` keyword was used outside of protocols to declare type aliases and in protocols to declare associated types. Since [SE-0011](https://github.com/apple/swift-evolution/blob/master/proposals/0011-replace-typealias-associated.md) and Swift 2.2, associated type now use the `associatedtype` keyword and `typelias` is available for implementing true associated type aliases. 
+In Swift versions prior to 2.2, the `typealias` keyword was used outside of protocols to declare type aliases and in protocols to declare associated types. Since [SE-0011](https://github.com/apple/swift-evolution/blob/master/proposals/0011-replace-typealias-associated.md) and Swift 2.2, associated type now use the `associatedtype` keyword and `typealias` is available for implementing true associated type aliases. 
 
 ## Proposed solution
 
 The solution allows the creation of associated type aliases. Here is an example from the standard library:
 
-``` swift
+```swift
 protocol Sequence {
   associatedtype Iterator : IteratorProtocol
   typealias Element = Iterator.Element
@@ -32,6 +32,18 @@ func sum<T: Sequence where T.Element == Int>(sequence: T) -> Int {
 }
 ```
 
+Allowing `typealias` in protocol extensions also allows extensions to use aliases to simplify code that the protocol did not originally propose:
+
+```swift
+extension Sequence {
+    typealias Element = Iterator.Element
+    
+    func concat(other: Self) -> [Element] {
+        return Array<Element>(self) + Array<Element>(other)
+    }
+}
+```
+
 ## Detailed design
 
 The following grammar rules needs to be added:
@@ -42,4 +54,35 @@ The following grammar rules needs to be added:
 
 ## Impact on existing code
 
-This will have no impact on existing code, but will probably require improving the Fix-It that was created for migrating `typealias` to `associatedtype` in Swift 2.2.
+This will initially have no impact on existing code, but will probably require improving the Fix-It that was created for migrating `typealias` to `associatedtype` in Swift 2.2.
+
+But once `typealias` starts being used inside protocols, especially in the Standard Library, name clashes might start cropping up between the type aliases and associated types. For example:
+
+```swift
+protocol Sequence {
+    typealias Element = Iterator.Element // once this is added
+}
+
+protocol MySequence: Sequence {
+    associatedtype Element // MySequence.Element is ambiguous
+}
+```
+
+But there is no reason that those name clashes behave differently than current clashes between associated types:
+
+```swift
+protocol Foo {
+    associatedtype Inner: IntegerType
+    func foo(inner: Inner)
+}
+
+protocol Bar {
+    associatedtype Inner: FloatingPointType
+    var inner: Inner { get }
+}
+
+struct FooBarImpl: Foo, Bar { // error: Type ‘FooBarImpl’ does not conform to protocol ‘Bar'
+    func foo(inner: Int) {}
+    var inner: Float
+}
+```
