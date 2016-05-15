@@ -67,4 +67,6 @@ Zero-element tuples and parameter lists would not support trailling commas. Sing
 
 ## Alternatives Considered
 
-There are no alternatives considered.
+* Chris Lattner: A narrower way to solve the same problem would be to allow a comma before the `)`, but *only* when there is a newline between them.
+
+* Vlad S suggests introducing "newlines as separators for any comma-separated list, not limited by funcs/typles but also array/dicts/generic type list etc."
