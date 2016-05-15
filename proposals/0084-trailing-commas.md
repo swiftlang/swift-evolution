@@ -64,6 +64,9 @@ With this design, the Swift compiler will simply ignore final parameter and tupl
 
 Zero-element tuples and parameter lists would not support trailling commas. Single-element tuples would not allow trailing commas but single-element parameter lists would, consistent with the existing prohibition on named single-element tuples.
 
+## Impact on Existing Code
+
+The acceptance of SE-0084 will not affect existing code.
 
 ## Alternatives Considered
 
