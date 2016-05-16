@@ -139,7 +139,19 @@ advantages of this approach were:
 
 In the end, we rejected this alternative for several reasons:
 
-1. If we used this as the command, then it raises a difficult question of `swift
+1. We felt very strongly that there needed to be only typical one way of doing
+   things, and so we felt that we needed to choose between `swiftpm` and `swift
+   package` (and not simply add it as an alias). Our belief was this was more
+   important than any individual advantages or disadvantages to either name.
+
+2. While there was significant feedback requesting a shorter command name, we
+   were concerned that the feedback was not necessarily representative of the
+   overall user base we hope to impact. For example, we hope the Swift package
+   manager will be widely used by less experienced developers who may only run
+   the `swift package` commands rarely, and will benefit from the explicit
+   nature of the commands over brevity.
+
+3. If we used this as the command, then it raises a difficult question of `swift
    build` versus `swiftpm build`. We wanted to retain the "natural" feel of the
    package manager as being integrated with the language, and keep `swift
    build`, but we had substantial difficulty articulating the exact reasons why
@@ -150,13 +162,13 @@ In the end, we rejected this alternative for several reasons:
    ended up regarding this as a reason to choose `swift package` instead, which
    side steps this question.
 
-2. We believe that the readability and clarity of using consistent,
+4. We believe that the readability and clarity of using consistent,
    unabbreviated commands was more in line with the Swift language than
    attempting to use a "shorter" command name. Our belief is that `swift
    package` will primarily be used for commands which are not commonly executed,
    and we think that the package manager is more discoverable, and its role in
    the Swift ecosystem more clear, with it as a Swift subcommand.
 
-3. We believe that we can always choose to install a `swiftpm` alias for `swift
+5. We believe that we can always choose to install a `swiftpm` alias for `swift
    package` if our needs or justification changes, whereas going in the other
    direction was considered undesirable.
