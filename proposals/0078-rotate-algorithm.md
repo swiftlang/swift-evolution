@@ -14,7 +14,7 @@
 
 This proposal is to add rotation and in-place reversing methods to Swift's standard library collections.
 
-Swift-evolution thread: [link to the discussion thread for that proposal](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/002213.html), [Proposal review feedback](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160502/016642.html)
+[Swift-evolution thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/002213.html), [Proposal review feedback](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160502/016642.html)
 
 ## Motivation
 
