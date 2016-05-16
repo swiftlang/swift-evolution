@@ -79,7 +79,8 @@ long term:
   speed of compile times and incremental builds, improving the performance of
   the generated code, improving the precision of error and warning messages, etc.
 
-One of the reasons that stability is important is that Swift 3 also enables
+One of the reasons that stability is important is that *portability* to non-Apple
+systems is also a strong goal of Swift 3.  This release enables
 broad scale adoption across multiple platforms, including significant
 functionality in the [Swift core libraries](https://swift.org/core-libraries/)
 (Foundation, libdispatch, XCTest, etc).  A useful Linux/x86 port is
