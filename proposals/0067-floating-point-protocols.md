@@ -24,6 +24,8 @@ Revision 2 also incorporates a number of suggestions from the review list and
 corrects some typos; thanks especially to Xiaodi Wu for thoughtful feedback.
 Consult the changelog at the end of this document for full details.
 
+[Proposal draft](http://thread.gmane.org/gmane.comp.lang.swift.evolution/14545), [Review](http://thread.gmane.org/gmane.comp.lang.swift.evolution/14876)
+
 ## Motivation
 
 Beside the high-level motivation provided by the introduction, the proposed
