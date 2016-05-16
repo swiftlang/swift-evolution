@@ -157,6 +157,6 @@ In the end, we rejected this alternative for several reasons:
    and we think that the package manager is more discoverable, and its role in
    the Swift ecosystem more clear, with it as a Swift subcommand.
 
-3. We that we can always choose to install a `swiftpm` alias for `swift package`
-   if our needs or justification changes, whereas going in the other direction
-   was considered undesirable.
+3. We believe that we can always choose to install a `swiftpm` alias for `swift
+   package` if our needs or justification changes, whereas going in the other
+   direction was considered undesirable.
