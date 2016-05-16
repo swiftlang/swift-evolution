@@ -24,7 +24,7 @@ string concatenation. Concatenation is ungainly and may result in slow compilati
 
 This proposal puts forward three alternate syntaxes for discussion: `"continuation quotes"`, `"""long strings"""`
 and `<<"heredoc"`. It has been shown all three can co-exist in the same parser and it is proposed all
-three should be made available to the Swift developer to chose according to their preference though
+three should be made available to the Swift developer to choose according to their preference though
 this is intended to be determined by the review process.
 
 ### Continuation quotes
