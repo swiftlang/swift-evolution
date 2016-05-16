@@ -14,6 +14,8 @@ One of the core principles of Swift is "mutability when you need it." This is es
 * [Building Better Apps with Value Types in Swift - WWDC 2015 (Doug Gregor)](https://developer.apple.com/videos/play/wwdc2015/414/)
 * [Swift Programming Language - Classes and Structures](https://developer.apple.com/library/ios/documentation/Swift/Conceptual/Swift_Programming_Language/ClassesAndStructures.html#//apple_ref/doc/uid/TP40014097-CH13-ID82)
 
+[Swift Evolution Discussion](http://thread.gmane.org/gmane.comp.lang.swift.evolution/15080), [Swift Evolution Review](http://thread.gmane.org/gmane.comp.lang.swift.evolution/15281)
+
 This concept is so important that it is literally the second thing taught in _The Swift Programming Language_, right after `print("Hello, world!")`:
 
 > **Simple Values**
