@@ -17,7 +17,7 @@ proposals in that process.
 
 ## Upcoming reviews
 
-* May 17...23 [SE-0050: Decoupling Floating Point Strides from Generic Implementations](proposals/0087-floating-point-stride.md)
+* May 17...23 [SE-0050: Decoupling Floating Point Strides from Generic Implementations](proposals/0050-floating-point-stride.md)
 * May 17...23 [SE-0077: Improved operator declarations](proposals/0077-operator-precedence.md)
 * May 17...23 [SE-0087: Rename `lazy` to `@lazy`](proposals/0087-lazy-attribute.md)
 * May 17...23 [SE-0089: Renaming `String.init<T>(_: T)`](proposals/0089-rename-string-reflection-init.md)
