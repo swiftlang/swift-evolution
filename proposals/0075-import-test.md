@@ -14,6 +14,8 @@ to differentiate Apple targets from non-Apple targets) proved problematic, devel
 greeted the notion of an import-based configuration test. 
 Dmitri Gribenko wrote, "There's a direction that we want to move to a unified name for the libc module for all platform, so 'can import Darwin' might not be a viable long-term strategy." 
 Testing for imports offers advantages that stand apart from this one use-case: to test for API availability before use.
+
+[Swift Evolution Review Thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/16620)
  
 ## Motivation
 
