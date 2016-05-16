@@ -1,9 +1,9 @@
 # Typealiases in protocols and protocol extensions
 
-* Proposal: [SE-XXXX](XXXX-typealiases-in-protocols.md)
+* Proposal: [SE-0092](0092-typealiases-in-protocols.md)
 * Authors: [David Hart](https://github.com/hartbit), [Doug Gregor](https://github.com/DougGregor)
-* Status: TBD
-* Review manager: TBD
+* Status: **Accepted**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
