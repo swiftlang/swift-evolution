@@ -13,6 +13,10 @@ and 'swift test', we will introduce a new 'swift package' command with multiple
 subcommands. 'swift build' and 'swift test' will remain as top-level commands due to
 their frequency of use.
 
+[Swift Build Review Thread](http://thread.gmane.org/gmane.comp.lang.swift.build/1/)
+
+[Swift Evolution Review Thread](http://thread.gmane.org/gmane.comp.lang.swift.build/1/focus=16764)
+
 ## Motivation
 
 When we introduced the package manager, we exposed it with the 'swift build'
