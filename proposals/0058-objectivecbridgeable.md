@@ -10,7 +10,7 @@
 
 Provide an `ObjectiveCBridgeable` protocol that allows a Swift type to control how it is represented in Objective-C by converting into and back from an entirely separate `@objc` type. This frees library authors to create truly native Swift APIs while still supporting Objective-C.
 
-Swift-evolution thread: [[Idea] ObjectiveCBridgeable](http://thread.gmane.org/gmane.comp.lang.swift.evolution/7852/)
+Swift-evolution thread: [\[Idea\] ObjectiveCBridgeable](http://thread.gmane.org/gmane.comp.lang.swift.evolution/7852/)
 
 
 # Motivation
