@@ -151,3 +151,26 @@ particularly similar to one another.
 **Our Response**
 
 The semantics cover "converting to a type", "converting from a type", and "converting to and from a type". We have examples from our own code and from third party code on github that suggest conversion tasks are common enough that standardizing API naming conventions will be valuable.
+
+## Updated Approach
+
+
+Our updated approach further incorporates design team feedback and focuses on the two most important conventions: one for initialization and one for representation.
+
+#### `Initializable`
+
+`Initializable` designates protocols that convert *from* a type or from an associated type mentioned in the protocol name, such as the current `\<Type\>LiteralConvertible` protocols.  This convention would include member requirements for initializers, factory methods, and any other way an instance can be imported to establish a new instance of the conforming type.
+
+For example, conforming to `ArrayLiteralInitializable` would allow a set to be created with `Set(arrayLiteral: \<some array\>)` and `var set: Set\<T\> = []`.
+
+This phrase replaces the `Creatable` form from our original proposal.
+
+#### `Representable`
+
+`Representable` designates protocols whose primary purpose is to project *to* a type or associated type mentioned in the protocol name.  Items in the standard library that would be subsumed into this naming include `CustomStringConvertible`, `CustomDebugStringConvertible`, and `RawRepresentable`, which we imagine would become `CustomStringRepresentable`, `CustomDebugStringRepresentable`, and (as current) `RawRepresentable`.
+
+This second category groups together the `Convertible` and `Representable` categories from our original proposal and is predicated on the feedback from the design team review. The `Representable` designation does not promise bidirectional conversion although some `Representable` protocols may include requirements to allow attempted initialization *from* the type of the representation. Doing so falls outside the naming contract we are proposing. 
+
+#### Future Directions
+
+We do not include a third category for bidirectional conversion in this update. We recognize that style of contract is rare in Swift. Lossless conversion does not appear in the standard library outside of `RawRepresentable`, which we agreed was better covered by `Representable`. If such a convention is needed or adopted, we reserve the `Isomorphic` designation for future use.
