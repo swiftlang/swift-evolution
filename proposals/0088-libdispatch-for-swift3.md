@@ -13,6 +13,8 @@ The existing libdispatch module imports the C API almost verbatim. To move towar
 
 This discussion focuses on the transformation of the existing libdispatch API.
 
+[Review thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/16745)
+
 ## Motivation
 
 libdispatch on Darwin already presents Objective-C compatible types to allow its objects to participate in automatic reference counting. We propose extending this support to present a design that feels “object-oriented” and inline with Swift 3's API guidelines, all without adding runtime overhead.
