@@ -35,7 +35,7 @@ function types themselves, and offers no additional expressive capability (this
 is just syntactic sugar).  This proposal suggests that we simply eliminate the
 special case and require parentheses on all argument lists for function types.
 
-Swift-evolution thread: [[pitch] Eliminate the "T1 -> T2" syntax, require "(T1) -> T2"](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160411/014986.html)
+Swift-evolution thread: [\[pitch\] Eliminate the "T1 -> T2" syntax, require "(T1) -> T2"](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160411/014986.html)
 
 ## Motivation
 
