@@ -17,6 +17,10 @@
 
 As part of _Swift 3 API Naming_ and the introduction of _Swift Core Libraries_, we are dropping the `NS` prefix from key Foundation types in Swift.
 
+[Swift Evolution Discussion Thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/16298)
+
+[Review Thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/16509)
+
 ## Motivation
 
 A large proportion of the value that comes from using many programming languages derives from the libraries that ship with the compiler. These libraries provide common functionality, which in turn establish common design patterns for software written in the language. When a strong foundation of patterns and types is established, all higher level libraries and applications benefit. Code can easily interact with other libraries without awkward translation layers or annoying impedance mismatches.
