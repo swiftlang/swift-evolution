@@ -9,6 +9,8 @@
 
 In Objective-C and Swift, key-paths used by KVC and KVO are represented as string literals (e.g., `"friend.address.streetName"`). This proposal seeks to improve the safety and resilience to modification of code using key-paths by introducing a compiler-checked expression.
 
+[SE Draft](http://thread.gmane.org/gmane.comp.lang.swift.evolution/8665), [Review thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/14011/), [Secondary review thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/14053)
+
 ## Motivation
 
 The use of string literals for key paths is extremely error-prone: there is no compile-time assurance that the string corresponds to a valid key-path. In a similar manner to the proposal for the Objective-C selector expression [SE-0022](https://github.com/apple/swift-evolution/blob/master/proposals/0022-objc-selectors.md), this proposal introduces syntax for referencing compiler-checked key-paths. When the referenced properties and methods are renamed or deleted, the programmer will be notified by a compiler error.
