@@ -14,6 +14,10 @@ those sources, and add a new feature for allowing iterative development. These
 features are tightly interrelated, which is why they are combined into one
 proposal.
 
+[Proposal Announcement](http://thread.gmane.org/gmane.comp.lang.swift.evolution/15279)
+
+[Review announcement](http://thread.gmane.org/gmane.comp.lang.swift.evolution/16078)
+
 
 ## Motivation
 
