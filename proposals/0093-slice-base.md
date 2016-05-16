@@ -3,7 +3,7 @@
 * Proposal: [SE-0093](https://github.com/apple/swift-evolution/blob/master/proposals/0093-slice-base.md)
 * Author(s): [Max Moiseev](https://github.com/moiseev)
 * Status: **Awaiting review**
-* Review manager: TBD
+* Review manager: [Dave Abrahams](https://github.com/dabrahams)
 
 
 ## Introduction
