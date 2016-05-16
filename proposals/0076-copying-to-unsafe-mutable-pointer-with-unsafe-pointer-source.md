@@ -9,7 +9,7 @@
 
 `UnsafeMutablePointer` includes several methods to non-destructively copy elements from memory pointed to by another `UnsafeMutablePointer` instance. I propose adding overloads of these methods to `UnsafeMutablePointer` that allow an `UnsafePointer` source.
 
-Swift-evolution thread: [[Pitch] Add overrides with UnsafePointer sources to non-destructive copying methods on UnsafeMutablePointer](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160201/008827.html)
+Swift-evolution thread: [\[Pitch\] Add overrides with UnsafePointer sources to non-destructive copying methods on UnsafeMutablePointer](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160201/008827.html)
 
 ## Motivation
 
