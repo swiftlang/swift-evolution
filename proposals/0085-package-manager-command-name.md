@@ -1,16 +1,21 @@
 # Package Manager Command Names
 
 * Proposal: [SE-0085](0085-package-manager-command-name.md)
-* Author(s): [Rick Ballard](https://github.com/rballard)
-* Status: **Scheduled for review: May 9...12, 2016**
+* Author(s): [Rick Ballard](https://github.com/rballard), [Daniel Dunbar](http://github.com/ddunbar)
+* Status: **Accepted**
 * Review manager: [Daniel Dunbar](http://github.com/ddunbar)
+
+## Note
+
+This proposal underwent some minor changes from its original form. See the end
+of this document for historical information and why this proposal changed.
 
 ## Introduction
 
 This is a proposal for changing the command names used for invoking the
-Swift package manager. Instead of hanging all functionality off of 'swift build'
-and 'swift test', we will introduce a new 'swift package' command with multiple
-subcommands. 'swift build' and 'swift test' will remain as top-level commands due to
+Swift package manager. Instead of hanging all functionality off of `swift build`
+and `swift test`, we will introduce a new `swift package` command with multiple
+subcommands. `swift build` and `swift test` will remain as top-level commands due to
 their frequency of use.
 
 [Swift Build Review Thread](http://thread.gmane.org/gmane.comp.lang.swift.build/1/)
@@ -19,13 +24,13 @@ their frequency of use.
 
 ## Motivation
 
-When we introduced the package manager, we exposed it with the 'swift build'
+When we introduced the package manager, we exposed it with the `swift build`
 top-level command. This made clear its tight integration with Swift, and made it
-discoverable (it's just a subcommand of Swift). We also added a top-level 'test'
+discoverable (it's just a subcommand of Swift). We also added a top-level `swift test`
 command for running tests. As the functionality of the package manager has grown beyond
 basic build and test functionality, we've introduced other operations you can perform,
 such as initializing a new package or updating existing packages.
-These new commands have been supported via flags to 'swift build', but this is awkward;
+These new commands have been supported via flags to `swift build`, but this is awkward;
 these are not really flags modifying a build, and should be full commands in their own right.
 
 The intent of this proposal is to establish a forward-looking syntax for supporting
@@ -37,65 +42,121 @@ to express commands.
 
 Our proposed solution is as follows:
 
-1. Introduce a new top-level 'swift package' command. This command will have
+1. Introduce a new top-level `swift package` command. This command will have
    subcommands for the package manager functionality.
 
-2. Move existing package manager commands, such as 'swift build --init', to be
-   subcommands of 'swift package', e.g. as 'swift package init'. New commands
-   we add, such as the 'update' command, should also be added as subcommnads,
-   e.g. 'swift package update'. Note that some current 'swift build' flags
-   are actually modifiers to a build command, such as '--configuration'; these will
-   remain as flags instead of becoming 'swift package' subcommands.
+2. Move existing package manager commands, such as `swift build --init`, to be
+   subcommands of `swift package`, e.g. as `swift package init`. New commands
+   we add, such as the `update` command, should also be added as subcommands,
+   e.g. `swift package update`. Note that some current `swift build` flags
+   are actually modifiers to a build command, such as `--configuration`; these will
+   remain as flags instead of becoming `swift package` subcommands.
 
-3. Introduce 'swift package build' and 'swift package test' subcommands, for the
-   existing build and test functionality, but retain 'swift build' and 'swift test'
+3. Introduce `swift package build` and `swift package test` subcommands, for the
+   existing build and test functionality, but retain `swift build` and `swift test`
    as top-level commands which alias to these subcommands.
 
 ## Detailed design
 
 Swift will remain a multitool whose package manager commands call through to a tool
-provided by the package manager. Curently there are two tools -- 'swift-build' and 
-'swift-test' -- but these will be replaced by a new 'swift-package' tool. This tool
+provided by the package manager. Curently there are two tools -- `swift-build` and 
+`swift-test` -- but these will be replaced by a new `swift-package` tool. This tool
 is essentially an implementation detail of the package manager, as all use is expected
 to be invoked through the Swift multitool.
 
-The 'swift package' command of the Swift muiltitool will call 'swift-package'. The top-
-level commands 'swift build' and 'swift test' will call 'swift-package build' and
-'swift-package test' respectively. Subcommands of 'swift package' will be passed to
-'swift-package' verbatim.
+The `swift package` command of the Swift muiltitool will call
+`swift-package`. The top- level commands `swift build` and `swift test` will
+call `swift-package build` and `swift-package test` respectively, although this
+is considered an implementation detail and the recommend way to invoke the build
+or test processes is always as a direct subcommand of `swift`. Subcommands of
+`swift package` will be passed to `swift-package` verbatim.
 
-The current '--init', '--fetch', '--update', and '--generate-xcodeproj' flags to 'swift build'
-will instead become subcommands of 'swift package'. The other flags to 'swift build' actually
-do modify the build, and will remain as flags on the 'build' subcommand. New functionality
-added to the package manager will be added as subcommands of 'swift package' if they
+The current `--init`, `--fetch`, `--update`, and `--generate-xcodeproj` flags to `swift build`
+will subcommands of `swift package`. The other flags to `swift build` actually
+do modify the build, and will remain as flags on the `build` subcommand. New functionality
+added to the package manager will be added as subcommands of `swift package` if they
 are appropriate as standalone commands, or as a flag modifying an existing subcommand,
-such as 'build', if they modify the behavior of an existing command.
+such as `build`, if they modify the behavior of an existing command.
 
-The flags to 'swift build' that are being removed will remain for a short time after
-the new 'swift package' subcommands are added, as aliases to those subcommands,
+The flags to `swift build` that are being removed will remain for a short time after
+the new `swift package` subcommands are added, as aliases to those subcommands,
 for compatibility. They will be removed before Swift 3 is released.
+
+We acknowledge the possible need for a shorter version of the `swift package`
+command, and believe we can revisit this to add an shorter alias for this in the
+future if necessary. See the alternatives section below.
 
 ## Impact on existing packages
 
 This has no impact of the existing packages themselves, but does have impact on any
-software which invokes the 'swift build' flags which are moving to
-be subcommands of 'swift package'. There will be a transitionary period where
+software which invokes the `swift build` flags which are moving to
+be subcommands of `swift package`. There will be a transitionary period where
 both old and new syntax is accepted, but any software invoking this functionality
-will need to move to the new 'swift package' subcommands before Swift 3 is released.
+will need to move to the new `swift package` subcommands before Swift 3 is released.
 
 ## Alternatives considered
 
-We considered adding a top-level 'swiftpm' tool instead of keeping the package manager
-as a subcommand of Swift. We think that the package manager is more discoverable,
-and its role in the Swift ecosystem more clear, with it as a Swift subcommand.
+This proposal originally suggested `swift build` and `swift package build` would
+be aliases. In order to avoid having multiple ways to run the same command, we
+updated the proposal to emphasize only `swift build`.
 
-We considered adding a 'swift pm' subcommand instead of using 'swift package'. That
-requires less typing, but we think that spelling out the word 'package' aligns better
-with Swift naming conventions. Furthermore, the most common subcommands ('build'
-and 'test;) are exposed directly off of 'swift', limiting how often you will need to
-type 'package'.
+We considered using `swift build` as the top level command for the package
+manager and moving the other verbs from being flags to being subcommands of
+`swift build`, instead of introducing a `package` command (e.g., `swift
+init`). We think this reads poorly and is less clear than making them `package`
+subcommands.
 
-We considered using 'swift build' as the top level command for the package manager
-and moving the other verbs from being flags to being subcommands of 'swift build',
-instead of introducing a 'package' command. We think this reads poorly and is
-less clear than making them 'package' subcommands.
+We considered adding a `swift pm` subcommand instead of using `swift package`. That
+requires less typing, but we think that spelling out the word `package` aligns better
+with Swift naming conventions. Furthermore, the most common subcommands (`build`
+and `test`) are exposed directly off of `swift`, limiting how often you will need to
+type `package`.
+
+We considered adding a `spm` command. However, this was regarded as too short to
+ever be the definitive name, when means it would only ever be an alias. This
+means that there would be two ways of doing things, which was something we
+wanted to strongly avoid. We also felt that the "shortcut" of `spm` over
+`swiftpm` was not in line with our overall goals, and so we focused on the
+`swiftpm` alternative as discussed below.
+
+### Using `swiftpm` as the command name
+
+We considered adding a top-level `swiftpm` tool instead of keeping the package
+manager as a subcommand of Swift. We discussed this option at length, as it was
+regarded as the most compelling alternative to `swift package`. The perceived
+advantages of this approach were:
+
+* It would cement the name of the package manager clearly (as `swiftpm`), and it
+  gave a clear identity useful for web searches, documentation, internal naming,
+  etc.
+
+* It included "package manager" in the name (as an acronym), which makes
+  commands which are exclusive to the "package management" part of the problem
+  domain more clear. For example, the behavior of `swiftpm install` is intuitive
+  once one understands the name.
+
+* It is short and convenient to type.
+
+In the end, we rejected this alternative for several reasons:
+
+1. If we used this as the command, then it raises a difficult question of `swift
+   build` versus `swiftpm build`. We wanted to retain the "natural" feel of the
+   package manager as being integrated with the language, and keep `swift
+   build`, but we had substantial difficulty articulating the exact reasons why
+   it made sense for some commands (e.g., `swift build` and `swift test`) to be
+   subcommands of `swift`, and others to be subcommands of `swiftpm`.
+
+   In the end, we were unable to come to a consensus on this question, so we
+   ended up regarding this as a reason to choose `swift package` instead, which
+   side steps this question.
+
+2. We believe that the readability and clarity of using consistent,
+   unabbreviated commands was more in line with the Swift language than
+   attempting to use a "shorter" command name. Our belief is that `swift
+   package` will primarily be used for commands which are not commonly executed,
+   and we think that the package manager is more discoverable, and its role in
+   the Swift ecosystem more clear, with it as a Swift subcommand.
+
+3. We that we can always choose to install a `swiftpm` alias for `swift package`
+   if our needs or justification changes, whereas going in the other direction
+   was considered undesirable.
