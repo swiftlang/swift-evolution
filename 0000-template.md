@@ -11,7 +11,7 @@ A short description of what the feature is. Try to keep it to a
 single-paragraph "elevator pitch" so the reader understands what
 problem this proposal is addressing.  
 
-Swift-evolution thread: [link to the discussion thread for that proposal](https://lists.swift.org/pipermail/swift-evolution)
+Swift-evolution thread: [Discussion thread topic for that proposal](https://lists.swift.org/pipermail/swift-evolution)
 
 ## Motivation
 
