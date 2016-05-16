@@ -21,7 +21,7 @@ precedencegroup Comparative {
 infix operator <> : Comparative
 ```
 
-Swift-evolution thread: [link to the discussion thread for that proposal](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160328/014062.html)
+[Swift-evolution discussion thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160328/014062.html)
 
 ## Motivation
 
