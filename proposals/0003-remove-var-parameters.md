@@ -29,7 +29,7 @@ func foo(var i: Int) {
 }
 ```
 
-Here, the *local copy* of `x` mutates but the write does not propagate back to
+Here, the *local copy* of `i` mutates but the write does not propagate back to
 the original value that was passed, so the caller can never observe the change
 directly.  For that to happen to value types, you have to mark the parameter
 with `inout`:
