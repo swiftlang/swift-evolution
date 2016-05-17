@@ -122,8 +122,8 @@ This is a simple implementation for the _subscript_ methods I am proposing:
 extension CollectionType where Index: Comparable {
 
     subscript(clamping range: Range<Index>) -> SubSequence {
-        let start = max(startIndex, range.startIndex)
-        let end = min(endIndex, range.endIndex)
+        let start = min(max(startIndex, range.startIndex), endIndex)
+        let end = max(min(endIndex, range.endIndex), startIndex)
         return self[start ..< end]
     }
 
@@ -134,8 +134,7 @@ extension CollectionType where Index: Comparable {
     }
 
     subscript(checking index: Index) -> Generator.Element? {
-        guard index >= startIndex && index < endIndex
-            else { return nil }
+        guard indices.contains(index) else { return nil }
         return self[index]
     }
 
@@ -151,11 +150,13 @@ a[clamping: 0 ..< 5] // [1, 2, 3]
 a[clamping: -1 ..< 2] // [1, 2]
 a[clamping: 1 ..< 2] // [2]
 a[clamping: 3 ..< 4] // []
+a[clamping: -2 ..< -1] // []
 a[clamping: 4 ..< 3] // Fatal error: end < start
 
 a[checking: -1 ..< 5] // nil
 a[checking: -1 ..< 2] // nil
 a[checking: 0 ..< 5] // nil
+a[checking: -2 ..< -1] // nil
 a[checking: 1 ..< 3] // [2, 3]
 a[checking: 4 ..< 3] // Fatal error: end < start
 
