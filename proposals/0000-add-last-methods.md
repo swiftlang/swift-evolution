@@ -9,7 +9,8 @@
 
 The standard library should include methods for finding the last element of a bidirectional collection that matches a predicate, along with the index of that element.
 
-Swift-evolution thread: [Discussion](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160509/017048.html)
+* Swift-evolution thread: [\[swift-evolution\] (Draft) Add last(where:) and lastIndex(where:)	methods](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160509/017048.html)
+* Related Bug: [\[SR-1504\] RFE: index(of:) but starting from end](https://bugs.swift.org/browse/SR-1504)
 
 ## Motivation
 
