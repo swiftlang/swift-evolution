@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0090](0090-remove-dot-self.md)
 * Authors: [Joe Groff](https://github.com/jckarter), [Tanner Nelson](https://github.com/tannernelson)
-* Status: **Scheduled for Review: May 17...23**
+* Status: **Active Review: May 17...23**
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction

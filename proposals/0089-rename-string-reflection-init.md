@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0089](0089-rename-string-reflection-init.md)
 * Author: [Austin Zheng](https://github.com/austinzheng)
-* Status: **Scheduled for Review: May 17...23**
+* Status: **Active Review: May 17...23**
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction

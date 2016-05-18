@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0091](0091-improving-operators-in-protocols.md)
 * Author: [Tony Allevato](https://github.com/allevato)
-* Status: **Scheduled for Review: May 17...23**
+* Status: **Active Review: May 17...23**
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction

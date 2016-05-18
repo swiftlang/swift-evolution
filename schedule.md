@@ -15,14 +15,15 @@ proposals in that process.
 * May 10...16 [SE-0084: Allow trailing commas in parameter lists and tuples](proposals/0084-trailing-commas.md)
 * May 10...17 [SE-0088: Modernize libdispatch for Swift 3 naming conventions](proposals/0088-libdispatch-for-swift3.md)
 
-## Upcoming reviews
-
 * May 17...23 [SE-0050: Decoupling Floating Point Strides from Generic Implementations](proposals/0050-floating-point-stride.md)
 * May 17...23 [SE-0077: Improved operator declarations](proposals/0077-operator-precedence.md)
 * May 17...23 [SE-0087: Rename `lazy` to `@lazy`](proposals/0087-lazy-attribute.md)
 * May 17...23 [SE-0089: Renaming `String.init<T>(_: T)`](proposals/0089-rename-string-reflection-init.md)
 * May 17...23 [SE-0090: Remove `.self` and freely allow type references in expressions](proposals/0090-remove-dot-self.md)
 * May 17...23 [SE-0091: Improving operator requirements in protocols](proposals/0091-improving-operators-in-protocols.md)
+
+## Upcoming reviews
+
 * May 17...20 [SE-0093: Adding a public `base` property to slices](proposals/0093-slice-base.md)
 
 ## Proposals awaiting scheduling
