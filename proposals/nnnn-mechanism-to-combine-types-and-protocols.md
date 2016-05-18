@@ -7,16 +7,18 @@
 
 ## Introduction
 
-The current `protocol<>` mechanism defines the `Any` protocol to which all types implicitly conform. It also can combine distinct protocols to a new `Protocol`, whereas combinging `SubProtocol` with its `BaseProtocol` will be inferred as `SubProtocol` (the order withhin the angle brackets doesn't matter). I propose to replace the current `protocol<>` mechanism with a new more powerful mechanism called `Any<>`, which will allow combining `Types` with independent `Protocols` and enforce *multiple* constraints.
+The current `protocol<>` mechanism defines the `Any` protocol to which all types implicitly conform. It also can combine distinct protocols to a new `Protocol`, whereas combinging `SubProtocol` with its `BaseProtocol` will be inferred as `SubProtocol` (the order withhin the angle brackets doesn't matter). I propose to replace the current `protocol<>` mechanism with a new more powerful mechanism called `Any<>`, which will allow combining `Types` with independent `Protocols` and enforce *multiple* constraints. 
 
-Swift-evolution thread(s): 
+Swift-evolution thread: [\[Pitch\] Merge `Types` and `Protocols` back together with `type<Type, Protocol, ...>`](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160502/016523.html)
 
-* [\[Pitch\] Merge `Types` and `Protocols` back together with `type<Type, Protocol, ...>`](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160502/016523.html)
-* [\[Proposal\] New mechanism to combine `Types` with/or `Protocols`](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160516/017719.html)
+## Important note
+
+Because this proposal will break existing code and some Swift 3 features are not rock solid yet.
+This proposal will only define the **simple/base `Any<>`** version. *Enhanced existential support* can be added without breaking `Any<>` in a future version of Swift and needs its own [proposal](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160516/017917.html).
 
 ## Motivation
 
-The motivation for this proposal comes from solving the missing `Type` issue ([rdar://20990743](https://openradar.appspot.com/20990743)) and combining the idea mentioned in the generics manifesto for Swift 3 in section [Renaming `protocol<...>` to `OneOf<...>`](https://github.com/apple/swift/blob/master/docs/GenericsManifesto.md#renaming-protocol-to-any-). 
+The motivation for this proposal comes from solving the missing `Type` issue ([rdar://20990743](https://openradar.appspot.com/20990743)) and combining the idea mentioned in the generics manifesto for Swift 3 in section [Renaming `protocol<...>` to `Any<...>`](https://github.com/apple/swift/blob/master/docs/GenericsManifesto.md#renaming-protocol-to-any-). 
 
 The proposed mechanism will allow us to create a new `Type` from extendable distinct types - there are still some restrinctions you can read about below.
 
