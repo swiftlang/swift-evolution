@@ -63,7 +63,7 @@ infix operator +
 ```
 
 Precedence groups declare optional associativity (`left` or `right`).
-Infix operators declare their precedence groups using inheritance-like syntax:
+Infix operators can be included in a single precedence group using inheritance-like syntax:
 
 ```swift
 precedencegroup Additive {
@@ -123,6 +123,16 @@ precedencegroup BitwiseAnd {
 Here, `Multiplicative > Additive` and `BitwiseAnd < Additive` imply `Multiplicative > BitwiseAnd`.
 
 Compiler will also check that all precedence relations are transitive. If we define `A < B`, `B < C` and `A > C`, it will be a compilation error.
+
+Multiple precedence relationships can be stated for a single precedence group. Example:
+
+```swift
+precedencegroup A { }
+precedencegroup C { }
+precedencegroup B { precedence(> A) precedence(< C) }
+```
+
+By transitivity, precedence of C becomes greater than precedence of A.
 
 ### Default precedence group
 
@@ -375,7 +385,6 @@ precedencegroup BitwiseAnd {
   precedence(> BitwiseOr)
 }
 precedencegroup BitwiseShift {
-  members(<<, >>)
   precedence(> Comparative)
 }
 
@@ -439,11 +448,11 @@ Additionally, `operator` remains a local keyword.
 ### Define precedence relationships outside of group declarations
 
 ```swift
-precedencerelation Additive < Multiplicative
+precedencegroup B : associativity(left)
+precedencerelation B > A
+precedencerelation B < C
+infix operator <$> : B
 ```
-
-Precedence groups are closed in this proposal.
-It discourages recreating a single hierarchy of standard library operators.
 
 ### Do not use precedence groups
 
@@ -459,4 +468,15 @@ precedencerelation &+ = +
 precedencerelation / = *
 precedencerelation % = *
 precedencerelation * > +
+```
+
+### Possible syntax variations
+
+We could use comma instead of parentheses and/or words instead of comparison symbols:
+
+```swift
+precedencegroup Comparative {
+  associativity: left
+  precedence: greater(LogicalAnd)
+}
 ```
