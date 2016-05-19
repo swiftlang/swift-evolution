@@ -19,9 +19,9 @@ Discussion thread: https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon
 
 ## Proposed solution
 
-The `protocol<>` construct should be replaced with the `Any<>` construct, where zero or more protocol names can be inserted between the angle brackets to denote protocol composition. There will be no changes to the behavior of `Any<>` relative to `protocol<>`.
+The `protocol<...>` construct should be replaced with the `Any<...>` construct, where one or more protocol names can be inserted between the angle brackets to denote protocol composition. There will be no changes to the behavior of `Any<...>` relative to `protocol<...>`.
 
-`Any` will retain the same function and behavior as it did prior to Swift 3.0. The language should define `Any` and `Any<>` to be equivalent.
+`Any` will retain the same function and behavior as it did prior to Swift 3.0. `Any<>` will be forbidden. An error message can direct users to use `Any` instead of `Any<>`.
 
 Trivial example:
 
@@ -36,11 +36,15 @@ let a : Any<A, B> = Foo()
 
 ## Impact on existing code
 
-Programmers will need to update any code using `protocol<>` (this can be done with a simple find and replace operation). Code that uses `Any`, but no protocol composition, will be unaffected.
+Programmers will need to update any code using `protocol<...>` (this can be done with a simple find and replace operation). Code that uses `Any`, but no protocol composition, will be unaffected. Code that happens to use `protocol<>` must be changed to use `Any` instead.
 
 ## Alternatives considered
 
-A couple alternatives follow.
+A couple of alternative options for proposal details follow.
+
+* The original proposal allowed both `Any<>` and `Any`. However, community members brought up concerns regarding the fact that there were two nearly-identical representations for the 'any type' existential, and that there could possibly be issues cleanly defining the grammar or implementing the parser to properly handle both cases.
+
+A couple alternatives to this entire proposal follow.
 
 * Leave `protocol<>` as-is, and decide whether to change it after Swift 3.0 ships. This has the disadvantage of introducing a breaking source change.
 
