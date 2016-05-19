@@ -157,8 +157,10 @@ subsequent release.
 * [SE-0066: Standardize function type argument syntax to require parentheses](proposals/0066-standardize-function-type-syntax.md)
 * [SE-0067: Enhanced Floating Point Protocols](proposals/0067-floating-point-protocols.md)
 * [SE-0068: Expanding Swift `Self` to class members and value types](proposals/0068-universal-self.md)
+* [SE-0075: Adding a Build Configuration Import Test](proposals/0075-import-test.md)
 * [SE-0076: Add overrides taking an UnsafePointer source to non-destructive copying methods on UnsafeMutablePointer](proposals/0076-copying-to-unsafe-mutable-pointer-with-unsafe-pointer-source.md)
 * [SE-0080: Failable Numeric Conversion Initializers](proposals/0080-failable-numeric-initializers.md)
+* [SE-0081: Move `where` clause to end of declaration](proposals/0081-move-where-expression.md)
 * [SE-0082: Package Manager Editable Packages](proposals/0082-swiftpm-package-edit.md)
 * [SE-0092: Typealiases in protocols and protocol extensions](proposals/0092-typealiases-in-protocols.md)
 
@@ -195,6 +197,7 @@ as practical with Swift 2.0.
 * [SE-0013: Remove Partial Application of Non-Final Super Methods (Swift 2.2)](proposals/0013-remove-partial-application-super.md)
 * [SE-0024: Optional Value Setter `??=`](proposals/0024-optional-value-setter.md)
 * [SE-0027: Expose code unit initializers on String](proposals/0027-string-from-code-units.md)
+* [SE-0041: Updating Protocol Naming Conventions for Conversions](proposals/0041-conversion-protocol-conventions.md)
 * [SE-0056: Allow trailing closures in `guard` conditions](proposals/0056-trailing-closures-in-guard.md)
 * [SE-0073: Marking closures as executing exactly once](proposals/0073-noescape-once.md)
 * [SE-0074: Implementation of Binary Search functions](proposals/0074-binary-search.md)

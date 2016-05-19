@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0075](0075-import-test.md)
 * Author: [Erica Sadun](http://github.com/erica)
-* Status: **Active review: May 10...16, 2016**
+* Status: **[Accepted](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000159.html) for Swift 3** ([Bug](https://bugs.swift.org/browse/SR-1560))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
