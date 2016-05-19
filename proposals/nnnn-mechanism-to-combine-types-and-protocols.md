@@ -26,7 +26,7 @@ The proposed mechanism will allow us to create a new `Type` from extendable dist
 
 First step to implement this proposal would need to rename `protocol<>` to `Any<>` and configure the migration process to update code that used old style `protocol<>`.
 
-Next the `Any<>` mechanism would be extended to allow nesting and at most one **extendable** value or reference type. When all types within angle brackets are indepented/distinct to each other a new `Type` will be formed by `Any<A, B, ...>`. This new `Type` can be used to store instances that conform to *multiple* constrains defined by `Any<>` without any generic context (see **Detailed design** for more information).
+Next the `Any<>` mechanism would be extended to allow nesting and at most one class type. When all types within angle brackets are indepented/distinct to each other a new `Type` will be formed by `Any<A, B, ...>`. This new `Type` can be used to store instances that conform to *multiple* constrains defined by `Any<>` without any generic context (see **Detailed design** for more information).
 
 Here only some subtype of `UIView` (dynamic type) conforms to `SomeProtocol`, but both types within angle brackets are distinct.
 
@@ -66,29 +66,41 @@ if let mergedValue = button as? Any<UIView, SomeProtocol> {
 #### Rules for `Any<>`:
 1. Empty `Any<>` will be used as `typealias Any = Any<>`. No constraints means it can accept any type or simply that all types implicitly conform to empty `Any<>`. This is the logical replacement for `typealias Any = protocol<>`.
 
-2. The order of `Types` within angle brackets doesn't matter: `Any<A, B> == Any<B, A>`. (The compiler already reorders the types by its own will from `protocol<B, A>` to `protocol<A, B>`.)
+2. The order of protocols within angle brackets doesn't matter: `Any<A, B> == Any<B, A>`. (The compiler already reorders protocols by its own will from `protocol<B, A>` to `protocol<A, B>` today.)
 
-3. `Any<>` can be composed from protocols and by the mention of this rule fully replace `protocol<...>` 
+3. `Any<...>` can be composed from protocols and by the mention of this rule fully replace `protocol<...>` 
 
 	* `Any<ProtocolA, ...>` equals to old `protocol<ProtocolA, ...>`
-	* `Any<ProtocolX>` equals to old `protocol<ProtocolX>` or simply inferred as `ProtocolX`
+	* `Any<ProtocolX>` (redundant and shold be banned) equals to old `protocol<ProtocolX>` or simply inferred as `ProtocolX`
 
-4. `Any<>` can contain at most one <u>extendable</u> value or reference type plus none or n protocols.
+4. `Any<...>` can contain at most one class type plus none or n protocols. The class type must be the first requirement, if present.
 
-	* `Any<ReferenceType>` or `Any<ReferenceType, Protocol, ...>`
-	* `Any<ValueType>` or `Any<ValueType, Protocol, ...>`
-	* This rule will disallow `Any<>` to contain unnecessary inheritance type branches from subtypeable types.
-	* Furthermore will this rule ban confusion when using `Any<T, U>` in a generic context.
+	* `Any<ClassType>` (redundant and shold be banned) or `Any<ClassType, Protocol, ...>`
+	* This rule will disallow `Any<...>` to contain unnecessary inheritance type branches.
 
-5. Subtypeable `Type` from within angle brackets of `Any<>` can be seen as the base type of the dynamic type.
+5. Nesting `Any<...>` is allowed under special rules:
 
-6. Nesting `Any<>` is allowed under special rules:
+	* `A: Any<...>` can contain `B: Any<...>` if `B` is composed from protocols:
+		* e.g. `Any<ClassType, Any<ProtocolA, ProtocolB, ...>>` will be inferred by the compiler as `Any<ClassType, ProtocolA, ProtocolB, ...>`
+	* For class types nesting is allowed only when there is a inheritance relationship between all provided classes.
+		* The complier will look for the class which is a subclass of every other class within such constraints and choose it as the `Any<...>` construct's constraint.
+	* `Any<...>` can NOT contain empty `Any<>`
 
-	* `A: Any<>` can contain `B: Any<>` if `B` is composed from protocols:
-		* e.g. `Any<AnyType, Any<ProtocolA, ProtocolB, ...>>` will be inferred as `Any<AnyType, ProtocolA, ProtocolB, ...>`
-	* For subtypeable types `A: Any<>` can contain `B: Any<>` if `B` is composed from a possible base type of `A` and none or n protocols:
-		* e.g. `A = Any<Any<C, Protocol>, SomeProtocol>` where `B = Any<C, Protocol>` and `C` is some base `Type` of `A` which implies to `A = Any<C, Protocol, SomeProtocol>`
-		* Again nesting the inheritance type branch is not allowed, because of rule #4.
+	* Example made by [Matthew Johnson](https://github.com/anandabits):
+
+	> ```swift
+	> class B {}
+	> class D: B, SomeProtocol {}
+	> class E: D, AnotherProtocol {}
+	> class Z: B {}
+	> 
+	> typealias TA = Any<B, AnotherProtocol>
+	> typealias TA2 = Any<D, TA>
+	> typealias TA3 = Any<E, TA2>
+	> ```
+	> Because the types specified form a linear path from subtype to supertype the composition of these type constraints would simply resolve to the deepest type in the subtype tree.  
+	> 
+	> However, we should not allow multiple types when there is not a strict subtype / supertype relationship between all of them whether we are composing Any or not.  For example, `B`, `D` and `E` can all be composed. `B` and `Z` can be composed. But `D` and `Z` can not be composed (nor `E` and `Z`).  And unrelated types such as `String` and `Int` cannot be composed.
 		
 8. All types should be checked againts each other to find a simplified `Type`. At the end all type dependencies should be distinct and will form a new constrained type. These constraints are then tested against the dynamic type.
 	
@@ -106,111 +118,112 @@ if let mergedValue = button as? Any<UIView, SomeProtocol> {
 
 #### Detailed design for `Any<>` (below `type` is an extendable type):
 
-1. `type A` can be applied to `Any<A> == A`, `Any<Any> == Any == Any<>` or `Any<GenericType> == GenericType `
+1. `type A` can be applied to:
+	
+	| Type  | Equivalent inferred `Type` |
+	|:------|:--------------------------:|
+	| `A` | `A` |
+	| `Any` | `Any<>` |
+	| **BAN:** `Any<A>` | `A` |
+	| **BAN:** `Any<Any, A>` | `A` |
+	| **BAN:** `Any<Any>` | `Any<>` |
 
 2. `type B: C`:
 	* `class B: ProtocolC` can be applied to:
 		
-		| Type  | Equivalent inferred `Type` (\*\* generic) |
-		|:------|:----------------------------------------:|
-		| `Any<ProtocolC>` | `ProtocolC` |
-		| `Any<Any, ProtocolC>` | `ProtocolC` |
-		| `Any<Any>` | `Any` or `Any<>` |
-		| `Any<GenericType, ProtocolC>` | \*\*`DynamicType: ProtocolC`|
-		| `Any<GenericType>` | \*\*`DynamicType` |
-		| `Any<B, ProtocolC>` | `B` |
-		| `Any<B>` | `B` |
+		| Type  | Equivalent inferred `Type` |
+		|:------|:--------------------------:|
+		| `B` | `B` |
+		| `ProtocolC` | `ProtocolC` |
+		| `Any` | `Any<>` |
+		| **BAN:** `Any<ProtocolC>` | `ProtocolC` |
+		| **BAN:** `Any<Any, ProtocolC>` | `ProtocolC` |
+		| **BAN:** `Any<Any>` | `Any<>` |
+		| **BAN:** `Any<B, ProtocolC>` | `B` |
+		| **BAN:** `Any<B>` | `B` |
 			
 	* `class B: ClassC` can be applied to:
 
-		| Type  | Equivalent inferred `Type` (\*\* generic) |
-		|:------|:----------------------------------------:|
-		| `Any<ClassC>` | `ClassC`|
-		| `Any<B>` | `B` |
-		| `Any<GenericType>` | \*\*`DynamicType` |
-		| `Any<Any>` | `Any` or `Any<>` |
-		
-		* One would not want to combine `Any<ClassC, B>` even in a generic context like `Any<T, U>` for example to union one value of `B` and another value of `ClassC`, because followed by rule #2 the compiler will reoder the types to `Any<B, ClassC>` and infer that as `B`. `B` can not hold `ClassC`. This implies that `Any<>` does not intersect types and the need of rule #4.
+		| Type  | Equivalent inferred `Type` |
+		|:------|:--------------------------:|
+		| `B` | `B` |
+		| `ClassC` | `ClassC`|
+		| `Any` | `Any<>` |
+		| **BAN:**`Any<ClassC>` | `ClassC`|
+		| **BAN:**`Any<B>` | `B` |
+		| **BAN:** `Any<Any>` | `Any<>` |
 			
-	* `struct B: ProtocolC` is analogous to `class B: ProtocolC`.
-	* `enum B: ProtocolC` is analogous to `struct B: ProtocolC`.
 	* `protocol B: C` can be applied to:
 
-		| Type  | Equivalent inferred `Type` (\*\* generic) |
-		|:------|:----------------------------------------:|
-		| `Any<Any, B>` | `B`|
-		| `Any<Any, C>` | `C`|
-		| `Any<Any>` | `Any` or `Any<>` |
-		| `Any<GenericType, B>` | \*\*`DynamicType: B` |
-		| `Any<GenericType, C>` | \*\*`DynamicType: C` |
-		| `Any<GenericType>` | \*\*`DynamicType` |
-		| `Any<B, C>` | `B` |
-		| `Any<B>` | `B` |
-		| `Any<C>` | `C` |
+		| Type  | Equivalent inferred `Type` |
+		|:------|:--------------------------:|
+		| `B` | `B`|
+		| `C` | `C`|
+		| `Any` | `Any<>` |
+		| **BAN:** `Any<Any, B>` | `B`|
+		| **BAN:** `Any<Any, C>` | `C`|
+		| **BAN:** `Any<Any>` | `Any<>` |
+		| **BAN:** `Any<B, C>` | `B` |
+		| **BAN:** `Any<B>` | `B` |
+		| **BAN:** `Any<C>` | `C` |
 		
 3. `type B` distinct to `C`:
-	* The following points will produce a new `Type`:
-		* `class B` and `protocol C` can be combined to `Any<B, C>`.
-		* `struct B` and `protocol C` can be combined to `Any<B, C>`.
-		* `enum B` and `protocol C` can be combined to `Any<B, C>`.
-		* `protocol B` and `protocol C` can be combined to `Any<B, C>`.
-	* The following points should all raise an compilation error:
-		* `class B` and `class C` can NOT be combined.
-		* `struct B` and `struct C` can NOT be combined.
-		* `enum B` and `enum C` can NOT be combined.
+	* `class B` and `protocol C` can be combined to `Any<B, C>`.
+	* `protocol B` and `protocol C` can be combined to `Any<B, C>` or `Any<C, B>`.
+	* `class B` and `class C` can NOT be combined (here 'distinct' means that there no inheritance relationship).
 
 4. `type D: E, F` where `E` doesn't conform to `F`:
 	* `class D: ClassE, ProtocolF` can be applied to:
 
-		| Type  | Equivalent inferred `Type` (\*\* generic) |
-		|:------|:----------------------------------------:|
-		| `Any<ProtocolF>` | `ProtocolF` |
-		| `Any<Any, ProtocolF>` | `ProtocolF` |
-		| `Any<Any>` | `Any` or `Any<>` |
-		| `Any<GenericType, ProtocolF>` | \*\*`DynamicType: ProtocolF` |
-		| `Any<GenericType>` | \*\*`DynamicType` |
-		| `Any<D, ProtocolF>` | `D` |
-		| `Any<D>` | `D` |
+		| Type  | Equivalent inferred `Type` |
+		|:------|:--------------------------:|
+		| `D` | `D` |
+		| `ClassE ` | `ClassE ` |
+		| `ProtocolF ` | `ProtocolF` |
+		| `Any` | `Any<>` |
 		| `Any<ClassE, ProtocolF>` | **NEW:** `Any<ClassE, ProtocolF>` |
-		| `Any<ClassE>` | `ClassE` |
+		| **BAN:** `Any<ProtocolF>` | `ProtocolF` |
+		| **BAN:** `Any<Any, ProtocolF>` | `ProtocolF` |
+		| **BAN:** `Any<Any>` | `Any<>` |
+		| **BAN:** `Any<D, ProtocolF>` | `D` |
+		| **BAN:** `Any<D>` | `D` |
+		| **BAN:** `Any<ClassE>` | `ClassE` |
 			
 	* `class D: ProtocolE, ProtocolF` can be applied to:
 
-		| Type  | Equivalent inferred `Type` (\*\* generic) |
-		|:------|:----------------------------------------:|
+		| Type  | Equivalent inferred `Type` |
+		|:------|:--------------------------:|
+		| `D` | `D` |
+		| `ProtocolE` | `ProtocolE` |
+		| `ProtocolF` | `ProtocolF` |
+		| `Any` | `Any<>` |
 		| `Any<ProtocolE, ProtocolF>` | `Any<ProtocolE, ProtocolF>` |
-		| `Any<ProtocolE>` | `ProtocolE` |
-		| `Any<ProtocolF>` | `ProtocolF` |
-		| `Any<Any, ProtocolE, ProtocolF>` | `Any<ProtocolE, ProtocolF>` |
-		| `Any<Any, ProtocolE>` | `ProtocolE` |
-		| `Any<Any, ProtocolF>` | `ProtocolF` |
-		| `Any<Any>` | `Any` or `Any<>` |
-		| `Any<GenericType, ProtocolE, ProtocolF>` | \*\*`DynamicType: Any<ProtocolE, ProtocolF>` |
-		| `Any<GenericType, ProtocolE>` | \*\*`DynamicType: ProtocolE` |
-		| `Any<GenericType, ProtocolF>` | \*\*`DynamicType: ProtocolF` |
-		| `Any<GenericType>` | \*\*`DynamicType` |
-		| `Any<D, ProtocolE, ProtocolF>` | `D` |
-		| `Any<D, ProtocolE>` | `D` |
-		| `Any<D, ProtocolF>` | `D` |
-		| `Any<D>` | `D` |
+		| **BAN:** `Any<ProtocolE>` | `ProtocolE` |
+		| **BAN:** `Any<ProtocolF>` | `ProtocolF` |
+		| **BAN:** `Any<Any, ProtocolE, ProtocolF>` | `Any<ProtocolE, ProtocolF>` |
+		| **BAN:** `Any<Any, ProtocolE>` | `ProtocolE` |
+		| **BAN:** `Any<Any, ProtocolF>` | `ProtocolF` |
+		| **BAN:** `Any<Any>` | `Any` or `Any<>` |
+		| **BAN:** `Any<D, ProtocolE, ProtocolF>` | `D` |
+		| **BAN:** `Any<D, ProtocolE>` | `D` |
+		| **BAN:** `Any<D, ProtocolF>` | `D` |
+		| **BAN:** `Any<D>` | `D` |
 			
-	* `struct D: ProtocolE, ProtocolF` is analogous to `class D: ProtocolE, ProtocolF`.
-	* `enum D: ProtocolE, ProtocolF` is analogous to `struct D: ProtocolE, ProtocolF`.
 	* `protocol D: E, F` can be applied to:
 
-		| Type  | Equivalent inferred `Type` (\*\* generic) |
-		|:------|:----------------------------------------:|
-		| `Any<GenericType, E, F>` | \*\*`DynamicType: Any<E, F>` |
-		| `Any<GenericType, E>` | \*\*`DynamicType: E` |
-		| `Any<GenericType, F>` | \*\*`DynamicType: F` |
-		| `Any<GenericType>` | \*\*`DynamicType` |
-		| `Any<D, E, F>` | `D` |
-		| `Any<D, E>` | `D` |
-		| `Any<D, F>` | `D` |
+		| Type  | Equivalent inferred `Type` |
+		|:------|:--------------------------:|
+		| `D` | `D`|
+		| `E` | `E`|
+		| `F` | `F`|
+		| `Any` | `Any<>`|
 		| `Any<E, F>` | `Any<E, F>` |
-		| `Any<E>` | `E` |
-		| `Any<F>` | `F`|
-		| `Any<D>` | `D`|
+		| **BAN:** `Any<D, E, F>` | `D` |
+		| **BAN:** `Any<D, E>` | `D` |
+		| **BAN:** `Any<D, F>` | `D` |
+		| **BAN:** `Any<E>` | `E` |
+		| **BAN:** `Any<F>` | `F`|
+		| **BAN:** `Any<D>` | `D`|
 
 Possible functions (just a few examples - solves rdar://problem/15873071 and [rdar://20990743](https://openradar.appspot.com/20990743)):
 	
@@ -233,30 +246,13 @@ These changes will break existing code. Projects using old style `protocol<>` me
 
 ## Alternatives considered
 
-This feature was orginally proposed as `type<>` but was renamed to `Any<>` to dodge possible confusion and serve its main purpose to enforce *multiple* constraints. This proposal was overall updated to include any possible overlap with [Generics Manifesto](https://github.com/apple/swift/blob/master/docs/GenericsManifesto.md) for Swift 3. 
+* This feature was orginally proposed as `type<>` but was renamed to `Any<>` to dodge possible confusion and serve its main purpose to enforce *multiple* constraints.
 
-We might consider to drop the restriction of rule #4 in this proposal, so it would be fine composing `Any<>` like this:
-
-> ```swift
-> class B {}
-> class D: B, SomeProtocol {}
-> class E: D, AnotherProtocol {}
-> class Z: B {}
-> 
-> typealias TA = Any<B, AnotherProtocol>
-> typealias TA2 = Any<D, TA>
-> typealias TA3 = Any<E, TA2>
-> ```
-> Because the types specified form a linear path from subtype to supertype the composition of these type constraints would simply resolve to the deepest type in the subtype tree.  
-> 
-> However, we should not allow multiple types when there is not a strict subtype / supertype relationship between all of them whether we are composing Any or not.  For example, `B`, `D` and `E` can all be composed. `B` and `Z` can be composed. But `D` and `Z` can not be composed (nor `E` and `Z`).  And unrelated types such as `String` and `Int` cannot be composed.
-> 
-> Written by: [Matthew Johnson](https://github.com/anandabits)
-
+* Rename `protocol<>` to `Any<>` without any additional changes and defer this proposal as enhancement for a future Swift version.
 
 ## Future directions
 
-* `Any<>` should reflect powerful generalized generic features to be able to constrain types even further. (This should have its own proposal, which will extend `Any<>` proposed here.)
+* `Any<>` should reflect powerful generalized generic features to be able to constrain types even further (e.g. `where` clause). This should have its own proposal, which will extend `Any<>` proposed here!
 
 * Generalize `class` constraints. This will create the possibility for `AnyObject` typealias.
 
@@ -293,6 +289,7 @@ Possible functions (just a few more examples):
 protocol A { func zoo() }
 
 // this is the base design that does not violate any rule
+// but this should be banned because it is redundant
 func boo(value: Any<A>) { value.zoo() }
 
 // this is the refined design that we all use today
@@ -302,28 +299,29 @@ func boo(value: A) { value.zoo() }
 // this might be seen as an enforcement to the library user to design a 
 // struct in this scenario
 func foo(value: StructInstance)
+
 // structs that conforms to a specific protocol (from our library?)
 func foo(value: Any<StructInstance, SomeProtocol>) 
 // one could use of ClassInstance and EnumInstance analogically
 
 // generalized way with generics
 func foo<T: struct where T: SomeProtocol>(value: T) 
+
 // or
 func foo<T: StructInstance where T: SomeProtocol>(value: T) 
 
 // current only one verion for classes with unwanted `@objc` and possible bridging 
 func woo<T: AnyObject where T: SomeProtocol>(value: T)
+
 // better alternative might look like
 func woo<T: class where T: SomeProtocol>(value: T) 
+
 // or
 func woo<T: ClassInstance where T: SomeProtocol>(value: T) 
-// `Any<>` combined with generics
-func woo<T: UIView>(value: Any<T, SomeProtocol>) 
-// or simpler without generics
-func woo(value: Any<UIView, SomeProtocol>)
 
-// non-generic approach to accept only reference-types which conforms to `SomeProtocol`
-func zoo(value: Any<ClassInstance, SomeProtocol>)
+// or simpler without generics
+func woo(value: Any<ClassInstance, SomeProtocol>)
+
 // or
 func zoo(value: Any<class, SomeProtocol>)
 ```
@@ -415,12 +413,12 @@ typealias AnyValue = AnyStruct | AnyEnum
 typealias ValueInstance = StructInstance | EnumInstance
 
 // any value which conforms to `SomeProtocol`; reference types finally are out the way
-func foo<T>(value: Any<AnyValue, SomeProtocol>) 
-func foo<T>(value: Any<ValueInstance, SomeProtocol>) 
+func foo(value: Any<AnyValue, SomeProtocol>) 
+func foo(value: Any<ValueInstance, SomeProtocol>) 
 
 // flattened version
-func foo<T>(value: AnyValue & SomeProtocol) 
-func foo<T>(value: ValueInstance & SomeProtocol) 
+func foo(value: AnyValue & SomeProtocol) 
+func foo(value: ValueInstance & SomeProtocol) 
 ```
 
 -------------------------------------------------------------------------------
