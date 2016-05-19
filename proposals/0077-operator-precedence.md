@@ -448,11 +448,14 @@ Additionally, `operator` remains a local keyword.
 ### Define precedence relationships outside of group declarations
 
 ```swift
-precedencerelation Additive < Multiplicative
+precedencegroup B : associativity(left)
+precedencerelation B > A
+precedencerelation B < C
+infix operator <$> : B
 ```
 
-Precedence groups are closed in this proposal.
-It discourages recreating a single hierarchy of standard library operators.
+Precedence groups are closed in this proposal to discourage recreating a single hierarchy of standard library operators.
+This matter is discussable.
 
 ### Do not use precedence groups
 
