@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0066](https://github.com/apple/swift-evolution/blob/master/proposals/0066-standardize-function-type-syntax.md)
 * Author: [Chris Lattner](https://github.com/lattner)
-* Status: **Under review** (April 25...May 2, 2016)
+* Status: **Accepted** for Swift 3
 * Review manager: [Doug Gregor](https://github/com/DougGregor)
 
 ## Introduction
@@ -35,7 +35,7 @@ function types themselves, and offers no additional expressive capability (this
 is just syntactic sugar).  This proposal suggests that we simply eliminate the
 special case and require parentheses on all argument lists for function types.
 
-Swift-evolution thread: [[pitch] Eliminate the "T1 -> T2" syntax, require "(T1) -> T2"](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160411/014986.html)
+Swift-evolution thread: [\[pitch\] Eliminate the "T1 -> T2" syntax, require "(T1) -> T2"](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160411/014986.html)
 
 ## Motivation
 
@@ -160,3 +160,8 @@ function types, we would almost certainly reject a proposal to syntax optimize
 them away.
 
 
+-------------------------------------------------------------------------------
+
+# Rationale
+
+On May 5, 2016, the core team decided to **accept** this proposal.

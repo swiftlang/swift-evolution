@@ -1,7 +1,7 @@
 # Referencing the Objective-C selector of a method
 
 * Proposal: [SE-0022](https://github.com/apple/swift-evolution/blob/master/proposals/0022-objc-selectors.md)
-* Author(s): [Doug Gregor](https://github.com/DougGregor)
+* Author: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Accepted**
 * Review manager: [Joe Groff](https://github.com/jckarter)
 

@@ -1,7 +1,7 @@
 # Add `@noescape` to public library API
 
 * Proposal: [SE-0012](https://github.com/apple/swift-evolution/blob/master/proposals/0012-add-noescape-to-public-library-api.md)
-* Author(s): [Jacob Bandes-Storch](https://github.com/jtbandes)
+* Author: [Jacob Bandes-Storch](https://github.com/jtbandes)
 * Status: **Review**
 * Review champion: [Philippe Hausler](phausler@apple.com)
 

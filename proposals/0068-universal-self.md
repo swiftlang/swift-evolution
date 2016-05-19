@@ -2,8 +2,9 @@
 
 * Proposal: [SE-0068](0068-universal-self.md)
 * Author: [Erica Sadun](http://github.com/erica)
-* Status: **Accepted** ([Bug](https://bugs.swift.org/browse/SR-1340))
+* Status: **[Accepted with modification](#rationale)** ([Bug](https://bugs.swift.org/browse/SR-1340))
 * Review manager: [Chris Lattner](http://github.com/lattner)
+* Previous versions: [Review version](https://github.com/apple/swift-evolution/blob/13d9771e86c5639b8320f05e5daa31a62bac0f07/proposals/0068-universal-self.md), [Original version with `#Self` included](https://github.com/apple/swift-evolution/blob/bcd77b028cb2fc9f07472532b120e927c7e48b34/proposals/0068-universal-self.md)
 
 ## Introduction
 
@@ -54,3 +55,19 @@ Not at this time
 ## Acknowlegements
 
 Thanks Sean Heber, Kevin Ballard, Joe Groff, Timothy Wood, Brent Royal-Gordon, Andrey Tarantsov, Austin Zheng
+
+--------------------------------------------------------------------------------
+
+# Rationale
+
+On [April 27, 2016](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160425/015977.html), the core team decided to **accept a subset of** this proposal.
+
+> This proposal had light discussion in the community review process, but the core team heavily debated it.  It includes two pieces:
+> 
+> 1. Expanding the existing support for Self to work in value types, and in the bodies of classes.
+> 
+> 2. Replacing the x.dynamicType expression with x.Self, a purely syntactic change that eliminates the “dynamicType” keyword.
+> 
+> The core team has accepted the first half for this proposal.  This allows the use of “Self” as shorthand for referring to the containing type (in the case of structs, enums, and final class) or the dynamic type (in the case of non-final classes).  Most of the discussion in the core team centered around whether people familiar with the former behavior would be surprised by the (more general) behavior when using it in a class, but they came to agree that this is actually a simple and general model, and a helpful point of consistency.
+> 
+> In contrast, there are still a number of concerns with rebranding x.dynamicType as x.Self.  This may (or may not) be the right ultimate direction to go, but it should be split out of this proposal.  There is another outstanding proposal that would eliminate the “Type.self” syntax as being necessary, and the core team would like to resolve that discussion before tackling x.dynamicType.

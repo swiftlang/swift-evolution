@@ -1,15 +1,15 @@
 # Add overrides taking an UnsafePointer source to non-destructive copying methods on UnsafeMutablePointer
 
 * Proposal: [SE-0076](0076-copying-to-unsafe-mutable-pointer-with-unsafe-pointer-source.md)
-* Author(s): [Janosch Hildebrand](https://github.com/Jnosh)
-* Status: **Awaiting review**
-* Review manager: TBD
+* Author: [Janosch Hildebrand](https://github.com/Jnosh)
+* Status: **Accepted with Revisions for Swift 3** ([Bug](https://bugs.swift.org/browse/SR-1490))
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
 `UnsafeMutablePointer` includes several methods to non-destructively copy elements from memory pointed to by another `UnsafeMutablePointer` instance. I propose adding overloads of these methods to `UnsafeMutablePointer` that allow an `UnsafePointer` source.
 
-Swift-evolution thread: [[Pitch] Add overrides with UnsafePointer sources to non-destructive copying methods on UnsafeMutablePointer](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160201/008827.html)
+Swift-evolution thread: [\[Pitch\] Add overrides with UnsafePointer sources to non-destructive copying methods on UnsafeMutablePointer](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160201/008827.html)
 
 ## Motivation
 

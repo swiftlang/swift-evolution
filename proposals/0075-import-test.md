@@ -1,9 +1,9 @@
 # Adding a Build Configuration Import Test
 
 * Proposal: [SE-0075](0075-import-test.md)
-* Author(s): [Erica Sadun](http://github.com/erica)
-* Status: TBD
-* Review manager: TBD
+* Author: [Erica Sadun](http://github.com/erica)
+* Status: **[Accepted](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000159.html) for Swift 3** ([Bug](https://bugs.swift.org/browse/SR-1560))
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
@@ -14,6 +14,8 @@ to differentiate Apple targets from non-Apple targets) proved problematic, devel
 greeted the notion of an import-based configuration test. 
 Dmitri Gribenko wrote, "There's a direction that we want to move to a unified name for the libc module for all platform, so 'can import Darwin' might not be a viable long-term strategy." 
 Testing for imports offers advantages that stand apart from this one use-case: to test for API availability before use.
+
+[Swift Evolution Review Thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/16620)
  
 ## Motivation
 

@@ -1,8 +1,8 @@
 # Enhanced Floating Point Protocols
 
 * Proposal: [SE-0067](https://github.com/apple/swift-evolution/blob/master/proposals/0067-floating-point-protocols.md)
-* Author(s): [Stephen Canon](https://github.com/stephentyrone)
-* Status: **Under Active Review through Apr 29, 2016**
+* Author: [Stephen Canon](https://github.com/stephentyrone)
+* Status: **Accepted for Swift 3**
 * Review manager: [Chris Lattner](https://github.com/lattner)
 * Revision: 2
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/fb1368a6a5474f57aa8f1846b5355d18753098f3/proposals/0067-floating-point-protocols.md)
@@ -23,6 +23,8 @@ change was requested by some members of the core langauge team.
 Revision 2 also incorporates a number of suggestions from the review list and
 corrects some typos; thanks especially to Xiaodi Wu for thoughtful feedback.
 Consult the changelog at the end of this document for full details.
+
+[Proposal draft](http://thread.gmane.org/gmane.comp.lang.swift.evolution/14545), [Review](http://thread.gmane.org/gmane.comp.lang.swift.evolution/14876)
 
 ## Motivation
 

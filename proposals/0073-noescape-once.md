@@ -1,9 +1,9 @@
 # Marking closures as executing exactly once
 
 * Proposal: [SE-0073](0073-noescape-once.md)
-* Author(s): [Félix Cloutier](https://github.com/zneak), [Gwendal Roué](https://github.com/groue)
-* Status: **Awaiting review**
-* Review manager: TBD
+* Authors: [Félix Cloutier](https://github.com/zneak), [Gwendal Roué](https://github.com/groue)
+* Status: **Rejected for Swift 3**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
@@ -28,9 +28,11 @@ to make it mutable and initially assign it a dummy value, because the compiler
 can't prove that the function will execute the closure exactly once. For
 instance:
 
-	var x: Int = 0 // `var` declaration, with some irrelevant value
-	f { x = 1 }
-	print(x)
+```swift
+var x: Int = 0 // `var` declaration, with some irrelevant value
+f { x = 1 }
+print(x)
+```
 
 ## Proposed solution
 
@@ -38,39 +40,45 @@ By adding the `@noescape(once)` attribute to the closure parameter, we tell the
 compiler that the function will be executed exactly once on any code path that
 leaves the function's scope:
 
-	func f(closure: @noescape(once) () -> ()) {
-	    closure()
-	}
+```swift
+func f(closure: @noescape(once) () -> ()) {
+    closure()
+}
+```
 
 With this information, the compiler can now realize that the `x` variable will
 be written to exactly once. It can now be marked as a `let` variable:
 
-	let x: Int  // Not initialized
-	f { x = 1 }
-	print(x)    // Guaranteed to be initialized
+```swift
+let x: Int  // Not initialized
+f { x = 1 }
+print(x)    // Guaranteed to be initialized
+```
 
 This new form is safer and cleaner.
 
 `@noescape(once)` can also be seen as a natural extension to [SE-0061](https://github.com/apple/swift-evolution/blob/master/proposals/0061-autoreleasepool-signature.md) in that we go from:
 
-	// Current Swift:
-	var x: Int = 0 // `var` declaration, with some irrelevant value
-	autoreleasepool {
-	    x = 1
-	}
+```swift
+// Current Swift:
+var x: Int = 0 // `var` declaration, with some irrelevant value
+autoreleasepool {
+    x = 1
+}
 	
-	// Should SE-0061 be accepted:
-	let x = autoreleasepool {
-	    return 1
-	}
+// Should SE-0061 be accepted:
+let x = autoreleasepool {
+    return 1
+}
 	
-	// Should this proposal be accepted:
-	let x: Int
-	let y: String
-	autoreleasepool {
-	    x = 1
-	    y = "foo"
-	}
+// Should this proposal be accepted:
+let x: Int
+let y: String
+autoreleasepool {
+    x = 1
+    y = "foo"
+}
+```
 
 
 ## Detailed design
@@ -90,10 +98,13 @@ A `@noescape(once)` closure may only read from variables that were initialized
 before it was formed. For instance, in an example with two `@noescape(once)`
 closures, the compiler cannot assume that one closure runs before the other.
 
-	func f(a: @noescape(once) () -> (), b: @noescape(once) () -> ()) { /* snip */ }
+```swift
+func f(a: @noescape(once) () -> (), b: @noescape(once) () -> ()) { /* snip */ }
 	
-	let x: Int
-	f(a: {x = 1}, b: {print(x)}) // invalid: x has not been initialized
+	
+let x: Int
+f(a: {x = 1}, b: {print(x)}) // invalid: x has not been initialized
+```
 
 A `@noescape(once)` closure may only be passed as a parameter to another
 function that accepts a `@noescape(once)` closure. In that case, it counts as
@@ -136,14 +147,16 @@ will not, since this allows the function to bail out without calling the closure
 in the event that it can't provide the guarantee that it's trying to get. For
 instance:
 
-	do {
-		let foo: Int
-		try withLock(someLock, timeout: 0.5) {
-			foo = sharedThing.foo
-		}
-	} catch {
-		print("couldn't acquire lock fast enough")
+```swift
+do {
+	let foo: Int
+	try withLock(someLock, timeout: 0.5) {
+		foo = sharedThing.foo
 	}
+} catch {
+	print("couldn't acquire lock fast enough")
+}
+```
 
 A function like this would be awkward to express if the closure had to test
 a parameter to tell if the lock was acquired or not.
@@ -166,3 +179,19 @@ This includes (full list to be done):
 
 Those modifications to standard and core libraries will however be part of
 future proposals.
+
+# Rationale
+
+On May 11, 2016, the core team decided to **Reject** this proposal for Swift 3.
+
+The feedback on the proposal was generally positive both from the community and
+core team.  That said, it is being rejected for Swift 3 two reasons:
+
+1) The surface level syntax of @noescape needs to be reconsidered.  At the minimum, we need to rename @noescape to @nonescaping for consistency with our previously agreed attribute naming scheme. However, it is also work discussing whether @nonescaping should be the default: if so, the attribute should actually become @escaping, and the functionality proposed in SE-0073 would be named @once.
+
+2) Separate from the surface level issues, the implementation underlying this work has some significant challenges that are doable but would require major engineering work.  Specifically, the definite initialization pass needs to “codegen” booleans in some cases for conditional initialization/overwrite cases, and these state values would have to be added to closure capture lists.  This would require enough engineering work that it seems unlikely that it would happen in the Swift 3 timeframe, and beyond that this could theoretically be subsumed into a more general system that allowed control-flow-like functions to have closures that break/continue/throw/return out of their enclosing function, or a general macro system.
+
+Overall, everyone desires the ability to produce more control-flow like functions, but Swift 3 isn’t in a place where it can make sense to tackle this work.
+
+
+

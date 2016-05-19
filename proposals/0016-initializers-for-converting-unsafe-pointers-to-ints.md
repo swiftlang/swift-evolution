@@ -1,9 +1,13 @@
 # Add initializers to Int and UInt to convert from UnsafePointer and UnsafeMutablePointer
 
 * Proposal: [SE-0016](https://github.com/apple/swift-evolution/blob/master/proposals/0016-initializers-for-converting-unsafe-pointers-to-ints.md)
-* Author(s): [Michael Buckley](https://github.com/MichaelBuckley)
+* Author: [Michael Buckley](https://github.com/MichaelBuckley)
 * Status: **Accepted for Swift 3** ([Bug](https://bugs.swift.org/browse/SR-1115))
 * Review manager: [Chris Lattner](https://github.com/lattner)
+* Revision: 2
+* Previous Revision: [1][rev-1] (as accepted)
+
+[rev-1]: https://github.com/apple/swift-evolution/blob/ae2d7c24fff7cbdff754d9a4339e4fb02df5c690/proposals/0016-initializers-for-converting-unsafe-pointers-to-ints.md
 
 ## Introduction
 ## 
@@ -117,9 +121,8 @@ The last alternative was to forgo these initializers and force users to write
 all their complicated pointer code in C. This alternative was rejected because
 it makes Swift less useful as a systems programming language.
 
-## Revision History
+## Changes from revision 1
 ##
 
-- 2016-04-21: The proposal was amended post-acceptance to include 
-  `OpaquePointer`. Originally it only included `UnsafePointer` and
-  `UnsafeMutablePointer`.
+- The proposal was amended post-acceptance to include `OpaquePointer`.
+  Originally it only included `UnsafePointer` and `UnsafeMutablePointer`.

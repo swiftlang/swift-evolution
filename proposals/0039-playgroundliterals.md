@@ -1,7 +1,7 @@
 # Modernizing Playground Literals
 
 * Proposal: [SE-0039](https://github.com/apple/swift-evolution/blob/master/proposals/0039-playgroundliterals.md)
-* Author(s): [Erica Sadun](http://github.com/erica)
+* Author: [Erica Sadun](http://github.com/erica)
 * Status: **Accepted** ([Bug](https://bugs.swift.org/browse/SR-917))
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
@@ -61,6 +61,22 @@ In this design:
 * Arguments use lower camel case labels, as is conventional.
 * The word `literal` is added to identifiers denoting each item's role.
 * The arguments are simplified and standardized to `red`, `green`, `blue`, `alpha`, and `resourceName`.
+
+However, these argument labels are not appropriate for the actual initializers. Initializers in literal protocols should use argument labels that clearly mark their use in literals. This serves two ends. First, types may wish to provide specialized behavior for literals that would be inappropriate for a general-purpose initializer. Second, literal initializers must obey rigid naming and typing rules; giving them an "unusual" name avoids contaminating the standard interface to the type and reduces the risk of spurious ambiguity. With that in mind, Swift will interpret the syntax above as a use of the corresponding initializer below:
+
+```swift
+protocol _ColorLiteralConvertible {
+  init(colorLiteralRed red: Float, green: Float, blue: Float, alpha: Float)
+}
+
+protocol _ImageLiteralConvertible {
+  init(imageLiteralResourceName path: String)
+}
+
+protocol _FileReferenceLiteralConvertible {
+  init(fileReferenceLiteralResourceName path: String)
+}
+```
 
 ## Alternatives Considered
 

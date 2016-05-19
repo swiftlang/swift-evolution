@@ -1,8 +1,8 @@
 # Import as member
 
 * Proposal: [SE-0044](https://github.com/apple/swift-evolution/blob/master/proposals/0044-import-as-member.md)
-* Author(s): [Michael Ilseman](https://github.com/milseman)
-* Status: **Accepted** ([Discussion](http://thread.gmane.org/gmane.comp.lang.swift.evolution/12842), [Bug](https://bugs.swift.org/browse/SR-1053))
+* Author: [Michael Ilseman](https://github.com/milseman)
+* Status: **Implemented in Swift 3** ([Discussion](http://thread.gmane.org/gmane.comp.lang.swift.evolution/12842), [Bug](https://bugs.swift.org/browse/SR-1053))
 * Review manager: [Doug Gregor](https://github.com/DougGregor)
 * Implementation: [GitHub branch](https://github.com/apple/swift/tree/import-as-member)
 
@@ -186,7 +186,7 @@ void setZeroPoint(Point3D point)
 __attribute__((swift_name("setter:Point3D.zero(_:)")));
 ```
 
-*Ammendment:* Also allow for importing as subscript.
+*Amendment:* Also allow for importing as subscript.
 
 ```C
 // Import as subscript

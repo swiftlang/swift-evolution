@@ -24,80 +24,77 @@ definitive list of notable changes in each release.
 
 Expected release date: Late 2016
 
-The primary goal of this release is to stabilize the binary interface
-of the language and standard library. As part of this process, we will
-focus and refine the language to provide better overall consistency in
-feel and implementation. Swift 3.0 will contain *source-breaking*
-changes from Swift 2.x where necessary to support these goals. More
-concretely, this release is focused on several key areas:
+The primary goal of this release is to solidify and mature the Swift language and
+development experience.  While source breaking changes to the language have been
+the norm for Swift 1 through 3, we would like the Swift 3.x (and Swift 4+)
+languages to be as *source compatible* with Swift 3.0 as reasonably possible.
+However, this will still be best-effort: if there is a really good reason to
+make a breaking change beyond Swift 3, we will consider it and find the least
+invasive way to roll out that change (e.g. by having a long deprecation cycle).
 
-* **Stable ABI**: Stabilize the binary interface (ABI) to guarantee a level of binary compatibility moving forward. This involves finalizing runtime data structures, name mangling, calling conventions, and so on, as well as finalizing some of the details of the language itself that have an impact on its ABI. Stabilizing the ABI also extends to the Standard Library, its data types, and core algorithms. Successful ABI stabilization means that applications and libraries compiled with future versions of Swift can interact at a binary level with applications and libraries compiled with Swift 3.0, even if the source language changes.
-* **Resilience**: Solve the general problem of [fragile binary interface](https://en.wikipedia.org/wiki/Fragile_binary_interface_problem), which currently requires that an application be recompiled if any of the libraries it depends on changes. For example, adding a new stored property or overridable method to a class should not require all subclasses of that class to be recompiled. There are several broad concerns for resilience:
-  * *What changes are resilient?*: Define the kinds of changes that can be made to a library without breaking clients of that library. Source-compatible changes to libraries are good candidates for resilient changes, but such decisions also consider the effects on the implementation.
-  * *How is a resilient library implemented?*: What runtime representations are necessary to allow applications to continue to work after making resilient changes to a library? This dovetails with the stabilization of the ABI, because the stable ABI should be a resilient ABI.
-  * *How do we maintain high performance?*: Resilient implementations often incur more execution overhead than non-resilient (or *fragile*) implementations, because resilient implementations need to leave some details unspecified until load time, such as the specific sizes of a class or offsets of a stored property.
-* **Portability**: Make Swift available on other platforms and ensure that one can write portable Swift code that works properly on all of those platforms.
-* **Type system cleanup and documentation**: Revisit and document the various subtyping and conversion rules in the type system, as well as their implementation in the compiler's type checker. The intent is to converge on a smaller, simpler type system that is more rigorously defined and more faithfully represented by the type checker.
-* **Complete generics**: Generics are used pervasively in a number of Swift libraries, especially the standard library. However, there are a number of generics features the standard library requires to fully realize its vision, including recursive protocol constraints, the ability to make a constrained extension conform to a new protocol (i.e., an array of `Equatable` elements is `Equatable`), and so on. Swift 3.0 should provide those generics features needed by the standard library, because they affect the standard library's ABI.
-* **Focus and refine the language**: Despite being a relatively young language, Swift's rapid development has meant that it has accumulated some language features and library APIs that don't fit well with the language as a whole. Swift 3 will remove or improve those features to provide better overall consistency for Swift.
+To achieve this end, Swift 3 focuses on getting the basics right for the
+long term: 
+
 * **API design guidelines**: The way in which Swift is used in popular
   libraries has almost as much of an effect on the character of Swift
-  code as the Swift language itself. The [API design
-  guidelines](https://swift.org/documentation/api-design-guidelines/) provide guidance for
-  building great Swift APIs. For Swift 3.0, the Swift standard library
-  and core libraries are being updated to match these guidelines, and
-  Swift's Objective-C importer will [automatically map](proposals/0005-objective-c-name-translation.md) from the [Cocoa guidelines for
-  Objective-C](https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/CodingGuidelines/CodingGuidelines.html)
-  to the Swift API guidelines.
+  code as the Swift language itself. The [API naming and design
+  guidelines](https://swift.org/documentation/api-design-guidelines/) are a
+  carefully crafted set of guidelines for building great Swift APIs.
 
-### Out of Scope
+* **Automatic application of naming guidelines to imported Objective-C APIs**:
+  When importing Objective-C APIs, the Swift 3 compiler 
+  [automatically maps](proposals/0005-objective-c-name-translation.md) methods
+  into the new Swift 3 naming guidelines, and provides a number of Objective-C
+  features to control and adapt this importing.
 
-A significant part of delivering a major release is in deciding what
-*not* to do, which means deferring many good ideas. The following is a
-sampling of potentially good ideas that are not in scope for Swift
-3.0:
+* **Adoption of naming guidelines in key APIs**: The Swift Standard Library has
+  been significantly overhauled to embrace these guidelines, and key libraries
+  like [Foundation](proposals/0069-swift-mutability-for-foundation.md) and
+  [libdispatch](proposals/0088-libdispatch-for-swift3.md) have seen major
+  updates, which provide the consistent development experience we seek.
 
-* **Full source compatibility**: Swift 3.0 will not provide full
-  source compatibility. Rather, it can and will introduce
-  source-breaking changes needed to support the main goals of Swift
-  3.0.
+* **Swiftification of imported Objective-C APIs**: Beyond the naming guidelines,
+  Swift 3 provides an improved experience for working with Objective-C APIs.
+  This includes importing
+  [Objective-C generic classes](proposals/0057-importing-objc-generics.md),
+  providing the ability to [import C APIs](proposals/0044-import-as-member.md)
+  into an "Object Oriented" style, much nicer
+  [imported string enums](proposals/0033-import-objc-constants.md), safer
+  syntax to work with [selectors](proposals/0022-objc-selectors.md) and
+  [keypaths](proposals/0062-objc-keypaths.md), etc.
 
-* **Concurrency**: Swift 3.0 relies entirely on platform concurrency
-  primitives (libdispatch, Foundation, pthreads, etc.) for
-  concurrency. Language support for concurrency is an often-requested
-  and potentially high-value feature, but is too large to be in scope
-  for Swift 3.0.
+* **Focus and refine the language**: Since Swift 3 is the last release to make
+  major source breaking changes, it is also the right release to reevaluate the
+  syntax and semantics of the core language.  This means that some obscure or
+  problematic features will be removed, we focus on improving consistency of
+  syntax in many small ways (e.g. by 
+  [revising handling of parameter labels](proposals/0046-first-label.md), and
+  focus on forward looking improvements to the type system.  This serves the
+  overall goal of making Swift a simpler, more predictable, and more consistent
+  language over the long term.
 
-* **C++ Interoperability**: Swift's interoperability with C and
-  Objective-C is one of its major strengths, allowing it to integrate
-  with platform APIs. Interoperability with C++ libraries would
-  enhance Swift's ability to work with existing libraries and APIs.
-  However, C++ itself is a very complex language, and providing good
-  interoperability with C++ is a significant undertaking that is out
-  of scope for Swift 3.0.
+* **Improvements to tooling quality**: The overall quality of the compiler is
+  really important to us: it directly affects the joy of developing in Swift.
+  Swift 3 focuses on fixing bugs in the compiler and IDE features, improving the
+  speed of compile times and incremental builds, improving the performance of
+  the generated code, improving the precision of error and warning messages, etc.
 
-* **Hygienic Macros** and **Compile-Time Evaluation**: A first-class macro
-  system, or support for compile-time code execution in general, is something
-  we may consider in future releases.  We don't want the existence of a macro
-  system to be a workaround that reduces the incentive for making the core
-  language great.
+One of the reasons that stability is important is that **portability** to non-Apple
+systems is also a strong goal of Swift 3.  This release enables
+broad scale adoption across multiple platforms, including significant
+functionality in the [Swift core libraries](https://swift.org/core-libraries/)
+(Foundation, libdispatch, XCTest, etc).  A useful Linux/x86 port is
+already available (enabling many interesting server-side scenarios), and work is
+underway across the community to bring Swift to FreeBSD, Raspberry Pi, Android,
+Windows, and others.  While we don't know which platforms will reach a useful
+state by the launch of Swift 3, significant effort continues to go into making
+the compiler and runtime as portable as practically possible.
 
-* **Implicit conversions between numeric types**: We may do this in a future
-  release, but there is simply too much work to be done first.  Before we can
-  loosen these type rules, we will need to speed up the type checker, redesign
-  the numerics protocols, and implement a subtyping feature to express the 
-  permitted conversions.  This won't all come together before Swift 3.0 ships.
+Finally, Swift 3 also includes a mix of relatively small but important additions
+to the language and standard library that make solving common problems easier and
+make everything feel nicer.  A detailed list of accepted proposals is included
+below:
 
-* **Major new library functionality**: The Swift Standard Library is focused on
-  providing core "language" functionality as well as common data structures.  The
-  "corelibs" projects are focused on providing existing Foundation functionality
-  in a portable way.  We *will* consider minor extensions to their existing
-  feature sets to round out these projects.
- 
-  On the other hand, major new libraries (e.g. a new Logging subsystem) are
-  best developed as independent projects on GitHub (or elsewhere) and organized
-  with the Swift Package Manager.  Beyond Swift 3 we may consider standardizing
-  popular packages or expanding the scope of the project.  
 
 ### Implemented proposals for Swift 3
 
@@ -107,20 +104,35 @@ sampling of potentially good ideas that are not in scope for Swift
 * [SE-0005: Better Translation of Objective-C APIs Into Swift](proposals/0005-objective-c-name-translation.md)
 * [SE-0006: Apply API Guidelines to the Standard Library](proposals/0006-apply-api-guidelines-to-the-standard-library.md)
 * [SE-0007: Remove C-style for-loops with conditions and incrementers](proposals/0007-remove-c-style-for-loops.md)
+* [SE-0008: Add a Lazy flatMap for Sequences of Optionals](proposals/0008-lazy-flatmap-for-optionals.md)
 * [SE-0016: Adding initializers to Int and UInt to convert from UnsafePointer and UnsafeMutablePointer](proposals/0016-initializers-for-converting-unsafe-pointers-to-ints.md)
 * [SE-0019: Swift Testing](proposals/0019-package-manager-testing.md)
 * [SE-0023: API Design Guidelines](proposals/0006-apply-api-guidelines-to-the-standard-library.md)
 * [SE-0028: Modernizing Swift's Debugging Identifiers (\__FILE__, etc)](proposals/0028-modernizing-debug-identifiers.md)
 * [SE-0029: Remove implicit tuple splat behavior from function applications](proposals/0029-remove-implicit-tuple-splat.md)
 * [SE-0031: Adjusting inout Declarations for Type Decoration](proposals/0031-adjusting-inout-declarations.md)
+* [SE-0032: Add `find` method to `SequenceType`](proposals/0032-sequencetype-find.md)
+* [SE-0033: Import Objective-C Constants as Swift Types](proposals/0033-import-objc-constants.md)
 * [SE-0034: Disambiguating Line Control Statements from Debugging Identifiers](proposals/0034-disambiguating-line.md)
 * [SE-0037: Clarify interaction between comments & operators](proposals/0037-clarify-comments-and-operators.md)
 * [SE-0039: Modernizing Playground Literals](proposals/0039-playgroundliterals.md)
 * [SE-0040: Replacing Equal Signs with Colons For Attribute Arguments](proposals/0040-attributecolons.md)
 * [SE-0043: Declare variables in 'case' labels with multiple patterns](proposals/0043-declare-variables-in-case-labels-with-multiple-patterns.md)
+* [SE-0044: Import as Member](proposals/0044-import-as-member.md)
 * [SE-0046: Establish consistent label behavior across all parameters including first labels](proposals/0046-first-label.md)
 * [SE-0049: Move @noescape and @autoclosure to be type attributes](proposals/0049-noescape-autoclosure-type-attrs.md)
 * [SE-0053: Remove explicit use of `let` from Function Parameters](proposals/0053-remove-let-from-function-parameters.md)
+* [SE-0054: Abolish `ImplicitlyUnwrappedOptional` type](proposals/0054-abolish-iuo.md)
+* [SE-0055: Make unsafe pointer nullability explicit using Optional](proposals/0055-optional-unsafe-pointers.md)
+* [SE-0057: Importing Objective-C Lightweight Generics](proposals/0057-importing-objc-generics.md)
+* [SE-0059: Update API Naming Guidelines and Rewrite Set APIs Accordingly](proposals/0059-updated-set-apis.md)
+* [SE-0061: Add Generic Result and Error Handling to autoreleasepool()](proposals/0061-autoreleasepool-signature.md)
+* [SE-0064: Referencing the Objective-C selector of property getters and setters](proposals/0064-property-selectors.md)
+* [SE-0065: A New Model For Collections and Indices](proposals/0065-collections-move-indices.md)
+* [SE-0069: Mutability and Foundation Value Types](proposals/0069-swift-mutability-for-foundation.md)
+* [SE-0070: Make Optional Requirements Objective-C-only](proposals/0070-optional-requirements.md)
+* [SE-0071: Allow (most) keywords in member references](proposals/0071-member-keywords.md)
+* [SE-0072: Fully eliminate implicit bridging conversions from Swift](proposals/0072-eliminate-implicit-bridging-conversions.md)
 
 ### Accepted proposals which do not have a complete implementation
 
@@ -129,26 +141,28 @@ but they are not implemented yet, and may not have anyone signed up to implement
 them.  If they are not implemented in time for Swift 3, they will roll into a
 subsequent release.
 
-* [SE-0008: Add a Lazy flatMap for Sequences of Optionals](proposals/0008-lazy-flatmap-for-optionals.md)
+* [SE-0017: Change `Unmanaged` to use `UnsafePointer`](proposals/0017-convert-unmanaged-to-use-unsafepointer.md)
 * [SE-0025: Scoped Access Level](proposals/0025-scoped-access-level.md)
-* [SE-0033: Import Objective-C Constants as Swift Types](proposals/0033-import-objc-constants.md)
 * [SE-0035: Limiting `inout` capture to `@noescape` contexts](proposals/0035-limit-inout-capture.md)
 * [SE-0036: Requiring Leading Dot Prefixes for Enum Instance Member Implementations](proposals/0036-enum-dot.md)
 * [SE-0038: Package Manager C Language Target Support](proposals/0038-swiftpm-c-language-targets.md)
 * [SE-0042: Flattening the function type of unapplied method references](proposals/0042-flatten-method-types.md)
-* [SE-0044: Import as Member](proposals/0044-import-as-member.md)
+* [SE-0045: Add scan, prefix(while:), drop(while:), and iterate to the stdlib](proposals/0045-scan-takewhile-dropwhile.md)
 * [SE-0047: Defaulting non-Void functions so they warn on unused results](proposals/0047-nonvoid-warn.md)
 * [SE-0048: Generic Type Aliases](proposals/0048-generic-typealias.md)
-* [SE-0054: Abolish `ImplicitlyUnwrappedOptional` type](proposals/0054-abolish-iuo.md)
-* [SE-0055: Make unsafe pointer nullability explicit using Optional](proposals/0055-optional-unsafe-pointers.md)
-* [SE-0057: Importing Objective-C Lightweight Generics](proposals/0057-importing-objc-generics.md)
-* [SE-0059: Update API Naming Guidelines and Rewrite Set APIs Accordingly](proposals/0059-updated-set-apis.md)
+* [SE-0052: Change IteratorType post-nil guarantee](proposals/0052-iterator-post-nil-guarantee.md)
+* [SE-0060: Enforcing order of defaulted parameters](proposals/0060-defaulted-parameter-order.md)
 * [SE-0062: Referencing Objective-C key-paths](proposals/0062-objc-keypaths.md)
 * [SE-0063: SwiftPM System Module Search Paths](proposals/0063-swiftpm-system-module-search-paths.md)
-* [SE-0064: Referencing the Objective-C selector of property getters and setters](proposals/0064-property-selectors.md)
-* [SE-0065: A New Model For Collections and Indices](proposals/0065-collections-move-indices.md)
+* [SE-0066: Standardize function type argument syntax to require parentheses](proposals/0066-standardize-function-type-syntax.md)
+* [SE-0067: Enhanced Floating Point Protocols](proposals/0067-floating-point-protocols.md)
 * [SE-0068: Expanding Swift `Self` to class members and value types](proposals/0068-universal-self.md)
-
+* [SE-0075: Adding a Build Configuration Import Test](proposals/0075-import-test.md)
+* [SE-0076: Add overrides taking an UnsafePointer source to non-destructive copying methods on UnsafeMutablePointer](proposals/0076-copying-to-unsafe-mutable-pointer-with-unsafe-pointer-source.md)
+* [SE-0080: Failable Numeric Conversion Initializers](proposals/0080-failable-numeric-initializers.md)
+* [SE-0081: Move `where` clause to end of declaration](proposals/0081-move-where-expression.md)
+* [SE-0082: Package Manager Editable Packages](proposals/0082-swiftpm-package-edit.md)
+* [SE-0092: Typealiases in protocols and protocol extensions](proposals/0092-typealiases-in-protocols.md)
 
 ## Swift 2.2 - Released on March 21, 2016
 
@@ -183,7 +197,10 @@ as practical with Swift 2.0.
 * [SE-0013: Remove Partial Application of Non-Final Super Methods (Swift 2.2)](proposals/0013-remove-partial-application-super.md)
 * [SE-0024: Optional Value Setter `??=`](proposals/0024-optional-value-setter.md)
 * [SE-0027: Expose code unit initializers on String](proposals/0027-string-from-code-units.md)
+* [SE-0041: Updating Protocol Naming Conventions for Conversions](proposals/0041-conversion-protocol-conventions.md)
 * [SE-0056: Allow trailing closures in `guard` conditions](proposals/0056-trailing-closures-in-guard.md)
+* [SE-0073: Marking closures as executing exactly once](proposals/0073-noescape-once.md)
+* [SE-0074: Implementation of Binary Search functions](proposals/0074-binary-search.md)
 
 ## Review
 [Swift Evolution Review Schedule](https://github.com/apple/swift-evolution/blob/master/schedule.md)

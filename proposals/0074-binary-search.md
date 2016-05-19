@@ -2,20 +2,20 @@
 
 * Proposal: [SE-0074](0074-binary-search.md)
 * Authors: [Lorenzo Racca](https://github.com/lorenzoracca), [Jeff Hajewski](https://github.com/j-haj), [Nate Cook](https://github.com/natecook1000)
-* Status: **Awaiting review**
-* Review manager: TBD
+* Status: **Rejected for Swift 3**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
 Swift does not offer any way to efficiently search sorted collections.
 This proposal seeks to add a few different functions that implement the binary search algorithm.
 
-- Swift-evolution thread: [[swift-evolution] [Proposal] Add Binary Search functions to SequenceType](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160314/012680.html)
+- Swift-evolution thread: [\[Proposal\] Add Binary Search functions to SequenceType](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160314/012680.html)
 - JIRA: [Swift/SR-368](https://bugs.swift.org/browse/SR-368)
 
 ## Motivation
 
-Searching through wide arrays (more than 100k elements) is inherently inefficient as the existing `SequenceType.contains(_:)` performs a linear search that has to test the given condition for every element of the array.
+Searching through wide arrays (more than 100k elements) is inherently inefficient as the existing `Sequence.contains(_:)` performs a linear search that has to test the given condition for every element of the array.
 
 Storing data in a sorted array would typically improve the efficiency of this search from O(n) to O(log n) by allowing a binary search algorithm that cuts the search space in half with each iteration. Unfortunately, the standard library has no built-in ability to search on a collection that is known to be sorted.
 
@@ -76,7 +76,7 @@ extension MutableCollection {
     ///   collection that does not match the predicate.
     @discardableResult
     mutating func partition(
-        @noescape where predicate: (Iterator.Element) throws-> Bool
+        where predicate: @noescape (Iterator.Element) throws-> Bool
         ) rethrows -> Index
 }
 
@@ -88,12 +88,12 @@ extension Collection {
     /// predicate, as if `x.partition(where: predicate)` had already
     /// been called.
     func partitionedIndex(
-        @noescape where predicate: (Iterator.Element) throws -> Bool
+        where predicate: @noescape (Iterator.Element) throws -> Bool
         ) rethrows -> Index
         var low = self.startIndex, high = self.endIndex
         while low != high {
-            let mid = low.advancedBy(low.distanceTo(high) / 2)
-            if try predicate(self[mid]) { low = mid.successor() }
+            let mid = index(low, offsetBy: distance(from: low, to: high) / 2)
+            if try predicate(self[mid]) { low = index(after: mid) }
             else { high = mid }
         }
         return low
@@ -108,7 +108,7 @@ extension Collection {
     /// - Returns: The index of `element`, or `nil` if `element` isn't
     ///   found.
     func sortedIndex(of element: Iterator.Element,
-        @noescape isOrderedBefore: (Iterator.Element, Iterator.Element)
+        isOrderedBefore: @noescape (Iterator.Element, Iterator.Element)
             throws -> Bool
         ) rethrows -> Index?
         {
@@ -128,7 +128,7 @@ extension Collection {
     ///   equivalent to `element`, or an empty range with its
     ///   `startIndex` equal to the insertion point for `element`.
     func sortedRange(of element: Iterator.Element,
-        @noescape isOrderedBefore: (Iterator.Element, Iterator.Element)
+        isOrderedBefore: @noescape (Iterator.Element, Iterator.Element)
             throws -> Bool
         ) rethrows -> Range<Index>
 }
@@ -276,3 +276,11 @@ The authors considered a few alternatives to the current proposal:
 - `lower_bound` / `upper_bound`: The C++ STL includes two functions that help when searching sorted collections and when sorting or merging. However, both are subsumed by the functionality of `partition_point` and its unary predicate, and as such are not needed. Whether these methods should accept unary or binary predicates was also a matter of discussion.
 
 - `binary_search`: The STL function analogous to the proposed `sortedIndex(of:)` method returns only a Boolean value. We determined that a method returning an optional index was more useful: the `.none` case conveys "not found", and the returned index (when found) provides easy access to the matched element.
+
+# Rationale
+
+On May 11, 2016, the core team decided to **Reject** this proposal.  The
+feedback on the proposal was generally positive about the concept of adding
+binary search functionality, but  negative about the proposal as written, with
+feedback that it was adding too much complexity to the API.
+
