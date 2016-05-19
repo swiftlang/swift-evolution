@@ -1,10 +1,10 @@
 # Add sequence(initial:next:) and sequence(state:next:) to the stdlib
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-name.md)
+* Proposal: [SE-0094](0094-sequence-function.md)
 * Authors: [Kevin Ballard](https://github.com/kballard), [Erica Sadun](http://github.com/erica)
-* Status: **Awaiting review**
-* Review manager: TBD
-* Previous proposal: [SE-0045][]
+* Status: **Active Review: May 19...May 23**
+* Review manager: [Chris Lattner](http://github.com/lattner)
+* Previous proposal: [SE-0045](0045-scan-takewhile-dropwhile.md)
 
 ## Introduction
 
