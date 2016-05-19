@@ -71,11 +71,11 @@ if let mergedValue = button as? Any<UIView, SomeProtocol> {
 3. `Any<...>` can be composed from protocols and by the mention of this rule fully replace `protocol<...>` 
 
 	* `Any<ProtocolA, ...>` equals to old `protocol<ProtocolA, ...>`
-	* `Any<ProtocolX>` (redundant and shold be banned) equals to old `protocol<ProtocolX>` or simply inferred as `ProtocolX`
+	* `Any<ProtocolX>` (redundant and should be banned) equals to old `protocol<ProtocolX>` or simply inferred as `ProtocolX`
 
 4. `Any<...>` can contain at most one class type plus none or n protocols. The class type must be the first requirement, if present.
 
-	* `Any<ClassType>` (redundant and shold be banned) or `Any<ClassType, Protocol, ...>`
+	* `Any<ClassType>` (redundant and should be banned) or `Any<ClassType, Protocol, ...>`
 	* This rule will disallow `Any<...>` to contain unnecessary inheritance type branches.
 
 5. Nesting `Any<...>` is allowed under special rules:
@@ -84,7 +84,7 @@ if let mergedValue = button as? Any<UIView, SomeProtocol> {
 		* e.g. `Any<ClassType, Any<ProtocolA, ProtocolB, ...>>` will be inferred by the compiler as `Any<ClassType, ProtocolA, ProtocolB, ...>`
 	* For class types nesting is allowed only when there is a inheritance relationship between all provided classes.
 		* The complier will look for the class which is a subclass of every other class within such constraints and choose it as the `Any<...>` construct's constraint.
-	* `Any<...>` can NOT contain empty `Any<>`
+	* `Any<...>` can NOT contain empty `Any<>` or a single `Any<...>`.
 
 	* Example made by [Matthew Johnson](https://github.com/anandabits):
 
@@ -110,13 +110,11 @@ if let mergedValue = button as? Any<UIView, SomeProtocol> {
 	
 	Any<A, X, Y> /* inferred as */ Any<A, Y> 
 	// e.g. will the above type accept `B` but not `A` as long `A` doesn't conform to `Y`
-	
-	Any<B, X, Y> /* inferred as */ Any<B> /* or simply just */ B 
 	```
 
 9. `Any<>` can be an optional type `Any<>?` or `Any<>!`
 
-#### Detailed design for `Any<>` (below `type` is an extendable type):
+#### Detailed design for `Any<...>` (below `type` is an extendable type):
 
 1. `type A` can be applied to:
 	
@@ -242,17 +240,17 @@ func woo(value: Any<UIView, SomeProtocol>)
 
 ## Impact on existing code
 
-These changes will break existing code. Projects using old style `protocol<>` mechanism will need to migrate to the new `Any<>` mechanism. The code using old style `protocol<>` won't compile until updated to the new conventions.
+These changes will break existing code. Projects using old style `protocol<...>` mechanism will need to migrate to the new `Any<...>` mechanism. The code using old style `protocol<...>` won't compile until updated to the new conventions.
 
 ## Alternatives considered
 
-* This feature was orginally proposed as `type<>` but was renamed to `Any<>` to dodge possible confusion and serve its main purpose to enforce *multiple* constraints.
+* This feature was orginally proposed as `type<...>` but was renamed to `Any<...>` to dodge possible confusion and serve its main purpose to enforce *multiple* constraints.
 
 * Rename `protocol<>` to `Any<>` without any additional changes and defer this proposal as enhancement for a future Swift version.
 
 ## Future directions
 
-* `Any<>` should reflect powerful generalized generic features to be able to constrain types even further (e.g. `where` clause). This should have its own proposal, which will extend `Any<>` proposed here!
+* `Any<...>` should reflect powerful generalized generic features to be able to constrain types even further (e.g. `where` clause). This should have its own proposal, which will extend `Any<...>` proposed here!
 
 * Generalize `class` constraints. This will create the possibility for `AnyObject` typealias.
 
