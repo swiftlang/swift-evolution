@@ -18,8 +18,8 @@ proposals in that process.
 * May 17...23 [SE-0089: Renaming `String.init<T>(_: T)`](proposals/0089-rename-string-reflection-init.md)
 * May 17...23 [SE-0090: Remove `.self` and freely allow type references in expressions](proposals/0090-remove-dot-self.md)
 * May 17...23 [SE-0091: Improving operator requirements in protocols](proposals/0091-improving-operators-in-protocols.md)
-* May 19...23 [SE-0094: Add sequence(initial:next:) and sequence(state:next:) to the stdlib](proposals/0094-sequence-function.md)
 * May 19...23 [SE-0093: Adding a public `base` property to slices](proposals/0093-slice-base.md)
+* May 19...23 [SE-0094: Add sequence(initial:next:) and sequence(state:next:) to the stdlib](proposals/0094-sequence-function.md)
 
 
 ## Upcoming reviews
