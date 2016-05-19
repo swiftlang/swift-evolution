@@ -454,9 +454,6 @@ precedencerelation B < C
 infix operator <$> : B
 ```
 
-Precedence groups are closed in this proposal to discourage recreating a single hierarchy of standard library operators.
-This matter is discussable.
-
 ### Do not use precedence groups
 
 It would make each operator define precedence relationships.
