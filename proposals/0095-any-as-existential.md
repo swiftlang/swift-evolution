@@ -1,9 +1,9 @@
-# Feature name
+# Replace `protocol<P1,P2>` syntax with `Any<P1,P2>`
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-name.md)
+* Proposal: [SE-0095](0095-any-as-existential.md)
 * Author: Austin Zheng
-* Status: **[Awaiting review](#rationale)**
-* Review manager: TBD
+* Status: **Scheduled for review May 24...30, 2016**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
