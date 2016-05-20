@@ -9,7 +9,7 @@
 
 This is a follow up proposal to [SE-0095](https://github.com/apple/swift-evolution/blob/master/proposals/0095-any-as-existential.md), if it will be accepted for Swift 3. The current concept of `Any<...>` introduced in SE-0095 will allow creation of redundant types like `Any<A> == A`. I propose to disallow such redundancy in Swift 3 to prevent breaking changes in a future version of Swift.
 
-Swift-evolution thread: [\[Proposal\] Disallow redundant `Any<...>` constructs]()
+Swift-evolution thread: [\[Proposal\] Disallow redundant `Any<...>` constructs](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160516/018280.html)
 
 ## Motivation
 
