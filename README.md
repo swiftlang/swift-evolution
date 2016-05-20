@@ -162,6 +162,7 @@ subsequent release.
 * [SE-0080: Failable Numeric Conversion Initializers](proposals/0080-failable-numeric-initializers.md)
 * [SE-0081: Move `where` clause to end of declaration](proposals/0081-move-where-expression.md)
 * [SE-0082: Package Manager Editable Packages](proposals/0082-swiftpm-package-edit.md)
+* [SE-0088: Modernize libdispatch for Swift 3 naming conventions](proposals/0088-libdispatch-for-swift3.md)
 * [SE-0092: Typealiases in protocols and protocol extensions](proposals/0092-typealiases-in-protocols.md)
 
 ## Swift 2.2 - Released on March 21, 2016
