@@ -32,7 +32,7 @@ This proposal should ban redundancy right from the beginning. If there might be 
 
 2. Disallow nesting `Any` (type refers to current `typealias Any = protocol<>`) inside of `Any<...>`.
 
-3. Disallow `Any<...>` containing a single `Type` like `Any<Type>`.
+3. Disallow `Any<...>` containing a single `Type` like `Any<Type>`, except for **Any-type requirement** like for example `Any<class>`.
 
 	The first three rules will ban constructs like `Any<Any<>, Type>` or `Any<Any, Type>` and force the developer to use `Type` instead.
 
@@ -73,7 +73,7 @@ This proposal should ban redundancy right from the beginning. If there might be 
 
 ## Impact on existing code
 
-These changes will break existing code. Projects abusing `Any<...>` to create redundant types should be reconsidered of usings the equivalent `Type` the compiler would infer. One would be forced to use `A` instead of `Any<A>` for example. A `Fix-it` error message can help the developer to migrate his project.
+These changes will break existing code. Projects abusing `Any<...>` to create redundant types should be reconsidered of using the equivalent `Type` the compiler would infer. One would be forced to use `A` instead of `Any<A>` for example. A `Fix-it` error message can help the developer to migrate his project.
 
 ## Alternatives considered
 
