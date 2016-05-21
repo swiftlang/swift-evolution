@@ -356,8 +356,10 @@ prefix operator +
 prefix operator -
 
 precedencegroup Assignment {
+  associativity(right)
 }
 precedencegroup Ternary {
+  associativity(right)
   precedence(> Assignment)
 }
 precedencegroup Default {
@@ -478,14 +480,18 @@ This would avoid introducing a new keyword.
 On the other hand, `precedencegroup` more clearly represents what it declares.
 Additionally, `operator` remains a local keyword.
 
-### Define precedence relationships outside of group declarations
+### Declare associativity and precedence separately
 
 ```swift
-precedencegroup B : associativity(left)
-precedencerelation B > A
-precedencerelation B < C
-infix operator <$> : B
+associativity Multiplicative left
+precedence Multiplicative > Additive
+precedence Exponentiative > Multiplicative
 ```
+
+Appearence of precedence group name in any of these "declarations" would mean declaration of the precedence group.
+Precedence relationship declaration would only allow `>` sign for consistency.
+
+Limitations on connecting unrelated imported groups could still hold.
 
 ### Do not use precedence groups
 
@@ -505,11 +511,82 @@ precedencerelation * > +
 
 ### Possible syntax variations
 
-We could use comma instead of parentheses and/or words instead of comparison symbols:
+```swift
+precedencegroup Multiplicative {
+  associativity: left
+  precedence: upper(Additive)
+  precedence: lower(Exponentiative)
+}
+```
 
 ```swift
-precedencegroup Comparative {
-  associativity: left
-  precedence: greater(LogicalAnd)
+precedence Multiplicative {
+  associativity(left)
+  upper(Additive)
+  lower(Exponentiative)
 }
+```
+
+```swift
+precedence Multiplicative {
+  associativity left
+  upper Additive
+  lower Exponentiative
+}
+```
+
+```swift
+precedence Multiplicative {
+  associativity left
+  > Additive
+  < Exponentiative
+}
+```
+
+```swift
+precedence Multiplicative : associativity(left), upper(Additive), lower(Exponentiative)
+```
+
+```swift
+precedence Multiplicative : associativity left, upper Additive, lower Exponentiative
+```
+
+```swift
+precedence Multiplicative > Additive, < Exponentiative, associativity left
+```
+
+```swift
+precedence left Multiplicative > Additive, < Exponentiative
+```
+
+```swift
+precedence associativity(left) Multiplicative > Additive, < Exponentiative
+```
+
+```swift
+// Only `>` relationships, associativity goes last
+precedence Multiplicative : Additive, left
+
+// Full syntax for complex cases
+precedence Multiplicative {
+  associativity left
+  upper Additive
+  lower Exponentiative
+}
+```
+
+```swift
+// Only `>` relationships, associativity goes last
+precedence Multiplicative > Additive, left
+
+// Full syntax for complex cases
+precedence Multiplicative {
+  associativity left
+  > Additive
+  < Exponentiative
+}
+```
+
+```swift
+precedence Multiplicative : Additive, lower(Exponentiative), associativity(left)
 ```
