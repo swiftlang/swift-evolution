@@ -78,10 +78,10 @@ infix operator - : Additive
 ### Precedence mechanism
 
 Concept of a single precedence hierarchy is removed.
-Instead, to omit parentheses in expression with two neighbouring `infix` operators, precedence relation *must* be defined between their precedence groups.
+Instead, to omit parentheses in expression with two neighbouring `infix` operators, precedence relationship *must* be defined between their precedence groups.
 
 It is performed by placing `precedence(RELATION OTHER_GROUP_NAME)` inside body of our precedence group,
-where `RELATION` is one of `<`, `=`, `>`. Example:
+where `RELATION` is `<` or `>`. Example:
 
 ```swift
 precedencegroup Additive {
@@ -105,7 +105,7 @@ infix operator & : BitwiseAnd
 Precedence equality can only be defined for precedence groups with same associativity.
 
 Only one declaration of the same operator / precedence group is allowed,
-meaning that new precedence relations between existing groups cannot be added.
+meaning that new precedence relationships between existing groups cannot be added.
 
 ### Transitive precedence propagation
 
@@ -122,7 +122,7 @@ precedencegroup BitwiseAnd {
 
 Here, `Multiplicative > Additive` and `BitwiseAnd < Additive` imply `Multiplicative > BitwiseAnd`.
 
-Compiler will also check that all precedence relations are transitive. If we define `A < B`, `B < C` and `A > C`, it will be a compilation error.
+Compiler will also check that all precedence relationships are transitive. If we define `A < B`, `B < C` and `A > C`, it will be a compilation error.
 
 Multiple precedence relationships can be stated for a single precedence group. Example:
 
@@ -176,6 +176,23 @@ infix operator ?: : Ternary
 infix operator = : Assignment
 ```
 
+### Joining unrelated precedence groups
+
+Precedence relationships that, by transitivity rule, create relationship between two imported groups, is an error. Example:
+
+```swift
+// Module X
+precedencegroup A { }
+precedencegroup C { }
+
+// Module Y
+import X
+precedencegroup B { precedence(> A) precedence(< C) }
+```
+
+This results in *compilation error* "B uses transitivity to define relationship between imported groups A and C".
+The rationale behind this is that otherwise one can create relationships between standard precedence groups that are confusing for the reader.
+
 ### Grammar
 
 `precedencegroup` keyword will be added. `assignment` local keyword will be removed.
@@ -203,7 +220,7 @@ infix operator = : Assignment
 
 *precedence-group-relation* → `precedence` `(` *precedence-group-relation-option* *precedence-group-name* `)`
 
-*precedence-group-relation-option* → `<` | `>` | `=`
+*precedence-group-relation-option* → `<` | `>`
 
 *precedence-group-name* → *identifier*
 
@@ -259,6 +276,7 @@ precedencegroup BitwiseShift {
   precedence(> Multiplicative)
 }
 
+// infix operator = : Assignment
 infix operator *= : Assignment
 infix operator /= : Assignment
 infix operator %= : Assignment
@@ -271,6 +289,8 @@ infix operator ^= : Assignment
 infix operator |= : Assignment
 infix operator &&= : Assignment
 infix operator ||= : Assignment
+
+// infix operator ?: : Ternary
 
 infix operator && : LogicalAnd
 infix operator || : LogicalOr
@@ -285,6 +305,11 @@ infix operator === : Comparative
 infix operator ~= : Comparative
 
 infix operator ?? : NilCoalescing
+
+// infix operator as : Cast
+// infix operator as? : Cast
+// infix operator as! : Cast
+// infix operator is : Cast
 
 infix operator ..< : Range
 infix operator ... : Range
@@ -410,6 +435,11 @@ infix operator ... : Range
 
 infix operator ?? : NilCoalescing
 
+// infix operator as : Cast
+// infix operator as? : Cast
+// infix operator as! : Cast
+// infix operator is : Cast
+
 infix operator < : Comparative
 infix operator <= : Comparative
 infix operator > : Comparative
@@ -422,6 +452,9 @@ infix operator ~= : Comparative
 infix operator && : LogicalAnd
 infix operator || : LogicalOr
 
+// infix operator ?: : Ternary
+
+// infix operator = : Assignment
 infix operator *= : Assignment
 infix operator /= : Assignment
 infix operator %= : Assignment
