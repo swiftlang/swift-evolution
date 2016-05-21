@@ -25,7 +25,7 @@ a.index(where: { $0 > 25 })         // 1
 
 Unfortunately, there are no such methods that search from the end of a bidirectional collection. Finding the last of a particular kind of element has multiple applications, particularly with text, such as wrapping a long string into lines of a maximum length or trimming whitespace from the beginning and end of a string.
 
-You can work around this limitation by using the methods above on a reversed view of a collection, but the resulting code is truly dreadful. For example, to find the corresponding last index to `a.index(where: { $0 > 25 })`, this unholy incantation is required:
+You can work around this limitation by using the methods above on a reversed view of a collection, but the resulting code is truly dreadful. For example, to find the corresponding last index to `a.index(where: { $0 > 25 })`, something lik this unholy incantation is required:
 
 ```swift
 (a.reversed().index(where: { $0 > 25 })?.base).flatMap({ a.index(before: $0) })
@@ -33,7 +33,7 @@ You can work around this limitation by using the methods above on a reversed vie
 
 ## Proposed solution
 
-Bidirectional collections should include three new methods for symmetry with the existing forward-searching APIs: `last(where:)`, `lastIndex(where:)`, and `lastIndex(of:)`.
+The `Collection` protocol should include three new methods for symmetry with the existing forward-searching APIs: `last(where:)`, `lastIndex(where:)`, and `lastIndex(of:)`. In addition, the two forward-searching methods `index(of:)` and `index(where:)` should be renamed to `firstIndex(of:)` and `firstIndex(where:)`. This renaming would link these methods with the new `first(where:)` method, disambiguate them from index manipulation methods like `index(after:)`, and set up a consistent relationship between the `first...` and `last...` methods.
 
 These additions remove the need for searching in a reversed collection and allow code like the following:
 
@@ -46,56 +46,51 @@ Much better!
 
 ## Detailed design
 
-The three new methods will be added to the standard library in extensions to `BidirectionalCollection`. The implementation is straightforward:
+`lastIndex(where:)` and `last(where:)` will be added to the standard library as `Collection` protocol requirements with default implementations in both `Collection` and `BidirectionalCollection`, which can provide a more efficient implementation. `lastIndex(of:)` while be in an extension constrained to equatable elements. The new and renamed APIs are shown here:
 
 ```swift
-extension BidirectionalCollection {
-    /// Returns the index of the last element of the collection that satisfies 
-    /// the given predicate, or `nil` if no element does.
-    func lastIndex(where predicate: @noescape (Iterator.Element) throws -> Bool) 
-        rethrows -> Index? 
-    {
-        var i = endIndex
-        while i != startIndex {
-            formIndex(before: &i)
-            if try predicate(self[i]) {
-                return i
-            }
-        }
-        return nil
-    }
+protocol Collection {
+    // New methods:
 
     /// Returns the last element of the collection that satisfies the given
     /// predicate, or `nil` if no element does.
     func last(where predicate: @noescape (Iterator.Element) throws -> Bool) 
-        rethrows -> Iterator.Element? 
-    {
-        if let i = try lastIndex(where: predicate) {
-            return self[i]
-        }
-        return nil
-    }
+        rethrows -> Iterator.Element?
+
+    /// Returns the index of the last element of the collection that satisfies 
+    /// the given predicate, or `nil` if no element does.
+    func lastIndex(where predicate: @noescape (Iterator.Element) throws -> Bool) 
+        rethrows -> Index? 
+
+    // Renamed method:
+
+    /// Returns the index of the first element of the collection that satisfies 
+    /// the given predicate, or `nil` if no element does.
+    func firstIndex(where predicate: @noescape (Iterator.Element) throws -> Bool) 
+        rethrows -> Index? 
 }
 
-extension BidirectionalCollection where Iterator.Element: Equatable {
+extension Collection where Iterator.Element: Equatable {
+    // New method:
+
     /// Returns the index of the last element equal to the given element, or 
     /// `nil` if there's no equal element.
-    func lastIndex(of element: Iterator.Element) -> Index? {
-        var i = endIndex
-        while i != startIndex {
-            formIndex(before: &i)
-            if element == self[i] {
-                return i
-            }
-        }
-        return nil
-    }
+    func lastIndex(of element: Iterator.Element) -> Index?
+
+    // Renamed method:
+
+    /// Returns the index of the first element equal to the given element, or 
+    /// `nil` if there's no equal element.
+    func firstIndex(of element: Iterator.Element) -> Index?
 }
 ```
+
+Implementations of these methods can be explored in [this Swift sandbox](http://swiftlang.ng.bluemix.net/#/repl/fc545dd5bcafa352ceac5494fe17421f6391685e1edd70bc1dfa196b6d77dd88).
+
 ## Impact on existing code
 
-This change is strictly additive and should have no impact on existing code.
+The addition of the `last...` methods is strictly additive and should have no impact on existing code. The migration tools should be able to provide a fixit for the simple renaming of `index(of:)` and `index(where:)`.
 
 ## Alternatives considered
 
-For consistency, one suggestion was to rename `index(of:)` and `index(where:)` to `firstIndex(of:)` and `firstIndex(where:)`, respectively. That change is outside the scope of this proposal.
+An earlier proposal limited the proposed new methods to the `BidirectionalCollection` protocol. This isn't a necessary limitation, as the standard library already has methods on forward collections with the same performance characteristics. That earlier proposal also did not include renaming `index(of:)` and `index(where:)` to `firstIndex(of:)` and `firstIndex(where:)`, respectively.
