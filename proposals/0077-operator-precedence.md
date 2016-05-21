@@ -594,7 +594,3 @@ precedence Multiplicative {
   < Exponentiative
 }
 ```
-
-```swift
-precedence Multiplicative : Additive, lower(Exponentiative), associativity(left)
-```
