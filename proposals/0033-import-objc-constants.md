@@ -35,7 +35,7 @@ public let HKQuantityTypeIdentifierLeanBodyMass: String
 
 The aim of this proposal is to encapsulate these strings into an `enum` or a `struct` that conforms to `RawRepresentable` to represent as type `String`. Why bother? When these APIs are used, the methods that use the constants simply take `NSString` parameters where these constants are to be used, such as the methods listed below. For a novice programmer, it’s not immediately clear that these methods take “special” values defined in another file altogether:
 
-```Obejctive-C
+```Objective-C
 + (nullable HKQuantityType *)quantityTypeForIdentifier:(NSString *)identifier;
 + (nullable HKCategoryType *)categoryTypeForIdentifier:(NSString *)identifier;
 + (nullable HKCharacteristicType *)characteristicTypeForIdentifier:(NSString *)identifier;
