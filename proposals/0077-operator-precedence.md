@@ -529,6 +529,14 @@ precedence Multiplicative {
 
 ```swift
 precedence Multiplicative {
+  associativity: left,
+  upper: Additive,
+  lower: Exponentiative
+}
+```
+
+```swift
+precedence Multiplicative {
   associativity left
   upper Additive
   lower Exponentiative
