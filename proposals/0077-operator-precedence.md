@@ -487,7 +487,7 @@ infix operator ||= : Assignment
 
 This would avoid introducing a new keyword.
 
-On the other hand, `precedencegroup` more clearly represents what it declares.
+On the other hand, `precedencegroup` or `precedence` more clearly represent what they declare.
 Additionally, `operator` remains a local keyword.
 
 ### Declare associativity and precedence separately
@@ -521,35 +521,39 @@ precedencerelation * > +
 
 ### Possible syntax variations
 
+Instead of `above` and `below`, there could be `upper` and `lower`, `greaterThan` and `lessThan`, `gt` and `lt`.
+
+Instead of `associativity`, there could be `associate`.
+
 ```swift
 precedencegroup Multiplicative {
   associativity: left
-  precedence: upper(Additive)
-  precedence: lower(Exponentiative)
+  precedence: above(Additive)
+  precedence: below(Exponentiative)
 }
 ```
 
 ```swift
 precedence Multiplicative {
   associativity(left)
-  upper(Additive)
-  lower(Exponentiative)
+  above(Additive)
+  below(Exponentiative)
 }
 ```
 
 ```swift
 precedence Multiplicative {
   associativity: left,
-  upper: Additive,
-  lower: Exponentiative
+  above: Additive,
+  below: Exponentiative
 }
 ```
 
 ```swift
 precedence Multiplicative {
   associativity left
-  upper Additive
-  lower Exponentiative
+  above Additive
+  below Exponentiative
 }
 ```
 
@@ -562,11 +566,11 @@ precedence Multiplicative {
 ```
 
 ```swift
-precedence Multiplicative : associativity(left), upper(Additive), lower(Exponentiative)
+precedence Multiplicative : associativity(left), above(Additive), below(Exponentiative)
 ```
 
 ```swift
-precedence Multiplicative : associativity left, upper Additive, lower Exponentiative
+precedence Multiplicative : associativity left, above Additive, below Exponentiative
 ```
 
 ```swift
@@ -588,8 +592,8 @@ precedence Multiplicative : Additive, left
 // Full syntax for complex cases
 precedence Multiplicative {
   associativity left
-  upper Additive
-  lower Exponentiative
+  above Additive
+  below Exponentiative
 }
 ```
 
