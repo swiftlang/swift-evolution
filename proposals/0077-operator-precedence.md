@@ -134,6 +134,16 @@ precedencegroup B { precedence(> A) precedence(< C) }
 
 By transitivity, precedence of C becomes greater than precedence of A.
 
+Multiple precedence relationships can be stated for a single precedence group. Example:
+
+```swift
+precedencegroup A { }
+precedencegroup C { }
+precedencegroup B { precedence(> A) precedence(< C) }
+```
+
+By transitivity, precedence of C becomes greater than precedence of A.
+
 ### Default precedence group
 
 If `infix` operator does not state group that it belongs to, it is assigned to `Default` group, which is defined as follows:

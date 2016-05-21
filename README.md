@@ -111,7 +111,7 @@ below:
 * [SE-0028: Modernizing Swift's Debugging Identifiers (\__FILE__, etc)](proposals/0028-modernizing-debug-identifiers.md)
 * [SE-0029: Remove implicit tuple splat behavior from function applications](proposals/0029-remove-implicit-tuple-splat.md)
 * [SE-0031: Adjusting inout Declarations for Type Decoration](proposals/0031-adjusting-inout-declarations.md)
-* [SE-0032: Add `find` method to `SequenceType`](proposals/0032-sequencetype-find.md)
+* [SE-0032: Add `first(where:)` method to `SequenceType`](proposals/0032-sequencetype-find.md)
 * [SE-0033: Import Objective-C Constants as Swift Types](proposals/0033-import-objc-constants.md)
 * [SE-0034: Disambiguating Line Control Statements from Debugging Identifiers](proposals/0034-disambiguating-line.md)
 * [SE-0037: Clarify interaction between comments & operators](proposals/0037-clarify-comments-and-operators.md)
@@ -162,6 +162,7 @@ subsequent release.
 * [SE-0080: Failable Numeric Conversion Initializers](proposals/0080-failable-numeric-initializers.md)
 * [SE-0081: Move `where` clause to end of declaration](proposals/0081-move-where-expression.md)
 * [SE-0082: Package Manager Editable Packages](proposals/0082-swiftpm-package-edit.md)
+* [SE-0088: Modernize libdispatch for Swift 3 naming conventions](proposals/0088-libdispatch-for-swift3.md)
 * [SE-0092: Typealiases in protocols and protocol extensions](proposals/0092-typealiases-in-protocols.md)
 
 ## Swift 2.2 - Released on March 21, 2016

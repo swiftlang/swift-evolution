@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0088](0088-libdispatch-for-swift3.md)
 * Author(s): [Matt Wright](https://github.com/mwwa)
-* Status: **Active Review: May 10 ... May 17**
+* Status: **Accepted with Revisions**
 * Review manager: [Chris Lattner](http://github.com/lattner)
 * Revision: 2
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/ef372026d5f7e46848eb2a64f292328028b667b9/proposals/0088-libdispatch-for-swift3.md)
