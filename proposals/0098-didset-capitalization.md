@@ -1,9 +1,9 @@
-# Adopting consistent keyword casing in Swift
+# Lowercase `didSet` and `willSet` for more consistent keyword casing
 
-* Proposal: TBD
+* Proposal: [SE-0098](0098-didset-capitalization.md)
 * Author: [Erica Sadun](https://github.com/erica)
-* Status: TBD
-* Review manager: TBD
+* Status: **Review scheduled for May 24...30**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
