@@ -28,10 +28,8 @@ Upon adoption, Swift will rename:
 
 ## Impact on Existing Code
 
-This proposal requires migration support to rename keywords that use the old convention to
-adopt the new convention. This is a simple substitution that should limit effect on code.
+This proposal requires migration support to rename keywords that use the old convention to adopt the new convention. This is a simple substitution with limited impact on existing code.
 
 ## Alternatives Considered
 
-The core team may consider exceptions for terms of art. For example, "no return" indicates
-"there is no return from this function", as in the "point of no return".
+The core team may consider exceptions for terms of art. For example, "no return" indicates "there is no return from this function", as in the "point of no return".
