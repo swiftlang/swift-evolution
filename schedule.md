@@ -23,6 +23,7 @@ proposals in that process.
 
 * May 24...30 [SE-0095: Replace `protocol<P1,P2>` syntax with `Any<P1,P2>`](proposals/0095-any-as-existential.md)
 * May 24...30 [SE-0096: Moving `dynamicType` to the standard library](proposals/0096-dynamictype.md)
+* May 24...30 [SE-0097: Normalizing naming for "negative" attributes](proposals/0097-negative-attributes.md)
 
 
 

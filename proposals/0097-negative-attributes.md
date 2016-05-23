@@ -1,9 +1,9 @@
 # Normalizing naming for "negative" attributes
 
-* Proposal: TBD
+* Proposal: [SE-0097](0097-negative-attributes.md)
 * Author: [Erica Sadun](https://github.com/erica)
-* Status: TBD
-* Review manager: TBD
+* Status: **Review scheduled for May 24...30**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
