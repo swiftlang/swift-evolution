@@ -526,6 +526,15 @@ Instead of `above` and `below`, there could be `upper` and `lower`, `greaterThan
 Instead of `associativity`, there could be `associate`.
 
 ```swift
+// Syntax used throughout this proposal
+precedencegroup Multiplicative {
+  associativity(left)
+  precedence(> Additive)
+  precedence(< Exponentiative)
+}
+```
+
+```swift
 precedencegroup Multiplicative {
   associativity: left
   precedence: above(Additive)
@@ -608,3 +617,28 @@ precedence Multiplicative {
   < Exponentiative
 }
 ```
+
+## Note for review
+
+Swift Core team is supposed to make a decision on syntax of precedence groups declarations.
+It may be from "Alternatives considered" variants, modifications of them, or any different syntax.
+
+During review on swift-evolution, many participants showed preference to the following one:
+
+```swift
+precedence Multiplicative {
+  associativity left
+  above Additive
+  below Exponentiative
+}
+```
+
+Or its slightly modified forms.
+
+-------------------------------------------------------------------------------
+
+# Rationale
+
+On [Date], the core team decided to **(TBD)** this proposal.
+When the core team makes a decision regarding this proposal,
+their rationale for the decision will be written here.
