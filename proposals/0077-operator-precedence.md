@@ -78,10 +78,10 @@ infix operator - : Additive
 ### Precedence mechanism
 
 Concept of a single precedence hierarchy is removed.
-Instead, to omit parentheses in expression with two neighbouring `infix` operators, precedence relation *must* be defined between their precedence groups.
+Instead, to omit parentheses in expression with two neighbouring `infix` operators, precedence relationship *must* be defined between their precedence groups.
 
 It is performed by placing `precedence(RELATION OTHER_GROUP_NAME)` inside body of our precedence group,
-where `RELATION` is one of `<`, `=`, `>`. Example:
+where `RELATION` is `<` or `>`. Example:
 
 ```swift
 precedencegroup Additive {
@@ -105,7 +105,7 @@ infix operator & : BitwiseAnd
 Precedence equality can only be defined for precedence groups with same associativity.
 
 Only one declaration of the same operator / precedence group is allowed,
-meaning that new precedence relations between existing groups cannot be added.
+meaning that new precedence relationships between existing groups cannot be added.
 
 ### Transitive precedence propagation
 
@@ -122,7 +122,17 @@ precedencegroup BitwiseAnd {
 
 Here, `Multiplicative > Additive` and `BitwiseAnd < Additive` imply `Multiplicative > BitwiseAnd`.
 
-Compiler will also check that all precedence relations are transitive. If we define `A < B`, `B < C` and `A > C`, it will be a compilation error.
+Compiler will also check that all precedence relationships are transitive. If we define `A < B`, `B < C` and `A > C`, it will be a compilation error.
+
+Multiple precedence relationships can be stated for a single precedence group. Example:
+
+```swift
+precedencegroup A { }
+precedencegroup C { }
+precedencegroup B { precedence(> A) precedence(< C) }
+```
+
+By transitivity, precedence of C becomes greater than precedence of A.
 
 Multiple precedence relationships can be stated for a single precedence group. Example:
 
@@ -176,6 +186,23 @@ infix operator ?: : Ternary
 infix operator = : Assignment
 ```
 
+### Joining unrelated precedence groups
+
+Precedence relationships that, by transitivity rule, create relationship between two imported groups, is an error. Example:
+
+```swift
+// Module X
+precedencegroup A { }
+precedencegroup C { }
+
+// Module Y
+import X
+precedencegroup B { precedence(> A) precedence(< C) }
+```
+
+This results in *compilation error* "B uses transitivity to define relationship between imported groups A and C".
+The rationale behind this is that otherwise one can create relationships between standard precedence groups that are confusing for the reader.
+
 ### Grammar
 
 `precedencegroup` keyword will be added. `assignment` local keyword will be removed.
@@ -203,7 +230,7 @@ infix operator = : Assignment
 
 *precedence-group-relation* → `precedence` `(` *precedence-group-relation-option* *precedence-group-name* `)`
 
-*precedence-group-relation-option* → `<` | `>` | `=`
+*precedence-group-relation-option* → `<` | `>`
 
 *precedence-group-name* → *identifier*
 
@@ -259,6 +286,7 @@ precedencegroup BitwiseShift {
   precedence(> Multiplicative)
 }
 
+// infix operator = : Assignment
 infix operator *= : Assignment
 infix operator /= : Assignment
 infix operator %= : Assignment
@@ -271,6 +299,8 @@ infix operator ^= : Assignment
 infix operator |= : Assignment
 infix operator &&= : Assignment
 infix operator ||= : Assignment
+
+// infix operator ?: : Ternary
 
 infix operator && : LogicalAnd
 infix operator || : LogicalOr
@@ -285,6 +315,11 @@ infix operator === : Comparative
 infix operator ~= : Comparative
 
 infix operator ?? : NilCoalescing
+
+// infix operator as : Cast
+// infix operator as? : Cast
+// infix operator as! : Cast
+// infix operator is : Cast
 
 infix operator ..< : Range
 infix operator ... : Range
@@ -331,8 +366,10 @@ prefix operator +
 prefix operator -
 
 precedencegroup Assignment {
+  associativity(right)
 }
 precedencegroup Ternary {
+  associativity(right)
   precedence(> Assignment)
 }
 precedencegroup Default {
@@ -410,6 +447,11 @@ infix operator ... : Range
 
 infix operator ?? : NilCoalescing
 
+// infix operator as : Cast
+// infix operator as? : Cast
+// infix operator as! : Cast
+// infix operator is : Cast
+
 infix operator < : Comparative
 infix operator <= : Comparative
 infix operator > : Comparative
@@ -422,6 +464,9 @@ infix operator ~= : Comparative
 infix operator && : LogicalAnd
 infix operator || : LogicalOr
 
+// infix operator ?: : Ternary
+
+// infix operator = : Assignment
 infix operator *= : Assignment
 infix operator /= : Assignment
 infix operator %= : Assignment
@@ -442,17 +487,21 @@ infix operator ||= : Assignment
 
 This would avoid introducing a new keyword.
 
-On the other hand, `precedencegroup` more clearly represents what it declares.
+On the other hand, `precedencegroup` or `precedence` more clearly represent what they declare.
 Additionally, `operator` remains a local keyword.
 
-### Define precedence relationships outside of group declarations
+### Declare associativity and precedence separately
 
 ```swift
-precedencegroup B : associativity(left)
-precedencerelation B > A
-precedencerelation B < C
-infix operator <$> : B
+associativity Multiplicative left
+precedence Multiplicative > Additive
+precedence Exponentiative > Multiplicative
 ```
+
+Appearence of precedence group name in any of these "declarations" would mean declaration of the precedence group.
+Precedence relationship declaration would only allow `>` sign for consistency.
+
+Limitations on connecting unrelated imported groups could still hold.
 
 ### Do not use precedence groups
 
@@ -472,11 +521,128 @@ precedencerelation * > +
 
 ### Possible syntax variations
 
-We could use comma instead of parentheses and/or words instead of comparison symbols:
+Instead of `above` and `below`, there could be:
+- `upper` and `lower`
+- `greaterThan` and `lessThan`
+- `gt` and `lt`
+- `before` and `after`
+
+Instead of `associativity`, there could be `associate`.
 
 ```swift
-precedencegroup Comparative {
-  associativity: left
-  precedence: greater(LogicalAnd)
+// Syntax used throughout this proposal
+precedencegroup Multiplicative {
+  associativity(left)
+  precedence(> Additive)
+  precedence(< Exponentiative)
 }
 ```
+
+```swift
+precedencegroup Multiplicative {
+  associativity: left
+  precedence: above(Additive)
+  precedence: below(Exponentiative)
+}
+```
+
+```swift
+precedence Multiplicative {
+  associativity(left)
+  above(Additive)
+  below(Exponentiative)
+}
+```
+
+```swift
+precedence Multiplicative {
+  associativity: left,
+  above: Additive,
+  below: Exponentiative
+}
+```
+
+```swift
+precedence Multiplicative {
+  associativity left
+  above Additive
+  below Exponentiative
+}
+```
+
+```swift
+precedence Multiplicative {
+  associativity left
+  > Additive
+  < Exponentiative
+}
+```
+
+```swift
+precedence Multiplicative : associativity(left), above(Additive), below(Exponentiative)
+```
+
+```swift
+precedence Multiplicative : associativity left, above Additive, below Exponentiative
+```
+
+```swift
+precedence Multiplicative > Additive, < Exponentiative, associativity left
+```
+
+```swift
+precedence left Multiplicative > Additive, < Exponentiative
+```
+
+```swift
+precedence associativity(left) Multiplicative > Additive, < Exponentiative
+```
+
+```swift
+// Only `>` relationships, associativity goes last
+precedence Multiplicative : Additive, left
+
+// Full syntax for complex cases
+precedence Multiplicative {
+  associativity left
+  above Additive
+  below Exponentiative
+}
+```
+
+```swift
+// Only `>` relationships, associativity goes last
+precedence Multiplicative > Additive, left
+
+// Full syntax for complex cases
+precedence Multiplicative {
+  associativity left
+  > Additive
+  < Exponentiative
+}
+```
+
+## Note for review
+
+Swift Core team is supposed to make a decision on syntax of precedence groups declarations.
+It may be from "Alternatives considered" variants, modifications of them, or any different syntax.
+
+During review on swift-evolution, many participants showed preference to the following one:
+
+```swift
+precedence Multiplicative {
+  associativity left
+  above Additive
+  below Exponentiative
+}
+```
+
+Or its slightly modified forms.
+
+-------------------------------------------------------------------------------
+
+# Rationale
+
+On [Date], the core team decided to **(TBD)** this proposal.
+When the core team makes a decision regarding this proposal,
+their rationale for the decision will be written here.
