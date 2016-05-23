@@ -521,7 +521,11 @@ precedencerelation * > +
 
 ### Possible syntax variations
 
-Instead of `above` and `below`, there could be `upper` and `lower`, `greaterThan` and `lessThan`, `gt` and `lt`.
+Instead of `above` and `below`, there could be:
+- `upper` and `lower`
+- `greaterThan` and `lessThan`
+- `gt` and `lt`
+- `before` and `after`
 
 Instead of `associativity`, there could be `associate`.
 
