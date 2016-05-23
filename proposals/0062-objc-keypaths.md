@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0062](https://github.com/apple/swift-evolution/blob/master/proposals/0062-objc-keypaths.md)
 * Author: [David Hart](https://github.com/hartbit)
-* Status: **Accepted for Swift 3** ([Bug](https://bugs.swift.org/browse/SR-1237))
+* Status: **Implemented in Swift 3**
 * Review manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction
