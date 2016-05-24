@@ -16,8 +16,7 @@ Swift-evolution thread:
 
 ## Motivation
 
-Converting `no`-prefixed attributes to `non` changes them into a single word that 
-describes how they modify the syntax they decorate.
+Swift is an opinionated language. One opinion it adheres to is that attributes should be built around "non", and not "no", avoiding camel casing bumps. Converting `no`-prefixed attributes to `non`-integrated attributes establishes a single word that describes how each attribute modifies the syntax they decorate.
 
 ## Detailed Design
 
