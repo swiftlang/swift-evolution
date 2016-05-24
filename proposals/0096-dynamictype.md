@@ -32,11 +32,11 @@ Upon adoption of this proposal, Swift removes the `dynamicType` keyword and intr
 dynamicType(value) // returns the dynamicType of value
 ```
 
-The signature will look something like:
+The function will look like:
 
 ```
 /// Returns an instance's dynamic runtime type
-func dynamicType<T>(_ t: T) -> T.Type
+func dynamicType<T>(_ : T) -> T.Type { return T.self }
 ```
 
 ## Impact on Existing Code
@@ -46,3 +46,7 @@ Adopting this proposal will break code and require migration support. The postfi
 ## Alternatives Considered
 
 Not adopting this proposal
+
+## Acknowledgements
+
+Thank you, Nate Cook
