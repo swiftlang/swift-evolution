@@ -8,7 +8,7 @@
 ## Introduction
 
 This proposal normalizes naming for "negative" attributes by adopting a rule 
-that replaces camel-cased property names starting with `no` with adjectives 
+that replaces property names starting with `no` with adjectives 
 starting with `non`. 
 
 Swift-evolution thread:
