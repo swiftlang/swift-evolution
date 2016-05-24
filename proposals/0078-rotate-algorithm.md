@@ -2,7 +2,7 @@
 
 - Proposal: [SE-0078](0078-rotate-algorithm.md)
 - Authors: [Nate Cook](https://github.com/natecook1000) & [Sergey Bolshedvorsky](https://github.com/bolshedvorsky)
-- Status: **Active review May 3...9, 2016**
+- Status:  **Deferred from Swift 3 [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000165.html)**
 - Review manager: [Chris Lattner](http://github.com/lattner)
 - Revision: 3
 - Previous Revisions: [1][rev-2] (as submitted for review), [2][rev-2]
@@ -320,3 +320,5 @@ The primary alternative is to not include these methods in the standard library,
 The [first revision of this proposal][rev-1] used `firstFrom` as the parameter name for the `rotate` method and didn't add either `rotate` or `reverse` as protocol requirements. In addition, the `RotatedCollection` type was only used for random-access collections—other collections used the existing `FlattenCollection` instead.
 
 [Another version][rev-2] also made the `reverse()` method choose different algorithms for bidirectional and random-access collections. Without evidence that this would offer a significant performance benefit, this aspect of the proposal has been removed. 
+
+

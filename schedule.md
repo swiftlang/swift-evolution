@@ -6,7 +6,6 @@ proposals in that process.
 
 ## Active reviews
 
-* May 3...9 [SE-0078: Implement a rotate algorithm, equivalent to std::rotate() in C++](proposals/0078-rotate-algorithm.md)
 * May 9...16 [SE-0086: Drop NS Prefix in Swift Foundation](proposals/0086-drop-foundation-ns.md)
 * May 10...16 [SE-0083: Remove bridging conversion behavior from dynamic casts](proposals/0083-remove-bridging-from-dynamic-casts.md)
 * May 10...16 [SE-0084: Allow trailing commas in parameter lists and tuples](proposals/0084-trailing-commas.md)
