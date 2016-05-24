@@ -36,7 +36,7 @@ The signature will look something like:
 
 ```
 /// Returns an instance's dynamic runtime type
-func dynamicType<T>(t: T) -> T.Type
+func dynamicType<T>(_ t: T) -> T.Type
 ```
 
 ## Impact on Existing Code
