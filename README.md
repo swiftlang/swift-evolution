@@ -135,6 +135,7 @@ below:
 * [SE-0070: Make Optional Requirements Objective-C-only](proposals/0070-optional-requirements.md)
 * [SE-0071: Allow (most) keywords in member references](proposals/0071-member-keywords.md)
 * [SE-0072: Fully eliminate implicit bridging conversions from Swift](proposals/0072-eliminate-implicit-bridging-conversions.md)
+* [SE-0085: Package Manager Command Names](proposals/0085-package-manager-command-name.md)
 
 ### Accepted proposals which do not have a complete implementation
 

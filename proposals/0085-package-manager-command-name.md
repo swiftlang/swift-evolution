@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0085](0085-package-manager-command-name.md)
 * Author(s): [Rick Ballard](https://github.com/rballard), [Daniel Dunbar](http://github.com/ddunbar)
-* Status: **Accepted**
+* Status: **Implemented in Swift 3**
 * Review manager: [Daniel Dunbar](http://github.com/ddunbar)
 
 ## Note
