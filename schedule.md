@@ -17,14 +17,12 @@ proposals in that process.
 * May 17...23 [SE-0091: Improving operator requirements in protocols](proposals/0091-improving-operators-in-protocols.md)
 * May 19...23 [SE-0093: Adding a public `base` property to slices](proposals/0093-slice-base.md)
 * May 19...23 [SE-0094: Add sequence(initial:next:) and sequence(state:next:) to the stdlib](proposals/0094-sequence-function.md)
-
-## Upcoming reviews
-
 * May 24...30 [SE-0095: Replace `protocol<P1,P2>` syntax with `Any<P1,P2>`](proposals/0095-any-as-existential.md)
-* May 24...30 [SE-0096: Moving `dynamicType` to the standard library](proposals/0096-dynamictype.md)
+* May 24...30 [SE-0096: Converting dynamicType from a property to an operator](proposals/0096-dynamictype.md)
 * May 24...30 [SE-0097: Normalizing naming for "negative" attributes](proposals/0097-negative-attributes.md)
 * May 24...30 [SE-0098: Lowercase `didSet` and `willSet` for more consistent keyword casing](proposals/0098-didset-capitalization.md)
 
+## Upcoming reviews
 
 ## Proposals awaiting scheduling
 

@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0096](0096-dynamictype.md)
 * Author: [Erica Sadun](https://github.com/erica)
-* Status: **Review scheduled for May 24...30**
+* Status: **Active review May 24...30**
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction

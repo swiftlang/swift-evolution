@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0095](0095-any-as-existential.md)
 * Author: [Adrian Zubarev](https://github.com/DevAndArtist), Austin Zheng
-* Status: **Scheduled for review May 24...30, 2016**
+* Status: **Active review May 24...30, 2016**
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
