@@ -1,4 +1,4 @@
-# Add `last(where:)` and `lastIndex(where:)` Methods to Bidirectional Collections
+# Add `last(where:)` and `lastIndex(where:)` Methods to Collections
 
 * Proposal: [SE-0000]()
 * Author: [Nate Cook](https://github.com/natecook1000)
@@ -7,7 +7,7 @@
 
 ## Introduction
 
-The standard library should include methods for finding the last element of a bidirectional collection that matches a predicate, along with the index of that element.
+The standard library should include methods for finding the last element of a collection that matches a predicate, along with the index of that element.
 
 * Swift-evolution thread: [\[swift-evolution\] (Draft) Add last(where:) and lastIndex(where:)	methods](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160509/017048.html)
 * Related Bug: [\[SR-1504\] RFE: index(of:) but starting from end](https://bugs.swift.org/browse/SR-1504)
@@ -23,7 +23,7 @@ a.index(of: 10)                     // 2
 a.index(where: { $0 > 25 })         // 1
 ```
 
-Unfortunately, there are no such methods that search from the end of a bidirectional collection. Finding the last of a particular kind of element has multiple applications, particularly with text, such as wrapping a long string into lines of a maximum length or trimming whitespace from the beginning and end of a string.
+Unfortunately, there are no such methods that search from the end. Finding the last of a particular kind of element has multiple applications, particularly with text, such as wrapping a long string into lines of a maximum length or trimming whitespace from the beginning and end of a string.
 
 You can work around this limitation by using the methods above on a reversed view of a collection, but the resulting code is truly dreadful. For example, to find the corresponding last index to `a.index(where: { $0 > 25 })`, something lik this unholy incantation is required:
 
