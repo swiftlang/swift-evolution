@@ -68,7 +68,7 @@ long term:
   syntax and semantics of the core language.  This means that some obscure or
   problematic features will be removed, we focus on improving consistency of
   syntax in many small ways (e.g. by 
-  [revising handling of parameter labels](proposals/0046-first-label.md), and
+  [revising handling of parameter labels](proposals/0046-first-label.md)), and
   focus on forward looking improvements to the type system.  This serves the
   overall goal of making Swift a simpler, more predictable, and more consistent
   language over the long term.
