@@ -165,6 +165,7 @@ subsequent release.
 * [SE-0082: Package Manager Editable Packages](proposals/0082-swiftpm-package-edit.md)
 * [SE-0088: Modernize libdispatch for Swift 3 naming conventions](proposals/0088-libdispatch-for-swift3.md)
 * [SE-0092: Typealiases in protocols and protocol extensions](proposals/0092-typealiases-in-protocols.md)
+* [SE-0094: Add sequence(initial:next:) and sequence(state:next:) to the stdlib](proposals/0094-sequence-function.md)
 
 ## Swift 2.2 - Released on March 21, 2016
 

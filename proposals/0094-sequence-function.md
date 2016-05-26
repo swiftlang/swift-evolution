@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0094](0094-sequence-function.md)
 * Authors: [Kevin Ballard](https://github.com/kballard), [Erica Sadun](http://github.com/erica)
-* Status: **Active Review: May 19...May 23**
+* Status: **Accepted for Swift 3** [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000170.html)
 * Review manager: [Chris Lattner](http://github.com/lattner)
 * Previous proposal: [SE-0045](0045-scan-takewhile-dropwhile.md)
 
