@@ -204,6 +204,8 @@ as practical with Swift 2.0.
 * [SE-0056: Allow trailing closures in `guard` conditions](proposals/0056-trailing-closures-in-guard.md)
 * [SE-0073: Marking closures as executing exactly once](proposals/0073-noescape-once.md)
 * [SE-0074: Implementation of Binary Search functions](proposals/0074-binary-search.md)
+* [SE-0084: Allow trailing commas in parameter lists and tuples](proposals/0084-trailing-commas.md)
+* [SE-0087: Rename `lazy` to `@lazy`](proposals/0087-lazy-attribute.md)
 
 ## Review
 [Swift Evolution Review Schedule](https://github.com/apple/swift-evolution/blob/master/schedule.md)
@@ -218,4 +220,6 @@ as practical with Swift 2.0.
 * [SE-0026: Abstract classes and methods](proposals/0026-abstract-classes-and-methods.md)
 * [SE-0058: Allow Swift types to provide custom Objective-C representations](proposals/0058-objectivecbridgeable.md)
 * [SE-0078: Implement a rotate algorithm, equivalent to std::rotate() in C++](proposals/0078-rotate-algorithm.md)
+* [SE-0083: Remove bridging conversion behavior from dynamic casts](proposals/0083-remove-bridging-from-dynamic-casts.md)
+
 
