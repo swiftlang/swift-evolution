@@ -1,14 +1,19 @@
-# Add sequence(initial:next:) and sequence(state:next:) to the stdlib
+# Add sequence(first:next:) and sequence(state:next:) to the stdlib
 
 * Proposal: [SE-0094](0094-sequence-function.md)
 * Authors: [Kevin Ballard](https://github.com/kballard), [Erica Sadun](http://github.com/erica)
-* Status: **Accepted for Swift 3** [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000170.html)
+* Status: **Accepted for Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000170.html), [Bug][])
 * Review manager: [Chris Lattner](http://github.com/lattner)
 * Previous proposal: [SE-0045](0045-scan-takewhile-dropwhile.md)
+* Revision: 2
+* Previous Revision: [1][rev-1]
+
+[Bug]: https://bugs.swift.org/browse/SR-1622
+[rev-1]: https://github.com/apple/swift-evolution/blob/7d220a152a681e28761493c7d9781dd867a04cf7/proposals/0094-sequence-function.md
 
 ## Introduction
 
-This proposal introduces `sequence(initial:next:)` and `sequence(state:next:)`,
+This proposal introduces `sequence(first:next:)` and `sequence(state:next:)`,
 a pair of global functions that return (potentially-infinite) sequences of lazy
 applications of a closure to an initial value or a mutable state.
 
@@ -36,7 +41,7 @@ acceptance of [SE-0007][].
 apply non-mathematical operations, as in the following examples:
 
 ```swift
-for x in sequence(initial: 0.1, next: { $0 * 2 }).prefix(while: { $0 < 4 }) {
+for x in sequence(first: 0.1, next: { $0 * 2 }).prefix(while: { $0 < 4 }) {
     // 0.1, 0.2, 0.4, 0.8, ...
 }
 ```
@@ -44,7 +49,7 @@ for x in sequence(initial: 0.1, next: { $0 * 2 }).prefix(while: { $0 < 4 }) {
 and
 
 ```swift
-for view in sequence(initial: someView, next: { $0.superview }) {
+for view in sequence(first: someView, next: { $0.superview }) {
     // someView, someView.superview, someView.superview.superview, ...
 }
 ```
@@ -54,20 +59,20 @@ for view in sequence(initial: someView, next: { $0.superview }) {
 The declarations for the proposed functions look like:
 
 ```swift
-public func sequence<T>(initial: T, next: T -> T?) -> UnfoldSequence<T>
+public func sequence<T>(first: T, next: T -> T?) -> UnfoldSequence<T>
 public func sequence<T, State>(state: State, next: (inout State) -> T?) -> UnfoldSequence<T>
 ```
 
 Both functions return potentially-infinite sequences of lazy repeated
 applications of a function to an initial value or a state.
 
-The first function, `sequence(initial:next:)`, yields the `initial` value,
-followed by a series of values derived from invoking `next` using the previous
-value. The yielded sequence looks like `[initial, next(initial),
-next(next(initial)), ...` . This sequence terminates when the `next` function
-returns `nil`. If the function never returns `nil` the sequence is infinite.
-This function is equivalent to Haskell's [`iterate`][haskell-iterate], however
-the Swift version is not always infinite and may terminate.
+The first function, `sequence(first:next:)`, yields the `first` value, followed
+by a series of values derived from invoking `next` using the previous value.
+The yielded sequence looks like `[first, next(first), next(next(first)), ...` .
+This sequence terminates when the `next` function returns `nil`. If the
+function never returns `nil` the sequence is infinite. This function is
+equivalent to Haskell's [`iterate`][haskell-iterate], however the Swift version
+is not always infinite and may terminate.
 
 [haskell-iterate]: http://hackage.haskell.org/package/base-4.8.2.0/docs/Prelude.html#v:iterate
 
@@ -98,7 +103,7 @@ The name `sequence` best describes this function in Swift. `unfold` on its own
 is not descriptive and has no meaning to developers not familiar with functional
 programming languages.
 
-The function `sequence(initial:next:)` can be expressed using
+The function `sequence(first:next:)` can be expressed using
 `sequence(state:next:)`. We include it in this proposal due to this form's high
 utility. Correctly reimplementing this form in terms of `sequence(state:next:)`
 is non-trivial; the simple solution is more eager than it should be.
