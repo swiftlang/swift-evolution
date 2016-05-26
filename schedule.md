@@ -22,6 +22,7 @@ proposals in that process.
 
 * [SE-0012: Add `@noescape` to public library API](proposals/0012-add-noescape-to-public-library-api.md)
 * [SE-0079: Allow using optional binding to upgrade `self` from a weak to strong reference](proposals/0079-upgrade-self-from-weak-to-strong.md)
+* [SE-0099: Restructuring Condition Clauses](proposals/0099-conditionclauses.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 

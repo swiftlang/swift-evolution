@@ -1,6 +1,6 @@
 # Restructuring Condition Clauses
 
-* Proposal: TBD
+* Proposal: [SE-0099](0099-conditionclauses.md)
 * Author: [Erica Sadun](https://github.com/erica), [Chris Lattner](https://github.com/lattner)
 * Status: TBD
 * Review manager: TBD
