@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0090](0090-remove-dot-self.md)
 * Authors: [Joe Groff](https://github.com/jckarter), [Tanner Nelson](https://github.com/tannernelson)
-* Status: **Active Review: May 17...23**
+* Status: **Deferred from Swift 3** [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000174.html)
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction

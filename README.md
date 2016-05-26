@@ -221,5 +221,6 @@ as practical with Swift 2.0.
 * [SE-0058: Allow Swift types to provide custom Objective-C representations](proposals/0058-objectivecbridgeable.md)
 * [SE-0078: Implement a rotate algorithm, equivalent to std::rotate() in C++](proposals/0078-rotate-algorithm.md)
 * [SE-0083: Remove bridging conversion behavior from dynamic casts](proposals/0083-remove-bridging-from-dynamic-casts.md)
+* [SE-0090: Remove `.self` and freely allow type references in expressions](proposals/0090-remove-dot-self.md)
 
 
