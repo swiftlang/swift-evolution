@@ -2,7 +2,7 @@
 
 * Proposal: SE-0058
 * Authors: [Russ Bishop](https://github.com/russbishop), [Doug Gregor](https://github.com/DougGregor)
-* Status: **[Deferred](#rationale)**
+* Status: **[Deferred]** ([Rationale](#rationale))
 * Review manager: [Joe Groff](https://github.com/jckarter)
 
 

@@ -1,7 +1,7 @@
 # Adding a public `base` property to slices
 
 * Proposal: [SE-0093](https://github.com/apple/swift-evolution/blob/master/proposals/0093-slice-base.md)
-* Author(s): [Max Moiseev](https://github.com/moiseev)
+* Author: [Max Moiseev](https://github.com/moiseev)
 * Status: **Active Review: May 19...23**
 * Review manager: [Dave Abrahams](https://github.com/dabrahams)
 

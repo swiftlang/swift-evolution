@@ -2,7 +2,7 @@
 
 - Proposal: [SE-0078](0078-rotate-algorithm.md)
 - Authors: [Nate Cook](https://github.com/natecook1000) & [Sergey Bolshedvorsky](https://github.com/bolshedvorsky)
-- Status:  **Deferred from Swift 3 [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000165.html)**
+- Status:  **Deferred from Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000165.html))
 - Review manager: [Chris Lattner](http://github.com/lattner)
 - Revision: 3
 - Previous Revisions: [1][rev-2] (as submitted for review), [2][rev-2]

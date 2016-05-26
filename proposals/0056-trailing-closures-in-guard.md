@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0056](0056-trailing-closures-in-guard.md)
 * Author: [Chris Lattner](https://github.com/lattner)
-* Status: **Rejected ([Rationale](#rationale))**
+* Status: **Rejected** ([Rationale](#rationale))
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction and Motivation
