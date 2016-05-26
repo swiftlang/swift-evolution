@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0073](0073-noescape-once.md)
 * Authors: [Félix Cloutier](https://github.com/zneak), [Gwendal Roué](https://github.com/groue)
-* Status: **Rejected for Swift 3**
+* Status: **Rejected for Swift 3** ([Rationale](#rationale))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction

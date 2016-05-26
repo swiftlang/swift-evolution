@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0081](0081-move-where-expression.md)
 * Authors: [David Hart](https://github.com/hartbit), [Robert Widmann](https://github.com/CodaFi), [Pyry Jahkola](https://github.com/pyrtsa)
-* Status: **[Accepted](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000161.html) for Swift 3** ([Bug](https://bugs.swift.org/browse/SR-1561))
+* Status: **Accepted for Swift 3** ([Rationale]((https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000161.html)), [Bug](https://bugs.swift.org/browse/SR-1561))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction

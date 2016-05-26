@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0066](https://github.com/apple/swift-evolution/blob/master/proposals/0066-standardize-function-type-syntax.md)
 * Author: [Chris Lattner](https://github.com/lattner)
-* Status: **Accepted** for Swift 3
+* Status: **Accepted for Swift 3**
 * Review manager: [Doug Gregor](https://github/com/DougGregor)
 
 ## Introduction
