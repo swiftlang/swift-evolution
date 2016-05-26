@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0089](0089-rename-string-reflection-init.md)
 * Author: [Austin Zheng](https://github.com/austinzheng)
-* Status: **Active Review: May 17...23**
+* Status: **Returned for revision** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000175.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
