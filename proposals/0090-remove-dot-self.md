@@ -4,6 +4,7 @@
 * Authors: [Joe Groff](https://github.com/jckarter), [Tanner Nelson](https://github.com/tannernelson)
 * Status: **Deferred from Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000174.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
+* Revision: 2
 
 ## Introduction
 
@@ -48,11 +49,13 @@ expressions:
 
 - Swift reuses several expression forms as type sugar for common types:
   `T?` for `Optional<T>`, `[T]` for `Array<T>`, and `[T: U]` for
-  `Dictionary<T, U>`. Since bare type references are not currently allowed
-  in expressions, this avoids conflicts between the type reference and
-  expression forms; `[T].self` can only be a type reference to `Array<T>`,
-  since a single-element array containing the type object for `T` has to be
-  spelled `[T.self]`.
+  `Dictionary<T, U>`. `(T, U, ...)` is also both the primitive syntax for
+  tuple types and for tuple literals. Since bare type references are not
+  currently allowed in expressions, this avoids conflicts between the type
+  reference and expression forms; `[T].self` can only be a type reference to
+  `Array<T>`, since a single-element array containing the type object for `T`
+  has to be spelled `[T.self]`. (Note that this fails for `()`, which is
+  both a valid type reference and expression.)
 
 Though precedented by other languages (arguably including Objective-C, since
 one can only indirectly message classes via `[Class method]` and cannot
@@ -231,11 +234,11 @@ grammatical disambiguator.
 
 The semantic problem of disambiguating type sugar from literal expressions can
 be considered a contextual typing problem and handled during type checking. If
-`x?`, `[x]`, or `[x: y]` appear in a metatype type context, we can attempt the
-type reference interpretation. If `x?` is applied to an optional value `x`, or
-`[x]` appears in `ArrayLiteralConvertible` context, or `[x: y]` appears in
-`DictionaryLiteralConvertible` context, then we attempt the expression
-interpretation:
+`x?`, `[x]`, `(x, y, ...)`, or `[x: y]` appear in a metatype type context, we
+can attempt the type reference interpretation. If `x?` is applied to an
+optional value `x`, or `[x]` appears in `ArrayLiteralConvertible` context, or
+`[x: y]` appears in `DictionaryLiteralConvertible` context, then we attempt the
+expression interpretation:
 
   ```swift
   func useType(_ type: Any.Type) {}
@@ -259,14 +262,31 @@ syntax is applied to concrete type references, not metatype variables:
                  // array literal doesn't type-check
   ```
 
-If type context is not available, we can favor a type reference if one can be
-formed, and fall back to the container literal if that's not possible:
+If type context is not available, the compiler should reject a potentially
+ambiguous expression:
 
   ```swift
-  let x = [Int] // binds x to the type object Array<Int>
+  let x = [Int] // Error, could be either Array(Int) or Array<Int>
+  print([Int])  // Likewise
+
   let int = Int
-  let y = [int] // can't form a type reference, so
-                // binds x to an array containing the type object Int
+  let y = [int] // OK, not a type reference, evaluated as array containing
+                // `int`
+  ```
+
+This should not usually be problematic, since type references are most
+useful as function parameters, where type context is readily available.
+The usual language mechanisms for providing context can be used to clear up
+the ambiguity, such as providing explicit variable types or using `as` coercion,
+can be used to pick the correct interpretation:
+
+  ```swift
+  let x1: Any.Type = [Int]   // [Int] is Array<Int>
+  let x2: [Any.Type] = [Int] // [Int] is Array(Int)
+  let x3 = [Int as Any.Type] // Another way to force array literal interp
+
+  print([Int] as Any.Type)   // Prints the metatype
+  print([Int] as [Any.Type]) // Prints the array
   ```
 
 ## Impact on existing code
@@ -300,3 +320,19 @@ some implementation complexity.
 On [Date], the core team decided to **(TBD)** this proposal.
 When the core team makes a decision regarding this proposal,
 their rationale for the decision will be written here.
+
+-------------------------------------------------------------------------------
+
+# Revision history
+
+## May 26, 2016
+
+A previous revision of this proposal offered a default disambiguation rule
+for ambiguous type references without type context:
+
+  ```swift
+  let x = [Int] // binds x to the type object Array<Int>
+  ```
+
+In discussion, the core team decided it was preferable for ambiguous references
+to be rejected by the compiler and require explicit context.
