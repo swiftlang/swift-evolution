@@ -9,13 +9,13 @@
 
 The current `protocol<>` construct, which defines an existential type consisting of zero or more protocols, should be renamed `Any<>`.
 
+[Discussion thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160516/018109.html)
+
 ## Motivation
 
 A stated goal for Swift 3.0 is making breaking changes to prepare the way for features to be introduced in future features, especially those involving the enhancements to the generics system detailed in [*Completing Generics*](https://github.com/apple/swift/blob/master/docs/GenericsManifesto.md).
 
 One such change described in *Completing Generics* is renaming `protocol<>` to `Any<>` in order to allow it to serve as a syntactic foundation for more generalized existential types. This is a straightforward change which will allow a later version of Swift to introduce better handling for existential types without making breaking changes, or changes whose functionality overlaps with that of existing features.
-
-Discussion thread: https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160516/018109.html
 
 ## Proposed solution
 
