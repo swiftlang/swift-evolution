@@ -1,4 +1,4 @@
-# More Powerful Constraints for Associated Types
+# Permit where clauses to constrain associated types
 
 * Proposal: [SE-XXXX](https://github.com/apple/swift-evolution/blob/master/proposals/XXXX-associated-types-constraints.md)
 * Author(s): [David Hart](http://github.com/hartbit), [Jacob Bandes-Storch](jtbandes@gmail.com), [Douglas Gregor](dgregor@apple.com)
