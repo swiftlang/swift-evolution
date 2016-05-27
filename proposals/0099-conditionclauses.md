@@ -3,7 +3,7 @@
 * Proposal: [SE-0099](0099-conditionclauses.md)
 * Authors: [Erica Sadun](https://github.com/erica), [Chris Lattner](https://github.com/lattner)
 * Status: TBD
-* Review manager: TBD
+* Review manager: [Joe Groff](https://github.com/jckarter)
 
 ## Introduction
 
