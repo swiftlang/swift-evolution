@@ -25,7 +25,7 @@ a.index(where: { $0 > 25 })         // 1
 
 Unfortunately, there are no such methods that search from the end. Finding the last of a particular kind of element has multiple applications, particularly with text, such as wrapping a long string into lines of a maximum length or trimming whitespace from the beginning and end of a string.
 
-You can work around this limitation by using the methods above on a reversed view of a collection, but the resulting code is truly dreadful. For example, to find the corresponding last index to `a.index(where: { $0 > 25 })`, something lik this unholy incantation is required:
+You can work around this limitation by using the methods above on a reversed view of a collection, but the resulting code is truly dreadful. For example, to find the corresponding last index to `a.index(where: { $0 > 25 })`, something like this unholy incantation is required:
 
 ```swift
 (a.reversed().index(where: { $0 > 25 })?.base).flatMap({ a.index(before: $0) })
@@ -85,7 +85,7 @@ extension Collection where Iterator.Element: Equatable {
 }
 ```
 
-Implementations of these methods can be explored in [this Swift sandbox](http://swiftlang.ng.bluemix.net/#/repl/fc545dd5bcafa352ceac5494fe17421f6391685e1edd70bc1dfa196b6d77dd88).
+Implementations of these methods can be explored in [this Swift sandbox](http://swiftlang.ng.bluemix.net/#/repl/e812a36cfa66647e1dbd7ab5be5376f78c769924262178d62c25aa0124c45810).
 
 ## Impact on existing code
 
