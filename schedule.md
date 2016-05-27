@@ -14,6 +14,7 @@ proposals in that process.
 * May 24...30 [SE-0096: Converting dynamicType from a property to an operator](proposals/0096-dynamictype.md)
 * May 24...30 [SE-0097: Normalizing naming for "negative" attributes](proposals/0097-negative-attributes.md)
 * May 24...30 [SE-0098: Lowercase `didSet` and `willSet` for more consistent keyword casing](proposals/0098-didset-capitalization.md)
+* May 27...June 3 [SE-0099: Restructuring Condition Clauses](proposals/0099-conditionclauses.md)
 
 ## Upcoming reviews
 
@@ -21,7 +22,7 @@ proposals in that process.
 
 * [SE-0012: Add `@noescape` to public library API](proposals/0012-add-noescape-to-public-library-api.md)
 * [SE-0079: Allow using optional binding to upgrade `self` from a weak to strong reference](proposals/0079-upgrade-self-from-weak-to-strong.md)
-* [SE-0099: Restructuring Condition Clauses](proposals/0099-conditionclauses.md)
+* 
 * [SE-0100: Add sequence-based initializers and merge methods to Dictionary](proposals/0100-add-sequence-based-init-and-merge-to-dictionary.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
