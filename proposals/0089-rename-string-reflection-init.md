@@ -30,36 +30,22 @@ A proposed solution to this problem follows.
 
 * The current reflection-based `String.init<T>(_: T)` initializer will be renamed to `String.init<T>(describing: T)`. This initializer will rarely be invoked directly by user code.
 
-* A new protocol will be introduced: `ValuePreservingStringConvertible`. This protocol will be defined as follows:
+* A new protocol will be introduced: `LosslessStringConvertible`, which narrows `CustomStringConvertible`. This protocol will be defined as follows:
 
 	```swift
-	protocol ValuePreservingStringConvertible {
-
-		/// A lossless, unambiguous representation of the conforming type as a string.
-		var stringRepresentation : String { get }
-
+	protocol LosslessStringConvertible : CustomStringConvertible {
 		/// Instantiate an instance of the conforming type from a string representation.
-		init?(stringRepresentation: String)
+		init?(description: String)
 	}
 	```
+	
+	Values of types that conform to `LosslessStringConvertible` are capable of being represented in a lossless, unambiguous manner as a string. For example, the integer value `1050` can be represented in its entirety as the string `"1050"`. The `description` property for such a type must be a value-preserving representation of the original value. As such, it should be possible to attempt to create an instance of a `LosslessStringConvertible` conforming type from a string representation.
 
-	Values of types that conform to `ValuePreservingStringConvertible` are capable of being represented in a lossless, unambiguous manner as a string. For example, the integer value `1050` can be represented in its entirety as the string `"1050"`. As such, it should be possible to attempt to create an instance of a `ValuePreservingStringConvertible` conforming type from a string representation.
+* A new initializer will be introduced: `init<T: LosslessStringConvertible>(_ v: T) { return v.description }`. This allows the `String(x)` syntax to continue to be used on all values of types that can be converted to a string in a value-preserving way.
 
-* A new initializer will be introduced: `init<T: ValuePreservingStringConvertible>(_ v: T) { return v.stringRepresentation }`. This allows the `String(x)` syntax to continue to be used on all values of types that can be converted to a string in a value-preserving way.
+* The standard library will be audited. Any type which can be reasonably represented as a string in a value-preserving way will be modified to conform to `LosslessStringConvertible`.
 
-* The standard library will be audited. Any type which can be reasonably represented as a string in a value-preserving way will be modified to conform to `ValuePreservingStringConvertible`. If they conform to `CustomStringConvertible` and their existing `description` is value-preserving, `stringRepresentation` will simply return `description`.
-
-* The Foundation SDK overlay will be audited in the same manner.
-
-* As a performance optimization, the implementation of the string literal interpolation syntax will be changed to prefer the unlabeled initializer when interpolating a type that is `ValuePreservingStringConvertible` or that otherwise has an unlabeled `String` initializer, but use the `String.init<T>(describing: T)` initializer if not.
-
-With the introduction of the `ValuePreservingStringConvertible` protocol, the intended semantics of the three string convertible protocols can thus be clarified:
-
-* `CustomStringConvertible` will provide a human-readable description of an instance. It may provide as little or as much detail as deemed appropriate.
-
-* `CustomDebugStringConvertible` will provide a human-readable description of an instance. It can provide additional information relative to `CustomStringConvertible`, information that would not be pertinent for consumers of `description`s (such as human readers or other APIs), but would be useful for development or diagnostic purposes.
-
-* `ValuePreservingStringConvertible` will provide an exact, value-preserving representation of an instance, one that is sufficent to reconstruct an instance of that type.
+* As a performance optimization, the implementation of the string literal interpolation syntax will be changed to prefer the unlabeled initializer when interpolating a type that is `LosslessStringConvertible` or that otherwise has an unlabeled `String` initializer, but use the `String.init<T>(describing: T)` initializer if not.
 
 ## Impact on existing code
 
@@ -69,13 +55,9 @@ Code which intends to invoke `init<T>(_: T)` will need to be modified so that th
 
 ## Alternatives considered
 
-One alternative solution might be to make `ValuePreservingStringConvertible` an empty protocol narrowing `CustomStringConvertible`, and require conforming types to vend a `description` providing a value-preserving representation. There are several potential pitfalls to this approach:
+An alternative name for the new protocol (and the one originally suggested by the core team) is `ValuePreservingStringConvertible`. The core team may wish to use this name instead of the `LosslessStringConvertible` name provided above.
 
-* The term `description` does not unambigiously imply "a value-preserving string representation" to readers. It can be reasonably construed as referring to a human-readable abridged summary of the value in question, which is how it is used today for many complex types (such as `UIView`). Overloading `description` to mean two different things would require types to choose between conforming to `ValuePreservingStringConvertible` and providing abridged descriptions of their instances.
-
-* It would make conforming certain Foundation types (which would otherwise be a natural fit for this functionality) impossible without introducing changes in functionality to existing APIs. Code that depends on `description` returning a string with a particular format might break as a result.
-
-Another alternative solution might be to avoid introducing any new protocols, and instead allow `CustomStringConvertible` or `CustomDebugStringConvertible` to provide the means by which a String could be initialized from another type. This solution would prevent any sort of formal distinction between types that can be turned into value-preserving strings, and those that cannot.
+One alternative solution might be to make `LosslessStringConvertible` a separate protocol altogether from `CustomStringConvertible` and `CustomDebugStringConvertible`. Arguments for and against that approach can be found in this [earlier version of this proposal](https://github.com/austinzheng/swift-evolution/blob/27ba68c2fbb8978aac6634c02d8a572f4f5123eb/proposals/0089-rename-string-reflection-init.md).
 
 -------------------------------------------------------------------------------
 
