@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0089](0089-rename-string-reflection-init.md)
 * Author: [Austin Zheng](https://github.com/austinzheng), [Brent Royal-Gordon](https://github.com/brentdax)
-* Status: **Awaiting Review**
+* Status: **Scheduled for Review May 27...June 3**
 * Review manager: [Chris Lattner](http://github.com/lattner)
 * Revision: 2
 * Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/40aecf3647c19ae37730e39aa9e54b67fcc2be86/proposals/0089-rename-string-reflection-init.md)

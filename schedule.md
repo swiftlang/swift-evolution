@@ -18,6 +18,8 @@ proposals in that process.
 
 ## Upcoming reviews
 
+* May 31...June 6 [SE-0089: Renaming `String.init<T>(_: T)`](proposals/0089-rename-string-reflection-init.md)
+
 ## Proposals awaiting scheduling
 
 * [SE-0012: Add `@noescape` to public library API](proposals/0012-add-noescape-to-public-library-api.md)

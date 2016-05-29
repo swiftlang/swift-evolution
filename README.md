@@ -215,7 +215,6 @@ as practical with Swift 2.0.
 
 * [SE-0018: Flexible Memberwise Initialization](proposals/0018-flexible-memberwise-initialization.md)
 * [SE-0030: Property Behaviors](proposals/0030-property-behavior-decls.md)
-* [SE-0089: Renaming `String.init<T>(_: T)`](proposals/0089-rename-string-reflection-init.md)
 
 ### Deferred for Future Discussion
 
