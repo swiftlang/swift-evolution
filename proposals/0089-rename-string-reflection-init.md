@@ -26,11 +26,11 @@ In both cases the compiler silently infers the use of the `init<T>(_: T)` initia
 
 ## Proposed solution
 
-A proposed solution to this problem follows.
+A proposed solution to this problem follows:
 
 * The current reflection-based `String.init<T>(_: T)` initializer will be renamed to `String.init<T>(describing: T)`. This initializer will rarely be invoked directly by user code.
 
-* A new protocol will be introduced: `LosslessStringConvertible`, which narrows `CustomStringConvertible`. This protocol will be defined as follows:
+* A new protocol will be introduced: `LosslessStringConvertible`, which refines/narrows `CustomStringConvertible`. This protocol will be defined as follows:
 
 	```swift
 	protocol LosslessStringConvertible : CustomStringConvertible {
@@ -43,7 +43,7 @@ A proposed solution to this problem follows.
 
 	A possible alternate name for this protocol is `ValuePreservingStringLiteral`. The core team may wish to choose this name instead, or another name that better describes the protocol's contract.
 
-* A new `String` initializer will be introduced: `init<T: LosslessStringConvertible>(_ v: T) { return v.description }`. This allows the `String(x)` syntax to continue to be used on all values of types that can be converted to a string in a value-preserving way.
+* A new `String` initializer will be introduced: `init<T: LosslessStringConvertible>(_ v: T) { self = v.description }`. This allows the `String(x)` syntax to continue to be used on all values of types that can be converted to a string in a value-preserving way.
 
 * As a performance optimization, the implementation of the string literal interpolation syntax will be changed to prefer the unlabeled initializer when interpolating a type that is `LosslessStringConvertible` or that otherwise has an unlabeled `String` initializer, but use the `String.init<T>(describing: T)` initializer if not.
 
