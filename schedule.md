@@ -7,7 +7,6 @@ proposals in that process.
 ## Active reviews
 
 * May 9...16 [SE-0086: Drop NS Prefix in Swift Foundation](proposals/0086-drop-foundation-ns.md)
-* May 17...23 [SE-0050: Decoupling Floating Point Strides from Generic Implementations](proposals/0050-floating-point-stride.md)
 * May 17...23 [SE-0077: Improved operator declarations](proposals/0077-operator-precedence.md)
 * May 17...23 [SE-0091: Improving operator requirements in protocols](proposals/0091-improving-operators-in-protocols.md)
 * May 24...30 [SE-0095: Replace `protocol<P1,P2>` syntax with `Any<P1,P2>`](proposals/0095-any-as-existential.md)
