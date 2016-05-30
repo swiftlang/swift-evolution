@@ -7,7 +7,7 @@
 
 ## Introduction
 
-Swift condition clauses appear in `guard`, `if`, and `while` statements. This proposal re-architects the condition grammar to enable an arbitrary mix of Boolean expressions, `let` conditions (which test and unwrap optionals), general `case` clauses for arbitrary pattern matching, and availability tests.  It removes `where` clauses from optional binding conditions, and introduces semicolons between unrelated condition types rather than commas, which are reserved for continuation lists.  This eliminates ambiguity problems in the current syntax, and alleviates the situation where many Swift developers don't know they can use arbitrary Boolean conditions after a value binding.
+Swift condition clauses appear in `guard`, `if`, and `while` statements. This proposal re-architects the condition grammar to enable an arbitrary mix of Boolean expressions, `let` conditions (which test and unwrap optionals), general `case` clauses for arbitrary pattern matching, and availability tests.  It removes `where` clauses from optional binding conditions and case conditions, and introduces semicolons (optionally newlines) between unrelated condition types rather than commas, which are reserved for continuation lists.  This eliminates ambiguity problems in the current syntax, and alleviates the situation where many Swift developers don't know they can use arbitrary Boolean conditions after a value binding.
 
 Swift-evolution thread:
 [\[Pitch\] making where and ,	interchangeable in guard conditions](http://thread.gmane.org/gmane.comp.lang.swift.evolution/17926)
@@ -92,7 +92,7 @@ if condition-list code-block (else-clause)?
 
 *Note: A repeat-while statement does not use a condition list. Its grammar is `repeat code-block while expression`*
 
-Where clauses are removed from optional binding conditions, so:
+Where clauses are removed from optional binding conditions and case conditions, so:
 
 ```
 optional-binding-condition → optional-binding-head (optional-binding-continuation-list)? (where-clause)?
@@ -110,18 +110,11 @@ The `optional-binding-continuation-list` is retained, allowing comma-delineated 
 guard let x = opt1, y = opt2, z = opt3; booleanAssertion else { }
 ```
 
-This change will not affect `case-condition`s, which will continue to allow `where` clauses, both in switch statements and in the condition lists for `guard`, `while`, and `if` statements:
-
-```
-case-condition → case patterninitializer (where-clause)?
-```
-
-All three conditions (availability conditions, case conditions, 
-and optional binding conditions) remain otherwise unaffected.
+This change will not affect case-item-lists in switch statements, which are distinct from case-conditions in Swift's guard, while, and if statements. All three conditions (availability conditions, case conditions, and optional binding conditions) remain otherwise unaffected.
 
 ## Impact on Existing Code
 
-This proposal requires migration all condition lists, affecting commas outside of continuation lists and `where` keywords in optional binding statements.  This should be straight-forward for the compiler to address using fixit hints.
+This proposal requires migration all condition lists, affecting commas outside of continuation lists and `where` keywords in optional binding and case condition statements.  This should be straight-forward for the compiler to address using fixit hints.
 
 ## Alternatives Considered
 
