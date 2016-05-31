@@ -83,6 +83,29 @@ subscript(index: Int) -> Int {
 subscript(index: Int) -> Int { index * 2 }
 ```
 
+**Possible real world example:**
+
+```swift
+// Today:
+public struct Character {
+	
+	private let _pointer: UnsafePointer<Swift.Character>
+	public let source: Module.Source
+	public var value: Swift.Character {
+		return self._pointer.memory
+	}
+	...
+}
+
+// Rewritten:
+public struct Character {
+	...
+	public var value: Swift.Character { self._pointer.memory }
+	...
+}
+```
+
+
 ## Impact on existing code
 
 None, this change will only relax some existing rules.
