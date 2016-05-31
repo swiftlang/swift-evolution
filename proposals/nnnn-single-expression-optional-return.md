@@ -7,7 +7,7 @@
 
 ## Introduction
 
-Any single-expression closure can omit the `return` statement and have an inferred return type. This proposal aims to make this feature consistent everywhere in the language.
+Any single-expression closure can omit the `return` statement. This proposal aims to make this feature more consistent in some other corners of the language.
 
 Original swift-evolution thread: [\[Pitch\] Make `return` optional in computed properties for a single case](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160523/019260.html)
 
@@ -38,16 +38,25 @@ func pi() -> Double {
 	return 3.141
 }
 
-// Guard-statement:
-func test(boolean: Bool) -> String {
-	guard boolean else { return "false" }
-	return "true"
+// Read-Write subscript:
+subscript(index: Int) -> Int {
+    get { return index % 2 }
+    set { /* do some work */ }
 }
+
+// Read-only subscript:
+subscript(index: Int) -> Int { return index * 2 }
 ```
 
 ## Proposed solution
 
-Make `return` optional and infer return type for single-expressions everywhere in the language:
+Make `return` optional for the following top level code blocks that only contain a single expression:
+
+* *variable-declaration*
+* *getter-setter-block*
+* *getter-clause*
+* *function-body*
+* *subscript-declaration*
 
 That will allow us to rewrite the above example to:
 
@@ -64,11 +73,14 @@ var string: String { "hello swift" }
 // Function:
 func pi() -> Double { 3.141 }
 
-// Guard-statement:
-func test(boolean: Bool) -> String {
-	guard boolean else { "false" }
-	return "true"
+// Read-Write subscript:
+subscript(index: Int) -> Int {
+    get { index % 2 }
+    ...
 }
+
+// Read-only subscript:
+subscript(index: Int) -> Int { index * 2 }
 ```
 
 ## Impact on existing code
