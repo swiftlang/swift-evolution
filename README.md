@@ -167,6 +167,7 @@ subsequent release.
 * [SE-0088: Modernize libdispatch for Swift 3 naming conventions](proposals/0088-libdispatch-for-swift3.md)
 * [SE-0092: Typealiases in protocols and protocol extensions](proposals/0092-typealiases-in-protocols.md)
 * [SE-0093: Adding a public `base` property to slices](proposals/0093-slice-base.md)
+* [SE-0096: Converting dynamicType from a property to an operator](proposals/0096-dynamictype.md)
 
 ## Swift 2.2 - Released on March 21, 2016
 
@@ -207,6 +208,8 @@ as practical with Swift 2.0.
 * [SE-0074: Implementation of Binary Search functions](proposals/0074-binary-search.md)
 * [SE-0084: Allow trailing commas in parameter lists and tuples](proposals/0084-trailing-commas.md)
 * [SE-0087: Rename `lazy` to `@lazy`](proposals/0087-lazy-attribute.md)
+* [SE-0097: Normalizing naming for "negative" attributes](proposals/0097-negative-attributes.md)
+* [SE-0098: Lowercase `didSet` and `willSet` for more consistent keyword casing](proposals/0098-didset-capitalization.md)
 
 ## Review
 [Swift Evolution Review Schedule](https://github.com/apple/swift-evolution/blob/master/schedule.md)
@@ -216,6 +219,7 @@ as practical with Swift 2.0.
 * [SE-0018: Flexible Memberwise Initialization](proposals/0018-flexible-memberwise-initialization.md)
 * [SE-0030: Property Behaviors](proposals/0030-property-behavior-decls.md)
 * [SE-0050: Decoupling Floating Point Strides from Generic Implementations](proposals/0050-floating-point-stride.md)
+* [SE-0095: Replace `protocol<P1,P2>` syntax with `Any<P1,P2>`](proposals/0095-any-as-existential.md)
 
 
 ### Deferred for Future Discussion
