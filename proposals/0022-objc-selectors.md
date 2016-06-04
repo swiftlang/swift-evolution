@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0022](https://github.com/apple/swift-evolution/blob/master/proposals/0022-objc-selectors.md)
 * Author: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted**
+* Status: **Accepted** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/4622))
 * Review manager: [Joe Groff](https://github.com/jckarter)
 
 ## Introduction

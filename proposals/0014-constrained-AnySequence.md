@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0014](https://github.com/apple/swift-evolution/blob/master/proposals/0014-constrained-AnySequence.md)
 * Author: [Max Moiseev](https://github.com/moiseev)
-* Status: **Accepted for Swift 2.2** ([Bug](https://bugs.swift.org/browse/SR-474))
+* Status: **Accepted for Swift 2.2** ([Rationale](http://article.gmane.org/gmane.comp.lang.swift.evolution/9746/match=constraining+anysequence), [Bug](https://bugs.swift.org/browse/SR-474))
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction

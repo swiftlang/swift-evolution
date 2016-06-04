@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0008](https://github.com/apple/swift-evolution/blob/master/proposals/0008-lazy-flatmap-for-optionals.md)
 * Author: [Oisin Kidney](https://github.com/oisdk)
-* Status: **Accepted** ([Bug](https://bugs.swift.org/browse/SR-361))
+* Status: **Accepted** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/1243), [Bug](https://bugs.swift.org/browse/SR-361))
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction ##

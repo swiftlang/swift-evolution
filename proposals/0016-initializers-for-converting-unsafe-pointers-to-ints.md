@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0016](https://github.com/apple/swift-evolution/blob/master/proposals/0016-initializers-for-converting-unsafe-pointers-to-ints.md)
 * Author: [Michael Buckley](https://github.com/MichaelBuckley)
-* Status: **Accepted for Swift 3** ([Bug](https://bugs.swift.org/browse/SR-1115))
+* Status: **Accepted for Swift 3** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/13429), [Bug](https://bugs.swift.org/browse/SR-1115))
 * Review manager: [Chris Lattner](https://github.com/lattner)
 * Revision: 2
 * Previous Revision: [1][rev-1] (as accepted)

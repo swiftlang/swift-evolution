@@ -5,7 +5,7 @@
   [Max Howell](https://github.com/mxcl),
   [Daniel Dunbar](https://github.com/ddunbar),
   [Mattt Thompson](https://github.com/mattt)
-* Status: **Accepted** ([Bug](https://bugs.swift.org/browse/SR-592))
+* Status: **Accepted** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/4103), [Bug](https://bugs.swift.org/browse/SR-592))
 * Review Manager: Rick Ballard
 
 ## Introduction

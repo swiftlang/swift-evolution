@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0029](https://github.com/apple/swift-evolution/blob/master/proposals/0029-remove-implicit-tuple-splat.md)
 * Author: [Chris Lattner](http://github.com/lattner)
-* Status: **Accepted**
+* Status: **Accepted** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/6405))
 * Review manager: [Joe Groff](http://github.com/jckarter)
 
 ## Introduction

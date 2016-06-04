@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0007](https://github.com/apple/swift-evolution/blob/master/proposals/0007-remove-c-style-for-loops.md)
 * Author: [Erica Sadun](https://github.com/erica)
-* Status: **Accepted** for Swift 3.0 ([Swift 2.2 bug](https://bugs.swift.org/browse/SR-226), [Swift 3.0 bug](https://bugs.swift.org/browse/SR-227))
+* Status: **Accepted** for Swift 3.0 ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/11148/), [Swift 2.2 bug](https://bugs.swift.org/browse/SR-226), [Swift 3.0 bug](https://bugs.swift.org/browse/SR-227))
 * Review manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction
