@@ -5,7 +5,7 @@
   [Dave Abrahams](https://github.com/dabrahams),
   [Maxim Moiseev](https://github.com/moiseev)
 * [Swift-evolution thread](http://news.gmane.org/find-root.php?message_id=CA%2bY5xYfqKR6yC2Q%2dG7D9N7FeY%3dxs1x3frq%3d%3dsyGoqYpOcL9yrw%40mail.gmail.com)
-* Status: **Accepted**
+* Status: **Accepted** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/15549))
 * Review manager: [Chris Lattner](https://github.com/lattner)
 * Revision: 5
 * Previous Revisions:

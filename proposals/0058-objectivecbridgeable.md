@@ -248,7 +248,7 @@ It is intended that when and if Swift 3 adopts conditional protocol conformance 
 # Rationale
 
 On April 12, 2016, the core team decided to **defer** this proposal from
-Swift 3. We agree that it would be valuable to give library authors the
+Swift 3 ([thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/14419)). We agree that it would be valuable to give library authors the
 ability to bridge their own types from Objective-C into Swift using the
 same mechanisms as Foundation. However, we lack the confidence and 
 implementation experience to commit to `_ObjectiveCBridgeable` in its
