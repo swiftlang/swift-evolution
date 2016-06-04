@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0096](0096-dynamictype.md)
 * Author: [Erica Sadun](https://github.com/erica)
-* Status: **Accepted** [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000180.html)
+* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000180.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction

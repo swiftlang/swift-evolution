@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0085](0085-package-manager-command-name.md)
 * Authors: [Rick Ballard](https://github.com/rballard), [Daniel Dunbar](http://github.com/ddunbar)
-* Status: **Implemented in Swift 3**
+* Status: **Implemented in Swift 3** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.build/1/focus=26))
 * Review manager: [Daniel Dunbar](http://github.com/ddunbar)
 
 ## Note

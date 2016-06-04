@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0059](https://github.com/apple/swift-evolution/blob/master/proposals/0059-updated-set-apis.md)
 * Author: [Dave Abrahams](https://github.com/dabrahams)
-* Status: **Accepted for Swift 3**
+* Status: **Accepted for Swift 3** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/14785/))
 * Review manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction

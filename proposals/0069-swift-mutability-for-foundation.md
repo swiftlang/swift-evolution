@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0069](https://github.com/apple/swift-evolution/blob/master/proposals/0069-swift-mutability-for-foundation.md)
 * Author: Tony Parker <anthony.parker@apple.com>
-* Status: **Accepted for Swift 3**
+* Status: **Accepted for Swift 3** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/16114))
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 
 

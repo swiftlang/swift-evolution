@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0052](https://github.com/apple/swift-evolution/blob/master/proposals/0052-iterator-post-nil-guarantee.md)
 * Author: [Patrick Pijnappel](https://github.com/PatrickPijnappel)
-* Status: **Accepted for Swift 3**
+* Status: **Accepted for Swift 3** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/16115))
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction
