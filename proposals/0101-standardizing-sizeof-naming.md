@@ -1,9 +1,9 @@
-# Renaming sizeof, sizeofValue, strideof, strideofValue, align, alignofValue to comply with API Guidelines
+# Rename `sizeof` and related functions to comply with API Guidelines
 
-* Proposal: TBD
+* Proposal: [SE-0101](0101-standardizing-sizeof-naming.md)
 * Author: [Erica Sadun](http://github.com/erica)
-* Status: TBD
-* Review manager: TBD
+* Status: **Scheduled for review June 21...27**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 

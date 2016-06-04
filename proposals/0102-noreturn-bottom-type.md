@@ -1,9 +1,9 @@
 # Remove `@noreturn` attribute and introduce an empty `NoReturn` type
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/XXXX-noreturn-bottom-type.md)
-* Author(s): [Joe Groff](https://github.com/jckarter)
-* Status: **[Awaiting review](#rationale)**
-* Review manager: TBD
+* Proposal: [SE-0102](0102-noreturn-bottom-type.md)
+* Author: [Joe Groff](https://github.com/jckarter)
+* Status: **Scheduled for review June 21...27**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
