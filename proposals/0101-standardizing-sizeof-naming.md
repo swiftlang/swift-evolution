@@ -86,7 +86,7 @@ public func memorySize<T>(_: T.Type) -> Int
 /// Returns the contiguous memory footprint of  `T`.
 ///
 /// Does not include any dynamically-allocated or "remote" storage.
-/// In particular, `memorySize(of: a)`, when `a` is a class instance, is the
+/// In particular, `memorySize(ofValue: a)`, when `a` is a class instance, is the
 /// same regardless of how many stored properties `a` has.
 public func memorySize<T>(ofValue: T) -> Int
 
@@ -107,14 +107,14 @@ public func memoryAlignment<T>(ofValue: T) -> Int
 
 ### Design Notes
 
-**Labels**: This design omits labels for types. It uses `ofValue` for values, assuming SE-0096 would update to match. This proposal recommends matching SE-0096 regardless of the core team decision.
+**Labels**: This design omits labels for types. It uses `ofValue` for values, assuming SE-0096 would update to match. This proposal recommends matching SE-0096 regardless of the core team choice: either `of` or `ofValue`.
 
 **Using Autoclosure**: It may make sense to use `@autoclosure` for value variants as the call shouldn't need its arguments evaluated:
 
 ```swift
-public func memorySize<T>(ofValue _: @autoclosure T -> ()) -> Int
-public func memoryInterval<T>(ofValue _: @autoclosure T -> ()) -> Int
-public func memoryAlignment<T>(ofValue _: @autoclosure T -> ()) -> Int
+public func memorySize<T>(ofValue _: @autoclosure T -> Void) -> Int
+public func memoryInterval<T>(ofValue _: @autoclosure T -> Void) -> Int
+public func memoryAlignment<T>(ofValue _: @autoclosure T -> Void) -> Int
 ```
 
 **Accepting Type Variations**: The core team may choose omit the value variants entirely, replacing just three freestanding functions and removing the other three. In doing so, users must call `type` on passed values. This pattern is already found in standard library code.
