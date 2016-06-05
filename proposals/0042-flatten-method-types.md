@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0042](https://github.com/apple/swift-evolution/blob/master/proposals/0042-flatten-method-types.md)
 * Author: [Joe Groff](https://github.com/jckarter)
-* Status: **Accepted for Swift 3** ([Bug](https://bugs.swift.org/browse/SR-1051))
+* Status: **Accepted for Swift 3** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/12828), [Bug](https://bugs.swift.org/browse/SR-1051))
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction
