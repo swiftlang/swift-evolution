@@ -9,26 +9,30 @@
 
 We should remove the rarely-used `@noreturn` function type attribute and
 instead express functions that don't return in terms of a standard
-unconstructible uninhabited type.
+uninhabited type.
 
-Swift-evolution thread: [Discussion thread topic for that proposal](http://news.gmane.org/gmane.comp.lang.swift.evolution)
+Swift-evolution threads:
+
+- [SE-0097: Normalizing naming for "negative" attributes](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000167.html)
+  was the review discussion from which this proposal arose.
+- [Change @noreturn to unconstructible return type](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160530/020140.html)
 
 ## Motivation
 
-Functions that never return, such as `exit`, `fatalError`, or `dispatchMain`, use
-the `@noreturn` attribute to communicate this fact to the compiler. This lets
-the compiler avoid generating incorrect control flow diagnostics for conditions
-such as "function does not provide a `return` value" after a function call
-that intentionally ends the program. It's relatively rare that users need to
-write new functions that don't return; however, `@noreturn` as currently
-designed generates complexity. As an orthogonal attribute of function
+Functions that never return, such as `exit`, `fatalError`, or `dispatchMain`,
+use the `@noreturn` attribute to communicate this fact to the compiler. This
+lets the compiler avoid generating incorrect control flow diagnostics for
+conditions such as "function does not provide a `return` value" after a
+function call that intentionally ends the program. It's relatively rare that
+users need to write new functions that don't return; however, `@noreturn` as
+currently designed generates complexity. As an orthogonal attribute of function
 types, its interaction must be specified with every other aspect of function
 types, including `throws` and non-void returns. Does `@noreturn throws` mean
-"cannot return normally, but can throw", or does it mean "cannot return
-*at all*?" Is `@noreturn () -> Int` allowed, and if so, does it behave
-differently from `@noreturn () -> ()`? Should it be possible for generic
-operations such as function composition to be parameterized by or overload
-on `@noreturn`, so that `compose(exit, getExitCode)` is itself `@noreturn`?
+"cannot return normally, but can throw", or does it mean "cannot return *at
+all*?" Is `@noreturn () -> Int` allowed, and if so, does it behave differently
+from `@noreturn () -> ()`? Should it be possible for generic operations such as
+function composition to be parameterized by or overload on `@noreturn`, so that
+`compose(exit, getExitCode)` is itself `@noreturn`?
 
 Swift already allows for the definition of **uninhabited types**. An enum type that
 has no cases has no valid values and cannot be constructed, a fact that
@@ -80,13 +84,16 @@ An *uninhabited type* is defined as a type that visibly has no values:
   cases are known, all of them have associated values, and all of its
   associated value types are empty.
 
-  Note that under the
-  resilience model, an external public enum cannot be considered empty unless
-  it is closed, since it must otherwise be assumed to have private or
-  retroactively added cases.
+  Note that under the resilience model, an external public enum cannot be
+  considered empty unless it is closed, since it must otherwise be assumed to
+  have private or retroactively added cases.
   
-- A tuple, struct, or class is an uninhabited type if it has any stored properties of
-  uninhabited type.
+- A tuple, struct, or class is an uninhabited type if it has any stored
+  properties of uninhabited type.
+
+  Under the resilience model, this again means that only fragile external types
+  can be reliably considered uninhabited. A resilient external struct or
+  class's properties cannot be assumed to be stored.
   
 - Functions and metatypes are never uninhabited types.
 
@@ -108,14 +115,16 @@ func pickPositiveNumber(below limit: Int) -> Int {
 ```
 
 An ignored expression of uninhabited type should also not produce an "unused
-result" warning.
+result" warning. Code that would run after an uninhabited expression should
+raise "will not be executed" warnings.
 
 ### SIL and runtime design
 
 The `noreturn` attribute still needs to exist at the SIL level, since SIL
 lowered function types encode the exact calling convention of functions,
-including imported C functions. A function returning an uninhabited type at the semantic
-level may still need to have a specific inhabited return type for ABI purposes.
+including imported C functions. A function returning an uninhabited type at the
+semantic level may still need to be lowered to have a specific inhabited return
+type for ABI purposes.
 
 There is currently a hole in our model. An enum with no cases is treated like
 a zero-sized type by type layout, and is loaded and stored like one, so a value
@@ -128,8 +137,8 @@ func revengeOfNoReturn() -> NoReturn {
 ```
 
 This can already be argued to be undefined behavior since the allocation is not
-(and cannot be) `initialize`-d first, but this hole can be fixed by making a
-load or store of an uninhabited type into
+(and cannot be) `initialize`-d first, but it would nonetheless be safer to
+make a load or store of an uninhabited type into
 a trap operation, both statically in IRGen (perhaps with a SIL diagnostic
 pass to warn when we statically see uninhabited loads or stores) and at runtime
 by giving uninhabited types a value witness table whose operations trap.
@@ -154,7 +163,13 @@ compared to these alternatives:
   `nil` value of `Optional`, or with returning `Void`.
 - Type theory jargon like `Bottom` wouldn't be immediately understood by many
   users.
-  
+
+In discussion, the alternative name `Never` was suggested, which holds some
+promise. It properly implies the temporal aspect--this function returns *never*
+--and also would work well in other contexts. For instance, if we gained the
+ability to support typed `throws`, then `() throws<Never> -> Void` clearly
+communicates a function that never throws.
+
 Instead of one standard type, it might be also useful for documentation purposes to
 have multiple types to indicate *how* a type doesn't return, e.g.:
 
