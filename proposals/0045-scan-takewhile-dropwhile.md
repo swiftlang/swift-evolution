@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0045](0045-scan-takewhile-dropwhile.md)
 * Author: [Kevin Ballard](https://github.com/kballard)
-* Status: **Accepted for Swift 3** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/16119))
+* Status: **Accepted for Swift 3** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/16119), [Bug](https://bugs.swift.org/browse/SR-1516))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 * Revision: 4
 * Previous Revisions: [1][rev-1], [2][rev-2], [3][rev-3]
