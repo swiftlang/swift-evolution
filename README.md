@@ -196,7 +196,7 @@ as practical with Swift 2.0.
 
 # Other Proposals
 
-### Rejected proposals
+### Rejected or withdrawn proposals
 * [SE-0009: Require self for accessing instance members](proposals/0009-require-self-for-accessing-instance-members.md)
 * [SE-0010: Add StaticString.UnicodeScalarView](proposals/0010-add-staticstring-unicodescalarview.md)
 * [SE-0012: Add `@noescape` to public library API](proposals/0012-add-noescape-to-public-library-api.md)
@@ -204,6 +204,7 @@ as practical with Swift 2.0.
 * [SE-0024: Optional Value Setter `??=`](proposals/0024-optional-value-setter.md)
 * [SE-0027: Expose code unit initializers on String](proposals/0027-string-from-code-units.md)
 * [SE-0041: Updating Protocol Naming Conventions for Conversions](proposals/0041-conversion-protocol-conventions.md)
+* [SE-0051: Conventionalizing stride semantics](proposals/0051-stride-semantics.md)
 * [SE-0056: Allow trailing closures in `guard` conditions](proposals/0056-trailing-closures-in-guard.md)
 * [SE-0073: Marking closures as executing exactly once](proposals/0073-noescape-once.md)
 * [SE-0074: Implementation of Binary Search functions](proposals/0074-binary-search.md)
