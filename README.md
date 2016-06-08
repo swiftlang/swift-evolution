@@ -137,6 +137,7 @@ below:
 * [SE-0071: Allow (most) keywords in member references](proposals/0071-member-keywords.md)
 * [SE-0072: Fully eliminate implicit bridging conversions from Swift](proposals/0072-eliminate-implicit-bridging-conversions.md)
 * [SE-0085: Package Manager Command Names](proposals/0085-package-manager-command-name.md)
+* [SE-0093: Adding a public `base` property to slices](proposals/0093-slice-base.md)
 * [SE-0094: Add sequence(first:next:) and sequence(state:next:) to the stdlib](proposals/0094-sequence-function.md)
 
 ### Accepted proposals which do not have a complete implementation
@@ -166,7 +167,6 @@ subsequent release.
 * [SE-0082: Package Manager Editable Packages](proposals/0082-swiftpm-package-edit.md)
 * [SE-0088: Modernize libdispatch for Swift 3 naming conventions](proposals/0088-libdispatch-for-swift3.md)
 * [SE-0092: Typealiases in protocols and protocol extensions](proposals/0092-typealiases-in-protocols.md)
-* [SE-0093: Adding a public `base` property to slices](proposals/0093-slice-base.md)
 * [SE-0096: Converting dynamicType from a property to an operator](proposals/0096-dynamictype.md)
 
 ## Swift 2.2 - Released on March 21, 2016
