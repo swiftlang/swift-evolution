@@ -19,7 +19,6 @@ proposals in that process.
 
 ## Proposals awaiting scheduling
 
-* [SE-0012: Add `@noescape` to public library API](proposals/0012-add-noescape-to-public-library-api.md)
 * [SE-0079: Allow using optional binding to upgrade `self` from a weak to strong reference](proposals/0079-upgrade-self-from-weak-to-strong.md)
 * [SE-0100: Add sequence-based initializers and merge methods to Dictionary](proposals/0100-add-sequence-based-init-and-merge-to-dictionary.md)
 
