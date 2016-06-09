@@ -59,7 +59,7 @@ Our proposed solution is as follows:
 ## Detailed design
 
 Swift will remain a multitool whose package manager commands call through to a tool
-provided by the package manager. Curently there are two tools -- `swift-build` and 
+provided by the package manager. Currently there are two tools -- `swift-build` and 
 `swift-test` -- but these will be replaced by a new `swift-package` tool. This tool
 is essentially an implementation detail of the package manager, as all use is expected
 to be invoked through the Swift multitool.
@@ -72,7 +72,7 @@ or test processes is always as a direct subcommand of `swift`. Subcommands of
 `swift package` will be passed to `swift-package` verbatim.
 
 The current `--init`, `--fetch`, `--update`, and `--generate-xcodeproj` flags to `swift build`
-will subcommands of `swift package`. The other flags to `swift build` actually
+will become subcommands of `swift package`. The other flags to `swift build` actually
 do modify the build, and will remain as flags on the `build` subcommand. New functionality
 added to the package manager will be added as subcommands of `swift package` if they
 are appropriate as standalone commands, or as a flag modifying an existing subcommand,
@@ -88,7 +88,7 @@ future if necessary. See the alternatives section below.
 
 ## Impact on existing packages
 
-This has no impact of the existing packages themselves, but does have impact on any
+This has no impact on the existing packages themselves, but does have impact on any
 software which invokes the `swift build` flags which are moving to
 be subcommands of `swift package`. There will be a transitionary period where
 both old and new syntax is accepted, but any software invoking this functionality
@@ -103,7 +103,7 @@ updated the proposal to emphasize only `swift build`.
 We considered using `swift build` as the top level command for the package
 manager and moving the other verbs from being flags to being subcommands of
 `swift build`, instead of introducing a `package` command (e.g., `swift
-init`). We think this reads poorly and is less clear than making them `package`
+build init`). We think this reads poorly and is less clear than making them `package`
 subcommands.
 
 We considered adding a `swift pm` subcommand instead of using `swift package`. That

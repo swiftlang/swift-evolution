@@ -14,7 +14,7 @@ The discussion took place on-line in the [*\[Discussion\]: Renaming #line, the l
 
 ## Motivation
 
-Swift uses the the following grammar to define line control statements:
+Swift uses the following grammar to define line control statements:
 
 ```
 line-control-statement → #line
