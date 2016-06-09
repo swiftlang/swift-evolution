@@ -8,7 +8,7 @@
 
 ## Introduction
 
-Swift condition clauses appear in `guard`, `if`, and `while` statements. This proposal re-architects the condition grammar to enable an arbitrary mix of Boolean expressions, `let` conditions (which test and unwrap optionals), general `case` clauses for arbitrary pattern matching, and availability tests.  It removes `where` clauses from optional binding conditions and case conditions, and eliminates gramatical ambiguity by using commas for separation between clauses instead of using them both to separate clauses and terms within each clause.  This eliminates ambiguity problems in the current syntax, and alleviates the situation where many Swift developers don't know they can use arbitrary Boolean conditions after a value binding.
+Swift condition clauses appear in `guard`, `if`, and `while` statements. This proposal re-architects the condition grammar to enable an arbitrary mix of Boolean expressions, `let` conditions (which test and unwrap optionals), general `case` clauses for arbitrary pattern matching, and availability tests.  It removes `where` clauses from optional binding conditions and case conditions, and eliminates gramatical ambiguity by using commas for separation between clauses instead of using them both to separate clauses and terms within each clause.  These modifications streamline Swift's syntax and alleviate the situation where many Swift developers don't know they can use arbitrary Boolean conditions after a value binding.
 
 Swift-evolution thread:
 [\[Pitch\] making where and ,	interchangeable in guard conditions](http://thread.gmane.org/gmane.comp.lang.swift.evolution/17926)
@@ -27,7 +27,7 @@ condition-list → condition | condition, condition-list
 condition → availability-condition | case-condition | optional-binding-condition
 ```
 
-The rules are complex, confusing, and imprecise. These rules establish that standalone Boolean tests must either precede binding or be joined with optional binding and pattern conditions. The `where` clause, which makes sense in for loops and switch statement pattern matching, adds little to optional binding in condition clauses, as in the following example. It allows for code such as:
+The rules are complex, confusing, and imprecise. The grammar establishes that standalone Boolean tests must either precede binding or be joined with optional binding and pattern conditions. The `where` clause, which makes sense in for loops and switch statement pattern matching, adds little to optional binding in condition clauses, as in the following example. It allows for code such as:
 
 ```swift
 guard 
@@ -38,7 +38,7 @@ guard
 
 In this example, the Boolean `z == 2` clause has no semantic relationship to the optional condition to which it's syntactically bound. Eliminating `where` enables the subordinate condition to stand on its own and be treated as a first class test among peers. 
 
-The root problem lies in the condition grammar: commas are used both to separate items within a clause (e.g. in `if let x = a, y = b {`) and to separate mixed kinds of clauses (e.g. `if let x = a, case y? = b {`).  This proposal resolves this problem by retaining commas as separators between clauses (as used elsewhere in Swift) and eliminating the ability have multiple items within a clause.
+The root problem lies in the condition grammar: commas are used both to separate items within a clause (e.g. in `if let x = a, y = b {`) and to separate mixed kinds of clauses (e.g. `if let x = a, case y? = b {`).  This proposal resolves this problem by retaining commas as separators between clauses (as used elsewhere in Swift) and limits clauses to single items.
 
 After adoption of these changes, the previous example would be written in any of
 these styles:
@@ -61,7 +61,7 @@ This approach also solves ambiguity problems with the current grammar. For examp
 if case let x = a, let y = b {
 ```
 
-With the new approach, this is unambiguously an `if case` followed by an `if let`.  To get two `if case` clauses, it would be written as:
+With the new approach, this is unambiguously an `if case` followed by an `if let`.  To include two `if case` clauses, repeat the `case` keyword:
 
 ```swift
 if case let x = a, case let y = b {
@@ -69,7 +69,7 @@ if case let x = a, case let y = b {
 
 The advantages in accepting this proposal are:
 
-* The "list of lists" ambiguity problems are solved, and uses a cleaner and simpler grammar.
+* The "list of lists" ambiguity problems are solved. Swift uses a cleaner and simpler grammar.
 * `where` clauses are no longer used to conjoin Boolean expressions with conditional binding.  This fixes user confusion issues and addresses a problem where Boolean conditions need to be attached to arbitrary bindings.
 
 
