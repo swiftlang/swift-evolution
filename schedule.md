@@ -9,7 +9,6 @@ proposals in that process.
 * May 9...16 [SE-0086: Drop NS Prefix in Swift Foundation](proposals/0086-drop-foundation-ns.md)
 * May 17...23 [SE-0077: Improved operator declarations](proposals/0077-operator-precedence.md)
 * May 17...23 [SE-0091: Improving operator requirements in protocols](proposals/0091-improving-operators-in-protocols.md)
-* May 27...June 3 [SE-0099: Restructuring Condition Clauses](proposals/0099-conditionclauses.md)
 * June 4...7 [SE-0089: Renaming `String.init<T>(_: T)`](proposals/0089-rename-string-reflection-init.md)
 
 ## Upcoming reviews

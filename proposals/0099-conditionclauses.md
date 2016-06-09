@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0099](0099-conditionclauses.md)
 * Authors: [Erica Sadun](https://github.com/erica), [Chris Lattner](https://github.com/lattner)
-* Status: **Active Review May 27 ... June 3, 2016**
+* Status: **Accepted** pending revision ([Rationale](#rationale))
 * Review manager: [Joe Groff](https://github.com/jckarter)
 
 ## Introduction
@@ -122,3 +122,52 @@ An earlier version of this proposal considered allowing free interchange of comm
 consideration.
 
 Another version retained commas and where clauses but allowed arbitrary ordering of conditions and expressions.
+
+-----------------------------------------
+
+# Rationale
+
+On June 8, 2016, this proposal was **accepted with revision** for Swift 3.
+There was near unanimous agreement that the Swift 2 grammar was inconsistent
+and ambiguous and should be changed; most of the disagreement centered on how.
+Many alternatives were discussed, including the following:
+
+- The proposal as originally reviewed suggests using ';' or newline as a
+  separator. To many people, this looked heavy, and it's also inconsistent with
+  the rest of the language, which never otherwise used semicolon as an
+  intra-statement separator (except in the defunct for;; loop).
+- Introducing a keyword separator, such as using 'where' everywhere or
+  introducing a new 'and' keyword, is also bulky and either reads poorly or
+  requires stealing new keywords.
+- Some commenters suggested using '&&' for consistency with simple boolean
+  conditions. This isn't workable due to precedence issues.
+- The ambiguities arise from the fact that there are comma-separated lists
+  within comma-separated lists—within the list of conditions, each 'case' or
+  'let' condition can have multiple declarations. If we eliminated this
+  feature, so that every 'case' or 'let' condition had to start with 'case' or
+  'let', the ambiguity is resolved, and comma can remain the condition
+  separator. This does break consistency with non-conditional 'let'
+  declarations and case clauses in 'switch' but is otherwise workable.
+
+Of these alternatives, the core team found the last one to be the best choice.
+'case' and 'let' conditions should each specify a single declaration, comma
+should remain the condition separator, and the 'where' keyword can be retired
+from its purpose as a boolean condition introducer. Some code becomes more
+verbose, but in common formatting patterns, it aligns more nicely, as in:
+
+```swift
+guard
+  let x = foo(),
+  let y = bar(),
+  let z = bas(),
+  x == y || y == z else {
+}
+```
+
+and though it breaks commonality between 'let' conditions and 'let'
+declarations, it's more important to preserve higher-level consistency
+throughout the language in how components of expressions and statements are
+separated. Thanks everyone for the discussion, and thanks Erica and Chris for
+the proposal! Since, aside from the approved syntax, the fundamental thrust of
+the proposal remains the same, Chris has volunteered to revise it to be in line
+with the approved decision.

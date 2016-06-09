@@ -168,6 +168,7 @@ subsequent release.
 * [SE-0088: Modernize libdispatch for Swift 3 naming conventions](proposals/0088-libdispatch-for-swift3.md)
 * [SE-0092: Typealiases in protocols and protocol extensions](proposals/0092-typealiases-in-protocols.md)
 * [SE-0096: Converting dynamicType from a property to an operator](proposals/0096-dynamictype.md)
+* [SE-0099: Restructuring Condition Clauses](proposals/0099-conditionclauses.md)
 
 ## Swift 2.2 - Released on March 21, 2016
 
