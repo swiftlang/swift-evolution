@@ -85,7 +85,7 @@ extension Collection where Iterator.Element: Equatable {
 }
 ```
 
-Implementations of these methods can be explored in [this Swift sandbox](http://swiftlang.ng.bluemix.net/#/repl/e812a36cfa66647e1dbd7ab5be5376f78c769924262178d62c25aa0124c45810).
+Implementations of these methods can be explored in [this Swift sandbox](http://swiftlang.ng.bluemix.net/#/repl/575b24124a73177a6fa59273).
 
 ## Impact on existing code
 
