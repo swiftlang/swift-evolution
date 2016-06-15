@@ -37,7 +37,7 @@ public struct AnyIndex : Comparable {
 }
 ```
 
-These enables the original type to be unwrapped by any code that knows what that type should be, with the former method allowing this to be done safely (by returning `nil` instead of producing an error when the cast is impossible). For example:
+These enable the original type to be unwrapped by any code that knows what that type should be, with the former method allowing this to be done safely (by returning `nil` instead of producing an error when the cast is impossible). For example:
 
 ```
 struct MyIncompleteWrapper<Base:Collection> : Collection {
