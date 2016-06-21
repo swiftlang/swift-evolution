@@ -8,26 +8,23 @@
 ## Introduction
 
 This proposal cleans up Swifts integer APIs and makes them more useful for
-generic programming. At the same time it is **not** meant to solve the problem
-of mixed-type arithmetic, which is a much more complicated topic, that we would
-like to address with a different proposal some time in the future.
+generic programming.
 
 ## Motivation
 
-Various parts of Swifts integer APIs generate confusion. See
-[this blog post](http://blog.krzyzanowskim.com/2015/03/01/swift_madness_of_generic_integer/)
-for an example of an attempt to write an algorithm that is generic on any
-integer.
+Swift's integer protocols don't currently provide a suitable basis for generic
+programming. See [this blog post](http://blog.krzyzanowskim.com/2015/03/01/swift_madness_of_generic_integer/)
+for an example of an attempt to implement a generic algorithm over integers.
 
-`Integer` and `Arithmetic` protocols are not of much use, as they define all
-binary operations on pairs of arguments with the same concrete type, thus
-making generic programming impossible at the same time slowing down the type
-checker, due to a large number of overloads.
+The way `Arithmetic` protocol is defined, it does not generalize to floating
+point numbers and also slows down the compilation by requiring every concrete
+type to provide an implementation of arithmetic operators as free functions,
+thus polluting the overload set.
 
-There is no safe way to reliably convert an instance of any integer type to an
-instance of any other integer type. One can only use `toIntMax` and then
-`init(_: IntMax)`, but the initializer will trap if the value is not
-representable in the target type.
+Converting from one integer type to another is performed using the concept of
+the 'maximum width integer' (see `MaxInt`), which is an artificial limitation.
+The very existence of `MaxInt` makes it unclear what to do, should someone
+implement `Int256`, for example.
 
 Another annoying problem is the inability to use integers of different types in
 comparison and bit-shift operations. For example, the following snippets won't
@@ -35,12 +32,19 @@ compile:
 
 ```Swift
 var x: Int8 = 42
-x << (1 as Int16) // error: binary operator '<<' cannot be applied to operands of type 'Int8' and 'Int16'
-x > (0 as Int)    // error: binary operator '>' cannot be applied to operands of type 'Int8' and 'Int'
+let y = 1
+let z = 0
+
+x <<= y   // error: binary operator '<<=' cannot be applied to operands of type 'Int8' and 'Int'
+if x > z { ... }  // error: binary operator '>' cannot be applied to operands of type 'Int8' and 'Int'
 ```
 
-Current design predates many of the improvements that came in Swift 2, and
-hasn't been revised since then.
+Currently, bit-shifting a negative number of (or too many) bits causes a trap
+on some platforms, which makes low-level bit manipulations needlessly dangerous
+and unpredictable.
+
+Finally, the current design predates many of the improvements that came in
+Swift 2, and hasn't been revised since then.
 
 <!--
 Here is the basic layout of integer protocols as of Swift 2 and operations
@@ -121,29 +125,33 @@ defined by them:
 
 ## Proposed solution
 
-We propose the new model that does not have above mentioned problems and is
+We propose the new model that does not the have above mentioned problems and is
 more easily extendable.
 
 ~~~~
-                +--------------+  +----------+
-        +------>+  Arithmetic  |  |Comparable|
-        |       +-------------++  +---+------+
+                +--------------+  +-------------+
+        +------>+  Arithmetic  |  | Comparable  |
+        |       +   (+,-,*,/)  |  | (==,<,>,...)|
+        |       +-------------++  +---+---------+
         |                     ^       ^
 +-------+------------+        |       |
-|  SignedArithmetic  |      +-+-------+-+
-+------+-------------+      |  Integer  |
-       ^                    +----+------+
+|  SignedArithmetic  |      +-+-------+----+
+|     (unary -)      |      |  Integer     |
++------+-------------+      | (words,%,...)|
+       ^                    +----+---------+
        |         +-----------^   ^     ^-----------+
        |         |               |                 |
-+------+---------++    +---------+-----------+    ++------------------+
-|  SignedInteger  |    |  FixedWidthInteger  |    |  UnsignedInteger  |
-+---------------+-+    +-+-----------------+-+    ++------------------+
++------+---------++    +---------+-------------+    ++------------------+
+|  SignedInteger  |    |  FixedWidthInteger    |    |  UnsignedInteger  |
+|                 |    | (bitwise,overflow,...)|    |                   |
++---------------+-+    +-+-----------------+---+    ++------------------+
                 ^        ^                 ^       ^
                 |        |                 |       |
                 |        |                 |       |
                ++--------+-+             +-+-------+-+
-               |Int family |             |UInt family|
-               +-----------+             +-----------+
+               |Int family |-+            |UInt family|-+
+               +-----------+ |            +-----------+ |
+                 +-----------+              +-----------+
 ~~~~
 
 <!--
@@ -204,41 +212,64 @@ more easily extendable.
 
 There are several benefits provided by this model over the old one:
 
-- It allows using integers in generic functions.
+- It allows mixing integer types in generic functions.
 
   The possibility to initialize instances of any concrete integer type with
 values of any other concrete integer type enables writing functions that
-operate on more than one type conforming to `Integer`, like, for example,
-heterogeneous comparisons or bit shifts, described later.
-  
+operate on more than one type conforming to `Integer`, such as, heterogeneous
+comparisons or bit shifts, described later.
+
 - It removes the overload resolution overhead.
 
   Arithmetic and bitwise operations can now be defined as free functions
-delegating work to the concrete types. This approach significantly reduces the
+delegating work to concrete types. This approach significantly reduces the
 number of overloads for those operations, that used to be defined for every
 single concrete integer type.
-  
+
 - It enables protocol sharing between integer and floating point types.
 
   Note the exclusion of the `%` operation from `Arithmetic`. Its behavior for
 floating point numbers is sufficiently different from the one for integers, so
 that using it in generic context would lead to confusion.
-  
+
 - It makes future extensions possible.
 
-  The proposed model eliminates the 'largest integer type' concept (see
-`toIntMax` in the current model), and instead operates on the level of machine
-words. It also introduces the `doubleWidthMultiply` and `quotientAndRemainder`
-methods. Together these changes can be used to provide an efficient
-implementation of bignums, that would be hard to achieve otherwise.
+  The proposed model eliminates the 'largest integer type' concept previously
+used to interoperate between integer types (see `toIntMax` in the current
+model) and instead provides access to machine words. It also introduces the
+`doubleWidthMultiply` and `quotientAndRemainder` methods. Together these
+changes can be used to provide an efficient implementation of bignums that
+would be hard to achieve otherwise.
+
+The prototype implementation, available
+[here](https://github.com/apple/swift/blob/master/test/Prototypes/Integers.swift.gyb)
+contains a `DoubleWidth` generic type that uses two values of any
+`FixedInteger` type to represent a value of twice the width, demonstrating the
+suitability of the proposed model for generic programming.
+
+
+### A note on bit shifts
+
+This proposal introduces the concepts of `smart shifts` and `masking shifts`.
+
+The semantics of shift operations are [often
+undefined](http://llvm.org/docs/LangRef.html#bitwise-binary-operations) in case
+of negative shift or overshift. Smart shifts, implemented by `>>` and `<<`, are
+designed to address this problem and always behave in a well defined way, as
+shown in the examples below:
+
+- `x << -2` is equivalent to `x >> 2`
+
+- `(1 as UInt8) >> 42)` will evaluate to `0`
+
+- `(1 as Int8) >> 42)` will evaluate to `0xff` or `-1`
+
+Masking shifts, implemented by `&>>` and `&<<`, on the other hand, will *not*
+perform any bounds checks and compile to the most efficient code, but are
+subjected to the undefined behavior mentioned above.
 
 
 ## Detailed design
-
-<!--
-Prototype implementation can be found at
-https://github.com/apple/swift/blob/master/test/Prototypes/Integers.swift.gyb
--->
 
 ### Protocols
 
@@ -246,6 +277,9 @@ https://github.com/apple/swift/blob/master/test/Prototypes/Integers.swift.gyb
 
 The `Arithmetic` protocol declares methods backing binary arithmetic operators,
 such as `+`, `-` and `*`; and their mutating counterparts.
+
+It provides a suitable basis for arithmetic on scalars such as integers and
+floating point numbers.
 
 Both mutating and non-mutating operations are declared in the protocol, however
 only the mutating ones are required, as non-mutating are provided by the
@@ -269,8 +303,8 @@ public protocol Arithmetic : Equatable, IntegerLiteralConvertible {
 
 #### `SignedArithmetic`
 
-The `SignedArithmetic` is for the numbers that can be negated.
- 
+The `SignedArithmetic` protocol is for numbers that can be negated.
+
 ```Swift
 public protocol SignedArithmetic : Arithmetic {
   func negate() -> Self
@@ -282,35 +316,32 @@ public protocol SignedArithmetic : Arithmetic {
 The `Integer` protocol is the basis for all the integer types provided by the
 standard library.
 
-The `isEqual(to:)` and `isLess(than:)` methods provide implementations for the
+The `isEqual(to:)` and `isLess(than:)` methods provide implementations for
 `Equatable` and `Comparable` protocol conformances. Similar to how arithmetic
 operations are dispatched in `Arithmetic`, `==` and `<` operators for
-homogeneous comparisons are implemented as generic free functions invoking
+homogeneous comparisons are implemented as generic free functions invoking the
 `isEqual(to:)` and `isLess(than:)` protocol methods respectively.
 
-This protocol adds 3 new initializers to the parameterless one, inherited from
-`Arithmetic`. These initializers allow to construct values of type from
-instances of any other type, conforming to `Integer`, using different
+This protocol adds 3 new initializers to the parameterless one inherited from
+`Arithmetic`. These initializers allow to construct values of one type from
+instances of any other type conforming to `Integer`, using different
 strategies:
 
-  - Perform checks whether the value is representable in `Self`
-  
-  - Try to represent the value without bounds checks
-  
-  - Substitute values beyond `Self` bounds with maximum/minimum value of
-    `Self` respectively
+  - Assume the value is representatble in `Self`
 
-The `Absolutevalue` associated type refers to the type that is able to hold an
-absolute value of any possible value of `Self`.
+  - Extend or truncate the value to fit into `Self`
 
-Concrete types do not have to provide a typealias for it as it can be inferred
-from the `absoluteValue` property. This property can be useful in operations
-that are simpler to implement in terms of unsigned values, for example,
-printing a value of an integer, which is just printing a '-' character in front
-of an absolute value.
+  - Clamp the velue to the representatble range of `Self`
+
+The `AbsoluteValue` associated type is able to hold the absolute value of any
+possible value of `Self`. Concrete types do not have to provide a typealias for
+it as it can be inferred from the `absoluteValue` property. This property can
+be useful in operations that are simpler to implement in terms of unsigned
+values, for example, printing a value of an integer, which is just printing a
+'-' character in front of an absolute value.
 
 Please note, that `absoluteValue` property *should not* be preferred to the
-`abs` function, who's return value is of the same type as its argument.
+`abs` function, whose return value is of the same type as its argument.
 
 ```Swift
 public protocol Integer:
@@ -355,7 +386,7 @@ public protocol Integer:
 
   /// Returns the remainder of division of `self` by `rhs`.
   func remainder(dividingBy rhs: Self) -> Self
-  
+
   /// Replaces `self` with the remainder of division of `self` by `rhs`.
   mutating func formRemainder(dividingBy rhs: Self)
 
@@ -374,17 +405,17 @@ public protocol Integer:
 
 #### `FixedWidthInteger`
 
-The `FixedWidthInteger` adds binary bitwise operations and bit shifts to the
-`Integer` protocol.
- 
+The `FixedWidthInteger` protocol adds binary bitwise operations and bit shifts
+to the `Integer` protocol.
+
 The `WithOverflow` family of methods is used in default implementations of
 mutating arithmetic methods (see `Arithmetic` protocol). Having these methods
 allows to provide both safe implementations, that would check bounds, and
 unsafe ones without duplicating code.
- 
+
 Bitwise binary and shift operators are implemented the same way as arithmetic
 operations: free function dispatches a call to a corresponding protocol method.
- 
+
 The `doubleWidthMultiply` method is a necessary building block to implement
 support for integer types of a greater width and, as a consequence, arbitrary
 precision integers.
@@ -433,19 +464,19 @@ public protocol FixedWidthInteger : Integer {
   /// Returns the result of the 'bitwise and' operation, applied
   /// to `self` and `rhs`.
   func and(rhs: Self) -> Self
-  
+
   /// Returns the result of the 'bitwise or' operation, applied
   /// to `self` and `rhs`.
   func or(rhs: Self) -> Self
-  
+
   /// Returns the result of the 'bitwise exclusive or' operation, applied
   /// to `self` and `rhs`.
   func xor(rhs: Self) -> Self
-  
+
   /// Returns the result of shifting the binary representation
   /// of `self` by `rhs` binary digits to the right.
   func maskingShiftRight(rhs: Self) -> Self
-  
+
   /// Returns the result of shifting the binary representation
   /// of `self` by `rhs` binary digits to the left.
   func maskingShiftLeft(rhs: Self) -> Self
@@ -489,15 +520,36 @@ public func %= <T: Arithmetic>(lhs: inout T, rhs: T)
 
 _Only homogeneous arithmetic operations are supported._
 
-The `+` operator is defined as a free function of two arguments of the same
-type, conforming to the `Arithmetic` protocol, and is implemented in terms of
-copying the left operand and calling `add` on it, returning the result. The
-`FixedWidthInteger` protocol provides a default implementation for `add`, that
-delegates work to `addingWithOverflow`, which is implemented efficiently by
-every concrete type using intrinsics.
+```Swift
+public func + <T: Arithmetic>(lhs: T, rhs: T) -> T {
+  return lhs.adding(rhs)
+}
+
+extension Arithmetic {
+  public func adding(_ rhs: Self) -> Self {
+    var lhs = self
+    lhs.add(rhs)
+    return lhs
+  }
+}
+
+extension FixedWidthInteger {
+  public mutating func add(_ rhs: Self) {
+    let (result, overflow) = self.addingWithOverflow(rhs)
+    self = result
+  }
+}
+
+public struct Int8 {
+  public func addingWithOverflow(_ rhs: DoubleWidth<T>)
+    -> (partialValue: DoubleWidth<T>, overflow: ArithmeticOverflow) {
+    // efficient implementation
+  }
+}
+```
 
 
-#### Masking arithmetics
+#### Masking arithmetic
 
 ```Swift
 public func &* <T: FixedWidthInteger>(lhs: T, rhs: T) -> T
@@ -509,6 +561,19 @@ public func &+ <T: FixedWidthInteger>(lhs: T, rhs: T) -> T
 
 These operators call `WithOverflow` family of methods from `FixedWidthInteger`
 and simply return the `partialValue` part, ignoring the possible overflow.
+
+```Swift
+public func &+ <T: FixedWidthInteger>(lhs: T, rhs: T) -> T {
+  return lhs.addingWithOverflow(rhs).partialValue
+}
+
+public struct Int8 {
+  public func addingWithOverflow(_ rhs: DoubleWidth<T>)
+    -> (partialValue: DoubleWidth<T>, overflow: ArithmeticOverflow) {
+    // efficient implementation
+  }
+}
+```
 
 
 #### Homogeneous comparison
@@ -522,7 +587,7 @@ public func >= <T : Integer>(lhs: T, rhs: T) -> Bool
 public func <= <T : Integer>(lhs: T, rhs: T) -> Bool
 ```
 
-Implementation is similar to the homogeneous arithmetic operators above.
+The implementation is similar to the homogeneous arithmetic operators above.
 
 
 #### Heterogeneous comparison
@@ -538,13 +603,19 @@ public func <= <T : Integer, U : Integer>(lhs: T, rhs: U) -> Bool
 
 ##### Implementation example
 
-The overloaded version of `==` operator accepts two arguments of different
-types both conforming to `Integer` protocol. One of the arguments then gets
-transformed into the value of the type of another using the
-`extendingOrTruncating` initializer, introduced by the `Integer` protocol, and
-a homogeneous version of `==` is called, which, as in the example above,
-delegates all the work to `isEqual(to:)` method, implemented by every concrete
-type.
+```Swift
+public func == <T : Integer, U : Integer>(lhs:T, rhs: U) -> Bool {
+  return (lhs > 0) == (rhs > 0)
+    && T(extendingOrTruncating: rhs) == lhs
+    && U(extendingOrTruncating: lhs) == rhs
+}
+
+extension FixedWidthInteger {
+  public init<T : Integer>(extendingOrTruncating source: T) {
+    // converting `source` into the value of `Self`
+  }
+}
+```
 
 
 #### Shifts
@@ -571,15 +642,13 @@ public func &>>= <T: FixedWidthInteger, U: Integer>(lhs: inout T, rhs: U)
 public func &>>= <T: FixedWidthInteger>(lhs: inout T, rhs: T)
 ```
 
-##### Implementation example (mixed-type left shift)
+##### Notes on the implementation of mixed-type shifts
 
 The implementation is similar to the heterogeneous comparison. The only
 difference is that it is hard to define what a left shift would mean to an
 infinitely large integer, therefore we only allow shifts where left operand
 conforms to the `FixedWidthInteger` protocol. Right operand, however, can be an
-arbitrary `Integer`. Other than that, the implementation technique should
-already be familiar from the sections above: generic function delegates task to
-a non-generic one, implemented efficiently on a concrete type.
+arbitrary `Integer`.
 
 
 #### Bitwise operations
@@ -596,11 +665,14 @@ public func ^= <T: FixedWidthInteger>(lhs: inout T, rhs: T)
 
 ## Impact on existing code
 
+The new model is designed to be a drop-in replacement for the current one.  One
+feature that has been deliberately removed is the concept of `the widest
+integer type`, which will require a straightforward code migration.
+
 Existing code that does not implement its own integer types (or rely on
 existing protocol hierarchy in any other way) should not be affected. It will
 be slightly wordier due to all the type conversions that are no longer
-required, but will continue to work. Migration is possible but not strictly
-necessary.
+required, but will continue to work.
 
 
 ## Non-goals
