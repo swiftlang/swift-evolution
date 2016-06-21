@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0102](0102-noreturn-bottom-type.md)
 * Author: [Joe Groff](https://github.com/jckarter)
-* Status: **Scheduled for review June 21...27**
+* Status: **Active review June 21...27**
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
