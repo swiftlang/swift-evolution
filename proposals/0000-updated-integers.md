@@ -16,8 +16,8 @@ Swift's integer protocols don't currently provide a suitable basis for generic
 programming. See [this blog post](http://blog.krzyzanowskim.com/2015/03/01/swift_madness_of_generic_integer/)
 for an example of an attempt to implement a generic algorithm over integers.
 
-The way `Arithmetic` protocol is defined, it does not generalize to floating
-point numbers and also slows down the compilation by requiring every concrete
+The way the `Arithmetic` protocol is defined, it does not generalize to floating
+point numbers and also slows down compilation by requiring every concrete
 type to provide an implementation of arithmetic operators as free functions,
 thus polluting the overload set.
 
@@ -125,8 +125,8 @@ defined by them:
 
 ## Proposed solution
 
-We propose the new model that does not the have above mentioned problems and is
-more easily extendable.
+We propose a new model that does not the have above mentioned problems and is
+more easily extensible.
 
 ~~~~
                 +--------------+  +-------------+
@@ -216,20 +216,20 @@ There are several benefits provided by this model over the old one:
 
   The possibility to initialize instances of any concrete integer type with
 values of any other concrete integer type enables writing functions that
-operate on more than one type conforming to `Integer`, such as, heterogeneous
+operate on more than one type conforming to `Integer`, such as heterogeneous
 comparisons or bit shifts, described later.
 
 - It removes the overload resolution overhead.
 
   Arithmetic and bitwise operations can now be defined as free functions
 delegating work to concrete types. This approach significantly reduces the
-number of overloads for those operations, that used to be defined for every
+number of overloads for those operations, which used to be defined for every
 single concrete integer type.
 
 - It enables protocol sharing between integer and floating point types.
 
   Note the exclusion of the `%` operation from `Arithmetic`. Its behavior for
-floating point numbers is sufficiently different from the one for integers, so
+floating point numbers is sufficiently different from the one for integers
 that using it in generic context would lead to confusion.
 
 - It makes future extensions possible.
@@ -254,7 +254,7 @@ This proposal introduces the concepts of `smart shifts` and `masking shifts`.
 
 The semantics of shift operations are [often
 undefined](http://llvm.org/docs/LangRef.html#bitwise-binary-operations) in case
-of negative shift or overshift. Smart shifts, implemented by `>>` and `<<`, are
+of negative shift or overshift. “Smart shifts,” implemented by `>>` and `<<`, are
 designed to address this problem and always behave in a well defined way, as
 shown in the examples below:
 
@@ -262,11 +262,9 @@ shown in the examples below:
 
 - `(1 as UInt8) >> 42)` will evaluate to `0`
 
-- `(1 as Int8) >> 42)` will evaluate to `0xff` or `-1`
+- `(-128 as Int8) >> 42)` will evaluate to `0xff` or `-1`
 
-Masking shifts, implemented by `&>>` and `&<<`, on the other hand, will *not*
-perform any bounds checks and compile to the most efficient code, but are
-subjected to the undefined behavior mentioned above.
+In most scenarios, the right hand operand is a literal constant, and branches for handling under- and over-shift cases can be optimized away.  For other cases, this proposal provides “masking shifts,” implemented by `&>>` and `&<<`. A masking shift logically preprocesses the right hand operand by masking its bits to produce a value in the range `0...(x-1)` where `x` is the number of bits in the left hand operand.  On most architectures this masking is already performed by the CPU's shift instructions and has no cost.  Both kinds of shift avoid undefined behavior and produce uniform semantics across architectures.
 
 
 ## Detailed design
@@ -275,15 +273,15 @@ subjected to the undefined behavior mentioned above.
 
 #### `Arithmetic`
 
-The `Arithmetic` protocol declares methods backing binary arithmetic operators,
-such as `+`, `-` and `*`; and their mutating counterparts.
+The `Arithmetic` protocol declares methods backing binary arithmetic 
+operators—such as `+`, `-` and `*`—and their mutating counterparts.
 
 It provides a suitable basis for arithmetic on scalars such as integers and
 floating point numbers.
 
 Both mutating and non-mutating operations are declared in the protocol, however
-only the mutating ones are required, as non-mutating are provided by the
-protocol extension.
+only the mutating ones are required, as default implementations of the 
+non-mutating ones are provided by a protocol extension.
 
 ```Swift
 public protocol Arithmetic : Equatable, IntegerLiteralConvertible {
