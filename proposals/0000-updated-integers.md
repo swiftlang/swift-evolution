@@ -321,11 +321,11 @@ homogeneous comparisons are implemented as generic free functions invoking the
 `isEqual(to:)` and `isLess(than:)` protocol methods respectively.
 
 This protocol adds 3 new initializers to the parameterless one inherited from
-`Arithmetic`. These initializers allow to construct values of one type from
+`Arithmetic`. These initializers support construction from
 instances of any other type conforming to `Integer`, using different
 strategies:
 
-  - Assume the value is representatble in `Self`
+  - Assume the value is representable in `Self`
 
   - Extend or truncate the value to fit into `Self`
 
