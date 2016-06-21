@@ -333,13 +333,13 @@ strategies:
 
 The `AbsoluteValue` associated type is able to hold the absolute value of any
 possible value of `Self`. Concrete types do not have to provide a typealias for
-it as it can be inferred from the `absoluteValue` property. This property can
+it, as it can be inferred from the `absoluteValue` property. This property can
 be useful in operations that are simpler to implement in terms of unsigned
 values, for example, printing a value of an integer, which is just printing a
 '-' character in front of an absolute value.
 
-Please note, that `absoluteValue` property *should not* be preferred to the
-`abs` function, whose return value is of the same type as its argument.
+Please note that for ordinary work, the `absoluteValue` property *should not*
+be preferred to the `abs(_)` function, whose return value is of the same type as its argument.
 
 ```Swift
 public protocol Integer:
@@ -407,16 +407,15 @@ The `FixedWidthInteger` protocol adds binary bitwise operations and bit shifts
 to the `Integer` protocol.
 
 The `WithOverflow` family of methods is used in default implementations of
-mutating arithmetic methods (see `Arithmetic` protocol). Having these methods
-allows to provide both safe implementations, that would check bounds, and
-unsafe ones without duplicating code.
+mutating arithmetic methods (see the `Arithmetic` protocol). Having these
+methods allows the library to provide both bounds-checked and masking
+implementations of arithmetic operations, without duplicating code.
 
 Bitwise binary and shift operators are implemented the same way as arithmetic
-operations: free function dispatches a call to a corresponding protocol method.
+operations: a free function dispatches a call to a corresponding protocol method.
 
 The `doubleWidthMultiply` method is a necessary building block to implement
-support for integer types of a greater width and, as a consequence, arbitrary
-precision integers.
+support for integer types of a greater width such as arbitrary-precision integers.
 
 ```Swift
 public protocol FixedWidthInteger : Integer {
@@ -643,11 +642,11 @@ public func &>>= <T: FixedWidthInteger>(lhs: inout T, rhs: T)
 ##### Notes on the implementation of mixed-type shifts
 
 The implementation is similar to the heterogeneous comparison. The only
-difference is that it is hard to define what a left shift would mean to an
-infinitely large integer, therefore we only allow shifts where left operand
-conforms to the `FixedWidthInteger` protocol. Right operand, however, can be an
+difference is that because shifting left truncates the high bits of
+fixed-width integers, it is hard to define what a left shift would mean to an
+arbitrary-precision integer.  Therefore we only allow shifts where the left operand
+conforms to the `FixedWidthInteger` protocol. The right operand, however, can be an
 arbitrary `Integer`.
-
 
 #### Bitwise operations
 
@@ -667,10 +666,10 @@ The new model is designed to be a drop-in replacement for the current one.  One
 feature that has been deliberately removed is the concept of `the widest
 integer type`, which will require a straightforward code migration.
 
-Existing code that does not implement its own integer types (or rely on
-existing protocol hierarchy in any other way) should not be affected. It will
-be slightly wordier due to all the type conversions that are no longer
-required, but will continue to work.
+Existing code that does not implement its own integer types (or rely on the
+existing protocol hierarchy in any other way) should not be affected. It may
+be slightly wordier than necessary due to all the type conversions that are
+no longer required, but will continue to work.
 
 
 ## Non-goals
@@ -683,3 +682,6 @@ This proposal:
 
 - *DOES NOT* include the implementation of a `BigInt` type, but allows it
   to be implemented in the future.
+
+- *DOES NOT* propose including a `DoubleWidth` integer type in the standard
+  library, but provides a proof-of-concept implementation.
