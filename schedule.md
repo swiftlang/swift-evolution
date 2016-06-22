@@ -12,6 +12,7 @@ proposals in that process.
 * June 4...7 [SE-0089: Renaming `String.init<T>(_: T)`](proposals/0089-rename-string-reflection-init.md)
 * June 21...27 [SE-0101: Rename `sizeof` and related functions to comply with API Guidelines](proposals/0101-standardizing-sizeof-naming.md)
 * June 21...27 [SE-0102: Remove `@noreturn` attribute and introduce an empty `NoReturn` type](proposals/0102-noreturn-bottom-type.md)
+* June 21...27 [SE-0103: Make non-escaping closures the default](proposals/0103-make-noescape-default.md)
 
 ## Upcoming reviews
 
