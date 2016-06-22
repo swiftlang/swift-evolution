@@ -255,7 +255,7 @@ This proposal introduces the concepts of *smart shifts* and *masking shifts*.
 
 The semantics of shift operations are
 [often undefined](http://llvm.org/docs/LangRef.html#bitwise-binary-operations)
-in under- or over-shift cases. “Smart shifts,” implemented by `>>` and `<<`,
+in under- or over-shift cases. *Smart shifts*, implemented by `>>` and `<<`,
 are designed to address this problem and always behave in a well defined way,
 as shown in the examples below:
 
@@ -287,16 +287,15 @@ operators—such as `+`, `-` and `*`—and their mutating counterparts.
 It provides a suitable basis for arithmetic on scalars such as integers and
 floating point numbers.
 
-It provides a suitable basis for arithmetic on scalars such as integers and
-floating point numbers.
-
 Both mutating and non-mutating operations are declared in the protocol, however
 only the mutating ones are required, as default implementations of the 
 non-mutating ones are provided by a protocol extension.
 
 ```Swift
 public protocol Arithmetic : Equatable, IntegerLiteralConvertible {
-  init()
+  /// Initializes to the value of `source` if it is representable exactly,
+  /// returns `nil` otherwise.
+  init?<T : Integer>(exactly source: T)
 
   func adding( rhs: Self) -> Self
   func subtracting( rhs: Self) -> Self
@@ -307,6 +306,10 @@ public protocol Arithmetic : Equatable, IntegerLiteralConvertible {
   mutating func subtract( rhs: Self)
   mutating func multiply(by rhs: Self)
   mutating func divide(by rhs: Self)
+}
+
+extension Arithmetic {
+  public init() { self = 0 }
 }
 ```
 
@@ -341,11 +344,13 @@ operations are dispatched in `Arithmetic`, `==` and `<` operators for
 homogeneous comparisons are implemented as generic free functions invoking the
 `isEqual(to:)` and `isLess(than:)` protocol methods respectively.
 
-This protocol adds 3 new initializers to the parameterless one inherited from
-`Arithmetic`. These initializers support construction from instances of any
-other type conforming to `Integer`, using different strategies:
+This protocol adds 4 new initializers. One of them allows to create integers
+from floating point numbers, if the value is representable exactly, others
+support construction from instances of any type conforming to `Integer`, using
+different strategies:
 
-  - Assume the value is representable in `Self`
+  - Initialze `Self` with the value, provided that the value is representable.
+    The precondition should be satisfied by the caller.
 
   - Extend or truncate the value to fit into `Self`
 
@@ -375,6 +380,10 @@ public protocol Integer:
 
   func isEqual(to rhs: Self) -> Bool
   func isLess(than rhs: Self) -> Bool
+
+  /// Creates an instance of `Self` that has the exact value of `source`,
+  /// returns `nil` otherwise.
+  init?<T : FloatingPoint>(exactly source: T)
 
   /// Creates an instance of `Self` from `source` if it is representable.
   ///
