@@ -385,6 +385,9 @@ public protocol Integer:
   /// returns `nil` otherwise.
   init?<T : FloatingPoint>(exactly source: T)
 
+  /// Truncates the `source` to the closest representable value of `Self`.
+  init<T : FloatingPoint>(_ source: T)
+
   /// Creates an instance of `Self` from `source` if it is representable.
   ///
   /// - Precondition: the value of `source` is representable in `Self`.
