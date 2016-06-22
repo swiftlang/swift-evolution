@@ -16,8 +16,8 @@ Swift's integer protocols don't currently provide a suitable basis for generic
 programming. See [this blog post](http://blog.krzyzanowskim.com/2015/03/01/swift_madness_of_generic_integer/)
 for an example of an attempt to implement a generic algorithm over integers.
 
-The way `Arithmetic` protocol is defined, it does not generalize to floating
-point numbers and also slows down the compilation by requiring every concrete
+The way the `Arithmetic` protocol is defined, it does not generalize to floating
+point numbers and also slows down compilation by requiring every concrete
 type to provide an implementation of arithmetic operators as free functions,
 thus polluting the overload set.
 
@@ -125,8 +125,8 @@ defined by them:
 
 ## Proposed solution
 
-We propose the new model that does not the have above mentioned problems and is
-more easily extendable.
+We propose a new model that does not have above mentioned problems and is
+more easily extensible.
 
 ~~~~
                 +--------------+  +-------------+
@@ -217,20 +217,20 @@ There are several benefits provided by this model over the old one:
 
   The possibility to initialize instances of any concrete integer type with
 values of any other concrete integer type enables writing functions that
-operate on more than one type conforming to `Integer`, such as, heterogeneous
+operate on more than one type conforming to `Integer`, such as heterogeneous
 comparisons or bit shifts, described later.
 
 - It removes the overload resolution overhead.
 
   Arithmetic and bitwise operations can now be defined as free functions
 delegating work to concrete types. This approach significantly reduces the
-number of overloads for those operations, that used to be defined for every
+number of overloads for those operations, which used to be defined for every
 single concrete integer type.
 
 - It enables protocol sharing between integer and floating point types.
 
   Note the exclusion of the `%` operation from `Arithmetic`. Its behavior for
-floating point numbers is sufficiently different from the one for integers, so
+floating point numbers is sufficiently different from the one for integers
 that using it in generic context would lead to confusion.
 
 - It makes future extensions possible.
@@ -253,23 +253,26 @@ suitability of the proposed model for generic programming.
 
 This proposal introduces the concepts of *smart shifts* and *masking shifts*.
 
-The semantics of shift operations are [often
-undefined](http://llvm.org/docs/LangRef.html#bitwise-binary-operations) in case
-of negative shift or overshift. The proposed design defines two kinds of shifts,
-both with clearly defined semantics.
-
-*Smart shifts*, implemented by `>>` and `<<`, will always perform a shift to
-the specified number of bits, as shown in the examples below:
+The semantics of shift operations are
+[often undefined](http://llvm.org/docs/LangRef.html#bitwise-binary-operations)
+in under- or over-shift cases. “Smart shifts,” implemented by `>>` and `<<`,
+are designed to address this problem and always behave in a well defined way,
+as shown in the examples below:
 
 - `x << -2` is equivalent to `x >> 2`
 
 - `(1 as UInt8) >> 42)` will evaluate to `0`
 
-- `(1 as Int8) >> 42)` will evaluate to `0xff` or `-1`
+- `(-128 as Int8) >> 42)` will evaluate to `0xff` or `-1`
 
-*Masking shifts*, implemented by `&>>` and `&<<`, on the other hand, will only
-shift to the amount of bits not greater than the width of the value being
-shifted.
+In most scenarios, the right hand operand is a literal constant, and branches
+for handling under- and over-shift cases can be optimized away.  For other
+cases, this proposal provides *masking shifts*, implemented by `&>>` and `&<<`.
+A masking shift logically preprocesses the right hand operand by masking its
+bits to produce a value in the range `0...(x-1)` where `x` is the number of
+bits in the left hand operand.  On most architectures this masking is already
+performed by the CPU's shift instructions and has no cost.  Both kinds of shift
+avoid undefined behavior and produce uniform semantics across architectures.
 
 
 ## Detailed design
@@ -278,15 +281,18 @@ shifted.
 
 #### `Arithmetic`
 
-The `Arithmetic` protocol declares methods backing binary arithmetic operators,
-such as `+`, `-` and `*`; and their mutating counterparts.
+The `Arithmetic` protocol declares methods backing binary arithmetic 
+operators—such as `+`, `-` and `*`—and their mutating counterparts.
+
+It provides a suitable basis for arithmetic on scalars such as integers and
+floating point numbers.
 
 It provides a suitable basis for arithmetic on scalars such as integers and
 floating point numbers.
 
 Both mutating and non-mutating operations are declared in the protocol, however
-only the mutating ones are required, as non-mutating are provided by the
-protocol extension.
+only the mutating ones are required, as default implementations of the 
+non-mutating ones are provided by a protocol extension.
 
 ```Swift
 public protocol Arithmetic : Equatable, IntegerLiteralConvertible {
@@ -336,9 +342,8 @@ homogeneous comparisons are implemented as generic free functions invoking the
 `isEqual(to:)` and `isLess(than:)` protocol methods respectively.
 
 This protocol adds 3 new initializers to the parameterless one inherited from
-`Arithmetic`. These initializers allow to construct values of one type from
-instances of any other type conforming to `Integer`, using different
-strategies:
+`Arithmetic`. These initializers support construction from instances of any
+other type conforming to `Integer`, using different strategies:
 
   - Assume the value is representable in `Self`
 
@@ -348,13 +353,14 @@ strategies:
 
 The `AbsoluteValue` associated type is able to hold the absolute value of any
 possible value of `Self`. Concrete types do not have to provide a typealias for
-it as it can be inferred from the `absoluteValue` property. This property can
+it, as it can be inferred from the `absoluteValue` property. This property can
 be useful in operations that are simpler to implement in terms of unsigned
 values, for example, printing a value of an integer, which is just printing a
 '-' character in front of an absolute value.
 
-Please note, that `absoluteValue` property *should not* be preferred to the
-`abs` function, whose return value is of the same type as its argument.
+Please note that for ordinary work, the `absoluteValue` property **should not**
+be preferred to the `abs(_)` function, whose return value is of the same type
+as its argument.
 
 ```Swift
 public protocol Integer:
@@ -422,16 +428,16 @@ The `FixedWidthInteger` protocol adds binary bitwise operations and bit shifts
 to the `Integer` protocol.
 
 The `WithOverflow` family of methods is used in default implementations of
-mutating arithmetic methods (see `Arithmetic` protocol). Having these methods
-allows to provide both safe implementations, that would check bounds, and
-unsafe ones without duplicating code.
+mutating arithmetic methods (see the `Arithmetic` protocol). Having these
+methods allows the library to provide both bounds-checked and masking
+implementations of arithmetic operations, without duplicating code.
 
 Bitwise binary and shift operators are implemented the same way as arithmetic
-operations: free function dispatches a call to a corresponding protocol method.
+operations: a free function dispatches a call to a corresponding protocol
+method.
 
 The `doubleWidthMultiply` method is a necessary building block to implement
-support for integer types of a greater width and, as a consequence, arbitrary
-precision integers.
+support for integer types of a greater width such as arbitrary-precision integers.
 
 ```Swift
 public protocol FixedWidthInteger : Integer {
@@ -658,11 +664,11 @@ public func &>>= <T: FixedWidthInteger>(lhs: inout T, rhs: T)
 ##### Notes on the implementation of mixed-type shifts
 
 The implementation is similar to the heterogeneous comparison. The only
-difference is that it is hard to define what a left shift would mean to an
-infinitely large integer, therefore we only allow shifts where left operand
-conforms to the `FixedWidthInteger` protocol. Right operand, however, can be an
-arbitrary `Integer`.
-
+difference is that because shifting left truncates the high bits of fixed-width
+integers, it is hard to define what a left shift would mean to an
+arbitrary-precision integer.  Therefore we only allow shifts where the left
+operand conforms to the `FixedWidthInteger` protocol. The right operand,
+however, can be an arbitrary `Integer`.
 
 #### Bitwise operations
 
@@ -682,10 +688,10 @@ The new model is designed to be a drop-in replacement for the current one.  One
 feature that has been deliberately removed is the concept of `the widest
 integer type`, which will require a straightforward code migration.
 
-Existing code that does not implement its own integer types (or rely on
-existing protocol hierarchy in any other way) should not be affected. It will
-be slightly wordier due to all the type conversions that are no longer
-required, but will continue to work.
+Existing code that does not implement its own integer types (or rely on the
+existing protocol hierarchy in any other way) should not be affected. It may
+be slightly wordier than necessary due to all the type conversions that are
+no longer required, but will continue to work.
 
 
 ## Non-goals
@@ -698,3 +704,6 @@ This proposal:
 
 - *DOES NOT* include the implementation of a `BigInt` type, but allows it
   to be implemented in the future.
+
+- *DOES NOT* propose including a `DoubleWidth` integer type in the standard
+  library, but provides a proof-of-concept implementation.
