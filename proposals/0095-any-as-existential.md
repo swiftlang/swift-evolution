@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0095](0095-any-as-existential.md)
 * Author: [Adrian Zubarev](https://github.com/DevAndArtist), [Austin Zheng](https://github.com/austinzheng)
-* Status: **TBD**
+* Status: **Active review June 22...27**
 * Review manager: [Chris Lattner](http://github.com/lattner)
 * Revision: 2
 * Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/a4356fee94c06181715fad83aa61e923eb73f8ec/proposals/0095-any-as-existential.md)

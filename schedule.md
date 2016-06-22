@@ -13,6 +13,8 @@ proposals in that process.
 * June 21...27 [SE-0101: Rename `sizeof` and related functions to comply with API Guidelines](proposals/0101-standardizing-sizeof-naming.md)
 * June 21...27 [SE-0102: Remove `@noreturn` attribute and introduce an empty `NoReturn` type](proposals/0102-noreturn-bottom-type.md)
 * June 21...27 [SE-0103: Make non-escaping closures the default](proposals/0103-make-noescape-default.md)
+* June 22...27 [SE-0095: Replace `protocol<P1,P2>` syntax with `Any<P1,P2>`](proposals/0095-any-as-existential.md)
+
 
 ## Upcoming reviews
 
