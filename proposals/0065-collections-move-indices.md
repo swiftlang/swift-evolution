@@ -115,7 +115,7 @@ haven't lost the ability to express anything.
 This section covers the proposed structural changes to the library at
 a high level.  Details such as protocols introduced purely to work
 around compiler limitations (e.g. `Indexable` or `IndexableBase`) have
-been omitted.  For a complete view of the the code
+been omitted.  For a complete view of the code
 and documentation changes implementing this proposal, please see this
 [pull request](https://github.com/apple/swift/pull/2108).
 
@@ -245,7 +245,7 @@ violation in the general case.
 
 This section describes changes to methods, properties, and associated
 types at a high level.  Details related to working around compiler
-limitations have been omitted.  For a complete view of the the code
+limitations have been omitted.  For a complete view of the code
 and documentation changes implementing this proposal, please see this
 [pull request](https://github.com/apple/swift/pull/2108).
 
@@ -472,7 +472,7 @@ in the interest of full disclosure:
   manipulations end up looking like free function calls:
 
   ```swift
-  let j = index(after: i)           // self.successor(i)
+  let j = index(after: i)           // self.index(after: i)
   let k = index(j, offsetBy: 5)     // self.index(j, offsetBy: 5)
   ```
 
@@ -539,7 +539,7 @@ Code that **needs to change**:
   could handle some easy cases.
 
 * Custom collection implementations need to change.  A simple fix would
-  be to just move the the methods from indices to collections to satisfy
+  be to just move the methods from indices to collections to satisfy
   new protocol requirements.  This is a more or less mechanical fix that
   does not require design work.  This fix would allow the code to
   compile and run.

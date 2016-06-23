@@ -40,7 +40,7 @@ expressions:
   
     Though not formally perfect by any means, this heuristic approach works
     well because `a < b > c` is unlikely to begin with (and impossible in
-    standard Swift, because `Bool` is not `Comparable` in the the standard
+    standard Swift, because `Bool` is not `Comparable` in the standard
     library), and `(a < b, c > (d))` is unlikely as a standalone tuple of
     expressions due to the already-low precedence of `>`.  Swift adds
     leading-dot `.member` expressions over Java and C#, so `(a < b, c > .d)` is
