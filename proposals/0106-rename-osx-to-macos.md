@@ -9,13 +9,13 @@
 
 Starting in Sierra, Apple's Mac-based OS (OS X) will be renamed "macOS". All user-facing Swift APIs must go through Swift Evolution. While this is a trivial API change, I have put together a formal proposal as is normal and usual for this process. 
 
-This proposal adds the `#if os(macos)` platform configuration test to alias the current `#if os(osx)`
+This proposal adds the `#if os(macOS)` platform configuration test to alias the current `#if os(OSX)`
 
 Swift Evolution Discussion: [\[DRAFT\] Aliasing the OS X Platform Configuration	Test](http://thread.gmane.org/gmane.comp.lang.swift.evolution/20815)
 
 ## Motivation
 
-At WWDC 2016, Apple renamed its Mac operating system from OSX to macOS. Adding rather than replacing "OSX" enables API adoption to be purely additive and supports the notion that Swift-based applications can and may be deployed to operating systems earlier than Sierrra.
+At WWDC 2016, Apple renamed its Mac operating system from OSX to macOS. Adding rather than replacing "OSX" enables API adoption to be purely additive and supports the notion that Swift-based applications can and may be deployed to operating systems earlier than Sierra.
 
 Choosing to use both names originates from the following rationale:
 
