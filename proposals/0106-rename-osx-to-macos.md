@@ -13,6 +13,8 @@ This proposal adds the `#if os(macOS)` platform configuration test to alias the 
 
 Swift Evolution Discussion: [\[DRAFT\] Aliasing the OS X Platform Configuration	Test](http://thread.gmane.org/gmane.comp.lang.swift.evolution/20815)
 
+Bug report: [SR-1823](https://bugs.swift.org/browse/SR-1823)
+
 ## Motivation
 
 At WWDC 2016, Apple renamed its Mac operating system from OSX to macOS. Adding rather than replacing "OSX" enables API adoption to be purely additive and supports the notion that Swift-based applications can and may be deployed to operating systems earlier than Sierra.
@@ -84,4 +86,4 @@ Both `@available` and `#available` are also affected by the macOS rename. Curren
 * [https://github.com/apple/swift/blob/master/test/IDE/complete_decl_attribute.swift](https://github.com/apple/swift/blob/master/test/IDE/complete_decl_attribute.swift)
 * [https://github.com/apple/swift/blob/master/tools/SourceKit/lib/SwiftLang/SwiftDocSupport.cpp](https://github.com/apple/swift/blob/master/tools/SourceKit/lib/SwiftLang/SwiftDocSupport.cpp)
 
-A separate bug report [SR-1887](https://bugs.swift.org/browse/SR-1887) has been filed for this. The obvious alternatives for these are `macOS` and `macOSApplicationExtension`, however as Ben writes, "These may need to be renamed rather than aliased."
+A separate bug report [SR-1887](https://bugs.swift.org/browse/SR-1887) has been filed for this. The obvious alternatives for these are `macOS` and `macOSApplicationExtension`. Ben writes, "These may need to be renamed rather than aliased."
