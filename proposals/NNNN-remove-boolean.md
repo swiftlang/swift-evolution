@@ -1,7 +1,7 @@
 # Remove `Boolean` protocol
 
 * Proposal: [SE-NNNN](NNNN-filename.md)
-* Author: [Anton Zhilin](https://github.com/Anton3). [Chris Lattner](https://github.com/lattner)
+* Author: [Anton Zhilin](https://github.com/Anton3), [Chris Lattner](https://github.com/lattner)
 * Status: **Awaiting review**
 * Review manager: TBD
 
@@ -11,19 +11,17 @@ Remove `Boolean` protocol. Only Bool will be able to be used in logical contexts
 
 ```swift
 let x: ObjCBool = true
-if x {  // will become an error!
-  ...
-}
+if x { ... }  // will become an error!
 ```
 
-Swift-evolution thread: [Discussion thread topic for that proposal](http://news.gmane.org/gmane.comp.lang.swift.evolution)
+[Discussion thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/21559)
 
 ## Motivation
 
-> “Boolean” isn’t pulling its weight:
+> â€œBooleanâ€ isnâ€™t pulling its weight:
 > - It only abstracts over Bool and ObjCBool.
 > - It only enables a few operations on ObjCBool, which are not very important.
-> - ObjCBool is a bridging problem, and we don’t handle bridging by introducing common protocols (e.g. in the case of String vs NSString, we don’t introduce a common “Stringable” protocol.
+> - ObjCBool is a bridging problem, and we donâ€™t handle bridging by introducing common protocols (e.g. in the case of String vs NSString, we donâ€™t introduce a common â€œStringableâ€ protocol.
 >
 > Further, it complicates the model:
 > - People are confused by it and the similar but very different Bool type.
