@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0071](0071-member-keywords.md)
 * Author: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted for Swift 3**
+* Status: **Accepted for Swift 3** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/15954))
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction

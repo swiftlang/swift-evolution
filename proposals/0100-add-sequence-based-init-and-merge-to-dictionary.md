@@ -1,6 +1,6 @@
 # Add sequence-based initializers and merge methods to Dictionary
 
-* Proposal: TBD
+* Proposal: [SE-0100](0100-add-sequence-based-init-and-merge-to-dictionary.md)
 * Author: [Nate Cook](https://github.com/natecook1000)
 * Status: **Awaiting review**
 * Review manager: TBD

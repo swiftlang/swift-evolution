@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0046](https://github.com/apple/swift-evolution/blob/master/proposals/0046-first-label.md)
 * Authors: [Jake Carter](https://github.com/JakeCarter), [Erica Sadun](http://github.com/erica)
-* Status: **Accepted** ([Bug](https://bugs.swift.org/browse/SR-961))
+* Status: **Accepted** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/12352), [Bug](https://bugs.swift.org/browse/SR-961))
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction

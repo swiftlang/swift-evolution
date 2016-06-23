@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0034](https://github.com/apple/swift-evolution/blob/master/proposals/0034-disambiguating-line.md)
 * Author: [Erica Sadun](http://github.com/erica)
-* Status: **Accepted** ([Implementation Bug](https://bugs.swift.org/browse/SR-840))
+* Status: **Accepted** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/8156), [Implementation Bug](https://bugs.swift.org/browse/SR-840))
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction
@@ -14,7 +14,7 @@ The discussion took place on-line in the [*\[Discussion\]: Renaming #line, the l
 
 ## Motivation
 
-Swift uses the the following grammar to define line control statements:
+Swift uses the following grammar to define line control statements:
 
 ```
 line-control-statement → #line

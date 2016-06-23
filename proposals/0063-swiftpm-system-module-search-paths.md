@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0063](https://github.com/apple/swift-evolution/blob/master/proposals/0063-swiftpm-system-module-search-paths.md)
 * Author: [Max Howell](https://github.com/mxcl)
-* Status: **Accepted for Swift 3**
+* Status: **Accepted for Swift 3** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/14638))
 * Review manager: [Anders Bertelrud](https://github.com/abertelrud)
 
 

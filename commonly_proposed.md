@@ -28,6 +28,8 @@ Several of the discussions below refer to "C Family" languages.  This is intende
 
 * [Use Garbage Collection instead of ARC](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160208/009403.html): Mark and sweep garbage collection is a well known technique used in many popular and widely used languages (e.g., Java and JavaScript) and it has the advantage of automatically collecting reference cycles that ARC requires the programmer to reason about.  That said, garbage collection has a [large number of disadvantages](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160208/009422.html) and using it would prevent Swift from successfully targeting a number of systems programming domains.  For example, real time systems (video or audio processing), deeply embedded controllers, and most kernels find GC to be generally unsuitable.  Further, GC is only efficient when given 3–4× more memory to work with than the process is using at any time, and this tradeoff is not acceptable for Swift.
 
+* [Disjunctions (logical ORs) in type constraints](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000182.html): These include anonymous union-like types (e.g. `(Int | String)` for a type that can be inhabited by either an integer or a string). "[This type of constraint is] something that the type system cannot and should not support."
+
 Here are some other less-commonly proposed changes that have also been rejected:
  
 * [Remove `;` Semicolons](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/002421.html): Semicolons within a line are an intentional expressivity feature.  Semicolons at the end of the line should be handled by a "linter", not by the compiler.

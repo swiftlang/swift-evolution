@@ -2,7 +2,7 @@
 
 * Proposal: SE-0082
 * Author: [Daniel Dunbar](https://github.com/ddunbar)
-* Status: **Accepted for Swift 3**
+* Status: **Accepted for Swift 3** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/16614))
 * Review manager: [Anders Bertelrud](https://github.com/abertelrud)
 
 ## Introduction

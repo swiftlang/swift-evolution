@@ -7,23 +7,22 @@ proposals in that process.
 ## Active reviews
 
 * May 9...16 [SE-0086: Drop NS Prefix in Swift Foundation](proposals/0086-drop-foundation-ns.md)
-* May 17...23 [SE-0050: Decoupling Floating Point Strides from Generic Implementations](proposals/0050-floating-point-stride.md)
-* May 17...23 [SE-0077: Improved operator declarations](proposals/0077-operator-precedence.md)
 * May 17...23 [SE-0091: Improving operator requirements in protocols](proposals/0091-improving-operators-in-protocols.md)
-* May 24...30 [SE-0095: Replace `protocol<P1,P2>` syntax with `Any<P1,P2>`](proposals/0095-any-as-existential.md)
-* May 24...30 [SE-0096: Converting dynamicType from a property to an operator](proposals/0096-dynamictype.md)
-* May 24...30 [SE-0097: Normalizing naming for "negative" attributes](proposals/0097-negative-attributes.md)
-* May 24...30 [SE-0098: Lowercase `didSet` and `willSet` for more consistent keyword casing](proposals/0098-didset-capitalization.md)
-* May 27...June 3 [SE-0099: Restructuring Condition Clauses](proposals/0099-conditionclauses.md)
+* June 21...27 [SE-0101: Rename `sizeof` and related functions to comply with API Guidelines](proposals/0101-standardizing-sizeof-naming.md)
+* June 21...27 [SE-0102: Remove `@noreturn` attribute and introduce an empty `NoReturn` type](proposals/0102-noreturn-bottom-type.md)
+* June 21...27 [SE-0103: Make non-escaping closures the default](proposals/0103-make-noescape-default.md)
+* June 22...27 [SE-0095: Replace `protocol<P1,P2>` syntax with `Any<P1,P2>`](proposals/0095-any-as-existential.md)
+* June 22...27 [SE-0104: Protocol-oriented integers](proposals/0104-improved-integers.md)
+* June 22...29 [SE-0105: Removing Where Clauses from For-In Loops](proposals/0105-remove-where-from-forin-loops.md)
 
 ## Upcoming reviews
 
+
 ## Proposals awaiting scheduling
 
-* [SE-0012: Add `@noescape` to public library API](proposals/0012-add-noescape-to-public-library-api.md)
 * [SE-0079: Allow using optional binding to upgrade `self` from a weak to strong reference](proposals/0079-upgrade-self-from-weak-to-strong.md)
-* 
 * [SE-0100: Add sequence-based initializers and merge methods to Dictionary](proposals/0100-add-sequence-based-init-and-merge-to-dictionary.md)
+* [SE-0106: Add a `macOS` Alias for the `OSX` Platform Configuration Test](proposals/0106-rename-osx-to-macos.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 

@@ -2,8 +2,8 @@
 
 * Proposal: [SE-0077](0077-operator-precedence.md)
 * Author: [Anton Zhilin](https://github.com/Anton3)
-* Status: **Active Review: May 17...23**
-* Review manager: [Chris Lattner](http://github.com/lattner)
+* Status: **Under revision** ([Rationale](#rationale))
+* Review manager: [Joe Groff](http://github.com/jckarter)
 
 ## Introduction
 
@@ -643,6 +643,62 @@ Or its slightly modified forms.
 
 # Rationale
 
-On [Date], the core team decided to **(TBD)** this proposal.
-When the core team makes a decision regarding this proposal,
-their rationale for the decision will be written here.
+On June 22, 2016, the core team decided to **return** the first version of this
+proposal for revision. The core design proposed is a clear win over the Swift 2
+design, but feels that revisions are necessary for usability and consistency
+with the rest of the language:
+
+- The proposed `associativity(left)` and `precedence(<)` syntax for precedence
+  group attributes doesn't have a precedent elsewhere in Swift. Furthermore,
+  it isn't clear which relationship `<` and `>` correspond to in the `precedence`
+  syntax. The core team feels that it's more in the character of Swift to use
+  colon-separated "key-value" syntax, with `associativity`, `strongerThan`,
+  and `weakerThan` keyword labels:
+
+    ```swift
+    precedencegroup Foo {
+      associativity: left
+      strongerThan: Bar
+      weakerThan: Bas
+    }
+    ```
+
+- If "stronger" and "weaker" relationships are both allowed, that would
+  enable different code to express precedence relationships in different,
+  potentially confusing ways. To promote consistency and clarity, the
+  core team recommends the following restriction: Relationships between
+  precedence groups defined within the same module must be expressed
+  **exclusively** in terms of `strongerThan`. `weakerThan` can only be
+  used to extend the precedence graph relative to another module's
+  groups, subject to the transitivity constraints already described in the
+  proposal. This enforces a consistent style internally within modules
+  defining operators.
+
+- The proposal states that precedence groups live in a separate namespace from
+  other declarations; however, this is unprecedented in Swift, and leads to
+  significant implementation challenges. The core team recommends that
+  precedence groups exist in the same namespace as all Swift declarations. It
+  would be an error to reference a precedence group in value contexts.
+
+- Placing precedence groups in the standard namespace makes the question of
+  naming conventions for `precedencegroup` declarations important. The core
+  team feels that this is an important issue for the proposal to address.
+  As a starting point, we recommend `CamelCase` with a `-Precedence` suffix,
+  e.g. `AdditivePrecedence`. This is unfortunately redundant in the context of
+  a `precedencegroup` declaration; however, `precedencegroup`s should be rare
+  in practice, and it adds clarity at the point of use in `operator`
+  declarations in addition to avoiding naming collisions. The standard library
+  team also requests time to review the proposed names of the standard
+  precedence groups
+
+- This proposal quietly drops the `assignment` modifier that exists on operators
+  today. This modifier had one important function--an operator marked
+  `assignment` gets folded into an optional chain, allowing `foo?.bar += 2`
+  to work as `foo?(.bar += 2)` instead of `(foo?.bar) += 2`. In practice,
+  all Swift operators currently marked `assignment` are at the `Assignment`
+  precedence level, so the core team recommends making this optional chaining
+  interaction a special feature of the `Assignment` precedence group.
+
+- This proposal also accidentally includes declarations of `&&=` and `||=`
+  operators, which do not exist in Swift today and should not be added as part
+  of this proposal.

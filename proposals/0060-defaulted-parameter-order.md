@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0060](0060-defaulted-parameter-order.md)
 * Author: [Joe Groff](https://github.com/jckarter)
-* Status: **Accepted for Swift 3** ([Bug](https://bugs.swift.org/browse/SR-1489))
+* Status: **Accepted for Swift 3** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/16894), [Bug](https://bugs.swift.org/browse/SR-1489))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction

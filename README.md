@@ -108,7 +108,7 @@ below:
 * [SE-0016: Adding initializers to Int and UInt to convert from UnsafePointer and UnsafeMutablePointer](proposals/0016-initializers-for-converting-unsafe-pointers-to-ints.md)
 * [SE-0017: Change `Unmanaged` to use `UnsafePointer`](proposals/0017-convert-unmanaged-to-use-unsafepointer.md)
 * [SE-0019: Swift Testing](proposals/0019-package-manager-testing.md)
-* [SE-0023: API Design Guidelines](proposals/0006-apply-api-guidelines-to-the-standard-library.md)
+* [SE-0023: API Design Guidelines](proposals/0023-api-guidelines.md)
 * [SE-0028: Modernizing Swift's Debugging Identifiers (\__FILE__, etc)](proposals/0028-modernizing-debug-identifiers.md)
 * [SE-0029: Remove implicit tuple splat behavior from function applications](proposals/0029-remove-implicit-tuple-splat.md)
 * [SE-0031: Adjusting inout Declarations for Type Decoration](proposals/0031-adjusting-inout-declarations.md)
@@ -121,7 +121,10 @@ below:
 * [SE-0043: Declare variables in 'case' labels with multiple patterns](proposals/0043-declare-variables-in-case-labels-with-multiple-patterns.md)
 * [SE-0044: Import as Member](proposals/0044-import-as-member.md)
 * [SE-0046: Establish consistent label behavior across all parameters including first labels](proposals/0046-first-label.md)
+* [SE-0047: Defaulting non-Void functions so they warn on unused results](proposals/0047-nonvoid-warn.md)
+* [SE-0048: Generic Type Aliases](proposals/0048-generic-typealias.md)
 * [SE-0049: Move @noescape and @autoclosure to be type attributes](proposals/0049-noescape-autoclosure-type-attrs.md)
+* [SE-0052: Change IteratorType post-nil guarantee](proposals/0052-iterator-post-nil-guarantee.md)
 * [SE-0053: Remove explicit use of `let` from Function Parameters](proposals/0053-remove-let-from-function-parameters.md)
 * [SE-0054: Abolish `ImplicitlyUnwrappedOptional` type](proposals/0054-abolish-iuo.md)
 * [SE-0055: Make unsafe pointer nullability explicit using Optional](proposals/0055-optional-unsafe-pointers.md)
@@ -131,11 +134,14 @@ below:
 * [SE-0062: Referencing Objective-C key-paths](proposals/0062-objc-keypaths.md)
 * [SE-0064: Referencing the Objective-C selector of property getters and setters](proposals/0064-property-selectors.md)
 * [SE-0065: A New Model For Collections and Indices](proposals/0065-collections-move-indices.md)
+* [SE-0066: Standardize function type argument syntax to require parentheses](proposals/0066-standardize-function-type-syntax.md)
 * [SE-0069: Mutability and Foundation Value Types](proposals/0069-swift-mutability-for-foundation.md)
 * [SE-0070: Make Optional Requirements Objective-C-only](proposals/0070-optional-requirements.md)
 * [SE-0071: Allow (most) keywords in member references](proposals/0071-member-keywords.md)
 * [SE-0072: Fully eliminate implicit bridging conversions from Swift](proposals/0072-eliminate-implicit-bridging-conversions.md)
 * [SE-0085: Package Manager Command Names](proposals/0085-package-manager-command-name.md)
+* [SE-0093: Adding a public `base` property to slices](proposals/0093-slice-base.md)
+* [SE-0094: Add sequence(first:next:) and sequence(state:next:) to the stdlib](proposals/0094-sequence-function.md)
 
 ### Accepted proposals which do not have a complete implementation
 
@@ -150,12 +156,8 @@ subsequent release.
 * [SE-0038: Package Manager C Language Target Support](proposals/0038-swiftpm-c-language-targets.md)
 * [SE-0042: Flattening the function type of unapplied method references](proposals/0042-flatten-method-types.md)
 * [SE-0045: Add scan, prefix(while:), drop(while:), and iterate to the stdlib](proposals/0045-scan-takewhile-dropwhile.md)
-* [SE-0047: Defaulting non-Void functions so they warn on unused results](proposals/0047-nonvoid-warn.md)
-* [SE-0048: Generic Type Aliases](proposals/0048-generic-typealias.md)
-* [SE-0052: Change IteratorType post-nil guarantee](proposals/0052-iterator-post-nil-guarantee.md)
 * [SE-0060: Enforcing order of defaulted parameters](proposals/0060-defaulted-parameter-order.md)
 * [SE-0063: SwiftPM System Module Search Paths](proposals/0063-swiftpm-system-module-search-paths.md)
-* [SE-0066: Standardize function type argument syntax to require parentheses](proposals/0066-standardize-function-type-syntax.md)
 * [SE-0067: Enhanced Floating Point Protocols](proposals/0067-floating-point-protocols.md)
 * [SE-0068: Expanding Swift `Self` to class members and value types](proposals/0068-universal-self.md)
 * [SE-0075: Adding a Build Configuration Import Test](proposals/0075-import-test.md)
@@ -164,9 +166,10 @@ subsequent release.
 * [SE-0081: Move `where` clause to end of declaration](proposals/0081-move-where-expression.md)
 * [SE-0082: Package Manager Editable Packages](proposals/0082-swiftpm-package-edit.md)
 * [SE-0088: Modernize libdispatch for Swift 3 naming conventions](proposals/0088-libdispatch-for-swift3.md)
+* [SE-0089: Renaming `String.init<T>(_: T)`](proposals/0089-rename-string-reflection-init.md)
 * [SE-0092: Typealiases in protocols and protocol extensions](proposals/0092-typealiases-in-protocols.md)
-* [SE-0093: Adding a public `base` property to slices](proposals/0093-slice-base.md)
-* [SE-0094: Add sequence(first:next:) and sequence(state:next:) to the stdlib](proposals/0094-sequence-function.md)
+* [SE-0096: Converting dynamicType from a property to an operator](proposals/0096-dynamictype.md)
+* [SE-0099: Restructuring Condition Clauses](proposals/0099-conditionclauses.md)
 
 ## Swift 2.2 - Released on March 21, 2016
 
@@ -195,18 +198,22 @@ as practical with Swift 2.0.
 
 # Other Proposals
 
-### Rejected proposals
+### Rejected or withdrawn proposals
 * [SE-0009: Require self for accessing instance members](proposals/0009-require-self-for-accessing-instance-members.md)
 * [SE-0010: Add StaticString.UnicodeScalarView](proposals/0010-add-staticstring-unicodescalarview.md)
+* [SE-0012: Add `@noescape` to public library API](proposals/0012-add-noescape-to-public-library-api.md)
 * [SE-0013: Remove Partial Application of Non-Final Super Methods (Swift 2.2)](proposals/0013-remove-partial-application-super.md)
 * [SE-0024: Optional Value Setter `??=`](proposals/0024-optional-value-setter.md)
 * [SE-0027: Expose code unit initializers on String](proposals/0027-string-from-code-units.md)
 * [SE-0041: Updating Protocol Naming Conventions for Conversions](proposals/0041-conversion-protocol-conventions.md)
+* [SE-0051: Conventionalizing stride semantics](proposals/0051-stride-semantics.md)
 * [SE-0056: Allow trailing closures in `guard` conditions](proposals/0056-trailing-closures-in-guard.md)
 * [SE-0073: Marking closures as executing exactly once](proposals/0073-noescape-once.md)
 * [SE-0074: Implementation of Binary Search functions](proposals/0074-binary-search.md)
 * [SE-0084: Allow trailing commas in parameter lists and tuples](proposals/0084-trailing-commas.md)
 * [SE-0087: Rename `lazy` to `@lazy`](proposals/0087-lazy-attribute.md)
+* [SE-0097: Normalizing naming for "negative" attributes](proposals/0097-negative-attributes.md)
+* [SE-0098: Lowercase `didSet` and `willSet` for more consistent keyword casing](proposals/0098-didset-capitalization.md)
 
 ## Review
 [Swift Evolution Review Schedule](https://github.com/apple/swift-evolution/blob/master/schedule.md)
@@ -215,7 +222,9 @@ as practical with Swift 2.0.
 
 * [SE-0018: Flexible Memberwise Initialization](proposals/0018-flexible-memberwise-initialization.md)
 * [SE-0030: Property Behaviors](proposals/0030-property-behavior-decls.md)
-* [SE-0089: Renaming `String.init<T>(_: T)`](proposals/0089-rename-string-reflection-init.md)
+* [SE-0050: Decoupling Floating Point Strides from Generic Implementations](proposals/0050-floating-point-stride.md)
+* [SE-0095: Replace `protocol<P1,P2>` syntax with `Any<P1,P2>`](proposals/0095-any-as-existential.md)
+
 
 ### Deferred for Future Discussion
 

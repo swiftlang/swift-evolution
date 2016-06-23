@@ -906,7 +906,7 @@ public struct OpaquePointer : ... {
 +  public var localizedCapitalized: String
  
 -  public func capitalizedStringWithLocale(locale: NSLocale?) -> String
-+  public func capitalizedString(with locale: NSLocale?) -> String
++  public func capitalized(with locale: NSLocale?) -> String
  
 -  public func commonPrefixWithString(
 -    aString: String, options: NSStringCompareOptions) -> String

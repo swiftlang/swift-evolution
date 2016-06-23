@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0067](https://github.com/apple/swift-evolution/blob/master/proposals/0067-floating-point-protocols.md)
 * Author: [Stephen Canon](https://github.com/stephentyrone)
-* Status: **Accepted for Swift 3**
+* Status: **Accepted for Swift 3** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/15953))
 * Review manager: [Chris Lattner](https://github.com/lattner)
 * Revision: 2
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/fb1368a6a5474f57aa8f1846b5355d18753098f3/proposals/0067-floating-point-protocols.md)
