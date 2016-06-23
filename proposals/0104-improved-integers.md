@@ -297,13 +297,13 @@ public protocol Arithmetic : Equatable, IntegerLiteralConvertible {
   /// returns `nil` otherwise.
   init?<T : Integer>(exactly source: T)
 
-  func adding( rhs: Self) -> Self
-  func subtracting( rhs: Self) -> Self
+  func adding(_ rhs: Self) -> Self
+  func subtracting(_ rhs: Self) -> Self
   func multiplied(by rhs: Self) -> Self
   func divided(by rhs: Self) -> Self
 
-  mutating func add( rhs: Self)
-  mutating func subtract( rhs: Self)
+  mutating func add(_ rhs: Self)
+  mutating func subtract(_ rhs: Self)
   mutating func multiply(by rhs: Self)
   mutating func divide(by rhs: Self)
 }
