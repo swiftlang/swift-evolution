@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0089](0089-rename-string-reflection-init.md)
 * Author: [Austin Zheng](https://github.com/austinzheng), [Brent Royal-Gordon](https://github.com/brentdax)
-* Status: **Active Review June 4...7**
+* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000190.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 * Revision: 2
 * Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/40aecf3647c19ae37730e39aa9e54b67fcc2be86/proposals/0089-rename-string-reflection-init.md)
@@ -98,10 +98,3 @@ Code which intends to invoke `init<T>(_: T)` will need to be modified so that th
 
 One alternative solution might be to make `LosslessStringConvertible` a separate protocol altogether from `CustomStringConvertible` and `CustomDebugStringConvertible`. Arguments for and against that approach can be found in this [earlier version of this proposal](https://github.com/austinzheng/swift-evolution/blob/27ba68c2fbb8978aac6634c02d8a572f4f5123eb/proposals/0089-rename-string-reflection-init.md).
 
--------------------------------------------------------------------------------
-
-# Rationale
-
-On [Date], the core team decided to **(TBD)** this proposal.
-When the core team makes a decision regarding this proposal,
-their rationale for the decision will be written here.

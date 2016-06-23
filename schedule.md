@@ -9,7 +9,6 @@ proposals in that process.
 * May 9...16 [SE-0086: Drop NS Prefix in Swift Foundation](proposals/0086-drop-foundation-ns.md)
 * May 17...23 [SE-0077: Improved operator declarations](proposals/0077-operator-precedence.md)
 * May 17...23 [SE-0091: Improving operator requirements in protocols](proposals/0091-improving-operators-in-protocols.md)
-* June 4...7 [SE-0089: Renaming `String.init<T>(_: T)`](proposals/0089-rename-string-reflection-init.md)
 * June 21...27 [SE-0101: Rename `sizeof` and related functions to comply with API Guidelines](proposals/0101-standardizing-sizeof-naming.md)
 * June 21...27 [SE-0102: Remove `@noreturn` attribute and introduce an empty `NoReturn` type](proposals/0102-noreturn-bottom-type.md)
 * June 21...27 [SE-0103: Make non-escaping closures the default](proposals/0103-make-noescape-default.md)

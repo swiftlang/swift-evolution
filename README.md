@@ -166,6 +166,7 @@ subsequent release.
 * [SE-0081: Move `where` clause to end of declaration](proposals/0081-move-where-expression.md)
 * [SE-0082: Package Manager Editable Packages](proposals/0082-swiftpm-package-edit.md)
 * [SE-0088: Modernize libdispatch for Swift 3 naming conventions](proposals/0088-libdispatch-for-swift3.md)
+* [SE-0089: Renaming `String.init<T>(_: T)`](proposals/0089-rename-string-reflection-init.md)
 * [SE-0092: Typealiases in protocols and protocol extensions](proposals/0092-typealiases-in-protocols.md)
 * [SE-0096: Converting dynamicType from a property to an operator](proposals/0096-dynamictype.md)
 * [SE-0099: Restructuring Condition Clauses](proposals/0099-conditionclauses.md)
