@@ -71,3 +71,17 @@ This proposal is purely additive. It will not affect existing code other than ad
 Instead of retaining and aliasing `os(OSX)`, it can be fully replaced by `os(macOS)`. This mirrors the situation with the phoneOS to iOS rename and would require a migration assistant to fixit old-style use. 
 
 Charlie Monroe points out: "Since Swift 3.0 is a code-breaking change my guess is that there is no burden if the Xcode migration assistent automatically changes all `#if os(OSX)` to `#if os(macOS)`, thus deprecating the term OSX, not burdening the developer at all. If iOS was renamed to phoneOS and kept versioning, you'd still expect `#if os(iOS)` to be matched when targetting phoneOS and vice-versa."
+
+## Unaddressed Issues
+
+This proposal is narrowly focused on conditional compilation blocks.
+Both `@available` and `#available` are also affected by the macOS rename. Current platform names include both `OSX` and `OSXApplicationExtension`. Ben Rimmington located the following affected code:
+
+* [https://github.com/apple/swift/blob/master/include/swift/AST/PlatformKinds.def](https://github.com/apple/swift/blob/master/include/swift/AST/PlatformKinds.def)
+* [https://github.com/apple/swift/blob/master/include/swift/AST/PlatformKind.h](https://github.com/apple/swift/blob/master/include/swift/AST/PlatformKind.h)
+* [https://github.com/apple/swift/blob/master/lib/AST/PlatformKind.cpp](https://github.com/apple/swift/blob/master/lib/AST/PlatformKind.cpp)
+* [https://github.com/apple/swift/blob/master/lib/ClangImporter/ImportDecl.cpp](https://github.com/apple/swift/blob/master/lib/ClangImporter/ImportDecl.cpp)
+* [https://github.com/apple/swift/blob/master/test/IDE/complete_decl_attribute.swift](https://github.com/apple/swift/blob/master/test/IDE/complete_decl_attribute.swift)
+* [https://github.com/apple/swift/blob/master/tools/SourceKit/lib/SwiftLang/SwiftDocSupport.cpp](https://github.com/apple/swift/blob/master/tools/SourceKit/lib/SwiftLang/SwiftDocSupport.cpp)
+
+A separate bug report [SR-1887](https://bugs.swift.org/browse/SR-1887) has been filed for this. The obvious alternatives for these are `macOS` and `macOSApplicationExtension`, however as Ben writes, "These may need to be renamed rather than aliased."
