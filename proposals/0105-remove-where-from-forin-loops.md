@@ -1,9 +1,9 @@
 # Removing Where Clauses from For-In Loops
 
-* Proposal: TBD
+* Proposal: [SE-0105](0105-remove-where-from-forin-loops.md)
 * Author: [Erica Sadun](http://github.com/erica)
-* Status: TBD
-* Review manager: TBD
+* Status: **Active review June 22...29**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
