@@ -183,7 +183,7 @@ infix operator ~ : Equivalence
 Relationships between precedence groups form a Directed Acyclic Graph.
 Fetching precedence relationship between given operators is equivalent to problem of [Reachability](https://en.wikipedia.org/wiki/Reachability).
 
-#### Tansitivity check
+#### Transitivity check
 
 All precedence relationships must be transitive. If we define `A < B`, `B < C` and `A > C`, it will be a compilation error.
 Two examples:
