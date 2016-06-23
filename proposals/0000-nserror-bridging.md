@@ -85,30 +85,30 @@ Cocoa's error model, including:
 
   ```swift
   catch let error as NSError where error._domain == AVFoundationErrorDomain && error._code == AVFoundationErrorDomain.diskFull.rawValue {
-    // okay: userInfo is accessible, but untyped
+    // okay: userInfo is finally accessible, but still weakly typed
   }
   ```
 
   This makes it extremely hard to access common information, such as
   the localized description. Moreover, the ``userInfo`` dictionary is
   effectively untyped so, for example, one has to know a priori that
-  the value associated with the known ``NSURLErrorKey`` will be typed
-  as ``URL``:
+  the value associated with the known ``AVErrorDeviceKey`` will be typed
+  as ``CMTime``:
 
   ```swift
-  catch let error as NSError where error._domain = NSURLErrorDomain {
-    if let url = error.userInfo[NSURLErrorKey] as? URL {
+  catch let error as NSError where error._domain = AVFoundationErrorDomain {
+    if let time = error.userInfo[AVErrorDeviceKey] as? CMTime {
       // ...
     }
   }
   ```
 
-  It would be far better if one could catch an ``NSURLError`` directly
-  and query the URL in a type-safe manner:
+  It would be far better if one could catch an ``AVError`` directly
+  and query the time in a type-safe manner:
 
   ```swift
-  catch let error as NSURLError {
-    if let url = error.url {
+  catch let error as AVError {
+    if let time = error.time {
       // ...
     }
   }
@@ -143,75 +143,32 @@ The proposed solution involves directly addressing (1)-(3) with new
 protocols and a different way of bridging Objective-C error code types
 into Swift. There are roughly three parts:
 
-1. Introduce one or more new protocols to allow an error type to
-  expose additional information about errors that might be used by the
-  UI, for example:
+1. Introduce three new protocols for describing more information about
+  errors: ``LocalizedError``, ``RecoverableError``, and
+  ``CustomUserInfoError``. For example, an error type can provide a
+  localized description by conforming to ``LocalizedError``:
 
-   ```swift
-   /// Describes a type that has a localized description
-   protocol LocalizedStringConvertible {
-     var localizedDescription: String { get }
-   }
-
-   /// Describes an error for which one can attempt to recover
-   protocol RecoverableError : ErrorProtocol {
-     var localizedRecoveryOptions: [String]? { get }
-     var localizedRecoverySuggestion: String? { get }
-     var recoveryAttempter: NSErrorRecoveryAttempting? { get }
-   }
-
-   /// Describes an error type that fills in the userInfo directly.
-   protocol CustomUserInfoError : ErrorProtocol {
-     var userInfo: [NSObject : AnyObject] { get }
-   }
-   ```
-
-   The actual protocol designs above are undoubtedly wrong. However,
-   the intent is to allow Swift-defined error types to adopt these
-   protocols to provide additional information about the errors
-   (localized descriptions, recovery approaches, etc.). The bridging
-   from Swift error types into ``NSError`` should popular the
-   corresponding ``userInfo`` dictionary by dynamically querying these
-   protocol conformances. For example, given:
-
-   ```swift
-   extension HomeworkError : LocalizedStringConvertible {
-     var localizedDescription: String {
-       switch self {
-       case .forgotten: return NSLocalizedString("I forgot it")
-       case .lost: return NSLocalizedString("I lost it")
-       case .dogAteIt: return NSLocalizedString("The dog ate it")
-       }
-     }
-   }
-
-   extension HomeworkError : RecoverableError {
-     var localizedRecoveryOptions: [String]? {
-       return [ NSLocalizedString("Redo homework"),
-                NSLocalizedString("Go to detention") ]
-     }
-
-     var localizedRecoverySuggestion: String? { ... }
-     var recoveryAttempter: NSErrorRecoveryAttempting? { ... }
-   }
-   ```
-
-   when ``HomeworkError`` is treated as an ``NSError``, the
-   ``userInfo`` dictionary should be be populated with values for the
-   keys ``NSLocalizedDescriptionKey``,
-   ``NSLocalizedRecoveryOptionsErrorKey``,
-   ``NSRecoveryAttempterErrorKey``, and so on by dynamically querying
-   whether the type conforms to ``LocalizedStringConvertible``,
-   ``RecoverableError``, and ``CustomUserInfoError``, then calling the
-   appropriate entry points.
+  ```swift
+  extension HomeworkError : LocalizedError {
+    var localizedErrorDescription: String {
+      switch self {
+      case .forgotten: return NSLocalizedString("I forgot it")
+      case .lost: return NSLocalizedString("I lost it")
+      case .dogAteIt: return NSLocalizedString("The dog ate it")
+      }
+    }
+  }
+  ```
 
 2. Imported Objective-C error types should be mapped to struct types
   that store an ``NSError`` so that no information is lost when
-  bridging from an ``NSError`` to the Swift error types. For example,
-  consider ``AVError``:
+  bridging from an ``NSError`` to the Swift error types. We propose to
+  introduce a new macro, ``NS_ERROR_ENUM``, that one can use to both
+  declare an enumeration type used to describe the error codes as well
+  as tying that type to a specific domain constant, e.g.,
 
   ```objc
-  typedef NS_ENUM(NSInteger, AVError) {
+  typedef NS_ERROR_ENUM(NSInteger, AVError, AVFoundationErrorDomain) {
     AVErrorUnknown                                      = -11800,
     AVErrorOutOfMemory                                  = -11801,
     AVErrorSessionNotRunning                            = -11803,
@@ -220,125 +177,40 @@ into Swift. There are roughly three parts:
   }
   ```
 
-  This is currently imported as an ``enum`` that conforms to
-  ``ErrorProtocol``:
+   The imported ``AVError`` will have a struct that allows one to
+   access the ``userInfo`` dictionary directly. This retains the
+   ability to catch via a specific code, e.g.,
 
-  ```swift
-  enum AVError : Int, ErrorProtocol {
-    case unknown                                      = -11800
-    case outOfMemory                                  = -11801
-    case sessionNotRunning                            = -11803
-    case deviceAlreadyUsedByAnotherSession            = -11804
+   ```swift
+   catch AVError.outOfMemory {
+     // ...
+   }
+   ```
 
-    static var _domain: String { return AVFoundationErrorDomain }
-  }
-  ```
+   However, catching a specific error as a value doesn't lose information:
 
-  Instead, we will bridge to an ``AVError`` struct that contains
-  an ``NSError``, so there is no information loss. The actual enum
-  will become a nested type ``Code``, so that it is still
-  accessible. The resulting struct will be as follows:
+   ```swift
+   catch let error as AVError where error.code == .sessionNotRunning {
+     // able to access userInfo here!
+   }
+   ```
 
-  ```swift
-  struct AVError {
-    /// Stored NSError. Note that error.domain == _domain is an invariant.
-    private var error: NSError
+   This also gives the ability for one to add typed accessors for known
+   keys within the ``userInfo`` dictionary:
 
-    /// Describes the error codes; directly imported from AVError
-    enum Code : Int {
-      case unknown                                      = -11800
-      case outOfMemory                                  = -11801
-      case sessionNotRunning                            = -11803
-      case deviceAlreadyUsedByAnotherSession            = -11804
-    }
+   ```swift
+   extension AVError {
+     var time: CMTime? {
+       get {
+         return userInfo[AVErrorTimeKey] as? CMTime?
+       }
 
-    /// Allow one to create an error with a userInfo dictionary.
-    init(_ code: Code, userInfo: [NSObject: AnyObject] = [:]) {
-      error = NSError(code: code.rawValue, domain: _domain, userInfo: userInfo)
-    }
-
-    /// Retrieve the code.
-    var code: Code { return Code(rawValue: error.code)! }
-
-    /// Allow direct access to the userInfo dictionary.
-    var userInfo: [NSObject: AnyObject] { return error.userInfo }
-
-    /// Make it easy to refer to constants. 
-    static let unknown: Code = .unknown
-    static let outOfMemory: Code = .outOfMemory
-    static let sessionNotRunning: Code = .sessionNotRunning
-    static let deviceAlreadyUsedByAnotherSession: Code = .deviceAlreadyUsedByAnotherSession
-  }
-
-  // Make AVError conform to ErrorProtocol
-  extension AVError : ErrorProtocol {
-    static var _domain: String { return AVFoundationErrorDomain }
-
-    var _code: Int { return error.code }
-  }
-  ```
-
-  This syntax allows one to throw specific errors fairly easily, with
-  or without ``userInfo`` dictionaries:
-
-  ```swift
-  throw AVError(.sessionNotRunning)
-  throw AVError(.sessionNotRunning, userInfo: [ ... ])
-  ```
-
-  With the addition of ``=~`` operator, we can make it easy to catch
-  an ``AVError`` with a specific code:
-
-  ```swift
-  /// Code matching operator synthesized by the Clang importer
-  func =~(lhs: AVError, rhs: AVError.Code) -> Bool {
-    return lhs.code == rhs
-  }
-
-  catch AVError.outOfMemory {
-    // ...
-  }
-  ```
-
-  And to catch a specific error as a value one can reference:
-
-  ```swift
-  catch let error as AVError where error.code == .sessionNotRunning {
-    // able to access userInfo here!
-  }
-  ```
-
-  Note that this also makes it easy for an SDK overlay to provide
-  type-specific accessors for known keys within the domain, e.g.,
-
-  ```swift
-  extension AVError {
-    var device: String? {
-      get {
-        return error.userInfo[AVErrorDeviceKey] as? String?
-      }
-
-      set {
-        error.userInfo[AVErrorDeviceKey] = newValue.map { $0 as NSString }
-      }
-    }
-
-    var time: CMTime? {
-      get {
-        return error.userInfo[AVErrorTimeKey] as? CMTime?
-      }
-
-      set {
-        error.userInfo[AVErrorTimeKey] = newValue.map { $0 as CMTime }
-      }
-    }
-  }
-  ```
-
-  which provides additional safety over an unstructured ``userInfo``
-  dictionary. One could also provide other conveniences, e.g.,
-  initializers that make it easy to provide values for known keys
-  within the domain.
+       set {
+         userInfo[AVErrorTimeKey] = newValue.map { $0 as CMTime }
+       }
+     }
+   }
+   ```
 
 3. Bridge ``NSError`` to ``ErrorProtocol``, so that all ``NSError``
 uses are bridged consistently. For example, this means that the
@@ -371,14 +243,378 @@ Objective-C API:
   }
   ```
 
-  Once we've completed the bridging story, ``ErrorProtocol`` becomes
-  the primary way to work with error types in Swift, and the value
-  type to which ``NSError`` is bridged. We should rename it to
-  ``Error``:
+4. Rename ``ErrorProtocol`` to ``Error``: once we've completed the
+  bridging story, ``ErrorProtocol`` becomes the primary way to work
+  with error types in Swift, and the value type to which ``NSError``
+  is bridged. We should rename it to ``Error``:
 
   ```swift
   func handleError(_ error: Error, userInteractionPermitted: Bool)
   ```
+
+5. 
+
+## Detailed design
+
+This section details both the design (including the various new
+protocols, mapping from Objective-C error code enumeration types into
+Swift types, etc.) and the efficient implementation of this design to
+interoperate with ``NSError``. Throughout the detailed design, we
+already assume the name change from ``ErrorProtocol`` to ``Error``.
+
+### New protocols
+
+This proposal introduces several new protocols that allow error types
+to expose more information about error types.
+
+The ``LocalizedError`` protocol describes an error that provides
+localized messages for display to the end user. Only the
+``localizedErrorDescription`` requirement need be provided by the adopting
+error type; the other requirements have default implementations.
+
+```swift
+protocol LocalizedError : Error {
+  /// A localized message describing what error occurred.
+  var localizedErrorDescription: String { get }
+
+  /// A localized message describing the reason for the failure.
+  var localizedFailureReason: String? { get }
+
+  /// A localized message describing how one might recover from the failure.
+  var localizedRecoverySuggestion: String? { get }
+
+  /// A localized message providing "help" text if the user requests help.
+  var localizedHelpAnchor: String? { get }
+}
+
+extension LocalizedError {
+  var localizedFailureReason: String? { return nil }
+  var localizedRecoverySuggestion: String? { return nil }
+  var localizedHelpAnchor: String? { return nil }
+}
+```
+
+The ``RecoverableError`` protocol describes an error that might be recoverable: 
+
+```swift
+protocol RecoverableError : Error {
+  /// Provides a set of possible recovery options to present to the user.
+  var localizedRecoveryOptions: [String] { get }
+
+  /// Attempt to recover from this error when the user selected the
+  /// option at the given index. This routine must call resultHandler and
+  /// indicate whether recovery was successful (or not).
+  ///
+  /// This entry point is used for recovery of errors handled at a
+  /// "document" granularity, that do not affect the entire
+  /// application.
+  func attemptRecovery(optionIndex recoveryOptionIndex: Int,
+                       andThen resultHandler: (recovered: Bool) -> Void)
+
+  /// Attempt to recover from this error when the user selected the
+  /// option at the given index. Returns true to indicate
+  /// successful recovery, and false otherwise.
+  ///
+  /// This entry point is used for recovery of errors handled at
+  /// the "application" granularity, where nothing else in the
+  /// application can proceed until the attmpted error recovery
+  /// completes.
+  func attemptRecovery(optionIndex recoveryOptionIndex: Int) -> Bool
+}
+
+extension RecoverableError {
+  /// By default, implements document-modal recovery via application-model
+  /// recovery.
+  func attemptRecovery(optionIndex recoveryOptionIndex: Int,
+                       andThen resultHandler: (Bool) -> Void) {
+    resultHandler(recovered: attemptRecovery(optionIndex: recoveryOptionIndex))
+  }
+}
+```
+
+Error types that conform to ``RecoverableError`` may be given an
+opportunity to recover from the error. The user can be presented with
+some number of (localized) recovery options, described by
+``localizedRecoveryOptions``, and the selected option will be passed
+to the appropriate ``attemptRecovery`` method.
+
+The ``CustomUserInfoError`` protocol describes an error that wants to
+provide custom information via the ``userInfo`` dictionary. This can
+be used, e.g., to populate ``NSError``'s ``userInfo`` dictionary with
+values for custom keys that can be accessed from Objective-C code but
+are not covered by the other protocols.
+
+```swift
+/// Describes an error type that fills in the userInfo directly.
+protocol CustomUserInfoError : Error {
+  var userInfo: [String : AnyObject] { get }
+}
+```
+
+Note that, unlike with ``NSError``, the provided ``userInfo`` requires
+``String`` keys. This is in line with common practice for ``NSError``
+and is important for the implementation (see below).
+
+### Mapping error types to ``NSError``
+
+Every type that conforms to the ``Error`` protocol is implicitly
+bridged to ``NSError``. This has been the case since Swift 2, where
+the compiler provides a domain (i.e., the mangled name of the type)
+and code (based on the discriminator of the enumeration type). This
+proposal also allows for the ``userInfo`` dictionary to be populated
+by the runtime, which will check for conformance to the various
+protocols (``LocalizedError``, ``RecoverableError``, or
+``CustomUserInfoError``) to retrieve information.
+
+Conceptually, this could be implemented by eagerly creating a
+``userInfo`` dictionary for a given instance of ``Error``:
+
+```swift
+func createUserInfo(error: Error) -> [NSObject : AnyObject] {
+  var userInfo: [NSObject : AnyObject] = [:]
+
+  // Retrieve custom userInfo information.
+  if let customUserInfoError = error as? CustomUserInfoError {
+    userInfo = customUserInfoError
+  }
+
+  if let localizedError = error as? LocalizedError {
+    userInfo[NSLocalizedDescriptionKey] = localizedError.localizedErrorDescription
+
+    if let reason = localizedError.localizedFailureReason {
+      userInfo[NSLocalizedFailureReasonErrorKey] = reason
+    }
+
+    if let suggestion = localizedError.localizedRecoverySuggestion {   
+      userInfo[NSLocalizedRecoverySuggestionErrorKey] = suggestion
+    }
+
+    if let helpAnchor = localizedError.localizedHelpAnchor {   
+      userInfo[NSHelpAnchorErrorKey] = helpAnchor
+    }
+  }
+
+  if let recoverableError = error as? RecoverableError {
+    userInfo[NSLocalizedRecoveryOptionsErrorKey] = recoverableError.localizedRecoveryOptions
+    userInfo[NSRecoveryAttempterErrorKey] = RecoveryAttempter()
+  }
+}
+```
+
+The ``RecoveryAttempter`` class is an implementation detail. It will
+implement the informal protocol [``NSErrorRecoveryAttempting``](https://developer.apple.com/library/ios/documentation/Cocoa/Reference/Foundation/Protocols/NSErrorRecoveryAttempting_Protocol/) for the given error:
+
+```swift
+class RecoveryAttempter : NSObject {
+  @objc(attemptRecoveryFromError:optionIndex:delegate:didRecoverSelector:contextInfo:)
+  func attemptRecovery(fromError nsError: NSError,
+                       optionIndex recoveryOptionIndex: Int,
+                       delegate: AnyObject?,
+                       didRecoverSelector: Selector,
+                       contextInfo: UnsafeMutablePointer<Void>) {
+    let error = nsError as! RecoverableError
+    error.attemptRecovery(optionIndex: recoveryOptionIndex) { success in
+      // Exposition only: this part will actually have to be
+      // implemented in Objective-C to pass the BOOL and void* through.
+      delegate?.perform(didRecoverSelector, with: success, with: contextInfo)
+    }
+  }
+
+  @objc(attemptRecoveryFromError:optionIndex:)
+  func attemptRecovery(fromError nsError: NSError,
+                       optionIndex recoveryOptionIndex: Int) -> Bool {
+    let error = nsError as! RecoverableError
+    return error.attemptRecovery(optionIndex: recoveryOptionIndex)
+  }
+}
+```
+
+The actual the population of the ``userInfo`` dictionary should not be
+eager. ``NSError`` provides the notion of global "user info value
+providers" that it uses to lazily request the values for certain keys,
+via `setUserInfoValueProvider(forDomain:provider:)`, which is declared
+as:
+
+```swift
+extension NSError {
+  @available(OSX 10.11, iOS 9.0, tvOS 9.0, watchOS 2.0, *)
+  class func setUserInfoValueProvider(forDomain errorDomain: String,
+                                      provider: ((NSError, String) -> AnyObject?)? = nil)
+}
+```
+
+The runtime would need to register a user info value provider for each
+error type the first time it is bridged into ``NSError``, supplying
+the domain and the following user info value provider function:
+
+```swift
+func userInfoValueProvider(nsError: NSError, key: String) -> AnyObject? {
+  let error = nsError as! Error
+  switch key {
+  case NSLocalizedDescriptionKey:
+    return (error as? LocalizedError)?.localizedErrorDescription
+
+  case NSLocalizedFailureReasonErrorKey:
+    return (error as? LocalizedError)?.localizedFailureReason
+
+  case NSLocalizedRecoverySuggestionErrorKey:
+    return (error as? LocalizedError)?.localizedRecoverySuggestion
+
+  case NSHelpAnchorErrorKey:
+    return (error as? LocalizedError)?.localizedHelpAnchor
+
+  case NSLocalizedRecoveryOptionsErrorKey:
+    return (error as? RecoverableError)?.localizedRecoveryOptions
+
+  case NSRecoveryAttempterErrorKey:
+    return error is RecoverableError ? RecoveryAttempter() : nil
+
+  default:
+    guard let customUserInfoError = error as? CustomUserInfoError else { return nil }
+    return customUserInfoError.userInfo[key]
+  }
+}
+```
+
+On platforms that predate the introduction of user info value
+providers, there are alternate implementation strategies, including
+introducing a custom ``NSDictionary`` subclass to use as the
+``userInfo`` in the ``NSError`` that lazily populates the dictionary
+by, effectively, calling the ``userInfoValueProvider`` function
+above for each requested key. Or, one could eagerly populate
+``userInfo`` on older platforms.
+
+### Importing error types from Objective-C
+
+In Objective-C, error domains are typically constructed using an
+enumeration describing the error codes and a constant describing the
+error domain, e.g,
+
+```objc
+extern NSString *const AVFoundationErrorDomain;
+
+typedef NS_ENUM(NSInteger, AVError) {
+  AVErrorUnknown                                      = -11800,
+  AVErrorOutOfMemory                                  = -11801,
+  AVErrorSessionNotRunning                            = -11803,
+  AVErrorDeviceAlreadyUsedByAnotherSession            = -11804,
+  // ...
+}
+```
+
+This is currently imported as an ``enum`` that conforms to ``Error``:
+
+```swift
+enum AVError : Int {
+  case unknown                                      = -11800
+  case outOfMemory                                  = -11801
+  case sessionNotRunning                            = -11803
+  case deviceAlreadyUsedByAnotherSession            = -11804
+
+  static var _domain: String { return AVFoundationErrorDomain }
+}
+```
+
+and Swift code introduces an extension that makes it an ``Error``,
+along with some implementation magic to allow bridging from an
+``NSError`` (losing ``userInfo`` in the process):
+
+```swift
+extension AVError : Error {
+  static var _domain: String { return AVFoundationErrorDomain }
+}
+```
+
+Instead, error enums should be expressed with a new macro,
+``NS_ERROR_ENUM``, that ties together the code and domain in the
+Objective-C header:
+
+```objc
+extern NSString *const AVFoundationErrorDomain;
+
+typedef NS_ERROR_ENUM(NSInteger, AVError, AVFoundationErrorDomain) {
+  AVErrorUnknown                                      = -11800,
+  AVErrorOutOfMemory                                  = -11801,
+  AVErrorSessionNotRunning                            = -11803,
+  AVErrorDeviceAlreadyUsedByAnotherSession            = -11804,
+  // ...
+}
+```
+
+This will import as a new struct ``AVError`` that contains an
+``NSError``, so there is no information loss. The actual enum will
+become a nested type ``Code``, so that it is still accessible. The
+resulting struct will be as follows:
+
+```swift
+struct AVError {
+  /// Stored NSError. Note that error.domain == AVFoundationErrorDomain is an invariant.
+  private var error: NSError
+
+  /// Describes the error codes; directly imported from AVError
+  enum Code : Int, ErrorCodeProtocol {
+    typealias ErrorType = AVError
+
+    case unknown                                      = -11800
+    case outOfMemory                                  = -11801
+    case sessionNotRunning                            = -11803
+    case deviceAlreadyUsedByAnotherSession            = -11804
+
+    func errorMatchesCode(_ error: AVError) -> Bool {
+      return error.code == self
+    }
+  }
+
+  /// Allow one to create an error (optionally) with a userInfo dictionary.
+  init(_ code: Code, userInfo: [NSObject: AnyObject] = [:]) {
+    error = NSError(code: code.rawValue, domain: _domain, userInfo: userInfo)
+  }
+
+  /// Retrieve the code.
+  var code: Code { return Code(rawValue: error.code)! }
+
+  /// Allow direct access to the userInfo dictionary.
+  var userInfo: [NSObject: AnyObject] { return error.userInfo }
+
+  /// Make it easy to refer to constants without context.
+  static let unknown: Code = .unknown
+  static let outOfMemory: Code = .outOfMemory
+  static let sessionNotRunning: Code = .sessionNotRunning
+  static let deviceAlreadyUsedByAnotherSession: Code = .deviceAlreadyUsedByAnotherSession
+}
+
+// Implementation detail: makes AVError conform to Error
+extension AVError : Error {
+  static var _domain: String { return AVFoundationErrorDomain }
+
+  var _code: Int { return error.code }
+}
+```
+
+This syntax allows one to throw specific errors fairly easily, with
+or without ``userInfo`` dictionaries:
+
+```swift
+throw AVError(.sessionNotRunning)
+throw AVError(.sessionNotRunning, userInfo: [ ... ])
+```
+
+The ``ImportedErrorCode`` protocol is a helper so that we can define
+a general ``~=`` operator, which is used by both ``switch`` case
+matching and ``catch`` blocks:
+
+```swift
+protocol ErrorCodeProtocol {
+  typealias ErrorType : Error
+
+  func errorMatchesCode(_ error: ErrorType) -> Bool
+}
+
+func =~ <EC: ErrorCodeProtocol> (error: Error, code: EC) -> Bool {
+  guard let myError = error as? EC.ErrorType else { return false }
+  return code.errorMatchesCode(myError)
+}
+```
 
 ## Other Issues
 
@@ -390,11 +626,15 @@ easier to localize error descriptions, recovery options, etc. in a
 sensible way. Although this is out of the scope of the Swift language
 per se, it's an important part of the developer story.
 
-## Detailed design
-
-TODO: More details about the protocols (when we figure it out), 
-
 ## Impact on existing code
 
-TODO: WRITE ME
-
+This is a major source-breaking change for Objective-C APIs that
+operate on ``NSError`` values, because those parameter/return/property
+types will change from ``NSError`` to ``Error``. There are ~400 such
+APIs in the macOS SDK, and closer to 500 in the iOS SDK, which is a
+sizable number. Fortunately, this is similar in scope to the
+(Foundation value types
+proposal)[https://github.com/apple/swift-evolution/blob/master/proposals/0069-swift-mutability-for-foundation.md],
+and can use the same code migration mechanism. That said, the scale of
+this change means that it should either happen in Swift 3 or not at
+all.
