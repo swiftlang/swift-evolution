@@ -1,9 +1,9 @@
 # Protocol-oriented integers
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-updated-integers.md)
-* Author(s): [Dave Abrahams](https://github.com/dabrahams), [Dmitri Gribenko](https://github.com/gribozavr), [Maxim Moiseev](https://github.com/moiseev)
-* Status: **Awaiting review**
-* Review manager: TBD
+* Proposal: [SE-0104](0104-improved-integers.md)
+* Authors: [Dave Abrahams](https://github.com/dabrahams), [Dmitri Gribenko](https://github.com/gribozavr), [Maxim Moiseev](https://github.com/moiseev)
+* Status: **Active review June 22...27**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
