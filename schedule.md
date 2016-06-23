@@ -11,7 +11,7 @@ proposals in that process.
 * June 21...27 [SE-0101: Rename `sizeof` and related functions to comply with API Guidelines](proposals/0101-standardizing-sizeof-naming.md)
 * June 21...27 [SE-0102: Remove `@noreturn` attribute and introduce an empty `NoReturn` type](proposals/0102-noreturn-bottom-type.md)
 * June 21...27 [SE-0103: Make non-escaping closures the default](proposals/0103-make-noescape-default.md)
-* June 22...27 [SE-0095: Replace `protocol<P1,P2>` syntax with `Any<P1,P2>`](proposals/0095-any-as-existential.md)
+* June 22...27 [SE-0095: Replace `protocol<P1,P2>` syntax with `P1 & P2` syntax](proposals/0095-any-as-existential.md)
 * June 22...27 [SE-0104: Protocol-oriented integers](proposals/0104-improved-integers.md)
 * June 22...29 [SE-0105: Removing Where Clauses from For-In Loops](proposals/0105-remove-where-from-forin-loops.md)
 
