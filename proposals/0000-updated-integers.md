@@ -403,16 +403,18 @@ public protocol Integer:
 
   /// Returns n-th word, counting from the right, of the underlying
   /// representation of `self`.
+  // TODO: note about returning words greater then `countRepresentedWords`
   func nthWord(n: Int) -> UInt
 
   /// The number of bits in current representation of `self`
   /// Will be constant for fixed-width integer types.
   var bitWidth : Int { get }
 
-  /// TODO: check me
   /// If `self` is negative, returns the index of the least significant bit of
   /// its representation such that all more-significant bits are 1.
   /// Has the value -1 if `self` is 0.
+  // TODO: this is not the right name, and perhaps an unnecessary limitation
+  // for `self == 0` case
   var signBitIndex: Int { get }
 
   /// Returns the remainder of division of `self` by `rhs`.
