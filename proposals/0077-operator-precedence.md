@@ -539,7 +539,7 @@ precedence Multiplicative {
 }
 ```
 
-## Note for review
+## Note #1
 
 Swift Core team is supposed to make a decision on syntax of precedence groups declarations.
 It may be from "Alternatives considered" variants, modifications of them, or any different syntax.
@@ -555,6 +555,14 @@ precedence Multiplicative {
 ```
 
 Or its slightly modified forms.
+
+## Note #2
+
+As stated in the rationale, names of precedence groups must lie in the same namespace as other declarations.
+Therefore, we need to revise naming convention and change standard precedence group names to avoid conflicts.
+It is something to be discussed.
+
+Also, more input on new `strongerThan` and `weakerThan` keywords is incoming.
 
 -------------------------------------------------------------------------------
 
