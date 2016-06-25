@@ -52,7 +52,7 @@ struct MyIncompleteWrapper<Base:Collection> : Collection {
 
 ## Impact on existing code
 
-None, this change is purely additive.
+This change does not require existing code to be changed, however it provides a solution to existing Swift 2 code that used `AnyIndex`, but which may no longer be able to do-so under the new indexing model, so in this respect it enables a necessary change to support Swift 3 fully without having to reimplement our own type-erased index wrappers.
 
 ## Alternatives considered
 
