@@ -242,7 +242,7 @@ I propose to revise the access control on extensions by replacing the current ac
 		* `internal type` + `private protocol` = `internal extension` or `private extension`
 		* `private type` + `private protocol` = `private extension`
 		
-	* Multiple protocol conformance is decided analogously by using the highest access modifier from all protocol + the level of the extended type.
+	* Multiple protocol conformance is decided analogously by using the highest access modifier from all protocols + the access level of the extended type.
 	 	
 #### The current grammar will not change:
 
@@ -305,9 +305,10 @@ This is a source-breaking change that can be automated by a migrator.
 	
 	- extension CC {
 	+ private extension CC {
+	
+	 	// Implicitly private
 		func member1() {}
-	-	private func member2() {}
-	+	func member2() {}
+		private func member2() {}
 	}
 	```
 
@@ -335,9 +336,10 @@ This is a source-breaking change that can be automated by a migrator.
 	}
 	
 	private extension DD {
+	
+		// Implicitly private
 		func member8() {}
-	-	private func member9() {}
-	+ 	func member9() {}
+		private func member9() {}
 	}
 	
 	//===-----------------------------===//
@@ -353,9 +355,10 @@ This is a source-breaking change that can be automated by a migrator.
 	}
 	
 	private extension EE {
+	
+		// Implicitly private
 		func member4() {}
-	-	private func member5() {}
-	+	func member5() {}
+		private func member5() {}
 	}
 	
 	//===-----------------------------===//
@@ -365,9 +368,76 @@ This is a source-breaking change that can be automated by a migrator.
 	private struct FF {}
 	
 	private extension FF {
+		
+		// Implicitly private
 		func member1() {}
-	-	private func member2() {}
-	+	func member2() {}
+		private func member2() {}
+	}
+	```
+	
+* Extensions without an explicit access modifier and protocol conformance:
+
+	```diff
+	public protocol Foo {
+		func foo()
+	}
+	
+	internal protocol Boo {
+		func boo()
+	}
+	
+	private protocol Zoo {
+		func zoo()
+	}
+	
+	//===-----------------------------===//
+	//===-------- public type --------===//
+	//===-----------------------------===//
+	
+	public struct GG {}
+	
+	- extension GG : Foo, Boo, Zoo {
+	+ public extension GG : Foo, Boo, Zoo {
+		func member1() {}
+		public func member2() {}
+		private func member3() {}
+		
+		// Access modifier for `foo`, `boo` and `zoo`
+		// won't have an impact
+	}
+	
+	//===-----------------------------===//
+	//===------- internal type -------===//
+	//===-----------------------------===//
+	
+	internal struct HH {}
+	
+	// No impact at all because it is already
+	// implicitly `internal`
+	
+	extension BB : Foo, Boo, Zoo {
+		func member1() {}
+		private func member2() {}
+		
+		// Access modifier for `foo`, `boo` and `zoo`
+		// won't have an impact
+	}
+	
+	//===-----------------------------===//
+	//===------- private type --------===//
+	//===-----------------------------===//
+	
+	private struct II {}
+	
+	- extension CC : Foo, Boo, Zoo {
+	+ private extension CC : Foo, Boo, Zoo {
+	
+		// Implicitly private
+		func member1() {}
+		private func member2() {}
+
+		// Access modifier for `foo`, `boo` and `zoo`
+		// won't have an impact (all are private)
 	}
 	```
 
