@@ -49,9 +49,9 @@ public protocol BooleanLiteralConvertible { ... }
 public protocol FloatLiteralConvertible { ... }
 public protocol IntegerLiteralConvertible { ... }
 public protocol UnicodeScalarLiteralConvertible { ... }
-public protocol ExtendedGraphemeClusterConvertible { ... }
-public protocol StringLiteralLiteralConvertible { ... }
-public protocol StringInterpolationLiteralConvertible { ... }
+public protocol ExtendedGraphemeClusterLiteralConvertible { ... }
+public protocol StringLiteralConvertible { ... }
+public protocol StringInterpolationConvertible { ... }
 public protocol ArrayLiteralConvertible { ... }
 public protocol DictionaryLiteralConvertible { ... }
 ```
@@ -66,7 +66,7 @@ public protocol _IntegerLiteralSyntax { ... }
 public protocol _FloatLiteralSyntax { ... }
 public protocol _UnicodeScalarLiteralSyntax { ... }
 public protocol _ExtendedGraphemeClusterLiteralSyntax { ... }
-public protocol _StringLiteralLiteralSyntax { ... }
+public protocol _StringLiteralSyntax { ... }
 public protocol _StringInterpolationLiteralSyntax { ... }
 public protocol _ArrayLiteralSyntax { ... }
 public protocol _DictionaryLiteralSyntax { ... }
@@ -78,9 +78,9 @@ public /* closed */ enum Syntax {
   public typealias FloatLiteral = _FloatLiteralSyntax
   public typealias UnicodeScalarLiteral = _UnicodeScalarLiteralSyntax
   public typealias ExtendedGraphemeClusterLiteral = _ExtendedGraphemeClusterLiteralSyntax
-  public typealias StringLiteralLiteral = _StringLiteralLiteralSyntax
+  public typealias StringLiteral = _StringLiteralSyntax
   public typealias StringInterplolationLiteral = _StringInterpolationLiteralSyntax
-  public typealias ArrayrLiteral = _ArrayLiteralSyntax
+  public typealias ArrayLiteral = _ArrayLiteralSyntax
   public typealias DictionaryLiteral = _DictionaryLiteralSyntax
 }
 ```
@@ -152,7 +152,7 @@ public protocol IntegerLiteralProtocol { ... }
 public protocol FloatLiteralProtocol { ... }
 public protocol UnicodeScalarLiteralProtocol { ... }
 public protocol ExtendedGraphemeClusterProtocol { ... }
-public protocol StringLiteralLiteralProtocol { ... }
+public protocol StringLiteralProtocol { ... }
 public protocol StringInterpolationLiteralProtocol { ... }
 public protocol ArrayLiteralProtocol { ... }
 public protocol DictionaryLiteralProtocol { ... }
