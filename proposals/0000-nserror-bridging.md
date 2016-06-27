@@ -673,6 +673,57 @@ func ~= <EC: ErrorCodeProtocol> (error: Error, code: EC) -> Bool {
 }
 ```
 
+### Mapping ``NSError`` types back into Swift
+
+When an ``NSError`` object bridged to an ``Error`` instance, it may be
+immediately mapped back to a Swift error type (e.g., if the error was
+created as a ``HomeworkError`` instance in Swift and then passed
+through ``NSError`` unmodified) or it might be leave as an instance of
+``NSError``. The error might then be catch as a particular Swift error
+type, e.g.,
+
+```swift
+catch let error as AVError where error.code == .sessionNotRunning {
+  // able to access userInfo here!
+}
+```
+
+In this case, the mapping from an ``NSError`` instance to ``AVError``
+goes through an implementation-detail protocol
+``_ObjectiveCBridgeableError``:
+
+```swift
+protocol _ObjectiveCBridgeableError : Error {
+  /// Produce a value of the error type corresponding to the given NSError,
+  /// or return nil if it cannot be bridged.
+  init?(_bridgedNSError error: NSError)
+}
+```
+
+The initializer is responsible for checking the domain and
+(optionally) the code of the incoming ``NSError`` to map it to an instance
+of the Swift error type. For example, ``AVError`` would adopt this
+protocol as follows:
+
+```swift
+// Implementation detail: makes AVError conform to _ObjectiveCBridgeableError
+extension AVError : _ObjectiveCBridgeableError {
+  init?(_bridgedNSError error: NSError) {
+    // Check whether the error comes from the AVFoundation error domain
+    if error.domain != AVFoundationErrorDomain { return nil }
+
+    // Save the error
+    self.error = error
+  }
+}
+```
+
+We do not propose that ``_ObjectiveCBridgeableError`` become a public
+protocol, because the core team has already deferred a similar
+proposal
+([SE-0058](https://github.com/apple/swift-evolution/blob/master/proposals/0058-objectivecbridgeable.md))
+to make the related protocol ``_ObjectiveCBridgeable`` public. 
+
 ## Other Issues
 
 ``NSError`` codes and domains are important for localization of error
@@ -715,12 +766,12 @@ switch-on-all-cases implementations of each property.
 
 The ``CustomNSError`` protocol allows one to place arbitrary
 key/value pairs into ``NSError``'s ``userInfo`` dictionary. The
-implementation-detail ``_ObjectiveCBridgeableErrorProtocol`` protocol
+implementation-detail ``_ObjectiveCBridgeableError`` protocol
 allows one to control how a raw ``NSError`` is mapped to a particular
 error type. One could effectively serialize the entire state of a
 particular error type into the ``userInfo`` dictionary via
 ``CustomNSError``, then restore it via
-``_ObjectiveCBridgeableErrorProtocol``, allowing one to form a
+``_ObjectiveCBridgeableError``, allowing one to form a
 complete ``NSError`` in Objective-C that can reconstitute itself as a
 particular Swift error type, which can be useful both for mixed-source
 projects and (possibly) as a weak form of serialization for
