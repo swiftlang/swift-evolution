@@ -141,7 +141,7 @@ Cocoa's error model, including:
 
 The proposed solution involves directly addressing (1)-(3) with new
 protocols and a different way of bridging Objective-C error code types
-into Swift. There are roughly three parts:
+into Swift, along with some conveniences for working with Cocoa errors:
 
 1. Introduce three new protocols for describing more information about
   errors: ``LocalizedError``, ``RecoverableError``, and
@@ -243,7 +243,41 @@ Objective-C API:
   }
   ```
 
-4. Rename ``ErrorProtocol`` to ``Error``: once we've completed the
+4. In Foundation, add an extension to ``ErrorProtocol`` that provides
+typed access to the common user-info keys. Note that we focus only on
+those user-info keys that are read by user code (vs. only accessed by
+frameworks):
+
+  ```swift
+  extension ErrorProtocol {
+    private var userInfo: [NSObject : AnyObject] {
+      return (self as! NSError).userInfo
+    }
+
+    var localizedDescription: String {
+      return (self as! NSError).localizedDescription
+    }
+
+    var filePath: String? {
+      return userInfo[NSFilePathErrorKey] as? String
+    }
+
+    var stringEncoding: String.Encoding? {
+      return (userInfo[NSStringEncodingErrorKey] as? NSNumber)
+               .map { String.Encoding(rawValue: $0.uintValue) }
+    }
+
+    var underlying: ErrorProtocol? {
+      return (userInfo[NSUnderlyingErrorKey] as? NSError)?.asError
+    }
+
+    var url: URL? {
+      return userInfo[NSURLErrorKey] as? URL
+    }
+  }
+  ```
+
+5. Rename ``ErrorProtocol`` to ``Error``: once we've completed the
   bridging story, ``ErrorProtocol`` becomes the primary way to work
   with error types in Swift, and the value type to which ``NSError``
   is bridged. We should rename it to ``Error``:
@@ -251,8 +285,6 @@ Objective-C API:
   ```swift
   func handleError(_ error: Error, userInteractionPermitted: Bool)
   ```
-
-5. 
 
 ## Detailed design
 
