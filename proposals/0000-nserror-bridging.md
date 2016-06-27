@@ -288,9 +288,9 @@ frameworks):
   ```
 
 5. Rename ``ErrorProtocol`` to ``Error``: once we've completed the
-  bridging story, ``ErrorProtocol`` becomes the primary way to work
+  bridging story, ``Error`` becomes the primary way to work
   with error types in Swift, and the value type to which ``NSError``
-  is bridged. We should rename it to ``Error``:
+  is bridged:
 
   ```swift
   func handleError(_ error: Error, userInteractionPermitted: Bool)
