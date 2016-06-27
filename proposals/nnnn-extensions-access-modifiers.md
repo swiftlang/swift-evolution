@@ -7,51 +7,243 @@
 
 ## Introduction
 
-One great goal for Swift 3 is to sort out any source breaking language changes. This proposal aims to fix access modifier inconsistency on extensions compared to other scope declarations types.
+<p align="justify">One great goal for Swift 3 is to sort out any source breaking language changes. This proposal aims to fix access modifier inconsistency on extensions compared to other scope declarations types.</p>
 
 Swift-evolution thread: [\[Proposal\] Revising access modifiers on extensions](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160620/022144.html)
 
 ## Motivation
 
-When declaring members on extensions which don't have an explicit access modifier in Swift 2.2, it is possible to create an **implicitly public extension** by applying a *public* modifier to at least one extension member.
+<p align="justify">The access control of classes, enums and structs in Swift is very easy to learn and memorize. It also disallows to suppress the access modifier of implemented conformance members to lower access modifier if the host type has an access modifier of higher or equal level.</p>
+
+<center>`public` > `internal` > `fileprivate` >= `private`</center>
 
 ```swift
-public struct A { … }
-
-// Implicitly public 
-extension A {
-	public var member1: SomeType { … }
-	
-	// Implicitly internal 
-	func member2() { … }
+public class A {
+	public func foo() {}
 }
 
-// Implicitly internal
-extension A {
-
-	// Implicitly internal
-	var member3: SomeType { … }
+public class B : A {
+	
+	// `foo` must retain `public`
+	override public func foo() {}
 }
 ```
 
+However in Swift it is possible to grant more visibility to a member but still hide the conformance to a *protocol*.
+
+```swift
+internal protocol C {
+	func foo()
+}
+
+public struct D : C {
+
+	// `foo` can be either `internal` or `public`
+	public func foo() {}
+}
+```
+
+The imported module will look like this:
+
+```swift
+public struct D {
+	public func foo()
+}
+```
+
+This simple access control model also allows us to nest types inside each other to create a really nice type hierarchy.
+
+*Extensions* however behave differently when it comes to their access control:
+
+* The *access modifier* of an *extension* sets the default modifier of its members which has no modifier applied to them.
+
+	```swift
+	public struct D {}
+	
+	// The extension itself has also `private` visibility
+	private extension D {
+		// `foo` is implicitly `private`
+		func foo() {}
+	}
+	```
+
+* If there the *extension* has no *access modifier*, then the default modifier  of its members which has no explicit modifier will be *internal* if the extended type is either *public* or *internal*, or it will be *private* when the extended type is *private* (analogous for *fileprivate*).
+
+	```swift
+	private struct E {}
+	
+	extension E {
+		// `foo` is implicitly `private`
+		func foo() {}
+	}
+	```
+	
+* The *access modifier* can be overridden by the member to a lower modifier.
+
+	```swift
+	public struct F {}
+	
+	internal extension F {
+		// `foo` can be `internal`, `fileprivate` or `private`
+		private func foo() {}
+	}
+	```
+	
 Furthermore in Swift 2.2 it is not allowed to apply an *access modifier* on extensions when a *type inheritance clause* is present:
 
 ```swift
-public protocol B { … }
+public protocol SomeProtocol {}
 
 // 'public' modifier cannot be used with
 // extensions that declare protocol conformances
-public extension A : B { … }
+public extension A : SomeProtocol {}
 ```
+
+*Extensions* are also used for *protocol default implementations* in respect to the mentioned rules. That means that if someone would want to provide a public default implementation for a specific protocol there are three different ways to  achive this:
+
+```swift
+public protocol G {
+	func foo()
+}
+```
+
+*  First way:
+
+	```swift
+	extension G {
+		public func foo() { /* implement */ }
+	}
+	```
+	
+*  Second way:
+
+	```swift
+	public extension G {
+		func foo() { /* implement */ }
+	}
+	```
+
+* Third way:
+
+	```swift
+	public extension G {
+		public func foo() { /* implement */ }
+	}
+	```
+	
+Any of versions will currently be imported as:
+
+```swift
+public protocol G {
+	func foo()
+}
+
+extension G {
+	public func foo()
+}
+```
+
+I propose to revise the access control on extensions by replacing the current access control model for extensions with the same access control model as classes, enums and structs already have. 
+
+* It would be possible to conform types to a protocol using an *extension* which has an explicit *access modifier*. The *access modifier* acs in respect to the modifier of the extended type and the protocol to which it should be conformed.
+
+	```swift
+	internal protocol H { 
+		func foo() 
+	}
+	
+	public protocol I { 
+		func boo() 
+	}
+
+	public struct J {}
+	
+	public extension J : H {
+     
+	    // We can grant `foo` visibility but still hide conformance to `H`
+	    // and move everything from `H` to an extra extension bag
+	    public func foo() {}  
+	     
+	    // Access modifier on members won't be overridden by the extension access modifier anymore
+	    // And they will respect the access level boundary set by the extension
+	    func moo() {}
+	}
+	
+	// The extension of `J` conforming to `I` must retain `public`
+	public extension J : I {
+     
+	    // `boo` must retain `public`
+	    public func boo() {}  
+	}
+	```
+	
+	The above extension can be simplified to:
+	
+	```swift
+	// The extension must retain `public` because `J` and `I` are marked as `public`
+	public extension J : H, I {
+     
+     	// `foo` can be either `public` or `internal`
+	    public func foo() {}  
+	     
+		// Implicitly `internal`
+	    func moo() {}
+
+	    // `boo` must retain `public`
+	    public func boo() {}  
+	}
+	```
+
+* The right and only one version for public *protocol default implementations* will look like this:
+
+	```swift
+	public extension G {
+		public func foo() { /* implement */ }
+	}
+	```
+* The current rules will be removed and make access control for classes, enums, structs and extensions consistent. This also implies less need to learn different behaviors for access control in general.
+* From a future perspective one could allow Swift to have nested extensions (which is neither part nor a strong argument of this proposal).
+
+	```swift
+	internal protocol K {}
+
+	public struct L {
+	     
+	    public struct M {}
+	     
+	    /* implicitly internal */ extension M : K {}
+	}
+	
+	// Nested extension would remove this:
+	/* internal */ extension L.M : K {}
+	```
 
 ## Proposed solution
 
-1. Allow access modifier on extensions when a type inheritance clause is present.
+1. Revise the access control for extensions to be exactly the same as for classes, enums and structs.
+2. Allow *access modifier* when *type-inheritance-clause* is present.
+3. *Access modifier* on extensions should respect the modifier of the extended type and the protocol to which it should conform.
 
-2. Remove the behavior of an implicit public extension.
-
-This changes should make access modifier on extensions consistent to classes, structs and enums (and [SE-0025](https://github.com/apple/swift-evolution/blob/master/proposals/0025-scoped-access-level.md)).
+	* Public protocol:
 	
+		* `public type` + `public protocol` = `public extension`
+		* `internal type` + `public protocol` = `internal extension`
+		* `private  type` + `public protocol` = `private extension`
+
+	* Internal protocol:
+	
+		* `public type` + `internal protocol` = `public extension` or `internal extension`
+		* `internal type` + `internal protocol` = `internal extension`
+		* `private type` + `internal protocol` = `private extension`
+
+	* Private protocol:
+	
+		* `public type` + `private protocol` = `public extension` or `internal extension` or `private extension`
+		* `internal type` + `private protocol` = `internal extension` or `private extension`
+		* `private type` + `private protocol` = `private extension`
+		
+	* Multiple protocol conformance is decided analogously by using the highest access modifier from all protocol + the level of the extended type.
+	 	
 #### The current grammar will not change:
 
 *extension-declaration* → *access-level-modifier*<sub>opt</sub> **extension** *type-identifier* *type-inheritance-clause*<sub>opt</sub> *extension-body*
@@ -60,69 +252,124 @@ This changes should make access modifier on extensions consistent to classes, st
 
 *extension-body* → **{** *declarations*<sub>opt</sub> **}**
 
-Iff the *access-level-modifier* is not present, the access modifier on extensions should always be implicitly **internal**.
+Iff the *access-level-modifier* is not present, the access modifier on extensions should always be implicitly *internal*.
 
-#### Impact on APIs:
+#### Impact on public APIs (imported version):
 
-Current version:
-
-```swift
-/// Implementation version
-///========================
-
-public protocol Y {
-	func member()
-}
-
-public struct X { … }
-
-// Implicitly public
-extension X : Y {
-	public func member() { ... }
-	
-	// Implicitly internal
-	func anotherMember() { ... }
-}
-
-/// Imported modele version
-///========================
-
-public protocol Y {
-	func member()
-}
-
-public struct X { ... }
-
-// Missing `public` modifier
-extension X : Y {
-	public func member() { ... }
-}
-```
-
-New Version:
-
-```swift
-/// Implementation version
-///========================
-
-public extension X : Y {
-	public func member() { ... }
-	
-	// Implicitly internal 
-	func anotherMember() { ... }
-}
-
-/// Imported modele version
-///========================
-
-public extension X : Y {
-	public func member() { ... }
+```diff
+- extension SomeType : SomeProtocol {
++ public extension SomeType : SomeProtocol {
+	public func someMemeber()
 }
 ```
 
 ## Impact on existing code
 
-This is a source-breaking change that can be automated by a migrator, by simply scanning the *extension-body* for at least one *public* modifier on its members. Iff a *public* modifier was found on any member, the migrator can add an explicit *public* modifier to the extension itself.
+This is a source-breaking change that can be automated by a migrator.
+
+* Extensions without an explicit access modifier:
+
+	```diff
+	//===-----------------------------===//
+	//===-------- public type --------===//
+	//===-----------------------------===//
+	
+	public struct AA {}
+	
+	- extension AA {
+	+ public extension AA {
+		func member1() {}
+		public func member2() {}
+		private func member3() {}
+	}
+	
+	//===-----------------------------===//
+	//===------- internal type -------===//
+	//===-----------------------------===//
+	
+	internal struct BB {}
+	
+	// No impact at all because it is already
+	// implicitly `internal`
+	
+	extension BB {
+		func member1() {}
+		private func member2() {}
+	}
+	
+	//===-----------------------------===//
+	//===------- private type --------===//
+	//===-----------------------------===//
+	
+	private struct CC {}
+	
+	- extension CC {
+	+ private extension CC {
+		func member1() {}
+	-	private func member2() {}
+	+	func member2() {}
+	}
+	```
+
+* Extensions with an explicit access modifier:
+
+	```diff
+	//===-----------------------------===//
+	//===-------- public type --------===//
+	//===-----------------------------===//
+	
+	public struct DD {}
+	
+	public extension DD {
+	-	func member1() {}
+	+	public func member1() {} 
+		public func member2() {}
+		private func member3() {}
+		internal func member4() {}
+	}
+	
+	internal extension DD {
+		func member5() {}
+		private func member6() {}
+		internal func member7() {}
+	}
+	
+	private extension DD {
+		func member8() {}
+	-	private func member9() {}
+	+ 	func member9() {}
+	}
+	
+	//===-----------------------------===//
+	//===------- internal type -------===//
+	//===-----------------------------===//
+	
+	internal struct EE {}
+	
+	internal extension EE {
+		func member1() {}
+		private func member2() {}
+		internal func member3() {}
+	}
+	
+	private extension EE {
+		func member4() {}
+	-	private func member5() {}
+	+	func member5() {}
+	}
+	
+	//===-----------------------------===//
+	//===------- private type --------===//
+	//===-----------------------------===//
+	
+	private struct FF {}
+	
+	private extension FF {
+		func member1() {}
+	-	private func member2() {}
+	+	func member2() {}
+	}
+	```
 
 ## Alternatives considered
 
