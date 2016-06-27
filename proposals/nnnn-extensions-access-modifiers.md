@@ -145,7 +145,7 @@ extension G {
 
 I propose to revise the access control on extensions by replacing the current access control model for extensions with the same access control model as classes, enums and structs already have. 
 
-* It would be possible to conform types to a protocol using an *extension* which has an explicit *access modifier*. The *access modifier* acs in respect to the modifier of the extended type and the protocol to which it should be conformed.
+* It would be possible to conform types to a protocol using an *extension* which has an explicit *access modifier*. The *access modifier* respectts the modifier of the extended type and the protocol to which it should be conformed.
 
 	```swift
 	internal protocol H { 
