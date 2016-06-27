@@ -35,6 +35,10 @@ results in Swift programs having to walk a careful line between the
 ``ErrorProtocol``-based Swift way and the ``NSError``-based way. This
 proposal attempts to bridge those gaps.
 
+Swift-evolution thread: [Charles Srstka's pitch for Consistent
+bridging for NSErrors at the language
+boundary](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160502/016618.html)
+
 ## Motivation
 
 There are a number of weaknesses in Swift's interoperability with
@@ -136,12 +140,11 @@ Cocoa's error model, including:
 
   One would expect the first parameter to be imported as ``ErrorProtocol``. 
 
-
 ## Proposed solution
 
-The proposed solution involves directly addressing (1)-(3) with new
-protocols and a different way of bridging Objective-C error code types
-into Swift, along with some conveniences for working with Cocoa errors:
+This proposal involves directly addressing (1)-(3) with new protocols
+and a different way of bridging Objective-C error code types into
+Swift, along with some conveniences for working with Cocoa errors:
 
 1. Introduce three new protocols for describing more information about
   errors: ``LocalizedError``, ``RecoverableError``, and
@@ -665,8 +668,29 @@ operate on ``NSError`` values, because those parameter/return/property
 types will change from ``NSError`` to ``Error``. There are ~400 such
 APIs in the macOS SDK, and closer to 500 in the iOS SDK, which is a
 sizable number. Fortunately, this is similar in scope to the
-(Foundation value types
-proposal)[https://github.com/apple/swift-evolution/blob/master/proposals/0069-swift-mutability-for-foundation.md],
+[Foundation value types
+proposal](https://github.com/apple/swift-evolution/blob/master/proposals/0069-swift-mutability-for-foundation.md),
 and can use the same code migration mechanism. That said, the scale of
 this change means that it should either happen in Swift 3 or not at
 all.
+
+## Alternatives considered
+
+Charles Srstka [originally
+proposed](https://github.com/CharlesJS/swift-evolution/blob/af74e83de048ed1eeec5f8a19ccaca94156ac9c1/proposals/NNNN-consistent-NSError-bridging-at-language-boundary.md)
+bridging ``NSError`` to ``ErrorProtocol`` (issue (3) in the Motivation
+section). He also proposed exposing the domain, code, and user-info
+dictionary on ``ErrorProtocol``, which solves part of issue (2); the
+complete solution also requires changing the way Cocoa error code
+enums are imported, as described in this proposal. It did not address
+issue (1), which meant developers creating errors would still have had
+to rely on ``NSError`` to create rich errors.
+
+This proposal does not directly expose the domain, code, or user-info
+dictionary on ``ErrorProtocol``, because these notions are superseded
+by Swift's strong typing of errors. The domain is effectively subsumed
+by the type of the error (e.g., a Swift-defined error type uses its
+mangled name as the domain); the code is some type-specific value
+(e.g., the discriminator of the enum); and the user-info dictionary is
+an untyped set of key-value pairs that are better expressed in Swift
+as data on the specific error type.
