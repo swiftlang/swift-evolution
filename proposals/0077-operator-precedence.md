@@ -429,6 +429,35 @@ precedence % = *
 precedence * > +
 ```
 
+### Use meta-circular syntax
+
+That is, if a constant is of special type, then it will be used only at compile time:
+
+```swift
+struct PrecedenceGroup {
+  enum Associativity { case left, right, none }
+  let associativity: Associativity
+  let strongerThan: [StaticString]
+  let weakerThan: [StaticString]
+}
+let Multiplicative = PrecedenceGroup(.left, [Associativity], [])
+```
+
+> This is already strongly library-determined. The library defines what operators exist and defines their
+> precedence w.r.t. each other and a small number of built-in operators. Operator precedence has to be
+> communicated to the compiler somehow in order to parse code. This proposal is just deciding the syntax of
+> that communication.
+> 
+> I see no reason to use a more conceptually complex approach when a simple declaration will do.
+> 
+> <cite>-- John McCall</cite>
+
+### Replace error with warning in "joining unrelated precedence groups"
+
+1. Simplify language model and reduce burden on compilers
+2. When a precedence hierarchy is broken by some update, developers can use "a quick hack" to join
+all the groups together and get their code up-and-running immediately
+
 ### Replace `precedencegroup` with `precedence`
 
 Pros:
@@ -543,29 +572,6 @@ precedence Multiplicative {
   < Exponentiative
 }
 ```
-
-### Use meta-circular syntax
-
-That is, if a constant is of special type, then it will be used only at compile time:
-
-```swift
-struct PrecedenceGroup {
-  enum Associativity { case left, right, none }
-  let associativity: Associativity
-  let strongerThan: [StaticString]
-  let weakerThan: [StaticString]
-}
-let Multiplicative = PrecedenceGroup(.left, [Associativity], [])
-```
-
-> This is already strongly library-determined. The library defines what operators exist and defines their
-> precedence w.r.t. each other and a small number of built-in operators. Operator precedence has to be
-> communicated to the compiler somehow in order to parse code. This proposal is just deciding the syntax of
-> that communication.
-> 
-> I see no reason to use a more conceptually complex approach when a simple declaration will do.
-> 
-> <cite>-- John McCall</cite>
 
 ## Note from review period
 
