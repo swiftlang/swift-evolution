@@ -400,18 +400,6 @@ But this will be the topic of another proposal, because separate discussion is n
 
 ## Alternatives considered
 
-### Replace `precedencegroup` with `precedence`
-
-Pros:
-
-- Looks shorter, less bulky
-- Declarations use same naming style as protocols
-
-Cons:
-
-- Need to take `precedence` as a keyword
-- `precedencegroup` more precisely represents what it declares
-
 ### Declare associativity and precedence separately
 
 ```swift
@@ -441,11 +429,19 @@ precedence % = *
 precedence * > +
 ```
 
-### Possible syntax variations
+### Replace `precedencegroup` with `precedence`
 
-Instead of `precedence`, there could be:
-- `precedencegroup`
-- `operatorgroup`
+Pros:
+
+- Looks shorter, less bulky
+- Declarations use same naming style as protocols
+
+Cons:
+
+- Need to take `precedence` as a keyword
+- `precedencegroup` more precisely represents what it declares
+
+### Possible syntax variations
 
 Instead of `strongerThan` and `weakerThan`, there could be:
 - `above` and `below`
@@ -547,6 +543,29 @@ precedence Multiplicative {
   < Exponentiative
 }
 ```
+
+### Use meta-circular syntax
+
+That is, if a constant is of special type, then it will be used only at compile time:
+
+```swift
+struct PrecedenceGroup {
+  enum Associativity { case left, right, none }
+  let associativity: Associativity
+  let strongerThan: [StaticString]
+  let weakerThan: [StaticString]
+}
+let Multiplicative = PrecedenceGroup(.left, [Associativity], [])
+```
+
+> This is already strongly library-determined. The library defines what operators exist and defines their
+> precedence w.r.t. each other and a small number of built-in operators. Operator precedence has to be
+> communicated to the compiler somehow in order to parse code. This proposal is just deciding the syntax of
+> that communication.
+> 
+> I see no reason to use a more conceptually complex approach when a simple declaration will do.
+> 
+> <cite>-- John McCall</cite>
 
 ## Note from review period
 
