@@ -793,14 +793,22 @@ ptrToSomeType.initialize(with: SomeType())
 ```
 
 The semantics of initializing memory with a typed pointer are
-different than initializing with a raw pointer. We say that typed
-pointer initialization "binds" the allocated memory to that type (raw
-pointer initialization does *not* bind memory to that type). If memory
-is bound to a type, it is illegal for the program to access the same
-allocated memory as an unrelated type. Consequently, this should only
-be done when the programmer has control over allocation and
-deallocation of that memory and thus can guarantee that the memory is
-never initialized to an unrelated type.
+different than initializing with a raw pointer. Initializing via a raw
+pointer changes the memory state to "initialized with some type" for
+the lifetime of that value in memory. Deinitializing the memory then
+returns the memory to a pristine state. This does not impose any type on the
+allocated memory.
+
+Initializing via a typed pointer, in addition to changing the temporal
+memory state, also imposes a type on the allocated memory for the
+entire lifetime of the memory itself, from allocation to
+deallocation. We say that typed pointer initialization "binds" the
+allocated memory to that type. If memory is bound to a type, it is
+illegal for the program to access the same allocated memory as an
+unrelated type. Consequently, this should only be done when the
+programmer has control over allocation and deallocation of that memory
+and thus can guarantee that the memory is never initialized to an
+unrelated type.
 
 The sequence shown below binds allocated memory to type `T` in two
 places. The sequence is valid because the bound memory is never
@@ -841,14 +849,12 @@ tptr.deinitialize()                      | uninitialized |
 uptr = rawptr.cast(to: UnsafePointer<U>) | uninitialized |
 uptr.initialize()                        | initialized   | bind to U, undefined
 
-When binding allocated memory to a type, the programmer assumes
-responsibility for two aspects of the managing the memory:
-
-1. ensuring that the underlying raw memory will only *ever* be
-   initialized to the pointer's type
-
-2. tracking the memory's initialized state (usually of several
-   individual contiguous elements)
+Although initializing memory via a typed pointer exposes type safety
+risk, it is useful for some important use cases as a performance
+optimization. In particular, it is an effective technique for data
+structures that manage storage for contiguous elements. The data
+structure may allocate a buffer with extra capacity and track the
+initialized state of each element position.
 
 For example:
 
@@ -861,13 +867,18 @@ func getAt(index: Int) -> A {
 }
 ```
 
-This is a useful technique for optimizing data structures that manage
-storage for contiguous elements. The data structure may allocate a
-buffer with extra capacity and track the initialized state of each
-element position. Accessing the buffer via a typed pointer is both
-more convenient and may improve performance under some conditions.
+Accessing the buffer via a typed pointer is both more convenient and
+may improve performance under some conditions. (See the
+[C buffer](#c-buffer) use case below.)
 
-(See the [C buffer](#c-buffer) use case below.)
+When binding allocated memory to a type, the programmer assumes
+responsibility for two aspects of the managing the memory:
+
+1. ensuring that the underlying raw memory will only *ever* be
+   initialized to the pointer's type
+
+2. tracking the memory's initialized state (usually of several
+   individual contiguous elements)
 
 Casting a raw pointer to a typed pointer also allows initialization
 via an assignment operation. However, this is only valid on trivial types:
