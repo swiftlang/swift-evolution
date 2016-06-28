@@ -400,12 +400,17 @@ But this will be the topic of another proposal, because separate discussion is n
 
 ## Alternatives considered
 
-### Use `operator` instead of `precedencegroup`
+### Replace `precedencegroup` with `precedence`
 
-This would avoid introducing a new keyword.
+Pros:
 
-On the other hand, `precedencegroup` or `precedence` more clearly represent what they declare.
-Additionally, `operator` remains a local keyword.
+- Looks shorter, less bulky
+- Declarations use same naming style as protocols
+
+Cons:
+
+- Need to take `precedence` as a keyword
+- `precedencegroup` more precisely represents what it declares
 
 ### Declare associativity and precedence separately
 
@@ -429,14 +434,18 @@ The graph of relationships would be considerably larger and less understandable 
 Precedence groups concept would still be present, but it would make one operator in each group "priveleged":
 
 ```swift
-precedencerelation - = +
-precedencerelation &+ = +
-precedencerelation / = *
-precedencerelation % = *
-precedencerelation * > +
+precedence - = +
+precedence &+ = +
+precedence / = *
+precedence % = *
+precedence * > +
 ```
 
 ### Possible syntax variations
+
+Instead of `precedence`, there could be:
+- `precedencegroup`
+- `operatorgroup`
 
 Instead of `strongerThan` and `weakerThan`, there could be:
 - `above` and `below`
@@ -448,7 +457,7 @@ Instead of `strongerThan` and `weakerThan`, there could be:
 Instead of `associativity`, there could be `associate`.
 
 ```swift
-precedencegroup Multiplicative {
+precedence Multiplicative {
   associativity(left)
   precedence(> Additive)
   precedence(< Exponentiative)
@@ -456,7 +465,7 @@ precedencegroup Multiplicative {
 ```
 
 ```swift
-precedencegroup Multiplicative {
+precedence Multiplicative {
   associativity: left
   precedence: strongerThan(Additive)
   precedence: weakerThan(Exponentiative)
@@ -539,30 +548,17 @@ precedence Multiplicative {
 }
 ```
 
-## Note #1
+## Note from review period
 
-Swift Core team is supposed to make a decision on syntax of precedence groups declarations.
-It may be from "Alternatives considered" variants, modifications of them, or any different syntax.
-
-During review on swift-evolution, many participants showed preference to the following one:
+During review, many participants showed preference to the following syntax:
 
 ```swift
 precedence Multiplicative {
-  associativity left
-  above Additive
-  below Exponentiative
+  associativity: left
+  above: Additive
+  below: Exponentiative
 }
 ```
-
-Or its slightly modified forms.
-
-## Note #2
-
-As stated in the rationale, names of precedence groups must lie in the same namespace as other declarations.
-Therefore, we need to revise naming convention and change standard precedence group names to avoid conflicts.
-It is something to be discussed.
-
-Also, more input on new `strongerThan` and `weakerThan` keywords is incoming.
 
 -------------------------------------------------------------------------------
 
