@@ -739,16 +739,16 @@ the same type.
 
 Consider this sequence of abstract memory operations:
 
-Abstract Operation              | Memory State  | Type
-------------------------------- | ------------  | ----
-rawptr = allocate()             | uninitialized | None
-tptr = rawptr.initialize(t1: T) | initialized   | contains T
-tptr.assign(t2: T)              | initialized   | contains T
-tptr.deinitialize               | uninitialized | None
-uptr = rawptr.initialize(u1: U) | initialized   | contains U
-uptr.assign(u2: U)              | initialized   | contains U
-uptr.deinitialize               | uninitialized | None
-rawptr.deallocate               | invalid       | None
+Abstract Operation                | Memory State  | Type
+--------------------------------- | ------------  | ----
+rawptr = allocate()               | uninitialized | None
+tptr = rawptr.initialize(T)       | initialized   | contains T
+tptr.pointee = T                  | initialized   | contains T
+tptr.deinitialize()               | uninitialized | None
+uptr = rawptr.initialize(U)       | initialized   | contains U
+uptr.pointee = U                  | initialized   | contains U
+uptr.deinitialize()               | uninitialized | None
+rawptr.deallocate()               | invalid       | None
 
 The proposed API establishes a convention whereby raw pointers
 primarily refer to uninitialized memory and typed pointers primarily
@@ -778,7 +778,7 @@ Examples of trivial types:
 - struct types where all members are trivial
 - enum types where all payloads are trivial
 
-### Accessing uninitialized memory with a typed pointer (binding the type)
+### Initializing memory with a typed pointer (binding the type)
 
 A raw pointer may be cast to a typed pointer, bypassing raw initialization:
 
@@ -786,28 +786,57 @@ A raw pointer may be cast to a typed pointer, bypassing raw initialization:
 let ptrToSomeType = rawPtr.cast(to: UnsafePointer<SomeType>.self)
 ```
 
-This cast explicitly signals the intention to bind the raw
-memory to the destination type. Using the cast's typed pointer result to
-initialize the memory actually binds the type. If memory is bound to a
+The resulting typed pointer may then be used to initialize memory:
+
+```swift
+ptrToSomeType.initialize(with: SomeType())
+```
+
+The semantics of initializing memory with a typed pointer are different than initializing with a raw pointer. We say that typed pointer initialization "binds" the allocated memory to that type. If memory is bound to a
 type, it is illegal for the program to access the same allocated
 memory as an unrelated type. Consequently, this should only be done
-when the programmer has control over the allocation and deallocation
-of the memory and thus can guarantee that the memory is never
+when the programmer has control over allocation and deallocation
+of that memory and thus can guarantee that the memory is never
 initialized to an unrelated type.
 
 The sequence shown below binds allocated memory to type `T` in two
 places. The sequence is valid because the bound memory is never
 accessed as a different type:
 
-Abstract Operation                            | Memory State  | Type
---------------------------------------------- | ------------  | ----
-rawptr = allocate()                           | uninitialized | None
-tptr = rawptr.cast(to: UnsafePointer<T>.Type) | uninitialized | None
-tptr.initialize(t1: T)                        | initialized   | binds to T
-tptr.deinitialize                             | uninitialized | None
-tptr.initialize(t2: T)                        | initialized   | binds to T
-tptr.deinitialize                             | uninitialized | None
-rawptr.deallocate                             | invalid       | None
+Abstract Operation                       | Memory State  | Semantics
+---------------------------------------- | ------------- | ---------
+rawptr = allocate()                      | uninitialized |
+tptr = rawptr.cast(to: UnsafePointer<T>) | uninitialized |
+tptr.initialize()                        | initialized   | bind to T
+tptr.deinitialize()                      | uninitialized |
+tptr.initialize()                        | initialized   | bind to T
+tptr.deinitialize()                      | uninitialized |
+rawptr.deallocate()                      | invalid       |
+
+If allocated memory is bound to a type at some point, then it must not
+be initialized to an unrelated type either before or after that
+point. For example, this sequence is undefined because memory was
+initialized to `U` before being bound to `T`:
+
+Abstract Operation                       | Memory State  | Semantics
+---------------------------------------- | ------------- | ---------
+rawptr = allocate()                      | uninitialized |
+uptr = rawptr.initialize(U)              | initialized   | undefined
+uptr.deinitialize()                      | uninitialized |
+tptr = rawptr.cast(to: UnsafePointer<T>) | uninitialized |
+tptr.initialize()                        | initialized   | bind to T, undefined
+
+And this sequence is undefined because the same memory is bound to
+unrelated types:
+
+Abstract Operation                       | Memory State  | Semantics
+---------------------------------------- | ------------- | ---------
+rawptr = allocate()                      | uninitialized |
+tptr = rawptr.cast(to: UnsafePointer<T>) | uninitialized |
+tptr.initialize()                        | initialized   | bind to T, undefined
+tptr.deinitialize()                      | uninitialized |
+uptr = rawptr.cast(to: UnsafePointer<U>) | uninitialized |
+uptr.initialize()                        | initialized   | bind to U, undefined
 
 When binding allocated memory to a type, the programmer assumes
 responsibility for two aspects of the managing the memory:
@@ -846,7 +875,8 @@ via an assignment operation. However, this is only valid on trivial types:
   // Cast uninitialized memory to a typed pointer.
   let pInt = rawPtr.cast(to: UnsafeMutablePointer<Int>.self)
 
-  // Initialize the trivial Int type using assignment.
+  // Initialize the element of trivial `Int` type using assignment,
+  // which also binds the memory's type to `Int`.
   pInt[0] = 42
 
   // Skip deinitialization for the trivial Int type.
