@@ -792,12 +792,15 @@ The resulting typed pointer may then be used to initialize memory:
 ptrToSomeType.initialize(with: SomeType())
 ```
 
-The semantics of initializing memory with a typed pointer are different than initializing with a raw pointer. We say that typed pointer initialization "binds" the allocated memory to that type. If memory is bound to a
-type, it is illegal for the program to access the same allocated
-memory as an unrelated type. Consequently, this should only be done
-when the programmer has control over allocation and deallocation
-of that memory and thus can guarantee that the memory is never
-initialized to an unrelated type.
+The semantics of initializing memory with a typed pointer are
+different than initializing with a raw pointer. We say that typed
+pointer initialization "binds" the allocated memory to that type (raw
+pointer initialization does *not* bind memory to that type). If memory
+is bound to a type, it is illegal for the program to access the same
+allocated memory as an unrelated type. Consequently, this should only
+be done when the programmer has control over allocation and
+deallocation of that memory and thus can guarantee that the memory is
+never initialized to an unrelated type.
 
 The sequence shown below binds allocated memory to type `T` in two
 places. The sequence is valid because the bound memory is never
