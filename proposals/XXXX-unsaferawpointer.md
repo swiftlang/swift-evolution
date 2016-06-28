@@ -1098,10 +1098,11 @@ func readMsg(msgBuf: UnsafeRawPointer, isFormat1: Bool) {
 
 ### Custom memory allocation
 
-Note: The same allocated raw memory cannot be used both for this custom
-memory allocation case and for the C buffer case above because the C
-buffer requries that the allocated raw memory is always initialized to
-the same type.
+Note: The same allocated raw memory cannot be used both for this
+custom memory allocation case and for the C buffer case above because
+the C buffer binds the allocated memory to an element type. Binding
+the type applies to the allocation lifetime and requries that the
+allocated raw memory is always initialized to the same type.
 
 ```swift
 var freePtr: UnsafeMutableRawPointer? = nil
