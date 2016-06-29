@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0077](0077-operator-precedence.md)
 * Author: [Anton Zhilin](https://github.com/Anton3)
-* Status: **Under revision** ([Rationale](#rationale))
+* Status: **Under review** June 29 ... July 4, 2016
 * Review manager: [Joe Groff](http://github.com/jckarter)
 
 **Revision history**

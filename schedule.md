@@ -17,6 +17,7 @@ proposals in that process.
 * June 28 ... July 4 [SE-0107: UnsafeRawPointer API](proposals/0107-unsaferawpointer.md)
 * June 28 ... July 4 [SE-0109: Remove the `Boolean` protocol](proposals/0109-remove-boolean.md)
 * June 29 ... July 4 [SE-0108: Remove associated type inference](proposals/0108-remove-assoctype-inference.md)
+* June 29 ... July 4 [SE-0077: Improved operator declarations](proposals/0077-operator-precedence.md)
 
 ## Upcoming reviews
 
