@@ -15,6 +15,7 @@ proposals in that process.
 * June 22...27 [SE-0104: Protocol-oriented integers](proposals/0104-improved-integers.md)
 * June 22...29 [SE-0105: Removing Where Clauses from For-In Loops](proposals/0105-remove-where-from-forin-loops.md)
 * June 28 ... July 4 [SE-0107: UnsafeRawPointer API](proposals/0107-unsaferawpointer.md)
+* June 28 ... July 4 [SE-0109: Remove the `Boolean` protocol](proposals/0109-remove-boolean.md)
 
 ## Upcoming reviews
 
@@ -22,8 +23,6 @@ proposals in that process.
 ## Proposals awaiting scheduling
 
 * [SE-0108: Remove associated type inference](proposals/0108-remove-assoctype-inference.md)
-* [SE-0109: Remove the `Boolean` protocol](proposals/0109-remove-boolean.md)
-
 
 ## Merged proposals that are out of scope for Swift 3.0, but will be scheduled when it is done
 

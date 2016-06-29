@@ -2,8 +2,8 @@
 
 * Proposal: [SE-0109](0109-remove-boolean.md)
 * Authors: [Anton Zhilin](https://github.com/Anton3), [Chris Lattner](https://github.com/lattner)
-* Status: **Awaiting review**
-* Review manager: TBD
+* Status: **Active Review June 28 ... July 4**
+* Review manager: [Doug Gregor](http://github.com/DougGregor)
 
 ## Introduction
 
