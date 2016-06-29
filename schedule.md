@@ -23,8 +23,8 @@ proposals in that process.
 
 ## Proposals awaiting scheduling
 
-* [SE-0110: Distinguish between single-tuple and multiple-argument function types](0110-distingish-single-tuple-arg.md)
-* [SE-0111: Remove type system significance of function argument labels](0111-remove-arg-label-type-significance.md)
+* [SE-0110: Distinguish between single-tuple and multiple-argument function types](proposals/0110-distingish-single-tuple-arg.md)
+* [SE-0111: Remove type system significance of function argument labels](proposals/0111-remove-arg-label-type-significance.md)
 
 ## Merged proposals that are out of scope for Swift 3.0, but will be scheduled when it is done
 
