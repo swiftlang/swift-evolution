@@ -1,9 +1,9 @@
 # Remove type system significance of function argument labels
 
-* Proposal: [SE-NNNN](NNNN-remove-arg-label-type-significance.md)
+* Proposal: [SE-0111](0111-remove-arg-label-type-significance.md)
 * Author: Austin Zheng
 * Status: **Awaiting review**
-* Review manager: TBD
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 

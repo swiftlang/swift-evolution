@@ -1,9 +1,9 @@
 # Distinguish between single-tuple and multiple-argument function types
 
-* Proposal: [SE-NNNN](NNNN-distingish-single-tuple-arg.md)
-* Author: Vladimir S., Austin Zheng
+* Proposal: [SE-0110](0110-distingish-single-tuple-arg.md)
+* Authors: Vladimir S., Austin Zheng
 * Status: **Awaiting review**
-* Review manager: TBD
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
