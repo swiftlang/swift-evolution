@@ -1,7 +1,7 @@
 # Remove associated type inference
 
 * Proposal: [SE-0108](0108-remove-assoctype-inference.md)
-* Author: Austin Zheng
+* Author: [Douglas Gregor](https://github.com/DougGregor), Austin Zheng
 * Status: **Awaiting review**
 * Review manager: TBD
 
