@@ -469,7 +469,7 @@ This is a source-breaking change that can be automated by a migrator.
 
 ## Alternatives considered
 
-* Allow *access modifier* when *type-inheritance-clause* is present and use the rules presented in [**Proposed solution**](#Proposed-solution).
+* Allow *access modifier* when *type-inheritance-clause* is present and use the rules presented in [**Proposed solution**](#proposed-solution).
 
 ## Rationale
 
