@@ -14,6 +14,7 @@ proposals in that process.
 * June 22...27 [SE-0095: Replace `protocol<P1,P2>` syntax with `P1 & P2` syntax](proposals/0095-any-as-existential.md)
 * June 22...27 [SE-0104: Protocol-oriented integers](proposals/0104-improved-integers.md)
 * June 22...29 [SE-0105: Removing Where Clauses from For-In Loops](proposals/0105-remove-where-from-forin-loops.md)
+* June 28 ... July 4 [SE-0107: UnsafeRawPointer API](proposals/0107-unsaferawpointer.md)
 
 ## Upcoming reviews
 

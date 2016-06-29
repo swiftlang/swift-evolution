@@ -1,9 +1,9 @@
 # UnsafeRawPointer API
 
-* Proposal: [SE-NNNN](https://github.com/atrick/swift-evolution/blob/voidpointer/proposals/XXXX-unsaferawpointer.md)
-* Author(s): [Andrew Trick](https://github.com/atrick)
-* Status: **[Awaiting review](#rationale)**
-* Review manager: TBD
+* Proposal: [SE-0107](0107-unsaferawpointer.md)
+* Author: [Andrew Trick](https://github.com/atrick)
+* Status: **Active Review June 28 ... July 4**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 For quick reference, jump to:
 - [Full UnsafeRawPointer API](#full-unsaferawpointer-api)
