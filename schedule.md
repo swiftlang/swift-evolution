@@ -18,11 +18,11 @@ proposals in that process.
 
 ## Upcoming reviews
 
-* Soon [SE-0108: Remove associated type inference](proposals/0108-remove-assoctype-inference.md)
 
 ## Proposals awaiting scheduling
 
-
+* [SE-0108: Remove associated type inference](proposals/0108-remove-assoctype-inference.md)
+* [SE-0109: Remove the `Boolean` protocol](proposals/0109-remove-boolean.md)
 
 
 ## Merged proposals that are out of scope for Swift 3.0, but will be scheduled when it is done
