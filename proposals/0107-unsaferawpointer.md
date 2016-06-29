@@ -419,11 +419,11 @@ func initAB() -> UnsafeMutableRawPointer {
 
   // Initialize the second Int with B.
   // This implicitly casts UnsafeMutablePointer<A> to UnsafeMutableRawPointer,
-  // which is equivalent to initB(p + strideof(Int)).
+  // which is equivalent to initB(rawPtr + strideof(Int)).
   // Unlike the old API, no unsafe pointer conversion is needed.
   initB(pA + 1)
 
-  return p
+  return rawPtr
 }
 ```
 
