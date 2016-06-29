@@ -35,11 +35,11 @@ operate on `Bool` directly.
 
 ## Impact on existing code
 
-Change is backwards incompatible, but extremely unlikely to break code in
+This change is backwards incompatible, but extremely unlikely to break code in
 practice.  As already mentioned, APIs that have parameters or return values of
 type `BOOL` are automatically bridged in as `Bool`, so they will not see any
 change at all.  The only significant place they appear in APIs are for the
-`STOP` out parameters on certain Objective-C collection types, e.g.::
+`STOP` out parameters on certain Objective-C collection types, e.g.:
 
 ```swift
 class NSArray : NSObject ... {
@@ -54,6 +54,6 @@ x.enumerateObjects { value, index, STOP in
 }
 ```
 
-This continues to work even without the `Boolean` protocol because ObjCBool
-still conforms to BooleanLiteralConvertible.
+This continues to work even without the `Boolean` protocol because `ObjCBool`
+still conforms to `BooleanLiteralConvertible`.
 
