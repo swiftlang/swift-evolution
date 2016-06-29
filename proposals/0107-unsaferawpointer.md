@@ -761,24 +761,7 @@ the underlying memory. When a program defies convention this way, the
 programmer must be aware of the rules for working with raw memory as
 explaned below.
 
-### Trivial types
-
-Certain kinds of memory access, as decribed in the following two sections,
-are only valid for "trivial types". A ``trivial type`` promises
-that assignment just requires a fixed-size bit-for-bit copy without
-any indirection or reference-counting operations. Generally, native
-Swift types that do not contain strong or weak references or other
-forms of indirection are trivial, as are imported C structs and enums.
-
-Examples of trivial types:
-- Integer and floating-point types
-- `Bool`
-- `Optional<T>` where `T` is trivial
-- `Unmanaged<T: AnyObject>`
-- struct types where all members are trivial
-- enum types where all payloads are trivial
-
-### Initializing memory with a typed pointer (binding the type)
+### Initializing memory with a typed pointer
 
 A raw pointer may be cast to a typed pointer, bypassing raw initialization:
 
@@ -796,67 +779,77 @@ The semantics of initializing memory with a typed pointer are
 different than initializing with a raw pointer. Initializing via a raw
 pointer changes the memory state to "initialized with some type" for
 the lifetime of that value in memory. Deinitializing the memory then
-returns the memory to a pristine state. This does not impose any type on the
-allocated memory.
+returns the memory to a pristine state.
 
 Initializing via a typed pointer, in addition to changing the temporal
-memory state, also imposes a type on the allocated memory for the
-entire lifetime of the memory itself, from allocation to
-deallocation. We say that typed pointer initialization "binds" the
-allocated memory to that type. If memory is bound to a type, it is
-illegal for the program to access the same allocated memory as an
-unrelated type. Consequently, this should only be done when the
-programmer has control over allocation and deallocation of that memory
-and thus can guarantee that the memory is never initialized to an
-unrelated type.
+memory state, also imposes a type on the allocated memory that must be
+consistent with other accesses to the same memory via typed pointer,
+even if those accesses read or write a different value. Conceptually,
+the typed pointer initialization "binds" the allocated memory to that
+type. Consequently, this should only be done when the programmer has
+control over allocation and deallocation of that memory and thus can
+guarantee that the memory is not accessed as an unrelated type.
 
-The sequence shown below binds allocated memory to type `T` in two
-places. The sequence is valid because the bound memory is never
+If typed pointer initialization is used incorrectly, then strict
+aliasing rules may be violated, resulting in undefined
+behavior. Formally, a sequence of two memory operations to the same
+location violates strict aliasing under the following conditions:
+- both operations access memory via a typed pointer
+- the memory access types are unrelated
+- at least one of the memory operations is a write
+- there exists no intervening write to the same memory via a raw pointer
+
+Consider these abstract memory operations, igoring the initialized
+memory state. Assume `A` and `B` are layout compatible types (they
+have the same size, alignment, and location of class references). A
+memory write may be an initialization, deinitialization, or assignment
+(assigment implicity deinitializes and reinitializes memory).
+
+Mem Op #1     | Mem Op #2          | Mem Op #3          | Semantics
+------------- | ---------          | ---------          | ---------
+raw write A   | typed read/write B |                    | Valid
+raw write A   | typed read A       | typed read B       | Valid
+typed write A | typed read/write B |                    | Undefined
+typed read A  | typed write B      |                    | Undefined
+typed write A | raw write A/B      | typed read/write B | Valid
+typed read A  | raw write A/B      | typed read/write B | Valid
+
+Now consider some concrete examples. The example shown below binds
+allocated memory to type `T` by accessing two values via a typed
+pointer. The sequence is valid because the bound memory is never
 accessed as a different type:
 
-Abstract Operation                       | Memory State  | Semantics
----------------------------------------- | ------------- | ---------
-rawptr = allocate()                      | uninitialized |
-tptr = rawptr.cast(to: UnsafePointer<T>) | uninitialized |
-tptr.initialize()                        | initialized   | bind to T
-tptr.deinitialize()                      | uninitialized |
-tptr.initialize()                        | initialized   | bind to T
-tptr.deinitialize()                      | uninitialized |
-rawptr.deallocate()                      | invalid       |
+```swift
+let rawPtr = UnsafeMutableRawPointer(allocatingCapacity: 1, of: A.self)
+let ptrToA = rawptr.cast(to: UnsafePointer<A>)
+ptrToA.initialize(with: A())
+ptrToA.deinitialize()
+ptrToA.initialize(with: A())
+ptrToA.deinitialize()
+rawptr.deallocate(capacity: 1, of: A.self)
+```
 
-If allocated memory is bound to a type at some point, then it must not
-be initialized to an unrelated type either before or after that
-point. For example, this sequence is undefined because memory was
-initialized to `U` before being bound to `T`:
+The next example is undefined because memory is initialized to `U`
+before being bound to `T`. As a result, `ptrToA.deinitialize()` is
+followed by an `ptrToB.initialize`, which are both typed memory
+writes, with no intervening raw initialization:
 
-Abstract Operation                       | Memory State  | Semantics
----------------------------------------- | ------------- | ---------
-rawptr = allocate()                      | uninitialized |
-uptr = rawptr.initialize(U)              | initialized   | undefined
-uptr.deinitialize()                      | uninitialized |
-tptr = rawptr.cast(to: UnsafePointer<T>) | uninitialized |
-tptr.initialize()                        | initialized   | bind to T, undefined
-
-And this sequence is undefined because the same memory is bound to
-unrelated types:
-
-Abstract Operation                       | Memory State  | Semantics
----------------------------------------- | ------------- | ---------
-rawptr = allocate()                      | uninitialized |
-tptr = rawptr.cast(to: UnsafePointer<T>) | uninitialized |
-tptr.initialize()                        | initialized   | bind to T, undefined
-tptr.deinitialize()                      | uninitialized |
-uptr = rawptr.cast(to: UnsafePointer<U>) | uninitialized |
-uptr.initialize()                        | initialized   | bind to U, undefined
+```swift
+let rawPtr = UnsafeMutableRawPointer(allocatingCapacity: 1, of: A.self)
+let ptrToA = rawPtr.initialize(A.self, with: A())
+ptrToA.deinitialize()
+let ptrToB = rawptr.cast(to: UnsafePointer<B>)
+ptrToB.initialize(with: B())
+ptrToB.deinitialize()
+rawPtr.deallocate(capacity: 1, of: A.self)
+```
 
 Although initializing memory via a typed pointer exposes type safety
 risk, it is useful for some important use cases as a performance
-optimization. In particular, it is an effective technique for data
-structures that manage storage for contiguous elements. The data
-structure may allocate a buffer with extra capacity and track the
-initialized state of each element position.
-
-For example:
+optimization. In particular, it is an effective technique for
+implementing data structures that manage storage for contiguous
+elements. The data structure may allocate a buffer with extra capacity
+and track the initialized state of each element position. For example:
 
 ```swift
 func getAt(index: Int) -> A {
@@ -871,17 +864,18 @@ Accessing the buffer via a typed pointer is both more convenient and
 may improve performance under some conditions. (See the
 [C buffer](#c-buffer) use case below.)
 
-When binding allocated memory to a type, the programmer assumes
-responsibility for two aspects of the managing the memory:
+When using a typed pointer to initialize memory, the programmer
+assumes direct responsibility for two aspects of the managing the
+memory that otherwise fall out of the UnsafeRawPointer API naturally:
 
-1. ensuring that the underlying raw memory will only *ever* be
-   initialized to the pointer's type
+1. ensuring the memory is accesses with a consistent pointer type
 
 2. tracking the memory's initialized state (usually of several
    individual contiguous elements)
 
-Casting a raw pointer to a typed pointer also allows initialization
-via an assignment operation. However, this is only valid on trivial types:
+Casting a raw pointer to a typed pointer also allows subsequent
+initialization via an assignment operation. However, this is only
+valid on "trivial types" (as defined in the following section):
 
 ```swift
   let rawPtr = UnsafeMutableRawPointer(allocatingCapacity: 1, of: Int.self)
@@ -896,6 +890,23 @@ via an assignment operation. However, this is only valid on trivial types:
   // Skip deinitialization for the trivial Int type.
   rawPtr.deallocate(capacity: 1, of: Int.self)
 ```
+
+### Trivial types
+
+Certain kinds of memory access, as decribed in the following two sections,
+are only valid for "trivial types". A ``trivial type`` promises
+that assignment just requires a fixed-size bit-for-bit copy without
+any indirection or reference-counting operations. Generally, native
+Swift types that do not contain strong or weak references or other
+forms of indirection are trivial, as are imported C structs and enums.
+
+Examples of trivial types:
+- Integer and floating-point types
+- `Bool`
+- `Optional<T>` where `T` is trivial
+- `Unmanaged<T: AnyObject>`
+- struct types where all members are trivial
+- enum types where all payloads are trivial
 
 ### Accessing initialized memory with a raw pointer.
 
@@ -1112,11 +1123,13 @@ func readMsg(msgBuf: UnsafeRawPointer, isFormat1: Bool) {
 
 ### Custom memory allocation
 
-Note: The same allocated raw memory cannot be used both for this
-custom memory allocation case and for the C buffer case above because
-the C buffer binds the allocated memory to an element type. Binding
-the type applies to the allocation lifetime and requries that the
-allocated raw memory is always initialized to the same type.
+Note: The same allocated raw memory cannot be used for this custom
+memory allocation case and diretcly used for the C buffer case above
+because the C buffer conceptually binds the allocated memory to an
+element type by writing via a typed pointer without reinitializing the
+memory via a raw pointer. The same allocated memory cannot be
+accessed via a pointer of one type, then reinitialized using a typed
+pointer of an unrelated type.
 
 ```swift
 var freePtr: UnsafeMutableRawPointer? = nil
