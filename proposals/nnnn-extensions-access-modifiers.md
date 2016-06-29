@@ -1,4 +1,4 @@
-# Revising access modifiers on extensions
+# Remove access modifiers from extensions
 
 * Proposal: [SE-NNNN](nnnn-extensions-access-modifiers.md)
 * Author: [Adrian Zubarev](https://github.com/DevAndArtist)
@@ -55,7 +55,7 @@ This simple access control model also allows us to nest types inside each other 
 
 *Extensions* however behave differently when it comes to their access control:
 
-* The *access modifier* of an *extension* sets the default modifier of its members which has no modifier applied to them.
+* The *access modifier* of an *extension* sets the default modifier of its members which do not have their own localy defined modifier.
 
 	```swift
 	public struct D {}
@@ -66,8 +66,10 @@ This simple access control model also allows us to nest types inside each other 
 		func foo() {}
 	}
 	```
-
-* If there the *extension* has no *access modifier*, then the default modifier  of its members which has no explicit modifier will be *internal* if the extended type is either *public* or *internal*, or it will be *private* when the extended type is *private* (analogous for *fileprivate*).
+	
+* > Any type members added in an extension have the same default access level as type members declared in the original type being extended. If you extend a public or internal type, any new type members you add will have a default access level of internal. If you extend a private type, any new type members you add will have a default access level of private. 
+ >
+ > Source: [The Swift Programming Language](https://swift.org/documentation/TheSwiftProgrammingLanguage(Swift3).epub)
 
 	```swift
 	private struct E {}
@@ -78,7 +80,7 @@ This simple access control model also allows us to nest types inside each other 
 	}
 	```
 	
-* The *access modifier* can be overridden by the member to a lower modifier.
+* The access modifier can be overridden by the member with a lower access modifier.
 
 	```swift
 	public struct F {}
@@ -99,7 +101,7 @@ public protocol SomeProtocol {}
 public extension A : SomeProtocol {}
 ```
 
-*Extensions* are also used for *protocol default implementations* in respect to the mentioned rules. That means that if someone would want to provide a public default implementation for a specific protocol there are three different ways to  achive this:
+*Extensions* are also used for *protocol default implementations* in respect to the mentioned rules. That means that if someone would want to provide a public default implementation for a specific protocol there are three different ways to  achive this goal:
 
 ```swift
 public protocol G {
@@ -131,7 +133,7 @@ public protocol G {
 	}
 	```
 	
-Any of versions will currently be imported as:
+Any version will currently be imported as:
 
 ```swift
 public protocol G {
@@ -143,9 +145,13 @@ extension G {
 }
 ```
 
-I propose to revise the access control on extensions by replacing the current access control model for extensions with the same access control model as classes, enums and structs already have. 
+I propose to revise the access control on extensions by removing access modifiers from extensions. 
 
-* It would be possible to conform types to a protocol using an *extension* which has an explicit *access modifier*. The *access modifier* respectts the modifier of the extended type and the protocol to which it should be conformed.
+> That way, access for members follows the same defaults as in the original type.
+>
+> [Jordan Rose](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160627/022341.html)
+
+* It would be possible to conform types to a protocol using an *extension* which has an explicit *access modifier*. The *access modifier* respects the modifier of the extended type and the protocol to which it should be conformed.
 
 	```swift
 	internal protocol H { 
@@ -201,7 +207,7 @@ I propose to revise the access control on extensions by replacing the current ac
 		public func foo() { /* implement */ }
 	}
 	```
-* The current rules will be removed and make access control for classes, enums, structs and extensions consistent. This also implies less need to learn different behaviors for access control in general.
+* Removing this behavior would imply less need to learn different behaviors for access control in general.
 * From a future perspective one could allow Swift to have nested extensions (which is neither part nor a strong argument of this proposal).
 
 	```swift
@@ -217,10 +223,30 @@ I propose to revise the access control on extensions by replacing the current ac
 	// Nested extension would remove this:
 	/* internal */ extension L.M : K {}
 	```
+* The ability of setting the default modifier could be reintroduces in its own typeless scope design, which might look like this:
+
+	```swift
+	fileprivate extension Int {
+	
+		// Not visible outside this extension bag
+		private func doSomething() -> Int { ... }
+		
+		fileprivate group {
+		
+			// Every group memebr is `fileprivate`
+			func member1() {}
+			func member2() {}
+			func member3() {}
+			func member4() {}
+			func member5() {}
+		}
+	}
+	```
+	Such a mechanism could also be used outside extensions! This idea has its own discussion [thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160627/022644.html).
 
 ## Proposed solution
 
-1. Revise the access control for extensions to be exactly the same as for classes, enums and structs.
+1. Remove access modifier from extensions to stop being able to set the default access modifier.
 2. Allow *access modifier* when *type-inheritance-clause* is present.
 3. *Access modifier* on extensions should respect the modifier of the extended type and the protocol to which it should conform.
 
@@ -443,8 +469,7 @@ This is a source-breaking change that can be automated by a migrator.
 
 ## Alternatives considered
 
-* No other alternative were considered for this proposal.
-
+* Allow *access modifier* when *type-inheritance-clause* is present and use the rules presented in [**Proposed solution**](#Proposed-solution).
 
 ## Rationale
 
