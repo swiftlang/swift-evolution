@@ -170,6 +170,7 @@ subsequent release.
 * [SE-0092: Typealiases in protocols and protocol extensions](proposals/0092-typealiases-in-protocols.md)
 * [SE-0096: Converting dynamicType from a property to an operator](proposals/0096-dynamictype.md)
 * [SE-0099: Restructuring Condition Clauses](proposals/0099-conditionclauses.md)
+* [SE-0106: Add a `macOS` Alias for the `OSX` Platform Configuration Test](proposals/0106-rename-osx-to-macos.md)
 
 ## Swift 2.2 - Released on March 21, 2016
 

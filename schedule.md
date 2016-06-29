@@ -18,12 +18,12 @@ proposals in that process.
 
 ## Upcoming reviews
 
+* Soon [SE-0108: Remove associated type inference](proposals/0108-remove-assoctype-inference.md)
 
 ## Proposals awaiting scheduling
 
 * [SE-0079: Allow using optional binding to upgrade `self` from a weak to strong reference](proposals/0079-upgrade-self-from-weak-to-strong.md)
 * [SE-0100: Add sequence-based initializers and merge methods to Dictionary](proposals/0100-add-sequence-based-init-and-merge-to-dictionary.md)
-* [SE-0106: Add a `macOS` Alias for the `OSX` Platform Configuration Test](proposals/0106-rename-osx-to-macos.md)
 
 [evolution-process]: process.md  "The Swift evolution process"
 
