@@ -22,6 +22,11 @@ proposals in that process.
 
 ## Proposals awaiting scheduling
 
+
+
+
+## Merged proposals that are out of scope for Swift 3.0, but will be scheduled when it is done
+
 * [SE-0079: Allow using optional binding to upgrade `self` from a weak to strong reference](proposals/0079-upgrade-self-from-weak-to-strong.md)
 * [SE-0100: Add sequence-based initializers and merge methods to Dictionary](proposals/0100-add-sequence-based-init-and-merge-to-dictionary.md)
 
