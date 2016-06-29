@@ -19,11 +19,11 @@ Replace syntax of operator declaration, and replace numerical precedence with pa
 infix operator <> { precedence 100 associativity left }
 
 // After
-precedencegroup Comparative {
+precedencegroup ComparativePrecedence {
   associativity: left
-  strongerThan: LogicalAnd
+  strongerThan: LogicalAndPrecedence
 }
-infix operator <> : Comparative
+infix operator <> : ComparativePrecedence
 ```
 
 [Swift-evolution discussion thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160328/014062.html)
@@ -128,12 +128,12 @@ Here, `Exponentiative > Multiplicative` and `Multiplicative > Additive` imply `E
 
 Multiple precedence relationships can be stated for a single precedence group.
 
-### `Default` precedence group
+### `DefaultPrecedence`
 
-If `infix` operator does not state group that it belongs to, it is assigned to `Default` group, which is defined as follows:
+If `infix` operator does not state group that it belongs to, it is assigned to `DefaultPrecedence` group, which is defined as follows:
 
 ```swift
-precedencegroup Default {
+precedencegroup DefaultPrecedence {
   strongerThan: Ternary
 }
 ```
@@ -141,16 +141,16 @@ precedencegroup Default {
 The following two statements are equivalent:
 
 ```swift
-infix operator |> : Default
+infix operator |> : DefaultPrecedence
 infix operator |>
 ```
 
-### `Assignment` precedence group
+### `AssignmentPrecedence`
 
 Swift 2.2 has `assignment` modifier that works as follows: an operator marked `assignment` gets folded into an optional chain,
 allowing `foo?.bar += 2` to work as `foo?(.bar += 2)` instead of failing to type-check as `(foo?.bar) += 2`.
 
-This trait will be passed to `Assignment` precedence group.
+This trait will be passed to `AssignmentPrecedence` group.
 
 ### `weakerThan` relationship
 
@@ -236,12 +236,12 @@ They will be hardcoded in the compiler and assigned to appropriate precedence gr
 
 ```swift
 // NOT valid Swift
-infix operator is : Cast
-infix operator as : Cast
-infix operator as? : Cast
-infix operator as! : Cast
-infix operator ?: : Ternary
-infix operator = : Assignment
+infix operator is : CastPrecedence
+infix operator as : CastPrecedence
+infix operator as? : CastPrecedence
+infix operator as! : CastPrecedence
+infix operator ?: : TernaryPrecedence
+infix operator = : AssignmentPrecedence
 ```
 
 ### Grammar
@@ -284,101 +284,101 @@ prefix operator ~
 prefix operator +
 prefix operator -
 
-precedencegroup Assignment {
+precedencegroup AssignmentPrecedence {
 }
-precedencegroup Ternary {
+precedencegroup TernaryPrecedence {
   associativity: right
-  strongerThan: Assignment
+  strongerThan: AssignmentPrecedence
 }
-precedencegroup Default {
-  strongerThan: Ternary
+precedencegroup DefaultPrecedence {
+  strongerThan: TernaryPrecedence
 }
-precedencegroup LogicalOr {
+precedencegroup LogicalOrPrecedence {
   associativity: left
-  strongerThan: Ternary
+  strongerThan: TernaryPrecedence
 }
-precedencegroup LogicalAnd {
+precedencegroup LogicalAndPrecedence {
   associativity: left
-  strongerThan: LogicalOr
+  strongerThan: LogicalOrPrecedence
 }
-precedencegroup Comparative {
+precedencegroup ComparativePrecedence {
   associativity: left
-  strongerThan: LogicalAnd
+  strongerThan: LogicalAndPrecedence
 }
-precedencegroup NilCoalescing {
+precedencegroup NilCoalescingPrecedence {
   associativity: right
-  strongerThan: Comparative
+  strongerThan: ComparativePrecedence
 }
-precedencegroup Cast {
+precedencegroup CastPrecedence {
   associativity: left
-  strongerThan: NilCoalescing
+  strongerThan: NilCoalescingPrecedence
 }
-precedencegroup Range {
-  strongerThan: Cast
+precedencegroup RangePrecedence {
+  strongerThan: CastPrecedence
 }
-precedencegroup Additive {
+precedencegroup AdditivePrecedence {
   associativity: left
-  strongerThan: Range
+  strongerThan: RangePrecedence
 }
-precedencegroup Multiplicative {
+precedencegroup MultiplicativePrecedence {
   associativity(left)
-  strongerThan: Additive
+  strongerThan: AdditivePrecedence
 }
-precedencegroup BitwiseShift {
-  strongerThan: Multiplicative
+precedencegroup BitwiseShiftPrecedence {
+  strongerThan: MultiplicativePrecedence
 }
 
-// infix operator = : Assignment
-infix operator *= : Assignment
-infix operator /= : Assignment
-infix operator %= : Assignment
-infix operator += : Assignment
-infix operator -= : Assignment
-infix operator <<= : Assignment
-infix operator >>= : Assignment
-infix operator &= : Assignment
-infix operator ^= : Assignment
-infix operator |= : Assignment
+// infix operator = : AssignmentPrecedence
+infix operator *= : AssignmentPrecedence
+infix operator /= : AssignmentPrecedence
+infix operator %= : AssignmentPrecedence
+infix operator += : AssignmentPrecedence
+infix operator -= : AssignmentPrecedence
+infix operator <<= : AssignmentPrecedence
+infix operator >>= : AssignmentPrecedence
+infix operator &= : AssignmentPrecedence
+infix operator ^= : AssignmentPrecedence
+infix operator |= : AssignmentPrecedence
 
-// infix operator ?: : Ternary
+// infix operator ?: : TernaryPrecedence
 
-infix operator && : LogicalAnd
-infix operator || : LogicalOr
+infix operator && : LogicalAndPrecedence
+infix operator || : LogicalOrPrecedence
 
-infix operator < : Comparative
-infix operator <= : Comparative
-infix operator > : Comparative
-infix operator >= : Comparative
-infix operator == : Comparative
-infix operator != : Comparative
-infix operator === : Comparative
-infix operator ~= : Comparative
+infix operator < : ComparativePrecedence
+infix operator <= : ComparativePrecedence
+infix operator > : ComparativePrecedence
+infix operator >= : ComparativePrecedence
+infix operator == : ComparativePrecedence
+infix operator != : ComparativePrecedence
+infix operator === : ComparativePrecedence
+infix operator ~= : ComparativePrecedence
 
-infix operator ?? : NilCoalescing
+infix operator ?? : NilCoalescingPrecedence
 
-// infix operator as : Cast
-// infix operator as? : Cast
-// infix operator as! : Cast
-// infix operator is : Cast
+// infix operator as : CastPrecedence
+// infix operator as? : CastPrecedence
+// infix operator as! : CastPrecedence
+// infix operator is : CastPrecedence
 
-infix operator ..< : Range
-infix operator ... : Range
+infix operator ..< : RangePrecedence
+infix operator ... : RangePrecedence
 
-infix operator + : Additive
-infix operator - : Additive
-infix operator &+ : Additive
-infix operator &- : Additive
-infix operator | : Additive
-infix operator ^ : Additive
+infix operator + : AdditivePrecedence
+infix operator - : AdditivePrecedence
+infix operator &+ : AdditivePrecedence
+infix operator &- : AdditivePrecedence
+infix operator | : AdditivePrecedence
+infix operator ^ : AdditivePrecedence
 
-infix operator * : Multiplicative
-infix operator / : Multiplicative
-infix operator % : Multiplicative
-infix operator &* : Multiplicative
-infix operator & : Multiplicative
+infix operator * : MultiplicativePrecedence
+infix operator / : MultiplicativePrecedence
+infix operator % : MultiplicativePrecedence
+infix operator &* : MultiplicativePrecedence
+infix operator & : MultiplicativePrecedence
 
-infix operator << : BitwiseShift
-infix operator >> : BitwiseShift
+infix operator << : BitwiseShiftPrecedence
+infix operator >> : BitwiseShiftPrecedence
 ```
 
 ## Impact on existing code
@@ -386,7 +386,7 @@ infix operator >> : BitwiseShift
 Standard library operator declarations will be rewritten, and precedence groups will be added.
 
 User defined operators will need to be rewritten as well.
-Migration tool will remove bodies of operator declarations. `infix` operators will be implicitly added to `Default` group.
+Migration tool will remove bodies of operator declarations. `infix` operators will be implicitly added to `DefaultPrecedence` group.
 
 Code, which relies on precedence relations of user-defined operators being implicitly defined, may be broken.
 This will need to be fixed manually by adding them to desired precedence group.
@@ -399,13 +399,6 @@ Actually, this is one of the main reasons why this proposal was created: break s
 But this will be the topic of another proposal, because separate discussion is needed.
 
 ## Alternatives considered
-
-### Use `operator` instead of `precedencegroup`
-
-This would avoid introducing a new keyword.
-
-On the other hand, `precedencegroup` or `precedence` more clearly represent what they declare.
-Additionally, `operator` remains a local keyword.
 
 ### Declare associativity and precedence separately
 
@@ -429,12 +422,53 @@ The graph of relationships would be considerably larger and less understandable 
 Precedence groups concept would still be present, but it would make one operator in each group "priveleged":
 
 ```swift
-precedencerelation - = +
-precedencerelation &+ = +
-precedencerelation / = *
-precedencerelation % = *
-precedencerelation * > +
+precedence - = +
+precedence &+ = +
+precedence / = *
+precedence % = *
+precedence * > +
 ```
+
+### Use meta-circular syntax
+
+That is, if a constant is of special type, then it will be used only at compile time:
+
+```swift
+struct PrecedenceGroup {
+  enum Associativity { case left, right, none }
+  let associativity: Associativity
+  let strongerThan: [StaticString]
+  let weakerThan: [StaticString]
+}
+let Multiplicative = PrecedenceGroup(.left, [Associativity], [])
+```
+
+> This is already strongly library-determined. The library defines what operators exist and defines their
+> precedence w.r.t. each other and a small number of built-in operators. Operator precedence has to be
+> communicated to the compiler somehow in order to parse code. This proposal is just deciding the syntax of
+> that communication.
+> 
+> I see no reason to use a more conceptually complex approach when a simple declaration will do.
+> 
+> <cite>-- John McCall</cite>
+
+### Replace error with warning in "joining unrelated precedence groups"
+
+1. Simplify language model and reduce burden on compilers
+2. When a precedence hierarchy is broken by some update, developers can use "a quick hack" to join
+all the groups together and get their code up-and-running immediately
+
+### Replace `precedencegroup` with `precedence`
+
+Pros:
+
+- Looks shorter, less bulky
+- Declarations use same naming style as protocols
+
+Cons:
+
+- Need to take `precedence` as a keyword
+- `precedencegroup` more precisely represents what it declares
 
 ### Possible syntax variations
 
@@ -448,7 +482,7 @@ Instead of `strongerThan` and `weakerThan`, there could be:
 Instead of `associativity`, there could be `associate`.
 
 ```swift
-precedencegroup Multiplicative {
+precedence Multiplicative {
   associativity(left)
   precedence(> Additive)
   precedence(< Exponentiative)
@@ -456,7 +490,7 @@ precedencegroup Multiplicative {
 ```
 
 ```swift
-precedencegroup Multiplicative {
+precedence Multiplicative {
   associativity: left
   precedence: strongerThan(Additive)
   precedence: weakerThan(Exponentiative)
@@ -539,30 +573,17 @@ precedence Multiplicative {
 }
 ```
 
-## Note #1
+## Note from review period
 
-Swift Core team is supposed to make a decision on syntax of precedence groups declarations.
-It may be from "Alternatives considered" variants, modifications of them, or any different syntax.
-
-During review on swift-evolution, many participants showed preference to the following one:
+During review, many participants showed preference to the following syntax:
 
 ```swift
 precedence Multiplicative {
-  associativity left
-  above Additive
-  below Exponentiative
+  associativity: left
+  above: Additive
+  below: Exponentiative
 }
 ```
-
-Or its slightly modified forms.
-
-## Note #2
-
-As stated in the rationale, names of precedence groups must lie in the same namespace as other declarations.
-Therefore, we need to revise naming convention and change standard precedence group names to avoid conflicts.
-It is something to be discussed.
-
-Also, more input on new `strongerThan` and `weakerThan` keywords is incoming.
 
 -------------------------------------------------------------------------------
 
