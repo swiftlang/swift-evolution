@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0104](0104-improved-integers.md)
 * Authors: [Dave Abrahams](https://github.com/dabrahams), [Dmitri Gribenko](https://github.com/gribozavr), [Maxim Moiseev](https://github.com/moiseev)
-* Status: **Active review June 22...27**
+* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000206.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
