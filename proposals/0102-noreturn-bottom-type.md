@@ -1,4 +1,4 @@
-# Remove `@noreturn` attribute and introduce an empty `NoReturn` type
+# Remove `@noreturn` attribute and introduce an empty `Never` type
 
 * Proposal: [SE-0102](0102-noreturn-bottom-type.md)
 * Author: [Joe Groff](https://github.com/jckarter)
@@ -40,9 +40,10 @@ many Swift users already exploit as a namespacing mechanism.
 A function declared to return an uninhabited type *cannot* return normally.
 
 ```swift
-public /*closed*/ enum Empty { /*no values*/ }
+/// The type of expressions that can never happen.
+public /*closed*/ enum Never { /*no values*/ }
 
-func foo() -> Empty {
+func foo() -> Never {
   fatalError("no way out!")
 }
 ```
@@ -50,9 +51,9 @@ func foo() -> Empty {
 The ability to express `@noreturn` thus exists in the language already and
 does not require an attribute. Once this concept is understood,
 answers to the other questions about `@noreturn` fall out naturally.
-`() throws -> NoReturn` clearly cannot return normally but can still throw.
+`() throws -> Never` clearly cannot return normally but can still throw.
 It becomes impossible for a function to claim both to not return and have a
-return type. Since `NoReturn` is a first-class type, it can propagate naturally
+return type. Since `Never` is a first-class type, it can propagate naturally
 through generic operators without requiring overloading or new generics
 features. The net result is a simpler, more consistent, and more expressive model
 for handling nonreturning functions.
@@ -64,15 +65,6 @@ Where `@noreturn` is currently used to exempt nonterminating code paths from
 control flow requirements such as exiting a `guard...else` clause or
 `return`-ing from a non-`Void` function, that exemption is
 transfered to expressions of *uninhabited type*.
-
-The standard library
-exports a new public closed enum type `NoReturn`, defined to have no cases:
-
-```swift
-public /*closed*/ enum NoReturn {
-  /* this space intentionally left blank */
-}
-```
 
 ## Detailed design
 
@@ -118,6 +110,23 @@ An ignored expression of uninhabited type should also not produce an "unused
 result" warning. Code that would run after an uninhabited expression should
 raise "will not be executed" warnings.
 
+### Standard library
+
+The standard library
+exports a new public closed enum type `Never`, defined to have no cases:
+
+```swift
+public /*closed*/ enum Never {
+  /* this space intentionally left blank */
+}
+```
+
+This type should used by convention as the return type of functions that don't
+return. Existing `@noreturn` functions in the standard library and SDK, such
+as `fatalError`, are changed to return `Never`. The Clang importer also imports
+C and Objective-C functions declared with `__attribute__((noreturn))` as
+returning `Never` in Swift.
+
 ### SIL and runtime design
 
 The `noreturn` attribute still needs to exist at the SIL level, since SIL
@@ -126,12 +135,12 @@ including imported C functions. A function returning an uninhabited type at the
 semantic level may still need to be lowered to have a specific inhabited return
 type for ABI purposes.
 
-There is currently a hole in our model. An enum with no cases is treated like
+There is currently a hole in our model. An uninhabited type is treated like
 a zero-sized type by type layout, and is loaded and stored like one, so a value
 of uninhabited type can be summoned by loading from a pointer:
 
 ```swift
-func revengeOfNoReturn() -> NoReturn {
+func neverSayNever() -> Never {
   return UnsafeMutablePointer.alloc(1).memory
 }
 ```
@@ -147,15 +156,15 @@ by giving uninhabited types a value witness table whose operations trap.
 
 The number of `@noreturn` functions in the wild is fairly small, and all of
 them I can find return `Void`. It should be trivial to migrate
-existing `@noreturn` functions to use `-> NoReturn`.
+existing `@noreturn` functions to use `-> Never`.
 
 ## Alternatives considered
 
-### Naming `NoReturn`
+### Naming `Never`
 
-The best name for the standard library uninhabited type is up for debate.
-`NoReturn` seems to me like the name most immediately obvious to most users
-compared to these alternatives:
+The best name for the standard library uninhabited type was a point of
+contention. Many of the names suggested by type theory literature or
+experience in functional programming circles are wanting:
 
 - `Void` might have been mathematically appropriate, but alas has already been
   heavily confused with "unit" in C-derived circles.
@@ -164,11 +173,14 @@ compared to these alternatives:
 - Type theory jargon like `Bottom` wouldn't be immediately understood by many
   users.
 
-In discussion, the alternative name `Never` was suggested, which holds some
-promise. It properly implies the temporal aspect--this function returns *never*
---and also would work well in other contexts. For instance, if we gained the
-ability to support typed `throws`, then `() throws<Never> -> Void` clearly
-communicates a function that never throws.
+The first revision of this proposal suggested `NoReturn`, but
+in discussion, the alternative name `Never` was suggested, which was strongly
+preferred by most participants. `Never`
+properly implies the temporal aspect--this function returns *never*
+--and also generalizes well to other potential applications for an uninhabited
+type. For instance, if we gained the ability to support typed `throws`, then
+`() throws<Never> -> Void` would also clearly communicate a function that never
+throws.
 
 Instead of one standard type, it might be also useful for documentation purposes to
 have multiple types to indicate *how* a type doesn't return, e.g.:
@@ -183,6 +195,8 @@ func fatalError(_ message: String) -> Abort
 enum InfiniteLoop {} /// Takes over control of the process
 func dispatchMain() -> InfiniteLoop
 ```
+
+This proposal chooses not to go in this direction.
 
 ### `NoReturn` as a universal "bottom" subtype
 
