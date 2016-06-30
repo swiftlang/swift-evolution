@@ -115,6 +115,7 @@ below:
 * [SE-0032: Add `first(where:)` method to `SequenceType`](proposals/0032-sequencetype-find.md)
 * [SE-0033: Import Objective-C Constants as Swift Types](proposals/0033-import-objc-constants.md)
 * [SE-0034: Disambiguating Line Control Statements from Debugging Identifiers](proposals/0034-disambiguating-line.md)
+* [SE-0035: Limiting `inout` capture to `@noescape` contexts](proposals/0035-limit-inout-capture.md)
 * [SE-0037: Clarify interaction between comments & operators](proposals/0037-clarify-comments-and-operators.md)
 * [SE-0039: Modernizing Playground Literals](proposals/0039-playgroundliterals.md)
 * [SE-0040: Replacing Equal Signs with Colons For Attribute Arguments](proposals/0040-attributecolons.md)
@@ -153,7 +154,6 @@ them.  If they are not implemented in time for Swift 3, they will roll into a
 subsequent release.
 
 * [SE-0025: Scoped Access Level](proposals/0025-scoped-access-level.md)
-* [SE-0035: Limiting `inout` capture to `@noescape` contexts](proposals/0035-limit-inout-capture.md)
 * [SE-0036: Requiring Leading Dot Prefixes for Enum Instance Member Implementations](proposals/0036-enum-dot.md)
 * [SE-0038: Package Manager C Language Target Support](proposals/0038-swiftpm-c-language-targets.md)
 * [SE-0042: Flattening the function type of unapplied method references](proposals/0042-flatten-method-types.md)
