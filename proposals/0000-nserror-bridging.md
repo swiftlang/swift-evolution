@@ -253,19 +253,27 @@ Objective-C API:
   ```
 
 4. In Foundation, add an extension to ``ErrorProtocol`` that provides
-typed access to the common user-info keys. Note that we focus only on
-those user-info keys that are read by user code (vs. only accessed by
-frameworks):
+access to the localized description, which is available for all error
+types.
 
   ```swift
   extension ErrorProtocol {
+    var localizedDescription: String {
+      return (self as! NSError).localizedDescription
+    }
+  }
+  ```
+
+  For the Cocoa error domain, which is encapsulated by the
+  ``NSCocoaError`` type, add typed access for common user-info
+  keys. Note that we focus only on those user-info keys that are read
+  by user code (vs. only accessed by frameworks):
+
+  ```swift
+  extension NSCocoaError {
     // Note: for exposition only. Not actual API.
     private var userInfo: [NSObject : AnyObject] {
       return (self as! NSError).userInfo
-    }
-
-    var localizedDescription: String {
-      return (self as! NSError).localizedDescription
     }
 
     var filePath: String? {
