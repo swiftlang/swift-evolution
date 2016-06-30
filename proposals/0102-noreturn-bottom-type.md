@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0102](0102-noreturn-bottom-type.md)
 * Author: [Joe Groff](https://github.com/jckarter)
-* Status: **Active review June 21...27**
+* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000205.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
@@ -213,10 +213,3 @@ to `(T...) -> V` today. The most important use case, a nonreturning function
 in void context, will still work by the existing `(T...) -> U` to
 `(T...) -> Void` subtyping rule.
 
--------------------------------------------------------------------------------
-
-# Rationale
-
-On [Date], the core team decided to **(TBD)** this proposal.
-When the core team makes a decision regarding this proposal,
-their rationale for the decision will be written here.

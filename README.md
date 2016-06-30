@@ -171,6 +171,7 @@ subsequent release.
 * [SE-0095: Replace `protocol<P1,P2>` syntax with `P1 & P2` syntax](proposals/0095-any-as-existential.md)
 * [SE-0096: Converting dynamicType from a property to an operator](proposals/0096-dynamictype.md)
 * [SE-0099: Restructuring Condition Clauses](proposals/0099-conditionclauses.md)
+* [SE-0102: Remove `@noreturn` attribute and introduce an empty `NoReturn` type](proposals/0102-noreturn-bottom-type.md)
 * [SE-0106: Add a `macOS` Alias for the `OSX` Platform Configuration Test](proposals/0106-rename-osx-to-macos.md)
 
 ## Swift 2.2 - Released on March 21, 2016
