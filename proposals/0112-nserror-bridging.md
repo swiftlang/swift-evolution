@@ -1,9 +1,9 @@
-# NSError Bridging
+# Improved NSError Bridging
 
-* Proposal: [SE-NNNN](NNNN-nserror-bridging.md)
+* Proposal: [SE-0112](0112-nserror-bridging.md)
 * Author: [Doug Gregor](https://github.com/DougGregor), [Charles Srstka](https://github.com/CharlesJS)
-* Status: **Awaiting review**
-* Review manager: TBD
+* Status: **Active review June 30 ... July 4**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 

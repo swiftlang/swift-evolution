@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0110](0110-distingish-single-tuple-arg.md)
 * Authors: Vladimir S., Austin Zheng
-* Status: **Awaiting review**
+* Status: **Active review June 30 ... July 4**
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
