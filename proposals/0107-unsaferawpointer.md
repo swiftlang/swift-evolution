@@ -114,16 +114,16 @@ raw pointer are similar to C `memcpy`.
 
 ### Memory allocation and initialization
 
-`UnsafeMutableRawPointer` will provide an `allocatingCapacity`
-initializer and `deallocate` method:
+`UnsafeMutableRawPointer` will provide `allocate` and `deallocate` methods:
 
 ```swift
 extension UnsafeMutableRawPointer {
-    // Allocate memory with the size and alignment of `allocatingCapacity`
+    // Allocate memory with the size and alignment of `capacity`
     // contiguous elements of `T`. The resulting `self` pointer is not
     // associated with the type `T`. The type is only provided as a convenient
     // way to derive stride and alignment.
-    init<T>(allocatingCapacity: Int, of: T.Type)
+    static func allocate<T>(capacity: Int, of: T.Type)
+      -> UnsafeMutableRawPointer
 
     func deallocate<T>(capacity: Int, of: T.Type)
 ```
@@ -353,7 +353,7 @@ Now we can safely initialize raw memory and obtain a typed pointer:
 ```swift
 // --- new version ---
 func normalLifetime() {
-  let rawPtr = UnsafeMutableRawPointer(allocatingCapacity: 1, of: A.self)
+  let rawPtr = UnsafeMutableRawPointer.allocate(capacity: 1, of: A.self)
 
   // assignA cannot be called on rawPtr, which forces initialization:
   let pA = initA(rawPtr)
@@ -412,7 +412,7 @@ initialized.
 func initAB() -> UnsafeMutableRawPointer {
 
   // Allocate raw memory of size 2 x strideof(Int).
-  let rawPtr = UnsafeMutableRawPointer(allocatingCapacity: 2, of: Int.self)
+  let rawPtr = UnsafeMutableRawPointer.allocate(capacity: 2, of: Int.self)
 
   // Initialize the first Int with A, producing UnsafeMutablePointer<A>.
   let pA = initA(rawPtr)
@@ -481,7 +481,7 @@ type whenever it is dereferenced.
 ```swift
 // --- new version ---
 func initAthenB {
-  let rawPtr = UnsafeMutableRawPointer(allocatingCapacity: 1, of: Int.self)
+  let rawPtr = UnsafeMutableRawPointer.allocate(capacity: 1, of: Int.self)
 
   let pA = initA(rawPtr)
 
@@ -523,7 +523,7 @@ func initAorB(_ p: UnsafeMutablePointer<Void>, isA: Bool) {
 // --- old version ---
 // Code in the caller could produce undefined behavior:
 func testInitAorB() {
-  let p = UnsafeMutablePointer<Int>(allocatingCapacity: 1)
+  let p = UnsafeMutablePointer<Int>.allocate(capacity: 1)
 
   // If the compiler inlines, then the initialization and use of the
   // values of type `A` and `B`, which share memory, could be incorrectly
@@ -563,7 +563,7 @@ pointer cast is explicit:
 ```swift
 // --- new version ---
 func testInitAorB() {
-  let p = UnsafeMutableRawPointer(allocatingCapacity: 1, of: Int.self)
+  let p = UnsafeMutableRawPointer.allocate(capacity: 1, of: Int.self)
 
   initAorB(p, isA: true)
   printA(p.cast(to: UnsafePointer<A>.self))
@@ -585,7 +585,7 @@ untyped (memcpy) semantics.
 ```swift
 // --- new version ---
 func testTypePun() {
-  let p = UnsafeMutableRawPointer(allocatingCapacity: 1, of: Int.self)
+  let p = UnsafeMutableRawPointer.allocate(capacity: 1, of: Int.self)
 
   // Initialize raw memory to `A`.
   initAorB(p, isA: true)
@@ -639,8 +639,8 @@ memory is now prevented:
 ```swift
 // --- new version ---
 func stringFromBytes(size: Int, value: UInt8) {
-  let buffer = UnsafeMutableRawPointer(
-    allocatingCapacity: size + 1, of: UInt8.self)
+  let buffer = UnsafeMutableRawPointer.allocate(
+    capacity: size + 1, of: UInt8.self)
 
   // Writing the bytes using UnsafeRawPointer allows the bytes to be
   // read later as any type without violating strict aliasing.
@@ -661,8 +661,8 @@ perform the writes:
 ```swift
 // --- new version ---
 func mutateBuffer(size: Int, value: UInt8) {
-  let buffer = UnsafeMutableRawPointer(
-    allocatingCapacity: size + 1, of: UInt8.self)
+  let buffer = UnsafeMutableRawPointer.allocate(
+    capacity: size + 1, of: UInt8.self)
 
   buffer.initialize(UInt8.self, with: value, count: size)
   buffer.initialize(toContiguous: UInt8.self, atIndex: size, with: 0)
@@ -820,7 +820,7 @@ pointer. The sequence is valid because the bound memory is never
 accessed as a different type:
 
 ```swift
-let rawPtr = UnsafeMutableRawPointer(allocatingCapacity: 1, of: A.self)
+let rawPtr = UnsafeMutableRawPointer.allocate(capacity: 1, of: A.self)
 let ptrToA = rawptr.cast(to: UnsafePointer<A>)
 ptrToA.initialize(with: A())
 ptrToA.deinitialize()
@@ -835,7 +835,7 @@ followed by an `ptrToB.initialize`, which are both typed memory
 writes, with no intervening raw initialization:
 
 ```swift
-let rawPtr = UnsafeMutableRawPointer(allocatingCapacity: 1, of: A.self)
+let rawPtr = UnsafeMutableRawPointer.allocate(capacity: 1, of: A.self)
 let ptrToA = rawPtr.initialize(A.self, with: A())
 ptrToA.deinitialize()
 let ptrToB = rawptr.cast(to: UnsafePointer<B>)
@@ -878,7 +878,7 @@ initialization via an assignment operation. However, this is only
 valid on "trivial types" (as defined in the following section):
 
 ```swift
-  let rawPtr = UnsafeMutableRawPointer(allocatingCapacity: 1, of: Int.self)
+  let rawPtr = UnsafeMutableRawPointer.allocate(capacity: 1, of: Int.self)
 
   // Cast uninitialized memory to a typed pointer.
   let pInt = rawPtr.cast(to: UnsafeMutablePointer<Int>.self)
@@ -914,7 +914,7 @@ A program may read from and write to memory via a raw pointer even
 after the memory has been initialized:
 
 ```swift
-let rawPtr = UnsafeMutableRawPointer(allocatingCapacity: 1, of: SomeType.self)
+let rawPtr = UnsafeMutableRawPointer.allocate(capacity: 1, of: SomeType.self)
 
 let ptrToSomeType = rawPtr.initialize(SomeType.self, SomeType())
 
@@ -967,7 +967,7 @@ Using a pointer to a single value:
 
 ```swift
 func createValue() {
-  let rawPtr = UnsafeMutableRawPointer(allocatingCapacity: 1, of: A.self)
+  let rawPtr = UnsafeMutableRawPointer.allocate(capacity: 1, of: A.self)
   ptrToA = rawPtr.initialize(A.self, with: A(value: 42))
 }
 
@@ -982,7 +982,7 @@ Using a fully initialized set of contiguous homogeneous values:
 
 ```swift
 func createCArray(from source: UnsafePointer<A>, count: Int) {
-  let rawPtr = UnsafeMutableRawPointer(allocatingCapacity: count, of: A.self)
+  let rawPtr = UnsafeMutableRawPointer.allocate(capacity: count, of: A.self)
   ptrToA = rawPtr.initialize(from: source, count: count)
   eltCount = count
 }
@@ -1027,7 +1027,7 @@ preconditions are always met:
 
 ```swift
 func createCBuffer(size: Int) {
-  let rawPtr = UnsafeMutableRawPointer(allocatingCapacity: size, of: A.self)
+  let rawPtr = UnsafeMutableRawPointer.allocate(capacity: size, of: A.self)
   ptrToA = rawPtr.cast(to: UnsafeMutablePointer<A>.self)
   eltCount = size
 }
@@ -1066,8 +1066,8 @@ func createValueWithTail(count: Int) {
   // Assuming the alignment of `A` satisfies the alignment of `B`.
   let numBytes = strideof(A) + (count * strideof(B))
 
-  let rawPtr = UnsafeMutableRawPointer(allocatingBytes: numBytes,
-    alignedTo: alignof(A))
+  let rawPtr = UnsafeMutableRawPointer.allocate(
+    bytes: numBytes, alignedTo: alignof(A))
 
   // Initialize the object header.
   ptrToA = rawPtr.initialize(A.self, with: A(value: 42))
@@ -1139,7 +1139,7 @@ func allocate32() -> UnsafeMutableRawPointer {
     freePtr = nil
     return newPtr
   }
-  return UnsafeMutableRawPointer(allocatingBytes: 4, alignedTo: 4)
+  return UnsafeMutableRawPointer.allocate(bytes: 4, alignedTo: 4)
 }
 
 func deallocate32(_ rawPtr: UnsafeMutableRawPointer) {
@@ -1432,10 +1432,10 @@ struct UnsafeMutableRawPointer : Strideable, Hashable, _Pointer {
   init<T>(_: UnsafeMutablePointer<T>)
   init?<T>(_: UnsafeMutablePointer<T>?)
 
-  init(allocatingBytes: Int, alignedTo: Int)
-  init<T>(allocatingCapacity: Int, of: T.Type)
-  deallocate(bytes: Int, alignedTo: Int)
-  deallocate<T>(capacity: Int, of: T.Type)
+  static func allocate(bytes: Int, alignedTo: Int) -> UnsafeMutableRawPointer
+  static func allocate<T>(capacity: Int, of: T.Type) -> UnsafeMutableRawPointer
+  func deallocate(bytes: Int, alignedTo: Int)
+  func deallocate<T>(capacity: Int, of: T.Type)
 
   func cast<T>(to: UnsafeMutablePointer<T>.Type) -> UnsafeMutablePointer<T>
   func cast<T>(to: UnsafePointer<T>.Type) -> UnsafePointer<T>
@@ -1545,14 +1545,14 @@ their initializer.
 The API for allocating and initializing unsafe pointer changes:
 
 ```swift
-let p = UnsafeMutablePointer<T>(allocatingCapacity: num)
+let p = UnsafeMutablePointer<T>.allocate(capacity: num)
 p.initialize(with: T())
 ```
 
 becomes
 
 ```swift
-let p = UnsafeMutableRawPointer(allocatingCapacity: num, of: T.self).initialize(with: T())
+let p = UnsafeMutableRawPointer.allocate(capacity: num, of: T.self).initialize(T.self, with: T())
 ```
 
 Deallocation similarly changes from:
@@ -1687,45 +1687,6 @@ struct members. At that time we may also want to add a "packed" flag to
 
 ## Variations under consideration
 
-### Freestanding `allocate`/`deallocate`
-
-I considered defining allocation and deallocation global functions
-that operation on UnsafeMutableRawPointer. `allocate` is not logically
-an initializer because it is not a conversion and its main function is
-not simply the construction of an `UnsafeRawPointer`:
-
-
-```swift
-func allocate<T>(capacity: Int, of: T.Type) -> UnsafeMutableRawPointer
-
-func deallocate<T>(_: UnsafeMutableRawPointer, capacity: Int, of: T.Type) {}
-
-let rawPtr = allocate(capacity: 1, of: A.self)
-
-deallocate(rawPtr, capacity: 1, of: A.self)
-```
-
-The allocate/initialize idiom would be:
-
-```swift
-let ptrToA = allocate(capacity: 1, of: A.self).initialize(A.self, with: A())
-
-deallocate(ptrToA.deinitialize(count: 1))
-```
-
-The main reason this was not done was to avoid introducing these names
-into the global namespace.
-
-A reasonable compromise would be a static method on allocation, and an
-instance method on deallocation:
-
-```swift
-let ptrA = UnsafeMutableRawPointer.allocate(capacity: 1, of: A.self)
-  .initialize(A.self, with: A())
-
-ptrA.deinitialize(count: 1).deallocate(capacity: 1, of: A.self)
-```
-
 ### Conversion via initializer instead of `cast<T>(to: UnsafePointer<T>)`
 
 This proposal calls for unsafe pointer type conversion to be performed
@@ -1819,7 +1780,7 @@ In some cases, developers can safely reinterpret values to achieve the
 same effect as type punning:
 
 ```swift
-let ptrI32 = UnsafeMutablePointer<Int32>(allocatingCapacity: 1)
+let ptrI32 = UnsafeMutablePointer<Int32>.allocate(capacity: 1)
 ptrI32[0] = Int32()
 let u = unsafeBitCast(ptrI32[0], to: UInt32.self)
 ```
