@@ -12,7 +12,6 @@ proposals in that process.
 * June 21...27 [SE-0102: Remove `@noreturn` attribute and introduce an empty `NoReturn` type](proposals/0102-noreturn-bottom-type.md)
 * June 21...27 [SE-0103: Make non-escaping closures the default](proposals/0103-make-noescape-default.md)
 * June 22...27 [SE-0104: Protocol-oriented integers](proposals/0104-improved-integers.md)
-* June 22...29 [SE-0105: Removing Where Clauses from For-In Loops](proposals/0105-remove-where-from-forin-loops.md)
 * June 28 ... July 4 [SE-0107: UnsafeRawPointer API](proposals/0107-unsaferawpointer.md)
 * June 28 ... July 4 [SE-0109: Remove the `Boolean` protocol](proposals/0109-remove-boolean.md)
 * June 29 ... July 4 [SE-0108: Remove associated type inference](proposals/0108-remove-assoctype-inference.md)

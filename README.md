@@ -216,6 +216,7 @@ as practical with Swift 2.0.
 * [SE-0087: Rename `lazy` to `@lazy`](proposals/0087-lazy-attribute.md)
 * [SE-0097: Normalizing naming for "negative" attributes](proposals/0097-negative-attributes.md)
 * [SE-0098: Lowercase `didSet` and `willSet` for more consistent keyword casing](proposals/0098-didset-capitalization.md)
+* [SE-0105: Removing Where Clauses from For-In Loops](proposals/0105-remove-where-from-forin-loops.md)
 
 ## Review
 [Swift Evolution Review Schedule](https://github.com/apple/swift-evolution/blob/master/schedule.md)
