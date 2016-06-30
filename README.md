@@ -172,6 +172,7 @@ subsequent release.
 * [SE-0096: Converting dynamicType from a property to an operator](proposals/0096-dynamictype.md)
 * [SE-0099: Restructuring Condition Clauses](proposals/0099-conditionclauses.md)
 * [SE-0102: Remove `@noreturn` attribute and introduce an empty `NoReturn` type](proposals/0102-noreturn-bottom-type.md)
+* [SE-0103: Make non-escaping closures the default](proposals/0103-make-noescape-default.md)
 * [SE-0106: Add a `macOS` Alias for the `OSX` Platform Configuration Test](proposals/0106-rename-osx-to-macos.md)
 
 ## Swift 2.2 - Released on March 21, 2016

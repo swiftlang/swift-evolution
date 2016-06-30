@@ -8,7 +8,6 @@ proposals in that process.
 
 * May 9...16 [SE-0086: Drop NS Prefix in Swift Foundation](proposals/0086-drop-foundation-ns.md)
 * May 17...23 [SE-0091: Improving operator requirements in protocols](proposals/0091-improving-operators-in-protocols.md)
-* June 21...27 [SE-0103: Make non-escaping closures the default](proposals/0103-make-noescape-default.md)
 * June 22...27 [SE-0104: Protocol-oriented integers](proposals/0104-improved-integers.md)
 * June 28 ... July 4 [SE-0107: UnsafeRawPointer API](proposals/0107-unsaferawpointer.md)
 * June 28 ... July 4 [SE-0109: Remove the `Boolean` protocol](proposals/0109-remove-boolean.md)

@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0103](0103-make-noescape-default.md)
 * Author: [Trent Nadeau](https://github.com/tanadeau)
-* Status: **Active review June 21...27**
+* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000204.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
