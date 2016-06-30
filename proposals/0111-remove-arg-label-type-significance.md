@@ -33,7 +33,7 @@ fn2(x: 1, y: 2)
 fn2(1, 2)
 ```
 
-Removing this feature simplifies the type system and brings its behavior in line with the intended semantics of Swift naming:
+Removing this feature simplifies the type system. It also changes the way argument labels are treated to be consistent with how default arguments are treated; that is, tied to a declaration and not part of the type system:
 
 > Essentially, argument labels become part of the names of declarations (only!), which is consistent with our view that the names of functions/methods/initializers include all of the argument names.
 
@@ -76,6 +76,8 @@ doSomething(x:y:)(10, 10)
 ## Impact on existing code
 
 Minor changes to user code may be required if this proposal is accepted.
+
+Note that this proposal intentionally does not affect the treatment of labeled tuples by the type system (for example, `func homeCoordinates() -> (x: Int, y: Int)`); it only affects parameter lists used to invoke values of function type.
 
 ## Alternatives considered
 
