@@ -17,13 +17,13 @@ proposals in that process.
 * June 29 ... July 4 [SE-0108: Remove associated type inference](proposals/0108-remove-assoctype-inference.md)
 * June 29 ... July 4 [SE-0077: Improved operator declarations](proposals/0077-operator-precedence.md)
 * June 30 ... July 4 [SE-0110: Distinguish between single-tuple and multiple-argument function types](proposals/0110-distingish-single-tuple-arg.md)
+* June 30 ... July 4 [SE-0111: Remove type system significance of function argument labels](proposals/0111-remove-arg-label-type-significance.md)
 * June 30 ... July 4 [SE-0112: Improved NSError Bridging](proposals/0112-nserror-bridging.md)
 
 ## Upcoming reviews
 
 ## Proposals awaiting scheduling
 
-* [SE-0111: Remove type system significance of function argument labels](proposals/0111-remove-arg-label-type-significance.md)
 
 ## Merged proposals that are out of scope for Swift 3.0, but will be scheduled when it is done
 
