@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0101](0101-standardizing-sizeof-naming.md)
 * Author: [Erica Sadun](http://github.com/erica)
-* Status: **Active review June 21...27**
+* Status: **Returned for Revision** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000203.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
