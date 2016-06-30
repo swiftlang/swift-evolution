@@ -242,15 +242,9 @@ Objective-C API:
 
   When we introduce this bridging, we will need to remove
   ``NSError``'s conformance to ``ErrorProtocol`` to avoid creating
-  cyclic implicit conversions. However, we still need an easy way to
-  create an ``ErrorProtocol`` instance from an arbitrary ``NSError``,
-  e.g.,
-
-  ```swift
-  extension NSError {
-    var asError: ErrorProtocol { ... }
-  }
-  ```
+  cyclic implicit conversions. However, one can still explicitly turn
+  an ``NSError`` into ``ErrorProtocol`` via a bridging cast, e.g.,
+  ``nsError as ErrorProtocol``.
 
 4. In Foundation, add an extension to ``ErrorProtocol`` that provides
 access to the localized description, which is available for all error
