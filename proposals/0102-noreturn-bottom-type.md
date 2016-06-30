@@ -93,8 +93,8 @@ If an expression of uninhabited type is evaluated, it is considered unreachable
 by control flow diagnostics:
 
 ```swift
-func noReturn() -> NoReturn {
-  fatalError() // fatalError also returns NoReturn, so no need to `return`
+func noReturn() -> Never {
+  fatalError() // fatalError also returns Never, so no need to `return`
 }
 
 func pickPositiveNumber(below limit: Int) -> Int {
@@ -121,7 +121,7 @@ public /*closed*/ enum Never {
 }
 ```
 
-This type should used by convention as the return type of functions that don't
+This type should be used by convention as the return type of functions that don't
 return. Existing `@noreturn` functions in the standard library and SDK, such
 as `fatalError`, are changed to return `Never`. The Clang importer also imports
 C and Objective-C functions declared with `__attribute__((noreturn))` as
@@ -198,7 +198,7 @@ func dispatchMain() -> InfiniteLoop
 
 This proposal chooses not to go in this direction.
 
-### `NoReturn` as a universal "bottom" subtype
+### `Never` as a universal "bottom" subtype
 
 An uninhabited type can be seen as a subtype of any other type--if evaluating
 an expression never produces a value, it doesn't matter what the type of that
@@ -206,8 +206,8 @@ expression is. If this were supported by the compiler, it would enable some
 potentially useful things, for instance using a nonreturning function directly
 as a parameter to a higher-order function that expects a result
 (`array.filter(fatalError)`) or allowing a subclass to override a method and
-covariantly return `NoReturn`. This can be considered as a separate proposal.
-Moving from `@noreturn` to `-> NoReturn` is not a regression here, since the
+covariantly return `Never`. This can be considered as a separate proposal.
+Moving from `@noreturn` to `-> Never` is not a regression here, since the
 compiler does not allow an arbitrary conversion from `@noreturn (T...) -> U`
 to `(T...) -> V` today. The most important use case, a nonreturning function
 in void context, will still work by the existing `(T...) -> U` to
