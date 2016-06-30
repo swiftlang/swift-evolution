@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0095](0095-any-as-existential.md)
 * Author: [Adrian Zubarev](https://github.com/DevAndArtist), [Austin Zheng](https://github.com/austinzheng)
-* Status: **Active review June 22...27**
+* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000198.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 * Revision: 2
 * Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/a4356fee94c06181715fad83aa61e923eb73f8ec/proposals/0095-any-as-existential.md)
@@ -70,10 +70,3 @@ The original proposal suggested replacing `protocol<>` with either `Any<>` or `a
 
 [Matthew Johnson](https://github.com/anandabits) and [Brent Royal-Gordon](https://github.com/brentdax) provided valuable input which helped shape the first version of this proposal.
 
--------------------------------------------------------------------------------
-
-# Rationale
-
-On [Date], the core team decided to **(TBD)** this proposal.
-When the core team makes a decision regarding this proposal,
-their rationale for the decision will be written here.
