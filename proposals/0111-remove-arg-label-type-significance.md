@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0111](0111-remove-arg-label-type-significance.md)
 * Author: Austin Zheng
-* Status: **Active review June 30 ... July 4 **
+* Status: **Active review June 30 ... July 4**
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
