@@ -19,7 +19,8 @@ Swift-evolution thread: [Discussion thread topic for that proposal](http://news.
 
 ## Motivation
 
-There are many reasons to have this important feature, the obvious one is that developer will write less type declaration code in Swift, for example:
+There are many reasons to have this important feature.
+The obvious one is that developer will write less type declaration code in Swift.
 
 For example, there is three class type A, B and C:
 
@@ -44,7 +45,7 @@ class C {
 
 ```
 
-Originaly, if we want to represent type of a varialbe maybe A, B or C, we should announce a new type:
+Originaly, if we want to represent a varialbe whose type maybe A, B or C, we should announce a more common type:
 
 ```swift
 
@@ -76,7 +77,7 @@ func input(value: Common) {
 }
 ```
 
-Or we can make an union type of A, B, C to limit the type.
+Or we can make an enum type of A, B, C to limit the type.
 
 ```swift
 
@@ -108,7 +109,7 @@ func input(u: UnionOfABC) {
 
 ## Proposed solution
 
-Now, if we using the union type feature, we can declare type conveniently,
+Now, if we using the new union type feature, we can declare type conveniently,
 No other type declaration, and compiler will automatically calculate the common interface.
 
 ```swift
@@ -130,7 +131,7 @@ func input(value: A | B | C) {
 ```
 
 and if the **class** A, B, C in example, were **protocol** A, B, C, it is more difficault to **add** a common type for them.
-Because in current Swift environment, developer cannot announce a protocol to conform another protocol.
+Because in current Swift environment, developer cannot make an existed protocol conform another protocol.
 
 ## Detailed design
 
@@ -179,7 +180,7 @@ instead of unwrap enum cases and compare.
         fn0 = fn2 // OK
         fn1 = fn2 // OK
     ```
-* And the most important part, It can replace Optional<T>.
+* And the most **important** part, It can replace enum `Optional<T>` to represent optional types.
     ```swift
         let string: String?
     ```
