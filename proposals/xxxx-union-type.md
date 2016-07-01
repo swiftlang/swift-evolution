@@ -141,18 +141,18 @@ There are serveral advance points:
     like `enum UnionOf3<T,U,V>` or `protocol CommonABC`
 * It does not need wrap into an enum type.
     ```swift
-    let a = new A()
+    let a = A()
     let union: (A|B|C) = a // no need wrap.
     ```
     other than
 
     ```swift
-    let a = new A()
+    let a = A()
     let union: UnionOfABC = UnionOfABC._A(a) // wrap
     ```
 * Compiler search their common properties and methods, then mark them as a member of the union type.
     ```swift
-    let a = new A()
+    let a = A()
     let union: (A|B|C) = a // no need wrap.
     print(union.commonProperty)
     ```
@@ -181,26 +181,26 @@ instead of unwrap enum cases and compare.
         fn1 = fn2 // OK
     ```
 * And the most **important** part, It can replace enum `Optional<T>` to represent optional types.
-    ```swift
-        let string: String?
-    ```
-        is same to
-    ```swift
-        let string: String | None
-    ```
-        instead of
-    ```swift
-        let string: Optional<String>
-    ```
+```swift
+    let string: String?
+```
+is same to
+```swift
+    let string: String | None
+```
+instead of
+```swift
+    let string: Optional<String>
+```
 
-    * IUO, Implicity Unwrapped Optional, can also use union to represent
-     ```swift
-        let string: String!
-    ```
-        will be the same as the union grammar:
-    ``` swift
-        let iuo: *String | None
-    ```
+* IUO, Implicity Unwrapped Optional, can also use union to represent
+```swift
+    let string: String!
+```
+    will be the same as the union grammar:
+``` swift
+    let iuo: *String | None
+```
 
 
 ## Impact on existing code
