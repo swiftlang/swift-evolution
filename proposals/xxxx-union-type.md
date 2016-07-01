@@ -109,7 +109,7 @@ func input(u: UnionOfABC) {
 ## Proposed solution
 
 Now, if we using the union type feature, we can declare type conveniently,
-No other type declaration, and compiler will automatically calculated the common interface.
+No other type declaration, and compiler will automatically calculate the common interface.
 
 ```swift
 func input(value: A | B | C) {
