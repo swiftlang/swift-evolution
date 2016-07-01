@@ -1552,7 +1552,7 @@ p.initialize(with: T())
 becomes:
 
 ```swift
-let p = UnsafeMutableRawPointer.allocate(capacity: num, of: T.self).initialize(T.self, with: T())
+let p = UnsafeMutableRawPointer(allocatingCapacity: num, of: T.self).initialize(with: T())
 ```
 
 Deallocation similarly changes from:
@@ -1686,8 +1686,6 @@ struct members. At that time we may also want to add an "unaligned" flag to
 
 ## Variations under consideration
 
-<<<<<<< d4f987aa8948b0ba920dc883ba05efce0e979e1e
-=======
 ### Freestanding `allocate`/`deallocate`
 
 I considered defining allocation and deallocation global functions
@@ -1727,7 +1725,6 @@ let ptrA = UnsafeMutableRawPointer.allocate(capacity: 1, of: A.self)
 ptrA.deinitialize(count: 1).deallocate(capacity: 1, of: A.self)
 ```
 
->>>>>>> Improve spelling, typography, and add a (vanity) link to explain UB.
 ### Conversion via initializer instead of `cast<T>(to: UnsafePointer<T>)`
 
 This proposal calls for unsafe pointer type conversion to be performed
