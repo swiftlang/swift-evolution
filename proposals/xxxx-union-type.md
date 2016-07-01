@@ -163,24 +163,25 @@ There are serveral advance points:
 
 * It will be easy to compare with value of original type.
 ```swift
-    let union: A|B|C
+    let union: A|B|C = someA
     let otherA: A
 
     // If union is not type A, then return false;
     // If union is type A, then compare it with otherA!!😊
-    return union == otherA
+    print(union == otherA)
 
 ```
 instead of unwrap enum cases and compare.
 ```swift
-    let u: UnionOfABC
+    let u: UnionOfABC = UnionOfABC._A(someA)
     let otherA: A
 
-    if(let case ._A(value) = u) {
-        return value == otherA
+    if case let ._A(value) = u {
+        print(value == otherA)
     } else {
-        return false
+        print(false)
     }
+
 ```
 
 * Original types and union types can have a rational relationship between each other.
