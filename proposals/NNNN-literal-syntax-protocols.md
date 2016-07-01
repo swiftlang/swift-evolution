@@ -93,6 +93,31 @@ All code that references any of the `*LiteralConvertible` protocols will need to
 
 Discussion of the pros and cons of the proposed and alternative naming schemes is encouraged.  The core team should feel free to choose names they deem best suited for Swift after community discussion and review if they decide to accept this proposal.  The intent of the proposal is to resolve the issues described in the motivation.  The proposal does not take a strong position regarding the best names to use in the solution.
 
+The discussion thread for this proposal includes abundant bike shedding on the names.  This section includes selected examples to highlight different directions that have been discussed.  Reviewers are encouraged to read the discussion thread if they wish to see all of the alternatives.  The thread includes abundant discusison of the pros and cons of many naming ideas.
+
+Some of the names that have been suggested have been inaccurate due to a misunderstanding of what the protocols do.  Dave Abrahams explained during the discussion:
+
+    No, it's exactly the opposite, as I keep saying.  Conformance to this
+    protocol does *not* mean you can initialize the type with a literal.
+    Proof:
+
+```swift
+  func f<T: IntegerLiteralConvertible>() -> T {
+    return T(integerLiteral: 43) // Error
+    return T(43)                 // Also an Error
+  }
+
+// It means an instance of the type can be *written* as a literal:
+
+  func f<T: IntegerLiteralConvertible>() -> T {
+    return 43   // OK
+  }
+```
+
+    Everybody's confused about the meaning of the protocol, and doesn't like
+    the proposed names because they imply exactly the actual meaning of the
+    protocol, which they misunderstand.
+
 ### Namespace names
 
 David Sweeris suggested `Compiler` as an alternative to `Syntax`.  
@@ -107,6 +132,8 @@ Several commenters have suggested that the names in this proposal are confusing 
     make it seem like dark magic is afoot with literal conversions—for example, 
     you need to understand an awful lot about the standard library to figure out 
     why line 1 works here but not line 2:
+
+Note: The comment above is still valid if it is corrected to say "types that can have instances *written as* a literal" rather than "types that can be *initialized with* a literal".
 
 ```swift
 var x = [1, 2, 3, 4, 5]
@@ -129,10 +156,16 @@ extension MyInt : Syntax.IntegerLiteral { ... }
     The existing "Convertible" wording may be a red herring, but it at least 
     suggests that there's a difference between a literal and a concrete type.
 
-An alternative naming scheme that emphasizes the semantic of initializing the type with a literal is:
+Alternative naming schemes suggested by Sean Heber that emphasize the fact that these protocols represent the ability to *express* (write) instances of conforming types with a literal are:
 
 ```swift
-struct Foo: Syntax.IntegerLiteralInitializable { ... }
+struct Foo: Syntax.Syntax.ExpressibleAsIntegerLiteral { ... }
+```
+
+and: 
+
+```swift
+struct Foo: Syntax.Syntax.IntegerLiteralExpressible { ... }
 ```
 
 An alternative naming scheme suggested by Xiaodi Wu emphasizes that the type *conforms to a protocol* rather than *is a literal* is:
@@ -164,4 +197,4 @@ This proposal is a follow up to [Updating Protocol Naming Conventions for Conver
 
 ## Acknowledgements
 
-The design described in this proposal was suggested by Dave Abrahams, Dmitri Gribenko, and Maxim Moiseev.  Nate Cook, David Sweeris, Adrian Zubarev and Xiaodi Wu contributed ideas to the alternatives considered section.
+The design described in this proposal was suggested by Dave Abrahams, Dmitri Gribenko, and Maxim Moiseev.  Nate Cook, Dave Abrahams, Sean Heber, David Sweeris, Adrian Zubarev and Xiaodi Wu contributed ideas to the alternatives considered section.
