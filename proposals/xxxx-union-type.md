@@ -163,7 +163,7 @@ There are serveral advance points:
 
 * It will be easy to compare with value of original type.
 ```swift
-    let union: A|B|C = someA
+    let union: A|B|C
     let otherA: A
 
     // If union is not type A, then return false;
@@ -173,7 +173,7 @@ There are serveral advance points:
 ```
 instead of unwrap enum cases and compare.
 ```swift
-    let u: UnionOfABC = UnionOfABC._A(someA)
+    let u: UnionOfABC
     let otherA: A
 
     if case let ._A(value) = u {
