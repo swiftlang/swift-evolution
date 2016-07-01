@@ -58,7 +58,7 @@ extension B : Common {}
 extension C : Common {}
 
 func input(value: Common) {
-    print(value.commonProperty) // type checker will calculate the common interface, developer just use it out of box
+    print(value.commonProperty)
     switch value {
     case let value as A:
         // value is type A
@@ -114,7 +114,7 @@ No other type declaration, and compiler will automatically calculate the common 
 
 ```swift
 func input(value: A | B | C) {
-    print(value.commonProperty)
+    print(value.commonProperty) // type checker will calculate the common interface, developer just use it out of box
     switch value {
     case let value as A:
         // value is type A
