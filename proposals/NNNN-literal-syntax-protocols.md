@@ -122,6 +122,8 @@ Some of the names that have been suggested have been inaccurate due to a misunde
 
 David Sweeris suggested `Compiler` as an alternative to `Syntax`.  
 
+Adrian Zubarev suggested a convention using a nested namespace `Syntax.Literal.*Protocol`.
+
 ### Protocol names
 
 Several commenters have suggested that the names in this proposal are confusing at the site of use.  Nate Cook provided the best explanation of the potential confusion:
