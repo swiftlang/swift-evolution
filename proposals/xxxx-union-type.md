@@ -181,14 +181,29 @@ instead of unwrap enum cases and compare.
     ```
 * And the most important part, It can replace Optional<T>.
     ```swift
-    let string: String?
+        let string: String?
     ```
     is same to
+    ```swift
+        let string: String | None
     ```
-    let string: (String | None)  instead of let string: Optional<String>
+    instead of
+    ```swift
+        let string: Optional<String>
     ```
+
+    * IUO, Implicity Unwrapped Optional, can also use union to represent
+     ```swift
+        let string: String!
+    ```
+    will be the same as the union grammar:
+    ``` swift
+        let iuo: *String | None
+    ```
+
 
 ## Impact on existing code
 
     * This is a new feature, developer who need declare common type will alter to this new grammar.
+    * Optional<Wrapped> and IUO<Wrapped> may removed. Any Optional type will automatically replaced by union type.
 
