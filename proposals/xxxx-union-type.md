@@ -142,7 +142,7 @@ There are serveral advance points:
 * It does not need wrap into an enum type.
     ```swift
     let a = A()
-    let union: (A|B|C) = a // no need wrap.
+    let union: A|B|C = a // no need wrap.
     ```
     other than
 
@@ -153,7 +153,7 @@ There are serveral advance points:
 * Compiler search their common properties and methods, then mark them as a member of the union type.
     ```swift
     let a = A()
-    let union: (A|B|C) = a // no need wrap.
+    let union: A|B|C = a // no need wrap.
     print(union.commonProperty)
     ```
     developer automatically get this, instead of developer to declare a common property.
@@ -163,9 +163,23 @@ There are serveral advance points:
 
 * It will be easy to compare with value of original type.
 ```swift
-    union == a // If union is not type A, then return false; If union is type A, then compare!!😊
+    let union: A|B|C
+    let otherA: A
+
+    return union == otherA // If union is not type A, then return false; If union is type A, then compare!!😊
+
 ```
 instead of unwrap enum cases and compare.
+```swift
+    let u: UnionOfABC
+    let otherA: A
+
+    if(let case ._A(value) = u) {
+        return value == otherA
+    } else {
+        return false
+    }
+```
 
 * Original types and union types can have a rational relationship between each other.
     Original type is a sub-type of union types contain it.
@@ -175,7 +189,7 @@ instead of unwrap enum cases and compare.
 
         fn0 = fn1 // OK, because Original Type and Union Type has a sub-typing relationship
 
-        var fn2: (A|B|C)->Void = {print($0)}
+        var fn2: A|B|C->Void = {print($0)}
 
         fn0 = fn2 // OK
         fn1 = fn2 // OK
