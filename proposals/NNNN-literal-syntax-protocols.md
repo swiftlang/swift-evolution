@@ -156,7 +156,7 @@ extension MyInt : Syntax.IntegerLiteral { ... }
 
 David Sweeris suggested `Compiler` as an alternative to `Syntax`.  
 
-Adrian Zubarev suggested a convention using a nested namespace `Syntax.Literal.*Protocol`.
+Adrian Zubarev suggested a convention using a nested namespace `Literal.*Protocol`.
 
 ### Protocol names
 
