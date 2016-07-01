@@ -1,9 +1,9 @@
 # Updating Buffer "Value" Names to "Header" Names
 
-* Proposal: TBD
+* Proposal: [SE-0114](0114-buffer-naming.md)
 * Author: [Erica Sadun](http://github.com/erica)
-* Status: TBD
-* Review manager: TBD
+* Status: **Active review July 1...7**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
