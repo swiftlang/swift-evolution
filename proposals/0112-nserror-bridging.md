@@ -372,7 +372,7 @@ extension RecoverableError {
   /// By default, implements document-modal recovery via application-model
   /// recovery.
   func attemptRecovery(optionIndex recoveryOptionIndex: Int,
-                       andThen resultHandler: (Bool) -> Void) {
+                       andThen resultHandler: (recovered: Bool) -> Void) {
     resultHandler(recovered: attemptRecovery(optionIndex: recoveryOptionIndex))
   }
 }
