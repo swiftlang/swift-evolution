@@ -15,6 +15,7 @@ proposals in that process.
 * June 30 ... July 4 [SE-0110: Distinguish between single-tuple and multiple-argument function types](proposals/0110-distingish-single-tuple-arg.md)
 * June 30 ... July 4 [SE-0111: Remove type system significance of function argument labels](proposals/0111-remove-arg-label-type-significance.md)
 * June 30 ... July 4 [SE-0112: Improved NSError Bridging](proposals/0112-nserror-bridging.md)
+* June 30 ... July 5 [SE-0113: Add integral rounding functions to FloatingPoint](proposals/0113-rounding-functions-on-floatingpoint.md)
 
 ## Upcoming reviews
 

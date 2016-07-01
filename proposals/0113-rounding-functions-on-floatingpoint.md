@@ -1,9 +1,9 @@
 # Add integral rounding functions to FloatingPoint
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0113](0113-rounding-functions-on-floatingpoint.md)
 * Author: [Karl Wagner](https://github.com/karwa)
-* Status: **[Awaiting review](#rationale)**
-* Review manager: TBD
+* Status: **Active review June 30 ... July 5**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction, Motivation
 
