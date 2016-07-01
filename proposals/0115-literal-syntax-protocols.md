@@ -37,8 +37,6 @@ This proposal addresses both problems by renaming the protocols to `ExpressibleA
 
 All of the `*LiteralConvertible` protocols will receive new `ExpressibleAs*Literal` names.  
 
-This namespace will initially be implemented using a case-less `enum`, but this detail may change in the future if submodules or namespaces are added to Swift.  Swift does not currently allow protocols to be declared inside the scope of a type.  In order to work around this limitation the protocols themselves will be declared using underscore-prefixed names internal to the standard library.  Typealiases inside the `Syntax` enum will declare the names intended to be visible to user code.
-
 This proposal does not change any requirements of these protocols.  All requirements of all `*LiteralConvertible` protocols will remain exactly the same.
 
 The following protocol declarations and names:
