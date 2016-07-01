@@ -161,13 +161,13 @@ extension MyInt : Syntax.IntegerLiteral { ... }
 Alternative naming schemes suggested by Sean Heber that emphasize the fact that these protocols represent the ability to *express* (write) instances of conforming types with a literal are:
 
 ```swift
-struct Foo: Syntax.Syntax.ExpressibleAsIntegerLiteral { ... }
+struct Foo: Syntax.ExpressibleAsIntegerLiteral { ... }
 ```
 
 and: 
 
 ```swift
-struct Foo: Syntax.Syntax.IntegerLiteralExpressible { ... }
+struct Foo: Syntax.IntegerLiteralExpressible { ... }
 ```
 
 An alternative naming scheme suggested by Xiaodi Wu emphasizes that the type *conforms to a protocol* rather than *is a literal* is:
@@ -177,6 +177,21 @@ struct Foo: Syntax.IntegerLiteralProtocol { ... }
 ```
 
 ### Rename the protocols without placing them in a namespace
+
+Dave Abrahams has suggested considering the `ExpressibleAs*Literal` scheme without placing the protocols in the `Syntax` namespace:
+
+```swift
+public protocol ExpressibleAsNilLiteral { ... }
+public protocol ExpressibleAsBooleanLiteral { ... }
+public protocol ExpressibleAsIntegerLiteral { ... }
+public protocol ExpressibleAsFloatLiteral { ... }
+public protocol ExpressibleAsUnicodeScalarLiteral { ... }
+public protocol ExpressibleAsExtendedGraphemeCluster { ... }
+public protocol ExpressibleAsStringLiteral { ... }
+public protocol ExpressibleAsStringInterpolationLiteral { ... }
+public protocol ExpressibleAsArrayLiteral { ... }
+public protocol ExpressibleAsDictionaryLiteral { ... }
+```
 
 Adrian Zubarev suggests that we could use the `*LiteralProtocol` naming scheme for these protocols (replacing `Convertible` with `Protocol`) without placing them in a namespace:
 
