@@ -205,6 +205,6 @@ instead of unwrap enum cases and compare.
 
 ## Impact on existing code
 
-    * This is a new feature, developer who need declare common type will alter to this new grammar.
-    * Optional<Wrapped> and IUO<Wrapped> may removed. Any Optional type will automatically replaced by union type.
+* This is a new feature, developer who need declare common type will alter to this new grammar.
+* Optional<Wrapped> and IUO<Wrapped> may removed. Any Optional type will automatically replaced by union type.
 
