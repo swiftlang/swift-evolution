@@ -109,11 +109,13 @@ func input(u: UnionOfABC) {
 }
 ```
 
+and if the **class** A, B, C in example, were **protocol** A, B, C, it is more difficault to **add** a common type for them.
+Because in current Swift environment, developer cannot make an existed protocol conform another protocol.
+
 ## Proposed solution
 
 Now, if we using the new union type feature, we can declare type conveniently,
 No other type declaration, and compiler will automatically calculate the common interface.
-
 ```swift
 func input(value: A | B | C) {
     print(value.commonProperty) // type checker will calculate the common interface, developer just use it out of box
@@ -131,9 +133,7 @@ func input(value: A | B | C) {
     // there is no default case other than A, B or C. we already declared that.
 }
 ```
-
-and if the **class** A, B, C in example, were **protocol** A, B, C, it is more difficault to **add** a common type for them.
-Because in current Swift environment, developer cannot make an existed protocol conform another protocol.
+Note: A, B, C can be either class or protocol, or any other types. This leaves developer more freedom.
 
 ## Detailed design
 
