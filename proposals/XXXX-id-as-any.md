@@ -10,7 +10,7 @@
 Objective-C interfaces that use `id` and untyped collections should be imported
 into Swift as taking the `Any` type instead of `AnyObject`.
 
-Swift-evolution thread: [TBD](http://news.gmane.org/gmane.comp.lang.swift.evolution)
+Swift-evolution thread: [Importing Objective-C `id` as Swift `Any`](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160627/023203.html)
 
 ## Motivation
 
