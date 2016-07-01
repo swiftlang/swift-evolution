@@ -192,7 +192,7 @@ instead of unwrap enum cases and compare.
 
         fn0 = fn1 // OK, because Original Type and Union Type has a sub-typing relationship
 
-        var fn2: A|B|C->Void = {print($0)}
+        var fn2: (A|B|C)->Void = {print($0)}
 
         fn0 = fn2 // OK
         fn1 = fn2 // OK
