@@ -4,6 +4,7 @@
 * Author: [Doug Gregor](https://github.com/DougGregor), [Charles Srstka](https://github.com/CharlesJS)
 * Status: **Active review June 30 ... July 4**
 * Review manager: [Chris Lattner](http://github.com/lattner)
+* Implementation: [in progress](https://github.com/apple/swift/tree/nserror-bridging)
 
 ## Introduction
 
