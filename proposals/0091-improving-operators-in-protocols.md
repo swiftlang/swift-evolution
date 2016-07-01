@@ -1,7 +1,7 @@
 # Improving operator requirements in protocols
 
 * Proposal: [SE-0091](0091-improving-operators-in-protocols.md)
-* Author: [Tony Allevato](https://github.com/allevato)
+* Author: [Tony Allevato](https://github.com/allevato), [Doug Gregor](https://github.com/DougGregor)
 * Status: **Active Review: May 17...23**
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
@@ -13,8 +13,8 @@ conforming type. This can lead both to user confusion and to poor type checker
 performance since the global namespace is overcrowded with a large number of
 operator overloads. This proposal mitigates both of those issues by proposing
 that operators in protocols be declared statically (to change and clarify where
-the conforming type implements it) and use generic global trampoline operators
-(to reduce the global overload set that the type checker must search).
+the conforming type implements it) and that Swift use universal lookup for
+operators that finds candidates both at the global scope and within types.
 
 Swift-evolution thread:
 [Discussion about operators and protocols in the context of `FloatingPoint`](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160425/015807.html)
@@ -94,7 +94,6 @@ func ==(lhs: Foo, rhs: Foo) -> Bool {
 }
 ```
 
-
 This is an odd inconsistency in the Swift language, driven by the fact that
 operators must be global functions. What's worse is that every concrete type
 that conforms to `Equatable` must provide the operator function at global scope.
@@ -103,11 +102,6 @@ workload of the compiler to perform type checking.
 
 ## Proposed solution
 
-The solution described below is an _addition_ to the Swift language. This
-document does _not_ propose that the current way of defining operators be
-removed or changed at this time. Rather, we describe an addition that
-specifically provides improvements for protocol operator requirements.
-
 When a protocol wishes to declare operators that conforming types must
 implement, we propose adding the ability to declare operator requirements as
 static members of the protocol:
@@ -115,16 +109,6 @@ static members of the protocol:
 ```swift
 protocol Equatable {
   static func ==(lhs: Self, rhs: Self) -> Bool
-}
-```
-
-Then, the protocol author is responsible for providing a generic global
-_trampoline_ operator that is constrained by the protocol type and delegates to
-the static operator on that type:
-
-```swift
-func == <T: Equatable>(lhs: T, rhs: T) -> Bool {
-  return T.==(lhs, rhs)
 }
 ```
 
@@ -146,10 +130,46 @@ let f2 = Foo(value: 10)
 let eq = (f1 == f2)
 ```
 
-When the compiler sees an equality expression between two `Foo`s like the one
-above, it will call the global `== <T: Equatable>` function. Since `T` is bound
-to the type `Foo` in this case, that function simply delegates to the static
-method `Foo.==`, which performs the actual comparison.
+We initially considered requiring users to declare a global "trampoline"
+operator for each operator inside their protocols. This operator would be
+generic and constrained to that protocol type and would use the static types of
+its actual arguments to dispatch to the correct implementation. However, this
+is a burden on protocol authors to provide these stub functions that are purely
+an implementation detail.
+
+Instead, Swift should always perform operator lookup universally such that
+it sees all operators defined at either module scope or within a type/extension
+of a type. This gives us the syntactic improvements immediately and the natural
+Swift thing of defining your functionality within the type or an extension
+thereof just works.
+
+While it may seem odd that operators will be the only place where Swift does
+such universal lookup, operators can be considered a special case. This is a
+cleaner approach than requiring the user to manually provide trampoline
+operators. There is really no way to avoid it: we simply don’t want normal
+lexical name lookup for operators when they can be defined in types.
+
+This approach does not (directly) give any of the type checker performance/QoI
+improvements mentioned above. The key insight here is that we don't want to
+consider both a generic operator based on some protocol (for example, `+` for
+`Arithmetic` types) and the operator functions used to satisfy that
+requirement.
+
+Therefore, we can achieve the performance improvements by making
+that insight part of the semantic model: when we find all operators, we also
+find the operators in the protocols themselves. The operators in the protocols
+are naturally generic; e.g., the `Arithmetic` `+` effectively has a generic
+function type like this:
+
+```
+<Self: Arithmetic>(Self, Self) -> Self
+```
+
+Then, we say that we do not consider an operator function if it implements a
+protocol requirement, because the requirement is a generalization of all of the
+operator functions that satisfy that requirement. With this rule, we’re
+effectively getting the same effects as if users had declared trampoline
+operators, but it's automatic.
 
 ### Benefits of this approach
 
@@ -161,21 +181,13 @@ providing their own method names.
 
 This approach also significantly reduces the number of symbols in the global
 namespace. Consider a protocol like `Equatable`, which requires a global
-definition of `==` for _every_ type that conforms to it. This approach replaces
-those _N_ global operators with a single generic global operator.
-
-The reduction in the number of global operators should have a positive impact on
-type checker performance as well. The search set at the global level becomes
-much smaller, and then the generic trampoline uses the bound type to quickly
-resolve the actual implementation.
-
-Similarly, this behavior allows users to be more explicit when referring to
-operator functions as first-class operations. Passing an operator function like
-`+` to a generic algorithm will still work with the trampoline operators, but in
-situations where type inference fails and the user needs to be more explicit
-about the types, being able to write `T.+` is a cleaner and unambiguous
-shorthand compared to casting the global `+` to the appropriate function
-signature type.
+definition of `==` for _every_ type that conforms to it. The approach described
+above with universal lookup will ignore all of the implementations of `==` on
+types where it satisfies the `Equatable` conformance, which leaves only the
+single operator on `Equatable` itself to be considered instead. (This assumes
+that nobody implements `==` while not conforming to `Equatable`; while this is
+certainly possible, it is likely to be rare enough that it would not negatively
+impact performance.)
 
 ### Other kinds of operators (prefix, postfix, assignment)
 
@@ -192,30 +204,6 @@ protocol SomeProtocol {
   // example.
   static prefix func ++(value: inout Self) -> Self
   static postfix func ++(value: inout Self) -> Self
-}
-```
-
-The trampoline implementation requires some special care, because they call the
-operators using function call syntax instead of operator syntax. If a protocol
-defines prefix and postfix operators with the same name, we must be able to
-differentiate them when calling them or referencing them (for example, as a
-first class function).
-
-To achieve this, we propose requiring `prefix:` and `postfix:` argument labels
-when calling such operators:
-
-```swift
-func += <T: SomeProtocol>(lhs: inout T, rhs T) {
-  T.+=(&lhs, rhs)
-}
-prefix func ~ <T: SomeProtocol>(value: T) -> T {
-  return T.~(prefix: value)
-}
-prefix func ++ <T: SomeProtocol>(value: inout T) -> T {
-  return T.++(prefix: &value)
-}
-postfix func ++ <T: SomeProtocol>(value: inout T) -> T {
-  return T.++(postfix: &value)
 }
 ```
 
@@ -257,8 +245,7 @@ be able to define them as before.
 Currently, the Swift language allows the use of operators as the names of
 global functions and of functions in protocols. This proposal is essentially
 asking to extend that list to include static/class methods of protocols and
-concrete types and to support referencing them in expressions using the `.`
-operator.
+concrete types.
 
 Interestingly, the production rules themselves of the Swift grammar for function
 declarations _already_ appear to support declaring static functions inside a
@@ -272,65 +259,22 @@ However, defining such a function in a concrete type fails with the error
 of `Parser::parseDeclFunc` appears to be the likely place to make a change to
 allow this.
 
-In order to support _calling_ a static operator using its name, the production
-rules for _explicit-member-expression_ would need to be updated to support
-operators where they currently only support identifiers:
+### Explicitly calling `super` for class operators
 
-_explicit-member-expression_ → _postfix-expression_ **­.** _identifier_ _­generic-argument-clause­_<sub>_opt_­</sub><br/>
-_explicit-member-expression_ → _postfix-expression_ ­**­.** _operator_ _­generic-argument-clause­_<sub>_opt_­</sub><br/>
-_explicit-member-expression_ → _postfix-expression_ ­**­.** _­identifier_ ­**(** _­argument-names­_ **)**­<br/>
-_explicit-member-expression_ → _postfix-expression_ ­**­.** _­operator_ ­**(** _­argument-names­_ **)**­<br/>
+This proposal originally extended the _explicit-member-expression_ production
+rule to support having _operator_ as well as _identifier_ following a
+_postfix-expression_; this was a requirement to let users explicitly call the
+concrete operator implementation from their trampoline function, using a
+syntax like `SomeType.+(lhs, rhs)`.
 
-For consistency with other static members, we could consider modifying
-_implicit-member-expression_ as well, but referring to an operator function with
-only a dot preceding it might look awkward:
+While universal lookup makes it no longer necessary to call operators in this
+way in the general case, one scenario may still need to be considered: calling
+the superclass implementation of an operator `class` method from a subclass.
 
-_implicit-member-expression_ → **.** _­identifier­_<br/>
-_implicit-member-expression_ → **.** _operator­_
+### Restrictions on methods with operator names
 
-**Open question:** Are there any potential ambiguities between the dot in the
-member expression and dots in operators?
-
-### Name lookup for operators
-
-We do not propose altering the existing name lookup for operators. An expression
-`a * b` will only search the _global_ namespace for operators named `*` with
-matching types. For example,
-
-```swift
-protocol FooProtocol {
-  static func *(lhs: Self, rhs: Self) -> Self
-}
-func * <T: FooProtocol>(lhs: T, rhs: T) -> T {
-  return T.*(lhs, rhs)
-}
-struct Foo: FooProtocol { ... }
-
-let a = Foo()
-let b = Foo()
-let x = a * b
-```
-
-This would only search the global namespace and find `* <T: FooProtocol>` as a
-match. The name lookup will _not_ search for operators defined as type members,
-so the concrete implementation of `Foo.*` would be ignored; the trampoline
-operator would explicitly call it. The only way to reference a type member
-operator is to fully-qualify it with its type's name, and it may only be called
-using function-call syntax.
-
-This implies that a user could implement a more specific overload of global `*`
-for a concrete type (such as one that takes `(Foo, Foo)` as its arguments),
-which would bypass the trampoline operator. While we would not recommend that a
-user do this, it's not necessarily compelling to forbid it either.
-
-### Prohibit operator type members that do not satisfy a protocol requirement
-
-The ability to define operator methods inside a type is provided solely to
-express protocol requirements and to provide a hook for generic trampoline
-operators to call. Since the name lookup does not automatically find type
-member operators, methods with operator names that do not satisfy a protocol
-requirement provide little value. As such, we propose the following language
-restrictions around them:
+Since methods with operator names are now found as part of a universal lookup,
+we restrict a few characteristics of their declarations as follows:
 
 * Methods with operator names must be `static` (or `class`, inside classes).
   Non-static methods with operator names are an error. (_Special case: in a
@@ -340,16 +284,10 @@ restrictions around them:
   requirements as global operator functions (infix operators take two arguments,
   prefix/postfix operators take one argument, and so forth).
 
-* Inside a concrete type (`struct`, `class`, `enum`) or an extension, methods
-  with operator names must satisfy a protocol requirement. Methods that do not
-  do so are an error.
-
 ## Impact on existing code
 
 The ability to declare operators as static/class functions inside a type is a
-new feature and would not affect existing code. Likewise, the ability to
-explicitly reference the operator function of a type (e.g., `Int.+` or
-`Int.+(5, 7)` would not affect existing code.
+new feature and would not affect existing code.
 
 Changing the way operators are declared in protocols (static instead of
 non-static) would be a breaking change. As described above, we propose
@@ -405,21 +343,13 @@ status of "receiver" while the other remains an argument.
 Likewise, commutative operators with heterogeneous arguments are more awkward to
 implement if operators are instance methods. Consider a contrived example of a
 `CustomStringProtocol` type that supports concatenation with `Character` using
-the `+` operator, commutatively. With static operators and generic trampolines,
-both versions of the operator are declared in `CustomStringProtocol`, as one
-would expect:
+the `+` operator, commutatively. With static operators, both versions of the
+operator are declared in `CustomStringProtocol`, as one would expect:
 
 ```swift
 protocol CustomStringProtocol {
   static func +(lhs: Self, rhs: Character) -> Self
   static func +(lhs: Character, rhs: Self) -> Self
-}
-
-func + <T: CustomStringProtocol>(lhs: T, rhs: Character) -> T {
-  return T.+(lhs, rhs)
-}
-func + <T: CustomStringProtocol>(lhs: Character, rhs: T) -> T {
-  return T.+(lhs, rhs)
 }
 ```
 
@@ -432,13 +362,10 @@ This would split the implementation of an operation that logically belongs to
 `CustomStringProtocol` across two different locations in the code, which is
 something we're trying to avoid.
 
-Finally, there was some discussion of having the compiler automatically generate
-the global trampoline operators when it processes static operators in protocols,
-but this is not feasible in the Swift 3 timeframe so it is being deferred for
-later discussion.
-
 ## Acknowledgments
 
 Thanks to Chris Lattner and Dave Abrahams for contributing to the early
 discussions, particularly regarding the need to improve type checker performance
-by genericizing protocol-based operators.
+by genericizing protocol-based operators. Thanks also to Doug Gregor who
+provided some incredibly valuable insight near the end of the review process
+that was significant enough that I consider him now a coäuthor of the proposal.
