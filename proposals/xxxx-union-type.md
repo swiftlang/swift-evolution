@@ -1,4 +1,4 @@
-# Feature name
+# Union Type
 
 * Proposal: [SE-NNNN](NNNN-union-type.md)
 * Author: [Cao, Jiannan](https://github.com/frogcjn)
