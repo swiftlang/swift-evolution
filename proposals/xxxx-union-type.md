@@ -183,11 +183,11 @@ instead of unwrap enum cases and compare.
     ```swift
         let string: String?
     ```
-    is same to
+        is same to
     ```swift
         let string: String | None
     ```
-    instead of
+        instead of
     ```swift
         let string: Optional<String>
     ```
@@ -196,7 +196,7 @@ instead of unwrap enum cases and compare.
      ```swift
         let string: String!
     ```
-    will be the same as the union grammar:
+        will be the same as the union grammar:
     ``` swift
         let iuo: *String | None
     ```
