@@ -15,7 +15,7 @@ var stringOrURL: String | URL = "https://www.apple.com"
 
 ```
 
-Swift-evolution thread: [Discussion thread topic for that proposal](http://news.gmane.org/gmane.comp.lang.swift.evolution)
+Swift-evolution thread: [Discussion thread topic for that proposal](http://news.gmane.org/gmane.comp.lang.swift.evolution/023056)
 
 ## Motivation
 
