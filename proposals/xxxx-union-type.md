@@ -166,7 +166,9 @@ There are serveral advance points:
     let union: A|B|C
     let otherA: A
 
-    return union == otherA // If union is not type A, then return false; If union is type A, then compare!!😊
+    // If union is not type A, then return false;
+    // If union is type A, then compare it with otherA!!😊
+    return union == otherA
 
 ```
 instead of unwrap enum cases and compare.
