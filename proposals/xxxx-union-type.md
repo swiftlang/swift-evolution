@@ -197,7 +197,7 @@ instead of
 ```swift
     let string: String!
 ```
-    will be the same as the union grammar:
+will be the same as the union grammar:
 ``` swift
     let iuo: *String | None
 ```
