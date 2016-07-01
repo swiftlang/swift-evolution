@@ -44,11 +44,12 @@ public struct MemoryLayout<T> {
     /// stored properties `T` has.
      public static var size: Int { return _sizeof(T) }
     
-    /// Returns the spacing between instances of `T` in 
-    /// `Array<T>`, or the number of bytes moved by an 
-    /// `UnsafePointer<T>` when incremented. `T` may have 
-    /// a lower minimal alignment that trades runtime performance 
-    /// for space efficiency. The result is always positive.
+    /// For instances of `T` in an `Array<T>`, returns the number of
+    /// bytes from the start of one instance to the start of the
+    /// next. This is the same as the number of bytes moved when an
+    /// `UnsafePointer<T>` is incremented. `T` may have a lower minimal
+    /// alignment that trades runtime performance for space
+    /// efficiency. The result is always positive.
     public static var stride: Int { return _strideof(T) }
     
     /// Returns the minimum memory alignment of `T`.
