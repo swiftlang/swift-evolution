@@ -7,7 +7,7 @@
 
 ## Introduction
 
-Add union type grammar, represents the type maybe one of other types.
+Add union type grammar, represents the type which is one of other types.
 
 ```swift
 
@@ -135,57 +135,58 @@ Because in current Swift environment, developer cannot announce a protocol to co
 ## Detailed design
 
 There are serveral advance points:
-    * It keeps the code clear and does not need developer to announce some unnecessary protocols or enums.
-        like `enum UnionOf3<T,U,V>` or `protocol CommonABC`
-    * It does not need wrap into an enum type.
-        ```swift
-        let a = new A()
-        let union: (A|B|C) = a // no need wrap.
-        ```
-        other than
 
-        ```swift
-        let a = new A()
-        let union: UnionOfABC = UnionOfABC._A(a) // wrap
-        ```
-    * Compiler search their common properties and methods, then mark them as a member of the union type.
-        ```swift
-        let a = new A()
-        let union: (A|B|C) = a // no need wrap.
-        print(union.commonProperty)
-        ```
-        developer automatically get this, instead of developer to declare a common property.
-
-    * Compiler know the union type exactly composed with which types, better than only know which protocol.
-        switch union type of A, B, C only needs three cases, but interface Common needs a default case.
-
-    * It will be easy to compare with value of original type.
+* It keeps the code clear and does not need developer to announce some unnecessary protocols or enums.
+    like `enum UnionOf3<T,U,V>` or `protocol CommonABC`
+* It does not need wrap into an enum type.
     ```swift
-		union == a // If union is not type A, then return false; If union is type A, then compare!!😊
+    let a = new A()
+    let union: (A|B|C) = a // no need wrap.
     ```
-    instead of unwrap enum cases and compare.
+    other than
 
-    * Original types and union types can have a rational relationship between each other.
-        Original type is a sub-type of union types contain it.
-        ```swift
-            var fn0: A->Void = {print(v0)}
-            var fn1: (A|B)->Void = {print(v0)}
+    ```swift
+    let a = new A()
+    let union: UnionOfABC = UnionOfABC._A(a) // wrap
+    ```
+* Compiler search their common properties and methods, then mark them as a member of the union type.
+    ```swift
+    let a = new A()
+    let union: (A|B|C) = a // no need wrap.
+    print(union.commonProperty)
+    ```
+    developer automatically get this, instead of developer to declare a common property.
 
-            fn0 = fn1 // OK, because Original Type and Union Type has a sub-typing relationship
+* Compiler know the union type exactly composed with which types, better than only know which protocol.
+    switch union type of A, B, C only needs three cases, but interface Common needs a default case.
 
-            var fn2: (A|B|C)->Void = {print($0)}
+* It will be easy to compare with value of original type.
+```swift
+    union == a // If union is not type A, then return false; If union is type A, then compare!!😊
+```
+instead of unwrap enum cases and compare.
 
-            fn0 = fn2 // OK
-            fn1 = fn2 // OK
-        ```
-	* And the most important part, It can replace Optional<T>.
-        ```swift
-		let string: String?
-        ```
-	    is same to
-        ```
-		let string: (String | None)  instead of let string: Optional<String>
-        ```
+* Original types and union types can have a rational relationship between each other.
+    Original type is a sub-type of union types contain it.
+    ```swift
+        var fn0: A->Void = {print(v0)}
+        var fn1: (A|B)->Void = {print(v0)}
+
+        fn0 = fn1 // OK, because Original Type and Union Type has a sub-typing relationship
+
+        var fn2: (A|B|C)->Void = {print($0)}
+
+        fn0 = fn2 // OK
+        fn1 = fn2 // OK
+    ```
+* And the most important part, It can replace Optional<T>.
+    ```swift
+    let string: String?
+    ```
+    is same to
+    ```
+    let string: (String | None)  instead of let string: Optional<String>
+    ```
 
 ## Impact on existing code
 
