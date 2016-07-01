@@ -4,6 +4,10 @@
 * Author: [Trent Nadeau](https://github.com/tanadeau)
 * Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000204.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
+* Revision: 2
+* Previous Revision: [1][rev-1] (as accepted)
+
+[rev-1]: https://github.com/apple/swift-evolution/blob/833afd64b5d24a777fe2c42800d4b4dcd52bb487/proposals/0103-make-noescape-default.md
 
 ## Introduction
 
@@ -39,7 +43,27 @@ The compiler's semantic analysis implementation can be simplified as the more co
 
 The standard library should be changed to use the new default whenever possible by removing all uses of `@noescape` and only adding `@escaping` where the compiler detects the need.
 
-An `asUnsafeEscapingClosure(_:)` helper that will convert a nonescaping closure to an escaping one will be added to the standard library. This helper is useful when a function has a nonescaping closure argument (the closure is called before it returns), but the closure may be used as an argument to a function requiring an escaping closure, such as various `LazySequence` methods.
+A helper that will convert a non-escaping closure to an "escaping" one will be added to the standard library. This helper is useful when a function has a non-escaping closure argument (the closure is called before it returns), but the closure may be used as an argument to a function requiring an escaping closure, such as various `LazySequence` methods. The helper should verify that the closure has not actually escaped and trap if it does. It should have the following signature:
+
+```swift
+func withoutActuallyEscaping<ClosureType, ResultType>(
+    _ closure: ClosureType,
+    do: (fn: @escaping ClosureType) throws -> ResultType) rethrows -> ResultType {
+  // ...
+}
+```
+
+An example of its use:
+
+```swift
+func yourFunction(fn: (Int) -> Int) {  // fn defaults to non-escaping.
+  withoutActuallyEscaping(fn) { fn in  // fn is now marked @escaping inside the closure
+    // ...
+    somearray.lazy.map(fn)             // pass fn to something that is notationally @escaping
+    // ...
+  }
+}
+```
 
 ### Imported C/Objective-C APIs
 
