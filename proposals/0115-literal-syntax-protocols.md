@@ -1,9 +1,9 @@
-# Literal Syntax Protocols
+# Rename Literal Syntax Protocols
 
-* Proposal: [SE-NNNN](NNNN-literal-syntax-protocols.md)
+* Proposal: [SE-0115](0115-literal-syntax-protocols.md)
 * Author: [Matthew Johnson](https://github.com/anandabits)
-* Status: **Awaiting review**
-* Review manager: TBD
+* Status: **Active review July 1...7**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 

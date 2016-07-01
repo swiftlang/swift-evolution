@@ -16,7 +16,7 @@ proposals in that process.
 * June 30 ... July 4 [SE-0112: Improved NSError Bridging](proposals/0112-nserror-bridging.md)
 * June 30 ... July 5 [SE-0113: Add integral rounding functions to FloatingPoint](proposals/0113-rounding-functions-on-floatingpoint.md)
 * July 1...7 [SE-0114: Updating Buffer "Value" Names to "Header" Names](proposals/0114-buffer-naming.md)
-
+* July 1...7 [SE-0115: Rename Literal Syntax Protocols](proposals/0115-literal-syntax-protocols.md)
 
 ## Upcoming reviews
 
