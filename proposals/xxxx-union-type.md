@@ -44,7 +44,7 @@ class C {
 
 ```
 
-Originaly, if we want to represent type of a varialbe maybe A, B or C, we should anounce a new type:
+Originaly, if we want to represent type of a varialbe maybe A, B or C, we should announce a new type:
 
 ```swift
 
