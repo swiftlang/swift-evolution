@@ -7,7 +7,7 @@
 
 ## Introduction
 
-This proposal renames the `*LiteralConvertible` protocols to `Syntax.*Literal`.  
+This proposal renames the `*LiteralConvertible` protocols to `ExpressibleAs*Literal`.  
 
 Swift-evolution thread: [Literal Syntax Protocols](http://thread.gmane.org/gmane.comp.lang.swift.evolution/21441)
 
@@ -31,11 +31,11 @@ Further, the standard library team has observed:
 
 ## Proposed solution
 
-This proposal addresses both problems by introducing a `Syntax` "namespace" and moving the `*LiteralConvertible` protocols into that "namespace" while also renaming them.  The proposal **does not** make any changes to the requirements of the protocols.
+This proposal addresses both problems by renaming the protocols to `ExpressibleAs*Literal`.  The proposal **does not** make any changes to the requirements of the protocols.
 
 ## Detailed design
 
-All of the `*LiteralConvertible` protocols will receive new `*Literal` names inside a `Syntax` namespace.  
+All of the `*LiteralConvertible` protocols will receive new `ExpressibleAs*Literal` names.  
 
 This namespace will initially be implemented using a case-less `enum`, but this detail may change in the future if submodules or namespaces are added to Swift.  Swift does not currently allow protocols to be declared inside the scope of a type.  In order to work around this limitation the protocols themselves will be declared using underscore-prefixed names internal to the standard library.  Typealiases inside the `Syntax` enum will declare the names intended to be visible to user code.
 
@@ -59,39 +59,25 @@ public protocol DictionaryLiteralConvertible { ... }
 Are changed as follows:
 
 ```swift
-
-public protocol _NilLiteralSyntax { ... }
-public protocol _BooleanLiteralSyntax { ... }
-public protocol _IntegerLiteralSyntax { ... }
-public protocol _FloatLiteralSyntax { ... }
-public protocol _UnicodeScalarLiteralSyntax { ... }
-public protocol _ExtendedGraphemeClusterLiteralSyntax { ... }
-public protocol _StringLiteralSyntax { ... }
-public protocol _StringInterpolationLiteralSyntax { ... }
-public protocol _ArrayLiteralSyntax { ... }
-public protocol _DictionaryLiteralSyntax { ... }
-
-public /* closed */ enum Syntax {
-  public typealias NilLiteral = _NilLiteralSyntax
-  public typealias BooleanLiteral = _BooleanLiteralSyntax
-  public typealias IntegerLiteral = _IntegerLiteralSyntax
-  public typealias FloatLiteral = _FloatLiteralSyntax
-  public typealias UnicodeScalarLiteral = _UnicodeScalarLiteralSyntax
-  public typealias ExtendedGraphemeClusterLiteral = _ExtendedGraphemeClusterLiteralSyntax
-  public typealias StringLiteral = _StringLiteralSyntax
-  public typealias StringInterplolationLiteral = _StringInterpolationLiteralSyntax
-  public typealias ArrayLiteral = _ArrayLiteralSyntax
-  public typealias DictionaryLiteral = _DictionaryLiteralSyntax
-}
+public protocol ExpressibleAsNilLiteral { ... }
+public protocol ExpressibleAsBooleanLiteral { ... }
+public protocol ExpressibleAsFloatLiteral { ... }
+public protocol ExpressibleAsIntegerLiteral { ... }
+public protocol ExpressibleAsUnicodeScalarLiteral { ... }
+public protocol ExpressibleAsExtendedGraphemeClusterLiteral { ... }
+public protocol ExpressibleAsStringLiteral { ... }
+public protocol ExpressibleAsStringInterpolation { ... }
+public protocol ExpressibleAsArrayLiteral { ... }
+public protocol ExpressibleAsDictionaryLiteral { ... }
 ```
 
 ## Impact on existing code
 
-All code that references any of the `*LiteralConvertible` protocols will need to be modified to reference the protocol via the new `Syntax.*Literal` name.
+All code that references any of the `*LiteralConvertible` protocols will need to be modified to reference the protocol via the new `ExpressibleAs*Literal` name.
 
 ## Alternatives considered
 
-Discussion of the pros and cons of the proposed and alternative naming schemes is encouraged.  The core team should feel free to choose names they deem best suited for Swift after community discussion and review if they decide to accept this proposal.  The intent of the proposal is to resolve the issues described in the motivation.  The proposal does not take a strong position regarding the best names to use in the solution.
+Discussion of the pros and cons of the proposed and alternative naming schemes is encouraged.  The core team should feel free to choose names they deem best suited for Swift after community discussion and review if they decide to accept this proposal.
 
 The discussion thread for this proposal includes abundant bike shedding on the names.  This section includes selected examples to highlight different directions that have been discussed.  Reviewers are encouraged to read the discussion thread if they wish to see all of the alternatives.  The thread includes abundant discusison of the pros and cons of many naming ideas.
 
@@ -118,15 +104,22 @@ Some of the names that have been suggested have been inaccurate due to a misunde
     the proposed names because they imply exactly the actual meaning of the
     protocol, which they misunderstand.
 
-### Namespace names
+### Previous Version
 
-David Sweeris suggested `Compiler` as an alternative to `Syntax`.  
+The original version of this proposal introduced a `Syntax` "namespace" (using an empty `enum`) and placed the protocols in that namespace with a `*Literal` naming scheme like this:
 
-Adrian Zubarev suggested a convention using a nested namespace `Syntax.Literal.*Protocol`.
+```swift
 
-### Protocol names
+public protocol _NilLiteralSyntax { ... }
 
-Several commenters have suggested that the names in this proposal are confusing at the site of use.  Nate Cook provided the best explanation of the potential confusion:
+public /* closed */ enum Syntax {
+  public typealias NilLiteral = _NilLiteralSyntax
+}
+```
+
+Several commenters suggested that this naming scheme is confusing at the site of use.  The ensuing discussion led to the approach in the current proposal.
+
+Nate Cook provided the best explanation of the potential confusion:
 
     Primarily, the new names read like we're saying that a conforming type is a 
     literal, compounding a common existing confusion between literals and types 
@@ -158,17 +151,14 @@ extension MyInt : Syntax.IntegerLiteral { ... }
     The existing "Convertible" wording may be a red herring, but it at least 
     suggests that there's a difference between a literal and a concrete type.
 
-Alternative naming schemes suggested by Sean Heber that emphasize the fact that these protocols represent the ability to *express* (write) instances of conforming types with a literal are:
 
-```swift
-struct Foo: Syntax.ExpressibleAsIntegerLiteral { ... }
-```
+### Namespace names
 
-and: 
+David Sweeris suggested `Compiler` as an alternative to `Syntax`.  
 
-```swift
-struct Foo: Syntax.IntegerLiteralExpressible { ... }
-```
+Adrian Zubarev suggested a convention using a nested namespace `Syntax.Literal.*Protocol`.
+
+### Protocol names
 
 An alternative naming scheme suggested by Xiaodi Wu emphasizes that the type *conforms to a protocol* rather than *is a literal* is:
 
@@ -177,21 +167,6 @@ struct Foo: Syntax.IntegerLiteralProtocol { ... }
 ```
 
 ### Rename the protocols without placing them in a namespace
-
-Dave Abrahams has suggested considering the `ExpressibleAs*Literal` scheme without placing the protocols in the `Syntax` namespace:
-
-```swift
-public protocol ExpressibleAsNilLiteral { ... }
-public protocol ExpressibleAsBooleanLiteral { ... }
-public protocol ExpressibleAsIntegerLiteral { ... }
-public protocol ExpressibleAsFloatLiteral { ... }
-public protocol ExpressibleAsUnicodeScalarLiteral { ... }
-public protocol ExpressibleAsExtendedGraphemeCluster { ... }
-public protocol ExpressibleAsStringLiteral { ... }
-public protocol ExpressibleAsStringInterpolationLiteral { ... }
-public protocol ExpressibleAsArrayLiteral { ... }
-public protocol ExpressibleAsDictionaryLiteral { ... }
-```
 
 Adrian Zubarev suggests that we could use the `*LiteralProtocol` naming scheme for these protocols (replacing `Convertible` with `Protocol`) without placing them in a namespace:
 
@@ -214,4 +189,8 @@ This proposal is a follow up to [Updating Protocol Naming Conventions for Conver
 
 ## Acknowledgements
 
-The design described in this proposal was suggested by Dave Abrahams, Dmitri Gribenko, and Maxim Moiseev.  Nate Cook, Dave Abrahams, Sean Heber, David Sweeris, Adrian Zubarev and Xiaodi Wu contributed ideas to the alternatives considered section.
+The name used in the final proposal was first suggested by Sean Heber.  Dave Abrahams suggested moving it out of the `Syntax` namespace that was used in the original draft of this proposal.  
+
+The design in the original draft was suggested by Dave Abrahams, Dmitri Gribenko, and Maxim Moiseev.  
+
+Dave Abrahams, Nate Cook, David Sweeris, Adrian Zubarev and Xiaodi Wu contributed ideas to the alternatives considered section.
