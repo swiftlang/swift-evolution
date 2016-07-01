@@ -22,10 +22,11 @@ Prior Discussions:
 
 ## Motivation
 
-Although `sizeof()`, etc are treated as terms of art, these names are appropriated from C. The functions do not correspond to anything named `sizeof` in LLVM. Swift's six freestanding memory functions increase the API surface area while providing lightly-used and unsafe functionality. Dave Abrahams writes, "These APIs are not like `map`, `filter`, and `Dictionary`. They're specialty items that you should
-only reach for when performing unsafe operations, mostly inside the guts of higher-level constructs."
+Although `sizeof()`, etc are treated as terms of art, these names are appropriated from C. The functions do not correspond to anything named `sizeof` in LLVM. Swift's six freestanding memory functions increase the API surface area while providing lightly-used and unsafe functionality. 
 
-Although I believe my original design in the first version of this proposal offered sound usability engineering, under these circumstances, I have refactored this proposal to adopt Dave's single-namespace approach. This approach increases discoverability, provides a single entry point for related operations, and enables future expansions without introducing further freestanding functions.
+These APIs are not like `map`, `filter`, and `Dictionary`. They're specialty items that you should only reach for when performing unsafe operations, mostly inside the guts of higher-level constructs.
+
+Refactoring this proposal to use a single namespace increases discoverability, provides a single entry point for related operations, and enables future expansions without introducing further freestanding functions.
 
 ## Detailed Design
 
@@ -33,35 +34,24 @@ This proposal introduces a new struct, `MemoryLayout`
 
 ```swift
 /// Accesses the memory layout of `T` through its
-/// `size`, `spacing`, and `alignment` properties
+/// `size`, `stride`, and `alignment` properties
 public struct MemoryLayout<T> {
     /// Returns the contiguous memory footprint of `T`.
     ///
-    /// Does not include any dynamically-allocated or "remote" storage.
-    /// In particular, `MemoryLayout<X>.size`, when `X` is a class type, is the
-    /// same regardless of how many stored properties `X` has.
-    public static var size: Int // currently sizeof()
+    /// Does not include any dynamically-allocated or "remote" 
+    /// storage. In particular, `MemoryLayout<T>.size`, when 
+    /// `T` is a class type, is the same regardless of how many 
+    /// stored properties `T` has.
+     public static var size: Int { return _sizeof(T) }
     
-    /// Returns the spacing between instances of `T` in `Array<T>`, 
-    /// or the number of bytes moved by an `UnsafePointer<T>` when incremented. 
-    /// `T` may have a lower minimal alignment that trades runtime performance 
+    /// Returns the spacing between instances of `T` in 
+    /// `Array<T>`, or the number of bytes moved by an 
+    /// `UnsafePointer<T>` when incremented. `T` may have 
+    /// a lower minimal alignment that trades runtime performance 
     /// for space efficiency. The result is always positive.
-    public static var spacing: Int // currently strideof()
+    public static var stride: Int { return _strideof(T) }
     
     /// Returns the minimum memory alignment of `T`.
-    public static var alignment: Int // currently alignof()
-    
-    /// Initialize with a value
-    public init(_ : @autoclosure () -> T)
-}
-```
-
-As `stride` already has a well-established meaning in the standard library, this proposal changes its name to `spacing`, matching existing documentation and `align` is renamed to `alignment`. 
-
-```swift
-public struct MemoryLayout<T> {
-    public static var size: Int { return _sizeof(T) }
-    public static var spacing: Int { return _strideof(T) }
     public static var alignment: Int { return _alignof(T) }
 }
 ```
@@ -71,13 +61,13 @@ With this design, consumers call:
 ```swift
 // Types
 MemoryLayout<Int>.size // 8
-MemoryLayout<Int>.spacing // 8
+MemoryLayout<Int>.stride // 8
 MemoryLayout<Int>.alignment // 8
 ```
 
 ## Values
 
-This proposal removes `sizeofValue()`, `strideofValue()`, and `alignofValue()` from the standard library. This proposal takes the stance that sizes relate to types, not values.
+This proposal removes `sizeofValue()`, `strideofValue()`, and `alignofValue()` from the standard library. This proposal adopts the stance that sizes relate to types, not values.
 
 Russ Bishop writes in the initial review thread, "Asking about the size of an instance implies things that aren’t true. Sticking _value_ labels on everything doesn’t change the fact that `sizeOf(swift_array)` is not going to give you the size of the underlying buffer no matter how you slice it."
 
@@ -128,7 +118,7 @@ As the following chart shows, type-based calls consistently outnumber instance-b
 </tr>
 </table>
 
-If for some reason, the core team decides that there's a compelling reason to include value calls, an implementation would look something like this:
+If for some reason, the core team decides that there's a compelling reason to include value calls, an implementation might look something like this:
 
 ```swift
 extension MemoryLayout<T> {
@@ -142,11 +132,11 @@ extension MemoryLayout<T> {
 let x: UInt8 = 5
 MemoryLayout.of(x).size // 1
 MemoryLayout.of(1).size // 8
-MemoryLayout.of("hello").spacing // 24
+MemoryLayout.of("hello").stride // 24
 MemoryLayout.of(29.2).alignment // 8
 ```
 
-## Known Limitations and Bugs
+#### Known Limitations and Bugs
 
 According to Joe Groff, concerns about existential values (it's illegal to ask for the size of an existential value's dynamic type) could be addressed by 
 
@@ -162,16 +152,16 @@ This proposal requires migration support to replace function calls with struct-b
 
 ## Alternatives Considered
 
-My original proposal introduced three renamed standalone functions:
+The original proposal introduced three renamed standalone functions:
 
 ```swift
 public func memorySize<T>(ofValue _: @autoclosure T -> Void) -> Int
-public func memoryInterval<T>(ofValue _: @autoclosure T -> Void) -> Int // or memorySpacing, etc
+public func memoryInterval<T>(ofValue _: @autoclosure T -> Void) -> Int 
 public func memoryAlignment<T>(ofValue _: @autoclosure T -> Void) -> Int
 ```
 
-These functions offered human factor advantages over the current proposal but didn't address Dave Abrahams concerns about namespacing and overall safety. This alternative has been discarded and can be referenced by reading the original proposal.
+These functions offered human factor advantages over the current proposal but didn't address Dave's concerns about namespacing and overall safety. This alternative has been discarded and can be referenced by reading the original proposal.
 
 ## Acknowledgements
 
-Thank you, Xiaodi Wu, Matthew Johnson, Pyry Jahkola, Tony Allevato, Joe Groff, Dave Abrahams, and everyone else who contributed to this proposal
+Thank you, Xiaodi Wu, Matthew Johnson, Pyry Jahkola, Tony Allevato, Joe Groff, Russ Bishop, and everyone else who contributed to this proposal
