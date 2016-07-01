@@ -26,7 +26,7 @@ Contents:
 Swift enforces type safe access to memory and follows strict aliasing
 rules. However, code that uses unsafe APIs or imported types can
 circumvent the language's natural type safety. Consider the following
-example of *type punning* using the ``UnsafePointer`` type::
+example of *type punning* using the `UnsafePointer` type::
 
 ```swift
   let ptrT: UnsafeMutablePointer<T> = ...
@@ -37,7 +37,7 @@ example of *type punning* using the ``UnsafePointer`` type::
 ```
 
 This code violates assumptions made by the compiler and falls into the
-category of "undefined behavior". Undefined behavior is a way of
+category of "[undefined behavior](http://blog.llvm.org/2011/05/what-every-c-programmer-should-know.html)". Undefined behavior is a way of
 saying that we cannot easily specify constraints on the behavior of
 programs that violate a rule. The program may crash, corrupt memory,
 or be miscompiled in other ways. Miscompilation may include optimizing
@@ -45,10 +45,10 @@ away code that was expected to execute or executing code that was not
 expected to execute.
 
 Swift already protects against undefined behavior as long as the code
-does not use "unsafe" constructs. However, UnsafePointer is an
+does not use "unsafe" constructs. However, `UnsafePointer` is an
 important API for interoperability and building high performance data
 structures. As such, the rules for safe, well-defined usage of the API
-should be clear. Currently, it is too easy to use UnsafePointer
+should be clear. Currently, it is too easy to use `UnsafePointer`
 improperly. For example, innocuous argument conversion such as this
 could lead to undefined behavior:
 
@@ -77,9 +77,9 @@ This proposal aims to achieve several goals in one coherent design:
 
 2. Specify which pointer types follow strict aliasing rules.
 
-3. Inhibit UnsafePointer conversion that violates strict aliasing.
+3. Inhibit `UnsafePointer` conversion that violates strict aliasing, in order to make violations of the model more clear.
 
-4. Provide an API for safe type punning (memcpy semantics).
+4. Provide an API for safe type punning (`memcpy` semantics).
 
 5. Provide an API for manual memory layout (bytewise pointer arithmetic).
 
@@ -474,8 +474,8 @@ With the proposed API, assigning values of different types to the same
 location can now be safely done by properly initializing and
 deinitializing the memory through `UnsafeMutableRawPointer`. Ultimately, the
 values may still be accessed via the same convenient
-UnsafeMutablePointer type. Type punning has not happened, because the
-UnsafeMutablePointer has the same type as the memory's initialized
+`UnsafeMutablePointer` type. Type punning has not happened, because the
+`UnsafeMutablePointer` has the same type as the memory's initialized
 type whenever it is dereferenced.
 
 ```swift
@@ -504,7 +504,7 @@ func initAthenB {
 ```
 
 <hr>
-No API currently exists that allows initialized memory to hold either A or B.
+No API currently exists that allows initialized memory to hold either `A` or `B`.
 
 ```swift
 // --- old version ---
@@ -556,7 +556,7 @@ func initAorB(_ p: UnsafeMutableRawPointer, isA: Bool) {
 }
 ```
 
-Code in the caller is now well defined because initAorB is now a
+Code in the caller is now well defined because `initAorB` is now a
 compiler barrier for unsafe pointer access. Furthermore, each unsafe
 pointer cast is explicit:
 
@@ -580,7 +580,7 @@ type (type punning). The following example is safe because the memory
 is never accessed via a typed `UnsafePointer`. A raw pointer is
 allocated, the raw pointer is initialized, and the raw pointer
 dereferenced. Every read and write through `UnsafeRawPointer` has
-untyped (memcpy) semantics.
+untyped (`memcpy`) semantics.
 
 ```swift
 // --- new version ---
@@ -600,7 +600,7 @@ func testTypePun() {
 ```
 
 <hr>
-Developer's may be forced to work with "loosely typed" APIs,
+Developers may be forced to work with "loosely typed" APIs,
 particularly for interoperability:
 
 ```swift
@@ -612,7 +612,7 @@ func readCStr(_ string: UnsafePointer<CChar>) {
 }
 ```
 
-Working with these API's exclusively using UnsafeMutablePointer leads
+Working with these API's exclusively using `UnsafeMutablePointer` leads
 to undefined behavior, as shown here using the current API:
 
 ```swift
@@ -741,14 +741,14 @@ Consider this sequence of abstract memory operations:
 
 Abstract Operation                | Memory State  | Type
 --------------------------------- | ------------  | ----
-rawptr = allocate()               | uninitialized | None
-tptr = rawptr.initialize(T)       | initialized   | contains T
-tptr.pointee = T                  | initialized   | contains T
-tptr.deinitialize()               | uninitialized | None
-uptr = rawptr.initialize(U)       | initialized   | contains U
-uptr.pointee = U                  | initialized   | contains U
-uptr.deinitialize()               | uninitialized | None
-rawptr.deallocate()               | invalid       | None
+`rawptr = allocate()`             | uninitialized | None
+`tptr = rawptr.initialize(T)`     | initialized   | contains T
+`tptr.pointee = T`                | initialized   | contains T
+`tptr.deinitialize()`             | uninitialized | None
+`uptr = rawptr.initialize(U)`     | initialized   | contains U
+`uptr.pointee = U`                | initialized   | contains U
+`uptr.deinitialize()`             | uninitialized | None
+`rawptr.deallocate()`             | invalid       | None
 
 The proposed API establishes a convention whereby raw pointers
 primarily refer to uninitialized memory and typed pointers primarily
@@ -866,12 +866,12 @@ may improve performance under some conditions. (See the
 
 When using a typed pointer to initialize memory, the programmer
 assumes direct responsibility for two aspects of the managing the
-memory that otherwise fall out of the UnsafeRawPointer API naturally:
+memory that otherwise fall out of the `UnsafeRawPointer` API naturally:
 
-1. ensuring the memory is accesses with a consistent pointer type
+1. ensuring the memory is accesses with a consistent pointer type.
 
 2. tracking the memory's initialized state (usually of several
-   individual contiguous elements)
+   individual contiguous elements).
 
 Casting a raw pointer to a typed pointer also allows subsequent
 initialization via an assignment operation. However, this is only
@@ -894,7 +894,7 @@ valid on "trivial types" (as defined in the following section):
 ### Trivial types
 
 Certain kinds of memory access, as decribed in the following two sections,
-are only valid for "trivial types". A ``trivial type`` promises
+are only valid for "trivial types". A "trivial type" promises
 that assignment just requires a fixed-size bit-for-bit copy without
 any indirection or reference-counting operations. Generally, native
 Swift types that do not contain strong or weak references or other
@@ -1124,7 +1124,7 @@ func readMsg(msgBuf: UnsafeRawPointer, isFormat1: Bool) {
 ### Custom memory allocation
 
 Note: The same allocated raw memory cannot be used for this custom
-memory allocation case and diretcly used for the C buffer case above
+memory allocation case and directly used for the C buffer case above
 because the C buffer conceptually binds the allocated memory to an
 element type by writing via a typed pointer without reinitializing the
 memory via a raw pointer. The same allocated memory cannot be
@@ -1221,7 +1221,7 @@ extension UnsafeMutablePointer {
 
 ### Implicit argument conversion
 
-Consider two C functions that take const pointers:
+Consider two C functions that take `const` pointers:
 
 ```C
 void takesConstTPtr(const T*);
@@ -1263,7 +1263,7 @@ let s = "string"
 takesConstVoidPtr(s)
 ```
 
-Consider two C functions that take nonconst pointers:
+Consider two C functions that take non-`const` pointers:
 
 ```C
 void takesTPtr(T*);
@@ -1301,7 +1301,7 @@ Given values of these types:
   let c: Int
 ```
 
-#### `UnsafeRawPointer` to `UnsafeMutableRawPointer` raw copy (memcpy):
+#### `UnsafeRawPointer` to `UnsafeMutableRawPointer` raw copy (`memcpy`):
 
 ```swift
   mrawPtr.storeRaw(contiguous: T.self, from: rawPtr, count: c)
@@ -1375,8 +1375,8 @@ This particular case is theoretically invalid because
 overwrites the same memory as a buffer of `CChar`. More commonly, the
 pointer conversion is valid because the buffer is only initialized
 once. Nonetheless, the explicit casting is extremely awkward for
-such a common use case. To avoid excessive UnsafePointer conversion
-and ease migration to the UnsafeRawPointer model, helpers will be
+such a common use case. To avoid excessive `UnsafePointer` conversion
+and ease migration to the `UnsafeRawPointer` model, helpers will be
 added to the `String` API.
 
 In `CString.swift`:
@@ -1396,7 +1396,7 @@ extension String {
 ```
 
 With these two helpers, conversion between `UnsafePointer<CChar>` and
-`UnsafePointer<UInt8>` is safe without sacrificing efficieny. The
+`UnsafePointer<UInt8>` is safe without sacrificing efficiency. The
 `String` initializer already copies the byte array into the String's
 internal representation, so can trivially convert the element
 type. The `nulTerminatedUTF8CString` function also copies the
@@ -1413,10 +1413,10 @@ helper, no unsafe casting is necessary in the previous example:
   }
 ```
 
-### Full UnsafeRawPointer API
+### Full `UnsafeRawPointer` API
 
 Most of the API was already presented above. For the sake of having it
-in one place, a list of the expected UnsafeMutableRawPointer members
+in one place, a list of the expected `UnsafeMutableRawPointer` members
 is shown below:
 
 ```swift
@@ -1549,7 +1549,7 @@ let p = UnsafeMutablePointer<T>.allocate(capacity: num)
 p.initialize(with: T())
 ```
 
-becomes
+becomes:
 
 ```swift
 let p = UnsafeMutableRawPointer.allocate(capacity: num, of: T.self).initialize(T.self, with: T())
@@ -1562,7 +1562,7 @@ p.deinitialize(num)
 p.deallocateCapacity(num)
 ```
 
-to
+to:
 
 ```swift
 p.deinitialize(num).deallocate(capacity: num, of: T.self)
@@ -1602,9 +1602,8 @@ will be automatically converted to:
 ### Standard library changes
 
 Disallowing inferred `UnsafePointer` conversion requires some standard
-library code to use an explicit .cast(to:
-UnsafePointer<Pointee>.self)` whenever the conversion may violate
-strict aliasing.
+library code to use an explicit `.cast(to: UnsafePointer<Pointee>.self)`
+whenever the conversion may violate strict aliasing.
 
 All occurrences of `Unsafe[Mutable]Pointer<Void>` in the standard
 library are converted to `Unsafe[Mutable]RawPointer`. e.g. `unsafeAddress()` now
@@ -1618,7 +1617,7 @@ actually wanted to perform pointer arithmetic on byte-addresses.
 `StringCore.baseAddress` changes from `OpaquePointer` to
 `UnsafeMutableRawPointer` because it is computing byte offsets and
 accessing the memory.  `OpaquePointer` is meant for bridging, but
-should be truly opaque; that is, nondereferenceable and not involved
+should be truly opaque; that is, non-dereferenceable and not involved
 in address computation.
 
 The `StringCore` implementation does a considerable amount of casting
@@ -1633,10 +1632,10 @@ buffer is always written as a raw pointer.
 ## Implementation status
 
 An [unsafeptr_convert branch][2] has the first prototype, named
-`UnsafeBytePointer`, and includes stdlib and type system changes
+`UnsafeBytePointer`, and includes standard library and type system changes
 listed below. A [rawptr branch][3] has the latest proposed
 implementation of `UnsafeRawPointer`. I am currently updating the
-rawptr branch to include the following changes.
+`rawptr` branch to include the following changes.
 
 There are a several things going on here in order to make it possible
 to build the standard library with the changes:
@@ -1651,13 +1650,13 @@ to build the standard library with the changes:
   `UnsafeMutablePointer<Void>` (Recent feedback suggestes that
   `UnsafeMutablePointer` should also be introduced).
 
-- The standard library was relying on inferred UnsafePointer
+- The standard library was relying on inferred `UnsafePointer`
   conversion in over 100 places. Most of these conversions now either
   take an explicit label, such as `mutating` or have been rewritten.
 
 - Several places in the standard library that were playing loosely
   with strict aliasing or doing bytewise pointer arithmetic now use
-  UnsafeRawPointer instead.
+  `UnsafeRawPointer` instead.
 
 - Explicit labeled `Unsafe[Mutable]Pointer` initializers are added.
 
@@ -1665,7 +1664,7 @@ to build the standard library with the changes:
 
 Remaining work:
 
-- A name mangled abbreviation needs to be created for UnsafeRawPointer.
+- A name mangled abbreviation needs to be created for `UnsafeRawPointer`.
 
 - The StringAPI tests should probably be rewritten with
   `UnsafeRawPointer`.
@@ -1682,11 +1681,53 @@ Remaining work:
 
 `UnsafeRawPointer` should eventually support unaligned memory access. I
 believe that we will eventually have a modifier that allows "packed"
-struct members. At that time we may also want to add a "packed" flag to
+struct members. At that time we may also want to add an "unaligned" flag to
 `UnsafeRawPointer`'s `load` and `initialize` methods.
 
 ## Variations under consideration
 
+<<<<<<< d4f987aa8948b0ba920dc883ba05efce0e979e1e
+=======
+### Freestanding `allocate`/`deallocate`
+
+I considered defining allocation and deallocation global functions
+that operation on `UnsafeMutableRawPointer`. `allocate` is not logically
+an initializer because it is not a conversion and its main function is
+not simply the construction of an `UnsafeRawPointer`:
+
+
+```swift
+func allocate<T>(capacity: Int, of: T.Type) -> UnsafeMutableRawPointer
+
+func deallocate<T>(_: UnsafeMutableRawPointer, capacity: Int, of: T.Type) {}
+
+let rawPtr = allocate(capacity: 1, of: A.self)
+
+deallocate(rawPtr, capacity: 1, of: A.self)
+```
+
+The allocate/initialize idiom would be:
+
+```swift
+let ptrToA = allocate(capacity: 1, of: A.self).initialize(A.self, with: A())
+
+deallocate(ptrToA.deinitialize(count: 1))
+```
+
+The main reason this was not done was to avoid introducing these names
+into the global namespace.
+
+A reasonable compromise would be a static method on allocation, and an
+instance method on deallocation:
+
+```swift
+let ptrA = UnsafeMutableRawPointer.allocate(capacity: 1, of: A.self)
+  .initialize(A.self, with: A())
+
+ptrA.deinitialize(count: 1).deallocate(capacity: 1, of: A.self)
+```
+
+>>>>>>> Improve spelling, typography, and add a (vanity) link to explain UB.
 ### Conversion via initializer instead of `cast<T>(to: UnsafePointer<T>)`
 
 This proposal calls for unsafe pointer type conversion to be performed
@@ -1706,7 +1747,7 @@ Conversion via initialization is generally a good convention, but
 there are reasons not to use an initializer in this case. Conversion
 via initializer indicates a normal, expected operation on the type
 that is safe or at least checked. (e.g. integer initialization may
-narrow, but traps on truncation). UnsafePointer is already "unsafe" in
+narrow, but traps on truncation). `UnsafePointer` is already "unsafe" in
 the sense that it's lifetime is not automatically managed, but its
 initializers should not introduce a new dimension of unsafety. Pointer
 type conversion can easily lead to undefined behavior, and is beyond
@@ -1804,7 +1845,7 @@ cases for such a property evident in the standard library.
 
 The opaque `_RawByte` struct is a technique that allows for
 byte-addressable buffers while hiding the dangerous side effects of
-type punning (a _RawByte could be loaded but it's value cannot be
+type punning (a `_RawByte` could be loaded but it's value cannot be
 directly inspected). `UnsafePointer<_RawByte>` is a clever alternative
 to `UnsafeRawPointer`. However, it doesn't do enough to prevent
 undefined behavior. The loaded `_RawByte` would naturally be accessed
@@ -1841,8 +1882,8 @@ via subscript which would be implied by `UnsafeBytePointer`.
 Changing the imported type for `void*` will be somewhat disruptive. We
 could continue to import `void*` as `UnsafeMutablePointer<Void>` and
 `const void*` as `UnsafePointer<Void>`, which will continue to serve
-as an "opaque" untyped pointer. Converting to UnsafeRawPointer would
-be necesarry to perform pointer arithmetic or to conservatively handle
+as an "opaque" untyped pointer. Converting to `UnsafeRawPointer` would
+be necessary to perform pointer arithmetic or to conservatively handle
 possible type punning.
 
 This alternative is *much* less disruptive, but we are left with two
