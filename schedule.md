@@ -20,6 +20,8 @@ proposals in that process.
 
 ## Upcoming reviews
 
+* July 5...11 [SE-0116: Import Objective-C `id` as Swift `Any` type](proposals/0116-id-as-any.md)
+
 ## Proposals awaiting scheduling
 
 

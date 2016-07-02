@@ -1,9 +1,9 @@
 # Import Objective-C `id` as Swift `Any` type
 
-* Proposal: [SE-NNNN](XXXX-id-as-any.md)
+* Proposal: [SE-0116](0116-id-as-any.md)
 * Author: [Joe Groff](https://github.com/jckarter)
-* Status: **Awaiting review**
-* Review manager: TBD
+* Status: **Scheduled for review July 5...11**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
