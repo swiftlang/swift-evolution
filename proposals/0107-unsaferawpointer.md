@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0107](0107-unsaferawpointer.md)
 * Author: [Andrew Trick](https://github.com/atrick)
-* Status: **Active Review June 28 ... July 4**
+* Status: **Active Review June 28 ... July 10**
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 For quick reference, jump to:
