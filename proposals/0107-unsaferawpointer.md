@@ -76,7 +76,7 @@ not subject to the same strict aliasing rules.
 This proposal aims to achieve several goals in one coherent design:
 
 1. Specify a memory model that encompasses all UnsafePointer access and
-   defines which memory operations are subject strict aliasing rules.
+   defines which memory operations are subject to strict aliasing rules.
 
 2. Inhibit `UnsafePointer` conversion that violates strict aliasing,
    in order to make violations of the model clear and verifiable.
