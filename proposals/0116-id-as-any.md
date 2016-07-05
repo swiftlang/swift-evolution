@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0116](0116-id-as-any.md)
 * Author: [Joe Groff](https://github.com/jckarter)
-* Status: **Scheduled for review July 5...11**
+* Status: **Active review July 5...11**
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
