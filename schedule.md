@@ -18,6 +18,7 @@ proposals in that process.
 * July 1...7 [SE-0114: Updating Buffer "Value" Names to "Header" Names](proposals/0114-buffer-naming.md)
 * July 1...7 [SE-0115: Rename Literal Syntax Protocols](proposals/0115-literal-syntax-protocols.md)
 * July 5...11 [SE-0116: Import Objective-C `id` as Swift `Any` type](proposals/0116-id-as-any.md)
+* July 5...11 [SE-0117: Default classes to be non-subclassable publicly](0117-non-public-subclassable-by-default.md)
 
 ## Upcoming reviews
 
