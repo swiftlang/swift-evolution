@@ -87,7 +87,7 @@ on special language rules.
 - Untyped Cocoa collections come in as collections of `Any`.
   `NSArray` imports as `[Any]`, `NSDictionary` as `[AnyHashable: Any]`, and
   `NSSet` as `Set<AnyHashable>` (using an `AnyHashable` type erasing container
-  to be designed in a followup proposal).
+  to be designed [in a follow-up proposal](#anyhashabletype)).
 
 ## Detailed design
 
@@ -105,20 +105,22 @@ There are several cases to consider:
   of their corresponding idiomatic Cocoa classes, using the existing internal
   `_ObjectiveCBridgeable` protocol. The set of bridged types can be extended
   in the Swift implementation (and hopefully, eventually, by third parties too)
-  by adding conformances to that protocol.
+  by adding conformances to that protocol. This proposal does not address
+  adding or removing any new bridging behavior, though that would be a
+  natural [follow-up proposal](#bridgingmoretypestoidiomaticobjects).
 * **Unbridged value types** without an obvious Objective-C analog can still be
   boxed in an instance of an immutable class. The name and functionality of
   this class doesn't need to exposed in the language model, beyond being
-  minimally `id`-compatible to round-trip through Objective-C code, and be
-  eventually be dynamically castable back into the original Swift type from the
-  Swift side.
+  minimally `id`-compatible to round-trip through Objective-C code, and being
+  dynamically castable back into the original Swift type from Swift code when
+  an `Any` value contains a reference to a box.
 
 ### Ambivalent dynamic casting from `Any`
 
 [SE-0083](https://github.com/apple/swift-evolution/blob/master/proposals/0083-remove-bridging-from-dynamic-casts.md)
 seeks to simplify the behavior of dynamic casts in pure Swift code by taking
 away the runtime's current ability to dynamically apply bridging conversions.
-However, this functionality seems necessary when working with an `Any` value
+However, this functionality is necessary when working with an `Any` value
 that has come from an `id` value in Objective-C, since it is impossible to
 know locally whether the object is intended to be consumed in Swift as
 a bridged value or as a class instance. We can still simplify the dynamic
@@ -154,15 +156,15 @@ x as? NSString // => NSString "foo"
 ```
 
 Ambivalent `Any`s would have to be produced from any context where objects of
-unknown type are brought into Swift, including untyped `NS` collections bridged
-to collections of `Any`, block `in` parameters, and method override parameters,
-in addition to return types.
+unknown type are brought into Swift, including not only return types but
+accesses into untyped `NS` collections of `Any` or `AnyHashable`,
+block parameters, and method override parameters as well.
 
 ### Bridging Objective-C Collections
 
 If we take the class constraint away from singular `id` values, it also makes
 sense to do so for collections, for instance, bridging an untyped `NSArray`
-in Objective-C to a Swift `[Any]`. This also implies that we would need to
+from Objective-C to a Swift `[Any]`. This also implies that we would need to
 lift the current class restriction on covariant Array conversions—`[T]` would
 need to be supported as a subtype of `[Any]`.
 
@@ -173,7 +175,7 @@ protocol type cannot itself be used due to limitations in Swift 3; namely,
 `Hashable` refines the `Equatable` protocol, which demands `Self` constraints
 of its `==` requirement, and beyond that, we do not support protocol types
 conforming to their own protocols in general. As a stopgap, we will likely need
-an `AnyHashable` type-erased container in the standard library.
+an [`AnyHashable` type-erased container](#anyhashabletype) in the standard library.
 
 ## Impact on existing code
 
@@ -252,9 +254,9 @@ make this work, it would inform some tradeoffs in the potential implementation:
 - We would probably need to produce a unique boxing Objective-C class for every
   type that conformed to an Objective-C protocol, where we might otherwise be
   able to share one class (or `NSValue` for C types).
-- For value types with custom bridging, like `String`/`NSString`, does an @objc
-  conformance automatically apply to the bridged class, if not at compile time,
-  at least at runtime?
+- For value types with custom bridging, like `String`/`NSString`, does an
+  `@objc` conformance automatically apply to the bridged class, if not at
+  compile time, at least at runtime?
 - Many Objective-C protocols are *intended* to be class-constrained,
   particularly delegate protocols, which are idiomatically weak-referenced from
   the delegatee class. If `@objc` no longer implies a class constraint in
