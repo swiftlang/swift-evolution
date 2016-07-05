@@ -1228,7 +1228,7 @@ extension UnsafeMutableRawPointer: _Pointer {
 ```
 
 Conversion from `UnsafeRawPointer` to a typed `UnsafePointer<T>`
-requires invoking `UnsafeRawPointer.bineMemory(to:capacity:)` or
+requires invoking `UnsafeRawPointer.bindMemory(to:capacity:)` or
 `UnsafeRawPointer.assumingMemoryBound`, explicitly spelling the
 destination type:
 
