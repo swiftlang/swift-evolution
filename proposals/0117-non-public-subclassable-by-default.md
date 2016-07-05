@@ -8,7 +8,7 @@
 ## Introduction
 
 Since Swift 1, marking a class `public` provides two different capabilities: it
-allows other modules to instantiate and use the type, and it also allows other
+allows other modules to instantiate and use the class, and it also allows other
 modules to define subclasses of it.  This proposal suggests splitting these into
 two different
 concepts.  This means that marking a class `public` allows the class to be 
@@ -19,7 +19,7 @@ marked `subclassable`.
 Relatedly, Swift also conflates two similar concepts for class members (methods,
 properties, subscripts): `public`
 means that the member may be used by other modules, but also that it may be
-overriden by subclasses.  This proposal introduces a new `open` modifier, which
+overriden by subclasses.  This proposal introduces a new `overridable` modifier, which
 is used instead of `public` on members that are overridable.
 
 Swift-evolution thread: http://thread.gmane.org/gmane.comp.lang.swift.evolution/21930/
@@ -27,7 +27,7 @@ Swift-evolution thread: http://thread.gmane.org/gmane.comp.lang.swift.evolution/
 ## Motivation
 
 Types in Swift default to `internal` access control, which makes it easy for
-Swift programmers to develop code used *within* their application or library.  
+Swift programmers to develop code used *within* their application or library.
 When one goes to publish an interesting type for use by *other* modules, care
 must be taken to think about the API being published because changing it could
 break downstream dependencies.  As such, Swift requires `public` to be added
@@ -49,14 +49,6 @@ is an unnecessary performance loss in the case when the property was never
 intended to be overridable, because accesses within the module cannot be
 devirtualized.
 
-
-- Defaulting to non-`final` allows the author of a class to accidentally leave the
-visible methods open for overrides, even if they didn't carefully consider this
-possibility.
-- Requiring that the author of a class mark a class as subclassable is akin to
-requiring symbols to be explicitly `public`: it ensures that a conscious decision
-is made regarding whether the ability to subclass a `class` or override a method
-is part of the API.
 
 ## Proposed solution
 
