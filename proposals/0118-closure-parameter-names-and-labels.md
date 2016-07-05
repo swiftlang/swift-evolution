@@ -1,9 +1,9 @@
 # Closure Parameter Names and Labels
 
-* Proposal: [SE-0118](https://github.com/apple/swift-evolution/blob/master/proposals/0118-closure-parameter-names-and-labels.md)
-* Author(s): * Authors: [Dave Abrahams](https://github.com/dabrahams), [Dmitri Gribenko](https://github.com/gribozavr), [Maxim Moiseev](https://github.com/moiseev)
-* Status: **[Awaiting review](#rationale)**
-* Review manager: TBD
+* Proposal: [SE-0118](0118-closure-parameter-names-and-labels.md)
+* Authors: [Dave Abrahams](https://github.com/dabrahams), [Dmitri Gribenko](https://github.com/gribozavr), [Maxim Moiseev](https://github.com/moiseev)
+* Status: **Active Review July 5...11**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
