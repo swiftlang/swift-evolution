@@ -99,8 +99,11 @@ single concrete integer type.
 - It enables protocol sharing between integer and floating point types.
 
   Note the exclusion of the `%` operation from `Arithmetic`. Its behavior for
-floating point numbers is sufficiently different from the one for integers
-that using it in generic context would lead to confusion.
+floating point numbers is sufficiently different from the one for integers that
+using it in generic context would lead to confusion. The `FloatingPoint` protocol
+introduced by
+[SE-0067](https://github.com/apple/swift-evolution/blob/0440700fc555a6c72abb4af807c8b79fb1bec592/proposals/0104-improved-integers.md)
+should now refine `SignedArithmetic`.
 
 - It makes future extensions possible.
 
