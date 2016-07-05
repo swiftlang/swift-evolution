@@ -8,12 +8,13 @@
 ## Introduction
 
 Since Swift 1, marking a class `public` provides two different capabilities: it
-allows other modules to use the type, and it also allows other modules to define
-classes derived from it.  This proposal suggests splitting these into two different
+allows other modules to instantiate and use the type, and it also allows other
+modules to define subclasses of it.  This proposal suggests splitting these into
+two different
 concepts.  This means that marking a class `public` allows the class to be 
-*used* outside of the current module, but does not allow other modules to define
+*used* by other modules, but does not allow other modules to define
 *subclasses*.  In order to subclass from another module, the class would be
-marked `public subclassable`.
+marked `subclassable`.
 
 Relatedly, Swift also conflates two similar concepts for class members (methods,
 properties, subscripts): `public`
