@@ -52,7 +52,7 @@ devirtualized.
 
 ## Proposed solution
 
-Introduce two new declaration modifiers: `subclassable` and `open` (other
+Introduce two new declaration modifiers: `subclassable` and `overridable` (other
 spellings are discussed in the Alternatives section below):
 
 - `subclassable class C {}` declares that C is a class which is
@@ -64,7 +64,7 @@ spellings are discussed in the Alternatives section below):
   `public` does not need to be explicitly written.
 
 The `subclassable` modifier only makes sense for classes, but `overridable` may
-be used on `var`, `func, and `subscript` declarations within classes.
+be used on `var`, `func`, and `subscript` declarations within classes.
 
 Because these modifiers replace the `public` keyword on affected declarations,
 they do not increase the annotation burden on APIs, they just increase 
@@ -94,8 +94,8 @@ public class NonSubclassableParentClass {
 }
 
 subclassable class SubclassableParentClass {
-        /// This property is not overridable.
-        public var size : Int
+	/// This property is not overridable.
+	public var size : Int
 
 	/// This method is not overridable.
 	public func foo() {}
@@ -133,7 +133,7 @@ class SubclassB : SubclassableParentClass {
 
 ## Modifier spelling alternatives
 
-`subclassable` and `overridable` are specific, but there are other approaches
+`subclassable` and `overridable` are specific terms, but there are other approaches
 that could be used to spell these concepts.  One approach is to decouple it from
 `public`, and require `public overridable func` and `public subclassable class`.
 
@@ -147,6 +147,9 @@ Or as a modifier of `public`:
 - `public(subclassable) class` / `public(overridable) func`
 - `public(open) class` / `public(open) func`
 - `public(extensible) class`
+
+The `fragile` modifier in the Swift 4 resilience design is very similar to this,
+and will follow the precedent set by these keywords.
 
 ## Impact on existing code
 
