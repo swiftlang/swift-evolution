@@ -4,6 +4,7 @@
 * Authors: [Dave Abrahams](https://github.com/dabrahams), [Dmitri Gribenko](https://github.com/gribozavr), [Maxim Moiseev](https://github.com/moiseev)
 * Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000206.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
+* Revision 2 ([revision 1](https://github.com/apple/swift-evolution/blob/0440700fc555a6c72abb4af807c8b79fb1bec592/proposals/0104-improved-integers.md))
 
 ## Introduction
 
@@ -135,10 +136,10 @@ more easily extensible.
         |       +-------------++  +---+---------+
         |                     ^       ^
 +-------+------------+        |       |
-|  SignedArithmetic  |      +-+-------+----+
-|     (unary -)      |      |  Integer     |
-+------+-------------+      | (words,%,...)|
-       ^                    +----+---------+
+|  SignedArithmetic  |      +-+-------+------+
+|     (unary -)      |      |  BinaryInteger |
++------+-------------+      |  (words,%,...) |
+       ^                    +----+-----------+
        |         +-----------^   ^     ^-----------+
        |         |               |                 |
 +------+---------++    +---------+-------------+    ++------------------+
@@ -171,11 +172,11 @@ more easily extensible.
 - `negated`
 - `negate`
 
-### `Integer`
+### `BinaryInteger`
 
-- `init<T : Integer>(_:T)`
-- `init<T : Integer>(extendingOrTruncating:)`
-- `init<T : Integer>(clamping:)`
+- `init<T : BinaryInteger>(_:T)`
+- `init<T : BinaryInteger>(extendingOrTruncating:)`
+- `init<T : BinaryInteger>(clamping:)`
 - `absoluteValue`
 - `isEqual(to:)`
 - `isLess(than:)`
@@ -187,11 +188,11 @@ more easily extensible.
 
 ### `SignedInteger`
 
-- `Integer` + `SignedArithmetic`
+- `BinaryInteger` + `SignedArithmetic`
 
 ### `UnsignedInteger`
 
-- `Integer`
+- `BinaryInteger`
 
 ### `FixedWidthInteger`
 
@@ -217,7 +218,7 @@ There are several benefits provided by this model over the old one:
 
   The possibility to initialize instances of any concrete integer type with
 values of any other concrete integer type enables writing functions that
-operate on more than one type conforming to `Integer`, such as heterogeneous
+operate on more than one type conforming to `BinaryInteger`, such as heterogeneous
 comparisons or bit shifts, described later.
 
 - It removes the overload resolution overhead.
@@ -281,21 +282,21 @@ avoid undefined behavior and produce uniform semantics across architectures.
 
 #### `Arithmetic`
 
-The `Arithmetic` protocol declares methods backing binary arithmetic 
+The `Arithmetic` protocol declares methods backing binary arithmetic
 operators—such as `+`, `-` and `*`—and their mutating counterparts.
 
 It provides a suitable basis for arithmetic on scalars such as integers and
 floating point numbers.
 
 Both mutating and non-mutating operations are declared in the protocol, however
-only the mutating ones are required, as default implementations of the 
+only the mutating ones are required, as default implementations of the
 non-mutating ones are provided by a protocol extension.
 
 ```Swift
 public protocol Arithmetic : Equatable, IntegerLiteralConvertible {
   /// Initializes to the value of `source` if it is representable exactly,
   /// returns `nil` otherwise.
-  init?<T : Integer>(exactly source: T)
+  init?<T : BinaryInteger>(exactly source: T)
 
   func adding(_ rhs: Self) -> Self
   func subtracting(_ rhs: Self) -> Self
@@ -333,9 +334,9 @@ extension SignedArithmetic {
 }
 ```
 
-#### `Integer`
+#### `BinaryInteger`
 
-The `Integer` protocol is the basis for all the integer types provided by the
+The `BinaryInteger` protocol is the basis for all the integer types provided by the
 standard library.
 
 The `isEqual(to:)` and `isLess(than:)` methods provide implementations for
@@ -346,7 +347,7 @@ homogeneous comparisons are implemented as generic free functions invoking the
 
 This protocol adds 4 new initializers. One of them allows to create integers
 from floating point numbers, if the value is representable exactly, others
-support construction from instances of any type conforming to `Integer`, using
+support construction from instances of any type conforming to `BinaryInteger`, using
 different strategies:
 
   - Initialze `Self` with the value, provided that the value is representable.
@@ -368,11 +369,11 @@ be preferred to the `abs(_)` function, whose return value is of the same type
 as its argument.
 
 ```Swift
-public protocol Integer:
+public protocol BinaryInteger:
   Comparable, Arithmetic,
   IntegerLiteralConvertible, CustomStringConvertible {
 
-  associatedtype AbsoluteValue : Integer // this is not the actual code
+  associatedtype AbsoluteValue : BinaryInteger // this is not the actual code
 
   static var isSigned: Bool { get }
 
@@ -391,15 +392,15 @@ public protocol Integer:
   /// Creates an instance of `Self` from `source` if it is representable.
   ///
   /// - Precondition: the value of `source` is representable in `Self`.
-  init<T : Integer>(_ source: T)
+  init<T : BinaryInteger>(_ source: T)
 
   /// Creates in instance of `Self` from `source` by sign-extending it
   /// indefinitely and then truncating to fit `Self`.
-  init<T : Integer>(extendingOrTruncating source: T)
+  init<T : BinaryInteger>(extendingOrTruncating source: T)
 
   /// Creates in instance of `Self` containing the closest representable
   /// value of `source`.
-  init<T : Integer>(clamping source: T)
+  init<T : BinaryInteger>(clamping source: T)
 
   /// Returns n-th word, counting from the right, of the underlying
   /// representation of `self`.
@@ -439,7 +440,7 @@ public protocol Integer:
 #### `FixedWidthInteger`
 
 The `FixedWidthInteger` protocol adds binary bitwise operations and bit shifts
-to the `Integer` protocol.
+to the `BinaryInteger` protocol.
 
 The `WithOverflow` family of methods is used in default implementations of
 mutating arithmetic methods (see the `Arithmetic` protocol). Having these
@@ -454,7 +455,7 @@ The `doubleWidthMultiply` method is a necessary building block to implement
 support for integer types of a greater width such as arbitrary-precision integers.
 
 ```Swift
-public protocol FixedWidthInteger : Integer {
+public protocol FixedWidthInteger : BinaryInteger {
   /// Returns the bit width of the underlying binary
   /// representation of values of `self`.
   static var bitWidth : Int { get }
@@ -523,11 +524,11 @@ public protocol FixedWidthInteger : Integer {
 #### Auxiliary protocols
 
 ```Swift
-public protocol UnsignedInteger : Integer {
-  associatedtype AbsoluteValue : Integer
+public protocol UnsignedInteger : BinaryInteger {
+  associatedtype AbsoluteValue : BinaryInteger
 }
-public protocol SignedInteger : Integer, SignedArithmetic {
-  associatedtype AbsoluteValue : Integer
+public protocol SignedInteger : BinaryInteger, SignedArithmetic {
+  associatedtype AbsoluteValue : BinaryInteger
 }
 ```
 
@@ -545,8 +546,8 @@ public func * <T: Arithmetic>(lhs: T, rhs: T) -> T
 public func *= <T: Arithmetic>(lhs: inout T, rhs: T)
 public func / <T: Arithmetic>(lhs: T, rhs: T) -> T
 public func /= <T: Arithmetic>(lhs: inout T, rhs: T)
-public func % <T: Integer>(lhs: T, rhs: T) -> T
-public func %= <T: Integer>(lhs: inout T, rhs: T)
+public func % <T: BinaryInteger>(lhs: T, rhs: T) -> T
+public func %= <T: BinaryInteger>(lhs: inout T, rhs: T)
 ```
 
 ##### Implementation example
@@ -612,12 +613,12 @@ public struct Int8 {
 #### Homogeneous comparison
 
 ```Swift
-public func == <T : Integer>(lhs:T, rhs: T) -> Bool
-public func != <T : Integer>(lhs:T, rhs: T) -> Bool
-public func < <T : Integer>(lhs: T, rhs: T) -> Bool
-public func > <T : Integer>(lhs: T, rhs: T) -> Bool
-public func >= <T : Integer>(lhs: T, rhs: T) -> Bool
-public func <= <T : Integer>(lhs: T, rhs: T) -> Bool
+public func == <T : BinaryInteger>(lhs:T, rhs: T) -> Bool
+public func != <T : BinaryInteger>(lhs:T, rhs: T) -> Bool
+public func < <T : BinaryInteger>(lhs: T, rhs: T) -> Bool
+public func > <T : BinaryInteger>(lhs: T, rhs: T) -> Bool
+public func >= <T : BinaryInteger>(lhs: T, rhs: T) -> Bool
+public func <= <T : BinaryInteger>(lhs: T, rhs: T) -> Bool
 ```
 
 The implementation is similar to the homogeneous arithmetic operators above.
@@ -626,25 +627,25 @@ The implementation is similar to the homogeneous arithmetic operators above.
 #### Heterogeneous comparison
 
 ```Swift
-public func == <T : Integer, U : Integer>(lhs:T, rhs: U) -> Bool
-public func != <T : Integer, U : Integer>(lhs:T, rhs: U) -> Bool
-public func < <T : Integer, U : Integer>(lhs: T, rhs: U) -> Bool
-public func > <T : Integer, U : Integer>(lhs: T, rhs: U) -> Bool
-public func >= <T : Integer, U : Integer>(lhs: T, rhs: U) -> Bool
-public func <= <T : Integer, U : Integer>(lhs: T, rhs: U) -> Bool
+public func == <T : BinaryInteger, U : BinaryInteger>(lhs:T, rhs: U) -> Bool
+public func != <T : BinaryInteger, U : BinaryInteger>(lhs:T, rhs: U) -> Bool
+public func < <T : BinaryInteger, U : BinaryInteger>(lhs: T, rhs: U) -> Bool
+public func > <T : BinaryInteger, U : BinaryInteger>(lhs: T, rhs: U) -> Bool
+public func >= <T : BinaryInteger, U : BinaryInteger>(lhs: T, rhs: U) -> Bool
+public func <= <T : BinaryInteger, U : BinaryInteger>(lhs: T, rhs: U) -> Bool
 ```
 
 ##### Implementation example
 
 ```Swift
-public func == <T : Integer, U : Integer>(lhs:T, rhs: U) -> Bool {
+public func == <T : BinaryInteger, U : BinaryInteger>(lhs:T, rhs: U) -> Bool {
   return (lhs > 0) == (rhs > 0)
     && T(extendingOrTruncating: rhs) == lhs
     && U(extendingOrTruncating: lhs) == rhs
 }
 
 extension FixedWidthInteger {
-  public init<T : Integer>(extendingOrTruncating source: T) {
+  public init<T : BinaryInteger>(extendingOrTruncating source: T) {
     // converting `source` into the value of `Self`
   }
 }
@@ -654,24 +655,24 @@ extension FixedWidthInteger {
 #### Shifts
 
 ```Swift
-public func << <T: FixedWidthInteger, U: Integer>(lhs: T, rhs: U) -> T
+public func << <T: FixedWidthInteger, U: BinaryInteger>(lhs: T, rhs: U) -> T
 public func << <T: FixedWidthInteger>(lhs: T, rhs: Word) -> T
-public func <<= <T: FixedWidthInteger, U: Integer>(lhs: inout T, rhs: U)
+public func <<= <T: FixedWidthInteger, U: BinaryInteger>(lhs: inout T, rhs: U)
 public func <<= <T: FixedWidthInteger>(lhs: inout T, rhs: T)
 
-public func >> <T: FixedWidthInteger, U: Integer>(lhs: T, rhs: U) -> T
+public func >> <T: FixedWidthInteger, U: BinaryInteger>(lhs: T, rhs: U) -> T
 public func >> <T: FixedWidthInteger>(lhs: T, rhs: Word) -> T
 public func >>= <T: FixedWidthInteger>(lhs: inout T, rhs: T)
-public func >>= <T: FixedWidthInteger, U: Integer>(lhs: inout T, rhs: U)
+public func >>= <T: FixedWidthInteger, U: BinaryInteger>(lhs: inout T, rhs: U)
 
-public func &<< <T: FixedWidthInteger, U: Integer>(lhs: T, rhs: U) -> T
+public func &<< <T: FixedWidthInteger, U: BinaryInteger>(lhs: T, rhs: U) -> T
 public func &<< <T: FixedWidthInteger>(lhs: T, rhs: T) -> T
-public func &<<= <T: FixedWidthInteger, U: Integer>(lhs: inout T, rhs: U)
+public func &<<= <T: FixedWidthInteger, U: BinaryInteger>(lhs: inout T, rhs: U)
 public func &<<= <T: FixedWidthInteger>(lhs: inout T, rhs: T)
 
-public func &>> <T: FixedWidthInteger, U: Integer>(lhs: T, rhs: U) -> T
+public func &>> <T: FixedWidthInteger, U: BinaryInteger>(lhs: T, rhs: U) -> T
 public func &>> <T: FixedWidthInteger>(lhs: T, rhs: T) -> T
-public func &>>= <T: FixedWidthInteger, U: Integer>(lhs: inout T, rhs: U)
+public func &>>= <T: FixedWidthInteger, U: BinaryInteger>(lhs: inout T, rhs: U)
 public func &>>= <T: FixedWidthInteger>(lhs: inout T, rhs: T)
 ```
 
@@ -682,7 +683,7 @@ difference is that because shifting left truncates the high bits of fixed-width
 integers, it is hard to define what a left shift would mean to an
 arbitrary-precision integer.  Therefore we only allow shifts where the left
 operand conforms to the `FixedWidthInteger` protocol. The right operand,
-however, can be an arbitrary `Integer`.
+however, can be an arbitrary `BinaryInteger`.
 
 #### Bitwise operations
 
