@@ -545,8 +545,8 @@ public func * <T: Arithmetic>(lhs: T, rhs: T) -> T
 public func *= <T: Arithmetic>(lhs: inout T, rhs: T)
 public func / <T: Arithmetic>(lhs: T, rhs: T) -> T
 public func /= <T: Arithmetic>(lhs: inout T, rhs: T)
-public func % <T: Arithmetic>(lhs: T, rhs: T) -> T
-public func %= <T: Arithmetic>(lhs: inout T, rhs: T)
+public func % <T: Integer>(lhs: T, rhs: T) -> T
+public func %= <T: Integer>(lhs: inout T, rhs: T)
 ```
 
 ##### Implementation example
