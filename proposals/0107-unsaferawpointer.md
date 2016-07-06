@@ -229,7 +229,7 @@ The `load` and `storeRaw` operations are assymetric. `load` reads raw
 bytes but properly constructs a new value of type `T` with its own
 lifetime. Any copied references will be retained. In contrast,
 `storeRaw` only operates on a value's raw bytes, writing them into
-untyped memory. The in-memory copy will not be initialized and any
+untyped memory. The in-memory copy will not be constructed and any
 previously initialized value in this memory will not be deinitialized
 (it cannot be because its type is unknown). Consequently, `storeRaw`
 should only be performed on trivial types.
@@ -514,7 +514,8 @@ func testInitAB() {
   let pA = p.bindMemory(to: A.self, capacity: 1)
   printA(pA)
 
-  printB((pA + 1).bindMemory(to: B.self, capacity: 1))
+  // Knowing the `B` has the same alignment as `A`.
+  printB(UnsafeRawPointer(pA + 1).bindMemory(to: B.self, capacity: 1))
 }
 ```
 
@@ -1455,7 +1456,10 @@ helper, no unsafe casting is necessary in the previous example:
 
 Most of the API was already presented above. For the sake of having it
 in one place, a list of the expected `UnsafeMutableRawPointer` members
-is shown below:
+is shown below.
+
+For full doc comments, see the [github revision]
+(https://github.com/atrick/swift/blob/80a1f2624ee4aae7d51253d1b2541826b01d4118/stdlib/public/core/UnsafeRawPointer.swift.gyb).
 
 ```swift
 struct UnsafeMutableRawPointer : Strideable, Hashable, _Pointer {
