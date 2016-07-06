@@ -1459,7 +1459,7 @@ in one place, a list of the expected `UnsafeMutableRawPointer` members
 is shown below.
 
 For full doc comments, see the [github revision]
-(https://github.com/atrick/swift/blob/80a1f2624ee4aae7d51253d1b2541826b01d4118/stdlib/public/core/UnsafeRawPointer.swift.gyb).
+(https://github.com/atrick/swift/blob/22e3a2885e4236888ec447a7148acf633d8544f5/stdlib/public/core/UnsafeRawPointer.swift.gyb).
 
 ```swift
 struct UnsafeMutableRawPointer : Strideable, Hashable, _Pointer {
@@ -1481,34 +1481,24 @@ struct UnsafeMutableRawPointer : Strideable, Hashable, _Pointer {
   func bindMemory<T>(to: T.Type, capacity: Int) -> UnsafeMutablePointer<T>
   func assumingMemoryBound<T>(to: T.Type) -> UnsafeMutablePointer<T>
 
-  func initialize<T>(_: T.Type, with: T, count: Int = 1)
-    -> UnsafeMutablePointer<T>
-  func initialize<T>(toContiguous: T.Type, atIndex: Int, with: T)
+  func initializeMemory<T>(as: T.Type, at: Int = 0, count: Int = 1, to: T)
     -> UnsafeMutablePointer<T>
 
-  func initialize<T>(from: UnsafePointer<T>, count: Int)
-    -> UnsafeMutablePointer<T>
-  func initializeBackward<T>(from: UnsafePointer<T>, count: Int)
+  func initializeMemory<T>(as: T.Type, from: UnsafePointer<T>, count: Int)
     -> UnsafeMutablePointer<T>
 
-  // The `move` APIs deinitialize the memory at `from`.
-  func moveInitialize<T>(from: UnsafePointer<T>, count: Int)
-    -> UnsafeMutablePointer<T>
-  func moveInitializeBackward<T>(from: UnsafePointer<T>, count: Int)
-    -> UnsafeMutablePointer<T>
+  func initializeMemory<C : Collection>(as: C.Iterator.Element.Type, from: C)
+    -> UnsafeMutablePointer<C.Iterator.Element>
 
-  func load<T>(_: T.Type) -> T
-  func load<T>(_: T.Type, atByteOffset: Int) -> T
-  func load<T>(fromContiguous: T.Type, atIndex: Int) -> T
+  func moveInitializeMemory<T>(
+    as: T.Type, from: UnsafeMutablePointer<T>, count: Int)
+    -> UnsafeMutablePointer<T> {
 
-  // storeRaw performs bytewise writes, but proper alignment for `T` is still
-  // required.
-  // T must be a trivial type.
-  func storeRaw<T>(_: T.Type, with: T)
-  func storeRaw<T>(toContiguous: T.Type, atIndex: Int, with: T)
-  func storeRaw<T>(contiguous: T.Type, from: UnsafeRawPointer, count: Int)
-  func storeRawBackward<T>(
-    contiguous: T.Type, from: UnsafeRawPointer, count: Int)
+  func load<T>(fromByteOffset: Int = 0, as: T.Type) -> T
+
+  func storeBytes<T>(of: T, toByteOffset: Int = 0, as: T.Type)
+
+  func copyBytes(from: UnsafeRawPointer, count: Int)
 
   func distance(to: UnsafeRawPointer) -> Int
   func advanced(by: Int) -> UnsafeRawPointer
@@ -1530,14 +1520,12 @@ struct UnsafeRawPointer : Strideable, Hashable, _Pointer {
   init<T>(_: UnsafeMutablePointer<T>)
   init?<T>(_: UnsafeMutablePointer<T>?)
 
-  func deallocate(bytes: Int, alignedTo: Int)
+  func deallocate(bytes: Int, alignedTo: Int = /*maximal*/)
 
   func bindMemory<T>(to: T.Type, capacity: Int) -> UnsafePointer<T>
   func assumingMemoryBound<T>(to: T.Type) -> UnsafePointer<T>
 
-  func load<T>(_: T.Type) -> T
-  func load<T>(_: T.Type, atByteOffset: Int) -> T
-  func load<T>(fromContiguous: T.Type, atIndex: Int) -> T
+  func load<T>(fromByteOffset: Int = 0, as: T.Type) -> T
 
   func distance(to: UnsafeRawPointer) -> Int
   func advanced(by: Int) -> UnsafeRawPointer
@@ -1548,7 +1536,7 @@ struct UnsafeRawPointer : Strideable, Hashable, _Pointer {
 The added `UnsafeMutablePointer` members are:
 
 ```swift
-extension UnsafeMutablePointer<Pointee> {
+UnsafeMutablePointer<Pointee> {
   init(mutating from: UnsafePointer<Pointee>)
 
   func withMemoryRebound<T>(to: T.Type, capacity count: Int,
@@ -1560,7 +1548,7 @@ extension UnsafeMutablePointer<Pointee> {
 The added `UnsafePointer` members are:
 
 ```swift
-extension UnsafePointer<Pointee> {
+UnsafePointer<Pointee> {
   // Inferred initialization from mutable to immutable.
   init(_ from: UnsafeMutablePointer<Pointee>)
 }
@@ -1570,15 +1558,23 @@ The following unsafe pointer conversions on `Unsafe[Mutable]Pointer`
 members are removed:
 
 ```swift
-extension UnsafeMutablePointer<Pointee> {
+UnsafeMutablePointer<Pointee> {
   init<U>(_ from : UnsafeMutablePointer<U>)
   init?<U>(_ from : UnsafeMutablePointer<U>?)
   init<U>(_ from : UnsafePointer<U>)
   init?<U>(_ from : UnsafePointer<U>?)
 }
-extension UnsafePointer<Pointee> {
+UnsafePointer<Pointee> {
   init<U>(_ from : UnsafePointer<U>)
   init?<U>(_ from : UnsafePointer<U>?)
+}
+```
+
+`UnsafeMutablePointer.deinitialize` now returns a raw pointer:
+
+```swift
+UnsafeMutablePointer<Pointee> {
+  func deinitialize(count: Int = 1) -> UnsafeMutableRawPointer
 }
 ```
 
@@ -1586,30 +1582,34 @@ The following `UnsafeMutablePointer` members are renamed:
 
 ```swift
 extension UnsafeMutablePointer<Pointee> {
-  // Naming conventions.
-  static func allocate(capacity: Int) -> UnsafeMutableRawPointer
+  static func allocate(capacity: Int)
   func deallocate(capacity: Int)
 
-  // Naming conventions.
-  func assign(from source: UnsafePointer<Pointee>, count: Int)
-  func assignBackward(from source: UnsafePointer<Pointee>, count: Int)
-  func moveInitialize(from source: UnsafeMutablePointer<Pointee>, count: Int)
-  func moveInitializeBackward(from source: UnsafeMutablePointer<Pointee>,
-                              count: Int)
-  func initialize(from source: UnsafeMutablePointer<Pointee>, count: Int)
-  func initialize<C : Collection>(from source: C)
-  func moveAssign(from source: ${Self}, count: Int) {
+  func initialize(to: Pointee, count: Int = 1)
 
-  // Now returns a raw pointer.
-  func deinitialize(count: Int = 1) -> UnsafeMutableRawPointer
+  func assign(from source: UnsafePointer<Pointee>, count: Int)
+  func moveInitialize(from source: ${Self}, count: Int)
+  func initialize(from source: UnsafePointer<Pointee>, count: Int)
+  func initialize<C : Collection>(from source: C)
+  func moveAssign(from source: ${Self}, count: Int)
+}
+```
+
+The following `UnsafeMutablePointer` members are removed:
+
+```swift
+extension UnsafeMutablePointer<Pointee> {
+  func assignBackwardFrom(_ source: UnsafePointer<Pointee>, count: Int)
+  func moveInitializeBackwardFrom(_ source: ${Self}, count: Int)
+}
 ```
 
 The following `UnsafePointer` members are renamed:
 
 ```swift
 extension UnsafePointer<Pointee> {
-  // Naming conventions.
   func deallocate(capacity: Int)
+}
 ```
 
 ## Impact on existing code
