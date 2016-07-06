@@ -131,6 +131,11 @@ class SubclassB : SubclassableParentClass {
 }
 ```
 
+The `@testable` design states that tests for `@testable` types act as
+if they were part of the type's own module.  Accordingly, this proposal
+does not change the fact that tests are allowed to subclass non-final
+`@testable` types and override their non-final methods.
+
 ## Modifier spelling alternatives
 
 `subclassable` and `overridable` are specific terms, but there are other approaches
