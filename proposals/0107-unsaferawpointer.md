@@ -1583,15 +1583,15 @@ extension UnsafePointer<Pointee> {
 }
 ```
 
-The following `UnsafeMutablePointer` members are renamed:
+The following `UnsafeMutablePointer` members are modified:
 
 ```swift
 extension UnsafeMutablePointer<Pointee> {
-  // Naming conventions.
+  // Naming conventions changed here:
   static func allocate(capacity: Int) -> UnsafeMutableRawPointer
   func deallocate(capacity: Int)
 
-  // Naming conventions.
+  // Naming conventions changed here:
   func assign(from source: UnsafePointer<Pointee>, forwardToCount: Int)
   func assign(from source: UnsafePointer<Pointee>, backwardToCount: Int)
   func moveInitialize(
@@ -1603,7 +1603,7 @@ extension UnsafeMutablePointer<Pointee> {
   func initialize<C : Collection>(from source: C)
   func moveAssign(from source: ${Self}, count: Int) {
 
-  // Now returns a raw pointer.
+  // This now returns a raw pointer.
   func deinitialize(count: Int = 1) -> UnsafeMutableRawPointer
 ```
 
