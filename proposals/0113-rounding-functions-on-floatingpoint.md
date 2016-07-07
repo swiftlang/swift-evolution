@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0113](0113-rounding-functions-on-floatingpoint.md)
 * Author: [Karl Wagner](https://github.com/karwa)
-* Status: **Active review June 30 ... July 5**
+* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000217.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction, Motivation
@@ -65,8 +65,3 @@ This change is additive, although we may consider suppressing the imported, glob
 * `floor()` and `ceil()` or `ceiling()` are [mathematical terms of art](http://mathworld.wolfram.com/CeilingFunction.html). But most people who want to round a floating point are not mathematicians.
 * `nextIntegralUp()` and `nextIntegralDown()` are more descriptive, and perhaps a better fit with the rest of the `FloatingPoint` API, but possibly misleading as `(4.0).nextIntegralUp() == 4.0`
 
-## Rationale
-
-On [Date], the core team decided to **(TBD)** this proposal.
-When the core team makes a decision regarding this proposal,
-their rationale for the decision will be written here.

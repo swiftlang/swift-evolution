@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0110](0110-distingish-single-tuple-arg.md)
 * Authors: Vladimir S., Austin Zheng
-* Status: **Active review June 30 ... July 4**
+* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000215.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction

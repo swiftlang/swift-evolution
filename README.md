@@ -175,6 +175,9 @@ subsequent release.
 * [SE-0103: Make non-escaping closures the default](proposals/0103-make-noescape-default.md)
 * [SE-0104: Protocol-oriented integers](proposals/0104-improved-integers.md)
 * [SE-0106: Add a `macOS` Alias for the `OSX` Platform Configuration Test](proposals/0106-rename-osx-to-macos.md)
+* [SE-0110: Distinguish between single-tuple and multiple-argument function types](proposals/0110-distingish-single-tuple-arg.md)
+* [SE-0111: Remove type system significance of function argument labels](proposals/0111-remove-arg-label-type-significance.md)
+* [SE-0113: Add integral rounding functions to FloatingPoint](proposals/0113-rounding-functions-on-floatingpoint.md)
 
 ## Swift 2.2 - Released on March 21, 2016
 
@@ -220,6 +223,7 @@ as practical with Swift 2.0.
 * [SE-0097: Normalizing naming for "negative" attributes](proposals/0097-negative-attributes.md)
 * [SE-0098: Lowercase `didSet` and `willSet` for more consistent keyword casing](proposals/0098-didset-capitalization.md)
 * [SE-0105: Removing Where Clauses from For-In Loops](proposals/0105-remove-where-from-forin-loops.md)
+* [SE-0108: Remove associated type inference](proposals/0108-remove-assoctype-inference.md)
 
 ## Review
 [Swift Evolution Review Schedule](https://github.com/apple/swift-evolution/blob/master/schedule.md)
