@@ -35,7 +35,7 @@ Carthage/Source/CarthageKit/Algorithms.swift: for (node, var incomingEdges) in w
 
 Consider the following two code snippets:
 
-```
+```swift
 print("for in")
 var theArray = [1, 2, 3, 4, 5, 6, 7, 8, 9]
 for x in theArray where x % 2 == 1 { print (x) }
@@ -71,7 +71,7 @@ Upon accepting [SE-0099](https://github.com/apple/swift-evolution/blob/master/pr
 
 In Swift's current form, the where-clause in for-loops inconsistently applied. Unlike `switch` statements and `do` loops, a `for-in` loop's where-clause is separated from the pattern it modifies.
 
-```
+```swift
 for case? pattern in expression where-clause? code-block
 
 case-item-list → pattern where-clause? | pattern where-clause? , case-item-list
