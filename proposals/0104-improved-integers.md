@@ -282,12 +282,10 @@ public protocol BinaryInteger:
   /// Will be constant for fixed-width integer types.
   var bitWidth : Int { get }
 
-  /// If `self` is negative, returns the index of the least significant bit of
-  /// its representation such that all more-significant bits are 1.
-  /// Has the value -1 if `self` is 0.
-  // TODO: this is not the right name, and perhaps an unnecessary limitation
-  // for `self == 0` case
-  var signBitIndex: Int { get }
+  /// The number of bits required to represent the value of `self` in a signed
+  /// type using two's complement representation. The minimum value for this
+  /// property should naturally be 1.
+  var minimumSignedRepresentationBitWidth: Int { get }
 
   /// Returns the remainder of division of `self` by `rhs`.
   func remainder(dividingBy rhs: Self) -> Self
