@@ -163,11 +163,26 @@ Both mutating and non-mutating operations are declared in the protocol, however
 only the mutating ones are required, as default implementations of the
 non-mutating ones are provided by a protocol extension.
 
+The `Magnitude` associated type is able to hold the absolute value of any
+possible value of `Self`. Concrete types do not have to provide a typealias for
+it, as it can be inferred from the `magnitude` property. This property can
+be useful in operations that are simpler to implement in terms of unsigned
+values, for example, printing a value of an integer, which is just printing a
+'-' character in front of an absolute value.
+
+Please note that for ordinary work, the `magnitude` property **should not**
+be preferred to the `abs(_)` function, whose return value is of the same type
+as its argument.
+
+
 ```Swift
 public protocol Arithmetic : Equatable, IntegerLiteralConvertible {
   /// Initializes to the value of `source` if it is representable exactly,
   /// returns `nil` otherwise.
   init?<T : BinaryInteger>(exactly source: T)
+
+  associatedtype Magnitude : Arithmetic
+  var magnitude: Magnitude { get }
 
   func adding(_ rhs: Self) -> Self
   func subtracting(_ rhs: Self) -> Self
@@ -228,27 +243,12 @@ different strategies:
 
   - Clamp the value to the representable range of `Self`
 
-The `AbsoluteValue` associated type is able to hold the absolute value of any
-possible value of `Self`. Concrete types do not have to provide a typealias for
-it, as it can be inferred from the `absoluteValue` property. This property can
-be useful in operations that are simpler to implement in terms of unsigned
-values, for example, printing a value of an integer, which is just printing a
-'-' character in front of an absolute value.
-
-Please note that for ordinary work, the `absoluteValue` property **should not**
-be preferred to the `abs(_)` function, whose return value is of the same type
-as its argument.
-
 ```Swift
 public protocol BinaryInteger:
   Comparable, Arithmetic,
   IntegerLiteralConvertible, CustomStringConvertible {
 
-  associatedtype AbsoluteValue : BinaryInteger // this is not the actual code
-
   static var isSigned: Bool { get }
-
-  var absoluteValue: AbsoluteValue { get }
 
   func isEqual(to rhs: Self) -> Bool
   func isLess(than rhs: Self) -> Bool
@@ -388,7 +388,7 @@ public protocol FixedWidthInteger : BinaryInteger {
 
   /// Returns a pair containing the `high` and `low` parts of the result
   /// of `self` multiplied by `rhs`.
-  func doubleWidthMultiply(other: Self) -> (high: Self, low: AbsoluteValue)
+  func doubleWidthMultiply(other: Self) -> (high: Self, low: Magnitude)
 }
 ```
 
@@ -396,10 +396,10 @@ public protocol FixedWidthInteger : BinaryInteger {
 
 ```Swift
 public protocol UnsignedInteger : BinaryInteger {
-  associatedtype AbsoluteValue : BinaryInteger
+  associatedtype Magnitude : BinaryInteger
 }
 public protocol SignedInteger : BinaryInteger, SignedArithmetic {
-  associatedtype AbsoluteValue : BinaryInteger
+  associatedtype Magnitude : BinaryInteger
 }
 ```
 
