@@ -1,4 +1,4 @@
-# Feature name
+# Variadics as Attribute
 
 * Proposal: [SE-NNNN](0000-variadics-as-attribute.md)
 * Author: [Haravikk](https://github.com/haravikk)
