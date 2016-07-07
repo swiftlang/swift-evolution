@@ -177,6 +177,9 @@ is used are implied.
 
 -public protocol MirrorPathType { ... }
 +public protocol MirrorPath { ... }
+
+-public protocol ErrorType { ... }
++public protocol ErrorProtocol { ... }
 ```
 
 * The concept of "generator" is renamed to "iterator" across all APIs.
@@ -201,9 +204,6 @@ is used are implied.
 
 -public struct EmptyGenerator<Element> : ... { ... }
 +public struct EmptyIterator<Element> : ... { ... }
-
--public protocol ErrorType { ... }
-+public protocol ErrorProtocol { ... }
 
 -public struct AnyGenerator<Element> : ... { ... }
 +public struct AnyIterator<Element> : ... { ... }
