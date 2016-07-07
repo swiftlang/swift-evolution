@@ -233,7 +233,6 @@ as practical with Swift 2.0.
 * [SE-0018: Flexible Memberwise Initialization](proposals/0018-flexible-memberwise-initialization.md)
 * [SE-0030: Property Behaviors](proposals/0030-property-behavior-decls.md)
 * [SE-0050: Decoupling Floating Point Strides from Generic Implementations](proposals/0050-floating-point-stride.md)
-* [SE-0091: Improving operator requirements in protocols](proposals/0091-improving-operators-in-protocols.md)
 * [SE-0101: Rename `sizeof` and related functions to comply with API Guidelines](proposals/0101-standardizing-sizeof-naming.md)
 
 
