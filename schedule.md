@@ -9,7 +9,6 @@ proposals in that process.
 * May 9...16 [SE-0086: Drop NS Prefix in Swift Foundation](proposals/0086-drop-foundation-ns.md)
 * June 28 ... July 10 [SE-0107: UnsafeRawPointer API](proposals/0107-unsaferawpointer.md)
 * June 28 ... July 4 [SE-0109: Remove the `Boolean` protocol](proposals/0109-remove-boolean.md)
-* June 29 ... July 4 [SE-0077: Improved operator declarations](proposals/0077-operator-precedence.md)
 * June 30 ... July 4 [SE-0112: Improved NSError Bridging](proposals/0112-nserror-bridging.md)
 * July 1...7 [SE-0114: Updating Buffer "Value" Names to "Header" Names](proposals/0114-buffer-naming.md)
 * July 1...7 [SE-0115: Rename Literal Syntax Protocols](proposals/0115-literal-syntax-protocols.md)

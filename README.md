@@ -162,6 +162,7 @@ subsequent release.
 * [SE-0067: Enhanced Floating Point Protocols](proposals/0067-floating-point-protocols.md)
 * [SE-0068: Expanding Swift `Self` to class members and value types](proposals/0068-universal-self.md)
 * [SE-0075: Adding a Build Configuration Import Test](proposals/0075-import-test.md)
+* [SE-0077: Improved operator declarations](proposals/0077-operator-precedence.md)
 * [SE-0080: Failable Numeric Conversion Initializers](proposals/0080-failable-numeric-initializers.md)
 * [SE-0081: Move `where` clause to end of declaration](proposals/0081-move-where-expression.md)
 * [SE-0082: Package Manager Editable Packages](proposals/0082-swiftpm-package-edit.md)
