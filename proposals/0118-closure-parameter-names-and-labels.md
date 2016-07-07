@@ -5,6 +5,11 @@
 * Status: **Active Review July 5...11**
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
+## Revision History
+
+- [v1](https://github.com/apple/swift-evolution/blob/ae4a55ab217cc9755004cbf2b29db24e28645d15/proposals/0118-closure-parameter-names-and-labels.md) (as proposed)
+- v2: fixed spelling of identifiers containing `Utf8` to read `UTF8` per convention.
+
 ## Introduction
 
 We propose a revision to the names and argument labels of closure
@@ -34,7 +39,7 @@ in question.
 
 Before | After
 -------|------
-<br/>`s.withUtf8Buffer(invoke: processBytes)`|<br/>`s.withUtf8Buffer(processBytes)`|
+<br/>`s.withUTF8Buffer(invoke: processBytes)`|<br/>`s.withUTF8Buffer(processBytes)`|
 <br/>`lines.split(`<br/>`  isSeparator: isAllWhitespace)`|<br/>`lines.split(`<br/>`  whereSeparator: isAllWhitespace)`|
 <br/>`words.sort(isOrderedBefore: >)`|<br/>`words.sort(by: >)`|
 <br/>`words.sorted(isOrderedBefore: >)`|<br/>`words.sorted(by: >)`|
