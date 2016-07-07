@@ -9,6 +9,8 @@
 
 This proposal is for a redesign of the variadic function parameter syntax as an attribute for greater flexibility.
 
+Swift-evolution thread: [Discussion thread topic](http://thread.gmane.org/gmane.comp.lang.swift.evolution/23303)
+
 ## Motivation
 
 Currently Swift variadic functions cannot be called with an array of values, potentially requiring two declarations like so:
