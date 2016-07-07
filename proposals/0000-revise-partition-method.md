@@ -44,15 +44,39 @@ The proposed APIs are collected here:
 protocol MutableCollection {
     // existing requirements
     
-    /// Reorders the elements of the collection such that all the
-    /// elements that match the predicate are ordered after all the
-    /// elements that do not match the predicate.
+    /// Reorders the elements of the collection such that all the elements 
+    /// that match the given predicate are after all the elements that do 
+    /// not match the predicate.
     ///
-    /// - Parameter belongsInSecondPartition: A predicate that returns 
-    ///   `true` if the argument belongs in the second partition; 
-    ///   otherwise, `false`.
-    /// - Returns: The index of the first element in the reordered
-    ///   collection that matches the predicate.
+    /// After partitioning a collection, there is a pivot index `p` where 
+    /// no element before `p` satisfies the `belongsInSecondPartition` 
+    /// predicate and every element at or after `p` satisfies 
+    /// `belongsInSecondPartition`.
+    /// 
+    /// In the following example, an array of numbers is partitioned by a
+    /// predicate that matches elements greater than 30.
+    ///
+    ///     var numbers = [30, 40, 20, 30, 30, 60, 10]
+    ///     let p = numbers.partition(by: { $0 > 30 })
+    ///     // p == 5
+    ///     // numbers == [30, 10, 20, 30, 30, 60, 40]
+    ///
+    /// The `numbers` array is now arranged in two partitions. The first 
+    /// partition, `numbers.prefix(upTo: p)`, is made up of the elements that 
+    /// are not greater than 30. The second partition, `numbers.suffix(from: p)`, 
+    /// is made up of the elements that *are* greater than 30.
+    ///
+    ///     let first = numbers.prefix(upTo: p)
+    ///     // first == [30, 10, 20, 30, 30]
+    ///     let second = numbers.suffix(from: p)
+    ///     // second == [60, 40]
+    ///
+    /// - Parameter belongsInSecondPartition: A predicate used to partition
+    ///   the collection.
+    /// - Returns: The pivot of the partitioned collection: The index of 
+    ///   the first element in the reordered collection that matches 
+    ///   `belongsInSecondPartition`.
+    ///
     /// - Complexity: O(n)
     @discardableResult
     mutating func partition(
