@@ -273,10 +273,11 @@ public protocol BinaryInteger:
   /// value of `source`.
   init<T : BinaryInteger>(clamping source: T)
 
-  /// Returns n-th word, counting from the right, of the underlying
-  /// representation of `self`.
-  // TODO: note about returning words greater then `countRepresentedWords`
-  func nthWord(n: Int) -> UInt
+  /// Returns the n-th word, counting from the least significant to most
+  /// significant, of the underlying representation of `self`.
+  /// Should return `0` for positive numbers and `~0` for negative ones if `n`
+  /// is greater than the number of words in current representation of `self`.
+  func word(at n: Int) -> UInt
 
   /// The number of bits in current representation of `self`
   /// Will be constant for fixed-width integer types.
