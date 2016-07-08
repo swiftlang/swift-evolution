@@ -184,15 +184,15 @@ public protocol Arithmetic : Equatable, IntegerLiteralConvertible {
   associatedtype Magnitude : Arithmetic
   var magnitude: Magnitude { get }
 
-  func adding(_ rhs: Self) -> Self
-  func subtracting(_ rhs: Self) -> Self
-  func multiplied(by rhs: Self) -> Self
-  func divided(by rhs: Self) -> Self
+  func adding(_ other: Self) -> Self
+  func subtracting(_ other: Self) -> Self
+  func multiplied(by other: Self) -> Self
+  func divided(by other: Self) -> Self
 
-  mutating func add(_ rhs: Self)
-  mutating func subtract(_ rhs: Self)
-  mutating func multiply(by rhs: Self)
-  mutating func divide(by rhs: Self)
+  mutating func add(_ other: Self)
+  mutating func subtract(_ other: Self)
+  mutating func multiply(by other: Self)
+  mutating func divide(by other: Self)
 }
 
 extension Arithmetic {
@@ -250,8 +250,8 @@ public protocol BinaryInteger:
 
   static var isSigned: Bool { get }
 
-  func isEqual(to rhs: Self) -> Bool
-  func isLess(than rhs: Self) -> Bool
+  func isEqual(to other: Self) -> Bool
+  func isLess(than other: Self) -> Bool
 
   /// Creates an instance of `Self` that has the exact value of `source`,
   /// returns `nil` otherwise.
@@ -288,14 +288,14 @@ public protocol BinaryInteger:
   /// property should naturally be 1.
   var minimumSignedRepresentationBitWidth: Int { get }
 
-  /// Returns the remainder of division of `self` by `rhs`.
-  func remainder(dividingBy rhs: Self) -> Self
+  /// Returns the remainder of division of `self` by `other`.
+  func remainder(dividingBy other: Self) -> Self
 
-  /// Replaces `self` with the remainder of division of `self` by `rhs`.
-  mutating func formRemainder(dividingBy rhs: Self)
+  /// Replaces `self` with the remainder of division of `self` by `other`.
+  mutating func formRemainder(dividingBy other: Self)
 
   /// Returns a pair of values, containing the quotient and the remainder of
-  /// division of `self` by `rhs`.
+  /// division of `self` by `other`.
   ///
   /// The default implementation simply invokes `divided(by:)` and
   /// `remainder(dividingBy:)`, which in case of built-in types will be fused
@@ -303,7 +303,7 @@ public protocol BinaryInteger:
   ///
   /// Conforming types can override the default behavior in order to
   /// provide a more efficient implementation.
-  func quotientAndRemainder(dividingBy rhs: Self) -> (Self, Self)
+  func quotientAndRemainder(dividingBy other: Self) -> (Self, Self)
 }
 ```
 
@@ -336,55 +336,55 @@ public protocol FixedWidthInteger : BinaryInteger {
   /// Returns the minimum value representable by 'Self'.
   static var min: Self { get }
 
-  /// Adds `rhs` to `self` returning a pair containing the partial result
+  /// Adds `other` to `self` returning a pair containing the partial result
   /// of addition and an overflow flag.
   func addingWithOverflow(
-     rhs: Self
+     other: Self
   ) -> (partialValue: Self, overflow: ArithmeticOverflow)
 
-  /// Subtracts `rhs` from `self` returning a pair containing the partial
+  /// Subtracts `other` from `self` returning a pair containing the partial
   /// result of subtraction and an overflow flag.
   func subtractingWithOverflow(
-     rhs: Self
+     other: Self
   ) -> (partialValue: Self, overflow: ArithmeticOverflow)
 
-  /// Multiplies `self` by `rhs` returning a pair containing the partial
+  /// Multiplies `self` by `other` returning a pair containing the partial
   /// result of multiplication and an overflow flag.
   func multipliedWithOverflow(
-    by rhs: Self
+    by other: Self
   ) -> (partialValue: Self, overflow: ArithmeticOverflow)
 
-  /// Divides `self` by `rhs` returning a pair containing the partial
+  /// Divides `self` by `other` returning a pair containing the partial
   /// result of division and an overflow flag.
   func dividedWithOverflow(
-    by rhs: Self
+    by other: Self
   ) -> (partialValue: Self, overflow: ArithmeticOverflow)
 
   /// Returns the partial result of getting a remainder of division of `self`
-  /// by `rhs`, and an overflow flag.
+  /// by `other`, and an overflow flag.
   func remainderWithOverflow(
-    dividingBy rhs: Self
+    dividingBy other: Self
   ) -> (partialValue: Self, overflow: ArithmeticOverflow)
 
   /// Returns the result of the 'bitwise and' operation, applied
-  /// to `self` and `rhs`.
-  func bitwiseAnd(rhs: Self) -> Self
+  /// to `self` and `other`.
+  func bitwiseAnd(other: Self) -> Self
 
   /// Returns the result of the 'bitwise or' operation, applied
-  /// to `self` and `rhs`.
-  func bitwiseOr(rhs: Self) -> Self
+  /// to `self` and `other`.
+  func bitwiseOr(other: Self) -> Self
 
   /// Returns the result of the 'bitwise exclusive or' operation, applied
-  /// to `self` and `rhs`.
-  func bitwiseXor(rhs: Self) -> Self
+  /// to `self` and `other`.
+  func bitwiseXor(other: Self) -> Self
 
   /// Returns the result of shifting the binary representation
-  /// of `self` by `rhs` binary digits to the right.
-  func maskingShiftRight(rhs: Self) -> Self
+  /// of `self` by `other` binary digits to the right.
+  func maskingShiftRight(other: Self) -> Self
 
   /// Returns the result of shifting the binary representation
-  /// of `self` by `rhs` binary digits to the left.
-  func maskingShiftLeft(rhs: Self) -> Self
+  /// of `self` by `other` binary digits to the left.
+  func maskingShiftLeft(other: Self) -> Self
 
   /// Returns a pair containing the `high` and `low` parts of the result
   /// of `lhs` multiplied by `rhs`.
@@ -489,7 +489,7 @@ public func &+ <T: FixedWidthInteger>(lhs: T, rhs: T) -> T {
 }
 
 public struct Int8 {
-  public func addingWithOverflow(_ rhs: DoubleWidth<T>)
+  public func addingWithOverflow(_ other: DoubleWidth<T>)
     -> (partialValue: DoubleWidth<T>, overflow: ArithmeticOverflow) {
     // efficient implementation
   }
