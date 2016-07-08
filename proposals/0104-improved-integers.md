@@ -107,12 +107,12 @@ should now refine `SignedArithmetic`.
 
 - It makes future extensions possible.
 
-  The proposed model eliminates the 'largest integer type' concept previously
-used to interoperate between integer types (see `toIntMax` in the current
-model) and instead provides access to machine words. It also introduces the
-`doubleWidthMultiply` and `quotientAndRemainder` methods. Together these
-changes can be used to provide an efficient implementation of bignums that
-would be hard to achieve otherwise.
+  The proposed model eliminates the 'largest integer type' concept previously used
+to interoperate between integer types (see `toIntMax` in the current model) and
+instead provides access to machine words. It also introduces the
+`doubleWidthMultiply`, `doubleWidthDivide`, and `quotientAndRemainder` methods.
+Together these changes can be used to provide an efficient implementation of
+bignums that would be hard to achieve otherwise.
 
 The prototype implementation, available
 [here](https://github.com/apple/swift/blob/master/test/Prototypes/Integers.swift.gyb)
@@ -321,8 +321,9 @@ Bitwise binary and shift operators are implemented the same way as arithmetic
 operations: a free function dispatches a call to a corresponding protocol
 method.
 
-The `doubleWidthMultiply` method is a necessary building block to implement
-support for integer types of a greater width such as arbitrary-precision integers.
+The `doubleWidthMultiply` and `doubleWidthDivide` methods are necessary building
+blocks to implement support for integer types of a greater width such as
+arbitrary-precision integers.
 
 ```Swift
 public protocol FixedWidthInteger : BinaryInteger {
@@ -386,8 +387,17 @@ public protocol FixedWidthInteger : BinaryInteger {
   func maskingShiftLeft(rhs: Self) -> Self
 
   /// Returns a pair containing the `high` and `low` parts of the result
-  /// of `self` multiplied by `rhs`.
-  func doubleWidthMultiply(other: Self) -> (high: Self, low: Magnitude)
+  /// of `lhs` multiplied by `rhs`.
+  static func doubleWidthMultiply(_ lhs: Self, _ rhs: Self)
+    -> (high: Self, low: Magnitude)
+
+  /// Returns a pair containing a quotient and a remainder of `lhs` divided by
+  /// `rhs`, where `lhs` is itself a pair of `high` and `low` words of a double
+  /// width number.
+  static func doubleWidthDivide(
+    _ lhs: (high: Self, low: Magnitude), _ rhs: Self
+  ) -> (quotient: Self, remainder: Self)
+
 
   /// Returns a number of set (i.e. equal to 1) bits in the representation of
   /// `self`.
