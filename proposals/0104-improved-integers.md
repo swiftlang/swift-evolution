@@ -387,6 +387,13 @@ public protocol FixedWidthInteger : BinaryInteger {
   /// Returns a pair containing the `high` and `low` parts of the result
   /// of `self` multiplied by `rhs`.
   func doubleWidthMultiply(other: Self) -> (high: Self, low: Magnitude)
+
+  /// Returns a number of set (i.e. equal to 1) bits in the representation of
+  /// `self`.
+  var popcount: Int { get }
+
+  /// Returns the number of leading zeros in the representation of `self`.
+  var leadingZeros: Int { get }
 }
 ```
 
