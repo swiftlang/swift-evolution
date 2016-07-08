@@ -367,15 +367,15 @@ public protocol FixedWidthInteger : BinaryInteger {
 
   /// Returns the result of the 'bitwise and' operation, applied
   /// to `self` and `rhs`.
-  func and(rhs: Self) -> Self
+  func bitwiseAnd(rhs: Self) -> Self
 
   /// Returns the result of the 'bitwise or' operation, applied
   /// to `self` and `rhs`.
-  func or(rhs: Self) -> Self
+  func bitwiseOr(rhs: Self) -> Self
 
   /// Returns the result of the 'bitwise exclusive or' operation, applied
   /// to `self` and `rhs`.
-  func xor(rhs: Self) -> Self
+  func bitwiseXor(rhs: Self) -> Self
 
   /// Returns the result of shifting the binary representation
   /// of `self` by `rhs` binary digits to the right.
