@@ -75,7 +75,7 @@ However there is an alternative to consider below that will affect this. Either 
 
 ## Alternatives considered
 
-One alternative is to simply have the existing variadic syntax to have an `Array` passed to it, however this lacks the greater flexibility of being able to control the actual type(s) that the function can handle, meaning it is strictly limited to `Array`.
+One alternative is to simply allow the existing variadic syntax to have an `Array` passed to it, however this lacks the greater flexibility of being able to control the actual type(s) that the function can handle, meaning it is strictly limited to `Array`, while introducing ambiguity with regular functions, rather than combining them into one.
 
 A compromise could be to allow the existing style to remain as a shorthand for new the attribute-based declaration, though this may discourage consideration of the most appropriate type(s) to handle; in general developers should be encouraged to accept generic iterators, sequences or collections where possible.
 
