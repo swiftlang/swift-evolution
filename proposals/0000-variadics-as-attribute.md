@@ -13,22 +13,22 @@ Swift-evolution thread: [Discussion thread topic](http://thread.gmane.org/gmane.
 
 ## Motivation
 
-Currently Swift variadic functions cannot be called with an array of values, potentially requiring two declarations like so:
+Currently Swift variadic functions are their own special case of function, which leads to some difficulties. To pass a collection into them for example requires declaring an additional function signature like-so:
 
 ```
 func someMethod<C:Collection where C.Iterator.Element == Int>(_ values:C) { … } // Regular method
 func someMethod(_ values:Int...) { someMethod(values) } // Variadic method
 ```
 
-In some cases this leads to only one being defined, forcing developers to use that particular style. When this is the variadic option this means the method is restricted in how it can be used, and parameters constructed.
+In some cases this leads to only one of the above being defined, forcing developers to use that particular style only. When only the variadic option is declared this means the method is restricted in how it can be used, and how its parameters are constructed, limiting it to an `Array` of fixed (at call site) size.
 
 ## Proposed solution
 
-This proposal is to replace the current form of variadic declaration syntax (trailing elipsis) with a new attribute `@variadic` that enables any suitable iterable parameter to be called in variadic form if desired.
+This proposal is to unify regular and variadic function delcarations by using a `@variadic` attribute instead to define which parameter can be used in the variadic style at the call-site. This will allow any regular function to enable the variadic call style, while retaining full control over the type of values it accepts, thus eliminating the need for the current special variadic function type.
 
 ## Detailed design
 
-Quite simply, instead of a trailing elipsis, a variadic parameter will instead be defined via a new `@variadic` attribute which can be placed upon any function parameter with a type conforming to `ArrayLiteralConvertible`, or which is a generic constraint against `IteratorProtocol`, `Sequence` or `Collection` such that a default (such as `Array`) can be used to fulfil the variadic call. Otherwise variadic parameters can be specified with the same restrictions they have now (must not be ambiguous).
+Instead of a trailing elipsis, a variadic parameter would instead be defined via a new `@variadic` attribute which can be placed upon any function parameter with a type conforming to `ArrayLiteralConvertible`, or which is a generic constraint against `IteratorProtocol`, `Sequence` or `Collection` such that a default (such as `Array`) can be used to fulfil the variadic call. Otherwise variadic parameters can be specified with the same restrictions they have now (must not be ambiguous).
 
 For example, consider the following variadic function:
 
@@ -36,7 +36,7 @@ For example, consider the following variadic function:
 func someMethod(_ values:Int...) { … }
 ```
 
-Under this proposal the above can be rewritten as one of the following:
+Under this proposal the above can be rewritten as any (or all) of the following:
 
 ```
 func someMethod(@variadic _ values:[Int]) { … } // Basic Array solution
@@ -46,7 +46,7 @@ func someMethod<S:Sequence where S.Iterator.Element == Int>(@variadic _ values:S
 func someMethod<C:Collection where C.Iterator.Element == Int>(@variadic _ values:C) { … } // Flexible, definitely multi-pass, indexed, generic solution
 ```
 
-In this case the Iterator variation is preferred for greatest flexibility, but it will depend upon the actual requirements of the method. Any of these can be called as follows:
+In this case the iterator variation is preferred for greatest flexibility, but as usual it will depend upon the actual requirements of the method. Any of these can then be called as follows:
 
 ```
 someMethod([1, 2, 3, 4, 5, 6])  // normal array-literal call for any of the above
@@ -71,11 +71,12 @@ func someMethod(_ values:Int...) { … } // Old style
 func someMethod(@variadic _ values:[Int]) { … } // New style
 ```
 
-However there is an alternative to consider below that will affect this.
+However there is an alternative to consider below that will affect this. Either way, existing variadics will become full-fledged array handling functions, which means that any redundant array-based functions will become ambiguious and need to be removed.
 
 ## Alternatives considered
 
-One alternative is to simply have the existing variadic syntax produce a method taking an array of the same type, that is implicitly capable of being used in variadic style (but also used directly with `Array` values). However this has less flexibility than the above, which permits non-`Array` types.
-A compromise could be to allow the existing style to remain as a shorthand, though this may discourage consideration of the most appropriate type (in general developers should be encouraged to accept generic types for greatest utility wherever possible, but if trailing elipsis is easy we may just end up with `Array` being used most often).
+One alternative is to simply have the existing variadic syntax to have an `Array` passed to it, however this lacks the greater flexibility of being able to control the actual type(s) that the function can handle, meaning it is strictly limited to `Array`.
+
+A compromise could be to allow the existing style to remain as a shorthand for new the attribute-based declaration, though this may discourage consideration of the most appropriate type(s) to handle; in general developers should be encouraged to accept generic iterators, sequences or collections where possible.
 
 The other main alternative considered was removing variadics completely; while this is actually the preference of some (myself included), it seems a lot developers do not wish this. This proposal is intended as a compromise that coallesces variadics with regular functions, without eliminating the possibility to use either style at the call site as developers prefer.
