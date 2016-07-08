@@ -227,7 +227,7 @@ as practical with Swift 2.0.
 * [SE-0108: Remove associated type inference](proposals/0108-remove-assoctype-inference.md)
 
 ## Review
-[Swift Evolution Review Schedule](https://github.com/apple/swift-evolution/blob/master/schedule.md)
+[Swift Evolution Review Schedule](schedule.md)
 
 ### Returned for Revision
 
