@@ -72,10 +72,10 @@ protocol MutableCollection {
     ///     // second == [60, 40]
     ///
     /// - Parameter belongsInSecondPartition: A predicate used to partition
-    ///   the collection.
-    /// - Returns: The pivot of the partitioned collection: The index of 
-    ///   the first element in the reordered collection that matches 
-    ///   `belongsInSecondPartition`.
+    ///   the collection. All elements satisfying this predicate are ordered 
+    ///   after all elements not satisfying it.
+    /// - Returns: The index of the first element in the reordered collection
+    ///   that matches `belongsInSecondPartition`.
     ///
     /// - Complexity: O(n)
     @discardableResult
