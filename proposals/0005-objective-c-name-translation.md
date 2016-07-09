@@ -53,7 +53,7 @@ version of the same code might instead look like this:
 
 ```swift
     let content = listItemView.text.trimming(.whitespaceAndNewlines)
-```swift
+```
 
 The latter example more closely adheres to the [Swift API Design
 Guidelines][api-design-guidelines], in particular, omitting "needless"
