@@ -145,6 +145,7 @@ below:
 * [SE-0085: Package Manager Command Names](proposals/0085-package-manager-command-name.md)
 * [SE-0093: Adding a public `base` property to slices](proposals/0093-slice-base.md)
 * [SE-0094: Add sequence(first:next:) and sequence(state:next:) to the stdlib](proposals/0094-sequence-function.md)
+* [SE-0106: Add a `macOS` Alias for the `OSX` Platform Configuration Test](proposals/0106-rename-osx-to-macos.md)
 * [SE-0113: Add integral rounding functions to FloatingPoint](proposals/0113-rounding-functions-on-floatingpoint.md)
 
 ### Accepted proposals which do not have a complete implementation
@@ -176,7 +177,6 @@ subsequent release.
 * [SE-0102: Remove `@noreturn` attribute and introduce an empty `NoReturn` type](proposals/0102-noreturn-bottom-type.md)
 * [SE-0103: Make non-escaping closures the default](proposals/0103-make-noescape-default.md)
 * [SE-0104: Protocol-oriented integers](proposals/0104-improved-integers.md)
-* [SE-0106: Add a `macOS` Alias for the `OSX` Platform Configuration Test](proposals/0106-rename-osx-to-macos.md)
 * [SE-0110: Distinguish between single-tuple and multiple-argument function types](proposals/0110-distingish-single-tuple-arg.md)
 * [SE-0111: Remove type system significance of function argument labels](proposals/0111-remove-arg-label-type-significance.md)
 
