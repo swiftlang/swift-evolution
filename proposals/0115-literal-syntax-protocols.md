@@ -2,12 +2,12 @@
 
 * Proposal: [SE-0115](0115-literal-syntax-protocols.md)
 * Author: [Matthew Johnson](https://github.com/anandabits)
-* Status: **Active review July 1...7**
+* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000220.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
-This proposal renames the `*LiteralConvertible` protocols to `ExpressibleAs*Literal`.  
+This proposal renames the `*LiteralConvertible` protocols to `ExpressibleBy*Literal`.  
 
 Swift-evolution thread: [Literal Syntax Protocols](http://thread.gmane.org/gmane.comp.lang.swift.evolution/21441)
 
@@ -31,11 +31,11 @@ Further, the standard library team has observed:
 
 ## Proposed solution
 
-This proposal addresses both problems by renaming the protocols to `ExpressibleAs*Literal`.  The proposal **does not** make any changes to the requirements of the protocols.
+This proposal addresses both problems by renaming the protocols to `ExpressibleBy*Literal`.  The proposal **does not** make any changes to the requirements of the protocols.
 
 ## Detailed design
 
-All of the `*LiteralConvertible` protocols will receive new `ExpressibleAs*Literal` names.  
+All of the `*LiteralConvertible` protocols will receive new `ExpressibleBy*Literal` names.  
 
 This proposal does not change any requirements of these protocols.  All requirements of all `*LiteralConvertible` protocols will remain exactly the same.
 
@@ -57,21 +57,21 @@ public protocol DictionaryLiteralConvertible { ... }
 Are changed as follows:
 
 ```swift
-public protocol ExpressibleAsNilLiteral { ... }
-public protocol ExpressibleAsBooleanLiteral { ... }
-public protocol ExpressibleAsFloatLiteral { ... }
-public protocol ExpressibleAsIntegerLiteral { ... }
-public protocol ExpressibleAsUnicodeScalarLiteral { ... }
-public protocol ExpressibleAsExtendedGraphemeClusterLiteral { ... }
-public protocol ExpressibleAsStringLiteral { ... }
-public protocol ExpressibleAsStringInterpolation { ... }
-public protocol ExpressibleAsArrayLiteral { ... }
-public protocol ExpressibleAsDictionaryLiteral { ... }
+public protocol ExpressibleByNilLiteral { ... }
+public protocol ExpressibleByBooleanLiteral { ... }
+public protocol ExpressibleByFloatLiteral { ... }
+public protocol ExpressibleByIntegerLiteral { ... }
+public protocol ExpressibleByUnicodeScalarLiteral { ... }
+public protocol ExpressibleByExtendedGraphemeClusterLiteral { ... }
+public protocol ExpressibleByStringLiteral { ... }
+public protocol ExpressibleByStringInterpolation { ... }
+public protocol ExpressibleByArrayLiteral { ... }
+public protocol ExpressibleByDictionaryLiteral { ... }
 ```
 
 ## Impact on existing code
 
-All code that references any of the `*LiteralConvertible` protocols will need to be modified to reference the protocol via the new `ExpressibleAs*Literal` name.
+All code that references any of the `*LiteralConvertible` protocols will need to be modified to reference the protocol via the new `ExpressibleBy*Literal` name.
 
 ## Alternatives considered
 
