@@ -135,7 +135,7 @@ Initializing memory via an `UnsafeMutableRawPointer` produces an
 ```swift
 UnsafeMutableRawPointer {
   // Returns an UnsafeMutablePointer into the newly initialized memory.
-  func initialize<T>(_: T.Type, with: T, count: Int = 1)
+  func initializeMemory<T>(as: T.Type, count: Int = 1, to: T)
     -> UnsafeMutablePointer<T>
 }
 
@@ -145,11 +145,16 @@ UnsafeMutablePointer<Pointee> {
 }
 ```
 
-The type parameter `T` passed to `initialize` is an explicit argument
-because the user must reason about the type's size and alignment at
-the point of initialization. Inferring the type from the value passed
-to the second argument could result in miscompilation if the inferred
-type ever deviates from the user's original expectations.
+The type parameter `T` passed to `initializeMemory` is an explicit
+argument because the user must reason about the type's size and
+alignment at the point of initialization. Inferring the type from the
+value argument could result in miscompilation if the inferred type
+ever deviates from the user's original expectations. The type
+parameter also importantly conveys that at the point of the call the
+raw memory becomes accessible via a pointer to that type. The type
+should be explicitly spelled at this point because accesing the memory
+via a typed pointer of an unrelated type could also result in
+miscompilation.
 
 ### Binding memory to a type
 
@@ -182,7 +187,7 @@ initialized using a typed pointer:
 
 ```swift
 UnsafeMutablePointer<Pointee> {
-  func initialize(with newValue: Pointee, count: Int = 1)
+  func initialize(to newValue: Pointee, count: Int = 1)
 }
 ```
 
@@ -211,34 +216,49 @@ raw memory does not.
 
 ```swift
 UnsafeMutableRawPointer {
-  // Read raw bytes and produce a value of type `T`.
-  func load<T>(_: T.Type) -> T
+  /// Read raw bytes from memory at `self + offset` and construct a
+  /// value of type `T`.
+  ///
+  /// - Precondition: The underlying pointer plus `offset` is properly
+  /// aligned for accessing `T`.
+  ///
+  /// - Precondition: The memory is initialized to a value of some type, `U`,
+  ///   such that `T` is layout compatible with `U`.
+  func load<T>(fromByteOffset: Int = 0, as: T.Type) -> T
 
-  // Write a value of type `T` into this memory, overwriting any
-  // previous values.
-  //
-  // Precondition: memory is either uninitialized or initialized with a
-  // trivial type.
-  //
-  // Precondition: `T` is a trivial type.
-  func storeRaw<T>(_: T.Type, with: T)
+  /// Store a value's bytes into raw memory at `self + offset`.
+  ///
+  /// - Precondition: The underlying pointer plus `offset` is properly
+  /// aligned for storing type `T`.
+  ///
+  /// - Precondition: `T` is a trivial type.
+  ///
+  /// - Precondition: The memory is uninitialized, or initialized some
+  ///   trivial type `U` such that `T` and `U` are mutually layout
+  ///   compatible.
+  /// 
+  /// - Postcondition: The memory is initialized to raw bytes. If the
+  ///   memory is bound to type `U`, then it now contains a value of
+  ///   type `U`.
+  func storeBytes<T>(of: T, toByteOffset: Int = 0, as: T.Type)
 }
 ```
 
-The `load` and `storeRaw` operations are assymetric. `load` reads raw
+The `load` and `storeBytes` operations are assymetric. `load` reads raw
 bytes but properly constructs a new value of type `T` with its own
 lifetime. Any copied references will be retained. In contrast,
-`storeRaw` only operates on a value's raw bytes, writing them into
+`storeBytes` only operates on a value's raw bytes, writing them into
 untyped memory. The in-memory copy will not be constructed and any
 previously initialized value in this memory will not be deinitialized
-(it cannot be because its type is unknown). Consequently, `storeRaw`
+(it cannot be because its type is unknown). Consequently, `storeBytes`
 should only be performed on trivial types.
 
-Assigning memory to a nontrivial type is done by binding the type:
+Assigning memory to a nontrivial type via a raw pointer is done by
+binding the type:
 
 ```swift
 rawPtr.bindMemory(to: PreviousType.self, capacity: 1).deinitialize(count: 1)
-rawPtr.initialize(NewType.self, with: NewType())
+rawPtr.initializeMemory(as: NewType.self, to: NewType())
 ```
 
 ### Bytewise pointer arithmetic
@@ -275,8 +295,8 @@ struct Unsafe[Mutable]Pointer<Pointee> {
 ```
 
 This initializer will be removed. `UnsafePointer` conversion is still
-possible, but is now explicit and provably correct based on the conversion's
-preconditions and postconditions.
+possible, but is now explicit and provably correct based on the
+conversion's preconditions and postconditions.
 
 Recall that `bindMemory(to:capacity:)` produces a typed pointer from a
 raw pointer. As explained above, it can be used to bind uninitialized
@@ -353,16 +373,16 @@ struct looks like this with `UnsafePointer`:
 ```swift
 // --- old version ---
 func initA(pA: UnsafeMutablePointer<A>) {
-  pA.initialize(with: A(value:42))
+  pA.initialize(to: A(value:42))
 }
 
 func initB(pB: UnsafeMutablePointer<B>) {
-  pB.initialize(with: B(value:13))
+  pB.initialize(to: B(value:13))
 }
 
 func normalLifetime() {
   // Memory is uninitialized, but `pA` is already typed, which is misleading.
-  let pA = UnsafeMutablePointer<A>(allocatingCapacity: 1)
+  let pA = UnsafeMutablePointer<A>.allocate(capacity: 1)
 
   initA(pA)
 
@@ -382,11 +402,11 @@ allocated memory:
 ```swift
 // --- new version ---
 func initA(p: UnsafeMutableRawPointer) -> UnsafeMutablePointer<A> {
-  return p.initialize(A.self, with: A(value:42))
+  return p.initializeMemory(as: A.self, to: A(value:42))
 }
 
 func initB(p: UnsafeMutableRawPointer) -> UnsafeMutablePointer<B> {
-  return p.initialize(B.self, with: B(value:13))
+  return p.initializeMemory(as: B.self, to: B(value:13))
 }
 ```
 
@@ -418,7 +438,7 @@ current `UnsafeMutablePointer` API:
 func initAB() -> UnsafeMutablePointer<A> {
 
   // Memory is uninitialized, but `pA` is already typed.
-  let pA = UnsafeMutablePointer<A>(allocatingCapacity: 2)
+  let pA = UnsafeMutablePointer<A>.allocate(capacity: 2)
 
   initA(UnsafeMutablePointer(pA))
 
@@ -453,7 +473,7 @@ initialized.
 // Return a pointer to an untyped memory region initialized with (A, B).
 func initAB() -> UnsafeMutableRawPointer {
 
-  let rawPtr = UnsafeMutableRawPointer.allocate(bytes: 2*strideof(Int.self))
+  let rawPtr = UnsafeMutableRawPointer.allocate(bytes: 2 * strideof(Int.self))
 
   // Initialize the first Int with A, producing UnsafeMutablePointer<A>.
   let pA = initA(rawPtr)
@@ -529,7 +549,7 @@ choose to ignore the order of assignment, and `initAthenB` may print
 ```swift
 // --- old version ---
 func initAthenB(_ p: UnsafeMutablePointer<Void>) {
-  let p = UnsafeMutablePointer<Int>(allocatingCapacity: 1)
+  let p = UnsafeMutablePointer<Int>.allocate(capacity: 1)
 
   initA(UnsafeMutablePointer(p))
   printA(UnsafeMutablePointer(p))
@@ -631,13 +651,13 @@ pointer cast is explicit:
 ```swift
 // --- new version ---
 func testInitAorB() {
-  let p = UnsafeMutableRawPointer.allocate(capacity: 1, of: Int.self)
+  let p = UnsafeMutableRawPointer.allocate(bytes: sizeof(Int.self))
 
   initAorB(p, isA: true)
   printA(p.assumingMemoryBound(to: A.self))
 
   initAorB(p, isA: false)
-  printB(p.assumingMemoryBound(to: A.self))
+  printB(p.assumingMemoryBound(to: B.self))
 }
 ```
 
@@ -651,13 +671,13 @@ pointer.
 ```swift
 // --- new version ---
 func testReinterpret() {
-  let p = UnsafeMutableRawPointer.allocate(capacity: 1, of: Int.self)
+  let p = UnsafeMutableRawPointer.allocate(bytes: sizeof(Int.self))
 
   // Initialize raw memory to `A`.
   initAorB(p, isA: true)
 
   // Load from raw memory as `B` (reinterpreting the value in memory).
-  print(p.load(B.self))
+  print(p.load(as: B.self))
 }
 ```
 
@@ -679,14 +699,15 @@ func readCStr(_ string: UnsafePointer<CChar>) {
 }
 ```
 
-Working with these API's exclusively using `UnsafeMutablePointer` leads
-to undefined behavior, as shown here using the current API:
+Working with these third party API's exclusively using
+`UnsafeMutablePointer` would lead to undefined behavior, as shown here
+using the current API:
 
 ```swift
 // --- old version ---
 func stringFromBytes(size: Int, value: UInt8) {
-  let bytes = UnsafeMutablePointer<UInt8>(allocatingCapacity: size + 1)
-  bytes.initialize(with: value, count: size)
+  let bytes = UnsafeMutablePointer<UInt8>.allocate(capacity: size + 1)
+  bytes.initialize(to: value, count: size)
   bytes[size] = 0
 
   // Unsafe pointer conversion is requred to invoke readCString.
@@ -706,7 +727,7 @@ rebinding the type.
 // --- new version ---
 func stringFromBytes(size: Int, value: UInt8) {
   let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: size + 1)
-  buffer.initialize(with: value, count: size)
+  buffer.initialize(to: value, count: size)
   bytes[size] = 0
 
   buffer.withMemoryRebound(to: CChar.self, capacity: size + 1) {
@@ -721,20 +742,20 @@ memory to `CChar` once and keep the same typed pointer around for
 future use without keeping track of the memory capacity. In that case,
 the program could continue to write UInt8 values to memory without
 casting to CChar and without rebinding memory as long as those writes
-use the `UnsafeMutableRawPointer.storeRaw` API for raw memory access:
+use the `UnsafeMutableRawPointer.storeBytes` API for raw memory access:
 
 ```swift
 // --- new version ---
 func mutateBuffer(size: Int, value: UInt8) {
   let rawBuffer = UnsafeMutableRawPointer.allocate(bytes: size + 1)
-  rawBuffer.initialize(UInt8.self, with: value, count: size)
-  rawBuffer.initialize(toContiguous: UInt8.self, atIndex: size, with: 0)
+  rawBuffer.initializeMemory(as: UInt8.self, count: size, to: value)
+  rawBuffer.initializeMemory(as: UInt8.self, atIndex: size, to: 0)
 
   let cstr = rawBuffer.bindMemory(to: CChar.self, capacity: size + 1)
   readCStr(cstr)
 
   for i in 0..<size {
-    rawBuffer.storeRaw(toContiguous: UInt8.self, atIndex: i, with: getByte())
+    rawBuffer.storeBytes(of: getByte(), toByteOffset: i, as: UInt8.self)
   }
 
   readCStr(cstr)
@@ -753,7 +774,7 @@ that aren't expected as shown here:
 ```swift
 // --- old version ---
 func testUndefinedExecution() {
-  let pA = UnsafeMutablePointer<A>(allocatingCapacity: 1)
+  let pA = UnsafeMutablePointer<A>.allocate(capacity: 1)
   pA[0] = A(value:42)
   if pA[0].value != 42 {
     // Code path should never execute...
@@ -807,38 +828,38 @@ the memory no longer holds a value.
 
 Consider the sequence of abstract memory operations:
 
-Abstract Operation                | Memory State 
---------------------------------- | ------------ 
-`rawptr = allocate()`             | uninitialized
-`tptr = rawptr.initialize(T)`     | initialized
-`tptr.pointee = T`                | initialized
-`tptr.deinitialize()`             | uninitialized
+Abstract Operation                  | Memory State 
+----------------------------------- | ------------ 
+`rawptr = allocate()`               | uninitialized
+`tptr = rawptr.initializeMemory(T)` | initialized
+`tptr.pointee = T`                  | initialized
+`tptr.deinitialize()`               | uninitialized
 
 Initializing memory via a raw pointer binds the memory
 type. Initialized memory must always be bound to a type. Deinitialization
 does not unbind the type. Memory remains bound to a type until it is
 rebound to a different type.
 
-Abstract Operation                | Memory State  | Type
---------------------------------- | ------------  | ----------
-`rawptr = allocate()`             | uninitialized | None
-`tptr = rawptr.initialize(T)`     | initialized   | bound to T
-`tptr.deinitialize()`             | uninitialized | bound to T
-`uptr = rawptr.initialize(U)`     | initialized   | bound to U
-`uptr.deinitialize()`             | uninitialized | bound to U
-`rawptr.deallocate()`             | invalid       | None
+Abstract Operation                  | Memory State  | Type
+----------------------------------- | ------------  | ----------
+`rawptr = allocate()`               | uninitialized | None
+`tptr = rawptr.initializeMemory(T)` | initialized   | bound to T
+`tptr.deinitialize()`               | uninitialized | bound to T
+`uptr = rawptr.initializeMemory(U)` | initialized   | bound to U
+`uptr.deinitialize()`               | uninitialized | bound to U
+`rawptr.deallocate()`               | invalid       | None
 
 Rebinding memory effectively changes the type of any initialized
 values within the rebound memory region. Accessing the memory via a
 typed pointer of unrelated type is undefined:
 
-Abstract Operation                | Memory State  | Type
---------------------------------- | ------------  | ----------
-`tptr = rawptr.initialize(T)`     | initialized   | bound to T
-`tptr.deinitialize()`             | uninitialized | bound to T
-`uptr = rawptr.initialize(U)`     | initialized   | bound to U
-`uptr.deinitialize()`             | uninitialized | bound to U
-`tptr.initialize()`               | undefined     | undefined
+Abstract Operation                  | Memory State  | Type
+----------------------------------- | ------------  | ----------
+`tptr = rawptr.initializeMemory(T)` | initialized   | bound to T
+`tptr.deinitialize()`               | uninitialized | bound to T
+`uptr = rawptr.initializeMemory(U)` | initialized   | bound to U
+`uptr.deinitialize()`               | uninitialized | bound to U
+`tptr.initialize()`                 | undefined     | undefined
 
 By this convention, raw pointers primarily refer to uninitialized
 memory and typed pointers primarily refer to initialized memory. This
@@ -860,7 +881,7 @@ let ptrA = rawPtr.bindMemory(to: A.self, capacity: 1)
 The resulting typed pointer may then be used to initialize memory:
 
 ```swift
-ptrA.initialize(with: A())
+ptrA.initialize(to: A())
 ```
 
 Abstract Operation                | Memory State  | Type
@@ -901,7 +922,7 @@ initialized state of each element position. For example:
 ```swift
 func getAt(index: Int) -> A {
   if !isInitializedAt(index) {
-    (ptrA + index).initialize(with: Type())
+    (ptrA + index).initialize(to: Type())
   }
   return ptrA[index]
 }
@@ -947,15 +968,15 @@ A program may read from and write to memory via a raw pointer even
 after the memory has been initialized:
 
 ```swift
-let rawPtr = UnsafeMutableRawPointer.allocate(capacity: 1, of: SomeType.self)
+let rawPtr = UnsafeMutableRawPointer.allocate(bytes: sizeof(SomeType.self))
 
-let ptrToSomeType = rawPtr.initialize(SomeType.self, SomeType())
+let ptrToSomeType = rawPtr.initializeMemory(as: SomeType.self, to: SomeType())
 
 // read raw initialized memory
-let reinterpretedValue = rawPtr.load(AnotherType.self)
+let reinterpretedValue = rawPtr.load(as: AnotherType.self)
 
 // overwrite raw initialized memory
-rawPtr.storeRaw(AnotherType.self, with: AnotherType())
+rawPtr.storeBytes(of: AnotherType(), as: AnotherType.self)
 ```
 
 `SomeType` and `AnotherType` need not to be related types. They must
@@ -1019,7 +1040,7 @@ Using a pointer to a single value:
 ```swift
 func createValue() {
   ptrToA = UnsafeMutablePointer<A>.allocate(capacity: 1)
-  ptrToA.initialize(with: A(value: 42))
+  ptrToA.initialize(to: A(value: 42))
 }
 
 func deleteValue() {
@@ -1060,7 +1081,7 @@ func createCBuffer(size: Int) {
 
 // - precondition: memory at `index` is uninitialized.
 func initElement(index: Int, with value: A) {
-  (ptrToA + index).initialize(with: value)
+  (ptrToA + index).initialize(to: value)
 }
 
 // - precondition: memory at `index` is initialized.
@@ -1137,12 +1158,12 @@ func receiveMsg(flags: UInt16, state: UInt16, value: Int32) {}
 
 func readMsg(msgBuf: UnsafeRawPointer, isFormat1: Bool) {
   if isFormat1 {
-    receiveMsg(flags: msgBuf.load(UInt16.self),
-      state: msgBuf.load(UInt16.self, atByteOffset: 2),
-      value: msgBuf.load(Int32.self, atByteOffset: 4))
+    receiveMsg(flags: msgBuf.load(as: UInt16.self),
+      state: msgBuf.load(fromByteOffset: 2, as: UInt16.self),
+      value: msgBuf.load(fromByteOffset: 4, as: Int32.self))
   }
   else {
-    receiveMsg(flags: 0, state: 0, value: msgBuf.load(Int32.self))
+    receiveMsg(flags: 0, state: 0, value: msgBuf.load(as: Int32.self))
   }
 }
 ```
@@ -1154,10 +1175,10 @@ Accessing raw underlying memory bytes:
 ```swift
 // Direct bytewise element copy.
 func copyArrayElement(fromIndex: Int, toIndex: Int) {
-  let srcPtr = UnsafeRawPointer(ptrToA) + (fromIndex * strideof(A))
-  let destPtr = UnsafeMutableRawPointer(ptrToA) + (toIndex * strideof(A))
+  let srcPtr = UnsafeRawPointer(ptrToA) + (fromIndex * strideof(A.self))
+  let destPtr = UnsafeMutableRawPointer(ptrToA) + (toIndex * strideof(A.self))
 
-  destPtr.storeRaw(contiguous: A.self, from: srcPtr, count: 1)
+  destPtr.copyBytes(from: srcPtr, count: sizeof(A.self))
 }
 
 // Bytewise element swap.
@@ -1165,10 +1186,12 @@ func copyArrayElement(fromIndex: Int, toIndex: Int) {
 // Int is layout compatible with `A`.
 func swapArrayElements(index i: Int, index j: Int) {
   let rawPtr = UnsafeMutableRawPointer(ptrToA)
-  let tmpi = rawPtr.load(fromContiguous: Int.self, atIndex: i)
-  let tmpj = rawPtr.load(fromContiguous: Int.self, atIndex: j)
-  rawPtr.storeRaw(toContiguous: Int.self, atIndex: i, with: tmpj)
-  rawPtr.storeRaw(toContiguous: Int.self, atIndex: j, with: tmpi)
+  let tmpi = rawPtr.load(fromByteOffset: i * strideof(Int.self), as: Int.self)
+  let tmpj = rawPtr.load(fromByteOffset: j * strideof(Int.self), as: Int.self)
+  rawPtr.storeBytes(
+    of: tmpj, toByteOffset: i * strideof(Int.self), as: Int.self)
+  rawPtr.storeBytes(
+    of: tmpi, toByteOffset: j * strideof(Int.self), as: Int.self)
 }
 ```
 
@@ -1195,11 +1218,11 @@ func deallocate32(_ rawPtr: UnsafeMutableRawPointer) {
 }
 
 func createA(value: Int) -> UnsafeMutablePointer<A> {
-  return allocate32().initialize(A.self, with: A(value: value))
+  return allocate32().initializeMemory(as: A.self, to: A(value: value))
 }
 
 func createB(value: Int) -> UnsafeMutablePointer<B> {
-  return allocate32().initialize(B.self, with: B(value: value))
+  return allocate32().initialize(as: B.self, to: B(value: value))
 }
 
 func deleteA(ptrToA: UnsafeMutablePointer<A>) {
@@ -1342,35 +1365,29 @@ Given values of these types:
 #### `UnsafeRawPointer` to `UnsafeMutableRawPointer` raw copy (`memcpy`):
 
 ```swift
-  mrawPtr.storeRaw(contiguous: T.self, from: rawPtr, count: c)
-  mrawPtr.storeRawBackward(contiguous: T.self, from: rawPtr, count: c)
+  mrawPtr.copyBytes(from: rawPtr, count: c)
 ```
 
 #### `UnsafePointer<T>` to `UnsafeMutableRawPointer`:
 
 A raw copy from typed to raw memory can also be done by calling
-`storeRaw` and `storeRawBackward`, exactly as shown above. Implicit
-argument conversion from `UnsafePointer<T>` to `UnsafeRawPointer`
-makes this seamless.
+`copyBytes`, exactly as shown above. Implicit argument conversion from
+`UnsafePointer<T>` to `UnsafeRawPointer` makes this seamless.
 
 Additionally, raw memory can be bulk initialized from typed memory:
 
 ```swift
-  mraw.initialize(from: uPtr, count: c)
-  mraw.initializeBackward(from: uPtr, count: c)
+  mraw.initializeMemory(as: T.self, from: uPtr, count: c)
 ```
 
 #### `UnsafeMutablePointer<T>` to `UnsafeMutableRawPointer`:
 
-Because `UnsafeMutablePointer<T>` arguments are implicitly converted
-to `UnsafePointer<T>`, the `initialize` and `initializeBackward` calls
-above work seamlessly.
+Because `UnsafeMutablePointer<T>` arguments are implicitly converted to `UnsafePointer<T>`, the `initializeMemory` call above works seamlessly.
 
 Additionally, a mutable typed pointer can be moved-from:
 
 ```swift
-  mraw.moveInitialize(from: umPtr, count: c)
-  mraw.moveInitializeBackward(from: umPtr, count: c)
+  mraw.moveInitializeMemory(as: T.self, from: umPtr, count: c)
 ```
 
 #### `UnsafeRawPointer` to `UnsafeMutablePointer<T>`:
@@ -1384,7 +1401,6 @@ Copying between typed memory is still supported via bulk assignment
 
 ```swift
   ump.assign(from: up, count: c)
-  ump.assignBackward(from: up, count: c)
   ump.moveAssign(from: up, count: c)
 ```
 
@@ -1642,9 +1658,12 @@ automatically be replaced by `Unsafe[Mutable]RawPointer(p)` whenever
 the type checker determines that is the expression's expected type.
 
 Conversion between incompatible `Unsafe[Mutable]Pointer` values will
-produce a diagnostic explaining that
-`Unsafe[Mutable]RawPointer($0).cast(to: Unsafe[Mutable]Pointer<T>.self)`
-syntax is required for unsafe conversion.
+produce a diagnostic explaining asking the user to migrate to one of these forms:
+- `Unsafe[Mutable]RawPointer($0).withMemoryRebound(to:capacity:)`
+- `Unsafe[Mutable]RawPointer($0).bindMemory(to:capacity:)`
+- `Unsafe[Mutable]RawPointer($0).assumingMemoryBound(to: T.self)`
+
+The following UnsafeMutablePointer methods:
 
 `initializeFrom(_: UnsafePointer<Pointee>, count: Int)`,
 `initializeBackwardFrom(_: UnsafePointer<Pointee>, count: Int)`,
@@ -1654,9 +1673,7 @@ syntax is required for unsafe conversion.
 will be automatically converted to:
 
 `initialize(from: UnsafePointer<Pointee>, count: Int)`,
-`initializeBackward(from: UnsafePointer<Pointee>, count: Int)`,
 `assign(from source: Unsafe[Mutable]Pointer<Pointee>, count: Int)`,
-`moveAssign(from source: Unsafe[Mutable]Pointer<Pointee>, count: Int)`
 
 ### Standard library changes
 
