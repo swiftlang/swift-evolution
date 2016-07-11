@@ -12,6 +12,7 @@
 ##### Revision history
 
 * **v1** Initial version
+* **v2** Updated with feedback, additional rules. Change to keep NS on future value types.
 
 ## Introduction
 
@@ -51,13 +52,20 @@ In addition to adopting the guidelines for method names, the names of the fundam
 
 ## Proposed solution
 
-We propose the following set of rules for deciding if the `NS` prefix should be dropped:
+We propose the following set of rules for deciding if the `NS` prefix should be dropped for current types, and for new types added in the future:
 
 0. If the class is specifically for Objective-C, or inherently tied to the Objective-C runtime and `NS` namespace, keep `NS` prefix. Examples: `NSObject`, `NSAutoreleasePool`, `NSException`, `NSProxy`.
 0. If the class is platform-specific, keep the `NS` prefix. Many of these types are located in Foundation, but actually belong to the namespace of a higher-level framework like AppKit or UIKit. The higher level frameworks are keeping their prefixes, so these types should match. Examples: `NSUserNotification`, `NSBackgroundActivity`, `NSXPCConnection`.
-0. If the class has a value-type equivalent, then keep the `NS` prefix, per [SE-0069](https://github.com/apple/swift-evolution/blob/master/proposals/0069-swift-mutability-for-foundation.md). Examples: `NSArray`, `NSString`, `NSPersonNameComponents`. 
+0. If the class has a value-type equivalent, then keep the `NS` prefix, per [SE-0069](https://github.com/apple/swift-evolution/blob/master/proposals/0069-swift-mutability-for-foundation.md). Examples: `NSArray`, `NSString`, `NSPersonNameComponents`.
 
-> Note: As opposed to the original proposal from the beginning of Swift 3, this proposal narrows the scope of prefix-dropped types and takes advantage of Swift's ability to nest types to avoid polluting the global namespace with very general names.
+We have an additional set of rules which we want to apply to the set of existing classes only. We recognize the unique transition that we are currently undergoing and want to take advantage of this opportunity in some specific cases.
+
+0. If the class is planned to have a value-type equivalent in the near future, then keep the `NS` prefix. Examples: `NSAttributedString`, `NSRegularExpression`, `NSPredicate`.
+0. The `NSLock` family of classes and protocols will likely be revisited as part of the general concurrency effort in the next release of Swift. Therefore we will keep the NS prefix.
+0. Additional collection types that are implemented in Foundation are usually generic over objects only and not the `Any` type. We intend to fix this, but the transition will likely also involve these collections becoming a struct type themselves. This is related to the "Specific to Objective-C" rule, as Objective-C collections could only contain objects. Examples: `NSCache`, `NSMapTable`, `NSHashTable`, `NSOrderedSet`.
+0. A few types are dropping the prefix but also changing names to something more descriptive of its desired role. Examples: `NSTask` -> `Process`.
+
+It is important to note that the primary decision of dropping the `NS` is related to the type itself (including its name and if it is a `struct` or `class`). Some types have methods and properties which can be improved for Swift. We intend to fix those on a case-by-case basis, even if the name of the type is dropping the `NS`.
 
 ## Detailed design
 
@@ -67,26 +75,14 @@ The following types and symbols will drop their `NS` prefix in Swift.
 
 Objective-C Name | Swift Name | Note
 ---------- | ---------- | ----
-NSAttributedString | AttributedString | See note at bottom about future value types
 NSBlockOperation | BlockOperation |
 NSBundle | Bundle |
 NSByteCountFormatter | ByteCountFormatter |
-NSCache | Cache |
-NSCacheDelegate | CacheDelegate |
 NSCachedURLResponse | CachedURLResponse |
-NSCalendar | Calendar |
-NSComparisonPredicate | ComparisonPredicate |
 NSComparisonResult | ComparisonResult |
-NSCompoundPredicate | CompoundPredicate |
-NSCoder | Coder |
-NSCoding | Coding |
-NSCondition | Condition |
-NSConditionLock | ConditionLock |
 NSDateComponentsFormatter | DateComponentsFormatter |
 NSDateFormatter | DateFormatter |
 NSDateIntervalFormatter | DateIntervalFormatter |
-NSDiscardableContent | DiscardableContent |
-NSDistributedLock | DistributedLock |
 NSDistributedNotificationCenter | DistributedNotificationCenter |
 NSEnergyFormatter | EnergyFormatter |
 NSFileHandle | FileHandle |
@@ -94,25 +90,15 @@ NSFileManager | FileManager |
 NSFileManagerDelegate | FileManagerDelegate |
 NSFileWrapper | FileWrapper |
 NSFormatter | Formatter |
-NSHashTable | HashTable |
 NSHost | Host |
 NSHTTPCookie | HTTPCookie |
 NSHTTPCookieStorage | HTTPCookieStorage |
 NSHTTPURLResponse | HTTPURLResponse |
 NSInputStream | InputStream |
 NSJSONSerialization | JSONSerialization |
-NSKeyedArchiver | KeyedArchiver |
-NSKeyedArchiverDelegate | KeyedArchiverDelegate |
-NSKeyedUnarchiver | KeyedUnarchiver |
-NSKeyedUnarchiverDelegate | KeyedUnarchiverDelegate |
 NSLengthFormatter | LengthFormatter |
-NSLocale | Locale |
-NSLock | Lock |
-NSLocking | Locking |
-NSMapTable | MapTable |
 NSMassFormatter | MassFormatter |
 NSMessagePort | MessagePort |
-NSMutableURLRequest | MutableURLRequest |
 NSNetService | NetService |
 NSNetServiceBrowser | NetServiceBrowser |
 NSNetServiceBrowserDelegate | NetServiceBrowserDelegate |
@@ -127,33 +113,23 @@ NSOperationQueue | OperationQueue |
 NSOutputStream | OutputStream | The Swift standard library has a type named `OutputStream` which will be renamed to `OutputStreamable`.
 NSPersonNameComponentsFormatter | PersonNameComponentsFormatter |
 NSPipe | Pipe |
-NSPointerArray | PointerArray |
-NSPointerFunctions | PointerFunctions |
 NSPort | Port |
 NSPortDelegate | PortDelegate |
 NSPortMessage | PortMessage |
-NSPredicate | Predicate |
 NSProcessInfo | ProcessInfo |
 NSProgress | Progress |
 NSProgressReporting | ProgressReporting |
 NSPropertyListSerialization | PropertyListSerialization |
-NSPurgeableData | PurgeableData |
 NSQualityOfService | QualityOfService |
-NSRecursiveLock | RecursiveLock |
-NSRegularExpression | RegularExpression |
 NSRunLoop | RunLoop |
 NSScanner | Scanner |
-NSSocketNativeHandle | SocketNativeHandle |
 NSSocketPort | SocketPort |
-NSSortDescriptor | SortDescriptor |
 NSStream | Stream |
 NSStreamDelegate | StreamDelegate |
-NSTask | Task |
-NSTextCheckingResult | TextCheckingResult |
+NSTask | Process | The standard library has a `Process` type. `ProcessInfo` will subsume the argument-fetching functionality from that `enum`, which will be removed. In the future, we will likely sink the basic `ProcessInfo` class into the standard library. |
 NSThread | Thread |
 NSTimeInterval | TimeInterval |
 NSTimer | Timer |
-NSTimeZone | TimeZone |
 NSUndoManager | UndoManager |
 NSURLAuthenticationChallenge | URLAuthenticationChallenge |
 NSURLAuthenticationChallengeSender | URLAuthenticationChallengeSender |
@@ -263,6 +239,7 @@ NSRegularExpressionOptions | RegularExpression.Options |
 NSRelativePosition | NSRelativeSpecifier.RelativePosition |
 NSSearchPathDirectory | FileManager.SearchPathDirectory |
 NSSearchPathDomainMask | FileManager.SearchPathDomainMask |
+NSSocketNativeHandle | Socket.NativeHandle |
 NSStreamEvent | Stream.Event |
 NSStreamStatus | Stream.Status |
 NSStringCompareOptions | NSString.CompareOptions | Also on `String`. See below for more information.
@@ -281,6 +258,7 @@ NSURLRequestNetworkServiceType | URLRequest.NetworkServiceType |
 NSURLSessionAuthChallengeDisposition | URLSession.AuthChallengeDisposition |
 NSURLSessionResponseDisposition | URLSession.ResponseDisposition |
 NSURLSessionTaskState | URLSessionTask.State |
+NSURLSessionTaskMetricsResourceFetchType | URLSessionTaskMetrics.ResourceFetchType |
 NSUserNotificationActivationType | NSUserNotification.ActivationType |
 NSVolumeEnumerationOptions | FileManager.VolumeEnumerationOptions |
 NSWhoseSubelementIdentifier | NSWhoseSpecifier.SubelementIdentifier |
@@ -528,20 +506,3 @@ All Swift projects will have to run through a migration step to use the new name
 ### Drop every `NS` in Foundation
 
 We considered simply dropping the prefix from all types. However, this would cause quite a few conflicts with standard library types. Also, although Foundation's framework boundary is an easy place to programmatically draw the line for the drop-prefix behavior, the reality is that Foundation has API that feels like it belongs to higher level frameworks as well. We believe this approach better identifies the best candidates for dropping the prefix.
-
-### Keep `NS` on future value types
-
-While it is tempting to consider leaving the `NS` prefix on some names to "leave room" for future types, we believe we can instead mitigate any issue of possible future conflict with a variety of techniques. There are clear benefits for this proposal today: 
-
-* We have a consistent set of rules about which types keep the prefix and which ones drop it. 
-* There is no requirement to attempt prediction of all potential future API. Even seemingly straightforward changes now may take on a different shape given future language improvements or lessons learned.
-* We believe the Foundation library and API adds real value today, and supports the goals outlined for the `corelibs` project.
-
-If, in the future, a time comes when we wish to introduce a new concept that may want to use an unprefixed Foundation name, we have many options available to us:
-
-* Code migration
-* Extend existing name with new API
-* Deprecation of existing name and replacement with new name
-* Use a different name
-
-We have used all of these techniques successfully in the past for Objective-C and Swift API.
