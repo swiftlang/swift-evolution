@@ -75,7 +75,9 @@ protocol MutableCollection {
     ///   the collection. All elements satisfying this predicate are ordered 
     ///   after all elements not satisfying it.
     /// - Returns: The index of the first element in the reordered collection
-    ///   that matches `belongsInSecondPartition`.
+    ///   that matches `belongsInSecondPartition`. If no elements in the
+    ///   collection match `belongsInSecondPartition`, the returned index is
+    ///   equal to the collection's `endIndex`.
     ///
     /// - Complexity: O(n)
     @discardableResult
