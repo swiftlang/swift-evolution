@@ -804,3 +804,7 @@ suggestions on how to handle this case.
 types with stupendously large range.
 
 9. Fixed (some) typos.
+
+## Implementation status
+
+Everything that does not depend on [SE-0104](https://github.com/apple/swift-evolution/blob/master/proposals/0104-improved-integers.md) is implemented.  Some related operations were added in [SE-0113](https://github.com/apple/swift-evolution/blob/master/proposals/0113-rounding-functions-on-floatingpoint.md).
