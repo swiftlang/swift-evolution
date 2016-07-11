@@ -1,8 +1,8 @@
 # Remove access modifiers from extensions
 
-* Proposal: [SE-NNNN](nnnn-extensions-access-modifiers.md)
+* Proposal: [SE-0119](0119-extensions-access-modifiers.md)
 * Author: [Adrian Zubarev](https://github.com/DevAndArtist)
-* Status: **[Awaiting review](#rationale)**
+* Status: **Scheduled for Review July 12...19**
 * Review manager: TBD
 
 ## Introduction
