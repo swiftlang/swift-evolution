@@ -21,18 +21,33 @@ The proposed rounding API consists of a `RoundingRule` enum and new `round` and 
 
 ```swift
 
-/// Describes a rule for rounding to an integral value.
-enum RoundingRule {
-	/// The result is the closest representable integral value; if two values are equally close, the one with greater magnitude is chosen.
-	case toNearestOrAwayFromZero
-	/// The result is the closest representable integral value; if two values are equally close, the even one is chosen.
-	case toNearestOrEven
-	/// The result is the closest representable integral value greater than or equal to the source.
-	case up
-	/// The result is the closest representable integral value less than or equal to the source.
-	case down
-	/// The result is the closest representable integral value whose magnitude is less than or equal to that of the source.
-	case towardZero
+/// Describes a rule for rounding a floating-point number.
+public enum FloatingPointRoundingRule {
+
+  /// The result is the closest allowed value; if two values are equally close,
+  /// the one with greater magnitude is chosen.  Also known as "schoolbook
+  /// rounding".
+  case toNearestOrAwayFromZero
+
+  /// The result is the closest allowed value; if two values are equally close,
+  /// the even one is chosen.  Also known as "bankers rounding".
+  case toNearestOrEven
+
+  /// The result is the closest allowed value that is greater than or equal
+  /// to the source.
+  case up
+
+  /// The result is the closest allowed value that is less than or equal to
+  /// the source.
+  case down
+
+  /// The result is the closest allowed value whose magnitude is less than or
+  /// equal to that of the source.
+  case towardZero
+
+  /// The result is the closest allowed value whose magnitude is greater than
+  /// or equal to that of the source.
+  case awayFromZero
 }
 	
 protocol FloatingPoint {
@@ -64,4 +79,8 @@ This change is additive, although we may consider suppressing the imported, glob
 * `floor()` and `ceiling()`. The mailing list discussion indicated more nuanced forms of rounding were desired, and that it would be nice to abandon these technical names for what is a pretty common operation.
 * `floor()` and `ceil()` or `ceiling()` are [mathematical terms of art](http://mathworld.wolfram.com/CeilingFunction.html). But most people who want to round a floating point are not mathematicians.
 * `nextIntegralUp()` and `nextIntegralDown()` are more descriptive, and perhaps a better fit with the rest of the `FloatingPoint` API, but possibly misleading as `(4.0).nextIntegralUp() == 4.0`
+
+## Changes introduced in implementation
+* `RoundingRule` was renamed `FloatingPointRoundingRule`, based on a suggestion from the standard library team.  We may want to introduce rounding operations that operate on other types in the future, and they may not want the same set of rules.  Also, this type name will be very rarely used, so a long precise typename doesn't add burden.
+* Added `.awayFromZero`, which is trivial to implement and was requested by several people during the review period.
 
