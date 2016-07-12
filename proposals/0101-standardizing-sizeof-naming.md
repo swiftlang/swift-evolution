@@ -52,7 +52,7 @@ public struct MemoryLayout<T> {
     /// efficiency. The result is always positive.
     public static var stride: Int { return _strideof(T) }
     
-    /// Returns the minimum memory alignment of `T`.
+    /// Returns the default memory alignment of `T`.
     public static var alignment: Int { return _alignof(T) }
 }
 ```
