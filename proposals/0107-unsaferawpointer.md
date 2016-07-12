@@ -1481,34 +1481,36 @@ struct UnsafeMutableRawPointer : Strideable, Hashable, _Pointer {
   func bindMemory<T>(to: T.Type, capacity: Int) -> UnsafeMutablePointer<T>
   func assumingMemoryBound<T>(to: T.Type) -> UnsafeMutablePointer<T>
 
-  func initialize<T>(_: T.Type, with: T, count: Int = 1)
+  func initialize<T>(_: T.Type, to: T, count: Int = 1)
     -> UnsafeMutablePointer<T>
-  func initialize<T>(toContiguous: T.Type, atIndex: Int, with: T)
+  func initialize<T>(contiguous: T.Type, at: Int, to: T)
     -> UnsafeMutablePointer<T>
 
-  func initialize<T>(from: UnsafePointer<T>, count: Int)
+  func initialize<T>(from: UnsafePointer<T>, forwardToCount: Int)
     -> UnsafeMutablePointer<T>
-  func initializeBackward<T>(from: UnsafePointer<T>, count: Int)
+  func initialize<T>(from: UnsafePointer<T>, backwardToCount: Int)
     -> UnsafeMutablePointer<T>
 
   // The `move` APIs deinitialize the memory at `from`.
-  func moveInitialize<T>(from: UnsafePointer<T>, count: Int)
+  func moveInitialize<T>(from: UnsafePointer<T>, forwardToCount: Int)
     -> UnsafeMutablePointer<T>
-  func moveInitializeBackward<T>(from: UnsafePointer<T>, count: Int)
+  func moveInitialize<T>(from: UnsafePointer<T>, backwardToCount: Int)
     -> UnsafeMutablePointer<T>
 
-  func load<T>(_: T.Type) -> T
-  func load<T>(_: T.Type, atByteOffset: Int) -> T
-  func load<T>(fromContiguous: T.Type, atIndex: Int) -> T
+  func load<T>(as: T.Type) -> T
+  func load<T>(fromByteOffset: Int, as: T.Type) -> T
+  func load<T>(fromContiguous: T.Type, at: Int) -> T
 
   // storeRaw performs bytewise writes, but proper alignment for `T` is still
   // required.
   // T must be a trivial type.
-  func storeRaw<T>(_: T.Type, with: T)
-  func storeRaw<T>(toContiguous: T.Type, atIndex: Int, with: T)
-  func storeRaw<T>(contiguous: T.Type, from: UnsafeRawPointer, count: Int)
-  func storeRawBackward<T>(
-    contiguous: T.Type, from: UnsafeRawPointer, count: Int)
+  func storeRaw<T>(_: T, as: T.Type)
+  func storeRaw<T>(_: T, toContiguous: T.Type, at: Int)
+  func storeRaw<T>(_: T, toByteOffset: Int)
+  func storeRaw<T>(
+    contiguous: T.Type, from: UnsafeRawPointer, forwardToCount: Int)
+  func storeRaw<T>(
+    contiguous: T.Type, from: UnsafeRawPointer, backwardToCount: Int)
 
   func distance(to: UnsafeRawPointer) -> Int
   func advanced(by: Int) -> UnsafeRawPointer
@@ -1535,9 +1537,9 @@ struct UnsafeRawPointer : Strideable, Hashable, _Pointer {
   func bindMemory<T>(to: T.Type, capacity: Int) -> UnsafePointer<T>
   func assumingMemoryBound<T>(to: T.Type) -> UnsafePointer<T>
 
-  func load<T>(_: T.Type) -> T
-  func load<T>(_: T.Type, atByteOffset: Int) -> T
-  func load<T>(fromContiguous: T.Type, atIndex: Int) -> T
+  func load<T>(as: T.Type) -> T
+  func load<T>(fromByteOffset: Int, as: T.Type) -> T
+  func load<T>(fromContiguous: T.Type, at: Int) -> T
 
   func distance(to: UnsafeRawPointer) -> Int
   func advanced(by: Int) -> UnsafeRawPointer
@@ -1582,25 +1584,27 @@ extension UnsafePointer<Pointee> {
 }
 ```
 
-The following `UnsafeMutablePointer` members are renamed:
+The following `UnsafeMutablePointer` members are modified:
 
 ```swift
 extension UnsafeMutablePointer<Pointee> {
-  // Naming conventions.
+  // Naming conventions changed here:
   static func allocate(capacity: Int) -> UnsafeMutableRawPointer
   func deallocate(capacity: Int)
 
-  // Naming conventions.
-  func assign(from source: UnsafePointer<Pointee>, count: Int)
-  func assignBackward(from source: UnsafePointer<Pointee>, count: Int)
-  func moveInitialize(from source: UnsafeMutablePointer<Pointee>, count: Int)
-  func moveInitializeBackward(from source: UnsafeMutablePointer<Pointee>,
-                              count: Int)
-  func initialize(from source: UnsafeMutablePointer<Pointee>, count: Int)
+  // Naming conventions changed here:
+  func assign(from source: UnsafePointer<Pointee>, forwardToCount: Int)
+  func assign(from source: UnsafePointer<Pointee>, backwardToCount: Int)
+  func moveInitialize(
+    from source: UnsafeMutablePointer<Pointee>, forwardToCount: Int)
+  func moveInitialize(
+    from source: UnsafeMutablePointer<Pointee>, backwardToCount: Int)
+  func initialize(
+    from source: UnsafeMutablePointer<Pointee>, forwardToCount: Int)
   func initialize<C : Collection>(from source: C)
   func moveAssign(from source: ${Self}, count: Int) {
 
-  // Now returns a raw pointer.
+  // This now returns a raw pointer.
   func deinitialize(count: Int = 1) -> UnsafeMutableRawPointer
 ```
 
