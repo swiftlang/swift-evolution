@@ -150,7 +150,6 @@ public func == <T: Equatable>(lhs: T, rhs: T?) -> Bool
 public func != <T: Equatable>(lhs: T?, rhs: T) -> Bool
 public func != <T: Equatable>(lhs: T, rhs: T?) -> Bool
 ```
-(and the [`_OptionalNilComparisonType` versions](https://github.com/apple/swift/blob/2a545eaa1bfd7d058ef491135cca270bc8e4be5f/stdlib/public/core/Optional.swift#L343-L381))
 
 In `Policy.swift`, we need to add these overloads:
 
@@ -188,10 +187,20 @@ public func != (t0: Any.Type?, t1: Any.Type) -> Bool
 public func != (t0: Any.Type, t1: Any.Type?) -> Bool
 ```
 
-With this change we currently produce fix-its that suggest
-force-unwrapping the optional used with the operator. We should
-consider updating fix-its to recommending using `Optional()` or
-`if let` as in many cases these make more sense.
+One unfortunate consequence of adding these overloads is that equality
+and identity comparisons of non-optional values to literal `nil` will
+now type check, e.g.:
+
+```Swift
+let i = 1
+if i == nil {   // compiles without error
+  print("should never happen")
+}
+```
+
+This is consistent behavior from a type-checking perspective, but
+looks odd in practice. There may be implementation changes we can make
+to eliminate this behavior.
 
 ## Impact on existing code
 
@@ -202,7 +211,7 @@ Existing code using ordered comparison operators (`<`, `<=`, `>`, and
 via `if let`), cast to `Optional()`, or force-unwrap one of the
 operands being used with an operator.
 
-Existing code using the nil-coalescing operator `??` with a
+Existing code using the nil-coalescing operator (`??`) with a
 non-Optional left-hand side will need to be updated, but the update is
 trivial: simply remove the use of the operator.
 
@@ -228,11 +237,16 @@ In a survey of the following projects, ranging from 2k lines to 21k
 lines (including whitespace and comments), the following changes were
 required:
 
-- [Alamofire](https://github.com/Alamofire/Alamofire/tree/swift3): One source change to a `guard` statement.
+- [Alamofire](https://github.com/Alamofire/Alamofire/tree/swift3): No changes.
 - [Dollar](https://github.com/ankurp/Dollar/tree/swift-3): No changes.
-- [RxSwift](https://github.com/ReactiveX/RxSwift/tree/swift-3.0): Eight changes to equality or identity comparisons where one operand is an optional. Two removals of `??` due to the left-hand side not being an optional.
+- [RxSwift](https://github.com/ReactiveX/RxSwift/tree/swift-3.0): Two removals of `??` due to the left-hand side not being an optional.
 - [SwiftyJSON](https://github.com/SwiftyJSON/SwiftyJSON/tree/swift3): No changes.
-- [swiftpm](https://github.com/apple/swift-package-manager): Nine changes, primarily comparisons involving `String.characters.first`, comparisons of things typed as `UnsafeMutablePointer<T>?`
+- [swiftpm](https://github.com/apple/swift-package-manager): One removal of `??` due to the left-hand side not being an optional. One explicit cast to Optional() that looks like it might be due to a type checker bug.
+
+There is a [prototyped
+implementation](https://github.com/rudkx/swift/tree/no-value-to-optional-in-operators)
+available for review including compiler and standard library
+modifications (but no test modifications or new tests at this time).
 
 ## Alternatives considered
 
