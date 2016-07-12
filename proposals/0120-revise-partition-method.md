@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0120](0120-revise-partition-method.md)
 * Authors: [Lorenzo Racca](https://github.com/lorenzoracca), [Jeff Hajewski](https://github.com/j-haj), [Nate Cook](https://github.com/natecook1000)
-* Status: **Scheduled for Review July 12...19**
+* Status: **Active Review July 12...19**
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction

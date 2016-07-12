@@ -13,12 +13,12 @@ proposals in that process.
 * July 5...11 [SE-0117: Default classes to be non-subclassable publicly](proposals/0117-non-public-subclassable-by-default.md)
 * July 5...11 [SE-0118: Closure Parameter Names and Labels](proposals/0118-closure-parameter-names-and-labels.md)
 * July 7...12 [SE-0091: Improving operator requirements in protocols](proposals/0091-improving-operators-in-protocols.md)
+* July 12...19 [SE-0119: Remove access modifiers from extensions](proposals/0119-extensions-access-modifiers.md)
+* July 12...19 [SE-0120: Revise `partition` Method Signature](proposals/0120-revise-partition-method.md) 
 
 ## Upcoming reviews
 
 * July 12...19 [SE-0101: Reconfiguring `sizeof` and related functions into a unified `MemoryLayout` struct](proposals/0101-standardizing-sizeof-naming.md)
-* July 12...19 [SE-0119: Remove access modifiers from extensions](proposals/0119-extensions-access-modifiers.md)
-* July 12...19 [SE-0120: Revise `partition` Method Signature](proposals/0120-revise-partition-method.md) 
 
 ## Proposals awaiting scheduling
 
