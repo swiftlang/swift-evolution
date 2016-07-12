@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0112](0112-nserror-bridging.md)
 * Author: [Doug Gregor](https://github.com/DougGregor), [Charles Srstka](https://github.com/CharlesJS)
-* Status: **Active review June 30 ... July 4**
+* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000222.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 * Implementation: [in progress](https://github.com/apple/swift/tree/nserror-bridging)
 
@@ -355,7 +355,7 @@ protocol RecoverableError : Error {
   /// "document" granularity, that do not affect the entire
   /// application.
   func attemptRecovery(optionIndex recoveryOptionIndex: Int,
-                       andThen resultHandler: (recovered: Bool) -> Void)
+                       resultHandler: (recovered: Bool) -> Void)
 
   /// Attempt to recover from this error when the user selected the
   /// option at the given index. Returns true to indicate

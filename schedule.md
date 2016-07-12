@@ -9,7 +9,6 @@ proposals in that process.
 * May 9...16 [SE-0086: Drop NS Prefix in Swift Foundation](proposals/0086-drop-foundation-ns.md)
 * June 28 ... July 10 [SE-0107: UnsafeRawPointer API](proposals/0107-unsaferawpointer.md)
 * June 28 ... July 4 [SE-0109: Remove the `Boolean` protocol](proposals/0109-remove-boolean.md)
-* June 30 ... July 4 [SE-0112: Improved NSError Bridging](proposals/0112-nserror-bridging.md)
 * July 5...11 [SE-0116: Import Objective-C `id` as Swift `Any` type](proposals/0116-id-as-any.md)
 * July 5...11 [SE-0117: Default classes to be non-subclassable publicly](proposals/0117-non-public-subclassable-by-default.md)
 * July 5...11 [SE-0118: Closure Parameter Names and Labels](proposals/0118-closure-parameter-names-and-labels.md)
