@@ -146,6 +146,7 @@ below:
 * [SE-0093: Adding a public `base` property to slices](proposals/0093-slice-base.md)
 * [SE-0094: Add sequence(first:next:) and sequence(state:next:) to the stdlib](proposals/0094-sequence-function.md)
 * [SE-0106: Add a `macOS` Alias for the `OSX` Platform Configuration Test](proposals/0106-rename-osx-to-macos.md)
+* [SE-0112: Improved NSError Bridging](proposals/0112-nserror-bridging.md)
 * [SE-0113: Add integral rounding functions to FloatingPoint](proposals/0113-rounding-functions-on-floatingpoint.md)
 
 ### Accepted proposals which do not have a complete implementation
@@ -179,7 +180,6 @@ subsequent release.
 * [SE-0104: Protocol-oriented integers](proposals/0104-improved-integers.md)
 * [SE-0110: Distinguish between single-tuple and multiple-argument function types](proposals/0110-distingish-single-tuple-arg.md)
 * [SE-0111: Remove type system significance of function argument labels](proposals/0111-remove-arg-label-type-significance.md)
-* [SE-0112: Improved NSError Bridging](proposals/0112-nserror-bridging.md)
 * [SE-0114: Updating Buffer "Value" Names to "Header" Names](proposals/0114-buffer-naming.md)
 * [SE-0115: Rename Literal Syntax Protocols](proposals/0115-literal-syntax-protocols.md)
 

@@ -4,7 +4,6 @@
 * Author: [Doug Gregor](https://github.com/DougGregor), [Charles Srstka](https://github.com/CharlesJS)
 * Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000222.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
-* Implementation: [in progress](https://github.com/apple/swift/tree/nserror-bridging)
 
 ## Introduction
 
