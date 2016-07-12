@@ -3,7 +3,7 @@
 * Proposal: [SE-0119](0119-extensions-access-modifiers.md)
 * Author: [Adrian Zubarev](https://github.com/DevAndArtist)
 * Status: **Scheduled for Review July 12...19**
-* Review manager: TBD
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
