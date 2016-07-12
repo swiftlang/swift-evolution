@@ -1,9 +1,9 @@
-# Remove Optional comparison operators
+# Remove `Optional` Comparison Operators
 
-* Proposal: [SE-NNNN](NNNN-remove-optional-comparison-operators.md)
+* Proposal: [SE-0121](0121-remove-optional-comparison-operators.md)
 * Author: [Jacob Bandes-Storch](https://github.com/jtbandes)
-* Status: **Awaiting review**
-* Review manager: TBD
+* Status: **Active Review July 12...19**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
