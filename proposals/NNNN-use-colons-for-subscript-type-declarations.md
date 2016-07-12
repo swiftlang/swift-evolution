@@ -16,7 +16,7 @@ subscript(externalName internalName: ParamType) -> ElementType {
 }
 ```
 
-The initial keyword ‘subscript’ is followed by a parameter list, followed by an arrow to the accessed type. This proposal is to replace the arrow with a colon, to match accessor declarations elsewhere in the language.
+The initial keyword `subscript` is followed by a parameter list, followed by an arrow to the accessed type. This proposal is to replace the arrow with a colon, to match accessor declarations elsewhere in the language.
 
 Swift-evolution thread: [Discussion thread topic for that proposal](http://article.gmane.org/gmane.comp.lang.swift.evolution/23457)
 
@@ -29,7 +29,7 @@ Subscripts act like parameterised property accessors. This means, like a propert
 
 ## Proposed solution
 
-A simple replacement of ‘->’ with ‘:’ in the declaration syntax.
+A simple replacement of `->` with `:` in the declaration syntax.
 
 ## Detailed design
 
@@ -65,13 +65,13 @@ However, the real-world effect of this change is hard to predict, and subscript 
 
 ## Alternatives considered
 
-We could leave the syntax as it is, or use an alternative symbol, such as ‘:->’ or ‘<->’.
+We could leave the syntax as it is, or use an alternative symbol, such as `:->` or `<->`.
 
-We could also leave open the possibility of expanding function syntax with ‘inout ->’.
+We could also leave open the possibility of expanding function syntax with `inout ->`.
 
 Colons were chosen for this proposal because they have precedent elsewhere in the language, and are already reserved syntax.
 
-## Future directions
+## Future directions
 
 This parameterised accessor syntax could be expanded in a future version of Swift, to support named accessors. This could look something like the following:
 
