@@ -52,7 +52,8 @@ Swift-evolution thread: [Optional comparison operators](https://lists.swift.org/
 Disallow the coercion from values to optionals in the context of
 arguments to operators.
 
-Reinstate mixed-optionality versions of the equality/identity operators `==`, `!=`, `===`, and `!==`, so that callers of these operators require no code change.
+Add mixed-optionality versions of the equality operators for Equatable
+types, and identity operators for AnyObject.
 
 ## Motivation
 
@@ -117,9 +118,9 @@ if b {
 }
 ```
 
-Furthermore, this proposal introduces variants of `==`, `!=`, `===`, and `!==`
-which accept arguments of mixed optionality, because this behavior is much less
-surprising so this will also continue to work:
+Furthermore, this proposal introduces variants of the equality (`==`,
+`!=`) and identity (`===`, `!==`) operators that accept arguments of
+mixed optionality, allowing code like this to continue to work:
 
 ```swift
 let x: Int? = 2
@@ -134,55 +135,22 @@ if dict["key"] == y {
 }
 ```
 
-Specifically, we will ensure that all of the following operators are available,
-with their implementations derived from the primitive Equatable requirement `==<T: Equatable>(T, T)`:
-
-```swift
-func == <T: Equatable>(lhs: T?, rhs: T) -> Bool
-func == <T: Equatable>(lhs: T, rhs: T?) -> Bool
-func == <T: Equatable>(lhs: T?, rhs: T?) -> Bool
-
-func != <T: Equatable>(lhs: T?, rhs: T) -> Bool
-func != <T: Equatable>(lhs: T, rhs: T?) -> Bool
-func != <T: Equatable>(lhs: T?, rhs: T?) -> Bool
-```
-
-(and the [`_OptionalNilComparisonType` versions](https://github.com/apple/swift/blob/2a545eaa1bfd7d058ef491135cca270bc8e4be5f/stdlib/public/core/Optional.swift#L343-L381))
-
-We'll also ensure that the following operators are available, with their implementations
-derived from the primitive `===(AnyObject?, AnyObject?)`:
-
-```swift
-func === (lhs: AnyObject, rhs: AnyObject) -> Bool
-func === (lhs: AnyObject?, rhs: AnyObject) -> Bool
-func === (lhs: AnyObject, rhs: AnyObject?) -> Bool
-
-func !== (lhs: AnyObject, rhs: AnyObject) -> Bool
-func !== (lhs: AnyObject?, rhs: AnyObject) -> Bool
-func !== (lhs: AnyObject, rhs: AnyObject?) -> Bool
-```
-
 ## Detailed design
 
 The type checker needs to be updated to remove the current nil-literal
 hack and replace it with code to explicitly disable the coercion in
 operator argument contexts.
 
-The following functions need to be added to the standard library since
-we currently define equivalent functions for optional types, but have
-no version that works for non-optional types.
+In `Optional.swift`, we need to add these overloads:
 
-In `Builtin.swift`, we need to add these overloads:
+```swift
+public func == <T: Equatable>(lhs: T?, rhs: T) -> Bool
+public func == <T: Equatable>(lhs: T, rhs: T?) -> Bool
 
-```Swift
-/// Returns `true` iff `t0` is identical to `t1`; i.e. if they are both
-/// `nil` or they both represent the same type.
-public func == (t0: Any.Type, t1: Any.Type) -> Bool
-
-/// Returns `false` iff `t0` is identical to `t1`; i.e. if they are both
-/// `nil` or they both represent the same type.
-public func != (t0: Any.Type, t1: Any.Type) -> Bool
+public func != <T: Equatable>(lhs: T?, rhs: T) -> Bool
+public func != <T: Equatable>(lhs: T, rhs: T?) -> Bool
 ```
+(and the [`_OptionalNilComparisonType` versions](https://github.com/apple/swift/blob/2a545eaa1bfd7d058ef491135cca270bc8e4be5f/stdlib/public/core/Optional.swift#L343-L381))
 
 In `Policy.swift`, we need to add these overloads:
 
@@ -192,12 +160,32 @@ In `Policy.swift`, we need to add these overloads:
 ///
 /// - SeeAlso: `Equatable`, `==`
 public func === (lhs: AnyObject, rhs: AnyObject) -> Bool
+public func === (lhs: AnyObject?, rhs: AnyObject) -> Bool
+public func === (lhs: AnyObject, rhs: AnyObject?) -> Bool
 
 /// Returns `true` iff `lhs` and `rhs` are references to different object
 /// instances (in other words, are different pointers).
 ///
 /// - SeeAlso: `Equatable`, `!=`
 public func !== (lhs: AnyObject, rhs: AnyObject) -> Bool
+public func !== (lhs: AnyObject?, rhs: AnyObject) -> Bool
+pubilc func !== (lhs: AnyObject, rhs: AnyObject?) -> Bool
+```
+
+In `Builtin.swift`, we need to add these overloads:
+
+```Swift
+/// Returns `true` iff `t0` is identical to `t1`; i.e. if they are both
+/// `nil` or they both represent the same type.
+public func == (t0: Any.Type, t1: Any.Type) -> Bool
+public func == (t0: Any.Type?, t1: Any.Type) -> Bool
+public func == (t0: Any.Type, t1: Any.Type?) -> Bool
+
+/// Returns `false` iff `t0` is identical to `t1`; i.e. if they are both
+/// `nil` or they both represent the same type.
+public func != (t0: Any.Type, t1: Any.Type) -> Bool
+public func != (t0: Any.Type?, t1: Any.Type) -> Bool
+public func != (t0: Any.Type, t1: Any.Type?) -> Bool
 ```
 
 With this change we currently produce fix-its that suggest
@@ -205,70 +193,21 @@ force-unwrapping the optional used with the operator. We should
 consider updating fix-its to recommending using `Optional()` or
 `if let` as in many cases these make more sense.
 
-For equality and identity operators, possible implementations are as follows:
-
-```swift
-// Equality
-func == <T: Equatable>(lhs: T?, rhs: T?) -> Bool {
-    switch (lhs, rhs) {
-    case let (lhs?, rhs?):
-        return lhs == rhs  // primitive Equatable operator requirement
-    case (nil, nil):
-        return true
-    default:
-        return false
-    }
-}
-func == <T: Equatable>(lhs: T?, rhs: T) -> Bool {
-    return lhs == .some(rhs)
-}
-func == <T: Equatable>(lhs: T, rhs: T?) -> Bool {
-    return .some(lhs) == rhs
-}
-func != <T: Equatable>(lhs: T?, rhs: T) -> Bool {
-    return !(lhs == rhs)
-}
-func != <T: Equatable>(lhs: T, rhs: T?) -> Bool {
-    return !(lhs == rhs)
-}
-func != <T: Equatable>(lhs: T?, rhs: T?) -> Bool {
-    return !(lhs == rhs)
-}
-
-// Identity
-func === (lhs: AnyObject, rhs: AnyObject) -> Bool {
-    return .some(lhs) === .some(rhs)  // primitive (AnyObject?, AnyObject?) comparator
-}
-func === (lhs: AnyObject?, rhs: AnyObject) -> Bool {
-    return lhs === .some(rhs)
-}
-func === (lhs: AnyObject, rhs: AnyObject?) -> Bool {
-    return .some(lhs) === rhs
-}
-
-func !== (lhs: AnyObject, rhs: AnyObject) -> Bool {
-    return !(lhs === rhs)
-}
-func !== (lhs: AnyObject?, rhs: AnyObject) -> Bool {
-    return !(lhs === rhs)
-}
-func !== (lhs: AnyObject, rhs: AnyObject?) -> Bool {
-    return !(lhs === rhs)
-}
-```
-
 ## Impact on existing code
 
 This is a breaking change for Swift 3.
 
-Existing code using comparison operators will need to change to explicitly
-test optionality (for example via `if let`), cast to `Optional()`, or
-force-unwrap one of the operands being used with an operator.
+Existing code using ordered comparison operators (`<`, `<=`, `>`, and
+`>=`) will need to change to explicitly test optionality (for example
+via `if let`), cast to `Optional()`, or force-unwrap one of the
+operands being used with an operator.
 
-Existing code using the nil-coalescing operator `??` with a non-Optional left-hand side
-will need to be updated, but the update is trivial: simply remove the use of the operator.
+Existing code using the nil-coalescing operator `??` with a
+non-Optional left-hand side will need to be updated, but the update is
+trivial: simply remove the use of the operator.
 
-Existing code using the equality/identity operators `==`, `!=`, `===`, and `!==` can remain unchanged.
+Existing code using the equality and identity operators (`==`, `!=`,
+`===`, and `!==`) can remain unchanged.
 
 The expectation is that this will result in relatively small impact
 for most code.
@@ -298,6 +237,6 @@ required:
 ## Alternatives considered
 
 One suggestion was to continue to allow the coercion by default, but
-add a parameter attribute, `@noncoercing`, which would disable the
-coercion for a given parameter, and could be used both with operator
+add a parameter attribute, `@noncoercing`, that would disable the
+coercion for a given parameter and could be used both with operator
 functions, and non-operator functions.
