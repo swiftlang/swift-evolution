@@ -20,6 +20,7 @@ proposals in that process.
 ## Upcoming reviews
 
 * July 12...19 [SE-0101: Reconfiguring `sizeof` and related functions into a unified `MemoryLayout` struct](proposals/0101-standardizing-sizeof-naming.md)
+* July 20...25 [SE-0122: Use colons for subscript declarations](proposals/0122-use-colons-for-subscript-type-declarations.md)
 
 ## Proposals awaiting scheduling
 

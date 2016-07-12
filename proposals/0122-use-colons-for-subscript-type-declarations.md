@@ -1,9 +1,9 @@
-# Feature name
+# Use colons for subscript declarations
 
-* Proposal: [SE-NNNN](NNNN-use-colons-for-subscript-type-declarations.md)
+* Proposal: [SE-0122](0122-use-colons-for-subscript-type-declarations.md)
 * Author: [James Froggatt](https://github.com/MutatingFunk)
-* Status: **Awaiting review**
-* Review manager: TBD
+* Status: **Scheduled for review July 20...25**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
