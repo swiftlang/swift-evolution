@@ -16,10 +16,10 @@ proposals in that process.
 * July 12...19 [SE-0119: Remove access modifiers from extensions](proposals/0119-extensions-access-modifiers.md)
 * July 12...19 [SE-0120: Revise `partition` Method Signature](proposals/0120-revise-partition-method.md) 
 * July 12...19 [SE-0121: Remove `Optional` Comparison Operators](proposals/0121-remove-optional-comparison-operators.md) 
+* July 12...19 [SE-0101: Reconfiguring `sizeof` and related functions into a unified `MemoryLayout` struct](proposals/0101-standardizing-sizeof-naming.md)
 
 ## Upcoming reviews
 
-* July 12...19 [SE-0101: Reconfiguring `sizeof` and related functions into a unified `MemoryLayout` struct](proposals/0101-standardizing-sizeof-naming.md)
 * July 20...25 [SE-0122: Use colons for subscript declarations](proposals/0122-use-colons-for-subscript-type-declarations.md)
 
 ## Proposals awaiting scheduling
