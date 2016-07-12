@@ -16,6 +16,7 @@ proposals in that process.
 
 ## Upcoming reviews
 
+* July 12...19 [SE-0101: Reconfiguring `sizeof` and related functions into a unified `MemoryLayout` struct](proposals/0101-standardizing-sizeof-naming.md)
 * July 12...19 [SE-0119: Remove access modifiers from extensions](proposals/0119-extensions-access-modifiers.md)
 * July 12...19 [SE-0120: Revise `partition` Method Signature](proposals/0120-revise-partition-method.md) 
 

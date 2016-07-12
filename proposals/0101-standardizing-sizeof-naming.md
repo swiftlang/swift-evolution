@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0101](0101-standardizing-sizeof-naming.md)
 * Author: [Erica Sadun](http://github.com/erica), [Dave Abrahams](github.com dave abrahams)
-* Status: *rewrite*
+* Status: **Scheduled for review July 12...19**
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
