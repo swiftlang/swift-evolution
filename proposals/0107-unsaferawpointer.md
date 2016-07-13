@@ -1316,13 +1316,23 @@ func takesConstTPtr(_: UnsafePointer<T>)
 func takesConstVoidPtr(_: UnsafeRawPointer)
 ```
 
-Mutable pointers can be passed implicitly to immutable pointers.
+Mutable pointers can be passed implicitly as immutable pointers.
 
 ```swift
-let umptr: UnsafeMutablePointer<T>
-let mrawptr: UnsafeMutableRawPointer
-takesConstTPtr(umptr)
-takesConstVoidPtr(mrawptr)
+let unsafeMutablePtr: UnsafeMutablePointer<T>
+let mutableRawPtr: UnsafeMutableRawPointer
+takesConstTPtr(unsafeMutablePtr)
+takesConstVoidPtr(mutableRawPtr)
+```
+
+Any mutable or immutable pointer type can be passed implicitly as an
+immutable void pointer:
+
+```swift
+let unsafePtr: UnsafePointer<T>
+let unsafeMutablePtr: UnsafeMutablePointer<T>
+takesConstVoidPtr(unsafePtr)
+takesConstVoidPtr(unsafeMutablePtr)
 ```
 
 Implicit inout conversion will continue to work:
@@ -1358,6 +1368,13 @@ func takesTPtr(_: UnsafeMutablePointer<T>)
 func takesVoidPtr(_: UnsafeMutableRawPointer)
 ```
 
+Any mutable pointer type can be passed implicitly as a mutable void pointer:
+
+```swift
+let unsafeMutablePtr: UnsafeMutablePointer<T>
+takesVoidPtr(unsafeMutablePtr)
+```
+
 Implicit inout conversion will continue to work:
 
 ```swift
@@ -1376,17 +1393,17 @@ between unsafe pointers.
 Given values of these types:
 
 ```swift
-  let uPtr: UnsafePointer<T>
-  let umPtr: UnsafeMutablePointer<T>
+  let unsafePtr: UnsafePointer<T>
+  let unsafeMutablePtr: UnsafeMutablePointer<T>
   let rawPtr: UnsafeRawPointer
-  let mrawPtr: UnsafeMutableRawPointer
+  let mutableRawPtr: UnsafeMutableRawPointer
   let c: Int
 ```
 
 #### `UnsafeRawPointer` to `UnsafeMutableRawPointer` raw copy (`memcpy`):
 
 ```swift
-  mrawPtr.copyBytes(from: rawPtr, count: c)
+  mutableRawPtr.copyBytes(from: rawPtr, count: c)
 ```
 
 #### `UnsafePointer<T>` to `UnsafeMutableRawPointer`:
@@ -1398,7 +1415,7 @@ A raw copy from typed to raw memory can also be done by calling
 Additionally, raw memory can be bulk initialized from typed memory:
 
 ```swift
-  mraw.initializeMemory(as: T.self, from: uPtr, count: c)
+  mraw.initializeMemory(as: T.self, from: unsafePtr, count: c)
 ```
 
 #### `UnsafeMutablePointer<T>` to `UnsafeMutableRawPointer`:
@@ -1408,7 +1425,7 @@ Because `UnsafeMutablePointer<T>` arguments are implicitly converted to `UnsafeP
 Additionally, a mutable typed pointer can be moved-from:
 
 ```swift
-  mraw.moveInitializeMemory(as: T.self, from: umPtr, count: c)
+  mraw.moveInitializeMemory(as: T.self, from: unsafeMutablePtr, count: c)
 ```
 
 #### `UnsafeRawPointer` to `UnsafeMutablePointer<T>`:
