@@ -111,14 +111,15 @@ lists the complete API.
 
 ### UnsafeRawPointer
 
-New `UnsafeRawPointer` and `UnsafeMutableRawPointer` types will
-represent a "raw", untyped view of memory. Normally, once the memory
-has been initialized, it will be accessed via a typed
-`UnsafeMutablePointer`. After initialization, the raw memory can still
-be accessed as a sequence of bytes, but the raw API provides no
-information about the initialized type. Because the raw pointer may
-alias with any type, the semantics of reading and writing through a
-raw pointer are similar to C `memcpy`.
+New raw pointer types, `UnsafeRawPointer` and
+`UnsafeMutableRawPointer`, will represent a "raw", untyped view of
+memory. Typed pointers, `UnsafePointer<T>` and `UnsafeMutablePointer<T>`,
+continue to represent a typed view of memory. Memory access through a
+raw pointer accesses raw memory, and memory access through a typed
+pointer accesses typed memory. Because a raw pointer may alias with
+any type, the semantics of reading and writing through a raw pointer
+are similar to C `memcpy`. Memory access through a typed pointer
+adheres to strict aliasing.
 
 ### Memory allocation and initialization
 
