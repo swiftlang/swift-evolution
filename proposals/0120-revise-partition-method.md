@@ -107,16 +107,16 @@ A full implementation of the two default implementations can be found [in this g
 
 A thorough, though not exhaustive, search of GitHub for the existing `partition` method found no real evidence of its use. The evident uses of a `partition` method were mainly either tests from the Swift project or third-party implementations similar to the one proposed.
 
-Any existing uses of the existing `partition` methods could be flagged or replaced programmatically. The replacement code, on a mutable collection `c`:
+Any existing uses of the existing `partition` methods could be flagged or replaced programmatically. The replacement code, on a mutable collection `c`, finding the pivot `p`:
 
 ```swift
 // old
-c.partition()
+let p = c.partition()
 
 // new
-if let first = c.first {
+let p = c.first.flatMap({ first in
     c.partition(by: { $0 >= first })
-}
+}) ?? c.startIndex
 ```
 
 ## Alternatives considered
