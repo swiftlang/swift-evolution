@@ -143,6 +143,7 @@ below:
 * [SE-0072: Fully eliminate implicit bridging conversions from Swift](proposals/0072-eliminate-implicit-bridging-conversions.md)
 * [SE-0076: Add overrides taking an UnsafePointer source to non-destructive copying methods on UnsafeMutablePointer](proposals/0076-copying-to-unsafe-mutable-pointer-with-unsafe-pointer-source.md)
 * [SE-0085: Package Manager Command Names](proposals/0085-package-manager-command-name.md)
+* [SE-0086: Drop NS Prefix in Swift Foundation](proposals/0086-drop-foundation-ns.md)
 * [SE-0093: Adding a public `base` property to slices](proposals/0093-slice-base.md)
 * [SE-0094: Add sequence(first:next:) and sequence(state:next:) to the stdlib](proposals/0094-sequence-function.md)
 * [SE-0106: Add a `macOS` Alias for the `OSX` Platform Configuration Test](proposals/0106-rename-osx-to-macos.md)

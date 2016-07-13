@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0086](https://github.com/apple/swift-evolution/blob/master/proposals/0086-drop-foundation-ns.md)
 * Authors: Tony Parker <anthony.parker@apple.com>, Philippe Hausler <phausler@apple.com>
-* Status: **Under Review** (May 9...16, 2016)
+* Status: **Accepted** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/23869))
 * Review manager:  [Doug Gregor](https://github.com/DougGregor)
 
 ##### Related radars or Swift bugs
