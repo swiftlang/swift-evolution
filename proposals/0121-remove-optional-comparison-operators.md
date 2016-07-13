@@ -43,7 +43,7 @@ let b: Int = 5
 a < b  // b is coerced from "Int" to "Int?" to match the parameter type.
 ```
 
-A separate proposal seeks to remove this coercion (for arguments to operators) for a variety of reasons.
+[SE-0123](0123-disallow-value-to-optional-coercion-in-operator-arguments.md) seeks to remove this coercion (for arguments to operators) for a variety of reasons.
 
 If the coercion is not removed (if no change is made), the results of comparisons with Optional values are sometimes **surprising**, making it easy to write bugs. In a thread from December 2015, [Al Skipp offers](http://thread.gmane.org/gmane.comp.lang.swift.evolution/10095/focus=10098) the following example:
 
