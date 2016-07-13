@@ -112,9 +112,8 @@ lists the complete API.
 ### UnsafeRawPointer
 
 New `UnsafeRawPointer` and `UnsafeMutableRawPointer` types will
-represent a "raw", untyped view of memory. Raw memory is what is
-returned from memory allocation prior to initialization. Normally,
-once the memory has been initialized, it will be accessed via a typed
+represent a "raw", untyped view of memory. Normally, once the memory
+has been initialized, it will be accessed via a typed
 `UnsafeMutablePointer`. After initialization, the raw memory can still
 be accessed as a sequence of bytes, but the raw API provides no
 information about the initialized type. Because the raw pointer may
