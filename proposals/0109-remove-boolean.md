@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0109](0109-remove-boolean.md)
 * Authors: [Anton Zhilin](https://github.com/Anton3), [Chris Lattner](https://github.com/lattner)
-* Status: **Active Review June 28 ... July 4**
+* Status: Accepted ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/23844))
 * Review manager: [Doug Gregor](http://github.com/DougGregor)
 
 ## Introduction
