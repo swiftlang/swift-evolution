@@ -17,6 +17,7 @@ proposals in that process.
 * July 12...19 [SE-0120: Revise `partition` Method Signature](proposals/0120-revise-partition-method.md) 
 * July 12...19 [SE-0121: Remove `Optional` Comparison Operators](proposals/0121-remove-optional-comparison-operators.md) 
 * July 12...19 [SE-0101: Reconfiguring `sizeof` and related functions into a unified `MemoryLayout` struct](proposals/0101-standardizing-sizeof-naming.md)
+* July 12...19 [SE-0123: Disallow coercion to optionals in operator arguments](proposals/0123-disallow-value-to-optional-coercion-in-operator-arguments.md)
 
 ## Upcoming reviews
 
