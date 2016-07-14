@@ -173,6 +173,7 @@ subsequent release.
 * [SE-0082: Package Manager Editable Packages](proposals/0082-swiftpm-package-edit.md)
 * [SE-0088: Modernize libdispatch for Swift 3 naming conventions](proposals/0088-libdispatch-for-swift3.md)
 * [SE-0089: Renaming `String.init<T>(_: T)`](proposals/0089-rename-string-reflection-init.md)
+* [SE-0091: Improving operator requirements in protocols](proposals/0091-improving-operators-in-protocols.md)
 * [SE-0092: Typealiases in protocols and protocol extensions](proposals/0092-typealiases-in-protocols.md)
 * [SE-0095: Replace `protocol<P1,P2>` syntax with `P1 & P2` syntax](proposals/0095-any-as-existential.md)
 * [SE-0096: Converting dynamicType from a property to an operator](proposals/0096-dynamictype.md)

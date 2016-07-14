@@ -8,7 +8,6 @@ proposals in that process.
 
 * July 5...11 [SE-0116: Import Objective-C `id` as Swift `Any` type](proposals/0116-id-as-any.md)
 * July 5...11 [SE-0117: Default classes to be non-subclassable publicly](proposals/0117-non-public-subclassable-by-default.md)
-* July 7...12 [SE-0091: Improving operator requirements in protocols](proposals/0091-improving-operators-in-protocols.md)
 * July 12...19 [SE-0119: Remove access modifiers from extensions](proposals/0119-extensions-access-modifiers.md)
 * July 12...19 [SE-0120: Revise `partition` Method Signature](proposals/0120-revise-partition-method.md) 
 * July 12...19 [SE-0121: Remove `Optional` Comparison Operators](proposals/0121-remove-optional-comparison-operators.md) 
