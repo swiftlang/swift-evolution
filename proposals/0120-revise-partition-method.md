@@ -4,6 +4,7 @@
 * Authors: [Lorenzo Racca](https://github.com/lorenzoracca), [Jeff Hajewski](https://github.com/j-haj), [Nate Cook](https://github.com/natecook1000)
 * Status: **Active Review July 12...19**
 * Review manager: [Chris Lattner](http://github.com/lattner)
+* Revision: 2 (Previous: [1](https://github.com/apple/swift-evolution/blob/1dcfd35856a6f9c86af2cf7c94a9ab76411739e3/proposals/0120-revise-partition-method.md))
 
 ## Introduction
 
@@ -80,21 +81,18 @@ protocol MutableCollection {
     ///   equal to the collection's `endIndex`.
     ///
     /// - Complexity: O(n)
-    @discardableResult
     mutating func partition(
         by belongsInSecondPartition: @noescape (Iterator.Element) throws-> Bool
     ) rethrows -> Index
 }
     
 extension MutableCollection {
-    @discardableResult
     mutating func partition(
         by belongsInSecondPartition: @noescape (Iterator.Element) throws-> Bool
     ) rethrows -> Index
 }
 
 extension MutableCollection where Self: BidirectionalCollection {
-    @discardableResult
     mutating func partition(
         by belongsInSecondPartition: @noescape (Iterator.Element) throws-> Bool
     ) rethrows -> Index
@@ -109,16 +107,16 @@ A full implementation of the two default implementations can be found [in this g
 
 A thorough, though not exhaustive, search of GitHub for the existing `partition` method found no real evidence of its use. The evident uses of a `partition` method were mainly either tests from the Swift project or third-party implementations similar to the one proposed.
 
-Any existing uses of the existing `partition` methods could be flagged or replaced programmatically. The replacement code, on a mutable collection `c`:
+Any existing uses of the existing `partition` methods could be flagged or replaced programmatically. The replacement code, on a mutable collection `c`, finding the pivot `p`:
 
 ```swift
 // old
-c.partition()
+let p = c.partition()
 
 // new
-if let first = c.first {
+let p = c.first.flatMap({ first in
     c.partition(by: { $0 >= first })
-}
+}) ?? c.startIndex
 ```
 
 ## Alternatives considered
