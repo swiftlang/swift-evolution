@@ -9,7 +9,6 @@ proposals in that process.
 * June 28 ... July 10 [SE-0107: UnsafeRawPointer API](proposals/0107-unsaferawpointer.md)
 * July 5...11 [SE-0116: Import Objective-C `id` as Swift `Any` type](proposals/0116-id-as-any.md)
 * July 5...11 [SE-0117: Default classes to be non-subclassable publicly](proposals/0117-non-public-subclassable-by-default.md)
-* July 5...11 [SE-0118: Closure Parameter Names and Labels](proposals/0118-closure-parameter-names-and-labels.md)
 * July 7...12 [SE-0091: Improving operator requirements in protocols](proposals/0091-improving-operators-in-protocols.md)
 * July 12...19 [SE-0119: Remove access modifiers from extensions](proposals/0119-extensions-access-modifiers.md)
 * July 12...19 [SE-0120: Revise `partition` Method Signature](proposals/0120-revise-partition-method.md) 

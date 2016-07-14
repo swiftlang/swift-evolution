@@ -184,6 +184,7 @@ subsequent release.
 * [SE-0110: Distinguish between single-tuple and multiple-argument function types](proposals/0110-distingish-single-tuple-arg.md)
 * [SE-0111: Remove type system significance of function argument labels](proposals/0111-remove-arg-label-type-significance.md)
 * [SE-0115: Rename Literal Syntax Protocols](proposals/0115-literal-syntax-protocols.md)
+* [SE-0118: Closure Parameter Names and Labels](proposals/0118-closure-parameter-names-and-labels.md)
 
 
 ## Swift 2.2 - Released on March 21, 2016
