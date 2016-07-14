@@ -127,9 +127,9 @@ adheres to strict aliasing.
 
 ```swift
 UnsafeMutableRawPointer {
-  static func allocate(bytes size: Int, alignedTo: Int = /*maximal*/)
+  static func allocate(bytes size: Int, alignedTo: Int)
 
-  func deallocate(bytes: Int, alignedTo: Int = /*maximal*/)
+  func deallocate(bytes: Int, alignedTo: Int)
 }
 ```
 
@@ -420,7 +420,8 @@ initialization:
 ```swift
 // --- new version ---
 func normalLifetime() {
-  let rawPtr = UnsafeMutableRawPointer.allocate(bytes: sizeof(A.self))
+  let rawPtr = UnsafeMutableRawPointer.allocate(bytes: sizeof(A.self),
+                                                alignedTo: alignof(A.self))
 
   // rawPtr cannot be assigned to a value of `A`, forcing initialization before
   // typed access.
@@ -429,7 +430,7 @@ func normalLifetime() {
   printA(pA)
 
   let uninitPtr = pA.deinitialize(count: 1)
-  uninitPtr.deallocate(bytes: sizeof(A.self))
+  uninitPtr.deallocate(bytes: sizeof(A.self), alignedTo: alignof(A.self))
 }
 ```
 
@@ -485,7 +486,8 @@ pointer type in order to access manually allocated memory:
 // Return a pointer to an untyped memory region initialized with (A, B).
 func initRawAB() -> UnsafeMutableRawPointer {
 
-  let rawPtr = UnsafeMutableRawPointer.allocate(bytes: 2 * strideof(Int.self))
+  let rawPtr = UnsafeMutableRawPointer.allocate(bytes: 2 * strideof(Int.self),
+                                                alignedTo: alignof(Int.self))
 
   // Initialize the first Int with `A`, producing UnsafeMutablePointer<A>.
   let pA = initA(rawPtr)
@@ -587,7 +589,8 @@ type whenever it is dereferenced.
 ```swift
 // --- new version ---
 func initAthenB {
-  let rawPtr = UnsafeMutableRawPointer.allocate(bytes: strideof(Int.self))
+  let rawPtr = UnsafeMutableRawPointer.allocate(bytes: strideof(Int.self),
+                                                alignedTo: alignof(Int.self))
 
   let pA = initRawA(rawPtr) // raw pointer initialization binds memory to `A`
   printA(pA)
@@ -668,7 +671,8 @@ pointer cast is explicit:
 ```swift
 // --- new version ---
 func testInitAorB() {
-  let p = UnsafeMutableRawPointer.allocate(bytes: sizeof(Int.self))
+  let p = UnsafeMutableRawPointer.allocate(bytes: sizeof(Int.self),
+                                           alignedTo: alignof(Int.self))
 
   initRawAorB(p, isA: true)
   printA(p.assumingMemoryBound(to: A.self))
@@ -688,7 +692,8 @@ pointer.
 ```swift
 // --- new version ---
 func testReinterpret() {
-  let p = UnsafeMutableRawPointer.allocate(bytes: sizeof(Int.self))
+  let p = UnsafeMutableRawPointer.allocate(bytes: sizeof(Int.self),
+                                           alignedTo: alignof(Int.self))
 
   // Initialize raw memory to `A`.
   initRawAorB(p, isA: true)
@@ -764,7 +769,8 @@ use the `UnsafeMutableRawPointer.storeBytes` API for raw memory access:
 ```swift
 // --- new version ---
 func mutateBuffer(size: Int, value: UInt8) {
-  let rawBuffer = UnsafeMutableRawPointer.allocate(bytes: size + 1)
+  let rawBuffer = UnsafeMutableRawPointer.allocate(bytes: size + 1,
+                                                   alignedTo: 1)
   rawBuffer.initializeMemory(as: UInt8.self, count: size, to: value)
   rawBuffer.initializeMemory(as: UInt8.self, atIndex: size, to: 0)
 
@@ -989,7 +995,8 @@ A program may read from and write to memory via a raw pointer even
 after the memory has been initialized:
 
 ```swift
-let rawPtr = UnsafeMutableRawPointer.allocate(bytes: sizeof(SomeType.self))
+let rawPtr = UnsafeMutableRawPointer.allocate(bytes: sizeof(SomeType.self),
+                                              alignedTo: alignof(SomeType.self))
 
 let ptrToSomeType = rawPtr.initializeMemory(as: SomeType.self, to: SomeType())
 
@@ -1135,7 +1142,7 @@ func createValueWithTail(count: Int) {
   let numBytes = strideof(A) + (count * strideof(B))
 
   let rawPtr = UnsafeMutableRawPointer.allocate(
-    bytes: numBytes, alignedTo: alignof(A))
+    bytes: numBytes, alignedTo: alignof(A.self))
 
   // Initialize the object header.
   ptrToA = rawPtr.initializeMemory(as: A.self, to: A(value: 42))
@@ -1158,7 +1165,7 @@ func deleteValueWithTail() {
   let numBytes = strideof(A) + (eltCount * strideof(B))
 
   ptrToA.deinitialize(count: 1).deallocate(
-    bytes: numBytes, alignedTo: alignof(A))
+    bytes: numBytes, alignedTo: alignof(A.self))
 }
 ```
 
@@ -1527,10 +1534,10 @@ struct UnsafeMutableRawPointer : Strideable, Hashable, _Pointer {
   init<T>(_: UnsafeMutablePointer<T>)
   init?<T>(_: UnsafeMutablePointer<T>?)
 
-  static func allocate(bytes: Int, alignedTo: Int = /*maximal*/)
+  static func allocate(bytes: Int, alignedTo: Int)
   -> UnsafeMutableRawPointer
 
-  func deallocate(bytes: Int, alignedTo: Int = /*maximal*/)
+  func deallocate(bytes: Int, alignedTo: Int)
 
   func bindMemory<T>(to: T.Type, capacity: Int) -> UnsafeMutablePointer<T>
 
@@ -1575,7 +1582,7 @@ struct UnsafeRawPointer : Strideable, Hashable, _Pointer {
   init<T>(_: UnsafeMutablePointer<T>)
   init?<T>(_: UnsafeMutablePointer<T>?)
 
-  func deallocate(bytes: Int, alignedTo: Int = /*maximal*/)
+  func deallocate(bytes: Int, alignedTo: Int)
 
   func bindMemory<T>(to: T.Type, capacity: Int) -> UnsafePointer<T>
   func assumingMemoryBound<T>(to: T.Type) -> UnsafePointer<T>
