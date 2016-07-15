@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0111](0111-remove-arg-label-type-significance.md)
 * Author: Austin Zheng
-* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000216.html))
+* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000216.html)) ([Additional Commentary](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000233.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
