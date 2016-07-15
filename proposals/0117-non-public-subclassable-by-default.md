@@ -13,14 +13,14 @@ modules to define subclasses of it.  This proposal suggests splitting these into
 two different
 concepts.  This means that marking a class `public` allows the class to be 
 *used* by other modules, but does not allow other modules to define
-*subclasses*.  In order to subclass from another module, the class would be
-marked `subclassable`.
+*subclasses*.  In order to subclass from another module, the class would
+also have to be marked `open`.
 
 Relatedly, Swift also conflates two similar concepts for class members (methods,
 properties, subscripts): `public`
 means that the member may be used by other modules, but also that it may be
-overriden by subclasses.  This proposal introduces a new `overridable` modifier, which
-is used instead of `public` on members that are overridable.
+overriden by subclasses.  This proposal uses the same `open` modifier, which
+is used together with `public` on members that are overridable.
 
 Swift-evolution thread: http://thread.gmane.org/gmane.comp.lang.swift.evolution/21930/
 
@@ -50,32 +50,42 @@ intended to be overridable, because accesses within the module cannot be
 devirtualized.
 
 
-## Proposed solution
+## Proposed design
 
-Introduce two new declaration modifiers: `subclassable` and `overridable` (other
-spellings are discussed in the Alternatives section below):
+Introduce a new declaration modifier, `open` (other spellings are discussed
+in the Alternatives section below):
 
-- `subclassable class C {}` declares that C is a class which is
-  subclassable outside of the module it is declared in.  `subclassable` implies
-  `public`, so `public` does not need to be explicitly written.
+- `public open class C {}` declares that C is a class which is
+  subclassable outside of the module it is declared in.
 
-- `overridable func foo() {}` declares that foo is a method which is overridable
-  outside of the module it is declared in.  `overridable` implies `public`, so
-  `public` does not need to be explicitly written.
+- `public open func foo() {}` declares that foo is a method which is
+	overridable outside of the module it is declared in.  `open` in this
+	sense is only allowed on overridable declarations, i.e. `var`, `func`,
+	and `subscript` declarations within classes.
 
-The `subclassable` modifier only makes sense for classes, but `overridable` may
-be used on `var`, `func`, and `subscript` declarations within classes.
+`open` is invalid on declarations that are not also `public` (see the
+Alternatives discussion for rationale).
 
-Because these modifiers replace the `public` keyword on affected declarations,
-they do not increase the annotation burden on APIs, they just increase 
-expressive power and encourage thought when publishing those APIs.
+`open` is invalid on declarations that are `final`.
 
-Objective-C classes would always be imported as `subclassable`, and all of their 
-methods are `overridable`.
+If an `open` class inherits an `open` method from a superclass, that
+method remains `open`.  If it overrides an `open` method from a
+superclass, the override is implicitly `open` if it is not `final`.
 
-## Detailed design
+The superclass of an `open` class must be `open`.  The overridden
+declaration of an `open override` must be `open`.  These are conservative
+restrictions that reduce the scope of this proposal; it will be possible
+to revisit them in a later proposal.
 
-Code Examples:
+Objective-C classes and methods are always imported as `open`.
+
+The `@testable` design states that tests have the extra access
+permissions of the modules that they import for testing.  Accordingly,
+this proposal does not change the fact that tests are allowed to
+subclass non-final types and override non-final methods from the modules
+that they `@testable import`.
+
+## Code examples
 
 ```swift
 /// ModuleA:
@@ -85,23 +95,24 @@ public class NonSubclassableParentClass {
 	/// This method is not overridable.
 	public func foo() {}
 
-	/// This raises a compilation error: a method can't be marked `overridable`
+	/// This raises a compilation error: a method can't be marked `open`
 	/// if the class it belongs to can't be subclassed.
-	overridable func bar() {}
+	open func bar() {}
 
 	/// The behavior of `final` methods remains unchanged.
 	final func baz() {}
 }
 
-subclassable class SubclassableParentClass {
+public open class SubclassableParentClass {
 	/// This property is not overridable.
 	public var size : Int
 
 	/// This method is not overridable.
 	public func foo() {}
 
-	/// Overridable methods in a `subclassable` class must be explicitly marked as `overridable`.
-	overridable func bar() {}
+	/// Overridable methods in an `open` class must be explicitly
+	/// marked as `open`.
+	open func bar() {}
 
 	/// The behavior of a `final` method remains unchanged.
 	public final func baz() {}
@@ -131,30 +142,48 @@ class SubclassB : SubclassableParentClass {
 }
 ```
 
-The `@testable` design states that tests for `@testable` types act as
-if they were part of the type's own module.  Accordingly, this proposal
-does not change the fact that tests are allowed to subclass non-final
-`@testable` types and override their non-final methods.
+## Alternatives
 
-## Modifier spelling alternatives
+`open` grants additional access beyond `public` and can be thought of as
+a new level of access control.  Arguably, instead of requiring it to be
+written together with `public`, it could be an alternative that supersedes
+`public`.  However, `open` doesn't quite imply `public`, and there's
+some merit in always being able to find the external interface of a
+library by just scanning for the single keyword `public`.  `open` is
+also quite short.
 
-`subclassable` and `overridable` are specific terms, but there are other approaches
-that could be used to spell these concepts.  One approach is to decouple it from
-`public`, and require `public overridable func` and `public subclassable class`.
+`open` could be split into different modifiers for classes and methods.
+An earlier version of this proposal used `subclassable` and `overridable`.
+These keywords are self-explanatory but visually heavyweight.  They also
+imply too much: it seems odd that a non-`subclassable` class can be
+subclassed from inside a module, but we are not proposing to make classes
+and methods `final` by default.
 
-Here are some ideas from the mailing list:
+Classes and methods could be inferred as `final` by default.  This would
+avoid using different default rules inside and outside of the defining
+module.  However, it is analogous to Swift defaulting to `private` instead
+of `internal`.  It penalizes code that's only being used inside an
+application or library by forcing the developer to micromanage access.
+The cost of getting something wrong within a module is very low, since
+it is easy to fix all of the clients.
 
-- `public open class` / `public open func`
-- `public extensible class`
+Inherited methods could be made non-`open` by default.  This would
+arguably be more consistent with the principle of carefully considering
+the overridable interface of a class, but it would create an enormous
+annotation and maintenance burden by forcing the entire overridable
+interface to be restated at every level in the class hierarchy.
 
-Or as a modifier of `public`:
+Overrides could be made non-`open` by default.  However, it would be
+very difficult to justify this given that inherited methods stay `open`.
+It also piles up modifiers on the override: `public open override func foo()`.
+The `override` keyword is already present to convey that this is possible.
 
-- `public(subclassable) class` / `public(overridable) func`
-- `public(open) class` / `public(open) func`
-- `public(extensible) class`
+Other proposals that have been considered:
 
-The `fragile` modifier in the Swift 4 resilience design is very similar to this,
-and will follow the precedent set by these keywords.
+- `public(open)`, which seems visually cluttered
+
+- `public extensible`, which is somewhat heavyweight and invites confusion
+  within `extension`
 
 ## Impact on existing code
 
@@ -163,11 +192,7 @@ public and non-final, which code outside of their module has overriden.
 Those classes/methods would fail to compile. Their superclass would need to be
 changed to `open`.
 
+## Related work
 
-## Alternatives considered
-
-Defaulting to `final` instead: This would be comparable to Swift defaulting to
-`private`, as opposed to `internal`.  This penalizes code that is being used
-inside an application or library by forcing the developer to think about big
-picture concepts that may not apply.  The cost of getting something wrong within
-a module is very low, since it is easy to fix all of the clients.
+The `fragile` modifier in the Swift 4 resilience design is very similar to this,
+and will follow the precedent set by these keywords.
