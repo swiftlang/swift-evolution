@@ -210,33 +210,57 @@ protocol SomeProtocol {
 
 ### Class types and inheritance
 
-While this approach works well for value types, operators may not work as
-expected for class types when inheritance is involved. We expect classes to
-implement the static operators in the protocol using `class` methods instead of
-`static` methods, which allows subclases to override them. However, note that
-this requires the subclass's method signature to match the superclass's,
-meaning that `Base.==(lhs: Base, rhs: Base)` would have to be overridden using
-`Subclass.==(lhs: Base, rhs: Base)` (note the parameter types).
+While this approach works well for value types, it has the same limitations that
+today's global operators have with regard to class types; namely that they are
+dispatched based on the static type of the operands rather than their dynamic
+types. This can lead to surprises when using base class references.
 
-Note, however, that operators as implemented today have similar issues. For
-example, the lack of multiple dispatch means that a comparison between a
-`Subclass` and a `Subclass as Base` would call `==(Base, Base)`, even if there
-exists a more specific `==(Subclass, Subclass)`. We acknowledge that this is a
-problem in both cases and do not address it in this proposal, since the proposed
-model is not a regression of current behavior.
+This is not a regression from current behavior and we leave that problem open
+for a future dedicated design. For now, we require that operators implemented in
+a class are either `static` or `final class` methods.
 
-For users who wish to go down this path, we should ensure that expressions using
-`super`, like `super.==(lhs, rhs)`, work as expected inside such class methods.
+We do note, however, that the common case of "`Subclass` uses the result of
+`Superclass`'s operator in its computation" has a quite elegant solution in this
+design that does not involve overriding. Consider this example:
 
-### Deprecation of non-static protocol operators
+```swift
+protocol Equatable {
+  static func ==(lhs: Self, rhs: Self) -> Bool
+}
+
+class Superclass: Equatable {
+  var foo: Int
+
+  static func ==(lhs: Superclass, rhs: Superclass) -> Bool {
+    return lhs.foo == rhs.foo
+  }
+}
+
+class Subclass: Superclass {
+  var bar: String
+
+  static func ==(lhs: Subclass, rhs: Subclass) -> Bool {
+    guard lhs as Superclass == rhs as Superclass else {
+      return false
+    }
+    return lhs.bar == rhs.bar
+  }
+}
+```
+
+Since the operators are dispatched based on the _static_ types of the operands,
+the explicit up-casts to the superclass allows us to reuse its implementation as
+part of our subclass's computation.
+
+### Removal of non-static protocol operators
 
 Because the proposed solution serves as a replacement and improvement for the
 existing syntax used to declare operator requirements in protocols, we propose
-that the non-static operator method syntax be **deprecated** in Swift 2 and
-**removed** in Swift 3. In Swift 3, static member operators should be the _only_
-way to define operators that are required for protocol conformance. This is a
-breaking change for existing code, but supporting two kinds of operators with
-different declaration and use syntax would lead to significant user confusion.
+that the non-static operator method syntax be **removed** in Swift 3. Going
+forward, static member operators should be the _only_ way to define operators
+that are required for protocol conformance. This is a breaking change for
+existing code, but supporting two kinds of operators with different declaration
+and use syntax would lead to significant user confusion.
 
 Global operator functions would be unaffected by this change. Users would still
 be able to define them as before.
@@ -260,26 +284,13 @@ However, defining such a function in a concrete type fails with the error
 of `Parser::parseDeclFunc` appears to be the likely place to make a change to
 allow this.
 
-### Explicitly calling `super` for class operators
-
-This proposal originally extended the _explicit-member-expression_ production
-rule to support having _operator_ as well as _identifier_ following a
-_postfix-expression_; this was a requirement to let users explicitly call the
-concrete operator implementation from their trampoline function, using a
-syntax like `SomeType.+(lhs, rhs)`.
-
-While universal lookup makes it no longer necessary to call operators in this
-way in the general case, one scenario may still need to be considered: calling
-the superclass implementation of an operator `class` method from a subclass.
-
 ### Restrictions on methods with operator names
 
 Since methods with operator names are now found as part of a universal lookup,
 we restrict a few characteristics of their declarations as follows:
 
-* Methods with operator names must be `static` (or `class`, inside classes).
-  Non-static methods with operator names are an error. (_Special case: in a
-  protocol, non-static operator methods are marked deprecated until removed._)
+* Methods with operator names must be `static` (or alternatively `final class`
+  inside classes). Non-static methods with operator names are an error.
 
 * Methods with operator names must satisfy the same function signature
   requirements as global operator functions (infix operators take two arguments,
@@ -291,8 +302,7 @@ The ability to declare operators as static/class functions inside a type is a
 new feature and would not affect existing code.
 
 Changing the way operators are declared in protocols (static instead of
-non-static) would be a breaking change. As described above, we propose
-deprecating the current non-static protocol operator syntax and then removing it
+non-static) is a breaking change. As described above, we propose removing it
 entirely in Swift 3.
 
 Applying this change to the protocols already in the Swift standard library
