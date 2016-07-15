@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0117](0117-non-public-subclassable-by-default.md)
 * Authors: [Javier Soto](https://github.com/JaviSoto), [John McCall](https://github.com/rjmccall)
-* Status: **Active review July 5 ... 11**
+* Status: **Returned for revision** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000234.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
