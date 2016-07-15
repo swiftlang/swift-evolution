@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!--
+      This page loads proposals.xml and proposal-status.xsl from the master
+      branch of swift-evolution, and renders them. This file is separate because
+      the contents of apple.github.io/swift-evolution must reside on the
+      gh-pages branch, but we want the "source of truth" (proposals.xml) to be
+      on master.
+    -->
+    <script type="text/javascript">
+      var proposalsXML, proposalsXSL;
+      
+      window.addEventListener("DOMContentLoaded", function() {
+        function load(url, callback) {
+          var req = new XMLHttpRequest();
+          req.open("GET", url);
+          req.overrideMimeType("text/xml");
+          req.onreadystatechange = function() {
+            if (req.readyState != 4) return;
+            if (req.status == 200) {
+              callback(req.responseXML);
+            } else {
+              document.write(" Failed to load "+url+".");
+            }
+          }
+          req.send();
+        }
+        
+        load("https://raw.githubusercontent.com/apple/swift-evolution/master/proposals.xml", function(responseXML) {
+          proposalsXML = responseXML;
+          tryFinish();
+        });
+        load("https://raw.githubusercontent.com/apple/swift-evolution/master/proposal-status.xsl", function(responseXML) {
+          proposalsXSL = responseXML;
+          tryFinish();
+        });
+      });
+      
+      function tryFinish() {
+        if (proposalsXML === undefined || proposalsXSL === undefined) return;
+        try {
+          var p = new XSLTProcessor();
+          p.importStylesheet(proposalsXSL);
+          var result = p.transformToDocument(proposalsXML);
+          document.replaceChild(result.documentElement, document.documentElement);
+        } catch (e) {
+          document.write("Failed to display proposals: "+e);
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <noscript>This page requires JavaScript.</noscript>
+  </body>
+</html>
