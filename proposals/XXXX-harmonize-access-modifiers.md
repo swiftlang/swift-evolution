@@ -63,6 +63,10 @@ This implies that public API commitments will need to be annotated as `public` a
 
 *  One alternative, still open for consideration, is to eliminate #4 and disallow explicit access modifiers on extensions. As an advantage, this would clarify the mental model that extensions are not their own entities, as they cannot be referred to by name and have no runtime representation. As a disadvantage, extensions cease to be an access modifier grouping construct, which some users really like.
 
+## Acknowledgments
+
+Thanks to all discussants on the list, especially Adrian Zubarev and Jose Cheyo Jimenez.
+
 ## Rationale
 
 On [Date], the core team decided to **(TBD)** this proposal.
