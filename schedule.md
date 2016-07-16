@@ -7,12 +7,13 @@ proposals in that process.
 ## Active reviews
 
 * July 5...11 [SE-0116: Import Objective-C `id` as Swift `Any` type](proposals/0116-id-as-any.md)
-* July 5...11 [SE-0117: Default classes to be non-subclassable publicly](proposals/0117-non-public-subclassable-by-default.md)
 * July 12...19 [SE-0119: Remove access modifiers from extensions](proposals/0119-extensions-access-modifiers.md)
 * July 12...19 [SE-0120: Revise `partition` Method Signature](proposals/0120-revise-partition-method.md) 
 * July 12...19 [SE-0121: Remove `Optional` Comparison Operators](proposals/0121-remove-optional-comparison-operators.md) 
 * July 12...19 [SE-0101: Reconfiguring `sizeof` and related functions into a unified `MemoryLayout` struct](proposals/0101-standardizing-sizeof-naming.md)
 * July 12...19 [SE-0123: Disallow coercion to optionals in operator arguments](proposals/0123-disallow-value-to-optional-coercion-in-operator-arguments.md)
+* July 15...22 [SE-0117: Default classes to be non-subclassable publicly](proposals/0117-non-public-subclassable-by-default.md)
+* July 15...20 [SE-0124: `Int.init(ObjectIdentifier)` and `UInt.init(ObjectIdentifier)` should have a `bitPattern:` label](0124-bitpattern-label-for-int-initializer-objectidentfier.md)
 
 ## Upcoming reviews
 

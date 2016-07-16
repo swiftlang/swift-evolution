@@ -1,9 +1,9 @@
 # `Int.init(ObjectIdentifier)` and `UInt.init(ObjectIdentifier)` should have a `bitPattern:` label
 
-* Proposal: [SE-0000](0000-bitpattern-label-for-int-initializer-objectidentfier.md)
+* Proposal: [SE-0124](0124-bitpattern-label-for-int-initializer-objectidentfier.md)
 * Author: [Arnold Schwaighofer](https://github.com/aschwaighofer)
-* Status: **Awaiting review**
-* Review manager: TBD
+* Status: **Active review July 15...20**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
