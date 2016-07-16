@@ -93,6 +93,6 @@ Existing code will have to add the argument label.
 
 ## Alternatives considered
 
-Leave as is. The API will be inconsistant with other APIs such as the
+Leave as is. The API will be inconsistent with other APIs such as the
 `UInt(bitPattern: UnsafePointer<T>)` API.
 
