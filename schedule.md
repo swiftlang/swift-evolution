@@ -13,7 +13,7 @@ proposals in that process.
 * July 12...19 [SE-0101: Reconfiguring `sizeof` and related functions into a unified `MemoryLayout` struct](proposals/0101-standardizing-sizeof-naming.md)
 * July 12...19 [SE-0123: Disallow coercion to optionals in operator arguments](proposals/0123-disallow-value-to-optional-coercion-in-operator-arguments.md)
 * July 15...22 [SE-0117: Default classes to be non-subclassable publicly](proposals/0117-non-public-subclassable-by-default.md)
-* July 15...20 [SE-0124: `Int.init(ObjectIdentifier)` and `UInt.init(ObjectIdentifier)` should have a `bitPattern:` label](0124-bitpattern-label-for-int-initializer-objectidentfier.md)
+* July 15...20 [SE-0124: `Int.init(ObjectIdentifier)` and `UInt.init(ObjectIdentifier)` should have a `bitPattern:` label](proposals/0124-bitpattern-label-for-int-initializer-objectidentfier.md)
 
 ## Upcoming reviews
 
