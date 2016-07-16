@@ -26,11 +26,11 @@ public extension foo { }
 
 public struct bar { }
 public extension bar {
-  func frobnicate() { } // implicitly public, according to SE-0025
+  func frobnicate() { } // implicitly public
 }
 ```
 
-According to SE-0025, a method moved from the body of a public struct into a public extension becomes public without modification. This is surprising behavior contrary to Swift's general rule of not exposing public API by default.
+In [Swift 2](https://developer.apple.com/library/ios/documentation/Swift/Conceptual/Swift_Programming_Language/AccessControl.html), a method moved from the body of a public struct into a public extension becomes public without modification. This is surprising behavior contrary to Swift's general rule of not exposing public API by default, but it is preserved for Swift 3 as detailed in [SE-0025](0025-extensions-access-modifiers).
 
 Furthermore, SE-0025 now permits the owner of a type to design access for members as though the type will have a higher access level than it currently does. For example, users will be able to design `public` methods inside an `internal` type before "flipping the switch" and making that type `public`. The same approach is prohibited by SE-0025 for extensions, although conceptually it need not be.
 
