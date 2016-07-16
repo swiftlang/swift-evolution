@@ -98,10 +98,10 @@ public class NonSubclassableParentClass {
 
 	/// This raises a compilation error: a method can't be marked `open`
 	/// if the class it belongs to can't be subclassed.
-	open func bar() {}
+	public open func bar() {}
 
 	/// The behavior of `final` methods remains unchanged.
-	final func baz() {}
+	public final func baz() {}
 }
 
 public open class SubclassableParentClass {
@@ -113,7 +113,7 @@ public open class SubclassableParentClass {
 
 	/// Overridable methods in an `open` class must be explicitly
 	/// marked as `open`.
-	open func bar() {}
+	public open func bar() {}
 
 	/// The behavior of a `final` method remains unchanged.
 	public final func baz() {}
@@ -128,17 +128,17 @@ public final class FinalClass { }
 
 import ModuleA
 
-/// This raises a compilation error:
-/// `NonSubclassableParentClass` is not subclassable from this module.
+/// This raises a compilation error: `NonSubclassableParentClass` is
+/// not `open`, so it is not subclassable outside of `ModuleA`.
 class SubclassA : NonSubclassableParentClass { }
 
-/// This is allowed since `OpenParentClass` has been marked explicitly `subclassable`.
+/// This is allowed since `OpenParentClass` is `open`.
 class SubclassB : SubclassableParentClass {
 	/// This raises a compilation error: `SubclassableParentClass.foo` is not
-	/// `overridable` outside of `ModuleA`.
+	/// `open`, so it is not overridable outside of `ModuleA`.
 	override func foo() { }
 
-	/// This is allowed since `SubclassableParentClass.bar` is explicitly `overridable`.
+	/// This is allowed since `SubclassableParentClass.bar` is `open`.
 	override func bar() { }
 }
 ```
