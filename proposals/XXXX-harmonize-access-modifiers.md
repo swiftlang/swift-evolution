@@ -7,7 +7,7 @@
 
 ## Introduction
 
-During discussion of [SE-0119](0119-extensions-access-modifiers), some voiced concern that writing `public extension` increases the default access level for members declared within that extension, whereas writing `public class` or `public struct` does not do the same.
+During discussion of [SE-0119](0119-extensions-access-modifiers.md), some voiced concern that writing `public extension` increases the default access level for members declared within that extension, whereas writing `public class` or `public struct` does not do the same.
 
 This behavior is explained as follows: since extensions have no runtime representation and are not first-class entities, access modifiers on extensions serve as a shorthand to set the default access level for members. Certain members of the community have indicated that such behavior makes extensions a natural grouping construct.
 
@@ -37,7 +37,7 @@ public extension bar {
 }
 ```
 
-This outcome is explained by rules regarding access modifiers specifically on extensions [Swift 2](https://developer.apple.com/library/ios/documentation/Swift/Conceptual/Swift_Programming_Language/AccessControl.html), which is slated for preservation in Swift 3 as detailed in [SE-0025](0025-extensions-access-modifiers). However, it is arguably surprising that, of two declarations spelled identically, one leads to a public API commitment while the other does not.
+This outcome is explained by rules regarding access modifiers specifically on extensions [Swift 2](https://developer.apple.com/library/ios/documentation/Swift/Conceptual/Swift_Programming_Language/AccessControl.html), which is slated for preservation in Swift 3 as detailed in [SE-0025](0025-extensions-access-modifiers.md). However, it is arguably surprising that, of two declarations spelled identically, one leads to a public API commitment while the other does not.
 
 ## Proposed solution
 
