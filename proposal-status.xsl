@@ -10,11 +10,13 @@ on the gh-pages branch).
   <xsl:template match="/proposals">
     <html>
       <head>
+        <title>Swift-Evolution Proposal Status</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1"/>
         <xsl:call-template name="css"/>
       </head>
       <h1>Swift Programming Language Evolution: Proposal Status</h1>
       
-      The <a href="https://github.com/apple/swift-evolution/blob/master/process.md">Swift evolution process</a> describes the process by which Swift evolves. This page tracks the currently active proposals in that process.
+      <p>The <a href="https://github.com/apple/swift-evolution/blob/master/process.md">Swift evolution process</a> describes the process by which Swift evolves. This page tracks the currently active proposals in that process.</p>
       
       <h2>Active reviews</h2>
       <xsl:call-template name="section">
@@ -64,7 +66,7 @@ on the gh-pages branch).
     <xsl:param name="proposals"/>
     <xsl:choose>
       <xsl:when test="count($proposals) = 0">
-        (none)
+        <p>(none)</p>
       </xsl:when>
       <xsl:otherwise>
         <table class="section">
@@ -79,16 +81,43 @@ on the gh-pages branch).
   <!-- Renders a single proposal. -->
   <xsl:template match="proposal">
     <tr class="proposal">
-      <td class="number status-{@status}">SE-<xsl:value-of select="@id"/></td>
-      <td><a href="https://github.com/apple/swift-evolution/blob/master/proposals/{@filename}"><xsl:value-of select="@name"/></a></td>
+      <td><a class="number status-{@status}" href="https://github.com/apple/swift-evolution/blob/master/proposals/{@filename}">SE-<xsl:value-of select="@id"/></a></td>
+      <td><a class="title" href="https://github.com/apple/swift-evolution/blob/master/proposals/{@filename}"><xsl:value-of select="@name"/></a></td>
     </tr>
   </xsl:template>
   
   <xsl:template name="css">
     <style type="text/css">
+      * {
+        margin: 0;
+        padding: 0;
+      }
       body {
-        margin: 1em;
         font-family: -apple-system, BlinkMacSystemFont, HelveticaNeue, Helvetica, Arial, sans-serif;
+        -webkit-text-size-adjust: none;
+      }
+      body > * {
+        margin-left: 1rem;
+        margin-right: 1rem;
+      }
+      p {
+        margin-top: 1em;
+        margin-bottom: 1em;
+      }
+      h1 {
+        margin-top: 0.6em;
+        margin-bottom: 0.6em;
+      }
+      h2 {
+        margin: 0.5em 0em 0em;
+        padding: 0.3em 1rem 0.4em;
+        position: -webkit-sticky;
+        position: -moz-sticky;
+        position: -ms-sticky;
+        position: -o-sticky;
+        position: sticky;
+        top: 0px;
+        background-color: #fff;
       }
       a {
         color: #4078c0;
@@ -97,13 +126,13 @@ on the gh-pages branch).
       a:hover, a:visited:hover {
         text-decoration: underline;
       }
-      .proposal a {
+      .proposal a.title {
         color: #666;
       }
-      .proposal a:visited {
+      .proposal a.title:visited {
         color: #999;
       }
-      .proposal a:hover, .proposal a:visited:hover {
+      .proposal a.title:hover, .proposal a.title:visited:hover {
         color: #222;
       }
       table, tr, td {
@@ -115,35 +144,43 @@ on the gh-pages branch).
       .proposal {
         font-size: 1.1em;
       }
+      .proposal td {
+        vertical-align: top;
+      }
       .number {
         text-align: center;
         border-radius: 5px;
         font-size: 0.7em;
         font-weight: bold;
-        padding: 0em 0.5em;
-        vertical-align: middle;
+        padding: 0.2em 0.5em;
+        display: block;
+        white-space: nowrap;
         color: #fff;
       }
-      .status-implemented {
+      .proposal a.number {
+        color: #fff;
+        text-decoration: none;
+      }
+      a.number.status-implemented {
         background-color: #319021;
       }
-      .status-accepted {
+      a.number.status-accepted {
         background-color: #5abc4e;
       }
-      .status-active {
+      a.number.status-active {
         background-color: #297de4;
       }
-      .status-scheduled {
+      a.number.status-scheduled {
         background-color: #78b8fb;
       }
-      .status-awaiting, .status-deferred {
+      a.number.status-awaiting, a.number.status-deferred {
         background-color: #dddddd;
         color: #000;
       }
-      .status-returned {
+      a.number.status-returned {
         background-color: #f1b6b7;
       }
-      .status-rejected {
+      a.number.status-rejected {
         background-color: #de5b60;
       }
     </style>
