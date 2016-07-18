@@ -7,12 +7,19 @@
 
 ## Introduction
 
-During discussion of [SE-0119](0119-extensions-access-modifiers), the community articulated the view that access modifiers for extensions were and should continue to be subject to the same rules as access modifiers for types. Unfortunately, it is not factually true today; this proposal aims to make it so.
+During discussion of [SE-0119](0119-extensions-access-modifiers), some voiced concern that `public extension` increases the default access level for members, whereas `public class` or `public struct` do not.
+
+This behavior is explained by the notion that there is no such thing as a public extension. Since extensions have no runtime representation and are not first-class entities, access modifiers on extensions instead serve as a shorthand to set the default access level for members. Certain members of the community have indicated that such behavior makes extensions a natural grouping construct.
+
+A general principle of Swift, recently strengthened by proposals such as [SE-0117](0117-non-public-subclassable-by-default.md), has been that public API commitments should require explicit opt-in. Given the different behavior of classes and structs, the fact that extensions allow public methods to be declared without spelling out `public` at the declaration site has been called "confusing" or "odd."
+
+The aim of this proposal is to, in as conservative a manner as possible, require explicit use of `public` for public methods declared inside any extension.
 
 Swift-evolution threads:
 
 * [\[Proposal\] Revising access modifiers on extensions](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160620/022144.html)
-* \[More to be added here\]
+* [\[Review\] SE-0119: Remove access modifiers from extensions](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160711/024224.html)
+* [\[Draft\] Harmonize access modifiers for extensions](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160711/024522.html)
 
 ## Motivation
 
@@ -20,52 +27,39 @@ Consider the following:
 
 ```
 public struct foo {
-  func frobnicate() { } // implicitly internal
+  func frobnicate() { } // internal
 }
 public extension foo { }
 
 public struct bar { }
 public extension bar {
-  func frobnicate() { } // implicitly public
+  func frobnicate() { } // public
 }
 ```
 
-In [Swift 2](https://developer.apple.com/library/ios/documentation/Swift/Conceptual/Swift_Programming_Language/AccessControl.html), a method moved from the body of a public struct into a public extension becomes public without modification. This is surprising behavior contrary to Swift's general rule of not exposing public API by default, but it is preserved for Swift 3 as detailed in [SE-0025](0025-extensions-access-modifiers).
-
-Furthermore, SE-0025 now permits the owner of a type to design access for members as though the type will have a higher access level than it currently does. For example, users will be able to design `public` methods inside an `internal` type before "flipping the switch" and making that type `public`. The same approach is prohibited by SE-0025 for extensions, although conceptually it need not be.
-
+This outcome is explained by rules regarding access modifiers specifically in extensions [Swift 2](https://developer.apple.com/library/ios/documentation/Swift/Conceptual/Swift_Programming_Language/AccessControl.html), which is slated for preservation in Swift 3 as detailed in [SE-0025](0025-extensions-access-modifiers). However, it is arguably surprising that, of two declarations spelled identically, one leads to a public API commitment while the other does not.
 
 ## Proposed solution
 
-The proposed solution is to change access modifier rules for extensions with the following effect: if any method (or computed property) declared within the body of a type at file scope is moved without modification into the body of an extension in the same file, the move will not change its accessibility.
-
-In code:
-
-```
-struct foo {
-  // Any method declared here...
-}
-extension foo {
-  // ...should have the same visibility when moved here.
-}
-```
-
-This implies that public API commitments will need to be annotated as `public` at declaration sites inside an extension just as it must be at declaration sites inside types.
+The proposed solution is to amend access modifier rules for extensions to eliminate the possibility of defaulting the access level of members to `public`.
 
 ## Detailed design
 
-1. Declarations inside the extension will, like declarations inside types, have a default access level of `internal`.
-2. The compiler should not warn when a broader level of access control is used for a method (or computed property, etc.) declared within an extension with more restrictive access. This allows the owner of the extension to design the access level they would use for a method if the type or extension were to be made more widely accessible.
-3. An extension declared without an explicit access modifier will have the same access level as the type being extended.
-4. An extension declared without protocol conformance may optionally use an explicit access modifier to provide an upper bound for the visibility of its members.
+Amend access modifier rules as follows:
+
+An extension may optionally be marked with an explicit access modifier that specifies the default scope \[see SE-0025\]. However, such an explicit modifier _must not match (or exceed) the original type's access level_.
+
+This rule would preserve the possibility of using extensions as grouping constructs. At the same time, it would (1) remove the possibility of writing `public extension` to default the access level of members to `public`; and (2) clarify the notion that an access modifier on an extension is a shorthand and not a way to create a first-class entity by disallowing repeating of the original type's access level.
+
+_Explicit_ access modifiers will continue to set the maximum allowed access within an extension, as clarified in SE-0025.
 
 ## Alternatives considered
 
-*  One alternative, still open for consideration, is to eliminate #4 and disallow explicit access modifiers on extensions. As an advantage, this would clarify the mental model that extensions are not their own entities, as they cannot be referred to by name and have no runtime representation. As a disadvantage, extensions cease to be an access modifier grouping construct, which some users really like.
+One alternative is to eliminate explicit access modifiers on extensions altogether. As an advantage, this would further clarify the mental model that extensions are not their own first-class entities. As a disadvantage, extensions cease to be an access modifier grouping construct, which some users really like.
 
 ## Acknowledgments
 
-Thanks to all discussants on the list, especially Adrian Zubarev and Jose Cheyo Jimenez.
+Thanks to all discussants on the list, especially Adrian Zubarev, Jose Cheyo Jimenez, and Paul Cantrell.
 
 ## Rationale
 
