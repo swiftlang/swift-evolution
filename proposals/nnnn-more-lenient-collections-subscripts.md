@@ -118,26 +118,38 @@ In summary, considering `a = [1,2,3]`:
 
 This is a simple implementation for the _subscript_ methods I am proposing:
 
+(Swift 3)
 ```swift
-extension CollectionType where Index: Comparable {
-
-    subscript(clamping range: Range<Index>) -> SubSequence {
-        let start = min(max(startIndex, range.startIndex), endIndex)
-        let end = max(min(endIndex, range.endIndex), startIndex)
-        return self[start ..< end]
+extension Collection where Index: Comparable {
+    
+    subscript(clamping bounds: Range<Index>) -> SubSequence {
+        let clamped = bounds.clamped(to: (startIndex ..< endIndex))
+        return self[clamped]
     }
-
-    subscript(checking range: Range<Index>) -> SubSequence? {
-        guard range.startIndex >= startIndex && range.endIndex <= endIndex
-            else { return nil }
-        return self[range]
+    
+    subscript(clamping bounds: ClosedRange<Index>) -> SubSequence {
+        let range = bounds.lowerBound ..< index(bounds.upperBound, offsetBy: 1)
+        let clamped = range.clamped(to: (startIndex ..< endIndex))
+        return self[clamped]
     }
-
-    subscript(checking index: Index) -> Generator.Element? {
-        guard indices.contains(index) else { return nil }
+    
+    subscript(checking bounds: Range<Index>) -> SubSequence? {
+        let indice = startIndex ... endIndex
+        return indice.contains(bounds.lowerBound) && indice.contains(bounds.upperBound) ? self[bounds] : nil
+    }
+    
+    subscript(checking bounds: ClosedRange<Index>) -> SubSequence? {
+        let range = bounds.lowerBound ..< index(bounds.upperBound, offsetBy: 1)
+        return self[checking: range]
+    }
+    
+    subscript(checking index: Index) -> Iterator.Element? {
+        guard index >= startIndex && index < endIndex else {
+            return nil
+        }
         return self[index]
     }
-
+    
 }
 ```
 
@@ -149,15 +161,18 @@ let a = [1, 2, 3]
 a[clamping: 0 ..< 5] // [1, 2, 3]
 a[clamping: -1 ..< 2] // [1, 2]
 a[clamping: 1 ..< 2] // [2]
-a[clamping: 3 ..< 4] // []
-a[clamping: -2 ..< -1] // []
 a[clamping: 4 ..< 3] // Fatal error: end < start
 
-a[checking: -1 ..< 5] // nil
-a[checking: -1 ..< 2] // nil
+a[clamping: 2 ... 4] // [3]
+a[clamping: -1 ... 5] // [1,2,3]
+a[clamping: 3 ... 4] // []
+a[clamping: -2 ... -1] // []
+
+a[checking: -1 ... 4] // nil
 a[checking: 0 ..< 5] // nil
 a[checking: -2 ..< -1] // nil
 a[checking: 1 ..< 3] // [2, 3]
+a[checking: 0 ... 2] // [1,2,3]
 a[checking: 4 ..< 3] // Fatal error: end < start
 
 a[checking: 0] // 1
