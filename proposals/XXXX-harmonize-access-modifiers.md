@@ -11,7 +11,7 @@ During discussion of [SE-0119](0119-extensions-access-modifiers.md), some voiced
 
 This behavior is explained as follows: since extensions have no runtime representation and are not first-class entities, access modifiers on extensions serve as a shorthand to set the default access level for members. Certain members of the community have indicated that such behavior makes extensions a natural grouping construct.
 
-A general principle of Swift, recently strengthened by proposals such as [SE-0117](0117-non-public-subclassable-by-default.md), has been that public API commitments should require explicit opt-in. Given the different behavior of classes and structs, the fact that extensions allow public methods to be declared without spelling out `public` at the declaration site has been called "confusing" or "odd."
+A general principle of Swift has been that public API commitments should require explicit opt-in. Given the different behavior of classes and structs, the fact that extensions allow public methods to be declared without spelling out `public` at the declaration site has been called "confusing" or "odd."
 
 The aim of this proposal is to, in as conservative a manner as possible, require explicit use of `public` for public methods declared inside any extension.
 
@@ -47,11 +47,11 @@ The proposed solution is to amend access modifier rules to eliminate the possibi
 
 Amend access modifier rules as follows:
 
-An extension may optionally be marked with an explicit access modifier that specifies the default scope \[see SE-0025\]. However, such an explicit modifier _must not match (or exceed) the original type's access level_.
+An extension may optionally be marked with an explicit access modifier that specifies the default scope \[see SE-0025\]. However, such an _explicit_ access modifier must not match (and must not exceed) the original type's access level. As clarified in SE-0025, _explicit_ access modifiers will continue to set the maximum allowed access within an extension.
 
 This rule would preserve the possibility of using extensions as grouping constructs. At the same time, it would (1) remove the possibility of writing `public extension` to default the access level of members to `public`; and (2) clarify the notion that an access modifier on an extension is a shorthand and not a way to create a first-class entity by disallowing repeating of the original type's access level.
 
-_Explicit_ access modifiers will continue to set the maximum allowed access within an extension, as clarified in SE-0025.
+No change is proposed for extensions _without_ an explicit access modifier. As implied in SE-0025, the default access level of members declared inside extensions _without_ an explicit access modifier will be `internal` after implementation of the `fileprivate`/`private` distinction, and the compiler will not warn about access modifiers broader than that of the original type.
 
 ## Alternatives considered
 
