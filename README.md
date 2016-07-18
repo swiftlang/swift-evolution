@@ -110,4 +110,4 @@ so that users can begin migrating their code sooner.
 Aside from warnings, a major goal of this release was to be as source compatible
 as practical with Swift 2.0.
 
-[review-status]: https://apple.github.io/swift-evolution/
+[proposal-status]: https://apple.github.io/swift-evolution/
