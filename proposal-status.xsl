@@ -14,68 +14,76 @@ on the gh-pages branch).
         <meta name="viewport" content="width=device-width, initial-scale=1"/>
         <xsl:call-template name="css"/>
       </head>
-      <h1>Swift Programming Language Evolution: Proposal Status</h1>
+      <body>
+        <h1>Swift Programming Language Evolution: Proposal Status</h1>
       
-      <p>The <a href="https://github.com/apple/swift-evolution/blob/master/process.md">Swift evolution process</a> describes the process by which Swift evolves. This page tracks the currently active proposals in that process.</p>
+        <p>The <a href="https://github.com/apple/swift-evolution/blob/master/process.md">Swift evolution process</a> describes the process by which Swift evolves. This page tracks the currently active proposals in that process.</p>
       
-      <h2>Active reviews</h2>
-      <xsl:call-template name="section">
-        <xsl:with-param name="proposals" select="proposal[@status='active']"/>
-      </xsl:call-template>
+        <xsl:call-template name="section">
+          <xsl:with-param name="title">Active reviews</xsl:with-param>
+          <xsl:with-param name="proposals" select="proposal[@status='active']"/>
+        </xsl:call-template>
       
-      <h2>Upcoming reviews</h2>
-      <xsl:call-template name="section">
-        <xsl:with-param name="proposals" select="proposal[@status='scheduled']"/>
-      </xsl:call-template>
+        <xsl:call-template name="section">
+          <xsl:with-param name="title">Upcoming reviews</xsl:with-param>
+          <xsl:with-param name="proposals" select="proposal[@status='scheduled']"/>
+        </xsl:call-template>
       
-      <h2>Proposals awaiting scheduling</h2>
-      <xsl:call-template name="section">
-        <xsl:with-param name="proposals" select="proposal[@status='awaiting']"/>
-      </xsl:call-template>
+        <xsl:call-template name="section">
+          <xsl:with-param name="title">Proposals awaiting scheduling</xsl:with-param>
+          <xsl:with-param name="proposals" select="proposal[@status='awaiting']"/>
+        </xsl:call-template>
       
-      <h2>Accepted (awaiting implementation)</h2>
-      <p>This is the list of proposals which have been accepted for inclusion into Swift, but they are not implemented yet, and may not have anyone signed up to implement them. If they are not implemented in time for Swift 3, they will roll into a subsequent release.</p>
-      <xsl:call-template name="section">
-        <xsl:with-param name="proposals" select="proposal[@status='accepted']"/>
-      </xsl:call-template>
+        <xsl:call-template name="section">
+          <xsl:with-param name="title">Accepted (awaiting implementation)</xsl:with-param>
+          <xsl:with-param name="description">This is the list of proposals which have been accepted for inclusion into Swift, but they are not implemented yet, and may not have anyone signed up to implement them. If they are not implemented in time for Swift 3, they will roll into a subsequent release.</xsl:with-param>
+          <xsl:with-param name="proposals" select="proposal[@status='accepted']"/>
+        </xsl:call-template>
       
-      <h2>Implemented for Swift 3</h2>
-      <xsl:call-template name="section">
-        <xsl:with-param name="proposals" select="proposal[@status='implemented'][@swift-version = 3]"/>
-      </xsl:call-template>
+        <xsl:call-template name="section">
+          <xsl:with-param name="title">Implemented for Swift 3</xsl:with-param>
+          <xsl:with-param name="proposals" select="proposal[@status='implemented'][@swift-version = 3]"/>
+        </xsl:call-template>
       
-      <h2>Implemented for Swift 2.2</h2>
-      <xsl:call-template name="section">
-        <xsl:with-param name="proposals" select="proposal[@status='implemented'][@swift-version = 2.2]"/>
-      </xsl:call-template>
+        <xsl:call-template name="section">
+          <xsl:with-param name="title">Implemented for Swift 2.2</xsl:with-param>
+          <xsl:with-param name="proposals" select="proposal[@status='implemented'][@swift-version = 2.2]"/>
+        </xsl:call-template>
       
-      <h2>Deferred for future discussion</h2>
-      <xsl:call-template name="section">
-        <xsl:with-param name="proposals" select="proposal[@status='deferred']"/>
-      </xsl:call-template>
+        <xsl:call-template name="section">
+          <xsl:with-param name="title">Deferred for future discussion</xsl:with-param>
+          <xsl:with-param name="proposals" select="proposal[@status='deferred']"/>
+        </xsl:call-template>
       
-      <h2>Rejected or withdrawn</h2>
-      <xsl:call-template name="section">
-        <xsl:with-param name="proposals" select="proposal[@status='rejected']"/>
-      </xsl:call-template>
+        <xsl:call-template name="section">
+          <xsl:with-param name="title">Rejected or withdrawn</xsl:with-param>
+          <xsl:with-param name="proposals" select="proposal[@status='rejected']"/>
+        </xsl:call-template>
+      </body>
     </html>
   </xsl:template>
 
   <!-- Renders a section header and a table of proposals. -->
   <xsl:template name="section">
+    <xsl:param name="title"/>
+    <xsl:param name="description"/>
     <xsl:param name="proposals"/>
-    <xsl:choose>
-      <xsl:when test="count($proposals) = 0">
-        <p>(none)</p>
-      </xsl:when>
-      <xsl:otherwise>
-        <table class="section">
-          <xsl:apply-templates select="$proposals">
-            <xsl:sort select="@id" order="descending"/>
-          </xsl:apply-templates>
-        </table>
-      </xsl:otherwise>
-    </xsl:choose>
+    <section>
+      <h2><xsl:value-of select="$title"/></h2>
+      <xsl:if test="$description"><p><xsl:value-of select="$description"/></p></xsl:if>
+      <xsl:choose>
+        <xsl:when test="count($proposals) = 0">
+          <p>(none)</p>
+        </xsl:when>
+        <xsl:otherwise>
+          <table>
+            <xsl:apply-templates select="$proposals">
+              <xsl:sort select="@id" order="descending"/>
+            </xsl:apply-templates>
+          </table>
+        </xsl:otherwise>
+      </xsl:choose>
+    </section>
   </xsl:template>
 
   <!-- Renders a single proposal. -->
@@ -96,13 +104,14 @@ on the gh-pages branch).
         font-family: -apple-system, BlinkMacSystemFont, HelveticaNeue, Helvetica, Arial, sans-serif;
         -webkit-text-size-adjust: none;
       }
-      body > * {
+      body > h1, body > p, section > table, section > p {
         margin-left: 1rem;
         margin-right: 1rem;
       }
       p {
         margin-top: 1em;
         margin-bottom: 1em;
+        line-height: 1.5em;
       }
       h1 {
         margin-top: 0.6em;
@@ -118,6 +127,16 @@ on the gh-pages branch).
         position: sticky;
         top: 0px;
         background-color: #fff;
+      }
+      @supports (backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px)) {
+        h2 {
+          background-color: rgba(255, 255, 255, 0.5);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+        }
+      }
+      h2 + p {
+        margin-top: 0;
       }
       a {
         color: #4078c0;
@@ -135,11 +154,12 @@ on the gh-pages branch).
       .proposal a.title:hover, .proposal a.title:visited:hover {
         color: #222;
       }
+      table {
+        margin-bottom: 1rem;
+        border-spacing: 0.5em;
+      }
       table, tr, td {
         padding: 0;
-      }
-      .section {
-        border-spacing: 0.5em;
       }
       .proposal {
         font-size: 1.1em;
