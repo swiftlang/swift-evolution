@@ -84,7 +84,7 @@ A given proposal can be in one of several states:
 
 * **Awaiting review**: the proposal is awaiting review. Once known,
   the dates for the actual review will be placed in the proposal
-  document and updated in the [review schedule](schedule.md). When the
+  document and updated in the [list of proposals](proposals.xml). When the
   review period begins, the review manager will update the state to
   *under review*.
 * **Under review**: the proposal is undergoing public review on the [swift-evolution mailing list][swift-evolution-mailing-list]. 
