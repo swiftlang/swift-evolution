@@ -90,8 +90,39 @@ on the gh-pages branch).
   <xsl:template match="proposal">
     <tr class="proposal">
       <td><a class="number status-{@status}" href="https://github.com/apple/swift-evolution/blob/master/proposals/{@filename}">SE-<xsl:value-of select="@id"/></a></td>
-      <td><a class="title" href="https://github.com/apple/swift-evolution/blob/master/proposals/{@filename}"><xsl:value-of select="@name"/></a></td>
+      <td>
+        <a class="title" href="https://github.com/apple/swift-evolution/blob/master/proposals/{@filename}">
+          <xsl:call-template name="format-proposal-name">
+            <xsl:with-param name="name" select="@name"/>
+          </xsl:call-template>
+        </a>
+      </td>
     </tr>
+  </xsl:template>
+  
+  <!-- Converts inline `code` in a proposal name to <code></code> elements. -->
+  <xsl:template name="format-proposal-name">
+    <xsl:param name="name"/>
+    <xsl:choose>
+      <xsl:when test="contains($name, '`')">
+        <xsl:variable name="before-open-tick" select="substring-before($name, '`')"/>
+        <xsl:variable name="after-open-tick" select="substring-after($name, '`')"/>
+        <xsl:variable name="between-ticks" select="substring-before($after-open-tick, '`')"/>
+        <xsl:variable name="after-close-tick" select="substring-after($after-open-tick, '`')"/>
+        
+        <!-- Render up to and including the first occurrence of `code` -->
+        <xsl:value-of select="$before-open-tick"/>
+        <code><xsl:value-of select="$between-ticks"/></code>
+        
+        <!-- Recursively format the rest of the string  -->
+        <xsl:call-template name="format-proposal-name">
+          <xsl:with-param name="name" select="$after-close-tick"/>
+        </xsl:call-template>
+      </xsl:when>
+      <xsl:otherwise>
+        <xsl:value-of select="$name"/>
+      </xsl:otherwise>
+    </xsl:choose>
   </xsl:template>
   
   <xsl:template name="css">
@@ -112,6 +143,13 @@ on the gh-pages branch).
         margin-top: 1em;
         margin-bottom: 1em;
         line-height: 1.5em;
+      }
+      code {
+        font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+        font-size: 90%;
+        padding: 0.2em 0.3em;
+        background-color: #f7f7f7;
+        border-radius: 3px;
       }
       h1 {
         margin-top: 0.6em;
@@ -149,7 +187,7 @@ on the gh-pages branch).
         color: #666;
       }
       .proposal a.title:visited {
-        color: #999;
+        color: #888;
       }
       .proposal a.title:hover, .proposal a.title:visited:hover {
         color: #222;
