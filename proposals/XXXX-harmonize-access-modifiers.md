@@ -37,7 +37,7 @@ public extension bar {
 }
 ```
 
-This outcome is explained by rules regarding access modifiers specifically on extensions [Swift 2](https://developer.apple.com/library/ios/documentation/Swift/Conceptual/Swift_Programming_Language/AccessControl.html), which is slated for preservation in Swift 3 as detailed in [SE-0025](0025-extensions-access-modifiers.md). However, it is arguably surprising that, of two declarations spelled identically, one leads to a public API commitment while the other does not.
+This outcome is explained by rules regarding access modifiers specifically on extensions [Swift 2](https://developer.apple.com/library/ios/documentation/Swift/Conceptual/Swift_Programming_Language/AccessControl.html), which is slated for preservation in Swift 3 as detailed in [SE-0025](0025-scoped-access-level.md). However, it is arguably surprising that, of two declarations spelled identically, one leads to a public API commitment while the other does not.
 
 ## Proposed solution
 
