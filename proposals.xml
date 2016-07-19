@@ -43,7 +43,7 @@ just loads it via JavaScript. Hence, the following declaration isn't used.
 <proposal id="0033" status="implemented" swift-version="3" name="Import Objective-C Constants as Swift Types" filename="0033-import-objc-constants.md"/>
 <proposal id="0034" status="implemented" swift-version="3" name="Disambiguating Line Control Statements from Debugging Identifiers" filename="0034-disambiguating-line.md"/>
 <proposal id="0035" status="implemented" swift-version="3" name="Limiting `inout` capture to `@noescape` contexts" filename="0035-limit-inout-capture.md"/>
-<proposal id="0036" status="accepted" name="Requiring Leading Dot Prefixes for Enum Instance Member Implementations" filename="0036-enum-dot.md"/>
+<proposal id="0036" status="implemented" swift-version="3" name="Requiring Leading Dot Prefixes for Enum Instance Member Implementations" filename="0036-enum-dot.md"/>
 <proposal id="0037" status="implemented" swift-version="3" name="Clarify interaction between comments &amp; operators" filename="0037-clarify-comments-and-operators.md"/>
 <proposal id="0038" status="implemented" swift-version="3" name="Package Manager C Language Target Support" filename="0038-swiftpm-c-language-targets.md"/>
 <proposal id="0039" status="implemented" swift-version="3" name="Modernizing Playground Literals" filename="0039-playgroundliterals.md"/>
