@@ -63,7 +63,7 @@ func intConformsTo<T>(_: T.Type) -> Bool {
    return Int.self is T.Type
 }
 
-intConformsTo(CustomReflectable.self) //=> FALSE
+intConformsTo(CustomStringConvertible.self) //=> FALSE
 ```
 
 > [1] When `T` is a protocol `P`, `T.Type` is the metatype of the protocol type itself, `P.Protocol`. `Int.self` is not `P.self`.
@@ -81,7 +81,7 @@ func intConformsTo<T>(_: T.Type) -> Bool {
   return Int.self is T
 }
 
-intConformsTo(CustomReflectable.Type.self) //=> TRUE
+intConformsTo(CustomStringConvertible.Type.self) //=> TRUE
 ```
 
 This issue was first found and documented as a strange issue in **[SR-2085](https://bugs.swift.org/browse/SR-2085)**. It also raises the concerns: do we need `.Protocol` at all?
