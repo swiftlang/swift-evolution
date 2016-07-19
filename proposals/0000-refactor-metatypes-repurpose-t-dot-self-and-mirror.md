@@ -7,7 +7,7 @@
 
 ## Introduction
 
-This proposal want to revise metatypes `T.Type`, repurpose *public* `T.self` notation to return a new `Type<T>` type instance rather than a metatype, merge **SE-0101** into `Type<T>`, rename the global function from **SE-0096** to match the changes of this proposal and finally rename current `Mirror` type to introduce a new (lazy) `Mirror` type. 
+This proposal wants to revise metatypes `T.Type`, repurpose *public* `T.self` notation to return a new `Type<T>` type instance rather than a metatype, merge **SE-0101** into `Type<T>`, rename the global function from **SE-0096** to match the changes of this proposal and finally rename current `Mirror` type to introduce a new (lazy) `Mirror` type. 
 
 Swift-evolution threads: 
 
@@ -86,7 +86,7 @@ intConformsTo(CustomReflectable.Type.self) //=> TRUE
 
 This issue was first found and documented as a strange issue in **[SR-2085](https://bugs.swift.org/browse/SR-2085)**. It also raises the concerns: do we need `.Protocol` at all?
 
-We can extend this issue and find the second problem by checking agains the metatype of `Any`:
+We can extend this issue and find the second problem by checking against the metatype of `Any`:
 
 ```swift
 func intConformsTo<T>(_: T.Type) -> Bool {
@@ -120,9 +120,9 @@ We also believe that this issue is also the reason why the current gloabl functi
 ### `Metatype<T>`:
 
 * Revise metatypes in generic context so the old `T.Type` notation does not produce `T.Protocol` when a protocol metatype is passed around.
-* Intoduce a distinction between **public** and **internal** `T.self` notation where the **internal** `T.self` notation will be renamed to `T.metatype`.
+* Introduce a distinction between **public** and **internal** `T.self` notation where the **internal** `T.self` notation will be renamed to `T.metatype`.
 * Rename old metatype `T.Type` notation to `Metatype<T>`.
-* Make **internal** `T.metatype` notation (Buildin - not visible in public Swift) return an instance of `Metatype<T>`.
+* Make **internal** `T.metatype` notation (builtin - not visible in public Swift) return an instance of `Metatype<T>`.
 * Public construction of metatypes will look like `Type<T>.metatype` or `T.self.metatype`, see below.
 * Metatypes will be used **only** for dynamic dispatch of static methods, see example below:
 
@@ -448,7 +448,7 @@ public func ==(lhs: Mirror, rhs: Mirror) -> Bool {
 
 ### Internal functions:
 
-These functions were used in the implementation above to calculate metatype related informations.
+These functions were used in the implementation above to calculate metatype related information.
 
 * `_size(of:)`, `_stride(of:)` and `_alignment(of:)` functions need some additional tweaking so they will work with any matatype stored in an instance of `Metatype<Any>` rather than a dynamic `<T>(of metatype: Metatype<T>)` variant, which is not suitable for calculations needed in `Mirror`. 
 
@@ -478,7 +478,7 @@ internal func _uniqueIdentifier(for metatype: Metatype<Any>) -> Int {
 }
 
 internal func _is(metatype m1: Metatype<Any>, also m2: Metatype<Any>) -> Bool {
-	return /* implement - checks type ralationshiop `M1 : M2` and `M1 == M2` */
+	return /* implement - checks type ralationship `M1 : M2` and `M1 == M2` */
 }
 ```
 
@@ -486,7 +486,7 @@ internal func _is(metatype m1: Metatype<Any>, also m2: Metatype<Any>) -> Bool {
 
 * Revise metatypes in generic context so the old `T.Type` notation does not produce `T.Protocol` when a protocol metatype is passed around.
 * Make **public** `T.self` notation return an instance of `Type<T>`.
-* Rename **internal** `T.self` notation to `T.metatype` (Buildin - not visible in public Swift).
+* Rename **internal** `T.self` notation to `T.metatype` (builtin - not visible in public Swift).
 * Rename old metatype `T.Type` notation to `Metatype<T>`.
 * Make **internal** `T.metatype` notation return an instance of `Metatype<T>`.
 * Revise APIs with current `T.Type` notation to use `Type<T>` and in few edge cases `Metatype<T>`.
@@ -499,7 +499,7 @@ internal func _is(metatype m1: Metatype<Any>, also m2: Metatype<Any>) -> Bool {
 
 This is a source-breaking change that can be automated by a migrator.
 
-The following steps reflects our suggestion of the migration process, these can differ from the final migration process implemented by the core team if this proposal will be accepted:
+The following steps reflects our suggestion of the migration process; these can differ from the final migration process implemented by the core team if this proposal will be accepted:
 
 * `T.Type` → `Metatype<T>`
 * `T.self` → `Type<T>.metatype`
@@ -566,9 +566,9 @@ In two cases we can apply these automatically:
 
 ## Alternatives considered
 
-* After refactoring metatypes it is assumed that any metatype can be stored inside an instance of `Metatype<Any>`. If that will not be the case, then we propose to introduce a new standalone type for explained behavior. That type could be named as `AnyMetatype`. Therefore any type marked with `Metatype<Any>` in this proposal will become `AnyMetatype`.
+* After refactoring metatypes it is assumed that any metatype can be stored inside an instance of `Metatype<Any>`. If that will not be the case, then we propose to introduce a new standalone type for explained behavior. That type could be named as `AnyMetatype`. Therefore, any type marked with `Metatype<Any>` in this proposal will become `AnyMetatype`.
 
-* If the community and the core team are strongly against the repurposing of `Mirror` we'd like to consider to merge the proposed functionality into a single type. For such a change we do believe `Type<T>` might be the right type here. However this introduces further complications such as storing dynamic metatypes inside of `Type<T>` and a few other that we don't want go in detail here.
+* If the community and the core team are strongly against the repurposing of `Mirror` we'd like to consider to merge the proposed functionality into a single type. For such a change we do believe `Type<T>` might be the right type here. However, this introduces further complications such as storing dynamic metatypes inside of `Type<T>` and a few other that we don't want go in detail here.
 
 ## Future directions
 
