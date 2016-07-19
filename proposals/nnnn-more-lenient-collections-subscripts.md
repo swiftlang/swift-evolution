@@ -123,19 +123,19 @@ This is a simple implementation for the _subscript_ methods I am proposing:
 extension Collection where Index: Comparable {
     
     subscript(clamping bounds: Range<Index>) -> SubSequence {
-        let clamped = bounds.clamped(to: (startIndex ..< endIndex))
+        let clamped = bounds.clamped(to: startIndex ..< endIndex)
         return self[clamped]
     }
     
     subscript(clamping bounds: ClosedRange<Index>) -> SubSequence {
         let range = bounds.lowerBound ..< index(bounds.upperBound, offsetBy: 1)
-        let clamped = range.clamped(to: (startIndex ..< endIndex))
+        let clamped = range.clamped(to: startIndex ..< endIndex)
         return self[clamped]
     }
     
     subscript(checking bounds: Range<Index>) -> SubSequence? {
-        let indice = startIndex ... endIndex
-        return indice.contains(bounds.lowerBound) && indice.contains(bounds.upperBound) ? self[bounds] : nil
+        let range = startIndex ... endIndex
+        return range.contains(bounds.lowerBound) && range.contains(bounds.upperBound) ? self[bounds] : nil
     }
     
     subscript(checking bounds: ClosedRange<Index>) -> SubSequence? {
@@ -144,9 +144,7 @@ extension Collection where Index: Comparable {
     }
     
     subscript(checking index: Index) -> Iterator.Element? {
-        guard index >= startIndex && index < endIndex else {
-            return nil
-        }
+        guard index >= startIndex && index < endIndex else { return nil }
         return self[index]
     }
     
