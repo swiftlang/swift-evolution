@@ -210,7 +210,7 @@ func performWithType(_ type: Type<T>)
 performWithType(Float.self)
 ```
 
-### `type(of:)` function:
+### `metatype(of:)` function:
 
 The global `type(of:)` function from **SE-0096** will be renamed to `metatype(of:)` and receive the following declaration:
 
