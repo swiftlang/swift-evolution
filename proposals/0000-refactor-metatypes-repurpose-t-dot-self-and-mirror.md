@@ -210,14 +210,14 @@ func performWithType(_ type: Type<T>)
 performWithType(Float.self)
 ```
 
-### `dynamicMetatype` function:
+### `type(of:)` function:
 
-The global `dynamicType` function from **SE-0096** will be renamed to `dynamicMetatype` and receive the following declaration:
+The global `type(of:)` function from **SE-0096** will be renamed to `metatype(of:)` and receive the following declaration:
 
 ```swift
 /// Returns a dynamic instance of `Metatype<T>`. A dynamic
 /// metatype can reflect type `U` where `U : T`.
-public func dynamicMetatype<T>(_ instance: T) -> Metatype<T>
+public func metatype<T>(of instance: T) -> Metatype<T>
 ```
 
 ### `Mirror` API:
@@ -368,7 +368,7 @@ public func ==<T>(lhs: Type<T>, rhs: Type<T>) -> Bool { return true }
 
 /// Returns a dynamic instance of `Metatype<T>`. A dynamic
 /// metatype can reflect type `U` where `U : T`.
-public func dynamicMetatype<T>(_ instance: T) -> Metatype<T> {
+public func metatype<T>(of instance: T) -> Metatype<T> {
 	return /* implement */
 }
 
@@ -391,7 +391,7 @@ public struct Mirror : Hashable, CustomStringConvertible, CustomDebugStringConve
 	/// Creates an instance of `Mirror`, reflecting 
 	/// dynamic type of a given instance.
 	public init<T>(reflecting instance: T) {
-		self._metatype = dynamicMetatype(instance)
+		self._metatype = metatype(of: instance)
 	}
 	
 	/// Returns the contiguous memory footprint of reflected metatype.
@@ -491,7 +491,7 @@ internal func _is(metatype m1: Metatype<Any>, also m2: Metatype<Any>) -> Bool {
 * Make **internal** `T.metatype` notation return an instance of `Metatype<T>`.
 * Revise APIs with current `T.Type` notation to use `Type<T>` and in few edge cases `Metatype<T>`.
 * Move `size`, `stride` and `alignment` from **SE-0101** to `Type<T>`.
-* Provide a concrete declaration for **SE-0096** and rename it to `dynamicMetatype`.
+* Provide a concrete declaration for **SE-0096** and rename it to `metatype(of:)`.
 * Rename current `Mirror` type (Swift 2.2) to `DebugRepresentation` and `CustomReflectable` to `CustomDebugRepresentable`.
 * Introduce a new `Mirror` type that is intended to replace metatypes for most use cases and extended with reflection in a future release.
 
