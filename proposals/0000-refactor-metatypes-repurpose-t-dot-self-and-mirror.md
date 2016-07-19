@@ -66,7 +66,7 @@ func intConformsTo<T>(_: T.Type) -> Bool {
 intConformsTo(CustomReflectable.self) //=> FALSE
 ```
 
-> [1] When `T` is a protocol `P`, `T.Type` is the metatype of the protocol type itself, `P.Protocol`. `Int.self` is `not P.self`.
+> [1] When `T` is a protocol `P`, `T.Type` is the metatype of the protocol type itself, `P.Protocol`. `Int.self` is not `P.self`.
 >
 > [2] There isn't a way to generically expression `P.Type` **yet**.
 >
