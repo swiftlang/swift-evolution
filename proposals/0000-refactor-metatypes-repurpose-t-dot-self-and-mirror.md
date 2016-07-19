@@ -11,7 +11,7 @@ This proposal wants to revise metatypes `T.Type`, repurpose *public* `T.self` no
 
 Swift-evolution threads: 
 
-* [\[Proposal\] Refactor Metatypes, repurpose T[dot]self and Mirror]() 
+* [\[Proposal\] Refactor Metatypes, repurpose T[dot]self and Mirror](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160718/024772.html) 
 * [\[Discussion\] Seal `T.Type` into `Type<T>`](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160704/023818.html)
 * [\[Discussion\] Can we make `.Type` Hashable?](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160627/023067.html)
 
