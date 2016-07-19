@@ -59,11 +59,11 @@ Current state of things:
 Assume this function that checks if an `Int` type conforms to a specific protocol. This check uses current model of metatypes combined in a generic context:
 
 ```swift
-func intConformsTo<T>(_: T.Type) -> Bool {
+func intConforms<T>(to _: T.Type) -> Bool {
    return Int.self is T.Type
 }
 
-intConformsTo(CustomStringConvertible.self) //=> FALSE
+intConforms(to: CustomStringConvertible.self) //=> FALSE
 ```
 
 > [1] When `T` is a protocol `P`, `T.Type` is the metatype of the protocol type itself, `P.Protocol`. `Int.self` is not `P.self`.
@@ -77,11 +77,11 @@ intConformsTo(CustomStringConvertible.self) //=> FALSE
 A possible workaround might look like the example below, but does not allow to decompose `P.Type` which is a major implementation problem of this proposal:
 
 ```swift
-func intConformsTo<T>(_: T.Type) -> Bool {
+func intConforms<T>(to _: T.Type) -> Bool {
   return Int.self is T
 }
 
-intConformsTo(CustomStringConvertible.Type.self) //=> TRUE
+intConforms(to: CustomStringConvertible.Type.self) //=> TRUE
 ```
 
 This issue was first found and documented as a strange issue in **[SR-2085](https://bugs.swift.org/browse/SR-2085)**. It also raises the concerns: do we need `.Protocol` at all?
@@ -89,13 +89,13 @@ This issue was first found and documented as a strange issue in **[SR-2085](http
 We can extend this issue and find the second problem by checking against the metatype of `Any`:
 
 ```swift
-func intConformsTo<T>(_: T.Type) -> Bool {
+func intConforms<T>(to _: T.Type) -> Bool {
 	return Int.self is T
 }
 
-intConformsTo(Any.Type.self) //=> TRUE
+intConforms(to: Any.Type.self) //=> TRUE
 
-intConformsTo(Any.self) //=> TRUE
+intConforms(to: Any.self) //=> TRUE
 ```
 
 As you clearly can see, when using `Any` the compiler does not require `.Type` at all.
@@ -106,14 +106,14 @@ The third issue will show itself whenever we would try to check protocol relatio
 protocol P {}
 protocol R : P {}
 
-func rIsSubtypeOf<T>(_: T.Type) -> Bool {
+func rIsSubtype<T>(of _: T.Type) -> Bool {
 	return R.self is T
 }
 
-rIsSubtypeOf(P.Type.self) //=> FALSE
+rIsSubtype(of: P.Type.self) //=> FALSE
 ```
 
-We also believe that this issue is also the reason why the current gloabl functions `sizeof`, `strideof` and `alignof` make use of generic `<T>(_: T.Type)` declaration notation instead of `(_: Any.Type)`.
+We also believe that this issue is also the reason why the current global functions `sizeof`, `strideof` and `alignof` make use of generic `<T>(_: T.Type)` declaration notation instead of `(_: Any.Type)`.
 
 ## Proposed solution
 
