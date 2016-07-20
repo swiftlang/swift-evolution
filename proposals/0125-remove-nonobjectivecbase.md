@@ -1,9 +1,9 @@
 # Remove `NonObjectiveCBase` and `isUniquelyReferenced`
 
-* Proposal: [SE-0000](0000-remove-nonobjectivecbase.md)
+* Proposal: [SE-0125](0125-remove-nonobjectivecbase.md)
 * Author: [Arnold Schwaighofer](https://github.com/aschwaighofer)
-* Status: **Pitch**
-* Review manager: TBD
+* Status: **Active Review July 19...22**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 

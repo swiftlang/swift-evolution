@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0122](0122-use-colons-for-subscript-type-declarations.md)
 * Author: [James Froggatt](https://github.com/MutatingFunk)
-* Status: **Scheduled for review July 20...25**
+* Status: **Active review July 19...24**
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
@@ -48,7 +48,7 @@ Existing code would have to update subscripts to use a colon. This can be automa
 
 ## Potential hazards
 
-The Swift core team has trialled this change internally, but backtracked due to readability concerns. This is something to bear in mind when considering this proposal.
+The Swift core team has previously implemented this change internally, but rejecting it due to reduced readability. This is something to bear in mind when considering this proposal.
 
 The effect largely depends on coding style, which can match either of the following:
 
