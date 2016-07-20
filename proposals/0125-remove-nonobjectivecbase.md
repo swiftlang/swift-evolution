@@ -15,10 +15,15 @@ replacement is as performant as the call to `isUniquelyReferenced` in cases
 where the compiler has static knowledge that the type of `object` is a native
 Swift class and dyamically has the same semantics for native swift classes.
 This change will remove surface API.
+Rename `isUniquelyReferencedNonObjC` to `isKnownUniquelyReferenced` and no
+longer promise to return false for `@objc` class instances.
+Cleanup the `ManagedBufferPointer` API by renaming `holdsUniqueReference` to
+`isUniqueReference` and removing `holdsUniqueOrPinnedReference`.
 
-- Swift-evolution thread: [Pitch](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160711/024515.html)
+- Swift-evolution thread: [Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160718/024806.html)
 - Swift bug: [SR-1962] (http://bugs.swift.org/browse/SR-1962)
-- Branch with change to stdlib: [remove_nonobjectivecbase] (https://github.com/aschwaighofer/swift/tree/remove_nonobjectivecbase)
+- Branch with change to stdlib: [remove_nonobjectivecbase_2]
+  (https://github.com/aschwaighofer/swift/commits/remove_nonobjectivecbase_2)
 
 ## Motivation
 
@@ -39,19 +44,31 @@ expectFalse(isUniquelyReferenced(ObjcKlazz()))
 
 In most cases we expect developers to be using the ManagedBufferPointer type.
 In cases where they want to use a custom class they would use
-`isUniquelyReferenced` today and can use `isUniquelyReferencedNonObjC` in the
-future.
+`isUniquelyReferenced` today and can use `isUniquelyReferencedNonObjC` which
+will be renamed `isKnownUniquelyReferenced` in the future.
 
 ```swift
 class SwiftKlazz {}
 
-expectTrue(isUniquelyReferencedNonObjC(SwiftKlazz()))
+expectTrue(isKnownUniquelyReferenced(SwiftKlazz()))
 ```
 
 Removing `isUniquelyReferenced<T : NonObjectiveCBase>`  will allow us to remove
 the `NonObjectiveCBase` class from the standard library thereby further
 shrinking API surface.
 
+Renaming `isUniquelyReferencedNonObjC` to `isKnownUniquelyReferenced` makes
+sense since "NonObjC" makes no sense on platforms without Objective-C
+interoperability. `isKnownUniquelyReferenced` will no longer promise to return
+false for `@objc` class instances. The intent of this API is to support
+copy-on-write implementations.
+
+Renaming `ManagedBufferPointer` API `holdsUniqueReference` to
+`isUniqueReference` makes it clearer that is has the same semantics as the
+`isKnownUniquelyReferenced` check.
+
+We also propose to remove the `holdsUniqueOrPinnedReference` API because there
+could not be any uses of it since the pinning API is not public.
 
 ## Proposed solution
 
@@ -64,6 +81,16 @@ code will have identical performance characteristics. In fact, the current
 implementation boils down to the same builtin call. Based on the static type of
 the `object` operand the compiler can emit more efficient code when the static
 type is known to be of a non-`@objc` class.
+
+Rename `isUniquelyReferencedNonObjC` to `isKnownUniquelyReferenced` such
+that the API makes sense on platforms without Objective-C and stop promising to
+return `false` for `@objc` objects.
+
+Rename `ManagedBufferPointer.holdsUniqueReference` to
+`ManagedBufferPointer.isUniqueReference` to avoid confusion.
+
+Remove `ManagedBufferPointer.holdsUniqueOrPinnedReference` because there is no
+public pinning API so having this public API is not neccessary.
 
 ## Detailed design
 
@@ -188,7 +215,8 @@ public class ManagedBuffer<Header, Element>
 ```
 
 We propose to remove the `NonObjectiveCBase` class and
-`isUniquelyReferenced<T: NonObjectiveCBase>(_ object: T>`.
+`isUniquelyReferenced<T: NonObjectiveCBase>(_ object: T>` and rename
+`isUniquelyReferencedNonObjC` to `isKnownUniquelyReferenced`.
 
 Code that was written as the following.
 
@@ -205,22 +233,89 @@ Can be changed to the following with exactly the same performance characteristic
 and semantics.
 
 ```swift
-
 class CommonNonObjectiveCBase {}
 class ClientClass : CommonNonObjectiveCBase { }
 class ClientClass2 : CommonNonObjectiveCBase { }
 
 var x: CommonNonObjectiveCBase = pred ? ClientClass() : ClientClass2()
 
-if isUniquelyReferencedNonObjC(x) { ...}
+if isKnownUniquelyReferenced(x) { ...}
 ```
 
+The new API will be as follows.
+
+```swift
+/// Returns `true` iff `object` is class instance with a single strong
+/// reference.
+///
+/// * Does *not* modify `object`; the use of `inout` is an
+///   implementation artifact.
+/// * Weak references do not affect the result of this function.
+///
+/// Useful for implementing the copy-on-write optimization for the
+/// deep storage of value types:
+///
+///     mutating func modifyMe(_ arg: X) {
+///       if isKnownUniquelyReferenced(&myStorage) {
+///         myStorage.modifyInPlace(arg)
+///       }
+///       else {
+///         myStorage = self.createModified(myStorage, arg)
+///       }
+///     }
+public func isKnownUniquelyReferenced<T : AnyObject>(_ object: inout T) -> Bool
+public func isKnownUniquelyReferenced<T : AnyObject>(_ object: inout T?) -> Bool
+```
+
+```swift
+/// Contains a buffer object, and provides access to an instance of
+/// `Header` and contiguous storage for an arbitrary number of
+/// `Element` instances stored in that buffer.
+///
+/// For most purposes, the `ManagedBuffer` class works fine for this
+/// purpose, and can simply be used on its own.  However, in cases
+/// where objects of various different classes must serve as storage,
+/// `ManagedBufferPointer` is needed.
+///
+/// A valid buffer class is non-`@objc`, with no declared stored
+///   properties.  Its `deinit` must destroy its
+///   stored `Header` and any constructed `Element`s.
+/// `Header` and contiguous storage for an arbitrary number of
+/// `Element` instances stored in that buffer.
+public struct ManagedBufferPointer<Header, Element> : Equatable {
+  /// Create with new storage containing an initial `Header` and space
+  /// for at least `minimumCapacity` `element`s.
+  ///
+  /// - parameter bufferClass: The class of the object used for storage.
+  /// - parameter minimumCapacity: The minimum number of `Element`s that
+  ///   must be able to be stored in the new buffer.
+  /// - parameter initialHeader: A function that produces the initial
+  ///   `Header` instance stored in the buffer, given the `buffer`
+  ///   object and a function that can be called on it to get the actual
+  ///   number of allocated elements.
+  ///
+  /// - Precondition: `minimumCapacity >= 0`, and the type indicated by
+  ///   `bufferClass` is a non-`@objc` class with no declared stored
+  ///   properties.  The `deinit` of `bufferClass` must destroy its
+  ///   stored `Header` and any constructed `Element`s.
+  public init(
+    bufferClass: AnyClass,
+    minimumCapacity: Int,
+    initialHeader: @noescape (buffer: AnyObject, capacity: @noescape (AnyObject) -> Int) throws -> Header
+  ) rethrows
+
+  /// Returns `true` iff `self` holds the only strong reference to its buffer.
+  ///
+  /// See `isUniquelyReferenced` for details.
+  public mutating func isUniqueReference() -> Bool
+}
+```
 
 ## Impact on existing code
 
 Existing code that uses `isUniquelyReferenced` will need to remove the
 `NonObjectiveCBase` base class and replace calls to `isUniquelyReferenced` by
-`isUniquelyReferencedNonObjC`. The old API will be marked unavailable to help
+`isKnownUniquelyReferenced`. The old API will be marked unavailable to help
 migration.
 
 
