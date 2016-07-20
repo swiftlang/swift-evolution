@@ -98,7 +98,7 @@ just loads it via JavaScript. Hence, the following declaration isn't used.
 <proposal id="0088" status="accepted" name="Modernize libdispatch for Swift 3 naming conventions" filename="0088-libdispatch-for-swift3.md"/>
 <proposal id="0089" status="accepted" name="Renaming `String.init&lt;T>(_: T)`" filename="0089-rename-string-reflection-init.md"/>
 <proposal id="0090" status="deferred" name="Remove `.self` and freely allow type references in expressions" filename="0090-remove-dot-self.md"/>
-<proposal id="0091" status="accepted" name="Improving operator requirements in protocols" filename="0091-improving-operators-in-protocols.md"/>
+<proposal id="0091" status="implemented" swift-version="3" name="Improving operator requirements in protocols" filename="0091-improving-operators-in-protocols.md"/>
 <proposal id="0092" status="accepted" name="Typealiases in protocols and protocol extensions" filename="0092-typealiases-in-protocols.md"/>
 <proposal id="0093" status="implemented" swift-version="3" name="Adding a public `base` property to slices" filename="0093-slice-base.md"/>
 <proposal id="0094" status="implemented" swift-version="3" name="Add sequence(first:next:) and sequence(state:next:) to the stdlib" filename="0094-sequence-function.md"/>
