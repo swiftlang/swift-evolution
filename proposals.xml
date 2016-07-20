@@ -108,7 +108,7 @@ just loads it via JavaScript. Hence, the following declaration isn't used.
 <proposal id="0098" status="rejected" name="Lowercase `didSet` and `willSet` for more consistent keyword casing" filename="0098-didset-capitalization.md"/>
 <proposal id="0099" status="accepted" name="Restructuring Condition Clauses" filename="0099-conditionclauses.md"/>
 <proposal id="0100" status="deferred" name="Add sequence-based initializers and merge methods to Dictionary" filename="0100-add-sequence-based-init-and-merge-to-dictionary.md"/>
-<proposal id="0101" status="scheduled" name="Reconfiguring `sizeof` and related functions into a unified `MemoryLayout` struct" filename="0101-standardizing-sizeof-naming.md"/>
+<proposal id="0101" status="active" name="Reconfiguring `sizeof` and related functions into a unified `MemoryLayout` struct" filename="0101-standardizing-sizeof-naming.md"/>
 <proposal id="0102" status="accepted" name="Remove `@noreturn` attribute and introduce an empty `Never` type" filename="0102-noreturn-bottom-type.md"/>
 <proposal id="0103" status="accepted" name="Make non-escaping closures the default" filename="0103-make-noescape-default.md"/>
 <proposal id="0104" status="accepted" name="Protocol-oriented integers" filename="0104-improved-integers.md"/>
