@@ -4,6 +4,7 @@
 * Author: [Joe Groff](https://github.com/jckarter)
 * Status: **Active review July 5...11**
 * Review manager: [Chris Lattner](http://github.com/lattner)
+* Revision: 2 (previous revisions: [1](https://github.com/apple/swift-evolution/blob/b9a0ab5f7db4d3806c7941a07acedc5f0fe36e55/proposals/0116-id-as-any.md))
 
 ## Introduction
 
@@ -63,7 +64,6 @@ to take most advantage of Swift's features become harder and less attractive to
 use, and the less idiomatic `NS` container classes need to be interacted with
 more frequently.
 
-
 The fundamental tension here is that, whereas ObjC's polymorphism is centered
 on objects, Swift opens up polymorphism to all types. Rather than treat
 bridging as something only a set of preordained types can partake in, we can
@@ -81,13 +81,13 @@ on special language rules.
   `id` type is imported as `Any` in bridgeable positions. At compile time and
   runtime, the compiler introduces a **universal bridging conversion** operation
   when a Swift value or object is passed into Objective-C as an `id` parameter.
-- When `id` values are brought into Swift as `Any`, the resulting existentials
-  support **ambivalent dynamic casting** to bridge back to either class
-  references or Swift value types.
-- Untyped Cocoa collections come in as collections of `Any`.
-  `NSArray` imports as `[Any]`, `NSDictionary` as `[AnyHashable: Any]`, and
-  `NSSet` as `Set<AnyHashable>` (using an `AnyHashable` type erasing container
-  to be designed [in a follow-up proposal](#anyhashabletype)).
+- When `id` values are brought into Swift as `Any`, we use the runtime's
+  existing **ambivalent dynamic casting** support to handle bridging back to
+  either class references or Swift value types.
+- Untyped Cocoa collections come in as collections of `Any`.  `NSArray` imports
+  as `[Any]`, `NSDictionary` as `[AnyHashable: Any]`, and `NSSet` as
+  `Set<AnyHashable>` (using an `AnyHashable` type erasing container to be
+  designed [in a follow-up proposal](#anyhashabletype)).
 
 ## Detailed design
 
@@ -115,50 +115,26 @@ There are several cases to consider:
   dynamically castable back into the original Swift type from Swift code when
   an `Any` value contains a reference to a box.
 
-### Ambivalent dynamic casting from `Any`
+### Dynamic casting from `Any`
 
-[SE-0083](https://github.com/apple/swift-evolution/blob/master/proposals/0083-remove-bridging-from-dynamic-casts.md)
-seeks to simplify the behavior of dynamic casts in pure Swift code by taking
-away the runtime's current ability to dynamically apply bridging conversions.
-However, this functionality is necessary when working with an `Any` value
-that has come from an `id` value in Objective-C, since it is impossible to
-know locally whether the object is intended to be consumed in Swift as
-a bridged value or as a class instance. We can still simplify the dynamic
-casting behavior for "pure" Swift code by making ambivalence a per-value
-property of existentials.  Native Swift existentials will not bridge in dynamic
-casts, as specified by SE-0083:
+The runtime currently has the ability to dynamically apply bridging conversions.
+If an `Any` or other existential contains a value of bridgeable type, dynamic
+casts will succeed for either the dynamic type or its bridged counterpart:
 
 ```swift
 var x: Any = "foo" as String
 x as? String   // => String "foo"
-x as? NSString // => nil
-```
-
-When an `id` reference is brought into Swift as an `Any`, at that point we mark
-the `Any` value as having ambivalent casts enabled, so that dynamic casts on
-the `Any` succeed for either its class type or a Swift type that would bridge
-to that class:
-
-```objc
-// Objective-C
-@implementation Foo
-+ (id)foo {
-  return @"foo";
-}
-@end
-```
-
-```swift
-// Swift
-var x /*: Any*/ = Foo.foo()
-x as? String   // => String "foo" by bridging
 x as? NSString // => NSString "foo"
+
+x = "bar" as NSString
+x as? String   // => String "bar"
+x as? NSString // => NSString "bar"
 ```
 
-Ambivalent `Any`s would have to be produced from any context where objects of
-unknown type are brought into Swift, including not only return types but
-accesses into untyped `NS` collections of `Any` or `AnyHashable`,
-block parameters, and method override parameters as well.
+This *ambivalent dynamic casting* behavior is exactly what we need to interface
+with Objective-C APIs that return `id`s back into Swift as `Any`, since it is
+impossible to know locally whether the object is intended to be consumed in
+Swift as a bridged value or as a class instance.
 
 ### Bridging Objective-C Collections
 
@@ -184,51 +160,18 @@ For most code, the combination of this proposal with
 should have the net effect of most Swift 2 style code working as it does today,
 allowing value types to be passed into untyped Objective-C APIs without
 requiring explicit bridging or unbridging operations. There will definitely
-be edge cases that may behave slightly different, where the `AnyObject`
-constraint nudges overload resolution or implicit conversion in
-a different direction from what it would take without context.
+be edge cases that may behave slightly differently, since the `AnyObject`
+constraint may nudge overload resolution or implicit conversion in
+a different direction from what they would take absent that constraint.
 
-## Related Proposals
-
-There are several moving parts involved in making id-as-Any work well, and
-several of them deserve independent consideration as separate proposals.
-
-### `AnyHashable` type
+## `AnyHashable` type
 
 We need a type-erased container to represent a heterogeneous hashable type
 that is itself `Hashable`, for use as the upper-bound type of heterogeneous
 `Dictionary`s and `Set`s. The user model for this type would ideally align
 with our long-term goal of supporting `Hashable` existentials directly, so
 the type deserves some short-term compiler support to help us get there.
-
-### Hiding the `NSObjectProtocol` in Swift
-
-Aside from `AnyObject`, another way unnecessary `@objc`-isms intrude themselves
-into Swift code is through `NSObjectProtocol` requirements. In practice, nearly
-every class in Swift on an Apple platform conforms to this protocol--native
-Swift classes inherit from a common Objective-C `SwiftObject` base class
-internal to the Swift runtime that implements the `NSObjectProtocol` methods,
-and almost all Cocoa classes inherit either `NSObject` or `NSProxy`. We can
-also make the box class used to bridge Swift values provide `NSObjectProtocol`
-functionality. Eliminating `NSObjectProtocol` as a formal requirement in Swift
-will allow native Swift classes, and often value types too, to interoperate
-more smoothly with Cocoa code with less explicit `@objc` interop glue.
-
-### Bridging more types to idiomatic objects
-
-Removing the `AnyObject` constraint and special typing rules makes it more
-important for the `Any`-to-`id` to do the right thing for as many types as
-possible. Some obvious candidates include:
-
-- Extending `NSNumber` bridging to cover not only `Int` and `Double`, but all
-  `[U]IntNN` and `FloatNN` numeric types, as well as the `Decimal` struct from
-  Foundation.
-- Bridging Foundation and CoreGraphics structs like `CGRect` and `NSRange` to
-  `NSValue`, the idiomatic box class for those types.
-- When an `Optional` is passed as a non-nullable `id`, we might consider
-  bridging the optional's `nil` value to `NSNull`. This would allow containers
-  of optional such as `[Foo?]` to bridge idiomatically to `NSArray`s of
-  `Foo` and `NSNull` elements.
+This type deserves its own proposal and design discussion, so thi
 
 ## Future Directions
 
@@ -296,3 +239,62 @@ to bridge to `Any`, it definitely no longer makes sense to apply to
   sources of `id` in Foundation.
 - If we're confident that the SDK will be sufficiently Swiftified that `id`s
   become relatively rare, maybe we could get away without a replacement at all.
+
+### Hiding the `NSObjectProtocol` in Swift
+
+Aside from `AnyObject`, another way unnecessary `@objc`-isms intrude themselves
+into Swift code is through `NSObjectProtocol` requirements. In practice, nearly
+every class in Swift on an Apple platform conforms to this protocol--native
+Swift classes inherit from a common Objective-C `SwiftObject` base class
+internal to the Swift runtime that implements the `NSObjectProtocol` methods,
+and almost all Cocoa classes inherit either `NSObject` or `NSProxy`. We can
+also make the box class used to bridge Swift values provide `NSObjectProtocol`
+functionality. Eliminating `NSObjectProtocol` as a formal requirement in Swift
+will allow native Swift classes, and often value types too, to interoperate
+more smoothly with Cocoa code with less explicit `@objc` interop glue.
+
+### Bridging more types to idiomatic objects
+
+Removing the `AnyObject` constraint and special typing rules makes it more
+important for the `Any`-to-`id` to do the right thing for as many types as
+possible. Some obvious candidates include:
+
+- Extending `NSNumber` bridging to cover not only `Int` and `Double`, but all
+  `[U]IntNN` and `FloatNN` numeric types, as well as the `Decimal` struct from
+  Foundation.
+- Bridging Foundation and CoreGraphics structs like `CGRect` and `NSRange` to
+  `NSValue`, the idiomatic box class for those types.
+- When an `Optional` is passed as a non-nullable `id`, we might consider
+  bridging the optional's `nil` value to `NSNull`. This would allow containers
+  of optional such as `[Foo?]` to bridge idiomatically to `NSArray`s of
+  `Foo` and `NSNull` elements.
+
+### Simplifying pure Swift dynamic casting behavior
+
+[SE-0083](https://github.com/apple/swift-evolution/blob/master/proposals/0083-remove-bridging-from-dynamic-casts.md)
+sought to remove the *ambivalent dynamic casting* behavior and
+overloading of `as` coercion from Swift. This proposal *relies* on ambivalent
+dynamic casting to make sense of incoming `id` values returned from Objective-C
+into Swift. We could conceivably still *limit* ambivalent dynamic casting only
+to `Any` existentials with Objective-C provenance, so that "pure" Swift code has
+simpler, more predictable dynamic casting behavior where interop is not
+involved. We don't have time to evaluate this in the remaining time for Swift 3,
+but since the ambivalent casting behavior must remain in the runtime for
+Objective-C interop and will at best be conditionalized, we can potentially
+evaluate this later as a dialect change; in Swift 3, all existentials
+effectively have the "ambivalent" flag set, but in a future version of Swift,
+we could start turning it off for some values.
+
+--------------------------------------------------------------------------------
+
+## Revision history
+
+### version 2
+
+Reduced the scope of the proposal further based on design discussion,
+implementation, and scheduling concerns:
+
+- Subset out conditional ambivalent dynamic casting from the proposal. We don't
+  have time in Swift 3 to implement or evaluate this.
+- Move `NSObjectProtocol` and `NSValue`/`NSNumber` bridging to future
+  directions. These can be done additively.
