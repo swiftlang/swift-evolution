@@ -102,7 +102,7 @@ just loads it via JavaScript. Hence, the following declaration isn't used.
 <proposal id="0092" status="accepted" name="Typealiases in protocols and protocol extensions" filename="0092-typealiases-in-protocols.md"/>
 <proposal id="0093" status="implemented" swift-version="3" name="Adding a public `base` property to slices" filename="0093-slice-base.md"/>
 <proposal id="0094" status="implemented" swift-version="3" name="Add sequence(first:next:) and sequence(state:next:) to the stdlib" filename="0094-sequence-function.md"/>
-<proposal id="0095" status="accepted" name="Replace `protocol&lt;P1,P2>` syntax with `P1 &amp; P2` syntax" filename="0095-any-as-existential.md"/>
+<proposal id="0095" status="implemented" swift-version="3" name="Replace `protocol&lt;P1,P2>` syntax with `P1 &amp; P2` syntax" filename="0095-any-as-existential.md"/>
 <proposal id="0096" status="accepted" name="Converting dynamicType from a property to an operator" filename="0096-dynamictype.md"/>
 <proposal id="0097" status="rejected" name="Normalizing naming for &quot;negative&quot; attributes" filename="0097-negative-attributes.md"/>
 <proposal id="0098" status="rejected" name="Lowercase `didSet` and `willSet` for more consistent keyword casing" filename="0098-didset-capitalization.md"/>
