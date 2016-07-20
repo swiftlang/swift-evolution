@@ -48,7 +48,7 @@ Existing code would have to update subscripts to use a colon. This can be automa
 
 ## Potential hazards
 
-The Swift core team has previously implemented this change internally, but rejecting it due to reduced readability. This is something to bear in mind when considering this proposal.
+The Swift core team has previously implemented this change internally, but rejected it due to reduced readability. This is something to bear in mind when considering this proposal.
 
 The effect largely depends on coding style, which can match either of the following:
 
