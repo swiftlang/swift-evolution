@@ -78,7 +78,7 @@ on the gh-pages branch).
         <xsl:otherwise>
           <table>
             <xsl:apply-templates select="$proposals">
-              <xsl:sort select="@id" order="descending"/>
+              <xsl:sort select="@id" order="ascending"/>
             </xsl:apply-templates>
           </table>
         </xsl:otherwise>
