@@ -29,7 +29,7 @@ Swift-evolution thread: http://thread.gmane.org/gmane.comp.lang.swift.evolution/
 
 Types in Swift default to `internal` access control, which makes it easy for
 Swift programmers to develop code used *within* their application or library.
-When one goes to publish an interesting type for use by *other* modules, care
+When one goes to publish an inheritable type for use by *other* modules, care
 must be taken to think about the API being published because changing it could
 break downstream dependencies.  As such, Swift requires `public` to be added
 to the type and every member being published as a way to encourage the
