@@ -56,7 +56,7 @@ on the gh-pages branch).
         </xsl:call-template>
       
         <xsl:call-template name="section">
-          <xsl:with-param name="title">Returned</xsl:with-param>
+          <xsl:with-param name="title">Returned for revision</xsl:with-param>
           <xsl:with-param name="proposals" select="proposal[@status='returned']"/>
         </xsl:call-template>
       
