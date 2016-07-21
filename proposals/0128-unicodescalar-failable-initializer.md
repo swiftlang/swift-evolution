@@ -1,9 +1,9 @@
 # Change failable UnicodeScalaar initializers to failable
 
-* Proposal: SE-0000
+* Proposal: [SE-0128](0128-unicodescalar-failable-initializer.md)
 * Author: Xin Tong
-* Status: Pitch
-* Review manager: TBD
+* Status: **Active Review July 21...24**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
