@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0124](0124-bitpattern-label-for-int-initializer-objectidentfier.md)
 * Author: [Arnold Schwaighofer](https://github.com/aschwaighofer)
-* Status: **Active review July 15...20**
+* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000241.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction

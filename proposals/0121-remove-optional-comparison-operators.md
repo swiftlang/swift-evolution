@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0121](0121-remove-optional-comparison-operators.md)
 * Author: [Jacob Bandes-Storch](https://github.com/jtbandes)
-* Status: **Active Review July 12...19**
+* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000245.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction

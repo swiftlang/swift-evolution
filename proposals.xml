@@ -108,7 +108,7 @@ just loads it via JavaScript. Hence, the following declaration isn't used.
 <proposal id="0098" status="rejected" name="Lowercase `didSet` and `willSet` for more consistent keyword casing" filename="0098-didset-capitalization.md"/>
 <proposal id="0099" status="accepted" name="Restructuring Condition Clauses" filename="0099-conditionclauses.md"/>
 <proposal id="0100" status="deferred" name="Add sequence-based initializers and merge methods to Dictionary" filename="0100-add-sequence-based-init-and-merge-to-dictionary.md"/>
-<proposal id="0101" status="active" name="Reconfiguring `sizeof` and related functions into a unified `MemoryLayout` struct" filename="0101-standardizing-sizeof-naming.md"/>
+<proposal id="0101" status="accepted" name="Reconfiguring `sizeof` and related functions into a unified `MemoryLayout` struct" filename="0101-standardizing-sizeof-naming.md"/>
 <proposal id="0102" status="accepted" name="Remove `@noreturn` attribute and introduce an empty `Never` type" filename="0102-noreturn-bottom-type.md"/>
 <proposal id="0103" status="accepted" name="Make non-escaping closures the default" filename="0103-make-noescape-default.md"/>
 <proposal id="0104" status="accepted" name="Protocol-oriented integers" filename="0104-improved-integers.md"/>
@@ -123,15 +123,15 @@ just loads it via JavaScript. Hence, the following declaration isn't used.
 <proposal id="0113" status="implemented" swift-version="3" name="Add integral rounding functions to FloatingPoint" filename="0113-rounding-functions-on-floatingpoint.md"/>
 <proposal id="0114" status="implemented" swift-version="3" name="Updating Buffer &quot;Value&quot; Names to &quot;Header&quot; Names" filename="0114-buffer-naming.md"/>
 <proposal id="0115" status="implemented" swift-version="3" name="Rename Literal Syntax Protocols" filename="0115-literal-syntax-protocols.md"/>
-<proposal id="0116" status="active" name="Import Objective-C `id` as Swift `Any` type" filename="0116-id-as-any.md"/>
+<proposal id="0116" status="accepted" name="Import Objective-C `id` as Swift `Any` type" filename="0116-id-as-any.md"/>
 <proposal id="0117" status="active" name="Default classes to be non-subclassable publicly" filename="0117-non-public-subclassable-by-default.md"/>
 <proposal id="0118" status="implemented" swift-version="3" name="Closure Parameter Names and Labels" filename="0118-closure-parameter-names-and-labels.md"/>
 <proposal id="0119" status="active" name="Remove access modifiers from extensions" filename="0119-extensions-access-modifiers.md"/>
-<proposal id="0120" status="active" name="Revise `partition` Method Signature" filename="0120-revise-partition-method.md"/>
-<proposal id="0121" status="active" name="Remove `Optional` Comparison Operators" filename="0121-remove-optional-comparison-operators.md"/>
+<proposal id="0120" status="accepted" name="Revise `partition` Method Signature" filename="0120-revise-partition-method.md"/>
+<proposal id="0121" status="accepted" name="Remove `Optional` Comparison Operators" filename="0121-remove-optional-comparison-operators.md"/>
 <proposal id="0122" status="active" name="Use colons for subscript declarations" filename="0122-use-colons-for-subscript-type-declarations.md"/>
-<proposal id="0123" status="active" name="Disallow coercion to optionals in operator arguments" filename="0123-disallow-value-to-optional-coercion-in-operator-arguments.md"/>
-<proposal id="0124" status="active" name="`Int.init(ObjectIdentifier)` and `UInt.init(ObjectIdentifier)` should have a `bitPattern:` label" filename="0124-bitpattern-label-for-int-initializer-objectidentfier.md"/>
+<proposal id="0123" status="rejected" name="Disallow coercion to optionals in operator arguments" filename="0123-disallow-value-to-optional-coercion-in-operator-arguments.md"/>
+<proposal id="0124" status="accepted" name="`Int.init(ObjectIdentifier)` and `UInt.init(ObjectIdentifier)` should have a `bitPattern:` label" filename="0124-bitpattern-label-for-int-initializer-objectidentfier.md"/>
 <proposal id="0125" status="active" name="Remove `NonObjectiveCBase` and `isUniquelyReferenced`" filename="0125-remove-nonobjectivecbase.md"/>
 <proposal id="0126" status="active" name="Refactor Metatypes, repurpose `T.self` and `Mirror`" filename="0126-refactor-metatypes-repurpose-t-dot-self-and-mirror.md"/>
 
