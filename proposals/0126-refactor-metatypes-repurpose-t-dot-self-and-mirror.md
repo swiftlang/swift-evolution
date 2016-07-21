@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0126](0126-refactor-metatypes-repurpose-t-dot-self-and-mirror.md)
 * Authors: [Adrian Zubarev](https://github.com/DevAndArtist), [Anton Zhilin](https://github.com/Anton3)
-* Status: **Active Review July 19...24**
+* Status: **Withdrawn for Revision** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000251.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
