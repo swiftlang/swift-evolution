@@ -1,4 +1,4 @@
-# Require public overridability to be opt-in
+# Allow distinguishing between public access and public overridability
 
 * Proposal: [SE-0117](0117-non-public-subclassable-by-default.md)
 * Authors: [Javier Soto](https://github.com/JaviSoto), [John McCall](https://github.com/rjmccall)
