@@ -37,13 +37,21 @@ comments detailing what it does. The detail in this section should be
 sufficient for someone who is *not* one of the authors to be able to
 reasonably implement the feature.
 
-## Impact on existing code
+## Backward Compatibility
 
-Describe the impact that this change will have on existing code. Will some
-Swift applications stop compiling due to this change? Will applications still
-compile but produce different behavior than they used to? Is it
-possible to migrate existing Swift code to use a new feature or API
-automatically?
+Describe the impacts that this change will have on existing code, in both
+source and binary form.
+
+- New versions of the Swift compiler should maintain a source compatibility
+  window with earlier versions. Does this proposal require breaking
+  compatibility with or changing the behavior of existing source? Is there
+  existing behavior that should be deprecated in favor of new behavior
+  established by this proposal? How can existing code be mechanically
+  migrated from the broken or deprecated behavior to the new behavior?
+- New versions of the Swift runtime and standard library must maintain
+  long-term ABI compatibility with deployed applications. How can the
+  implementation maintain binary compatibility with existing binaries while
+  supporting the new behavior?
 
 ## Alternatives considered
 
