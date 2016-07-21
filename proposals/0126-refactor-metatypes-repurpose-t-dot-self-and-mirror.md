@@ -1,9 +1,9 @@
 # Refactor Metatypes, repurpose `T.self` and `Mirror`
 
-* Proposal: [SE-NNNN](nnnn-seal-metatype.md)
-* Author: [Adrian Zubarev](https://github.com/DevAndArtist), [Anton Zhilin](https://github.com/Anton3)
-* Status: **[Awaiting review](#rationale)**
-* Review manager: TBD
+* Proposal: [SE-0126](0126-refactor-metatypes-repurpose-t-dot-self-and-mirror.md)
+* Authors: [Adrian Zubarev](https://github.com/DevAndArtist), [Anton Zhilin](https://github.com/Anton3)
+* Status: **Active Review July 19...24**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 

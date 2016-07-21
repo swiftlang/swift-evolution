@@ -133,6 +133,7 @@ just loads it via JavaScript. Hence, the following declaration isn't used.
 <proposal id="0123" status="active" name="Disallow coercion to optionals in operator arguments" filename="0123-disallow-value-to-optional-coercion-in-operator-arguments.md"/>
 <proposal id="0124" status="active" name="`Int.init(ObjectIdentifier)` and `UInt.init(ObjectIdentifier)` should have a `bitPattern:` label" filename="0124-bitpattern-label-for-int-initializer-objectidentfier.md"/>
 <proposal id="0125" status="active" name="Remove `NonObjectiveCBase` and `isUniquelyReferenced`" filename="0125-remove-nonobjectivecbase.md"/>
+<proposal id="0126" status="active" name="Refactor Metatypes, repurpose `T.self` and `Mirror`" filename="0126-refactor-metatypes-repurpose-t-dot-self-and-mirror.md"/>
 
 
 <!--
