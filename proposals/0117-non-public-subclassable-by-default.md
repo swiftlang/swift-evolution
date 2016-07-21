@@ -2,9 +2,9 @@
 
 * Proposal: [SE-0117](0117-non-public-subclassable-by-default.md)
 * Authors: [Javier Soto](https://github.com/JaviSoto), [John McCall](https://github.com/rjmccall)
-* Status: **Returned for Revision** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000247.html))
+* Status: **Active Review July 21...25** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000247.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
-* Previous Revision: [Revision 1](https://github.com/apple/swift-evolution/blob/2989538daa1640cfa6a56f80b5c7599967af0905/proposals/0117-non-public-subclassable-by-default.md)
+* Previous Revision: [Revision 1](https://github.com/apple/swift-evolution/blob/2989538daa1640cfa6a56f80b5c7599967af0905/proposals/0117-non-public-subclassable-by-default.md) [Revision 2](https://github.com/apple/swift-evolution/blob/2989538daa1640cfa6a56f80b5c7599967af0905/proposals/0117-non-public-subclassable-by-default.md)
 
 ## Introduction
 
@@ -21,9 +21,11 @@ An `open` member will be *both usable and overridable*.  Similarly,
 a `public` class will only be *usable* by other modules, but not
 *subclassable*.  An `open` class will be *both usable and subclassable*.
 
-This proposal invites discussion about the need to distinguish `open`
-and `public` classes given the ability to make a class `final` and
-the ability to easily prevent the overriding of arbitrary members.
+This spirit of this proposal is to allow one to distinguish these cases while
+keeping them at the same level of support: it does not adversely affect code
+that is `open`, nor does it dissuade one from using `open` in their APIs. In
+fact, with this proposal, `open` APIs are syntactically lighter-weight than
+`public` ones.
 
 Swift-evolution thread: http://thread.gmane.org/gmane.comp.lang.swift.evolution/21930/
 
@@ -53,7 +55,7 @@ method's name and type.  In contrast, if the method had to be made
 it, it would be much more likely to slip through the cracks with
 an unsatisfactory signature.
 
-Method overriding is a very flexible and dynamic programming
+Method overriding is a very flexible programming
 technique, but it poses a number of problems for library design.
 A subclass that overrides methods of its superclass is intricately
 intertwined with it.  The two systems are not composed, and their
@@ -93,7 +95,7 @@ library, where these problems become most apparent.
 
 Furthermore, the things that make overriding such a powerful and flexible
 tool for programmers also have a noticeable, negative impact on
-performance.  Swift is a statically compiled language.  It is also a
+performance.  Swift is a statically (not JIT) compiled language.  It is also a
 high-level language with a number of intrinsic features that simplify
 and generalize the programming model and/or improve the safety and
 security of programming in Swift.  These features have costs, but the
@@ -109,8 +111,8 @@ dynamic features will always have a place in Swift, the language must
 always retain some ability to statically optimize them in the
 default case and without explicit user intervention.
 
-And the costs of unrestricted overriding are quite real.  
-The vast majority of class methods are never actually overridden,
+And the costs of unrestricted overriding are quite real.  The
+vast majority of class methods are never actually overridden,
 which means they can be trivially devirtualized.  Devirtualization
 is a very valuable optimization in its own right, but it is even
 more important as an enabling optimization that allows the compiler
@@ -175,33 +177,34 @@ The first design says that classes work analogously to members.
 A `public` class is not subclassable outside of the module, but
 an `open` class is.  Benefits:
 
-	- It's more consistent with explicit disclosure.
+  - It's more consistent with explicit disclosure.
 
-	- The library author can decline to commit to either `final` or
-		`open` in their initial development/release if they aren't
-		certain which way they want to go.  (`final` is an irrevocable
-		decision for source- and binary-compatibility.)
+  - The library author can decline to commit to either `final` or
+    `open` in their initial development/release if they aren't
+    certain which way they want to go.  (`final` is an irrevocable
+    decision for source- and binary-compatibility.)
 
-	- This permits the creation of class hiearchies that are
-		`public` but not publically extensible.  For example, this
-		would be the natural direct translation of the compiler's
-		own AST data structure.  This is not currently considered
-	  to be an important use case, however.
+  - This permits the creation of class hiearchies that are
+    `public` but not publically extensible.  For example, this
+    would be the natural direct translation of the compiler's
+    own AST data structure.  While this use cases exists, it is not
+    currently considered to be an important enough to complicate the
+    language for.
 
-	- This permits language enhancements which rely on knowing the
-		full class hierarchy.  Otherwise, these become limited 
-		on knowing that a class is `final` or non-`public`.
+  - This permits language enhancements which rely on knowing the
+    full class hierarchy.  Otherwise, these become limited 
+    on knowing that a class is `final` or non-`public`.
 
-	- This permits performance enhancements which rely on knowing
-		the full class hierarchy or that a class cannot be subclassed.
-		For example, the compiler can avoid emitting the variants of
-		designated initializers that are intended to be called from
-		subclasses.  It would also be much easier to do optimizations
-		like devirtualizing calls to `open` methods from superclasses
-		or specializing the virtual dispatch tables for a known
-		most-derived class.  However, these are relatively less
-		important than the corresponding benefits from restricting
-		overrides.
+  - This permits performance enhancements which rely on knowing
+    the full class hierarchy or that a class cannot be subclassed.
+    For example, the compiler can avoid emitting the variants of
+    designated initializers that are intended to be called from
+    subclasses.  It would also be much easier to do optimizations
+    like devirtualizing calls to `open` methods from superclasses
+    or specializing the virtual dispatch tables for a known
+    most-derived class.  However, these are relatively less
+    important than the corresponding benefits from restricting
+    overrides.
 
 The second design says that there is no such thing as an `open`
 class because all classes are subclassable unless made `final`.
@@ -209,12 +212,15 @@ Note that its direct methods would still not be overridable
 unless individually made `open`, although its inherited `open`
 methods could still be overridden.  Benefits:
 
-	- Removes the added complexity of having non-`open`,
-		non-`final` classes.
+  - Removes the added complexity of having the concept of non-`open`,
+    non-`final` classes.
 
-	- Permits the creation of "compositional" subclasses that
-		add extra state and associated API as long as the superclass
-		hasn't explicitly made itself `final`.
+  - `open` would exist only on overridable members, potentially simplifying
+    the programmer's mental model.
+
+  - Permits the creation of "compositional" subclasses that
+    add extra state and associated API as long as the superclass
+    hasn't explicitly made itself `final`.
 
 The lengths of these lists are quite imbalanced, but that should
 not itself be considered an argument.  Most of the benefits of the
@@ -230,7 +236,9 @@ to revisit them in a later proposal.
 
 ### Other considerations
 
-Objective-C classes and methods are always imported as `open`.
+Objective-C classes and methods are always imported as `open`.  This means that
+the synthesized header for an Objective-C class would pervasively replace
+`public` with `open` in its interface.
 
 The `@testable` design states that tests have the extra access
 permissions of the modules that they import for testing.  Accordingly,
