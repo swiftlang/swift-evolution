@@ -1,8 +1,8 @@
 # Modernize libdispatch for Swift 3 naming conventions
 
 * Proposal: [SE-0088](0088-libdispatch-for-swift3.md)
-* Author(s): [Matt Wright](https://github.com/mwwa)
-* Status: **Active Review: May 10 ... May 17**
+* Author: [Matt Wright](https://github.com/mwwa)
+* Status: **Accepted with Revisions** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/17819))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 * Revision: 2
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/ef372026d5f7e46848eb2a64f292328028b667b9/proposals/0088-libdispatch-for-swift3.md)

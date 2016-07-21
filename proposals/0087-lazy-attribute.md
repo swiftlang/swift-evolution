@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0087](0087-lazy-attribute.md)
 * Author: [Anton3](https://github.com/Anton3)
-* Status: **Scheduled for Review: May 17...23**
+* Status: **Rejected** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000172.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction

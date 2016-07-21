@@ -43,13 +43,17 @@ type inference, generics, and overloading. As a result, Objective-C
 APIs that feel right in Objective-C can feel wordy when used in
 Swift. For example:
 
+```swift
     let content = listItemView.text.stringByTrimmingCharactersInSet(
        NSCharacterSet.whitespaceAndNewlineCharacterSet())
+```
 
 The APIs used here follow the Objective-C guidelines. A more "Swifty"
 version of the same code might instead look like this:
 
+```swift
     let content = listItemView.text.trimming(.whitespaceAndNewlines)
+```
 
 The latter example more closely adheres to the [Swift API Design
 Guidelines][api-design-guidelines], in particular, omitting "needless"
@@ -131,6 +135,7 @@ property named `URLHandler` will be lowercased to `urlHandler`).
 To get a sense of what these transformations do, consider a portion of
 the imported `UIBezierPath` API in Swift 2:
 
+```swift
     class UIBezierPath : NSObject, NSCopying, NSCoding {
       convenience init(ovalInRect: CGRect)
       func moveToPoint(_: CGPoint)
@@ -147,9 +152,11 @@ the imported `UIBezierPath` API in Swift 2:
       func copyWithZone(_: NSZone) -> AnyObject
       func encodeWithCoder(_: NSCoder)
     }
+```
 
 And the same API imported under our current, experimental implementation of this proposal:
 
+```swift
     class UIBezierPath : NSObject, NSCopying, NSCoding {
       convenience init(ovalIn rect: CGRect)
       func move(to point: CGPoint)
@@ -166,6 +173,7 @@ And the same API imported under our current, experimental implementation of this
       func copy(with zone: NSZone = nil) -> AnyObject
       func encode(with aCoder: NSCoder)
     }
+```
 
 In the latter case, a number of words that restated type information
 in the original APIs have been pruned. The result is closer to

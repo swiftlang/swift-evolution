@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0039](https://github.com/apple/swift-evolution/blob/master/proposals/0039-playgroundliterals.md)
 * Author: [Erica Sadun](http://github.com/erica)
-* Status: **Accepted** ([Bug](https://bugs.swift.org/browse/SR-917))
+* Status: **Accepted** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/9149/), [Bug](https://bugs.swift.org/browse/SR-917))
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction

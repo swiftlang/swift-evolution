@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0069](https://github.com/apple/swift-evolution/blob/master/proposals/0069-swift-mutability-for-foundation.md)
 * Author: Tony Parker <anthony.parker@apple.com>
-* Status: **Accepted for Swift 3**
+* Status: **Accepted for Swift 3** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/16114))
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 
 
@@ -122,7 +122,7 @@ let myOtherDate = Date()
 myOtherDate.addTimeInterval(60) // Error, as expected
 ```
 
-It is important to remember that the `Date` API author still controls the methods available on the type, and does not have to provide mutability for every property (as they would in a C struct). For types where we want to provide limited mutability, we can make all properties `get` only and add `mutable` methods to tightly control state and maintain internal consistency. For example, in the case of `Date` the `NSTimeInterval` ivar is still private to the implementation while we provide a `mutable func` to add a time interval.
+It is important to remember that the `Date` API author still controls the methods available on the type, and does not have to provide mutability for every property (as they would in a C struct). For types where we want to provide limited mutability, we can make all properties `get` only and add `mutating` methods to tightly control state and maintain internal consistency. For example, in the case of `Date` the `NSTimeInterval` ivar is still private to the implementation while we provide a `mutating func` to add a time interval.
 
 #### Predictable Composition
 
@@ -219,8 +219,6 @@ URL | NSURL
 URLComponents | NSURLComponents
 URLQueryItem | NSURLQueryItem
 UUID | NSUUID
-
-These new `struct` types will be implemented in the Swift overlay. Immutable/mutable pairs (e.g. `Data` and `MutableData`) will become one mutable struct type.
 
 These types will have the same functionality as their corresponding `NS` type. In some cases, we will add new functionality if it is directly related to the new type becoming "more Swifty". However, we want API changes to remain focused on the task of converting these to value types and avoid feature creep by considering too much new API. The overlay is deployed back to the first supported release for Swift, so the implementation of these types will use the existing reference type API.
 

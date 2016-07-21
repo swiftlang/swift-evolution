@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0075](0075-import-test.md)
 * Author: [Erica Sadun](http://github.com/erica)
-* Status: **Active review: May 10...16, 2016**
+* Status: **Accepted for Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000159.html), [Bug](https://bugs.swift.org/browse/SR-1560))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
@@ -21,7 +21,7 @@ Testing for imports offers advantages that stand apart from this one use-case: t
 
 Swift's existing set of build configurations specify platform differences, not module commonalities. For example, UIKit enables you to write view code supported on both iOS and tvOS. SpriteKit allows common code to render on OS X, iOS, and tvOS that would require an alternate UI on Linux. Testing for Metal support or Media Player would guard code that will not function on the simulator. If the simulator adopted these modules at some future time, the code would naturally expand to provide compatible execution without source modification.
 
-```
+```swift
 #if canImport(UIKit)
    // UIKit-based code
    #elseif canImport(Cocoa)
@@ -33,7 +33,7 @@ Swift's existing set of build configurations specify platform differences, not m
 
 Guarding code with operating system tests can be less future-proofed than testing for module support.  Excluding OS X to use UIColor creates code that might eventually find its way to a Linux plaform. Targeting Apple platforms by inverting a test for Linux essentially broke after the introduction of `Windows` and `FreeBSD` build configurations:
 
-```
+```swift
 // Exclusive os tests are brittle
 #if !os(Linux)
    // Matches OSX, iOS, watchOS, tvOS, Windows, FreeBSD
@@ -63,7 +63,7 @@ frameworks at runtime is to do it via Obj-C. Some sort of check like the ones yo
   for the greatest flexibility. At compile time, Swift determines whether the module can or cannot be 
   linked and builds accordingly.
 
-```
+```swift
 #if canImport(module)
     import module
     // use module APIs safely

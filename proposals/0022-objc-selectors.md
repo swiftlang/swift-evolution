@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0022](https://github.com/apple/swift-evolution/blob/master/proposals/0022-objc-selectors.md)
 * Author: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted**
+* Status: **Accepted** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/4622))
 * Review manager: [Joe Groff](https://github.com/jckarter)
 
 ## Introduction
@@ -75,7 +75,27 @@ The subexpression of the `#selector` expression must be a reference to an `objc`
 ```swift
 let sel = #selector(((UIView.insertSubview(_:at:)) as (UIView) -> (UIView, Int) -> Void))
 ```
-Note that the subexpression will not be evaluated, so any side effects present in the expression will not occur.
+
+The expression inside `#selector` is limited to be a series of instance 
+or class members separated by `.` where the last component may be 
+disambiguated using `as`. In particular, this prohibits performing 
+method calls inside `#selector`, clarifying that the subexpression of 
+`#selector` will not be evaluated and no side effects occur because of it.
+
+The complete grammar of `#selector` is:
+
+<pre>
+selector → #selector(<i>selector-path</i>)
+
+selector-path → <i>type-identifier</i> . <i>selector-member-path</i> <i>as-disambiguation<sub>opt</sub></i>
+selector-path → <i>selector-member-path</i> <i>as-disambiguation<sub>opt</sub></i>
+
+selector-member-path → <i>identifier</i>
+selector-member-path → <i>unqualified-name</i>
+selector-member-path → <i>identifier</i> . <i>selector-member-path</i>
+
+as-disambiguation → as <i>type-identifier</i>
+</pre>
 
 ## Impact on existing code
 
@@ -131,3 +151,9 @@ instance construction (but is not actually representable in Swift as
 an initializer), along with existing uses of `#` to denote special
 expressions (e.g., `#available`), caused the change to the `#selector`
 syntax at the completion of the public review.
+
+## Revision history
+
+- 2016-05-20: The proposal was amended post-acceptance to limit the
+syntax inside the subexpression of `#selector`, in particular disallowing 
+methods calls. Originally any valid Swift expression was supported.

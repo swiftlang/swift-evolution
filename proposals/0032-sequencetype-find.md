@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0032](https://github.com/apple/swift-evolution/blob/master/proposals/0032-sequencetype-find.md)
 * Author: [Kevin Ballard](https://github.com/kballard)
-* Status: **Accepted for Swift 3**
+* Status: **Accepted for Swift 3** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/16116))
 * Review manager: [Chris Lattner](https://github.com/lattner)
 * Revision: 2
 * Previous Revisions: [1][rev-1]

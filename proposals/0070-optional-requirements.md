@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0070](0070-optional-requirements.md)
 * Author: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted for Swift 3**  ([Bug](https://bugs.swift.org/browse/SR-1395))
+* Status: **Accepted for Swift 3**  ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/15983), [Bug](https://bugs.swift.org/browse/SR-1395))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction

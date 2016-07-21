@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0073](0073-noescape-once.md)
 * Authors: [Félix Cloutier](https://github.com/zneak), [Gwendal Roué](https://github.com/groue)
-* Status: **Rejected for Swift 3**
+* Status: **Rejected for Swift 3** ([Rationale](#rationale))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
@@ -182,7 +182,7 @@ future proposals.
 
 # Rationale
 
-On May 11, 2016, the core team decided to **Reject** this proposal for Swift 3.
+On May 11, 2016, the core team decided to **Reject** this proposal for Swift 3 ([thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/16896)).
 
 The feedback on the proposal was generally positive both from the community and
 core team.  That said, it is being rejected for Swift 3 two reasons:

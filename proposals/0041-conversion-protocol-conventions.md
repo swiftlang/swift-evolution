@@ -2,7 +2,7 @@
 
 * Proposal: [SE-00041](0041-conversion-protocol-conventions.md)
 * Authors: [Matthew Johnson](https://github.com/anandabits), [Erica Sadun](http://github.com/erica)
-* Status: **Active review: May 10...16, 2016**
+* Status: **Rejected as written** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000160.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction

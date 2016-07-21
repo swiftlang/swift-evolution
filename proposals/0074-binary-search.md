@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0074](0074-binary-search.md)
 * Authors: [Lorenzo Racca](https://github.com/lorenzoracca), [Jeff Hajewski](https://github.com/j-haj), [Nate Cook](https://github.com/natecook1000)
-* Status: **Rejected for Swift 3**
+* Status: **Rejected for Swift 3** ([Rationale](#rationale))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
@@ -279,7 +279,7 @@ The authors considered a few alternatives to the current proposal:
 
 # Rationale
 
-On May 11, 2016, the core team decided to **Reject** this proposal.  The
+On May 11, 2016, the core team decided to **Reject** this proposal ([thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/16897)).  The
 feedback on the proposal was generally positive about the concept of adding
 binary search functionality, but  negative about the proposal as written, with
 feedback that it was adding too much complexity to the API.

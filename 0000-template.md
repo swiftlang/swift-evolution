@@ -1,8 +1,8 @@
 # Feature name
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-name.md)
-* Author(s): [Swift Developer](https://github.com/swiftdev)
-* Status: **[Awaiting review](#rationale)**
+* Proposal: [SE-NNNN](NNNN-filename.md)
+* Author: [Swift Developer](https://github.com/swiftdev)
+* Status: **Awaiting review**
 * Review manager: TBD
 
 ## Introduction
@@ -11,7 +11,7 @@ A short description of what the feature is. Try to keep it to a
 single-paragraph "elevator pitch" so the reader understands what
 problem this proposal is addressing.  
 
-Swift-evolution thread: [Discussion thread topic for that proposal](https://lists.swift.org/pipermail/swift-evolution)
+Swift-evolution thread: [Discussion thread topic for that proposal](http://news.gmane.org/gmane.comp.lang.swift.evolution)
 
 ## Motivation
 
@@ -50,10 +50,3 @@ automatically?
 Describe alternative approaches to addressing the same problem, and
 why you chose this approach instead.
 
--------------------------------------------------------------------------------
-
-# Rationale
-
-On [Date], the core team decided to **(TBD)** this proposal.
-When the core team makes a decision regarding this proposal,
-their rationale for the decision will be written here.

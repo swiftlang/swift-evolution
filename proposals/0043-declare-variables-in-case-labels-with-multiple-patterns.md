@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0043](https://github.com/apple/swift-evolution/blob/master/proposals/0043-declare-variables-in-case-labels-with-multiple-patterns.md)
 * Author: [Andrew Bennett](https://github.com/therealbnut)
-* Status: **Accepted for Swift 3**
+* Status: **Accepted for Swift 3** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/12827))
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction
@@ -117,11 +117,11 @@ func handleCases(value: MyEnum, apply: Int -> Int) -> Int {
 }
 ```
 
-This syntax is much more verbose, makes control flow more confusing, and has the limitations of the what the inline function may capture.
+This syntax is much more verbose, makes control flow more confusing, and has the limitations of what the inline function may capture.
 
 In the above example `apply` cannot be `@noescape` because handleX captures it.
 
-Also in the above example if `out` is captured and assigned by `handleX` then it must be `var`, not `let`. This can produce shorter syntax, but is not as safe; `out` may accidentally be assigned more than once, additionally `out` also needs to initialised (which may not be possible or desirable).
+Also in the above example if `out` is captured and assigned by `handleX` then it must be `var`, not `let`. This can produce shorter syntax, but is not as safe; `out` may accidentally be assigned more than once, additionally `out` also needs to be initialised (which may not be possible or desirable).
 
 ### Extending the fallthrough syntax
 

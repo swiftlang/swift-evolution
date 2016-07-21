@@ -2,8 +2,12 @@
 
 * Proposal: [SE-0025](https://github.com/apple/swift-evolution/blob/master/proposals/0025-scoped-access-level.md)
 * Author: Ilya Belenkiy
-* Status: **Accepted for Swift 3** ([Bug](https://bugs.swift.org/browse/SR-1275))
+* Status: **Accepted for Swift 3** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/12183/focus=13584), [Bug](https://bugs.swift.org/browse/SR-1275))
 * Review manager: [Doug Gregor](http://github.com/DougGregor)
+* Revision: 2
+* Previous revision: [1][rev-1] (as accepted)
+
+[rev-1]: https://github.com/apple/swift-evolution/blob/e4328889a9643100177aef19f6f428855c5d0cf2/proposals/0025-scoped-access-level.md
 
 ## Introduction
 
@@ -38,7 +42,7 @@ After the first review, the core team decided that it would be best to use `priv
 
 ## Detailed design
 
-When a function or a property is defined with `private` access modifier, it is visible only within that lexical scope. For example:
+When a function, variable, constant, subscript, or initializer is defined with `private` access modifier, it is visible only within that lexical scope. For example:
 
 ```swift
 class A {
@@ -67,6 +71,61 @@ extension A {
 }
 ```
 
+### Complications with private types
+
+When a type is defined with the `private` access modifier, things become a little more complicated. Of course the type itself is only visible within the lexical scope it is defined in, but what about members of the type?
+
+```swift
+class Outer {
+  private class Inner {
+    var value = 0
+  }
+
+  func test() {
+    // Can Outer.test reference Inner's initializer?
+    let inner = Inner()
+    // Can Outer.test reference Inner's 'value' property?
+    print(inner.value)
+  }
+}
+```
+
+If the members of a private type are themselves considered `private`, it is very clear that they cannot be used outside of the type itself. However, it is also not currently permitted for a member to have an access level greater than its enclosing type. This produces a conundrum: the type can be referenced within its enclosing lexical scope, but none of its members can.
+
+Ignoring formal concerns, the most likely expected behavior is that members not explicitly marked `private` are permitted to be accessed within the enclosing scope of the private type. To achieve this goal, we relax a few of the existing rules:
+
+- The default level of access control anywhere is `internal`.
+
+- The compiler should not warn when a broader level of access control is used within a type with more restrictive access, such as `internal` within a `private` type. This allows the owner of the type to design the access they would use were they to make the type more widely accessible. (The members still cannot be accessed outside the enclosing lexical scope because the type itself is still restricted, i.e. outside code will never encounter a value of that type.)
+
+- A member may not have a type that references any declarations that aren't accessible wherever the member is accessible. (This replaces an existing rule that states that the type of a declaration may not reference any declarations that have broader access.) This permits the following code:
+
+  ```swift
+  struct Outer {
+    private typealias Value = Int
+    private struct Inner {
+      var value: Value
+    }
+  }
+  ```
+
+  and continues to treat this code as illegal:
+
+  ```swift
+  struct Outer {
+    private struct Inner {
+      private typealias Value = Int
+      var value: Value
+    }
+  }
+  ```
+
+- A member that satisfies a protocol requirement may never be `private`. Similarly, a `required` initializer may never be `private`.
+
+- Extensions with explicit access modifiers continue to override the default `internal` access by specifying a default *scope.* Therefore, within an extension marked `private`, the default access level is `fileprivate` (since extensions are always declared at file scope). This matches the behavior of types declared `private` at file scope.
+  
+  The explicit access modifier on an extension also continues to set the maximum allowed access within that extension. The compiler will continue to warn on overly broad access within an extension with an explicit access modifier.
+
 ## Impact on existing code
 
 The existing code will need to rename `private` to `fileprivate` to achieve the same semantics. In many cases the new meaning of `private` is likely to compile as well and the code will then run exactly as before.
@@ -79,3 +138,17 @@ The existing code will need to rename `private` to `fileprivate` to achieve the 
 
 3. Introduce a different access modifier and keep the current names unchanged. The proposal followed this approach to be completely compatible with the existing code, but the core team decided that it was better to use `private` for this modifier because it’s much closer to what the term means in other languages.
 
+### Alternatives considered for "the private type issue"
+
+1. Use `fileprivate` rather than `internal` as the default access level within `private` and `fileprivate` types. This is a more narrow change from the original model, but didn't have any benefits once we determined that the warning for unnecessarily broad access wasn't useful.
+
+2. Introduce a new "parent" access level that declares an entity to be accessible within the *parent* lexical scope, rather than the immediately enclosing scope. This seems effective for `private` but overly specific within types with any broader access, and not worth the added complexity. We would also have to determine its name within the language, or decide that this level of access could not be spelled explicitly and was only available as the default access within private types.
+
+3. Introduce a new "default" access level that names the default access within a scope. Within a `private` type, this would have the "parent" semantics from (2); elsewhere it would follow the rules laid down in previous versions of Swift. This likewise added complexity to the model for only a small gain in expressivity, and we would likewise have to determine a name for it within the language.
+
+## Changes from revision 1
+
+- The proposal was amended post-acceptance by [Robert Widmann][] and [Jordan Rose][] to account for "[the private type issue](#complications-with-private-types)". Only this section was added; there were no semantic changes to the rest of the proposal. This amendment requires a small amount of work to implement compared to the [alternatives considered](#alternatives-considered-for-the-private-type-issue), and was determined by the Core Team to be a small enough set of changes in the spirit of the original proposal that a full review was not necessary.
+
+[Robert Widmann]: https://github.com/CodaFi
+[Jordan Rose]: https://github.com/jrose-apple
