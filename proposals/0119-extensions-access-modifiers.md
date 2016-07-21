@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0119](0119-extensions-access-modifiers.md)
 * Author: [Adrian Zubarev](https://github.com/DevAndArtist)
-* Status: **Active Review July 12...19**
+* Status: **Rejected** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000250.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
