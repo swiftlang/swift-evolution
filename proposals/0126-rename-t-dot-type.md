@@ -13,7 +13,7 @@ This proposal renames the current metatype `T.Type` notation and the global func
 
 Swift-evolution threads: 
 
-* [\[Pitch\] Rename `T.Type`]()
+* [\[Revision\] \[Pitch\] Rename `T.Type`](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160718/025115.html)
 * [\[Review\] SE-0126: Refactor Metatypes, repurpose T[dot]self and Mirror]()
 * [\[Proposal\] Refactor Metatypes, repurpose T[dot]self and Mirror](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160718/024772.html) 
 * [\[Discussion\] Seal `T.Type` into `Type<T>`](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160704/023818.html)
