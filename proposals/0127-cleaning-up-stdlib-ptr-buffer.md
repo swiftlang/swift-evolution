@@ -1,9 +1,9 @@
 # Cleaning up stdlib Pointer and Buffer Routines
 
-* Proposal: [SE-xxxx](https://github.com/apple/swift-evolution/blob/master/proposals/xxxx-cleaning-up-stdlib-ptr-buffer.md)
-* Author(s): [Charlie Monroe](https://github.com/charlieMonroe)
-* Status: **[Awaiting review](#rationale)**
-* Review manager: TBD
+* Proposal: [SE-0127](0127-cleaning-up-stdlib-ptr-buffer.md)
+* Author: [Charlie Monroe](https://github.com/charlieMonroe)
+* Status: **Active Review July 20...24**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
