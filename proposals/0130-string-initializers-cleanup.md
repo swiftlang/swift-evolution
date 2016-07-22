@@ -1,9 +1,9 @@
-# Replace String.init(repeating repeatedValue: Character, count: Int) and String.init(repeating repeatedValue: UnicodeScalar, count: Int) by String.init(repeating repeatedValue: String, count: Int)
+# Replace repeating `Character` and `UnicodeScalar` forms of String.init
 
 * Proposal: [SE-0130](0130-string-initializers-cleanup.md)
 * Author: Roman Levenstein
-* Status: 
-* Review manager:
+* Status: **Active Review July 22...24**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
