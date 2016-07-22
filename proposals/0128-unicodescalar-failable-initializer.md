@@ -15,7 +15,7 @@ not be constructed, nil is returned.
 
 Currently, when one passes an invalid value to the non-failable `UnicodeScalar`
 `UInt32` initializer, it crashes the program by calling `_precondition`.
-This is undesirable if one wishes to initialise a Unicode scalar from unknown input.
+This is undesirable if one wishes to initialize a Unicode scalar from unknown input.
 
 ## Proposed solution
 
@@ -63,5 +63,5 @@ public struct UnicodeScalar {
 
 ## Alternatives considered
 
-Leave status quo and force the users to do input checks before trying to initialise
+Leave status quo and force the users to do input checks before trying to initialize
 a `UnicodeScalar`.
