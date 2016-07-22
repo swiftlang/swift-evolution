@@ -1,9 +1,9 @@
 # Package Manager Test Naming Conventions
 
-* Proposal: [SE-NNNN](NNNN-package-manager-test-naming-conventions.md)
+* Proposal: [SE-0129](0129-package-manager-test-naming-conventions.md)
 * Author: [Anders Bertelrud](https://github.com/abertelrud)
-* Status: **Awaiting review**
-* Review manager: TBD
+* Status: **Active Review July 22...26**
+* Review manager: [Daniel Dunbar](https://github.com/ddunbar)
 
 ## Introduction
 
