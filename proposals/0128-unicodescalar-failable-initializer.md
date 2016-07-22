@@ -7,26 +7,22 @@
 
 ## Introduction
 
-This proposal aims to change some (ones that are failable) UnicodeScalar
-initializers from non-failable to failable. i.e. in case a UnicodeScalar can
+This proposal aims to change some `UnicodeScalar` initializers (ones that are non-failable)
+from non-failable to failable. i.e., in case a `UnicodeScalar` can
 not be constructed, nil is returned.
 
 ## Motivation
 
-Currently, when one passes an invalid value to the failable UnicodeScalar
-UInt32 initializer the swift stdlib crashes the program by calling _precondition.
-This is undesirable if one construct a unicode scalar from unknown input.
-
+Currently, when one passes an invalid value to the non-failable `UnicodeScalar`
+`UInt32` initializer, it crashes the program by calling `_precondition`.
+This is undesirable if one wishes to initialise a Unicode scalar from unknown input.
 
 ## Proposed solution
 
-Mark the failable UnicodeScalar initializers as failable and return nil in case
-of a failure.
+Mark the non-failable `UnicodeScalar` initializers as failable and return nil when the integer is not a valid Unicode codepoint.
 
-Currently, in the code below, the stdlib crashes the program by calling
-_precondition if codepoint is not a valid unicode.
-
-Example:
+Currently, the stdlib crashes the program by calling
+`_precondition` if the integer is not a valid Unicode codepoint. For example:
 
 ```swift
 var string = ""
@@ -35,8 +31,8 @@ let ucode = UnicodeScalar(codepoint) // Program crashes at this point.
 string.append(ucode)
 ``` 
 
-After marking the initializer as failable, users can write code like this. And the
-program will execute fine even codepoint is invalid.
+After marking the initializer as failable, users can write code like this and the
+program will execute fine even if the codepoint isn't valid.
 
 ```swift
 var string = ""
@@ -50,10 +46,9 @@ if let ucode = UnicodeScalar(codepoint) {
 
 ## Impact on existing code
 
-As the initializers are now failable, it returns an optional, so optional unchaining
-or forced unwrapping needs to be used. 
+The initializers are now failable, returning an optional, so optional unwrapping is necessary.
 
-The API changes include.
+The API changes include:
 
 ```swift
 public struct UnicodeScalar {
@@ -68,5 +63,5 @@ public struct UnicodeScalar {
 
 ## Alternatives considered
 
-Leave status quo and force the users to do input checks before trying to construct
-a UnicodeScalar.
+Leave status quo and force the users to do input checks before trying to initialise
+a `UnicodeScalar`.
