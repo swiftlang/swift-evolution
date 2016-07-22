@@ -15,13 +15,13 @@ Swift-evolution thread: [Cleaning up stdlib Pointer and Buffer Routines](http://
 
 ## Motivation
 
-The stdlib has been thoroughly updated to follow the new API guidelines and these are
+The Swift standard library has been thoroughly updated to follow the new API guidelines and these are
 the few places that need to be updated in pointer and buffer APIs:
 
 - `withUnsafe[Mutable]Pointer`'s `arg` argument should have a `to:` label ([SR-1937](https://bugs.swift.org/browse/SR-1937))
 - `withUnsafePointer`'s `arg` argument should no longer be `inout` as it requires 
 creation of temporary `var`s ([SR-1956](https://bugs.swift.org/browse/SR-1956)).
-- `unsafeAddressOf` should be removed since there is a limited number of usecases and there are better alternatives to it ([SR-1957](https://bugs.swift.org/browse/SR-1937)).
+- `unsafeAddressOf` should be removed since there is a limited number of use cases and there are better alternatives to it ([SR-1957](https://bugs.swift.org/browse/SR-1937)).
 - `ManagedProtoBuffer` should be removed. It is a superclass of `ManagedBuffer` and its
 sole purpose is to conceal the `header` property during invocation of the closure 
 creating the initial header in `ManagedBuffer.create` since the `header` isn't 
