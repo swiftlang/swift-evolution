@@ -138,7 +138,7 @@ just loads it via JavaScript. Hence, the following declaration isn't used.
 <proposal id="0128" status="active" name="Change failable UnicodeScalar initializers to failable" filename="0128-unicodescalar-failable-initializer.md"/>
 <proposal id="0129" status="active" name="Package Manager Test Naming Conventions" filename="0129-package-manager-test-naming-conventions.md"/>
 <proposal id="0130" status="active" name="Replace repeating `Character` and `UnicodeScalar` forms of String.init" filename="0130-string-initializers-cleanup.md"/>
-
+<proposal id="0131" status="active" name="Add `AnyHashable` to the standard library" filename="0131-anyhashable.md"/>
 
 <!--
 Recognized values for a proposal's status:

@@ -1,9 +1,9 @@
 # Add `AnyHashable` to the standard library
 
-* Proposal: [SE-NNNN](NNNN-anyhashable.md)
+* Proposal: [SE-0131](0131-anyhashable.md)
 * Author: [Dmitri Gribenko](https://github.com/gribozavr)
-* Status: **Awaiting review**
-* Review manager: TBD
+* Status: **Active Review July 23...25**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
