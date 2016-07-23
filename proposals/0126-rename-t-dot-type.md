@@ -9,7 +9,7 @@
 
 ## Introduction
 
-This proposal renames the current metatype `T.Type` notation and the global function from **SE-0096** to match the changes.
+This proposal renames `T.Type` to `Metatype<T>`, renames `type(of:)` to `metatype(of:)` and removes `P.Protocol` metatypes.
 
 Swift-evolution threads: 
 
@@ -20,29 +20,164 @@ Swift-evolution threads:
 
 ## Motivation
 
-In Swift metatypes have the following notation: **`T.Type`**
+<details><summary>Explanation of metatypes</summary>
 
-As already showed in **SE-0096** and **SE-0090** the Swift community strongly is in favor of (re)moving magical intstance or type properties.
+For every type `T` in Swift, there is an associated metatype `T.Type`.
 
-* **SE-0096** moves `instanceOfT.dynamicType` to `type<T>(of: T) -> T.Type`.
+### Basics: function specialization
 
-* **SE-0090** aims to remove `.self` completely.
+Let's try to write a generic function like `staticSizeof`. We will only consider its declaration; implementation is trivial and unimportant here.
 
-We propose to rename `T.Type` to a generic-like notation `Metatype<T>`. To be able to achieve this notation we have to resolve a few issues first.
-
-### Known issues of metatypes:
-
-Assume this function that checks if an `Int` type conforms to a specific protocol. This check uses current model of metatypes combined in a generic context:
+Out first try would be:
 
 ```swift
-func intConforms<T>(to _: T.Type) -> Bool {
-   return Int.self is T.Type
+func staticSizeof<T>() -> Int
+staticSizeof<Float>()  // error :(
+```
+
+Unfortunately, it's an error. We can't explicitly specialize generic functions in Swift. Second try: we pass a parameter to our function and get generic type parameter from it:
+
+```swift
+func staticSizeof<T>(_: T) -> Int
+staticSizeof(1)  //=> should be 8
+```
+
+But what if our type `T` was a bit more complex and hard to obtain? For example, think of `struct Properties` that loads a file on initialization:
+
+```swift
+let complexValue = Properties("the_file.txt")  // we have to load a file
+staticSizeof(complexValue)                     // just to specialize a function
+```
+
+Isn't that weird? But we can work around that limitation by passing instance of a dummy generic type:
+
+```swift
+struct Dummy<T> { }
+func staticSizeof<T>(_: Dummy<T>) -> Int
+staticSizeof(Dummy<Properties>())
+```
+
+This is the main detail to understand: we **can** explicitly specialize generic types, and we **can** infer generic type parameter of function from generic type parameter of passed instance. Now, surprise! We've already got `Dummy<T>` in the language: it's called `T.Type` and created using `T.self`:
+
+```swift
+func staticSizeof<T>(_: T.Type) -> Int
+staticSizeof(Float.self)
+```
+
+But there's a lot more to `T.Type`. Sit tight.
+
+### Subtyping
+
+Internally, `T.Type` stores identifier of a type. Specifically, `T.Type` can refer to any **subtype** of `T`. With enough luck, we can also cast instances of metatypes to other metatypes. For example, `Int : CustomStringConvertible`, so we can do this:
+
+```swift
+let subtype = Int.self
+metaInt    //=> Int
+let supertype = subtype as CustomStringConvertible.Type
+supertype  //=> Int
+```
+
+Here, `supertype : CustomStringConvertible.Type` can refer to `Int`, to `String` or to any other `T : CustomStringConvertible`.
+We can also use `as?`, `as!` and `is` to check subtyping relationships. We'll only show examples with `is`:
+
+```swift
+Int.self is CustomStringConvertible.Type  //=> true
+```
+```swift
+protocol Base { }
+protocol Derived: Base { }
+Derived.self is Base.Type  //=> true
+```
+```swift
+protocol Base { }
+struct Derived: Base { }
+let someBase = Derived.self as Base.Type
+// ...
+someBase is Derived.Type  //=> true
+```
+
+A common practise is to store metatypes `as Any.Type`. When needed, we can check all required conformances.
+
+### Dynamic dispatch of static methods
+
+If we have an instance of `T.Type`, we can call static methods of `T` on it:
+
+```swift
+struct MyStruct {
+    static func staticMethod() -> String { return "Hello metatypes!" }
+}
+let meta = MyStruct.self
+meta.staticMethod()  //=> Hello metatypes!
+```
+
+What is especially useful, if our `T.self` actually stores some `U : T`, then static method of `U` will be called:
+
+```swift
+protocol HasStatic { static func staticMethod() -> String }
+struct A: HasStatic { static func staticMethod() -> String { return "A" } }
+struct B: HasStatic { static func staticMethod() -> String { return "B" } }
+
+var meta: HasStatic.Type
+meta = A.self
+meta.staticMethod()  //=> A
+meta = B.self
+meta.staticMethod()  //=> B
+```
+
+Summing that up, metatypes have far deeper semantics than a tool for specialization of generic functions. They combine dynamic information about a type with static information "contained type is a subtype of *this*". They can also dynamically dispatch static methods the same way as normal methods are dynamically dispatched.
+</details>
+
+### Current behavior of `.Protocol`
+
+For protocols `P`, besides normal `P.Type`, there is also a "restricting metatype" `P.Protocol` that is the same as `P.Type`, except that it can only reflect `P` itself and not any of its subtypes:
+
+```swift
+Int.self is CustomStringConvertible.Type      //=> true
+Int.self is CustomStringConvertible.Protocol  //=> false
+```
+
+Even without `P.Protocol`, we can test for equality:
+
+```swift
+Int.self is CustomStringConvertible.Type  //=> true
+Int.self == CustomStringConvertible.self  //=> false
+```
+
+For protocols `P`, `P.self` returns a `P.Protocol`, not `P.Type`:
+
+```swift
+let metatype = CustomStringConvertible.self
+print(type(of: metatype))  //=> CustomStringConvertible.Protocol
+```
+
+In practise, the existence of `P.Protocol` creates problems. If `T` is a generic parameter, then `T.Type` turns into `P.Protocol` if a protocol `P` is passed:
+
+```swift
+func printMetatype<T>(_ meta: T.Type) {
+    print(dynamicType(meta))
+    let copy = T.self
+    print(dynamicType(copy))
 }
 
-intConforms(to: CustomStringConvertible.self) //=> false
-
-Int.self is CustomStringConvertible.Type      //=> true
+printMetatype(CustomStringConvertible.self)  //=> CustomStringConvertible.Protocol x2
 ```
+
+Lets review the following situation:
+
+```swift
+func isIntSubtype<T>(of: T.Type) -> Bool {
+    return Int.self is T.Type
+}
+
+isIntSubtype(of: CustomStringConvertible.self)  //=> false
+```
+
+Now we understand that because `T` is a protocol `P`, `T.Type` turns into a `P.Protocol`, and we get the confusing behaviour.
+
+Summing up issues with `P.Protocol`, it does not bring any additional functionality (we can test `.Type`s for `is` and for `==`),
+but tends to appear unexpectedly and break subtyping with metatypes.
+
+### Even more issues with `.Protocol`
 
 > [1] When `T` is a protocol `P`, `T.Type` is the metatype of the protocol type itself, `P.Protocol`. `Int.self` is not `P.self`.
 >
@@ -52,109 +187,69 @@ Int.self is CustomStringConvertible.Type      //=> true
 >
 > Written by Joe Groff: [\[1\]](https://twitter.com/jckarter/status/754420461404958721) [\[2\]](https://twitter.com/jckarter/status/754420624261472256)  [\[3\]](https://twitter.com/jckarter/status/754425573762478080)
 
-A possible workaround might look like the example below, but does not allow to decompose `P.Type`:
+There is a workaround for `isIntSubtype` example above. If we pass a `P.Type.Type`, then it turns into `P.Type.Protocol`, but it is still represented with `.Type` in generic contexts. If we manage to drop outer `.Type`, then we get `P.Type`:
 
 ```swift
-func intConforms<T>(to _: T.Type) -> Bool {
-  return Int.self is T
+func isIntSubtype<T>(of _: T.Type) -> Bool {
+  return Int.self is T   // not T.Type here anymore
 }
 
-intConforms(to: CustomStringConvertible.Type.self) //=> true
+isIntSubtype(of: CustomStringConvertible.Type.self) //=> true
 ```
 
-We can extend this issue and find the second problem by checking against the metatype of `Any`:
+In this call, `T = CustomStringConvertible.Type`. We can extend this issue and find the second problem by checking against the metatype of `Any`:
 
 ```swift
-func intConforms<T>(to _: T.Type) -> Bool {
+func isIntSubtype<T>(of _: T.Type) -> Bool {
 	return Int.self is T
 }
 
-intConforms(to: Any.Type.self) //=> true
+isIntSubtype(of: Any.Type.self) //=> true
 
-intConforms(to: Any.self)      //=> true
-
-Int.self is Any.Type           //=> Always true
+isIntSubtype(of: Any.self)      //=> true
 ```
 
-When using `Any` the compiler does not require `.Type` at all and returns `true` for both variations.
+When using `Any`, the compiler does not require `.Type` and returns `true` for both variations.
 
-The third issue will show itself whenever we would try to check protocol relationship with another protocol. Currently there is no way (that we know of) to solve this problem:
+The third issue shows itself when we try to check protocol relationship with another protocol. Currently, there is no way (that we know of) to solve this problem:
 
 ```swift
-protocol P {}
-protocol R : P {}
+protocol Parent {}
+protocol Child : Parent {}
 
-func rIsSubtype<T>(of _: T.Type) -> Bool {
-	return R.self is T
+func isChildSubtype<T>(of _: T.Type) -> Bool {
+	return Child.self is T
 }
 
-rIsSubtype(of: P.Type.self) //=> false
-
-R.self is Any.Type //=> Always true
-R.self is P.Type   //=> true
-R.self is R.Type   //=> true
+isChildSubtype(of: Parent.Type.self) //=> false
 ```
 
 We also believe that this issue is the reason why the current global functions `sizeof`, `strideof` and `alignof` make use of generic `<T>(_: T.Type)` declaration notation instead of `(_: Any.Type)`.
 
+### Magical members
+
+There were the following "magical" members of all types/instances:
+
+* `.dynamicType`, which was replaced with `type(of:)` function by SE-0096.
+* `.Type` and `.Protocol`, which we propose to remove, see below.
+* `.Self`, which acts like an `associatedtype`.
+* `.self`, which will be reviewed in a separate proposal.
+
+The tendency is to remove "magical" members: with this proposal there will only be `.Self` (does not count) and `.self`.
+
+Also, `.Type` notation works like a generic type, and giving it generic syntax seems to be a good idea (unification).
+
 ## Proposed solution
 
-* Rename any occurrence of `T.Type` and `T.Protocol` to `Metatype<T>`.
-* Revise metatypes internally. 
-* When `T` is a protocol, `T.self` should always return an instance of `Metatype<T>` (old `T.Type`) and never a `T.Protocol`. Furthermore, metatypes should reflect the same type relationship behavior like the actual types themselves. 
-* To match the correct meaning and usage of the noun 'Metatype' from this proposal, we also propose to rename the global function from **SE-0096**:
-
-	* before: `public func type<T>(of instance: T) -> T.Type`
-	* after: `public func metatype<T>(of instance: T) -> Metatype<T>`
-
-### Examples:
-
-```swift
-protocol P {}
-protocol R : P {}
-class A : P {}
-class B : A, R {}
-
-func `is`<T>(metatype: Metatype<Any>, also _: Metatype<T> ) -> Bool {
-	return metatype is Metatype<T>
-}
-
-`is`(metatype: R.self, also: Any.self) //=> true | Currently: false
-`is`(metatype: R.self, also: P.self)   //=> true | Currently: false
-`is`(metatype: R.self, also: R.self)   //=> true
-
-`is`(metatype: B.self, also: Any.self) //=> true | Currently: false
-`is`(metatype: B.self, also: P.self)   //=> true | Currently: false
-`is`(metatype: B.self, also: R.self)   //=> true | Currently: false
-`is`(metatype: B.self, also: A.self)   //=> true
-`is`(metatype: B.self, also: B.self)   //=> true
-
-func cast<T>(metatype: Metatype<Any>, to _: Metatype<T>) -> Metatype<T>? {
-	return metatype as? Metatype<T>
-}
-
-cast(metatype: R.self, to: Any.self)     //=> an Optional<Metatype<Any>> | Currently: nil
-cast(metatype: R.self, to: P.self)       //=> an Optional<Metatype<P>>   | Currently: nil
-cast(metatype: R.self, to: R.self)       //=> an Optional<Metatype<R>>   | Currently: an Optional<R.Protocol>
-
-let anyR: Any.Type = R.self
-let r = cast(metatype: anyR, to: R.self) //=> an Optional<Metatype<R>>   | Currently: an Optional<R.Protocol>
-
-cast(metatype: B.self, to: Any.self)     //=> an Optional<Metatype<Any>> | Currently: nil
-cast(metatype: B.self, to: P.self)       //=> an Optional<Metatype<P>>   | Currently: nil
-cast(metatype: B.self, to: R.self)       //=> an Optional<Metatype<R>>   | Currently: nil
-cast(metatype: B.self, to: A.self)       //=> an Optional<Metatype<A>>
-cast(metatype: B.self, to: B.self)       //=> an Optional<Metatype<B>>
-
-let pB: P.Type = B.self
-let b = cast(metatype: pB, to: B.self)   //=> an Optional<Metatype<B>>
-```
+* Remove `P.Protocol` type without a replacement. `P.self` will never return a `P.Protocol`.
+* Rename `T.Type` to `Metatype<T>`.
+* Rename `type(of:)` function from SE-0096 to `metatype(of:)`.
 
 ## Impact on existing code
 
-This is a source-breaking change that can be automated by a migrator. Any occurrence of `T.Type` or `T.Protocol` will be simply renamed to `Metatype<T>`.
+This is a source-breaking change that can be automated by a migrator. All occurrences of `T.Type` and `T.Protocol` will be changed to `Metatype<T>`. All usages of `type(of:)` will be changed to `metatype(of:)`
 
 ## Alternatives considered
 
-* Alternatively it's reasonable to consider to rename `T.self` to `T.metatype`.
-* It was considered to reserve `Type<T>` for different usage in the future.
+* Rename `T.self` to `T.metatype`. However, this can be proposed separately.
+* Use `Type<T>` instead of `Metatype<T>`. However, `Metatype` is more precise here.
