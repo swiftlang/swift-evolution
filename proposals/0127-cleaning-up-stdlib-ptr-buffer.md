@@ -19,9 +19,9 @@ The Swift standard library has been thoroughly updated to follow the new API gui
 the few places that need to be updated in pointer and buffer APIs:
 
 - `withUnsafe[Mutable]Pointer`'s `arg` argument should have a `to:` label ([SR-1937](https://bugs.swift.org/browse/SR-1937))
-- `withUnsafePointer`'s `arg` argument should no longer be `inout` as it requires 
-creation of temporary `var`s ([SR-1956](https://bugs.swift.org/browse/SR-1956)).
-- `unsafeAddressOf` should be removed since there is a limited number of use cases and there are better alternatives to it ([SR-1957](https://bugs.swift.org/browse/SR-1937)).
+- `withUnsafe[Mutable]Pointers` (multiple pointers) functions should be removed.
+- `unsafeAddressOf` should be removed since there is a limited number of use cases and there are 
+better alternatives to it ([SR-1957](https://bugs.swift.org/browse/SR-1937)).
 - `ManagedProtoBuffer` should be removed. It is a superclass of `ManagedBuffer` and its
 sole purpose is to conceal the `header` property during invocation of the closure 
 creating the initial header in `ManagedBuffer.create` since the `header` isn't 
@@ -33,22 +33,25 @@ prevent something that should be considered programmer's error.
 `withUnsafe[Mutable]Pointer` methods will now include `to:` argument label:
 
 ```
-withUnsafePointer(to: x) { (ptr) -> Void in
+withUnsafePointer(to: &x) { (ptr) -> Void in
 	// ...
 }
 ```
 
 ---
 
-Also, the non-mutable `withUnsafePointer`'s arguments will no longer be `inout`, 
-allowing the following:
+The multiple-pointer variations of the methods (`withUnsafe[Mutable]Pointers`) should
+be removed since the use cases in which they can be used are very limited and their use can be
+easily worked around by using nested calls to the single-pointer variants:
 
 ```
-// This needs to be var in Swift 2.x
-let x = NSObject() 
+var x = NSObject() 
+var y = NSObject() 
 
-withUnsafePointer(to: x) { (ptr) -> Void in
-	/// ...
+withUnsafePointer(to: &x) { (ptrX) -> Void in
+	withUnsafePointer(to: &y) { (ptrY) -> Void in
+		/// ...
+	}
 }
 ```
 
@@ -72,8 +75,8 @@ will be moved onto `ManagedBuffer` instead.
 ## Impact on existing code
 
 `withUnsafe[Mutable]Pointer` usage will need to be updated to include the `to:` label
-and the non-mutable version will need to have the `&` reference removed since it will
-no longer be `inout`.
+and the multi-pointer versions will need to be removed by the user and nested calls to single-pointer 
+variants need to be used instead.
 
 Use of `unsafeAddressOf(x)` will need to be changed to `ObjectIdentifier(x).unsafeAddress`
  instead.
@@ -84,7 +87,16 @@ referenced in the code as an explicit type. Such occurrences can be renamed to
 
 ## Alternatives considered
 
-- Keeping the argument of `withUnsafePointer` as `inout`.
+- `withUnsafePointer`'s argument is currently marked as `inout` which allows the function
+to provide the same address even for non-object values that are passed in as reference.
+This, however, may lead to unnecessary creation of `var` variables, instead of keeping
+them as immutable (`let`). Discussion on the mailing list brought up two suggestions:
+	- eliminate `withUnsafePointer` altogether and only keep the mutable `withUnsafeMutablePointer`
+	  variant since it can be used instead of the immutable variant in all use cases. This change
+	  would, however, conceal the caller's intention of what is going to be done with the pointer.
+	- The second suggestion was to introduce two variants of `withUnsafePointer` - one that maintains
+	  current behavior and one that that doesn't require `inout` argument. This has been viewed on as 
+	  an additive change not in scope for Swift 3.
 - Remove `unsafeAddressOf` and use `Unmanaged.takeUnretainedValue(_:)` instead. This,
 however, requires the caller to deal with retain logic for something as simple as
 getting an object address.
