@@ -128,7 +128,7 @@ just loads it via JavaScript. Hence, the following declaration isn't used.
 <proposal id="0118" status="implemented" swift-version="3" name="Closure Parameter Names and Labels" filename="0118-closure-parameter-names-and-labels.md"/>
 <proposal id="0119" status="rejected" name="Remove access modifiers from extensions" filename="0119-extensions-access-modifiers.md"/>
 <proposal id="0120" status="accepted" name="Revise `partition` Method Signature" filename="0120-revise-partition-method.md"/>
-<proposal id="0121" status="accepted" name="Remove `Optional` Comparison Operators" filename="0121-remove-optional-comparison-operators.md"/>
+<proposal id="0121" status="implemented" swift-version="3" name="Remove `Optional` Comparison Operators" filename="0121-remove-optional-comparison-operators.md"/>
 <proposal id="0122" status="active" name="Use colons for subscript declarations" filename="0122-use-colons-for-subscript-type-declarations.md"/>
 <proposal id="0123" status="rejected" name="Disallow coercion to optionals in operator arguments" filename="0123-disallow-value-to-optional-coercion-in-operator-arguments.md"/>
 <proposal id="0124" status="implemented" swift-version="3" name="`Int.init(ObjectIdentifier)` and `UInt.init(ObjectIdentifier)` should have a `bitPattern:` label" filename="0124-bitpattern-label-for-int-initializer-objectidentfier.md"/>
