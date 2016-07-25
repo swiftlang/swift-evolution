@@ -22,9 +22,9 @@ extension Collection where Element : Collection {  // and similar variants
 
 This proposal renames `flatten()` to `joined()` (with no separator argument). It also adds a default separator of `""` to the String-specific version of `joined(separator:)`.
 
-https://github.com/apple/swift/blob/master/stdlib/public/f72a82327b172e1a2979e46cb7a579e3cc2f3bd6/Join.swift
+https://github.com/apple/swift/blob/f72a82327b172e1a2979e46cb7a579e3cc2f3bd6/stdlib/public/core/Join.swift
 https://github.com/apple/swift/blob/c6e828f761fc30f7ce444431de7da52814f96595/stdlib/public/core/String.swift#L769
-https://github.com/apple/swift/blob/master/stdlib/public/f72a82327b172e1a2979e46cb7a579e3cc2f3bd6/Flatten.swift.gyb
+https://github.com/apple/swift/blob/f72a82327b172e1a2979e46cb7a579e3cc2f3bd6/stdlib/public/core/Flatten.swift.gyb
 
 Swift-evolution threads:
 - [[Pitch] Unify joined(separator:) and flatten()](http://thread.gmane.org/gmane.comp.lang.swift.evolution/24707)
