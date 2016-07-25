@@ -1,6 +1,6 @@
-# SR-1961 Change String collection iterators to use custom types instead of IndexIteratorT
+# SR-1961 Change String collection iterators to use custom types instead of IndexIterator<T>
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-NNNN](NNNN-Change String collection iterators to use custom types instead of IndexIteratorT.md)
 * Author: [Michael Gottesman](https://github.com/gottesmm)
 * Status: **Awaiting review**
 * Review manager: TBD
@@ -21,7 +21,7 @@ The solution is to simply gyb the code for IndexingIterator for each one of the 
 
 ## Detailed design
 
-Specifically, IndexingIterator will be extracted into a gyb file and in addition to IndexingIterator, we will use gyb to create the following 3 iterators.
+Specifically, IndexingIterator<T> will be extracted into a gyb file and in addition to IndexingIterator, we will use gyb to create the following 3 iterators.
 
 1. String.CharacterView.CharacterViewIterator
 2. String.UTF16View.UTF16ViewIterator
