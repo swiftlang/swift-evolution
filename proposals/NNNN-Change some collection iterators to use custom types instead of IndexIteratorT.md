@@ -1,17 +1,15 @@
 # Feature name
 
 * Proposal: [SE-NNNN](NNNN-filename.md)
-* Author: [Swift Developer](https://github.com/swiftdev)
+* Author: [Michael Gottesman](https://github.com/gottesmm)
 * Status: **Awaiting review**
 * Review manager: TBD
 
 ## Introduction
 
-A short description of what the feature is. Try to keep it to a
-single-paragraph "elevator pitch" so the reader understands what
-problem this proposal is addressing.  
+Iterators are very important for performance since we use them for for loops. By default collections if they do not provide a custom iterator use IndexingIterator as an iterator. IndexingIterator, while only supporting forward movement, is based on indices which possess the ability to go backwards and forwards. For some indices, backwards iteration adds unnecessary cost/complexity. In order to preserve future flexibility, we want to change certain of the types to use custom types that are essentially just IndexingIterator<T>. Then later on when we want to implement these optimizations, we can do it on the custom type underneath the hood without changing the API/ABI.
 
-Swift-evolution thread: [Discussion thread topic for that proposal](http://news.gmane.org/gmane.comp.lang.swift.evolution)
+Swift-evolution thread: [[Proposal] Change some collection iterators to use custom types instead of IndexIterator<T>](http://article.gmane.org/gmane.comp.lang.swift.evolution/24822)
 
 ## Motivation
 
