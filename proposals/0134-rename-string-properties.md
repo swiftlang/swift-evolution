@@ -1,9 +1,9 @@
-# Rename two properties on String
+# Rename two UTF8-related properties on String
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0134](0134-rename-string-properties.md)
 * Author: [Xiaodi Wu](https://github.com/xwu), [Erica Sadun](https://github.com/erica)
-* Status: **Awaiting review**
-* Review manager: TBD
+* Status: **Active Review July 24...26**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
