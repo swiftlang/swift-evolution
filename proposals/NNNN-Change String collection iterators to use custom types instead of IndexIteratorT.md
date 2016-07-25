@@ -1,4 +1,4 @@
-# Feature name
+# SR-1961 Change String collection iterators to use custom types instead of IndexIteratorT
 
 * Proposal: [SE-NNNN](NNNN-filename.md)
 * Author: [Michael Gottesman](https://github.com/gottesmm)
