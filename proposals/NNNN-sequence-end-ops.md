@@ -609,6 +609,9 @@ public postfix func ..< <Bound: Comparable>(lowerBound: Bound) -> IncompleteRang
 public func ..< <Bound: Comparable>(lowerBound: Bound?, upperBound: Bound?) -> IncompleteRange<Bound>
 ```
 
+Finally, since they are now redundant, `prefix(upTo:)`, 
+`prefix(through:)`, and `suffix(from:)` will be removed.
+
 #### Actual design
 
 The actual design varies from the ideal one in four ways:
@@ -697,9 +700,8 @@ extension RangeExpression {
 }
 ```
 
-A full working prototype of the actual design, including both 
-`RangeExpression` and the `IncompleteRange` types, is available 
-[on GitHub](https://github.com/brentdax/swift/tree/incomplete-range).
+A full working prototype of `RangeExpression` and the `IncompleteRange` 
+types is available [in this pull request](https://github.com/apple/swift/pull/3737).
 
 ## Impact on existing code
 
