@@ -1,9 +1,9 @@
 # Rationalizing Sequence end-operation names
 
-* Proposal: [SE-NNNN](NNNN-sequence-end-op.md)
-* Author: [Brent Royal-Gordon](https://github.com/brentdax), [Dave Abrahams](https://github.com/dabrahams)
-* Status: **Awaiting Review**
-* Review manager: TBD
+* Proposal: [SE-0132](0132-sequence-end-ops.md)
+* Authors: [Brent Royal-Gordon](https://github.com/brentdax), [Dave Abrahams](https://github.com/dabrahams)
+* Status: **Active Review July 24...26**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 

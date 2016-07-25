@@ -1,9 +1,9 @@
 # Rename `flatten()` to `joined()`
 
-* Proposal: [SE-NNNN](NNNN-rename-flatten-to-joined.md)
+* Proposal: [SE-0133](0133-rename-flatten-to-joined.md)
 * Author: [Jacob Bandes-Storch](https://github.com/jtbandes)
-* Status: **Awaiting review**
-* Review manager: TBD
+* Status: **Active Review July 24...26**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
