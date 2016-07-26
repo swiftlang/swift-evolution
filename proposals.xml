@@ -134,7 +134,7 @@ just loads it via JavaScript. Hence, the following declaration isn't used.
 <proposal id="0124" status="implemented" swift-version="3" name="`Int.init(ObjectIdentifier)` and `UInt.init(ObjectIdentifier)` should have a `bitPattern:` label" filename="0124-bitpattern-label-for-int-initializer-objectidentfier.md"/>
 <proposal id="0125" status="accepted" name="Remove `NonObjectiveCBase` and `isUniquelyReferenced`" filename="0125-remove-nonobjectivecbase.md"/>
 <proposal id="0126" status="rejected" name="Refactor Metatypes, repurpose `T.self` and `Mirror`" filename="0126-refactor-metatypes-repurpose-t-dot-self-and-mirror.md"/>
-<proposal id="0127" status="active" name="Cleaning up stdlib Pointer and Buffer Routines" filename="0127-cleaning-up-stdlib-ptr-buffer.md"/>
+<proposal id="0127" status="accepted" name="Cleaning up stdlib Pointer and Buffer Routines" filename="0127-cleaning-up-stdlib-ptr-buffer.md"/>
 <proposal id="0128" status="accepted" name="Change failable UnicodeScalar initializers to failable" filename="0128-unicodescalar-failable-initializer.md"/>
 <proposal id="0129" status="active" name="Package Manager Test Naming Conventions" filename="0129-package-manager-test-naming-conventions.md"/>
 <proposal id="0130" status="accepted" name="Replace repeating `Character` and `UnicodeScalar` forms of String.init" filename="0130-string-initializers-cleanup.md"/>
