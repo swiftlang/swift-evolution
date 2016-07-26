@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0128](0128-unicodescalar-failable-initializer.md)
 * Author: Xin Tong
-* Status: **Active Review July 21...24**
+* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000259.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
