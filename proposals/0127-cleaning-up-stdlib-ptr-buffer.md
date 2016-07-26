@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0127](0127-cleaning-up-stdlib-ptr-buffer.md)
 * Author: [Charlie Monroe](https://github.com/charlieMonroe)
-* Status: **Active Review July 20...24**
+* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000262.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
