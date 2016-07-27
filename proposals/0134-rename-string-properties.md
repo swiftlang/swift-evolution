@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0134](0134-rename-string-properties.md)
 * Author: [Xiaodi Wu](https://github.com/xwu), [Erica Sadun](https://github.com/erica)
-* Status: **Active Review July 24...26**
+* Status: **Accepted with Revision** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000266.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction

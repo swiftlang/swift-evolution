@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0133](0133-rename-flatten-to-joined.md)
 * Author: [Jacob Bandes-Storch](https://github.com/jtbandes)
-* Status: **Active Review July 24...26**
+* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000265.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction

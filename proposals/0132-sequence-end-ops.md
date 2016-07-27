@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0132](0132-sequence-end-ops.md)
 * Authors: [Brent Royal-Gordon](https://github.com/brentdax), [Dave Abrahams](https://github.com/dabrahams)
-* Status: **Active Review July 24...26**
+* Status: **Deferred from Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000267.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
