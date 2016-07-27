@@ -110,7 +110,7 @@ NSNumberFormatter | NumberFormatter |
 NSOperatingSystemVersion | OperatingSystemVersion |
 NSOperation | Operation |
 NSOperationQueue | OperationQueue |
-NSOutputStream | OutputStream | The Swift standard library has a type named `OutputStream` which will be renamed to `OutputStreamable`.
+NSOutputStream | OutputStream | The Swift standard library has a type named `OutputStream` which will be renamed to `TextOutputStream`.
 NSPersonNameComponentsFormatter | PersonNameComponentsFormatter |
 NSPipe | Pipe |
 NSPort | Port |
@@ -160,7 +160,7 @@ NSXMLDTDNode | XMLDTDNode |
 NSXMLElement | XMLElement |
 NSXMLNode | XMLNode |
 NSXMLParser | XMLParser |
-NSXMLParserDelegate | XMLParserDelegate | 
+NSXMLParserDelegate | XMLParserDelegate |
 
 ### Hoisted types
 
@@ -304,7 +304,7 @@ extension ComparisonPredicate {
         public static var diacriticInsensitive: ComparisonPredicate.Options { get }
         public static var normalized: ComparisonPredicate.Options { get }
     }
-    
+
     public enum Modifier : UInt {
         case direct
         case all
@@ -469,7 +469,7 @@ extension String {
 	public struct Encoding : RawRepresentable {
 		public var rawValue: UInt
 		public init(rawValue: UInt)
-		
+
 		public static var ascii { get }
 		public static var nextstep { get }
 		public static var japaneseEUC { get }
