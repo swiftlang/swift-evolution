@@ -25,7 +25,7 @@ just loads it via JavaScript. Hence, the following declaration isn't used.
 <proposal id="0015" status="implemented" swift-version="2.2" name="Tuple comparison operators" filename="0015-tuple-comparison-operators.md"/>
 <proposal id="0016" status="implemented" swift-version="3" name="Adding initializers to Int and UInt to convert from UnsafePointer and UnsafeMutablePointer" filename="0016-initializers-for-converting-unsafe-pointers-to-ints.md"/>
 <proposal id="0017" status="implemented" swift-version="3" name="Change `Unmanaged` to use `UnsafePointer`" filename="0017-convert-unmanaged-to-use-unsafepointer.md"/>
-<proposal id="0018" status="returned" name="Flexible Memberwise Initialization" filename="0018-flexible-memberwise-initialization.md"/>
+<proposal id="0018" status="deferred" name="Flexible Memberwise Initialization" filename="0018-flexible-memberwise-initialization.md"/>
 <proposal id="0019" status="implemented" swift-version="3" name="Swift Testing" filename="0019-package-manager-testing.md"/>
 <proposal id="0020" status="implemented" swift-version="2.2" name="Swift Language Version Build Configuration" filename="0020-if-swift-version.md"/>
 <proposal id="0021" status="implemented" swift-version="2.2" name="Naming Functions with Argument Labels" filename="0021-generalized-naming.md"/>
@@ -37,7 +37,7 @@ just loads it via JavaScript. Hence, the following declaration isn't used.
 <proposal id="0027" status="rejected" name="Expose code unit initializers on String" filename="0027-string-from-code-units.md"/>
 <proposal id="0028" status="implemented" swift-version="3" name="Modernizing Swift's Debugging Identifiers (__FILE__, etc)" filename="0028-modernizing-debug-identifiers.md"/>
 <proposal id="0029" status="implemented" swift-version="3" name="Remove implicit tuple splat behavior from function applications" filename="0029-remove-implicit-tuple-splat.md"/>
-<proposal id="0030" status="returned" name="Property Behaviors" filename="0030-property-behavior-decls.md"/>
+<proposal id="0030" status="deferred" name="Property Behaviors" filename="0030-property-behavior-decls.md"/>
 <proposal id="0031" status="implemented" swift-version="3" name="Adjusting inout Declarations for Type Decoration" filename="0031-adjusting-inout-declarations.md"/>
 <proposal id="0032" status="implemented" swift-version="3" name="Add `first(where:)` method to `SequenceType`" filename="0032-sequencetype-find.md"/>
 <proposal id="0033" status="implemented" swift-version="3" name="Import Objective-C Constants as Swift Types" filename="0033-import-objc-constants.md"/>
