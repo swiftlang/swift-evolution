@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0120](0120-revise-partition-method.md)
 * Authors: [Lorenzo Racca](https://github.com/lorenzoracca), [Jeff Hajewski](https://github.com/j-haj), [Nate Cook](https://github.com/natecook1000)
-* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000242.html))
+* Status: **Implemented** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000242.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 * Revision: 2 (Previous: [1](https://github.com/apple/swift-evolution/blob/1dcfd35856a6f9c86af2cf7c94a9ab76411739e3/proposals/0120-revise-partition-method.md))
 
