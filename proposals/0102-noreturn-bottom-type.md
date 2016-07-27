@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0102](0102-noreturn-bottom-type.md)
 * Author: [Joe Groff](https://github.com/jckarter)
-* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000205.html))
+* Status: **Implemented in Swift 3.0** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000205.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
