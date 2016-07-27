@@ -4,7 +4,7 @@
 * Authors: [Javier Soto](https://github.com/JaviSoto), [John McCall](https://github.com/rjmccall)
 * Status: **Active Review July 21...25** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000247.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
-* Previous Revision: [Revision 1](https://github.com/apple/swift-evolution/blob/2989538daa1640cfa6a56f80b5c7599967af0905/proposals/0117-non-public-subclassable-by-default.md) [Revision 2](https://github.com/apple/swift-evolution/blob/2989538daa1640cfa6a56f80b5c7599967af0905/proposals/0117-non-public-subclassable-by-default.md)
+* Previous Revision: [Revision 1](https://github.com/apple/swift-evolution/blob/367086f18a5deaf8f9dfbe3f5a4846ef19addf38/proposals/0117-non-public-subclassable-by-default.md) [Revision 2](https://github.com/apple/swift-evolution/blob/2989538daa1640cfa6a56f80b5c7599967af0905/proposals/0117-non-public-subclassable-by-default.md) [Revision 3](https://github.com/apple/swift-evolution/blob/15c18d24adb7e701ae831b643e0803f1b6e601d9/proposals/0117-non-public-subclassable-by-default.md)
 
 ## Introduction
 
@@ -15,11 +15,13 @@ Similarly, marking a class member (a method, property, or subscript)
 `public` has provided two capabilities: it allows other modules to
 use the member, and it also allows those modules to override it.
 
-This proposal suggests distinguishing these concepts.  A `public`
-member will only be *usable* by other modules, but not *overridable*.
-An `open` member will be *both usable and overridable*.  Similarly,
-a `public` class will only be *usable* by other modules, but not
-*subclassable*.  An `open` class will be *both usable and subclassable*.
+This proposal suggests distinguishing these concepts.  It creates a new
+access level `open` beyond `public`; for now, `open` can only be used
+on classes and overridable class members.  A `public` class will only
+be *usable* by other modules, but not *subclassable*.  An `open` class
+will be *both usable and subclassable*.  Similarly, a `public` member will
+only be *usable* by other modules, but not *overridable*.  An `open`
+member will be *both usable and overridable*.
 
 This spirit of this proposal is to allow one to distinguish these cases while
 keeping them at the same level of support: it does not adversely affect code
@@ -133,99 +135,75 @@ public subclassing.
 
 ## Proposed design
 
-Introduce a new declaration modifier, `open` (other spellings are discussed
-in the Alternatives section below).
+Introduce a new access modifier, `open` (other spellings are discussed
+in the Alternatives section below).  As usual, this access modifier
+is exclusive with the other access modifiers; it is not permitted
+to write something like `public open`.
 
-`open` is permitted only on `class` declarations and overridable
-class members (i.e. `var`, `func`, and `subscript`).
+`open` is a context-sensitive keyword; there are no restrictions on
+using or creating declarations with the name `open`.
 
-`open` is not permitted on declarations that are explicitly `final`
-or `dynamic`.  (Note that it's okay if one or both of the modifiers
-are implicitly inferred.)
+`open` is not permitted on arbitrary declarations.  Only the specific
+declarations mentioned here may be `open`.
 
-If a declaration that is explicitly `open` does not have any other
-explicit access control, it is implicitly `public`.  This promotes
-a mental model where programmers may think of `open` and `public`
-as two alternative ways of making a declaration externally visible.
-It also significantly reduces the boilerplate of `open` declarations.
+For the purposes of interpreting existing language rules, `open`
+is a higher (more permissive) access level above `public`.
+
+For example, the true access level of a type member is computed as
+the minimum of the true access level of the type and the declared
+access level of the member.  If the class is `public` but the member
+is `open`, the true access level is `public`.  As an exception to
+this rule, the true access level of an `open` class that is a member
+of an `public` type is `open`.
+
+Similarly, rules which grant access to `public` declarations should
+generally be interpreted as granting access to both `public` and
+`open` declarations.
+
+### `open` classes
+
+A class may be declared `open`.
+
+A class is invalid if its superclass is declared outside of the
+current module and that superclass's access level is not `open`.
+
+An `open` class may not also be declared `final`.
 
 ### `open` class members
 
-A class member that overrides an `open` class member must be
-explicitly declared `open` unless it is explicitly `final` or
-it is a member of a `final` or non-`public` class.  In any case,
-it is considered `open`.
+An overridable class member may be declared `open`.  Overridable
+class members include properties, subscripts, and methods.
 
-A class member that is not `open` cannot be overridden outside
-of the current module.
+A class member that overrides a member of its superclass is invalid
+if the member is declared outside of the current module and that
+superclass member's access level is not `open`.  (Note that
+`dynamic` members should generally be declared `open` rather
+than `public`, but this is not a requirement, and the compiler
+will enforce what is actually declared.)
+
+A class member that is explicitly declared `open` may not also be
+explicitly declared `final`.  This restriction applies even if the
+method's true access level is lower than `open` because of the
+restricted access level of its class.
+
+The existing rules specify that a class member that overrides
+a member of its superclass must have an access level that is at
+least the minimum of its class's access level and the overridden
+member's access level.  Therefore, if the class is `open`, and the
+superclass method is `open`, the override must also be declared
+`open.  As a special case, an override that would otherwise be
+required to be declared `open` may instead be declared `public`
+if it is `final` or a member of a `final` class.
 
 An `open` class member that is inherited from a superclass is
 still considered `open` in the subclass unless the class is
 `final`.
 
-Note that a class member may be `open` even if its class is not
-`open` or even `public`.  This is consistent with the resolution
-of SE-0025, in which it was decided that `public` members should be
-allowed within less-visible types and the wider visibility was
-simply ignored.
-
-### `open` classes
-
-There are two designs under consideration here.
-
-The first design says that classes work analogously to members.
-A `public` class is not subclassable outside of the module, but
-an `open` class is.  Benefits:
-
-  - It's more consistent with explicit disclosure.
-
-  - The library author can decline to commit to either `final` or
-    `open` in their initial development/release if they aren't
-    certain which way they want to go.  (`final` is an irrevocable
-    decision for source- and binary-compatibility.)
-
-  - This permits the creation of class hiearchies that are
-    `public` but not publically extensible.  For example, this
-    would be the natural direct translation of the compiler's
-    own AST data structure.  While this use cases exists, it is not
-    currently considered to be an important enough to complicate the
-    language for.
-
-  - This permits language enhancements which rely on knowing the
-    full class hierarchy.  Otherwise, these become limited 
-    on knowing that a class is `final` or non-`public`.
-
-  - This permits performance enhancements which rely on knowing
-    the full class hierarchy or that a class cannot be subclassed.
-    For example, the compiler can avoid emitting the variants of
-    designated initializers that are intended to be called from
-    subclasses.  It would also be much easier to do optimizations
-    like devirtualizing calls to `open` methods from superclasses
-    or specializing the virtual dispatch tables for a known
-    most-derived class.  However, these are relatively less
-    important than the corresponding benefits from restricting
-    overrides.
-
-The second design says that there is no such thing as an `open`
-class because all classes are subclassable unless made `final`.
-Note that its direct methods would still not be overridable
-unless individually made `open`, although its inherited `open`
-methods could still be overridden.  Benefits:
-
-  - Removes the added complexity of having the concept of non-`open`,
-    non-`final` classes.
-
-  - `open` would exist only on overridable members, potentially simplifying
-    the programmer's mental model.
-
-  - Permits the creation of "compositional" subclasses that
-    add extra state and associated API as long as the superclass
-    hasn't explicitly made itself `final`.
-
-The lengths of these lists are quite imbalanced, but that should
-not itself be considered an argument.  Most of the benefits of the
-first design are relatively minor, and eliminating language
-complexity is good.
+Note that a class member may be explicitly declared `open` even
+if its class is not `open` or even `public`.  This is consistent
+with the resolution of SE-0025, in which it was decided that
+`public` members should be allowed within types with lower access
+(but with no additional effect).
 
 ### Temporary restrictions on `open`
 
@@ -243,39 +221,38 @@ the synthesized header for an Objective-C class would pervasively replace
 The `@testable` design states that tests have the extra access
 permissions of the modules that they import for testing.  Accordingly,
 this proposal does not change the fact that tests are allowed to
-subclass non-final types and override non-final methods from the modules
-that they `@testable import`.
+subclass non-final `internal` and `public` classes and override
+non-final `internal` and `public` methods from the modules that\
+they `@testable import`.
 
 ## Code examples
 
 ```swift
 /// ModuleA:
 
-// Under the open-class proposal, this class is not subclassable.
-// Under the no-open-classes proposal, this class is subclassable.
+// This class is not subclassable outside of ModuleA.
 public class NonSubclassableParentClass {
-	// This method is not overridable in either case.
+	// This method is not overridable outside of ModuleA.
 	public func foo() {}
 
-	// This method is overridable if the class itself can be subclassed.
-	// (If it cannot, this is still not an error.)
+	// This method is not overridable outside of ModuleA because
+	// its class restricts its access level.
+	// It is not invalid to declare it as `open`.
 	open func bar() {}
 
 	// The behavior of `final` methods remains unchanged.
 	public final func baz() {}
 }
 
-// Under either proposal, this class would be subclassable.
-// Writing `open` on a class would produce an error under the
-// no-open-classes proposal.
+// This class is subclassable both inside and outside of ModuleA.
 open class SubclassableParentClass {
-	// This property is not overridable.
+	// This property is not overridable outside of ModuleA.
 	public var size : Int
 
-	// This method is not overridable.
+	// This method is not overridable outside of ModuleA.
 	public func foo() {}
 
-	// This method is overridable.
+	// This method is overridable both inside and outside of ModuleA.
 	open func bar() {}
 
 	/// The behavior of a `final` method remains unchanged.
@@ -291,21 +268,36 @@ public final class FinalClass { }
 
 import ModuleA
 
-// Under the no-open-classes proposal, this is invalid because
-// the superclass is not `open`.
+// This is invalid because the superclass is defined outside
+// of the current module but is not `open`.
 class SubclassA : NonSubclassableParentClass { }
 
-// This is allowed since the superclass is subclassable.
+// This is allowed since the superclass is `open`.
 class SubclassB : SubclassableParentClass {
-	// This is invalid because the method is not overridable outside the module.
+	// This is invalid because it overrides a method that is
+	// defined outside of the current module but is not `open'.
 	override func foo() { }
 
 	// This is allowed since the superclass's method is overridable.
-	//
-	// If this class were `public`, this would need to be marked `open` or
-	// `public`, depending on whether it the class is subclassable.
-	// But because it is not `public`, the `open` marker is not required.
+	// It does not need to be marked `open` because it is defined on
+	// an `internal` class.
 	override func bar() { }
+}
+
+open class SubclassC : SubclassableParentClass {
+	// This is invalid because it overrides an `open` method within
+	// an `open` class but is not declared `open`.
+	override func bar() { }	
+}
+
+open class SubclassD : SubclassableParentClass {
+	// This is valid.
+	open override func bar() { }	
+}
+
+open class SubclassE : SubclassableParentClass {
+	// This is also valid.
+	public final override func bar() { }	
 }
 ```
 
@@ -325,6 +317,29 @@ it no longer makes `open` feel second-class by forcing more boilerplate.
 This is consistent with how we've expressed our opinions on, say,
 `let` vs. `var`: it's an extremely casual difference with only occasional
 enforced use of the former.
+
+`open` could be legal only on class members.  Classes would remain
+subclassable outside of the current module unless explicitly made `final`.
+This would prevent the creation of "sealed" class hierarchies because
+allowing subclassing would always allow public subclassing.  It is also
+inconsistent with the general principle that restrictions on future
+evolution be opt-in because it would not be legal to make a class final.
+(Note that it is not legal to make a `final` class non-`final`
+in a future release.)  It also has grave conceptual problems with
+inherited open members of the superclass.
+
+`open` on classes could be interpreted as granting the right to
+override members.  A `public` class would be subclassable, but none
+of its members would be overridable, including inherited members.
+That is, a `public` class could be used as a compositional superclass,
+useful for adding new storage to an existing identity but not for
+messing with its invariants.  This would prevent the creation of
+sealed hierarchies and is inconsistent with the general principle
+that restrictons on future evolution should be opt-in.  Authors would
+have no ability to reserve the right to decide later whether to
+allow subclasses; declaring something `final` is irrevocable.  This
+could be added in a future extension, but it is not the right rule
+for `public`.
 
 `open` could be split into different modifiers for classes and methods.
 An earlier version of this proposal used `subclassable` and `overridable`.
