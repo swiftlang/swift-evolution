@@ -57,7 +57,7 @@ withUnsafePointer(to: &x) { (ptrX) -> Void in
 
 ---
 
-`unsafeAddressOf` is removed. Suggested replacement is to use `Unamanged.passUnretained`.
+`unsafeAddressOf` is removed. Suggested replacement is to use `Unmanged.passUnretained`.
 
 ```
 let obj = NSObject()
