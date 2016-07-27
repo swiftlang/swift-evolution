@@ -102,12 +102,12 @@ Cocoa's error model, including:
   This makes it extremely hard to access common information, such as
   the localized description. Moreover, the ``userInfo`` dictionary is
   effectively untyped so, for example, one has to know a priori that
-  the value associated with the known ``AVErrorDeviceKey`` will be typed
+  the value associated with the known ``AVErrorTimeKey`` will be typed
   as ``CMTime``:
 
   ```swift
   catch let error as NSError where error._domain = AVFoundationErrorDomain {
-    if let time = error.userInfo[AVErrorDeviceKey] as? CMTime {
+    if let time = error.userInfo[AVErrorTimeKey] as? CMTime {
       // ...
     }
   }
@@ -144,7 +144,7 @@ Cocoa's error model, including:
   func handleError(_ error: NSError, userInteractionPermitted: Bool)
   ```
 
-  One would expect the first parameter to be imported as ``ErrorProtocol``. 
+  One would expect the first parameter to be imported as ``ErrorProtocol``.
 
 ## Proposed solution
 
@@ -339,7 +339,7 @@ extension LocalizedError {
 }
 ```
 
-The ``RecoverableError`` protocol describes an error that might be recoverable: 
+The ``RecoverableError`` protocol describes an error that might be recoverable:
 
 ```swift
 protocol RecoverableError : Error {
@@ -724,7 +724,7 @@ We do not propose that ``_ObjectiveCBridgeableError`` become a public
 protocol, because the core team has already deferred a similar
 proposal
 ([SE-0058](https://github.com/apple/swift-evolution/blob/master/proposals/0058-objectivecbridgeable.md))
-to make the related protocol ``_ObjectiveCBridgeable`` public. 
+to make the related protocol ``_ObjectiveCBridgeable`` public.
 
 ## Other Issues
 
