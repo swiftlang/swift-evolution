@@ -4,10 +4,11 @@
 * Author: [Xiaodi Wu](https://github.com/xwu), [Erica Sadun](https://github.com/erica)
 * Status: **Accepted with Revision** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000266.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
+* Previous revision: [[`1`]](https://github.com/apple/swift-evolution/blob/aea8b836d21051076663c5692ec1d09bb3222527/proposals/0134-rename-string-properties.md)
 
 ## Introduction
 
-This proposal renames `nulTerminatedUTF8` and `nulTerminatedUTF8CString` to enhance clarity and reduce mismatch between user expectations and the Swift programming language.
+This proposal removes `nulTerminatedUTF8` and renames `nulTerminatedUTF8CString` to enhance clarity and reduce mismatch between user expectations and the Swift programming language.
 
 Swift-evolution thread: [Discussion thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/24955)
 
@@ -18,23 +19,23 @@ Both `nulTerminatedUTF8` and `nulTerminatedUTF8CString` are poorly named for the
 * **Inappropriate abbreviation of a term of art**: The ASCII names for \0 are "null character" or "null terminator". Both properties instead use the ASCII abbreviation "NUL" in place of the English word "null". A Google search returned approximately 20,000 results for "NUL-terminated string" and approximately 200,000 results for "null-terminated string".
 * **Impaired recognition**: "NUL" is less recognizable than "null". Further, "NUL" suffers from reduced recognition when written in lowercase: `nulTerminated`.
 * **Hindered source completion**: When using source editor completion, users who type "null" will not find a property named `nulTerminatedUTF8` or `nulTerminatedUTF8CString`.
-* **Redundant terminology**: C strings are terminated by the null character. Using both "C string" and "null-terminated" is redundant and, to some, could unintentionally raise doubts as to whether some C strings might not be null-terminated.
+* **Redundant terminology**: C strings are terminated by the null character. Using both "C string" and "null-terminated" is redundant and, to some, could unintentionally raise questions as to whether some C strings might not be null-terminated.
 
-This proposal favors `null` over `nul` and eliminates the redundancy in `nulTerminatedUTF8CString`.
+This proposal removes `nulTerminatedUTF8` and eliminates the redundancy in `nulTerminatedUTF8CString`.
 
 ## Detailed design
 This proposal introduces the following changes to the Swift standard library:
 
 * Rename `nulTerminatedUTF8CString` to `utf8CString`.
-* Rename `nulTerminatedUTF8` to `nullTerminatedUTF8`.
+* Remove `nulTerminatedUTF8`.
 
 #### `utf8CString`
 
 This property renaming follows the precedent of the related Foundation method `cString(using: .utf8)` and lowercases its leading `utf8`.
 
-####`nullTerminatedUTF8`
+#### `nulTerminatedUTF8`
 
-This property is a null-terminated contiguous array of a string's UTF8 representation. Retaining `nullTerminated` correctly differentiates this property from the `utf8` property on `String`, since `Array<UInt8>(str.utf8)` has precisely one fewer element than `str.nulTerminatedUTF8` (that element being the null character).
+This property is a null-terminated contiguous array of a string's UTF8 representation. The core team has indicated that clients would be better served by using the `utf8CString` property and has concluded that `nulTerminatedUTF8` should be removed outright.
 
 ## Impact on existing code
 
