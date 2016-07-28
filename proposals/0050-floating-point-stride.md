@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0050](0050-floating-point-stride.md)
 * Authors: [Erica Sadun](http://github.com/erica), [Xiaodi Wu](http://github.com/xwu)
-* Status: **Returned for revision** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/19060))
+* Status: **Withdrawn** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/19060))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 Swift strides create progressions along "notionally continuous one-dimensional values" using a series of offset values. This proposal supplements Swift's generic stride implementation with separate algorithms for floating point strides that avoid error accumulation.
