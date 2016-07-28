@@ -4,7 +4,7 @@
 * Author: [Xiaodi Wu](https://github.com/xwu), [Erica Sadun](https://github.com/erica)
 * Status: **Accepted with Revision** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000266.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
-* Previous revision: [[`1`]](https://github.com/apple/swift-evolution/blob/aea8b836d21051076663c5692ec1d09bb3222527/proposals/0134-rename-string-properties.md)
+* Previous revision: [\[1\]](https://github.com/apple/swift-evolution/blob/aea8b836d21051076663c5692ec1d09bb3222527/proposals/0134-rename-string-properties.md)
 
 ## Introduction
 
