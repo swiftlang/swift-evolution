@@ -84,7 +84,7 @@ just loads it via JavaScript. Hence, the following declaration isn't used.
 <proposal id="0074" status="rejected" name="Implementation of Binary Search functions" filename="0074-binary-search.md"/>
 <proposal id="0075" status="accepted" name="Adding a Build Configuration Import Test" filename="0075-import-test.md"/>
 <proposal id="0076" status="implemented" swift-version="3" name="Add overrides taking an UnsafePointer source to non-destructive copying methods on UnsafeMutablePointer" filename="0076-copying-to-unsafe-mutable-pointer-with-unsafe-pointer-source.md"/>
-<proposal id="0077" status="accepted" name="Improved operator declarations" filename="0077-operator-precedence.md"/>
+<proposal id="0077" status="implemented" swift-version="3" name="Improved operator declarations" filename="0077-operator-precedence.md"/>
 <proposal id="0078" status="deferred" name="Implement a rotate algorithm, equivalent to std::rotate() in C++" filename="0078-rotate-algorithm.md"/>
 <proposal id="0079" status="deferred" name="Allow using optional binding to upgrade `self` from a weak to strong reference" filename="0079-upgrade-self-from-weak-to-strong.md"/>
 <proposal id="0080" status="accepted" name="Failable Numeric Conversion Initializers" filename="0080-failable-numeric-initializers.md"/>
