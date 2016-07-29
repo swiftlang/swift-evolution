@@ -2,13 +2,14 @@
 
 * Proposal: [SE-0077](0077-operator-precedence.md)
 * Author: [Anton Zhilin](https://github.com/Anton3)
-* Status: **Accepted** pending revision ([Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160704/023745.html))
+* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160704/023745.html))
 * Review manager: [Joe Groff](http://github.com/jckarter)
 
 **Revision history**
 
 - **[v1](https://github.com/apple/swift-evolution/blob/40c2acad241106e1cfe697d0f75e1855dc9e96d5/proposals/0077-operator-precedence.md)** Initial version
-- **v2** Updates after core team review
+- **[v2](https://github.com/apple/swift-evolution/blob/1f3ae8bfecb2ba70d30767607f0bd3279feeec90/proposals/0077-operator-precedence.md)** After the first review
+- **v3** After the second review
 
 ## Introduction
 
@@ -19,11 +20,11 @@ Replace syntax of operator declaration, and replace numerical precedence with pa
 infix operator <> { precedence 100 associativity left }
 
 // After
-precedencegroup ComparativePrecedence {
+precedencegroup ComparisonPrecedence {
   associativity: left
-  strongerThan: LogicalAndPrecedence
+  higherThan: LogicalConjunctionPrecedence
 }
-infix operator <> : ComparativePrecedence
+infix operator <> : ComparisonPrecedence
 ```
 
 [Swift-evolution discussion thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160328/014062.html)
@@ -86,7 +87,7 @@ infix operator - : Additive
 Concept of a single precedence hierarchy is removed.
 Instead, to omit parentheses in expression with two neighbouring `infix` operators, precedence relationship *must* be defined between their precedence groups.
 
-It is performed by adding `strongerThan` clause, see example:
+It is performed by adding `higherThan` clause, see example:
 
 ```swift
 precedencegroup Additive {
@@ -94,7 +95,7 @@ precedencegroup Additive {
 }
 precedencegroup Multiplicative {
   associativity: left
-  strongerThan: Additive
+  higherThan: Additive
 }
 precedencegroup BitwiseAnd {
   associativity: left
@@ -117,7 +118,7 @@ Compiler will apply transitivity axiom to compare precedence of two given preced
 ```swift
 precedencegroup Exponentiative {
   associativity: left
-  greaterThan: Multiplicative
+  higherThan: Multiplicative
 }
 infix operator ** : Exponentiative
 
@@ -134,7 +135,7 @@ If `infix` operator does not state group that it belongs to, it is assigned to `
 
 ```swift
 precedencegroup DefaultPrecedence {
-  strongerThan: Ternary
+  higherThan: Ternary
 }
 ```
 
@@ -145,27 +146,27 @@ infix operator |> : DefaultPrecedence
 infix operator |>
 ```
 
-### `AssignmentPrecedence`
+### `assignment`
 
 Swift 2.2 has `assignment` modifier that works as follows: an operator marked `assignment` gets folded into an optional chain,
 allowing `foo?.bar += 2` to work as `foo?(.bar += 2)` instead of failing to type-check as `(foo?.bar) += 2`.
 
-This trait will be passed to `AssignmentPrecedence` group.
+This behavior will be passed to `assignment: true` on precedence groups.
 
-### `weakerThan` relationship
+### `lowerThan` relationship
 
 There are times when we want to insert an operator below an existing one.
-If that existing operator resides in another module, we can use `weakerThan` relationship. Example:
+If that existing operator resides in another module, we can use `lowerThan` relationship. Example:
 
 ```swift
 // module Swift
-precedencegroup Additive { strongerThan: Range }
-precedencegroup Multiplicative { strongerThan: Additive }
+precedencegroup Additive { higherThan: Range }
+precedencegroup Multiplicative { higherThan: Additive }
 
 // module A
 precedencegroup Equivalence {
-  strongerThan: Comparative
-  weakerThan: Additive  // possible, because Additive lies in another module
+  higherThan: Comparative
+  lowerThan: Additive  // possible, because Additive lies in another module
 }
 infix operator ~ : Equivalence
 
@@ -189,18 +190,18 @@ All precedence relationships must be transitive. If we define `A < B`, `B < C` a
 Two examples:
 
 ```swift
-precedencegroup A { strongerThan: B }
-precedencegroup B { strongerThan: A }
+precedencegroup A { higherThan: B }
+precedencegroup B { higherThan: A }
 // A > B > A
 ```
 
 ```swift
 precedencegroup A { }
-precedencegroup B { strongerThan: A }
+precedencegroup B { higherThan: A }
 
 precedencegroup C {
-  strongerThan: B
-  weakerThan: A
+  higherThan: B
+  lowerThan: A
 }
 // C > B > A > C
 ```
@@ -219,8 +220,8 @@ precedencegroup C { }
 // Module Y
 import X
 precedencegroup B {
-  strongerThan: A
-  weakerThan: C
+  higherThan: A
+  lowerThan: C
 }
 ```
 
@@ -236,10 +237,10 @@ They will be hardcoded in the compiler and assigned to appropriate precedence gr
 
 ```swift
 // NOT valid Swift
-infix operator is : CastPrecedence
-infix operator as : CastPrecedence
-infix operator as? : CastPrecedence
-infix operator as! : CastPrecedence
+infix operator is : CastingPrecedence
+infix operator as : CastingPrecedence
+infix operator as? : CastingPrecedence
+infix operator as! : CastingPrecedence
 infix operator ?: : TernaryPrecedence
 infix operator = : AssignmentPrecedence
 ```
@@ -247,7 +248,7 @@ infix operator = : AssignmentPrecedence
 ### Grammar
 
 `assignment` and `precedence` local keywords will be removed.
-`precedencegroup` keyword, and `strongerThan`, `weakerThan` local keywords will be added.
+`precedencegroup` keyword, and `higherThan`, `lowerThan` local keywords will be added.
 
 *operator-declaration* → *prefix-operator-declaration* | *postfix-operator-declaration* | *infix-operator-declaration*
 
@@ -255,14 +256,17 @@ infix operator = : AssignmentPrecedence
 
 *postfix-operator-declaration* → `postfix` `operator` *operator*
 
-*infix-operator-declaration* → `infix` `operator` *operator* *infix-operator-group<sub>opt</sub>*
+*infix-operator-declaration* → `infix` `operator` *operator* *infix-operator-group*<sub>opt</sub>
 
 *infix-operator-group* → `:` *precedence-group-name*
 
 *precedence-group-declaration* → `precedencegroup` *precedence-group-name* `{` *precedence-group-attributes* `}`
 
-*precedence-group-attributes* → *precedence-group-associativity<sub>opt</sub>*
-*precedence-group-relations<sub>opt</sub>*
+*precedence-group-attributes* → *precedence-group-assignment*<sub>opt</sub>
+*precedence-group-associativity*<sub>opt</sub>
+*precedence-group-relations*<sub>opt</sub>
+
+*precedence-group-assignment* → `assignment` `:` *boolean-literal*
 
 *precedence-group-associativity* → `associativity` `:` *precedence-group-associativity-option*
 
@@ -270,115 +274,123 @@ infix operator = : AssignmentPrecedence
 
 *precedence-group-relations* → *precedence-group-relation* | *precedence-group-relation* *precedence-group-relations*
 
-*precedence-group-relation* → `strongerThan` `:` *precedence-group-name*
+*precedence-group-relation* → `higherThan` `:` *precedence-group-name*
 
-*precedence-group-relation* → `weakerThan` `:` *precedence-group-name*
+*precedence-group-relation* → `lowerThan` `:` *precedence-group-name*
 
 *precedence-group-name* → *identifier*
 
 ### Standard library changes
 
 ```swift
+precedencegroup AssignmentPrecedence {
+  assignment: true
+  associativity: right
+}
+precedencegroup TernaryPrecedence {
+  associativity: right
+  higherThan: AssignmentPrecedence
+}
+precedencegroup DefaultPrecedence {
+  higherThan: TernaryPrecedence
+}
+precedencegroup LogicalDisjunctionPrecedence {
+  associativity: left
+  higherThan: TernaryPrecedence
+}
+precedencegroup LogicalConjunctionPrecedence {
+  associativity: left
+  higherThan: LogicalDisjunctionPrecedence
+}
+precedencegroup ComparisonPrecedence {
+  higherThan: LogicalConjunctionPrecedence
+}
+precedencegroup NilCoalescingPrecedence {
+  associativity: right
+  higherThan: ComparisonPrecedence
+}
+precedencegroup CastingPrecedence {
+  higherThan: NilCoalescingPrecedence
+}
+precedencegroup RangeFormationPrecedence {
+  higherThan: CastingPrecedence
+}
+precedencegroup AdditionPrecedence {
+  associativity: left
+  higherThan: RangeFormationPrecedence
+}
+precedencegroup MultiplicationPrecedence {
+  associativity: left
+  higherThan: AdditionPrecedence
+}
+precedencegroup BitwiseShiftPrecedence {
+  higherThan: MultiplicationPrecedence
+}
+
+postfix operator ++
+postfix operator --
+// postfix operator !
+
+prefix operator ++
+prefix operator --
 prefix operator !
 prefix operator ~
 prefix operator +
 prefix operator -
 
-precedencegroup AssignmentPrecedence {
-}
-precedencegroup TernaryPrecedence {
-  associativity: right
-  strongerThan: AssignmentPrecedence
-}
-precedencegroup DefaultPrecedence {
-  strongerThan: TernaryPrecedence
-}
-precedencegroup LogicalOrPrecedence {
-  associativity: left
-  strongerThan: TernaryPrecedence
-}
-precedencegroup LogicalAndPrecedence {
-  associativity: left
-  strongerThan: LogicalOrPrecedence
-}
-precedencegroup ComparativePrecedence {
-  associativity: left
-  strongerThan: LogicalAndPrecedence
-}
-precedencegroup NilCoalescingPrecedence {
-  associativity: right
-  strongerThan: ComparativePrecedence
-}
-precedencegroup CastPrecedence {
-  associativity: left
-  strongerThan: NilCoalescingPrecedence
-}
-precedencegroup RangePrecedence {
-  strongerThan: CastPrecedence
-}
-precedencegroup AdditivePrecedence {
-  associativity: left
-  strongerThan: RangePrecedence
-}
-precedencegroup MultiplicativePrecedence {
-  associativity(left)
-  strongerThan: AdditivePrecedence
-}
-precedencegroup BitwiseShiftPrecedence {
-  strongerThan: MultiplicativePrecedence
-}
-
 // infix operator = : AssignmentPrecedence
-infix operator *= : AssignmentPrecedence
-infix operator /= : AssignmentPrecedence
-infix operator %= : AssignmentPrecedence
-infix operator += : AssignmentPrecedence
-infix operator -= : AssignmentPrecedence
+infix operator *=  : AssignmentPrecedence
+infix operator /=  : AssignmentPrecedence
+infix operator %=  : AssignmentPrecedence
+infix operator +=  : AssignmentPrecedence
+infix operator -=  : AssignmentPrecedence
 infix operator <<= : AssignmentPrecedence
 infix operator >>= : AssignmentPrecedence
-infix operator &= : AssignmentPrecedence
-infix operator ^= : AssignmentPrecedence
-infix operator |= : AssignmentPrecedence
+infix operator &=  : AssignmentPrecedence
+infix operator ^=  : AssignmentPrecedence
+infix operator |=  : AssignmentPrecedence
 
 // infix operator ?: : TernaryPrecedence
 
-infix operator && : LogicalAndPrecedence
-infix operator || : LogicalOrPrecedence
+infix operator ||  : LogicalDisjunctionPrecedence
 
-infix operator < : ComparativePrecedence
-infix operator <= : ComparativePrecedence
-infix operator > : ComparativePrecedence
-infix operator >= : ComparativePrecedence
-infix operator == : ComparativePrecedence
-infix operator != : ComparativePrecedence
-infix operator === : ComparativePrecedence
-infix operator ~= : ComparativePrecedence
+infix operator &&  : LogicalConjunctionPrecedence
 
-infix operator ?? : NilCoalescingPrecedence
+infix operator <   : ComparisonPrecedence
+infix operator <=  : ComparisonPrecedence
+infix operator >   : ComparisonPrecedence
+infix operator >=  : ComparisonPrecedence
+infix operator ==  : ComparisonPrecedence
+infix operator !=  : ComparisonPrecedence
+infix operator === : ComparisonPrecedence
+infix operator !== : ComparisonPrecedence
+infix operator ~=  : ComparisonPrecedence
 
-// infix operator as : CastPrecedence
-// infix operator as? : CastPrecedence
-// infix operator as! : CastPrecedence
-// infix operator is : CastPrecedence
+infix operator ??  : NilCoalescingPrecedence
 
-infix operator ..< : RangePrecedence
-infix operator ... : RangePrecedence
+// infix operator as : CastingPrecedence
+// infix operator as? : CastingPrecedence
+// infix operator as! : CastingPrecedence
+// infix operator is : CastingPrecedence
 
-infix operator + : AdditivePrecedence
-infix operator - : AdditivePrecedence
-infix operator &+ : AdditivePrecedence
-infix operator &- : AdditivePrecedence
-infix operator | : AdditivePrecedence
-infix operator ^ : AdditivePrecedence
+infix operator ..< : RangeFormationPrecedence
+infix operator ... : RangeFormationPrecedence
 
-infix operator * : MultiplicativePrecedence
-infix operator / : MultiplicativePrecedence
-infix operator % : MultiplicativePrecedence
-infix operator &* : MultiplicativePrecedence
-infix operator & : MultiplicativePrecedence
+infix operator +   : AdditionPrecedence
+infix operator -   : AdditionPrecedence
+infix operator &+  : AdditionPrecedence
+infix operator &-  : AdditionPrecedence
+infix operator |   : AdditionPrecedence
+infix operator ^   : AdditionPrecedence
 
-infix operator << : BitwiseShiftPrecedence
-infix operator >> : BitwiseShiftPrecedence
+infix operator *   : MultiplicationPrecedence
+infix operator /   : MultiplicationPrecedence
+infix operator %   : MultiplicationPrecedence
+infix operator &*  : MultiplicationPrecedence
+infix operator &   : MultiplicationPrecedence
+
+infix operator <<  : BitwiseShiftPrecedence
+infix operator >>  : BitwiseShiftPrecedence
 ```
 
 ## Impact on existing code
@@ -437,8 +449,8 @@ That is, if a constant is of special type, then it will be used only at compile 
 struct PrecedenceGroup {
   enum Associativity { case left, right, none }
   let associativity: Associativity
-  let strongerThan: [StaticString]
-  let weakerThan: [StaticString]
+  let higherThan: [StaticString]
+  let lowerThan: [StaticString]
 }
 let Multiplicative = PrecedenceGroup(.left, [Associativity], [])
 ```
@@ -472,10 +484,11 @@ Cons:
 
 ### Possible syntax variations
 
-Instead of `strongerThan` and `weakerThan`, there could be:
+Instead of `higherThan` and `lowerThan`, there could be:
 - `above` and `below`
 - `upper` and `lower`
 - `greaterThan` and `lessThan`
+- `strongerThan` and `weakerThan`
 - `gt` and `lt`
 - `before` and `after`
 
@@ -492,32 +505,32 @@ precedence Multiplicative {
 ```swift
 precedence Multiplicative {
   associativity: left
-  precedence: strongerThan(Additive)
-  precedence: weakerThan(Exponentiative)
+  precedence: higherThan(Additive)
+  precedence: lowerThan(Exponentiative)
 }
 ```
 
 ```swift
 precedence Multiplicative {
   associativity(left)
-  strongerThan(Additive)
-  weakerThan(Exponentiative)
+  higherThan(Additive)
+  lowerThan(Exponentiative)
 }
 ```
 
 ```swift
 precedence Multiplicative {
   associativity: left,
-  strongerThan: Additive,
-  weakerThan: Exponentiative
+  higherThan: Additive,
+  lowerThan: Exponentiative
 }
 ```
 
 ```swift
 precedence Multiplicative {
   associativity left
-  strongerThan Additive
-  weakerThan Exponentiative
+  higherThan Additive
+  lowerThan Exponentiative
 }
 ```
 
@@ -530,11 +543,11 @@ precedence Multiplicative {
 ```
 
 ```swift
-precedence Multiplicative : associativity(left), strongerThan(Additive), weakerThan(Exponentiative)
+precedence Multiplicative : associativity(left), higherThan(Additive), lowerThan(Exponentiative)
 ```
 
 ```swift
-precedence Multiplicative : associativity left, strongerThan Additive, weakerThan Exponentiative
+precedence Multiplicative : associativity left, higherThan Additive, lowerThan Exponentiative
 ```
 
 ```swift
@@ -556,8 +569,8 @@ precedence Multiplicative : Additive, left
 // Full syntax for complex cases
 precedence Multiplicative {
   associativity left
-  strongerThan Additive
-  weakerThan Exponentiative
+  higherThan Additive
+  lowerThan Exponentiative
 }
 ```
 
@@ -570,17 +583,5 @@ precedence Multiplicative {
   associativity left
   > Additive
   < Exponentiative
-}
-```
-
-## Note from review period
-
-During review, many participants showed preference to the following syntax:
-
-```swift
-precedence Multiplicative {
-  associativity: left
-  above: Additive
-  below: Exponentiative
 }
 ```
