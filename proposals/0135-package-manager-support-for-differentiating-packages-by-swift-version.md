@@ -1,9 +1,9 @@
 # Package Manager Support for Differentiating Packages by Swift version
 
-* Proposal: [SE-NNNN](NNNN-package-manager-support-for-differentiating-packages-by-swift-version.md)
+* Proposal: [SE-0135](0135-package-manager-support-for-differentiating-packages-by-swift-version.md)
 * Author: [Anders Bertelrud](https://github.com/abertelrud)
-* Status: **Awaiting Review**
-* Review manager: TBD
+* Status: **Active Review July 29...August 03**
+* Review manager: [Daniel Dunbar](https://github.com/ddunbar)
 
 ## Introduction
 
