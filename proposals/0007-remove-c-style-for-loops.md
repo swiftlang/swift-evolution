@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0007](https://github.com/apple/swift-evolution/blob/master/proposals/0007-remove-c-style-for-loops.md)
 * Author: [Erica Sadun](https://github.com/erica)
-* Status: **Accepted** for Swift 3.0 ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/11148/), [Swift 2.2 bug](https://bugs.swift.org/browse/SR-226), [Swift 3.0 bug](https://bugs.swift.org/browse/SR-227))
+* Status: **Accepted** for Swift 3.0 ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2015-December/000001.html), [Swift 2.2 bug](https://bugs.swift.org/browse/SR-226), [Swift 3.0 bug](https://bugs.swift.org/browse/SR-227))
 * Review manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction
@@ -17,7 +17,7 @@ language.
 
 The value of this construct is limited and I believe its removal should be seriously considered.
 
-This proposal was discussed on the Swift Evolution list in the [C-style For Loops](http://news.gmane.org/find-root.php?message_id=40642775%2dF58D%2d49B0%2d9BF3%2d38913FD6924C%40ericasadun.com) thread and reviewed in the [\[Review\] Remove C-style for-loops with conditions	and incrementers](http://thread.gmane.org/gmane.comp.lang.swift.evolution/9744/focus=10621) thread.
+This proposal was discussed on the Swift Evolution list in the [C-style For Loops](https://lists.swift.org/pipermail/swift-evolution/2015-December/000053.html) thread and reviewed in the [\[Review\] Remove C-style for-loops with conditions	and incrementers](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151207/000913.html) thread.
 
 ## Advantages of For Loops
 
