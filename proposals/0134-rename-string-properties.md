@@ -10,7 +10,7 @@
 
 This proposal removes `nulTerminatedUTF8` and renames `nulTerminatedUTF8CString` to enhance clarity and reduce mismatch between user expectations and the Swift programming language.
 
-Swift-evolution thread: [Discussion thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/24955)
+Swift-evolution thread: [Discussion thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160718/025378.html)
 
 ## Motivation
 
