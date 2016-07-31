@@ -29,7 +29,7 @@ that is `open`, nor does it dissuade one from using `open` in their APIs. In
 fact, with this proposal, `open` APIs are syntactically lighter-weight than
 `public` ones.
 
-Swift-evolution thread: http://thread.gmane.org/gmane.comp.lang.swift.evolution/21930/
+Swift-evolution thread: https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160627/022354.html
 
 ## Motivation
 
