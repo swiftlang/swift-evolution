@@ -18,7 +18,7 @@ subscript(externalName internalName: ParamType) -> ElementType {
 
 The initial keyword `subscript` is followed by a parameter list, followed by an arrow to the accessed type. This proposal is to replace the arrow with a colon, to match accessor declarations elsewhere in the language.
 
-Swift-evolution thread: [Discussion thread topic for that proposal](http://article.gmane.org/gmane.comp.lang.swift.evolution/23457)
+Swift-evolution thread: [Discussion thread topic for that proposal](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160704/023883.html)
 
 ## Motivation
 
