@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0016](https://github.com/apple/swift-evolution/blob/master/proposals/0016-initializers-for-converting-unsafe-pointers-to-ints.md)
 * Author: [Michael Buckley](https://github.com/MichaelBuckley)
-* Status: **Accepted for Swift 3** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/13429), [Bug](https://bugs.swift.org/browse/SR-1115))
+* Status: **Accepted for Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000083.html), [Bug](https://bugs.swift.org/browse/SR-1115))
 * Review manager: [Chris Lattner](https://github.com/lattner)
 * Revision: 2
 * Previous Revision: [1][rev-1] (as accepted)
@@ -17,7 +17,7 @@ allow users to call C functions with `intptr_t` and `uintptr_t` parameters, and 
 allow users to perform more advanced pointer arithmetic than is allowed by
 `UnsafePointer`s.
 
-[Swift Evolution Discussion](http://thread.gmane.org/gmane.comp.lang.swift.evolution/10044), [Review](http://thread.gmane.org/gmane.comp.lang.swift.evolution/12696)
+[Swift Evolution Discussion](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151207/001213.html), [Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160321/013119.html)
 
 ## Motivation
 ## 
