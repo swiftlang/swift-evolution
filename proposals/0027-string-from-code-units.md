@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0027](https://github.com/apple/swift-evolution/blob/master/proposals/0027-string-from-code-units.md)
 * Author: [Zachary Waldowski](https://github.com/zwaldowski)
-* Status: **Rejected** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/7695))
+* Status: **Rejected** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-February/000044.html))
 * Review manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction

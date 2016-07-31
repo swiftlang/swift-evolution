@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0085](0085-package-manager-command-name.md)
 * Authors: [Rick Ballard](https://github.com/rballard), [Daniel Dunbar](http://github.com/ddunbar)
-* Status: **Implemented in Swift 3** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.build/1/focus=26))
+* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160516/017728.html))
 * Review manager: [Daniel Dunbar](http://github.com/ddunbar)
 
 ## Note
@@ -18,9 +18,9 @@ and `swift test`, we will introduce a new `swift package` command with multiple
 subcommands. `swift build` and `swift test` will remain as top-level commands due to
 their frequency of use.
 
-[Swift Build Review Thread](http://thread.gmane.org/gmane.comp.lang.swift.build/1/)
+[Swift Build Review Thread](https://lists.swift.org/pipermail/swift-build-dev/Week-of-Mon-20160509/000438.html)
 
-[Swift Evolution Review Thread](http://thread.gmane.org/gmane.comp.lang.swift.build/1/focus=16764)
+[Swift Evolution Review Thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160509/016931.html)
 
 ## Motivation
 

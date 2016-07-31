@@ -35,8 +35,6 @@ If `self` *is* still alive, then the weakly-captured `self` will be non-`nil` an
 
 When the closure finishes, `strongSelf` goes away, once again making the view controller represented by `self` eligible for deallocation if no other references are held.
 
-[Swift Evolution Discussion Thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/7582), [Draft Proposal](http://thread.gmane.org/gmane.comp.lang.swift.evolution/6064)
-
 ## The Problem
 
 The only available mechanism for upgrading a weak `self` to a strong reference requires the creation of a `self`-like variable with an arbitrary name—in the example above, `strongSelf`.

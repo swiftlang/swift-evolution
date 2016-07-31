@@ -11,7 +11,7 @@ This proposal deals with three routines and one class related to pointers and bu
 The goal of this proposal is to update the API to match new API guidelines and remove 
 redundant identifiers.
 
-Swift-evolution thread: [Cleaning up stdlib Pointer and Buffer Routines](http://thread.gmane.org/gmane.comp.lang.swift.evolution/23093)
+Swift-evolution thread: [Cleaning up stdlib Pointer and Buffer Routines](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160704/023518.html)
 
 ## Motivation
 

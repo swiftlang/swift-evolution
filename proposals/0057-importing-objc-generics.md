@@ -1,8 +1,8 @@
 # Importing Objective-C Lightweight Generics
 
-* Proposal: [SE-0057](https://github.com/apple/swift-evolution/blob/master/proposals/0057-importing-objc-generics.md)
+* Proposal: [SE-0057](0057-importing-objc-generics.md)
 * Author: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted for Swift 3**
+* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-April/000097.html))
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction
@@ -19,7 +19,7 @@ collections (`NSArray`, `NSDictionary`, `NSSet`) don't benefit in
 Swift. This proposal introduces a way to import the type parameters of
 Objective-C classes into Swift.
 
-Swift-evolution thread: [here](http://thread.gmane.org/gmane.comp.lang.swift.evolution/2886)
+Swift-evolution thread: [here](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160111/006790.html)
 
 ## Motivation
 

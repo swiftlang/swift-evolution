@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0040](https://github.com/apple/swift-evolution/blob/master/proposals/0040-attributecolons.md)
 * Author: [Erica Sadun](http://github.com/erica)
-* Status: **Accepted for Swift 3** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/8920))
+* Status: **Accepted for Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160307/012100.html))
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction
@@ -11,7 +11,7 @@ Attribute arguments are unlike other Swift language arguments. At the call site,
 to distinguish argument names from passed values. This proposal brings attributes into compliance with Swift 
 standard practices by replacing the use of "=" with ":" in this one-off case.
 
-*Discussion took place on the Swift Evolution mailing list in the [\[Discussion\] Replacing Equal Signs with Colons For Attribute Arguments](http://article.gmane.org/gmane.comp.lang.swift.evolution/7271) thread. Thanks to [Doug Gregor](https://github.com/DougGregor) for suggesting this enhancement.*
+*Discussion took place on the Swift Evolution mailing list in the [\[Discussion\] Replacing Equal Signs with Colons For Attribute Arguments](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160215/010448.html) thread. Thanks to [Doug Gregor](https://github.com/DougGregor) for suggesting this enhancement.*
 
 ## Motivation
 

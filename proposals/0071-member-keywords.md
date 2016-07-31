@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0071](0071-member-keywords.md)
 * Author: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted for Swift 3** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/15954))
+* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000122.html))
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction
@@ -14,17 +14,18 @@ conventions. This means that case names that previously did not
 conflict with keywords (such as `Default`, `Private`, `Repeat`) now
 cause conflicts, a problem that is particularly acute when the naming
 conventions are applied by the Clang importer (per
-[SE-0005](https://github.com/apple/swift-evolution/blob/master/proposals/0005-objective-c-name-translation.md)). To
+[SE-0005](0005-objective-c-name-translation.md)). To
 mitigate this issue, this proposal allows the use of most keywords
 after a ".", similarly to how
-[SE-0001](https://github.com/apple/swift-evolution/blob/master/proposals/0001-keywords-as-argument-labels.md)
+[SE-0001](0001-keywords-as-argument-labels.md)
 allows keywords are argument labels.
 
-This idea was initially discussed in [this swift-evolution thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/7991).
+* [\[Idea\] Allowing most keywords after "."](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160222/011169.html)
+* [\[Review\] SE-0071: Allow (most) keywords in member references](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160425/015760.html)
 
 ## Motivation
 
-[SE-0005](https://github.com/apple/swift-evolution/blob/master/proposals/0005-objective-c-name-translation.md)
+[SE-0005](0005-objective-c-name-translation.md)
 started lower-camel-casing importer enum cases, which created a number
 of enum types whose names conflict with keywords. For example:
 
@@ -71,7 +72,7 @@ particleSystem.imageSequenceAnimationMode = SCNParticleImageSequenceAnimationMod
 
 This change doesn't break any existing code; the back-ticks will
 continue to work as they always have. As we did with
-[SE-0001](https://github.com/apple/swift-evolution/blob/master/proposals/0001-keywords-as-argument-labels.md),
+[SE-0001](0001-keywords-as-argument-labels.md),
 we can provide warnings with Fix-Its that remove spurious back-ticks
 at use sites. While not semantically interesting, this helps
 developers clean up their code.

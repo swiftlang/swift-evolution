@@ -13,7 +13,7 @@ inconsistent naming which can make it difficult to find inverses or
 remember what the standard library offers. We propose that we standardize 
 these names so they follow consistent, predictable patterns.
 
-Swift-evolution thread: [[Draft] Rationalizing Sequence end-operation names](http://thread.gmane.org/gmane.comp.lang.swift.evolution/21449/focus=23013)
+Swift-evolution thread: [[Draft] Rationalizing Sequence end-operation names](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160620/021872.html)
 
 ### Scope
 

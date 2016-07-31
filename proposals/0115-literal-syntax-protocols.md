@@ -9,9 +9,9 @@
 
 This proposal renames the `*LiteralConvertible` protocols to `ExpressibleBy*Literal`.  
 
-Swift-evolution thread: [Literal Syntax Protocols](http://thread.gmane.org/gmane.comp.lang.swift.evolution/21441)
+Swift-evolution thread: [Literal Syntax Protocols](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160620/021865.html)
 
-An earlier thread that resulted in this proposal: [Revisiting SE-0041 Names](http://thread.gmane.org/gmane.comp.lang.swift.evolution/21290)
+An earlier thread that resulted in this proposal: [Revisiting SE-0041 Names](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160620/021714.html)
 
 ## Motivation
 

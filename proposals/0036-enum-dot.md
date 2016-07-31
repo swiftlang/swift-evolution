@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0036](https://github.com/apple/swift-evolution/blob/master/proposals/0036-enum-dot.md)
 * Authors: [Erica Sadun](http://github.com/erica), [Chris Lattner](https://github.com/lattner)
-* Status: **Accepted for Swift 3** ([Bug](https://bugs.swift.org/browse/SR-1236))
+* Status: **Accepted for Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-April/000100.html), [Bug](https://bugs.swift.org/browse/SR-1236))
 * Review manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction
@@ -14,8 +14,10 @@ This makes little sense. In no other case can an instance implementation directl
 This proposal introduces a rule that requires leading dots or fully qualified references (EnumType.caseMember) 
 to provide a more consistent developer experience to clearly disambiguate static cases from instance members. 
 
-*Discussion took place on the Swift Evolution mailing list in the [\[Discussion\] Enum Leading Dot Prefixes](http://article.gmane.org/gmane.comp.lang.swift.evolution/6684) thread. This proposal uses lowerCamelCase enumeration cases in compliance with
-current [API Guideline Working Group guidance](http://news.gmane.org/gmane.comp.lang.swift.evolution).*
+*Discussion took place on the Swift Evolution mailing list in the [\[Discussion\] Enum Leading Dot Prefixes](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160208/009861.html) thread. This proposal uses lowerCamelCase enumeration cases in compliance with
+current [API Guideline Working Group guidance](https://swift.org/documentation/api-design-guidelines/).*
+
+[Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160328/013956.html)
 
 ## Motivation
 

@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0045](0045-scan-takewhile-dropwhile.md)
 * Author: [Kevin Ballard](https://github.com/kballard)
-* Status: **Accepted for Swift 3** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/16119), [Bug](https://bugs.swift.org/browse/SR-1516))
+* Status: **Accepted for Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000136.html), [Bug](https://bugs.swift.org/browse/SR-1516))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 * Revision: 4
 * Previous Revisions: [1][rev-1], [2][rev-2], [3][rev-3]
@@ -18,7 +18,9 @@ overrides as appropriate on `Collection`, `LazySequenceProtocol`, and
 `LazyCollectionProtocol`.
 
 Swift-evolution thread:
-[Proposal: Add scan, takeWhile, dropWhile, and iterate to the stdlib](http://thread.gmane.org/gmane.comp.lang.swift.evolution/1515)
+[Proposal: Add scan, takeWhile, dropWhile, and iterate to the stdlib](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160229/011923.html)
+
+[Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160425/016036.html)
 
 ## Motivation
 
@@ -155,4 +157,4 @@ and `unfold(_:applying:)` (see [revision 3][rev-3]). This proposal was partially
 accepted, with `scan(_:combine:)` rejected on grounds of low utility and
 `unfold(_:applying:)` rejected on grounds of poor naming (see [rationale][]).
 
-[rationale]: http://article.gmane.org/gmane.comp.lang.swift.evolution/16119
+[rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160502/016543.html)

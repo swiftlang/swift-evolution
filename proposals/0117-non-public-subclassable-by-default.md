@@ -29,7 +29,7 @@ that is `open`, nor does it dissuade one from using `open` in their APIs. In
 fact, with this proposal, `open` APIs are syntactically lighter-weight than
 `public` ones.
 
-Swift-evolution thread: http://thread.gmane.org/gmane.comp.lang.swift.evolution/21930/
+Swift-evolution thread: https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160627/022354.html
 
 ## Motivation
 
@@ -169,6 +169,10 @@ current module and that superclass's access level is not `open`.
 
 An `open` class may not also be declared `final`.
 
+The superclass of an `open` class must be `open`.  This is consistent
+with the existing access rule for superclasses.  It may be desireable
+to lift this restriction in a future proposal.
+
 ### `open` class members
 
 An overridable class member may be declared `open`.  Overridable
@@ -205,12 +209,23 @@ with the resolution of SE-0025, in which it was decided that
 `public` members should be allowed within types with lower access
 (but with no additional effect).
 
-### Temporary restrictions on `open`
+The member overridden by an `open` member does not itself need to
+be `open`.  This is consistent with the existing access rule for
+members, which does not even require the overridden member to be
+`public`.
 
-The superclass of an `open` class must be `open`.  The overridden
-declaration of an `open override` must be `open`.  These are conservative
-restrictions that reduce the scope of this proposal; it will be possible
-to revisit them in a later proposal.
+Initializers do not participate in `open` checking; they cannot
+be declared `open`, and there are no restrictions on providing
+an initializer that has the same signature as an initializer
+in the superclass.  This is true even of `required` initializers.
+A class's initializers provide an interface for constructing
+instances of that class that is logically distinct from the
+interface of its superclass, even when signatures happen to
+match and there are well-understood patterns of delegation.
+Constructing an object of a subclass necessarily involves running
+code associated with that subclass, and there is no value in
+arbitrarily restricting what initializers the subclass may
+declare.
 
 ### Other considerations
 

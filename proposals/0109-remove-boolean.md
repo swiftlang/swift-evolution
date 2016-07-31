@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0109](0109-remove-boolean.md)
 * Authors: [Anton Zhilin](https://github.com/Anton3), [Chris Lattner](https://github.com/lattner)
-* Status: Accepted ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/23844))
+* Status: Accepted ([Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160711/024270.html))
 * Review manager: [Doug Gregor](http://github.com/DougGregor)
 
 ## Introduction
@@ -26,7 +26,7 @@ consistently in APIs that take Boolean parameters: almost everything takes
 `Bool` concretely.  This means that its supposed abstraction isn't useful.  The
 only significant users are the unary `!`, and binary `&&` and `||` operators.
 
-[Discussion thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/21559)
+[Discussion thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160620/021983.html)
 
 ## Proposal
 

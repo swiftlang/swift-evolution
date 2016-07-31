@@ -1,13 +1,13 @@
 # Drop NS Prefix in Swift Foundation
 
-* Proposal: [SE-0086](https://github.com/apple/swift-evolution/blob/master/proposals/0086-drop-foundation-ns.md)
+* Proposal: [SE-0086](0086-drop-foundation-ns.md)
 * Authors: Tony Parker <anthony.parker@apple.com>, Philippe Hausler <phausler@apple.com>
-* Status: **Accepted** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/23869))
+* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000229.html))
 * Review manager:  [Doug Gregor](https://github.com/DougGregor)
 
 ##### Related radars or Swift bugs
 
-* [SE-0069](https://github.com/apple/swift-evolution/blob/master/proposals/0069-swift-mutability-for-foundation.md): Swift Mutability for Foundation
+* [SE-0069](0069-swift-mutability-for-foundation.md): Swift Mutability for Foundation
 
 ##### Revision history
 
@@ -18,9 +18,9 @@
 
 As part of _Swift 3 API Naming_ and the introduction of _Swift Core Libraries_, we are dropping the `NS` prefix from key Foundation types in Swift.
 
-[Swift Evolution Discussion Thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/16298)
+[Swift Evolution Discussion Thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160502/016723.html)
 
-[Review Thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/16509)
+[Review Thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160509/016934.html)
 
 ## Motivation
 
@@ -37,16 +37,16 @@ We believe that the best way to establish these libraries as _fundamental_ and _
 The first step was establishing naming conventions:
 
 * [Swift 3 API Naming Guidelines](https://swift.org/documentation/api-design-guidelines/)
-* [SE-0023: API Design Guidelines](https://github.com/apple/swift-evolution/blob/master/proposals/0023-api-guidelines.md)
+* [SE-0023: API Design Guidelines](0023-api-guidelines.md)
 
 The second step was adjusting standard library API and importing the Cocoa SDK according to those conventions:
 
-* [SE-0006: Apply API Guidelines to the Standard Library](https://github.com/apple/swift-evolution/blob/master/proposals/0006-apply-api-guidelines-to-the-standard-library.md)
-* [SE-0005: Better Translation of Objective-C APIs Into Swift](https://github.com/apple/swift-evolution/blob/master/proposals/0005-objective-c-name-translation.md)
+* [SE-0006: Apply API Guidelines to the Standard Library](0006-apply-api-guidelines-to-the-standard-library.md)
+* [SE-0005: Better Translation of Objective-C APIs Into Swift](0005-objective-c-name-translation.md)
 
 The next step is to adjust the API of the Swift Core Libraries. This proposal is focused on **swift-corelibs-foundation**.
 
-In addition to adopting the guidelines for method names, the names of the fundamental types should follow the spirit of the guidelines too. The type names should be clear, concise, and omit needless words or prefixes. In combination with adopting Swift semantics for many of these types ([SE-0069](https://github.com/apple/swift-evolution/blob/master/proposals/0069-swift-mutability-for-foundation.md)), and continued improvement to the implementations, this will make core library API feel like it belongs to the Swift language instead of like a foreign invader.
+In addition to adopting the guidelines for method names, the names of the fundamental types should follow the spirit of the guidelines too. The type names should be clear, concise, and omit needless words or prefixes. In combination with adopting Swift semantics for many of these types ([SE-0069](0069-swift-mutability-for-foundation.md)), and continued improvement to the implementations, this will make core library API feel like it belongs to the Swift language instead of like a foreign invader.
 
 > Note: All changes proposed are for Swift only; Objective-C has no change.
 
@@ -56,7 +56,7 @@ We propose the following set of rules for deciding if the `NS` prefix should be 
 
 0. If the class is specifically for Objective-C, or inherently tied to the Objective-C runtime and `NS` namespace, keep `NS` prefix. Examples: `NSObject`, `NSAutoreleasePool`, `NSException`, `NSProxy`.
 0. If the class is platform-specific, keep the `NS` prefix. Many of these types are located in Foundation, but actually belong to the namespace of a higher-level framework like AppKit or UIKit. The higher level frameworks are keeping their prefixes, so these types should match. Examples: `NSUserNotification`, `NSBackgroundActivity`, `NSXPCConnection`.
-0. If the class has a value-type equivalent, then keep the `NS` prefix, per [SE-0069](https://github.com/apple/swift-evolution/blob/master/proposals/0069-swift-mutability-for-foundation.md). Examples: `NSArray`, `NSString`, `NSPersonNameComponents`.
+0. If the class has a value-type equivalent, then keep the `NS` prefix, per [SE-0069](0069-swift-mutability-for-foundation.md). Examples: `NSArray`, `NSString`, `NSPersonNameComponents`.
 
 We have an additional set of rules which we want to apply to the set of existing classes only. We recognize the unique transition that we are currently undergoing and want to take advantage of this opportunity in some specific cases.
 

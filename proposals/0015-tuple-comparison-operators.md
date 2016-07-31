@@ -2,14 +2,14 @@
 
 * Proposal: [SE-0015](https://github.com/apple/swift-evolution/blob/master/proposals/0015-tuple-comparison-operators.md)
 * Author: [Kevin Ballard](https://github.com/kballard)
-* Status: **Implemented in Swift 2.2** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/11423/focus=1248), [Pull request](https://github.com/apple/swift/pull/408))
+* Status: **Implemented in Swift 2.2** ([Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151221/004423.html), [Pull request](https://github.com/apple/swift/pull/408))
 * Review manager: [Dave Abrahams](https://github.com/dabrahams)
 
 ## Introduction
 
 Implement comparison operators on tuples up to some arity.
 
-[Initial Discussion](http://article.gmane.org/gmane.comp.lang.swift.evolution/980/match=tuple+comparison), [General Discussion](http://thread.gmane.org/gmane.comp.lang.swift.evolution/9723), [Review](http://thread.gmane.org/gmane.comp.lang.swift.evolution/11423/focus=732)
+[Swift Evolution Discussion](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151207/000892.html), [Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151221/003907.html)
 
 Note: The review was initially started on the wrong thread with the wrong title and subsequently corrected.
 

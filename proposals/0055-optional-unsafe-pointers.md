@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0055](0055-optional-unsafe-pointers.md)
 * Author: [Jordan Rose](https://github.com/jrose-apple)
-* Status: **Accepted for Swift 3** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/13511))
+* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000086.html))
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 

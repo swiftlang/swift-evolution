@@ -1,11 +1,11 @@
 # A New Model for Collections and Indices
 
-* Proposal: [SE-0065](https://github.com/apple/swift-evolution/blob/master/proposals/0065-collections-move-indices.md)
+* Proposal: [SE-0065](0065-collections-move-indices.md)
 * Authors: [Dmitri Gribenko](https://github.com/gribozavr),
   [Dave Abrahams](https://github.com/dabrahams),
   [Maxim Moiseev](https://github.com/moiseev)
-* [Swift-evolution thread](http://news.gmane.org/find-root.php?message_id=CA%2bY5xYfqKR6yC2Q%2dG7D9N7FeY%3dxs1x3frq%3d%3dsyGoqYpOcL9yrw%40mail.gmail.com)
-* Status: **Accepted** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/15549))
+* [Swift-evolution thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160229/011552.html)
+* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-April/000115.html))
 * Review manager: [Chris Lattner](https://github.com/lattner)
 * Revision: 5
 * Previous Revisions:
