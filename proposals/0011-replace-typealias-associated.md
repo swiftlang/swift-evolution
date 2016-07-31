@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0011](https://github.com/apple/swift-evolution/blob/master/proposals/0011-replace-typealias-associated.md)
 * Author: [Loïc Lecrenier](https://github.com/loiclec)
-* Status: **Accepted for Swift 2.2** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/2883), [Bug](https://bugs.swift.org/browse/SR-511))
+* Status: **Accepted for Swift 2.2** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-January/000014.html), [Bug](https://bugs.swift.org/browse/SR-511))
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction
@@ -18,7 +18,7 @@ confusion surrounding the use of associated types.
 
 The proposed new keyword is `associatedtype`.
 
-[Swift Evolution Discussion Thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/9301)
+[Review Thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151228/005123.html)
 
 ## Motivation
 
