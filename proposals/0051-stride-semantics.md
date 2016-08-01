@@ -1,13 +1,13 @@
 # Conventionalizing `stride` semantics
 
-* Proposal: SE-0051
+* Proposal: [SE-0051](0051-stride-semantics.md)
 * Author: [Erica Sadun](http://github.com/erica)
-* Status: Withdrawn by Submitter
+* Status: **Withdrawn by Submitter**
 * Review manager: TBD
 
 Swift offers two stride functions, `stride(to:, by:)` and `stride(through:, by:)`. This proposal introduces a third style and renames the existing `to` and `through` styles.
 
-This proposal was discussed on-list in the ["\[Discussion\] stride behavior and a little bit of a call-back to digital numbers"](http://article.gmane.org/gmane.comp.lang.swift.evolution/8014) thread.
+This proposal was discussed on-list in the ["\[Discussion\] stride behavior and a little bit of a call-back to digital numbers"](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160222/011194.html) thread.
 
 ## Motivation
 
