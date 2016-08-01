@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0046](https://github.com/apple/swift-evolution/blob/master/proposals/0046-first-label.md)
 * Authors: [Jake Carter](https://github.com/JakeCarter), [Erica Sadun](http://github.com/erica)
-* Status: **Accepted** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/12352), [Bug](https://bugs.swift.org/browse/SR-961))
+* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000067.html), [Bug](https://bugs.swift.org/browse/SR-961))
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction
@@ -15,7 +15,7 @@ declaration throughout the Swift programming language and bring
 method and function declarations in-sync with initializers, which
 already use this standard.
 
-*Discussion took place on the Swift Evolution mailing list in the [Make the first parameter in a function declaration follow the same rules as the others](http://article.gmane.org/gmane.comp.lang.swift.evolution/9029) thread.*
+*Discussion took place on the Swift Evolution mailing list in the [Make the first parameter in a function declaration follow the same rules as the others](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160307/012209.html) thread.*
 
 ## Motivation
 In the current state of the art, Swift 2 methods and functions combine local and external names to
