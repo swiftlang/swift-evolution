@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0025](https://github.com/apple/swift-evolution/blob/master/proposals/0025-scoped-access-level.md)
 * Author: Ilya Belenkiy
-* Status: **Accepted for Swift 3** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/12183/focus=13584), [Bug](https://bugs.swift.org/browse/SR-1275))
+* Status: **Accepted for Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160404/014116.html), [Bug](https://bugs.swift.org/browse/SR-1275))
 * Review manager: [Doug Gregor](http://github.com/DougGregor)
 * Revision: 2
 * Previous revision: [1][rev-1] (as accepted)
@@ -13,7 +13,7 @@
 
 Scoped access level allows to hide implementation details of a class or a class extension at the class/extension level, instead of a file. It is a concise expression of the intent that a particular part of a class or extension definition is there only to implement a public API for other classes or extensions, and must not be used directly anywhere outside of the scope of the class or the extension.
 
-[Swift Evolution Discussion](http://thread.gmane.org/gmane.comp.lang.swift.evolution/9334), [Next Steps Discussion](http://thread.gmane.org/gmane.comp.lang.swift.evolution/12183)
+[Swift Evolution Discussion](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160222/011162.html), [Next Steps Discussion](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160314/012604.html)
 
 ## Motivation
 
