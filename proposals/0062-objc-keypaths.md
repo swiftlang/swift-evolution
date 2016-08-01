@@ -1,19 +1,19 @@
 # Referencing Objective-C key-paths
 
-* Proposal: [SE-0062](https://github.com/apple/swift-evolution/blob/master/proposals/0062-objc-keypaths.md)
+* Proposal: [SE-0062](0062-objc-keypaths.md)
 * Author: [David Hart](https://github.com/hartbit)
-* Status: **Implemented in Swift 3**
+* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-April/000101.html))
 * Review manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction
 
 In Objective-C and Swift, key-paths used by KVC and KVO are represented as string literals (e.g., `"friend.address.streetName"`). This proposal seeks to improve the safety and resilience to modification of code using key-paths by introducing a compiler-checked expression.
 
-[SE Draft](http://thread.gmane.org/gmane.comp.lang.swift.evolution/8665), [Review thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/14011/), [Secondary review thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/14053)
+[SE Draft](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160229/011845.html), [Review thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160404/014435.html)
 
 ## Motivation
 
-The use of string literals for key paths is extremely error-prone: there is no compile-time assurance that the string corresponds to a valid key-path. In a similar manner to the proposal for the Objective-C selector expression [SE-0022](https://github.com/apple/swift-evolution/blob/master/proposals/0022-objc-selectors.md), this proposal introduces syntax for referencing compiler-checked key-paths. When the referenced properties and methods are renamed or deleted, the programmer will be notified by a compiler error.
+The use of string literals for key paths is extremely error-prone: there is no compile-time assurance that the string corresponds to a valid key-path. In a similar manner to the proposal for the Objective-C selector expression [SE-0022](0022-objc-selectors.md), this proposal introduces syntax for referencing compiler-checked key-paths. When the referenced properties and methods are renamed or deleted, the programmer will be notified by a compiler error.
 
 ## Proposed solution
 
