@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0048: Generic Type Aliases](0048-generic-typealias.md)
 * Author: [Chris Lattner](https://github.com/lattner)
-* Status: **Implemented in Swift 3** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/14516/))
+* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-April/000098.html))
 * Review manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction

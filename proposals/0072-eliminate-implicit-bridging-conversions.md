@@ -1,7 +1,8 @@
 # Fully eliminate implicit bridging conversions from Swift
+
 * Proposal: [SE-0072](0072-eliminate-implicit-bridging-conversions.md)
 * Author: [Joe Pamer](https://github.com/jopamer)
-* Status: **Accepted for Swift 3** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/16240))
+* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000137.html))
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction

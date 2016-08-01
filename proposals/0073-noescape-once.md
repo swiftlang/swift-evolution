@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0073](0073-noescape-once.md)
 * Authors: [Félix Cloutier](https://github.com/zneak), [Gwendal Roué](https://github.com/groue)
-* Status: **Rejected for Swift 3** ([Rationale](#rationale))
+* Status: **Rejected for Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000147.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
@@ -57,7 +57,7 @@ print(x)    // Guaranteed to be initialized
 
 This new form is safer and cleaner.
 
-`@noescape(once)` can also be seen as a natural extension to [SE-0061](https://github.com/apple/swift-evolution/blob/master/proposals/0061-autoreleasepool-signature.md) in that we go from:
+`@noescape(once)` can also be seen as a natural extension to [SE-0061](0061-autoreleasepool-signature.md) in that we go from:
 
 ```swift
 // Current Swift:
@@ -113,7 +113,7 @@ having been called.
 A `@noescape(once)` closure may initialize `let` or
 `var` variables from its parent scope as if it was executed at the call site.
 
-Since [SE-0049](https://github.com/apple/swift-evolution/blob/master/proposals/0049-noescape-autoclosure-type-attrs.md),
+Since [SE-0049](0049-noescape-autoclosure-type-attrs.md),
 `@noescape` is a type attribute. The `@noescape(once)` modifier marks the
 closure type as noescape.
 
@@ -182,7 +182,7 @@ future proposals.
 
 # Rationale
 
-On May 11, 2016, the core team decided to **Reject** this proposal for Swift 3 ([thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/16896)).
+On [May 11, 2016](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000147.html), the core team decided to **Reject** this proposal for Swift 3.
 
 The feedback on the proposal was generally positive both from the community and
 core team.  That said, it is being rejected for Swift 3 two reasons:
@@ -192,6 +192,3 @@ core team.  That said, it is being rejected for Swift 3 two reasons:
 2) Separate from the surface level issues, the implementation underlying this work has some significant challenges that are doable but would require major engineering work.  Specifically, the definite initialization pass needs to “codegen” booleans in some cases for conditional initialization/overwrite cases, and these state values would have to be added to closure capture lists.  This would require enough engineering work that it seems unlikely that it would happen in the Swift 3 timeframe, and beyond that this could theoretically be subsumed into a more general system that allowed control-flow-like functions to have closures that break/continue/throw/return out of their enclosing function, or a general macro system.
 
 Overall, everyone desires the ability to produce more control-flow like functions, but Swift 3 isn’t in a place where it can make sense to tackle this work.
-
-
-

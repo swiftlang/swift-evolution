@@ -1,8 +1,8 @@
 # Enhanced Floating Point Protocols
 
-* Proposal: [SE-0067](https://github.com/apple/swift-evolution/blob/master/proposals/0067-floating-point-protocols.md)
+* Proposal: [SE-0067](0067-floating-point-protocols.md)
 * Author: [Stephen Canon](https://github.com/stephentyrone)
-* Status: **Accepted for Swift 3** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/15953))
+* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000121.html))
 * Review manager: [Chris Lattner](https://github.com/lattner)
 * Revision: 2
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/fb1368a6a5474f57aa8f1846b5355d18753098f3/proposals/0067-floating-point-protocols.md)
@@ -24,7 +24,9 @@ Revision 2 also incorporates a number of suggestions from the review list and
 corrects some typos; thanks especially to Xiaodi Wu for thoughtful feedback.
 Consult the changelog at the end of this document for full details.
 
-[Proposal draft](http://thread.gmane.org/gmane.comp.lang.swift.evolution/14545), [Review](http://thread.gmane.org/gmane.comp.lang.swift.evolution/14876)
+* [Proposal draft](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160411/014969.html)
+* [Review #1](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160418/015300.html)
+* [Review #2](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160425/015733.html)
 
 ## Motivation
 
@@ -807,4 +809,4 @@ types with stupendously large range.
 
 ## Implementation status
 
-Everything that does not depend on [SE-0104](https://github.com/apple/swift-evolution/blob/master/proposals/0104-improved-integers.md) is implemented.  Some related operations were added in [SE-0113](https://github.com/apple/swift-evolution/blob/master/proposals/0113-rounding-functions-on-floatingpoint.md).
+Everything that does not depend on [SE-0104](0104-improved-integers.md) is implemented.  Some related operations were added in [SE-0113](0113-rounding-functions-on-floatingpoint.md).

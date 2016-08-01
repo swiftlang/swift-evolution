@@ -1,8 +1,8 @@
 # Allow Swift types to provide custom Objective-C representations
 
-* Proposal: SE-0058
+* Proposal: [SE-0058](0058-objectivecbridgeable.md)
 * Authors: [Russ Bishop](https://github.com/russbishop), [Doug Gregor](https://github.com/DougGregor)
-* Status: **[Deferred]** ([Rationale](#rationale))
+* Status: **Deferred** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-April/000095.html))
 * Review manager: [Joe Groff](https://github.com/jckarter)
 
 
@@ -10,7 +10,7 @@
 
 Provide an `ObjectiveCBridgeable` protocol that allows a Swift type to control how it is represented in Objective-C by converting into and back from an entirely separate `@objc` type. This frees library authors to create truly native Swift APIs while still supporting Objective-C.
 
-Swift-evolution thread: [\[Idea\] ObjectiveCBridgeable](http://thread.gmane.org/gmane.comp.lang.swift.evolution/7852/)
+Swift-evolution thread: [\[Idea\] ObjectiveCBridgeable](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160222/011032.html)
 
 
 # Motivation
@@ -248,7 +248,7 @@ It is intended that when and if Swift 3 adopts conditional protocol conformance 
 # Rationale
 
 On April 12, 2016, the core team decided to **defer** this proposal from
-Swift 3 ([thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/14419)). We agree that it would be valuable to give library authors the
+Swift 3. We agree that it would be valuable to give library authors the
 ability to bridge their own types from Objective-C into Swift using the
 same mechanisms as Foundation. However, we lack the confidence and 
 implementation experience to commit to `_ObjectiveCBridgeable` in its
