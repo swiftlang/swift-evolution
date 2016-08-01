@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0068](0068-universal-self.md)
 * Author: [Erica Sadun](http://github.com/erica)
-* Status: **Accepted with modification** ([Rationale]((#rationale)), [Bug](https://bugs.swift.org/browse/SR-1340))
+* Status: **Accepted with modification** ([Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160425/015977.html), [Bug](https://bugs.swift.org/browse/SR-1340))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 * Previous versions: [Review version](https://github.com/apple/swift-evolution/blob/13d9771e86c5639b8320f05e5daa31a62bac0f07/proposals/0068-universal-self.md), [Original version with `#Self` included](https://github.com/apple/swift-evolution/blob/bcd77b028cb2fc9f07472532b120e927c7e48b34/proposals/0068-universal-self.md)
 
@@ -13,7 +13,7 @@ by renaming `dynamicType` to `Self`. This establishes a universal and consistent
 way to refer to the dynamic type of the current receiver. 
 
 
-*This proposal was discussed on the Swift Evolution list in the [\[Pitch\] Adding a Self type name shortcut for static member access](http://thread.gmane.org/gmane.comp.lang.swift.evolution/13708/focus=13712) thread.*
+*This proposal was discussed on the Swift Evolution list in the [\[Pitch\] Adding a Self type name shortcut for static member access](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160404/014132.html) thread.*
 
 ## Motivation
 
