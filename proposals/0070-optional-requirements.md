@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0070](0070-optional-requirements.md)
 * Author: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted for Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000124.html), [Bug](https://bugs.swift.org/browse/SR-1395))
+* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000124.html), [Bug](https://bugs.swift.org/browse/SR-1395))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
@@ -19,6 +19,7 @@ feature.
 
 Swift-evolution threads:
 
+* [Is there an underlying reason why optional protocol requirements need @objc?](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160229/011854.html)
 * [\[Proposal\] Make optional protocol methods first class citizens](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160328/013770.html)
 * [\[Idea\] How to eliminate 'optional' protocol requirements](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160404/014471.html)
 * [\[Proposal draft\] Make Optional Requirements Objective-C-only](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160418/015552.html)
@@ -58,7 +59,7 @@ has always been permitted.
 ## Alternatives considered
 
 It's a fairly common request to make optional requirements work in
-Swift protocols (as in the aforementioned [thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160328/013770.html)).
+Swift protocols (as in the aforementioned [threads](#introduction)).
 However, such proposals have generally met with resistance because
 optional requirements have significant overlap with other protocol
 features: "default" implementations via protocol extensions and
