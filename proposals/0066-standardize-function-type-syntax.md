@@ -1,8 +1,8 @@
 # Standardize function type argument syntax to require parentheses
 
-* Proposal: [SE-0066](https://github.com/apple/swift-evolution/blob/master/proposals/0066-standardize-function-type-syntax.md)
+* Proposal: [SE-0066](0066-standardize-function-type-syntax.md)
 * Author: [Chris Lattner](https://github.com/lattner)
-* Status: **Accepted for Swift 3** ([Rationale](#rationale))
+* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000138.html))
 * Review manager: [Doug Gregor](https://github/com/DougGregor)
 
 ## Introduction
@@ -193,10 +193,3 @@ much more common, and is unaffected by this proposal), so it is not worth
 deploying sugar to syntax optimize.  If Swift 1 required parentheses on
 function types, we would almost certainly reject a proposal to syntax optimize
 them away.
-
-
--------------------------------------------------------------------------------
-
-# Rationale
-
-On May 5, 2016, the core team decided to **accept** this proposal ([thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/16245)).
