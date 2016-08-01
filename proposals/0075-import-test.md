@@ -8,14 +8,14 @@
 ## Introduction
 
 Expanding the build configuration suite to test for the ability to import certain 
-modules was [first introduced](http://article.gmane.org/gmane.comp.lang.swift.evolution/7516/match=darwin)
+modules was [first introduced](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160215/010693.html)
 on the Swift-Evolution list by Kevin Ballard. Although his initial idea (checking for Darwin
 to differentiate Apple targets from non-Apple targets) proved problematic, developers warmly
 greeted the notion of an import-based configuration test. 
 Dmitri Gribenko wrote, "There's a direction that we want to move to a unified name for the libc module for all platform, so 'can import Darwin' might not be a viable long-term strategy." 
 Testing for imports offers advantages that stand apart from this one use-case: to test for API availability before use.
 
-[Swift Evolution Review Thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/16620)
+[Swift Evolution Review Thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160509/017044.html)
  
 ## Motivation
 
