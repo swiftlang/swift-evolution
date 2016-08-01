@@ -1,14 +1,14 @@
 # Update API Naming Guidelines and Rewrite Set APIs Accordingly
 
-* Proposal: [SE-0059](https://github.com/apple/swift-evolution/blob/master/proposals/0059-updated-set-apis.md)
+* Proposal: [SE-0059](0059-updated-set-apis.md)
 * Author: [Dave Abrahams](https://github.com/dabrahams)
-* Status: **Accepted for Swift 3** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/14785/))
+* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-April/000105.html))
 * Review manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction
 
 When
-[SE-0006, *Apply API Guidelines to the Standard Library*](https://github.com/apple/swift-evolution/blob/master/proposals/0006-apply-api-guidelines-to-the-standard-library.md)
+[SE-0006, *Apply API Guidelines to the Standard Library*](0006-apply-api-guidelines-to-the-standard-library.md)
 was proposed, the lack of an acceptable naming convention for some
 mutating/nonmutating method pairs meant that the APIs of `SetAlgebra`,
 `Set<T>` and `OptionSet<T>` were not adjusted accordingly.  This
