@@ -16,10 +16,10 @@ We propose a revision to the names and argument labels of closure
 parameters in standard library APIs.
 
 Swift-evolution thread:
-[Take 2: Stdlib closure argument labels and parameter names](http://thread.gmane.org/gmane.comp.lang.swift.evolution/22188)
+[Take 2: Stdlib closure argument labels and parameter names](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160627/022612.html)
 
 Discussion of earlier revision of the proposal:
-[Stdlib closure argument labels and parameter names ](http://thread.gmane.org/gmane.comp.lang.swift.evolution/21046)
+[Stdlib closure argument labels and parameter names](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160620/021470.html)
 
 ## Motivation
 

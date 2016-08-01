@@ -21,9 +21,9 @@ public func >= <T : Comparable>(lhs: T?, rhs: T?) -> Bool
 This proposal removes the above 4 functions.
 
 swift-evolution discussion threads:
-- [Optional comparison operators](http://thread.gmane.org/gmane.comp.lang.swift.evolution/23306) (most recent)
-- [Possible bug with arithmetic optional comparison ?](http://thread.gmane.org/gmane.comp.lang.swift.devel/2089)
-- [? suffix for <, >, <=, >= comparisons with optionals to prevent subtle bugs](http://thread.gmane.org/gmane.comp.lang.swift.evolution/10095)
+- [Optional comparison operators](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160711/024121.html)
+- [Possible bug with arithmetic optional comparison ?](https://lists.swift.org/pipermail/swift-dev/Week-of-Mon-20160523/002095.html)
+- [? suffix for <, >, <=, >= comparisons with optionals to prevent subtle bugs](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151207/001264.html)
 
 ## Motivation
 
@@ -45,7 +45,7 @@ a < b  // b is coerced from "Int" to "Int?" to match the parameter type.
 
 [SE-0123](0123-disallow-value-to-optional-coercion-in-operator-arguments.md) seeks to remove this coercion (for arguments to operators) for a variety of reasons.
 
-If the coercion is not removed (if no change is made), the results of comparisons with Optional values are sometimes **surprising**, making it easy to write bugs. In a thread from December 2015, [Al Skipp offers](http://thread.gmane.org/gmane.comp.lang.swift.evolution/10095/focus=10098) the following example:
+If the coercion is not removed (if no change is made), the results of comparisons with Optional values are sometimes **surprising**, making it easy to write bugs. In a thread from December 2015, [Al Skipp offers](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151207/001267.html) the following example:
 
 ```swift
 struct Pet {

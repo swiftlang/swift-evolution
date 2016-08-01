@@ -18,7 +18,7 @@ hashable values.  From SE-0116:
 > hashable type that is itself `Hashable`, for use as the upper-bound
 > type of heterogeneous `Dictionary`s and `Set`s.
 
-Swift-evolution thread: [Add AnyHashable to the standard library](http://thread.gmane.org/gmane.comp.lang.swift.evolution/24835).
+Swift-evolution thread: [Add AnyHashable to the standard library](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160718/025264.html).
 
 ## Motivation
 

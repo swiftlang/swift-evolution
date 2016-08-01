@@ -27,8 +27,8 @@ https://github.com/apple/swift/blob/c6e828f761fc30f7ce444431de7da52814f96595/std
 https://github.com/apple/swift/blob/f72a82327b172e1a2979e46cb7a579e3cc2f3bd6/stdlib/public/core/Flatten.swift.gyb
 
 Swift-evolution threads:
-- [[Pitch] Unify joined(separator:) and flatten()](http://thread.gmane.org/gmane.comp.lang.swift.evolution/24707)
-- [[Pitch] Rename flatten() to joined() and give joined() for string sequences the empty string as the default parameter](http://thread.gmane.org/gmane.comp.lang.swift.evolution/24805)
+- [[Pitch] Unify joined(separator:) and flatten()](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160718/025136.html)
+- [[Pitch] Rename flatten() to joined() and give joined() for string sequences the empty string as the default parameter](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160718/025234.html)
 
 ## Motivation
 
