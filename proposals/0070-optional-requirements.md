@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0070](0070-optional-requirements.md)
 * Author: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted for Swift 3**  ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/15983), [Bug](https://bugs.swift.org/browse/SR-1395))
+* Status: **Accepted for Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000124.html), [Bug](https://bugs.swift.org/browse/SR-1395))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
@@ -18,9 +18,11 @@ requirement to indicate that this is an Objective-C compatibility
 feature.
 
 Swift-evolution threads:
-[eliminate optional requirements](http://thread.gmane.org/gmane.comp.lang.swift.evolution/14046),
-[make Swift protocols support optional requirements](http://thread.gmane.org/gmane.comp.lang.swift.devel/1316) and
-[make optional protocol requirements first class citizens](http://thread.gmane.org/gmane.comp.lang.swift.evolution/13347).
+
+* [\[Proposal\] Make optional protocol methods first class citizens](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160328/013770.html)
+* [\[Idea\] How to eliminate 'optional' protocol requirements](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160404/014471.html)
+* [\[Proposal draft\] Make Optional Requirements Objective-C-only](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160418/015552.html)
+* [\[Review\] SE-0070: Make Optional Requirements Objective-C only](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160425/015681.html)
 
 ## Motivation
 
@@ -56,9 +58,7 @@ has always been permitted.
 ## Alternatives considered
 
 It's a fairly common request to make optional requirements work in
-Swift protocols (as in the aforementioned threads,
-[here](http://thread.gmane.org/gmane.comp.lang.swift.devel/1316) and
-[here](http://thread.gmane.org/gmane.comp.lang.swift.evolution/13347)).
+Swift protocols (as in the aforementioned [thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160328/013770.html)).
 However, such proposals have generally met with resistance because
 optional requirements have significant overlap with other protocol
 features: "default" implementations via protocol extensions and
@@ -166,7 +166,7 @@ example, Objective-C protocols could be annotated with attributes that
 say what the default implementation for each optional requirement is
 (to be used only in Swift), but such a massive auditing effort is
 impractical. There is a related notion of [caller-site default
-implementations](http://thread.gmane.org/gmane.comp.lang.swift.evolution/14046)
+implementations](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160404/014471.html)
 that was not well-received due to its complexity.
 
 Initially, this proposal introduce a new keyword
