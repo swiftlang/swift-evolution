@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0035](https://github.com/apple/swift-evolution/blob/master/proposals/0035-limit-inout-capture.md)
 * Author: [Joe Groff](https://github.com/jckarter)
-* Status: **Accepted** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/7732), [Bug](https://bugs.swift.org/browse/SR-807))
+* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-February/000046.html), [Bug](https://bugs.swift.org/browse/SR-807))
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction
@@ -11,6 +11,8 @@ Swift's behavior when closures capture `inout` parameters and escape their enclo
 except in `@noescape` closures.
 
 Swift-evolution thread: [only allow capture of inout parameters in @noescape closures](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160125/008074.html)
+
+[Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160215/010465.html)
 
 ## Motivation
 
