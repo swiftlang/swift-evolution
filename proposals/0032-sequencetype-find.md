@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0032](https://github.com/apple/swift-evolution/blob/master/proposals/0032-sequencetype-find.md)
 * Author: [Kevin Ballard](https://github.com/kballard)
-* Status: **Accepted for Swift 3** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/16116))
+* Status: **Accepted for Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000134.html))
 * Review manager: [Chris Lattner](https://github.com/lattner)
 * Revision: 2
 * Previous Revisions: [1][rev-1]
@@ -14,7 +14,11 @@
 Add a new extension method to `Sequence` called `first(where:)` that returns the
 found element.
 
+Discussion on swift-evolution started with a proposal with title **Add find method to SequenceType**
+
 Swift-evolution thread: [Proposal: Add function SequenceType.find()](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151228/004814.html)
+
+[Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160425/016035.html)
 
 ## Motivation
 
