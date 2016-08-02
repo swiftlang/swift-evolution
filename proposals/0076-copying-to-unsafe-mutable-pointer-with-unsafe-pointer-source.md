@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0076](0076-copying-to-unsafe-mutable-pointer-with-unsafe-pointer-source.md)
 * Author: [Janosch Hildebrand](https://github.com/Jnosh)
-* Status: **Accepted with Revisions for Swift 3** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/16898), [Bug](https://bugs.swift.org/browse/SR-1490))
+* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000149.html), [Bug](https://bugs.swift.org/browse/SR-1490))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction

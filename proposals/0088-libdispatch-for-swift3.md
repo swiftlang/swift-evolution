@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0088](0088-libdispatch-for-swift3.md)
 * Author: [Matt Wright](https://github.com/mwwa)
-* Status: **Accepted with Revisions** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/17819))
+* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000163.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 * Revision: 2
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/ef372026d5f7e46848eb2a64f292328028b667b9/proposals/0088-libdispatch-for-swift3.md)
@@ -13,7 +13,7 @@ The existing libdispatch module imports the C API almost verbatim. To move towar
 
 This discussion focuses on the transformation of the existing libdispatch API.
 
-[Review thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/16745)
+[Review thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160509/017170.html)
 
 ## Motivation
 

@@ -2,14 +2,14 @@
 
 * Proposal: [SE-0081](0081-move-where-expression.md)
 * Authors: [David Hart](https://github.com/hartbit), [Robert Widmann](https://github.com/CodaFi), [Pyry Jahkola](https://github.com/pyrtsa)
-* Status: **Accepted for Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000161.html), [Bug](https://bugs.swift.org/browse/SR-1561))
+* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000161.html), [Bug](https://bugs.swift.org/browse/SR-1561))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
 This proposal suggests moving the `where` clause to the end of the declaration syntax, but before the body, for readability reasons. It has been discussed at length on the following swift-evolution thread:
 
-[\[Pitch\] Moving where Clauses Out Of Parameter Lists](http://thread.gmane.org/gmane.comp.lang.swift.evolution/13886/focus=13899)
+[\[Pitch\] Moving where Clauses Out Of Parameter Lists](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160404/014309.html)
 
 ## Motivation
 

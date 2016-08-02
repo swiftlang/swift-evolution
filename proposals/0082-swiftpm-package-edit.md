@@ -1,8 +1,8 @@
 # Package Manager Editable Packages
 
-* Proposal: SE-0082
+* Proposal: [SE-0082](0082-swiftpm-package-edit.md)
 * Author: [Daniel Dunbar](https://github.com/ddunbar)
-* Status: **Accepted for Swift 3** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/16614))
+* Status: **Accepted for Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160509/017038.html))
 * Review manager: [Anders Bertelrud](https://github.com/abertelrud)
 
 ## Introduction
@@ -14,9 +14,9 @@ those sources, and add a new feature for allowing iterative development. These
 features are tightly interrelated, which is why they are combined into one
 proposal.
 
-[Proposal Announcement](http://thread.gmane.org/gmane.comp.lang.swift.evolution/15279)
+[Proposal Announcement](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160425/015686.html)
 
-[Review announcement](http://thread.gmane.org/gmane.comp.lang.swift.evolution/16078)
+[Review announcement](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160502/016502.html)
 
 
 ## Motivation
