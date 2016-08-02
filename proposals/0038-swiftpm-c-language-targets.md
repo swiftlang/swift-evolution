@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0038](https://github.com/apple/swift-evolution/blob/master/proposals/0038-swiftpm-c-language-targets.md)
 * Author: [Daniel Dunbar](https://github.com/ddunbar)
-* Status: **Accepted** ([Bug](https://bugs.swift.org/browse/SR-821))
+* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160222/011097.html), [Bug](https://bugs.swift.org/browse/SR-821))
 * Review manager: Rick Ballard
 
 ## Introduction
@@ -13,7 +13,7 @@ languages). This proposal is limited in scope to only supporting targets
 consisting entirely of C languages; there is no provision for supporting targets
 which include both C and Swift sources.
 
-[Swift Evolution Review Thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/7293)
+[Swift Evolution Review Thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160215/010470.html)
 
 ## Motivation
 
