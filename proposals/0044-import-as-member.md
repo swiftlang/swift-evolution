@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0044](https://github.com/apple/swift-evolution/blob/master/proposals/0044-import-as-member.md)
 * Author: [Michael Ilseman](https://github.com/milseman)
-* Status: **Implemented in Swift 3** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/12842), [Bug](https://bugs.swift.org/browse/SR-1053))
+* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160321/013265.html), [Bug](https://bugs.swift.org/browse/SR-1053))
 * Review manager: [Doug Gregor](https://github.com/DougGregor)
 * Implementation: [GitHub branch](https://github.com/apple/swift/tree/import-as-member)
 
@@ -15,8 +15,8 @@ authors to specify the capability of importing functions and variables as
 members on imported Swift types. It also seeks to provide an automatic inference
 option for APIs that follow a consistent, disciplined naming convention.
 
-[Swift-evolution thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/8437)<br />
-[Review](http://thread.gmane.org/gmane.comp.lang.swift.evolution/12274)
+[Swift-evolution thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160229/011617.html)<br />
+[Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160314/012695.html)
 ## Motivation
 
 C APIs and frameworks currently import into Swift as global functions and global

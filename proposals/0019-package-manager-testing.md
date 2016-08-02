@@ -5,7 +5,7 @@
   [Max Howell](https://github.com/mxcl),
   [Daniel Dunbar](https://github.com/ddunbar),
   [Mattt Thompson](https://github.com/mattt)
-* Status: **Accepted** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/4103), [Bug](https://bugs.swift.org/browse/SR-592))
+* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160118/007278.html), [Bug](https://bugs.swift.org/browse/SR-592))
 * Review Manager: Rick Ballard
 
 ## Introduction
@@ -14,7 +14,7 @@ Testing is an essential part of modern software development.
 Tight integration of testing into the Swift Package Manager
 will help ensure a stable and reliable packaging ecosystem.
 
-[SE Review Link](http://thread.gmane.org/gmane.comp.lang.swift.evolution/3583)
+[SE Review Link](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160104/005397.html), [Second Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160111/006758.html)
 
 ## Proposed Solution
 
