@@ -114,7 +114,7 @@ just loads it via JavaScript. Hence, the following declaration isn't used.
 <proposal id="0104" status="accepted" name="Protocol-oriented integers" filename="0104-improved-integers.md"/>
 <proposal id="0105" status="rejected" name="Removing Where Clauses from For-In Loops" filename="0105-remove-where-from-forin-loops.md"/>
 <proposal id="0106" status="implemented" swift-version="3" name="Add a `macOS` Alias for the `OSX` Platform Configuration Test" filename="0106-rename-osx-to-macos.md"/>
-<proposal id="0107" status="accepted" name="UnsafeRawPointer API" filename="0107-unsaferawpointer.md"/>
+<proposal id="0107" status="implemented" swift-version="3" name="UnsafeRawPointer API" filename="0107-unsaferawpointer.md"/>
 <proposal id="0108" status="rejected" name="Remove associated type inference" filename="0108-remove-assoctype-inference.md"/>
 <proposal id="0109" status="implemented" swift-version="3" name="Remove the `Boolean` protocol" filename="0109-remove-boolean.md"/>
 <proposal id="0110" status="accepted" name="Distinguish between single-tuple and multiple-argument function types" filename="0110-distingish-single-tuple-arg.md"/>
