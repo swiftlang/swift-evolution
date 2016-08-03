@@ -157,4 +157,4 @@ and `unfold(_:applying:)` (see [revision 3][rev-3]). This proposal was partially
 accepted, with `scan(_:combine:)` rejected on grounds of low utility and
 `unfold(_:applying:)` rejected on grounds of poor naming (see [rationale][]).
 
-[rationale]: http://article.gmane.org/gmane.comp.lang.swift.evolution/16119
+[rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160502/016543.html)
