@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0034](https://github.com/apple/swift-evolution/blob/master/proposals/0034-disambiguating-line.md)
 * Author: [Erica Sadun](http://github.com/erica)
-* Status: **Accepted** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/8156), [Implementation Bug](https://bugs.swift.org/browse/SR-840))
+* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160222/011337.html), [Implementation Bug](https://bugs.swift.org/browse/SR-840))
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction
@@ -10,7 +10,11 @@
 In being accepted, Swift Evolution SE-0028 (https://github.com/apple/swift-evolution/blob/master/proposals/0028-modernizing-debug-identifiers.md) overloads
 the use of `#line` to mean both an identifier that maps to a calling site's line number within a file and acts as part of a line control statement. This proposal nominates `#setline` to replace `#line` for file and line syntactic source control.
 
-The discussion took place on-line in the [*\[Discussion\]: Renaming #line, the line control statement*](http://comments.gmane.org/gmane.comp.lang.swift.evolution/5815) thread.
+The discussion took place on-line in the [*\[Discussion\]: Renaming #line, the line control statement*](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160208/009390.html) thread.
+
+[Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160215/010563.html)
+
+[Revision](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160307/012432.html)
 
 ## Motivation
 

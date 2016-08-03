@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0030](https://github.com/apple/swift-evolution/blob/master/proposals/0030-property-behavior-decls.md)
 * Author: [Joe Groff](https://github.com/jckarter)
-* Status: **Rejected** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/7735))
+* Status: **Rejected** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-February/000047.html))
 * Review manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction
@@ -12,8 +12,8 @@ Rather than hardcode a fixed set of patterns into the compiler,
 we should provide a general "property behavior" mechanism to allow
 these patterns to be defined as libraries.
 
-[Swift Evolution Discussion](http://thread.gmane.org/gmane.comp.lang.swift.evolution/11976)<br/>
-[Review](http://thread.gmane.org/gmane.comp.lang.swift.evolution/6426)
+[Swift Evolution Discussion](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/003148.html)<br/>
+[Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160208/009603.html)
 
 ## Motivation
 

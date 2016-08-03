@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0037](https://github.com/apple/swift-evolution/blob/master/proposals/0037-clarify-comments-and-operators.md)
 * Author: [Jesse Rusak](https://github.com/jder)
-* Status: **Accepted** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/12350), [Bug](https://bugs.swift.org/browse/SR-960))
+* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000066.html), [Bug](https://bugs.swift.org/browse/SR-960))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
@@ -14,10 +14,11 @@ whether they are to the left or right of an operator, and the contents of
 the comment itself. This proposal suggests a uniform set of rules for how these
 cases should be parsed.
 
-Swift-evolution thread: [started here](http://thread.gmane.org/gmane.comp.lang.swift.evolution/605)
-and [continued here](http://thread.gmane.org/gmane.comp.lang.swift.evolution/2855).
+Swift-evolution thread: [started here](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160104/006030.html)
 
 A draft implementation is [available here](https://github.com/apple/swift/compare/master...jder:comment-operator-fixes).
+
+[Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160307/012398.html)
 
 ## Motivation
 
