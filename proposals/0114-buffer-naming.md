@@ -11,7 +11,7 @@ This proposal updates parameters and generic type parameters from `value` names 
 
 All user-facing Swift APIs must go through Swift Evolution. While this is a trivial API change with an existing implementation, this formal proposal provides a paper trail as is normal and usual for this process.
 
-[Swift Evolution Thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/22127)
+[Swift Evolution Thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160627/022551.html)
 
 [Patch](https://github.com/apple/swift/commit/eb7311de065df7ea332cdde8782cb44f9f4a5121)
 
