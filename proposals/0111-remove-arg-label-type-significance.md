@@ -9,7 +9,7 @@
 
 Swift's type system should not allow function argument labels to be expressed as part of a function type.
 
-Discussion: [pre-proposal](http://thread.gmane.org/gmane.comp.lang.swift.evolution/21369)
+Discussion: [pre-proposal](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160620/021793.html)
 
 ## Motivation
 
