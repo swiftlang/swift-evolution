@@ -136,7 +136,7 @@ just loads it via JavaScript. Hence, the following declaration isn't used.
 <proposal id="0126" status="rejected" name="Refactor Metatypes, repurpose `T.self` and `Mirror`" filename="0126-refactor-metatypes-repurpose-t-dot-self-and-mirror.md"/>
 <proposal id="0127" status="implemented" swift-version="3" name="Cleaning up stdlib Pointer and Buffer Routines" filename="0127-cleaning-up-stdlib-ptr-buffer.md"/>
 <proposal id="0128" status="implemented" swift-version="3" name="Change failable UnicodeScalar initializers to failable" filename="0128-unicodescalar-failable-initializer.md"/>
-<proposal id="0129" status="accepted" name="Package Manager Test Naming Conventions" filename="0129-package-manager-test-naming-conventions.md"/>
+<proposal id="0129" status="implemented" swift-version="3" name="Package Manager Test Naming Conventions" filename="0129-package-manager-test-naming-conventions.md"/>
 <proposal id="0130" status="implemented" swift-version="3" name="Replace repeating `Character` and `UnicodeScalar` forms of String.init" filename="0130-string-initializers-cleanup.md"/>
 <proposal id="0131" status="implemented" swift-version="3" name="Add `AnyHashable` to the standard library" filename="0131-anyhashable.md"/>
 <proposal id="0132" status="deferred" name="Rationalizing Sequence end-operation names" filename="0132-sequence-end-ops.md"/>
