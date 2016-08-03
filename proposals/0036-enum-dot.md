@@ -15,7 +15,7 @@ This proposal introduces a rule that requires leading dots or fully qualified re
 to provide a more consistent developer experience to clearly disambiguate static cases from instance members. 
 
 *Discussion took place on the Swift Evolution mailing list in the [\[Discussion\] Enum Leading Dot Prefixes](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160208/009861.html) thread. This proposal uses lowerCamelCase enumeration cases in compliance with
-current [API Guideline Working Group guidance](http://news.gmane.org/gmane.comp.lang.swift.evolution).*
+current [API Guideline Working Group guidance](https://swift.org/documentation/api-design-guidelines/).*
 
 [Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160328/013956.html)
 
