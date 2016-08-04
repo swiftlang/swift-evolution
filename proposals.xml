@@ -108,9 +108,9 @@ just loads it via JavaScript. Hence, the following declaration isn't used.
 <proposal id="0098" status="rejected" name="Lowercase `didSet` and `willSet` for more consistent keyword casing" filename="0098-didset-capitalization.md"/>
 <proposal id="0099" status="implemented" swift-version="3" name="Restructuring Condition Clauses" filename="0099-conditionclauses.md"/>
 <proposal id="0100" status="deferred" name="Add sequence-based initializers and merge methods to Dictionary" filename="0100-add-sequence-based-init-and-merge-to-dictionary.md"/>
-<proposal id="0101" status="accepted" name="Reconfiguring `sizeof` and related functions into a unified `MemoryLayout` struct" filename="0101-standardizing-sizeof-naming.md"/>
+<proposal id="0101" status="implemented" swift-version="3" name="Reconfiguring `sizeof` and related functions into a unified `MemoryLayout` struct" filename="0101-standardizing-sizeof-naming.md"/>
 <proposal id="0102" status="implemented" swift-version="3" name="Remove `@noreturn` attribute and introduce an empty `Never` type" filename="0102-noreturn-bottom-type.md"/>
-<proposal id="0103" status="accepted" name="Make non-escaping closures the default" filename="0103-make-noescape-default.md"/>
+<proposal id="0103" status="implemented" swift-version="3" name="Make non-escaping closures the default" filename="0103-make-noescape-default.md"/>
 <proposal id="0104" status="accepted" name="Protocol-oriented integers" filename="0104-improved-integers.md"/>
 <proposal id="0105" status="rejected" name="Removing Where Clauses from For-In Loops" filename="0105-remove-where-from-forin-loops.md"/>
 <proposal id="0106" status="implemented" swift-version="3" name="Add a `macOS` Alias for the `OSX` Platform Configuration Test" filename="0106-rename-osx-to-macos.md"/>
@@ -124,7 +124,7 @@ just loads it via JavaScript. Hence, the following declaration isn't used.
 <proposal id="0114" status="implemented" swift-version="3" name="Updating Buffer &quot;Value&quot; Names to &quot;Header&quot; Names" filename="0114-buffer-naming.md"/>
 <proposal id="0115" status="implemented" swift-version="3" name="Rename Literal Syntax Protocols" filename="0115-literal-syntax-protocols.md"/>
 <proposal id="0116" status="implemented" swift-version="3" name="Import Objective-C `id` as Swift `Any` type" filename="0116-id-as-any.md"/>
-<proposal id="0117" status="accepted" name="Allow distinguishing between public access and public overridability" filename="0117-non-public-subclassable-by-default.md"/>
+<proposal id="0117" status="implemented" swift-version="3" name="Allow distinguishing between public access and public overridability" filename="0117-non-public-subclassable-by-default.md"/>
 <proposal id="0118" status="implemented" swift-version="3" name="Closure Parameter Names and Labels" filename="0118-closure-parameter-names-and-labels.md"/>
 <proposal id="0119" status="rejected" name="Remove access modifiers from extensions" filename="0119-extensions-access-modifiers.md"/>
 <proposal id="0120" status="implemented" swift-version="3" name="Revise `partition` Method Signature" filename="0120-revise-partition-method.md"/>
