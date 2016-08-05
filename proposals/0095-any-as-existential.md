@@ -11,7 +11,10 @@
 
 The current `protocol<>` construct, which defines an existential type consisting of zero or more protocols, should be replaced by an infix `&` type operator joining bare protocol type names.
 
-Discussion threads: [pre-proposal](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160516/018109.html), [review thread 1](http://thread.gmane.org/gmane.comp.lang.swift.evolution/18349), [2](http://thread.gmane.org/gmane.comp.lang.swift.evolution/18350/focus=18447), [3](http://thread.gmane.org/gmane.comp.lang.swift.evolution/18351/focus=18440), [4](http://thread.gmane.org/gmane.comp.lang.swift.evolution/18518), [post-review thread](http://thread.gmane.org/gmane.comp.lang.swift.evolution/19463)
+Discussion threads: 
+[pre-proposal](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160516/018109.html), 
+[review thread 1](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160620/021713.html),
+[return for revision thread](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000182.html)
 
 ## Motivation
 
