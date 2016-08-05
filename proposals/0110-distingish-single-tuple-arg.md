@@ -9,7 +9,7 @@
 
 Swift's type system should properly distinguish between functions that take one tuple argument, and functions that take multiple arguments.
 
-Discussion: [pre-proposal](http://thread.gmane.org/gmane.comp.lang.swift.evolution/21732)
+Discussion: [pre-proposal](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160620/021793.html)
 
 ## Motivation
 
