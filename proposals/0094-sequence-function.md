@@ -17,27 +17,22 @@ This proposal introduces `sequence(first:next:)` and `sequence(state:next:)`,
 a pair of global functions that return (potentially-infinite) sequences of lazy
 applications of a closure to an initial value or a mutable state.
 
-Swift-evolution thread: [Discussion thread topic for that proposal](http://thread.gmane.org/gmane.comp.lang.swift.evolution/15743/focus=17108)
+Swift-evolution thread: 
+
+[Discussion thread topic for SE-0045](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160229/011923.html)
+
+
+[Initial Discussion](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160111/006193.html)
 
 ## Motivation
 
-[SE-0045][] [originally proposed][SE-0045r1] `iterate(_:apply:)`, a method that
-was [subsequently changed][SE-0045r3] to `unfold(_:applying:)`. The proposal was
-[accepted with modifications][SE-0045a], rejecting `unfold` based on naming
-alone. As its core utility remains unquestionably high, this proposal
-re-introduces the method with better, more Swift-appropriate naming.
+[SE-0045](https://github.com/apple/swift-evolution/blob/master/proposals/0045-scan-takewhile-dropwhile.md), originally proposed `iterate(_:apply:)` (see [SE-0045r1](https://github.com/apple/swift-evolution/blob/dd0a39dd051b11e4460accad5af0e74223533e95/proposals/0045-scan-takewhile-dropwhile.md)), a method that
+was subsequently changed to `unfold(_:applying:)`. The proposal was
+accepted with modifications. The core team rejected `unfold` based on its naming. As its core utility remains unquestionably high, this proposal re-introduces the method with better, more Swift-appropriate naming.
 
 This function provides the natural counterpart to `reduce` as well as a
 replacement for non-striding C-style `for` loops that were removed by the
-acceptance of [SE-0007][].
-
-[SE-0007]: https://github.com/apple/swift-evolution/blob/master/proposals/0007-remove-c-style-for-loops.md
-[SE-0045]: https://github.com/apple/swift-evolution/blob/master/proposals/0045-scan-takewhile-dropwhile.md
-[SE-0045r1]: https://github.com/apple/swift-evolution/blob/b39d653f7e3d5e982b562664343f26c826652291/proposals/0045-scan-takewhile-dropwhile.md "SE-0045 revision 1"
-[SE-0045r3]: https://github.com/apple/swift-evolution/blob/d709546002e1636a10350d14da84eb9e554c3aac/proposals/0045-scan-takewhile-dropwhile.md "SE-0045 revision 3"
-[SE-0045a]: http://article.gmane.org/gmane.comp.lang.swift.evolution/16119
-
-`sequence` can be used to apply generation steps that use non-linear math or
+acceptance of [SE-0007](https://github.com/apple/swift-evolution/blob/master/proposals/0007-remove-c-style-for-loops.md), `sequence` can be used to apply generation steps that use non-linear math or
 apply non-mathematical operations, as in the following examples:
 
 ```swift
@@ -53,6 +48,13 @@ for view in sequence(first: someView, next: { $0.superview }) {
     // someView, someView.superview, someView.superview.superview, ...
 }
 ```
+
+See also: 
+
+* [SE-0007 Remove C-style For Loops](https://github.com/apple/swift-evolution/blob/master/proposals/0007-remove-c-style-for-loops.md), 
+* [SE-0045](https://github.com/apple/swift-evolution/blob/master/proposals/0045-scan-takewhile-dropwhile.md), 
+* [SE-0045r1](https://github.com/apple/swift-evolution/blob/b39d653f7e3d5e982b562664343f26c826652291/proposals/0045-scan-takewhile-dropwhile.md), 
+* [SE-0045r3](https://github.com/apple/swift-evolution/blob/d709546002e1636a10350d14da84eb9e554c3aac/proposals/0045-scan-takewhile-dropwhile.md)
 
 ## Detailed design
 
