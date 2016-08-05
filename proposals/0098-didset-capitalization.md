@@ -10,7 +10,7 @@
 This proposal adopts consistent conjoined keyword lowercasing.
 
 Swift-evolution thread:
-[RFC: didset and willset](http://thread.gmane.org/gmane.comp.lang.swift.evolution/17534)
+[RFC: didset and willset](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160516/017959.html)
 
 ## Motivation
 

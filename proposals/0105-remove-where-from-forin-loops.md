@@ -9,7 +9,7 @@
 
 This proposal removes `where` clauses from `for-in` loops, where they are better expressed (and read) as guard conditions.
 
-Swift Evolution Discussion: [\[Pitch\] Retiring `where` from for-in loops](http://thread.gmane.org/gmane.comp.lang.swift.evolution/20142)
+Swift Evolution Discussion: [\[Pitch\] Retiring `where` from for-in loops](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160606/020566.html)
 
 ## Motivation
 

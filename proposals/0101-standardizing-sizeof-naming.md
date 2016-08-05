@@ -16,9 +16,9 @@ Review 1:
 
 Prior Discussions:
 
-* Swift Evolution Pitch: [\[Pitch\] Renaming sizeof, sizeofValue, strideof,	strideofValue](http://thread.gmane.org/gmane.comp.lang.swift.evolution/19459)
-* [Earlier Discussions](http://thread.gmane.org/gmane.comp.lang.swift.evolution/15830)
-* [SE-0101 Review](http://thread.gmane.org/gmane.comp.lang.swift.evolution/21103)
+* Swift Evolution Pitch: [\[Pitch\] Renaming sizeof, sizeofValue, strideof,	strideofValue](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160530/019884.html)
+* [Earlier Discussions](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160425/016042.html)
+* [SE-0101 Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160620/021527.html)
 
 ## Motivation
 

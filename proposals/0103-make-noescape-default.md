@@ -17,7 +17,7 @@ This proposal switches the default to be non-escaping and requires an `@escaping
 
 Swift-evolution threads:
 
-* [Make non-escaping closures the default](http://thread.gmane.org/gmane.comp.lang.swift.evolution/19756)
+* [Make non-escaping closures the default](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160530/020181.html)
 
 ## Motivation
 

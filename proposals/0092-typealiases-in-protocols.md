@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0092](0092-typealiases-in-protocols.md)
 * Authors: [David Hart](https://github.com/hartbit), [Doug Gregor](https://github.com/DougGregor)
-* Status: **Implemented in Swift 3.0** ([Rationale](http://thread.gmane.org/gmane.comp.lang.swift.evolution/17317))
+* Status: **Implemented in Swift 3.0** ([Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160516/017742.html))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction

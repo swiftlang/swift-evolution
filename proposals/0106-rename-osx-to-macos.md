@@ -11,7 +11,7 @@ Starting in Sierra, Apple's Mac-based OS (OS X) will be renamed "macOS". All use
 
 This proposal adds the `#if os(macOS)` platform configuration test to alias the current `#if os(OSX)`
 
-Swift Evolution Discussion: [\[DRAFT\] Aliasing the OS X Platform Configuration	Test](http://thread.gmane.org/gmane.comp.lang.swift.evolution/20815)
+Swift Evolution Discussion: [\[DRAFT\] Aliasing the OS X Platform Configuration	Test](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160613/021239.html)
 
 Bug report: [SR-1823](https://bugs.swift.org/browse/SR-1823)
 
