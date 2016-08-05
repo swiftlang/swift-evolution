@@ -62,9 +62,9 @@ In fact, until implementation of SE-0101, Foundation itself made use of expressi
 
 ### Making use of `type(of:)` 
 
-Concerns about confusability of the `ofValue` functions and their "non-value" counterparts led to  the proposal that a spelling such as `MemoryLayout.of(type(of: x)).size` might be desireable. In that case, the method `of(_:)` would take an argument of type `T.Type` rather than `T`.
+Concerns about confusability of the `ofValue` functions and their "non-value" counterparts led to  the proposal that a spelling such as `MemoryLayout.of(type(of: x)).size` might be desirable. In that case, the method `of(_:)` would take an argument of type `T.Type` rather than `T`.
 
-However, besides increased verbosity at the call site, this alternative would produce the consequence that each use of `MemoryLayout<Int>.size` would be interchangeable with `MemoryLayout.of(Int.self).size`, potentially leading to confusion about why the standard library provides an apparently duplicative API.
+However, this alternative would produce the consequence that each use of `MemoryLayout<Int>.size` would be interchangeable with `MemoryLayout.of(Int.self).size`, potentially leading to confusion about why the standard library provides an apparently duplicative API.
 
 Furthermore, Dmitri Gribenko points out that the use of `type(of:)` could increase confusion about these methods when the dynamic type of a value differs from the static type. Consider a protocol existential:
 
