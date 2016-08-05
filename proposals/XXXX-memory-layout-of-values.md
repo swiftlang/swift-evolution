@@ -58,7 +58,7 @@ Previously, it has been suggested that the parameter should have an `@autoclosur
 
 Current uses of `@autoclosure` in the standard library such as `assert(_:_:file:line:)` do evaluate the autoclosure. Furthermore, in general, a reader expects `foo(bar(x))` to invoke both `bar(_:)` and `foo(_:)`.
 
-In fact, until implementation of SE-0101, Foundation itself made use of expressions such as `strideofValue(iter.next())` (where `iter` was an instance of an iterator), relying on the side effect of evaluating the argument. By contrast, no use case has yet surfaced where it is necessary to obtain the memory layout stride for the result of an expression that also must not be evaluated.
+In fact, during implementation of SE-0101, concern was raised that potential use of expressions such as `strideofValue(iter.next())` (where `iter` is an instance of an iterator), might rely on the side effect of evaluating the argument. By contrast, no use case has yet surfaced where it is necessary to obtain the memory layout stride for the result of an expression that also must not be evaluated.
 
 ### Making use of `type(of:)` 
 
