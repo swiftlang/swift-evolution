@@ -1,9 +1,9 @@
 # Memory layout of values
 
-* Proposal: [SE-XXXX](XXXX-memory-layout-of-values.md)
+* Proposal: [SE-0136](0136-memory-layout-of-values.md)
 * Author: [Xiaodi Wu](https://github.com/xwu)
-* Status: **Awaiting review**
-* Review manager: TBD
+* Status: **Active Review August 5...9**
+* Review manager: [Dave Abrahams](https://github.com/dabrahams)
 
 ## Introduction
 
