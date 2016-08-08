@@ -35,7 +35,7 @@ just loads it via JavaScript. Hence, the following declaration isn't used.
 <proposal id="0025" status="implemented" swift-version="3" name="Scoped Access Level" filename="0025-scoped-access-level.md"/>
 <proposal id="0026" status="deferred" name="Abstract classes and methods" filename="0026-abstract-classes-and-methods.md"/>
 <proposal id="0027" status="rejected" name="Expose code unit initializers on String" filename="0027-string-from-code-units.md"/>
-<proposal id="0028" status="implemented" swift-version="3" name="Modernizing Swift's Debugging Identifiers (__FILE__, etc)" filename="0028-modernizing-debug-identifiers.md"/>
+<proposal id="0028" status="implemented" swift-version="2.2" name="Modernizing Swift's Debugging Identifiers (__FILE__, etc)" filename="0028-modernizing-debug-identifiers.md"/>
 <proposal id="0029" status="implemented" swift-version="3" name="Remove implicit tuple splat behavior from function applications" filename="0029-remove-implicit-tuple-splat.md"/>
 <proposal id="0030" status="deferred" name="Property Behaviors" filename="0030-property-behavior-decls.md"/>
 <proposal id="0031" status="implemented" swift-version="3" name="Adjusting inout Declarations for Type Decoration" filename="0031-adjusting-inout-declarations.md"/>
