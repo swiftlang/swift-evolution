@@ -30,13 +30,6 @@ library binaries.
 
 The proposed changes are as follows:
 
-* Move `CustomPlaygroundQuickLookable` and `PlaygroundQuickLook` to
-  the `PlaygroundSupport` module.  These components are really only
-  useful for playgrounds, and don't belong in the standard library.
-  
-  See [this pull request](https://github.com/apple/swift/pull/4090)
-  for the detailed design.
-
 * Deprecate the `Indexable` protocols with a message indicating that they
   will be gone in Swift 4.  These protocols are implementation details
   of the standard library designed to work around language limitations
