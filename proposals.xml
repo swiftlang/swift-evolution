@@ -142,7 +142,7 @@ just loads it via JavaScript. Hence, the following declaration isn't used.
 <proposal id="0132" status="deferred" name="Rationalizing Sequence end-operation names" filename="0132-sequence-end-ops.md"/>
 <proposal id="0133" status="implemented" swift-version="3" name="Rename `flatten()` to `joined()`" filename="0133-rename-flatten-to-joined.md"/>
 <proposal id="0134" status="implemented" swift-version="3" name="Rename two UTF8-related properties on String" filename="0134-rename-string-properties.md"/>
-<proposal id="0135" status="accepted" swift-version="3" name="Package Manager Support for Differentiating Packages by Swift version" filename="0135-package-manager-support-for-differentiating-packages-by-swift-version.md"/>
+<proposal id="0135" status="implemented" swift-version="3" name="Package Manager Support for Differentiating Packages by Swift version" filename="0135-package-manager-support-for-differentiating-packages-by-swift-version.md"/>
 <proposal id="0136" status="active" name="Memory Layout of Values" filename="0136-memory-layout-of-values.md"/>
 <!--
 Recognized values for a proposal's status:
