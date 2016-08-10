@@ -1,8 +1,8 @@
 # Change `Unmanaged` to use `UnsafePointer`
 
-* Proposal: [SE-0017](https://github.com/apple/swift-evolution/blob/master/proposals/0017-convert-unmanaged-to-use-unsafepointer.md)
+* Proposal: [SE-0017](0017-convert-unmanaged-to-use-unsafepointer.md)
 * Author: [Jacob Bandes-Storch](https://github.com/jtbandes)
-* Status: **Accepted for Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000133.html))
+* Status: **Implemented in Swift 3.0** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000133.html), [Bug](https://bugs.swift.org/browse/SR-1485))
 * Review manager: [Chris Lattner](https://github.com/lattner)
 
 ## Introduction

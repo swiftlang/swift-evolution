@@ -1,8 +1,8 @@
 # API Design Guidelines
 
-* Proposal: [SE-0023](https://github.com/apple/swift-evolution/blob/master/proposals/0023-api-guidelines.md)
+* Proposal: [SE-0023](0023-api-guidelines.md)
 * Authors: Dave Abrahams, Doug Gregor, Dmitri Hrybenko, Ted Kremenek, Chris Lattner, Alex Migicovsky, Max Moiseev, Ali Ozer, Tony Parker
-* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000053.html))
+* Status: **Implemented in Swift 3.0** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000053.html))
 * Review manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Reviewer notes
@@ -10,9 +10,12 @@
 This review is part of a group of three related reviews, running
 concurrently:
 
-* [SE-0023 API Design Guidelines](https://github.com/apple/swift-evolution/blob/master/proposals/0023-api-guidelines.md)
-* [SE-0006 Apply API Guidelines to the Standard Library](https://github.com/apple/swift-evolution/blob/master/proposals/0006-apply-api-guidelines-to-the-standard-library.md)
-* [SE-0005 Better Translation of Objective-C APIs Into Swift](https://github.com/apple/swift-evolution/blob/master/proposals/0005-objective-c-name-translation.md)
+* [SE-0023 API Design Guidelines](0023-api-guidelines.md)
+  ([Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160118/007353.html))
+* [SE-0006 Apply API Guidelines to the Standard Library](0006-apply-api-guidelines-to-the-standard-library.md)
+  ([Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160118/007354.html))
+* [SE-0005 Better Translation of Objective-C APIs Into Swift](0005-objective-c-name-translation.md)
+  ([Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160118/007355.html))
 
 These reviews are running concurrently because they interact strongly
 (e.g., an API change in the standard library will correspond to a

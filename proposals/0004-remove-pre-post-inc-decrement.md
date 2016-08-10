@@ -1,8 +1,8 @@
 # Remove the `++` and `--` operators
 
-* Proposal: [SE-0004](https://github.com/apple/swift-evolution/blob/master/proposals/0004-remove-pre-post-inc-decrement.md)
+* Proposal: [SE-0004](0004-remove-pre-post-inc-decrement.md)
 * Author: [Chris Lattner](https://github.com/lattner)
-* Status: **Accepted**
+* Status: **Implemented in Swift 3.0** ([Commit](https://github.com/apple/swift/commit/8e12008d2b34a605f8766310f53d5668f3d50955))
 
 ## Introduction
 

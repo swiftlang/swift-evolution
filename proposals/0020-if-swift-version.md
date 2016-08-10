@@ -1,8 +1,8 @@
 # Swift Language Version Build Configuration
 
-* Proposal: [SE-0020](https://github.com/apple/swift-evolution/blob/master/proposals/0020-if-swift-version.md)
+* Proposal: [SE-0020](0020-if-swift-version.md)
 * Author: [David Farler](https://github.com/bitjammer)
-* Status: **Implemented** in Swift 2.2
+* Status: **Implemented in Swift 2.2** ([Commit](https://github.com/apple/swift/commit/c32fb8e7b9a67907e8b6580a46717c6a345ec7c6))
 * Review manager: Doug Gregor
 
 ## Introduction
@@ -10,7 +10,7 @@
 This proposal aims to add a new build configuration option to Swift
 2.2: `#if swift`.
 
-Swift-evolution thread: [Swift 2.2: #if swift language version](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/003385.html)
+Swift-evolution threads: [Swift 2.2: #if swift language version](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/003385.html), [Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160111/006398.html)
 
 ## Motivation
 

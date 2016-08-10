@@ -1,11 +1,11 @@
 # Swift Testing
 
-* Proposal: [SE-0019](https://github.com/apple/swift-evolution/blob/master/proposals/0019-package-manager-testing.md)
+* Proposal: [SE-0019](0019-package-manager-testing.md)
 * Authors:
   [Max Howell](https://github.com/mxcl),
   [Daniel Dunbar](https://github.com/ddunbar),
   [Mattt Thompson](https://github.com/mattt)
-* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160118/007278.html), [Bug](https://bugs.swift.org/browse/SR-592))
+* Status: **Implemented in Swift 3.0** ([Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160118/007278.html), [Bug](https://bugs.swift.org/browse/SR-592))
 * Review Manager: Rick Ballard
 
 ## Introduction
