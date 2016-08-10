@@ -144,6 +144,8 @@ just loads it via JavaScript. Hence, the following declaration isn't used.
 <proposal id="0134" status="implemented" swift-version="3" name="Rename two UTF8-related properties on String" filename="0134-rename-string-properties.md"/>
 <proposal id="0135" status="implemented" swift-version="3" name="Package Manager Support for Differentiating Packages by Swift version" filename="0135-package-manager-support-for-differentiating-packages-by-swift-version.md"/>
 <proposal id="0136" status="active" name="Memory Layout of Values" filename="0136-memory-layout-of-values.md"/>
+<proposal id="0137" status="active" name="Avoiding Lock-In to Legacy Protocol Designs" filename="0137-avoiding-lock-in.md"/>
+
 <!--
 Recognized values for a proposal's status:
 	implemented, accepted, active, scheduled, awaiting, deferred, returned, rejected
