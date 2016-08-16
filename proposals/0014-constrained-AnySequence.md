@@ -2,8 +2,11 @@
 
 * Proposal: [SE-0014](https://github.com/apple/swift-evolution/blob/master/proposals/0014-constrained-AnySequence.md)
 * Author: [Max Moiseev](https://github.com/moiseev)
-* Status: **Accepted for Swift 2.2** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-January/000008.html), [Bug](https://bugs.swift.org/browse/SR-474))
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Accepted**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-January/000008.html)
+* Bugs: [SR-474](https://bugs.swift.org/browse/SR-474)
+
 
 ## Introduction
 

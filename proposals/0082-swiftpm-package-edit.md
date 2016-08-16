@@ -2,8 +2,9 @@
 
 * Proposal: [SE-0082](0082-swiftpm-package-edit.md)
 * Author: [Daniel Dunbar](https://github.com/ddunbar)
-* Status: **Accepted for Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160509/017038.html))
-* Review manager: [Anders Bertelrud](https://github.com/abertelrud)
+* Review Manager: [Anders Bertelrud](https://github.com/abertelrud)
+* Status: **Accepted**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160509/017038.html)
 
 ## Introduction
 

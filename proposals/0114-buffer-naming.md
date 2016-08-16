@@ -2,8 +2,9 @@
 
 * Proposal: [SE-0114](0114-buffer-naming.md)
 * Author: [Erica Sadun](http://github.com/erica)
-* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000221.html))
-* Review manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Status: **Accepted**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000221.html)
 
 ## Introduction
 

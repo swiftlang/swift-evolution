@@ -2,8 +2,10 @@
 
 * Proposal: [SE-0039](https://github.com/apple/swift-evolution/blob/master/proposals/0039-playgroundliterals.md)
 * Author: [Erica Sadun](http://github.com/erica)
-* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000060.html), [Bug](https://bugs.swift.org/browse/SR-917))
-* Review manager: [Chris Lattner](https://github.com/lattner)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
+* Status: **Accepted**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000060.html)
+* Bugs: [SR-917](https://bugs.swift.org/browse/SR-917)
 
 ## Introduction
 

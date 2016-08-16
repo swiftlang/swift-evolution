@@ -2,14 +2,11 @@
 
 * Proposal: [SE-0045](0045-scan-takewhile-dropwhile.md)
 * Author: [Kevin Ballard](https://github.com/kballard)
-* Status: **Accepted for Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000136.html), [Bug](https://bugs.swift.org/browse/SR-1516))
-* Review manager: [Chris Lattner](http://github.com/lattner)
-* Revision: 4
-* Previous Revisions: [1][rev-1], [2][rev-2], [3][rev-3]
-
-[rev-1]: https://github.com/apple/swift-evolution/blob/b39d653f7e3d5e982b562664343f26c826652291/proposals/0045-scan-takewhile-dropwhile.md
-[rev-2]: https://github.com/apple/swift-evolution/blob/baec22a8a5ddaa0407086380da32b5cad2144800/proposals/0045-scan-takewhile-dropwhile.md
-[rev-3]: https://github.com/apple/swift-evolution/blob/d709546002e1636a10350d14da84eb9e554c3aac/proposals/0045-scan-takewhile-dropwhile.md
+* Status: **Accepted**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000136.html)
+* Bugs: [SR-1516](https://bugs.swift.org/browse/SR-1516)
+* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/b39d653f7e3d5e982b562664343f26c826652291/proposals/0045-scan-takewhile-dropwhile.md), [2](https://github.com/apple/swift-evolution/blob/baec22a8a5ddaa0407086380da32b5cad2144800/proposals/0045-scan-takewhile-dropwhile.md), [3](https://github.com/apple/swift-evolution/blob/d709546002e1636a10350d14da84eb9e554c3aac/proposals/0045-scan-takewhile-dropwhile.md)
 
 ## Introduction
 

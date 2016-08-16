@@ -2,8 +2,10 @@
 
 * Proposal: [SE-0080](0080-failable-numeric-initializers.md)
 * Author: [Matthew Johnson](https://github.com/anandabits)
-* Status: **Accepted with Revisions for Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000150.html), [Bug](https://bugs.swift.org/browse/SR-1491))
-* Review manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Status: **Accepted with revisions**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000150.html)
+* Bugs: [SR-1491](https://bugs.swift.org/browse/SR-1491)
 
 ## Introduction
 

@@ -2,8 +2,8 @@
 
 * Proposal: [SE-0051](0051-stride-semantics.md)
 * Author: [Erica Sadun](http://github.com/erica)
-* Status: **Withdrawn by Submitter**
-* Review manager: TBD
+* Review Manager: N/A
+* Status: **Withdrawn**
 
 Swift offers two stride functions, `stride(to:, by:)` and `stride(through:, by:)`. This proposal introduces a third style and renames the existing `to` and `through` styles.
 

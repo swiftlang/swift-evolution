@@ -2,9 +2,10 @@
 
 * Proposal: [SE-0044](https://github.com/apple/swift-evolution/blob/master/proposals/0044-import-as-member.md)
 * Author: [Michael Ilseman](https://github.com/milseman)
-* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160321/013265.html), [Bug](https://bugs.swift.org/browse/SR-1053))
-* Review manager: [Doug Gregor](https://github.com/DougGregor)
-* Implementation: [GitHub branch](https://github.com/apple/swift/tree/import-as-member)
+* Status: **Implemented (Swift 3)**
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160321/013265.html)
+* Bugs: [SR-1053](https://bugs.swift.org/browse/SR-1053)
 
 ## Introduction
 

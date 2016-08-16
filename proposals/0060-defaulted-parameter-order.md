@@ -2,8 +2,10 @@
 
 * Proposal: [SE-0060](0060-defaulted-parameter-order.md)
 * Author: [Joe Groff](https://github.com/jckarter)
-* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000146.html), [Bug](https://bugs.swift.org/browse/SR-1489))
-* Review manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Status: **Implemented (Swift 3)**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000146.html)
+* Bugs: [SR-1489](https://bugs.swift.org/browse/SR-1489)
 
 ## Introduction
 

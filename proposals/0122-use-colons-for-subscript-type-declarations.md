@@ -2,8 +2,9 @@
 
 * Proposal: [SE-0122](0122-use-colons-for-subscript-type-declarations.md)
 * Author: [James Froggatt](https://github.com/MutatingFunk)
-* Status: **Rejected** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000258.html))
-* Review manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Status: **Rejected**
+* Decison Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000258.html)
 
 ## Introduction
 

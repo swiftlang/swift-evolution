@@ -1,10 +1,10 @@
 # Mutability and Foundation Value Types
 
 * Proposal: [SE-0069](0069-swift-mutability-for-foundation.md)
-* Author: Tony Parker <anthony.parker@apple.com>
-* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000132.html))
+* Author: [Tony Parker](https://github.com/parkera)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-
+* Status: **Implemented (Swift 3)**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000132.html)
 
 ## Introduction
 

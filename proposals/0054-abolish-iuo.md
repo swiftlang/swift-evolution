@@ -2,8 +2,9 @@
 
 * Proposal: [SE-0054](0054-abolish-iuo.md)
 * Author: [Chris Willmore](http://github.com/cwillmor)
-* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000084.html))
 * Review Manager: [Chris Lattner](https://github.com/lattner)
+* Status: **Implemented (Swift 3)**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000084.html)
 
 ## Introduction
 

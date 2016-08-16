@@ -2,8 +2,10 @@
 
 * Proposal: [SE-0064](0064-property-selectors.md)
 * Author: [David Hart](https://github.com/hartbit)
-* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-April/000102.html), [Bug](https://bugs.swift.org/browse/SR-1239))
-* Review manager: [Doug Gregor](https://github.com/DougGregor)
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Implemented (Swift 3)**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-April/000102.html)
+* Bugs: [SR-1239](https://bugs.swift.org/browse/SR-1239)
 
 ## Introduction
 

@@ -2,9 +2,9 @@
 
 * Proposal: [SE-0063](0063-swiftpm-system-module-search-paths.md)
 * Author: [Max Howell](https://github.com/mxcl)
-* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-April/000103.html))
-* Review manager: [Anders Bertelrud](https://github.com/abertelrud)
-
+* Review Manager: [Anders Bertelrud](https://github.com/abertelrud)
+* Status: **Implemented (Swift 3)**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-April/000103.html)
 
 ## Introduction
 

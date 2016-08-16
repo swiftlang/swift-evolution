@@ -2,8 +2,9 @@
 
 * Proposal: [SE-0084](0084-trailing-commas.md)
 * Authors: [Grant Paul](https://github.com/grp), [Erica Sadun](http://github.com/erica)
-* Status: **Rejected** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000171.html))
-* Review manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Status: **Rejected**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000171.html)
 
 ## Introduction
 

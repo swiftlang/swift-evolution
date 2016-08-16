@@ -2,8 +2,9 @@
 
 * Proposal: [SE-0056](0056-trailing-closures-in-guard.md)
 * Author: [Chris Lattner](https://github.com/lattner)
-* Status: **Rejected** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-April/000108.html))
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Rejected**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-April/000108.html)
 
 ## Introduction and Motivation
 

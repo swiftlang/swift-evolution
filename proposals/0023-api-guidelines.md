@@ -1,9 +1,10 @@
 # API Design Guidelines
 
 * Proposal: [SE-0023](https://github.com/apple/swift-evolution/blob/master/proposals/0023-api-guidelines.md)
-* Authors: Dave Abrahams, Doug Gregor, Dmitri Hrybenko, Ted Kremenek, Chris Lattner, Alex Migicovsky, Max Moiseev, Ali Ozer, Tony Parker
-* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000053.html))
-* Review manager: [Doug Gregor](https://github.com/DougGregor)
+* Authors: [Dave Abrahams](https://github.com/dabrahams), [Doug Gregor](https://github.com/DougGregor), [Dmitri Gribenko](https://github.com/gribozavr), [Ted Kremenek](https://github.com/tkremenek), [Chris Lattner](http://github.com/lattner), Alex Migicovsky, [Max Moiseev](https://github.com/moiseev), Ali Ozer, [Tony Parker](https://github.com/parkera)
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Accepted**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000053.html)
 
 ## Reviewer notes
 

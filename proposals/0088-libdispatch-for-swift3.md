@@ -2,9 +2,9 @@
 
 * Proposal: [SE-0088](0088-libdispatch-for-swift3.md)
 * Author: [Matt Wright](https://github.com/mwwa)
-* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000163.html))
-* Review manager: [Chris Lattner](http://github.com/lattner)
-* Revision: 2
+* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Status: **Implemented (Swift 3)**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000163.html)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/ef372026d5f7e46848eb2a64f292328028b667b9/proposals/0088-libdispatch-for-swift3.md)
 
 ## Introduction

@@ -2,8 +2,9 @@
 
 * Proposal: [SE-0102](0102-noreturn-bottom-type.md)
 * Author: [Joe Groff](https://github.com/jckarter)
-* Status: **Implemented in Swift 3.0** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000205.html))
-* Review manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Status: **Implemented (Swift 3)**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000205.html)
 
 ## Introduction
 

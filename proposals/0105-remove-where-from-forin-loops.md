@@ -2,8 +2,9 @@
 
 * Proposal: [SE-0105](0105-remove-where-from-forin-loops.md)
 * Author: [Erica Sadun](http://github.com/erica)
-* Status: **Rejected** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000199.html))
-* Review manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Status: **Rejected**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000199.html)
 
 ## Introduction
 

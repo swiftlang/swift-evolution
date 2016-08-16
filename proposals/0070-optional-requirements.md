@@ -2,8 +2,10 @@
 
 * Proposal: [SE-0070](0070-optional-requirements.md)
 * Author: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000124.html), [Bug](https://bugs.swift.org/browse/SR-1395))
-* Review manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Status: **Implemented (Swift 3)**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000124.html)
+* Bugs: [SR-1395](https://bugs.swift.org/browse/SR-1395)
 
 ## Introduction
 

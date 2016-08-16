@@ -2,8 +2,10 @@
 
 * Proposal: [SE-0115](0115-literal-syntax-protocols.md)
 * Author: [Matthew Johnson](https://github.com/anandabits)
-* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000220.html), [Bug](https://bugs.swift.org/browse/SR-2054))
-* Review manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Status: **Accepted**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000220.html)
+* Bugs: [SR-2054](https://bugs.swift.org/browse/SR-2054)
 
 ## Introduction
 

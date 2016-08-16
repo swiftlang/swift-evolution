@@ -2,9 +2,9 @@
 
 * Proposal: [SE-0089](0089-rename-string-reflection-init.md)
 * Author: [Austin Zheng](https://github.com/austinzheng), [Brent Royal-Gordon](https://github.com/brentdax)
-* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000190.html))
-* Review manager: [Chris Lattner](http://github.com/lattner)
-* Revision: 2
+* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Status: **Accepted**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000190.html)
 * Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/40aecf3647c19ae37730e39aa9e54b67fcc2be86/proposals/0089-rename-string-reflection-init.md)
 
 ## Introduction

@@ -2,8 +2,8 @@
 
 * Proposal: [SE-0131](0131-anyhashable.md)
 * Author: [Dmitri Gribenko](https://github.com/gribozavr)
-* Status: **Active Review July 23...25**
-* Review manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Status: **Active review (July 23...July 25)**
 
 ## Introduction
 

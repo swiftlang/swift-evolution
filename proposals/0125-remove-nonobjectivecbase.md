@@ -2,8 +2,9 @@
 
 * Proposal: [SE-0125](0125-remove-nonobjectivecbase.md)
 * Author: [Arnold Schwaighofer](https://github.com/aschwaighofer)
-* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000261.html))
-* Review manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Status: **Accepted**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000261.html)
 
 ## Introduction
 

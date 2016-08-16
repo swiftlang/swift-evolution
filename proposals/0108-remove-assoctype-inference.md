@@ -2,8 +2,9 @@
 
 * Proposal: [SE-0108](0108-remove-assoctype-inference.md)
 * Authors: [Douglas Gregor](https://github.com/DougGregor), Austin Zheng
-* Status: **Rejected** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000214.html))
-* Review manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Status: **Rejected**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000214.html)
 
 ## Introduction
 

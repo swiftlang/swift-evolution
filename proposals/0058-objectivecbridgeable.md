@@ -2,9 +2,9 @@
 
 * Proposal: [SE-0058](0058-objectivecbridgeable.md)
 * Authors: [Russ Bishop](https://github.com/russbishop), [Doug Gregor](https://github.com/DougGregor)
-* Status: **Deferred** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-April/000095.html))
-* Review manager: [Joe Groff](https://github.com/jckarter)
-
+* Review Manager: [Joe Groff](https://github.com/jckarter)
+* Status: **Deferred**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-April/000095.html)
 
 # Introduction
 

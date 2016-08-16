@@ -2,8 +2,9 @@
 
 * Proposal: [SE-0083](0083-remove-bridging-from-dynamic-casts.md)
 * Author: [Joe Groff](https://github.com/jckarter)
-* Status: **Deferred** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000173.html))
-* Review manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Status: **Deferred**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000173.html)
 
 ## Introduction
 

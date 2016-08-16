@@ -2,8 +2,9 @@
 
 * Proposal: [SE-0098](0098-didset-capitalization.md)
 * Author: [Erica Sadun](https://github.com/erica)
-* Status: **Rejected** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000179.html))
-* Review manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Status: **Rejected**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000179.html)
 
 ## Introduction
 

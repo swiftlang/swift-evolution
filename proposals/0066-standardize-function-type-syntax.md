@@ -2,8 +2,9 @@
 
 * Proposal: [SE-0066](0066-standardize-function-type-syntax.md)
 * Author: [Chris Lattner](https://github.com/lattner)
-* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000138.html))
-* Review manager: [Doug Gregor](https://github/com/DougGregor)
+* Review Manager: [Doug Gregor](https://github/com/DougGregor)
+* Status: **Implemented (Swift 3)**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000138.html)
 
 ## Introduction
 

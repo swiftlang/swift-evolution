@@ -2,8 +2,9 @@
 
 * Proposal: [SE-0071](0071-member-keywords.md)
 * Author: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000122.html))
-* Review manager: [Chris Lattner](https://github.com/lattner)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
+* Status: **Implemented (Swift 3)**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000122.html)
 
 ## Introduction
 

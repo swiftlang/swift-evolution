@@ -2,8 +2,9 @@
 
 * Proposal: [SE-0059](0059-updated-set-apis.md)
 * Author: [Dave Abrahams](https://github.com/dabrahams)
-* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-April/000105.html))
-* Review manager: [Doug Gregor](https://github.com/DougGregor)
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Implemented (Swift 3)**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-April/000105.html)
 
 ## Introduction
 

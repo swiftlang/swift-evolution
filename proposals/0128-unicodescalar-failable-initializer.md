@@ -1,9 +1,10 @@
 # Change failable UnicodeScalar initializers to failable
 
 * Proposal: [SE-0128](0128-unicodescalar-failable-initializer.md)
-* Author: Xin Tong
-* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000259.html))
-* Review manager: [Chris Lattner](http://github.com/lattner)
+* Author: [Xin Tong](https://github.com/trentxintong)
+* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Status: **Accepted**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000259.html)
 
 ## Introduction
 

@@ -2,8 +2,10 @@
 
 * Proposal: [SE-0061](0061-autoreleasepool-signature.md)
 * Author: [Timothy J. Wood](https://github.com/tjw)
-* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000123.html), [Bug](https://bugs.swift.org/browse/SR-842), [Bug](https://bugs.swift.org/browse/SR-1394))
-* Review manager: [Dave Abrahams](http://github.com/dabrahams)
+* Review Manager: [Dave Abrahams](http://github.com/dabrahams)
+* Status: **Implemented (Swift 3)**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000123.html)
+* Bugs: [SR-842](https://bugs.swift.org/browse/SR-842), [SR-1394](https://bugs.swift.org/browse/SR-1394)
 
 ## Introduction
 

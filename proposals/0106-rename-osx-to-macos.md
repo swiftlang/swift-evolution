@@ -1,9 +1,10 @@
-# Add a `macOS` Alias for the `OSX` Platform Configuration Test 
+# Add a `macOS` Alias for the `OSX` Platform Configuration Test
 
 * Proposal: [SE-0106](0106-rename-osx-to-macos.md)
 * Author: [Erica Sadun](http://github.com/erica)
-* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000193.html))
-* Review manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Status: **Accepted**
+* Decison Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000193.html)
 
 ## Introduction
 

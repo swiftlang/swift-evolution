@@ -2,8 +2,9 @@
 
 * Proposal: [SE-0112](0112-nserror-bridging.md)
 * Author: [Doug Gregor](https://github.com/DougGregor), [Charles Srstka](https://github.com/CharlesJS)
-* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000222.html))
-* Review manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Status: **Accepted**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000222.html)
 
 ## Introduction
 

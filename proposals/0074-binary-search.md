@@ -2,8 +2,9 @@
 
 * Proposal: [SE-0074](0074-binary-search.md)
 * Authors: [Lorenzo Racca](https://github.com/lorenzoracca), [Jeff Hajewski](https://github.com/j-haj), [Nate Cook](https://github.com/natecook1000)
-* Status: **Rejected for Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000148.html))
-* Review manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Status: **Rejected**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000148.html)
 
 ## Introduction
 

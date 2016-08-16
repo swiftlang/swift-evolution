@@ -2,8 +2,10 @@
 
 * Proposal: [SE-0081](0081-move-where-expression.md)
 * Authors: [David Hart](https://github.com/hartbit), [Robert Widmann](https://github.com/CodaFi), [Pyry Jahkola](https://github.com/pyrtsa)
-* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000161.html), [Bug](https://bugs.swift.org/browse/SR-1561))
-* Review manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Status: **Implemented (Swift 3)**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000161.html)
+* Bugs: [SR-1561](https://bugs.swift.org/browse/SR-1561)
 
 ## Introduction
 
