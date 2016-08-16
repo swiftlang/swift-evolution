@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0137](0137-avoiding-lock-in.md)
 * Author: [Dave Abrahams](https://github.com/dabrahams), [Dmitri Gribenko](https://github.com/gribozavr)
-* Status: **Under review from August 10th - 14th**
+* Status: **Accepted**
 * Review manager: [John McCall](https://github.com/rjmccall)
 
 ## Introduction
