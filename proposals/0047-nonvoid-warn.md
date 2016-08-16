@@ -2,8 +2,11 @@
 
 * Proposal: [SE-0047](proposals/0047-nonvoid-warn.md)
 * Authors: [Erica Sadun](http://github.com/erica), [Adrian Kashivskyy](https://github.com/akashivskyy)
-* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000075.html), [Bug](https://bugs.swift.org/browse/SR-1052))
-* Review manager: [Chris Lattner](https://github.com/lattner)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
+* Status: **Implemented (Swift 3)**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000075.html)
+* Bugs: [SR-1052](https://bugs.swift.org/browse/SR-1052)
+
 
 ## Introduction
 In Swift's current incarnation, annotating methods and functions with `@warn_unused_result` informs the compiler that a non-void return type *should be consumed*. It is an affirmative declaration. In its absence, ignored results do not raise warnings or errors.

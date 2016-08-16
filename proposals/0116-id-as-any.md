@@ -2,9 +2,10 @@
 
 * Proposal: [SE-0116](0116-id-as-any.md)
 * Author: [Joe Groff](https://github.com/jckarter)
-* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000243.html))
-* Review manager: [Chris Lattner](http://github.com/lattner)
-* Revision: 2 (previous revisions: [1](https://github.com/apple/swift-evolution/blob/b9a0ab5f7db4d3806c7941a07acedc5f0fe36e55/proposals/0116-id-as-any.md))
+* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Status: **Accepted**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000243.html)
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/b9a0ab5f7db4d3806c7941a07acedc5f0fe36e55/proposals/0116-id-as-any.md)
 
 ## Introduction
 

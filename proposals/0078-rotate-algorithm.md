@@ -1,14 +1,11 @@
 # Implement a rotate algorithm, equivalent to std::rotate() in C++
 
-- Proposal: [SE-0078](0078-rotate-algorithm.md)
-- Authors: [Nate Cook](https://github.com/natecook1000) & [Sergey Bolshedvorsky](https://github.com/bolshedvorsky)
-- Status:  **Deferred from Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000165.html))
-- Review manager: [Chris Lattner](http://github.com/lattner)
-- Revision: 3
-- Previous Revisions: [1][rev-2] (as submitted for review), [2][rev-2]
-
-[rev-1]: https://github.com/apple/swift-evolution/blob/f5936651da1a08e2335a4991831db61da29aba15/proposals/0078-rotate-algorithm.md
-[rev-2]: https://github.com/apple/swift-evolution/blob/8d45024ed7baacce94e22080d74f136bebc5c075/proposals/0078-rotate-algorithm.md
+* Proposal: [SE-0078](0078-rotate-algorithm.md)
+* Authors: [Nate Cook](https://github.com/natecook1000), [Sergey Bolshedvorsky](https://github.com/bolshedvorsky)
+* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Status:  **Deferred**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000165.html)
+* Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/f5936651da1a08e2335a4991831db61da29aba15/proposals/0078-rotate-algorithm.md), [2](https://github.com/apple/swift-evolution/blob/8d45024ed7baacce94e22080d74f136bebc5c075/proposals/0078-rotate-algorithm.md)
 
 ## Introduction
 

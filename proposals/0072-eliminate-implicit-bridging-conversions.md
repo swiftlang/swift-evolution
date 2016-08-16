@@ -2,8 +2,9 @@
 
 * Proposal: [SE-0072](0072-eliminate-implicit-bridging-conversions.md)
 * Author: [Joe Pamer](https://github.com/jopamer)
-* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000137.html))
-* Review manager: [Chris Lattner](https://github.com/lattner)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
+* Status: **Implemented (Swift 3)**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000137.html)
 
 ## Introduction
 In Swift 1.2, we attempted to remove all implicit bridging conversions from the language. Unfortunately, problems with how the v1.2 compiler imported various un-annotated Objective-C APIs caused us to scale back on our ambitions.

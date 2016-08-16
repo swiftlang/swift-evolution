@@ -2,9 +2,10 @@
 
 * Proposal: [SE-0091](0091-improving-operators-in-protocols.md)
 * Author: [Tony Allevato](https://github.com/allevato), [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000232.html))
-* Review manager: [Chris Lattner](http://github.com/lattner)
-* Revision: 2 ([revision 1](https://github.com/apple/swift-evolution/blob/eaab20ed34df1dc8ba8aa07e49abc8c5fa216f3e/proposals/0091-improving-operators-in-protocols.md))
+* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Status: **Accepted**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000232.html)
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/eaab20ed34df1dc8ba8aa07e49abc8c5fa216f3e/proposals/0091-improving-operators-in-protocols.md)
 
 ## Introduction
 

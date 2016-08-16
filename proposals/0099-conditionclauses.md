@@ -2,9 +2,10 @@
 
 * Proposal: [SE-0099](0099-conditionclauses.md)
 * Authors: [Erica Sadun](https://github.com/erica), [Chris Lattner](https://github.com/lattner)
-* Status: **Accepted** ([Rationale](#rationale))
-* Review manager: [Joe Groff](https://github.com/jckarter)
-* Previous Revision [1](https://github.com/apple/swift-evolution/blob/83053c5f5395987caf2ecb3830a5cd8dc6213237/proposals/0099-conditionclauses.md)
+* Review Manager: [Joe Groff](https://github.com/jckarter)
+* Status: **Accepted**
+* Decision Notes: [Rationale](#rationale)
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/83053c5f5395987caf2ecb3830a5cd8dc6213237/proposals/0099-conditionclauses.md)
 
 ## Introduction
 

@@ -2,8 +2,9 @@
 
 * Proposal: [SE-0012](https://github.com/apple/swift-evolution/blob/master/proposals/0012-add-noescape-to-public-library-api.md)
 * Author: [Jacob Bandes-Storch](https://github.com/jtbandes)
-* Status: **Rejected** swift-evolution isn't the right process [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160530/019902.html)
-* Review champion: [Philippe Hausler](https://github.com/phausler)
+* Review Manager: [Philippe Hausler](https://github.com/phausler)
+* Status: **Rejected**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160530/019902.html)
 
 ##### Revision history
 

@@ -2,8 +2,9 @@
 
 * Proposal: [SE-0053](0053-remove-let-from-function-parameters.md)
 * Author: [Nicholas Maccharoli](https://github.com/nirma)
-* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000082.html))
-* Review manager: [Chris Lattner](https://github.com/lattner)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
+* Status: **Implemented (Swift 3)**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000082.html)
 
 ## Introduction
 

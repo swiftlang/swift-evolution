@@ -2,8 +2,10 @@
 
 * Proposal: [SE-0075](0075-import-test.md)
 * Author: [Erica Sadun](http://github.com/erica)
-* Status: **Accepted for Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000159.html), [Bug](https://bugs.swift.org/browse/SR-1560))
-* Review manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Status: **Accepted**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000159.html)
+* Bugs: [SR-1560](https://bugs.swift.org/browse/SR-1560)
 
 ## Introduction
 

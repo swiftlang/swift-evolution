@@ -2,8 +2,9 @@
 
 * Proposal: [SE-0129](0129-package-manager-test-naming-conventions.md)
 * Author: [Anders Bertelrud](https://github.com/abertelrud)
-* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-build-dev/Week-of-Mon-20160725/000572.html))
-* Review manager: [Daniel Dunbar](https://github.com/ddunbar)
+* Review Manager: [Daniel Dunbar](https://github.com/ddunbar)
+* Status: **Accepted**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-build-dev/Week-of-Mon-20160725/000572.html)
 
 ## Introduction
 

@@ -2,8 +2,8 @@
 
 * Proposal: [SE-0136](0136-memory-layout-of-values.md)
 * Author: [Xiaodi Wu](https://github.com/xwu)
-* Status: **Active Review August 7...9**
-* Review manager: [Dave Abrahams](https://github.com/dabrahams)
+* Review Manager: [Dave Abrahams](https://github.com/dabrahams)
+* Status: **Active review (August 7...August 9)**
 
 ## Introduction
 

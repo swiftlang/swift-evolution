@@ -2,8 +2,10 @@
 
 * Proposal: [SE-0049: Move @noescape and @autoclosure to be type attributes](0049-noescape-autoclosure-type-attrs.md)
 * Author: [Chris Lattner](https://github.com/lattner)
-* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-April/000099.html), [Bug](https://bugs.swift.org/browse/SR-1235))
-* Review manager: [Doug Gregor](https://github.com/DougGregor)
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Implemented (Swift 3)**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-April/000099.html)
+* Bugs: [SR-1235](https://bugs.swift.org/browse/SR-1235)
 
 ## Introduction
 

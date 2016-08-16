@@ -2,8 +2,9 @@
 
 * Proposal: [SE-0057](0057-importing-objc-generics.md)
 * Author: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-April/000097.html))
-* Review manager: [Chris Lattner](https://github.com/lattner)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
+* Status: **Implemented (Swift 3)**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-April/000097.html)
 
 ## Introduction
 

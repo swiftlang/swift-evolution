@@ -1,9 +1,10 @@
 # Drop NS Prefix in Swift Foundation
 
 * Proposal: [SE-0086](0086-drop-foundation-ns.md)
-* Authors: Tony Parker <anthony.parker@apple.com>, Philippe Hausler <phausler@apple.com>
-* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000229.html))
-* Review manager:  [Doug Gregor](https://github.com/DougGregor)
+* Authors: [Tony Parker](https://github.com/parkera), [Philippe Hausler](https://github.com/phausler)
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Implemented (Swift 3)**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000229.html)
 
 ##### Related radars or Swift bugs
 

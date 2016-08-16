@@ -2,8 +2,10 @@
 
 * Proposal: [SE-0046](https://github.com/apple/swift-evolution/blob/master/proposals/0046-first-label.md)
 * Authors: [Jake Carter](https://github.com/JakeCarter), [Erica Sadun](http://github.com/erica)
-* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000067.html), [Bug](https://bugs.swift.org/browse/SR-961))
-* Review manager: [Chris Lattner](https://github.com/lattner)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
+* Status: **Implemented (Swift 3)**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000067.html)
+* Bugs: [SR-961](https://bugs.swift.org/browse/SR-961)
 
 ## Introduction
 We propose to normalize the first parameter declaration in methods 

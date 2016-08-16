@@ -2,8 +2,9 @@
 
 * Proposal: [SE-0026](https://github.com/apple/swift-evolution/blob/master/proposals/0026-abstract-classes-and-methods.md)
 * Author: David Scrève
-* Status: **Deferred** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000056.html))
-* Review manager: [Joe Groff](https://github.com/jckarter/)
+* Review Manager: [Joe Groff](https://github.com/jckarter/)
+* Status: **Deferred**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000056.html)
 
 ## Introduction
 

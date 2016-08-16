@@ -2,12 +2,11 @@
 
 * Proposal: [SE-0016](https://github.com/apple/swift-evolution/blob/master/proposals/0016-initializers-for-converting-unsafe-pointers-to-ints.md)
 * Author: [Michael Buckley](https://github.com/MichaelBuckley)
-* Status: **Accepted for Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000083.html), [Bug](https://bugs.swift.org/browse/SR-1115))
-* Review manager: [Chris Lattner](https://github.com/lattner)
-* Revision: 2
-* Previous Revision: [1][rev-1] (as accepted)
-
-[rev-1]: https://github.com/apple/swift-evolution/blob/ae2d7c24fff7cbdff754d9a4339e4fb02df5c690/proposals/0016-initializers-for-converting-unsafe-pointers-to-ints.md
+* Review Manager: [Chris Lattner](https://github.com/lattner)
+* Status: **Accepted**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000083.html)
+* Bugs: [SR-1115](https://bugs.swift.org/browse/SR-1115)
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/ae2d7c24fff7cbdff754d9a4339e4fb02df5c690/proposals/0016-initializers-for-converting-unsafe-pointers-to-ints.md)
 
 ## Introduction
 ## 

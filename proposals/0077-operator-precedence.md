@@ -2,8 +2,9 @@
 
 * Proposal: [SE-0077](0077-operator-precedence.md)
 * Author: [Anton Zhilin](https://github.com/Anton3)
-* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160704/023745.html))
-* Review manager: [Joe Groff](http://github.com/jckarter)
+* Review Manager: [Joe Groff](http://github.com/jckarter)
+* Status: **Implemented (Swift 3)**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160704/023745.html)
 
 **Revision history**
 

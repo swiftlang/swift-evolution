@@ -2,12 +2,10 @@
 
 * Proposal: [SE-0032](https://github.com/apple/swift-evolution/blob/master/proposals/0032-sequencetype-find.md)
 * Author: [Kevin Ballard](https://github.com/kballard)
-* Status: **Accepted for Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000134.html))
-* Review manager: [Chris Lattner](https://github.com/lattner)
-* Revision: 2
-* Previous Revisions: [1][rev-1]
-
-[rev-1]: https://github.com/apple/swift-evolution/blob/d709546002e1636a10350d14da84eb9e554c3aac/proposals/0032-sequencetype-find.md
+* Review Manager: [Chris Lattner](https://github.com/lattner)
+* Status: **Accepted**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000134.html)
+* Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/d709546002e1636a10350d14da84eb9e554c3aac/proposals/0032-sequencetype-find.md)
 
 ## Introduction
 

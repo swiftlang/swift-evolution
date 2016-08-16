@@ -2,8 +2,9 @@
 
 * Proposal: [SE-0052](0052-iterator-post-nil-guarantee.md)
 * Author: [Patrick Pijnappel](https://github.com/PatrickPijnappel)
-* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000135.html))
-* Review manager: [Chris Lattner](https://github.com/lattner)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
+* Status: **Implemented (Swift 3)**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000135.html)
 
 ## Introduction
 

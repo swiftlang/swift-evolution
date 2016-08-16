@@ -2,8 +2,11 @@
 
 * Proposal: [SE-0034](https://github.com/apple/swift-evolution/blob/master/proposals/0034-disambiguating-line.md)
 * Author: [Erica Sadun](http://github.com/erica)
-* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160222/011337.html), [Implementation Bug](https://bugs.swift.org/browse/SR-840))
-* Review manager: [Chris Lattner](https://github.com/lattner)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
+* Status: **Accepted**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160222/011337.html)
+* Bugs: [SR-840](https://bugs.swift.org/browse/SR-840)
+
 
 ## Introduction
 

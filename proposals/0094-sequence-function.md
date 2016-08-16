@@ -2,14 +2,12 @@
 
 * Proposal: [SE-0094](0094-sequence-function.md)
 * Authors: [Kevin Ballard](https://github.com/kballard), [Erica Sadun](http://github.com/erica)
-* Status: **Implemented in Swift 3** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000170.html), [Bug][])
-* Review manager: [Chris Lattner](http://github.com/lattner)
-* Previous proposal: [SE-0045](0045-scan-takewhile-dropwhile.md)
-* Revision: 2
-* Previous Revision: [1][rev-1]
-
-[Bug]: https://bugs.swift.org/browse/SR-1622
-[rev-1]: https://github.com/apple/swift-evolution/blob/7d220a152a681e28761493c7d9781dd867a04cf7/proposals/0094-sequence-function.md
+* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Status: **Implemented (Swift 3)**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000170.html)
+* Bugs: [SR-1622](https://bugs.swift.org/browse/SR-1622)
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/7d220a152a681e28761493c7d9781dd867a04cf7/proposals/0094-sequence-function.md)
+* Previous Proposal: [SE-0045](0045-scan-takewhile-dropwhile.md)
 
 ## Introduction
 

@@ -2,8 +2,9 @@
 
 * Proposal: [SE-0109](0109-remove-boolean.md)
 * Authors: [Anton Zhilin](https://github.com/Anton3), [Chris Lattner](https://github.com/lattner)
-* Status: Accepted ([Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160711/024270.html))
-* Review manager: [Doug Gregor](http://github.com/DougGregor)
+* Review Manager: [Doug Gregor](http://github.com/DougGregor)
+* Status: **Accepted**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160711/024270.html)
 
 ## Introduction
 

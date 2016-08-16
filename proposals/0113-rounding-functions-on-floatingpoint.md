@@ -2,8 +2,9 @@
 
 * Proposal: [SE-0113](0113-rounding-functions-on-floatingpoint.md)
 * Author: [Karl Wagner](https://github.com/karwa)
-* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000217.html))
-* Review manager: [Chris Lattner](http://github.com/lattner)
+* Review Manager: [Chris Lattner](http://github.com/lattner)
+* Status: **Accepted**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000217.html)
 
 ## Introduction, Motivation
 
