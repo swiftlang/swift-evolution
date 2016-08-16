@@ -49,9 +49,9 @@ func captureAndEscape(inout x: Int) -> () -> Void {
 
 var x = 22
 let closure = captureAndEscape(&x)
-print(x) // => 23
+print(x) // => 22
 closure()
-print("still \(x)") // => still 23
+print("still \(x)") // => still 22
 ```
 
 This change has been a persistent source of confusion and bug reports, and was recently
