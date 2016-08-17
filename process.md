@@ -82,23 +82,33 @@ repository][swift-evolution-repo] to reflect that decision.
 ## Proposal states
 A given proposal can be in one of several states:
 
-* **Awaiting review**: the proposal is awaiting review. Once known,
+* **Awaiting review**: The proposal is awaiting review. Once known,
   the dates for the actual review will be placed in the proposal
   document and updated in the [list of proposals](proposals.xml). When the
   review period begins, the review manager will update the state to
-  *under review*.
-* **Under review**: the proposal is undergoing public review on the [swift-evolution mailing list][swift-evolution-mailing-list]. 
-* **Under revision**: the proposal is undergoing revision by the
-  author(s) based on feedback from the review.
-* **Deferred**: consideration of the proposal has been deferred
+  *Active review*.
+* **Scheduled for review (MONTH DAY...MONTH DAY)**: The public review of the proposal
+  on the [swift-evolution mailing list][swift-evolution-mailing-list]
+  has been scheduled for the specified date range.
+* **Active review (MONTH DAY...MONTH DAY)**: The proposal is undergoing public review
+  on the [swift-evolution mailing list][swift-evolution-mailing-list].
+  The review will continue through the specified date range.
+* **Returned for revision**: The proposal has been returned from review
+  for additional revision to the current draft.
+* **Withdrawn**: The proposal has been withdrawn by the original submitter.
+* **Deferred**: Consideration of the proposal has been deferred
   because it does not meet the [goals of the upcoming major Swift
   release](README.md). Deferred proposals will be reconsidered when
   scoping the next major Swift release.
-* **Accepted**: the proposal has been accepted and is either awaiting
-  implementation or is actively being implemented. Once a proposal
-  enters the "accepted" state, it gets placed into its [target Swift
-  release](README.md).
-* **Rejected**: the proposal has been considered and rejected.
+* **Accepted**: The proposal has been accepted and is either awaiting
+  implementation or is actively being implemented.
+* **Accepted with revisions**: The proposal has been accepted,
+  contingent upon the inclusion of one or more revisions.
+* **Rejected**: The proposal has been considered and rejected.
+* **Implemented (Swift VERSION)**: The proposal has been implemented.
+  Append the version number in parentheses—for example: Implemented (Swift 2.2).
+  If the proposal's implementation spans multiple version numbers,
+  write the version number for which the implementation will be complete.
 
 [swift-evolution-repo]: https://github.com/apple/swift-evolution  "Swift evolution repository"
 [swift-evolution-mailing-list]: https://swift.org/community/#swift-evolution  "Swift evolution mailing list"
