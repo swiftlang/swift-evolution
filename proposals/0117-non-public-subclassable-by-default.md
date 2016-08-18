@@ -196,7 +196,7 @@ a member of its superclass must have an access level that is at
 least the minimum of its class's access level and the overridden
 member's access level.  Therefore, if the class is `open`, and the
 superclass method is `open`, the override must also be declared
-`open.  As a special case, an override that would otherwise be
+`open`.  As a special case, an override that would otherwise be
 required to be declared `open` may instead be declared `public`
 if it is `final` or a member of a `final` class.
 
