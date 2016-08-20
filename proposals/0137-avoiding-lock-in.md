@@ -3,14 +3,15 @@
 * Proposal: [SE-0137](0137-avoiding-lock-in.md)
 * Author: [Dave Abrahams](https://github.com/dabrahams), [Dmitri Gribenko](https://github.com/gribozavr)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Accepted**
+* Status: **Implemented (Swift 3)**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160815/026300.html)
 
 ## Introduction
 
 We propose to deprecate or move protocols that shouldn't be a part of
 the standard library's public API going forward.
 
-Swift-evolution thread: [Discussion thread topic for that proposal](https://lists.swift.org/pipermail/swift-evolution/)
+Swift-evolution threads: [Late Pitch](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160808/026071.html), [Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160808/026103.html)
 
 ## Motivation
 
