@@ -134,3 +134,9 @@ We can of course do nothing and leave the behavior as-is.
 `NSValue` also carries factories for `valueWithPointer:` and
 `valueWithNonretainedObject:`. Maybe we could bridge
 `UnsafePointer` and `Unmanaged` this way, but we probably shouldn't.
+
+Instead of implementing `NSValue` bridging in the overlay, Zach Waldowski
+suggests using Objective-C's `__attribute__((objc_boxable))`, which enables
+autoboxing of a struct in ObjC with `@(...)` syntax, to also instruct Swift's
+Clang importer to synthesize a bridge to `NSValue` automatically for types
+annotated with the attribute.
