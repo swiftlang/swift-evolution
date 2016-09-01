@@ -1,9 +1,9 @@
 # Bridge Numeric Types to `NSNumber` and Cocoa Structs to `NSValue`
 
-* Proposal: [SE-NNNN](XXXX-bridge-nsnumber-and-nsvalue.md)
+* Proposal: [SE-0139](XXXX-bridge-nsnumber-and-nsvalue.md)
 * Author: [Joe Groff](https://github.com/jckarter)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Under review from September 1st - 7th, 2016**
 
 ## Introduction
 
@@ -12,7 +12,7 @@ into Objective-C object contexts. We should extend this bridging behavior
 to all Swift numeric types. We should also bridge common Cocoa structs such as
 `NSRange` by boxing them into `NSValue` objects.
 
-Swift-evolution thread: [TBD](https://lists.swift.org/pipermail/swift-evolution/)
+Swift-evolution thread: [here]https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160822/026560.html)
 
 ## Motivation
 

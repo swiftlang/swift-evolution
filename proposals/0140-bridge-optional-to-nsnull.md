@@ -1,8 +1,8 @@
 # Bridge `Optional` As Its Payload Or `NSNull`
 
-* Proposal: [SE-NNNN](XXXX-bridge-nsnumber-and-nsvalue.md)
+* Proposal: [SE-0140](XXXX-bridge-nsnumber-and-nsvalue.md)
 * Author: [Joe Groff](https://github.com/jckarter)
-* Review Manager: TBD
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Awaiting review**
 
 ## Introduction
@@ -11,7 +11,7 @@
 objects in Objective-C. We should bridge `Optional`s with `some` value by
 bridging the wrapped value, and bridge `nil`s to the `NSNull` singleton.
 
-Swift-evolution thread: [TBD](https://lists.swift.org/pipermail/swift-evolution/)
+Swift-evolution thread: [here](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160822/026561.html)
 
 ## Motivation
 
