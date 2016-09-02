@@ -147,7 +147,7 @@ just loads it via JavaScript. Hence, the following declaration isn't used.
 <proposal id="0137" status="implemented" swift-version="3" name="Avoiding Lock-In to Legacy Protocol Designs" filename="0137-avoiding-lock-in.md"/>
 <proposal id="0138" status="active" swift-version="3" name="UnsafeBytes" filename="0138-unsafebytes.md"/>
 <proposal id="0139" status="active" swift-version="3" name="Bridge Numeric Types to `NSNumber` and Cocoa Structs to `NSValue`" filename="0139-bridge-nsnumber-and-nsvalue.md"/>
-<proposal id="0140" status="awaiting" swift-version="3" name="Bridge `Optional` As Its Payload Or `NSNull`" filename="0140-bridge-optional-to-nsnull.md"/>
+<proposal id="0140" status="active" swift-version="3" name="Bridge `Optional` As Its Payload Or `NSNull`" filename="0140-bridge-optional-to-nsnull.md"/>
 
 <!--
 Recognized values for a proposal's status:
