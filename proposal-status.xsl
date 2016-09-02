@@ -139,6 +139,7 @@ on the gh-pages branch).
       body {
         font-family: -apple-system, BlinkMacSystemFont, HelveticaNeue, Helvetica, Arial, sans-serif;
         -webkit-text-size-adjust: none;
+        word-break: break-word;
       }
       body > h1, body > p, section > table, section > p {
         margin-left: 1rem;
