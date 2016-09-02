@@ -750,7 +750,7 @@ rebinding the type.
 func stringFromBytes(size: Int, value: UInt8) {
   let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: size + 1)
   buffer.initialize(to: value, count: size)
-  bytes[size] = 0
+  buffer[size] = 0
 
   buffer.withMemoryRebound(to: CChar.self, capacity: size + 1) {
     readCStr($0)
