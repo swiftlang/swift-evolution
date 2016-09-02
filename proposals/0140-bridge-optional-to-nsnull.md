@@ -10,11 +10,36 @@
 `Optional`s can be used as values of `Any` type. After
 [SE-0116](https://github.com/apple/swift-evolution/blob/master/proposals/0116-id-as-any.md),
 this means you can pass an `Optional` to an Objective-C method expecting
-nonnull `id`. This is usually a mistake, and we should raise a warning
+nonnull `id`:
+
+```objc
+// Objective-C
+@interface ObjCClass : NSObject
+- (void)imported: (id _Nonnull)value;
+@end
+```
+
+```swift
+let s1: String? = nil, s2: String? = "hello"
+// works, should warn, currently produces an opaque object type
+ObjCClass().imported(s1)
+// works, should warn, currently produces an opaque object type
+ObjCClass().imported(s2)
+```
+
+This is often a mistake, and we should raise a warning
 when it occurs, but is occasionally useful. When an `Optional` is intentionally
 passed into Objective-C as a nonnull object, we should bridge
 `some` value by bridging the wrapped value, and bridge `none`s to a singleton
-such as `NSNull`.
+such as `NSNull`:
+
+```swift
+let s1: String? = nil, s2: String? = "hello"
+// proposed to bridge to NSNull.null
+ObjCClass().imported(s1)
+// proposed to bridge to NSString("hello")
+ObjCClass().imported(s2)
+```
 
 Swift-evolution thread: [here](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160822/026561.html)
 
