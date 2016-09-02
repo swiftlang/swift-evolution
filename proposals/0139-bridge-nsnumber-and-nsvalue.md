@@ -12,7 +12,7 @@ into Objective-C object contexts. We should extend this bridging behavior
 to all Swift numeric types. We should also bridge common Cocoa structs such as
 `NSRange` by boxing them into `NSValue` objects.
 
-Swift-evolution thread: [here]https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160822/026560.html)
+Swift-evolution thread: [here](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160822/026560.html)
 
 ## Motivation
 
