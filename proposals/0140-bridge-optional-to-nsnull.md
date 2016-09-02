@@ -7,9 +7,14 @@
 
 ## Introduction
 
-`Optional`s can be used as values of the type `Any`, but only bridge as opaque
-objects in Objective-C. We should bridge `Optional`s with `some` value by
-bridging the wrapped value, and bridge `nil`s to the `NSNull` singleton.
+`Optional`s can be used as values of `Any` type. After
+[SE-0116](https://github.com/apple/swift-evolution/blob/master/proposals/0116-id-as-any.md),
+this means you can pass an `Optional` to an Objective-C method expecting
+nonnull `id`. This is usually a mistake, and we should raise a warning
+when it occurs, but is occasionally useful. When an `Optional` is intentionally
+passed into Objective-C as a nonnull object, we should bridge
+`some` value by bridging the wrapped value, and bridge `none`s to a singleton
+such as `NSNull`.
 
 Swift-evolution thread: [here](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160822/026561.html)
 
@@ -17,33 +22,39 @@ Swift-evolution thread: [here](https://lists.swift.org/pipermail/swift-evolution
 
 [SE-0116](https://github.com/apple/swift-evolution/blob/master/proposals/0116-id-as-any.md)
 changed how Objective-C's `id` and untyped collections import into Swift to
-use the `Any` type. This makes it much more natural to pass in Swift value
-types such as `String` and `Array`, but introduces the opportunity for
-optionality mismatches, since an `Any` can contain a wrapped `Optional`
-value just like anything else.  Our current behavior, where `Optional` is given
-only the default opaque bridging behavior, leads to brittle transitivity
-problems with collection subtyping. For example, an array of `Optional` objects
-bridges to an `NSArray` of opaque objects, unusable from ObjC:
+use the `Any` type. This makes it much more natural to pass Swift value
+types such as `String` and `Array` into ObjC. One unfortunate effect is that,
+since `Any` in Swift can hold *anything*, it is now possible to pass an 
+`Optional` to an Objective-C API that expects a nonnull `id`.
+This is not a new issue in Swift--it is possible to use an Optional anywhere
+there's unconstrained polymorphism, for example, in string interpolations, or
+as the element type of a collection, such as an `Array<T?>`.
+Since `Optional` does not currently have any special bridging behavior, it will
+currently be bridged to Objective-C as an opaque object, which will be unusable
+by most Objective-C API. In Objective-C, Cocoa provides `NSNull` as a
+standard, non-`nil` singleton to represent missing values inside collections,
+since `NSArray`, `NSDictionary`, and `NSSet` are unable to hold `nil` elements.
+If we bridge `Optional`s so that, when they contain `some` value, we bridge
+the wrapped value, or use `NSNull` to represent `none`, then we get several
+advantages over the current behavior:
 
-```swift
-class C {}
-let objects: [C?] = [C(), nil, C()]
-```
-
-The more idiomatic mapping would be to use `NSNull` or some other sentinel
-to represent the missing values (since `NSArray` cannot directly store `nil`).
-Counterintuitively, this is in fact what you get if you bridge an
-array of `Any` with nil elements:
-
-```swift
-class C {}
-let objects: [Any] = [C(), nil as C?, C()]
-```
-
-though with an opaque box taking the place of the standard `NSNull` sentinel.
-Since there's a subtype relationship between `T` and `Optional<T>`, it's
-also intuitive to expect that the bridging operation be consistent between 
-`T` and occupied values of `Optional<T>`.
+- Passing a wrapped `Optional` value into Objective-C will work more
+  consistently with how `Optional`s inside `Any`s work in Swift. Swift
+  considers `T` to be a subtype of `T?`, so even if an `Any` contains
+  an optional, casting to the nonoptional type will succeed if the `Any`
+  contains an optional with a value. By analogy in Objective-C, we would want
+  an `Optional` passed into ObjC as `id` to be an instance of the unwrapped
+  class type, so that `isKindOfClass:` and `respondsToSelector:` queries succeed
+  if a valid value is passed in.
+- Passing `Optional.none` to Objective-C APIs that idiomatically expect
+  `NSNull` will do the right thing. Swift collections such as `[T?]` will
+  automatically map to `NSArray`s containing `NSNull` sentinels, their closest
+  idiomatic analogue in ObjC.
+- Passing `Optional.none` to Objective-C APIs that expect neither `nil` nor
+  `NSNull` will fail in more obvious ways, usually with an `NSNull does not
+  respond to selector` exception of some kind. `id`-based Objective-C APIs
+  fundamentally cannot catch all misuses at compile time, so runtime errors
+  on user error are unavoidable.
 
 ## Proposed solution
 
@@ -53,13 +64,30 @@ sentinel object should be used.
 
 ## Detailed design
 
-TODO
+This can be implemented by having `Optional` conform to the implementation-
+internal `_ObjectiveCBridgeable` protocol. One subtlety is with nested
+optional types, such as `T??`; these are rare, but when they occur, we would
+want to preserve their value in round-trips through the Objective-C bridge, so
+we would need to be able to use a different sentinel to distinguish
+`.some(.none)` from `.none`. Since there is no idiomatic equivalent in Cocoa
+for a nested optional, we can use an opaque singleton object to represent
+each level of `none` nesting:
 
-- `some` maps to the bridged value
-- `none` maps to `NSNull`
-- if we don't want to lose information about nested optionals, we'd need
-  a unique `SwiftNull` object for every optional type, so that `.some(.none)`
-  maps to `NSNull` and `.none` maps to `SwiftNull(T?)`
+```swift
+var x: String???
+
+x = String?.none
+x as AnyObject // bridges to NSNull, since it's an unnested `.none`
+
+x = String??.none
+x as AnyObject // bridges to _SwiftNull(1), since it's a double-`.none`
+
+x = String???.none
+x as AnyObject // bridges to _SwiftNull(2), since it's a triple-`.none`
+```
+
+Like default-bridged `_SwiftValue` boxes, these would be `id`-compatible
+but otherwise opaque singletons.
 
 ## Impact on existing code
 
@@ -73,8 +101,27 @@ to `Any` to `id` to `Any` and back by dynamic casting.
 
 ## Alternatives considered
 
-TODO
+We could do nothing, and leave Optionals to bridge by opaque boxing. I think
+this is unsatisfactory; feedback from SE-0116 is showing that users expect
+to be able to pass wrapped Optional values into ObjC and have the wrapped
+values bridge. It also leads to a weird-feeling inconsistency with container
+bridging. If you have an array of optionals, such as:
 
-- Do nothing
-- Attempt to trap or error when Optionals are used as Anys -- would be good
-  QoI to warn, but it can't be prevented, and is occasionally desired
+```
+class C {}
+let a: [C?] = [C(), nil, C()]
+```
+
+then `a` will bridge to Objective-C as an `NSArray` of unusable objects.
+However, if you instead pass in an array of `Any`:
+
+```
+class C {}
+
+let a: [Any] = [C(), nil as C?, C()]
+```
+
+then you get a more functional `NSArray` in Objective-C, since the non-`nil`
+elements will get carried over, and only the `nil` value becomes an opaque
+object. It feels counterintuitive that a *less* type-specific Array would
+give better results than the more specific array type.
