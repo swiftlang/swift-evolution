@@ -1,6 +1,6 @@
 # Bridge Numeric Types to `NSNumber` and Cocoa Structs to `NSValue`
 
-* Proposal: [SE-0139](XXXX-bridge-nsnumber-and-nsvalue.md)
+* Proposal: [SE-0139](0139-bridge-nsnumber-and-nsvalue.md)
 * Author: [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Active Review (September 1...September 7)**

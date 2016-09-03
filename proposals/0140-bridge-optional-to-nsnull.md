@@ -1,6 +1,6 @@
 # Bridge `Optional` As Its Payload Or `NSNull`
 
-* Proposal: [SE-0140](XXXX-bridge-nsnumber-and-nsvalue.md)
+* Proposal: [SE-0140](0140-bridge-nsnumber-and-nsvalue.md)
 * Author: [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Active Review (September 2...September 8)**
