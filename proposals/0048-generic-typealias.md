@@ -1,6 +1,6 @@
 # Generic Type Aliases
 
-* Proposal: [SE-0048: Generic Type Aliases](0048-generic-typealias.md)
+* Proposal: [SE-0048](0048-generic-typealias.md)
 * Author: [Chris Lattner](https://github.com/lattner)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 3)**

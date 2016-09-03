@@ -3,7 +3,7 @@
 * Proposal: [SE-0139](XXXX-bridge-nsnumber-and-nsvalue.md)
 * Author: [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Under review from September 1st - 7th, 2016**
+* Status: **Active Review (September 1...September 7)**
 
 ## Introduction
 

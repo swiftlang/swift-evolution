@@ -1,6 +1,6 @@
 # Move @noescape and @autoclosure to be type attributes
 
-* Proposal: [SE-0049: Move @noescape and @autoclosure to be type attributes](0049-noescape-autoclosure-type-attrs.md)
+* Proposal: [SE-0049](0049-noescape-autoclosure-type-attrs.md)
 * Author: [Chris Lattner](https://github.com/lattner)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 3)**

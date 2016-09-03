@@ -1,8 +1,8 @@
 # UnsafeBytes
 
-* Proposal: [SE-0138](0138-unsafebytes.md) UnsafeBytes
+* Proposal: [SE-0138](0138-unsafebytes.md)
 * Author: [Andrew Trick](https://github.com/atrick)
-* Status: **Under review from August 31th - September 7th**
+* Status: **Active Review (August 31...September 7)**
 * Review manager: [Dave Abrahams](https://github.com/dabrahams)
 
 Contents:
