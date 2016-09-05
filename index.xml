@@ -1,12 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-The proposal status page at apple.github.io/swift-evolution is rendered from
-this list using proposal-status.xsl; however, since this XML document lives on
-the repo's master branch, the status page (index.html on the gh-pages branch)
-just loads it via JavaScript. Hence, the following declaration isn't used.
-
-<?xml-stylesheet type="text/xsl" href="proposal-status.xsl"?>
--->
+<?xml-stylesheet type="text/xsl" href="index.xsl"?>
 <proposals>
 <proposal id="0001" status="implemented" swift-version="2.2" name="Allow (most) keywords as argument labels" filename="0001-keywords-as-argument-labels.md"/>
 <proposal id="0002" status="implemented" swift-version="3" name="Removing currying `func` declaration syntax" filename="0002-remove-currying.md"/>
