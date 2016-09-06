@@ -1,8 +1,4 @@
-<!--
-This file renders the contents of proposals.xml as a nicely-formatted HTML page.
-The proposal data and this template are loaded using JavaScript (see index.html
-on the gh-pages branch).
--->
+<!-- This file renders the contents of index.xml as a nicely-formatted HTML page. -->
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
   <xsl:output method="html"/>
 
