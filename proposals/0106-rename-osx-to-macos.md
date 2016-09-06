@@ -3,7 +3,7 @@
 * Proposal: [SE-0106](0106-rename-osx-to-macos.md)
 * Author: [Erica Sadun](http://github.com/erica)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
-* Status: **Accepted**
+* Status: **Implemented (Swift 3)**
 * Decison Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000193.html)
 
 ## Introduction

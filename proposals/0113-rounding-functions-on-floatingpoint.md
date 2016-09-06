@@ -3,7 +3,7 @@
 * Proposal: [SE-0113](0113-rounding-functions-on-floatingpoint.md)
 * Author: [Karl Wagner](https://github.com/karwa)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
-* Status: **Accepted**
+* Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000217.html)
 
 ## Introduction, Motivation

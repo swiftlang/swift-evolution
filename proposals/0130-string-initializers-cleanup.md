@@ -3,7 +3,7 @@
 * Proposal: [SE-0130](0130-string-initializers-cleanup.md)
 * Author: Roman Levenstein
 * Review Manager: [Chris Lattner](http://github.com/lattner)
-* Status: **Accepted**
+* Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000260.html)
 
 ## Introduction

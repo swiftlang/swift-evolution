@@ -3,7 +3,7 @@
 * Proposal: [SE-0114](0114-buffer-naming.md)
 * Author: [Erica Sadun](http://github.com/erica)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
-* Status: **Accepted**
+* Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000221.html)
 
 ## Introduction

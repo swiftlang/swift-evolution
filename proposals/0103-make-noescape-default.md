@@ -3,7 +3,7 @@
 * Proposal: [SE-0103](0103-make-noescape-default.md)
 * Author: [Trent Nadeau](https://github.com/tanadeau)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
-* Status: **Accepted**
+* Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000204.html)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/833afd64b5d24a777fe2c42800d4b4dcd52bb487/proposals/0103-make-noescape-default.md)
 

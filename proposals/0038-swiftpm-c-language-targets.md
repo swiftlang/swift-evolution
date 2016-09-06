@@ -3,7 +3,7 @@
 * Proposal: [SE-0038](https://github.com/apple/swift-evolution/blob/master/proposals/0038-swiftpm-c-language-targets.md)
 * Author: [Daniel Dunbar](https://github.com/ddunbar)
 * Review Manager: [Rick Ballard](https://github.com/rballard)
-* Status: **Accepted**
+* Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160222/011097.html)
 * Bugs: [SR-821](https://bugs.swift.org/browse/SR-821)
 

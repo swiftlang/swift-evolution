@@ -3,7 +3,7 @@
 * Proposal: [SE-0037](https://github.com/apple/swift-evolution/blob/master/proposals/0037-clarify-comments-and-operators.md)
 * Author: [Jesse Rusak](https://github.com/jder)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
-* Status: **Accepted**
+* Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000066.html)
 * Bugs: [SR-960](https://bugs.swift.org/browse/SR-960)
 

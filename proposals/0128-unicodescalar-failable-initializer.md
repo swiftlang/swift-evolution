@@ -3,7 +3,7 @@
 * Proposal: [SE-0128](0128-unicodescalar-failable-initializer.md)
 * Author: [Xin Tong](https://github.com/trentxintong)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
-* Status: **Accepted**
+* Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000259.html)
 
 ## Introduction

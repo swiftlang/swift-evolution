@@ -3,7 +3,7 @@
 * Proposal: [SE-0011](https://github.com/apple/swift-evolution/blob/master/proposals/0011-replace-typealias-associated.md)
 * Authors: [Loïc Lecrenier](https://github.com/loiclec)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted**
+* Status: **Implemented (Swift 2.2)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-January/000014.html)
 * Bugs: [SR-511](https://bugs.swift.org/browse/SR-511)
 

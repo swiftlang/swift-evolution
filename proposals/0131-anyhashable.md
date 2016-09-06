@@ -3,7 +3,7 @@
 * Proposal: [SE-0131](0131-anyhashable.md)
 * Author: [Dmitri Gribenko](https://github.com/gribozavr)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
-* Status: **Active review (July 23...July 25)**
+* Status: **Implemented (Swift 3)**
 
 ## Introduction
 
