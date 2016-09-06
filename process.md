@@ -84,7 +84,7 @@ A given proposal can be in one of several states:
 
 * **Awaiting review**: The proposal is awaiting review. Once known,
   the dates for the actual review will be placed in the proposal
-  document and updated in the [list of proposals](proposals.xml). When the
+  document and updated in the [list of proposals](index.xml). When the
   review period begins, the review manager will update the state to
   *Active review*.
 * **Scheduled for review (MONTH DAY...MONTH DAY)**: The public review of the proposal
