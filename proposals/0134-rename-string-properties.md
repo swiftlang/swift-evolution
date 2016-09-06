@@ -3,7 +3,7 @@
 * Proposal: [SE-0134](0134-rename-string-properties.md)
 * Author: [Xiaodi Wu](https://github.com/xwu), [Erica Sadun](https://github.com/erica)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
-* Status: **Accepted with revisions**
+* Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000266.html)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/aea8b836d21051076663c5692ec1d09bb3222527/proposals/0134-rename-string-properties.md)
 

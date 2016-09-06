@@ -3,7 +3,7 @@
 * Proposal: [SE-0101](0101-standardizing-sizeof-naming.md)
 * Authors: [Erica Sadun](http://github.com/erica), [Dave Abrahams](https://github.com/dabrahams)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
-* Status: **Accepted**
+* Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000244.html)
 
 ## Introduction

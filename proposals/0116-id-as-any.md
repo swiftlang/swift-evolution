@@ -3,7 +3,7 @@
 * Proposal: [SE-0116](0116-id-as-any.md)
 * Author: [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
-* Status: **Accepted**
+* Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000243.html)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/b9a0ab5f7db4d3806c7941a07acedc5f0fe36e55/proposals/0116-id-as-any.md)
 

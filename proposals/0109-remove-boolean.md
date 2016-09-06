@@ -3,7 +3,7 @@
 * Proposal: [SE-0109](0109-remove-boolean.md)
 * Authors: [Anton Zhilin](https://github.com/Anton3), [Chris Lattner](https://github.com/lattner)
 * Review Manager: [Doug Gregor](http://github.com/DougGregor)
-* Status: **Accepted**
+* Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160711/024270.html)
 
 ## Introduction

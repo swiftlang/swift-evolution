@@ -3,7 +3,7 @@
 * Proposal: [SE-0107](0107-unsaferawpointer.md)
 * Author: [Andrew Trick](https://github.com/atrick)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
-* Status: **Accepted**
+* Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000231.html)
 
 For quick reference, jump to:

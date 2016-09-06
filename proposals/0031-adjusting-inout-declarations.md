@@ -3,7 +3,7 @@
 * Proposal: [SE-0031](https://github.com/apple/swift-evolution/blob/master/proposals/0031-adjusting-inout-declarations.md)
 * Authors: [Joe Groff](https://github.com/jckarter), [Erica Sadun](http://github.com/erica)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Accepted**
+* Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160215/010571.html)
 
 ## Introduction
