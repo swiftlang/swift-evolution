@@ -108,12 +108,13 @@ bridged struct type.
 
 `NSNumber` is a bit trickier, since Cocoa's implementation does not generally
 guarantee to remember the exact number type an instance was constructed from.
-We can instead say that casting an `NSNumber` to a Swift
+When we bridge Swift number types to `NSNumber`, though, we use specific
+`NSNumber` subclasses to preserve the original Swift type, and in these cases
+we can check the exact Swift type in dynamic casts. For NSNumbers from
+Cocoa, we can say that casting an `NSNumber` to a Swift
 number type succeeds if the value of the `NSNumber` is exactly representable
 as the target type. This is imperfect, since it means that an `NSNumber` can
-potentially be cast to a different type from the original value, but it at
-least ensures that Swift values round-trip through the bridge without depending
-on `NSNumber` implementation details.
+potentially be cast to a different type from the original value.
 
 ## Impact on existing code
 
@@ -139,4 +140,5 @@ Instead of implementing `NSValue` bridging in the overlay, Zach Waldowski
 suggests using Objective-C's `__attribute__((objc_boxable))`, which enables
 autoboxing of a struct in ObjC with `@(...)` syntax, to also instruct Swift's
 Clang importer to synthesize a bridge to `NSValue` automatically for types
-annotated with the attribute.
+annotated with the attribute. However, this attribute hasn't been widely
+adopted in Apple SDKs.

@@ -1,4 +1,4 @@
-# Bridge `Optional` As Its Payload Or `NSNull`
+# Warn when `Optional` converts to `Any`, and bridge `Optional` As Its Payload Or `NSNull`
 
 * Proposal: [SE-0140](0140-bridge-nsnumber-and-nsvalue.md)
 * Author: [Joe Groff](https://github.com/jckarter)
@@ -53,15 +53,25 @@ since `Any` in Swift can hold *anything*, it is now possible to pass an
 `Optional` to an Objective-C API that expects a nonnull `id`.
 This is not a new issue in Swift--it is possible to use an Optional anywhere
 there's unconstrained polymorphism, for example, in string interpolations, or
-as the element type of a collection, such as an `Array<T?>`.
-Since `Optional` does not currently have any special bridging behavior, it will
-currently be bridged to Objective-C as an opaque object, which will be unusable
-by most Objective-C API. In Objective-C, Cocoa provides `NSNull` as a
-standard, non-`nil` singleton to represent missing values inside collections,
-since `NSArray`, `NSDictionary`, and `NSSet` are unable to hold `nil` elements.
-If we bridge `Optional`s so that, when they contain `some` value, we bridge
-the wrapped value, or use `NSNull` to represent `none`, then we get several
-advantages over the current behavior:
+as the element type of a collection, such as an `Array<T?>`, but bridging
+`id` as `Any` makes this problem much more prevalent. Since Cocoa APIs
+traffic heavily in Optionals, it's very easy to accidentally take an Optional
+result from one API and pass it as `Any` to another API without unwrapping it
+first. We can introduce a warning when an `Optional` is implicitly converted to
+`Any`.
+
+However, since this is dynamic behavior, it is impossible to prevent
+`Optional`s ending up in `Any`s in all cases, nor would it be desirable to
+completely prevent it, since it is sometimes useful to keep an `Optional`
+inside an `Any`. Containers and other generic types with `Optional` members are
+also useful. Because `Optional` does not currently have any special bridging
+behavior, it will currently be bridged to Objective-C as an opaque object,
+which will be unusable by most Objective-C API. In Objective-C, Cocoa provides
+`NSNull` as a standard, non-`nil` singleton to represent missing values inside
+collections, since `NSArray`, `NSDictionary`, and `NSSet` are unable to hold
+`nil` elements. If we bridge `Optional`s so that, when they contain `some`
+value, we bridge the wrapped value, or use `NSNull` to represent `none`, then
+we get several advantages over the current behavior:
 
 - Passing a wrapped `Optional` value into Objective-C will work more
   consistently with how `Optional`s inside `Any`s work in Swift. Swift
@@ -81,15 +91,52 @@ advantages over the current behavior:
   fundamentally cannot catch all misuses at compile time, so runtime errors
   on user error are unavoidable.
 
+`NSNull` is rare in Cocoa, and perhaps not that much more useful than an
+arbitrary sentinel object or opaque box, but is the object most likely to
+have a useful meaning to existing ObjC APIs.
+
 ## Proposed solution
 
-When an `Optional<T>` value is bridged to an Objective-C object, if it contains
-`some` value, that value should be bridged; otherwise, `NSNull` or another
-sentinel object should be used.
+Converting an `Optional<T>` to an `Any` should raise a warning unless the
+conversion is made explicit. When an `Optional<T>` value does end up in an
+`Any`, and gets bridged to an Objective-C object, if it contains `some` value,
+that value should be bridged; otherwise, `NSNull` or another sentinel object
+should be used.
 
 ## Detailed design
 
-This can be implemented by having `Optional` conform to the implementation-
+### Warning when `Optional` is converted to `Any`
+
+When we put an `Optional` into an `Any`, we should warn on the implicit
+conversion:
+
+```swift
+let x: Int? = 3
+let y: Any = x // warning: Optional was put in an Any without being unwrapped
+
+// `print` takes parameters of type Any
+print(x) // warning: Optional was passed as an argument of type Any without
+         // being unwrapped
+
+// `NSMutableArray` has elements of type `id _Nonnull` in ObjC,
+// imported as `Any` in Swift
+let a = NSMutableArray()
+a.add(x)  // warning: Optional was passed as an argument of type Any without
+          // being unwrapped
+```
+
+If passing the `Optional` is intentional, the warning can be suppressed by
+making the conversion explicit with `as Any`:
+
+```swift
+let y: Any = x as Any
+print(x as Any)
+a.add(x as Any)
+```
+
+### Bridging `Optional`s
+
+`Optional` can conform to the implementation-
 internal `_ObjectiveCBridgeable` protocol. One subtlety is with nested
 optional types, such as `T??`; these are rare, but when they occur, we would
 want to preserve their value in round-trips through the Objective-C bridge, so
@@ -126,27 +173,22 @@ to `Any` to `id` to `Any` and back by dynamic casting.
 
 ## Alternatives considered
 
-We could do nothing, and leave Optionals to bridge by opaque boxing. I think
-this is unsatisfactory; feedback from SE-0116 is showing that users expect
-to be able to pass wrapped Optional values into ObjC and have the wrapped
-values bridge. It also leads to a weird-feeling inconsistency with container
-bridging. If you have an array of optionals, such as:
+There are unconstrained contexts other than `Any` promotion where `Optional`s
+can be used by accident without unwrapping, such as `String.init(describing:)`,
+which takes a generic `<T>`. We may want to warn in some of these cases, but
+there are subtleties that require deeper consideration. Extending the warning
+can be considered in the future.
 
-```
-class C {}
-let a: [C?] = [C(), nil, C()]
-```
+We could do nothing, and leave Optionals to bridge by opaque boxing. Charles
+Srstka argues that passing Optionals into ObjC via `Any` is programmer
+error, so should fail early at runtime:
 
-then `a` will bridge to Objective-C as an `NSArray` of unusable objects.
-However, if you instead pass in an array of `Any`:
+  I’d say my position has three planks on it, and the above is pretty much the first plank: 1) the idea of an array of optionals is a concept that doesn’t really exist in Objective-C, and I do think that passing one to Obj-C ought to be considered a programmer error.
 
-```
-class C {}
+  The other two planks would be:
 
-let a: [Any] = [C(), nil as C?, C()]
-```
+  2) Bridging arrays of optionals in this manner could mask the aforementioned programmer error, resulting in unexpected, hard-to-reproduce crashes when an NSNull is accessed as if it were something else, and:
 
-then you get a more functional `NSArray` in Objective-C, since the non-`nil`
-elements will get carried over, and only the `nil` value becomes an opaque
-object. It feels counterintuitive that a *less* type-specific Array would
-give better results than the more specific array type.
+  3) Objective-C APIs that accept NSNull objects are fairly rare, so the proposed bridging doesn’t really solve a significant problem (and in the cases where it does, using a map to replace nils with NSNulls is not difficult to write).
+
+I'm not sure that Optional
