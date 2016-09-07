@@ -1,4 +1,4 @@
-# UnsafeBytes
+# UnsafeRawBufferPointer
 
 * Proposal: [SE-0138](0138-unsafebytes.md)
 * Author: [Andrew Trick](https://github.com/atrick)
@@ -67,9 +67,9 @@ length to also allow clients to view that memory as raw bytes without the
 need to explicitly bind the memory type each time memory is
 accessed. This would also improve performance in some cases that I've
 encoutered by avoiding array copies. Let's call this new type
-`Unsafe[Mutable]Bytes`.
+`Unsafe[Mutable]RawBufferPointer`.
 
-Any array can be viewed as `UnsafeBytes`, and that raw view of the
+Any array can be viewed as `UnsafeRawBufferPointer`, and that raw view of the
 bytes can be used by any interface that expects a collection of `UInt8`:
 
 ```swift
@@ -89,10 +89,10 @@ intArray.withUnsafeBytes {
 ```
 
 Any data type can be safely passed to APIs that work with raw memory
-via `UnsafeBytes`, such as output streams and flat buffers:
+via `UnsafeRawBufferPointer`, such as output streams and flat buffers:
 
 ```swift
-func write(bytes: UnsafeBytes) { ... }
+func write(bytes: UnsafeRawBufferPointer) { ... }
 
 // imported struct Header
 struct Header {...}
@@ -108,7 +108,7 @@ Data of any type can be loaded from raw memory that was constructed as
 an array of `UInt8`:
 
 ```swift
-func readHeader(fromBytes bytes: UnsafeBytes) -> Header {
+func readHeader(fromBytes bytes: UnsafeRawBufferPointer) -> Header {
   return bytes.load(as: Header.self)
 }
 
@@ -120,7 +120,7 @@ let header = array.withUnsafeBytes {
 
 ## Proposed solution
 
-Introduce `UnsafeBytes` and `UnsafeMutableBytes` types, which will
+Introduce `UnsafeRawBufferPointer` and `UnsafeMutableRawBufferPointer` types, which will
 respectively conform to `Collection` and `MutableCollection` of
 `UInt8`. These types will provide a debug-mode bounds-checked subset of
 `Unsafe[Mutable]RawPointer`'s interface to raw memory:
@@ -130,10 +130,10 @@ respectively conform to `Collection` and `MutableCollection` of
 Please see the doc comments provided in [Detailed design](#detailed-design).
 
 Add an `Array.withUnsafe[Mutable]Bytes<R>(_)` method that passes an
-`UnsafeBytes` view of the array buffer to the closure body.
+`UnsafeRawBufferPointer` view of the array buffer to the closure body.
     
 Add a `withUnsafeMutableBytes<T, R>(of:_)` function that passes an
-`UnsafeBytes` view of a value of type `T` to the closure body.
+`UnsafeRawBufferPointer` view of a value of type `T` to the closure body.
     
 As part of the Swift 3 migration guide, show common uses cases for
 migrating the now illegal `UnsafePointer` conversion by making use of
@@ -150,7 +150,7 @@ Consider these real code migration examples:
 
 This is a small sample of projects that popped up during initial
 migration. As migration proceeds, more examples continue to surface
-that would benefit from `UnsafeBytes`.
+that would benefit from `UnsafeRawBufferPointer`.
 
 ### Network Messages
 
@@ -197,7 +197,7 @@ func handleMessages(_ start: UnsafePointer<UInt8>, _ count: Int) -> Int {
 }
 ```
 
-`UnsafeBytes` provides a convenient way to rewrite the handler and
+`UnsafeRawBufferPointer` provides a convenient way to rewrite the handler and
 eliminate undefined behavior:
 
 ```swift
@@ -209,9 +209,9 @@ struct Header {
   var payloadSize: Int32
 }
 
-var handler: (_ channel: Int32, _ bytes: UnsafeBytes) -> () = { _, _ in }
+var handler: (_ channel: Int32, _ bytes: UnsafeRawBufferPointer) -> () = { _, _ in }
 
-func handleMessages(_ bytes: UnsafeBytes) -> Int {
+func handleMessages(_ bytes: UnsafeRawBufferPointer) -> Int {
   var index = 0
   while true {
     let payloadIndex = index + MemoryLayout<Header>.stride
@@ -274,7 +274,7 @@ func read(from fd: Int32) {
 }
 ```
 
-The input driver should now be written using `UnsafeBytes` as follows:
+The input driver should now be written using `UnsafeRawBufferPointer` as follows:
 
 ```swift
 // Updated input driver...
@@ -283,7 +283,7 @@ The input driver should now be written using `UnsafeBytes` as follows:
 func read(from fd: Int32, p: UnsafeMutableRawPointer, n: Int) { ... }
 
 func read(from fd: Int32) throws {
-  let tmpBuffer = UnsafeMutableBytes.allocate(count: 4096)
+  let tmpBuffer = UnsafeMutableRawBufferPointer.allocate(count: 4096)
   defer { tmpBuffer.deallocate() }
 
   let basePtr = tmpBuffer.baseAddress!
@@ -296,7 +296,7 @@ func read(from fd: Int32) throws {
     if result == 0 {
       break
     }
-    let dataBytes = UnsafeBytes(tmpBuffer.prefix(upTo: position + result))
+    let dataBytes = UnsafeRawBufferPointer(tmpBuffer.prefix(upTo: position + result))
     let remaining = handleMessages(dataBytes)
 
     tmpBuffer.copyBytes(from: dataBytes.suffix(remaining))
@@ -338,7 +338,7 @@ func send(_ channel: Int32, _ message: [UInt8]) throws {
 }
 ```
 
-With `UnsafeBytes`, the sender code can be written as follows:
+With `UnsafeRawBufferPointer`, the sender code can be written as follows:
 
 ```swift
 // Updated message send...
@@ -346,7 +346,7 @@ With `UnsafeBytes`, the sender code can be written as follows:
 // imported
 func write(from fd: Int32, p: UnsafeMutableRawPointer, n: Int)
 
-func send(to fd: Int32, onChannel channel: Int32, message: UnsafeBytes) throws {
+func send(to fd: Int32, onChannel channel: Int32, message: UnsafeRawBufferPointer) throws {
   var header = Header(channel: channel, payloadSize: Int32(message.count))
   try withUnsafeBytes(of: &header) {
     let result = write(fd, $0.baseAddress!, $0.count)
@@ -363,7 +363,7 @@ func send(to fd: Int32, onChannel channel: Int32, message: UnsafeBytes) throws {
 
 ### swift-package-manager OutputByteStream
 
-`UnsafeBytes` is a useful tool for composing APIs like Swift package
+`UnsafeRawBufferPointer` is a useful tool for composing APIs like Swift package
 manager's OutputByteStream which needs to operate on raw memory
 independent of the type, and also needs to view that data as an array
 of bytes.
@@ -381,18 +381,18 @@ public final class LocalFileOutputStream {
       let n = fwrite(&contents, 1, contents.count, fp)
 ```
 
-Instead, `UnsafeBytes` should be the common type for data handoff in the base class:
+Instead, `UnsafeRawBufferPointer` should be the common type for data handoff in the base class:
 
 ```swift
 public class OutputByteStream {
-  func writeImpl(_ bytes: UnsafeBytes)
+  func writeImpl(_ bytes: UnsafeRawBufferPointer)
 }
 ```
 
 Without claiming this is the best architecture for this utility, we
 can claim that the author should be able to implement the architecture
 they have chosen correctly and without unnecessary overhead. Moving to
-`UnsafeBytes` fixes three design issues in this code that stem from
+`UnsafeRawBufferPointer` fixes three design issues in this code that stem from
 inadequate support for raw memory.
 
 Fix #1: The public API of a high-performance utility no longer depends
@@ -405,7 +405,7 @@ bytes without copying into an array:
 
 ```swift
 public final class LocalFileOutputStream {
-  override final func writeImpl(_ bytes: UnsafeBytes) {
+  override final func writeImpl(_ bytes: UnsafeRawBufferPointer) {
     // Cast to a mutating raw pointer for legacy libc interop.
     let ptr = UnsafeMutableRawPointer(mutating: bytes.baseAddress!)
     while true {
@@ -422,7 +422,7 @@ public final class BufferedOutputByteStream: OutputByteStream {
     // One way to do this is by allowing OuputByteStream to install external buffers.
     private var contents = [UInt8]()
 
-  override final func writeImpl(_ bytes: UnsafeBytes) {
+  override final func writeImpl(_ bytes: UnsafeRawBufferPointer) {
     contents += bytes
   }
 ```
@@ -436,11 +436,11 @@ class and subclass:
 
 ```swift
 public class OutputByteStream {
-  private var buffer: UnsafeMutableBytes
+  private var buffer: UnsafeMutableRawBufferPointer
   private var position: Int = 0
 
-  private final var bufferedBytes: UnsafeBytes {
-    return UnsafeBytes(buffer.prefix(upTo: position))
+  private final var bufferedBytes: UnsafeRawBufferPointer {
+    return UnsafeRawBufferPointer(buffer.prefix(upTo: position))
   }
   private var availableBufferSize: Int {
     return buffer.count - position
@@ -449,22 +449,22 @@ public class OutputByteStream {
   class var bufferSize: Int { return 1024 }
 
   init() {
-    buffer = UnsafeMutableBytes.allocate(count: type(of: self).bufferSize)
+    buffer = UnsafeMutableRawBufferPointer.allocate(count: type(of: self).bufferSize)
   }
   deinit {
     buffer.deallocate()
   }
 
-  private func appendToBuffer(_ bytes: UnsafeBytes) {
+  private func appendToBuffer(_ bytes: UnsafeRawBufferPointer) {
     buffer[position ..< position + bytes.count].copyBytes(from: bytes)
     position += bytes.count
   }
 
-  func writeImpl(_ bytes: UnsafeBytes) {
+  func writeImpl(_ bytes: UnsafeRawBufferPointer) {
     fatalError("Subclasses must implement this")
   }
 
-  public final func write(bytes: UnsafeBytes) {
+  public final func write(bytes: UnsafeRawBufferPointer) {
     if bytes.count > availableBufferSize {
       appendToBuffer(bytes.prefix(upTo: availableBufferSize))
       ...
@@ -499,7 +499,7 @@ public final class BufferedOutputByteStream: OutputByteStream {
   override public init() {
     super.init()
   }
-  override final func writeImpl(_ bytes: UnsafeBytes) {
+  override final func writeImpl(_ bytes: UnsafeRawBufferPointer) {
     contents += bytes
   }
 }
@@ -507,13 +507,13 @@ public final class BufferedOutputByteStream: OutputByteStream {
 
 ### FlatBuffers
 
-Using `UnsafeBytes`, the code for
+Using `UnsafeRawBufferPointer`, the code for
 [putting a value](https://github.com/mzaks/FlatBuffersSwift/blob/master/FlatBuffersSwift/FlatBufferBuilder.swift#L88)
-can be correctly expressed using `UnsafeBytes` without binding memory:
+can be correctly expressed using `UnsafeRawBufferPointer` without binding memory:
 
 ```swift
 public final class FlatBufferBuilder {
-  private var _data : UnsafeMutableBytes
+  private var _data : UnsafeMutableRawBufferPointer
   var cursor = 0 // ignore left/right cursor for brevity.
   
   private var freeSpace { return _data.suffix(from: cursor) }
@@ -537,11 +537,11 @@ public final class FlatBufferBuilder {
 ```
 
 [FlatBufferReader](https://github.com/mzaks/FlatBuffersSwift/blob/master/FlatBuffersSwift/FlatBufferReader.swift)
-can also be fixed with `UnsafeBytes`:
+can also be fixed with `UnsafeRawBufferPointer`:
 
 ```swift
 public final class FlatBufferReader {
-  private var _data : UnsafeBytes
+  private var _data : UnsafeRawBufferPointer
 
   func fromBytes<T : Scalar>(at position: Int) -> T {
     return _data.load(fromByteOffset: position, as: T.self)
@@ -575,22 +575,22 @@ work, which is unreasonable for normal interaction with `Data`. This
 fix may not even solve the underlying correctness issue, depending on
 how the calling code binds the same memory. Instead of operating an an
 `UnsafeBufferPointer<UInt8>` sequence, the JSON parser should operate on
-an `UnsafeBytes` sequence, eliminating the need to bind memory:
+an `UnsafeRawBufferPointer` sequence, eliminating the need to bind memory:
 
 ```swift
 public func parse(_ data: Data) {
-  let bytes = UnsafeBytes(start: (data as NSData).bytes, count: data.count)
+  let bytes = UnsafeRawBufferPointer(start: (data as NSData).bytes, count: data.count)
   return parse(bytes)
 }
 ```
 
 The `Data` interface should eventually be extended to support calling
-closures that take `UnsafeBytes` as follows. This also fixes a latent
+closures that take `UnsafeRawBufferPointer` as follows. This also fixes a latent
 lifetime bug:
 
 ```swift
 public static func parse(data: NSData) -> JSParsingResult {
-  return data.withUnsafeBytes { bytes: UnsafeBytes in
+  return data.withUnsafeBytes { bytes: UnsafeRawBufferPointer in
     parse(bytes)
   }
 }
@@ -600,7 +600,7 @@ public static func parse(data: NSData) -> JSParsingResult {
 
 This proposal does *not* immediately change any of the following
 interfaces. Doing that would require a separate proposal. However, these
-examples show that `UnsafeBytes` can play an important role in
+examples show that `UnsafeRawBufferPointer` can play an important role in
 future improvements to existing interfaces.
 
 ### Data
@@ -616,12 +616,12 @@ public func withUnsafeBytes<ResultType, ContentType>(
 
 In 3.0, this API now binds memory to `ContentType`, somewhat behind
 the user's back. This would be a problem if the closure body wants to
-operate on raw memory without rebinding the type. With `UnsafeBytes`,
+operate on raw memory without rebinding the type. With `UnsafeRawBufferPointer`,
 an additional API entry point can be added to solve this problem:
 
 ```swift
 public func withUnsafeBytes<ResultType>(
-  _ body: (UnsafeBytes) throws -> ResultType
+  _ body: (UnsafeRawBufferPointer) throws -> ResultType
 ) rethrows -> ResultType
 ```
 
@@ -637,7 +637,7 @@ public init(bytes: UnsafeRawPointer, count: Int)
 should be deprecated in favor of:
 
 ```swift
-public init(bytes: UnsafeBytes)
+public init(bytes: UnsafeRawBufferPointer)
 ```
 
 Copying into an untyped byte buffer:
@@ -651,17 +651,17 @@ because the users likely does not want memory to be rebound to `UInt8`
 behind their back:
 
 ```swift
-public func copyBytes(to bytes: UnsafeMutableBytes)
+public func copyBytes(to bytes: UnsafeMutableRawBufferPointer)
 ```
 
 We should allow appending raw memory with a byte-wise copy by adding
 this API entry point:
 
 ```swift
-public mutating func append(_ bytes: UnsafeBytes)
+public mutating func append(_ bytes: UnsafeRawBufferPointer)
 ```
 
-This existing API was already anticipating an `UnsafeBytes` collection
+This existing API was already anticipating an `UnsafeRawBufferPointer` collection
 and would now allow access to raw memory without any modification:
 
 ```swift
@@ -686,7 +686,7 @@ func read(_ buffer: UnsafeMutablePointer<UInt8>, maxLength len: Int) -> Int {
 should be:
 
 ```swift
-func read(_ buffer: UnsafeMutableBytes) -> Int
+func read(_ buffer: UnsafeMutableRawBufferPointer) -> Int
 ```
 
 The [InputStream.getBuffer() API](
@@ -702,7 +702,7 @@ func getBuffer(
 should be:
 
 ```swift
-func getBuffer() -> UnsafeMutableBytes?
+func getBuffer() -> UnsafeMutableRawBufferPointer?
 ```
 
 The [NSOutputStream.init(toBuffer:capacity:) API](https://developer.apple.com/library/mac/documentation/Cocoa/Reference/Foundation/Classes/NSOutputStream_Class/index.html#//apple_ref/occ/instm/NSOutputStream/initToBuffer:capacity):
@@ -714,7 +714,7 @@ public init(toBuffer buffer: UnsafeMutablePointer<UInt8>, capacity: Int)
 should be:
 
 ```swift
-public init(toBuffer bytes: UnsafeBytes)
+public init(toBuffer bytes: UnsafeRawBufferPointer)
 
 ```
 
@@ -727,7 +727,7 @@ func write(_ buffer: UnsafePointer<UInt8>, maxLength len: Int) -> Int
 should be:
 
 ```swift
-open func write(_ bytes: UnsafeBytes) -> Int
+open func write(_ bytes: UnsafeRawBufferPointer) -> Int
 ```
 
 ### Metal
@@ -746,7 +746,7 @@ Should return a bounds checked collection of bytes:
 
 ```swift
 protocol MTLBuffer {
-  func contents() -> UnsafeMutableBytes
+  func contents() -> UnsafeMutableRawBufferPointer
 }
 ```
 
@@ -759,21 +759,21 @@ func newBuffer(withBytes pointer: UnsafeRawPointer, length: Int) -> MTLBuffer
 should be:
 
 ```swift
-func newBuffer(withBytes bytes: UnsafeBytes) -> MTLBuffer
+func newBuffer(withBytes bytes: UnsafeRawBufferPointer) -> MTLBuffer
 ```
 
 ## Detailed design
 
 ```swift
 % for mutable in (True, False):
-%  Self = 'UnsafeMutableBytes' if mutable else 'UnsafeBytes'
+%  Self = 'UnsafeMutableRawBufferPointer' if mutable else 'UnsafeRawBufferPointer'
 %  Mutable = 'Mutable' if mutable else ''
 
 /// A non-owning view over a region of memory as a Collection of bytes
 /// independent of the type of values held in that memory. Each 8-bit byte in
 /// memory is viewed as a `UInt8` value.
 ///
-/// Reads and writes on memory via `UnsafeBytes` are untyped
+/// Reads and writes on memory via `UnsafeRawBufferPointer` are untyped
 /// operations. Accessing this Collection's bytes does not bind the
 /// underlying memory to `UInt8`. The underlying memory must be bound
 /// to some trivial type whenever it is accessed via a typed operation.
@@ -794,9 +794,9 @@ func newBuffer(withBytes bytes: UnsafeBytes) -> MTLBuffer
 %  end
 ///
 /// This is only a view into memory and does not own the memory. Copying a value
-/// of type `Unsafe${Mutable}Bytes` does not copy the underlying
+/// of type `Unsafe${Mutable}RawBufferPointer` does not copy the underlying
 /// memory. However, initialiing another collection, such as `[UInt8]`, with an
-/// `Unsafe${Mutable}Bytes` into copies bytes out of memory.
+/// `Unsafe${Mutable}RawBufferPointer` into copies bytes out of memory.
 ///
 /// Example:
 /// ```swift
@@ -822,7 +822,7 @@ func newBuffer(withBytes bytes: UnsafeBytes) -> MTLBuffer
 %  end
 /// TODO: Specialize `index` and `formIndex` and
 /// `_failEarlyRangeCheck` as in `UnsafeBufferPointer`.
-public struct Unsafe${Mutable}Bytes
+public struct Unsafe${Mutable}RawBufferPointer
   : ${Mutable}Collection, RandomAccessCollection {
 
   public typealias Index = Int
@@ -851,8 +851,8 @@ public struct Unsafe${Mutable}Bytes
   /// Allocate memory for `size` bytes with word alignment.
   ///
   /// - Postcondition: The memory is allocated, but not initialized.
-  public static func allocate(count size: Int) -> UnsafeMutableBytes {
-    return UnsafeMutableBytes(
+  public static func allocate(count size: Int) -> UnsafeMutableRawBufferPointer {
+    return UnsafeMutableRawBufferPointer(
       start: UnsafeMutableRawPointer.allocate(
         bytes: size, alignedTo: MemoryLayout<UInt>.alignment),
       count: size)
@@ -934,7 +934,7 @@ public struct Unsafe${Mutable}Bytes
   /// - Postcondition: The memory at `self..<self+count` is
   ///   initialized to raw bytes. If the memory is bound to type `U`,
   ///   then it contains values of type `U`.
-  public func copyBytes(from source: UnsafeBytes) {
+  public func copyBytes(from source: UnsafeRawBufferPointer) {
     _precondition(source.count <= self.count,
       "${Self}.copyBytes source has too many elements")
     baseAddress?.copyBytes(from: source.baseAddress!, count: source.count)
@@ -975,14 +975,14 @@ public struct Unsafe${Mutable}Bytes
   }
 
 %  if mutable:
-  /// Converts UnsafeBytes to UnsafeMutableBytes.
-  public init(mutating bytes: UnsafeBytes) {
+  /// Converts UnsafeRawBufferPointer to UnsafeMutableRawBufferPointer.
+  public init(mutating bytes: UnsafeRawBufferPointer) {
     self.init(start: UnsafeMutableRawPointer(mutating: bytes.baseAddress),
       count: bytes.count)
   }
 %  else:
-  /// Converts UnsafeMutableBytes to UnsafeBytes.
-  public init(_ bytes: UnsafeMutableBytes) {
+  /// Converts UnsafeMutableRawBufferPointer to UnsafeRawBufferPointer.
+  public init(_ bytes: UnsafeMutableRawBufferPointer) {
     self.init(start: bytes.baseAddress, count: bytes.count)
   }
 
@@ -1004,7 +1004,7 @@ public struct Unsafe${Mutable}Bytes
   /// The "past the end" position---that is, the position one greater than the
   /// last valid subscript argument.
   ///
-  /// The `endIndex` property of an `Unsafe${Mutable}Bytes` instance is
+  /// The `endIndex` property of an `Unsafe${Mutable}RawBufferPointer` instance is
   /// always identical to `count`.
   public var endIndex: Int {
     return count
@@ -1034,11 +1034,11 @@ public struct Unsafe${Mutable}Bytes
 
   /// Accesses the bytes in the memory region within `bounds` as a `UInt8`
   /// values.
-  public subscript(bounds: Range<Int>) -> Unsafe${Mutable}Bytes {
+  public subscript(bounds: Range<Int>) -> Unsafe${Mutable}RawBufferPointer {
     get {
       _debugPrecondition(bounds.lowerBound >= startIndex)
       _debugPrecondition(bounds.upperBound <= endIndex)
-      return Unsafe${Mutable}Bytes(
+      return Unsafe${Mutable}RawBufferPointer(
         start: baseAddress.map { $0 + bounds.lowerBound },
         count: bounds.count)
     }
@@ -1080,7 +1080,7 @@ public struct Unsafe${Mutable}Bytes
   let _position, _end: Unsafe${Mutable}RawPointer?
 }
 
-extension Unsafe${Mutable}Bytes : CustomDebugStringConvertible {
+extension Unsafe${Mutable}RawBufferPointer : CustomDebugStringConvertible {
   /// A textual representation of `self`, suitable for debugging.
   public var debugDescription: String {
     return "${Self}"
@@ -1093,22 +1093,22 @@ extension Unsafe${Mutable}Bytes : CustomDebugStringConvertible {
 %  if mutable:
 public func withUnsafeMutableBytes<T, Result>(
   of arg: inout T,
-  _ body: (inout UnsafeMutableBytes) throws -> Result
+  _ body: (inout UnsafeMutableRawBufferPointer) throws -> Result
 ) rethrows -> Result
 {
   return try withUnsafeMutablePointer(to: &arg) {
-    var bytes = UnsafeMutableBytes(start: $0, count: MemoryLayout<T>.size)
+    var bytes = UnsafeMutableRawBufferPointer(start: $0, count: MemoryLayout<T>.size)
     return try body(&bytes)
   }
 }
 %  else:
 public func withUnsafeBytes<T, Result>(
   of arg: inout T,
-  _ body: (UnsafeBytes) throws -> Result
+  _ body: (UnsafeRawBufferPointer) throws -> Result
 ) rethrows -> Result
 {
   return try withUnsafePointer(to: &arg) {
-    try body(UnsafeBytes(start: $0, count: MemoryLayout<T>.size))
+    try body(UnsafeRawBufferPointer(start: $0, count: MemoryLayout<T>.size))
   }
 }
 %  end # mutable
@@ -1134,18 +1134,18 @@ extension ${Self} {
   ///      }
   ///    }
   ///
-  /// - Parameter body: A closure with an `UnsafeBytes` parameter that points to
+  /// - Parameter body: A closure with an `UnsafeRawBufferPointer` parameter that points to
   /// the contiguous storage for the array. If `body` has a return value, it is
   /// used as the return value for the `withUnsafeBytes(_:)` method. The
   /// argument is valid only for the duration of the closure's execution.
   /// - Returns: The return value of the `body` closure parameter, if any.
   ///
-  /// - SeeAlso: `withUnsafeBytes`, `UnsafeBytes`
+  /// - SeeAlso: `withUnsafeBytes`, `UnsafeRawBufferPointer`
   public mutating func withUnsafeMutableBytes<R>(
-    _ body: (inout UnsafeMutableBytes) throws -> R
+    _ body: (inout UnsafeMutableRawBufferPointer) throws -> R
   ) rethrows -> R {
     return try self.withUnsafeMutableBufferPointer {
-      var bytes = UnsafeMutableBytes($0)
+      var bytes = UnsafeMutableRawBufferPointer($0)
       return try body(&bytes)
     }
   }
@@ -1165,18 +1165,18 @@ extension ${Self} {
   ///        byteBuffer += $0
   ///    }
   ///
-  /// - Parameter body: A closure with an `UnsafeBytes` parameter that points to
+  /// - Parameter body: A closure with an `UnsafeRawBufferPointer` parameter that points to
   /// the contiguous storage for the array. If `body` has a return value, it is
   /// used as the return value for the `withUnsafeBytes(_:)` method. The
   /// argument is valid only for the duration of the closure's execution.
   /// - Returns: The return value of the `body` closure parameter, if any.
   ///
-  /// - SeeAlso: `withUnsafeBytes`, `UnsafeBytes`
+  /// - SeeAlso: `withUnsafeBytes`, `UnsafeRawBufferPointer`
   public mutating func withUnsafeBytes<R>(
-    _ body: (UnsafeBytes) throws -> R
+    _ body: (UnsafeRawBufferPointer) throws -> R
   ) rethrows -> R {
     return try self.withUnsafeBufferPointer {
-      try body(UnsafeBytes($0))
+      try body(UnsafeRawBufferPointer($0))
     }
   }
 }
@@ -1200,7 +1200,7 @@ but rebind memory each time they cross API boundaries.
 Expect developers to convert to UnsafeRawPointer without a solution
 for viewing the raw data as a collection of bytes.
 
-There is no alternative to introducing an `UnsafeBytes` API that
+There is no alternative to introducing an `UnsafeRawBufferPointer` API that
 doesn't require developers to understand the subtle semantics of raw
 pointers and binding memory to a type. My experience helping
 developers migrate their code, which they likely did not write in the
