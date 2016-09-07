@@ -104,7 +104,10 @@ Bridged `NSNumber` and `NSValue` objects must be castable back to their
 original Swift value types. `NSValue` normally preserves the type information
 of its included struct in its `objCType` property. We can check the
 `objCType` of an `NSValue` instance when attempting to cast back to a specific
-bridged struct type.
+bridged struct type. Note that, although `NSValue` has factory initializers and
+accessors for each of the above struct types, the bridging implementation
+ought to stick to `NSValue`'s core `valueWithBytes:objCType:` and `getValue:`
+API, to avoid potential availability issues with the type-specific methods.
 
 `NSNumber` is a bit trickier, since Cocoa's implementation does not generally
 guarantee to remember the exact number type an instance was constructed from.
