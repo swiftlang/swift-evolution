@@ -609,35 +609,51 @@ The `withUnsafeBytes` API works well if the user wants to bind memory
 to `ContentType`:
 
 ```swift
+// Current interface.
 public func withUnsafeBytes<ResultType, ContentType>(
   _ body: (UnsafePointer<ContentType>) throws -> ResultType
 ) rethrows -> ResultType
 ```
 
-In 3.0, this API now binds memory to `ContentType`, somewhat behind
-the user's back. This would be a problem if the closure body wants to
-operate on raw memory without rebinding the type. With `UnsafeRawBufferPointer`,
-an additional API entry point can be added to solve this problem:
+In 3.0, this API now binds Data's internal memory to `ContentType`,
+changing the memory's semantic state as seen by the caller.  It is
+useful for interoperating with external C code that takes a typed
+UnsafePointer as an argument, but risky. Calling this on Data objects
+initialized with `bytesNoCopy` is unsafe because it is illegal for
+subsequent code to access the same memory as an unrelated type. This
+would be a problem if the closure body wants to operate on raw memory
+without rebinding the type. With `UnsafeRawBufferPointer`, an
+additional API entry point can be added to avoid this problem whenever
+possible:
 
 ```swift
+// Proposed addition.
+
 public func withUnsafeBytes<ResultType>(
   _ body: (UnsafeRawBufferPointer) throws -> ResultType
 ) rethrows -> ResultType
+
+public mutating func withUnsafeMutableBytes<ResultType>(
+  _ body: (UnsafeMutableRawBufferPointer) throws -> ResultType
+) rethrows -> ResultType
 ```
 
-To be accurate, we should rename the original `withUnsafeBytes`
-to `withUnsafePointer`.
-
-The raw initializer:
+The raw initializers:
 
 ```swift
 public init(bytes: UnsafeRawPointer, count: Int)
+
+public init(bytesNoCopy bytes: UnsafeMutableRawPointer, count: Int, deallocator: Deallocator)
 ```
 
 should be deprecated in favor of:
 
 ```swift
-public init(bytes: UnsafeRawBufferPointer)
+// Proposed addition.
+
+public init(buffer: UnsafeMutableRawBufferPointer)
+
+public init(bufferNoCopy buffer: UnsafeMutableRawBufferPointer, deallocator: Deallocator)
 ```
 
 Copying into an untyped byte buffer:
@@ -647,22 +663,38 @@ public func copyBytes(to pointer: UnsafeMutablePointer<UInt8>, count: Int)
 ```
 
 should be done with with a buffer whose memory is actually untyped
-because the users likely does not want memory to be rebound to `UInt8`
+because the user likely does not want memory to be rebound to `UInt8`
 behind their back:
 
 ```swift
-public func copyBytes(to bytes: UnsafeMutableRawBufferPointer)
+// Proposed addition.
+
+/// Copy the contents of the data to a raw buffer.
+///
+/// - parameter buffer: A pointer to the buffer you wish to copy the bytes into.
+/// - parameter count: The number of bytes to copy. As much data as will fit into `buffer` is copied.
+public func copyBytes(to buffer: UnsafeMutableRawBufferPointer, count: Int)
+
+/// Copy the contents of the data to a raw buffer.
+///
+/// - parameter buffer: A pointer to the buffer you wish to copy the bytes into.
+/// - parameter range: The range in the `Data` to copy. As much data as will fit into `buffer` is copied.
+public func copyBytes(to buffer: UnsafeMutableRawBufferPointer,
+  from range: Range<Index>)
 ```
 
 We should allow appending raw memory with a byte-wise copy by adding
 this API entry point:
 
 ```swift
-public mutating func append(_ bytes: UnsafeRawBufferPointer)
+// Proposed addition.
+
+public mutating func append(_ buffer: UnsafeRawBufferPointer)
 ```
 
-This existing API was already anticipating an `UnsafeRawBufferPointer` collection
-and would now allow access to raw memory without any modification:
+The existing `replaceSubRange` API was already anticipating an
+`UnsafeRawBufferPointer` collection and would now allow access to raw
+memory without any modification:
 
 ```swift
 public mutating func replaceSubrange<ByteCollection : Collection>(
