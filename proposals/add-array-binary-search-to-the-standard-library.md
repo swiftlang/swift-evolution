@@ -27,8 +27,8 @@ extension Array where Element : Comparable {
             return self.first == key ? 0 : nil
         }
         
-        var lowerBound = 0
-        var upperBound = self.count
+        var lowerBound = range.startIndex
+        var upperBound = range.endIndex
         while lowerBound < upperBound {
             let midIndex = lowerBound + (upperBound - lowerBound) / 2
             if self[midIndex] == key {
