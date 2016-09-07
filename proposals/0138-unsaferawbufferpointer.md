@@ -742,7 +742,7 @@ protocol MTLBuffer {
 }
 ```
 
-Should return a bounds checked collection of bytes:
+Should return a debug mode bounds checked collection of bytes:
 
 ```swift
 protocol MTLBuffer {
@@ -935,14 +935,14 @@ public struct Unsafe${Mutable}RawBufferPointer
   ///   initialized to raw bytes. If the memory is bound to type `U`,
   ///   then it contains values of type `U`.
   public func copyBytes(from source: UnsafeRawBufferPointer) {
-    _precondition(source.count <= self.count,
+    _debugPrecondition(source.count <= self.count,
       "${Self}.copyBytes source has too many elements")
     baseAddress?.copyBytes(from: source.baseAddress!, count: source.count)
   }
 
   public func copyBytes<C : Collection>(from source: C
   ) where C.Iterator.Element == UInt8 {
-    _precondition(numericCast(source.count) <= self.count,
+    _debugPrecondition(numericCast(source.count) <= self.count,
       "${Self}.copyBytes source has too many elements")
     guard let position = _position else {
       return
