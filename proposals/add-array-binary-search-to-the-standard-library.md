@@ -18,29 +18,33 @@ If the array is sorted by the search key, binary search can give you a huge boos
 ## Detailed design
 
 ```swift
-// Passed array into function should be sorted. 
-public func binarySearch<T: Comparable>(array: [T], key: T, range: Range<Int>) -> Int? {
-    if array.count == 1 {
-        return array.first == key ? 0 : nil
-    }
+extension Array where Element : Comparable {
     
-    var lowerBound = 0
-    var upperBound = array.count
-    while lowerBound < upperBound {
-        let midIndex = lowerBound + (upperBound - lowerBound) / 2
-        if array[midIndex] == key {
-            return midIndex
-        } else if array[midIndex] < key {
-            lowerBound = midIndex + 1
-        } else {
-            upperBound = midIndex
+    // Binary search.
+    // Passed Array should be only sorted.
+    public func indexOf(key: Element, range: Range<Int>) -> Int? {
+        if self.count == 1 {
+            return self.first == key ? 0 : nil
         }
+        
+        var lowerBound = 0
+        var upperBound = self.count
+        while lowerBound < upperBound {
+            let midIndex = lowerBound + (upperBound - lowerBound) / 2
+            if self[midIndex] == key {
+                return midIndex
+            } else if self[midIndex] < key {
+                lowerBound = midIndex + 1
+            } else {
+                upperBound = midIndex
+            }
+        }
+        
+        return nil
     }
-    
-    return nil
 }
 
 // Example of usage
 let numbers = [1, 2, 3, 4, 5, 6]
-binarySearch(numbers, key: 3, range: 1 ..< numbers.count)
+numbers.indexOf(5, range: 2..<numbers.count)
 ```
