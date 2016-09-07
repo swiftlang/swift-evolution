@@ -1,13 +1,15 @@
-<!-- This file renders the contents of index.xml as a nicely-formatted HTML page. -->
+<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
-  <xsl:output method="html"/>
+
+  <!-- This file renders the contents of index.xml as a nicely-formatted HTML page. -->
+  <xsl:output method="html" version="5.0" encoding="UTF-8" doctype-system="about:legacy-compat"/>
 
   <!-- The main template, which renders the page body. -->
   <xsl:template match="/proposals">
     <html>
       <head>
-        <title>Swift-Evolution Proposal Status</title>
         <meta name="viewport" content="width=device-width, initial-scale=1"/>
+        <title>Swift-Evolution Proposal Status</title>
         <xsl:call-template name="css"/>
       </head>
       <body>
