@@ -40,6 +40,7 @@ public func binarySearch<T: Comparable>(array: [T], key: T, range: Range<Int>) -
     return nil
 }
 
+// Example of usage
 let numbers = [1, 2, 3, 4, 5, 6]
 binarySearch(numbers, key: 3, range: 1 ..< numbers.count)
 ```
