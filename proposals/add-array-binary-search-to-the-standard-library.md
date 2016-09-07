@@ -1,7 +1,7 @@
 # Add Array binary search to the  standard library
 
 * Proposal: TBD
-* Author: [Igor Vasilenko](https://github.com/vasilenkoigor)
+* Authors: [Igor Vasilenko](https://github.com/vasilenkoigor), [Timofey Khomutnikov](https://github.com/khomTima)
 * Review Manager: TBD
 * Status: TBD
 
@@ -20,25 +20,22 @@ If the array is sorted by the search key, binary search can give you a huge boos
 ```swift
 // Passed array into function should be sorted. 
 public func binarySearch<T: Comparable>(array: [T], key: T, range: Range<Int>, sorted: Bool) -> Int? {
-    if !sorted {
-        return 0
-    }
-    
-    if range.startIndex >= range.endIndex {
-        return nil
-    } else {
-        let midIndex = range.endIndex + (range.endIndex - range.startIndex) / 2
-        if array[midIndex] > key {
-            return binarySearch(array, key: key, range: range.startIndex ..< midIndex, sorted: sorted)
-        } else if array[midIndex] < key {
-            return binarySearch(array, key: key, range: midIndex + 1 ..< range.endIndex, sorted: sorted)
-        } else {
-            return midIndex
-        }
-    }
+		var sortedArray = array
+		if !sorted {
+			sortedArray.sortInPlace { $0 < $1 }
+		}
+		
+		if range.startIndex >= range.endIndex {
+			return nil
+		} else {
+			let midIndex = range.endIndex - (range.endIndex - range.startIndex) / 2
+			if sortedArray[midIndex] > key {
+				return binarySearch(sortedArray, key: key, range: range.startIndex ..< midIndex, sorted: true)
+			} else if sortedArray[midIndex] < key {
+				return binarySearch(sortedArray, key: key, range: midIndex + 1 ..< range.endIndex, sorted: true)
+			} else {
+				return midIndex
+			}
+		}
 }
 ```
-
-## Alternatives considered
-
-I'm considered to sorting array, if caller pass to false sorted argument.
