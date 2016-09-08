@@ -183,12 +183,21 @@ We could do nothing, and leave Optionals to bridge by opaque boxing. Charles
 Srstka argues that passing Optionals into ObjC via `Any` is programmer
 error, so should fail early at runtime:
 
-  I’d say my position has three planks on it, and the above is pretty much the first plank: 1) the idea of an array of optionals is a concept that doesn’t really exist in Objective-C, and I do think that passing one to Obj-C ought to be considered a programmer error.
+> I’d say my position has three planks on it, and the above is pretty much the first plank: 1) the idea of an array of optionals is a concept that doesn’t really exist in Objective-C, and I do think that passing one to Obj-C ought to be considered a programmer error.
+> 
+> The other two planks would be:
+> 
+> 2) Bridging arrays of optionals in this manner could mask the aforementioned programmer error, resulting in unexpected, hard-to-reproduce crashes when an NSNull is accessed as if it were something else, and:
 
-  The other two planks would be:
+> 3) Objective-C APIs that accept NSNull objects are fairly rare, so the proposed bridging doesn’t really solve a significant problem (and in the cases where it does, using a map to replace nils with NSNulls is not difficult to write).
 
-  2) Bridging arrays of optionals in this manner could mask the aforementioned programmer error, resulting in unexpected, hard-to-reproduce crashes when an NSNull is accessed as if it were something else, and:
+This point of view is understandable, but is inconsistent with how Swift itself
+dynamically treats Optionals inside Anys:
 
-  3) Objective-C APIs that accept NSNull objects are fairly rare, so the proposed bridging doesn’t really solve a significant problem (and in the cases where it does, using a map to replace nils with NSNulls is not difficult to write).
+  let a: Int? = 3
+  let b = a as Any
+  let c = a as! Int // Casts '3' out of the Optional as a non-optional Int
 
-I'm not sure that Optional
+And while it's true that Cocoa uses `NSNull` sparingly, it *is* the standard
+sentinel used in the few places where a null-like object is expected, such as
+in collections and JSON serialization.
