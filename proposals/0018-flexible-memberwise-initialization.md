@@ -43,7 +43,7 @@ We need a flexible solution that can synthesize memberwise initialization for so
 
 I propose adding a `memberwise` declaration modifier for initializers which allows them to *opt-in* to synthesis of memberwise initialization.  
 
-This proposal adopts a model for property eligibility where stored properties automatically recieve memberwise initialization parameters unless they are deemed ineligible for one of several reasons.  An *opt-in* model using a `memberwise` declaration modifier allowing properties to *opt-in* to memberwise initialization synthesis is also possible.  
+This proposal adopts a model for property eligibility where stored properties automatically receive memberwise initialization parameters unless they are deemed ineligible for one of several reasons.  An *opt-in* model using a `memberwise` declaration modifier allowing properties to *opt-in* to memberwise initialization synthesis is also possible.  
 
 The two approaches are not mutually exclusive: it is possible to use the *automatic* model when no properties have the `memberwise` declaration modifier and the *opt-in* model when one or more properties do have the `memberwise` declaration modifier.  A future enhancement to this proposal may introduce the *opt-in* model, allowing programmers to choose which model is preferred for a specific type they are authoring.
 
