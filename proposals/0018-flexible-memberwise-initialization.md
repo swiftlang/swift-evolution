@@ -37,7 +37,7 @@ Add to the list “all or nothing”.  The compiler generates the entire initial
 
 It is common to have a type with a number of public members that are intended to be configured by clients, but also with some private state comprising implementation details of the type.  This is especially prevalent in UI code which may expose many properties for configuring visual appearance, etc.  Flexibile memberwise initialization can provide great benefit in these use cases, but it immediately becomes useless if it is "all or nothing".  
 
-We need a flexible solution that can synthesize memberwise initialization for some members while allowing the type auther full control over initialization of implementation details.
+We need a flexible solution that can synthesize memberwise initialization for some members while allowing the type author full control over initialization of implementation details.
 
 ## Proposed solution
 
