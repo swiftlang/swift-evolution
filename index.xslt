@@ -39,12 +39,17 @@
         </xsl:call-template>
       
         <xsl:call-template name="section">
-          <xsl:with-param name="title">Implemented for Swift 3</xsl:with-param>
+          <xsl:with-param name="title">Implemented (Swift 3.1)</xsl:with-param>
+          <xsl:with-param name="proposals" select="proposal[@status='implemented'][@swift-version = 3.1]"/>
+        </xsl:call-template>
+      
+        <xsl:call-template name="section">
+          <xsl:with-param name="title">Implemented (Swift 3)</xsl:with-param>
           <xsl:with-param name="proposals" select="proposal[@status='implemented'][@swift-version = 3]"/>
         </xsl:call-template>
       
         <xsl:call-template name="section">
-          <xsl:with-param name="title">Implemented for Swift 2.2</xsl:with-param>
+          <xsl:with-param name="title">Implemented (Swift 2.2)</xsl:with-param>
           <xsl:with-param name="proposals" select="proposal[@status='implemented'][@swift-version = 2.2]"/>
         </xsl:call-template>
       

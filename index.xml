@@ -45,7 +45,7 @@
 <proposal id="0042" status="accepted" name="Flattening the function type of unapplied method references" filename="0042-flatten-method-types.md"/>
 <proposal id="0043" status="implemented" swift-version="3" name="Declare variables in 'case' labels with multiple patterns" filename="0043-declare-variables-in-case-labels-with-multiple-patterns.md"/>
 <proposal id="0044" status="implemented" swift-version="3" name="Import as Member" filename="0044-import-as-member.md"/>
-<proposal id="0045" status="implemented" swift-version="3" name="Add prefix(while:) and drop(while:) to the stdlib" filename="0045-scan-takewhile-dropwhile.md"/>
+<proposal id="0045" status="implemented" swift-version="3.1" name="Add prefix(while:) and drop(while:) to the stdlib" filename="0045-scan-takewhile-dropwhile.md"/>
 <proposal id="0046" status="implemented" swift-version="3" name="Establish consistent label behavior across all parameters including first labels" filename="0046-first-label.md"/>
 <proposal id="0047" status="implemented" swift-version="3" name="Defaulting non-Void functions so they warn on unused results" filename="0047-nonvoid-warn.md"/>
 <proposal id="0048" status="implemented" swift-version="3" name="Generic Type Aliases" filename="0048-generic-typealias.md"/>

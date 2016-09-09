@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0045](0045-scan-takewhile-dropwhile.md)
 * Author: [Kevin Ballard](https://github.com/kballard)
-* Status: **Accepted**
+* Status: **Implemented (Swift 3.1)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000136.html)
 * Bugs: [SR-1516](https://bugs.swift.org/browse/SR-1516)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
@@ -154,4 +154,4 @@ and `unfold(_:applying:)` (see [revision 3][rev-3]). This proposal was partially
 accepted, with `scan(_:combine:)` rejected on grounds of low utility and
 `unfold(_:applying:)` rejected on grounds of poor naming (see [rationale][]).
 
-[rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160502/016543.html)
+[rationale]: <https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160502/016543.html>
