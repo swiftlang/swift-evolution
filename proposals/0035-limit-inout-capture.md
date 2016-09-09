@@ -63,7 +63,7 @@ one in a long line of complaints on the topic.
 
 ## Proposed solution
 
-I propose we make it so that implicitly capturing an `inout` parameter into a escapable
+I propose we make it so that implicitly capturing an `inout` parameter into an escapable
 closure is an error. We added the explicit `@noescape` annotation in Swift 1.2, and have since
 adopted it throughout the standard library where appropriate, so the compromise has outlived
 its usefulness and become a source of confusion.

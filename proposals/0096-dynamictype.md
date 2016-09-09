@@ -37,7 +37,7 @@ At this time, this operation cannot be written as a stdlib feature and it will b
 
 ## Impact on Existing Code
 
-Adopting this proposal will break code and require migration support. The postfix property syntax must change to a operator call. 
+Adopting this proposal will break code and require migration support. The postfix property syntax must change to an operator call. 
 
 ## Alternatives Considered
 
