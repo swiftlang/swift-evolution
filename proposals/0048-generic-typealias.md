@@ -51,7 +51,7 @@ typealias DictionaryOfStrings<T>  = Dictionary<T, String>
   // error: type 'T' does not conform to protocol 'Hashable'
 ```
 
-However, because this proposal is targetted at supporting aliases, it does not
+However, because this proposal is targeted at supporting aliases, it does not
 allow *additional* constraints to be added to type parameters.  For example, you
 can't write:
 
