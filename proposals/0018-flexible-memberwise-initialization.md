@@ -436,7 +436,7 @@ Obviously supporting memberwise initialization with Cocoa classes would require 
 
 This is a reasonable option and and I expect a healthy debate about which default is better.  The decision to adopt the *automatic* model by default was made for several reasons:
 
-1. The memberwise initializer for structs does not currently require an annotation for properties to opt-in.  Requiring an annotation for a mechanism designed to supercede that mechanism may be viewed as boilerplate.
+1. The memberwise initializer for structs does not currently require an annotation for properties to opt-in.  Requiring an annotation for a mechanism designed to supersede that mechanism may be viewed as boilerplate.
 2. Stored properties with public visibility are often intialized directly with a value provided by the caller.
 3. Stored properties with **less visibility** than a memberwise initializer are not eligible for memberwise initialization.  No annotation is required to indicate that and it is usually not desired.
 4. The *automatic* model cannot exist unless it is the default.  The *opt-in* model can exist alongside the *automatic* model and itself be opted-into simply by specifying the `memberwise` declaration modifier on one or more properties.

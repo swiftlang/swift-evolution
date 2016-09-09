@@ -230,7 +230,7 @@ However there doesn't appear to be a convincing case to support such complex beh
 
 ## BuiltInBridgeable
 
-On the mailing list the idea of a protocol to supercede `ObjectiveCBridgeable` for built-in types like `Int` was brought up but not considered essential for this proposal. (The protocol would be decorative only, not having any functions or properties).
+On the mailing list the idea of a protocol to supersede `ObjectiveCBridgeable` for built-in types like `Int` was brought up but not considered essential for this proposal. (The protocol would be decorative only, not having any functions or properties).
 
 These types are special because they bridge differently inside collections vs outside. The compiler already has *magic* knowledge of these types and I don't anticipate the list of types will ever get any longer. The only benefit of a `BuiltInBridgeable` protocol would be to explicitly declare which types have this "magic".
 
