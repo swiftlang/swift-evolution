@@ -171,7 +171,7 @@ current module and that superclass's access level is not `open`.
 An `open` class may not also be declared `final`.
 
 The superclass of an `open` class must be `open`.  This is consistent
-with the existing access rule for superclasses.  It may be desireable
+with the existing access rule for superclasses.  It may be desirable
 to lift this restriction in a future proposal.
 
 ### `open` class members
