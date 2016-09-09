@@ -432,7 +432,7 @@ It would make each operator define precedence relationships.
 
 The graph of relationships would be considerably larger and less understandable in this case.
 
-Precedence groups concept would still be present, but it would make one operator in each group "priveleged":
+Precedence groups concept would still be present, but it would make one operator in each group "privileged":
 
 ```swift
 precedence - = +
