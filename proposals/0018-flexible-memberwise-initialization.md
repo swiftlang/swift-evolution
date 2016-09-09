@@ -295,7 +295,7 @@ The rules of the current proposal are designed to synthesize memberwise paramete
 
 Introducing a `memberwise` declaration modifier for properties would allow programmers to specify exactly which properties should participate in memberwise initialization synthesis.  It allows full control and has the clarity afforded by being explicit.
 
-Specifc use cases this feature would support include allowing `private` properties to receive synthesized memberwise parameters in a `public` initializer, or allow `public` properties to be ommitted from parameter synthesis.
+Specifc use cases this feature would support include allowing `private` properties to receive synthesized memberwise parameters in a `public` initializer, or allow `public` properties to be omitted from parameter synthesis.
 
 An example of this
 
