@@ -65,7 +65,7 @@ The `@noreturn` attribute is removed from the language.
 Where `@noreturn` is currently used to exempt nonterminating code paths from
 control flow requirements such as exiting a `guard...else` clause or
 `return`-ing from a non-`Void` function, that exemption is
-transfered to expressions of *uninhabited type*.
+transferred to expressions of *uninhabited type*.
 
 ## Detailed design
 
