@@ -4,7 +4,7 @@
 * Author: [Erica Sadun](http://github.com/erica)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decison Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000193.html)
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000193.html)
 
 ## Introduction
 
