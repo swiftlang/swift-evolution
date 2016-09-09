@@ -421,7 +421,7 @@ precedence Multiplicative > Additive
 precedence Exponentiative > Multiplicative
 ```
 
-Appearence of precedence group name in any of these "declarations" would mean declaration of the precedence group.
+Appearance of precedence group name in any of these "declarations" would mean declaration of the precedence group.
 Precedence relationship declaration would only allow `>` sign for consistency.
 
 Limitations on connecting unrelated imported groups could still hold.
