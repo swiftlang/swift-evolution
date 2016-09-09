@@ -448,7 +448,7 @@ public protocol FloatingPoint: Comparable, IntegerLiteralConvertible, SignedNumb
   @warn_unused_result
   func isLessThanOrEqualTo(_ other: Self) -> Bool
 
-  /// True if and only if `self` preceeds `other` in the IEEE 754 total order
+  /// True if and only if `self` precedes `other` in the IEEE 754 total order
   /// relation.
   ///
   /// This relation is a refinement of `<=` that provides a total order on all
