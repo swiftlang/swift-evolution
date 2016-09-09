@@ -135,7 +135,7 @@ parameters, they can be added on a per enum basis.
 `apt` is used across multiple distirbutions and the install-names for
 tools vary. Even for the same distribution install-names may vary
 across releases (eg. from Ubuntu 15.04 to Ubuntu 15.10) or even on
-ocassion at finer granularity.
+occasion at finer granularity.
 
 We will not add explicit handling for this, but one can imagine the
 enums for different system packagers could be supplemented in a backwards
