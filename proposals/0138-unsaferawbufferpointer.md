@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0138](0138-unsafebytes.md)
 * Author: [Andrew Trick](https://github.com/atrick)
-* Status: **Active Review (August 31...September 7)**
+* Status: **Active Review (August 31...September 14)**
 * Review manager: [Dave Abrahams](https://github.com/dabrahams)
 
 Contents:
@@ -10,7 +10,6 @@ Contents:
 - [Motivation](#motivation)
 - [Proposed Solution](#proposed-solution)
 - [Migration Examples](#migration-examples)
-- [Framework Interfaces](#framework-interfaces)
 - [Detailed design](#detailed-design)
 - [Implementation status](#implementation-status)
 - [Impact on existing code](#impact-on-existing-code)
@@ -29,18 +28,25 @@ dealing with `UnsafePointer`s. The new `UnsafeRawPointer` makes that
 possible. It provides a legal means to operate on raw memory
 (independent of the type of values in memory), and it provides an API
 for binding memory to a type for subsequent normal typed
-access. However, migrating to these new APIs is not always
-straightforward. It has become customary to use `[UInt8]` in APIs that
-deal with a buffer of bytes and are agnostic to the type of values
-held by the buffer. However, converting between `UInt8` and the
+access. However, migration is not always straightforward because
+SE-0107 provided only minimal support for raw pointers. Extending raw
+pointer support to the `UnsafeBufferPointer` type will fill in this
+funcionality gap. This is especially important for code that currently
+views "raw" bytes of memory as
+`UnsafeBufferPointer<UInt8>`. Converting between `UInt8` and the
 client's element type at every API transition is difficult to do
-safely. See the
-[WIP UnsafeRawPointer Migration Guide](https://gist.github.com/atrick/0283ae0e284610fd21ad6ed3f454a585).
+safely with the `bindMemory` API, but that can be avoided entirely by
+changing the type the represents a view into raw bytes to
+`UnsafeRawBufferPointer`.  For more background, see the
+[UnsafeRawPointer Migration Guide](https://swift.org/migration-guide/se-0107-migrate.html).
 
 Swift-evolution threads:
 - [Week #1](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160808/thread.html#26173)
 - [Week #2](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160815/thread.html#26254)
 - [Week #3](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160822/thread.html#26553)
+- [Week #4 (1)](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160829/thread.html#26812)
+- [Week #4 (2)](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160829/thread.html#26844)
+- [Week #5](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160905/thread.html#26947)
 
 ## Motivation
 
@@ -61,7 +67,7 @@ safety and readability of all of these interfaces. It would also support
 automatic debug-mode bounds checking on each side of the interface.
 
 In the short time that users have been migrating code, I have already
-seen several cases that view raw memory as a collection of UInt8 values. It
+seen several cases that view raw memory as a collection of `UInt8` values. It
 is natural for the same type that encapsulates a raw pointer and
 length to also allow clients to view that memory as raw bytes without the
 need to explicitly bind the memory type each time memory is
@@ -69,8 +75,10 @@ accessed. This would also improve performance in some cases that I've
 encoutered by avoiding array copies. Let's call this new type
 `Unsafe[Mutable]RawBufferPointer`.
 
-Any array can be viewed as `UnsafeRawBufferPointer`, and that raw view of the
-bytes can be used by any interface that expects a collection of `UInt8`:
+Any array could be viewed as `UnsafeRawBufferPointer`, and that raw
+view of the bytes could be used by any interface that expects a
+collection of `UInt8`. An new array method `withUnsafeBytes` could
+expose this raw view of the array as a sequence of bytes as follows:
 
 ```swift
 let intArray = [1, 2, 3]
@@ -88,8 +96,10 @@ intArray.withUnsafeBytes {
 }
 ```
 
-Any data type can be safely passed to APIs that work with raw memory
-via `UnsafeRawBufferPointer`, such as output streams and flat buffers:
+Any data type could be safely passed to APIs that work with raw memory
+via `UnsafeRawBufferPointer`, such as output streams and flat
+buffers. A new `withUnsafeBytes` function could view a value as a
+sequence of bytes as follows:
 
 ```swift
 func write(bytes: UnsafeRawBufferPointer) { ... }
@@ -104,7 +114,7 @@ withUnsafeBytes(of: &header) {
 }
 ```
 
-Data of any type can be loaded from raw memory that was constructed as
+Data of any type could be loaded from raw memory that was constructed as
 an array of `UInt8`:
 
 ```swift
@@ -117,6 +127,14 @@ let header = array.withUnsafeBytes {
   readHeader(fromBytes: $0)
 }
 ```
+
+Foundation `Data` already provides high-level, safe encapsulation of
+raw memory and is the common currency for passing raw memory across
+framework boundaries. `Data` owns its underlying memory, provides
+value semantics, and performs release-mode bounds checks. The proposed
+`UnsafeRawBufferPointer` is an unowned view into an arbitrary slice of
+memory. Once `UnsafeRawBufferPointer` is in place, the `Data` API can
+be extended to more safely interoperate with `UnsafePointers`.
 
 ## Proposed solution
 
@@ -134,10 +152,6 @@ Add an `Array.withUnsafe[Mutable]Bytes<R>(_)` method that passes an
     
 Add a `withUnsafeMutableBytes<T, R>(of:_)` function that passes an
 `UnsafeRawBufferPointer` view of a value of type `T` to the closure body.
-    
-As part of the Swift 3 migration guide, show common uses cases for
-migrating the now illegal `UnsafePointer` conversion by making use of
-these new types.
 
 ## Migration Examples
 
@@ -150,7 +164,13 @@ Consider these real code migration examples:
 
 This is a small sample of projects that popped up during initial
 migration. As migration proceeds, more examples continue to surface
-that would benefit from `UnsafeRawBufferPointer`.
+that would benefit from `UnsafeRawBufferPointer`. Ideally, code that
+manages untyped memory buffers can now do so with Foundation's `Data`
+API, avoiding unsafe code altogether. However, when code does drop
+down the level of `UnsafePointer`, it should be natural to use the
+unsafe APIs correctly. As these examples show,
+`UnsafeRawBufferPointer` makes it natural to use unsafe pointers
+correctly when dealing with raw bytes.
 
 ### Network Messages
 
@@ -381,7 +401,8 @@ public final class LocalFileOutputStream {
       let n = fwrite(&contents, 1, contents.count, fp)
 ```
 
-Instead, `UnsafeRawBufferPointer` should be the common type for data handoff in the base class:
+Instead, `UnsafeRawBufferPointer` should be the common type for data
+handoff in the base class:
 
 ```swift
 public class OutputByteStream {
@@ -557,13 +578,21 @@ public final class FlatBufferReader {
 ### owensd/json-swift
 
 This JSON parsing library can accept `struct Data` input [here](
-https://github.com/owensd/json-swift/blob/master/src/JSValue.Parsing.swift#L23). During
-3.0 migration, a call to `bindMemory(to:count:)` would need to be
-introduced to make it safe to reinterpret memory as `UInt8`:
+https://github.com/owensd/json-swift/blob/master/src/JSValue.Parsing.swift#L23).
+It then passes the bytes in data to a lower-level `parse` routine that
+operates directly on UnsafeBufferPointer<UInt8>. (The library accepts
+various input sources, including NSData and String, then drops down to
+unsafe pointer to avoid copying). During 3.0 migration, a call to
+`bindMemory(to:count:)` would need to be introduced to make it safe to
+reinterpret memory as `UInt8`:
 
 ```swift
-public static func parse(data: NSData) -> JSParsingResult {
-  let ptr = data.bytes.bindMemory(to: UInt.self, count: data.length)
+public typealias JSParsingSequence = UnsafeBufferPointer<UInt8>
+
+public static func parse(seq: JSParsingSequence) -> JSParsingResult { ... }
+
+public static func parse(data: ) -> JSParsingResult {
+  let ptr = (data as NSData).bytes.bindMemory(to: UInt.self, count: data.length)
   let bytes = UnsafeBufferPointer<UInt8>(start: ptr, count: data.length)
 
   return parse(bytes)
@@ -571,227 +600,36 @@ public static func parse(data: NSData) -> JSParsingResult {
 ```
 
 This requires the developer to understand how the memory binding APIs
-work, which is unreasonable for normal interaction with `Data`. This
-fix may not even solve the underlying correctness issue, depending on
-how the calling code binds the same memory. Instead of operating an an
-`UnsafeBufferPointer<UInt8>` sequence, the JSON parser should operate on
-an `UnsafeRawBufferPointer` sequence, eliminating the need to bind memory:
+work, which is unreasonable for normal interaction with `Data`. It
+also uses a deprecated interface to `Data` and has a lifetime
+bug. Getting `bytes` out of `Data` should now be done using
+`withUnsafeBytes`:
 
 ```swift
 public func parse(_ data: Data) {
-  let bytes = UnsafeRawBufferPointer(start: (data as NSData).bytes, count: data.count)
-  return parse(bytes)
-}
-```
-
-The `Data` interface should eventually be extended to support calling
-closures that take `UnsafeRawBufferPointer` as follows. This also fixes a latent
-lifetime bug:
-
-```swift
-public static func parse(data: NSData) -> JSParsingResult {
-  return data.withUnsafeBytes { bytes: UnsafeRawBufferPointer in
+  return data.withUnsafeBytes { bytes: UnsafeBufferPointer<UInt8> in
     parse(bytes)
   }
 }
 ```
 
-## Framework Interfaces
-
-This proposal does *not* immediately change any of the following
-interfaces. Doing that would require a separate proposal. However, these
-examples show that `UnsafeRawBufferPointer` can play an important role in
-future improvements to existing interfaces.
-
-### Data
-
-The `withUnsafeBytes` API works well if the user wants to bind memory
-to `ContentType`:
+This now implicitly binds memory, which is a big improvement. However,
+there is no reason that the parser's view of memory needs to to be
+typed as `UnsafeBufferPointer<UInt8>`. The JSON parser should operate
+on an `UnsafeRawBufferPointer` sequence, eliminating the need to bind
+memory at all. Once the `Data` interface is extended to support
+calling closures that take `UnsafeRawBufferPointer`, it will be
+possible to write a safer version of the code that completely avoids
+binding memory:
 
 ```swift
-// Current interface.
-public func withUnsafeBytes<ResultType, ContentType>(
-  _ body: (UnsafePointer<ContentType>) throws -> ResultType
-) rethrows -> ResultType
-```
+public typealias JSParsingSequence = UnsafeRawBufferPointer
 
-In 3.0, this API now binds Data's internal memory to `ContentType`,
-changing the memory's semantic state as seen by the caller.  It is
-useful for interoperating with external C code that takes a typed
-UnsafePointer as an argument, but risky. Calling this on Data objects
-initialized with `bytesNoCopy` is unsafe because it is illegal for
-subsequent code to access the same memory as an unrelated type. This
-would be a problem if the closure body wants to operate on raw memory
-without rebinding the type. With `UnsafeRawBufferPointer`, an
-additional API entry point can be added to avoid this problem whenever
-possible:
-
-```swift
-// Proposed addition.
-
-public func withUnsafeBytes<ResultType>(
-  _ body: (UnsafeRawBufferPointer) throws -> ResultType
-) rethrows -> ResultType
-
-public mutating func withUnsafeMutableBytes<ResultType>(
-  _ body: (UnsafeMutableRawBufferPointer) throws -> ResultType
-) rethrows -> ResultType
-```
-
-The raw initializers:
-
-```swift
-public init(bytes: UnsafeRawPointer, count: Int)
-
-public init(bytesNoCopy bytes: UnsafeMutableRawPointer, count: Int, deallocator: Deallocator)
-```
-
-should be deprecated in favor of:
-
-```swift
-// Proposed addition.
-
-public init(buffer: UnsafeMutableRawBufferPointer)
-
-public init(bufferNoCopy buffer: UnsafeMutableRawBufferPointer, deallocator: Deallocator)
-```
-
-Copying into an untyped byte buffer:
-
-```swift
-public func copyBytes(to pointer: UnsafeMutablePointer<UInt8>, count: Int)
-```
-
-should be done with with a buffer whose memory is actually untyped
-because the user likely does not want memory to be rebound to `UInt8`
-behind their back:
-
-```swift
-// Proposed addition.
-
-/// Copy the contents of the data to a raw buffer.
-///
-/// - parameter buffer: A pointer to the buffer you wish to copy the bytes into.
-/// - parameter count: The number of bytes to copy. As much data as will fit into `buffer` is copied.
-public func copyBytes(to buffer: UnsafeMutableRawBufferPointer, count: Int)
-
-/// Copy the contents of the data to a raw buffer.
-///
-/// - parameter buffer: A pointer to the buffer you wish to copy the bytes into.
-/// - parameter range: The range in the `Data` to copy. As much data as will fit into `buffer` is copied.
-public func copyBytes(to buffer: UnsafeMutableRawBufferPointer,
-  from range: Range<Index>)
-```
-
-We should allow appending raw memory with a byte-wise copy by adding
-this API entry point:
-
-```swift
-// Proposed addition.
-
-public mutating func append(_ buffer: UnsafeRawBufferPointer)
-```
-
-The existing `replaceSubRange` API was already anticipating an
-`UnsafeRawBufferPointer` collection and would now allow access to raw
-memory without any modification:
-
-```swift
-public mutating func replaceSubrange<ByteCollection : Collection>(
-  _ subrange: Range<Index>,
-  with newElements: ByteCollection)
-```
-
-### NSStream
-
-The NSStream API is currently constrained by the need to support
-subclasses defined in ObjC. But it is easy to imagine a native Swift
-wrapper on top of Foundation, or for that matter any Swift project
-that provides similar stream interfaces.
-
-The [InputStream.read() API](https://github.com/apple/swift-corelibs-foundation/blob/master/Foundation/NSStream.swift#L123):
-
-```swift
-func read(_ buffer: UnsafeMutablePointer<UInt8>, maxLength len: Int) -> Int {
-```
-
-should be:
-
-```swift
-func read(_ buffer: UnsafeMutableRawBufferPointer) -> Int
-```
-
-The [InputStream.getBuffer() API](
-https://github.com/apple/swift-corelibs-foundation/blob/master/Foundation/NSStream.swift#L128):
-
-```swift
-func getBuffer(
-  _ buffer: UnsafeMutablePointer<UnsafeMutablePointer<UInt8>?>,
-  length len: UnsafeMutablePointer<Int>
-) -> Bool
-```
-
-should be:
-
-```swift
-func getBuffer() -> UnsafeMutableRawBufferPointer?
-```
-
-The [NSOutputStream.init(toBuffer:capacity:) API](https://developer.apple.com/library/mac/documentation/Cocoa/Reference/Foundation/Classes/NSOutputStream_Class/index.html#//apple_ref/occ/instm/NSOutputStream/initToBuffer:capacity):
-
-```swift
-public init(toBuffer buffer: UnsafeMutablePointer<UInt8>, capacity: Int)
-```
-
-should be:
-
-```swift
-public init(toBuffer bytes: UnsafeRawBufferPointer)
-
-```
-
-The [NSOutputStream.write API](https://developer.apple.com/library/mac/documentation/Cocoa/Reference/Foundation/Classes/NSOutputStream_Class/index.html#//apple_ref/occ/instm/NSOutputStream/write:maxLength):
-
-```swift
-func write(_ buffer: UnsafePointer<UInt8>, maxLength len: Int) -> Int
-```
-
-should be:
-
-```swift
-open func write(_ bytes: UnsafeRawBufferPointer) -> Int
-```
-
-### Metal
-
-Examples:
-
-[MTLBuffer.contents()](https://developer.apple.com/reference/metal/mtlbuffer/1515716-contents):
-
-```swift
-protocol MTLBuffer {
-  func contents() -> UnsafeMutableRawPointer
+public static func parse(data: NSData) -> JSParsingResult {
+  return data.withUnsafeBytes { bytes: UnsafeRawBufferPointer in
+    parse(bytes)
+  }
 }
-```
-
-Should return a debug mode bounds checked collection of bytes:
-
-```swift
-protocol MTLBuffer {
-  func contents() -> UnsafeMutableRawBufferPointer
-}
-```
-
-[MTLBuffer.newBuffer(withBytes:length:)](https://developer.apple.com/reference/metal/mtldevice/1433429-newbufferwithbytes):
-
-```swift
-func newBuffer(withBytes pointer: UnsafeRawPointer, length: Int) -> MTLBuffer
-```
-
-should be:
-
-```swift
-func newBuffer(withBytes bytes: UnsafeRawBufferPointer) -> MTLBuffer
 ```
 
 ## Detailed design
@@ -1218,7 +1056,7 @@ extension ${Self} {
 ## Implementation status
 
 This proposal is fully implemented on my
-[unsafebytes branch](https://github.com/atrick/swift/commit/09758d360b6e1d433dec0f6d9d38961abd89153a)
+[unsafebytes branch](https://github.com/atrick/swift/commits/unsafebytes)
 
 ## Impact on existing code
 
