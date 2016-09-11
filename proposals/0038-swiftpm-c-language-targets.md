@@ -111,7 +111,7 @@ addressed with this proposal:
 
 2. No provision is made in this proposal for controlling compiler arguments. We
    will support the existing debug and release configurations using a fixed set
-   of compiler flags. We expect future proposals to accomodate the need to
+   of compiler flags. We expect future proposals to accommodate the need to
    modify those flags.
 
 3. We intend for the feature to be built in such a way as to support any

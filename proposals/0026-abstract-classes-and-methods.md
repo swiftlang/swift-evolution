@@ -108,7 +108,7 @@ If a class contains one or more abstract methods/properties, it must be declared
 A class that inherits from abstract must be declared abstract if it does not implements 
 all inherited methods/properties.
 
-If you try to implement an abstract class or a inherited class that implements partially 
+If you try to implement an abstract class or an inherited class that implements partially 
 abstract methods/properties, you will get a compiler error.
 
 As for override keyword, abstract properties apply on setter, getter and observers. 

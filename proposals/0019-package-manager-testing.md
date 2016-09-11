@@ -18,7 +18,7 @@ will help ensure a stable and reliable packaging ecosystem.
 ## Proposed Solution
 
 We propose to extend our conventional package directory layout
-to accomodate test modules.
+to accommodate test modules.
 Any subdirectory of the package root directory named "Tests"
 or any subdirectory of an existing module directory named "Tests"
 will comprise a test module.
@@ -88,7 +88,7 @@ this will be a future direction.
 This feature is controversial; many are worried always building
 tests will slow debug cycles. We understand these concerns but
 think knowing quickly tests have been broken by code changes is
-important. However we will provide an command line option to not
+important. However we will provide a command line option to not
 build tests and will be open to reversing this decision in future
 should it be proven unwise.
 

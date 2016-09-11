@@ -17,7 +17,7 @@ Swift-evolution thread: [\[Idea\] ObjectiveCBridgeable](https://lists.swift.org/
 
 There is currently no good way to define a Swift-y API that makes use of generics, enums with associated values, structs, protocols with associated types, and other Swift features while still exposing that API to Objective-C.
 
-This is especially prevelant in a mixed codebase. Often an API must be dumbed-down or Swift features eschewed because rewriting the entire codebase is impractical and Objective-C code must be able to call the new Swift code. This results in a situation where new code or refactored code adopts an Objective-C compatible API which is compromised, less type safe, and isn't as nice to work with as a truly native Swift API.
+This is especially prevalent in a mixed codebase. Often an API must be dumbed-down or Swift features eschewed because rewriting the entire codebase is impractical and Objective-C code must be able to call the new Swift code. This results in a situation where new code or refactored code adopts an Objective-C compatible API which is compromised, less type safe, and isn't as nice to work with as a truly native Swift API.
 
 The cascading effect is even worse because when the last vestiges of Objective-C have been swept away, you're left with a mountain of Swift code that essentially looks like a direct port of Objective-C code and doesn't take advantage of any of Swift's modern features. 
 
@@ -230,7 +230,7 @@ However there doesn't appear to be a convincing case to support such complex beh
 
 ## BuiltInBridgeable
 
-On the mailing list the idea of a protocol to supercede `ObjectiveCBridgeable` for built-in types like `Int` was brought up but not considered essential for this proposal. (The protocol would be decorative only, not having any functions or properties).
+On the mailing list the idea of a protocol to supersede `ObjectiveCBridgeable` for built-in types like `Int` was brought up but not considered essential for this proposal. (The protocol would be decorative only, not having any functions or properties).
 
 These types are special because they bridge differently inside collections vs outside. The compiler already has *magic* knowledge of these types and I don't anticipate the list of types will ever get any longer. The only benefit of a `BuiltInBridgeable` protocol would be to explicitly declare which types have this "magic".
 
