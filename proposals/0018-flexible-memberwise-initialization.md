@@ -3,7 +3,7 @@
 * Proposal: [SE-0018](https://github.com/apple/swift-evolution/blob/master/proposals/0018-flexible-memberwise-initializers.md)
 * Author: [Matthew Johnson](https://github.com/anandabits)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Rejected**
+* Status: **Deferred**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160111/006469.html)
 
 ## Introduction
