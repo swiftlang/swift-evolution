@@ -88,11 +88,3 @@ be crystal clear if it were renamed to `where`, and the description of
 the semantics of `reduce` in the documentation strongly suggest that
 `accumulated` might be an improvement.  Changing the names of these
 methods should be considered in a separate proposal.
-
--------------------------------------------------------------------------------
-
-# Rationale
-
-On [Date], the core team decided to **(TBD)** this proposal.
-When the core team makes a decision regarding this proposal,
-their rationale for the decision will be written here.

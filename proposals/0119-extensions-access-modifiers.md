@@ -471,9 +471,3 @@ This is a source-breaking change that can be automated by a migrator.
 ## Alternatives considered
 
 * Allow *access modifier* when *type-inheritance-clause* is present and use the rules presented in [**Proposed solution**](#proposed-solution).
-
-## Rationale
-
-On [Date], the core team decided to **(TBD)** this proposal.
-When the core team makes a decision regarding this proposal,
-their rationale for the decision will be written here.
