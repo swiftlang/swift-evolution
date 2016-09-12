@@ -129,9 +129,7 @@ Another version retained commas and where clauses but allowed arbitrary ordering
 
 Another version suggested separating clauses with semicolons and newlines.
 
------------------------------------------
-
-# Rationale
+## Rationale
 
 On June 8, 2016, this proposal was **accepted with revision** for Swift 3.
 There was near unanimous agreement that the Swift 2 grammar was inconsistent

@@ -58,9 +58,7 @@ Not at this time
 
 Thanks Sean Heber, Kevin Ballard, Joe Groff, Timothy Wood, Brent Royal-Gordon, Andrey Tarantsov, Austin Zheng
 
---------------------------------------------------------------------------------
-
-# Rationale
+## Rationale
 
 On [April 27, 2016](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160425/015977.html), the core team decided to **accept a subset of** this proposal.
 

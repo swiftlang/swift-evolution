@@ -1,4 +1,4 @@
-### Commonly Rejected Changes 
+# Commonly Rejected Changes 
  
 This is a list of changes to the Swift language that are frequently proposed but that are unlikely to be accepted.  If you're interested in pursuing something in this space, please familiarize yourself with the discussions that we have already had.  In order to bring one of these topics up, you'll be expected to add new information to the discussion, not just to say, "I really want this" or "this exists in some other language and I liked it there".
 
@@ -6,7 +6,7 @@ Additionally, proposals for out-of-scope changes will not be scheduled for revie
 
 Several of the discussions below refer to "C family" languages.  This is intended to mean the extended family of languages that resemble C at a syntactic level.  This includes languages like C++, C#, Objective-C, Java, and Javascript.
 
-#### Basic Syntax and Operators
+## Basic Syntax and Operators
 
  * [Replace `{}` brace syntax with Python-style indentation](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/003656.html): Surely a polarizing issue, but Swift will not change to use indentation for scoping instead of curly braces.
  
@@ -16,13 +16,13 @@ Several of the discussions below refer to "C family" languages.  This is intende
 
  * [Replace `?:` ternary operator](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/002609.html): Definitely magical, but it serves a very important use-case for terse selection of different values.  Proposals for alternatives have been intensely discussed, but none have been "better enough" for it to make sense to diverge from the precedent established by the C family of languages.
 
-#### Strings, Characters, and Collection Types
+## Strings, Characters, and Collection Types
 
  * [Single-quotes `''` for character literals](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151221/003977.html): Swift takes the approach of highly valuing Unicode.  However, there are multiple concepts of a character that could make sense in Unicode, and none is so much more commonly used than the others that it makes sense to privilege them.  We'd rather save single quoted literals for a greater purpose (e.g. non-escaped string literals).
 
  * Make `Array<T>` subscript access return `T?` or `T!` instead of `T`: The current array behavior is [intentional](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/002446.html), as it accurately reflects the fact that out-of-bounds array access is a logic error.  Changing the current behavior would slow `Array` accesses to an unacceptable degree. This topic has come up [multiple](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/002425.html) times before but is very unlikely to be accepted.
 
-#### Control Flow, Closures, Optional Binding, and Error Handling
+## Control Flow, Closures, Optional Binding, and Error Handling
 
  * [`if/else` and `switch` as expressions](https://lists.swift.org/pipermail/swift-evolution/2015-December/000393.html): These are conceptually interesting things to support, but many of the problems solved by making these into expressions are already solved in Swift in other ways.  Making them expressions introduces significant tradeoffs, and on balance, we haven't found a design that is clearly better than what we have so far.
 
@@ -40,7 +40,7 @@ Several of the discussions below refer to "C family" languages.  This is intende
 
  * [Replace the `do`/`try`/`repeat` keywords with C++-style syntax](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151228/004630.html): Swift's error handling approach is carefully designed to make it obvious to maintainers of code when a call can "throw" an error.  It is intentionally designed to be syntactically similar in some ways, but different in other key ways, to exception handling in other languages.  Its design is a careful balance that favors maintainers of code that uses errors, to make sure someone reading the code understands what can throw.  Before proposing a change to this system, please read the [Error Handling Rationale and Proposal](https://github.com/apple/swift/blob/master/docs/ErrorHandlingRationale.rst) in full to understand why the current design is the way it is, and be ready to explain why your changes would be worth unbalancing this design.
 
-#### Miscellaneous
+## Miscellaneous
 
  * [Use garbage collection (GC) instead of automatic reference counting (ARC)](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160208/009403.html): Mark-and-sweep garbage collection is a well-known technique used in many popular and widely used languages (e.g., Java and JavaScript) and it has the advantage of automatically collecting reference cycles that ARC requires the programmer to reason about.  That said, garbage collection has a [large number of disadvantages](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160208/009422.html) and using it would prevent Swift from successfully targeting a number of systems programming domains.  For example, real-time systems (video or audio processing), deeply embedded controllers, and most kernels find GC to be generally unsuitable.  Further, GC is only efficient when given 3–4× more memory to work with than the process is using at any time, and this tradeoff is not acceptable for Swift.
 
