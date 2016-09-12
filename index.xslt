@@ -14,58 +14,63 @@
       </head>
       <body>
         <h1>Swift Programming Language Evolution: Proposal Status</h1>
-      
+
         <p>The <a href="https://github.com/apple/swift-evolution/blob/master/process.md">Swift evolution process</a> describes the process by which Swift evolves. This page tracks the currently active proposals in that process.</p>
-      
+
         <xsl:call-template name="section">
           <xsl:with-param name="title">Active reviews</xsl:with-param>
           <xsl:with-param name="proposals" select="proposal[@status='active']"/>
         </xsl:call-template>
-      
+
         <xsl:call-template name="section">
           <xsl:with-param name="title">Upcoming reviews</xsl:with-param>
           <xsl:with-param name="proposals" select="proposal[@status='scheduled']"/>
         </xsl:call-template>
-      
+
         <xsl:call-template name="section">
           <xsl:with-param name="title">Proposals awaiting scheduling</xsl:with-param>
           <xsl:with-param name="proposals" select="proposal[@status='awaiting']"/>
         </xsl:call-template>
-      
+
         <xsl:call-template name="section">
           <xsl:with-param name="title">Accepted (awaiting implementation)</xsl:with-param>
           <xsl:with-param name="description">This is the list of proposals which have been accepted for inclusion into Swift, but they are not implemented yet, and may not have anyone signed up to implement them. If they are not implemented in time for Swift 3, they will roll into a subsequent release.</xsl:with-param>
           <xsl:with-param name="proposals" select="proposal[@status='accepted']"/>
         </xsl:call-template>
-      
+
         <xsl:call-template name="section">
           <xsl:with-param name="title">Implemented (Swift 3.1)</xsl:with-param>
           <xsl:with-param name="proposals" select="proposal[@status='implemented'][@swift-version = 3.1]"/>
         </xsl:call-template>
-      
+
         <xsl:call-template name="section">
           <xsl:with-param name="title">Implemented (Swift 3)</xsl:with-param>
           <xsl:with-param name="proposals" select="proposal[@status='implemented'][@swift-version = 3]"/>
         </xsl:call-template>
-      
+
         <xsl:call-template name="section">
           <xsl:with-param name="title">Implemented (Swift 2.2)</xsl:with-param>
           <xsl:with-param name="proposals" select="proposal[@status='implemented'][@swift-version = 2.2]"/>
         </xsl:call-template>
-      
+
         <xsl:call-template name="section">
           <xsl:with-param name="title">Deferred for future discussion</xsl:with-param>
           <xsl:with-param name="proposals" select="proposal[@status='deferred']"/>
         </xsl:call-template>
-      
+
         <xsl:call-template name="section">
           <xsl:with-param name="title">Returned for revision</xsl:with-param>
           <xsl:with-param name="proposals" select="proposal[@status='returned']"/>
         </xsl:call-template>
-      
+
         <xsl:call-template name="section">
-          <xsl:with-param name="title">Rejected or withdrawn</xsl:with-param>
+          <xsl:with-param name="title">Rejected</xsl:with-param>
           <xsl:with-param name="proposals" select="proposal[@status='rejected']"/>
+        </xsl:call-template>
+
+        <xsl:call-template name="section">
+          <xsl:with-param name="title">Withdrawn</xsl:with-param>
+          <xsl:with-param name="proposals" select="proposal[@status='withdrawn']"/>
         </xsl:call-template>
       </body>
     </html>
@@ -107,7 +112,7 @@
       </td>
     </tr>
   </xsl:template>
-  
+
   <!-- Converts inline `code` in a proposal name to <code></code> elements. -->
   <xsl:template name="format-proposal-name">
     <xsl:param name="name"/>
@@ -117,11 +122,11 @@
         <xsl:variable name="after-open-tick" select="substring-after($name, '`')"/>
         <xsl:variable name="between-ticks" select="substring-before($after-open-tick, '`')"/>
         <xsl:variable name="after-close-tick" select="substring-after($after-open-tick, '`')"/>
-        
+
         <!-- Render up to and including the first occurrence of `code` -->
         <xsl:value-of select="$before-open-tick"/>
         <code><xsl:value-of select="$between-ticks"/></code>
-        
+
         <!-- Recursively format the rest of the string  -->
         <xsl:call-template name="format-proposal-name">
           <xsl:with-param name="name" select="$after-close-tick"/>
@@ -132,7 +137,7 @@
       </xsl:otherwise>
     </xsl:choose>
   </xsl:template>
-  
+
   <xsl:template name="css">
     <style type="text/css">
       * {
@@ -247,7 +252,7 @@
       a.number.status-returned {
         background-color: #f1b6b7;
       }
-      a.number.status-rejected {
+      a.number.status-rejected, a.number.status-withdrawn {
         background-color: #de5b60;
       }
     </style>
