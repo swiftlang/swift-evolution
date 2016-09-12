@@ -21,7 +21,7 @@ Based on feedback during the review of proposal [SE-0074, Implementation of Bina
 
 The standard library's current `partition` methods, which partition a mutable collection using a binary predicate based on the value of the first element of a collection, are used by the standard library's sorting algorithm but don't offer more general partitioning functionality. A more general partition algorithm using a unary (single-argument) predicate would be more flexible and generally useful.
 
-[se-74]: https://github.com/apple/swift-evolution/blob/master/proposals/0074-binary-search.md
+[se-74]: 0074-binary-search.md
 [list]: https://gist.github.com/gribozavr/37e811f12b27c6365fc88e6f9645634d
 
 ## Proposed solution
@@ -127,4 +127,4 @@ To more closely match the existing API, the `partition(by:)` method could be add
 
 The external parameter label could be `where` instead of `by`. However, using `where` implies that the method finds a pre-existing partition point within in the collection (as in `index(where:)`), rather than modifying the collection to be partitioned by the predicate (as in `sort(by:)`, assuming [SE-0118][] is accepted).
 
-[SE-0118]: https://github.com/apple/swift-evolution/blob/master/proposals/0118-closure-parameter-names-and-labels.md
+[SE-0118]: 0118-closure-parameter-names-and-labels.md

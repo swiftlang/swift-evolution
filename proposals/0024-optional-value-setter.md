@@ -1,6 +1,6 @@
 # Optional Value Setter `??=`
 
-* Proposal: [SE-0024](https://github.com/apple/swift-evolution/blob/master/proposals/0024-optional-value-setter.md)
+* Proposal: [SE-0024](0024-optional-value-setter.md)
 * Author: [James Campbell](https://github.com/jcampbell05)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Rejected**

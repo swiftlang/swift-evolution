@@ -28,7 +28,7 @@ let fn2 : (Int, Int) -> Void = { x, y in
 }
 ```
 
-A variable of function type where there exist _n_ parameters (where _n_ > 1) can be assigned a value (whether it be a named function, a closure literal, or other acceptable value) which either takes in _n_ parameters, or one tuple containing _n_ elements. This seems to be an artifact of the tuple splat behavior removed in [SE-0029](https://github.com/apple/swift-evolution/blob/master/proposals/0029-remove-implicit-tuple-splat.md).
+A variable of function type where there exist _n_ parameters (where _n_ > 1) can be assigned a value (whether it be a named function, a closure literal, or other acceptable value) which either takes in _n_ parameters, or one tuple containing _n_ elements. This seems to be an artifact of the tuple splat behavior removed in [SE-0029](0029-remove-implicit-tuple-splat.md).
 
 The current behavior violates the principle of least surprise and weakens type safety, and should be changed.
 

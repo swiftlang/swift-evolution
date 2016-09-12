@@ -1,6 +1,6 @@
 # Establish consistent label behavior across all parameters including first labels
 
-* Proposal: [SE-0046](https://github.com/apple/swift-evolution/blob/master/proposals/0046-first-label.md)
+* Proposal: [SE-0046](0046-first-label.md)
 * Authors: [Jake Carter](https://github.com/JakeCarter), [Erica Sadun](http://github.com/erica)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
@@ -40,7 +40,7 @@ For the most part, Swift 2 developers were encouraged to mimic this approach and
 that moved the label name out of the parameter list and into the function or method name.
 
 Swift 3's newly accepted [API naming guidelines](https://swift.org/documentation/api-design-guidelines/) 
-shook up this approach. They more thoroughly embraced method and function first argument labels.  The updated naming guidance is further supported by the [automated Objective-C API translation rules](https://github.com/apple/swift-evolution/blob/master/proposals/0005-objective-c-name-translation.md)
+shook up this approach. They more thoroughly embraced method and function first argument labels.  The updated naming guidance is further supported by the [automated Objective-C API translation rules](0005-objective-c-name-translation.md)
 recently accepted for Swift 3. Under these revised guidelines, first argument labels are encouraged for 
 but are not limited to:
 

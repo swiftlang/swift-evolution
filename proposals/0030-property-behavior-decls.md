@@ -1,6 +1,6 @@
 # Property Behaviors
 
-* Proposal: [SE-0030](https://github.com/apple/swift-evolution/blob/master/proposals/0030-property-behavior-decls.md)
+* Proposal: [SE-0030](0030-property-behavior-decls.md)
 * Author: [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Deferred**

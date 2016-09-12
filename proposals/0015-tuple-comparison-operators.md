@@ -1,6 +1,6 @@
 # Tuple comparison operators
 
-* Proposal: [SE-0015](https://github.com/apple/swift-evolution/blob/master/proposals/0015-tuple-comparison-operators.md)
+* Proposal: [SE-0015](0015-tuple-comparison-operators.md)
 * Author: [Kevin Ballard](https://github.com/kballard)
 * Review Manager: [Dave Abrahams](https://github.com/dabrahams)
 * Status: **Implemented (Swift 2.2)**

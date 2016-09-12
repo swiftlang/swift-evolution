@@ -24,7 +24,7 @@ Swift-evolution thread:
 ## Motivation
 
 The proposal came about as a result of discussion about
-[SE-0067: Enhanced Floating Point Protocols](https://github.com/apple/swift-evolution/blob/master/proposals/0067-floating-point-protocols.md).
+[SE-0067: Enhanced Floating Point Protocols](0067-floating-point-protocols.md).
 To implement the numerous arithmetic and comparison operators, this protocol
 defined named instance methods for them and then implemented the global operator
 functions to delegate to them. For example,

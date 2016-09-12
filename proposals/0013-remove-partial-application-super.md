@@ -1,6 +1,6 @@
 # Remove Partial Application of Non-Final Super Methods (Swift 2.2)
 
-* Proposal: [SE-0013](https://github.com/apple/swift-evolution/blob/master/proposals/0013-remove-partial-application-super.md)
+* Proposal: [SE-0013](0013-remove-partial-application-super.md)
 * Author: [David Farler](https://github.com/bitjammer)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Rejected**

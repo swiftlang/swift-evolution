@@ -1,6 +1,6 @@
 # API Design Guidelines
 
-* Proposal: [SE-0023](https://github.com/apple/swift-evolution/blob/master/proposals/0023-api-guidelines.md)
+* Proposal: [SE-0023](0023-api-guidelines.md)
 * Authors: [Dave Abrahams](https://github.com/dabrahams), [Doug Gregor](https://github.com/DougGregor), [Dmitri Gribenko](https://github.com/gribozavr), [Ted Kremenek](https://github.com/tkremenek), [Chris Lattner](http://github.com/lattner), Alex Migicovsky, [Max Moiseev](https://github.com/moiseev), Ali Ozer, [Tony Parker](https://github.com/parkera)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 3)**
@@ -11,9 +11,9 @@
 This review is part of a group of three related reviews, running
 concurrently:
 
-* [SE-0023 API Design Guidelines](https://github.com/apple/swift-evolution/blob/master/proposals/0023-api-guidelines.md)
-* [SE-0006 Apply API Guidelines to the Standard Library](https://github.com/apple/swift-evolution/blob/master/proposals/0006-apply-api-guidelines-to-the-standard-library.md)
-* [SE-0005 Better Translation of Objective-C APIs Into Swift](https://github.com/apple/swift-evolution/blob/master/proposals/0005-objective-c-name-translation.md)
+* [SE-0023 API Design Guidelines](0023-api-guidelines.md)
+* [SE-0006 Apply API Guidelines to the Standard Library](0006-apply-api-guidelines-to-the-standard-library.md)
+* [SE-0005 Better Translation of Objective-C APIs Into Swift](0005-objective-c-name-translation.md)
 
 These reviews are running concurrently because they interact strongly
 (e.g., an API change in the standard library will correspond to a

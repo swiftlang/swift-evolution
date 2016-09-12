@@ -1,6 +1,6 @@
 # Better Translation of Objective-C APIs Into Swift
 
-* Proposal: [SE-0005](https://github.com/apple/swift-evolution/blob/master/proposals/0005-objective-c-name-translation.md)
+* Proposal: [SE-0005](0005-objective-c-name-translation.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor), [Dave Abrahams](https://github.com/dabrahams)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 3)**
@@ -11,9 +11,9 @@
 This review is part of a group of three related reviews, running
 concurrently:
 
-* [SE-0023 API Design Guidelines](https://github.com/apple/swift-evolution/blob/master/proposals/0023-api-guidelines.md)
-* [SE-0006 Apply API Guidelines to the Standard Library](https://github.com/apple/swift-evolution/blob/master/proposals/0006-apply-api-guidelines-to-the-standard-library.md)
-* [SE-0005 Better Translation of Objective-C APIs Into Swift](https://github.com/apple/swift-evolution/blob/master/proposals/0005-objective-c-name-translation.md)
+* [SE-0023 API Design Guidelines](0023-api-guidelines.md)
+* [SE-0006 Apply API Guidelines to the Standard Library](0006-apply-api-guidelines-to-the-standard-library.md)
+* [SE-0005 Better Translation of Objective-C APIs Into Swift](0005-objective-c-name-translation.md)
 
 These reviews are running concurrently because they interact strongly
 (e.g., an API change in the standard library will correspond to a

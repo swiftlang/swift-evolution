@@ -1,6 +1,6 @@
 # Import Objective-C Constants as Swift Types
 
-* Proposal: [SE-0033](https://github.com/apple/swift-evolution/blob/master/proposals/0033-import-objc-constants.md)
+* Proposal: [SE-0033](0033-import-objc-constants.md)
 * Author: [Jeff Kelley](https://github.com/SlaunchaMan)
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Implemented (Swift 3)**

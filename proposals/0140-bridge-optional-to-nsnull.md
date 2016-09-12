@@ -1,6 +1,6 @@
 # Warn when `Optional` converts to `Any`, and bridge `Optional` As Its Payload Or `NSNull`
 
-* Proposal: [SE-0140](0140-bridge-nsnumber-and-nsvalue.md)
+* Proposal: [SE-0140](0140-bridge-optional-to-nsnull.md)
 * Author: [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Active Review (September 2...September 8)**
@@ -8,7 +8,7 @@
 ## Introduction
 
 `Optional`s can be used as values of `Any` type. After
-[SE-0116](https://github.com/apple/swift-evolution/blob/master/proposals/0116-id-as-any.md),
+[SE-0116](0116-id-as-any.md),
 this means you can pass an `Optional` to an Objective-C method expecting
 nonnull `id`:
 
@@ -45,7 +45,7 @@ Swift-evolution thread: [here](https://lists.swift.org/pipermail/swift-evolution
 
 ## Motivation
 
-[SE-0116](https://github.com/apple/swift-evolution/blob/master/proposals/0116-id-as-any.md)
+[SE-0116](0116-id-as-any.md)
 changed how Objective-C's `id` and untyped collections import into Swift to
 use the `Any` type. This makes it much more natural to pass Swift value
 types such as `String` and `Array` into ObjC. One unfortunate effect is that,

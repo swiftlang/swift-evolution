@@ -1,6 +1,6 @@
 # Clarify interaction between comments & operators
 
-* Proposal: [SE-0037](https://github.com/apple/swift-evolution/blob/master/proposals/0037-clarify-comments-and-operators.md)
+* Proposal: [SE-0037](0037-clarify-comments-and-operators.md)
 * Author: [Jesse Rusak](https://github.com/jder)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**

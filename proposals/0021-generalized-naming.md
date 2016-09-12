@@ -1,6 +1,6 @@
 # Naming Functions with Argument Labels
 
-* Proposal: [SE-0021](https://github.com/apple/swift-evolution/blob/master/proposals/0021-generalized-naming.md)
+* Proposal: [SE-0021](0021-generalized-naming.md)
 * Author: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
 * Status: **Implemented (Swift 2.2)**

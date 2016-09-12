@@ -16,7 +16,7 @@ Swift-evolution thread: [here](https://lists.swift.org/pipermail/swift-evolution
 
 ## Motivation
 
-[SE-0116](https://github.com/apple/swift-evolution/blob/master/proposals/0116-id-as-any.md)
+[SE-0116](0116-id-as-any.md)
 changed how Objective-C's `id` and untyped collections import into Swift to
 use the `Any` type. This makes it much more natural to pass in Swift value
 types such as `String` and `Array`, but introduces the hazard of passing in
@@ -42,7 +42,7 @@ bridging conversions in both directions from Swift value types to
 `NS` objects and back, which meant that you could slowly and brokenly
 convert between any two numeric types transitively via NSNumber if we
 allowed this. We killed the implicit conversions completely with
-[SE-0072](https://github.com/apple/swift-evolution/blob/master/proposals/0072-eliminate-implicit-bridging-conversions.md)
+[SE-0072](0072-eliminate-implicit-bridging-conversions.md)
 so that is no longer a concern, so expanding the bridging behavior
 should no longer be a major problem, since it must now always be
 explicitly asked for.

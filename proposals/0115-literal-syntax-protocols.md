@@ -29,7 +29,7 @@ Further, the standard library team has observed:
     (e.g., Int or String), and as far as the user at the call site is concerned, 
     there is no visible conversion (even if one is happening behind the scenes).
 
-[An earlier proposal](https://github.com/apple/swift-evolution/blob/master/proposals/0041-conversion-protocol-conventions.md) was intended to address the first problem by introducing strong naming conventions for three kinds of conversion protocols (*from*, *to*, and *bidirectional*).  The review highlighted the difficulity in establishing conventions that everyone is happy with.  This proposal takes a different approach to solving the problem that originally inspired that proposal while also solving the awkwardness of the current names described by the standard library team.
+[An earlier proposal](0041-conversion-protocol-conventions.md) was intended to address the first problem by introducing strong naming conventions for three kinds of conversion protocols (*from*, *to*, and *bidirectional*).  The review highlighted the difficulity in establishing conventions that everyone is happy with.  This proposal takes a different approach to solving the problem that originally inspired that proposal while also solving the awkwardness of the current names described by the standard library team.
 
 ## Proposed solution
 
@@ -185,7 +185,7 @@ public protocol DictionaryLiteralProtocol { ... }
 
 ### Previous proposal
 
-This proposal is a follow up to [Updating Protocol Naming Conventions for Conversions](https://github.com/apple/swift-evolution/blob/master/proposals/0041-conversion-protocol-conventions.md).  Many related alternatives were explored during the discussion and review of that proposal.
+This proposal is a follow up to [Updating Protocol Naming Conventions for Conversions](0041-conversion-protocol-conventions.md).  Many related alternatives were explored during the discussion and review of that proposal.
 
 ## Acknowledgements
 

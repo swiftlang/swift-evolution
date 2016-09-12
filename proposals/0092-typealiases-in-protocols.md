@@ -12,7 +12,7 @@ This proposal is from the [Generics Manifesto](https://github.com/apple/swift/bl
 
 ## Motivation
 
-In Swift versions prior to 2.2, the `typealias` keyword was used outside of protocols to declare type aliases and in protocols to declare associated types. Since [SE-0011](https://github.com/apple/swift-evolution/blob/master/proposals/0011-replace-typealias-associated.md) and Swift 2.2, associated type now use the `associatedtype` keyword and `typealias` is available for implementing true associated type aliases. 
+In Swift versions prior to 2.2, the `typealias` keyword was used outside of protocols to declare type aliases and in protocols to declare associated types. Since [SE-0011](0011-replace-typealias-associated.md) and Swift 2.2, associated type now use the `associatedtype` keyword and `typealias` is available for implementing true associated type aliases. 
 
 ## Proposed solution
 

@@ -1,6 +1,6 @@
 # Expose code unit initializers on String
 
-* Proposal: [SE-0027](https://github.com/apple/swift-evolution/blob/master/proposals/0027-string-from-code-units.md)
+* Proposal: [SE-0027](0027-string-from-code-units.md)
 * Author: [Zachary Waldowski](https://github.com/zwaldowski)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Rejected**

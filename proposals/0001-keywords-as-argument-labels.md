@@ -1,6 +1,6 @@
 # Allow (most) keywords as argument labels
 
-* Proposal: [SE-0001](https://github.com/apple/swift-evolution/blob/master/proposals/0001-keywords-as-argument-labels.md)
+* Proposal: [SE-0001](0001-keywords-as-argument-labels.md)
 * Author: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 2.2)**
 * Bugs: [SR-344](https://bugs.swift.org/browse/SR-344)
