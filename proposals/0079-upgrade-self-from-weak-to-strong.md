@@ -3,7 +3,7 @@
 * Proposal: [SE-0079](0079-upgrade-self-from-weak-to-strong.md)
 * Author: [Evan Maloney](https://github.com/emaloney)
 * Review Manager: TBD
-* Status: **Awaiting review**
+* Status: **Deferred**
 
 ## Introduction
 
