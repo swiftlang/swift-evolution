@@ -66,7 +66,7 @@ Removing where from for-in loops reduces cognitive burden when interpreting inte
 
 #### SE-0099
 
-Upon accepting [SE-0099](https://github.com/apple/swift-evolution/blob/master/proposals/0099-conditionclauses.md), the core team removed `where` clauses from condition clauses. The team wrote, "[T]he 'where' keyword can be retired from its purpose as a [B]oolean condition introducer." 
+Upon accepting [SE-0099](0099-conditionclauses.md), the core team removed `where` clauses from condition clauses. The team wrote, "[T]he 'where' keyword can be retired from its purpose as a [B]oolean condition introducer." 
 
 #### Malformed Grammar
 

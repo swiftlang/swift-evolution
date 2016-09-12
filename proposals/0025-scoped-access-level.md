@@ -1,6 +1,6 @@
 # Scoped Access Level
 
-* Proposal: [SE-0025](https://github.com/apple/swift-evolution/blob/master/proposals/0025-scoped-access-level.md)
+* Proposal: [SE-0025](0025-scoped-access-level.md)
 * Author: Ilya Belenkiy
 * Status: **Implemented (Swift 3)**
 * Review Manager: [Doug Gregor](http://github.com/DougGregor)

@@ -1,6 +1,6 @@
 # Requiring Leading Dot Prefixes for Enum Instance Member Implementations
 
-* Proposal: [SE-0036](https://github.com/apple/swift-evolution/blob/master/proposals/0036-enum-dot.md)
+* Proposal: [SE-0036](0036-enum-dot.md)
 * Authors: [Erica Sadun](http://github.com/erica), [Chris Lattner](https://github.com/lattner)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 3)**

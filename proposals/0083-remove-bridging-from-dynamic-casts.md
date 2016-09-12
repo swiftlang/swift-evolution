@@ -34,7 +34,7 @@ pieces in the language, the compiler, and the runtime:
   between Swift value types and their analogous classes. We've been working on
   phasing the implicit conversions out--we removed the object-to-value implicit
   conversion in Swift 1.2, and propose to remove the other direction in
-  [SE-0072](https://github.com/apple/swift-evolution/blob/master/proposals/0072-eliminate-implicit-bridging-conversions.md)
+  [SE-0072](0072-eliminate-implicit-bridging-conversions.md)
   --but the conversions can still be performed by an *explicit coercion*
   `string as NSString`. These required-explicit `as` coercions don't otherwise
   exist in the language, since `as` generally is used to force coercions that
@@ -331,7 +331,7 @@ the bridging conversions have to be failable, since not every element type
 is bridgeable, and the Objective-C classes come into Swift as untyped
 containers. (That may change if we're able to extend the Objective-C generics
 importer support from
-[SE-0057](https://github.com/apple/swift-evolution/blob/master/proposals/0057-importing-objc-generics.md)
+[SE-0057](0057-importing-objc-generics.md)
 to apply to Cocoa container classes, though bridging support makes that
 challenging.)
 

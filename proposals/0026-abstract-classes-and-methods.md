@@ -1,6 +1,6 @@
 # Abstract classes and methods
 
-* Proposal: [SE-0026](https://github.com/apple/swift-evolution/blob/master/proposals/0026-abstract-classes-and-methods.md)
+* Proposal: [SE-0026](0026-abstract-classes-and-methods.md)
 * Author: David Scrève
 * Review Manager: [Joe Groff](https://github.com/jckarter/)
 * Status: **Deferred**

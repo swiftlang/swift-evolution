@@ -176,7 +176,7 @@ for this proposal.)
   pointer as an Int is the best alternative; Int has the same C variadic
   calling conventions as a pointer on all supported platforms.
 
-[SE-0016]: https://github.com/apple/swift-evolution/blob/master/proposals/0016-initializers-for-converting-unsafe-pointers-to-ints.md
+[SE-0016]: 0016-initializers-for-converting-unsafe-pointers-to-ints.md
 
 ### Conversion between pointers
 

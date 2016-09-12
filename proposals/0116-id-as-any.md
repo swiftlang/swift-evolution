@@ -42,10 +42,10 @@ language and have in practice been a common source of problems and surprising
 behavior. We have popular proposals in flight to remove the special
 cases:
 
-- [SE-0072](https://github.com/apple/swift-evolution/blob/master/proposals/0072-eliminate-implicit-bridging-conversions.md)
+- [SE-0072](0072-eliminate-implicit-bridging-conversions.md)
   (accepted) removes the implicit conversion, requiring one to explicitly write
   `x as NSString` or `x as AnyObject` to use a bridgeable value as an object.
-- [SE-0083](https://github.com/apple/swift-evolution/blob/master/proposals/0083-remove-bridging-from-dynamic-casts.md)
+- [SE-0083](0083-remove-bridging-from-dynamic-casts.md)
   (deferred for later consideration) removes the dynamic casting behavior and
   overloading of `as` coercion, requiring one to use normal constructors to
   convert between value types and object types.
@@ -157,7 +157,7 @@ an [`AnyHashable` type-erased container](#anyhashabletype) in the standard libra
 ## Impact on existing code
 
 For most code, the combination of this proposal with
-[SE-0072](https://github.com/apple/swift-evolution/blob/master/proposals/0072-eliminate-implicit-bridging-conversions.md)
+[SE-0072](0072-eliminate-implicit-bridging-conversions.md)
 should have the net effect of most Swift 2 style code working as it does today,
 allowing value types to be passed into untyped Objective-C APIs without
 requiring explicit bridging or unbridging operations. There will definitely
@@ -272,7 +272,7 @@ possible. Some obvious candidates include:
 
 ### Simplifying pure Swift dynamic casting behavior
 
-[SE-0083](https://github.com/apple/swift-evolution/blob/master/proposals/0083-remove-bridging-from-dynamic-casts.md)
+[SE-0083](0083-remove-bridging-from-dynamic-casts.md)
 sought to remove the *ambivalent dynamic casting* behavior and
 overloading of `as` coercion from Swift. This proposal *relies* on ambivalent
 dynamic casting to make sense of incoming `id` values returned from Objective-C

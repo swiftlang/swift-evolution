@@ -1,6 +1,6 @@
 # Limiting `inout` capture to `@noescape` contexts
 
-* Proposal: [SE-0035](https://github.com/apple/swift-evolution/blob/master/proposals/0035-limit-inout-capture.md)
+* Proposal: [SE-0035](0035-limit-inout-capture.md)
 * Author: [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
@@ -143,7 +143,7 @@ For migration, the compiler can offer one of the above fixits, checking the use 
 shadow copy is more appropriate. (Or naively, the fixit can just offer the shadow copy fixit.)
 
 This also increases pressure on libraries to make more use of `@noescape` where possible, as
-proposed in [SE-0012](https://github.com/apple/swift-evolution/blob/master/proposals/0012-add-noescape-to-public-library-api.md).
+proposed in [SE-0012](0012-add-noescape-to-public-library-api.md).
 
 ## Alternatives considered
 

@@ -1,6 +1,6 @@
 # Replace `typealias` keyword with `associatedtype` for associated type declarations
 
-* Proposal: [SE-0011](https://github.com/apple/swift-evolution/blob/master/proposals/0011-replace-typealias-associated.md)
+* Proposal: [SE-0011](0011-replace-typealias-associated.md)
 * Authors: [Loïc Lecrenier](https://github.com/loiclec)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 2.2)**

@@ -20,7 +20,7 @@ Contents:
 This is a purely additive proposal to improve the Swift 3 migration
 experience.
 
-[SE-0107: UnsafeRawPointer](https://github.com/apple/swift-evolution/blob/master/proposals/0107-unsaferawpointer.md)
+[SE-0107: UnsafeRawPointer](0107-unsaferawpointer.md)
 formalized Swift's memory model with respect to strict aliasing and
 prevented arbitrary conversion between `UnsafePointer` types. When
 moving to Swift 3, users will need to migrate much of their code

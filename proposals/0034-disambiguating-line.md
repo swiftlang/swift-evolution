@@ -1,6 +1,6 @@
 # Disambiguating Line Control Statements from Debugging Identifiers
 
-* Proposal: [SE-0034](https://github.com/apple/swift-evolution/blob/master/proposals/0034-disambiguating-line.md)
+* Proposal: [SE-0034](0034-disambiguating-line.md)
 * Author: [Erica Sadun](http://github.com/erica)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
@@ -10,7 +10,7 @@
 
 ## Introduction
 
-In being accepted, Swift Evolution SE-0028 (https://github.com/apple/swift-evolution/blob/master/proposals/0028-modernizing-debug-identifiers.md) overloads
+In being accepted, Swift Evolution SE-0028 (0028-modernizing-debug-identifiers.md) overloads
 the use of `#line` to mean both an identifier that maps to a calling site's line number within a file and acts as part of a line control statement. This proposal nominates `#setline` to replace `#line` for file and line syntactic source control.
 
 The discussion took place on-line in the [*\[Discussion\]: Renaming #line, the line control statement*](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160208/009390.html) thread.

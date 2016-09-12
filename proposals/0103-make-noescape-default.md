@@ -77,7 +77,7 @@ There should be few, if any, changes required for uses of Cocoa APIs as these wi
 
 ## Future directions
 
-The `@noescape(once)` annotation proposed in [SE-0073](https://github.com/apple/swift-evolution/blob/master/proposals/0073-noescape-once.md) would, if some future version is accepted, just become `@once`.
+The `@noescape(once)` annotation proposed in [SE-0073](0073-noescape-once.md) would, if some future version is accepted, just become `@once`.
 
 ## Alternatives considered
 

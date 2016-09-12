@@ -1,6 +1,6 @@
 # Require self for accessing instance members
 
-* Proposal: [SE-0009](https://github.com/apple/swift-evolution/blob/master/proposals/0009-require-self-for-accessing-instance-members.md)
+* Proposal: [SE-0009](0009-require-self-for-accessing-instance-members.md)
 * Author: [David Hart](https://github.com/hartbit)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Rejected**

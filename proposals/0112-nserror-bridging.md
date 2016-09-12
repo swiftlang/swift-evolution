@@ -724,7 +724,7 @@ extension AVError : _ObjectiveCBridgeableError {
 We do not propose that ``_ObjectiveCBridgeableError`` become a public
 protocol, because the core team has already deferred a similar
 proposal
-([SE-0058](https://github.com/apple/swift-evolution/blob/master/proposals/0058-objectivecbridgeable.md))
+([SE-0058](0058-objectivecbridgeable.md))
 to make the related protocol ``_ObjectiveCBridgeable`` public.
 
 ## Other Issues
@@ -745,7 +745,7 @@ types will change from ``NSError`` to ``Error``. There are ~400 such
 APIs in the macOS SDK, and closer to 500 in the iOS SDK, which is a
 sizable number. Fortunately, this is similar in scope to the
 [Foundation value types
-proposal](https://github.com/apple/swift-evolution/blob/master/proposals/0069-swift-mutability-for-foundation.md),
+proposal](0069-swift-mutability-for-foundation.md),
 and can use the same code migration mechanism. That said, the scale of
 this change means that it should either happen in Swift 3 or not at
 all.

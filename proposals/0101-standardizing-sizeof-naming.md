@@ -146,7 +146,7 @@ According to Joe Groff, concerns about existential values (it's illegal to ask f
 
 This proposal uses `<T>` /  `T.Type` to reflect Swift's current implementation.
 
-**Note:** There is a [known bug](https://lists.swift.org/pipermail/swift-dev/Week-of-Mon-20160530/002150.html) (cite D. Gregor) that does not enforce `.self` when used with `sizeof`, allowing `sizeof(UInt)`. This call should be `sizeof(UInt.self)`. This proposal is written as if the bug were resolved without relying on adoption of [SE-0090](https://github.com/apple/swift-evolution/blob/master/proposals/0090-remove-dot-self.md).
+**Note:** There is a [known bug](https://lists.swift.org/pipermail/swift-dev/Week-of-Mon-20160530/002150.html) (cite D. Gregor) that does not enforce `.self` when used with `sizeof`, allowing `sizeof(UInt)`. This call should be `sizeof(UInt.self)`. This proposal is written as if the bug were resolved without relying on adoption of [SE-0090](0090-remove-dot-self.md).
 
 ## Impact on Existing Code
 

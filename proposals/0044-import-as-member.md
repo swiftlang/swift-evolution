@@ -1,6 +1,6 @@
 # Import as member
 
-* Proposal: [SE-0044](https://github.com/apple/swift-evolution/blob/master/proposals/0044-import-as-member.md)
+* Proposal: [SE-0044](0044-import-as-member.md)
 * Author: [Michael Ilseman](https://github.com/milseman)
 * Status: **Implemented (Swift 3)**
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)

@@ -1,6 +1,6 @@
 # Add `first(where:)` method to `Sequence`
 
-* Proposal: [SE-0032](https://github.com/apple/swift-evolution/blob/master/proposals/0032-sequencetype-find.md)
+* Proposal: [SE-0032](0032-sequencetype-find.md)
 * Author: [Kevin Ballard](https://github.com/kballard)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**

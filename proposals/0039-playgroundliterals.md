@@ -1,6 +1,6 @@
 # Modernizing Playground Literals
 
-* Proposal: [SE-0039](https://github.com/apple/swift-evolution/blob/master/proposals/0039-playgroundliterals.md)
+* Proposal: [SE-0039](0039-playgroundliterals.md)
 * Author: [Erica Sadun](http://github.com/erica)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
