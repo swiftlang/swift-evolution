@@ -50,8 +50,8 @@
 <proposal id="0047" status="implemented" swift-version="3" name="Defaulting non-Void functions so they warn on unused results" filename="0047-nonvoid-warn.md"/>
 <proposal id="0048" status="implemented" swift-version="3" name="Generic Type Aliases" filename="0048-generic-typealias.md"/>
 <proposal id="0049" status="implemented" swift-version="3" name="Move @noescape and @autoclosure to be type attributes" filename="0049-noescape-autoclosure-type-attrs.md"/>
-<proposal id="0050" status="rejected" name="Decoupling Floating Point Strides from Generic Implementations" filename="0050-floating-point-stride.md"/>
-<proposal id="0051" status="rejected" name="Conventionalizing stride semantics" filename="0051-stride-semantics.md"/>
+<proposal id="0050" status="withdrawn" name="Decoupling Floating Point Strides from Generic Implementations" filename="0050-floating-point-stride.md"/>
+<proposal id="0051" status="withdrawn" name="Conventionalizing stride semantics" filename="0051-stride-semantics.md"/>
 <proposal id="0052" status="implemented" swift-version="3" name="Change IteratorType post-nil guarantee" filename="0052-iterator-post-nil-guarantee.md"/>
 <proposal id="0053" status="implemented" swift-version="3" name="Remove explicit use of `let` from Function Parameters" filename="0053-remove-let-from-function-parameters.md"/>
 <proposal id="0054" status="implemented" swift-version="3" name="Abolish `ImplicitlyUnwrappedOptional` type" filename="0054-abolish-iuo.md"/>
@@ -126,7 +126,7 @@
 <proposal id="0123" status="rejected" name="Disallow coercion to optionals in operator arguments" filename="0123-disallow-value-to-optional-coercion-in-operator-arguments.md"/>
 <proposal id="0124" status="implemented" swift-version="3" name="`Int.init(ObjectIdentifier)` and `UInt.init(ObjectIdentifier)` should have a `bitPattern:` label" filename="0124-bitpattern-label-for-int-initializer-objectidentfier.md"/>
 <proposal id="0125" status="implemented" swift-version="3" name="Remove `NonObjectiveCBase` and `isUniquelyReferenced`" filename="0125-remove-nonobjectivecbase.md"/>
-<proposal id="0126" status="rejected" name="Refactor Metatypes, repurpose `T.self` and `Mirror`" filename="0126-refactor-metatypes-repurpose-t-dot-self-and-mirror.md"/>
+<proposal id="0126" status="withdrawn" name="Refactor Metatypes, repurpose `T.self` and `Mirror`" filename="0126-refactor-metatypes-repurpose-t-dot-self-and-mirror.md"/>
 <proposal id="0127" status="implemented" swift-version="3" name="Cleaning up stdlib Pointer and Buffer Routines" filename="0127-cleaning-up-stdlib-ptr-buffer.md"/>
 <proposal id="0128" status="implemented" swift-version="3" name="Change failable UnicodeScalar initializers to failable" filename="0128-unicodescalar-failable-initializer.md"/>
 <proposal id="0129" status="implemented" swift-version="3" name="Package Manager Test Naming Conventions" filename="0129-package-manager-test-naming-conventions.md"/>
@@ -144,7 +144,7 @@
 
 <!--
 Recognized values for a proposal's status:
-	implemented, accepted, active, scheduled, awaiting, deferred, returned, rejected
+	implemented, accepted, active, scheduled, awaiting, deferred, returned, rejected, withdrawn
 
 Note: status="implemented" also requires swift-version="XX".
 -->
