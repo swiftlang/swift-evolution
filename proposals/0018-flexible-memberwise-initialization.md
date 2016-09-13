@@ -1,6 +1,6 @@
 # Flexible Memberwise Initialization
 
-* Proposal: [SE-0018](0018-flexible-memberwise-initializers.md)
+* Proposal: [SE-0018](0018-flexible-memberwise-initialization.md)
 * Author: [Matthew Johnson](https://github.com/anandabits)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Deferred**

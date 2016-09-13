@@ -1,6 +1,6 @@
 # Defaulting non-Void functions so they warn on unused results
 
-* Proposal: [SE-0047](proposals/0047-nonvoid-warn.md)
+* Proposal: [SE-0047](0047-nonvoid-warn.md)
 * Authors: [Erica Sadun](http://github.com/erica), [Adrian Kashivskyy](https://github.com/akashivskyy)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
