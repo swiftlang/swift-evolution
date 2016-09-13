@@ -4,6 +4,8 @@
 * Author: [David Farler](https://github.com/bitjammer)
 * Review Manager: [Joe Pamer](https://github.com/jopamer)
 * Status: **Implemented (Swift 3)**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160125/008145.html)
+* Commit: <https://github.com/apple/swift/commit/8a5ed405bf1f92ec3fc97fa46e52528d2e8d67d9>
 
 ## Note
 

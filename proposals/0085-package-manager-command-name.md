@@ -5,6 +5,7 @@
 * Review Manager: [Daniel Dunbar](http://github.com/ddunbar)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160516/017728.html)
+* Pull Request: <https://github.com/apple/swift-package-manager/pull/364>
 
 ## Note
 

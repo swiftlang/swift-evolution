@@ -5,6 +5,7 @@
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000134.html)
+* Bug: [SR-1519](https://bugs.swift.org/browse/SR-1519)
 * Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/d709546002e1636a10350d14da84eb9e554c3aac/proposals/0032-sequencetype-find.md)
 
 ## Introduction

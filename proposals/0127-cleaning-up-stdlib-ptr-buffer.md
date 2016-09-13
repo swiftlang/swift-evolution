@@ -5,6 +5,9 @@
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000262.html)
+* Bugs: [SR-1937](https://bugs.swift.org/browse/SR-1937),
+        [SR-1955](https://bugs.swift.org/browse/SR-1955),
+        [SR-1957](https://bugs.swift.org/browse/SR-1957)
 
 ## Introduction
 
@@ -22,7 +25,7 @@ the few places that need to be updated in pointer and buffer APIs:
 - `withUnsafe[Mutable]Pointer`'s `arg` argument should have a `to:` label ([SR-1937](https://bugs.swift.org/browse/SR-1937))
 - `withUnsafe[Mutable]Pointers` (multiple pointers) functions should be removed.
 - `unsafeAddressOf` should be removed since there is a limited number of use cases and there are 
-better alternatives to it ([SR-1957](https://bugs.swift.org/browse/SR-1937)).
+better alternatives to it ([SR-1957](https://bugs.swift.org/browse/SR-1957)).
 - `ManagedProtoBuffer` should be removed. It is a superclass of `ManagedBuffer` and its
 sole purpose is to conceal the `header` property during invocation of the closure 
 creating the initial header in `ManagedBuffer.create` since the `header` isn't 

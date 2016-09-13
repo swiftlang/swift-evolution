@@ -6,15 +6,17 @@
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000054.html)
 
-
 ## Reviewer notes
 
 This review is part of a group of three related reviews, running
 concurrently:
 
 * [SE-0023 API Design Guidelines](0023-api-guidelines.md)
+  ([Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160118/007353.html))
 * [SE-0006 Apply API Guidelines to the Standard Library](0006-apply-api-guidelines-to-the-standard-library.md)
+  ([Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160118/007354.html))
 * [SE-0005 Better Translation of Objective-C APIs Into Swift](0005-objective-c-name-translation.md)
+  ([Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160118/007355.html))
 
 These reviews are running concurrently because they interact strongly
 (e.g., an API change in the standard library will correspond to a

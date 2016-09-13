@@ -5,6 +5,7 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-April/000101.html)
+* Bug: [SR-1237](https://bugs.swift.org/browse/SR-1237)
 
 ## Introduction
 

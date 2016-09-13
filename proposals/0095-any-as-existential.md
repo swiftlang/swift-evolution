@@ -1,10 +1,11 @@
 # Replace `protocol<P1,P2>` syntax with `P1 & P2` syntax
 
 * Proposal: [SE-0095](0095-any-as-existential.md)
-* Author: [Adrian Zubarev](https://github.com/DevAndArtist), [Austin Zheng](https://github.com/austinzheng)
+* Authors: [Adrian Zubarev](https://github.com/DevAndArtist), [Austin Zheng](https://github.com/austinzheng)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000198.html)
+* Bug: [SR-1938](https://bugs.swift.org/browse/SR-1938)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/a4356fee94c06181715fad83aa61e923eb73f8ec/proposals/0095-any-as-existential.md)
 
 ## Introduction

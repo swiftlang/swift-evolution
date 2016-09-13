@@ -4,6 +4,7 @@
 * Author: [Dmitri Gribenko](https://github.com/gribozavr)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000263.html)
 
 ## Introduction
 
