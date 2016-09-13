@@ -1,7 +1,7 @@
 # Improved NSError Bridging
 
 * Proposal: [SE-0112](0112-nserror-bridging.md)
-* Author: [Doug Gregor](https://github.com/DougGregor), [Charles Srstka](https://github.com/CharlesJS)
+* Authors: [Doug Gregor](https://github.com/DougGregor), [Charles Srstka](https://github.com/CharlesJS)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000222.html)

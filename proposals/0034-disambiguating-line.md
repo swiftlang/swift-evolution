@@ -5,7 +5,7 @@
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160222/011337.html)
-* Bugs: [SR-840](https://bugs.swift.org/browse/SR-840)
+* Bug: [SR-840](https://bugs.swift.org/browse/SR-840)
 
 
 ## Introduction

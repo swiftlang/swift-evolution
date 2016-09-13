@@ -5,7 +5,7 @@
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000083.html)
-* Bugs: [SR-1115](https://bugs.swift.org/browse/SR-1115)
+* Bug: [SR-1115](https://bugs.swift.org/browse/SR-1115)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/ae2d7c24fff7cbdff754d9a4339e4fb02df5c690/proposals/0016-initializers-for-converting-unsafe-pointers-to-ints.md)
 
 ## Introduction

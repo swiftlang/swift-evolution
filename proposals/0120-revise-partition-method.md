@@ -5,7 +5,7 @@
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000242.html)
-* Bugs: [SR-1965](https://bugs.swift.org/browse/SR-1965)
+* Bug: [SR-1965](https://bugs.swift.org/browse/SR-1965)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/1dcfd35856a6f9c86af2cf7c94a9ab76411739e3/proposals/0120-revise-partition-method.md)
 
 ## Introduction

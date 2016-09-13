@@ -5,7 +5,7 @@
 * Review Manager: [Rick Ballard](https://github.com/rballard)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160118/007278.html)
-* Bugs: [SR-592](https://bugs.swift.org/browse/SR-592)
+* Bug: [SR-592](https://bugs.swift.org/browse/SR-592)
 
 ## Introduction
 
