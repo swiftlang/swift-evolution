@@ -1,6 +1,6 @@
 # Updating Protocol Naming Conventions for Conversions
 
-* Proposal: [SE-00041](0041-conversion-protocol-conventions.md)
+* Proposal: [SE-0041](0041-conversion-protocol-conventions.md)
 * Authors: [Matthew Johnson](https://github.com/anandabits), [Erica Sadun](http://github.com/erica)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Rejected**
