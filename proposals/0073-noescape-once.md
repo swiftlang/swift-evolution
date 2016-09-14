@@ -181,7 +181,7 @@ This includes (full list to be done):
 Those modifications to standard and core libraries will however be part of
 future proposals.
 
-# Rationale
+## Rationale
 
 On [May 11, 2016](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000147.html), the core team decided to **Reject** this proposal for Swift 3.
 

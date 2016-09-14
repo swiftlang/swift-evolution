@@ -5,11 +5,11 @@
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000083.html)
-* Bugs: [SR-1115](https://bugs.swift.org/browse/SR-1115)
+* Bug: [SR-1115](https://bugs.swift.org/browse/SR-1115)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/ae2d7c24fff7cbdff754d9a4339e4fb02df5c690/proposals/0016-initializers-for-converting-unsafe-pointers-to-ints.md)
 
 ## Introduction
-## 
+
 Just as users can create `Unsafe[Mutable]Pointer`s from `Int`s and `UInt`s, they
 should be able to create Ints and UInts from `Unsafe[Mutable]Pointer`s. This will
 allow users to call C functions with `intptr_t` and `uintptr_t` parameters, and will
@@ -19,7 +19,7 @@ allow users to perform more advanced pointer arithmetic than is allowed by
 [Swift Evolution Discussion](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151207/001213.html), [Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160321/013119.html)
 
 ## Motivation
-## 
+
 Swift currently lacks the ability to perform many complex operations on
 pointers, such as checking pointer alignment, tagging pointers, or XORing
 pointers (for working with XOR linked lists, for example). As a systems
@@ -31,7 +31,7 @@ Swift currently has no ability to call these functions directly. Users must wrap
 calls to these functions in C code.
 
 ## Proposed solution
-## 
+
 Initializers will be added to `Int` and `UInt` to convert from `UnsafePointer`,
 `UnsafeMutablePointer`, and `OpaquePointer`.
 
@@ -41,7 +41,7 @@ no safer than it is in C, as this is a fundamentally unsafe operation. However,
 it will be cleaner in that users will not be forced to write C code.
 
 ## Detailed design
-## 
+
 The initializers will be implemented using the built-in `ptrtoint_Word` function.
 
 ```swift
@@ -91,11 +91,11 @@ struct XORLinkedList<T> {
 ```
 
 ## Impact on existing code
-## 
+
 There is no impact on existing code.
 
 ## Alternatives considered
-## 
+
 Three alternatives were considered.
 
 The first alternative was to add an `intValue` function to `Unsafe[Mutable]Pointer`.
@@ -121,7 +121,6 @@ all their complicated pointer code in C. This alternative was rejected because
 it makes Swift less useful as a systems programming language.
 
 ## Changes from revision 1
-##
 
 - The proposal was amended post-acceptance to include `OpaquePointer`.
   Originally it only included `UnsafePointer` and `UnsafeMutablePointer`.

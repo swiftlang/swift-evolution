@@ -5,6 +5,7 @@
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000261.html)
+* Bug: [SR-1962](http://bugs.swift.org/browse/SR-1962)
 
 ## Introduction
 
@@ -22,7 +23,6 @@ Cleanup the `ManagedBufferPointer` API by renaming `holdsUniqueReference` to
 `isUniqueReference` and removing `holdsUniqueOrPinnedReference`.
 
 - Swift-evolution thread: [Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160718/024806.html)
-- Swift bug: [SR-1962] (http://bugs.swift.org/browse/SR-1962)
 - Branch with change to stdlib: [remove_nonobjectivecbase_2]
   (https://github.com/aschwaighofer/swift/commits/remove_nonobjectivecbase_2)
 

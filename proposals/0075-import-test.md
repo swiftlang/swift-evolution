@@ -5,7 +5,7 @@
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Accepted**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000159.html)
-* Bugs: [SR-1560](https://bugs.swift.org/browse/SR-1560)
+* Bug: [SR-1560](https://bugs.swift.org/browse/SR-1560)
 
 ## Introduction
 

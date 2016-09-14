@@ -1,6 +1,6 @@
 # UnsafeRawBufferPointer
 
-* Proposal: [SE-0138](0138-unsafebytes.md)
+* Proposal: [SE-0138](0138-unsaferawbufferpointer.md)
 * Author: [Andrew Trick](https://github.com/atrick)
 * Status: **Active Review (August 31...September 14)**
 * Review manager: [Dave Abrahams](https://github.com/dabrahams)

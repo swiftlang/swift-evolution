@@ -5,7 +5,7 @@
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000067.html)
-* Bugs: [SR-961](https://bugs.swift.org/browse/SR-961)
+* Bug: [SR-961](https://bugs.swift.org/browse/SR-961)
 
 ## Introduction
 We propose to normalize the first parameter declaration in methods 

@@ -5,6 +5,7 @@
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000135.html)
+* Pull Request: [apple/swift#1702](https://github.com/apple/swift/pull/1702)
 
 ## Introduction
 
@@ -19,8 +20,6 @@ code will usually run fine, until someone does in fact pass in an iterator not
 repeating `nil` (it's a silent corner case).
 
 Swift-evolution thread: [\[Proposal\] Change guarantee for GeneratorType.next() to always return nil past end](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160229/011699.html)
-
-Pull-request: [\#1702](https://github.com/apple/swift/pull/1702)
 
 ## Motivation
 

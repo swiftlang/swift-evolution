@@ -453,11 +453,3 @@ If one wanted to get really reductionist, they could ask whether `as?` and
 related operations really need special syntax at all; they could in theory
 be fully expressed as global functions, or as extension methods on
 `Any`/`AnyObject` if we allowed such things.
-
--------------------------------------------------------------------------------
-
-# Rationale
-
-On Smarch 13, 20XX, the core team decided to **(TBD)** this proposal.
-When the core team makes a decision regarding this proposal,
-their rationale for the decision will be written here.

@@ -5,6 +5,7 @@
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000230.html)
+* Bug: [SR-2072](https://bugs.swift.org/browse/SR-2072)
 
 ## Revision History
 
@@ -88,11 +89,3 @@ be crystal clear if it were renamed to `where`, and the description of
 the semantics of `reduce` in the documentation strongly suggest that
 `accumulated` might be an improvement.  Changing the names of these
 methods should be considered in a separate proposal.
-
--------------------------------------------------------------------------------
-
-# Rationale
-
-On [Date], the core team decided to **(TBD)** this proposal.
-When the core team makes a decision regarding this proposal,
-their rationale for the decision will be written here.

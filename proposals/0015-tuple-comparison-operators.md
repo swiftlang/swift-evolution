@@ -4,8 +4,8 @@
 * Author: [Kevin Ballard](https://github.com/kballard)
 * Review Manager: [Dave Abrahams](https://github.com/dabrahams)
 * Status: **Implemented (Swift 2.2)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151221/004423.html), [Pull request](https://github.com/apple/swift/pull/408)
-
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151221/004423.html)
+* Pull Request: [apple/swift#408](https://github.com/apple/swift/pull/408)
 
 ## Introduction
 

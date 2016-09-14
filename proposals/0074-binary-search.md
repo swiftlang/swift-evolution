@@ -278,6 +278,6 @@ The authors considered a few alternatives to the current proposal:
 
 - `binary_search`: The STL function analogous to the proposed `sortedIndex(of:)` method returns only a Boolean value. We determined that a method returning an optional index was more useful: the `.none` case conveys "not found", and the returned index (when found) provides easy access to the matched element.
 
-# Rationale
+## Rationale
 
 On [May 11, 2016](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000148.html), the core team decided to **Reject** this proposal.  The feedback on the proposal was generally positive about the concept of adding binary search functionality, but  negative about the proposal as written, with feedback that it was adding too much complexity to the API.

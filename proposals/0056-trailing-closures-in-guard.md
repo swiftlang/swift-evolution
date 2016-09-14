@@ -105,9 +105,7 @@ switch expr among { code }
    has some disadvantages: it takes a new keyword (`then`), it diverges
    unnecessarily from the rest of the C family of languages.
 
--------------------------------------------------------------------------------
-
-# Rationale
+## Rationale
 
 On April 20, 2016, the core team decided to **reject** this
 proposal. The core team felt that the benefits from this change were
