@@ -193,7 +193,7 @@ extension Collection {
 
 ## Example usage
 
-As an example of how the `partitionedIndex(of:)` method enables heterogenous binary search, this `SortedDictionary` type uses an array of `(Word, Definition)` tuples as its storage, sorted by `Word`.
+As an example of how the `partitionedIndex(of:)` method enables heterogeneous binary search, this `SortedDictionary` type uses an array of `(Word, Definition)` tuples as its storage, sorted by `Word`.
 
 Better explained examples can be found in the Swift playground available [here to download](https://github.com/lorenzoracca/Swift-binary-search/blob/binarysearch/Binary%20Search%20Proposal.playground.zip).
 

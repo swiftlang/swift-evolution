@@ -421,7 +421,7 @@ precedence Multiplicative > Additive
 precedence Exponentiative > Multiplicative
 ```
 
-Appearence of precedence group name in any of these "declarations" would mean declaration of the precedence group.
+Appearance of precedence group name in any of these "declarations" would mean declaration of the precedence group.
 Precedence relationship declaration would only allow `>` sign for consistency.
 
 Limitations on connecting unrelated imported groups could still hold.
@@ -432,7 +432,7 @@ It would make each operator define precedence relationships.
 
 The graph of relationships would be considerably larger and less understandable in this case.
 
-Precedence groups concept would still be present, but it would make one operator in each group "priveleged":
+Precedence groups concept would still be present, but it would make one operator in each group "privileged":
 
 ```swift
 precedence - = +
