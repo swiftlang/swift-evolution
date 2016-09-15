@@ -18,7 +18,7 @@ will help ensure a stable and reliable packaging ecosystem.
 ## Proposed Solution
 
 We propose to extend our conventional package directory layout
-to accomodate test modules.
+to accommodate test modules.
 Any subdirectory of the package root directory named "Tests"
 or any subdirectory of an existing module directory named "Tests"
 will comprise a test module.

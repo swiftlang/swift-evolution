@@ -37,13 +37,13 @@ Add to the list “all or nothing”.  The compiler generates the entire initial
 
 It is common to have a type with a number of public members that are intended to be configured by clients, but also with some private state comprising implementation details of the type.  This is especially prevalent in UI code which may expose many properties for configuring visual appearance, etc.  Flexibile memberwise initialization can provide great benefit in these use cases, but it immediately becomes useless if it is "all or nothing".  
 
-We need a flexible solution that can synthesize memberwise initialization for some members while allowing the type auther full control over initialization of implementation details.
+We need a flexible solution that can synthesize memberwise initialization for some members while allowing the type author full control over initialization of implementation details.
 
 ## Proposed solution
 
 I propose adding a `memberwise` declaration modifier for initializers which allows them to *opt-in* to synthesis of memberwise initialization.  
 
-This proposal adopts a model for property eligibility where stored properties automatically recieve memberwise initialization parameters unless they are deemed ineligible for one of several reasons.  An *opt-in* model using a `memberwise` declaration modifier allowing properties to *opt-in* to memberwise initialization synthesis is also possible.  
+This proposal adopts a model for property eligibility where stored properties automatically receive memberwise initialization parameters unless they are deemed ineligible for one of several reasons.  An *opt-in* model using a `memberwise` declaration modifier allowing properties to *opt-in* to memberwise initialization synthesis is also possible.  
 
 The two approaches are not mutually exclusive: it is possible to use the *automatic* model when no properties have the `memberwise` declaration modifier and the *opt-in* model when one or more properties do have the `memberwise` declaration modifier.  A future enhancement to this proposal may introduce the *opt-in* model, allowing programmers to choose which model is preferred for a specific type they are authoring.
 
@@ -295,7 +295,7 @@ The rules of the current proposal are designed to synthesize memberwise paramete
 
 Introducing a `memberwise` declaration modifier for properties would allow programmers to specify exactly which properties should participate in memberwise initialization synthesis.  It allows full control and has the clarity afforded by being explicit.
 
-Specifc use cases this feature would support include allowing `private` properties to receive synthesized memberwise parameters in a `public` initializer, or allow `public` properties to be ommitted from parameter synthesis.
+Specifc use cases this feature would support include allowing `private` properties to receive synthesized memberwise parameters in a `public` initializer, or allow `public` properties to be omitted from parameter synthesis.
 
 An example of this
 
@@ -436,7 +436,7 @@ Obviously supporting memberwise initialization with Cocoa classes would require 
 
 This is a reasonable option and and I expect a healthy debate about which default is better.  The decision to adopt the *automatic* model by default was made for several reasons:
 
-1. The memberwise initializer for structs does not currently require an annotation for properties to opt-in.  Requiring an annotation for a mechanism designed to supercede that mechanism may be viewed as boilerplate.
+1. The memberwise initializer for structs does not currently require an annotation for properties to opt-in.  Requiring an annotation for a mechanism designed to supersede that mechanism may be viewed as boilerplate.
 2. Stored properties with public visibility are often intialized directly with a value provided by the caller.
 3. Stored properties with **less visibility** than a memberwise initializer are not eligible for memberwise initialization.  No annotation is required to indicate that and it is usually not desired.
 4. The *automatic* model cannot exist unless it is the default.  The *opt-in* model can exist alongside the *automatic* model and itself be opted-into simply by specifying the `memberwise` declaration modifier on one or more properties.
@@ -462,7 +462,7 @@ Reasons to limit memberwise parameter synthesis to members which are *at least* 
 3. It is likely the more common desire of the author of an initializer.  If the caller can’t see a member it probably doesn’t make sense to allow them to initialize it.
 4. If we expose more private-members by default then memberwise initialization is useless under the current proposal in many cases.  There would be no way to prevent synthesis of parameters for more-private members.  We have to choose between allowing callers to initialize our internal state or forgoing the benefit of memberwise initialization. 
 5. If a proposal for `@nomemberwise` is put forward and adopted that would allow us to prevent synthesis of parameters for members as desired.  Unfortunately `@nomemberwise` would need to be used much more heavily than it otherwise would (i.e. to prevent synthesis of memberwise parameters for more-private members).  It would be better if `@nomemberwise` was not necessary most of the time.
-6. If callers must be able to provide memberwise arguments for more-private members directly it is still possible to allow that while taking advantage of memberwise initialization for same-or-less-private members.  You just need to declare a `memberwise init` with explicitly declared parameters for the more-private members and initialize them manually in the body.  If the "Access control for init" enhancement is accepted another option would be upgrading the visibility of `init` for the more-private member while retaining its access level for the getter and setter.  Requiring the programmer to explicitly expose a more-private member either via `init` access control or by writing code that it directly is a arguably a very good thing.
+6. If callers must be able to provide memberwise arguments for more-private members directly it is still possible to allow that while taking advantage of memberwise initialization for same-or-less-private members.  You just need to declare a `memberwise init` with explicitly declared parameters for the more-private members and initialize them manually in the body.  If the "Access control for init" enhancement is accepted another option would be upgrading the visibility of `init` for the more-private member while retaining its access level for the getter and setter.  Requiring the programmer to explicitly expose a more-private member either via `init` access control or by writing code that it directly is arguably a very good thing.
 
 Reasons we might want to allow memberwise parameter synthesis for members with lower visiblity than the initializer:
 
