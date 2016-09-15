@@ -1,9 +1,9 @@
 # Permit where clauses to constrain associated types
 
-* Proposal: [SE-XXXX](https://github.com/apple/swift-evolution/blob/master/proposals/XXXX-associated-types-constraints.md)
-* Author(s): [David Hart](http://github.com/hartbit), [Jacob Bandes-Storch](jtbandes@gmail.com), [Douglas Gregor](dgregor@apple.com)
-* Status: TBD
-* Review manager: TBD
+* Proposal: [SE-NNNN](NNNN-associated-types-constraints.md)
+* Authors: [David Hart](https://github.com/hartbit), [Jacob Bandes-Storch](https://github.com/jtbandes), [Doug Gregor](https://github.com/DougGregor)
+* Review Manager: TBD
+* Status: **Awaiting review**
 
 ## Introduction
 
