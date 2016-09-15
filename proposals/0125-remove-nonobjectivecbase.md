@@ -91,7 +91,7 @@ Rename `ManagedBufferPointer.holdsUniqueReference` to
 `ManagedBufferPointer.isUniqueReference` to avoid confusion.
 
 Remove `ManagedBufferPointer.holdsUniqueOrPinnedReference` because there is no
-public pinning API so having this public API is not neccessary.
+public pinning API so having this public API is not necessary.
 
 ## Detailed design
 

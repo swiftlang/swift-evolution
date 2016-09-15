@@ -102,7 +102,7 @@ public protocol SomeProtocol {}
 public extension A : SomeProtocol {}
 ```
 
-*Extensions* are also used for *protocol default implementations* in respect to the mentioned rules. That means that if someone would want to provide a public default implementation for a specific protocol there are three different ways to  achive this goal:
+*Extensions* are also used for *protocol default implementations* in respect to the mentioned rules. That means that if someone would want to provide a public default implementation for a specific protocol there are three different ways to  achieve this goal:
 
 ```swift
 public protocol G {

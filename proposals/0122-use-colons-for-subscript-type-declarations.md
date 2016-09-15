@@ -4,7 +4,7 @@
 * Author: [James Froggatt](https://github.com/MutatingFunk)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Rejected**
-* Decison Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000258.html)
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000258.html)
 
 ## Introduction
 
