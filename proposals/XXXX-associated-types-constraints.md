@@ -14,9 +14,12 @@ the same expressive power as generic types.
 This proposal was discussed twice on the Swift Evolution list in the following
 threads:
 
-- [[Completing Generics] Arbitrary requirements in protocols](http://thread.gmane.org/gmane.comp.lang.swift.evolution/14243)
-- [More Powerful Constraints for Associated Types](http://thread.gmane.org/gmane.comp.lang.swift.evolution/15201)
- 
+* [\[Completing Generics\] Arbitrary requirements in protocols](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160411/014667.html)
+* [Proposal] More Powerful Constraints for Associated Types
+  - [Week #1](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160418/015625.html)
+  - [Week #2](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160425/015753.html)
+  - [Week #3](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160502/016354.html)
+
 ## Motivation
 
 Currently, associated type declarations can only express simple inheritance
