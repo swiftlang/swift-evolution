@@ -55,7 +55,7 @@ The new requirement-clause is then used by the compiler to validate the
 associated types of conforming types.
 
 Secondly, the proposal also allows protocols to use the associated types of
-their conforming protocols in their declaration where clause as below:
+their conforming protocols in their declaration `where` clause as below:
 
 ```swift
 protocol SomeSequence : Sequence where Iterator.Element == Int {
@@ -94,7 +94,7 @@ protocol Collection : Sequence {
 ```
 
 But as Douglas notes himself, that syntax is ambiguous since we adopted the
-generic where clause at the end of declarations of the following proposal:
+generic `where` clause at the end of declarations of the following proposal:
 [SE-0081: Move where clause to end of declaration](https://github.com/apple/swift-evolution/blob/master/proposals/0081-move-where-expression.md). For those reasons, it might be wiser not to introduce the shorthand syntax.
  
 ## Acknowledgements
