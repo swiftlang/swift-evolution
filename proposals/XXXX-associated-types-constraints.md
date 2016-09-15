@@ -7,9 +7,9 @@
 
 ## Introduction
 
-This proposal seeks to introduce a `where` clause to associated types
+This proposal seeks to introduce a `where` clause to associated type
 declarations and improvements to protocol constraints to bring associated types
-the same expressive power as generic types.
+the same expressive power as generic type parameters.
 
 This proposal was discussed twice on the Swift Evolution list in the following
 threads:
@@ -39,7 +39,7 @@ protocol Sequence {
 
 ## Detailed Design
 
-First of all, this proposal modifies the grammar for protocols associated types
+First of all, this proposal modifies the grammar for a protocol's associated types
 to the following:
 
 *protocol-associated-type-declaration* →
@@ -58,7 +58,7 @@ Secondly, the proposal also allows protocols to use the associated types of
 their conforming protocols in their declaration `where` clause as below:
 
 ```swift
-protocol SomeSequence : Sequence where Iterator.Element == Int {
+protocol IntSequence : Sequence where Iterator.Element == Int {
     ...
 }
 ```
