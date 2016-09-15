@@ -85,7 +85,7 @@ the new `swift package` subcommands are added, as aliases to those subcommands,
 for compatibility. They will be removed before Swift 3 is released.
 
 We acknowledge the possible need for a shorter version of the `swift package`
-command, and believe we can revisit this to add an shorter alias for this in the
+command, and believe we can revisit this to add a shorter alias for this in the
 future if necessary. See the alternatives section below.
 
 ## Impact on existing packages
