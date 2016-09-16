@@ -53,7 +53,7 @@ having to do the naming translation manually and get static checking
 that the method exists and is exposed to Objective-C.
 
 This proposal composes with the [Naming Functions with Argument Labels
-proposal](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160111/006262.html), which lets us name methods along with their argument labels, e.g.:
+proposal](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160111/006262.html), which let's use name methods along with their argument labels, e.g.:
 
 	let sel = #selector(UIView.insertSubview(_:atIndex:)) // produces the Selector "insertSubview:atIndex:"
 
