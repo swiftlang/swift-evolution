@@ -248,7 +248,7 @@ UnsafeMutableRawPointer {
 }
 ```
 
-The `load` and `storeBytes` operations are asymetric. `load` reads raw
+The `load` and `storeBytes` operations are asymmetric. `load` reads raw
 bytes but properly constructs a new value of type `T` with its own
 lifetime. Any copied references will be retained. In contrast,
 `storeBytes` only operates on a value's raw bytes, writing them into
