@@ -81,6 +81,10 @@ protocol IntSequence : Sequence {
 }
 ```
  
+## Effect on ABI Stability
+
+As mentioned previously, there are a number of places in the standard library where this feature would be adopted (such as the `SubSequence.Iterator.Element == Iterator.Element` example), each of which will change the mangling of any generic function/type that makes use of them.
+
 ## Alternatives
 
 Douglas Gregor argues that the proposed syntax is redundant when adding new
