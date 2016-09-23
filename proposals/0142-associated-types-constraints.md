@@ -1,6 +1,6 @@
 # Permit where clauses to constrain associated types
 
-* Proposal: [SE-NNNN](NNNN-associated-types-constraints.md)
+* Proposal: [SE-0142](0142-associated-types-constraints.md)
 * Authors: [David Hart](https://github.com/hartbit), [Jacob Bandes-Storch](https://github.com/jtbandes), [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: Under review (September 23...30, 2016)
