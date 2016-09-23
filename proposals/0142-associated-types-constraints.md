@@ -2,8 +2,8 @@
 
 * Proposal: [SE-NNNN](NNNN-associated-types-constraints.md)
 * Authors: [David Hart](https://github.com/hartbit), [Jacob Bandes-Storch](https://github.com/jtbandes), [Doug Gregor](https://github.com/DougGregor)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: Under review (September 23...30, 2016)
 
 ## Introduction
 
