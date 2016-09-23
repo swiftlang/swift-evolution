@@ -1,9 +1,9 @@
 # Availability by Swift version
 
-* Proposal: [SE-NNNN](NNNN-available-by-swift-version.md)
+* Proposal: [SE-0141](0141-available-by-swift-version.md)
 * Authors: [Graydon Hoare](https://github.com/graydon)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: Under review (September 23...28, 2016)
 
 ## Introduction
 
