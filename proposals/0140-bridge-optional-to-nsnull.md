@@ -3,7 +3,7 @@
 * Proposal: [SE-0140](0140-bridge-optional-to-nsnull.md)
 * Author: [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted**
+* Status: **Implemented (Swift 3.0.1)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160912/027062.html)
 
 ## Introduction
