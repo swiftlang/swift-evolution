@@ -110,7 +110,7 @@
 <proposal id="0107" status="implemented" swift-version="3" name="UnsafeRawPointer API" filename="0107-unsaferawpointer.md"/>
 <proposal id="0108" status="rejected" name="Remove associated type inference" filename="0108-remove-assoctype-inference.md"/>
 <proposal id="0109" status="implemented" swift-version="3" name="Remove the `Boolean` protocol" filename="0109-remove-boolean.md"/>
-<proposal id="0110" status="accepted" name="Distinguish between single-tuple and multiple-argument function types" filename="0110-distingish-single-tuple-arg.md"/>
+<proposal id="0110" status="implemented" swift-version="3" name="Distinguish between single-tuple and multiple-argument function types" filename="0110-distingish-single-tuple-arg.md"/>
 <proposal id="0111" status="implemented" swift-version="3" name="Remove type system significance of function argument labels" filename="0111-remove-arg-label-type-significance.md"/>
 <proposal id="0112" status="implemented" swift-version="3" name="Improved NSError Bridging" filename="0112-nserror-bridging.md"/>
 <proposal id="0113" status="implemented" swift-version="3" name="Add integral rounding functions to FloatingPoint" filename="0113-rounding-functions-on-floatingpoint.md"/>
@@ -140,7 +140,7 @@
 <proposal id="0137" status="implemented" swift-version="3" name="Avoiding Lock-In to Legacy Protocol Designs" filename="0137-avoiding-lock-in.md"/>
 <proposal id="0138" status="accepted" swift-version="3" name="UnsafeRawBufferPointer" filename="0138-unsaferawbufferpointer.md"/>
 <proposal id="0139" status="accepted" swift-version="3" name="Bridge Numeric Types to `NSNumber` and Cocoa Structs to `NSValue`" filename="0139-bridge-nsnumber-and-nsvalue.md"/>
-<proposal id="0140" status="accepted" swift-version="3" name="Bridge `Optional` As Its Payload Or `NSNull`" filename="0140-bridge-optional-to-nsnull.md"/>
+<proposal id="0140" status="implemented" swift-version="3.0.1" name="Bridge `Optional` As Its Payload Or `NSNull`" filename="0140-bridge-optional-to-nsnull.md"/>
 <proposal id="0141" status="active" swift-version="4" name="Availability by Swift version" filename="0141-available-by-swift-version.md"/>
 <proposal id="0142" status="active" swift-version="4" name="Permit where clauses to constrain associated types" filename="0142-associated-types-constraints.md"/>
 
