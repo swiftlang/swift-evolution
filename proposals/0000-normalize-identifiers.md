@@ -33,13 +33,13 @@ The use of default-ignorable characters in identifiers is problematical, first b
 
 ## Proposed solution
 
-Normalize Swift identifiers according to the normalization form NFC recommended for case-sensitive languages in the Unicode Standard Annexes [15](UAX15) and [31](UAX31) and follow the [Normalization Charts](NormalizationCharts).
+Normalize Swift identifiers according to the normalization form NFC recommended for case-sensitive languages in the Unicode Standard Annexes [15][UAX15] and [31][UAX31] and follow the [Normalization Charts][NormalizationCharts].
 
 [UAX15]: http://www.unicode.org/reports/tr15/
 [UAX31]: http://www.unicode.org/reports/tr31/
 [NormalizationCharts]: http://unicode.org/charts/normalization/
 
-In addition to that, prohibit the use of *default-ignorable* characters in identifiers except in the special cases described in [UAX31](UAX31), listed below:
+In addition to that, prohibit the use of *default-ignorable* characters in identifiers except in the special cases described in [UAX31][UAX31], listed below:
 
 * Allow Zero Width Non-Joiner (U+200C) when breaking a cursive connection
 * Allow Zero Width Non-Joiner (U+200C) in a conjunct context
