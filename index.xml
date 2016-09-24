@@ -110,7 +110,7 @@
 <proposal id="0107" status="implemented" swift-version="3" name="UnsafeRawPointer API" filename="0107-unsaferawpointer.md"/>
 <proposal id="0108" status="rejected" name="Remove associated type inference" filename="0108-remove-assoctype-inference.md"/>
 <proposal id="0109" status="implemented" swift-version="3" name="Remove the `Boolean` protocol" filename="0109-remove-boolean.md"/>
-<proposal id="0110" status="implemented" swift-version="3" name="Distinguish between single-tuple and multiple-argument function types" filename="0110-distingish-single-tuple-arg.md"/>
+<proposal id="0110" status="accepted" swift-version="3" name="Distinguish between single-tuple and multiple-argument function types" filename="0110-distingish-single-tuple-arg.md"/>
 <proposal id="0111" status="implemented" swift-version="3" name="Remove type system significance of function argument labels" filename="0111-remove-arg-label-type-significance.md"/>
 <proposal id="0112" status="implemented" swift-version="3" name="Improved NSError Bridging" filename="0112-nserror-bridging.md"/>
 <proposal id="0113" status="implemented" swift-version="3" name="Add integral rounding functions to FloatingPoint" filename="0113-rounding-functions-on-floatingpoint.md"/>
