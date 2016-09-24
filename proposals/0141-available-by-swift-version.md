@@ -3,7 +3,7 @@
 * Proposal: [SE-0141](0141-available-by-swift-version.md)
 * Authors: [Graydon Hoare](https://github.com/graydon)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: Under review (September 23...28, 2016)
+* Status: **Active review (September 23...September 28)**
 
 ## Introduction
 
