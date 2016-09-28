@@ -914,7 +914,7 @@ public struct Unsafe${Mutable}RawBufferPointer
         count: bounds.count)
     }
 %  if mutable:
-    set {
+    nonmutating set {
       _debugPrecondition(bounds.lowerBound >= startIndex)
       _debugPrecondition(bounds.upperBound <= endIndex)
       _debugPrecondition(bounds.count == newValue.count)
@@ -964,12 +964,12 @@ extension Unsafe${Mutable}RawBufferPointer : CustomDebugStringConvertible {
 %  if mutable:
 public func withUnsafeMutableBytes<T, Result>(
   of arg: inout T,
-  _ body: (inout UnsafeMutableRawBufferPointer) throws -> Result
+  _ body: (UnsafeMutableRawBufferPointer) throws -> Result
 ) rethrows -> Result
 {
   return try withUnsafeMutablePointer(to: &arg) {
-    var bytes = UnsafeMutableRawBufferPointer(start: $0, count: MemoryLayout<T>.size)
-    return try body(&bytes)
+    return try body(UnsafeMutableRawBufferPointer(
+        start: $0, count: MemoryLayout<T>.size))
   }
 }
 %  else:
@@ -1013,11 +1013,10 @@ extension ${Self} {
   ///
   /// - SeeAlso: `withUnsafeBytes`, `UnsafeRawBufferPointer`
   public mutating func withUnsafeMutableBytes<R>(
-    _ body: (inout UnsafeMutableRawBufferPointer) throws -> R
+    _ body: (UnsafeMutableRawBufferPointer) throws -> R
   ) rethrows -> R {
     return try self.withUnsafeMutableBufferPointer {
-      var bytes = UnsafeMutableRawBufferPointer($0)
-      return try body(&bytes)
+      return try body(UnsafeMutableRawBufferPointer($0))
     }
   }
 
