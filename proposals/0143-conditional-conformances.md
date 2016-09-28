@@ -1,21 +1,14 @@
 # Conditional conformances
 
-* Proposal: [SE-NNNN](NNNN-conditional-conformances.md)
+* Proposal: [SE-0143](0143-conditional-conformances.md)
 * Author: [Doug Gregor](https://github.com/DougGregor)
-* Review Manager: TBD
+* Review Manager: [Joe Groff](https://github.com/jckarter)
 * Status: **Awaiting review**
-
-*During the review process, add the following fields as needed:*
-
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/), [Additional Commentary](https://lists.swift.org/pipermail/swift-evolution/)
-* Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM)
-* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
-* Previous Proposal: [SE-XXXX](XXXX-filename.md)
 
 ## Introduction
 
 Conditional conformances express the notion that a generic type will
-conform to a particular protocol only when it's type arguments meet
+conform to a particular protocol only when its type arguments meet
 certain requirements. For example, the `Array` collection can
 implement the `Equatable` protocol only when its elements are
 themselves `Equatable`, which can be expressed via the following
@@ -263,9 +256,12 @@ protocol S: R { }
 
 struct X5<T> { }
 
-extension X5: R where T: R { }  // "wins" implied conformance to P, because
-extension X5: S where T: S { }  // the extension where "T: S" is more specialized
-                                // than the one where "T: R"
+extension X5: S where T: S { }
+
+// This last extension "wins" the implied conformance to P, because
+// the extension where "T: R" is less specialized than the one
+// where "T: S".
+extension X5: R where T: R { }
 ```
 
 Thus, the rule for placing implied conformances is to pick the *least specialized* extension that implies the conformance. If there is more than one such extension, then either:
