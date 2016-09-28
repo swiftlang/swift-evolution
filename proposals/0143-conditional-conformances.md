@@ -3,7 +3,7 @@
 * Proposal: [SE-0143](0143-conditional-conformances.md)
 * Author: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Awaiting review**
+* Status: **Active review (September 28...October 7)**
 
 ## Introduction
 
