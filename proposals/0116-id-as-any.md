@@ -172,7 +172,7 @@ that is itself `Hashable`, for use as the upper-bound type of heterogeneous
 `Dictionary`s and `Set`s. The user model for this type would ideally align
 with our long-term goal of supporting `Hashable` existentials directly, so
 the type deserves some short-term compiler support to help us get there.
-This type deserves its own proposal and design discussion, so thi
+This type deserves its own proposal and design discussion.
 
 ## Future Directions
 
