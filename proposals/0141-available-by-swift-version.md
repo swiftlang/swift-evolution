@@ -3,7 +3,8 @@
 * Proposal: [SE-0141](0141-available-by-swift-version.md)
 * Authors: [Graydon Hoare](https://github.com/graydon)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Active review (September 23...September 28)**
+* Status: **Accepted**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20161003/027604.html)
 
 ## Introduction
 
