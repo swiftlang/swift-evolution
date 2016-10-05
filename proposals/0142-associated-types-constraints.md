@@ -3,7 +3,9 @@
 * Proposal: [SE-0142](0142-associated-types-constraints.md)
 * Authors: [David Hart](https://github.com/hartbit), [Jacob Bandes-Storch](https://github.com/jtbandes), [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Active review (September 23...September 30)**
+* Status: **Accepted**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20161003/027606.html)
+
 
 ## Introduction
 
