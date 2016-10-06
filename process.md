@@ -45,7 +45,12 @@ Please state explicitly whether you believe that the proposal should be accepted
 ## How to propose a change
 
 * **Check prior proposals**: many ideas come up frequently, and may either be in active discussion on the mailing list, or may have been discussed already and have joined the [Commonly Rejected Proposals](commonly_proposed.md) list.  Please check the mailing list archives and this list for context before proposing something new.
-
+* **Consider the goals of the upcoming Swift release**: Each major
+Swift release is focused on a [specific set of goals](README.md)
+described early in the release cycle. When proposing a change to
+Swift, please consider how your proposal fits in with the larger goals
+of the upcoming Swift release. Proposals that are clearly out of scope
+for the upcoming Swift release will not be brought up for review. If you can't resist discussing a proposal that you know is out of scope, please include the tag `[Out of scope]` in the subject.
 * **Socialize the idea**: propose a rough sketch of the idea on the [swift-evolution mailing list][swift-evolution-mailing-list], the problems it solves, what the solution looks like, etc., to gauge interest from the community.
 * **Develop the proposal**: expand the rough sketch into a complete proposal, using the [proposal template](0000-template.md), and continue to refine the proposal on the evolution mailing list. Prototyping an implementation and its uses along with the proposal is encouraged, because it helps ensure both technical feasibility of the proposal as well as validating that the proposal solves the problems it is meant to solve.
 * **Request a review**: initiate a pull request to the [swift-evolution repository][swift-evolution-repo] to indicate to the core team that you would like the proposal to be reviewed. When the proposal is sufficiently detailed and clear, and addresses feedback from earlier discussions of the idea, the pull request will be accepted. The proposal will be assigned a proposal number as well as a core team member to manage the review.
