@@ -91,72 +91,9 @@ stability goals are:
   need a comprehensive design to understand how it will change the
   ABI.
 
-## Swift 3.0 - Released on September 13, 2016
+## Previous releases
 
-Swift 3 focused on solidifying and maturing the Swift language and
-development experience. It focused on several areas:
-
-* **API design guidelines**: The way in which Swift is used in popular
-  libraries has almost as much of an effect on the character of Swift
-  code as the Swift language itself. The [API naming and design
-  guidelines](https://swift.org/documentation/api-design-guidelines/) are a
-  carefully crafted set of guidelines for building great Swift APIs.
-
-* **Automatic application of naming guidelines to imported Objective-C APIs**:
-  When importing Objective-C APIs, the Swift 3 compiler 
-  [automatically maps](proposals/0005-objective-c-name-translation.md) methods
-  into the new Swift 3 naming guidelines, and provides a number of Objective-C
-  features to control and adapt this importing.
-
-* **Adoption of naming guidelines in key APIs**: The Swift Standard Library has
-  been significantly overhauled to embrace these guidelines, and key libraries
-  like [Foundation](proposals/0069-swift-mutability-for-foundation.md) and
-  [libdispatch](proposals/0088-libdispatch-for-swift3.md) have seen major
-  updates, which provide the consistent development experience we seek.
-
-* **Swiftification of imported Objective-C APIs**: Beyond the naming guidelines,
-  Swift 3 provides an improved experience for working with Objective-C APIs.
-  This includes importing
-  [Objective-C generic classes](proposals/0057-importing-objc-generics.md),
-  providing the ability to [import C APIs](proposals/0044-import-as-member.md)
-  into an "Object Oriented" style, much nicer
-  [imported string enums](proposals/0033-import-objc-constants.md), safer
-  syntax to work with [selectors](proposals/0022-objc-selectors.md) and
-  [keypaths](proposals/0062-objc-keypaths.md), etc.
-
-* **Focus and refine the language**: Since Swift 3 is the last release to make
-  major source breaking changes, it is also the right release to reevaluate the
-  syntax and semantics of the core language.  This means that some obscure or
-  problematic features will be removed, we focus on improving consistency of
-  syntax in many small ways (e.g. by 
-  [revising handling of parameter labels](proposals/0046-first-label.md), and
-  focus on forward looking improvements to the type system.  This serves the
-  overall goal of making Swift a simpler, more predictable, and more consistent
-  language over the long term.
-
-Swift 3 is the first release to enable
-broad scale adoption across multiple platforms, including significant
-functionality in the [Swift core libraries](https://swift.org/core-libraries/)
-(Foundation, libdispatch, XCTest, etc), portability to a number of platforms including Linux/x86, Raspberry Pi, and Android, and the [Swift package manager](https://swift.org/package-manager/) to easily manage the distribution of Swift soure code.
-
-Finally, Swift 3 also includes a mix of relatively small but important additions
-to the language and standard library that make solving common problems easier and
-make everything feel nicer.  A detailed list of accepted proposals is included
-on the [proposal status page][proposal-status].
-
-
-## Swift 2.2 - Released on March 21, 2016
-
-[This release](https://swift.org/blog/swift-2-2-released/) focused on fixing
-bugs, improving quality-of-implementation (QoI)
-with better warnings and diagnostics, improving compile times, and improving
-performance.  It put some finishing touches on features introduced in Swift 2.0, 
-and included some small additive features that don't break Swift code or
-fundamentally change the way Swift is used. As a step toward Swift 3, it
-introduced warnings about upcoming source-incompatible changes in Swift 3
-so that users can begin migrating their code sooner.
-
-Aside from warnings, a major goal of this release was to be as source compatible
-as practical with Swift 2.0.
+* [Swift 3.0](releases/swift-3_0.md) - Released on September 13, 2016
+* [Swift 2.2](releases/swift-2_2.md) - Released on March 21, 2016
 
 [proposal-status]: https://apple.github.io/swift-evolution/
