@@ -29,12 +29,12 @@ as `NSNumber`, other-sized numeric types fall back to opaque boxing:
 let i = 17
 let plist = ["seventeen": i]
 // OK
-try! NSJSONSerialization.data(withJSONObject: plist)
+try! JSONSerialization.data(withJSONObject: plist)
 
 let j: UInt8 = 38
 let brokenPlist = ["thirty-eight": j]
 // Will throw because `j` didn't bridge to a JSON type
-try! NSJSONSerialization.data(withJSONObject: brokenPlist)
+try! JSONSerialization.data(withJSONObject: brokenPlist)
 ```
 
 We had shied away from enabling this bridging for all numeric types in
