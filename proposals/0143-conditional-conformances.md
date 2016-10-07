@@ -16,7 +16,7 @@ conditional conformance on `Equatable`:
 
 ```swift
 extension Array: Equatable where Element: Equatable {
-  static func ==(lhs: Array<T>, rhs: Array<T>) -> Bool { ... }
+  static func ==(lhs: Array<Element>, rhs: Array<Element>) -> Bool { ... }
 }
 ```
 
@@ -200,7 +200,7 @@ extension SomeWrapper: Equatable where Wrapped: Equatable & HasIdentity, {
 }
 ```
 
-The design is consistent, because this third conditional conformance is more *specialized* the either of the first two conditional conformances, meaning that its requirements are a strict superset of the requirements of those two conditional conformances. However, there are a few downsides to such a system:
+The design is consistent, because this third conditional conformance is more *specialized* than either of the first two conditional conformances, meaning that its requirements are a strict superset of the requirements of those two conditional conformances. However, there are a few downsides to such a system:
 
 1. To address all possible ambiguities, one has to write a conditional conformance for every plausible combination of overlapping requirements. To *statically* resolve all ambiguities, one must also cover nonsensical combinations where the two requirements are mutually exclusive (or invent a way to state mutual-exclusivity).
 2. It is no longer possible to uniquely say what is required to make a generic type conform to a protocol, because there might be several unrelated possibilities. This makes reasoning about the whole system more complex, because it admits divergent interfaces for the same generic type based on their type arguments. At its extreme, this invites the kind of cleverness we've seen in the C++ community with template metaprogramming, which is something Swift has sought to avoid.
@@ -304,7 +304,7 @@ struct X2: R {
 X1<X2>().f()        // calls #2, which is preferred by overload resolution
 ```
 
-Effectively, when satisfying a protocol requirement, one can only choose from members of the type that are guaranteed to available within the extension with which the conformance is associated. In this case, the conformance to `P` is placed on the first extension of `X1`, so the only `f()` that can be considered is the `f()` within that extension: the `f()` in the second extension won't necessarily always be available, because `T` may not conform to `R`. Hence, the call that treats an `X1<X2>` as a `P` gets the first implementation of `X1.f()`. When using the concrete type `X1<X2>`, where `X2` conforms to `R`, both `X.f()` implementations are visible... and the second is more specialized.
+Effectively, when satisfying a protocol requirement, one can only choose from members of the type that are guaranteed to be available within the extension with which the conformance is associated. In this case, the conformance to `P` is placed on the first extension of `X1`, so the only `f()` that can be considered is the `f()` within that extension: the `f()` in the second extension won't necessarily always be available, because `T` may not conform to `R`. Hence, the call that treats an `X1<X2>` as a `P` gets the first implementation of `X1.f()`. When using the concrete type `X1<X2>`, where `X2` conforms to `R`, both `X1.f()` implementations are visible... and the second is more specialized.
 
 Technically, this issue is no different from surprises where (e.g.) a member added to a concrete type in a different module won't affect an existing protocol conformance. The existing ideas to mediate these problems---warning for nearly-matching functions when they are declared in concrete types, for example---will likely be sufficient to help surprised users. That said, this proposal may increase the likelihood of such problems showing up.
 
