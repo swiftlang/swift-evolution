@@ -39,18 +39,28 @@
         </xsl:call-template>
 
         <xsl:call-template name="section">
+          <xsl:with-param name="title">Implemented (Swift 4)</xsl:with-param>
+          <xsl:with-param name="proposals" select="proposal[@status='implemented'][@swift-version='4']"/>
+        </xsl:call-template>
+
+        <xsl:call-template name="section">
           <xsl:with-param name="title">Implemented (Swift 3.1)</xsl:with-param>
-          <xsl:with-param name="proposals" select="proposal[@status='implemented'][@swift-version = 3.1]"/>
+          <xsl:with-param name="proposals" select="proposal[@status='implemented'][@swift-version='3.1']"/>
+        </xsl:call-template>
+
+        <xsl:call-template name="section">
+          <xsl:with-param name="title">Implemented (Swift 3.0.1)</xsl:with-param>
+          <xsl:with-param name="proposals" select="proposal[@status='implemented'][@swift-version='3.0.1']"/>
         </xsl:call-template>
 
         <xsl:call-template name="section">
           <xsl:with-param name="title">Implemented (Swift 3)</xsl:with-param>
-          <xsl:with-param name="proposals" select="proposal[@status='implemented'][@swift-version = 3]"/>
+          <xsl:with-param name="proposals" select="proposal[@status='implemented'][@swift-version='3']"/>
         </xsl:call-template>
 
         <xsl:call-template name="section">
           <xsl:with-param name="title">Implemented (Swift 2.2)</xsl:with-param>
-          <xsl:with-param name="proposals" select="proposal[@status='implemented'][@swift-version = 2.2]"/>
+          <xsl:with-param name="proposals" select="proposal[@status='implemented'][@swift-version='2.2']"/>
         </xsl:call-template>
 
         <xsl:call-template name="section">
