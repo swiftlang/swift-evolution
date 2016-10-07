@@ -31,7 +31,7 @@ divided into two stages.
 
 Stage 1 focuses on the essentials required for source and ABI
 stability. Features that don't fundamentally change the ABI of
-existing language features or imply and ABI-breaking change to the
+existing language features or imply an ABI-breaking change to the
 standard library will not be considered in this stage.
 
 Stage 2 will commence once the implementation work on the Stage 1
