@@ -51,12 +51,12 @@ requirements for Swift 4 are *much* more stringent: we should only
 break source compatibility if the Swift 3 constructs were actively
 harmful in some way, the volume of affected Swift 3 code is relatively
 small, and we can provide source compatibility (in Swift 3
-compatiblity mode) and migration.
+compatibility mode) and migration.
 
 Will existing correct Swift 3 or Swift 4 applications stop compiling
 due to this change? Will applications still compile but produce
 different behavior than they used to? If "yes" to either of these, is
-it possible for the Swift 4 compiler to accept the old syntax in it's
+it possible for the Swift 4 compiler to accept the old syntax in its
 Swift 3 compatibility mode? Is it possible to automatically migrate
 from the old syntax to the new syntax? Can Swift applications be
 written in a common subset that works both with Swift 3 and Swift 4 to
@@ -69,7 +69,7 @@ ABI comprises all aspects of the code generation model and interaction
 with the Swift runtime, including such things as calling conventions,
 the layout of data types, and the behavior of dynamic features in the
 language (reflection, dynamic dispatch, dynamic casting via `as?`,
-etc.). Purely syntactic changes rarely affect existing ABI. Additive
+etc.). Purely syntactic changes rarely change existing ABI. Additive
 features may extend the ABI but, unless they extend some fundamental
 runtime behavior (such as the aforementioned dynamic features), they
 won't change the existing ABI.

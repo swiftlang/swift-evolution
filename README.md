@@ -86,7 +86,10 @@ stability goals are:
   other high-performance applications that want predictible and
   deterministic performance. This feature will fundamentally shape the
   ABI, from low-level language concerns such as "inout" and low-level
-  "addressors" to its impact on the standard library.
+  "addressors" to its impact on the standard library. While a full
+  memory ownership model is likely too large for Swift 4 stage 1, we
+  need a comprehensive design to understand how it will change the
+  ABI.
 
 ## Swift 3.0 - Released on September 13, 2016
 
