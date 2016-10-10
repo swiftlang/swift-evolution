@@ -83,7 +83,7 @@ stability goals are:
 
 * Memory ownership model: an (opt-in) Cyclone/Rust-inspired memory
   ownership model is highly desired by systems programmers and for
-  other high-performance applications that want predictible and
+  other high-performance applications that want predictable and
   deterministic performance. This feature will fundamentally shape the
   ABI, from low-level language concerns such as "inout" and low-level
   "addressors" to its impact on the standard library. While a full
