@@ -64,7 +64,7 @@ Either this new concept:
 
 or using existing language features:
 
-	private extension ProfileController: TabBarDelegate
+	private extension ProfileVC: TabBarDelegate
 	
 but it actually causes compilation error: _'private' modifier cannot be used with extensions that declare protocol conformances_.
 
