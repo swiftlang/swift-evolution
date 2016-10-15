@@ -32,7 +32,7 @@ The core team has decided to remove it as a valid character by merging this
 
 The reason behind the removal of `$` character as a valid identifier is:
 
-1. it was never intended to be an identifier, and was never documented (e.g. by [TPSL](https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/LexicalStructure.html#//apple_ref/swift/grammar/identifier).
+1. it was never intended to be an identifier, and was never documented (e.g. by [TSPL](https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/LexicalStructure.html#//apple_ref/swift/grammar/identifier)).
 2. the $ sigil is more operator/punctuation-like than identifier-like.
 3. the $ namespace is already used for anonymous closure arguments (when 
    followed by a number) and by debugger/REPL temporaries (when followed by
