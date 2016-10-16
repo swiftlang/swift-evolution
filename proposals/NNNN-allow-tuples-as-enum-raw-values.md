@@ -63,7 +63,7 @@ enum Colour : (red:Int, green:Int, blue:Int) {
 
 The main hurdle for this issue is the handling of tuple equality. Currently in Swift an equality operator is produced automatically for any tuple type for which all of its components are `Equatable`, however as a non-nominal type the tuples themselves are not considered to be `Equatable`.
 
-The result of this is that either this proposal needs to wait until tuples are given the ability to conform (and thus be truly `Equatable`) or for the proposal to be implemented sooner with some kind of hack that enables tuples to be treated as `Equatable` and thus enable them to be used. Clearly the first would be the preferred option, but it will depend upon what the time-frame for it may be.
+The result of this is that either this proposal needs to wait until tuples are given the ability to conform (and thus be truly `Equatable`) or for the proposal to be implemented sooner with some kind of hack that enables tuples to be treated as `Equatable` and thus enable them to be used. Clearly the first would be the preferred option, but it will depend upon what the time-frame for it may be, so I'm leaving this part open-ended.
 
 ## Source compatibility
 
