@@ -1,10 +1,11 @@
 # Availability by Swift version
 
 * Proposal: [SE-0141](0141-available-by-swift-version.md)
-* Authors: [Graydon Hoare](https://github.com/graydon)
+* Author: [Graydon Hoare](https://github.com/graydon)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Accepted**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20161003/027604.html)
+* Bug: [SR-2709](https://bugs.swift.org/browse/SR-2709)
 
 ## Introduction
 
@@ -14,6 +15,10 @@ platform or OS version range.
 
 It does not currently support indicating declaration lifecycle relative to
 Swift language versions. This proposal seeks to extend it to do so.
+
+Swift-evolution threads:
+ [Draft](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160919/027213.html),
+[Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160919/027247.html)
 
 ## Motivation
 
