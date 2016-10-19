@@ -68,7 +68,9 @@ class inheritance, protocol conformance.
 4. The ternary operator's short length lends it to being abused in the
 nested ternary operator anti-pattern.
 
-5. There are similar sentiments in other languages that have special constructs
+5. This operator is only applicable to a single type, `Bool`.
+
+6. There are similar sentiments in other languages that have special constructs
 that could be handled in-language, such as [`if then else` in Haskell](https://wiki.haskell.org/If-then-else#Is_If-Then-Else_so_important.3F).
 `if then else` is almost identical to the `?:` operator, the exception being
 that it's prefixed by `if`, while `?:` has no prefix.
@@ -76,8 +78,6 @@ Example:
 ```haskell
 if True then 10 else 20
 ```
-
-6. This operator is only applicable to a single type, `Bool`.
 
 
 ## Proposed Approach
