@@ -43,7 +43,7 @@ with C, and other common languages in the extended C family (C++, Objective-C,
 Java, C#, Javascript, etc).  People coming to Swift from these other languages
 may reasonably expect this operator to exist.  That said, there are also
 popular languages which have kept the majority of C operators but dropped the
-ternary operator (e.g. [Go](https://golang.org/doc/faq#Does_Go_have_a_ternary_form) and Rust).
+ternary operator (e.g. [Go](https://golang.org/doc/faq#Does_Go_have_a_ternary_form) and [Rust](https://github.com/rust-lang/rfcs/issues/1362)).
 
 
 ## Disadvantages of The Ternary Operator
