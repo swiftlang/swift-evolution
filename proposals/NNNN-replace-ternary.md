@@ -1,4 +1,4 @@
-# Replace the `?:` operator with `.transform(true:, false:)` on `Bool`
+# Replace the `?:` operator with `.transformed(true:, false:)` on `Bool`
 
 * Proposal: SE-NNNN
 * Author: [Charlotte Tortorella](https://github.com/qata)
@@ -11,7 +11,7 @@ The ternary operator in Swift was added early in development, as a holdover
 from C.  This document is an attempt to provide a clear look at the ternary
 operator without the baggage of the languages that came before, and comes
 to the conclusion that we should deprecate and remove the ternary operator
-in favor of an extension to `Bool` as `transform(true:, false:)`.
+in favor of an extension to `Bool` as `transformed(true:, false:)`.
 
 As a quick refresher, here's what the ternary operator looks like:
 
@@ -86,7 +86,7 @@ We should drop the ternary operator in favor of a new extension to `Bool`.
 ```swift
 extension Bool {
     /// If `self == true`, returns `t`, otherwise, returns `f`.
-    func transform<T>(true t: @autoclosure () -> T, false f: @autoclosure () -> T) -> T {
+    func transformed<T>(true t: @autoclosure () -> T, false f: @autoclosure () -> T) -> T {
         if self {
             return t()
         } else {
