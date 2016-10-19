@@ -18,9 +18,8 @@ As a quick refresher, here's what the ternary operator looks like:
 ```swift
 let a = 10
 let b = 20
-let c = "yes"
-let d = "no"
-let e = a < b ? c : d // If a is less than b, sets c to a, else sets c to b
+// If a is less than b, sets e to c, else sets e to d
+let e = a < b ? "foo" : "bar"
 ```
 
 ## Advantages of The Ternary Operator
@@ -30,11 +29,11 @@ capability. It's shorthand for (e.g.):
 ```swift
 let a = 10
 let b = 20
-let result: Int
+let e: Int
 if a < b {
-  result = a
+  e = "foo"
 } else {
-  result = b
+  e = "bar"
 }
 ```
 
@@ -94,6 +93,14 @@ extension Bool {
         }
     }
 }
+```
+
+Example usage:
+```swift
+let a = 10
+let b = 20
+// If a is less than b, sets e to "foo", else sets e to "bar"
+let e = (a < b).transformed(true: "foo", false: "bar")
 ```
 
 ## Alternatives considered
