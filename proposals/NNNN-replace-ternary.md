@@ -62,8 +62,8 @@ to new users. In every other instance of `?` it's associated with
 Optional values.
 
 4. The ternary operator also uses `:`, which is already a heavily overloaded
-symbol in Swift. `:` is used in hash tables, type declarations,
-class inheritance, protocol conformance.
+symbol in Swift. `:` is used in hash tables, type annotations to variables,
+class inheritance and protocol conformance.
 
 5. The ternary operator's short length lends it to being abused in the
 nested ternary operator anti-pattern.
