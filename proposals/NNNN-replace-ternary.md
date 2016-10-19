@@ -74,7 +74,7 @@ that could be handled in-language, such as [`if then else` in Haskell](https://w
 that it's prefixed by `if`, while `?:` has no prefix.
 Example:
 ```haskell
-if true then 10 else 20
+if True then 10 else 20
 ```
 
 6. This operator is only applicable to a single type, `Bool`.
