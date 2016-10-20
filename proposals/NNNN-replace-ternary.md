@@ -76,7 +76,11 @@ were highly unreadable and confusing.
 for Swift when higher clarity can be achieved with language features by
 creating an extension to `Bool`.
 
-8. There are similar sentiments in other languages that have special constructs
+8. The ternary operator was created for, and is much more suited to a language
+like C, where there were no generics and as such no alternative  to an
+unintuitive operator.
+
+9. There are similar sentiments in other languages that have special constructs
 that could be handled in-language, such as [`if then else` in Haskell](https://wiki.haskell.org/If-then-else#Is_If-Then-Else_so_important.3F).
 `if then else` is almost identical to the `?:` operator, the exception being
 that it's prefixed by `if`, while `?:` has no prefix.
