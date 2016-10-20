@@ -29,7 +29,7 @@ capability. It's shorthand for (e.g.):
 ```swift
 let a = 10
 let b = 20
-let e: Int
+let e: String
 if a < b {
   e = "foo"
 } else {
