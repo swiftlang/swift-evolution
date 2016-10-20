@@ -1,4 +1,4 @@
-# Replace the `?:` operator with `.transformed(true:, false:)` on `Bool`
+# Replace the `?:` operator with an in-language function
 
 * Proposal: SE-NNNN
 * Author: [Charlotte Tortorella](https://github.com/qata)
@@ -11,7 +11,7 @@ The ternary operator in Swift was added early in development, as a holdover
 from C.  This document is an attempt to provide a clear look at the ternary
 operator without the baggage of the languages that came before, and comes
 to the conclusion that we should deprecate and remove the ternary operator
-in favor of an extension to `Bool` as `transformed(true:, false:)`.
+in favor of an extension to `Bool`.
 
 As a quick refresher, here's what the ternary operator looks like:
 
@@ -74,7 +74,7 @@ were highly unreadable and confusing.
 
 7. If the ternary operator did not already exist, I doubt it would be proposed
 for Swift when higher clarity can be achieved with language features by
-creating `transformed(true:, false:)`
+creating an extension to `Bool`.
 
 8. There are similar sentiments in other languages that have special constructs
 that could be handled in-language, such as [`if then else` in Haskell](https://wiki.haskell.org/If-then-else#Is_If-Then-Else_so_important.3F).
@@ -89,8 +89,26 @@ if True then 10 else 20
 ## Proposed Approach
 
 We should drop the ternary operator in favor of a new extension to `Bool`.
+There are a few possibilities for the naming of this function, we've provided
+three in this proposal.
 ```swift
 extension Bool {
+    /// If `self == true`, returns `t`, otherwise, returns `f`.
+    func if<T>(then t: @autoclosure () -> T, else f: @autoclosure () -> T) -> T {
+        if self {
+            return t()
+        } else {
+            return f()  
+        }
+    }
+    /// If `self == true`, returns `t`, otherwise, returns `f`.
+    func if<T>(true t: @autoclosure () -> T, false f: @autoclosure () -> T) -> T {
+        if self {
+            return t()
+        } else {
+            return f()  
+        }
+    }
     /// If `self == true`, returns `t`, otherwise, returns `f`.
     func transformed<T>(true t: @autoclosure () -> T, false f: @autoclosure () -> T) -> T {
         if self {
@@ -102,12 +120,16 @@ extension Bool {
 }
 ```
 
+Only one of these should be chosen, we're not proposing adding three functions
+that achieve the same thing.
+
 Example usage:
 ```swift
 let a = 10
 let b = 20
-// If a is less than b, sets e to "foo", else sets e to "bar"
-let e = (a < b).transformed(true: "foo", false: "bar")
+_ = (a < b).if(then: "foo", else: "bar")
+_ = (a < b).if(true: "foo", false: "bar")
+_ = (a < b).transformed(true: "foo", false: "bar")
 ```
 
 ## Alternatives considered
