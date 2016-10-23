@@ -94,25 +94,11 @@ if True then 10 else 20
 
 We should drop the ternary operator in favor of a new extension to `Bool`.
 There are a few possibilities for the naming of this function, we've provided
-three in this proposal.
+four for consideration in this proposal, none of which are particularly
+important. This proposal is much more about the concept than the naming of
+the replacement function.
 ```swift
 extension Bool {
-    /// If `self == true`, returns `t`, otherwise, returns `f`.
-    func if<T>(then t: @autoclosure () -> T, else f: @autoclosure () -> T) -> T {
-        if self {
-            return t()
-        } else {
-            return f()  
-        }
-    }
-    /// If `self == true`, returns `t`, otherwise, returns `f`.
-    func if<T>(true t: @autoclosure () -> T, false f: @autoclosure () -> T) -> T {
-        if self {
-            return t()
-        } else {
-            return f()  
-        }
-    }
     /// If `self == true`, returns `t`, otherwise, returns `f`.
     func transformed<T>(true t: @autoclosure () -> T, false f: @autoclosure () -> T) -> T {
         if self {
@@ -121,19 +107,32 @@ extension Bool {
             return f()  
         }
     }
+
+    func when<T>(true t: @autoclosure () -> T, false f: @autoclosure () -> T) -> T {
+      ...
+    }
+
+    func if<T>(true t: @autoclosure () -> T, false f: @autoclosure () -> T) -> T {
+      ...
+    }
+
+    func if<T>(then t: @autoclosure () -> T, else f: @autoclosure () -> T) -> T {
+      ...
+    }
 }
 ```
 
-Only one of these should be chosen, we're not proposing adding three functions
-that achieve the same thing.
+Only one of these should be chosen, we're not proposing adding multiple
+functions that achieve the same thing.
 
 Example usage:
 ```swift
 let a = 10
 let b = 20
-_ = (a < b).if(then: "foo", else: "bar")
-_ = (a < b).if(true: "foo", false: "bar")
 _ = (a < b).transformed(true: "foo", false: "bar")
+_ = (a < b).when(true: "foo", false: "bar")
+_ = (a < b).if(true: "foo", false: "bar")
+_ = (a < b).if(then: "foo", else: "bar")
 ```
 
 ## Alternatives considered
