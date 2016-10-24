@@ -18,7 +18,7 @@ As a quick refresher, here's what the ternary operator looks like:
 ```swift
 let a = 10
 let b = 20
-// If a is less than b, sets e to c, else sets e to d
+// If a is less than b, sets e to "foo", else sets e to "bar"
 let e = a < b ? "foo" : "bar"
 ```
 
