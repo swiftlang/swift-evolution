@@ -26,6 +26,7 @@ let e = a < b ? "foo" : "bar"
 
 The primary advantage of this operator is its terseness and expressive
 capability. It's shorthand for (e.g.):
+
 ```swift
 let a = 10
 let b = 20
@@ -53,50 +54,57 @@ of newcomers.  Established developers do much better with learning concepts
 than newcomers to programming and probably don't need their hands held
 with this holdover.
 
-2. The ternary operator adds complexity to the compiler due to being the only
-operator of its kind and needing special handling.
+2. The ternary operator adds complexity to the compiler, because it requires
+special handling.  It is the only operator that requires two components to
+work (both the `?` and the `:`), it uses a character that is excluded from
+being used in other operators (`:`), and it isn't defined in the standard
+library.
 
 3. The ternary operator's usage of `?` can be confusing
-to new users.  In every other instance of `?` it's associated with
-Optional values.
+to new users.  Every other instance of `?` is associated with
+`Optional` values.
 
-4. The ternary operator also uses `:`, which is already a heavily overloaded
-symbol in Swift. `:` is used in hash tables, type annotations to variables,
-class inheritance and protocol conformance.
+4. The ternary operator uses `:`, which is already a heavily overloaded
+symbol in Swift.  `:` is used in hash tables, type annotations for variables,
+class inheritance, and protocol conformance.
 
 5. The ternary operator's short length lends it to being abused in the
-nested ternary operator anti-pattern.  This is similar to how the `++` and `--`
-operators worked fine and were readable enough on their own, but when used
-multiple times in a single function call like `function(a++, ++a)`, they
-were highly unreadable and confusing.
+nested ternary operator anti-pattern.  This is similar to how the `++` and
+`--` operators, which were removed in Swift 3.  While they worked fine and were
+readable enough when used alone, using them multiple times in a single 
+expression like `function(a++, ++a)`, they become highly unreadable and 
+confusing.
 
 6. This operator is only applicable to a single type, `Bool`.
 
-7. If the ternary operator did not already exist, I doubt it would be proposed
-for Swift when higher clarity can be achieved with language features by
+7. If the ternary operator weren't in common usage, it would not be proposed
+for Swift.  Higher clarity can be achieved with common language features by
 creating an extension to `Bool`.
 
-8. The ternary operator was created for, and is much more suited to a language
-like C, where there were no generics and as such no alternative  to an
+8. The ternary operator was created for and is much more suited to a language
+like C, where there were no generics and as such no alternative to an
 unintuitive operator.
 
-9. There are similar sentiments in other languages that have special constructs
-that could be handled in-language, such as [`if then else` in Haskell](https://wiki.haskell.org/If-then-else#Is_If-Then-Else_so_important.3F).
-`if then else` is almost identical to the `?:` operator, the exception being
-that it's prefixed by `if`, while `?:` has no prefix.
-Example:
-```haskell
-if True then 10 else 20
-```
+9. Several other modern languages, like Rust and Go discussed earlier, have 
+eschewed the usage of the ternary operator entirely.  Other languages that have
+special constructs similar to `?:`, such as `if then else` in Haskell] have 
+[discussed removing it](https://wiki.haskell.org/If-then-else#Is_If-Then-Else_so_important.3F).  `if then else` is identical to the `?:` operator, 
+excepting that it's prefixed by `if`, while `?:` has no prefix.
 
+	Example:
+	
+	```haskell
+	if True then 10 else 20
+	```
 
 ## Proposed Approach
 
 We should drop the ternary operator in favor of a new extension to `Bool`.
-There are a few possibilities for the naming of this function, we've provided
-four for consideration in this proposal, none of which are particularly
-important. This proposal is much more about the concept than the naming of
-the replacement function.
+There are a few possibilities for the naming of this function.  We've provided
+four for consideration in this proposal, but are open to other options as well.
+This proposal is much more about the concept than the naming of the replacement
+function.
+
 ```swift
 extension Bool {
     /// If `self == true`, returns `t`, otherwise, returns `f`.
@@ -122,10 +130,11 @@ extension Bool {
 }
 ```
 
-Only one of these should be chosen, we're not proposing adding multiple
+Only one of these should be chosen.  We're not proposing adding multiple
 functions that achieve the same thing.
 
 Example usage:
+
 ```swift
 let a = 10
 let b = 20
