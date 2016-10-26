@@ -1,24 +1,30 @@
-# Feature name
+# Implement The Pipeline Operator
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
-* Authors: [Author 1](https://github.com/swiftdev), [Author 2](https://github.com/swiftdev)
+* Proposal: [SE-0145](0145-implement-the-pipeline-operator.md)
+* Authors: [Matheus Albuquerque](https://github.com/ythecombinator)
 * Review Manager: TBD
 * Status: **Awaiting review**
 
-*During the review process, add the following fields as needed:*
+## Sidenote
 
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/), [Additional Commentary](https://lists.swift.org/pipermail/swift-evolution/)
-* Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM)
-* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
-* Previous Proposal: [SE-XXXX](XXXX-filename.md)
+I do think that implementing a **Function Composition Operator** - e.g.
+`>>` - would be in the very same scope of this proposal but, in order to make
+this proposal more *atomic*, changes here are concerned only to the
+**Pipeline Operator**.
+
+The composition operators take two functions and return a function; by contrast,
+the pipeline operators take a function and an argument and return a value.
 
 ## Introduction
 
-A short description of what the feature is. Try to keep it to a
-single-paragraph "elevator pitch" so the reader understands what
-problem this proposal is addressing.
-
-Swift-evolution thread: [Discussion thread topic for that proposal](https://lists.swift.org/pipermail/swift-evolution/)
+This proposal introduces a new operator `|>` - found in many other languages
+such as 
+[F#](https://en.wikibooks.org/wiki/F_Sharp_Programming/Higher_Order_Functions#The_.7C.3E_Operator), 
+[OCaml](http://caml.inria.fr/pub/docs/manual-ocaml/libref/Pervasives.html#VAL%28|%3E%29), 
+[Elixir](https://www.safaribooksonline.com/library/view/programming-elixir/9781680500530/f_0057.html)
+and many others; as well as UNIX pipes. It's a simple - yet 
+**backwards-compatible** way of streamlining chained function calls in a 
+**readable**, **functional** manner.
 
 ## Motivation
 
