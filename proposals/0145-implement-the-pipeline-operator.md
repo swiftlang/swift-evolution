@@ -61,6 +61,63 @@ We have to read the function applications **inside-out**. First,
 passed to the `square` function. Yet, from left to right, we write square before
 increment, **messing the application order**.
 
+In this case, we have a simple `g(f(x))`, but it is very likely for us to find 
+real-world scenarios where we would deal with something like: 
+`j(i(h(g(f(x)))))` - and *Jason Larsen* gives us a good example on this 
+[here](http://jasonlarsen.me/2015/05/23/pipes.html):
+
+```swift
+let students = Database.allStudents()
+let grades = Grades.forStudents(students)
+let curvedGrades = curve(grades, average: 0.6)
+let finalGrades = prepareGrades(curvedGrades)
+```
+
+As he states:
+
+> This code is simple and has clear variable naming. However, even with clear
+variable names, it may still be difficult for a reader to immediately realize 
+that each variable declaration’s real purpose is only to hold a value to be used 
+in the next line. These temporary variables introduce noise that may obfuscate 
+the simple flow of data. So why all the temporary variables?
+
+The alternative ends up being:
+
+```swift
+let finalGrades = prepareGrades(curve(Grades.forStudents(Database.allStudents()), average: 0.6))
+```
+
+Which is something that deep: `i(h(g(f(x))))`.
+
+Still in real-world scenarios, it is nothing uncommom to see something like
+the example below when feeding an `UIImageView` with an image fetched from a URL:
+
+```swift
+let imageURLString: String = "https://avatars2.githubusercontent.com/u/10639145"
+
+if let imageURL = URL(string: imageURLString) {
+    if let imageData = NSData(contentsOf: imageURL) {
+        if let image = UIImage(data: imageData as Data) {
+            let imageView = UIImageView(image: image)
+        }
+    }
+}
+``` 
+
+Again, it is not very concise and makes it harder to read and understand the 
+code flow at first sight.
+
+As we can find in the great masterpiece [*Structure and Interpretation of Computer Programs*](https://mitpress.mit.edu/sicp/full-text/sicp/book/node4.html): 
+
+> *Computational processes* are abstract beings that inhabit computers. As they
+evolve, processes manipulate other abstract things called *data*. The evolution
+of a process is directed by a pattern of rules called a *program*. 
+**People create programs to direct processes**.
+
+We know that, in essence, programs transform data. Input data are somehow
+manipulated and returned as output data - so **it is very important to have have
+our have our data flow clearly defined and concise**.
+
 ## Proposed solution
 
 Describe your solution to the problem. Provide examples and describe
