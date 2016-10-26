@@ -61,13 +61,11 @@ withUnsafePointer(to: &x) { (ptrX) -> Void in
 
 ---
 
-`unsafeAddressOf` is removed, in favor of adding a `unsafeAddress` field on `ObjectIdentifier`.
-`ObjectIdentifier` already contains a raw pointer in the internal `_value` field and 
-can be initialized with `AnyObject` just like the argument of `unsafeAddressOf`.
+`unsafeAddressOf` is removed. Suggested replacement is to use `Unmanged.passUnretained`.
 
 ```
 let obj = NSObject()
-let ptr = ObjectIdentifier(obj).unsafeAddress // instead of unsafeAddress(of: obj)
+let ptr = Unmanaged.passUnretained(obj) // instead of unsafeAddress(of: obj)
 ```
 
 ---
@@ -82,7 +80,7 @@ will be moved onto `ManagedBuffer` instead.
 and the multi-pointer versions will need to be removed by the user and nested calls to single-pointer 
 variants need to be used instead.
 
-Use of `unsafeAddressOf(x)` will need to be changed to `ObjectIdentifier(x).unsafeAddress`
+Use of `unsafeAddressOf(x)` will need to be changed to `Unmanaged.passUnretained(x)`
  instead.
 
 Since `ManagedProtoBuffer` doesn't have any accessible initializers, it can only be
@@ -101,9 +99,4 @@ them as immutable (`let`). Discussion on the mailing list brought up two suggest
 	- The second suggestion was to introduce two variants of `withUnsafePointer` - one that maintains
 	  current behavior and one that that doesn't require `inout` argument. This has been viewed on as 
 	  an additive change not in scope for Swift 3.
-- Remove `unsafeAddressOf` and use `Unmanaged.takeUnretainedValue(_:)` instead. This,
-however, requires the caller to deal with retain logic for something as simple as
-getting an object address.
-- Alternative names for the `unsafeAddress` property on `ObjectIdentifier` - `value`,
-`pointerValue`, `pointer`.
 - Instead of removing `ManagedProtoBuffer`, rename it to `ManagedBufferBase`.
