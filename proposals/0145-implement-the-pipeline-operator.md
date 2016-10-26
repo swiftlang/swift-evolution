@@ -23,17 +23,43 @@ such as
 [OCaml](http://caml.inria.fr/pub/docs/manual-ocaml/libref/Pervasives.html#VAL%28|%3E%29), 
 [Elixir](https://www.safaribooksonline.com/library/view/programming-elixir/9781680500530/f_0057.html)
 and many others; as well as UNIX pipes. It's a simple - yet 
-**backwards-compatible** way of streamlining chained function calls in a 
+**backwards-compatible** - way of streamlining chained function calls in a 
 **readable**, **functional** manner.
 
 ## Motivation
 
-Describe the problems that this proposal seeks to address. If the
-problem is that some common pattern is currently hard to express, show
-how one can currently get a similar effect and describe its
-drawbacks. If it's completely new functionality that cannot be
-emulated, motivate why this new functionality would help Swift
-developers create better Swift code.
+Using the `.` operator is the most common - and clean as well - way to chain together instance method calls.
+
+However, it does not help when we want to chain together method calls between distinct entities or stand-alone functions.
+
+Let's say we have the following simple function definitions:
+
+```swift
+// Takes a single value of type `Int` and increments it:
+
+func increment(x: Int) -> Int {
+    return x + 1
+}
+
+// Takes a single value of type `Int` and squares it:
+
+func square(x: Int) -> Int {
+    return x * x
+}
+``` 
+
+To increment and afterwards square a value, we would do something like this:
+
+```swift
+let myValue: Int = 66
+
+let myNewValue: Int = square(increment(myValue))
+``` 
+
+We have to read the function applications **inside-out**. First, 
+`increment(myValue)` is evaluated, and then the result of that expression is 
+passed to the `square` function. Yet, from left to right, we write square before
+increment, **messing the application order**.
 
 ## Proposed solution
 
