@@ -262,6 +262,103 @@ func |> <T, U>(left: T?, function: (T) -> (U?)) -> U? {
 }
 ```
 
+### Extra Operators Involved
+
+#### **Pipe-Backward** Operator (`<|`)
+
+The **Pipe-Backward** operator does exactly the opposite: takes a function on
+the left and applies it to a value on the right:
+
+```fsharp
+x <| f <| g <| h
+```
+
+Although it seems to be unnecessary, the pipe-backward operator has an important
+purpose in allowing the developer to easily change the operator precedence.
+
+Its implementation follows the same logic behind the `|>` one.
+
+> It is also important to notice that it would be part of a new 
+`precedencegroup` - called `BackwardPipelining` - with `right` associativity.
+
+#### **Tuple-Based** Operators (`||>`, `|||>`, `<||`, `<|||`)
+
+There are also more four operators which end up being in the very same scope
+of the first two ones:
+
+##### `||>`
+
+This one passes the tuple of two arguments on the left side to the function on
+the right side.
+
+It can be signed as: `( ||> ) : 'T1 * 'T2 -> ('T1 -> 'T2 -> 'U) -> 'U`. And 
+used like this: `(arg1, arg2) ||> func`.
+
+Its implementation could be as follows - since 
+[implicit tuple splat behavior from function applications was removed](https://github.com/apple/swift-evolution/blob/master/proposals/0029-remove-implicit-tuple-splat.md#remove-implicit-tuple-splat-behavior-from-function-applications):
+
+```swift
+infix operator ||> : ForwardPipelining
+
+func ||> <T1, T2, U> (left: (T1,T2), right: (T1, T2)->U ) -> U {
+    return right(left.0, left.1)
+}
+```
+
+##### `|||>`
+
+Much like the previous one, this applies a function to three values - the values
+being a triple on the left, the function on the right.
+
+It can be signed as: `( |||> ) : 'T1 * 'T2 * 'T3 -> ('T1 -> 'T2 -> 'T3 -> 'U) -> 'U. 
+And used like this: `(arg1, arg2, arg3) |||> func`.
+
+Its implementation goes like:
+
+```swift
+infix operator |||> : ForwardPipelining
+
+func |||> <T1, T2, T3, U> (left: (T1,T2,T3), right: (T1, T2, T3)->U ) -> U {
+    return right(left.0, left.1, left.2)
+}
+```
+
+##### `<||`
+
+Takes care of passing the tuple of two arguments on the right side to the 
+function on left side.
+
+It can be signed as: `( <|| ) : ('T1 -> 'T2 -> 'U) -> 'T1 * 'T2 -> 'U`. And 
+used like this: `func <|| (arg1, arg2)`.
+
+Implementation:
+
+```swift
+infix operator <|| : BackwardPipelining
+
+func <|| <T1, T2, U> (left: (T1,T2) -> U, right: (T1,T2) ) -> U {
+    return left(right.0, right.1)
+}
+```
+
+##### `<|||`
+
+The last one takes a tuple of three arguments on the right side to the function
+on left side.
+
+It can be signed as: `( <||| ) : ('T1 -> 'T2 -> 'T3 -> 'U) -> 'T1 * 'T2 * 'T3 -> 'U. 
+And used like this: `func <||| (arg1, arg2, arg3)`.
+
+Implementation:
+
+```swift
+infix operator <||| : BackwardPipelining
+
+func <||| <T1, T2, T3, U> (left: (T1,T2,T3) -> U, right: (T1, T2, T3) ) -> U {
+    return left(right.0, right.1, right.2)
+}
+```
+
 ## Source compatibility
 
 Relative to the Swift 3 evolution process, the source compatibility
