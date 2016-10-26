@@ -183,12 +183,84 @@ functions in linked chains.
 
 ## Detailed design
 
-Describe the design of the solution in detail. If it involves new
-syntax in the language, show the additions and changes to the Swift
-grammar. If it's a new API, show the full API and its documentation
-comments detailing what it does. The detail in this section should be
-sufficient for someone who is *not* one of the authors to be able to
-reasonably implement the feature.
+Basically, this:
+
+```fsharp
+x |> f
+```
+
+is equivalent to this:
+
+```fsharp
+f(x)
+```
+
+And this:
+
+```fsharp
+x |> f |> g |> h
+```
+
+is equivalent to this:
+
+```fsharp
+h(g(f(x)))
+```
+
+Since it's about just syntactic sugar, it can be defined as an operator in 
+Swift like this:
+
+```swift
+infix operator |> { associativity left }
+```
+
+- `infix` because the operator must be used between left and right operands - e.g.
+`==`.
+
+- `associativity left` is because the data is transformed left-to-right.
+
+As of **Swift 3**, with its 
+[**improved operator declarations**](https://github.com/apple/swift-evolution/blob/master/proposals/0077-operator-precedence.md),
+it can be defined as follows:
+
+```swift
+precedencegroup ForwardPipelining {
+    associativity: left
+}
+
+infix operator |> : ForwardPipelining
+```
+
+The operator definition itself is not enough, we need to provide an 
+implementation for it. 
+
+> Generic types are not constrained, because that would limit the operator to
+only work with specialized functions.
+
+A simple implementation would be like:
+
+```swift
+func |> <T, U>(value: T, function: ((T) -> U)) -> U {
+    
+    return function(value)
+    
+}
+```
+
+By adding a layer of safety - doing *nil-checks*, with a little help from
+optionals -, we get something like:
+
+```swift
+func |> <T, U>(left: T?, function: (T) -> (U?)) -> U? {
+    
+    if let value = left {
+        return function(value)
+    } else {
+        return nil
+    }
+    
+}
+```
 
 ## Source compatibility
 
