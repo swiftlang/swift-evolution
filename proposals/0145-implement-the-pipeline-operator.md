@@ -12,8 +12,8 @@ I do think that implementing a **Function Composition Operator** - e.g.
 this proposal more *atomic*, changes here are concerned only to the
 **Pipeline Operator**.
 
-The composition operators take two functions and return a function; by contrast,
-the pipeline operators take a function and an argument and return a value.
+The composition operators take two functions and return a function; 
+**by contrast, the pipeline operators take a function and an argument and return a value**.
 
 ## Introduction
 
@@ -130,7 +130,7 @@ and even [some ports of the prelude](https://github.com/robrix/Prelude).
 
 A feature many developers are used to - and actually love - in many funcional
 programming languages is their **Pipeline Operator** - also known as 
-**Pipe-Forward** operator -, `|>`, which helps to write readable functional 
+**Pipe-Forward** operator - `|>` -, which helps to write readable functional 
 code by allowing developers to **apply the left hand side of the expression as 
 the first argument in the function on the right - enabling function calls to be chained together as successive operations**.
 
@@ -138,11 +138,11 @@ It is currently implemented in:
 
 - [Elixir](https://elixirschool.com/lessons/basics/pipe-operator/)
 - [F#](https://en.wikibooks.org/wiki/F_Sharp_Programming/Higher_Order_Functions#The_.7C.3E_Operator) 
-- [OCaml](http://caml.inria.fr/pub/docs/manual-ocaml/libref/Pervasives.html#VAL%28|%3E%29), 
+- [OCaml](http://caml.inria.fr/pub/docs/manual-ocaml/libref/Pervasives.html#VAL%28|%3E%29)
 - [Julia](http://docs.julialang.org/en/release-0.4/stdlib/base/?highlight=%7C%3E#Base.%7C%3E)
 - [Elm](https://edmz.org/design/2015/07/29/elm-lang-notes.html)
 - [LiveScript](http://livescript.net/#piping)
-- **UNIX** pipes/Shell Script
+- **UNIX pipes**/Shell Script
 
 Taking a look at a few examples, our very first one - incrementing and 
 afterwards squaring a value, we would have something like this:
@@ -310,7 +310,7 @@ func ||> <T1, T2, U> (left: (T1,T2), right: (T1, T2)->U ) -> U {
 Much like the previous one, this applies a function to three values - the values
 being a triple on the left, the function on the right.
 
-It can be signed as: `( |||> ) : 'T1 * 'T2 * 'T3 -> ('T1 -> 'T2 -> 'T3 -> 'U) -> 'U. 
+It can be signed as: `( |||> ) : 'T1 * 'T2 * 'T3 -> ('T1 -> 'T2 -> 'T3 -> 'U) -> 'U`. 
 And used like this: `(arg1, arg2, arg3) |||> func`.
 
 Its implementation goes like:
