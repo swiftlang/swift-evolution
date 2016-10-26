@@ -120,9 +120,66 @@ our have our data flow clearly defined and concise**.
 
 ## Proposed solution
 
-Describe your solution to the problem. Provide examples and describe
-how they work. Show how your solution is better than current
-workarounds: is it cleaner, safer, or more efficient?
+Although Swift is not really a functional programming language, it does 
+support a few functional-programming patterns - and has a *well-designed 
+type system* -, so many functional programming lovers ended up by 
+implementing their favorite functional idioms and libraries from other 
+programming languages in Swift. Good examples on this are libraries like
+[Swiftz](https://github.com/typelift/Swiftz)
+and even [some ports of the prelude](https://github.com/robrix/Prelude).
+
+A feature many developers are used to - and actually love - in many funcional
+programming languages is their **Pipeline Operator** - also known as 
+**Pipe-Forward** operator -, `|>`, which helps to write readable functional 
+code by allowing developers to **apply the left hand side of the expression as 
+the first argument in the function on the right - enabling function calls to be chained together as successive operations**.
+
+It is currently implemented in:
+
+- [Elixir](https://elixirschool.com/lessons/basics/pipe-operator/)
+- [F#](https://en.wikibooks.org/wiki/F_Sharp_Programming/Higher_Order_Functions#The_.7C.3E_Operator) 
+- [OCaml](http://caml.inria.fr/pub/docs/manual-ocaml/libref/Pervasives.html#VAL%28|%3E%29), 
+- [Julia](http://docs.julialang.org/en/release-0.4/stdlib/base/?highlight=%7C%3E#Base.%7C%3E)
+- [Elm](https://edmz.org/design/2015/07/29/elm-lang-notes.html)
+- [LiveScript](http://livescript.net/#piping)
+- **UNIX** pipes/Shell Script
+
+Taking a look at a few examples, our very first one - incrementing and 
+afterwards squaring a value, we would have something like this:
+
+```swift
+let myValue: Int = 66
+
+let myNewValue: Int = myValue
+                |> increment
+                |> square
+```
+
+In our grades data manipulation example, we would get something like:
+
+```swift
+let finalGrades = Database.allStudents()
+                  |> Grades.forStudents
+                  |> curve(average: 0.6)
+                  |> prepareGrades
+```
+
+Last but not least, our 3rd example - which involved *deep* optional chaining -,
+after the **Pipe-Forward** operator goes like:
+
+```swift
+let imageURLString: String = "https://avatars2.githubusercontent.com/u/10639145"
+
+let imageView = imageURLString
+    |> { URL(string: $0) }
+    |> { NSData(contentsOf: $0 as URL) }
+    |> { UIImage(data: $0 as Data) }
+    |> { UIImageView(image: $0) }
+```
+
+In summary, with the **Pipe Operator** it becomes incredibly more enjoyable
+and readable to work with and shifts our way of thinking into making small
+functions in linked chains.
 
 ## Detailed design
 
