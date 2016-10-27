@@ -3,7 +3,7 @@
 * Proposal: [SE-0138](0138-unsaferawbufferpointer.md)
 * Author: [Andrew Trick](https://github.com/atrick)
 * Review manager: [Dave Abrahams](https://github.com/dabrahams)
-* Status: **Accepted with revisions**
+* Status: **Implemented (Swift 3.0.1)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160919/027167.html)
 
 Contents:
