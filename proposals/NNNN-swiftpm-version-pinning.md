@@ -24,21 +24,6 @@ chosen while honoring the dependency constraints.
 the term "lock" is already overloaded between POSIX file locks and locks in
 concurrent programming.*
 
-### Mechanism and policy
-
-This proposal primarily addresses the _mechanism_ used to record
-and manage version-pinning information, in support of _specific
-workflows_ with elevated demands for reproducable builds.
-
-In addition to this, certain _policy_ choices around default
-behavior are included; these are set initially to different
-defaults than in many package managers. Specfically the default
-behaviour is to _not_ generate pinning information unless
-requested, for reasons outlined in the alternatives discussion.
-
-If the policy choice turns out to be wrong, the default can be
-changed without difficulty.
-
 ### Use Cases
 
 Our proposal is designed to satisfy several different use cases for such a behavior:
@@ -68,6 +53,45 @@ When stabilizing a release for deployment, or building a version of a package
 for deployment, it is important to be able to lock down the exact versions of
 dependencies in use, so that the resulting product can be exactly recreated
 later if necessary.
+
+### Mechanism and policy
+
+This proposal primarily addresses the _mechanism_ used to record
+and manage version-pinning information, in support of _specific
+workflows_ with elevated demands for reproducible builds.
+
+In addition to this, certain _policy_ choices around default
+behavior are included; these are set initially to different
+defaults than in many package managers. Specfically the default
+behaviour is to _not_ generate pinning information unless
+requested, for reasons outlined in the alternatives discussion.
+
+If the policy choice turns out to be wrong, the default can be
+changed without difficulty. We actively expect to revisit this policy
+choice once we have had experience with the mechanism, and can
+observe how it is being used.
+
+### Current Behavior
+
+The package manager *NEVER* updates a locally cloned package from its current
+version without explicit user action (`swift package update`). We anticipate
+encouraging users to update to newer versions of packages when viable, but this
+has not yet been proposed or implemented.
+
+Whenever a package is operated on locally in a way that requires its
+dependencies be present (typically a `swift build`, but it could also be `swift
+package fetch` or any of several other commands), the package manager will fetch
+a complete set of dependencies. However, when it does so, it attempts to get
+versions of the missing dependencies compatible with the existing dependencies.
+
+From a certain perspective, the package manager today is acting as if the local
+clones were "pinned", however, there has heretofore been no way to share that
+pinning information with other team members. This proposal is aimed at
+addressing that.
+
+Thus, although our policy choice here is to not _generate_ pinning information
+by default in a location which is likely to be checked in, our local behavior on
+any individual developers desktop is always as if there is some pinning.
 
 ## Proposed solution
 
@@ -175,6 +199,9 @@ artifact at the same time. Therefore the risk of producing a
 "dependency hell" situation, in which two packages individually
 build but _cannot be combined_ due to over-constrained transitive
 dependencies, is significantly higher than in other languages.
+Changing the compiler support in this area is not something which is currently
+planned as a feature, so our expectation is that we will have this limitation
+for a significant time.
 
 For example, if package `Foo` depends on library `LibX` version 1.2,
 and package `Bar` depends on `LibX` 1.3, and these are _specific_
@@ -192,6 +219,22 @@ of versions of their dependencies as possible, and guard more
 vigorously than other systems against accidental overconstraint.
 One way to encourage this behaviour is to avoid emitting pins files
 by default.
+
+We also are compelled by several pragmatic implications of an approach which
+optimizes for reliance on the semver specifications:
+
+1. We do not yet have a robust dependency resolution algorithm we can rely
+   on. The complexity of the algorithm is in some ways relative to the degree of
+   conflicts we expect to be present in the package graph (for example, this may
+   mean we need to investigate significantly more work in optimizing its
+   performance, or in managing its diagnostics).
+
+2. The Swift package manager and its ecosystem is evolving quickly, and we
+   expect it will continue to do so for some time. As a consequence, we
+   anticipate that packages will frequently be updated simply to take advantage
+   of new features. Optimizing for an ecosystem where everyone can reliable live
+   on the latest semver-compatible release of a package should help make that a
+   smoother process.
 
 If, in practice, the resulting ecosystem either contains too many
 packages that fail to build, or if a majority of users emit pins files
