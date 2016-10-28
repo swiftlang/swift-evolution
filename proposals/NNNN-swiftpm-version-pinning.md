@@ -141,10 +141,17 @@ library B when deciding which version of library C to use.
 	* `$ swift package pin Foo` - pins `Foo` at current resolved version.
 	* `$ swift package pin Foo 1.2.3` - pins `Foo` at 1.2.3. The specified version should be valid and resolvable.
 
- The `--reason` option is an optional argument to document the reason for pinning a dependency. This could be helpful for user to later remember why a dependency was pinned. Example:   
+  The `--reason` option is an optional argument to document the reason for pinning a dependency. This could be helpful for user to later remember why a dependency was pinned. Example:   
  
 	`$ swift package pin Foo --reason "The patch updates for Foo are really unstable and need screening."`
 
+  NOTE: When we refer to dependencies in the context of pinning, we are
+  referring to *all* dependencies of a package, i.e. the transitive closure of
+  its immediate dependencies specified in the package manifest. One of the
+  important ways in which pinning is useful is because it allows specifying a
+  behavior for the closure of the dependencies outside of them being named in
+  the manifest.
+   
 
 2. Dependencies are never automatically pinned, pinning is only ever taken as a result of an explicit user action.
  
