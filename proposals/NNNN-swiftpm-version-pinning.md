@@ -173,7 +173,13 @@ library B when deciding which version of library C to use.
 
 7. The `swift package show-dependencies` subcommand will be updated to indicate if a dependency is pinned.
 
-8. As a future extension, we anticipate using the SHA information recorded in a pins file as a security feature, to prevent man-in-the-middle attacks on parts of the package graph.
+## Future Directions
+
+We have intentionally kept the pin file format an implementation detail in order
+to allow for future expansion. For example, we would like to consider embedding
+additional information on a known tag (like its SHA, when using Git) in the pins
+file as a security feature, to prevent man-in-the-middle attacks on parts of the
+package graph.
 
 ## Impact on existing code
 
@@ -239,3 +245,33 @@ optimizes for reliance on the semver specifications:
 If, in practice, the resulting ecosystem either contains too many
 packages that fail to build, or if a majority of users emit pins files
 manually regardless of default, this policy choice can be revisited.
+
+
+### Naming Choice
+
+This feature is called "locking" and the files are "lockfiles" in many other
+package managers, and there has been considerable discussion around whether the
+Swift package manager should follow that precedent.
+
+In Swift, we have tried to choose the "right" answer for names in order to make
+the resulting language consistent and beautiful.
+
+We have found significant consensus that without considering the prededent, the
+"lock" terminology is conceptually the *wrong* word for the operation being
+performed here. We view pinning as a workflow-focused feature, versus the
+specification in the manifest (which is the "requirement"). The meaning of pin
+connotes this transient relationship between the pin action and the underlying
+dependency.
+
+In constrast, not only does lock have the wrong connotation, but it also is a
+heavily overloaded word which can lead to confusion. For example, if the package
+manager used POSIX file locking to prevent concurrent manipulation of packages
+(a feature we intend to implement), and we also referred to the pinning files as
+"lock files", then any diagnostics using the term "lock file" would be confusing
+to a newcomer to the ecosystem familiar with the pinning mechanism but
+unfamiliar with the concept of POSIX file locking.
+
+We believe that there are many more potential future users of the Swift package
+manager than there are current users familiar with the lock, and chose the "pin"
+terminology to reflect what we thought was ultimately the best word for the
+operation, in order to contribute to the best long term experience.
