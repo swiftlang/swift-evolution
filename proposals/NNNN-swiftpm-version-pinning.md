@@ -189,22 +189,30 @@ There will be change in the behaviours of `swift build` and `swift package updat
 
 ### Pin by default
 
-Much discussion has revolved around a single policy-default
-question: whether SwiftPM should generate a pins file as a matter
-of course any time it builds. This is how some other package
-managers work, and it is viewed as a conservative stance
-with respect to making repeatable builds more likely between
-developers. Developers will see the pins file and will be likely
-to check it in to their SCM system as a matter of convention.
+Much discussion has revolved around a single policy-default question: whether
+SwiftPM should generate a pins file as a matter of course any time it
+builds. This is how some other package managers work, and it is viewed as a
+conservative stance with respect to making repeatable builds more likely between
+developers. Developers will see the pins file and will be likely to check it in
+to their SCM system as a matter of convention. As a side effect, other
+developers cloning and trying out the package will then end up using the same
+dependencies the developer last published.
 
-While pinning does reduce the risk of packages failing to build,
-it encourages package overconstraint, which is more of a risk
-in Swift than in many other languages. Specifically: Swift does
-not support linking multiple versions of a dependency into the same
-artifact at the same time. Therefore the risk of producing a
-"dependency hell" situation, in which two packages individually
-build but _cannot be combined_ due to over-constrained transitive
-dependencies, is significantly higher than in other languages.
+While pinning does reduce the risk of packages failing to build, this practice
+discourages the community from relying on semver compatibility to completely
+specify what packages are compatible. That in turn makes it more likely for
+packages to fail to correctly follow the semver specification when publishing
+versions. Unfortunately, when packages don't correctly follow semver then it
+requires downstream clients to overspecify their dependency constraintssince
+they cannot rely on the package manager automatically picking the appropriate
+version.
+
+Overconstraint is much more of a risk in Swift than in other languages
+using this style of package management. Specifically: Swift does not support
+linking multiple versions of a dependency into the same artifact at the same
+time. Therefore the risk of producing a "dependency hell" situation, in which
+two packages individually build but _cannot be combined_ due to over-constrained
+transitive dependencies, is significantly higher than in other languages.
 Changing the compiler support in this area is not something which is currently
 planned as a feature, so our expectation is that we will have this limitation
 for a significant time.
@@ -226,8 +234,22 @@ vigorously than other systems against accidental overconstraint.
 One way to encourage this behaviour is to avoid emitting pins files
 by default.
 
-We also are compelled by several pragmatic implications of an approach which
-optimizes for reliance on the semver specifications:
+We also belief that if packages default to exposing their pin files as part of
+their public package, there is a substantial risk that when developers encounter
+build failures they will default to copying parts of those pinned versions into
+their manifest, rather than working to resolve the semver specification issues
+in the dependencies. If this behavior becomes common place, it may even become
+standard practice to do this proactively, simply to avoid the potential of
+breakage.
+
+This practice is likely because it resolves the immediate issue (a build
+failure) without need for external involvement, but if it becomes widespread
+then it has a side-effect of causing significant overconstraint of packages
+(since a published package may end up specifying only a single version it is
+compatible with).
+
+Finally, we are also compelled by several pragmatic implications of an approach
+which optimizes for reliance on the semver specifications:
 
 1. We do not yet have a robust dependency resolution algorithm we can rely
    on. The complexity of the algorithm is in some ways relative to the degree of
@@ -242,9 +264,13 @@ optimizes for reliance on the semver specifications:
    on the latest semver-compatible release of a package should help make that a
    smoother process.
 
-If, in practice, the resulting ecosystem either contains too many
-packages that fail to build, or if a majority of users emit pins files
-manually regardless of default, this policy choice can be revisited.
+If, in practice, the resulting ecosystem either contains too many packages that
+fail to build, or if a majority of users emit pins files manually regardless of
+default, this policy choice can be revisited.
+
+We considered approachs to "pin by default" that used separate mechanisms when
+publishing a package to help address the potential for overconstraint, but were
+unable to find a solution we felt was workable.
 
 
 ### Naming Choice
