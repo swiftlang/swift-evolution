@@ -125,7 +125,8 @@ support a few functional-programming patterns - and has a *well-designed
 type system* -, so many functional programming lovers ended up by 
 implementing their favorite functional idioms and libraries from other 
 programming languages in Swift. Good examples on this are libraries like
-[Swiftz](https://github.com/typelift/Swiftz)
+[Swiftz](https://github.com/typelift/Swiftz),
+[Dollar](https://github.com/ankurp/Dollar)
 and even [some ports of the prelude](https://github.com/robrix/Prelude).
 
 A feature many developers are used to - and actually love - in many funcional
@@ -403,9 +404,9 @@ However, this can be dangerous:
 - Code with the very same purpose end up having different behavior
 cross-projects.
 
-- Simple changes in the way we do operator overloading 
-- e.g. [`SE-0077`](https://github.com/apple/swift-evolution/blob/master/proposals/0077-operator-precedence.md) - 
-would make those need to be rewritten ou result in unexpected behavior.
+- Simple changes in the way we do operator overloading - e.g. 
+[`SE-0077`](https://github.com/apple/swift-evolution/blob/master/proposals/0077-operator-precedence.md) - would make those need to be rewritten ou result
+in unexpected behavior.
 
 ### Using Libraries
 
@@ -430,7 +431,7 @@ factor: **to fix the issue the developer relies on third-party code maintenance*
 
 - [F#'s Pipe-Forward Operator in Swift](http://undefinedvalue.com/2014/07/13/fs-pipe-forward-operator-swift);
 
-- [Function Composition & Pipelining Operators in Swift](https://vperi.com/2014/06/05/function-composition-pipelining-in-swift/)
+- [Function Composition & Pipelining Operators in Swift](https://vperi.com/2014/06/05/function-composition-pipelining-in-swift/);
 
 - [Implementing a Custom Forward Pipe Operator for Function Chains in Swift](https://blog.mariusschulz.com/2014/09/13/implementing-a-custom-forward-pipe-operator-for-function-chains-in-swift);
 
@@ -438,10 +439,23 @@ factor: **to fix the issue the developer relies on third-party code maintenance*
 
 - [The Amazing Pipe Operator](http://danthorpe.me/posts/pipe.html);
 
-- [Writing a pipeline operator in Swift](http://gilesvangruisen.com/writing-a-pipeline-operator-in-swift/);
+- [Writing a pipeline operator in Swift](http://gilesvangruisen.com/writing-a-pipeline-operator-in-swift/).
 
 #### On Github
 
 - [Pipes](https://github.com/jarsen/Pipes);
 
 - [Pipe](https://github.com/danthorpe/Pipe).
+
+### Other Languages Community Takes
+
+#### On Github
+
+- [es-pipeline-operator](https://github.com/mindeavor/es-pipeline-operator)
+for **JavaScript**;
+
+- [Chainable Methods](https://github.com/akitaonrails/chainable_methods) for 
+**Ruby**;
+
+- [Pipeline operator proposal for PHP 7](https://github.com/haskellcamargo/php7-pipeline-operator-proposal)
+for **PHP**;
