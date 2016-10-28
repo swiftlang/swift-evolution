@@ -421,3 +421,27 @@ which usually comes also with other commom functions from
 
 However, they have the same issues mentioned above and come with an aggravating
 factor: **to fix the issue the developer relies on third-party code maintenance**.
+
+## References & Further Reading
+
+### Previous **Swift** Community Takes
+
+#### Blog Posts
+
+- [F#'s Pipe-Forward Operator in Swift](http://undefinedvalue.com/2014/07/13/fs-pipe-forward-operator-swift);
+
+- [Function Composition & Pipelining Operators in Swift](https://vperi.com/2014/06/05/function-composition-pipelining-in-swift/)
+
+- [Implementing a Custom Forward Pipe Operator for Function Chains in Swift](https://blog.mariusschulz.com/2014/09/13/implementing-a-custom-forward-pipe-operator-for-function-chains-in-swift);
+
+- [Swift Data Pipelines](http://jasonlarsen.me/2015/05/23/pipes.html)
+
+- [The Amazing Pipe Operator](http://danthorpe.me/posts/pipe.html);
+
+- [Writing a pipeline operator in Swift](http://gilesvangruisen.com/writing-a-pipeline-operator-in-swift/);
+
+#### On Github
+
+- [Pipes](https://github.com/jarsen/Pipes);
+
+- [Pipe](https://github.com/danthorpe/Pipe).
