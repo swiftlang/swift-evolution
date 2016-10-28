@@ -346,7 +346,7 @@ func <|| <T1, T2, U> (left: (T1,T2) -> U, right: (T1,T2) ) -> U {
 The last one takes a tuple of three arguments on the right side to the function
 on left side.
 
-It can be signed as: `( <||| ) : ('T1 -> 'T2 -> 'T3 -> 'U) -> 'T1 * 'T2 * 'T3 -> 'U. 
+It can be signed as: `( <||| ) : ('T1 -> 'T2 -> 'T3 -> 'U) -> 'T1 * 'T2 * 'T3 -> 'U`. 
 And used like this: `func <||| (arg1, arg2, arg3)`.
 
 Implementation:
@@ -361,42 +361,16 @@ func <||| <T1, T2, T3, U> (left: (T1,T2,T3) -> U, right: (T1, T2, T3) ) -> U {
 
 ## Source compatibility
 
-Relative to the Swift 3 evolution process, the source compatibility
-requirements for Swift 4 are *much* more stringent: we should only
-break source compatibility if the Swift 3 constructs were actively
-harmful in some way, the volume of affected Swift 3 code is relatively
-small, and we can provide source compatibility (in Swift 3
-compatibility mode) and migration.
+This is a new feature - basically, syntax sugar -, so there should be no major 
+impacts on existing code.
 
-Will existing correct Swift 3 or Swift 4 applications stop compiling
-due to this change? Will applications still compile but produce
-different behavior than they used to? If "yes" to either of these, is
-it possible for the Swift 4 compiler to accept the old syntax in its
-Swift 3 compatibility mode? Is it possible to automatically migrate
-from the old syntax to the new syntax? Can Swift applications be
-written in a common subset that works both with Swift 3 and Swift 4 to
-aid in migration?
+Existing third party code which take advantage of overloading the new proposed
+operators (`|>`, `||>`, `|||>`, `<|`, `<||`, `<|||`) - much likely for the very
+same purpose - would receive *migration warnings* using a simple `Fix It`.
 
 ## Effect on ABI stability
 
-Does the proposal change the ABI of existing language features? The
-ABI comprises all aspects of the code generation model and interaction
-with the Swift runtime, including such things as calling conventions,
-the layout of data types, and the behavior of dynamic features in the
-language (reflection, dynamic dispatch, dynamic casting via `as?`,
-etc.). Purely syntactic changes rarely change existing ABI. Additive
-features may extend the ABI but, unless they extend some fundamental
-runtime behavior (such as the aforementioned dynamic features), they
-won't change the existing ABI.
-
-Features that don't change the existing ABI are considered out of
-scope for [Swift 4 stage 1](README.md). However, additive features
-that would reshape the standard library in a way that changes its ABI,
-such as [where clauses for associated
-types](https://github.com/apple/swift-evolution/blob/master/proposals/0142-associated-types-constraints.md),
-can be in scope. If this proposal could be used to improve the
-standard library in ways that would affect its ABI, describe them
-here.
+Purely syntactic changes rarely change existing ABI. Neither does this one.
 
 ## Effect on API resilience
 
@@ -409,7 +383,41 @@ breaking ABI? For more information about the resilience model, see the
 document](https://github.com/apple/swift/blob/master/docs/LibraryEvolution.rst)
 in the Swift repository.
 
-## Alternatives considered
+## Alternatives Considered
 
-Describe alternative approaches to addressing the same problem, and
-why you chose this approach instead.
+### Coding Your Custom Operators
+
+By simply doing the three steps to define a custom operator:
+
+- Naming it;
+
+- Choosing a type;
+
+- Assigning precedence and associativity.
+
+And implementing the required functions to handle data pipeline, we could 
+achieve the same behavior - and that is how the community has been using it.
+
+However, this can be dangerous:
+
+- Code with the very same purpose end up having different behavior
+cross-projects.
+
+- Simple changes in the way we do operator overloading 
+- e.g. [`SE-0077`](https://github.com/apple/swift-evolution/blob/master/proposals/0077-operator-precedence.md) - 
+would make those need to be rewritten ou result in unexpected behavior.
+
+### Using Libraries
+
+This alternative is based on the use of libraries like:
+
+- [Pipes](https://github.com/jarsen/Pipes);
+
+- [Pipe](https://github.com/danthorpe/Pipe).
+
+Those do the same overloading process under-the-hood and offer a simple *API* -
+which usually comes also with other commom functions from 
+*functional programming* toolbelts.
+
+However, they have the same issues mentioned above and come with an aggravating
+factor: **to fix the issue the developer relies on third-party code maintenance**.
