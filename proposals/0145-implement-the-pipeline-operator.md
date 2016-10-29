@@ -367,13 +367,8 @@ Purely syntactic changes rarely change existing ABI. Neither does this one.
 
 ## Effect on API resilience
 
-API resilience describes the changes one can make to a public API
-without breaking its ABI. Does this proposal introduce features that
-would become part of a public API? If so, what kinds of changes can be
-made without breaking ABI? Can this feature be added/removed without
-breaking ABI? For more information about the resilience model, see the
-[library evolution document](https://github.com/apple/swift/blob/master/docs/LibraryEvolution.rst)
-in the Swift repository.
+As described above, there should be no major changes to the ABI - it should be
+able to be added without breaking changes.
 
 ## Alternatives Considered
 
@@ -442,11 +437,11 @@ factor: **to fix the issue the developer relies on third-party code maintenance*
 
 #### On Github
 
-- [es-pipeline-operator](https://github.com/mindeavor/es-pipeline-operator)
-for **JavaScript**;
-
 - [Chainable Methods](https://github.com/akitaonrails/chainable_methods) for 
 **Ruby**;
 
+- [es-pipeline-operator](https://github.com/mindeavor/es-pipeline-operator)
+for **JavaScript**;
+
 - [Pipeline operator proposal for PHP 7](https://github.com/haskellcamargo/php7-pipeline-operator-proposal)
-for **PHP**;
+for **PHP**.
