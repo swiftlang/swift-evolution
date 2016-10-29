@@ -18,10 +18,14 @@ The composition infix operators take two functions and return another function;
 ## Introduction
 
 This proposal introduces a new operator, `|>`, found in many other languages, such as:
-- [F#](https://en.wikibooks.org/wiki/F_Sharp_Programming/Higher_Order_Functions#The_.7C.3E_Operator), 
-- [OCaml](http://caml.inria.fr/pub/docs/manual-ocaml/libref/Pervasives.html#VAL%28|%3E%29), 
-- [Elixir](https://www.safaribooksonline.com/library/view/programming-elixir/9781680500530/f_0057.html),
-- [Hack](https://docs.hhvm.com/hack/operators/pipe-operator),
+
+- [F#](https://en.wikibooks.org/wiki/F_Sharp_Programming/Higher_Order_Functions#The_.7C.3E_Operator)
+- [OCaml](http://caml.inria.fr/pub/docs/manual-ocaml/libref/Pervasives.html#VAL%28|%3E%29)
+- [Elixir](https://www.safaribooksonline.com/library/view/programming-elixir/9781680500530/f_0057.html)
+- [Hack](https://docs.hhvm.com/hack/operators/pipe-operator)
+- [Julia](http://docs.julialang.org/en/release-0.4/stdlib/base/?highlight=%7C%3E#Base.%7C%3E)
+- [Elm](https://edmz.org/design/2015/07/29/elm-lang-notes.html)
+- [LiveScript](http://livescript.net/#piping)
 
 Several other languages support them; as well as UNIX pipes. It's a simple ─ yet 
 **backwards-compatible** ─ way of streamlining chained function calls in a 
@@ -29,7 +33,7 @@ Several other languages support them; as well as UNIX pipes. It's a simple ─ y
 
 ## Motivation
 
-Using the `.` operator is the most common - and clean as well - way to chain together instance method calls.
+Using the `.` operator is the most common ─ and clean as well ─ way to chain together instance method calls.
 
 However, it does not help when we want to chain together method calls between distinct entities or stand-alone functions.
 
@@ -63,7 +67,7 @@ increment, **messing the application order**.
 
 In this case, we have a simple `f(g(x))`, but it is very likely for us to find 
 real-world scenarios where we would deal with something like: 
-`f(g(h(i(j(x)))))` - and *Jason Larsen* gives us a good example on this 
+`f(g(h(i(j(x)))))` ─ and *Jason Larsen* gives us a good example on this 
 [here](http://jasonlarsen.me/2015/05/23/pipes.html):
 
 ```swift
@@ -115,35 +119,26 @@ of a process is directed by a pattern of rules called a *program*.
 **People create programs to direct processes**.
 
 We know that, in essence, programs transform data. Input data are somehow
-manipulated and returned as output data - so **it is very important to have have
+manipulated and returned as output data ─ so **it is very important to have have
 our have our data flow clearly defined and concise**.
 
 ## Proposed solution
 
 Although Swift is not really a functional programming language, it does 
-support a few functional-programming patterns - and has a *well-designed 
-type system* -, so many functional programming lovers ended up by 
+support a few functional-programming patterns ─ and has a *well-designed 
+type system* ─, so many functional programming lovers ended up by 
 implementing their favorite functional idioms and libraries from other 
 programming languages in Swift. Good examples on this are libraries like
 [Swiftz](https://github.com/typelift/Swiftz),
 [Dollar](https://github.com/ankurp/Dollar)
-and even [some ports of the prelude](https://github.com/robrix/Prelude).
+and even [some ports of Haskell's prelude](https://github.com/robrix/Prelude).
 
-A feature many developers are used to - and actually love - in many funcional
-programming languages is their **Pipeline Operator** - also known as 
-**Pipe-Forward** operator - `|>` -, which helps to write readable functional 
+A feature many developers are used to ─ and actually love ─ in many funcional
+programming languages is their **pipeline operator** ─ also known as 
+**pipe-forward** operator ─ `|>` ─, which helps to write readable functional 
 code by allowing developers to **apply the left hand side of the expression as 
-the first argument in the function on the right - enabling function calls to be chained together as successive operations**.
-
-It is currently implemented in:
-
-- [Elixir](https://elixirschool.com/lessons/basics/pipe-operator/)
-- [F#](https://en.wikibooks.org/wiki/F_Sharp_Programming/Higher_Order_Functions#The_.7C.3E_Operator) 
-- [OCaml](http://caml.inria.fr/pub/docs/manual-ocaml/libref/Pervasives.html#VAL%28|%3E%29)
-- [Julia](http://docs.julialang.org/en/release-0.4/stdlib/base/?highlight=%7C%3E#Base.%7C%3E)
-- [Elm](https://edmz.org/design/2015/07/29/elm-lang-notes.html)
-- [LiveScript](http://livescript.net/#piping)
-- **UNIX pipes**/Shell Script
+the first argument in the function on the right ─ enabling function calls to be chained together as successive operations**,
+in a more human readable way, in the correct flux of execution, reducing cognitive overhead.
 
 Taking a look at a few examples, our very first one - incrementing and 
 afterwards squaring a value, we would have something like this:
