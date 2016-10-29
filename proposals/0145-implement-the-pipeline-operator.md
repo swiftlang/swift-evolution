@@ -1,7 +1,7 @@
 # Implement The Pipeline Operator
 
 * Proposal: [SE-0145](0145-implement-the-pipeline-operator.md)
-* Authors: [Matheus Albuquerque](https://github.com/ythecombinator), [Marcelo Camargo][https://github.com/haskellcamargo)
+* Authors: [Matheus Albuquerque](https://github.com/ythecombinator), [Marcelo Camargo](https://github.com/haskellcamargo)
 * Review Manager: TBD
 * Status: **Awaiting review**
 
