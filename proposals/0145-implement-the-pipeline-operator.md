@@ -1,29 +1,30 @@
 # Implement The Pipeline Operator
 
 * Proposal: [SE-0145](0145-implement-the-pipeline-operator.md)
-* Authors: [Matheus Albuquerque](https://github.com/ythecombinator)
+* Authors: [Matheus Albuquerque](https://github.com/ythecombinator), [Marcelo Camargo][https://github.com/haskellcamargo)
 * Review Manager: TBD
 * Status: **Awaiting review**
 
 ## Sidenote
 
-I do think that implementing a **Function Composition Operator** - e.g.
-`>>` - would be in the very same scope of this proposal but, in order to make
+I think that implementing a **function composition operator** ─ e.g.
+`>>` ─ would be in the very same scope of this proposal but, in order to make
 this proposal more *atomic*, changes here are concerned only to the
-**Pipeline Operator**.
+**pipeline operator**.
 
-The composition operators take two functions and return a function; 
+The composition infix operators take two functions and return another function; 
 **by contrast, the pipeline operators take a function and an argument and return a value**.
 
 ## Introduction
 
-This proposal introduces a new operator `|>` - found in many other languages
-such as 
-[F#](https://en.wikibooks.org/wiki/F_Sharp_Programming/Higher_Order_Functions#The_.7C.3E_Operator), 
-[OCaml](http://caml.inria.fr/pub/docs/manual-ocaml/libref/Pervasives.html#VAL%28|%3E%29), 
-[Elixir](https://www.safaribooksonline.com/library/view/programming-elixir/9781680500530/f_0057.html)
-and many others; as well as UNIX pipes. It's a simple - yet 
-**backwards-compatible** - way of streamlining chained function calls in a 
+This proposal introduces a new operator, `|>`, found in many other languages, such as:
+- [F#](https://en.wikibooks.org/wiki/F_Sharp_Programming/Higher_Order_Functions#The_.7C.3E_Operator), 
+- [OCaml](http://caml.inria.fr/pub/docs/manual-ocaml/libref/Pervasives.html#VAL%28|%3E%29), 
+- [Elixir](https://www.safaribooksonline.com/library/view/programming-elixir/9781680500530/f_0057.html),
+- [Hack](https://docs.hhvm.com/hack/operators/pipe-operator),
+
+Several other languages support them; as well as UNIX pipes. It's a simple ─ yet 
+**backwards-compatible** ─ way of streamlining chained function calls in a 
 **readable**, **functional** manner.
 
 ## Motivation
@@ -52,7 +53,6 @@ To increment and afterwards square a value, we would do something like this:
 
 ```swift
 let myValue: Int = 66
-
 let myNewValue: Int = square(increment(myValue))
 ``` 
 
@@ -61,9 +61,9 @@ We have to read the function applications **inside-out**. First,
 passed to the `square` function. Yet, from left to right, we write square before
 increment, **messing the application order**.
 
-In this case, we have a simple `g(f(x))`, but it is very likely for us to find 
+In this case, we have a simple `f(g(x))`, but it is very likely for us to find 
 real-world scenarios where we would deal with something like: 
-`j(i(h(g(f(x)))))` - and *Jason Larsen* gives us a good example on this 
+`f(g(h(i(j(x)))))` - and *Jason Larsen* gives us a good example on this 
 [here](http://jasonlarsen.me/2015/05/23/pipes.html):
 
 ```swift
@@ -87,7 +87,7 @@ The alternative ends up being:
 let finalGrades = prepareGrades(curve(Grades.forStudents(Database.allStudents()), average: 0.6))
 ```
 
-Which is something that deep: `i(h(g(f(x))))`.
+Which is something that deep: `f(g(h(i(x))))`.
 
 Still in real-world scenarios, it is nothing uncommom to see something like
 the example below when feeding an `UIImageView` with an image fetched from a URL:
@@ -107,7 +107,7 @@ if let imageURL = URL(string: imageURLString) {
 Again, it is not very concise and makes it harder to read and understand the 
 code flow at first sight.
 
-As we can find in the great masterpiece [*Structure and Interpretation of Computer Programs*](https://mitpress.mit.edu/sicp/full-text/sicp/book/node4.html): 
+As we can find in the great masterpiece [SICP, *Structure and Interpretation of Computer Programs*](https://mitpress.mit.edu/sicp/full-text/sicp/book/node4.html): 
 
 > *Computational processes* are abstract beings that inhabit computers. As they
 evolve, processes manipulate other abstract things called *data*. The evolution
