@@ -140,7 +140,7 @@ code by allowing developers to **apply the left hand side of the expression as
 the first argument in the function on the right ─ enabling function calls to be chained together as successive operations**,
 in a more human readable way, in the correct flux of execution, reducing cognitive overhead.
 
-Taking a look at a few examples, our very first one - incrementing and 
+Taking a look at a few examples, our very first one ─ incrementing and 
 afterwards squaring a value, we would have something like this:
 
 ```swift
@@ -160,8 +160,8 @@ let finalGrades = Database.allStudents()
                   |> prepareGrades
 ```
 
-Last but not least, our 3rd example - which involved *deep* optional chaining -,
-after the **Pipe-Forward** operator goes like:
+Last but not least, our 3rd example ─ which involved *deep* optional chaining ─,
+after the **pipe-forward** operator goes like:
 
 ```swift
 let imageURLString: String = "https://avatars2.githubusercontent.com/u/10639145"
@@ -173,7 +173,7 @@ let imageView = imageURLString
     |> { UIImageView(image: $0) }
 ```
 
-In summary, with the **Pipe Operator** it becomes incredibly more enjoyable
+In summary, with the **pipe operator**, it becomes incredibly more enjoyable
 and readable to work with and shifts our way of thinking into making small
 functions in linked chains.
 
@@ -213,7 +213,8 @@ infix operator |> { associativity left }
 - `infix` because the operator must be used between left and right operands - e.g.
 `==`.
 
-- `associativity left` is because the data is transformed left-to-right.
+- `associativity left` is because the data is transformed left-to-right. It is `f(g(x))` instead of `(f(g))(x)`.
+- Notice that this operator has one of the lowest possible precedences, being only higher than assignment (`=`).
 
 As of **Swift 3**, with its 
 [**improved operator declarations**](https://github.com/apple/swift-evolution/blob/master/proposals/0077-operator-precedence.md),
@@ -237,32 +238,28 @@ A simple implementation would be like:
 
 ```swift
 func |> <T, U>(value: T, function: ((T) -> U)) -> U {
-    
     return function(value)
-    
 }
 ```
 
-By adding a layer of safety - doing *nil-checks*, with a little help from
-optionals -, we get something like:
+By adding a layer of safety ─ doing *nil-checks*, with a little help from
+optionals ─, we get something like:
 
 ```swift
 func |> <T, U>(left: T?, function: (T) -> (U?)) -> U? {
-    
     if let value = left {
         return function(value)
     } else {
         return nil
     }
-    
 }
 ```
 
 ### Extra Operators Involved
 
-#### **Pipe-Backward** Operator (`<|`)
+#### **pipe-backward** Operator (`<|`)
 
-The **Pipe-Backward** operator does exactly the opposite: takes a function on
+The **pipe-backward** operator does exactly the opposite: takes a function on
 the left and applies it to a value on the right:
 
 ```fsharp
@@ -275,7 +272,7 @@ purpose in allowing the developer to easily change the operator precedence.
 Its implementation follows the same logic behind the `|>` one.
 
 > It is also important to notice that it would be part of a new 
-`precedencegroup` - called `BackwardPipelining` - with `right` associativity.
+`precedencegroup` ─ called `BackwardPipelining` ─ with `right` associativity.
 
 #### **Tuple-Based** Operators (`||>`, `|||>`, `<||`, `<|||`)
 
@@ -290,20 +287,20 @@ the right side.
 It can be signed as: `( ||> ) : 'T1 * 'T2 -> ('T1 -> 'T2 -> 'U) -> 'U`. And 
 used like this: `(arg1, arg2) ||> func`.
 
-Its implementation could be as follows - since 
+Its implementation could be as follows ─ since 
 [implicit tuple splat behavior from function applications was removed](https://github.com/apple/swift-evolution/blob/master/proposals/0029-remove-implicit-tuple-splat.md#remove-implicit-tuple-splat-behavior-from-function-applications):
 
 ```swift
 infix operator ||> : ForwardPipelining
 
-func ||> <T1, T2, U> (left: (T1,T2), right: (T1, T2)->U ) -> U {
+func ||> <T1, T2, U> (left: (T1,T2), right: (T1, T2) -> U ) -> U {
     return right(left.0, left.1)
 }
 ```
 
 ##### `|||>`
 
-Much like the previous one, this applies a function to three values - the values
+Much like the previous one, this applies a function to three values ─ the values
 being a triple on the left, the function on the right.
 
 It can be signed as: `( |||> ) : 'T1 * 'T2 * 'T3 -> ('T1 -> 'T2 -> 'T3 -> 'U) -> 'U`. 
@@ -314,7 +311,7 @@ Its implementation goes like:
 ```swift
 infix operator |||> : ForwardPipelining
 
-func |||> <T1, T2, T3, U> (left: (T1,T2,T3), right: (T1, T2, T3)->U ) -> U {
+func |||> <T1, T2, T3, U> (left: (T1,T2,T3), right: (T1, T2, T3) -> U ) -> U {
     return right(left.0, left.1, left.2)
 }
 ```
@@ -357,12 +354,12 @@ func <||| <T1, T2, T3, U> (left: (T1,T2,T3) -> U, right: (T1, T2, T3) ) -> U {
 
 ## Source compatibility
 
-This is a new feature - basically, syntax sugar -, so there should be no major 
+This is a new feature ─ basically, syntax sugar ─, so there should be no major 
 impacts on existing code.
 
 Existing third party code which take advantage of overloading the new proposed
-operators (`|>`, `||>`, `|||>`, `<|`, `<||`, `<|||`) - much likely for the very
-same purpose - would receive *migration warnings* using a simple `Fix It`.
+operators (`|>`, `||>`, `|||>`, `<|`, `<||`, `<|||`) ─ much likely for the very
+same purpose ─ would receive *migration warnings* using a simple `Fix It`.
 
 ## Effect on ABI stability
 
@@ -375,8 +372,7 @@ without breaking its ABI. Does this proposal introduce features that
 would become part of a public API? If so, what kinds of changes can be
 made without breaking ABI? Can this feature be added/removed without
 breaking ABI? For more information about the resilience model, see the
-[library evolution
-document](https://github.com/apple/swift/blob/master/docs/LibraryEvolution.rst)
+[library evolution document](https://github.com/apple/swift/blob/master/docs/LibraryEvolution.rst)
 in the Swift repository.
 
 ## Alternatives Considered
@@ -392,7 +388,7 @@ By simply doing the three steps to define a custom operator:
 - Assigning precedence and associativity.
 
 And implementing the required functions to handle data pipeline, we could 
-achieve the same behavior - and that is how the community has been using it.
+achieve the same behavior ─ and that is how the community has been using it.
 
 However, this can be dangerous:
 
