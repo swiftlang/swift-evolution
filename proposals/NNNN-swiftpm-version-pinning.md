@@ -30,29 +30,29 @@ Our proposal is designed to satisfy several different use cases for such a behav
 
 1. Standardizing team workflows
 
-When collaborating on a package, it can be valuable for team members (and
-continuous integration) to all know they are using the same exact version of
-dependencies, to avoid "works for me" situations.
+   When collaborating on a package, it can be valuable for team members (and
+   continuous integration) to all know they are using the same exact version of
+   dependencies, to avoid "works for me" situations.
 
-This can be particularly important for certain kinds of open source projects
-which are actively being cloned by new users, and which want to have some
-measure of control around exactly which available version of a dependency is
-selected.
+   This can be particularly important for certain kinds of open source projects
+   which are actively being cloned by new users, and which want to have some
+   measure of control around exactly which available version of a dependency is
+   selected.
 
 2. Difficult to test packages or dependencies
 
-Complex packages which have dependencies which may be hard to test, or hard to
-analyze when they break, may choose to maintain careful control over what
-versions of their upstream dependencies they recommend -- even if conceptually
-they regularly update those recommendations following the true semantic version
-specification of the dependency.
+   Complex packages which have dependencies which may be hard to test, or hard
+   to analyze when they break, may choose to maintain careful control over what
+   versions of their upstream dependencies they recommend -- even if
+   conceptually they regularly update those recommendations following the true
+   semantic version specification of the dependency.
 
 3. Dependency locking w.r.t. deployment
 
-When stabilizing a release for deployment, or building a version of a package
-for deployment, it is important to be able to lock down the exact versions of
-dependencies in use, so that the resulting product can be exactly recreated
-later if necessary.
+   When stabilizing a release for deployment, or building a version of a package
+   for deployment, it is important to be able to lock down the exact versions of
+   dependencies in use, so that the resulting product can be exactly recreated
+   later if necessary.
 
 ### Mechanism and policy
 
@@ -210,7 +210,7 @@ discourages the community from relying on semver compatibility to completely
 specify what packages are compatible. That in turn makes it more likely for
 packages to fail to correctly follow the semver specification when publishing
 versions. Unfortunately, when packages don't correctly follow semver then it
-requires downstream clients to overspecify their dependency constraintssince
+requires downstream clients to overspecify their dependency constraints since
 they cannot rely on the package manager automatically picking the appropriate
 version.
 
