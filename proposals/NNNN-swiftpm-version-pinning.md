@@ -62,8 +62,8 @@ workflows_ with elevated demands for reproducible builds.
 
 In addition to this, certain _policy_ choices around default
 behavior are included; these are set initially to different
-defaults than in many package managers. Specfically the default
-behaviour is to _not_ generate pinning information unless
+defaults than in many package managers. Specifically the default
+behavior is to _not_ generate pinning information unless
 requested, for reasons outlined in the alternatives discussion.
 
 If the policy choice turns out to be wrong, the default can be
@@ -136,7 +136,7 @@ library B when deciding which version of library C to use.
     
 	The `package-name` refers to the name of the package as specified in its manifest.
 
-	This command pins one or all dependencies. The command which pins a single version can optionally take a specific version to pin to, if unspecified (or with --all) the behaviour is to pin to the current package version in use. Examples:  
+	This command pins one or all dependencies. The command which pins a single version can optionally take a specific version to pin to, if unspecified (or with `--all`) the behavior is to pin to the current package version in use. Examples:  
 	* `$ swift package pin --all` - pins all the dependencies.
 	* `$ swift package pin Foo` - pins `Foo` at current resolved version.
 	* `$ swift package pin Foo 1.2.3` - pins `Foo` at 1.2.3. The specified version should be valid and resolvable.
@@ -164,7 +164,7 @@ library B when deciding which version of library C to use.
 
 4. We will fetch and resolve the dependencies when running the pin commands, in case we don't have the complete dependency graph yet.
 
-5. We will extend the workflow for update to honour version pinning, that is, it will only update packages which are unpinned, and it will only update to versions which can satisfy the existing pins. The update command will, however, also take an optional argument `--repin`:
+5. We will extend the workflow for update to honor version pinning, that is, it will only update packages which are unpinned, and it will only update to versions which can satisfy the existing pins. The update command will, however, also take an optional argument `--repin`:
 
 	```
 	$ swift package update [--repin]
@@ -172,9 +172,9 @@ library B when deciding which version of library C to use.
 
 	* Update command errors if there are no unpinned packages which can be updated.
 
-	* Otherwise, the behaviour is to update all unpinned packages to the latest possible versions which can be resolved while respecting the existing pins.
+	* Otherwise, the behavior is to update all unpinned packages to the latest possible versions which can be resolved while respecting the existing pins.
 
-	* The `[--repin]` argument can be used to lift the version pinning restrictions. In this case, the behaviour is that all packages are updated, and packages which were previously pinned are then repinned to the latest resolved versions.
+	* The `[--repin]` argument can be used to lift the version pinning restrictions. In this case, the behavior is that all packages are updated, and packages which were previously pinned are then repinned to the latest resolved versions.
 
 6. The update and checkout will both emit logs, notifying the user that pinning is in effect.
 
@@ -190,7 +190,7 @@ package graph.
 
 ## Impact on existing code
 
-There will be change in the behaviours of `swift build` and `swift package update` in presence of the pins file, as noted in the proposal however the existing package will continue to build without any modifications.
+There will be change in the behaviors of `swift build` and `swift package update` in presence of the pins file, as noted in the proposal, however the existing package will continue to build without any modifications.
 
 ## Alternative considered
 
@@ -238,10 +238,10 @@ We therefore wish to encourage library authors to keep their
 packages building and testing with as recent and as wide a range
 of versions of their dependencies as possible, and guard more
 vigorously than other systems against accidental overconstraint.
-One way to encourage this behaviour is to avoid emitting pins files
+One way to encourage this behavior is to avoid emitting pins files
 by default.
 
-We also belief that if packages default to exposing their pin files as part of
+We also believe that if packages default to exposing their pin files as part of
 their public package, there is a substantial risk that when developers encounter
 build failures they will default to copying parts of those pinned versions into
 their manifest, rather than working to resolve the semver specification issues
@@ -267,7 +267,7 @@ which optimizes for reliance on the semver specifications:
 2. The Swift package manager and its ecosystem is evolving quickly, and we
    expect it will continue to do so for some time. As a consequence, we
    anticipate that packages will frequently be updated simply to take advantage
-   of new features. Optimizing for an ecosystem where everyone can reliable live
+   of new features. Optimizing for an ecosystem where everyone can reliably live
    on the latest semver-compatible release of a package should help make that a
    smoother process.
 
