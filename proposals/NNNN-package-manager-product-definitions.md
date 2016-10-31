@@ -13,7 +13,7 @@ Swift-evolution thread: [Discussion thread topic for that proposal](http://news.
 
 ## Motivation
 
-Currently, the Swift Package Manager has only a limited notion of the products that are built for a package.  It has a set of rules by which it infers implicit products based on the contents of various targets, and it also has a small amount of undocumented, unsupported package manifest syntax for explicitly declaring products, but it provides no supported way for package authors to declare the products of their packages.
+Currently, the Swift Package Manager has only a limited notion of the products that are built for a package.  It has a set of rules by which it infers implicit products based on the contents of various targets, and it also has a small amount of undocumented, unsupported package manifest syntax for explicitly declaring products, but it provides no supported way for package authors to declare what their packages produce.
 
 Also, while the Swift Package Manager currently supports dependencies between packages, it has no support for declaring a dependency on anything more fine-grained than a package.
 
@@ -39,13 +39,15 @@ We will introduce a documented and supported concept of a package product, along
 
 A package will be able to define an arbitrary number of products that are visible to all clients of the package.  A product definition includes the type of product, the name (which must be unique among the products in the package), and the root set of targets that comprise the implementation of the product.
 
-Any target may be included in multiple products, though not all kinds of target apply to all products; for example, a test target is not able to be included in a library product.
+Any target may be included in multiple products, though not all kinds of targets apply to all products; for example, a test target is not able to be included in a library product.
 
 The products represent the publicly vended package outputs on which any client package can depend, and also define the characteristics of the produced artifacts.
 
-As mentioned earlier, Swift Package Manager already infers a set of implicit products based on the set of targets in the package.  The inference rules will be supported and documented as part of this feature; this will allow all existing packages to continue to work unmodified, and will handle simple packages without a lot of extra work on the part of the author.  Packages will only need to provide explicit product definitions when the intended products differ from what the Swift Package Manager would infer.
+As mentioned earlier, Swift Package Manager already infers a set of implicit products based on the set of targets in the package.  One open question is whether inference rules will be supported and documented as part of this feature, in order to allow existing packages to continue to work unmodified and to avoid the need for explicit product definitions for simple packages.  While the inference rules will need to be supported for existing packages, it is still an open question whether product will be inferred for packages using the Swift Pacakge Manager 4.0 version of the API.
 
-The inference rules are detailed in the next section of this document.  Products will only be inferred if there are no explicit product definitions in the package; in considering the various ways in which a mixture of implicit and explicit products could interact, this all-or-nothing condition has turned out to be the only policy that is simple and understandable enough to be workable.
+The inference rules that apply to legacy packages are detailed in the next section of this document.
+
+Even if Swift Pacakge Manager 4.0 does infer products for non-legacy packages, products will only be inferred if there are no explicit product definitions in the package.  The reason is that the interaction of a mixture of implicit and explicit products is likely to lead to significant complexity and to be a source of both confusion and bugs.
 
 An example of a package containing explicit product definitions:
 
@@ -59,35 +61,81 @@ let package = Package(
         Target(name: "Exe", dependencies: ["Foo"])
     ],
     products: [
-        LibraryProduct(name: "Lib1", type: .static, targets: ["Bar"]),
-        LibraryProduct(name: "Lib2", type: .dynamic, targets: ["Baz"]),
-        ExecutableProduct(name: "Exe", targets: ["Exe"]),
-        TestProduct(name: "HelloTests", targets: ["ExeTests", "FooTests", "BarTests", "BazTests"])
+        Library(name: "Lib1", type: .static, targets: ["Bar"]),
+        Library(name: "Lib2", type: .dynamic, targets: ["Baz"]),
+        Executable(name: "Exe", targets: ["Exe"]),
     ]
 )
 ```
 
-Note that the test product is explicitly defined, since the presence of explicit product definitions prevents the inference of implicit products.
+The initial types of products that can be defined are executables and libraries.  Libraries can be declared as static or dynamic, but when possible, the specific type of library should be omitted -- in this case, the build system will choose the most appropriate type to build based on the context in which the product will be used (depedning on the type of client, the platform, etc).
 
-*[NOTE: I expect that we will get a lot of pushback on this; it's particularly tedious to have to list all the test targets. Is this really what we want to go with?  Test products, in particular, feel "different" somehow.]*
-
-The initial types of products that can be defined are executables, libraries, and tests.  Libraries can be declared as static or dynamic, but when possible, the specific type of library should be omitted -- in this case, the build system will choose the most appropriate type to build based on the context in which the product will be used (depedning on the type of client, the platform, etc).
+Note that tests are not considered to be products, and do not need to be explicitly defined.
 
 A product definition lists the root targets to include in the product; the interfaces of those targets will be available to any clients (for product types where that makes sense).  Any dependencies of those targets will also be included in the product, but won't be made visible to clients.  The Swift compiler does not currently provide this granularity of visibility control, but it constitutes a declaration of intent that can be used by IDEs and other tools.  We also hope that the compiler will one day support this level of visibility control.
 
 Any other targets on which the root targets depend will also be included in the product, but their interfaces will not be made available to clients.
 
+For example, in the package definition shown above, the library product `Lib2` would only vend the interface of `Baz` to clients.  Since `Baz` depends on `Foo` and `Bar`, those two targets would also be compiled and linked into `Lib2`, but their interfaces should not be visible to clients of `Lib2`.
+
 ### Product dependencies
 
-A target will be able to declare its use of products defined by any of the package dependencies.  This is in addition to the existing ability to depend on other targets in the same package.
+A target will be able to declare its use of the products that are defined in any of the external package dependencies.  This is in addition to the existing ability to depend on other targets in the same package.
 
-This is done through a new optional array parameter when instantiating a target:
+There are two basic approaches for how to represent this.  As noted in the "Open questions" section below, more discussion is needed before we can choose which of these approaches to recommend:
 
-```
-Target(name: "Foo", dependencies: ["Bar", "Baz"], productUses: ["SomeProduct"])
-```
+1.  Extending the notion of the types of dependencies that can be listed in a target definition's `dependencies` parameter.
 
-*[NOTE: We still need to make a final decision about this: one array or two? If two, then what names?  If one array, then how do we distinguish products and targets?]*
+    To see how this works, remember that each string listed for the `dependencies` parameter of a target is just shorthand for a `.target(name: "...")` parameter, i.e. a dependency on a target within the same package.
+    
+    For example, the target definition:
+    
+    ```
+    Target(name: "Foo", dependencies: ["Bar", "Baz"])
+    ```
+    
+    is shorthand for:
+    
+    ```
+    Target(name: "Foo", dependencies: [.target(name: "Bar"), .target(name: "Baz")])
+    ```
+    
+    This could be extended to support product dependencies in addition to target dependencies.
+    
+    ```
+    let package = Package(
+        name: "Hello",
+        dependencies: [
+            .Package(url: "https://github.com/ExamplePackage", majorVersion: 1),
+        ],
+        targets: [
+            Target(name: "Foo"),
+            Target(name: "Bar", dependencies: [
+                .target(name: "Foo"),
+                .product(name: "Baz", package: "ExamplePackage")
+            ])
+        ],
+    )
+    ```
+    
+    In this example, the package name is the short name of the package as defined by the package itself.  A possibility would be to allow the package parameter to be optional when it is unambiguous.
+    
+    A significant drawback of this approach is the loss of an ability to use strings as unambiguous shorthand for `.target(name: "...")` values.  To remedy this, strings could still be allowed, as long as there was a clear way to disambiguate the dependency in cases in which two or more entities have the same name.
+    
+    If we look at practical use cases, it seems rare that two completely unrelated entities (e.g. a target and a product) would have the same name.  For example, if a target depends on `libAlamofire`, it doesn't actually matter whether it's the target or the product that is the dependency.  So in most cases, a string would unambiguously capture the intent of the package author.  If the shorthand form followed a search order, such as:
+    
+    - first look for a target with the specified name in the same package
+    - second, look for a product with the specified name in any package dependency
+
+    then it should be possible for the shorthand notation to be sufficient in the vast majority of cases, with the possibility of using the more verbose form in the cases in which the shorthand form really is ambiguous.
+
+2.  Alternatively, a new optional array parameter could be added to the instantiation of a target:
+
+    ```
+    Target(name: "Foo", dependencies: ["Bar", "Baz"], externalDependencies: ["SomeProduct"])
+    ```
+    
+    If we go this route, one of the difficulties is in choosing good names from the arrays.  Also, we would still need to determine whether it would be sufficient to list strings in the `externalDependencies` parameter, or whether `(<package>, <product>)` tuples would be needed.
 
 ## Detailed design
 
@@ -110,41 +158,32 @@ Package(
 The definition of the `Product` type will be:
    
 ```
-public class Product {
-    public let name: String
-    public let targets: [String]
-    
-    public init(name: String, targets: [String]) {
-        self.name = name
-        self.targets = targets
+public enum Product {
+    public class AbstractProduct {
+        public let name: String
+        public let targets: [String]
+        
+        public init(name: String, targets: [String])
     }
-}
-
-public class ExecutableProduct : Product {
-    // nothing else at this time
-}
     
-public class LibraryProduct : Product {
+    public class Executable : AbstractProduct {
+        public init(name: String, targets: [String])
+    }
+    
+    public class Library : AbstractProduct {
+        public let type: LibraryType?
+    
+        public init(name: String, type: LibraryType? = nil, targets: [String])
+    }
+    
     public enum LibraryType {
         case .static
         case .dynamic
     }
-    public let type: LibraryType?
-
-    public init(name: String, type: LibraryType? = nil, targets: [String]) {
-        super.init(name: name, targets: targets)
-        self.type = type
-    }
-}
-    
-public class TestProduct : Product {
-    // nothing else at this time
 }
 ```
 
-*[QUESTION: Should `Product` be inside an `enum` for namespacing purposes?]*
-
-*[NOTE: I'm not particularly happy with the empty definitions of some of the product classes. Still, I do think that there is a conceptual hierarchy of product types, not just an enum. This will make more sense a the set of possible types of products grow, but is a bit weird right now.]*
+The namespacing allows the names of the product types to be kept short.
 
 As with targets, there is no semantic significance to the order of the products in the array.
 
@@ -156,56 +195,99 @@ The rules for implicit products are:
 
 1.  An executable product is implicitly defined for any target that produces an executable module (as defined here: https://github.com/apple/swift-package-manager/blob/master/Documentation/Reference.md).
 
-2.  A library product is implicitly defined for any target that produces a library module.
-
-3.  A test product is implicitly defined for any test target.
-
-As mentioned earlier, the implicit products are only inferred if the package contains no explicit product definitions.  This is true even for test products.
+2.  If there are any library targets, a single library product is implicitly defined for all the library targets.  The name of this product is based on the name of the package.
 
 ### Product dependencies
 
-We will add a `usedProducts` parameter to the `Target` initializer.  This will allow any target to depend on products specified in other packages.
+Depending on the decision about whether to extend the meaning of the `dependencies` parameter to target initialization or to add a new `externalDependencies` parameter, we will take one of these two approaches:
 
-```
-public final class Target {
-    /// A dependency on an individual target.
-    public enum TargetDependency {
-        /// A dependency on a target in the same project.
-        case Target(name: String)
-    }
+1.  For the extended `dependencies` parameter approach:  Add a new enum case to the `TargetDependency` enum to handle the case of dependencies on products, and another enum case to represent an unbound by-name dependency.  Modify the string-literal conversion to create a by-name dependency instead of a target dependency, and add logic to bind the by-name dependencies to either target or product dependencies once the package graph has been resolved.
+
+    Alternatively, we could handle the case of unbound by-name dependencies by initially recording them as dependencies on targets (as today), and by then converting them to dependencies on products if appropriate after the package has been loaded:
+
+    ```
+    public final class Target {
+        /// Represents a dependency on another entity.
+        public enum TargetDependency {
+            /// A dependency on a target in the same project.
+            case Target(name: String)
+            /// A dependency on a product from a package dependency.  If a package name is provided, it must match the name of one of the packages named in a `.Package()` directive.
+            case Product(name: String, package: String)
+        }
+        
+        /// The name of the target.
+        public let name: String
     
-    /// A use of a particular product.
-    public enum ProductUse {
-        /// A use of a product.  If a package name is provided, it must match the name of one of the packages named in a `.Package()` directive.
-        case Product(name: String, package: String?)
-    }
+        /// Dependencies on other entities inside or outside the package.
+        public var dependencies: [TargetDependency]
     
-    /// The name of the target.
-    public let name: String
-
-    /// Dependencies on other targets in the package.
-    public var dependencies: [TargetDependency]
-
-    /// Uses of products from other packages.
-    public var productUses: [ProductUse]
-
-    /// Construct a target.
-    public init(name: String, dependencies: [TargetDependency] = [], productUses: [ProductUse] = []) {
-        self.name = name
-        self.dependencies = dependencies
-        self.productUses = productUses
+        /// Construct a target.
+        public init(name: String, dependencies: [TargetDependency] = [])
     }
-}
-```
+    ```
 
-*[ISSUE: I'm not particularly happy with where we ended up here. The terms "dependency" and "use" are not at all obvious, and apart from the short-name form, it isn't at all obvious that these dependencies are conceptually different. In this case, I think the original API had it right in preparing for being able to have different kinds of dependencies. I'm starting to go back toward thinking that we should model it correctly and then find some notation for the string short-form.]*
+2.  For the separate `externalDependencies` parameter approach:  We will add an `externalDependencies ` parameter to the `Target` initializer, along with additional type definitions to support it:
+
+    ```
+    public final class Target {
+        /// Represents a dependency on another target.
+        public enum TargetDependency {
+            /// A dependency on a target in the same project.
+            case Target(name: String)
+        }
+        
+        /// Represents a dependency on a product in an external package.
+        public enum ExternalTargetDependency {
+            /// A dependency on a product from a package dependency.  If a package name is provided, it must match the name of one of the packages named in a `.Package()` directive.
+            case Product(name: String, package: String?)
+        }
+        
+        /// The name of the target.
+        public let name: String
+    
+        /// Dependencies on other targets in the package.
+        public var dependencies: [TargetDependency]
+    
+        /// Dependencies on products in external packages.
+        public var externalDependencies: [ExternalTargetDependency]
+    
+        /// Construct a target.
+        public init(name: String, dependencies: [TargetDependency] = [], externalDependencies: [ExternalTargetDependency] = [])
+    }
+    ```
 
 In the absence of any product dependencies, the entire package will be considered to be dependent on all of the packages on which it depends.  If the package contains at least one other product dependency, then all targets that depend on products from other packages will need to have product dependencies specified.
 
-*[ISSUE: This seems like another fairly unfortunate drop-off-a-cliff semantic, but short of adding a boolean to each `.Package()` declaration to say whether to depend on everything in that package, I don't know of a better solution.  I'd like to discuss this a little bit more before broadcasting this proposal.]*
+*[ISSUE: This seems like a fairly unfortunate drop-off-a-cliff semantic, but short of adding a boolean to each `.Package()` declaration to say whether to depend on everything in that package, I don't know of a better solution.  I'd like to discuss this a little bit more before broadcasting this proposal.]*
 
 ## Impact on existing code
 
-There will be no impact on existing packages that follow the documented format of the package manifest.  The Swift Package Manager will continue to infer products based the existing.
+There will be no impact on existing packages that follow the documented Swift Package Manager 3.0 format of the package manifest.  The Swift Package Manager will continue to infer products based the existing rules.  We could also support packages that use the current undocumented product support by continuing to support the current `Product` types as a façade on the new API, but this does not seem worth the effort.
 
-We could also support packages that use the current undocumented product support by continuing to support the current `Product` types as a façade on the new API.
+If we decide to completely deprecate the implied products in the Swift Package Manager 4.0 API, then that will only affect packages once they upgrade their manifests to the SwiftPM 4.0 API.
+
+## Alternatives considered
+
+Instead of product definitions, fine-grained dependencies could be introduced by allowing targets to be marked as public or private to the package.  This would not provide any way for a package author to control the type and characteristics of the various artifacts, however.  Relying on the implied products that result from the inference rules is not likely to be scalable in the long term as we introduce new kinds of product types.
+
+*[As we address the open questions, the approaches not chosen will be described here]*
+
+## Open questions
+
+1. Should tests be considered to be products?
+
+   Pro:  Since tests are artifacts that can be produced during a build, just like products are, it may make sense for users to be able to express opinions about them in the same manner as for products.
+   
+   Con:  Tests are conceptually different from products in their intended use, and it is much less likely that users will have specific opinions about the details of how tests are built.  It seems conceptually cleaner to treat tests as a different kind of artifact than products.
+   
+2. Should there be any inference of products at all?
+
+   Pro:  It can be much more convenient to not have to declare products, and to be able to add new products just by adding or renaming files and directories.
+
+   Con:  The very fact that it is so easy to change the set of products without modifying the package manifest can lead to unexpected behavior due to seemingly unrelated changes (e.g. creating a file called "main.swift" in a module changes that module from a library to an executable).
+
+3. Should target dependencies on products be separate from dependencies on other targets?
+
+   Pro:  Targets and products are different concepts, and it is possible for a target and a product to have the same name.  This can lead to ambiguity.
+   
+   Con:  Conceptually the *dependency* itself is the same concept, even if type of entity being depended on is technically different.  In both cases (target and product), it is up to the build system to determine the exact type of artifacts that should be produced.  In most cases, there is no actual semantic ambiguity, since the name of a target, product, and package are often the same uniquely identifiable "brand" name of the component.
