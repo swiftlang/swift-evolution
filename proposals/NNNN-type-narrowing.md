@@ -18,7 +18,9 @@ Currently in Swift there are various pieces of boilerplate required in order to 
 ```
 let foo:A = B() // B extends A
 if foo is B {
-    (foo as B).someMethodSpecificToB()
+    let bar = foo as B
+    bar.someMethodSpecificToB()
+    bar.someOtherMethodSpecificToB()
 }
 ```
 
@@ -53,6 +55,7 @@ Here are the above examples re-written to take advantage of type-narrowing:
 let foo:A = B() // B extends A
 if foo is B { // B is added to foo's type stack
     foo.someMethodSpecificToB()
+    foo.someOtherMethodSpecificToB()
 }
 // B is popped from foo's type stack
 ```
