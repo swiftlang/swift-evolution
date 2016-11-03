@@ -17,10 +17,9 @@ Currently in Swift there are various pieces of boilerplate required in order to 
 
 ```
 let foo:A = B() // B extends A
-if foo is B {
-    let bar = foo as B
-    bar.someMethodSpecificToB()
-    bar.someOtherMethodSpecificToB()
+if let foo = foo as? B {
+    foo.someMethodSpecificToB()
+    foo.someOtherMethodSpecificToB()
 }
 ```
 
