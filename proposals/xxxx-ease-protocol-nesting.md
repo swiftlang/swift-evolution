@@ -102,13 +102,20 @@ struct WeLoveUmlauts : TextStream.Transformer {
 
 In all of the examples, any of the structual types may have generic types, and any of the protocols may have associated types. So long as the restrictions mentioned earlier are observed, i.e. that no types are captured between a protocol and its outer or inner types.
 
+The proposal includes some changes to the standard library, which are discussed below.
+
 ## Source compatibility
 
-This change is additive, although there are a couple of places in the standard library where we might consider reorganising things after this change. Those changes are not a part of this proposal.
+This change is additive, although there are a couple of places in the standard library where we can organise things better after this change. Specifically:
+
+- The `FloatingPoint{Sign,Classification,RoundingMode}` enums will become members of the `FloatingPoint` protocol
+- The `MirrorPath` protocol will become a member of the `Mirror` struct, and renamed `Path`
+
+Source migration can be handled with a typealias and deprecation notice.
 
 ## Effect on ABI stability
 
-Would change the standard library ABI if it chose to adopt the feature.
+Would change the standard library interface.
 
 ## Effect on API resilience
 
