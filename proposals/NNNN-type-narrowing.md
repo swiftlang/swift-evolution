@@ -129,6 +129,37 @@ cannot be `nil` so both conditions require a type of `Optional<A>.some` as a min
 
 In this example `foo` is also `nil` at the end of both branches, thus its type can remain narrowed past this point.
 
+### Mutable values
+
+When a mutable optional type is narrowed as non-`nil`, it will become directly accessible without the need to unwrap it. For example:
+
+```
+struct Foo { var value:Int }
+struct Bar { var foo:Foo? }
+
+var b = Bar(foo: Foo(value: 5));
+b.foo.value = 10 // Equivalent to b.foo!.value = 10
+```
+
+### Concurrency and Classes
+
+The exception to the above mutable values are class types of potentially unsafe origin. In other words, type-narrowing will ingore properties of classes unless they are wholly owned by the current scope, and never passed outside of it. Consider:
+
+```
+struct Foo { var value:Int }
+class Bar { var foo:Foo? }
+
+func myMethod(bar:Bar) { // bar is external, so cannot be trusted
+    if (b.foo != nil) {
+        b.foo!.value = 10
+    }
+}
+```
+
+In the above example type-narrowing does not take effect as it cannot guarantee that `bar.foo` will not change after being tested, since the class to which it belongs came from out of scope. As such the developer will need to use unwrapping as normal. However, since the type checker knows that `.foo` **should** be non-`nil`, it can provide a warning to indicate a risk of concurrency failures, and also change the force unwrap behaviour to produce a concurrency error at a runtime, rather than a more generic error message, thus making it easier to detect potentially unsafe operations.
+
+With this in mind, it may be worth considering an attribute for classes such as `@concurrent(safe)` or similar, enabling the type-checker to know when a class cannot be modified externally, and thus narrow the type(s) as normal. This will depend on what the planned concurrency model for native Swift entails however.
+
 ### Context Triggers
 
 | Trigger | Impact
