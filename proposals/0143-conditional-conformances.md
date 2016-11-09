@@ -3,7 +3,8 @@
 * Proposal: [SE-0143](0143-conditional-conformances.md)
 * Author: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Active review (September 28...October 7)**
+* Status: **Awaiting review**
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/master/proposals/0143-conditional-conformances.md)
 
 ## Introduction
 
@@ -150,10 +151,187 @@ Most of the semantics of conditional conformances are
 obvious. However, there are a number of issues (mostly involving
 multiple conformances) that require more in-depth design.
 
-### Disallow overlapping conformances
-With conditional conformances, it is possible to express that a given
-generic type can conform to the same protocol in two different ways,
-depending on the capabilities of its type arguments. For example:
+### Multiple conformances
+
+Swift already bans programs that attempt to make the same type conform
+to the same protocol twice, e.g.:
+
+```swift
+protocol P { }
+
+struct X : P { }
+extension X : P { } // error: X already stated conformance to P
+```
+
+This existing ban on multiple conformances is extended to conditional
+conformances, including attempts to conform to the same protocol in
+two different ways. For example:
+
+```swift
+struct SomeWrapper<Wrapped> {
+  let wrapped: Wrapped
+}
+
+protocol HasIdentity {
+  static func ===(lhs: Self, rhs: Self) -> Bool
+}
+
+extension SomeWrapper: Equatable where Wrapped: Equatable {
+  static func ==(lhs: SomeWrapper<Wrapped>, rhs: SomeWrapper<Wrapper>) -> Bool {
+    return lhs.wrapped == rhs.wrapped
+  }
+}
+
+// error: SomeWrapper already stated conformance to Equatable
+extension SomeWrapper: Equatable where Wrapped: HasIdentity {
+  static func ==(lhs: SomeWrapper<Wrapped>, rhs: SomeWrapper<Wrapper>) -> Bool {
+    return lhs.wrapped === rhs.wrapped
+  }
+}
+```
+
+Furthermore, for consistency, the ban extends even to multiple
+conformances that are "clearly" disjoint, e.g.,
+
+```swift
+extension SomeWrapper: Equatable where Wrapped == Int {
+  static func ==(lhs: SomeWrapper<Int>, rhs: SomeWrapper<Int>) -> Bool {
+    return lhs.wrapped == rhs.wrapped
+  }
+}
+
+// error: SomeWrapper already stated conformance to Equatable
+extension SomeWrapper: Equatable where Wrapped == String {
+  static func ==(lhs: SomeWrapper<String>, rhs: SomeWrapper<String>) -> Bool {
+    return lhs.wrapped == rhs.wrapped
+  }
+}
+```
+
+The section [overlapping
+conformances](#overlapping-conformances) describes some of the
+complexities introduced by multiple conformances, to justify their
+exclusion from this proposal. A follow-on proposal could introduce
+support for multiple conformances, but should likely also cover related
+features such as [private
+conformances](https://github.com/apple/swift/blob/master/docs/GenericsManifesto.md#private-conformances)
+that are orthogonal to conditional conformances.
+
+
+### Implied conditional conformances 
+
+Stating conformance to a protocol implicitly states conformances to
+any of the protocols that it the protocol inherits. This is already
+the case in Swift today: one can declare conformance to the
+`Collection` protocol, and it implies conformance to `Sequence` as
+well.
+
+With conditional conformances, the constraints for the conformance to
+the inherited protocol may not be clear, so the conformance to the
+inherited protocol will need to be stated explicitly. For example:
+
+```swift
+protocol P { }
+protocol Q : P { }
+protocol R : P { }
+
+struct X<T> { }
+
+extension X: Q where T: Q { }
+extension X: R where T: R { }
+
+// error: X does not conform to protocol P; add
+//
+//   extension X: P where <#constraints#> { ... }
+//
+// to state conformance to P.
+```
+
+Note that both of the constrained extensions could imply the
+conformance to `P`. However, because the two extensions have disjoint
+sets of constraints (one requires `T: Q`, the other `T: R`), it
+becomes unclear which constraints should apply to the conformance to
+`P`: picking one set of constraints (e.g. `T: Q`, from the conformance
+of `X` to `Q`) makes the inherited conformance unusable for `X`
+instances where `T: R`, which would break type safety (because we
+could have `X` instances that conform to `R` but not `P`!). Moreover,
+the previously-discussed ban on multiple conformances prohibits
+introducing two different conformances of `X` to `P` (one where `T: Q`
+and one where `T: R`). Therefore, the program above is ill-formed, and
+the correct fix is for the user to introduce an explicit conformance
+of `X` to `P` with the appropriate set of constraints, e.g.:
+
+```swift
+extension X: P where T: P { }
+```
+
+In cases where the different sets of constraints used to describe the
+implied inherited conformances can be ordered, the least-specialized
+(i.e., most general) constraints will be used for the implied inherited
+conformance. For example:
+
+```swift
+protocol R: P { }
+protocol S: R { }
+
+struct Y<T> { }
+
+extension Y: R where T: R { }
+extension Y: S where T: S { }
+```
+
+The conformances of `Y: R` and `Y: S` both imply the conformance
+`X: P`. Note that the constraints `T: R` are less specialized (more
+general) than the constraints `T: S`, because every `S` is also an
+`R`. Therefore, `X` will conform to `P` when `T: S`, e.g.:
+
+```swift
+/// compiler produces the following implied inherited conformance:
+extension Y: P where T: R { }
+```
+
+## Source compatibility
+
+From the language perspective, conditional conformances are purely additive. They introduce no new syntax, but instead provide semantics for existing syntax---an extension that both declares a protocol conformance and has a `where` clause---whose use currently results in a type checker failure. That said, this is a feature that is expected to be widely adopted within the Swift standard library, which may indirectly affect source compatibility.
+
+## Effect on ABI Stability
+
+As noted above, there are a number of places where the standard library is expected to adopt this feature, which fall into two classes:
+
+1. Improve composability: the example in the [introduction](#introduction) made `Array` conform to `Equatable` when its element type does; there are many places in the Swift standard library that could benefit from this form of conditional conformance, particularly so that collections and other types that contain values (e.g., `Optional`) can compose better with generic algorithms. Most of these changes won't be ABI- or source-breaking, because they're additive.
+2. Eliminating repetition: the `lazy` wrappers described in the [motivation](#motivation) section could be collapsed into a single wrapper with several conditional conformances. A similar refactoring could also be applied to the range abstractions and slice types in the standard library, making the library itself simpler and smaller. All of these changes are potentially source-breaking and ABI-breaking, because they would remove types that could be used in Swift 3 code. However, there are mitigations: generic typealiases could provide source compatibility to Swift 3 clients, and the ABI-breaking aspect is only relevant if conditional conformances and the standard library changes they imply aren't part of Swift 4.
+
+Aside from the standard library, conditional conformances have an impact on the Swift runtime, which will require specific support to handle dynamic casting. If that runtime support is not available once ABI stability has been declared, then introducing conditional conformances in a later language version either means the feature cannot be deployed backward or that it would provide only more limited, static behavior when used on older runtimes. Hence, there is significant motivation for doing this feature as part of Swift 4. Even if we waited to introduce conditional conformances, we would want to include a hook in the runtime to allow them to be implemented later, to avoid future backward-compatibility issues.
+
+## Effect on Resilience
+
+One of the primary goals of Swift 4 is resilience, which allows libraries to evolve without breaking binary compatibility with the applications that use them. While the specific details of the impact of conditional conformances on resilience will be captured in a more-complete proposal on resilience, possible rules are summarized here:
+
+* A conditional conformance cannot be removed in the new version of a library, because existing clients might depend on it.
+* A conditional conformance can be added in a new version of a library, roughly following the rules described in the [library evolution document](https://github.com/apple/swift/blob/master/docs/LibraryEvolution.rst#new-conformances). The conformance itself will need to be annotated with the version in which it was introduced.
+* A conditional conformance can be *generalized* in a new version of the library, i.e., it can be effectively replaced by a (possibly conditional) conformance in a new version of the library that is less specialized than the conditional conformance in the older version of the library. For example.
+
+  ```swift
+  public struct X<T> { }
+  
+  // Conformance in version 1.0
+  public extension X: Sequence where T: Collection { ... }
+  
+  // Can be replaced by this less-specialized conformance in version 1.1
+  public extension X: Sequence where T: Sequence { ... }
+  ```
+  
+  Such conformances would likely need some kind of annotation.
+
+## Alternatives considered
+
+### Overlapping conformances
+
+As noted in the section on [multiple
+conformances](#multiple-conformances), Swift already bans programs
+that attempt to make the same type conform to the same protocol
+twice. This proposal extends the ban to cases where the conformances
+are conditional. Reconsider the example from that section:
 
 ```swift
 struct SomeWrapper<Wrapped> {
@@ -206,73 +384,28 @@ The design is consistent, because this third conditional conformance is more *sp
 2. It is no longer possible to uniquely say what is required to make a generic type conform to a protocol, because there might be several unrelated possibilities. This makes reasoning about the whole system more complex, because it admits divergent interfaces for the same generic type based on their type arguments. At its extreme, this invites the kind of cleverness we've seen in the C++ community with template metaprogramming, which is something Swift has sought to avoid.
 3. All of the disambiguation machinery required at compile time (e.g., to determine whether one conditional conformance is more specialized than another to order them) also needs to implements in the run-time, as part of the dynamic casting machinery. One must also address the possibility of ambiguities occurring at run-time. This is both a sharp increase in the complexity of the system and a potential run-time performance hazard.
 
-For these reasons, this proposal *bans overlapping conformances* entirely. While the resulting system is less flexible than one that allowed overlapping conformances, the gain in simplicity in this potentially-confusing area is well worth the cost. Moreover, this ban follows with existing Swift rules regarding multiple conformances, which prohibit the same type from conforming to the same protocol in two different ways:
+For these reasons, this proposal *bans overlapping conformances* entirely. While the resulting system is less flexible than one that allowed overlapping conformances, the gain in simplicity in this potentially-confusing area is well worth the cost.
+
+There are several potential solutions to the problem of overlapping conformances (e.g., admitting some form of overlapping conformances that can be resolved at runtime or introducing the notion of conformances that cannot be queried a runtime), but the feature is large enough to warrant a separate proposal that explores the solutions in greater depth.
+
+### Extending protocols to conform to protocols
+The most common request related to conditional conformances is to allow a (constrained) protocol extension to declare conformance to a protocol. For example:
 
 ```swift
-protocol P { }
-
-struct S : P { }
-extension S : P { } // error: S already conforms to P
+extension Collection: Equatable where Iterator.Element: Equatable {
+  static func ==(lhs: Self, rhs: Self) -> Bool {
+    // ...
+  }
+}
 ```
 
-### Implied conditional conformances 
-
-Stating conformance to a protocol implicitly states conformances to any of the protocols that it inherits. This is the case in Swift today, although most developers likely don't realize the rules it follows. For example:
-
-```swift
-protocol P { }
-protocol Q : P { }
-protocol R : P { }
-
-struct X1 { }
-struct X2 { }
-struct X3 { }
-
-extension X1: Q { }  // implies conformance to P
-
-extension X2: Q { }  // would imply conformance to P, but...
-extension X2: P { }  // explicitly-stated conformance to P "wins"
-
-extension X3: Q { }  // implies conformance to P
-extension X3: R { }  // also implies conformance to P
-                     // one will "win"; which is unspecified
-```
-
-With conditional conformances, the question of which extension "wins" the implied conformance begins to matter, because the extensions might have different constraints on them. For example:
-
-```swift
-struct X4<T> { }
-
-extension X4: Q where T: Q { }  // implies conformance to P
-extension X4: R where T: R { }  // error: implies overlapping conformance to P
-```
-
-Both of these constrained extensions imply a conformance to `P`, but the actual `P` implied conformances to `P` are overlapping and, therefore, result in an error.
-
-However, in cases where there is a reasonable ordering between the two constrained extensions (i.e., one is more specialized than the other), the less specialized constrained extension should "win" the implied conformance. Continuing the example from above:
-
-```swift
-protocol S: R { }
-
-struct X5<T> { }
-
-extension X5: S where T: S { }
-
-// This last extension "wins" the implied conformance to P, because
-// the extension where "T: R" is less specialized than the one
-// where "T: S".
-extension X5: R where T: R { }
-```
-
-Thus, the rule for placing implied conformances is to pick the *least specialized* extension that implies the conformance. If there is more than one such extension, then either:
-
-1. All such extensions are not constrained extensions (i.e., they have no requirements beyond what the type requires), in which case Swift can continue to choose arbitrarily among the extensions, or
-2. All such extensions are constrained extensions, in which case the program is ill-formed due to the ambiguity. The developer can explicitly specify conformance to the protocol to disambiguate. 
+This protocol extension would make any `Collection` of `Equatable` elements `Equatable`, which is a powerful feature that could be put to good use. Introducing conditional conformances for protocol extensions would exacerbate the problem of overlapping conformances, because it would be unreasonable to say that the existence of the above protocol extension means that no type that conforms to `Collection` could declare its own conformance to `Equatable`, conditional or otherwise.
 
 ### Overloading across constrained extensions
 
-One particularly important aspect of the placement rule for implied conformances is that it affects which declarations are used to satisfy a particular requirement. For example:
-
+Conditional conformances may exacerbate existing problems with
+overloading behaving differently with concrete types vs. in a generic
+context. For example, consider:
 
 ```swift
 protocol P {
@@ -284,7 +417,7 @@ protocol R: Q { }
 
 struct X1<T> { }
 
-extension X1: Q where T: Q {           // note: implied conformance to P here
+extension X1: Q where T: Q {
   func f() {
     // #1: basic implementation of 'f()'
   }
@@ -296,6 +429,9 @@ extension X1: R where T: R {
   }
 }
 
+// note: compiler implicitly creates conformance `X1: P` equivalent to
+//   extension X1: P where T: Q { }
+
 struct X2: R {
   func f() { }
 }
@@ -304,55 +440,51 @@ struct X2: R {
 X1<X2>().f()        // calls #2, which is preferred by overload resolution
 ```
 
-Effectively, when satisfying a protocol requirement, one can only choose from members of the type that are guaranteed to be available within the extension with which the conformance is associated. In this case, the conformance to `P` is placed on the first extension of `X1`, so the only `f()` that can be considered is the `f()` within that extension: the `f()` in the second extension won't necessarily always be available, because `T` may not conform to `R`. Hence, the call that treats an `X1<X2>` as a `P` gets the first implementation of `X1.f()`. When using the concrete type `X1<X2>`, where `X2` conforms to `R`, both `X1.f()` implementations are visible... and the second is more specialized.
+When satisfying a protocol requirement, Swift chooses the most
+specific member that can be used *given the constraints of the
+conformance*. In this case, the conformance of `X1` to `P` has the
+constraints `T: Q`, so the only `f()` that can be used under those
+constraints is the `f()` from the first extension. The `f()` in the
+second extension won't necessarily always be available, because `T`
+may not conform to `R`. Hence, the call that treats an `X1<X2>` as a
+`P` gets the first implementation of `X1.f()`. When using the concrete
+type `X1<X2>`, where `X2` conforms to `R`, both `X1.f()`
+implementations are visible... and the second is more specialized.
 
-Technically, this issue is no different from surprises where (e.g.) a member added to a concrete type in a different module won't affect an existing protocol conformance. The existing ideas to mediate these problems---warning for nearly-matching functions when they are declared in concrete types, for example---will likely be sufficient to help surprised users. That said, this proposal may increase the likelihood of such problems showing up.
-
-## Source compatibility
-
-From the language perspective, conditional conformances are purely additive. They introduce no new syntax, but instead provide semantics for existing syntax---an extension that both declares a protocol conformance and has a `where` clause---whose use currently results in a type checker failure. That said, this is a feature that is expected to be widely adopted within the Swift standard library, which may indirectly affect source compatibility.
-
-## Effect on ABI Stability
-
-As noted above, there are a number of places where the standard library is expected to adopt this feature, which fall into two classes:
-
-1. Improve composability: the example in the [introduction](#introduction) made `Array` conform to `Equatable` when its element type does; there are many places in the Swift standard library that could benefit from this form of conditional conformance, particularly so that collections and other types that contain values (e.g., `Optional`) can compose better with generic algorithms. Most of these changes won't be ABI- or source-breaking, because they're additive.
-2. Eliminating repetition: the `lazy` wrappers described in the [motivation](#motivation) section could be collapsed into a single wrapper with several conditional conformances. A similar refactoring could also be applied to the range abstractions and slice types in the standard library, making the library itself simpler and smaller. All of these changes are potentially source-breaking and ABI-breaking, because they would remove types that could be used in Swift 3 code. However, there are mitigations: generic typealiases could provide source compatibility to Swift 3 clients, and the ABI-breaking aspect is only relevant if conditional conformances and the standard library changes they imply aren't part of Swift 4.
-
-Aside from the standard library, conditional conformances have an impact on the Swift runtime, which will require specific support to handle dynamic casting. If that runtime support is not available once ABI stability has been declared, then introducing conditional conformances in a later language version either means the feature cannot be deployed backward or that it would provide only more limited, static behavior when used on older runtimes. Hence, there is significant motivation for doing this feature as part of Swift 4. Even if we waited to introduce conditional conformances, we would want to include a hook in the runtime to allow them to be implemented later, to avoid future backward-compatibility issues.
-
-## Effect on Resilience
-
-One of the primary goals of Swift 4 is resilience, which allows libraries to evolve without breaking binary compatibility with the applications that use them. While the specific details of the impact of conditional conformances on resilience will be captured in a more-complete proposal on resilience, possible rules are summarized here:
-
-* A conditional conformance cannot be removed in the new version of a library, because existing clients might depend on it.
-* A conditional conformance can be added in a new version of a library, roughly following the rules described in the [library evolution document](https://github.com/apple/swift/blob/master/docs/LibraryEvolution.rst#new-conformances). The conformance itself will need to be annotated with the version in which it was introduced.
-* A conditional conformance can be *generalized* in a new version of the library, i.e., it can be effectively replaced by a (possibly conditional) conformance in a new version of the library that is less specialized than the conditional conformance in the older version of the library. For example.
-
-  ```swift
-  public struct X<T> { }
-  
-  // Conformance in version 1.0
-  public extension X: Sequence where T: Collection { ... }
-  
-  // Can be replaced by this less-specialized conformance in version 1.1
-  public extension X: Sequence where T: Sequence { ... }
-  ```
-  
-  Such conformances would likely need some kind of annotation.
-
-## Alternatives considered
-
-The most common request related to conditional conformances is to allow a (constrained) protocol extension to declare conformance to a protocol. For example:
+This is not a new problem to Swift. We can write a similar example
+using a constrained extension and non-conditional conformances:
 
 ```swift
-extension Collection: Equatable where Iterator.Element: Equatable {
-  static func ==(lhs: Self, rhs: Self) -> Bool {
-    // ...
+protocol P {
+  func f()
+}
+
+protocol Q: P { }
+
+struct X3<T> { }
+
+extension X3: Q {
+  func f() {
+    // #1: basic implementation of 'f()'
   }
 }
+
+extension X3 where T: R {
+  func f() {
+    // #2: superfast implementation of f() using some knowledge of 'R'
+  }
+}
+
+// note: compiler implicitly creates conformance `X3: P` equivalent to
+//   extension X3: P { }
+
+struct X2: R {
+  func f() { }
+}
+
+(X3<X2>() as P).f() // calls #1, which was used to satisfy the requirement for 'f'
+X3<X2>().f()        // calls #2, which is preferred by overload resolution
 ```
 
-This protocol extension will make any `Collection` of `Equatable` elements `Equatable`, which is a powerful feature that could be put to good use. Introducing conditional conformances for protocol extensions would exacerbate the problem of overlapping conformances, because it would be unreasonable to say that the existence of the above protocol extension means that no type that conforms to `Collection` could declare its own conformance to `Equatable`, conditional or otherwise.
-
-There are several potential solutions to the problem of overlapping conformances (e.g., admitting some form of overlapping conformances that can be resolved at runtime or introducing the notion of conformances that cannot be queried a runtime), but the feature is large enough to warrant a separate proposal that explores the solutions in greater depth.
+That said, the introduction of conditional conformances might increase
+the likelihood of these problems surprising developers.
