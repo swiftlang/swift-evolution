@@ -52,6 +52,7 @@ if unwrap foo {
 	foo.someValue = "Foo"
 }
 ```
+This keyword can be used anywhere that a conditional can normally be used, as well as within `case` statements.
 
 ### Unwrapping Properties
 
