@@ -13,37 +13,98 @@ Swift-evolution thread: [Discussion thread topic for that proposal](http://news.
 
 ## Motivation
 
-Currently when dealing with optionals it is necessary to use conditional binding to extract an unwrapped version of a variable; this is fine when dealing with a copy, but introduces a number of awkward cases when mutability is required, especially if when the original variable is shadowed at the same time.
+Currently when dealing with `Optionals` it is necessary to use conditional binding to extract an unwrapped version of a variable; this is fine when dealing with a copy, but introduces a number of awkward cases when mutability is required, especially when the original variable is shadowed at the same time.
 
 Example with shadowing:
 ```
 var foo:T? = getValueFromSomewhere()
 if var foo = foo {
 	print(foo.someValue)
-	foo.someMutatingMethod() // shadowed value of foo is mutated, not the original!
-	foo = nil // can't do this
+	foo.someMutatingMethod()
+	foo.someValue = "Foo"
 }
 ```
+In the above example the copy is mutated, rather than the original (if `T` is a struct).
 
-Example with copy:
+Example without shadowing:
 ```
 var foo:T? = getValueFromSomewhere()
 if let thisFoo = foo {
-	print(foo.someValue)
-  foo!.someMutatingMethod() // modifies original
-  foo = nil // now works
+	print(thisFoo.someValue)
+	foo!.someMutatingMethod()
+	foo!.someValue = "Foo"
 }
 ```
+In this example we have to use force unwrapping multiple times, even though we know that `foo` is not-nil.
 
 ## Proposed solution
 
-The proposed solution for both optionals and polymorphism is type-narrowing, simply the concept of explicitly refining a type to work with a more specific (narrower) form more conveniently.
+The proposed solution is to introduce a new `unwrap` keyword (or similar). This will explicitly check that a variable is non-`nil` and allow the value to be mutated directly.
 
 ## Detailed design
 
+The `unwrap` keyword will be usable on any `Optional` variable or property, causing it to behave as a non-`Optional` within that scope. If the variable was immutable, then its unwrapped form remains immutable. To demonstrate with the above example:
+```
+var foo:T? = getValueFromSomewhere()
+if unwrap foo {
+	print(foo.someValue)
+	foo.someMutatingMethod()
+	foo.someValue = "Foo"
+}
+```
+
+### Unwrapping Properties
+
+An advantage of unwrapping is that it doesn't just apply to simple variables, but also to properties of types, enabling the following:
+```
+struct Foo { var value:T? }
+var foo:Foo = getValueFromSomewhere()
+if unwrap foo.value {
+	print(foo.value)
+	foo.value.someMutatingMethod()
+	foo.value.someValue = "Foo"
+}
+```
+
+### Classes and Concurrency
+
+Unwrapping of classes is not permitted with the default `unwrap` keyword, as this represents a possible concurrency issue if a value unwrapped by the current thread were modified by another. To unwrap a class therefore requires a force operator like so:
+```
+class Foo { var value:T? }
+var foo:Foo = getClassInstanceFromSomewhere()
+if unwrap! foo.value {
+	print(foo.value)
+	foo.value.someMutatingMethod()
+	foo.value.someValue = "Foo"
+}
+```
+Behind the scenes all operations on a variable force unwrapped in this way behave as if using the normal force unwrap operator. The difference here however is that we know that these operations **should** be safe in a single threaded environment, thus if they do fail at runtime Swift is now able to generate a more informative concurrent modification error.
+
+### `nil` assignment
+
+Once unwrapped it is no longer possible to assign a value of `nil` or an `Optional` to the original variable as normal; this is because the unwrapped variable may itself be an `Optional`, thus assigning `nil` or an `Optional` would alter the unwrapped value (if possible), rather than the original. Consider:
+```
+var foo:T?? = getValueFromSomewhere()
+if unwrap foo { // foo is now T? rather than T??
+	foo = nil
+}
+print(foo) // Prints Optional(nil), not nil
+```
+In order to assign `nil` or an `Optional` to the original variable after it was unwrapped we must instead use a force operator to assign it. In addition to assigning to the original variable, this also "breaks" the unwrap, causing the type of the variable to revert unless it is unwrapped again. For example:
+```
+var foo:T? = getValueFromSomewhere()
+if unwrap foo { // foo is now type T
+	foo = nil! // sets original value to nil and breaks unwrapping
+	foo.someMethod() // will not compile, as type is once again T?
+}
+```
 
 ## Impact on existing code
 
+This change is purely additive.
+
+However with this feature implemented it may be desirable to make variable shadowing a warning, particularly in the case of shadowing with a mutable variable, as it should no longer be necessary.
 
 ## Alternatives considered
 
+This feature is primarily intended to replace the alternative, namely variable shadowing which, though it works, can be a bit confusing and isn't necessarily the best way to handle optionals in more complex cases. 
