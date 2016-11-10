@@ -281,9 +281,9 @@ extension Y: S where T: S { }
 ```
 
 The conformances of `Y: R` and `Y: S` both imply the conformance
-`X: P`. Note that the constraints `T: R` are less specialized (more
+`Y: P`. Note that the constraints `T: R` are less specialized (more
 general) than the constraints `T: S`, because every `S` is also an
-`R`. Therefore, `X` will conform to `P` when `T: S`, e.g.:
+`R`. Therefore, `Y` will conform to `P` when `T: S`, e.g.:
 
 ```swift
 /// compiler produces the following implied inherited conformance:
