@@ -74,6 +74,24 @@ if foo.value is T {
 }
 ```
 
+### Branches
+
+When branching occurs in code, a variable may end with a different stack for each branch depending how it is use, these last until the end of the block at which point the stacks are recombined with a common ancestor type. For example:
+
+```
+struct A {}
+struct B : A { func someMethodSpecificToB() {}}
+struct C : B { func someMethodSpecificToC() {}}
+
+var foo:A = getValueFromSomewhere()
+if foo is C { // foo is now type C
+    foo.someMethodSpecificToC()
+} else if foo is B { // foo is now type B
+    foo.someMethodSpecificToB()
+} else { return }
+// foo is type B, as this is common to all branches that can reach this point
+```
+
 ### Classes and Concurrency
 
 Implicit type-narrowing is only permitted on value types; this because narrowing of a reference type by the current thread could potentially be broken by another, leading to inconsistent values. However, narrowing can still be performed explicitly by using a force operator like so:
