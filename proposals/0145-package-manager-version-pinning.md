@@ -3,7 +3,8 @@
 * Proposal: [SE-0145](0145-package-manager-version-pinning.md)
 * Author: [Daniel Dunbar](https://github.com/ddunbar), [Ankit Aggarwal](https://github.com/aciidb0mb3r), [Graydon Hoare](https://github.com/graydon)
 * Review Manager: [Anders Bertelrud](https://github.com/abertelrud)
-* Status: **Active Review (October 31...November 4)**
+* Status: **Rejected** (will be brought back after incorporating community feedback)
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20161107/028758.html)
 
 ## Introduction
 
