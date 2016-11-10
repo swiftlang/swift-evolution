@@ -56,10 +56,11 @@ Here we see that `foo` is modifiable directly as type `T`. Use of `is` in this w
 ### Narrowing Triggers
 
 The following initial triggers for narrowing are proposed:
-| Trigger | Description |
-|---------|---------------|
-| `is`    | Explicitly narrows a variable to whichever type it is confirmed to be. |
-| `=`     | Assigning a new value to a variable signals to the type-checker that the variable is now of that type. |
+
+Trigger | Description
+--------|---------------
+`is`    | Explicitly narrows a variable to whichever type it is confirmed to be. |
+`=`     | Assigning a new value to a variable signals to the type-checker that the variable is now of that type. |
 
 ### Narrowing Properties
 
