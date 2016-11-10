@@ -42,7 +42,7 @@ if let _ = dict["one"] {
 
 These approaches provide the expected performance of a dictionary lookup but they read neither well nor "Swifty". Checking the `keys` view reads much better but introduces a serious performance penalty: this approach requires a linear search through a dictionary's keys to find a match.
 
-```
+```swift
 if dict.keys.contains("one") {
     // ...
 }
