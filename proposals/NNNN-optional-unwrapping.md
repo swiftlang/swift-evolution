@@ -79,7 +79,9 @@ if unwrap! foo.value {
 	foo.value.someValue = "Foo"
 }
 ```
-Behind the scenes all operations on a variable force unwrapped in this way behave as if using the normal force unwrap operator. The difference here however is that we know that these operations **should** be safe in a single threaded environment, thus if they do fail at runtime Swift is now able to generate a more informative concurrent modification error.
+Behind the scenes all operations on a variable force unwrapped in this way behave as if using the normal force unwrap operator. The difference here however is that as we know that these operations **should** be safe we can now give a more specific runtime error that can point to the potential error being the result of either mutation or concurrent modification.
+
+**NOTE**: The use of a reference type at any level disqualifies force unwrapping, so in the example above `foo.value` cannot be unwrapped normally because `foo` is a reference type, even though `value` isn't.
 
 ### `nil` assignment
 
