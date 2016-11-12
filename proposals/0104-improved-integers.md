@@ -6,6 +6,7 @@
 * Status: **Accepted**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000206.html)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/0440700fc555a6c72abb4af807c8b79fb1bec592/proposals/0104-improved-integers.md)
+* Bug: [SR-3196](https://bugs.swift.org/browse/SR-3196)
 
 ## Introduction
 
