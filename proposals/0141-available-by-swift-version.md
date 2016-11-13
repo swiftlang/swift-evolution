@@ -3,7 +3,7 @@
 * Proposal: [SE-0141](0141-available-by-swift-version.md)
 * Author: [Graydon Hoare](https://github.com/graydon)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted**
+* Status: **Implemented (Swift 3.1)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20161003/027604.html)
 * Bug: [SR-2709](https://bugs.swift.org/browse/SR-2709)
 
