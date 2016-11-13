@@ -42,7 +42,7 @@
 <proposal id="0039" status="implemented" swift-version="3" name="Modernizing Playground Literals" filename="0039-playgroundliterals.md"/>
 <proposal id="0040" status="implemented" swift-version="3" name="Replacing Equal Signs with Colons For Attribute Arguments" filename="0040-attributecolons.md"/>
 <proposal id="0041" status="rejected" name="Updating Protocol Naming Conventions for Conversions" filename="0041-conversion-protocol-conventions.md"/>
-<proposal id="0042" status="accepted" name="Flattening the function type of unapplied method references" filename="0042-flatten-method-types.md"/>
+<proposal id="0042" status="implementing" name="Flattening the function type of unapplied method references" filename="0042-flatten-method-types.md"/>
 <proposal id="0043" status="implemented" swift-version="3" name="Declare variables in 'case' labels with multiple patterns" filename="0043-declare-variables-in-case-labels-with-multiple-patterns.md"/>
 <proposal id="0044" status="implemented" swift-version="3" name="Import as Member" filename="0044-import-as-member.md"/>
 <proposal id="0045" status="implemented" swift-version="3.1" name="Add prefix(while:) and drop(while:) to the stdlib" filename="0045-scan-takewhile-dropwhile.md"/>
@@ -75,12 +75,12 @@
 <proposal id="0072" status="implemented" swift-version="3" name="Fully eliminate implicit bridging conversions from Swift" filename="0072-eliminate-implicit-bridging-conversions.md"/>
 <proposal id="0073" status="rejected" name="Marking closures as executing exactly once" filename="0073-noescape-once.md"/>
 <proposal id="0074" status="rejected" name="Implementation of Binary Search functions" filename="0074-binary-search.md"/>
-<proposal id="0075" status="accepted" name="Adding a Build Configuration Import Test" filename="0075-import-test.md"/>
+<proposal id="0075" status="implementing" name="Adding a Build Configuration Import Test" filename="0075-import-test.md"/>
 <proposal id="0076" status="implemented" swift-version="3" name="Add overrides taking an UnsafePointer source to non-destructive copying methods on UnsafeMutablePointer" filename="0076-copying-to-unsafe-mutable-pointer-with-unsafe-pointer-source.md"/>
 <proposal id="0077" status="implemented" swift-version="3" name="Improved operator declarations" filename="0077-operator-precedence.md"/>
 <proposal id="0078" status="deferred" name="Implement a rotate algorithm, equivalent to std::rotate() in C++" filename="0078-rotate-algorithm.md"/>
 <proposal id="0079" status="deferred" name="Allow using optional binding to upgrade `self` from a weak to strong reference" filename="0079-upgrade-self-from-weak-to-strong.md"/>
-<proposal id="0080" status="accepted" name="Failable Numeric Conversion Initializers" filename="0080-failable-numeric-initializers.md"/>
+<proposal id="0080" status="implementing" name="Failable Numeric Conversion Initializers" filename="0080-failable-numeric-initializers.md"/>
 <proposal id="0081" status="implemented" swift-version="3" name="Move `where` clause to end of declaration" filename="0081-move-where-expression.md"/>
 <proposal id="0082" status="accepted" name="Package Manager Editable Packages" filename="0082-swiftpm-package-edit.md"/>
 <proposal id="0083" status="deferred" name="Remove bridging conversion behavior from dynamic casts" filename="0083-remove-bridging-from-dynamic-casts.md"/>
@@ -104,7 +104,7 @@
 <proposal id="0101" status="implemented" swift-version="3" name="Reconfiguring `sizeof` and related functions into a unified `MemoryLayout` struct" filename="0101-standardizing-sizeof-naming.md"/>
 <proposal id="0102" status="implemented" swift-version="3" name="Remove `@noreturn` attribute and introduce an empty `Never` type" filename="0102-noreturn-bottom-type.md"/>
 <proposal id="0103" status="implemented" swift-version="3" name="Make non-escaping closures the default" filename="0103-make-noescape-default.md"/>
-<proposal id="0104" status="accepted" name="Protocol-oriented integers" filename="0104-improved-integers.md"/>
+<proposal id="0104" status="implementing" name="Protocol-oriented integers" filename="0104-improved-integers.md"/>
 <proposal id="0105" status="rejected" name="Removing Where Clauses from For-In Loops" filename="0105-remove-where-from-forin-loops.md"/>
 <proposal id="0106" status="implemented" swift-version="3" name="Add a `macOS` Alias for the `OSX` Platform Configuration Test" filename="0106-rename-osx-to-macos.md"/>
 <proposal id="0107" status="implemented" swift-version="3" name="UnsafeRawPointer API" filename="0107-unsaferawpointer.md"/>
@@ -141,7 +141,7 @@
 <proposal id="0138" status="implemented" swift-version="3.0.1" name="UnsafeRawBufferPointer" filename="0138-unsaferawbufferpointer.md"/>
 <proposal id="0139" status="implemented" swift-version="3.0.1" name="Bridge Numeric Types to `NSNumber` and Cocoa Structs to `NSValue`" filename="0139-bridge-nsnumber-and-nsvalue.md"/>
 <proposal id="0140" status="implemented" swift-version="3.0.1" name="Bridge `Optional` As Its Payload Or `NSNull`" filename="0140-bridge-optional-to-nsnull.md"/>
-<proposal id="0141" status="accepted" swift-version="4" name="Availability by Swift version" filename="0141-available-by-swift-version.md"/>
+<proposal id="0141" status="implemented" swift-version="3.1" name="Availability by Swift version" filename="0141-available-by-swift-version.md"/>
 <proposal id="0142" status="accepted" swift-version="4" name="Permit where clauses to constrain associated types" filename="0142-associated-types-constraints.md"/>
 <proposal id="0143" status="active" swift-version="4" name="Conditional conformances" filename="0143-conditional-conformances.md"/>
 <proposal id="0144" status="rejected" swift-version="4" name="Allow Single Dollar Sign as a Valid Identifier" filename="0144-allow-single-dollar-sign-as-valid-identifier.md"/>
@@ -149,7 +149,7 @@
 
 <!--
 Recognized values for a proposal's status:
-	implemented, accepted, active, scheduled, awaiting, deferred, returned, rejected, withdrawn
+	implemented, implementing, accepted, active, scheduled, awaiting, deferred, returned, rejected, withdrawn
 
 Note: status="implemented" also requires swift-version="XX".
 -->

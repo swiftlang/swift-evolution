@@ -39,6 +39,11 @@
         </xsl:call-template>
 
         <xsl:call-template name="section">
+          <xsl:with-param name="title">Implementation in progress</xsl:with-param>
+          <xsl:with-param name="proposals" select="proposal[@status='implementing']"/>
+        </xsl:call-template>
+
+        <xsl:call-template name="section">
           <xsl:with-param name="title">Implemented (Swift 4)</xsl:with-param>
           <xsl:with-param name="proposals" select="proposal[@status='implemented'][@swift-version='4']"/>
         </xsl:call-template>
@@ -245,6 +250,10 @@
       }
       a.number.status-implemented {
         background-color: #319021;
+      }
+      a.number.status-implementing {
+        background-color: #5abc4e;
+        background: repeating-linear-gradient(135deg, #5abc4e, #5abc4e 14.29%, #319021 14.29%, #319021 28.57%);
       }
       a.number.status-accepted {
         background-color: #5abc4e;
