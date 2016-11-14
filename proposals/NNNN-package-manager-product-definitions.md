@@ -2,7 +2,7 @@
 
 * Proposal: [SE-NNNN](NNNN-package-manager-product-definitions.md)
 * Author: [Anders Bertelrud](https://github.com/abertelrud)
-* Status: **Awaiting review**
+* Status: **Awaiting Review**
 * Review manager: TBD
 
 ## Introduction
@@ -13,11 +13,11 @@ Swift-evolution thread: [Discussion thread topic for that proposal](http://news.
 
 ## Motivation
 
-Currently, the Swift Package Manager has only a limited notion of the products that are built for a package.  It has a set of rules by which it infers implicit products based on the contents of the targets in the package, and it also has a small amount of undocumented, unsupported package manifest syntax for explicitly declaring products, but it provides no supported way for package authors to declare what their packages produce.
+Currently, the Swift Package Manager has only a limited notion of the products that are built for a package.  It does have a set of rules by which it infers implicit products based on the contents of the targets in the package, and it also has a small amount of undocumented, unsupported package manifest syntax for explicitly declaring products, but it provides no supported way for package authors to declare what their packages produce.
 
 Also, while the Swift Package Manager currently supports dependencies between packages, it has no support for declaring a dependency on anything more fine-grained than a package.
 
-Such fine-grained dependencies are often desired, and this desire has in the past been expressed as a request for the ability to define a dependency on an arbitrary target in a package.  That, in turn, leads to requests to provide access control for targets, since a package author may want control over which targets can be independently accessed from outside the package.
+Such fine-grained dependencies are often desired, and this desire has in the past been expressed as a request for the ability to declare a dependency on an arbitrary target in a package.  That, in turn, leads to requests to provide access control for targets, since a package author may want control over which targets can be independently accessed from outside the package.
 
 Even if visibility control for targets were to be provided (indeed, an early draft of the package manifest syntax had the notion of "publishing" a target to external clients), there would still be no way for the package author to declare anything about the kind of product that should be built.
 
@@ -27,9 +27,9 @@ For example, consider the package for a component that has both a library API an
 
 Such a package would currently need to be split up into three separate packages in order to provide the appropriate dependency granularity:  one for the public library, another for the command line tools, and a third, private package to provide the shared implementation used by the other two packages.  In the case of a single conceptual component that should have a single version number, this fracturing into multiple packages is directly contrary to the developer's preferred manner of packaging.
 
-What is needed is a way to allow package authors to declare conceptually distinct products of a package, and to allow client packages to define dependencies on individual products in a package.
+What is needed is a way to allow package authors to define conceptually distinct products of a package, and to allow client packages to declare dependencies on individual products in a package.
 
-Furthermore, explicit product definitions allow the package author to control the types of artifacts produced from the targets in the package.  This can include such things as whether a library is built as a static or a dynamic library, and we expect that additional product types will be added over time to let package authors build more kinds of artifacts.
+Furthermore, explicit product definitions would allow the package author to control the types of artifacts produced from the targets in the package.  This would include such things as whether a library is built as a static archive or a dynamic library.  We expect that additional product types will be added over time to let package authors build more kinds of artifacts.
 
 ## Proposed solution
 
@@ -39,9 +39,9 @@ We will introduce a documented and supported concept of a package product, along
 
 A package will be able to define an arbitrary number of products that are visible to all direct clients of the package.  A product definition consists of a product type, a name (which must be unique among the products in the package), and the root targets that comprise the implementation of the product.  There may also be additional properties depending on the type of product (for example, a library may be static or dynamic).
 
-Any target may be included in multiple products, though not all kinds of targets are usable in any kind of product; for example, a test target is not able to be included in a library product.
+Any target may be included in multiple products, though not all kinds of targets are usable in every kind of product; for example, a test target is not able to be included in a library product.
 
-The products represent the publicly vended package outputs on which any client package can depend.  Other artifacts might also be created as part of building the package, but what the products specifically define are the conceptual "outputs" of the package, i.e. those that make sense to think of as something a client package can depend on and use.  Examples of artifacts that are not necessarily products include built unit tests and helper tools that are used only during the build of the package.
+The products represent the publicly vended package outputs on which client packages can depend.  Other artifacts might also be created as part of building the package, but what the products specifically define are the conceptual "outputs" of the package, i.e. those that make sense to think of as something a client package can depend on and use.  Examples of artifacts that are not necessarily products include built unit tests and helper tools that are used only during the build of the package.
 
 An example of a package that defines two library products and one executable product:
 
@@ -53,12 +53,12 @@ let package = Package(
         Target(name: "HTTP", dependencies: ["Utils"]),
         Target(name: "ClientAPI", dependencies: ["HTTP", "Utils"]),
         Target(name: "ServerAPI", dependencies: ["HTTP"]),
-        Target(name: "ServerDaemon", dependencies: ["ServerAPI"])
+        Target(name: "ServerDaemon", dependencies: ["ServerAPI"]),
     ],
     products: [
-        Library(name: "ClientLib", type: .static, targets: ["ClientAPI"]),
-        Library(name: "ServerLib", type: .dynamic, targets: ["ServerAPI"]),
-        Executable(name: "myserver", targets: ["ServerDaemon"]),
+        .Library(name: "ClientLib", type: .static, targets: ["ClientAPI"]),
+        .Library(name: "ServerLib", type: .dynamic, targets: ["ServerAPI"]),
+        .Executable(name: "myserver", targets: ["ServerDaemon"]),
     ]
 )
 ```
@@ -67,7 +67,7 @@ The initial types of products that can be defined are executables and libraries.
 
 Note that tests are not considered to be products, and do not need to be explicitly defined.
 
-A product definition lists the root targets to include in the product; for product types that vend interfaces (e.g. libraries), the root targets are those whose modules will be available to clients.  Any dependencies of those targets will also be included in the product, but won't be made visible to clients.  The Swift compiler does not currently provide this granularity of module visibility control, but the set of root targets still constitutes a declaration of intent that can be used by IDEs and other tools.  We also hope that the compiler will one day support this level of visibility control.
+A product definition lists the root targets to include in the product; for product types that vend interfaces (e.g. libraries), the root targets are those whose modules will be available to clients.  Any dependencies of those targets will also be included in the product, but won't be made visible to clients.  The Swift compiler does not currently provide this granularity of module visibility control, but the set of root targets still constitutes a declaration of intent that can be used by IDEs and other tools.  We also hope that the compiler will one day support this level of visibility control.  See [SR-3205](https://bugs.swift.org/browse/SR-3205) for more details.
 
 For example, in the package definition shown above, the library product `ClientLib` would only vend the interface of the `ClientAPI` module to clients.  Since `ClientAPI` depends on `HTTP` and `Utilities`, those two targets would also be compiled and linked into `ClientLib`, but their interfaces should not be visible to clients of `ClientLib`.
 
@@ -119,6 +119,8 @@ let package = Package(
     
 The package name is the canonical name of the package, as defined in the manifest of the package that defines the product.  The product name is the name specified in the product definition of that same manifest.
 
+The package name is optional, since the product name is almost always unambiguous (and is frequently the same as the package name).  The package name must be specified if there is more than one product with the same name in the package graph (this does not currently work from a technical perspective, since Swift module names must currently be unique within the package graph).
+
 In order to continue supporting the convenience of being able to use plain strings as shorthand, and in light of the fact that most of the time the names of packages and products are unique enough to avoid confusion, we will extend the short-hand notation so that a string can refer to either a target or a product.
 
 The Package Manager will first try to resolve the name to a target in the same package; if there isn't one, it will instead to resolve it to a product in one of the packages specified in the `dependencies` parameter of the `Package()` initializer.
@@ -138,7 +140,7 @@ Package(
     providers: [SystemPackageProvider]? = nil,
     targets: [Target] = [],
     dependencies: [Package.Dependency] = [],
-    products: [Product]? = nil,
+    products: [Product] = [],
     exclude: [String] = []
 )
 ```
@@ -188,7 +190,7 @@ public final class Target {
         case Target(name: String)
         
         /// A dependency on a product from a package dependency.  The package name match the name of one of the packages named in a `.package()` directive.
-        case Product(name: String, package: String)
+        case Product(name: String, package: String?)
         
         /// A by-name dependency that resolves to either a target or a product, as above, after the package graph has been loaded.
         case ByName(name: String)
@@ -241,7 +243,7 @@ The very fact that it is so easy to change the set of products without modifying
 
 Also, as packages become more complex and new conceptual parts on which clients can depend are introduced, the interaction of implicit rules with the explicit product definitions can become very complicated.
 
-We plan to provide some of the convenience through tooling.  For example, an IDE (or `swift package` itself on the command line) can offer to add product definitions when it notices certain types of changes to the structure of the package.
+We plan to provide some of the convenience through tooling.  For example, an IDE (or `swift package` itself on the command line) can offer to add product definitions when it notices certain types of changes to the structure of the package.  We believe that having defined product types lets the tools present a lot better diagnostics and other forms of help to users, since it provides a clear statement of intent on the part of the package author.
 
 ### Distinguishing between target dependencies and product dependencies
 
