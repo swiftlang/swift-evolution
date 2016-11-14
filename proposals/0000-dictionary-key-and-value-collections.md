@@ -9,7 +9,7 @@
 
 This proposal addresses significant unexpected performance gaps when using dictionaries. It introduces type-specific collections for a `Dictionary` instance's `keys` and `values` properties.
 
-New `DictionaryKeys` and `DictionaryValues` collections provide efficient key lookup and mutable access to dictionary values, allowing in-place updates and copy-on-write optimization of stored values.
+New `DictionaryKeys` and `DictionaryValues` collections provide efficient key lookup and mutable access to dictionary values, allowing in-place updates and copy-on-write optimization of stored values. The addition of these new types impacts the standard library ABI, since we won't be able to use types aliases from the existing types for `keys` and `values`.
 
 Swift-evolution thread: [[Proposal Draft] Provide Custom Collections for Dictionary Keys and Values](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20161010/027815.html)
 
