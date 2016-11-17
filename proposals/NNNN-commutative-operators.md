@@ -1,6 +1,6 @@
 # Commutative operators
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-NNNN](NNNN-commutative-operators.md)
 * Authors: [Andrey Volodin](https://github.com/s1ddok)
 * Review Manager: TBD
 * Status: **Awaiting review**
@@ -28,7 +28,7 @@ Currently you declare commutative operators like so:
 
 (code examples from our math library, declaring custom Angle struct for type-safety)
 
-```
+```swift
     @inline(__always)
     public static func *(lhs: Angle, rhs: Float) -> Angle {
         return Angle(lhs.degrees * rhs)
@@ -45,7 +45,7 @@ Most of the time you have to write your oprator twice, or proxy one operator to 
 The proposed solution is to add `@commutative` attribute. This one should optional, because not everyone needs operator to be commutative (`Matrix * Vector`). All operators should be non-commutative by default.
 
 So that operator can be declared like this:
-```
+```swift
     @inline(__always)
     @commutative
     public static func *(lhs: Angle, rhs: Float) -> Angle {
