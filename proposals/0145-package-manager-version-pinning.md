@@ -111,8 +111,8 @@ We will also provide an explicit mechanism by which package authors can opt out
 of the automatic pinning default for their package.
 
 The pins file will *not* override manifest specified version requirements and it
-will be an error (with proper diagnostics) if there is a conflict between the
-pins and the manifest specification.
+will be a warning if there is a conflict between the pins and the manifest
+specification.
 
 The pins file will also not influence dependency resolution for dependent packages;
 for example if application A depends on library B which in turn depends on library C,
@@ -135,9 +135,9 @@ library B when deciding which version of library C to use.
 	* `$ swift package pin Foo` - pins `Foo` at current resolved version.
 	* `$ swift package pin Foo 1.2.3` - pins `Foo` at 1.2.3. The specified version should be valid and resolvable.
 
-  The `--reason` option is an optional argument to document the reason for pinning a dependency. This could be helpful for user to later remember why a dependency was pinned. Example:   
+  The `--message` option is an optional argument to document the reason for pinning a dependency. This could be helpful for user to later remember why a dependency was pinned. Example:   
  
-	`$ swift package pin Foo --reason "The patch updates for Foo are really unstable and need screening."`
+	`$ swift package pin Foo --message "The patch updates for Foo are really unstable and need screening."`
 
   NOTE: When we refer to dependencies in the context of pinning, we are
   referring to *all* dependencies of a package, i.e. the transitive closure of
@@ -178,7 +178,7 @@ library B when deciding which version of library C to use.
 	$ swift package update [--repin]
 	```
 
-	* Update command errors if there are no unpinned packages which can be updated.
+	* The update command will warn if there are no unpinned packages which can be updated.
 
 	* Otherwise, the behavior is to update all unpinned packages to the latest possible versions which can be resolved while respecting the existing pins.
 
