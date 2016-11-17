@@ -103,12 +103,12 @@ dependency resolution (e.g., on the initial checkout or when updating).
 In the absence of a top-level `Package.pins` file, the package manager will
 operate based purely on the requirements specified in the package manifest, but
 will then automatically record the choices it makes into a `Package.pins` file
-as part of the "auto-pinning" feature. The goal of this behavior is to encourage
-reproducible behavior among package authors who share the pin file (typically by
-checking it in).
+as part of the "automatic pinning" feature. The goal of this behavior is to
+encourage reproducible behavior among package authors who share the pin file
+(typically by checking it in).
 
 We will also provide an explicit mechanism by which package authors can opt out
-of the "auto-pinning" default for their package.
+of the automatic pinning default for their package.
 
 The pins file will *not* override manifest specified version requirements and it
 will be an error (with proper diagnostics) if there is a conflict between the
@@ -146,14 +146,20 @@ library B when deciding which version of library C to use.
   behavior for the closure of the dependencies outside of them being named in
   the manifest.
    
-2. We will add two additional commands to `pin` as part of the "auto-pinning" workflow (see below):
+2. We will add two additional commands to `pin` as part of the automatic pinning
+   workflow (see below):
 
 	```
 	$ swift package pin ( [--enable-autopin] | [--disable-autopin] )
 	```
 
-   These will enable or disable auto-pinning for the package (this state is
+   These will enable or disable automatic pinning for the package (this state is
    recorded in the `Package.pins` file).
+
+   These commands are verbose, but the expectation is that they are very
+   infrequently run, just to establish the desired behavior for a particular
+   project, and then the pin file (containing this state) is checked in to
+   source control.
 
 3. We will add a new command `unpin`:
 
@@ -161,6 +167,8 @@ library B when deciding which version of library C to use.
 	$ swift package unpin ( [--all] | [<package-name>] )
 	``` 
 	This is the counterpart to the pin command, and unpins one or all packages.
+
+   It is an error to attempt to `unpin` when automatic pinning is enabled.
 
 4. We will fetch and resolve the dependencies when running the pin commands, in case we don't have the complete dependency graph yet.
 
@@ -215,6 +223,13 @@ as follows:
    example, it is not possible to `unpin` and attempts to do so will produce an
    error.
 
+Since package pin information is **not** inherited across dependencies, our
+recommendation is that packages which are primarily intended to be consumed by
+other developers either *disable* automatic pinning or put the `Package.pins`
+file into `.gitignore`, so that users are not confused why they get different
+versions of dependencies that are those being used by the library authors while
+they develop.
+
 
 ## Future Directions
 
@@ -230,7 +245,24 @@ There will be change in the behaviors of `swift build` and `swift package update
 
 ## Alternative considered
 
+### Minimal pin feature set
+
+A prior version of this proposal did not pin by default. Since this proposal
+includes this behavior, we could in theory eliminate the fine grained pinning
+feature set we expose, like `package pin <name>` and `package unpin`.
+
+However, we believe it is important for package authors to retain a large amount
+of control over how their package is developed, and we wish the community to
+aspire to following semantic versioning strictly. For that reason, we wanted to
+support mechanisms so that package authors wishing to follow this model could
+still pin individual dependencies.
+
+
 ### Pin by default
+
+_This discussion is historical, from a prior version of a proposal which did not
+include the automatic pinning behavior; which we altered the proposal for. We
+have left it in the proposal for historical context._
 
 Much discussion has revolved around a single policy-default question: whether
 SwiftPM should generate a pins file as a matter of course any time it
