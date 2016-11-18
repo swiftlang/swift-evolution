@@ -1,15 +1,13 @@
 # Package Manager Product Definitions
 
-* Proposal: [SE-NNNN](NNNN-package-manager-product-definitions.md)
+* Proposal: [SE-0146](0146-package-manager-product-definitions.md)
 * Author: [Anders Bertelrud](https://github.com/abertelrud)
-* Status: **Awaiting Review**
-* Review manager: TBD
+* Status: **Active Review (November 18...November 28)**
+* Review manager: Daniel Dunbar
 
 ## Introduction
 
 This proposal introduces the concept of *products* to the Swift Package Manager, and proposes enhancements to the `Package.swift` syntax to let packages define products that can be referenced by other packages.
-
-Swift-evolution thread: [Discussion thread topic for that proposal](http://news.gmane.org/gmane.comp.lang.swift.evolution)
 
 ## Motivation
 
