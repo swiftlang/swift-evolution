@@ -43,7 +43,7 @@ The products represent the publicly vended package outputs on which client packa
 
 An example of a package that defines two library products and one executable product:
 
-```
+```swift
 let package = Package(
     name: "MyServer",
     targets: [
@@ -87,19 +87,19 @@ To see how this works, remember that each string listed for the `dependencies` p
     
 For example, the target definition:
     
-```
+```swift
 Target(name: "Foo", dependencies: ["Bar", "Baz"])
 ```
     
 is shorthand for:
     
-```
+```swift
 Target(name: "Foo", dependencies: [.target(name: "Bar"), .target(name: "Baz")])
 ```
 
 This will be extended to support product dependencies in addition to target dependencies:
     
-```
+```swift
 let package = Package(
     name: "MyClientLib",
     dependencies: [
@@ -131,7 +131,7 @@ For both the shorthand form and the complete form of product references, the onl
 
 We will add a `products` parameter to the `Package()` initializer:
     
-```
+```swift
 Package(
     name: String,
     pkgConfig: String? = nil,
@@ -145,7 +145,7 @@ Package(
     
 The definition of the `Product` type will be:
    
-```
+```swift
 public enum Product {
     public class Executable {
         public init(name: String, targets: [String])
@@ -179,7 +179,7 @@ The rules for implicit products are the same as in SwiftPM 3:
 
 We will add a new enum case to the `TargetDependency` enum to represent dependencies on products, and another enum case to represent an unbound by-name dependency.  The string-literal conversion will create a by-name dependency instead of a target dependency, and there will be logic to bind the by-name dependencies to either target or product dependencies once the package graph has been resolved:
 
-```
+```swift
 public final class Target {
 
     /// Represents a target's dependency on another entity.
