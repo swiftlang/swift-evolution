@@ -185,7 +185,7 @@ library B when deciding which version of library C to use.
 
 	* The `[--repin]` argument can be used to lift the version pinning restrictions. In this case, the behavior is that all packages are updated, and packages which were previously pinned are then repinned to the latest resolved versions.
 
-   When automatic pinning is enabled, `package update` would be default have absolutely no effect without `--repin`. Thus, we will make `package update` act as if `--repin` was specified whenever automatic pinning is enabled. This is a special case, but we believe it is most likely to match what the user expects, and avoids have a command syntax which has no useful behavior in the automatic pinning mode.
+   When automatic pinning is enabled, `package update` would by default have absolutely no effect without `--repin`. Thus, we will make `package update` act as if `--repin` was specified whenever automatic pinning is enabled. This is a special case, but we believe it is most likely to match what the user expects, and avoids have a command syntax which has no useful behavior in the automatic pinning mode.
 
 6. The update and checkout will both emit logs, notifying the user that pinning is in effect.
 
