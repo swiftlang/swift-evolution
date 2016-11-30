@@ -2,8 +2,9 @@
 
 * Proposal: [SE-0146](0146-package-manager-product-definitions.md)
 * Author: [Anders Bertelrud](https://github.com/abertelrud)
-* Status: **Active Review (November 18...November 28)**
 * Review manager: Daniel Dunbar
+* Status: **Accepted**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-November/000298.html)
 
 ## Introduction
 
