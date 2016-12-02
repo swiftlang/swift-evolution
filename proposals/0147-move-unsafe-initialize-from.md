@@ -5,20 +5,13 @@
 * Review Manager: TBD
 * Status: **Awaiting review**
 
-*During the review process, add the following fields as needed:*
-
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/), [Additional Commentary](https://lists.swift.org/pipermail/swift-evolution/)
-* Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM)
-* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
-* Previous Proposal: [SE-XXXX](XXXX-filename.md)
-
 ## Introduction
 
-The version of `UnsafeMutablePointer.initialize(from:)` that takes a `Collection` should be deprecated in favour of a new method on `UnsafeMutableBufferPointer` that takes a `Sequence`, with a goal of improving memory safety and enabling faster initialization of memory from sequences. Similarly, `UnsafeMutableRawPointer.initializeMemory(as:from:)` should be deprecated in favour of a new `UnsafeMutableRawBufferPointer.initialize(as:from:)`.
+The version of `UnsafeMutablePointer.initialize(from:)` that takes a `Collection` should be deprecated in favor of a new method on `UnsafeMutableBufferPointer` that takes a `Sequence`, with a goal of improving memory safety and enabling faster initialization of memory from sequences. Similarly, `UnsafeMutableRawPointer.initializeMemory(as:from:)` should be deprecated in favour of a new `UnsafeMutableRawBufferPointer.initialize(as:from:)`.
 
 ## Motivation
 
-`UnsafeMutablePointer.initialize(from:)` underpins implementations of collections, such as `Array`, which are backed by a buffer of contiguous memory. When operations such as `Array.append` are implemented, they first ensure their backing store can accommodate the number of elements in a source collection, then pass the that collection into the `initialize` method of their backing store.
+`UnsafeMutablePointer.initialize(from:)` underpins implementations of collections, such as `Array`, which are backed by a buffer of contiguous memory. When operations like `Array.append` are implemented, they first ensure their backing store can accommodate the number of elements in a source collection, then pass that collection into the `initialize` method of their backing store.
 
 Unfortunately there is a major flaw in this design: a collection's `count` might not accurately reflect the number of elements returned by its iterator. For example, some collections can be misused to return different results on each pass. Or a collection could just be implemented incorrectly.
 
@@ -41,11 +34,11 @@ a.append(contentsOf: c) // memory access violation
 
 While a collection returning an inconsistent count is a programming error (in this case, use of the lazy filter in combination with an logically impure function, breaking value semantics), and it would be reasonable for the standard library to trap under these circumstances, undefined behavior like this is not OK.
 
-In addition, the requirement to pre-allocate enough memory to accommodate `from.count` elements rules out using this method to initialize memory from a sequence, since sequences don't have a `count` property (they have an `underestimatedCount` but this isn't enough since underestimated counts are exactly the problem described above). The proposed solution would allow for this, enabling some internal performance optimizations.
+In addition, the requirement to pre-allocate enough memory to accommodate `from.count` elements rules out using this method to initialize memory from a sequence, since sequences don't have a `count` property (they have an `underestimatedCount` but this isn't enough since underestimated counts are exactly the problem described above). The proposed solution would allow for this, enabling some internal performance optimizations for generic code.
 
 ## Proposed solution
 
-The existing `initialize` method should be altered to receive a count of allocated memory to avoid running beyond what the caller has allocated. Given `UnsafeMutableBufferPointer` already exists to encapsulate "pointer plus a count", the method should be moved to that type and the old method deprecated.
+The existing `initialize` method should be altered to receive a capacity, to avoid running beyond what the caller has allocated. Since `UnsafeMutableBufferPointer` already exists to encapsulate "pointer plus a count", the method should be moved to that type and the old method deprecated.
 
 This new method should take a `Sequence` as its `from` argument, and handle possible element overflow, returning an `Iterator` of any elements not written due to a lack of space. It should also return an index into the buffer to indicate where the elements were written up to in cases of underflow.
 
@@ -55,9 +48,9 @@ The intention of this change is to add memory safety, not to allow the flexibili
 
 Therefore:
 
-- Under-allocating the destination buffer relative to `underEstimatedCount` may trap at runtime. _May_ rather than _will_ because this is an `O(n)` operation on some collections, so may only be enforced in debug builds.
-- Over-allocating the destination buffer relative to `underEstimatedCount` is valid and simply results in sequence underflow with potentially uninitialized buffer memory (a likely case with arrays that reserve more than they need).
-- The source sequence's actual count may exceed both `underEstimatedCount` and the destination buffer size, resulting in sequence overflow. This is also valid and handled by returning an iterator to the uncopied elements as an overflow sequence.
+- Under-allocating the destination buffer relative to `underestimatedCount` may trap at runtime. _May_ rather than _will_ because this is an `O(n)` operation on some collections, so may only be enforced in debug builds.
+- Over-allocating the destination buffer relative to `underestimatedCount` is valid and simply results in sequence underflow with potentially uninitialized buffer memory (a likely case with arrays that reserve more than they need).
+- The source sequence's actual count may exceed both `underestimatedCount` and the destination buffer size, resulting in sequence overflow. This is also valid and handled by returning an iterator to the uncopied elements as an overflow sequence.
 
 A matching change should also be made to `UnsafeRawBufferPointer.initializeMemory(from:)`. The one difference is that for convenience this should return an `UnsafeMutableBufferPointer` of the (typed) intialized elements instead of an index into the raw buffer.
 
@@ -126,10 +119,10 @@ extension UnsafeMutableRawBufferPointer {
 
 ```
 
-The `+=` operators and `append<C : Collection>(contentsOf newElements: C)` methods on `Array`, `ArraySlice` and `ContiguousArray` will be removed as no-longer needed, since the implementation that takes a sequence can be made to be as efficient. They can be replaced by a generic one that calls `RangeReplaceableCollection.append(contenstsOf:)`:
-  
+The `+=` operators and `append<C : Collection>(contentsOf newElements: C)` methods on `Array`, `ArraySlice` and `ContiguousArray` will be removed as no-longer needed, since the implementation that takes a sequence can be made to be as efficient. The `+=` can be replaced by a generic one that calls `RangeReplaceableCollection.append(contenstsOf:)`:
+
 (note, because it forwards on to a protocol requirement, it itself does not need to be a static operator protocol requirement)
-  
+
 ```swift
 /// Appends the elements of a sequence to a range-replaceable collection.
 ///
