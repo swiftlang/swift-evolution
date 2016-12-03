@@ -114,7 +114,7 @@ extension UnsafeMutableRawBufferPointer {
   @discardableResult
   public func initializeMemory<S: Sequence>(
      as: S.Iterator.Element.Type, from source: S
-  ) -> (unwritten: S.Iterator, initialized: UnsafeRawBufferPointer<S.Iterator.Element>)
+  ) -> (unwritten: S.Iterator, initialized: UnsafeMutableBufferPointer<S.Iterator.Element>)
 }
 
 ```
