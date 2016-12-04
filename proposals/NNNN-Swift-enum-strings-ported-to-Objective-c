@@ -7,7 +7,7 @@
 
 *During the review process, add the following fields as needed:*
 
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/), [Additional Commentary](https://lists.swift.org/pipermail/swift-evolution/)
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20161114/028950.html)
 * Previous Proposal: [SE-0033](0033-import-objc-constants.md)
 
 ## Introduction
@@ -70,19 +70,9 @@ return [[Planets alloc] initWithRawValue:@"Venus"];
 @end
 ```
 
-
-## Detailed design
-
-
-
 ## Source compatibility
 
-This will be an additive feature.  
-
-## Effect on ABI stability
-
-
-## Effect on API resilience
+This will be an additive feature and will not break anything existing.
 
 ## Alternatives considered
 
