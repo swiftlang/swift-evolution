@@ -145,7 +145,7 @@
 <proposal id="0142" status="accepted" swift-version="4" name="Permit where clauses to constrain associated types" filename="0142-associated-types-constraints.md"/>
 <proposal id="0143" status="accepted" swift-version="4" name="Conditional conformances" filename="0143-conditional-conformances.md"/>
 <proposal id="0144" status="rejected" swift-version="4" name="Allow Single Dollar Sign as a Valid Identifier" filename="0144-allow-single-dollar-sign-as-valid-identifier.md"/>
-<proposal id="0145" status="active" swift-version="4" name="Package Manager Version Pinning" filename="0145-package-manager-version-pinning.md"/>
+<proposal id="0145" status="accepted" swift-version="4" name="Package Manager Version Pinning" filename="0145-package-manager-version-pinning.md"/>
 <proposal id="0146" status="accepted" swift-version="4" name="Package Manager Product Definitions" filename="0146-package-manager-product-definitions.md"/>
 
 <!--
