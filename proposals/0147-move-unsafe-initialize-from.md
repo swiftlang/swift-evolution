@@ -15,7 +15,7 @@ The version of `UnsafeMutablePointer.initialize(from:)` that takes a `Collection
 
 Unfortunately there is a major flaw in this design: a collection's `count` might not accurately reflect the number of elements returned by its iterator. For example, some collections can be misused to return different results on each pass. Or a collection could just be implemented incorrectly.
 
-If the collection's `count` ends up being lower than the actual number of elements yielded by its iterator, the caller may not allocate enough memory for them. Since `UnsafeMutablePointer.initialize(from:)` does not receive a limiting capacity, this method would then scribble past the end of the buffer, resulting in undefined behaviour.
+If the collection's `count` ends up being lower than the actual number of elements yielded by its iterator, the caller may not allocate enough memory for them. Since `UnsafeMutablePointer.initialize(from:)` does not receive a limiting capacity, this method would then scribble past the end of the buffer, resulting in undefined behavior.
 
 Normally when using `Unsafe...` constructs in Swift the burden of ensuring safety falls on the caller. When using this method with something known to have correct behavior, like an `Array`, you can do that. But when used in a generic context like `Array.append(contentsOf:)`, where the caller of `initialize` does not know exactly what kind of collection they are passing in, it is impossible to use this method safely. You can see the impact of this by running the following code. which exhibits memory-unsafe behavior despite only using “safe” constructs from the standard library, something that shouldn’t be possible:
 
