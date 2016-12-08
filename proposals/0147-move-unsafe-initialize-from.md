@@ -2,8 +2,8 @@
 
 * Proposal: [SE-0147](0147-move-unsafe-initialize-from.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Active review** (December 7...12, 2016)
 
 ## Introduction
 
