@@ -7,7 +7,7 @@
 
 ## Introduction
 
-The version of `UnsafeMutablePointer.initialize(from:)` that takes a `Collection` should be deprecated in favor of a new method on `UnsafeMutableBufferPointer` that takes a `Sequence`, with a goal of improving memory safety and enabling faster initialization of memory from sequences. Similarly, `UnsafeMutableRawPointer.initializeMemory(as:from:)` should be deprecated in favour of a new `UnsafeMutableRawBufferPointer.initialize(as:from:)`.
+The version of `UnsafeMutablePointer.initialize(from:)` that takes a `Collection` should be deprecated in favor of a new method on `UnsafeMutableBufferPointer` that takes a `Sequence`, with a goal of improving memory safety and enabling faster initialization of memory from sequences. Similarly, `UnsafeMutableRawPointer.initializeMemory(as:from:)` should be deprecated in favor of a new `UnsafeMutableRawBufferPointer.initialize(as:from:)`.
 
 ## Motivation
 
