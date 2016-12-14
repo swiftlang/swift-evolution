@@ -117,14 +117,6 @@ would decide how to interpret them.
 
 ---
 
-Sometimes test sources cannot compile and fixing them is not the most
-pressing priority. Thus it will be possible to skip building tests
-with an additional flag:
-
-    swift build --without-tests
-
----
-
 It is desirable to sometimes specify to only build specific tests, the
 command line for this will fall out of future work that allows specification
 of targets that `swift build` should specifically build in isolation.
