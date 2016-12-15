@@ -34,10 +34,10 @@ protocol Sequence {
   // ...
   /// Returns a subsequence by skipping elements while `predicate` returns
   /// `true` and returning the remainder.
-  func drop(@noescape while predicate: (Self.Iterator.Element) throws -> Bool) rethrows -> Self.SubSequence
+  func drop(while predicate: (Self.Iterator.Element) throws -> Bool) rethrows -> Self.SubSequence
   /// Returns a subsequence containing the initial elements until `predicate`
   /// returns `false` and skipping the remainder.
-  func prefix(@noescape while predicate: (Self.Iterator.Element) throws -> Bool) rethrows -> Self.SubSequence
+  func prefix(while predicate: (Self.Iterator.Element) throws -> Bool) rethrows -> Self.SubSequence
 }
 ```
 
@@ -61,8 +61,8 @@ extension Sequence where
   SubSequence.Iterator.Element == Iterator.Element,
   SubSequence.SubSequence == SubSequence {
 
-  public func drop(@noescape while predicate: (Self.Iterator.Element) throws -> Bool) rethrows -> AnySequence<Self.Iterator.Element>
-  public func prefix(@noescape while predicate: (Self.Iterator.Element) throws -> Bool) rethrows -> AnySequence<Self.Iterator.Element>
+  public func drop(while predicate: (Self.Iterator.Element) throws -> Bool) rethrows -> AnySequence<Self.Iterator.Element>
+  public func prefix(while predicate: (Self.Iterator.Element) throws -> Bool) rethrows -> AnySequence<Self.Iterator.Element>
 }
 ```
 
@@ -75,8 +75,8 @@ Provide default implementations on `Collection` as well:
 
 ```swift
 extension Collection {
-  func drop(@noescape while predicate: (Self.Iterator.Element) throws -> Bool) rethrows -> Self.SubSequence
-  func prefix(@noescape while predicate: (Self.Iterator.Element) throws -> Bool) rethrows -> Self.SubSequence
+  func drop(while predicate: (Self.Iterator.Element) throws -> Bool) rethrows -> Self.SubSequence
+  func prefix(while predicate: (Self.Iterator.Element) throws -> Bool) rethrows -> Self.SubSequence
 }
 ```
 
