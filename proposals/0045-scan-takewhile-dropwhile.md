@@ -34,11 +34,9 @@ protocol Sequence {
   // ...
   /// Returns a subsequence by skipping elements while `predicate` returns
   /// `true` and returning the remainder.
-  @warn_unused_result
   func drop(@noescape while predicate: (Self.Iterator.Element) throws -> Bool) rethrows -> Self.SubSequence
   /// Returns a subsequence containing the initial elements until `predicate`
   /// returns `false` and skipping the remainder.
-  @warn_unused_result
   func prefix(@noescape while predicate: (Self.Iterator.Element) throws -> Bool) rethrows -> Self.SubSequence
 }
 ```
@@ -63,9 +61,7 @@ extension Sequence where
   SubSequence.Iterator.Element == Iterator.Element,
   SubSequence.SubSequence == SubSequence {
 
-  @warn_unused_result
   public func drop(@noescape while predicate: (Self.Iterator.Element) throws -> Bool) rethrows -> AnySequence<Self.Iterator.Element>
-  @warn_unused_result
   public func prefix(@noescape while predicate: (Self.Iterator.Element) throws -> Bool) rethrows -> AnySequence<Self.Iterator.Element>
 }
 ```
