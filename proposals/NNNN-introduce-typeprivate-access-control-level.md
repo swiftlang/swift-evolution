@@ -7,12 +7,14 @@ Author: [Gonçalo Alvarez](https://github.com/goncaloalvarez), [Álvaro Monteiro
 Status: **Proposed**  
 
 ## Introduction
-Access control modifiers are one of the cornerstones of Swift programming practices. They should be handled with great care. As a developer, one should dodge the path of massifying files with code whose responsible entity is the **Type** owning the file's real estate. Extensions do help in scoping the code and creating private contexts for better code structruing and readability. Extensions placed on another file should be able to access private members of such Type whenever they are **typeprivate**. 
+Access control modifiers are one of the cornerstones of Swift programming practices. Furthermore, proper usage of access control levels makes ground for proper API communication and clarity. They should be handled with great care. As a developer, one should dodge the path of massifying files with code whose responsible entity is the **Type** owning the file's real estate. Extensions do help in scoping the code and creating private contexts for better code structruing and readability. Extensions placed on another file should be able to access private members of such Type whenever they are **typeprivate**. 
 
 ## Motivation
-As a developer, it is a good practice to create extensions for *protocol compliance*, *private methods*, *public methods*, and code with a very clear and related responsability within the Type it belongs to.  
-It is also a good common practice to extend a Type's behaviour on separate files, either out of respect for context, or simply to improve code readability by reducing the size of the source file.  
+Excellence in software engineering is both achieved and backed by clear API communication. Access control levels are surely one of the driving forces for developers to communicate a clear and accurate API, granting access to a type's members or, on the other hand, hiding its details.
+Thus, as a developer, it is a good practice to create extensions for *protocol compliance*, *private methods*, *public methods*, and code with a very clear and related responsability within the Type it belongs to.  
+It is also good common practice to extend a Type's behaviour on separate files, either out of respect for context, or simply to improve code readability by reducing the size of the source file.  
 However, this raises an issue on accessing members of the *Reference Types* or *Value Types* whose access control modifier is more restrictive than *internal*, thus making it impossible to access or modify a *fileprivate* (and *private*) member on an extension placed other than within the source file for the Type in question. In fact, we believe there's too big a gap between this access control modifier and the one that follows in order of restrictiveness *fileprivate*.
+Also, we believe that having the scope of a member limited by file scope does does fall short in fitting a language design purpose as, in out opinion, a file is a compiler related construct which could, in turn, be replaced somewhere in time, thus leaving the “fileprivate” access member orphaned.
 
 **Case one**
 
@@ -95,15 +97,24 @@ extension MyViewController {
 Doing this would raise an error, since *gestureRecognizer* is a **fileprivate** member, whose access is not made available on a separate file.
 
 ## Proposed solution
-Allowing for the **typeprivate** access control modifier to fill in this gap, thus enabling members, whose access should not be internal, to be accessed on extensions placed some file else than the source file for a given Type.  
+Allowing for the **typeprivate** access control modifier to fill in this gap, thus enabling members, whose access should not be internal, to be accessed on extensions placed some file else than the source file for a given Type. 
+**Typeprivate** access would still be restricted to members within the same module. Opting to have its effect override **internal's** could raise several problems in defining each level of access responsibility.  
+
+**Typeprivate** does success in validating Apple's concerns regarding access control and protected members: 
+
+* *keep private details of a class hidden from the rest of the app*
+* *keep internal details of a framework hidden from the client app*
+
+Both these rules still get respected with the introduction of a new level of access control. typeprivate would not allow for member access within any other then the type itself.
+
 The proposed list of access control modifiers:  
 
-* **open**
-* **public**
-* **internal**
+* *open*
+* *public*
+* *internal*
 * **typeprivate**
-* **fileprivate**
-* **private**
+* *fileprivate*
+* *private*
 
 
 ***Changes to the code in Case one***
@@ -184,7 +195,9 @@ This would definitely result in better code readability and smaller files.
 
 ## Impact on existing code
  
-This change to the levels of access control modifiers is strictly additive, and does not break any existing code. It purely makes room for a more detailed specification of the access control each type member should have.
+This change to the levels of access control modifiers is strictly additive, and does not break any existing code. It purely makes room for a more detailed specification of the access control each type member should have. 
+Having had the chance to socialize this idea within the community, we do understand this is a topic of great concern to every developer, and a hard one to find consensus on. While we do believe this proposal could lead into further changes in the topic access control regarding protocol access levels or modules and submodules access control, we believe this is an atomic and robust step leading to a more fine grained structuring of access controls levels which, in turn, makes for better and clearer API communication and code readability and reusability strategies. 
+
 
 ## Alternatives considered
 
