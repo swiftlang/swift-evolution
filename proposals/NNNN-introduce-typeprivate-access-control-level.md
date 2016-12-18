@@ -196,7 +196,7 @@ This would definitely result in better code readability and smaller files.
 ## Impact on existing code
  
 This change to the levels of access control modifiers is strictly additive, and does not break any existing code. It purely makes room for a more detailed specification of the access control each type member should have. 
-Having had the chance to socialize this idea within the community, we do understand this is a topic of great concern to every developer, and a hard one to find consensus on. While we do believe this proposal could lead into further changes in the topic access control regarding protocol access levels or modules and submodules access control, we believe this is an atomic and robust step leading to a more fine grained structuring of access controls levels which, in turn, makes for better and clearer API communication and code readability and reusability strategies. 
+Having had the chance to socialise this idea within the community, we do understand this is a topic of great concern to every developer, and a hard one to find consensus on. While we do believe this proposal could lead into further changes in the topic access control regarding protocol access levels or modules and submodules access control, we believe this is an atomic and robust step leading to a more fine grained structuring of access controls levels which, in turn, makes for better and clearer API communication and code readability and reusability strategies. 
 
 
 ## Alternatives considered
