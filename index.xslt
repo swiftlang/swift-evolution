@@ -161,6 +161,7 @@
       }
       body {
         font-family: -apple-system, BlinkMacSystemFont, HelveticaNeue, Helvetica, Arial, sans-serif;
+        font-size: 16px;
         -webkit-text-size-adjust: none;
         word-break: break-word;
       }
@@ -185,8 +186,9 @@
         margin-bottom: 0.6em;
       }
       h2 {
+        font-size: 1.5em;
         margin: 0.5em 0em 0em;
-        padding: 0.3em 1rem 0.4em;
+        padding: 7px 1rem 10px;
         position: -webkit-sticky;
         position: -moz-sticky;
         position: -ms-sticky;
