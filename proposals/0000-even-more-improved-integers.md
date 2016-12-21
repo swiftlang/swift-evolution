@@ -9,16 +9,16 @@
 
 ## Introduction
 
-This proposal is an evolution of the [SE-0104][se104]. The goal is still to
-clean up Swifts integer APIs and make them more useful for generic programming.
+This proposal is an evolution of [SE-0104][se104]. The goal is still to clean up
+Swifts integer APIs and make them more useful for generic programming.
 
 The language has evolved in ways that affect integers APIs, since the time
-original proposal was approved for Swift 3. Besides, we attempted to implement
-the proposed model in The Standard Library and found that some essential APIs
+original proposal was approved for Swift 3. We also attempted to implement
+the proposed model in the standard library and found that some essential APIs
 were missing, whereas others could be safely removed.
 
 Major changes to the APIs introduced by this proposal (as compared to
-[SE-0104][se104]) will be listed in a [dedicated section](#major-differences-introduced-by-this-proposal).
+[SE-0104][se104]) are listed in a [dedicated section](#major-differences-introduced-by-this-proposal).
 
 ## Motivation
 
@@ -53,8 +53,8 @@ Currently, bit-shifting a negative number of (or too many) bits causes a trap
 on some platforms, which makes low-level bit manipulations needlessly dangerous
 and unpredictable.
 
-Finally, the current design predates many of the improvements that came in
-Swift 2, and hasn't been revised since then.
+Finally, the current design predates many of the improvements that came since
+Swift 1, and hasn't been revised since then.
 
 ## Proposed solution
 
@@ -68,23 +68,23 @@ more easily extensible.
         |       +-------------++  +---+---------+
         |                     ^       ^
 +-------+------------+        |       |
-|  SignedArithmetic  |      +-+-------+------+
-|     (unary -)      |      |  BinaryInteger |
-+------+-------------+      |  (words,%,...) |
-       ^                    ++---+-----+-----+
-       |         +-----------^   ^     ^-----------+
-       |         |               |                 |
-+------+---------++    +---------+-------------+  ++------------------+
-|  SignedInteger  |    |  FixedWidthInteger    |  |  UnsignedInteger  |
-|                 |    | (bitwise,overflow,...)|  |                   |
-+---------------+-+    +-+-----------------+---+  ++------------------+
-                ^        ^                 ^       ^
-                |        |                 |       |
-                |        |                 |       |
-               ++--------+-+             +-+-------+-+
-               |Int family |-+           |UInt family|-+
-               +-----------+ |           +-----------+ |
-                 +-----------+             +-----------+
+|  SignedArithmetic  |      +-+-------+-----------+
+|     (unary -)      |      |    BinaryInteger    |
++------+-------------+      |(words,%,bitwise,...)|
+       ^                    ++---+-----+----------+
+       |         +-----------^   ^     ^---------------+
+       |         |               |                     |
++------+---------++    +---------+---------------+  +--+----------------+
+|  SignedInteger  |    |  FixedWidthInteger      |  |  UnsignedInteger  |
+|                 |    |(endianness,overflow,...)|  |                   |
++---------------+-+    +-+--------------------+--+  +-+-----------------+
+                ^        ^                    ^       ^
+                |        |                    |       |
+                |        |                    |       |
+               ++--------+-+                +-+-------+-+
+               |Int family |-+              |UInt family|-+
+               +-----------+ |              +-----------+ |
+                 +-----------+                +-----------+
 ~~~~
 
 
@@ -99,19 +99,18 @@ There are several benefits provided by this model over the old one:
 
 - It removes the overload resolution overhead.
 
-  Arithmetic and bitwise operations can now be defined as free functions
-  delegating work to concrete types. This approach significantly reduces the
-  number of overloads for those operations, which used to be defined for every
-  single concrete integer type.
+  Arithmetic and bitwise operations can now be defined as generic operators on
+  protocols. This approach significantly reduces the number of overloads for
+  those operations, which used to be defined for every single concrete integer
+  type.
 
 - It enables protocol sharing between integer and floating point types.
 
   Note the exclusion of the `%` operation from `Arithmetic`. Its behavior for
   floating point numbers is sufficiently different from the one for integers
   that using it in generic context would lead to confusion. The `FloatingPoint`
-  protocol introduced by
-  [SE-0067](0067-floating-point-protocols.md)
-  should now refine `SignedArithmetic`.
+  protocol introduced by [SE-0067](0067-floating-point-protocols.md) should now
+  refine `SignedArithmetic`.
 
 - It makes future extensions possible.
 
@@ -122,7 +121,7 @@ There are several benefits provided by this model over the old one:
   methods. Together these changes can be used to provide an efficient
   implementation of bignums that would be hard to achieve otherwise.
 
-The attempted implementation in The Standard Library is available
+The implementation of proposed model in the standard library is available
 [in the new-integer-protocols branch][impl].
 
 ### A note on bit shifts
@@ -145,9 +144,9 @@ In most scenarios, the right hand operand is a literal constant, and branches
 for handling under- and over-shift cases can be optimized away.  For other
 cases, this proposal provides *masking shifts*, implemented by `&>>` and `&<<`.
 A masking shift logically preprocesses the right hand operand by masking its
-bits to produce a value in the range `0...(x-1)` where `x` is the number of
-bits in the left hand operand.  On most architectures this masking is already
-performed by the CPU's shift instructions and has no cost.  Both kinds of shift
+bits to produce a value in the range `0...(x-1)` where `x` is the number of bits
+in the left hand operand. On most architectures this masking is already
+performed by the CPU's shift instructions and has no cost. Both kinds of shift
 avoid undefined behavior and produce uniform semantics across architectures.
 
 
@@ -159,13 +158,14 @@ avoid undefined behavior and produce uniform semantics across architectures.
 
 * Standard Library no longer provides `+` and `-` operators for `Strideable` types.
 
-  This has proven to be a problematic, as one could have written mixed-type code
-  like `let x: Int64 = 42; x += (1 as Int)`, which should not be supported.
-  Besides, since the `Stride` of an unsigned type is signed, Standard Library
-  had to implement a hack to make code like `let x: UInt = 42; x += (1 as Int)`
+  They were problematic, as one could have written mixed-type code like `let x:
+  Int64 = 42; x += (1 as Int)`, which would compile, but shouldn't. Besides,
+  since the `Stride` of an unsigned type is signed, Standard Library had to
+  implement a hack to make code like `let x: UInt = 42; x += (1 as Int)`
   ambiguous. These operators were only necessary because they made advancing
-  collection indices convenient, which is no longer the case as of Swift 3 and
-  introduction of the [new indexing model](0065-collections-move-indices.md).
+  collection indices convenient, which is no longer the case since the
+  introduction of the [new indexing model](0065-collections-move-indices.md) in
+  Swift 3.
 
 * Shifts and other bitwise operations were moved from `FixedWidthInteger` to `BinaryInteger`.
 
@@ -175,14 +175,15 @@ avoid undefined behavior and produce uniform semantics across architectures.
 
 * `trailingZeros` property was added to the `BinaryInteger` protocol.
 
-* Endian-converting initializers and properties were added to the `FixedWidthInteger` protocol.
+* Endian-converting initializers and properties were added to the
+`FixedWidthInteger` protocol.
 
 ### Protocols
 
 #### `Arithmetic`
 
-The `Arithmetic` protocol declares binary arithmetic
-operators – such as `+`, `-` and `*` — and their mutating counterparts.
+The `Arithmetic` protocol declares binary arithmetic operators – such as `+`,
+`-`, and `*` — and their mutating counterparts.
 
 It provides a suitable basis for arithmetic on scalars such as integers and
 floating point numbers.
@@ -255,26 +256,15 @@ public protocol Arithmetic : Equatable, ExpressibleByIntegerLiteral {
   ///     // x == 31
   ///     let y: Int8 = 100 + 121
   ///     // Overflow error
-  ///
-  /// - Parameters:
-  ///   - lhs: The first value to add.
-  ///   - rhs: The second value to add.
   static func +(_ lhs: Self, _ rhs: Self) -> Self
 
   /// Adds the given value to this value in place.
   ///
-  /// This method serves as the basis for the in-place addition operator
-  /// (`+=`). For example:
+  /// For example:
   ///
-  ///     var (x, y) = (15, 15)
-  ///     x.add(7)
-  ///     // x == 22
+  ///     var x = 15
   ///     y += 7
   ///     // y == 22
-  ///
-  /// - Parameter rhs: The value to add to this value.
-  ///
-  /// - SeeAlso: `adding(_:)`
   static func +=(_ lhs: inout Self, rhs: Self)
 
   /// Returns the difference of the two given values.
@@ -287,26 +277,15 @@ public protocol Arithmetic : Equatable, ExpressibleByIntegerLiteral {
   ///     // x == 11
   ///     let y: UInt = 10 - 21
   ///     // Overflow error
-  ///
-  /// - Parameters:
-  ///   - lhs: A numeric value.
-  ///   - rhs: The value to subtract from `lhs`.
   static func -(_ lhs: Self, _ rhs: Self) -> Self
 
   /// Subtracts the given value from this value in place.
   ///
-  /// This method serves as the basis for the in-place subtraction operator
-  /// (`-=`). For example:
+  /// For example:
   ///
-  ///     var (x, y) = (15, 15)
-  ///     x.subtract(7)
-  ///     // x == 8
+  ///     var x = 15
   ///     y -= 7
   ///     // y == 8
-  ///
-  /// - Parameter rhs: The value to subtract from this value.
-  ///
-  /// - SeeAlso: `subtracting(_:)`
   static func -=(_ lhs: inout Self, rhs: Self)
 
   /// Returns the product of the two given values.
@@ -319,26 +298,15 @@ public protocol Arithmetic : Equatable, ExpressibleByIntegerLiteral {
   ///     // x == 50
   ///     let y: Int8 = 10 * 50
   ///     // Overflow error
-  ///
-  /// - Parameters:
-  ///   - lhs: The first value to multiply.
-  ///   - rhs: The second value to multiply.
   static func *(_ lhs: Self, _ rhs: Self) -> Self
 
   /// Multiples this value by the given value in place.
   ///
-  /// This method serves as the basis for the in-place multiplication operator
-  /// (`*=`). For example:
+  /// For example:
   ///
-  ///     var (x, y) = (15, 15)
-  ///     x.multiply(by: 7)
-  ///     // x == 105
+  ///     var x = 15
   ///     y *= 7
   ///     // y == 105
-  ///
-  /// - Parameter rhs: The value to multiply by this value.
-  ///
-  /// - SeeAlso: `multiplying(by:)`
   static func *=(_ lhs: inout Self, rhs: Self)
 
   /// Returns the quotient of dividing the first value by the second.
@@ -347,27 +315,15 @@ public protocol Arithmetic : Equatable, ExpressibleByIntegerLiteral {
   ///
   ///     let x = 21 / 5
   ///     // x == 4
-  ///
-  /// - Parameters:
-  ///   - lhs: The value to divide.
-  ///   - rhs: The value to divide `lhs` by. `rhs` must not be zero.
   static func /(_ lhs: Self, _ rhs: Self) -> Self
 
   /// Divides this value by the given value in place.
   ///
-  /// This method serves as the basis for the in-place division operator
-  /// (`/=`). For example:
+  /// For example:
   ///
-  ///     var (x, y) = (15, 15)
-  ///     x.divide(by: 7)
-  ///     // x == 2
+  ///     var x = 15
   ///     y /= 7
   ///     // y == 2
-  ///
-  /// - Parameter rhs: The value to divide this value by. `rhs` must not be
-  ///   zero.
-  ///
-  /// - SeeAlso: `dividing(by:)`
   static func /=(_ lhs: inout Self, rhs: Self)
 }
 
@@ -424,16 +380,9 @@ extension SignedArithmetic {
 The `BinaryInteger` protocol is the basis for all the integer types provided by
 the standard library.
 
-The `isEqual(to:)` and `isLess(than:)` methods provide implementations for
-`Equatable` and `Comparable` protocol conformances. Similar to how arithmetic
-operations are dispatched in `Arithmetic`, `==` and `<` operators for
-homogeneous comparisons are implemented as generic free functions invoking the
-`isEqual(to:)` and `isLess(than:)` protocol methods respectively.
-
-This protocol adds 4 new initializers. One of them allows to create integers
-from floating point numbers, if the value is representable exactly, others
-support construction from instances of any type conforming to `BinaryInteger`,
-using different strategies:
+This protocol adds a few new initializers. Two of them allow to create integers
+from floating point numbers, others support construction from instances of any
+type conforming to `BinaryInteger`, using different strategies:
 
   - Initialize `Self` with the value, provided that the value is representable.
     The precondition should be satisfied by the caller.
@@ -441,6 +390,8 @@ using different strategies:
   - Extend or truncate the value to fit into `Self`
 
   - Clamp the value to the representable range of `Self`
+
+`BinaryInteger` also declares bitwise and shift operators.
 
 ```Swift
 public protocol BinaryInteger :
@@ -653,13 +604,7 @@ public protocol BinaryInteger :
   ///
   ///     let x: UInt8 = 5          // 0b00000101
   ///     let y: UInt8 = 14         // 0b00001110
-  ///     let z = x.bitwiseAnd(y)   // 0b00000100
-  ///
-  /// This method serves as the basis for the bitwise AND operator (`&`).
-  ///
-  /// - Parameter rhs: The value to perform the bitwise AND with this value.
-  /// - Returns: A new value with each bit set to `1` where this value and
-  ///   `rhs` both have bits set to `1`.
+  ///     let z = x & y             // 0b00000100
   static func &(_ lhs: Self, _ rhs: Self) -> Self
   static func &=(_ lhs: inout Self, _ rhs: Self)
 
@@ -672,13 +617,7 @@ public protocol BinaryInteger :
   ///
   ///     let x: UInt8 = 5          // 0b00000101
   ///     let y: UInt8 = 14         // 0b00001110
-  ///     let z = x.bitwiseOr(y)    // 0b00001111
-  ///
-  /// This method serves as the basis for the bitwise OR operator (`|`).
-  ///
-  /// - Parameter rhs: The value to perform the bitwise OR with this value.
-  /// - Returns: A new value with each bit set to `1` where this value, `rhs`,
-  ///   or both have bits set to `1`.
+  ///     let z = x | y             // 0b00001111
   static func |(_ lhs: Self, _ rhs: Self) -> Self
   static func |=(_ lhs: inout Self, _ rhs: Self)
 
@@ -691,13 +630,7 @@ public protocol BinaryInteger :
   ///
   ///     let x: UInt8 = 5          // 0b00000101
   ///     let y: UInt8 = 14         // 0b00001110
-  ///     let z = x.bitwiseXor(y)   // 0b00001011
-  ///
-  /// This method serves as the basis for the bitwise XOR operator (`^`).
-  ///
-  /// - Parameter rhs: The value to perform the bitwise XOR with this value.
-  /// - Returns: A new value with each bit set to `1` where either this value
-  ///   or `rhs`, but not both, have bits set to `1`.
+  ///     let z = x ^ y             // 0b00001011
   static func ^(_ lhs: Self, _ rhs: Self) -> Self
   static func ^=(_ lhs: inout Self, _ rhs: Self)
 
@@ -843,8 +776,8 @@ public protocol BinaryInteger :
 
 #### `FixedWidthInteger`
 
-The `FixedWidthInteger` protocol adds the notion of endianness, and static
-properties for type bounds and size.
+The `FixedWidthInteger` protocol adds the notion of endianness as well as static
+properties for type bounds and bit width.
 
 The `WithOverflow` family of methods is used in default implementations of
 mutating arithmetic methods (see the `Arithmetic` protocol). Having these
@@ -1062,28 +995,38 @@ public protocol SignedInteger : BinaryInteger, SignedArithmetic {
 
 ### Extra operators
 
-In addition to the operators described in the [protocols section](#protocols), we also provide convenient heterogeneous versions of the following operators:
+In addition to the operators described in the [protocols section](#protocols), we also provide a few extensions that are not protocol requirements:
 
-#### Heterogeneous shifts, equality, and comparison
+#### Heterogeneous shifts
 
 ```Swift
 extension BinaryInteger {
-  static func &>> <Other : BinaryInteger>(lhs: Self, rhs: Other) -> Self
+  // Masking shifts
+  static func &>>  <Other : BinaryInteger>(lhs: Self, rhs: Other) -> Self
   static func &>>= <Other : BinaryInteger>(lhs: inout Self, rhs: Other)
-  static func &<< <Other : BinaryInteger>(lhs: Self, rhs: Other) -> Self
+  static func &<<  <Other : BinaryInteger>(lhs: Self, rhs: Other) -> Self
   static func &<<= <Other : BinaryInteger>(lhs: inout Self, rhs: Other)
 
-  static func >> <Other : BinaryInteger>(lhs: Self, rhs: Other) -> Self
+  // 'Smart' shifts
+  static func >>  <Other : BinaryInteger>(lhs: Self, rhs: Other) -> Self
   static func >>= <Other : BinaryInteger>(lhs: inout Self, rhs: Other)
-  static func << <Other : BinaryInteger>(lhs: Self, rhs: Other) -> Self
+  static func <<  <Other : BinaryInteger>(lhs: Self, rhs: Other) -> Self
   static func <<= <Other : BinaryInteger>(lhs: inout Self, rhs: Other)
+}
+```
 
+#### Heterogeneous equality and comparison
+
+```Swift
+extension BinaryInteger {
+  // Equality
   static func == <Other : BinaryInteger>(lhs: Self, rhs: Other) -> Bool
   static func != <Other : BinaryInteger>(lhs: Self, rhs: Other) -> Bool
 
-  static func < <Other : BinaryInteger>(lhs: Self, rhs: Other) -> Bool
+  // Comparison
+  static func <  <Other : BinaryInteger>(lhs: Self, rhs: Other) -> Bool
   static func <= <Other : BinaryInteger>(lhs: Self, rhs: Other) -> Bool
-  static func > <Other : BinaryInteger>(lhs: Self, rhs: Other) -> Bool
+  static func >  <Other : BinaryInteger>(lhs: Self, rhs: Other) -> Bool
   static func >= <Other : BinaryInteger>(lhs: Self, rhs: Other) -> Bool
 }
 ```
