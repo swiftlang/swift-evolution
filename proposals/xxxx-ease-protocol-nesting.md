@@ -45,7 +45,7 @@ class MyDelegate: AView.Delegate {
 
 Similarly, we will allow structural types to be nested inside of protocols (such as the standard library's `FloatingPoint*` enums). These structural types are _part of the protocol_, not part of the conformers; they are an intrinsic part of the contract which the protocol expresses. As such, types defined inside the protocol body may not have access modifiers. If you wish to nest a type inside a protocol which is not _required_ for conformance, it is recommended that you define it in an  extension rather than the protocol body.
 
-For convenience, types will import the nested types of protocols they conform to via implicit typealiases:
+For convenience, types will import the nested types of protocols they conform to via implicit typealiases for unqualified lookup:
 
 ```swift
 protocol FloatingPoint {  
@@ -107,6 +107,7 @@ extension MyController: Scrollable.Delegate {
 
 class MyScrollable: Scrollable {
     var currentPosition = Position.zero
+    // implicit typealias Delegate = Scrollable.Delegate
     weak var delegate: Delegate?
 }
 ```
@@ -127,9 +128,9 @@ Elaborating on the generics interaction:
 
 - Protocols may not capture generic type parameters:
 
-We could devise a way to implement this using implicit associated types, with any references to the nested type in the parent gaining implicit same-type constraints binding the two together. However, it is not possible to model such constraints in the compiler at this time. Also, we would check for protocols being nested inside empty generic types and warn that parameterized protocols are not cool:
+ We could devise a way to implement this using implicit associated types, with any references to the nested type in the parent gaining implicit same-type constraints binding the two together. However, it is not possible to model such constraints in the compiler at this time. Also, we would check for protocols being nested inside empty generic types and warn that parameterized protocols are not cool:
 
-```swift
+ ```swift
 struct MyType<X> {
    protocol MyProto {
        // implicit associatedtype X = Parent.X
@@ -146,9 +147,9 @@ extension Something: MyType<String>.MyProto {
 
 - Protocols may not capture associated types
 
-Consider the case of a nested protocol which captures an associated type from its parent. Existential support in the compiler is not yet comprehensive enough to express the capture in the parent type. We can address this issue again once it is.
+ Consider the case of a nested protocol which captures an associated type from its parent. Existential support in the compiler is not yet comprehensive enough to express the capture in the parent type. We can address this issue again once it is.
 
-```swift
+ ```swift
 protocol ContentSource {
     associatedtype Content
     
@@ -167,9 +168,9 @@ struct Implementation: ContentSource {
 
 - Structural types *may* capture generic type parameters, but only up to the next protocol
 
-Structural types can already have nested structural types which capture parameters from their parents, and this proposal does not change that. However if we consider the possible capture hierarchies when protocols are involved, one situation is notable:
+ Structural types can already have nested structural types which capture parameters from their parents, and this proposal does not change that. However if we consider the possible capture hierarchies when protocols are involved, one situation is notable:
 
-```swift
+ ```swift
 struct Top<X> {
     protocol Middle {
         enum Bottom {
@@ -180,11 +181,11 @@ struct Top<X> {
 }
 ```
 
-Since the protocol `Middle` may not capture the generic parameter `X` (see above), it would not be possible to make use of `Bottom` from `Middle`. Therefore nesting the types is meaningless. If it is possible that protocols may gain the ability to capture generic type parameters in some future version of the compiler, it would be best to wait for that and 'do it right'.
+ Since the protocol `Middle` may not capture the generic parameter `X` (see above), it would not be possible to make use of `Bottom` from `Middle`. Therefore nesting the types is meaningless. If it is possible that protocols may gain the ability to capture generic type parameters in some future version of the compiler, it would be best to wait for that and 'do it right'.
 
-Lacking existential support, the above model can be translated in to a generics as a work-around:
+ Lacking existential support, the above model can be translated in to a generics as a work-around:
 
-```swift
+ ```swift
 struct Top<X, MiddleType> where MiddleType: Middle, MiddleType.TypeOfX == X {
     protocol Middle {
         associatedtype TypeOfX
@@ -200,9 +201,9 @@ struct Top<X, MiddleType> where MiddleType: Middle, MiddleType.TypeOfX == X {
 
 - Structual types may not capture associated types
 
-Consider the case of a nested enum which captures two associated types from its parent protocol. Presumably this enum is important to the protocol, so let's say it has an enum-typed, read-only property.
+ Consider the case of a nested enum which captures two associated types from its parent protocol. Presumably this enum is important to the protocol, so let's say it has an enum-typed, read-only property.
 
-```swift
+ ```swift
 protocol ProductionLine: class {
     associatedtype RawMaterial
     associatedtype Product
@@ -215,9 +216,9 @@ protocol ProductionLine: class {
 }
 ```
 
-Capturing an associated type means the type `ProductionLine.Stage` also becomes existential. Again, compiler support for existentials is not comprehensive enough to express the neccessary constraints. However, a simple workaround is possible via generics:
+ Capturing an associated type means the type `ProductionLine.Stage` also becomes existential. Again, compiler support for existentials is not comprehensive enough to express the neccessary constraints. However, a simple workaround is possible via generics:
 
-```swift
+ ```swift
 protocol ProductionLine: class {
     associatedtype RawMaterial
     associatedtype Product
@@ -230,7 +231,7 @@ protocol ProductionLine: class {
 }
 ```
 
-Making the type generic to a particular dynamic type of a conformer is not exactly the same thing as the existential version was expressing, but it's the best we have right now and it would be better to extend the model once such support is available.
+ Making the type generic to a particular dynamic type of a conformer is not exactly the same thing as the existential version was expressing, but it's the best we have right now and it would be better to extend the model once such support is available.
 
 
 ## Source compatibility
@@ -264,18 +265,18 @@ Nesting changes the name (both in source and symbolic) of the relevant types. Ha
 
  ```swift
 protocol MyProto {
-    var value: ValueType { get }
-    typealias ValueType = Int
+        var value: ValueType { get }
+        typealias ValueType = Int
 }
 ```
  and:
 
  ```swift
 protocol MyProto {
-    var value: ValueType { get }
+        var value: ValueType { get }
 }
 // ...
 extension MyProto {
-    typealias ValueType = Int
+        typealias ValueType = Int
 }
 ```
