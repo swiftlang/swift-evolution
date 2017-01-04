@@ -33,8 +33,8 @@ public enum Food: String {
 
 // This can be ported over to Objective-c like this
 typedef NSString *_Nonnull Food;
-static Food const Food_Calimari = @"Calimari";
-static Food const Food_Fish = @"Fish";
+static Food const FoodCalimari = @"Calimari";
+static Food const FoodFish = @"Fish";
 ```
 The Objective-c port code could be added as part of the generated header file or a framework's umbrella header.
 
