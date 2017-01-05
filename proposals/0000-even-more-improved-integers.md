@@ -331,6 +331,10 @@ public protocol Arithmetic : Equatable, ExpressibleByIntegerLiteral {
 
 extension Arithmetic {
   public init() { self = 0 }
+
+  public static prefix func + (x: Self) -> Self {
+    return x
+  }
 }
 ```
 
