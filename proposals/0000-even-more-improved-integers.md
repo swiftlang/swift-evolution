@@ -178,6 +178,8 @@ avoid undefined behavior and produce uniform semantics across architectures.
 * Endian-converting initializers and properties were added to the
 `FixedWidthInteger` protocol.
 
+* Standard library introduces the new type `DoubleWidth<T>`.
+
 ### Protocols
 
 #### `Arithmetic`
