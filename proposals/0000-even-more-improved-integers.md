@@ -18,7 +18,7 @@ the proposed model in the standard library and found that some essential APIs
 were missing, whereas others could be safely removed.
 
 Major changes to the APIs introduced by this proposal (as compared to
-[SE-0104][se104]) are listed in a [dedicated section](#major-differences-introduced-by-this-proposal).
+[SE-0104][se104]) are listed in a [dedicated section](#whats-new-since-se-0104).
 
 ## Motivation
 
@@ -152,7 +152,7 @@ avoid undefined behavior and produce uniform semantics across architectures.
 
 ## Detailed design
 
-### Major differences introduced by this proposal
+### What's new since SE-0104
 
 * [SE-0091][se91] removed the necessity to dispatch generic operators through special methods.
 
