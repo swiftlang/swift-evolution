@@ -147,7 +147,7 @@
 <proposal id="0144" status="rejected" swift-version="4" name="Allow Single Dollar Sign as a Valid Identifier" filename="0144-allow-single-dollar-sign-as-valid-identifier.md"/>
 <proposal id="0145" status="accepted" swift-version="4" name="Package Manager Version Pinning" filename="0145-package-manager-version-pinning.md"/>
 <proposal id="0146" status="accepted" swift-version="4" name="Package Manager Product Definitions" filename="0146-package-manager-product-definitions.md"/>
-<proposal id="0147" status="active" swift-version="4" name="Move `UnsafeMutablePointer.initialize(from:)` to `UnsafeMutableBufferPointer`" filename="0147-move-unsafe-initialize-from.md"/>
+<proposal id="0147" status="accepted" swift-version="4" name="Move `UnsafeMutablePointer.initialize(from:)` to `UnsafeMutableBufferPointer`" filename="0147-move-unsafe-initialize-from.md"/>
 
 <!--
 Recognized values for a proposal's status:
