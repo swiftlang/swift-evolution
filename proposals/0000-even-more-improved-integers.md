@@ -156,6 +156,8 @@ avoid undefined behavior and produce uniform semantics across architectures.
 
 * [SE-0091][se91] removed the necessity to dispatch generic operators through special methods.
 
+  All operators are now declared by protocols as `static func`s.
+
 * Standard Library no longer provides `+` and `-` operators for `Strideable` types.
 
   They were problematic, as one could have written mixed-type code like `let x:
@@ -169,11 +171,21 @@ avoid undefined behavior and produce uniform semantics across architectures.
 
 * Shifts and other bitwise operations were moved from `FixedWidthInteger` to `BinaryInteger`.
 
+  Left shift operation on an unbounded integer should infinitely extend the
+  number, and never drop set bits when they reach the leftmost position in the
+  underlying representation.
+
 * `BitwiseOperations` protocol was deprecated.
+
+  We believe there are no useful entities that support bitwise operations, but at
+  the same time are not binary integers.
 
 * `minimumSignedRepresentationBitWidth` property was removed.
 
 * `trailingZeros` property was added to the `BinaryInteger` protocol.
+
+  `leadingZeros` and `popcount` properties are still defined by the
+  `FixedWidthInteger` protocol.
 
 * Endian-converting initializers and properties were added to the
 `FixedWidthInteger` protocol.
