@@ -32,14 +32,15 @@ divided into two stages.
 Stage 1 focuses on the essentials required for source and ABI
 stability. Features that don't fundamentally change the ABI of
 existing language features or imply an ABI-breaking change to the
-standard library will not be considered in this stage.
+standard library will not be considered in this stage. **Swift 4 is
+currently only considering proposals that fit in Stage 1**.
 
 Stage 2 will commence once the implementation work on the Stage 1
 features is cresting, and can contain a few other large and small
 features. We expect that stage 2 will commence some time in Spring
 2017.
 
-The high-priority features supporting stage 1's source and ABI
+The high-priority features supporting Stage 1's source and ABI
 stability goals are:
 
 * Source stability features: the Swift language will need [some
