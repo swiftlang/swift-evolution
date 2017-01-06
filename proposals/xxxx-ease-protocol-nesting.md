@@ -22,30 +22,28 @@ Swift-evolution thread: [Discussion thread topic for that proposal](https://list
 
 ## Motivation
 
-Nesting types inside other types allows us to scope their usage and provide a cleaner interface. Protocols are an important part of Swift, and many popular patterns (for example, the delegate pattern) define protocols which are intended to be used in the context of other types. It would be nice to apply type-nesting here: `MyClass.Delegate` reads better than `MyClassDelegate`, and literally brings structure to large frameworks.
+Nesting types inside other types allows us to scope their usage and provide a cleaner interface. Protocols are an important part of Swift, and many popular patterns (for example, the delegate pattern) define protocols which are intended to be used in the semantic context of other types. It would be nice to apply type-nesting here: `MyClass.Delegate` reads better than `MyClassDelegate`, and literally brings structure to large frameworks.
 
-Similarly, we have examples in the standard library where supporting types are defined with the intention that they be used in the context of some protocol - `FloatingPointClassification`, `FloatingPointSign`, and `FloatingPointRoundingRule` are enums which are used by various members of the `FloatingPoint` protocol. It would also be nice to apply type-nesting here, with the types belonging to the protocol itself - e.g. `FloatingPoint.Sign`.
+Similarly, we have examples of protocols in the standard library which define supporting types to be used in the context of that protocol - `FloatingPointClassification`, `FloatingPointSign`, and `FloatingPointRoundingRule` are enums which are used by various members of the `FloatingPoint` protocol. These types are part of the contract which the protocol defines, and so it would be nice if they could be nested within the protocol to reflect that (i.e. `FloatingPoint.Classification`, `FloatingPoint.Sign`, `FloatingPoint.RoundingRule`).
 
 ## Proposed solution
 
-The first part is to allow protocols to be nested inside of structural types (for example, in the delegate pattern):
+The first part is to allow protocols to be nested inside of nominal types (for example, in the delegate pattern):
 
 ```swift
-class AView {
-    protocol Delegate: class {
+class AView {                    // A regular-old class
+    protocol Delegate: class {   // A nested protocol
         func somethingHappened()
     }
-    weak var delegate: Delegate?
+    weak var delegate: Delegate? // Unqualified lookup: AView.Delegate
 }
 
-class MyDelegate: AView.Delegate {
+class MyDelegate: AView.Delegate {  // Qualified lookup: AView.Delegate
     func somethingHappened() { /* ... */ }
 }
 ```
 
-Similarly, we will allow structural types to be nested inside of protocols (such as the standard library's `FloatingPoint*` enums). These structural types are _part of the protocol_, not part of the conformers; they are an intrinsic part of the contract which the protocol expresses. As such, types defined inside the protocol body may not have access modifiers. If you wish to nest a type inside a protocol which is not _required_ for conformance, it is recommended that you define it in an  extension rather than the protocol body.
-
-For convenience, types will import the nested types of protocols they conform to via implicit typealiases for unqualified lookup:
+The second part is to allow nominal types to be nested inside of protocols (for example, `FloatingPoint.Sign`).
 
 ```swift
 protocol FloatingPoint {  
@@ -56,27 +54,76 @@ protocol FloatingPoint {
     }
     var sign: Sign { get }
 }
+```
+
+Similarly, protocols may be nested inside other protocols:
+
+```swift
+protocol Scrollable: class {     // A regular-old protocol
+    var currentPosition: Position { get }
+    
+    protocol Delegate: class {   // A nested protocol
+        func scrollableDidScroll(_: Scrollable, from: Position)
+    }    
+    weak var delegate: Delegate? // Unqualified lookup: Scrollable.Delegate
+}
+
+class MyScrollable: Scrollable {
+    var currentPosition = Position.zero
+    
+    // implicit typealias Delegate = Scrollable.Delegate (see 'Namespacing')
+    weak var delegate: Delegate? // type: Scrollable.Delegate
+}
+
+extension MyController: Scrollable.Delegate { // Qualified lookup: Scrollable.Delegate
+    func scrollableDidScroll(_ scrollable: Scrollable, from: Position) { 
+        let displacement = scrollable.currentPosition.x - from.x
+        // ...
+    }
+}
+```
+
+**Namespacing:**
+
+It is important to draw a distinction between a protocol's nested types and its associated types. Associated types are placeholders (similar to generic type parameters), to be defined individually by each type which conforms to the protocol (e.g. every `Collection` will have a unique type of `Element`). Nested types are standard nominal types which must be used by _every_ type which conforms to the protocol. Taking `FloatingPoint.Sign` as an example, conformance to the `FloatingPoint` protocol means that every conforming type has a property called `sign` whose value may one of a few enum cases defined _as part of the protocol_.
+
+That being said, conformers will import the nested types of protocols in to their own namespaces via implicit typealiases to allow for unqualified lookup. This is nothing more than a convenient shorthand - `Float.Sign` is identical to `Double.Sign`, and generic code may refer to both with `FloatingPoint.Sign`. In the event of a naming collision, the latter spelling may be used to disambiguate.
+
+```swift
+// See: FloatingPoint.Sign example above
 
 struct Float: FloatingPoint {
     // implicit: typealias Sign = FloatingPoint.Sign
     var sign: Sign { /* ... */ }
 }
 
-// Ok. Double.Sign == Float.Sign == FloatingPoint.Sign
+// Allowed. Double.Sign == Float.Sign == FloatingPoint.Sign
 let _: Double.Sign = (3.0 as Float).sign
 ```
 
-Types may also be defined inside protocol extensions. As mentioned above, this is the recommended thing to do if your type requres access-control or, for any other reason, is not required to implement conformance to the protocol:
+**Access Control:**
+
+Currently, members of a protocol declaration may not have access-control modifiers. That should apply for nested type declarations, too. The nested type itself, however, may contain members with limited visibility (including a lack of visible initialisers). The exception is that class types may include `open` or `final` modifiers.
+
+```swift
+public protocol MyProtocol {    
+    final class Context {                   // 'MyProtocol.Context' may not have any access control modifiers. Visibility: public.
+        fileprivate let _parent: MyProtocol // 'MyProtocol.Context._parent', however, may have limited access.
+        // No public initialisers. Allowed.
+    }
+}
+```
+
+Nested types may also be declared inside of protocol extensions. Consistent with current language rules, nested type declarations inside of protocol extensions _may_ have access control:
 
 ```swift
 extension FloatingPoint {
-    internal enum SignOrZero {
+    internal enum SignOrZero {  // 'FloatingPoint.SignOrZero' may have limited access.
         case plus
         case minus
         case zero
     }
     internal var signOrZero: SignOrZero {
-        // get ready for the 4-hour discussion IEEE754 and 0...
         if self == 0.0 { 
             return .zero
         }
@@ -88,72 +135,83 @@ extension FloatingPoint {
 }
 ```
 
-Similarly, protocols may be nested inside of other protocols:
+**Constrained extensions:**
+
+Nested types may also be defined inside of constrained protocol extensions, although they share a namespace with unconstrained extensions:
 
 ```swift
-protocol Scrollable {
-    protocol Delegate: class {
-        func scrollableDidScroll(_: Scrollable, from: Position)
-    }    
-    weak var delegate: Delegate?
-    var currentPosition: Position { get }
+// View as a series of UTF8 characters
+extension Collection where Element == UInt8 {
+    // Type is Collection.UnicodeCharacterView
+    struct UnicodeCharacterView: Collection { let _wrapped: AnyCollection<UInt8> }
 }
 
-extension MyController: Scrollable.Delegate {
-    func scrollableDidScroll(_ scrollable: Scrollable, from: Position) { 
-        let displacement = scrollable.currentPosition.x - from.x
-        // ...
-    }
-}
-
-class MyScrollable: Scrollable {
-    var currentPosition = Position.zero
-    // implicit typealias Delegate = Scrollable.Delegate
-    weak var delegate: Delegate?
+// View as a series of UTF16 characters
+extension Collection where Element == UInt16 {
+    // ERROR: Redefinition of type 'Collection.UnicodeCharacterView'. Workaround would be to rename to 'Collection.UTF16View'.
+    struct UnicodeCharacterView: Collection { let _wrapped: AnyCollection<UInt16> }
 }
 ```
 
-### Generics
+
+### Limitations
 
 This proposal leaves one major limitation on protocol nesting: that nested types may not capture any types from (or through) a parent protocol. There is a 2x2 matrix of cases to consider here: when a nested protocol/structural type captures a type parameter from a parent protocol/structural types. The TLDR version is:
 
 | Capture from parent (V)\ by nested (H) | Protocol | Structural Type |
 | ------------- | ------------- |---|
 | Protocol  | No  | No |
-| Structural Type  | No | Up to next protocol |
+| Structural Type  | No | Yes! but not through a protocol. |
+
+Essentially this is due to compiler limitations around existentials. If/when the compiler is capable of more comprehensive existentials, we can revisit capturing across nested generic protocols/types. There are enough useful cases which do not depend on this ability (including in the standard library) that it's worth implementing what we can today, though.
 
 
 ## Detailed Design
 
-Elaborating on the generics interaction:
+Given that there is some friction between protocols with associated types ("generic protocols") and generic structural types, and that nesting infers some context to the inner type, this section seeks to clarify when capturing is/is not allowed. Although it references compiler limitations surrounding existentials, any such changes are _not a part of this proposal_.
+
+- Protocols may not capture associated types
+
+    ```swift
+    protocol Stream {
+        associatedtype Content
+        protocol Receiver {
+            func receive(content: Content) // ERROR: Cannot capture associated type 'Content' from 'Stream'
+        }
+        var receiver: Receiver { get set }
+    }
+    ```
+    
+    Fundamentally, this is a compiler limitation. Ideally, we would like to represent the capture roughly so:
+    
+    ```swift
+    protocol Stream {
+        associatedtype Content
+        protocol Receiver {
+            // implicit: associatedtype Content
+            func receive(content: Content)
+        }
+        var receiver: Any<Receiver where .Content == Content> { get set } // Not possible today.
+    }
+    ```
+    
+    Should this limitation be lifted, we can revisit capturing of associated types. 
+    
 
 - Protocols may not capture generic type parameters:
 
-    We could devise a way to implement this using implicit associated types, with any references to the nested type in the parent gaining implicit same-type constraints binding the two together. However, it is not possible to model such constraints in the compiler at this time. This is the fundamental limitation preventing capturing with protocols.
- 
-    _Also, we would check for protocols being nested inside empty generic types and warn that parameterized protocols are not cool_
+    Firstly, even if we wanted to do this via some sort of implicit associated type, as mentioned above we couldn't represent the existential in the parent. Secondly, there is a concern about parameterised protocols.
 
     ```swift
     struct MyType<X> {
        protocol MyProto {
-           // implicit: associatedtype X
-           var content: X { get set }
-       }
-       
-       var protoInstance: MyProto // should be: Any<MyProto where MyProto.X == Self.X> or equivalent
-    }
-
-    extension Something: MyType<String>.MyProto {
-       // inferred: typealias X = String
-       var content: String
+           var content: X { get set } // ERROR: Cannot capture 'X' from MyType
+       }       
+       var protoInstance: MyProto
     }
     ```
 
-- Protocols may not capture associated types
-
-    As mentioned above, capturing associated types requires that references to the nested type in the parent be constrained in a way that cannot currently be expressed in the language, and should be the subject of another proposal.
-
-- Structural types *may* capture generic type parameters, but only up to the next protocol
+- Structural types *may* capture generic type parameters, but not through a protocol
 
     Structural types can already have nested structural types which capture parameters from their parents, and this proposal does not change that. However if we consider the possible capture hierarchies when protocols are involved, one situation is notable:
 
@@ -161,132 +219,95 @@ Elaborating on the generics interaction:
     struct Top<X> {
         protocol Middle {
             enum Bottom {
-                case howdy(X) // Captures 'X' from Top
+                case howdy(X) // ERROR: Cannot capture 'X' from Top
             }
-            var bottomInstance : Bottom { get } // Uh-oh! Also captures 'X'
+            
+            var bottomInstance : Bottom { get } // If it _was_ allowed, this reference would also capture 'X'
         }
     }
     ```
 
-    We return to the limitation that the protocol `Middle` may not capture the generic parameter `X` (see above); therefore it would not be possible to make use of `Bottom` from `Middle`, and the nesting is meaningless.
-
-    Lacking existential support, the above model can be translated in to a generic work-around:
-
-     ```swift
-    struct Top<X, MiddleType> where MiddleType: Middle, MiddleType.TypeOfX == X {
-        protocol Middle {
-            associatedtype TypeOfX
-            enum Bottom {
-                case howdy(TypeOfX) // Pretend it's okay to capture associated types. See generic workaround for _that_ below.
-            }
-            var bottomInstance : Bottom { get } // Does not capture X.
-        }
-
-        var middleInstance: MiddleType
-    }
-    ```
-
+    It isn't possible to refer to `Bottom` (or any types nested below it) from `Middle`, due to the above limitation on protocols capturing generic type parameters. Therefore the nesting is meaningless and should not be allowed.
+    
 - Structual types may not capture associated types
 
-    Consider the case of a nested type which captures two associated types from its parent protocol. Presumably this type is important to the protocol, so let's say it is exposed via a read-only property.
+    Consider a hypothetical nested struct that captures an associated type from its parent protocol.
 
      ```swift
-    protocol ProductionLine: class {
-        associatedtype RawMaterial
-        associatedtype Product
+    // Note: Pretend there is something called 'Parent' which is a captured 'Self' of the parent protocol.
+    protocol RandomAccessCollection {
 
-        open class Stage {
-            func process(_: RawMaterial) {}
-            var product: Product?
+        struct DefaultSlice: RandomAccessCollection {
+            typealias Element = Parent.Element                     // ERROR: Cannot capture 'Element' from Parent
+            init(from: Index, to: Index, in: Parent) { /* ... */ } // ERROR: Cannot capture 'Self' from Parent
         }
-        var currentStage: Stage { get } // where Product == Self.Product, RawMaterial == Self.RawMaterial
-    }
-    ```
-
-    Capturing an associated type means the type `ProductionLine.Stage` also becomes existential. Again, compiler support for existentials is not comprehensive enough to express the neccessary constraints.
-    
-    One tempting workaround is to convert to generics (even as an implementation detail, hidden from the user-visible signature):
-
-     ```swift
-    protocol ProductionLine: class {
-        associatedtype RawMaterial
-        associatedtype Product
-
-        open class Stage<L: ProductionLine> {
-            func process(_: L.RawMaterial) {}
-            var product: L.Product?
-        }
-        var currentStage: Stage<Self> // No captures.
-    }
-    ```
-    
-    but this only works for would-be captures from the immediate parent protocol, before we hit a familiar hurdle:
-    ```swift
-    protocol Manufacturer {
-        associatedtype Product
         
-        protocol ProductionLine {
-            associatedtype RawMaterial
+        associatedtype Slice: RandomAccessCollection = DefaultSlice
+    }
+    ```
+
+    By capturing an associated type, the type `RandomAccessCollection.DefaultSlice` would also become existential (something like `RandomAccessCollection.DefaultSlice where Parent == Array`). We could theoretically map the capture of 'Parent' in to a generic parameter (although it is _not a part of this proposal_):
+
+     ```swift
+    protocol RandomAccessCollection {
+
+        struct DefaultSlice: RandomAccessCollection { // implicit: DefaultSlice<Parent: RandomAccessCollection>
+            typealias Element = Parent.Element
+            init(from: Index, to: Index, in: Parent) { /* ... */ }
+        }
+        
+        associatedtype Slice: RandomAccessCollection = DefaultSlice // implicit: DefaulSlice<Self>
+    }
+
+    let slice = RandomAccessCollection.DefaultSlice<Array>(from: 0, to: 1, in: [1, 2, 3, 4, 5])
+    ```
+    
+    This would only work for would-be captures from the immediate parent, before we start having protocols capturing associated types:
+    
+    ```swift
+    protocol Top {
+        associatedtype AssocTop
+        
+        protocol Middle {
+            associatedtype AssocMiddle
             
-            open class Stage<Product, L: ProductionLine> {
-                func process(_: L.RawMaterial) {} // Captured from ProductionLine
-                var product: Product?             // Captured from Manufacturer
+            enum Result { // implicit: <Parent_Parent: Top, Parent: Middle>
+                case one(Parent_Parent.AssocTop)
+                case two(Parent.AssocMiddle)
             }
-            var currentStage: Stage<Product, Self> // Uh-oh! Captures associated type 'Product' from 'Manufacturer'!
+            var result: Result { get } // implicit: <???, Self> - would need to capture 'Self' from Parent
         }
     }
     ```
 
-So that's a long explanation of why it's best to just bar any kind of capturing between protocols and structural types for now. We can address this limitation at a later date, as part of broader support for existentials. 
+So that's a long explanation of why it's best to just bar any kind of capturing between protocols and structural types for now. We can maybe address this limitation at a later date, as part of broader support for existentials and according to demand.
 
 ## Source compatibility
 
-This change is additive, although there are a couple of places in the standard library where we can organise things better after this change. Specifically:
+This change is mostly additive, although there are a couple of places in the standard library where we can organise things better after this change. Specifically:
 
 - The `FloatingPoint{Sign,Classification,RoundingMode}` enums will become members of the `FloatingPoint` protocol
 - The `MirrorPath` protocol will become a member of the `Mirror` struct, and renamed `Path`
 
-Source migration can be handled with a typealias and deprecation notice, for example:
+Source migration can be handled with a typealias and deprecation notice (with fixit), for example:
 
 ```swift
 @deprecated("Use FloatingPoint.Sign instead")
 typealias FloatingPointSign = FloatingPoint.Sign
 ```
 
+It is also likely that the Clang importer could make use of this feature, as the delegate pattern is very common in Apple's platform SDKs. Changes such as `UITableViewDelegate` -> `UITableView.Delegate` can be handled as above, with a deprecated typealias.
+
 ## Effect on ABI stability
 
-Would change the standard library interface.
+Would change the standard library interface, platform SDK interfaces.
 
 ## Effect on API resilience
 
-Nesting changes the name (both in source and symbolic) of the relevant types. Has the same effect as other type renamings/nesting and un-nesting.
+Since all capturing is disallowed, this type of nesting would only change the name (both in source and symbolic) of the relevant types.
 
 ## Alternatives considered
 
-- The alternative to nesting is to namespace your types manually with a prefix, similar to what the standard library, Apple SDK overlays, and existing Swift programs already do. However, nested types and cleaner namespaces are one of the little things that developers - espcially coming from Objective-C - have always been really excited about. From time to time somebody pops up on the mailing list to ask why we don't have it yet for protocols, and changes proposed here usually are met with broad support.
+- The alternative to nesting is to namespace your types manually with a prefix, similar to what the standard library, Apple SDK overlays, and existing Swift programs already do. However, nested types and cleaner namespaces are one of the underrated benefits that developers - espcially coming from Objective-C - have always been excited about. We like clean and elegant APIs. From time to time somebody pops up on the mailing list to ask why we don't have this feature yet, and the changes proposed here usually are met with broad support.
 
-- Nesting a structural type inside of a protocol body seems controversial at first glance, for sure. The conceptual model for this is that the types are _part_ of the protocol contract. That is to say that anything which wants to conform to `FloatingPoint` must use the `Sign` enum that comes bundled inside of it.
-
- One alternative would be to require nested types to be defined inside of protocol extensions. However, currently protocol extensions do not consist of anything which is required to implement the protocol - they only consist of optional, overridable functionality. I believe it is better that the protocol body contains *all* of the requirements, even at the cost of being a little untidy, rather than to distribute the required interfaces across several extensions.
-
- Of course, there is nothing stopping anybody defining nested types in unconstrained protocol extensions and using them in the protocol body, similar to what is possible with typealiases today:
-
- Both acceptable:
-
- ```swift
-protocol MyProto {
-        var value: ValueType { get }
-        typealias ValueType = Int
-}
-```
- and:
-
- ```swift
-protocol MyProto {
-        var value: ValueType { get }
-}
-// ...
-extension MyProto {
-        typealias ValueType = Int
-}
-```
+- Nesting a structural type (with function bodies) inside of a protocol declaration is expected to be a little controversial. An alternative would be to require nested types to be defined inside of protocol extensions. This proposal leaves that as an option (indeed, that is the only way to provide access control for nested types), but does not require it. We don't encourage protocol declarations containing large concrete type bodies because those details are usually irrelevant to those looking to conform to the protocol, but for trivial cases it may be acceptable; that judgement is left to the programmer.
