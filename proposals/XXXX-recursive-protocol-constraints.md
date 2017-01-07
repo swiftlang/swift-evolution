@@ -1,43 +1,85 @@
 # Support recursive constraints on associated types
 
 * Proposal: [SE-NNNN](XXXX-recursive-protocol-constraints.md)
-* Authors: [Douglas Gregor](https://github.com/DougGregor), Austin Zheng
+* Authors: [Douglas Gregor](https://github.com/DougGregor), [Erica Sadun](https://github.com/erica), [Austin Zheng](https://github.com/austinzheng)
 * Review Manager: TBD
 * Status: **Awaiting review**
 
 ## Introduction
 
-Swift supports defining _associated types_ on protocols. It also supports defining _constraints_ on those associated
-types. However, Swift does not currently support defining, on an associated type, _constraints on an associated type
-that reference its enclosing protocol_. We propose this restriction be lifted.
+This proposal lifts restrictions on associated types in protocols. Their constraints will be allowed to reference any
+protocol, including protocols that depend on the enclosing one (recursive constraints).
 
-More specifically, we propose that **associated type constraints should be able to reference any protocol, including
-protocols that depend on the enclosing one.**
-
-Further reading: [swift-evolution thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20161107/028805.html)
+Further reading: [swift-evolution thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20161107/028805.html), _[Completing Generics](https://github.com/apple/swift/blob/master/docs/GenericsManifesto.md#recursive-protocol-constraints-)_
 
 ## Motivation
 
-Consider Swift's `Sequence` protocol:
+Swift supports defining _associated types_ on protocols using the `associatedtype` keyword.
 
 ```swift
 protocol Sequence {
-	associatedtype SubSequence
-
-	// Returns a subsequence containing all but the first 'n' items
-	// in the original sequence.
-	func dropFirst(_ n: Int) -> Self.SubSequence
+    associatedtype Subsequence
 }
 ```
 
-It would make sense for `SubSequence` to be constrained to be a `Sequence` as well, since all subsequences are
-themselves sequences. In particular, a concrete type conforming to `Sequence` might want to implement `dropFirst()` in
-such a way that it returns a different type of sequence, perhaps for performance reasons.
+Swift also supports defining _constraints_ on those associated types, for example:
+
+```swift
+protocol Foo {
+    // For all types X conforming to Foo, X.SomeType must conform to Bar
+    associatedtype SomeType: Bar
+}
+```
+
+However, Swift does not currently support defining _constraints on an associated type that recursively reference the
+enclosing protocol_. It would make sense for `SubSequence` to be constrained to be a `Sequence`, as all subsequences
+are themselves sequences:
+
+```swift
+// Will not currently compile
+protocol Sequence {
+    associatedtype SubSequence: Sequence
+        where Iterator.Element == SubSequence.Iterator.Element, SubSequence.SubSequence == SubSequence
+
+    // Returns a subsequence containing all but the first 'n' items
+    // in the original sequence.
+    func dropFirst(_ n: Int) -> Self.SubSequence
+    // ...
+}
+```
 
 However, Swift currently doesn't support expressing this constraint at the point where `SubSequence` is declared.
-Instead, we must specify it at each site of use instead. This results in more verbose code and obscures our intent.
+Instead, we must specify it in documentation and/or at each site of use. This results in more verbose code and obscures
+intent:
 
-For additional context, please consult the [Completing Generics document](https://github.com/apple/swift/blob/master/docs/GenericsManifesto.md#recursive-protocol-constraints-).
+```swift
+protocol Sequence {
+    // SubSequences themselves must be Sequences.
+    // The element type of the subsequence must be identical to the element type of the sequence.
+    // The subsequence's subsequence type must be itself.
+    associatedtype SubSequence
+
+    func dropFirst(_ n: Int) -> Self.SubSequence
+    // ...
+}
+
+struct SequenceOfInts : Sequence {
+    // This concrete implementation of `Sequence` happens to work correctly.
+    // Implicitly:
+    // The subsequence conforms to Sequence.
+    // The subsequence's element type is the same as the parent sequence's element type.
+    // The subsequence's subsequence type is the same as itself.
+    func dropFirst(_ n: Int) -> SimpleSubSequence<Int> {
+        // ...
+    }
+}
+
+struct SimpleSubSequence<Element> : Sequence {
+    typealias SubSequence = SimpleSubSequence<Element>
+    typealias Iterator.Element = Element
+    // ...
+}
+```
 
 ## Proposed solution
 
@@ -207,13 +249,13 @@ struct BadSubSequence : Sequence, IteratorProtocol {
 }
 ```
 
-## Effect on ABI stability
+## Impact on ABI stability
 
 Since this proposal involves modifying the standard library, it changes the ABI. In particular, ABI changes enabled by
 this proposal are critical to getting the standard library to a state where it more closely resembles the design
 envisioned by its engineers.
 
-## Effect on API resilience
+## Impact on API resilience
 
 This feature cannot be removed without breaking API compatibility, but since it forms a necessary step in crystallizing
 the standard library for future releases, it is very unlikely that it will be removed after being accepted.
