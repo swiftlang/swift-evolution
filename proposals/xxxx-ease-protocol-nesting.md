@@ -292,53 +292,69 @@ This change is mostly additive, although there are several places in the standar
 - The `FloatingPoint{Sign,Classification,RoundingMode}` enums will become members of the `FloatingPoint` protocol
 - The `MirrorPath` protocol will become a member of the `Mirror` struct, and renamed `Path`
 
-- `EmptyIterator<T>` will become `IteratorProtocol.Empty<T>`
-- `EmptyCollection<T>` will become `Collection.Empty<T>`
+- Lots of types in the global namespace will become nested to `IteratorProtocol`, `Sequence`, or some type of `Collection`
+**Special instances:**
+```swift
+// Empty
+EmptyIterator<T>    /* --> */  IteratorProtocol.Empty<T>
+EmptyCollection<T>  /* --> */  Collection.Empty<T>
 
-- `IteratorOverOne<T>` will become `IteratorProtocol.One<T>`
-- `CollectionOfOne<T>` will become `Collection.One<T>`
+// Single instance
+IteratorOverOne<T>  /* --> */  IteratorProtocol.One<T>
+CollectionOfOne<T>  /* --> */  Collection.One<T>
 
-- `DefaultBidirectionalIndices<T: BidirectionalCollection>` will become `BidirectionalCollection.DefaultIndices<T>`
-- `DefaultRandomAccessIndices<T: RandomAccessCollection>` will become `RandomAccessCollection.DefaultIndices<T>`
+// Default indexes
+DefaultBidirectionalIndices<T: BidirectionalCollection>  /* --> */  BidirectionalCollection.DefaultIndices<T>
+DefaultRandomAccessIndices<T: RandomAccessCollection>    /* --> */  RandomAccessCollection.DefaultIndices<T>
+```
 
-- `EnumeratedIterator<T: IteratorProtocol>` will become `IteratorProtocol.Enumerated<T>`
-- `EnumeratedSequence<T: Sequence>` will become `Sequence.Enumerated<T>`
+**Parameterized views:**
+```swift
+// Enumerated
+EnumeratedIterator<T: IteratorProtocol>  /* --> */  IteratorProtocol.Enumerated<T>
+EnumeratedSequence<T: Sequence>          /* --> */  Sequence.Enumerated<T>
 
-- `JoinedIterator<T: IteratorProtocol>` will become `IteratorProtocol.Joined<T>`
-- `JoinedSequence<T: Sequence>` will become `Sequence.Joined<T>`
+// Joined
+JoinedIterator<T: IteratorProtocol>  /* --> */  IteratorProtocol.Joined<T>
+JoinedSequence<T: Sequence>          /* --> */  Sequence.Joined<T>
 
-- `ReversedCollection<T: Collection>` will become `Collection.Reversed<T>`
-- `ReversedRandomAccessCollection<T: RandomAccessCollection>` will become `RandomAccessCollection.Reversed<T>`
+// Reversed
+ReversedCollection<T: Collection>    /* --> */  Collection.Reversed<T>
+ReversedRandomAccessCollection<T: RandomAccessCollection>  /* --> */  RandomAccessCollection.Reversed<T>
 
-- `FlattenIterator<T: IteratorProtocol>` will become `IteratorProtocol.Flattened<T>`
-- `FlattenSequence<T: Sequence>` will become `Sequence.Flattened<T>`
-- `FlattenCollection<T: Collection>` will become `Collection.Flattened<T>`
-- `FlattenBidirectionalCollection<T: BidirectionalCollection>` will become `BidirectionalCollection.Flattened<T>`
+// Flattened
+FlattenIterator<T: IteratorProtocol>  /* --> */  IteratorProtocol.Flattened<T>
+FlattenSequence<T: Sequence>          /* --> */  Sequence.Flattened<T>
+FlattenCollection<T: Collection>      /* --> */  Collection.Flattened<T>
+FlattenBidirectionalCollection<T: BidirectionalCollection>  /* --> */  BidirectionalCollection.Flattened<T>
 
-- `Slice<T: Collection>` will become `Collection.Slice<T>`
-- `Bidirectional{*}Slice<T: BidirectionalCollection>` will become `BidirectionalCollection.{*}Slice<T>`
-- `RandomAccessSlice<T: RandomAccessCollection>` will become `RandomAccessCollection.Slice<T>`
-- `RangeReplaceable{*}Slice<T: RangeReplaceableCollection>` will become `RangeReplaceableCollection.{*}Slice<T>`
-- `Mutable{*}Slice<T: MutableCollection>` will become `MutableCollection.{*}Slice<T>`
+// Sliced
+Slice<T: Collection>                                      /* --> */  Collection.Slice<T>
+Bidirectional{*}Slice<T: BidirectionalCollection>         /* --> */  BidirectionalCollection.{*}Slice<T>
+RandomAccessSlice<T: RandomAccessCollection>              /* --> */  RandomAccessCollection.Slice<T>
+RangeReplaceable{*}Slice<T: RangeReplaceableCollection>   /* --> */  RangeReplaceableCollection.{*}Slice<T>
+Mutable{*}Slice<T: MutableCollection>                     /* --> */  MutableCollection.{*}Slice<T>
+```
 
-- `LazySequence<T: Sequence>` will become `Sequence.Lazy<T>`
-- `LazyCollection<T: Collection>` will become `Collection.Lazy<T>`
-- `LazyBidirectionalCollection<T: BidirectionalCollection>` will become `BidirectionalCollection.Lazy<T>`
-- `LazyRandomAccessCollection<T: RandomAccessCollection>` will become `RandomAccessCollection.Lazy<T>`
-- Since the name of the type is now `Lazy`, having a property called `lazy` (varying only by case) may not be desired. Therefore the current `var lazy: LazySequence<Self> { get }` property should be renamed `var lazily: Lazy<Self> { get }`.
+**Lazy views:**
+```swift
+LazySequence<T: Sequence>                                /* --> */  Sequence.Lazy<T>
+LazyCollection<T: Collection>                            /* --> */  Collection.Lazy<T>
+LazyBidirectionalCollection<T: BidirectionalCollection>  /* --> */  BidirectionalCollection.Lazy<T>
+LazyRandomAccessCollection<T: RandomAccessCollection>    /* --> */  RandomAccessCollection.Lazy<T>
 
-- `LazyFilterIterator<T: IteratorProtocol>` will become `IteratorProtocol.LazyFilter<T>`
-- `LazyFilterSequence<T: Sequence>` will become `Sequence.LazyFilter<T>`
-- `LazyFilterCollection<T: Collection>` will become `Collection.LazyFilter<T>`
-- `LazyFilterBidirectionalCollection<T: BidirectionalCollection>` will become `BidirectionalCollection.LazyFilter<T>`
-- `LazyFilterRandomAccessCollection<T: RandomAccessCollection>` will become `RandomAccessCollection.LazyFilter<T>`
+LazyFilterIterator<T: IteratorProtocol>                        /* --> */  IteratorProtocol.LazyFilter<T>
+LazyFilterSequence<T: Sequence>                                /* --> */  Sequence.LazyFilter<T>
+LazyFilterCollection<T: Collection>                            /* --> */  Collection.LazyFilter<T>
+LazyFilterBidirectionalCollection<T: BidirectionalCollection>  /* --> */  BidirectionalCollection.LazyFilter<T>
+LazyFilterRandomAccessCollection<T: RandomAccessCollection>    /* --> */  RandomAccessCollection.LazyFilter<T>
 
-- `LazyMapIterator<T: IteratorProtocol, E>` will become `IteratorProtocol.LazyMap<T, E>`
-- `LazyMapSequence<T: Sequence, E>` will become `Sequence.LazyMap<T, E>`
-- `LazyMapCollection<T: Collection, E>` will become `Collection.LazyMap<T, E>`
-- `LazyMapBidirectionalCollection<T: BidirectionalCollection, E>` will become `BidirectionalCollection.LazyMap<T, E>`
-- `LazyMapRandomAccessCollection<T: RandomAccessCollection, E>` will become `RandomAccessCollection.LazyMap<T, E>`
-
+LazyMapIterator<T: IteratorProtocol, E>                        /* --> */  IteratorProtocol.LazyMap<T, E>
+LazyMapSequence<T: Sequence, E>                                /* --> */  Sequence.LazyMap<T, E>
+LazyMapCollection<T: Collection, E>                            /* --> */  Collection.LazyMap<T, E>
+LazyMapBidirectionalCollection<T: BidirectionalCollection, E>  /* --> */  BidirectionalCollection.LazyMap<T, E>
+LazyMapRandomAccessCollection<T: RandomAccessCollection, E>    /* --> */  RandomAccessCollection.LazyMap<T, E>
+```
 
 Source migration can be handled with a typealias and deprecation notice (with fixit), for example:
 
