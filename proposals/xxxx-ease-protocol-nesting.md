@@ -71,11 +71,10 @@ protocol Scrollable: class {     // A regular-old protocol
 class MyScrollable: Scrollable {
     var currentPosition = Position.zero
     
-    // implicit typealias Delegate = Scrollable.Delegate (see 'Namespacing')
-    weak var delegate: Delegate? // type: Scrollable.Delegate
+    weak var delegate: Scrollable.Delegate? // Qualified lookup: Scrollable.Delegate
 }
 
-extension MyController: Scrollable.Delegate { // Qualified lookup: Scrollable.Delegate
+extension MyController: Scrollable.Delegate { // 'MyScrollable.Delegate' would _not_ be ok here, does not exist!
     func scrollableDidScroll(_ scrollable: Scrollable, from: Position) { 
         let displacement = scrollable.currentPosition.x - from.x
         // ...
@@ -87,18 +86,24 @@ extension MyController: Scrollable.Delegate { // Qualified lookup: Scrollable.De
 
 It is important to draw a distinction between a protocol's nested types and its associated types. Associated types are placeholders (similar to generic type parameters), to be defined individually by each type which conforms to the protocol (e.g. every `Collection` will have a unique type of `Element`). Nested types are standard nominal types which must be used by _every_ type which conforms to the protocol. Taking `FloatingPoint.Sign` as an example, conformance to the `FloatingPoint` protocol means that every conforming type has a property called `sign` whose value may one of a few enum cases defined _as part of the protocol_.
 
-That being said, conformers will import the nested types of protocols in to their own namespaces via implicit typealiases to allow for unqualified lookup. This is nothing more than a convenient shorthand - `Float.Sign` is identical to `Double.Sign`, and generic code may refer to both with `FloatingPoint.Sign`. In the event of a naming collision, the latter spelling may be used to disambiguate.
+Since nested types are members of the protocol and not the conforming type, they are not implicitly imported in to the namespace of conforming types at all.
+
+Take the standard library's `EmptyCollection<Element>` and `CollectionOfOne<Element>` types as an example of when a protocol may wish to define canned instances with a particular basic behaviour. With nesting, we would call these `Collection.Empty<Element>` and `Collection.One<Element>`; but suddenly every type which conforms to `Collection` has the pleasure of welcoming these irrelevant types in to its namespace:
+
+```swift
+let myArray = Array.Empty<Int>() // type: Collection.Empty<Int>, nothing to do with Array!
+```
+
+For `Array.Empty<T>` to have its expected meaning, `Empty` would have to be static function requirement of `Collection` (which would make it `Array<T>.Empty` anyway -- but that's not part of this proposal). In short, `Array.Empty<T>` and `Collection.Empty<T>` have nothing whatsoever to do with each other. So we shouldn't import protocol types.
 
 ```swift
 // See: FloatingPoint.Sign example above
 
 struct Float: FloatingPoint {
-    // implicit: typealias Sign = FloatingPoint.Sign
-    var sign: Sign { /* ... */ }
+    var sign: FloatingPoint.Sign { /* ... */ } // Qualified name!
 }
 
-// Allowed. Double.Sign == Float.Sign == FloatingPoint.Sign
-let _: Double.Sign = (3.0 as Float).sign
+let _: Double.Sign = (3.0 as Float).sign // ERROR: 'Double.Sign' does not exist - did you mean 'FloatingPoint.Sign'?
 ```
 
 **Access Control:**
@@ -137,19 +142,17 @@ extension FloatingPoint {
 
 **Constrained extensions:**
 
-Nested types may also be defined inside of constrained protocol extensions, although they share a namespace with unconstrained extensions:
+Nested types may also be defined inside of constrained protocol extensions, although they share a single namespace with unconstrained extensions:
 
 ```swift
 // View as a series of UTF8 characters
 extension Collection where Element == UInt8 {
-    // Type is Collection.UnicodeCharacterView
-    struct UnicodeCharacterView: Collection { let _wrapped: AnyCollection<UInt8> }
+    struct UnicodeCharacterView: Collection { let _wrapped: AnyCollection<UInt8> } // Type: Collection.UnicodeCharacterView
 }
 
 // View as a series of UTF16 characters
 extension Collection where Element == UInt16 {
-    // ERROR: Redefinition of type 'Collection.UnicodeCharacterView'. Workaround would be to rename to 'Collection.UTF16View'.
-    struct UnicodeCharacterView: Collection { let _wrapped: AnyCollection<UInt16> }
+    struct UnicodeCharacterView: Collection { let _wrapped: AnyCollection<UInt16> } // ERROR: Redefinition of type 'Collection.UnicodeCharacterView'. Workaround is to make unique, e.g. 'Collection.UTF16View'.
 }
 ```
 
@@ -247,22 +250,22 @@ Given that there is some friction between protocols with associated types ("gene
     }
     ```
 
-    By capturing an associated type, the type `Collection.Slice` would also become existential (something like `Collection.Slice where Parent == Array`). We could theoretically map the capture of 'Parent' in to a generic parameter (although it is _not a part of this proposal_). That is what we currently do manually in the standard library (but they're not nested, because obviously we can't structs things inside protocols yet...):
+    By capturing an associated type, the type `Collection.Slice` would also become existential (something like `Collection.Slice where Parent == Array`). We could theoretically map the capture of 'Parent' in to a generic parameter (although it is _not a part of this proposal_). This pattern is currently prevalent in the standard library, but they're not yet nested, because we couldn't nest structs inside protocols before.:
 
      ```swift
     protocol Collection {
 
-        struct Slice<Base: Collection>: Collection { // would be implicit: Slice = Slice<Parent: Collection>
+        struct Slice<Base: Collection>: Collection { // generic param _could_ be implicit, hidden
             typealias Index   = Base.Index
             typealias Element = Base.Element
 
             init(base: Base, bounds: Range<Slice.Index>) { /* ... */ }
         }
         
-        associatedtype SubSequence: Sequence = Slice<Self> // would be implicit in parent: Slice = Slice<Self>
+        associatedtype SubSequence: Sequence = Slice<Self> // In the source of the capture, Slice would then imply Slice<Self>
     }
 
-    let slice = Collection.Slice<Array>(base: [1, 2, 3, 4, 5], bounds: 0..<2) // current type: Slice<Array>
+    let slice: Array<Int>.SubSequence = Collection.Slice<Array<Int>>(base: [1, 2, 3, 4, 5], bounds: 0..<2)
     ```
     
     This would only work for would-be captures from the immediate parent, before we start having protocols capturing associated types. So it's best to leave this idea for now and approach it again when we have a more comprehensive solution.
@@ -274,11 +277,11 @@ Given that there is some friction between protocols with associated types ("gene
         protocol Middle {
             associatedtype AssocMiddle
             
-            enum Result { // implicit: <Parent_Parent: Top, Parent: Middle>
-                case one(Parent_Parent.AssocTop)
-                case two(Parent.AssocMiddle)
+            enum Result { // implicit: <Parent: Middle, Parent_Parent: Top>
+                case one(Parent.AssocMiddle)
+                case two(Parent_Parent.AssocTop)
             }
-            var result: Result { get } // implicit: <???, Self> - would need to capture 'Self' from Parent
+            var result: Result { get } // implicit: Result<Self, ???> - would need to capture 'Self' from Parent
         }
     }
     ```
