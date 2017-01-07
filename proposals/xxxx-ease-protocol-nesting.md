@@ -231,38 +231,41 @@ Given that there is some friction between protocols with associated types ("gene
     
 - Structual types may not capture associated types
 
-    Consider a hypothetical nested struct that captures an associated type from its parent protocol.
+    This is quite a common pattern that we find in the standard library, particularly for the dyanmic-'Self' associated type. For example: `Collection.Slice`, `LazyCollection`. This can lead to some really awkward-named types, like `RangeReplaceableBidirectionalSlice`...
 
      ```swift
     // Note: Pretend there is something called 'Parent' which is a captured 'Self' of the parent protocol.
-    protocol RandomAccessCollection {
+    protocol Collection {
 
-        struct DefaultSlice: RandomAccessCollection {
+        struct Slice: Collection {
             typealias Element = Parent.Element                     // ERROR: Cannot capture 'Element' from Parent
-            init(from: Index, to: Index, in: Parent) { /* ... */ } // ERROR: Cannot capture 'Self' from Parent
+            typealias Index   = Parent.Index                       // ERROR: Cannot capture 'Index' from Parent
+            init(from: Index, to: Index, in: Parent) { /* ... */ } // ERROR: etc...
         }
         
-        associatedtype Slice: RandomAccessCollection = DefaultSlice
+        associatedtype SubSequence: Sequence = Slice
     }
     ```
 
-    By capturing an associated type, the type `RandomAccessCollection.DefaultSlice` would also become existential (something like `RandomAccessCollection.DefaultSlice where Parent == Array`). We could theoretically map the capture of 'Parent' in to a generic parameter (although it is _not a part of this proposal_):
+    By capturing an associated type, the type `Collection.Slice` would also become existential (something like `Collection.Slice where Parent == Array`). We could theoretically map the capture of 'Parent' in to a generic parameter (although it is _not a part of this proposal_). That is what we currently do manually in the standard library (but they're not nested, because obviously we can't structs things inside protocols yet...):
 
      ```swift
-    protocol RandomAccessCollection {
+    protocol Collection {
 
-        struct DefaultSlice: RandomAccessCollection { // implicit: DefaultSlice<Parent: RandomAccessCollection>
-            typealias Element = Parent.Element
-            init(from: Index, to: Index, in: Parent) { /* ... */ }
+        struct Slice<Base: Collection>: Collection { // would be implicit: Slice = Slice<Parent: Collection>
+            typealias Index   = Base.Index
+            typealias Element = Base.Element
+
+            init(base: Base, bounds: Range<Slice.Index>) { /* ... */ }
         }
         
-        associatedtype Slice: RandomAccessCollection = DefaultSlice // implicit: DefaulSlice<Self>
+        associatedtype SubSequence: Sequence = Slice<Self> // would be implicit in parent: Slice = Slice<Self>
     }
 
-    let slice = RandomAccessCollection.DefaultSlice<Array>(from: 0, to: 1, in: [1, 2, 3, 4, 5])
+    let slice = Collection.Slice<Array>(base: [1, 2, 3, 4, 5], bounds: 0..<2) // current type: Slice<Array>
     ```
     
-    This would only work for would-be captures from the immediate parent, before we start having protocols capturing associated types:
+    This would only work for would-be captures from the immediate parent, before we start having protocols capturing associated types. So it's best to leave this idea for now and approach it again when we have a more comprehensive solution.
     
     ```swift
     protocol Top {
@@ -280,14 +283,62 @@ Given that there is some friction between protocols with associated types ("gene
     }
     ```
 
-So that's a long explanation of why it's best to just bar any kind of capturing between protocols and structural types for now. We can maybe address this limitation at a later date, as part of broader support for existentials and according to demand.
+That's a long explanation of why it's best to just bar any kind of capturing between protocols and structural types for now. We can maybe address this limitation at a later date, as part of broader support for existentials and according to demand.
 
 ## Source compatibility
 
-This change is mostly additive, although there are a couple of places in the standard library where we can organise things better after this change. Specifically:
+This change is mostly additive, although there are several places in the standard library where we can organise things better after this change. Specifically:
 
 - The `FloatingPoint{Sign,Classification,RoundingMode}` enums will become members of the `FloatingPoint` protocol
 - The `MirrorPath` protocol will become a member of the `Mirror` struct, and renamed `Path`
+
+- `EmptyIterator<T>` will become `IteratorProtocol.Empty<T>`
+- `EmptyCollection<T>` will become `Collection.Empty<T>`
+
+- `IteratorOverOne<T>` will become `IteratorProtocol.One<T>`
+- `CollectionOfOne<T>` will become `Collection.One<T>`
+
+- `DefaultBidirectionalIndices<T: BidirectionalCollection>` will become `BidirectionalCollection.DefaultIndices<T>`
+- `DefaultRandomAccessIndices<T: RandomAccessCollection>` will become `RandomAccessCollection.DefaultIndices<T>`
+
+- `EnumeratedIterator<T: IteratorProtocol>` will become `IteratorProtocol.Enumerated<T>`
+- `EnumeratedSequence<T: Sequence>` will become `Sequence.Enumerated<T>`
+
+- `JoinedIterator<T: IteratorProtocol>` will become `IteratorProtocol.Joined<T>`
+- `JoinedSequence<T: Sequence>` will become `Sequence.Joined<T>`
+
+- `ReversedCollection<T: Collection>` will become `Collection.Reversed<T>`
+- `ReversedRandomAccessCollection<T: RandomAccessCollection>` will become `RandomAccessCollection.Reversed<T>`
+
+- `FlattenIterator<T: IteratorProtocol>` will become `IteratorProtocol.Flattened<T>`
+- `FlattenSequence<T: Sequence>` will become `Sequence.Flattened<T>`
+- `FlattenCollection<T: Collection>` will become `Collection.Flattened<T>`
+- `FlattenBidirectionalCollection<T: BidirectionalCollection>` will become `BidirectionalCollection.Flattened<T>`
+
+- `Slice<T: Collection>` will become `Collection.Slice<T>`
+- `Bidirectional{*}Slice<T: BidirectionalCollection>` will become `BidirectionalCollection.{*}Slice<T>`
+- `RandomAccessSlice<T: RandomAccessCollection>` will become `RandomAccessCollection.Slice<T>`
+- `RangeReplaceable{*}Slice<T: RangeReplaceableCollection>` will become `RangeReplaceableCollection.{*}Slice<T>`
+- `Mutable{*}Slice<T: MutableCollection>` will become `MutableCollection.{*}Slice<T>`
+
+- `LazySequence<T: Sequence>` will become `Sequence.Lazy<T>`
+- `LazyCollection<T: Collection>` will become `Collection.Lazy<T>`
+- `LazyBidirectionalCollection<T: BidirectionalCollection>` will become `BidirectionalCollection.Lazy<T>`
+- `LazyRandomAccessCollection<T: RandomAccessCollection>` will become `RandomAccessCollection.Lazy<T>`
+- Since the name of the type is now `Lazy`, having a property called `lazy` (varying only by case) may not be desired. Therefore the current `var lazy: LazySequence<Self> { get }` property should be renamed `var lazily: Lazy<Self> { get }`.
+
+- `LazyFilterIterator<T: IteratorProtocol>` will become `IteratorProtocol.LazyFilter<T>`
+- `LazyFilterSequence<T: Sequence>` will become `Sequence.LazyFilter<T>`
+- `LazyFilterCollection<T: Collection>` will become `Collection.LazyFilter<T>`
+- `LazyFilterBidirectionalCollection<T: BidirectionalCollection>` will become `BidirectionalCollection.LazyFilter<T>`
+- `LazyFilterRandomAccessCollection<T: RandomAccessCollection>` will become `RandomAccessCollection.LazyFilter<T>`
+
+- `LazyMapIterator<T: IteratorProtocol, E>` will become `IteratorProtocol.LazyMap<T, E>`
+- `LazyMapSequence<T: Sequence, E>` will become `Sequence.LazyMap<T, E>`
+- `LazyMapCollection<T: Collection, E>` will become `Collection.LazyMap<T, E>`
+- `LazyMapBidirectionalCollection<T: BidirectionalCollection, E>` will become `BidirectionalCollection.LazyMap<T, E>`
+- `LazyMapRandomAccessCollection<T: RandomAccessCollection, E>` will become `RandomAccessCollection.LazyMap<T, E>`
+
 
 Source migration can be handled with a typealias and deprecation notice (with fixit), for example:
 
