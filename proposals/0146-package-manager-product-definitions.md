@@ -5,6 +5,7 @@
 * Review manager: Daniel Dunbar
 * Status: **Accepted**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-November/000298.html)
+* Bug: [SR-3606](https://bugs.swift.org/browse/SR-3606)
 
 ## Introduction
 
