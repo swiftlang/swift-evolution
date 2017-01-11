@@ -82,7 +82,7 @@
 <proposal id="0079" status="deferred" name="Allow using optional binding to upgrade `self` from a weak to strong reference" filename="0079-upgrade-self-from-weak-to-strong.md"/>
 <proposal id="0080" status="implementing" name="Failable Numeric Conversion Initializers" filename="0080-failable-numeric-initializers.md"/>
 <proposal id="0081" status="implemented" swift-version="3" name="Move `where` clause to end of declaration" filename="0081-move-where-expression.md"/>
-<proposal id="0082" status="accepted" name="Package Manager Editable Packages" filename="0082-swiftpm-package-edit.md"/>
+<proposal id="0082" status="implemented" swift-version="3.1" name="Package Manager Editable Packages" filename="0082-swiftpm-package-edit.md"/>
 <proposal id="0083" status="deferred" name="Remove bridging conversion behavior from dynamic casts" filename="0083-remove-bridging-from-dynamic-casts.md"/>
 <proposal id="0084" status="rejected" name="Allow trailing commas in parameter lists and tuples" filename="0084-trailing-commas.md"/>
 <proposal id="0085" status="implemented" swift-version="3" name="Package Manager Command Names" filename="0085-package-manager-command-name.md"/>
@@ -145,7 +145,7 @@
 <proposal id="0142" status="accepted" swift-version="4" name="Permit where clauses to constrain associated types" filename="0142-associated-types-constraints.md"/>
 <proposal id="0143" status="accepted" swift-version="4" name="Conditional conformances" filename="0143-conditional-conformances.md"/>
 <proposal id="0144" status="rejected" swift-version="4" name="Allow Single Dollar Sign as a Valid Identifier" filename="0144-allow-single-dollar-sign-as-valid-identifier.md"/>
-<proposal id="0145" status="accepted" swift-version="4" name="Package Manager Version Pinning" filename="0145-package-manager-version-pinning.md"/>
+<proposal id="0145" status="implemented" swift-version="3.1" name="Package Manager Version Pinning" filename="0145-package-manager-version-pinning.md"/>
 <proposal id="0146" status="accepted" swift-version="4" name="Package Manager Product Definitions" filename="0146-package-manager-product-definitions.md"/>
 <proposal id="0147" status="accepted" swift-version="4" name="Move `UnsafeMutablePointer.initialize(from:)` to `UnsafeMutableBufferPointer`" filename="0147-move-unsafe-initialize-from.md"/>
 
