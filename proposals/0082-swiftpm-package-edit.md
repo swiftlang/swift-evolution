@@ -3,7 +3,7 @@
 * Proposal: [SE-0082](0082-swiftpm-package-edit.md)
 * Author: [Daniel Dunbar](https://github.com/ddunbar)
 * Review Manager: [Anders Bertelrud](https://github.com/abertelrud)
-* Status: **Accepted**
+* Status: **Implemented (Swift 3.1)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160509/017038.html)
 
 ## Introduction
