@@ -1,4 +1,6 @@
 # Swift Programming Language Evolution
+[![Swift](https://img.shields.io/badge/Swift%204%20stage%201-Open%20to%20requests-brightgreen.svg)](#swift_stage)
+
 
 **Before you initiate a pull request**, please read the process document. Ideas should be thoroughly discussed on the [swift-evolution mailing list](https://swift.org/community/#swift-evolution) first.
 
@@ -19,7 +21,7 @@ Goals for past versions are included at the bottom of the document for
 historical purposes, but are not necessarily indicative of the
 features shipped. The release notes for each shipped version are the
 definitive list of notable changes in each release.
-
+<a name="swift_stage"></a>
 ## Development major version:  Swift 4.0
 
 Expected release date: Late 2017
