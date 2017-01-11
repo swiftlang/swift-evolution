@@ -142,10 +142,10 @@
 <proposal id="0139" status="implemented" swift-version="3.0.1" name="Bridge Numeric Types to `NSNumber` and Cocoa Structs to `NSValue`" filename="0139-bridge-nsnumber-and-nsvalue.md"/>
 <proposal id="0140" status="implemented" swift-version="3.0.1" name="Bridge `Optional` As Its Payload Or `NSNull`" filename="0140-bridge-optional-to-nsnull.md"/>
 <proposal id="0141" status="implemented" swift-version="3.1" name="Availability by Swift version" filename="0141-available-by-swift-version.md"/>
-<proposal id="0145" status="implemented" swift-version="3.1" name="Package Manager Version Pinning" filename="0145-package-manager-version-pinning.md"/>
 <proposal id="0142" status="accepted" swift-version="4" name="Permit where clauses to constrain associated types" filename="0142-associated-types-constraints.md"/>
 <proposal id="0143" status="accepted" swift-version="4" name="Conditional conformances" filename="0143-conditional-conformances.md"/>
 <proposal id="0144" status="rejected" swift-version="4" name="Allow Single Dollar Sign as a Valid Identifier" filename="0144-allow-single-dollar-sign-as-valid-identifier.md"/>
+<proposal id="0145" status="implemented" swift-version="3.1" name="Package Manager Version Pinning" filename="0145-package-manager-version-pinning.md"/>
 <proposal id="0146" status="accepted" swift-version="4" name="Package Manager Product Definitions" filename="0146-package-manager-product-definitions.md"/>
 <proposal id="0147" status="accepted" swift-version="4" name="Move `UnsafeMutablePointer.initialize(from:)` to `UnsafeMutableBufferPointer`" filename="0147-move-unsafe-initialize-from.md"/>
 
