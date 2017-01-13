@@ -192,6 +192,8 @@ avoid undefined behavior and produce uniform semantics across architectures.
 
 * Standard library introduces the new type `DoubleWidth<T>`.
 
+  See [this section](#doublewidth) for more details.
+
 ### Protocols
 
 #### `Arithmetic`
@@ -1011,6 +1013,18 @@ public protocol SignedInteger : BinaryInteger, SignedArithmetic {
 }
 ```
 
+### DoubleWidth<T>
+
+The `DoubleWidth<T>` type allows to create wider fixed-width integer types from
+the ones available in the standard library.
+
+Standard library currently provides fixed-width integer types of up to 64 bits.
+A value of `DoubleWidth<Int64>` will double the range of the underlying type and
+implement all the `FixedWidthInteger` requirements. _Please note_ though that
+the implementation will not necessarily be the most efficient one, so it would
+not be a good idea to use `DoubleWidth<Int32>` instead of a built-in `Int64`.
+
+
 ### Extra operators
 
 In addition to the operators described in the [protocols section](#protocols), we also provide a few extensions that are not protocol requirements:
@@ -1068,9 +1082,6 @@ This proposal:
 
 - *DOES NOT* include the implementation of a `BigInt` type, but allows it
   to be implemented in the future.
-
-- *DOES NOT* propose including a `DoubleWidth` integer type in the standard
-  library, but provides a proof-of-concept implementation.
 
 
 ## Source compatibility
