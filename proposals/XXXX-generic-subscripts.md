@@ -32,7 +32,7 @@ Swift-evolution thread: [Generic Subscripts](https://lists.swift.org/pipermail/s
 
 Currently, subscripts can't be generic. This is limiting in a number of ways: 
 
-- Some subscripts are very specific and could be made more generics.
+- Some subscripts are very specific and could be made more generic.
 - Some generic methods would feel more natural as a subscript, but currently can't be. This also makes it impossible to use them as lvalues.
 
 This feature is also mentioned in the generics manifesto under [generic subscripts](https://github.com/apple/swift/blob/master/docs/GenericsManifesto.md#generic-subscripts).
