@@ -12,7 +12,7 @@
 This proposal is an evolution of [SE-0104][se104]. The goal is still to clean up
 Swifts integer APIs and make them more useful for generic programming.
 
-The language has evolved in ways that affect integers APIs, since the time
+The language has evolved in ways that affect integers APIs since the time the
 original proposal was approved for Swift 3. We also attempted to implement
 the proposed model in the standard library and found that some essential APIs
 were missing, whereas others could be safely removed.
@@ -33,7 +33,7 @@ overload set.
 
 Converting from one integer type to another is performed using the concept of
 the 'maximum width integer' (see `MaxInt`), which is an artificial limitation.
-The very existence of `MaxInt` makes it unclear what to do, should someone
+The very existence of `MaxInt` makes it unclear what to do should someone
 implement `Int256`, for example.
 
 Another annoying problem is the inability to use integers of different types in
@@ -172,8 +172,8 @@ avoid undefined behavior and produce uniform semantics across architectures.
 * Shifts and other bitwise operations were moved from `FixedWidthInteger` to `BinaryInteger`.
 
   Left shift operation on an unbounded integer should infinitely extend the
-  number, and never drop set bits when they reach the leftmost position in the
-  underlying representation.
+  number, and never drop set bits when they reach the most significant position
+  in the underlying representation.
 
 * `BitwiseOperations` protocol was deprecated.
 
