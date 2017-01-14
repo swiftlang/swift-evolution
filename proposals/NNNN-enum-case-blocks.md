@@ -310,9 +310,7 @@ No source is deprecated in this proposal, so source compatibility should be pres
 
 ## Effect on ABI stability
 
-Because the generated switch statement should be identical to one that can be generated with Swift 3, I don't foresee effect on ABI stability.
-
-Question: does the error case above affect ABI requirements, in order to display the error at the correct case line?
+Because the generated switch statement should be identical to one that can be generated with Swift 3, I don't foresee any effect on ABI stability.
 
 ## Alternatives considered
 
