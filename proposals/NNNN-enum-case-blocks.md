@@ -1,9 +1,9 @@
 # Enum Case Blocks
 
-* Proposal: SE-XXXX
+* Proposal: SE-NNNN
 * Authors: [Tim Shadel](https://github.com/timshadel)
 * Review Manager: TBD
-* Status: **TBD**
+* Status: **Awaiting review**
 
 ## Motivation
 
