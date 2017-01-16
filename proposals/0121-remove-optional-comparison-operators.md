@@ -9,7 +9,7 @@
 
 ## Introduction
 
-Swift's [`Comparable` protocol](https://developer.apple.com/reference/swift/comparable) requires 4 operators, [`<`, `<=`, `>`, and `>=`](https://github.com/apple/swift/blob/master/stdlib/public/core/Policy.swift#L729-L763), beyond the requirements of Equatable.
+Swift's [`Comparable` protocol](https://developer.apple.com/reference/swift/comparable) requires 4 operators, [`<`, `<=`, `>`, and `>=`](https://github.com/apple/swift/blob/5868f9c597088793f7131d4655dd0f702a04dea3/stdlib/public/core/Policy.swift#L729-L763), beyond the requirements of Equatable.
 
 The standard library [additionally defines](https://github.com/apple/swift/blob/2a545eaa1bfd7d058ef491135cca270bc8e4be5f/stdlib/public/core/Optional.swift#L383-L419) the following 4 variants, which accept operands of Optional type, with the semantics that `.none < .some(_)`:
 
