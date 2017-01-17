@@ -9,7 +9,7 @@
 
 This proposal addresses significant unexpected performance gaps when using dictionaries. It introduces type-specific collections for a `Dictionary` instance's `keys` and `values` properties.
 
-New `DictionaryKeys` and `DictionaryValues` collections provide efficient key lookup and mutable access to dictionary values, allowing in-place updates and copy-on-write optimization of stored values. The addition of these new types impacts the standard library ABI, since we won't be able to use types aliases from the existing types for `keys` and `values`.
+New collection types provide efficient key lookup and mutable access to dictionary values, allowing in-place updates and copy-on-write optimization of stored values. The addition of these new types impacts the standard library ABI, since we won't be able to use types aliases from the existing types for `keys` and `values`.
 
 Swift-evolution thread: [[Proposal Draft] Provide Custom Collections for Dictionary Keys and Values](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20161010/027815.html)
 
@@ -68,7 +68,7 @@ Adding mutation to a dictionary's index-based subscripting isn't possible. Chang
 
 ## Proposed Solution
 
-This proposal adds custom collections for the `keys` and `values` dictionary properties. This follows the example set by `String`, which presents multiple views of its contents. A new `DictionaryKeys` collection introduces efficient key lookup, while a new `DictionaryValues` collection provides a mutable collection interface to dictionary values.
+This proposal adds custom collections for the `keys` and `values` dictionary properties. This follows the example set by `String`, which presents multiple views of its contents. A new `Keys` collection introduces efficient key lookup, while a new `Values` collection provides a mutable collection interface to dictionary values. Both new collections are nested in the `Dictionary` type.
 
 These changes make the simple approach for testing whether a dictionary contains a key an efficient one:
 
@@ -102,55 +102,42 @@ if let i = dict.keys.index(of: "one") {
 
 ## Detailed design
 
-* The standard library introduces two new collection types: `DictionaryKeys` and `DictionaryValues`.
+* The standard library introduces two new collection types: `Dictionary.Keys` and `Dictionary.Values`.
 * A `Dictionary`'s `keys` and `values` properties change from `LazyMapCollection` to these new types. 
 * The new collection types are not directly constructable. They are presented only as views into a dictionary.
 
 ```swift
 struct Dictionary<Key: Hashable, Value>: ... {
-    var keys: DictionaryKeys<Key, Value> { get }
-    var values: DictionaryValues<Key, Value> { get set }
+    /// A collection view of a dictionary's keys.
+    struct Keys: Collection {
+        subscript(i: Index) -> Key { get }
+        // Other `Collection` requirements
+    }
+
+    /// A mutable collection view of a dictionary's values.
+    struct Values: MutableCollection {
+        subscript(i: Index) -> Value { get set }
+        // Other `Collection` requirements
+    }
     
-    // Remaining declarations
-}
-
-/// A collection view of a dictionary's keys.
-struct DictionaryKeys<Key: Hashable, Value>: Collection {
-    typealias Index = DictionaryIndex<Key, Value>
-    subscript(i: Index) -> Key { get }
-
-    // Other `Collection` requirements
-}
-
-/// A mutable collection view of a dictionary's values.
-struct DictionaryValues<Key: Hashable, Value>: MutableCollection {
-    typealias Index = DictionaryIndex<Key, Value>
-    subscript(i: Index) -> Value { get set }
-
-    // Other `Collection` requirements
+    var keys: Keys { get }
+    var values: Values { get set }    
+    // Remaining Dictionary declarations
 }
 ```
 
-A sample implementation of this proposal can be found in [this branch](https://github.com/apple/swift/compare/master...natecook1000:nc-dictionary).
-
-
 ## Impact on existing code
 
-The performance improvements of using the new `DictionaryKeys` type and the mutability of the `DictionaryValues` collection are both additive in nature.
+The performance improvements of using the new `Dictionary.Keys` type and the mutability of the `Dictionary.Values` collection are both additive in nature.
 
 Most uses of these properties are transitory in nature. Adopting this proposal should not produce a major impact on existing code. The only impact on existing code exists where a program explicitly specifies the type of a dictionary's `keys` or `values` property. In those cases, the fix would be to change the specified type.
 
 
 ## Alternatives considered
 
+1. Add additional compiler features that manage mutation through existing key-based subscripting without the copy-on-write problems of the current implementation. This could potentially be handled by upcoming changes to copy-on-write semantics and/or inout access. 
 
-1. The [Generics Manifesto](https://github.com/apple/swift/blob/master/docs/GenericsManifesto.md) lists nested generics as a goal. This could impact the naming and structure of these new collection types. 
-
-   Instead of `DictionaryKeys<Key, Value>` and `DictionaryValues<Key, Value>`, these types could be `Dictionary<Key, Value>.Keys` and `Dictionary<Key, Value>.Values`. However, because many types in the standard library may be revisited once such a feature is available (indices, iterators, etc.), the current lack of nesting shouldn't prevent consideration of this proposal.
-
-2. Add additional compiler features that manage mutation through existing key-based subscripting without the copy-on-write problems of the current implementation. This could potentially be handled by upcoming changes to copy-on-write semantics and/or inout access. 
-
-3. Provide new APIs for updating dictionary values with a default value, eliminating the double-lookup for a missing key. The approach outlined in this proposal provides a way to remove one kind of double-lookup (mutating a value that exists) but doesn't eliminate all of them (in particular, checking for the existence of a key before adding).
+2. Provide new APIs for updating dictionary values with a default value, eliminating the double-lookup for a missing key. The approach outlined in this proposal provides a way to remove one kind of double-lookup (mutating a value that exists) but doesn't eliminate all of them (in particular, checking for the existence of a key before adding).
 
    These could be written in a variety of ways:
     
@@ -173,7 +160,7 @@ Most uses of these properties are transitory in nature. Adopting this proposal s
     }
     ```
 
-4. Restructure `Dictionary`'s collection interface such that the `Element` type of a dictionary is its `Value` type instead of a `(Key, Value)` tuple. That would allow the `Dictionary` type itself to be a mutable collection with an `entries` or `keysAndValues` view similar to the current collection interface. This interface might look a bit like this:
+3. Restructure `Dictionary`'s collection interface such that the `Element` type of a dictionary is its `Value` type instead of a `(Key, Value)` tuple. That would allow the `Dictionary` type itself to be a mutable collection with an `entries` or `keysAndValues` view similar to the current collection interface. This interface might look a bit like this:
 
     ```swift
     let valuesOnly = Array(dict)
