@@ -72,7 +72,7 @@ extension Sequence where Iterator.Element: Hashable {
 }
 ```
 
-With the `inout` parameter, we'd first have to make a `var` copy of the existing result, and have to remember to return that copy instead of the `result`. (The method above is probably clearer when written with a `for`-loop, but that's not the point).
+Without the `inout` parameter, we'd first have to make a `var` copy of the existing result, and have to remember to return that copy instead of the `result`. (The method above is probably clearer when written with a `for`-loop, but that's not the point).
 
 
 ## Source compatibility
