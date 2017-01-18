@@ -15,6 +15,7 @@ Make it possible to have generic subscripts. Example:
 extension Collection {
   subscript<Indices: Sequence>(indices: Indices) -> [Iterator.Element] where Indices.Iterator.Element == Index {
     // ...
+  }
 }
 ```
 
@@ -22,7 +23,9 @@ Or a generic return type:
 
 ```swift
 extension JSON {
-  subscript<T: JSONConvertible>(key: String) -> T?
+  subscript<T: JSONConvertible>(key: String) -> T? {
+    // ...
+  }
 }
 ```
 
@@ -45,14 +48,9 @@ Add generics to subscripts. There are two pieces to this: where to add the gener
 extension Dictionary {
   subscript<Indices: Sequence>(indices: Indices) -> [Iterator.Element] where Indices.Iterator.Element == Index {
     // ...
+  }
 }
 ```
-
-## Detailed design
-
-TBD
-
-Currently, there is a [JIRA bug](https://bugs.swift.org/browse/SR-115?jql=text%20~%20%22Generic%20subscript%22) and a [branch with some initial work](https://github.com/apple/swift/compare/master...stephencelis:generic-subscripts).
 
 ## Source compatibility
 
