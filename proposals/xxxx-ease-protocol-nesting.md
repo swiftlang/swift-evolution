@@ -35,10 +35,10 @@ class AView {                    // A regular-old class
     protocol Delegate: class {   // A nested protocol
         func somethingHappened()
     }
-    weak var delegate: Delegate? // Unqualified lookup: AView.Delegate
+    weak var delegate: Delegate?
 }
 
-class MyDelegate: AView.Delegate {  // Qualified lookup: AView.Delegate
+class MyDelegate: AView.Delegate {
     func somethingHappened() { /* ... */ }
 }
 ```
@@ -65,16 +65,16 @@ protocol Scrollable: class {     // A regular-old protocol
     protocol Delegate: class {   // A nested protocol
         func scrollableDidScroll(_: Scrollable, from: Position)
     }    
-    weak var delegate: Delegate? // Unqualified lookup: Scrollable.Delegate
+    weak var delegate: Delegate?
 }
 
 class MyScrollable: Scrollable {
     var currentPosition = Position.zero
     
-    weak var delegate: Scrollable.Delegate? // Qualified lookup: Scrollable.Delegate
+    weak var delegate: Scrollable.Delegate? // Qualified name: Scrollable.Delegate
 }
 
-extension MyController: Scrollable.Delegate { // 'MyScrollable.Delegate' would _not_ be ok here, does not exist!
+extension MyController: Scrollable.Delegate { // <- Notice _not_ 'MyScrollable.Delegate'
     func scrollableDidScroll(_ scrollable: Scrollable, from: Position) { 
         let displacement = scrollable.currentPosition.x - from.x
         // ...
@@ -84,27 +84,51 @@ extension MyController: Scrollable.Delegate { // 'MyScrollable.Delegate' would _
 
 **Namespacing:**
 
-It is important to draw a distinction between a protocol's nested types and its associated types. Associated types are placeholders (similar to generic type parameters), to be defined individually by each type which conforms to the protocol (e.g. every `Collection` will have a unique type of `Element`). Nested types are standard nominal types which must be used by _every_ type which conforms to the protocol. Taking `FloatingPoint.Sign` as an example, conformance to the `FloatingPoint` protocol means that every conforming type has a property called `sign` whose value may one of a few enum cases defined _as part of the protocol_.
+It is important to draw a distinction between a protocol's nested types and its associated types. Associated types are placeholders (similar to generic type parameters), to be defined individually by each type which conforms to the protocol (e.g. every `Collection` will have a unique type of `Element`). Nested types are standard nominal types, and they don't neccessarily have anything to do with the conforming type (e.g. they may have been added in a protocol extension).
 
-Since nested types are members of the protocol and not the conforming type, they are not implicitly imported in to the namespace of conforming types at all.
-
-Take the standard library's `EmptyCollection<Element>` and `CollectionOfOne<Element>` types as an example of when a protocol may wish to define canned instances with a particular basic behaviour. With nesting, we would call these `Collection.Empty<Element>` and `Collection.One<Element>`; but suddenly every type which conforms to `Collection` has the pleasure of welcoming these irrelevant types in to its namespace:
+Since nested types are members of the protocol and not the conforming type, they are not implicitly imported in to the namespace of conforming types. Consider the following example of a struct which is added to `RandomAccessCollection` by an extension; if the type of the result was `Array<T>.Concurrent` the user might expect that they are getting some kind of Array, with specialist Array methods, which is not the case.
 
 ```swift
-let myArray = Array.Empty<Int>() // type: Collection.Empty<Int>, nothing to do with Array!
-```
-
-For `Array.Empty<T>` to have its expected meaning, `Empty` would have to be static function requirement of `Collection` (which would make it `Array<T>.Empty` anyway -- but that's not part of this proposal). In short, `Array.Empty<T>` and `Collection.Empty<T>` have nothing whatsoever to do with each other. So we shouldn't import protocol types.
-
-```swift
-// See: FloatingPoint.Sign example above
-
-struct Float: FloatingPoint {
-    var sign: FloatingPoint.Sign { /* ... */ } // Qualified name!
+extension RandomAccessCollection {
+    /// A view of a collection which provides concurrent implementations of
+    /// map, filter, forEach, etc..
+    struct Concurrent<T: RandomAccessCollection> { /* ... */ }
+    
+    var concurrent: Concurrent<Self> { return Concurrent(self) }
 }
 
-let _: Double.Sign = (3.0 as Float).sign // ERROR: 'Double.Sign' does not exist - did you mean 'FloatingPoint.Sign'?
+let _: = [1, 2, 3].concurrent   // type is: RandomAccessCollection.Concurrent<Array<Int>>, not Array<Int>.Concurrent
 ```
+
+There are cases, however, when the protocol wishes its confomers to express a particular type. For example, `FloatingPoint` may want its confomers to have a `Sign` type. That is already expressible in the language today, as a typealias. As an exception, we allow protocols to define a typealias with the same name as a nested type, in order to have it inherited by conformers.
+
+
+```swift
+protocol FloatingPoint {
+   enum Sign {
+       case plus
+       case minus
+   }
+   typealias Sign   // name-conflict allowed. Points to (enum) Sign.
+   
+   var sign: Sign { get }
+}
+
+struct Float: FloatingPoint {
+    var sign: Sign { /* ... */ } // Can use sugared name
+}
+```
+
+This is only a syntactic sugar. Typealiases are overridable, in which case the members revert to their unsugared name, `FloatingPoint.Sign`:
+
+```swift
+struct MyFloat: FloatingPoint {
+    struct Sign { var isBillboard = true; var message = "Howdy!" } // This is potentially poor API design, but allowed.
+    
+    var sign: FloatingPoint.Sign { /* ... */ }
+}
+```
+
 
 **Access Control:**
 
@@ -203,12 +227,12 @@ Given that there is some friction between protocols with associated types ("gene
 
 - Protocols may not capture generic type parameters:
 
-    Firstly, even if we wanted to do this via some sort of implicit associated type, as mentioned above we couldn't represent the existential in the parent. Secondly, there is a concern about parameterised protocols.
+    Even if we wanted to do this with an implicit associated type, as mentioned above we couldn't represent the constrained protocol existential in the parent. Secondly, there is a concern about parameterised protocols. So expect an error:
 
     ```swift
     struct MyType<X> {
        protocol MyProto {
-           var content: X { get set } // ERROR: Cannot capture 'X' from MyType
+           var content: X { get set } // ERROR: Cannot capture 'X' from MyType<X>
        }       
        var protoInstance: MyProto
     }
@@ -216,16 +240,16 @@ Given that there is some friction between protocols with associated types ("gene
 
 - Structural types *may* capture generic type parameters, but not through a protocol
 
-    Structural types can already have nested structural types which capture parameters from their parents, and this proposal does not change that. However if we consider the possible capture hierarchies when protocols are involved, one situation is notable:
+    Structural types can already have nested structural types which capture parameters from their parents, and this proposal does not change that. However if we consider the possible capture hierarchies when protocols are involved, one situation is noteworthy:
 
     ```swift
     struct Top<X> {
         protocol Middle {
             enum Bottom {
-                case howdy(X) // ERROR: Cannot capture 'X' from Top
+                case howdy(X) // ERROR: Cannot capture 'X' from Top<X>
             }
             
-            var bottomInstance : Bottom { get } // If it _was_ allowed, this reference would also capture 'X'
+            var bottomInstance : Bottom { get } // Would require capturing 'X'
         }
     }
     ```
@@ -234,41 +258,22 @@ Given that there is some friction between protocols with associated types ("gene
     
 - Structual types may not capture associated types
 
-    This is quite a common pattern that we find in the standard library, particularly for the dyanmic-'Self' associated type. For example: `Collection.Slice`, `LazyCollection`. This can lead to some really awkward-named types, like `RangeReplaceableBidirectionalSlice`...
+    Consider the `RandomAccessCollection.Concurrent` example from before, if it were allowed to capture associated types from its enclosing protocol:
 
      ```swift
     // Note: Pretend there is something called 'Parent' which is a captured 'Self' of the parent protocol.
-    protocol Collection {
+    protocol RandomAccessCollection {
 
-        struct Slice: Collection {
-            typealias Element = Parent.Element                     // ERROR: Cannot capture 'Element' from Parent
-            typealias Index   = Parent.Index                       // ERROR: Cannot capture 'Index' from Parent
-            init(from: Index, to: Index, in: Parent) { /* ... */ } // ERROR: etc...
+        struct Concurrent: RandomAccessCollection {
+            typealias Element = Parent.Element
+            typealias Index   = Parent.Index
+            init(with: Parent) { /* ... */ }
         }
-        
-        associatedtype SubSequence: Sequence = Slice
+        var concurrent: Concurrent { return Concurrent(self) }
     }
     ```
 
-    By capturing an associated type, the type `Collection.Slice` would also become existential (something like `Collection.Slice where Parent == Array`). We could theoretically map the capture of 'Parent' in to a generic parameter (although it is _not a part of this proposal_). This pattern is currently prevalent in the standard library, but they're not yet nested, because we couldn't nest structs inside protocols before.:
-
-     ```swift
-    protocol Collection {
-
-        struct Slice<Base: Collection>: Collection { // generic param _could_ be implicit, hidden
-            typealias Index   = Base.Index
-            typealias Element = Base.Element
-
-            init(base: Base, bounds: Range<Slice.Index>) { /* ... */ }
-        }
-        
-        associatedtype SubSequence: Sequence = Slice<Self> // In the source of the capture, Slice would then imply Slice<Self>
-    }
-
-    let slice: Array<Int>.SubSequence = Collection.Slice<Array<Int>>(base: [1, 2, 3, 4, 5], bounds: 0..<2)
-    ```
-    
-    This would only work for would-be captures from the immediate parent, before we start having protocols capturing associated types. So it's best to leave this idea for now and approach it again when we have a more comprehensive solution.
+    By capturing associated types, the type `RandomAccessCollection.Concurrent` would also become existential (something like `RAC.Concurrent where Parent == Array<Int>`). Consider if we mapped the capture of 'Parent' in to a generic parameter automatically (like `Concurrent` used to be, earlier in this document), but the compiler did that automatically. This kind of capturing between nesting types would be valuable, but it is _not a part of this proposal_. That is because it would only work for would-be captures from the immediate parent, before we start having the familiar problem of protocols capturing associated types. It would be better to tackle capturing between nested protocol types seperatetely at a later date.
     
     ```swift
     protocol Top {
@@ -277,11 +282,11 @@ Given that there is some friction between protocols with associated types ("gene
         protocol Middle {
             associatedtype AssocMiddle
             
-            enum Result { // implicit: <Parent: Middle, Parent_Parent: Top>
-                case one(Parent.AssocMiddle)
-                case two(Parent_Parent.AssocTop)
+            enum Result {                 // implicit: Result<Parent: Middle, Parent_Parent: Top>
+                case one(AssocMiddle)     // implicit: Parent.AssocMidle
+                case two(AssocTop)        // implicit: Parent_Parent.AssocTop
             }
-            var result: Result { get } // implicit: Result<Self, ???> - would need to capture 'Self' from Parent
+            var result: Result { get }    // implicit: Result<Self, ???> - would need to capture 'Self' from Parent
         }
     }
     ```
@@ -290,91 +295,22 @@ That's a long explanation of why it's best to just bar any kind of capturing bet
 
 ## Source compatibility
 
-This change is mostly additive, although there are several places in the standard library where we can organise things better after this change. Specifically:
+Standard library changes making use of this feature will be part of another proposal.
 
-- The `FloatingPoint{Sign,Classification,RoundingMode}` enums will become members of the `FloatingPoint` protocol
-- The `MirrorPath` protocol will become a member of the `Mirror` struct, and renamed `Path`
-
-- Lots of types in the global namespace will become nested to `IteratorProtocol`, `Sequence`, or some type of `Collection`
-**Special instances:**
-```swift
-// Empty
-EmptyIterator<T>    /* --> */  IteratorProtocol.Empty<T>
-EmptyCollection<T>  /* --> */  Collection.Empty<T>
-
-// Single instance
-IteratorOverOne<T>  /* --> */  IteratorProtocol.One<T>
-CollectionOfOne<T>  /* --> */  Collection.One<T>
-
-// Default indexes
-DefaultBidirectionalIndices<T: BidirectionalCollection>  /* --> */  BidirectionalCollection.DefaultIndices<T>
-DefaultRandomAccessIndices<T: RandomAccessCollection>    /* --> */  RandomAccessCollection.DefaultIndices<T>
-```
-
-**Parameterized views:**
-```swift
-// Enumerated
-EnumeratedIterator<T: IteratorProtocol>  /* --> */  IteratorProtocol.Enumerated<T>
-EnumeratedSequence<T: Sequence>          /* --> */  Sequence.Enumerated<T>
-
-// Joined
-JoinedIterator<T: IteratorProtocol>  /* --> */  IteratorProtocol.Joined<T>
-JoinedSequence<T: Sequence>          /* --> */  Sequence.Joined<T>
-
-// Reversed
-ReversedCollection<T: Collection>    /* --> */  Collection.Reversed<T>
-ReversedRandomAccessCollection<T: RandomAccessCollection>  /* --> */  RandomAccessCollection.Reversed<T>
-
-// Flattened
-FlattenIterator<T: IteratorProtocol>  /* --> */  IteratorProtocol.Flattened<T>
-FlattenSequence<T: Sequence>          /* --> */  Sequence.Flattened<T>
-FlattenCollection<T: Collection>      /* --> */  Collection.Flattened<T>
-FlattenBidirectionalCollection<T: BidirectionalCollection>  /* --> */  BidirectionalCollection.Flattened<T>
-
-// Sliced
-Slice<T: Collection>                                      /* --> */  Collection.Slice<T>
-Bidirectional{*}Slice<T: BidirectionalCollection>         /* --> */  BidirectionalCollection.{*}Slice<T>
-RandomAccessSlice<T: RandomAccessCollection>              /* --> */  RandomAccessCollection.Slice<T>
-RangeReplaceable{*}Slice<T: RangeReplaceableCollection>   /* --> */  RangeReplaceableCollection.{*}Slice<T>
-Mutable{*}Slice<T: MutableCollection>                     /* --> */  MutableCollection.{*}Slice<T>
-```
-
-**Lazy views:**
-```swift
-LazySequence<T: Sequence>                                /* --> */  Sequence.Lazy<T>
-LazyCollection<T: Collection>                            /* --> */  Collection.Lazy<T>
-LazyBidirectionalCollection<T: BidirectionalCollection>  /* --> */  BidirectionalCollection.Lazy<T>
-LazyRandomAccessCollection<T: RandomAccessCollection>    /* --> */  RandomAccessCollection.Lazy<T>
-
-LazyFilterIterator<T: IteratorProtocol>                        /* --> */  IteratorProtocol.LazyFilter<T>
-LazyFilterSequence<T: Sequence>                                /* --> */  Sequence.LazyFilter<T>
-LazyFilterCollection<T: Collection>                            /* --> */  Collection.LazyFilter<T>
-LazyFilterBidirectionalCollection<T: BidirectionalCollection>  /* --> */  BidirectionalCollection.LazyFilter<T>
-LazyFilterRandomAccessCollection<T: RandomAccessCollection>    /* --> */  RandomAccessCollection.LazyFilter<T>
-
-LazyMapIterator<T: IteratorProtocol, E>                        /* --> */  IteratorProtocol.LazyMap<T, E>
-LazyMapSequence<T: Sequence, E>                                /* --> */  Sequence.LazyMap<T, E>
-LazyMapCollection<T: Collection, E>                            /* --> */  Collection.LazyMap<T, E>
-LazyMapBidirectionalCollection<T: BidirectionalCollection, E>  /* --> */  BidirectionalCollection.LazyMap<T, E>
-LazyMapRandomAccessCollection<T: RandomAccessCollection, E>    /* --> */  RandomAccessCollection.LazyMap<T, E>
-```
-
-Source migration can be handled with a typealias and deprecation notice (with fixit), for example:
+Outside of the standard library, it is likely that the Clang importer could make use of this feature, as the delegate pattern is very common in Apple's platform SDKs. Changes such as `UITableViewDelegate` -> `UITableView.Delegate` can be migrated with a deprecated typealias:
 
 ```swift
-@deprecated("Use FloatingPoint.Sign instead")
-typealias FloatingPointSign = FloatingPoint.Sign
+@deprecated("Use UITableView.Delegate instead")
+typealias UITableViewDelegate = UITableView.Delegate
 ```
-
-It is also likely that the Clang importer could make use of this feature, as the delegate pattern is very common in Apple's platform SDKs. Changes such as `UITableViewDelegate` -> `UITableView.Delegate` can be handled as above, with a deprecated typealias.
 
 ## Effect on ABI stability
 
-Would change the standard library interface, platform SDK interfaces.
+This proposal is only about the language feature, but it is likely to result in standard library and platform SDK changes.
 
 ## Effect on API resilience
 
-Since all capturing is disallowed, this type of nesting would only change the name (both in source and symbolic) of the relevant types.
+Since all capturing is disallowed, this type of nesting would only change the name (in source and symbolic) of the relevant types.
 
 ## Alternatives considered
 
