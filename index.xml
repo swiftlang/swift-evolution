@@ -80,7 +80,7 @@
 <proposal id="0077" status="implemented" swift-version="3" name="Improved operator declarations" filename="0077-operator-precedence.md"/>
 <proposal id="0078" status="deferred" name="Implement a rotate algorithm, equivalent to std::rotate() in C++" filename="0078-rotate-algorithm.md"/>
 <proposal id="0079" status="deferred" name="Allow using optional binding to upgrade `self` from a weak to strong reference" filename="0079-upgrade-self-from-weak-to-strong.md"/>
-<proposal id="0080" status="implementing" name="Failable Numeric Conversion Initializers" filename="0080-failable-numeric-initializers.md"/>
+<proposal id="0080" status="implemented" swift-version="3.1" name="Failable Numeric Conversion Initializers" filename="0080-failable-numeric-initializers.md"/>
 <proposal id="0081" status="implemented" swift-version="3" name="Move `where` clause to end of declaration" filename="0081-move-where-expression.md"/>
 <proposal id="0082" status="implemented" swift-version="3.1" name="Package Manager Editable Packages" filename="0082-swiftpm-package-edit.md"/>
 <proposal id="0083" status="deferred" name="Remove bridging conversion behavior from dynamic casts" filename="0083-remove-bridging-from-dynamic-casts.md"/>
