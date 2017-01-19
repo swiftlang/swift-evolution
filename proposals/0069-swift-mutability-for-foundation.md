@@ -22,7 +22,7 @@ This concept is so important that it is literally the second thing taught in _Th
 > 
 > Use `let` to make a constant and `var` to make a variable. The value of a constant doesn’t need to be known at compile time, but you must assign it a value exactly once.
 > 
-> __Excerpt From: Apple Inc. “[The Swift Programming Language (Swift 2.1).](https://itun.es/us/jEUH0.l__)__” 
+> __Excerpt From: Apple Inc. “[The Swift Programming Language (Swift 3.0.1).](https://itun.es/us/jEUH0.l)__” 
 
 When certain Foundation types are imported into Swift, they do not fully take advantage of the features that Swift has to offer developers for controlling mutability of their objects. 
 
