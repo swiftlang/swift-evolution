@@ -482,14 +482,21 @@ function addEventListeners () {
         var breakpoint = document.querySelector('header').getBoundingClientRect().bottom
         var nav = document.querySelector('nav')
         var position = window.getComputedStyle(nav).position
+        var shadowNav // maintain the main content height when the main 'nav' is removed from the flow
 
         // this is measuring whether or not the header has scrolled offscreen
         if (breakpoint <= 0) {
           if (position !== 'fixed') {
+            shadowNav = nav.cloneNode(true)
+            shadowNav.classList.add('clone')
+            shadowNav.style.visibility = 'hidden'
+            nav.parentNode.insertBefore(shadowNav, document.querySelector('main'))
             nav.style.position = 'fixed'
           }
         } else if (position === 'fixed') {
           nav.style.position = 'static'
+          shadowNav = document.querySelector('nav.clone')
+          if (shadowNav) shadowNav.parentNode.removeChild(shadowNav)
         }
       })
     }
