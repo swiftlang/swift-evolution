@@ -1,8 +1,8 @@
 # Generic Subscripts
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0148](0148-generic-subscripts.md)
 * Authors: [Chris Eidhof](http://github.com/chriseidhof/)
-* Review Manager: TBD
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Awaiting review**
 
 * Bugs: [SR-115](https://bugs.swift.org/browse/SR-115?jql=text%20~%20%22Generic%20subscript%22)
