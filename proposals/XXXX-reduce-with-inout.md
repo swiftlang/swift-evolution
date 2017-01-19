@@ -1,4 +1,4 @@
-# Feature name
+# Reduce with `inout`
 
 * Proposal: [SE-NNNN](NNNN-filename.md)
 * Authors: [Chris Eidhof](https://github.com/chriseidhof)
