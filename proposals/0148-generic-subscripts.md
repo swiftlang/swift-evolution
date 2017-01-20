@@ -52,6 +52,16 @@ extension Dictionary {
 }
 ```
 
+*Update Jan 20*: during the review it came up that while we're at it, we should add default arguments to subscripts. For example, the following (contrived) example:
+
+```swift
+subscript<A>(index: A? = nil) -> Element {
+    // ...
+}
+```
+
+Adding default arguments would unify the compiler's handling of subscripts and functions.
+
 ## Source compatibility
 
 This is a purely additive change. We don't propose changing the Standard Library to use this new feature, that should be part of a separate proposal. (Likewise, we should consider making subscripts `throws` in a [separate proposal](https://github.com/brentdax/swift-evolution/blob/throwing-properties/proposals/0000-throwing-properties.md)).
