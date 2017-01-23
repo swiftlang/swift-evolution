@@ -38,7 +38,7 @@ Currently, subscripts can't be generic. This is limiting in a number of ways:
 - Some subscripts are very specific and could be made more generic.
 - Some generic methods would feel more natural as a subscript, but currently can't be. This also makes it impossible to use them as lvalues.
 
-This feature is also mentioned in the generics manifesto under [generic subscripts](https://github.com/apple/swift/blob/master/docs/GenericsManifesto.md#generic-subscripts).
+This feature is also mentioned in the generics manifesto under [generic subscripts](https://github.com/apple/swift/blob/master/docs/GenericsManifesto.md#generic-subscripts). The [Rationalizing Sequence end-operation names](https://github.com/apple/swift-evolution/blob/master/proposals/0132-sequence-end-ops.md) proposal could greatly benefit from this, as well as the ideas in the [String Manifesto](https://github.com/apple/swift/blob/master/docs/StringManifesto.md).
 
 ## Proposed solution
 
@@ -51,6 +51,16 @@ extension Dictionary {
   }
 }
 ```
+
+*Update Jan 20*: during the review it came up that while we're at it, we should add default arguments to subscripts. For example, the following (contrived) example:
+
+```swift
+subscript<A>(index: A? = nil) -> Element {
+    // ...
+}
+```
+
+Adding default arguments would unify the compiler's handling of subscripts and functions.
 
 ## Source compatibility
 
