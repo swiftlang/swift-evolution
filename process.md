@@ -122,7 +122,7 @@ A given proposal can be in one of several states:
 ## Review announcement
 
 When a proposal enters review, an email using the following template will be
-sent to the swift-evolution-announce and swift-evolution mailing lists:
+sent to the swift-evolution mailing list and BCC'd to the swift-evolution-announce mailing list:
 
 ---
 
@@ -131,7 +131,7 @@ Hello Swift community,
 The review of "\<\<PROPOSAL NAME>>" begins now and runs through \<\<REVIEW
 END DATE>>. The proposal is available here:
 
-> <https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-proposal.md>
+> http://linkToProposal
 
 Reviews are an important part of the Swift evolution process. All reviews
 should be sent to the swift-evolution mailing list at
