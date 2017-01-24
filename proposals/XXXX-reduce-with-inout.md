@@ -11,7 +11,7 @@ A new variant of `reduce` should be added to the standard library. Instead of ta
 
 ```swift
 extension Sequence {
-    func reduce<A>(mutating: A, combine: (inout A, Iterator.Element) -> ()) -> A {
+    func reduce<A>(mutating: A, _ combine: (inout A, Iterator.Element) -> ()) -> A {
         var result = initial
         for element in self {
             combine(&result, element)
