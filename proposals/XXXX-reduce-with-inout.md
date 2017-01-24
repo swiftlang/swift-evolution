@@ -1,6 +1,6 @@
 # Reduce with `inout`
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-NNNN](NNNN-reduce-with-inout.md)
 * Authors: [Chris Eidhof](https://github.com/chriseidhof)
 * Review Manager: TBD
 * Status: **Awaiting review**
@@ -11,7 +11,7 @@ A new variant of `reduce` should be added to the standard library. Instead of ta
 
 ```swift
 extension Sequence {
-    func reduce<A>(_ initial: A, combine: (inout A, Iterator.Element) -> ()) -> A {
+    func reduce<A>(mutating: A, combine: (inout A, Iterator.Element) -> ()) -> A {
         var result = initial
         for element in self {
             combine(&result, element)
@@ -34,7 +34,7 @@ The first benefit of the proposed solution is efficiency. The new version of `re
 ```swift
 extension Sequence where Iterator.Element: Equatable {
     func uniq() -> [Iterator.Element] {
-        return reduce([]) { (result: inout [Iterator.Element], element) in
+        return reduce(mutating: []) { (result: inout [Iterator.Element], element) in
             if result.last != element {
                 result.append(element)
             }
@@ -61,7 +61,7 @@ The second benefit is that the new version of `reduce` is more natural when deal
 ```swift
 extension Sequence where Iterator.Element: Hashable {
     func frequencies() -> [Iterator.Element: Int] {
-        return reduce([:]) { (result: inout [Iterator.Element:Int], element) in
+        return reduce(mutating: [:]) { (result: inout [Iterator.Element:Int], element) in
             if let value = result[element] {
                 result[element] = value + 1
             } else {
@@ -77,7 +77,7 @@ Without the `inout` parameter, we'd first have to make a `var` copy of the exist
 
 ## Source compatibility
 
-This is purely additive, we don't propose removing the existing `reduce`.
+This is purely additive, we don't propose removing the existing `reduce`. Additionaly, because the first argument will have a label `mutating`, it doesn't add any extra burden to the type checker.
 
 ## Effect on ABI stability
 
