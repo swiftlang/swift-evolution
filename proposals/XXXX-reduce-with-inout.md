@@ -89,6 +89,6 @@ N/A
 
 ## Alternatives considered
 
-We considered removing the existing `reduce`, but the problem with that is two-fold. First, removing it breaks existing code. Second, it's useful for algorithms that don't use mutating methods within `combine`.
+We considered removing the existing `reduce`, but the problem with that is two-fold. First, removing it breaks existing code. Second, it's useful for algorithms that don't use mutating methods within `combine`. We considered overloading `reduce`, but that would stress the type checker too much.
 
 Under active discussion: the naming of this method. See the [swift-evolution thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170116/030300).
