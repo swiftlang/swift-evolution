@@ -1,9 +1,11 @@
 # Package Manager Support for branches
 
-* Proposal: [SE-XXXX](xxxx-package-manager-branch-support.md)
+* Proposal: [SE-0150](0150-package-manager-branch-support.md)
 * Author: [Boris Bügling](https://github.com/neonichu)
 * Review Manager: [Daniel Dunbar](https://github.com/ddunbar)
-* Status: Discussion
+* Status: **Active review (January 24...January 31, 2017)**
+
+* Bugs: [SR-666](https://bugs.swift.org/browse/SR-666)
 
 ## Introduction
 
