@@ -11,7 +11,7 @@ A new variant of `reduce` should be added to the standard library. Instead of ta
 
 ```swift
 extension Sequence {
-    func reduce<A>(mutating initial: A, _ combine: (inout A, Iterator.Element) -> ()) -> A {
+    func reduce<A>(into initial: A, _ combine: (inout A, Iterator.Element) -> ()) -> A {
         var result = initial
         for element in self {
             combine(&result, element)
@@ -34,7 +34,7 @@ The first benefit of the proposed solution is efficiency. The new version of `re
 ```swift
 extension Sequence where Iterator.Element: Equatable {
     func uniq() -> [Iterator.Element] {
-        return reduce(mutating: []) { (result: inout [Iterator.Element], element) in
+        return reduce(into: []) { (result: inout [Iterator.Element], element) in
             if result.last != element {
                 result.append(element)
             }
@@ -61,7 +61,7 @@ The second benefit is that the new version of `reduce` is more natural when deal
 ```swift
 extension Sequence where Iterator.Element: Hashable {
     func frequencies() -> [Iterator.Element: Int] {
-        return reduce(mutating: [:]) { (result: inout [Iterator.Element:Int], element) in
+        return reduce(into: [:]) { (result: inout [Iterator.Element:Int], element) in
             if let value = result[element] {
                 result[element] = value + 1
             } else {
@@ -77,7 +77,7 @@ Without the `inout` parameter, we'd first have to make a `var` copy of the exist
 
 ## Source compatibility
 
-This is purely additive, we don't propose removing the existing `reduce`. Additionaly, because the first argument will have a label `mutating`, it doesn't add any extra burden to the type checker.
+This is purely additive, we don't propose removing the existing `reduce`. Additionaly, because the first argument will have a label `into`, it doesn't add any extra burden to the type checker.
 
 ## Effect on ABI stability
 
@@ -90,5 +90,7 @@ N/A
 ## Alternatives considered
 
 We considered removing the existing `reduce`, but the problem with that is two-fold. First, removing it breaks existing code. Second, it's useful for algorithms that don't use mutating methods within `combine`. We considered overloading `reduce`, but that would stress the type checker too much.
+
+There has been a really active discussion about the naming of the first parameter. Naming it `mutating:` could deceive people into thinking that the value would get mutated in place. Naming it `mutatingCopyOf:` is also tricky: even though a copy of the struct gets mutated, copying is always implicit when using structs, and it wouldn't copy an instance of a class. `into:` seems the best name so far.
 
 Under active discussion: the naming of this method. See the [swift-evolution thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170116/030300).
