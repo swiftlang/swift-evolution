@@ -3,7 +3,7 @@
 * Proposal: [SE-0148](0148-generic-subscripts.md)
 * Authors: [Chris Eidhof](http://github.com/chriseidhof/)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Active review (January 19...January 24, 2017)**
+* Status: **Accepted**
 
 * Bugs: [SR-115](https://bugs.swift.org/browse/SR-115?jql=text%20~%20%22Generic%20subscript%22)
 
