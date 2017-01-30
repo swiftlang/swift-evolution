@@ -344,8 +344,6 @@ public protocol Arithmetic : Equatable, ExpressibleByIntegerLiteral {
 }
 
 extension Arithmetic {
-  public init() { self = 0 }
-
   public static prefix func + (x: Self) -> Self {
     return x
   }
@@ -390,7 +388,7 @@ extension SignedArithmetic {
   }
 
   public mutating func negate() {
-    self = Self() - self
+    self = 0 - self
   }
 }
 ```
@@ -791,6 +789,10 @@ public protocol BinaryInteger :
   /// - Returns: The sign of this number, expressed as an integer of the same
   ///   type.
   func signum() -> Self
+}
+
+extension BinaryInteger {
+  init() { self = 0 }
 }
 ```
 
