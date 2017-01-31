@@ -45,9 +45,9 @@ Similar partial solution can be achieved by subclassing, but it shares same disa
 
 ## Proposed Solution
 
-Allow setting default types to generic arguments in type declarations. This proposal suggests syntax inspired by default values of function arguments. 
+Allow setting default types to generic arguments in type and function declarations. This proposal suggests syntax inspired by default values of function arguments. 
 
-### Type Declaration
+### Declaration
 
 Default generic type specialisation would follow generic argument declaration, separated by the equality sign:
 
@@ -70,31 +70,147 @@ When an argument is constrained, default type specification would be placed afte
 struct X<T: P = Int> {}
 ```
 
-### Usage 
+Providing a default generic argument in the function signature would follow the same pattern.
 
-When declaring an instance of generic type with default arguments, few cases are worth considering.
+```swift
+func foo<X: P = Int>(x: X) -> X
+```  
 
-Given the type:
+### Usage
+
+When declaring an instance of generic type with default arguments following cases are worth considering:
+
+(I) By not specialising any generic argument one accepts all default argument types. No empty brackets are needed in that case.
+
+(II) By specialising first *N* arguments, one accepts the default argument types of the remaining arguments.
+
+Given the type
 
 ```swift
 struct X<T = Int, U = Float, V = Double> {}
 ```
 
-(I) by not specialising generic arguments one accepts the default argument types:
+following is assumed:
+
 
 ```swift
-let x: X // assumes X<Int, Float, Double>
-```
-
-(II) by specialising first *N* arguments, one accepts the default argument types of the remaining arguments:
-
-```swift
+let x: X 						// assumes X<Int, Float, Double>
 let x: X<Int32> 				// assumes X<Int32, Float, Double>
 let x: X<Int32, Int64> 			// assumes X<Int32, Int64, Double>
 let x: X<Int32, Int64, Int128> 	// assumes X<Int32, Int64, Int128>
 ```
 
 It would not be possible to specialise argument at index *i* without specialising all prior arguments (those at indices less than *i*) due to arguments being index-based.
+
+### Implications on Type Inference
+
+How defaults interact with the type inference has been mostly discussed aspect of this proposal. There is a number of cases important to consider.
+
+Following type will be used in the examples in next sections.
+
+```swift
+struct Foo<T = Int64> {
+    init(t: T? = nil)
+}
+```
+
+#### 1. Type Declarations
+
+*No type inference will happen in type declarations. By omitting generic arguments one accepts the defaults.*
+
+a) When declaring a property of generic type and omitting generic argument, the compiler will assume default type.
+
+```swift
+class X {
+	let foo: Foo			// assumes Foo<Int64>
+}
+```
+
+b) When declaring a variable or a constant of generic type and omitting generic argument, the compiler will assume default type.
+
+```swift
+let foo: Foo = ...			// assumes Foo<Int64>
+```
+
+Note that `Foo<Int64>` will be assumed regardless of what is on the right side of the expression. The compiler will throw an error in case of an incompatible type on the right side.
+
+```swift
+let foo: Foo = Foo(Int(5)) 	// error: Cannot assign Foo<Int> to Foo<Int64>.
+```
+
+To solve this, user would have to either declare the constant as `let foo: Foo<Int>` or completely drop the type declaration and let the compiler infer the type as described in the next section of the proposal.  
+
+c) When declaring a function whose arguments and/or return type are of generic type with generic argument omitted, the compiler will assume default type.
+
+```swift
+func x(foo: Foo) -> Foo {} 	// assumes Foo<Int64>
+```
+
+d) When declaring an enum case with associated value of generic type with generic argument omitted, the compiler assumes default type.
+
+```swift
+enum X {
+	case foo(Foo) 			// assumes Foo<Int64>
+}
+```
+
+#### 2. Explicit Context
+
+*Calling a generic function or an initializer in a context from which the argument types can be unambiguously inferred will result in using the __inferred__ types.*
+
+The basic example would be initializing a variable of explicitly defined type.
+
+```swift
+let foo: Foo<Int64> = Foo(5) 	// infers right side to Foo<Int64>
+```
+
+As defined in previous section, a type declaration with omitted generic argument that has a default is still considered to explicitly define a type so following will also work:
+
+```swift
+let foo: Foo = Foo(5) 			// infers right side to Foo<Int64>
+```
+
+Explicit context can also be provided by a function arguments or return types.
+
+```swift
+func x() -> Foo<String> {
+  return Foo()					// infers instance type to Foo<String>
+}
+```
+
+```swift
+func x() -> Foo {
+  return Foo()					// infers instance type to Foo<Int64>
+}
+```
+
+#### 3. Empty Context
+
+*Calling a generic function or an initializer in a context that does not provide any hint to the argument types will result in using the __default__ type.*
+
+```swift
+let foo = Foo() 	// infers type to Foo<Int64>
+```
+
+#### 4. Loose Context and Defaults Mismatch
+
+There are cases when the context might provide a hint about the type that's in a conflict with the default type. Those cases revolve around literal convertibles.
+
+When a type suggested by the context is unrelated to the default argument, compiler will infer the suggested type.
+
+```swift
+let foo = Foo("abc") 	// infers type to Foo<String>
+```
+
+However, when the type in related, compiler will throw a fix-it.
+
+```swift
+let foo = Foo(5) 		// fix-it: Did you mean ‘Foo(5 as Int)’?
+```
+
+Hinted type `Int` is related to the default type `Int64` because both are conforming to `ExpressibleByIntegerLiteral` protocol. Integer literals are by default inferred to `Int`, but they can also be used to initialize anything conforming to `ExpressibleByIntegerLiteral`, like `Int64` in the example.
+
+In order to avoid any confusion, the user should explicitly resolve such ambiguities.
 
 ## Impact on Existing Code
 
