@@ -14,10 +14,6 @@
 
 ## Introduction
 
-<!--A short description of what the feature is. Try to keep it to a
-single-paragraph "elevator pitch" so the reader understands what
-problem this proposal is addressing.-->
-
 First of all, in Swift, the Objective-C `copy` property attribute translates to `@NSCopying`.
 
 Like Objective-C, in Swift, avoiding accessing ivar via setter methods in initializer is considered as the best pratice. Unlike Objective-C, which gives developers the freedom to decide on whether assign a value to a property by invoking setter or by accessing ivar directly, accessing a property in Swift from within an initializer always does direct access to the storage rather than going through the setter, even if using `dot` syntax.
@@ -25,9 +21,6 @@ Like Objective-C, in Swift, avoiding accessing ivar via setter methods in initia
 However, as a side-effect, `@NSCopying` attribute does not work as consistently as we usually expected in Swift initializers after developers declared a property as `@NSCopying`.
 
 This proposal is intent on proposing several solutions to this inconsistency.
-
-<!--1. Firstly, in Swift, the Objective-C `copy` property attribute translates to `@NSCopying`.
-2. Secondly, in Swift's initializers, we are unable to assign a specific value to a specific property through calling setter method. This is because .-->
 
 ## Swift-evolution thread
 
