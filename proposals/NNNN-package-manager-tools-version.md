@@ -152,13 +152,16 @@ product definitions API in their manifest. Using a Swift 4 toolchain, the author
 `swift package tools-version --update` to make their package require the Swift 4.0 tools. They then make
 any changes to their Package.swift manifest needed to make it compatible with the Swift 4
 language version and the revised Swift 4 Package Manager PackageDescription API.
+Since their package sources are still written with Swift 3, they should specify
+the Swift 3 language compatibility version in their manifest, if they didn't already,
+so that it doesn't start defaulting to building the sources as Swift 4 code.
 The author is now free to adopt new PackageDescription API in their Package.swift manifest.
 They are not required to update the language version of their package sources at the same time.
 
 * A package author wishes to support both the Swift 3 and Swift 4 tools, while
 conditionally adopting Swift 4 language features. The author specifies both
 Swift language compatibility versions for their package sources (using a
-mechanism discussed in a seperate evolution proposal). Because their package
+mechanism discussed in a separate evolution proposal). Because their package
 needs to support Swift 3 tools, the package's Swift tools version must be set
 to `3.1`. Their Package.swift manifest must continue to be compatible with the
 Swift 3 language, and must continue to use the Swift 3.1 version of the
@@ -166,7 +169,7 @@ PackageDescription API.
 
 * The author of a package created with the Swift 3 tools wishes to convert the package's sources to the Swift 4 language
 version. They specify Swift 4 as their package's language compatibility version (using a mechanism
-discussed in a seperate evolution proposal). When they try to build their package, the package manager
+discussed in a separate evolution proposal). When they try to build their package, the package manager
 emits an error informing them that they must update their Swift tools version to 4.0 or later, because
 the Swift 4 tools are required to build a package when it no longer supports the Swift 3 language version.
 The author runs `swift package tools-version --update` to make their package require the Swift 4.0 tools. They then make
