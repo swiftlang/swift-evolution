@@ -149,11 +149,10 @@ versions of the package manager.
 
 The package manager will attempt to detect approximate misspellings of the Swift
 tools version comment. As such, it is an error if the first line of the file
-begins with `//`, then zero or more than one whitespace characters, and then the
-string `swift-tools-version`, or if any part of `swift-tools-version` is
-capitalized. Any other first line of the file will not be considered to be a
-Swift tools version comment, in which case the Swift tools version will be considered to
-be `3.0.0`.
+begins with `//`, contains the string `swift-tools-version` (with any
+capitalization), but is not otherwise a valid tools version comment. Any other first
+line of the file will not be considered to be a Swift tools version comment, in
+which case the Swift tools version will be considered to be `3.0.0`.
 
 #### Advantages
 
