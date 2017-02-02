@@ -154,7 +154,7 @@ any changes to their Package.swift manifest needed to make it compatible with th
 language version and the revised Swift 4 Package Manager PackageDescription API.
 Since their package sources are still written with Swift 3, they should specify
 the Swift 3 language compatibility version in their manifest, if they didn't already,
-so that it doesn't start defaulting to building the sources as Swift 4 code.
+so that it doesn't start defaulting to building their sources as Swift 4 code.
 The author is now free to adopt new PackageDescription API in their Package.swift manifest.
 They are not required to update the language version of their package sources at the same time.
 
@@ -233,17 +233,149 @@ The following table shows an example of which Swift language version will be use
 
 ## Alternatives considered
 
-WIP.
+We considered a number of alternative approaches that might avoid the need for
+adding this new Swift tools version; however, we think that this proposal
+is compelling compared to the alternatives considered.
 
-*  Why not just try reparsing manifest in different versions until we find one that parses successfully?
+### Don't change the PackageDescription manifest API
 
-* Why not just rely on conditional compilation, and/or the old version mechanisms?
+If we chose not to change the PackageDescription API, we would not need a way
+to determine which version of the module to use when interpreting a manifest.
+However, we think that it is important for this API to be made compliant with
+the Swift language conventions, and to review the API with our community.
+It would be best to do this now, while the Swift package ecosystem is relatively
+young; in the future, when the ecosystem is more mature, it will be more
+painful to make significant changes to this API.
 
-* Why tie these three needs to one version?
+Not changing this API would still leave the problem of figuring out which
+Swift language compatibility version to interpret the manifest in. It's possible
+that Package.swift manifests won't be significantly affected by Swift
+language changes in Swift 4, and could mostly work in either language compatibility
+mode without changes. However, we don't know whether that will be the case,
+and it would be a significant risk to assume that it will be.
 
-* Why not use semver for this?
+Finally, we will need to add new API to the PackageDescription module to
+support new features, and without a Swift tools version, adoption of new features
+would break existing clients of a package that aren't using the latest tools.
 
-* Note that without this, packages either would fail to build with swift 4 without a change to explicitly specify 3,
-or would forever default to swift 3 unless specified otherwise
+### Rely on conditional compilation blocks
 
-* Explain why extra file isn't a burden (mostly maintain automatically)
+We could choose to ask package authors to use Swift conditional compilation
+blocks to make their manifests compatible with both Swift 3 and Swift 4.
+Unfortunately, this might be a lot of work for package authors, and result in a
+hard-to-read manifests, if the PackageDescription API changes or Swift 4
+language changes are significant.
+
+Another major downside of this approach is that until package authors do the
+work of adding conditional compilation blocks, their packages would fail to
+build with the Swift 4 tools. In order to build with the Swift 4 tools, you'd
+both need to update your own packages with conditional compilation, and you'd
+need to wait for any packages you depend upon to do the same. This could be a
+major obstacle to adopting the Swift 4 tools.
+
+Finally, we are not convinced that all authors would bother to add conditional
+compilation blocks to preserve Swift 3 compatibility when they update their
+packages for the Swift 4 tools. Any packages which were updated but not given
+conditional compilation blocks would now break the builds of any clients still
+using the Swift 3 tools.
+
+### Rely on semantic versioning
+
+We could expect that package authors bump their packages' major semantic version
+when updating those packages for the Swift 4 tools, thereby preventing clients
+who were still using the Swift 3 tools from automatically getting the updated
+version of their dependency and failing to build. There are several problems with
+this approach.
+
+First, this does nothing to allow packages to be used with new Swift tools without
+needing to be updated for those tools. We don't want package authors to need
+to immediately adopt the Swift 4 language compatibility version and PackageDescription
+API before they can build their package with the new tools.
+
+Second, this forces clients of a package to explicitly opt-in to updated
+versions of their dependencies, even if there was otherwise no API change.
+The Swift tools version mechanism that we have proposed allows packages
+to automatically get updated versions of their dependencies when using Swift
+tools that are new enough to be able to build them, which is preferable.
+
+Finally, we are not confident that all package authors would reliably update
+their semantic version when updating their package for newer tools. If they failed
+to do so, clients still using the older Swift tools would fail to build.
+
+### Relying on the package manager's existing versioning mechanisms
+
+In Swift 3, the package manager introduced two versioning mechanisms:
+[version-specific tag selection](https://github.com/apple/swift-package-manager/blob/master/Documentation/Usage.md#version-specific-tag-selection),
+and [version-specific manifest selection](https://github.com/apple/swift-package-manager/blob/master/Documentation/Usage.md#version-specific-manifest-selection).
+These mechanisms can be used to publish updated versions of a package without
+breaking the builds of clients who are still using older Swift tools. We think
+that these mechanisms are still useful and can be used in concert with the
+Swift tools version, as described in the "Impact on existing code" section.
+However, they are insufficient to completely solve the versioning problem.
+
+These mechanisms allow a package to be updated for new Swift tools without
+breaking clients who are still using older Swift tools, but they do not allow
+a package that has not been updated to be built with new Swift tools. Again,
+we don't want package authors to need to immediately adopt the Swift 4 language
+compatibility version and PackageDescription API before they can build their
+package with the new tools.
+
+These mechanisms are also opt-in and may not be known to all package authors.
+If a package author fails to explicitly adopt these mechanisms when updating
+a package, they will break the builds of clients that are still using older
+Swift tools. In contrast, the Swift tools version mechanism that we have proposed works
+by default without requiring package authors to know about extra opt-in
+mechanisms.
+
+### Automatically re-interpret Package.swift manifest in different modes
+
+We considered having the package manager automatically try to reinterpret
+a Package.swift manifest in different modes until it finds a mode that
+can successfully interpret it, so that we wouldn't need an explicit specifier
+of which Swift language compatibility version or PackageDescription module version
+the Package.swift manifest is using.
+
+We saw three major problems with this. First, this would make it very difficult
+to provide high quality diagnostics when a manifest has an error or warning.
+If the manifest cannot be interpreted cleanly in any of the supported modes,
+we'd have no way to know which mode it should have been interpreted in --
+or whether the required mode is even known to the version of the Swift
+tools in use. That means that the errors we provide might be incorrect
+with respect to the actual version of the Swift language or the PackageDescription
+module that the manifest targets.
+
+Second, any subtle incompatibilities introduced by a difference in Swift language
+compatibility versions could cause the manifest to interpret without errors
+in the wrong mode, but result in unexpected behavior.
+
+Finally, this could cause performance problems for the package manager. Because
+the package manager needs to interpret Package.swift manifests from potentially
+many packages during dependency resolution, forcing it to interpret
+each manifest multiple times could add an undesirable delay to the
+`swift build` or `swift package update` commands.
+
+### Provide finer-grained versioning controls
+
+In this proposal we've provided a single versioning mechanism which controls multiple
+things: the Swift language compatibility version used to parse the manifest,
+the version of the PackageDescription module to use, and the minimum version
+of the tools which will consider a package version eligible during dependency
+resolution. We could instead provide separate controls for each of these
+things. However, we feel that doing so would add unnecessary complexity to
+the Swift package manager. We do not see a compelling use-case for needing
+to control these different features independently, so we are consolidating
+them into one version mechanism as a valuable simplification.
+
+### Specify the Swift tools version without needing a new file for it
+
+This proposal does add a new file (`.swift-version`) that every package is
+expected to provide. We could instead store the Swift tools version somewhere
+else. The most likely candidate for that would be the Package.swift manifest
+itself. The immediate problem with doing so is that we need to know how to
+interpret the Swift manifest in order to get data out of it, and the Swift
+tools version provides information needed to know how to interpret the manifest.
+We could consider putting the version at the very top of the file, perhaps
+in a specially-formatted Swift code comment, and parsing the top of the file
+to extract that version before running it through the Swift interpreter.
+
+(More discussion of this alternative to come)
