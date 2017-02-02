@@ -24,24 +24,25 @@ it may no longer be able to be compiled by an older version of the Swift tools,
 and older tools may not even be able to interpret its Package.swift manifest.
 Without a mechanism to handle this, a package author who tags a version
 of their package which uses new features may break the builds of all
-clients of that package who are using older tools unless that pacakage adjusts its
+clients of that package who are using older tools unless that package adjusts its
 major semantic version, which would unnecessarily stop clients who are using the
 latest tools from getting that version. This is especially problematic during development of
 a new version of the Swift tools, when new features have been added which are not yet
-suppoted by the current release of the Swift tools.
+supported by the current release of the Swift tools.
 
 Second, one specific planned change for the Swift Package Manager is a revision
-of the Package.swift PackageDesciption API, to make it conform to
+of the Package.swift PackageDescription API, to make it conform to
 newer Swift conventions and to correct historical mistakes. In order to support backwards
 compatibility, the old version of the PackageDescription API must remain available.
 We need some way to determine which version of the PackageDescription API a package
 wishes to use.
 
-Finally, as the Package.swift manifest is itself written in Swift, some mechanism
-is needed to control which Swift language compatibility version should be used
-when interpreting the manifest. This cannot be determined by a compatibility
-version property in the manifest itself, as we must know what compatibility version
-to interpret the manifest with before we have access to the data in the manifest.
+Finally, as the Package.swift manifest is itself written in Swift, some
+mechanism is needed to control which Swift language compatibility version should
+be used when interpreting the manifest. This cannot be determined by a property
+on the Package object in the manifest itself, as we must know what compatibility
+version to interpret the manifest with before we have access to data specified
+by Swift code in the manifest.
 
 ## Proposed solution
 
@@ -70,7 +71,7 @@ the package's sources if not otherwise specified.
 
 When resolving package dependencies, if the version of a dependency that would normally
 be chosen specifies a Swift tools version which is greater than the version in use, that
-version of the dependency will be considered ineligable and dependency
+version of the dependency will be considered ineligible and dependency
 resolution will continue with evaluating the next-best version. If
 no version of a dependency (which otherwise meets the version requirements
 from the package dependency graph) supports the version of the Swift tools in use, a
@@ -79,7 +80,7 @@ dependency resolution error will result.
 When new PackageDescription API is added which would not be understood by a
 prior version of the Swift Package Manager, it will be added to the current version
 of the PackageDescription module and will not require the package manager to
-include a version of the module without that API. However, if that new API is used in the
+include a version of the module without that API. However, if that new API is used in a
 Package.swift manifest, it will cause the package manager to validate that the
 Swift tools version of that package specifies a version of the tools which understands that API,
 or to emit an error with instructions to update the Swift tools version if not.
@@ -87,38 +88,17 @@ Note that if a [version-specific manifest](https://github.com/apple/swift-packag
 is present for the older tools version, that tools version will validate as
 allowable even when newer features are adopted in the main Package.swift manifest.
 
+The Swift tools version will determine the default Swift language compatibility version
+used to compile the package's Swift sources if unspecified, but the Swift language
+compatibility version for the package's sources is otherwise decoupled from the
+Swift tools version. A separate Swift evolution proposal will describe how
+to specify a Swift language compatibility version for package sources.
+
 The Swift Package Manager may consider the Swift tools version of a package
 for other compatibility-related purposes as well. For example, if a
 bugfix in a new version of the Swift Package Manager might break older
 packages, the fixed behavior might only be applied to packages which have
 adopted the newer Swift tools version.
-
-The Swift tools version will be specified in a file named ".swift-version",
-at the root level of the package. This file will follow the conventions
-already estabished by the [swiftenv](https://github.com/kylef/swiftenv/)
-project. The file will contain either a Swift marketing version number
-or the name of a snapshot which has been published on Swift.org.
-
-The Swift Package Manager will have a database of known snapshot names which have
-been published on Swift.org, as well as which Swift tools version each snapshot
-corresponds to. A snapshot shall correspond to the first release which included
-or will include that snapshot's content, and all snapshots
-of a release in development shall be considered equivalent for the purposes
-of the Swift tools version. This feature does not attempt to specify
-compatibility between different snapshots during the development of a release, and
-only allows snapshot names to be specified to preserve compatibility with swiftenv.
-
-The Swift tools version, as output by package manager commands, will always take
-the form of a Swift marketing version (with
-one, two, or three version components), the string "future", or the string "trunk".
-"future" indicates that the .swift-version file specifies a snapshot name which is unknown and
-thus belongs to a future version of Swift. "trunk" indicates that the .swift-version file specifies
-a snapshot name which is known to this version of Swift, but which has not yet
-been given a designated marketing version. "trunk" shall always be considered
-compatible with the current version of package manager, and "future" shall
-always be considered incompatible. It is an error to specify "future" or "trunk"
-directly in the `.swift-version` file; these specifiers are determined
-from the package manager's interpretation of the `.swift-version` file.
 
 A new `swift package tools-version` command will be added to manage the
 Swift tools version. This command will behave as follows:
@@ -134,16 +114,167 @@ a different Swift language version, and to a different version of the PackageDes
 * `swift package tools-version --set-current` will set the Swift tools version to the version
 of the tools currently in use.
 
-If no `.swift-version` file is present, the Swift tools version is "3.0".
-It is expected that in the future all Swift packages will include a
-`.swift-version` file. `swift package init` will create this file and set
-it to the marketing version of the tools in use.
+If a package does not specify a Swift tools version, the Swift tools version is
+"3.0.0". It is expected that in the future all Swift packages will specify a
+Swift tools version. `swift package init` will set the Swift tools version of a
+package it creates to the version of the tools in use.
 
-The Swift tools version will determine the default Swift language compatibility version
-used to compile the package's Swift sources if unspecified, but the Swift language
-compatibility version for the package's sources is otherwise decoupled from the
-Swift tools version. A separate Swift evolution proposal will describe how
-to specify a Swift language compatibility version for package sources.
+## How the Swift tools version is specified
+
+We have three options in mind for specifying the Swift tools version, and have
+not yet chosen which to use. We'd appreciate input before this proposal is
+submitted for review. The three options we considered are:
+
+### Swift tools version in the Package.swift manifest
+
+#### Approach
+
+The Swift tools version will be specified by a special comment in the first line
+of the Package.swift manifest. This is similar to how a DTD is defined for XML
+documents. To specify a tools version, a Package.swift file must begin with the
+string `// swift-tools-version:`, followed by a version number specifier.
+
+Though the Swift tools version refers to a Swift marketing version number and is
+not a proper semantic version, the version number specifier shall follow the
+syntax defined by [semantic versioning 2.0.0](http://semver.org/spec/v2.0.0.html).
+This syntax allows for an optional pre-release version component or build
+version component; those components will not be used by the package manager currently, but
+may be used in a future release to provide finer-grained compatibility controls during the
+development of a new version of Swift.
+
+After the version number specifier, an optional `;` character may be present;
+it, and anything else after it until the end of the first line, will be ignored by
+this version of the package manager, but is reserved for the use of future
+versions of the package manager.
+
+The package manager will attempt to detect approximate misspellings of the Swift
+tools version comment. As such, it is an error if the first line of the file
+begins with `//`, then zero or more than one whitespace characters, and then the
+string `swift-tools-version`, or if any part of `swift-tools-version` is
+capitalized. Any other first line of the file will not be considered to be a
+Swift tools version comment, in which case the Swift tools version will be considered to
+be `3.0.0`.
+
+#### Advantages
+
+* Users may like being able to see the Swift tools version when reading a
+Package.swift manifest, without needing to go look at a separate file or run
+`swift package tools-version`.
+
+* Keeping the Swift tools version in the same file as the rest of the manifest
+data eliminates the possibility of forgetting to include both the Package.swift
+manifest and a file specifying the Swift tools version in every commit which
+should affect both. Users may also find it more convenient to only need to
+commit a single file when making manifest changes.
+
+* Tools which wish to identify a Package.swift manifest (as distinct from
+a Swift file which happens to be named "Package") may use the presence
+of the version comment as an indicator of the file type. However, as long as
+Swift 3.0 packages must be recognized, we cannot count on all Package.swift files
+to provide this comment.
+
+#### Disadvantages
+
+* This essentially puts a second, tiny, domain-specific language into the
+top of a Swift file, and requires the first line of the Package.swift manifest to
+be parsed for this before it is run through the Swift interpreter. This will not
+cause any concrete problems that we know of, but may be considered distasteful.
+
+* Novice users may be confused by seeing the Swift tools version at the top
+of their Package.swift manifest file.
+
+### Swift tools version in a .swift-version file
+
+#### Approach
+
+The Swift tools version will be specified in a file named ".swift-version",
+at the root level of the package. This file will follow the conventions
+already established by the [swiftenv](https://github.com/kylef/swiftenv/)
+project. The file will contain either a Swift marketing version number
+or the name of a snapshot which has been published on Swift.org.
+
+The Swift Package Manager will have a database of known snapshot names which have
+been published on Swift.org, as well as which Swift tools version each snapshot
+corresponds to. A snapshot shall correspond to the first release which included
+or will include that snapshot's content, and all snapshots
+of a release in development shall be considered equivalent for the purposes
+of the Swift tools version. This feature does not attempt to specify
+compatibility between different snapshots during the development of a release, and
+only allows snapshot names to be specified to preserve compatibility with swiftenv.
+Versioning comparison between snapshots within a release may be added in a
+future version of the package manager.
+
+The Swift tools version, as output by `swift package tools-version`, will always
+take the form of a Swift version number, the string "future", or the string
+"trunk". "future" indicates that the .swift-version file specifies a snapshot
+name which is unknown and thus belongs to a future version of Swift. "trunk"
+indicates that the .swift-version file specifies a snapshot name which is known
+to this version of Swift, but which has not yet been given a designated
+marketing version. "trunk" shall always be considered compatible with the
+current version of package manager, and "future" shall always be considered
+incompatible. It is an error to specify "future" or "trunk" directly in the
+`.swift-version` file; these specifiers are determined from the package
+manager's interpretation of the `.swift-version` file.
+
+#### Advantages
+
+* If we wish to store the Swift tools version outside of the Package.swift
+manifest, this gives us a way to do so by reusing a file that many packages
+already have, instead of adding yet another file.
+
+* This has some synergy with the behavior of swiftenv. When the package manager
+updates the Swift tools version to something newer, swiftenv will know to
+fetch and use the toolchain for that version before trying to build that package
+(for the top-level package only).
+
+#### Disadvantages
+
+* Because swiftenv allows toolchain names in this file, the package manager
+must as well. Allowing toolchain names significantly increases the complexity
+of this feature, as it means that we need to maintain a database mapping toolchain
+names to Swift versions. There may be process complexities in making sure that
+as we produce new toolchains, the database in the toolchain knows about the name
+of that toolchain, as well as all other toolchains that have been created.
+
+* The necessity of handling "future" and "trunk" versions, as output by
+`swift package tools-version`, increases the complexity of interacting
+with this feature for other tools that know about the package manager.
+
+* It is not clear if the synergy with swiftenv is perfect, or if there are
+situations where users would prefer to specify a different toolchain for
+swiftenv than they need their Swift tools version set to.
+
+### Swift tools version in a .swift-tools-version file
+
+#### Approach
+
+The Swift tools version will be specified in a file named ".swift-tools-version",
+at the root level of the package. This will be a JSON file with one key,
+`swift-tools-version`. (Any other keys will be ignored by this version of the
+package manager). The value for this key will be a version number specifier.
+
+Though the Swift tools version refers to a Swift marketing version number and is
+not a proper semantic version, the version number specifier shall follow the
+syntax defined by [semantic versioning 2.0.0](http://semver.org/spec/v2.0.0.html).
+This syntax allows for an optional pre-release version component or build
+version component; this will not be used by the package manager currently, but
+may be in a future release to provide stricter compatibility controls during the
+development of a new version of Swift.
+
+#### Advantages
+
+* As this is a JSON file, it has a clear and familiar syntax and is easily
+extensible for future use.
+
+* Because the Swift tools version is not specified in the Package.swift file, the
+user is discouraged from trying to hand-edit this version and will usually leave
+it up to the tools to manage, through the `swift package tools-version` command.
+That will decrease the likelihood of mistakes.
+
+#### Disadvantages
+
+* This adds yet another file that every Swift package will need to have and
+manage in source control.
 
 ## Examples
 
@@ -178,11 +309,10 @@ language version and the revised Swift 4 Package Manager PackageDescription API.
 
 ## Impact on existing code
 
-There is no impact on existing packages. Since existing packages either have no
-.swift-version file, or have a .swift-version which specifies a Swift 3
-toolchain or version, those packages will default to building their sources
-with the Swift 3 language compatibility mode, and will be able to be
-built by both Swift 3 and Swift 4 tools.
+There is no impact on existing packages. Since existing packages do not specify
+a Swift tools version, they will default to building their sources
+with the Swift 3 language compatibility mode, and will be able to be built
+by both Swift 3 and Swift 4 tools.
 
 Use of the package manager's [version-specific tag selection](https://github.com/apple/swift-package-manager/blob/master/Documentation/Usage.md#version-specific-tag-selection)
 mechanism will no longer be necessary in many situations. Previously, authors needed to employ
@@ -191,14 +321,14 @@ version of the Swift tools before adopting new Swift features, to avoid break cl
 of the package still using the old version of the Swift tools. Now, when adopting new Swift features, a
 package author merely needs to set their Swift tools version to that new version, and
 dependency resolution performed by an older version of the Swift tools (starting with Swift 3.1) will consider
-those new package versions ineligable.
+those new package versions ineligible.
 
 The existing version-specific tag selection mechanism may still be useful for
 authors who wish to publish new parallel versions of their package for multiple
 versions of the Swift tools.
 
 Use of the package manager's [version-specific manifest selection](https://github.com/apple/swift-package-manager/blob/master/Documentation/Usage.md#version-specific-manifest-selection)
-mechanism may still be useful for authors who wish to conditionally adopt new features of the Swift tool in
+mechanism may still be useful for authors who wish to conditionally adopt new features of the Swift tools in
 their Package.swift manifest without needing to update their Swift tools version to
 exclude older versions of Swift.
 
@@ -214,7 +344,7 @@ APIs.
 
 The following table shows an example of which Swift language version will be used to interpret the Package.swift manifest, and to interpret the package's sources, based on the Swift tools in use and the parameters specified by the package.
 
-|  Swift Tools   | .swift-version | [Swift Language Compatibility Version](http://link/to/proposal) | Language Version Used |
+|  Swift Tools   | Swift Tools Version | [Swift Language Compatibility Version](http://link/to/proposal) | Language Version Used |
 |:---:|:---:|:---:| --- |
 | 3.1  | Not Present | Not Present | Manifest: 3 Sources: 3 |
 | 3.1  | 3.1  |  Not Present | Manifest: 3 Sources: 3 |
@@ -365,17 +495,3 @@ things. However, we feel that doing so would add unnecessary complexity to
 the Swift package manager. We do not see a compelling use-case for needing
 to control these different features independently, so we are consolidating
 them into one version mechanism as a valuable simplification.
-
-### Specify the Swift tools version without needing a new file for it
-
-This proposal does add a new file (`.swift-version`) that every package is
-expected to provide. We could instead store the Swift tools version somewhere
-else. The most likely candidate for that would be the Package.swift manifest
-itself. The immediate problem with doing so is that we need to know how to
-interpret the Swift manifest in order to get data out of it, and the Swift
-tools version provides information needed to know how to interpret the manifest.
-We could consider putting the version at the very top of the file, perhaps
-in a specially-formatted Swift code comment, and parsing the top of the file
-to extract that version before running it through the Swift interpreter.
-
-(More discussion of this alternative to come)
