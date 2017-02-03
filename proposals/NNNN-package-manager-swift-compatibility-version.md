@@ -7,15 +7,15 @@
 
 ## Introduction
 
-This proposal adds support for the Swift compiler's new "compatibility version"
-feature to the package manager.
+This proposal adds support for the Swift compiler's new "language compatibility
+version" feature to the package manager.
 
 ## Motivation
 
-The Swift compiler now supports a "compatibility version" flag which specifies
-the Swift major language version that the compiler should try to accept. We need
-support for an additional package manager manifest feature in order for this
-feature to be used by Swift packages.
+The Swift compiler now supports a "language compatibility version" flag which
+specifies the Swift major language version that the compiler should try to
+accept. We need support for an additional package manager manifest feature in
+order for this feature to be used by Swift packages.
 
 ## Proposed solution
 
@@ -26,27 +26,28 @@ supported Swift language versions:
 let package = Package(
     name: "HTTP",
     ...
-    compatibleSwiftVersions: [3, 4])
+    swiftLanguageVersions: [3, 4])
 ```
 
-When building a package, we will always select the compatible Swift version that
+When building a package, we will always select the Swift language version that
 is most close to (but not exceeding) the major version of the Swift compiler in
 use.
 
 If a package does not support any version compatible with the current compiler,
 we will report an error.
 
-If a package does not specify any Swift compatibility versions, the
-compatibility version to be used will match the major version of the the
+If a package does not specify any Swift language versions, the
+language version to be used will match the major version of the the
 package's Swift tools version (as discussed in a separate evolution proposal). A
 Swift tools version with a major version of '3' will imply a default Swift
-compatibility version of '3', and a Swift tools version with a major version
-of '4' will imply a default Swift compatibility version of '4'.
+language version of '3', and a Swift tools version with a major version
+of '4' will imply a default Swift language version of '4'.
 
 ## Detailed design
 
 We are operating under the assumption that for the immediate future, the Swift
-version accepted by the compiler will remain an integer major version.
+language compatibility version accepted by the compiler will remain an integer
+major version.
 
 With this change, the complete package initializer will be:
 
@@ -58,41 +59,41 @@ With this change, the complete package initializer will be:
         targets: [Target] = [],
         products: [Product] = [],
         dependencies: [Dependency] = [],
-        compatibleSwiftVersions: [Int]? = nil,
+        swiftLanguageVersions: [Int]? = nil,
         exclude: [String] = []
 ```
 
-where absence of the optional compatible version list indicates the default
+where absence of the optional language version list indicates the default
 behavior should be used for this package.
 
 ### Example Behaviors
 
 Here are concrete examples of how the package manager will compile code,
-depending on its compatibility declarations:
+depending on its language version declarations:
 
-* Version 3 Packager Manager & Swift 3 (only) Compatible Package
+* Version 3 Packager Manager & Swift 3 (only) Language Package
 
   The package manager will compile the code with `-swift-version 3`.
 
-* Version 3 Packager Manager & Swift 4 (only) Compatible Package
+* Version 3 Packager Manager & Swift 4 (only) Language Package
 
-  The package manager will report an error, since the package supports no version
-  compatible with the tools.
+  The package manager will report an error, since the package supports no language
+  version compatible with the tools.
 
-* Version 3 Packager Manager & Swift [3, 4] Compatible Package
+* Version 3 Packager Manager & Swift [3, 4] Language Package
 
   The package manager will compile the code with `-swift-version 3`, matching the
   major version of the tools in use.
 
-* Version 4 Packager Manager & Swift 3 (only) Compatible Package
+* Version 4 Packager Manager & Swift 3 (only) Language Package
 
   The package manager will compile the code with `-swift-version 3`.
 
-* Version 4 Packager Manager & Swift 4 (only) Compatible Package
+* Version 4 Packager Manager & Swift 4 (only) Language Package
 
   The package manager will compile the code with `-swift-version 4`.
 
-* Version 4 Packager Manager & Swift [3, 4] Compatible Package
+* Version 4 Packager Manager & Swift [3, 4] Language Package
 
   The package manager will compile the code with `-swift-version 4`.
 
@@ -110,7 +111,7 @@ implemented. Because the default Swift tools version of existing packages
 is "3.0.0" (pending approval of the Swift tools version proposal), the Swift
 4 package manager will build such packages in Swift 3 mode. When packages
 wish to migrate to the Swift 4 language, they can either update their
-Swift tools version or specify Swift 4 as compatible Swift version.
+Swift tools version or specify Swift 4 as their language version.
 
 New packages created with `swift package init` by the Swift 4 tools will
 build with the Swift 4 language by default, due to the Swift tools version
@@ -124,18 +125,18 @@ to create packages which support the Swift 4 and 3 languages and the Swift
 
 ## Alternatives considered
 
-We could have made the Swift compatibility version default to the version of the
+We could have made the Swift language version default to the version of the
 Swift tools in use if not specified. However, tying this to the Swift tools
 version instead allows existing Swift 3 language packages to build with the
 Swift 4 tools without changes, as they won't need to explicitly specify a Swift
-compatibility version in order to continue to build with the Swift 3 language.
+language version in order to continue to build with the Swift 3 language.
 
 We chose not to support any command line features to modify the selected version
 (e.g., to force a Swift 4 compiler to use Swift 3 mode where acceptable) in
 order to keep this proposal simple. We will consider these in the future if they
 prove necessary.
 
-We considered supporting a way to set the Swift compatibility version on
+We considered supporting a way to set the Swift language version on
 a per-module basis, instead of needing to set it for the entire package.
 We think this would be best done using build settings, which the package
 manager does not yet support. We are pending per-module support for this
