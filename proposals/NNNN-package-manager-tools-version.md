@@ -31,8 +31,8 @@ a new version of the Swift tools, when new features have been added which are no
 supported by the current release of the Swift tools.
 
 Second, one specific planned change for the Swift Package Manager is a revision
-of the Package.swift PackageDescription API, to make it conform to
-newer Swift conventions and to correct historical mistakes. In order to support backwards
+of the Package.swift PackageDescription API for Swift 4, to make it conform to
+Swift conventions and to correct historical mistakes. In order to support backwards
 compatibility, the old version of the PackageDescription API must remain available.
 We need some way to determine which version of the PackageDescription API a package
 wishes to use.
@@ -57,10 +57,12 @@ code which require a new version of Swift, users will be expected to update
 the package's Swift tools version to specify that it requires that version
 of the Swift tools.
 
-When an incompatible revision is made to the PackageDescription API, the Swift Package Manager
-will continue to include the older version of the PackageDescription module for backwards
-compatibility. The Swift tools version shall determine which version of the PackageDescription
-module will be used when interpreting the Package.swift manifest.
+The Swift Package Manager will continue to include the Swift 3 version of the
+PackageDescription module for backwards compatibility, in addition to including
+the new version of the PackageDescription module, as designed in a forthcoming
+evolution proposal. The Swift tools version shall determine which version of the
+PackageDescription module will be used when interpreting the Package.swift
+manifest.
 
 The Swift Tools Version will also determine which Swift language compatibility
 version should be used when interpreting the Package.swift manifest.
@@ -77,16 +79,14 @@ no version of a dependency (which otherwise meets the version requirements
 from the package dependency graph) supports the version of the Swift tools in use, a
 dependency resolution error will result.
 
-When new PackageDescription API is added which would not be understood by a
-prior version of the Swift Package Manager, it will be added to the current version
-of the PackageDescription module and will not require the package manager to
-include a version of the module without that API. However, if that new API is used in a
-Package.swift manifest, it will cause the package manager to validate that the
-Swift tools version of that package specifies a version of the tools which understands that API,
-or to emit an error with instructions to update the Swift tools version if not.
-Note that if a [version-specific manifest](https://github.com/apple/swift-package-manager/blob/master/Documentation/Usage.md#version-specific-manifest-selection)
+New PackageDescription API will be added as needed for upcoming features. When
+new API is used in a Package.swift manifest, it will cause the package manager
+to validate that the Swift tools version of that package specifies a version of
+the tools which understands that API, or to emit an error with instructions to
+update the Swift tools version if not. Note that if a [version-specific manifest](https://github.com/apple/swift-package-manager/blob/master/Documentation/Usage.md#version-specific-manifest-selection)
 is present for the older tools version, that tools version will validate as
-allowable even when newer features are adopted in the main Package.swift manifest.
+allowable even when newer features are adopted in the main Package.swift
+manifest.
 
 The Swift tools version will determine the default Swift language compatibility version
 used to compile the package's Swift sources if unspecified, but the Swift language
@@ -494,3 +494,16 @@ things. However, we feel that doing so would add unnecessary complexity to
 the Swift package manager. We do not see a compelling use-case for needing
 to control these different features independently, so we are consolidating
 them into one version mechanism as a valuable simplification.
+
+### Rename the PackageDescription module
+
+We considered giving the new version of the PackageDescription module
+a different name, and having users change the import statement in their
+Package.swift when they want to adopt the revised PackageDescription API.
+This would mean that the package manager would not automatically switch
+which version of the PackageDescription module to use based on the Swift
+tools version. However, this did not seem like a better experience for our
+users. It would also allow users to import both modules, which we do not
+want to support. And it would allow users to continue using the old
+PackageDescription API in a manifest that is otherwise updated for
+Swift 4, which we also do not want to support.
