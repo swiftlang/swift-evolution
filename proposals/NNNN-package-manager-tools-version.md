@@ -419,7 +419,10 @@ this approach.
 First, this does nothing to allow packages to be used with new Swift tools without
 needing to be updated for those tools. We don't want package authors to need
 to immediately adopt the Swift 4 language compatibility version and PackageDescription
-API before they can build their package with the new tools.
+API before they can build their package with the new tools. Using a Swift
+tools version allows us to support multiple versions of the PackageDescription
+API and the Swift language, so existing packages will continue to work
+with newer tools automatically.
 
 Second, this forces clients of a package to explicitly opt-in to updated
 versions of their dependencies, even if there was otherwise no API change.
