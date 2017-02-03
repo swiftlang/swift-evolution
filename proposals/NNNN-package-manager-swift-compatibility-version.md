@@ -126,10 +126,17 @@ to create packages which support the Swift 4 and 3 languages and the Swift
 
 We could have made the Swift compatibility version default to the version of the
 Swift tools in use if not specified. However, tying this to the Swift tools
-version allows existing Swift 3 language packages to build with the Swift 4
-tools without needing to explicitly specify a Swift compatibility version.
+version instead allows existing Swift 3 language packages to build with the
+Swift 4 tools without changes, as they won't need to explicitly specify a Swift
+compatibility version in order to continue to build with the Swift 3 language.
 
 We chose not to support any command line features to modify the selected version
 (e.g., to force a Swift 4 compiler to use Swift 3 mode where acceptable) in
 order to keep this proposal simple. We will consider these in the future if they
 prove necessary.
+
+We considered supporting a way to set the Swift compatibility version on
+a per-module basis, instead of needing to set it for the entire package.
+We think this would be best done using build settings, which the package
+manager does not yet support. We are pending per-module support for this
+feature until build settings are supported.
