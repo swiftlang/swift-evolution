@@ -1,6 +1,6 @@
-# Package Manager Swift Compatibility Version
+# Package Manager Swift Language Compatibility Version
 
-* Proposal: [SE-NNNN](NNNN-package-manager-swift-compatibility-version.md)
+* Proposal: [SE-NNNN](NNNN-package-manager-swift-language-compatibility-version.md)
 * Author: [Daniel Dunbar](https://github.com/ddunbar), [Rick Ballard](http://github.com/rballard)
 * Review manager: N/A
 * Status: **WIP**
