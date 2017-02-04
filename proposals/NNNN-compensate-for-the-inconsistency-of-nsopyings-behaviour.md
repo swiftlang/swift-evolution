@@ -221,3 +221,7 @@ Projects written with prior versions of Swift that have not yet adopted this pro
 ## Effect on ABI stability
 
 The proposal doesn't change the ABI of existing language features.
+
+## Alternatives Considered
+
+There is no alternatives considered at this time.
