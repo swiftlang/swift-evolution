@@ -208,7 +208,7 @@ init( employee candidate: Person ) {
  }
 ```
 
-GUI IDE will be expected to leave developers a fixable error or warning, if we hit the either red or yelloe point in Xcode, or something similar to those in other IDEs, they will automatically append the lacked statement:
+GUI IDE will be expected to leave developers a fixable error or warning, and thus if we hit the either red or yelloe point in Xcode, or something similar to those in other IDEs, they will automatically append the lacked statement:
 
 > self.employee = candidate***.copy() as! Person***
 
