@@ -191,7 +191,7 @@ Do the compiler magic to call `copy( with: )` in the initializer so that `@NSCop
 
 ### Compile-time checking
 
-Have compiler arise a **compile-time error or warning** if developers are performing an assignment operation from within an initializer between a property declared as `@NSCopying` and an instance of a `<NSCopying>` protocol conforming class. Also, speaking of GUI integrated development environments such as Xcode, leaving this kind of error or warning **FIXABLE** would be needed in order to make them can be quickly fixed by both IDEs and migrator tools through simply appending `.copy() as! AutoInferredClassType`.
+Have compiler emit a **compile-time error or warning** if developers are performing an assignment operation from within an initializer between a property declared as `@NSCopying` and an instance of a `<NSCopying>` protocol conforming class. Also, speaking of GUI integrated development environments such as Xcode, leaving this kind of error or warning **FIXABLE** would be needed in order to make them can be quickly fixed by both IDEs and migrator tools through simply appending `.copy() as! AutoInferredClassType`.
 
 With the adjustment mentioned above, following code fragment, for instance, will no longer be successfully compiled:
 
