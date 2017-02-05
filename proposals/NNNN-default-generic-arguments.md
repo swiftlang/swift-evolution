@@ -177,7 +177,7 @@ func x() -> Foo {				// assumes Foo<Int64>, provides explicit context for the bo
 
 There are cases when the context is not explicit, but provides a hint about the type that's in a conflict with the default type. Such cases revolve around literal convertibles. The problem can be demonstrated by the following example:
 
-```swif
+```swift
 // example I
 let foo = Foo(5)
 ```
@@ -186,7 +186,7 @@ Here we have the context hinting that the type could be inferred to `Int` while 
 
 Similar example, but with the difference that the hinted types are unrelated would be:
 
-```swif
+```swift
 // example II
 let foo = Foo("abc")
 ```
@@ -247,7 +247,7 @@ Such pattern is supported by *Prefer User* strategy and has been broadly accepte
 
 By applying *Do What I Mean* our examples get most reasonable solutions.
 
-```swif
+```swift
 let foo = Foo(5)		// inferred to Int64
 let foo = Foo("abc")	// inferred to String
 ```
