@@ -31,9 +31,11 @@ let message: Signal<String>
 
 Supporting default arguments would make the typical declarations clean and concise while allowing more specific declarations when needed.   
 
+Additionally, the feature would allow developers to introduce new generic arguments to existing types without causing source-breaking changes.
+
 ## Current Workaround
 
-The problem can be partially solved by introducing a typealias that fulfils the generic argument.
+Some of the problems can currently be partially solved by introducing a typealias that fulfils the generic argument.
 
 ```swift
 typealias NonFailableSignal<T> = Signal<T, NoError>
@@ -49,7 +51,7 @@ Allow setting default types to generic arguments in type and function declaratio
 
 ### Declaration
 
-Default generic type specialisation would follow generic argument declaration, separated by the equality sign:
+Default generic type specialization would follow generic argument declaration, separated by the equality sign:
 
 ```swift
 struct X<T = Int> {}
@@ -64,7 +66,7 @@ struct X<T = Int, U = Int> {}
 
 Defaulting `T`, but not `U` would not be permitted as declaring an instance of such type would ambiguous since the arguments are index-based.
 
-When an argument is constrained, default type specification would be placed after the constraint:
+When an argument is constrained, default type specialization would be placed after the constraint:
 
 ```swift
 struct X<T: P = Int> {}
@@ -80,9 +82,9 @@ func foo<X: P = Int>(x: X) -> X
 
 When declaring an instance of generic type with default arguments following cases are worth considering:
 
-(I) By not specialising any generic argument one accepts all default argument types. No empty brackets are needed in that case.
+(I) By not specialising any generic argument one lets the compiler specialize them. No empty angle brackets are needed in that case.
 
-(II) By specialising first *N* arguments, one accepts the default argument types of the remaining arguments.
+(II) By specialising first *N* arguments, one lets the compiler specialize the remaining arguments.
 
 Given the type
 
@@ -90,23 +92,23 @@ Given the type
 struct X<T = Int, U = Float, V = Double> {}
 ```
 
-following is assumed:
+following will be assumed unless something else is inferred from the context:
 
 
 ```swift
-let x: X 						// assumes X<Int, Float, Double>
-let x: X<Int32> 				// assumes X<Int32, Float, Double>
-let x: X<Int32, Int64> 			// assumes X<Int32, Int64, Double>
-let x: X<Int32, Int64, Int128> 	// assumes X<Int32, Int64, Int128>
+X 							// assumes X<Int, Float, Double>
+X<Int32> 					// assumes X<Int32, Float, Double>
+X<Int32, Int64> 			// assumes X<Int32, Int64, Double>
+X<Int32, Int64, Int128> 	// assumes X<Int32, Int64, Int128>
 ```
 
 It would not be possible to specialise argument at index *i* without specialising all prior arguments (those at indices less than *i*) due to arguments being index-based.
 
 ### Implications on Type Inference
 
-How defaults interact with the type inference has been mostly discussed aspect of this proposal. There is a number of cases important to consider.
+How defaults interact with the type inference has been mostly discussed aspect of this proposal. There are number of cases important to consider.
 
-Following type will be used in the examples in next sections.
+Following type will be used in the examples that follow.
 
 ```swift
 struct Foo<T = Int64> {
@@ -114,39 +116,29 @@ struct Foo<T = Int64> {
 }
 ```
 
-#### 1. Type Declarations
+#### 1. No Context
 
-*No type inference will happen in type declarations. By omitting generic arguments one accepts the defaults.*
+*Calling a generic function or an initializer in a context that does not provide any hint to the argument types will result in using the __default__ type.*
 
-a) When declaring a property of generic type and omitting generic argument, the compiler will assume default type.
-
-```swift
-class X {
-	let foo: Foo			// assumes Foo<Int64>
-}
-```
-
-b) When declaring a variable or a constant of generic type and omitting generic argument, the compiler will assume default type.
+In case if a variable or a property is not explicitly given a type and there are no values passed to the initializer from which the type of generic argument could be inferred, default type of the argument will be used:
 
 ```swift
-let foo: Foo = ...			// assumes Foo<Int64>
+let foo = Foo()				// infers type to Foo<Int64>
 ```
 
-Note that `Foo<Int64>` will be assumed regardless of what is on the right side of the expression. The compiler will throw an error in case of an incompatible type on the right side.
+Similarly, if a variable is given a type, but generic argument is omitted, default will be used in case of no additional context on the right side:
 
 ```swift
-let foo: Foo = Foo(Int(5)) 	// error: Cannot assign Foo<Int> to Foo<Int64>.
+let foo: Foo = Foo() 		// infers type to Foo<Int64>
 ```
 
-To solve this, user would have to either declare the constant as `let foo: Foo<Int>` or completely drop the type declaration and let the compiler infer the type as described in the next section of the proposal.  
-
-c) When declaring a function whose arguments and/or return type are of generic type with generic argument omitted, the compiler will assume default type.
+When declaring a function whose arguments and/or return type are of generic type with generic arguments omitted, the compiler will always assume default type.
 
 ```swift
 func x(foo: Foo) -> Foo {} 	// assumes Foo<Int64>
 ```
 
-d) When declaring an enum case with associated value of generic type with generic argument omitted, the compiler assumes default type.
+Same will be assumed for an enum case with associated value of generic type with generic arguments omitted.
 
 ```swift
 enum X {
@@ -156,21 +148,15 @@ enum X {
 
 #### 2. Explicit Context
 
-*Calling a generic function or an initializer in a context from which the argument types can be unambiguously inferred will result in using the __inferred__ types.*
+*Calling a generic function or an initializer in a context from which the argument types can be unambiguously inferred will result in using the __inferred__ types regardless of the default type.*
 
 The basic example would be initializing a variable of explicitly defined type.
 
 ```swift
-let foo: Foo<Int64> = Foo(5) 	// infers right side to Foo<Int64>
+let foo: Foo<Int> = Foo(5) 		// infers right side to Foo<Int>
 ```
 
-As defined in previous section, a type declaration with omitted generic argument that has a default is still considered to explicitly define a type so following will also work:
-
-```swift
-let foo: Foo = Foo(5) 			// infers right side to Foo<Int64>
-```
-
-Explicit context can also be provided by a function arguments or return types.
+Explicit context can also be provided by a function argument or return types.
 
 ```swift
 func x() -> Foo<String> {
@@ -178,45 +164,108 @@ func x() -> Foo<String> {
 }
 ```
 
+When declaring a function, its argument and return types are not affected by type inference so they provide explicit context for the code of function body.
+
 ```swift
-func x() -> Foo {
-  return Foo()					// infers instance type to Foo<Int64>
+func x() -> Foo {				// assumes Foo<Int64>, provides explicit context for the body
+  return Foo(5)					// infers instance type to Foo<Int64>
 }
 ```
 
-#### 3. Empty Context
 
-*Calling a generic function or an initializer in a context that does not provide any hint to the argument types will result in using the __default__ type.*
+#### 3. Loose Context (Defaults Mismatch)
 
-```swift
-let foo = Foo() 	// infers type to Foo<Int64>
+There are cases when the context is not explicit, but provides a hint about the type that's in a conflict with the default type. Such cases revolve around literal convertibles. The problem can be demonstrated by the following example:
+
+```swif
+// example I
+let foo = Foo(5)
 ```
 
-#### 4. Loose Context and Defaults Mismatch
+Here we have the context hinting that the type could be inferred to `Int` while the default hints to `Int64`.
 
-There are cases when the context might provide a hint about the type that's in a conflict with the default type. Those cases revolve around literal convertibles.
+Similar example, but with the difference that the hinted types are unrelated would be:
 
-When a type suggested by the context is unrelated to the default argument, compiler will infer the suggested type.
-
-```swift
-let foo = Foo("abc") 	// infers type to Foo<String>
+```swif
+// example II
+let foo = Foo("abc")
 ```
 
-However, when the type in related, compiler will throw a fix-it.
+In this case we have the context hinting that the type could be inferred to `String` while the default hints to `Int64`.
+
+Solving the problem of what type gets inferred in those cases has been a topic of long discussions. Same problem has also been observed and [discussed](https://internals.rust-lang.org/t/interaction-of-user-defined-and-integral-fallbacks-with-inference/2496) in the development of Rust language. Author suggested following strategies:
+
+* **Unify All (UA)**: Always specialize the variables with all defaults. This is the conservative choice in that it gives an error if there is any doubt.
+
+* **Prefer Literal (PL)**: Always prefer the literal type. This is the maximally backwards compatible choice, but it leads to very surprising outcomes.
+
+* **Prefer User (PU)**: Always prefer the user-defined choice. This is simple from one point of view, but does lead to a potentially counterintuitive result for example II.
+
+* **Do What I Mean (DWIM)**: Prefer the user-defined default, but fallback to the literal type if the literal type is unrelated to the user-defined default (example II). This is more complex, but leads to sensible results on both examples.
+
+Applying those strategies to our examples gives following outcomes:
+
+| Strategy       	   | Example I  | Example II |
+| ---------------------| ---------- | ---------- |
+| Unify All      	   | Error      | Error      |
+| Prefer Literal		   | Int        | String     |
+| Prefer User  		   | Int64      | Error      |
+| Do What I Mean       | Int64      | String     |
+
+
+*Unify All* seems to be the least favourable strategy as it requires the user to be explicit in many cases where the outcome is obvious. That goes directly against the overall look and feel of the language so only the remaining three strategies have been considered. 
+
+*Prefer Literal* would allow user to introduce a default to an **existing** type argument without causing source-breaking changes.
 
 ```swift
-let foo = Foo(5) 		// fix-it: Did you mean ‘Foo(5 as Int)’?
+// before
+func foo<T>(input: T)
+foo(0) // Int
+
+// after
+func foo<T = Int64>(input: T)
+foo(0) // Int
 ```
 
-Hinted type `Int` is related to the default type `Int64` because both are conforming to `ExpressibleByIntegerLiteral` protocol. Integer literals are by default inferred to `Int`, but they can also be used to initialize anything conforming to `ExpressibleByIntegerLiteral`, like `Int64` in the example.
+However, this is in direct conflict with the pattern that would allow user to introduce a **new** generic type argument without causing source-breaking changes.
 
-In order to avoid any confusion, the user should explicitly resolve such ambiguities.
+```swift
+// before
+func foo(input: Int64)
+foo(0)  // Int64
+
+// after
+func foo<T=Int64>(input: T)
+foo(0) // Int64
+```
+
+Such pattern is supported by *Prefer User* strategy and has been broadly accepted in discussions of this proposal as the most important aspect of default generic arguments.
+
+*Prefer User*, however, has a drawback that it fails in cases where the literal is unrelated to the user-defined default when it's obvious what the outcome should be, as depicted by *example II*.
+
+*This proposal thus proposes implementing Do What I Mean strategy for resolving such mismatches. It favours the user-default, but falls back to literal in cases where default makes no sense. It also seems more consistent with other language aspects that allow the user to write concise and non overly explicit code.*
+
+By applying *Do What I Mean* our examples get most reasonable solutions.
+
+```swif
+let foo = Foo(5)		// inferred to Int64
+let foo = Foo("abc")	// inferred to String
+```
+
+It's worth noting, that by applying *Do What I Mean* (or *Prefer User*) strategy one can still introduce defaults to existing arguments without making source-breaking changes as long as the chosen default is not a literal convertible or a supertype of another type.
 
 ## Impact on Existing Code
 
-None. This functionality is strictly additive and does not break any existing code.
-
+None. This feature is strictly additive and does not break any existing code. Using this feature, however, allows developers to introduce source-breaking changes by adding defaults to existing arguments.
 
 ## Alternatives Considered
 
-If generic argument would have labels like their function counterparts, it would be possible to default and declare any combination of arguments. However, since it is very rare that generic types have more than two or three arguments, such feature is deemed redundant.
+If generic arguments would have labels like their function counterparts, it would be possible to default and declare any combination of arguments. However, since it is very rare that generic types have more than two or three arguments, such feature is deemed redundant.
+
+It was suggested that empty angle brackets should be required in cases where user accepts all default arguments. Further discussions concluded that empty angle brackets do not convey any valuable information to readers and maintainers of the code so such requirement is not proposed.
+
+When resolving defaults mismatches, strategy *Prefer User* was considered as a more conservative approach that could later be evolved into *Do What I Mean*. It was, however, presumed to be intolerable because of wide use of literals in Swift code. 
+
+## Acknowledgments
+
+Thanks to Alexis Beingessner for elaborating and working out issues around defaults mismatches and for sharing his experience from Rust development.
