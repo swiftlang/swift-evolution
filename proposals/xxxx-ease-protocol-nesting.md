@@ -28,7 +28,7 @@ Similarly, we have examples of protocols in the standard library which define su
 
 ## Proposed solution
 
-The first part is to allow protocols to be nested inside of non-generic structural types (for example, in the delegate pattern):
+The first part is to allow protocols to be nested inside of structural types (for example, in the delegate pattern):
 
 ```swift
 class AView {                    // A regular-old class
@@ -105,7 +105,7 @@ struct Float: FloatingPoint {
 let _: FloatingPoint.Sign = (4.0 as Float).sign as Double.Sign // all good B)
 ```
 
-Looking at the Scollable example again, we want to ensure programmers write `Scrollable.Delegate` when writing their conformances, and explicitly reject `MyScrollable.Delegate`. For that reason, the compiler will not synthesise typealiases for nested protocols:
+Looking at the Scollable example again, we want to ensure programmers write `Scrollable.Delegate` when writing their conformances and do not want to allow `MyScrollable.Delegate` as an alternative. For that reason, the compiler will not synthesise typealiases for nested protocols:
 
 ```swift
 protocol Scrollable: class {
@@ -127,7 +127,7 @@ extension MyController: Scrollable.Delegate { // <- We don't want to allow 'MySc
 }
 ```
 
-Other nested types (i.e. those not used by requirements) are also not implicitly imported. Consider the following example of a struct which is added to `RandomAccessCollection` by an extension; it has nothing to do with any particular Collection (because it cannot capture -- see below), so it is irrelevant to any particular conforming type:
+Other nested types (i.e. those not used by requirements) are also not implicitly imported. Consider the following example of a struct which is added to `RandomAccessCollection` by an extension; it has nothing to do with any particular Collection (because it is generic), so it is irrelevant to any particular conforming type:
 
 ```swift
 extension RandomAccessCollection {
@@ -140,12 +140,12 @@ extension RandomAccessCollection {
 let _ = [1, 2, 3].concurrent   // type is: RandomAccessCollection.Concurrent<Array<Int>>, _not_ Array<Int>.Concurrent
 ```
 
-It would be possible to work around this with a typealias. We might consider synthesising these too once we have the ability to have default parameters for generic types:
+It would be possible to work around this with a typealias. We might consider synthesising these too once we have the ability to have default parameters for generic types. This would give us a convenient way to namespace 'views' of protocol conformers, as the standard library already does with `LazySequence<S>` and `JoinedSequence<S, T>`:
 
 ```swift
 extension RandomAccessCollection {
-    // Default is bound to 'Self', which we implement by creating a typealias.
-    struct Concurrent<T: RandomAccessCollection = Self> { /* ... */ }
+    // Default is bound to 'Parent' (`Self` of the parent context), which we implement by creating a typealias.
+    struct Concurrent<T: RandomAccessCollection = Parent> { /* ... */ }
 
     // [implicit] typealias Concurrent = Concurrent<Self>
 }
@@ -206,23 +206,24 @@ extension Collection where Element == UInt16 {
 
 **Generic types:**
 
-Protocols may be nested inside of generic types, but they are not parameterised by any generic parameters. In the example below, there is only one nested protocol: `MyCollectionView.Delegate`, not `MyCollectionView<Book>.Delegate` or `MyCollectionView<Movie>.Delegate`:
+Protocols may be nested inside of generic types, but they are not parameterised by any generic parameters. In the example below, there is only one nested protocol: `MyCollectionView.SelectionDelegate`, not `MyCollectionView<Book>.SelectionDelegate` or `MyCollectionView<Movie>.SelectionDelegate`:
 
 ```swift
 class MyCollectionView<MediaItem> : UICollectionView {
-    protocol Delegate: class {
-        func itemDidChange(at: Index)
+
+    protocol SelectionDelegate: class {
+        func itemWasSelected(at: Index)
     }
-    weak var delegate: Delegate?
+    weak var selectionDelegate: SelectionDelegate?
 }
 
-class MyController: MyCollectionView.Delegate { // Note, use of unparameterised 'MyCollectionView' to refer to nested protocol.
-    func itemDidChange(at: Index) { /* ... */ }
+class MyDelegate: MyCollectionView.SelectionDelegate { // Use of unparameterised 'MyCollectionView' to refer to nested protocol.
+    func itemWasSelected(at: Index) { /* ... */ }
 }
 
-MyCollectionView<Book>.delegate = MyController()
-MyCollectionView<Song>.delegate = MyController()
-MyCollectionView<Movie>.delegate = MyController()
+MyCollectionView<Book>.selectionDelegate  = MyDelegate()
+MyCollectionView<Song>.selectionDelegate  = MyDelegate()
+MyCollectionView<Movie>.selectionDelegate = MyDelegate()
 ```
 
 
@@ -272,31 +273,37 @@ Given that nesting infers some context to the inner type, and that there is some
 
 - Protocols may not capture generic type parameters:
 
-    Even if we wanted to do this with an implicit associated type, as mentioned above we couldn't represent the constrained protocol existential in the parent. This is also why protocols are not parameterised when nested inside of generic types, as we would like any capturing one day to be expressed via existentials:
+    Even if we wanted to do this with an implicit associated type, as mentioned above we couldn't represent the constrained protocol existential in the parent. Since it is a stated decision to avoid parameterised protocols, any capturing which may be allowed in the future would be expressed via existentials on an unparameterised protocol anyway, possibly looking something like this:
 
     ```swift
     class MyCollectionView<MediaItem> : UICollectionView {
-        protocol Delegate: class {
+
+        protocol Source {
             // [implicit] associatedtype MediaItem
-            func itemDidChange(in: MyCollectionView<MediaItem>, at: Index)
+            func item(at: Int) -> MediaItem
+            var numberOfItems: Int { get }
         }
-        weak var delegate: Any<Delegate where .MediaItem == MediaItem> // Not possible today.
+        var source: Any<MyCollectionView.Source where .MediaItem == MediaItem> // Not possible today.
     }
 
-    class BookController: MyCollectionView.Delegate {
+    class BookSource: MyCollectionView.Source {
         typealias MediaItem = Book
-        func itemDidChange(in: MyCollectionView<Book>, at: Index) { /* ... */ }
+
+        func item(at: Int) -> Book { /* ... */ }
+        var numberOfItems: Int     { /* ... */ }
     }
     
-    class GenericController<MediaItem>: MyCollectionView.Delegate {
+    class DummySource<MediaItem>: MyCollectionView.Source where MediaItem: DummyConstructable {
         // associatedtype 'MediaItem' bound to generic parameter.
-        func itemDidChange(in: MyCollectionView<MediaItem>, at: Index) { /* ... */ }
+        
+        func item(at: Int) -> MediaItem { /* ... */ }
+        var numberOfItems: Int          { /* ... */ } 
     }
 
-    MyCollectionView<Book>().delegate = BookController()
-    MyCollectionView<Book>().delegate = GenericController<Book>()
-    MyCollectionView<Song>().delegate = GenericController()  // type is: GenericController<Song>
-    MyCollectionView<Movie>().delegate = GenericController() // type is: GenericController<Movie>
+    MyCollectionView<Book>().source = BookSource()
+    MyCollectionView<Book>().source = DummySource<Book>()
+    MyCollectionView<Song>().source  = DummySource() // type is: DummySource<Song>
+    MyCollectionView<Movie>().source = DummySource() // type is: DummySource<Movie>
     ```
 
 - Nominal types *may* capture generic type parameters, but not through a protocol
@@ -319,7 +326,7 @@ Given that nesting infers some context to the inner type, and that there is some
     
 - Nominal types may not capture associated types
 
-    Consider the `RandomAccessCollection.Concurrent` example from before, if it were allowed to directly capture associated types from its enclosing protocol (rather than using generics, defaults and typealiases or whatnot):
+    Consider the `RandomAccessCollection.Concurrent` example from before, if it were allowed to directly capture associated types from its enclosing protocol (rather than a magic potion of generics, defaults and typealiases):
 
      ```swift
     // Note: Pretend there is something called 'Parent' which is a captured 'Self' of the parent protocol.
