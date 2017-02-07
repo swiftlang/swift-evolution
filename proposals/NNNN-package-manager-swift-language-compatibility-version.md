@@ -2,8 +2,8 @@
 
 * Proposal: [SE-NNNN](NNNN-package-manager-swift-language-compatibility-version.md)
 * Author: [Daniel Dunbar](https://github.com/ddunbar), [Rick Ballard](http://github.com/rballard)
-* Review manager: N/A
-* Status: **WIP**
+* Review manager: Anders Bertelrud
+* Status: Scheduled for review (February 7...February 13, 2017)
 
 ## Introduction
 
