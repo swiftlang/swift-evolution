@@ -128,11 +128,17 @@ string `// swift-tools-version:`, followed by a version number specifier.
 
 Though the Swift tools version refers to a Swift marketing version number and is
 not a proper semantic version, the version number specifier shall follow the
-syntax defined by [semantic versioning 2.0.0](http://semver.org/spec/v2.0.0.html).
-This syntax allows for an optional pre-release version component or build
-version component; those components will not be used by the package manager currently, but
-may be used in a future release to provide finer-grained compatibility controls during the
-development of a new version of Swift.
+syntax defined by [semantic versioning 2.0.0](http://semver.org/spec/v2.0.0.html),
+with an amendment that the patch version component shall be optional and shall
+be considered to be `0` if not specified. As we expect that patch versions will
+not affect tools compatibility, the package manager will automatically elide the
+patch version component when appropriate, including when setting a version using
+the `swift package tools-version --set-current` command, to avoid unnecessarily
+restricting package compatibility to specific patch versions. The semver syntax
+allows for an optional pre-release version component or build version component;
+those components will not be used by the package manager currently, but may be
+used in a future release to provide finer-grained compatibility controls during
+the development of a new version of Swift.
 
 After the version number specifier, an optional `;` character may be present;
 it, and anything else after it until the end of the first line, will be ignored by
