@@ -177,10 +177,15 @@ avoid undefined behavior and produce uniform semantics across architectures.
 
 * `BitwiseOperations` protocol was deprecated.
 
-  We believe there are no useful entities that support bitwise operations, but at
-  the same time are not binary integers.
+  We believe there are no useful entities that support bitwise operations, but
+  at the same time are not binary integers.
 
 * `minimumSignedRepresentationBitWidth` property was removed.
+
+* `word(at:)` methods was replaced by `var words: Words` where `Words` is a new
+  associated type.
+
+  This will help avoid quadratic complexity in algorithms iterating over all words, and also allow standard library to provide a default conformance to `Hashable`.
 
 * `trailingZeros` property was added to the `BinaryInteger` protocol.
 
@@ -324,23 +329,6 @@ public protocol Arithmetic : Equatable, ExpressibleByIntegerLiteral {
   ///     y *= 7
   ///     // y == 105
   static func *=(_ lhs: inout Self, rhs: Self)
-
-  /// Returns the quotient of dividing the first value by the second.
-  ///
-  /// For integer types, any remainder of the division is discarded.
-  ///
-  ///     let x = 21 / 5
-  ///     // x == 4
-  static func /(_ lhs: Self, _ rhs: Self) -> Self
-
-  /// Divides this value by the given value in place.
-  ///
-  /// For example:
-  ///
-  ///     var x = 15
-  ///     y /= 7
-  ///     // y == 2
-  static func /=(_ lhs: inout Self, rhs: Self)
 }
 
 extension Arithmetic {
@@ -414,6 +402,8 @@ type conforming to `BinaryInteger`, using different strategies:
 ```Swift
 public protocol BinaryInteger :
   Comparable, Hashable, Arithmetic, CustomStringConvertible, Strideable {
+
+  associatedtype Words : Collection // where Iterator.Element == UInt
 
   /// A Boolean value indicating whether this type is a signed integer type.
   ///
@@ -535,20 +525,9 @@ public protocol BinaryInteger :
   /// - Parameter source: An integer to convert to this type.
   init<T : BinaryInteger>(clamping source: T)
 
-  /// Returns the n-th word, counting from the least significant to most
-  /// significant, of this value's binary representation.
-  ///
-  /// The `word(at:)` method returns negative values in two's complement
-  /// representation, regardless of a type's underlying implementation. If `n`
-  /// is greater than the number of words in this value's current
-  /// representation, the result is `0` for positive numbers and `~0` for
-  /// negative numbers.
-  ///
-  /// - Parameter n: The word to return, counting from the least significant to
-  ///   most significant. `n` must be greater than or equal to zero.
-  /// - Returns: An word-sized, unsigned integer with the bit pattern of the
-  ///   n-th word of this value.
-  func word(at n: Int) -> UInt
+  /// The collection of words in two's complement representation of the value,
+  /// from the least significant to most.
+  var words: Words { get }
 
   /// The number of bits in the current binary representation of this value.
   ///
@@ -565,6 +544,24 @@ public protocol BinaryInteger :
   ///     // x == -8
   ///     // x.trailingZeros == 3
   var trailingZeros: Int { get }
+
+
+  /// Returns the quotient of dividing the first value by the second.
+  ///
+  /// For integer types, any remainder of the division is discarded.
+  ///
+  ///     let x = 21 / 5
+  ///     // x == 4
+  static func /(_ lhs: Self, _ rhs: Self) -> Self
+
+  /// Divides this value by the given value in place.
+  ///
+  /// For example:
+  ///
+  ///     var x = 15
+  ///     y /= 7
+  ///     // y == 2
+  static func /=(_ lhs: inout Self, rhs: Self)
 
   /// Returns the remainder of dividing the first value by the second.
   ///
