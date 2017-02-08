@@ -26,7 +26,7 @@ Swift's integer protocols don't currently provide a suitable basis for generic
 programming. See [this blog post](http://blog.krzyzanowskim.com/2015/03/01/swift_madness_of_generic_integer/)
 for an example of an attempt to implement a generic algorithm over integers.
 
-The way the `Arithmetic` protocol is defined, it does not generalize to floating
+The way the `Number` protocol is defined, it does not generalize to floating
 point numbers and also slows down compilation by requiring every concrete type
 to provide an implementation of arithmetic operators, thus polluting the
 overload set.
@@ -63,12 +63,12 @@ more easily extensible.
 
 ~~~~
                 +--------------+  +-------------+
-        +------>+  Arithmetic  |  | Comparable  |
+        +------>+    Number    |  | Comparable  |
         |       |   (+,-,*,/)  |  | (==,<,>,...)|
         |       +-------------++  +---+---------+
         |                     ^       ^
 +-------+------------+        |       |
-|  SignedArithmetic  |      +-+-------+-----------+
+|    SignedNumber    |      +-+-------+-----------+
 |     (unary -)      |      |    BinaryInteger    |
 +------+-------------+      |(words,%,bitwise,...)|
        ^                    ++---+-----+----------+
@@ -106,11 +106,11 @@ There are several benefits provided by this model over the old one:
 
 - It enables protocol sharing between integer and floating point types.
 
-  Note the exclusion of the `%` operation from `Arithmetic`. Its behavior for
+  Note the exclusion of the `%` operation from `Number`. Its behavior for
   floating point numbers is sufficiently different from the one for integers
   that using it in generic context would lead to confusion. The `FloatingPoint`
   protocol introduced by [SE-0067](0067-floating-point-protocols.md) should now
-  refine `SignedArithmetic`.
+  refine `SignedNumber`.
 
 - It makes future extensions possible.
 
@@ -180,6 +180,9 @@ avoid undefined behavior and produce uniform semantics across architectures.
   We believe there are no useful entities that support bitwise operations, but
   at the same time are not binary integers.
 
+* `Arithmetic` and `SignedArithmetic` protocols have been renamed to `Number`
+  and `SignedNumber`.
+
 * `minimumSignedRepresentationBitWidth` property was removed.
 
 * `word(at:)` methods was replaced by `var words: Words` where `Words` is a new
@@ -201,9 +204,9 @@ avoid undefined behavior and produce uniform semantics across architectures.
 
 ### Protocols
 
-#### `Arithmetic`
+#### `Number`
 
-The `Arithmetic` protocol declares binary arithmetic operators – such as `+`,
+The `Number` protocol declares binary arithmetic operators – such as `+`,
 `-`, and `*` — and their mutating counterparts.
 
 It provides a suitable basis for arithmetic on scalars such as integers and
@@ -226,7 +229,7 @@ as its argument.
 
 
 ```Swift
-public protocol Arithmetic : Equatable, ExpressibleByIntegerLiteral {
+public protocol Number : Equatable, ExpressibleByIntegerLiteral {
   /// Creates a new instance from the given integer, if it can be represented
   /// exactly.
   ///
@@ -331,19 +334,19 @@ public protocol Arithmetic : Equatable, ExpressibleByIntegerLiteral {
   static func *=(_ lhs: inout Self, rhs: Self)
 }
 
-extension Arithmetic {
+extension Number {
   public static prefix func + (x: Self) -> Self {
     return x
   }
 }
 ```
 
-#### `SignedArithmetic`
+#### `SignedNumber`
 
-The `SignedArithmetic` protocol is for numbers that can be negated.
+The `SignedNumber` protocol is for numbers that can be negated.
 
 ```Swift
-public protocol SignedArithmetic : Arithmetic {
+public protocol SignedNumber : Number {
   /// Returns the additive inverse of this value.
   ///
   ///     let x = 21
@@ -368,7 +371,7 @@ public protocol SignedArithmetic : Arithmetic {
   mutating func negate()
 }
 
-extension SignedArithmetic {
+extension SignedNumber {
   public static prefix func - (_ operand: Self) -> Self {
     var result = operand
     result.negate()
@@ -401,7 +404,7 @@ type conforming to `BinaryInteger`, using different strategies:
 
 ```Swift
 public protocol BinaryInteger :
-  Comparable, Hashable, Arithmetic, CustomStringConvertible, Strideable {
+  Comparable, Hashable, Number, CustomStringConvertible, Strideable {
 
   associatedtype Words : Collection // where Iterator.Element == UInt
 
@@ -799,7 +802,7 @@ The `FixedWidthInteger` protocol adds the notion of endianness as well as static
 properties for type bounds and bit width.
 
 The `WithOverflow` family of methods is used in default implementations of
-mutating arithmetic methods (see the `Arithmetic` protocol). Having these
+mutating arithmetic methods (see the `Number` protocol). Having these
 methods allows the library to provide both bounds-checked and masking
 implementations of arithmetic operations, without duplicating code.
 
@@ -1007,7 +1010,7 @@ public protocol FixedWidthInteger : BinaryInteger {
 public protocol UnsignedInteger : BinaryInteger {
   associatedtype Magnitude : BinaryInteger
 }
-public protocol SignedInteger : BinaryInteger, SignedArithmetic {
+public protocol SignedInteger : BinaryInteger, SignedNumber {
   associatedtype Magnitude : BinaryInteger
 }
 ```
