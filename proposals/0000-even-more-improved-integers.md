@@ -6,6 +6,7 @@
 * Status: **Awaiting review**
 * Bug: [SR-3196](https://bugs.swift.org/browse/SR-3196)
 * Previous Proposal: [SE-0104][se104]
+* Discussion on swift-evolution: [here](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170109/030191.html).
 
 ## Introduction
 
@@ -26,10 +27,10 @@ Swift's integer protocols don't currently provide a suitable basis for generic
 programming. See [this blog post](http://blog.krzyzanowskim.com/2015/03/01/swift_madness_of_generic_integer/)
 for an example of an attempt to implement a generic algorithm over integers.
 
-The way the `Number` protocol is defined, it does not generalize to floating
-point numbers and also slows down compilation by requiring every concrete type
-to provide an implementation of arithmetic operators, thus polluting the
-overload set.
+The way the `IntegerArithmetic` protocol is defined, it does not generalize to
+floating point numbers and also slows down compilation by requiring every
+concrete type to provide an implementation of arithmetic operators, thus
+polluting the overload set.
 
 Converting from one integer type to another is performed using the concept of
 the 'maximum width integer' (see `MaxInt`), which is an artificial limitation.
