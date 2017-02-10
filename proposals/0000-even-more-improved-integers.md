@@ -202,7 +202,7 @@ avoid undefined behavior and produce uniform semantics across architectures.
 
 * Standard library introduces the new type `DoubleWidth<T>`.
 
-  See [this section](#doublewidth) for more details.
+  See [this section](#doublewidth-t) for more details.
 
 ### Protocols
 
@@ -905,12 +905,12 @@ public protocol FixedWidthInteger : BinaryInteger {
   func divided(by other: Self, _: ReportingOverflow)
     -> (partialValue: Self, overflow: ArithmeticOverflow)
 
-  /// Returns a tuple containing the high and low parts of the result of
-  /// multiplying this value by an argument.
+  /// Returns a double-width value containing the high and low parts of the
+  /// result of multiplying this value by an argument.
   ///
   /// Use this method to calculate the full result of a product that would
   /// otherwise overflow. Unlike traditional truncating multiplication, the
-  /// `multiplied(by:_:FullWidth)` method returns both the `high` and `low`
+  /// `multiplied(by:_:FullWidth)` method returns both the high and low
   /// parts of the product of `self` and `other`. The following example uses
   /// this method to multiply two `UInt8` values that normally overflow when
   /// multiplied:
@@ -922,7 +922,7 @@ public protocol FixedWidthInteger : BinaryInteger {
   ///     // result.low  == 0b11010000
   ///
   /// The product of `x` and `y` is 2000, which is too large to represent in a
-  /// `UInt8` instance. The `high` and `low` components of the `result` tuple
+  /// `UInt8` instance. The `high` and `low` components of the `result`
   /// represent 2000 when concatenated to form a double-width integer; that
   /// is, using `result.high` as the high byte and `result.low` as the low byte
   /// of a `UInt16` instance.
@@ -931,13 +931,12 @@ public protocol FixedWidthInteger : BinaryInteger {
   ///     // z == 2000
   ///
   /// - Parameters:
-  ///   - lhs: A value to multiply.
   ///   - other: A value to multiplied `self` by.
   /// - Returns: A tuple containing the high and low parts of the result of
   ///   multiplying `self` and `other`.
   ///
   /// - SeeAlso: `multiplied(by:,_:ReportingOverflow)`
-  func multiplied(by other: Self, _: FullWidth) -> (high: Self, low: Magnitude)
+  func multiplied(by other: Self, _: FullWidth) -> DoubleWidth<Self>
 
   /// Returns a tuple containing the quotient and remainder of dividing the
   /// first argument by this value.
@@ -947,12 +946,12 @@ public protocol FixedWidthInteger : BinaryInteger {
   /// represent in the type, a runtime error may occur.
   ///
   /// - Parameters:
-  ///   - lhs: A tuple containing the high and low parts of a double-width
+  ///   - lhs: A value containing the high and low parts of a double-width
   ///     integer. The `high` component of the tuple carries the sign, if the
   ///     type is signed.
   /// - Returns: A tuple containing the quotient and remainder of `lhs` divided
   ///   by `self`.
-  func dividing(_ lhs: (high: Self, low: Magnitude), _: FullWidth)
+  func dividing(_ lhs: DoubleWidth<Self>, _: FullWidth)
     -> (quotient: Self, remainder: Self)
 
   /// The number of bits equal to 1 in this value's binary representation.
@@ -1018,7 +1017,7 @@ public protocol SignedInteger : BinaryInteger, SignedNumber {
 }
 ```
 
-### DoubleWidth<T>
+### DoubleWidth\<T\>
 
 The `DoubleWidth<T>` type allows to create wider fixed-width integer types from
 the ones available in the standard library.
@@ -1028,6 +1027,27 @@ A value of `DoubleWidth<Int64>` will double the range of the underlying type and
 implement all the `FixedWidthInteger` requirements. _Please note_ though that
 the implementation will not necessarily be the most efficient one, so it would
 not be a good idea to use `DoubleWidth<Int32>` instead of a built-in `Int64`.
+
+```swift
+public enum DoubleWidth<T : FixedWidthInteger> {
+  case .parts(high: T, low: T.Magnitude)
+
+  public var high: T { get }
+  public var low: T.Magnitude { get }
+}
+```
+
+Representing it as an `enum` instead of a simple struct allows to use it both
+as a single value, as well as in destructuring matches.
+
+```swift
+let high = doubleWidthValue.high
+let low = doubleWidthValue.low
+
+// or
+
+case let (high, low) = doubleWidthValue
+```
 
 
 ### Extra operators
