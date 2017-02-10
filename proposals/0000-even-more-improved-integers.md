@@ -202,7 +202,7 @@ avoid undefined behavior and produce uniform semantics across architectures.
 
 * Standard library introduces the new type `DoubleWidth<T>`.
 
-  See [this section](#doublewidth-t) for more details.
+  See [this section](#doublewidtht) for more details.
 
 ### Protocols
 
