@@ -240,7 +240,6 @@ section ul, section li {
     color: #888;
     font-weight: 200;
     display: inline-block;
-    vertical-align: top;
     padding-right: 6px;
 }
 
