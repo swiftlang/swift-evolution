@@ -448,7 +448,6 @@ section ul, section li {
     cursor: pointer;
 }
 
-/* TODO: was: 414 */
 @media (max-width: 1000px) {
     body {
         font-size: 16px;
