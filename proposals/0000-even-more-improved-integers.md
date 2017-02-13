@@ -192,9 +192,9 @@ avoid undefined behavior and produce uniform semantics across architectures.
 
   This will help avoid quadratic complexity in algorithms iterating over all words, and also allow standard library to provide a default conformance to `Hashable`.
 
-* `trailingZeros` property was added to the `BinaryInteger` protocol.
+* `trailingZeroBits` property was added to the `BinaryInteger` protocol.
 
-  `leadingZeros` and `popcount` properties are still defined by the
+  `leadingZeroBits` and `popcount` properties are still defined by the
   `FixedWidthInteger` protocol.
 
 * Endian-converting initializers and properties were added to the
@@ -547,8 +547,8 @@ public protocol BinaryInteger :
   ///
   ///     let x = Int8(bitPattern: 0b1111_1000)
   ///     // x == -8
-  ///     // x.trailingZeros == 3
-  var trailingZeros: Int { get }
+  ///     // x.trailingZeroBits == 3
+  var trailingZeroBits: Int { get }
 
 
   /// Returns the quotient of dividing the first value by the second.
@@ -971,9 +971,9 @@ public protocol FixedWidthInteger : BinaryInteger {
   ///
   ///     let x: Int8 = 0b0001_1111
   ///     // x == 31
-  ///     // x.leadingZeros == 3
-  /// - SeeAlso: `BinaryInteger.trailingZeros`
-  var leadingZeros: Int { get }
+  ///     // x.leadingZeroBits == 3
+  /// - SeeAlso: `BinaryInteger.trailingZeroBits`
+  var leadingZeroBits: Int { get }
 
   /// Creates an integer from its big-endian representation, changing the
   /// byte order if necessary.
