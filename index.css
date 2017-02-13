@@ -241,11 +241,13 @@ section ul, section li {
     font-weight: 200;
     display: inline-block;
     padding-right: 6px;
+    vertical-align: top;
 }
 
 .proposal-detail-value {
     display: inline-block;
     color: #333;
+    padding-top: 1.4px;
 }
 
 .proposal-title a:link,
