@@ -18,24 +18,21 @@
 body {
     font-family: "Helvetica Neue", Helvetica, Arial, Verdana, sans-serif;
     font-size: 18px;
+    -webkit-text-size-adjust: none;
     line-height: 1.5;
     color: #333;
-    font-weight: 300;
     margin: 0;
 }
 
 h1 {
     margin-left: 10px;
     font-size: 54px;
-    font-weight: 200;
-    line-height: 1
 }
 
 h4 {
     margin-bottom: 0em;
     font-size: 20px;
-    font-weight: 300;
-    line-height: 33px;
+    line-height: 1.2em;
 }
 
 a:link {
@@ -101,6 +98,7 @@ header {
 #title {
     display: inline-block;
     line-height: 48px;
+    font-weight: 200;
 }
 
 #title a:link { color: #333; }
@@ -194,7 +192,6 @@ section ul, section li {
 #proposals-count {
     line-height: 40px;
     font-size: 16px;
-    font-weight: 300;
     color: #333;
     padding: 4px 0px;
 }
@@ -207,24 +204,17 @@ section ul, section li {
     color: #888;
     font-weight: 300;
     font-size: 20px;
-    width: 105px;
-    min-width: 105px;
+    margin-right: 0.7em;
     vertical-align: top; /* align with the proposal title */
-    line-height: 33px;
+    line-height: 1.2em;
     display: inline-block;
 }
 
 .proposal {
-    color: #888;
-    font-size: 16px;
-    font-weight: 300;
+    font-size: 14px;
     display: flex;
     flex-direction: row;
     margin-bottom: 40px;
-}
-
-.proposal a {
-    font-weight: 300;
 }
 
 .proposal-list, .proposal {
@@ -232,7 +222,7 @@ section ul, section li {
 }
 
 .proposal-header {
-    margin-bottom: 10px;
+    margin-bottom: 6px;
 }
 
 .proposal-details {
@@ -247,6 +237,8 @@ section ul, section li {
 }
 
 .proposal-detail-label {
+    color: #888;
+    font-weight: 200;
     display: inline-block;
     vertical-align: top;
     padding-right: 6px;
@@ -254,8 +246,16 @@ section ul, section li {
 
 .proposal-detail-value {
     display: inline-block;
-    font-weight: 300;
-    color: #666;
+    color: #333;
+}
+
+.proposal-title a:link,
+.proposal-title a:visited,
+.proposal-title a:active,
+.proposal-detail-value a:link,
+.proposal-detail-value a:visited,
+.proposal-detail-value a:active {
+    color: #333;
 }
 
 .authors .proposal-detail-value {
@@ -279,13 +279,14 @@ section ul, section li {
 }
 
 .proposal-title {
+    font-weight: 400;
     margin-top: 0;
     display: inline-block;
     max-width: 650px;
 }
 
 .status-pill-container {
-    margin-top: 3px;
+    margin-top: -2px;
 }
 
 .status-pill {
@@ -294,7 +295,7 @@ section ul, section li {
     border-radius: 4px;
     padding: 0px;
     white-space: nowrap;
-    font-size: 17px;
+    font-size: 16px;
     font-weight: 200;
     line-height: 26px;
     text-align: center;
@@ -433,7 +434,6 @@ section ul, section li {
     padding: 0px 25px;
     position: relative;
     left: -20px;
-    font-family: "Helvetica Neue", Helvetica, Arial, Verdana, sans-serif;
 }
 
 ::-webkit-search-cancel-button {
@@ -465,7 +465,7 @@ section ul, section li {
     }
     
     .header-contents {
-        flex-basis: 310px;
+        flex-basis: auto;
     }
     
     .nav-contents {
@@ -521,21 +521,15 @@ section ul, section li {
     }
     
     h4 a {
-        font-size: 18px;
-        word-wrap: break-all;
         white-space: normal;
         display: inline-block;
         line-height: 24px;
-    }
-    
-    .proposal-id {
-        font-size: 20px;
-        display:inline-block;
+        -webkit-hyphens: auto;
+        -ms-hyphens: auto;
+        hyphens: auto;
     }
     
     .status-pill {
-        font-size: 14px;
-        font-weight: 300;
         width: inherit;
         max-width: inherit;
         min-width: inherit;
@@ -549,7 +543,6 @@ section ul, section li {
     
     .proposal {
         flex-direction: column;
-        font-size: 16px;
         max-width: 100%;
         padding: 0px 10px;
     }
@@ -560,17 +553,12 @@ section ul, section li {
     
     .proposal-detail-label, .proposal-detail-value {
         display: inline;
-        padding-right: 0px;
     }
 }
 
 @media (max-width: 768px) {
     h1 {
         font-size: 54px
-    }
-    
-    h4 {
-        font-size: 22px;
     }
 }
 
