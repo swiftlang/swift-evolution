@@ -748,11 +748,11 @@ function updateFilterDescription (selectedStateNames) {
 
   if (swiftVersionStates.length > 0 && swiftVersionStates.length <= FILTER_DESCRIPTION_LIMIT) {
     selectedStateNames = selectedStateNames.filter(function (state) { return !state.match(/swift|implemented/i) })
-      .concat(`Implemented (${swiftVersionStates.join(', ')})`)
+      .concat('Implemented (' + swiftVersionStates.join(', ') + ')')
   }
 
   if (selectedStateNames.length > FILTER_DESCRIPTION_LIMIT) {
-    container.innerText = `${stateCount} Filters`
+    container.innerText = stateCount + ' Filters'
   } else if (selectedStateNames.length === 0) {
     container.innerText = 'All Statuses'
   } else {
