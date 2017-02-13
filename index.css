@@ -16,7 +16,7 @@
 }
 
 body {
-    font-family: "Helvetica Neue", Helvetica, Arial, Verdana, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, Verdana, sans-serif;
     font-size: 18px;
     -webkit-text-size-adjust: none;
     line-height: 1.5;
