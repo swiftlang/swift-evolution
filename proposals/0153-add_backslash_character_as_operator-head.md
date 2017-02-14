@@ -27,7 +27,7 @@ The "problem" was identified while developing some code during linear algebra as
 I attempted to define the '\' operator as in MATLAB/Scilab/Octave (i.e. to solve 
 linear systems of equations: A\B means "solve the linear system A*X=B for X"). 
 
-Since the '\' character is not part of the swift grammar (expect within string 
+Since the '\' character is not part of the swift grammar (except within string 
 literals) it is not possible to define it as an operator. It seems however that 
 it would be meaningful to allow '\' as an operator itself as well as a character 
 that can be used in a longer operator name.
