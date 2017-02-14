@@ -91,9 +91,9 @@ One other advantage of the use of an attribute is the possibility of allowing va
 For example, the above examples could be implemented instead like so:
 ```
 func someFunc(_ values:@variadic MyArrayLiteralConvertible<Int>) { … } // Type conforming to ArrayLiteralConvertible
-func someFunc<I:IteratorProtocol where I.Element == Int) { … } // Implementation supports all single and multi-pass types
-func someFunc<S:Sequence where S.Iterator.Element == Int) { … } // Implementation supports all (probably) multi-pass types
-func someFunc<C:Collection where C.Iterator.Element == Int) { … } // Implementation supports all guaranteed multi-pass, indexable types with known size
+func someFunc<I:IteratorProtocol where I.Element == Int>(_ values:@variadic I) { … } // Implementation supports all single and multi-pass types
+func someFunc<S:Sequence where S.Iterator.Element == Int>(_ values:@variadic S) { … } // Implementation supports all (probably) multi-pass types
+func someFunc<C:Collection where C.Iterator.Element == Int>(_ values:@variadic C) { … } // Implementation supports all guaranteed multi-pass, indexable types with known size
 ```
 
 When a specific type is defined it must conform to `ArrayLiteralConvertible` to enable variadic calls, while generic conformances must be capable of being satisfied by an `Array` when called in variadic style. For example, the latter three examples would all receive an `[Int]` when called in variadic style, but can accept any suitable iterator, sequence or collection when called dynamically. In other words, when a function is called in variadic style it is always passed an `Array` unless its type is `ArrayLiteralConvertible`, so its supported type(s) must support this.
