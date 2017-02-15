@@ -435,6 +435,7 @@ section ul, section li {
     padding: 0px 25px;
     position: relative;
     left: -20px;
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, Verdana, sans-serif;
 }
 
 ::-webkit-search-cancel-button {
