@@ -3,7 +3,7 @@
 * Proposal: [SE-0146](0146-package-manager-product-definitions.md)
 * Author: [Anders Bertelrud](https://github.com/abertelrud)
 * Review manager: Daniel Dunbar
-* Status: **Accepted**
+* Status: **Implemented (Swift 4)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-November/000298.html)
 * Bug: [SR-3606](https://bugs.swift.org/browse/SR-3606)
 
