@@ -3,7 +3,7 @@
 * Proposal: [SE-0152](0152-package-manager-tools-version.md)
 * Author: [Rick Ballard](https://github.com/rballard)
 * Review Manager: Anders Bertelrud
-* Status: **Accepted**
+* Status: **Implemented (Swift 3.1)**
 
 ## Introduction
 
