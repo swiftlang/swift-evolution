@@ -3,7 +3,7 @@
 * Proposal: [SE-0151](0151-package-manager-swift-language-compatibility-version.md)
 * Author: [Daniel Dunbar](https://github.com/ddunbar), [Rick Ballard](http://github.com/rballard)
 * Review Manager: Anders Bertelrud
-* Status: **Accepted**
+* Status: **Implemented (Swift 3.1)**
 
 ## Introduction
 
