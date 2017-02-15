@@ -1,8 +1,9 @@
 # Package Manager Tools Version
+
 * Proposal: [SE-0152](0152-package-manager-tools-version.md)
 * Author: [Rick Ballard](https://github.com/rballard)
 * Review Manager: Anders Bertelrud
-* Status: **Active review (February 7...February 13, 2017)**
+* Status: **Accepted**
 
 ## Introduction
 
