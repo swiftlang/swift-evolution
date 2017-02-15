@@ -1,4 +1,4 @@
-# Feature name
+# Add '\' (backslash character) as operator-head in the grammar
 
 * Proposal: [SE-0153](0153-add_backslash_character_as_operator-head.md)
 * Author: [Nicolas Fezans](https://github.com/nicoFe)
