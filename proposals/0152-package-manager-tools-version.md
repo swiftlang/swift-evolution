@@ -5,6 +5,8 @@
 * Review Manager: Anders Bertelrud
 * Status: **Implemented (Swift 3.1)**
 
+* Bugs: [SR-3965](https://bugs.swift.org/browse/SR-3965)
+
 ## Introduction
 
 This proposal introduces a "Swift tools version" which is declared for each Swift package.

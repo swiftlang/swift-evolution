@@ -5,6 +5,8 @@
 * Review Manager: Anders Bertelrud
 * Status: **Implemented (Swift 3.1)**
 
+* Bugs: [SR-3964](https://bugs.swift.org/browse/SR-3964)
+
 ## Introduction
 
 This proposal adds support for the Swift compiler's new "language compatibility
