@@ -277,14 +277,7 @@ function renderBody () {
             html('span', { className: 'proposal-id' }, [
               proposal.id
             ]),
-            html('h4', { className: 'proposal-title' }, [
-              html('a', {
-                href: REPO_PROPOSALS_BASE_URL + '/' + proposal.link,
-                target: '_blank'
-              }, [
-                proposal.title
-              ])
-            ])
+            renderTitle(proposal)
           ])
         ])
       ])
@@ -314,6 +307,26 @@ function renderBody () {
   updateProposalsCount(article.querySelectorAll('.proposal').length)
 
   return article
+}
+
+function renderTitle (proposal) {
+  var titleNodes = []
+  var re = /\b(?:\w*(?:[A-Z]+[\w.(:)]+){2,}|(?:\w*[.(:)]+)+)(?=\s|$)/g
+  var lastIndex = 0
+  var match
+  while ((match = re.exec(proposal.title))) {
+    titleNodes.push(proposal.title.substring(lastIndex, match.index))
+    titleNodes.push(html('code', {}, match[0]))
+    lastIndex = re.lastIndex
+  }
+  titleNodes.push(proposal.title.substring(lastIndex))
+
+  return html('h4', { className: 'proposal-title' }, [
+    html('a', {
+      href: REPO_PROPOSALS_BASE_URL + '/' + proposal.link,
+      target: '_blank'
+    }, titleNodes)
+  ])
 }
 
 /** Authors have a `name` and optional `link`. */

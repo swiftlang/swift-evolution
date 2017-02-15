@@ -59,6 +59,19 @@ ul {
     padding: 0;
 }
 
+code {
+    font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+    font-size: 90%;
+    padding: 0.1em 0.3em;
+    color: #666;
+    background-color: #f7f7f7;
+    border-radius: 3px;
+    word-break: break-all;
+    -webkit-hyphens: auto;
+    -ms-hyphens: auto;
+    hyphens: auto;
+}
+
 main {
     display: flex;
     width: 95%;
