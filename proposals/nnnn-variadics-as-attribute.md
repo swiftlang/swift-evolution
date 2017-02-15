@@ -13,7 +13,7 @@ Swift-evolution thread: [Discussion thread topic](http://thread.gmane.org/gmane.
 
 ## Motivation
 
-Variadics are essentially a call-site feature enabling a function to be called as if it being provided with multiple arguments, rather than a single list argument. However instead of being implemented as some kind of switch, variadics have a unique declaration syntax that separates them uncessarily from standard function declarations.
+Variadics are essentially a call-site feature enabling a function to be called as if it is being provided with multiple arguments, rather than a single list argument. However instead of being implemented as some kind of switch, variadics have a unique declaration syntax that separates them uncessarily from standard function declarations.
 Currently this also means that redundancy is required in order to allow a function to be called both with an explicit array, and in the variadic style.
 
 ## Proposed solution
@@ -70,7 +70,7 @@ someFunc(@variadic [1])     // Unambiguously a variadic call of [[1]]
 someFunc(@nonVariadic [1])  // Unambiguously an array call of [1]
 someFunc(@variadic foo)     // Unambiguously a variadic call of [foo]
 ```
-In the variadic case it would also be possible to use a trailing comma for disambiguation like so:
+In the variadic case it could also be possible to use a trailing comma for disambiguation like so:
 ```
 someFunc([1],)  // Unambiguously a varaidic call of [[1]]
 someFunc(foo,)  // Unambiguously a variadic call of [foo]
