@@ -107,6 +107,38 @@ typealias TA8 = TA4 & TA5
 
 This proposal merges the concepts of `class` and `AnyObject`, which now have the same meaning: they represent an existential for classes. To get rid of the duplication, we suggest only keeping `AnyObject` around. To reduce source-breakage to a minimum, `class` could be redefined as `typealias class = AnyObject` and give a deprecation warning on `class` for the first version of Swift this proposal is implemented in. Later, `class` could be removed in a subsequent version of Swift.
 
+## Inheritance clauses and `typealias`
+
+To improve readability and reduce confusion, a class conforming to a typealias which contains a class type constraint does not implicitly inherit the class type: inheritance should stay explicit. Here are a few examples to remind what the current rules are and to make the previous sentence clearer:
+
+The proposal does not change the rule which forbids using the protocol composition syntax in the inheritance clause:
+
+```swift
+protocol P1 {}
+protocol P2 {}
+class C {}
+
+class D : P1 & P2 {} // Compiler error
+class E : C & P1 {} // Compiler error
+```
+
+Class `D` in the previous example does not inherit a base class so it can be expressed using the inheritance/conformance syntax or through a typealias:
+
+```swift
+class D : P1, P2 {} // Valid
+typealias P12 = P1 & P2
+class D : P12 {} // Valid
+```
+
+Class `E` above inherits a base class. The inheritance must be explicitly declared in the inheritance clause and can't be implicitly derived from a typealias:
+
+```
+class E : C, P1 {} // Valid
+typealias CP1 = C & P1
+class E : CP1 {} // Compiler error: class 'E' does not inherit from class 'C'
+class E : C, CP1 {} // Valid: the inheritance is explicitly declared
+```
+
 ## Source compatibility
 
 This change will not break Swift 3 compability mode because Objective-C types will continue to be imported as before. But in Swift 4 mode, all types bridged from Objective-C which use the equivalent Objective-C existential syntax could break code which does not meet the new protocol requirements. For example, the following Objective-C code:
