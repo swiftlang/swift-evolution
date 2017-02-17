@@ -1,5 +1,5 @@
 # Swift Programming Language Evolution
-[![Swift](https://img.shields.io/badge/Swift%204%20stage%201-Open%20to%20requests-brightgreen.svg)](#swift_stage)
+[![Swift](https://img.shields.io/badge/Swift%204%20stage%202-Open%20to%20requests-brightgreen.svg)](#swift_stage)
 
 
 **Before you initiate a pull request**, please read the process document. Ideas should be thoroughly discussed on the [swift-evolution mailing list](https://swift.org/community/#swift-evolution) first.
