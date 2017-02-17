@@ -86,13 +86,14 @@ subscript(index: Int) -> Int { index * 2 }
 **Possible real world example:**
 
 ```swift
-// Today:
+// Today
 public struct Character {
 	
-	private let _pointer: UnsafePointer<Swift.Character>
 	public let source: Module.Source
+	private let _pointer: UnsafePointer<Swift.Character>
+	
 	public var value: Swift.Character {
-		return self._pointer.memory
+		return self._pointer.pointee
 	}
 	...
 }
@@ -100,7 +101,7 @@ public struct Character {
 // Rewritten:
 public struct Character {
 	...
-	public var value: Swift.Character { self._pointer.memory }
+	public var value: Swift.Character { self._pointer.pointee }
 	...
 }
 ```
@@ -113,11 +114,3 @@ None, this change will only relax some existing rules.
 ## Alternatives considered
 
 Leave this as is and live with such inconsistency.
-
--------------------------------------------------------------------------------
-
-# Rationale
-
-On [Date], the core team decided to **(TBD)** this proposal.
-When the core team makes a decision regarding this proposal,
-their rationale for the decision will be written here.
