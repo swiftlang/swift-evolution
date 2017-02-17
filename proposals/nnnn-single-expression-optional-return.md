@@ -9,7 +9,9 @@
 
 Any single-expression closure can omit the `return` statement. This proposal aims to make this feature more consistent in some other corners of the language.
 
-Original swift-evolution thread: [\[Pitch\] Make `return` optional in computed properties for a single case](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160523/019260.html)
+Original swift-evolution thread: 
+* [\[Pitch\] \[Stage-2\] `return` consistency for single-expressions]()
+* [\[Pitch\] (Bofore Swift 3) Make `return` optional in computed properties for a single case](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160523/019260.html)
 
 ## Motivation
 
