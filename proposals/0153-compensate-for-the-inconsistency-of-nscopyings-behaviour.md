@@ -1,6 +1,6 @@
 # Compensate for the inconsistency of `@NSCopying`'s behaviour
 
-* Proposal: SE-0153
+* Proposal: [SE-0153](0153-compensate-for-the-inconsistency-of-nscopyings-behaviour.md)
 * Authors: [Torin Kwok](https://github.com/TorinKwok)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Active review (February 17...22, 2017)**
