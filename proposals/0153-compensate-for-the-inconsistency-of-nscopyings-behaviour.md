@@ -1,9 +1,9 @@
 # Compensate for the inconsistency of `@NSCopying`'s behaviour
 
-* Proposal: SE-NNNN
+* Proposal: SE-0153
 * Authors: [Torin Kwok](https://github.com/TorinKwok)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Active review (February 17...22, 2017)**
 
 <!--*During the review process, add the following fields as needed:*
 
