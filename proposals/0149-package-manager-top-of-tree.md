@@ -4,8 +4,8 @@
 * Author: [Boris Bügling](https://github.com/neonichu)
 * Review Manager: [Daniel Dunbar](https://github.com/ddunbar)
 * Status: **Accepted**
-
-* Bugs: [SR-3709](https://bugs.swift.org/browse/SR-3709)
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170130/031427.html)
+* Bug: [SR-3709](https://bugs.swift.org/browse/SR-3709)
 
 ## Introduction
 
