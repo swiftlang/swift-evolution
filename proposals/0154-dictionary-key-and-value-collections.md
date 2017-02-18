@@ -1,9 +1,9 @@
 # Provide Custom Collections for Dictionary Keys and Values
 
-- Proposal: [SE-0000](0000-dictionary-keys-and-values.md)
+- Proposal: [SE-0154](0154-dictionary-keys-and-values.md)
 - Author: [Nate Cook](https://github.com/natecook1000)
-- Review Manager: TBD
-- Status: **Awaiting review**
+- Review Manager: [Doug Gregor](https://github.com/DougGregor)
+- Status: **Active review (February 17...22, 2017)**
 
 ## Introduction
 
