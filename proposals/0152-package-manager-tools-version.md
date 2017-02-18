@@ -2,10 +2,10 @@
 
 * Proposal: [SE-0152](0152-package-manager-tools-version.md)
 * Author: [Rick Ballard](https://github.com/rballard)
-* Review Manager: Anders Bertelrud
+* Review Manager: [Anders Bertelrud](https://github.com/abertelrud)
 * Status: **Implemented (Swift 3.1)**
-
-* Bugs: [SR-3965](https://bugs.swift.org/browse/SR-3965)
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170213/032023.html)
+* Bug: [SR-3965](https://bugs.swift.org/browse/SR-3965)
 
 ## Introduction
 
