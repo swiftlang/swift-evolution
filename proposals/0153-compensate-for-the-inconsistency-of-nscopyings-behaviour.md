@@ -66,7 +66,7 @@ class Person: NSObject, NSCopying {
 
 ``` swift
 let johnAppleseed = Person( firstName: "John", lastName: "Appleseed", job: "CEO" )
-var refJohnAppleseed = johnAppleseed // assigning wihtout copying semantic
+var refJohnAppleseed = johnAppleseed // assigning without copying semantic
 
 refJohnAppleseed.job = "Engineer"
 
@@ -123,7 +123,7 @@ class Department: NSObject {
   }
 ```
 
-`Department`'s disignated initializer receives an external instance of `Person` and expects to assign its deeply-copied value to `self.employee` property.
+`Department`'s designated initializer receives an external instance of `Person` and expects to assign its deeply-copied value to `self.employee` property.
 
 ``` swift
 let isaacNewton = Person( firstName: "Isaac", lastName: "Newton", job: "Mathematician" )
