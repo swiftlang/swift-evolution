@@ -1,11 +1,11 @@
 # Package Manager Swift Language Compatibility Version
 
 * Proposal: [SE-0151](0151-package-manager-swift-language-compatibility-version.md)
-* Author: [Daniel Dunbar](https://github.com/ddunbar), [Rick Ballard](http://github.com/rballard)
-* Review Manager: Anders Bertelrud
+* Authors: [Daniel Dunbar](https://github.com/ddunbar), [Rick Ballard](http://github.com/rballard)
+* Review Manager: [Anders Bertelrud](https://github.com/abertelrud)
 * Status: **Implemented (Swift 3.1)**
-
-* Bugs: [SR-3964](https://bugs.swift.org/browse/SR-3964)
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170213/032021.html)
+* Bug: [SR-3964](https://bugs.swift.org/browse/SR-3964)
 
 ## Introduction
 
