@@ -1,9 +1,9 @@
 # Normalize Enum Case Representation
 
-* Proposal: [SE-NNNN][]
+* Proposal: [SE-0155][]
 * Authors: [Daniel Duan][], [Joe Groff][]
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [John McCall][]
+* Status: **Active review (February 17...26, 2017)**
 
 ## Introduction
 
@@ -29,6 +29,7 @@ await.**
     After [SE-0111][] Swift function's fully qualified name consists of its
     base-name and all argument labels. As an illustration, one can invoke
     a function with its full name:
+
 
     ```swift
     func f(x: Int, y: Int) {}
@@ -240,6 +241,7 @@ the case's declaration.
 [SE-0111]: https://github.com/apple/swift-evolution/blob/master/proposals/0111-remove-arg-label-type-significance.md
 [Daniel Duan]: https://github.com/dduan
 [Joe Groff]: https://github.com/jckarter
-[SE-NNNN]: NNNN-Normalize-Enum-Case-Representation.md
+[SE-0155]: 0155-normalize-enum-case-representation.md
 [TJs comment]: https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170116/030614.html
 [SE Thread]: https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170116/030477.html
+[John McCall]: https://github.com/rjmccall
