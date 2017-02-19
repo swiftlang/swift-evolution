@@ -60,6 +60,8 @@ We abolish `.Type` and `.Protocol` in favor of two generic-style syntaxes:
   
     * `Type<(Any) -> Void>` is a subtype of `AnyType<(Int) -> Void>` etc.
     * `Type<(Void) -> Int>` is a subtype of `AnyType<(Void) -> Any>`
+    
+* Both `Type<T>` and `AnyType<T>` will be declared in the Swift standard library even if part of the implementation might be compiler magic. That move is really important to allow developers to created custom *nested* types named as `Type`. `ModuleName.TypeName.Type` is ambigious today, but will become possible after this proposal. That means `Type<T>` and `AnyType<T>` will be shortcuts for `Swift.Type<T>` and `Swift.AnyType<T>`.
 
 In this new notation, some of our existing standard library functions would have signatures like:
 
