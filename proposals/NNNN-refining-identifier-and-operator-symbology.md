@@ -385,7 +385,7 @@ Dart](http://news.dartlang.org/2012/02/method-cascades-in-dart-posted-by-gilad.h
     operator-head → † | ‡ | • | ‰ | ‱ | ※ | ‽ | ⁂ | ⁅ | ⁆ | ⁊ | ⁋ | ⁌ | ⁍ | ⁎ | ⁑
     operator-head → operator-dot operator-dots
     operator-character → operator-head
-    operator-characters → operator-character operator-character[opt]
+    operator-characters → operator-character operator-characters[opt]
 
     operator-dot → .
     operator-dots → operator-dot operator-dots[opt]
