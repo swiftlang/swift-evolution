@@ -9,6 +9,8 @@
 
 This proposal brings more expressive power to the type system by allowing Swift to represent existentials of classes and subtypes which conform to protocols.
 
+[Mailing list discussion](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170123/031066.html)
+
 ## Motivation
 
 Currently, the only existentials which can be represented in Swift are conformances to a set of protocols, using the `&` protocol composition syntax:
