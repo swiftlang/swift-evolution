@@ -9,6 +9,11 @@
 
 This proposal allows bypassing the type inference engine and explicitly specializing type arguments of generic functions. 
 
+Previous discussions:
+
+* [[swift-evolution] [Pitch] Allow explicit specialization of generic	functions](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160523/018960.html)
+* [[swift-evolution] Proposal: Allow explicit type parameter specification in generic function call](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20161121/028971.html)
+
 ## Motivation
 
 In Swift, generic type parameters are inferred by the argument or return value types as follows:
