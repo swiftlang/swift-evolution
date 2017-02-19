@@ -185,10 +185,6 @@ Speaking of Swift, however, there is no stuff like `->` operator to access ivar 
 
 ## Proposed solution
 
-### Compiler magic
-
-Do the compiler magic to call `copy( with: )` in the initializer so that `@NSCopying` attribute no longer subjects to the fact that setter methods would not be invoked in initializers. **Copying should always take place after a property has been declared as `@NSCopying`**. It seems like the most direct way to maintain the `@NSCopying` contract without changing the underlying direct-storage model.
-
 ### Compile-time checking
 
 Have compiler emit a **compile-time error or warning** if developers are performing an assignment operation from within an initializer between a property declared as `@NSCopying` and an instance of a `<NSCopying>` protocol conforming class. Also, speaking of GUI integrated development environments such as Xcode, leaving this kind of error or warning **FIXABLE** would be needed in order to make them can be quickly fixed by both IDEs and migrator tools through simply appending `.copy() as! AutoInferredClassType`.
@@ -224,4 +220,8 @@ The proposal doesn't change the ABI of existing language features.
 
 ## Alternatives Considered
 
-There is no alternatives considered at this time.
+### Compiler magic
+
+Do the compiler magic to call `copy( with: )` in the initializer so that `@NSCopying` attribute no longer subjects to the fact that setter methods would not be invoked in initializers. **Copying should always take place after a property has been declared as `@NSCopying`**. It seems like the most direct way to maintain the `@NSCopying` contract without changing the underlying direct-storage model.
+
+The compiler magic is able to fix the problem but a developer who is new to Swift would continue to be confused if `@NSCopying` had magic but `didSet` and other behaviors did not.
