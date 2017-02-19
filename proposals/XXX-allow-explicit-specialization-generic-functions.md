@@ -49,7 +49,7 @@ let b3 = bar<Int>() // explicitly specialized to () -> Int
 An ambiguous scenario arrises when we wish to specialize initializer functions:
 
 ```swift
-struct Foo<T: RawRepresentable where T.RawValue == String> {
+struct Foo<T: RawRepresentable> where T.RawValue == String {
     let storage: T
     
     init<U: CustomStringConvertible>(_ value: U) {
@@ -75,6 +75,8 @@ let a = Foo<Bar>.init<Bar>(Bar.foobar)
 ```
 
 ## Detailed Design
+
+The proposal modifies the grammar to allow function call and initizations to have all of their generic types explicitly specified inside angle brackets.
 
 Function calls are fairly straight forward and have their grammar modified as follows:
 
