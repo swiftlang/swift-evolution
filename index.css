@@ -234,6 +234,7 @@ section ul, section li {
 
 .proposal-detail {
     break-inside: avoid;
+    display: flex;
 }
 
 .proposal-detail-label {
@@ -241,13 +242,11 @@ section ul, section li {
     font-weight: 200;
     display: inline-block;
     padding-right: 6px;
-    vertical-align: top;
 }
 
 .proposal-detail-value {
     display: inline-block;
     color: #333;
-    padding-top: 1.4px;
 }
 
 .proposal-title a:link,
@@ -550,6 +549,10 @@ section ul, section li {
     
     .proposal-header {
         flex-direction: column;
+    }
+    
+    .proposal-detail {
+        display: block;
     }
     
     .proposal-detail-label, .proposal-detail-value {
