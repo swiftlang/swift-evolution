@@ -242,6 +242,7 @@ When an enum or struct is marked with @objcstring, the objective-c class that is
 }
 
 @end
+```
 
 ## Objective-c name
 
@@ -258,6 +259,7 @@ enum Planet { ... }
 ```
 
 The programmer should still be able to add their own name by specifying it as an argument.
+
 ```
 // Swift
 @objcstring(CustomPlanet)
