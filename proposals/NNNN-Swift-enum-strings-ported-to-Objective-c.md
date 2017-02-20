@@ -231,14 +231,14 @@ When an enum or struct is marked with @objcstring, the objective-c class that is
 @implementation Food
 
 - (NSUInteger)hash {
-return [[self rawValue] hash];
+  return [[self rawValue] hash];
 }
 
 - (BOOL)isEqual:(id)object {
-if (self == object) { return YES }
-if (![object isKindOfClass:[Food class]]) { return NO; }
+  if (self == object) { return YES }
+  if (![object isKindOfClass:[Food class]]) { return NO; }
 
-return [self.rawValue isEqualToString:((Food *)object).rawValue];
+  return [self.rawValue isEqualToString:((Food *)object).rawValue];
 }
 
 @end
