@@ -102,16 +102,7 @@ protocols in an incorrect manner, might cease to be accepted by the compiler aft
 
 ## Detailed design
 
-The following standard library types and protocols will be removed:
-
-* `_BidirectionalIndexable`
-* `_Indexable`
-* `_IndexableBase`
-* `_MutableIndexable`
-* `_RandomAccessIndexable`
-* `_RangeReplaceableIndexable`
-
-The following standard library protocols and types will change.
+The following standard library protocols and types will change in order to support recursive protocol constraints.
 
 Note that since the specific collection types conform to `Collection`, and `Collection` refines `Sequence`, not all the
 constraints need to be defined on every collection-related associated type.
@@ -120,10 +111,6 @@ Default values of all changed associated types remain the same, unless explicitl
 
 All "Change associated type" entries reflect the complete, final state of the associated type definition, including
 removal of underscored protocols and addition of any new constraints.
-
-### `Any*Collection` (all variants)
-
-* Remove all `C.Subsequence` and `C.Indices` constraints from public `init`
 
 ### `Arithmetic`
 
@@ -138,8 +125,8 @@ removal of underscored protocols and addition of any new constraints.
 ### `Collection`
 
 * Remove conformance to `_Indexable`
-* Change associated type: `associatedtype SubSequence : Collection where SubSequence.Index == Index, SubSequence.Indices == Indices`
-* Change associated type: `associatedtype Indices : Collection where Indices.Iterator.Element == Index, Indices.Index == Index, Indices.SubSequence == Indices`
+* Change associated type: `associatedtype SubSequence : Collection where SubSequence.Index == Index`
+* Change associated type: `associatedtype Indices : Collection where Indices.Iterator.Element == Index, Indices.Index == Index`
 
 ### `Default*Indices` (all variants)
 
@@ -156,11 +143,6 @@ removal of underscored protocols and addition of any new constraints.
 ### `LazyMap*Collection` (all variants)
 
 * Add default associated type conformance: `typealias SubSequence = ${Self}<Base.SubSequence>`
-
-### `Mirror`
-
-* Remove all `C.Subsequence` and `C.Indices` constraints from `init<Subject, C : Collection>(_ subject: Subject, children: C, displayStyle: DisplayStyle?, ancestorRepresentation: AncestorRepresentation)`
-* Remove all `C.Subsequence` and `C.Indices` constraints from `init<Subject, C : Collection>(_ subject: Subject, unlabeledChildren: C, displayStyle: DisplayStyle?, ancestorRepresentation: AncestorRepresentation)`
 
 ### `MutableCollection`
 
