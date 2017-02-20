@@ -226,7 +226,7 @@ all associated values to a labeled tuple. As T.J. Usiyan
 simplified due to tuple's conformance to `Equatable`. This feature may still be
 introduced with alternative syntax (perhaps related to splats) later without
 source-breakage.  And the need to implement `Equatable` may also disappear with
-auto-devriving for `Equitable` conformance.
+auto-deriving for `Equatable` conformance.
 
 A syntax that did stay for source compatibility is allowing `()` in patterns
 that match enum cases without associated values:
