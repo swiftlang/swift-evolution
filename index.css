@@ -1,0 +1,615 @@
+/*===--- index.css - Swift Evolution --------------------------------------===//
+//
+// This source file is part of the Swift.org open source project
+//
+// Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+*/
+
+*:focus {
+    outline: none;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, Verdana, sans-serif;
+    font-size: 18px;
+    -webkit-text-size-adjust: none;
+    line-height: 1.5;
+    color: #333;
+    margin: 0;
+}
+
+h1 {
+    margin-left: 10px;
+    font-size: 54px;
+}
+
+h4 {
+    margin-bottom: 0em;
+    font-size: 20px;
+    line-height: 1.2em;
+}
+
+a:link {
+    color: #666;
+    text-decoration: none;
+}
+
+a:visited {
+    color: #666;
+}
+
+a:active {
+    color: #666;
+}
+
+a:hover {
+    color: #666;
+    text-decoration: underline;
+}
+
+ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+main {
+    display: flex;
+    width: 95%;
+    flex: 1;
+    justify-content: center;
+}
+
+header {
+    display: flex;
+    flex-wrap: wrap;
+    padding-top: 20px;
+    min-width: 100vw;
+    height: 140px;
+    flex-direction: row;
+    text-align: left;
+    align-items: center;
+    justify-content: center;
+    background: rgba(248, 248, 248, 0.7);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgb(230, 230, 230);
+    padding-top: 0px;
+}
+
+.header-contents {
+    flex-basis: 960px;
+}
+
+#logo {
+    display: inline-block;
+    width: 60px;
+    height: 60px;
+    margin-bottom: -2px;
+    background-image: url("https://data.swift.org/swift-evolution/swift.svg");
+}
+
+#title {
+    display: inline-block;
+    line-height: 48px;
+    font-weight: 200;
+}
+
+#title a:link { color: #333; }
+#title a:active { color: #333; }
+#title a:visited { color: #333; }
+#title a:hover { text-decoration: none; }
+
+.app {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+}
+
+nav {
+    top: 0px;
+    background: rgb(248, 248, 248);
+    
+    border-bottom: 1px solid rgb(230, 230, 230);
+    min-width: 100vw;
+}
+
+@supports ((position: sticky) or (position: -webkit-sticky)) {
+    nav {
+        position: -webkit-sticky;
+        position: sticky;
+    }
+}
+
+@supports (-webkit-backdrop-filter: blur(10px)) {
+    nav {
+        background: rgba(248, 248, 248, 0.7);
+        -webkit-backdrop-filter: blur(10px);
+    }
+}
+
+.nav-contents {
+    width: 960px;
+    margin: 0 auto;
+    margin-top: 8px;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    min-height: 40px;
+}
+
+footer {
+    background: #333;
+    color: #ccc;
+    font-size: 12px;
+    min-width: 100vw;
+    justify-content: center;
+    display: flex;
+    flex-direction: row;
+}
+
+footer a:link, footer a:active, footer a:visited, footer a:hover {
+    color: #ccc;
+}
+
+.footer-contents {
+    flex-basis: 960px;
+}
+
+footer p {
+    margin: 1em 0em;
+}
+
+article {
+    flex-basis: 960px;
+}
+
+
+section {
+    margin-bottom: 1.5em;
+}
+
+section ul, section li {
+    display: inline;
+}
+
+.section-title {
+    margin-top: 14px;
+}
+
+.hidden {
+    display: none !important;
+}
+
+#proposals-count {
+    line-height: 40px;
+    font-size: 16px;
+    color: #333;
+    padding: 4px 0px;
+}
+
+/*
+    Individual proposals
+*/
+
+.proposal-id {
+    color: #888;
+    font-weight: 300;
+    font-size: 20px;
+    margin-right: 0.7em;
+    vertical-align: top; /* align with the proposal title */
+    line-height: 1.2em;
+    display: inline-block;
+}
+
+.proposal {
+    font-size: 14px;
+    display: flex;
+    flex-direction: row;
+    margin-bottom: 40px;
+}
+
+.proposal-list, .proposal {
+    max-width: none;
+}
+
+.proposal-header {
+    margin-bottom: 6px;
+}
+
+.proposal-details {
+    -moz-column-count: 2;
+    column-count: 2;
+    -moz-column-width: 373px;
+    column-width: 373px;
+}
+
+.proposal-detail {
+    break-inside: avoid;
+    display: flex;
+}
+
+.proposal-detail-label {
+    color: #888;
+    font-weight: 200;
+    display: inline-block;
+    padding-right: 6px;
+}
+
+.proposal-detail-value {
+    display: inline-block;
+    color: #333;
+}
+
+.proposal-title a:link,
+.proposal-title a:visited,
+.proposal-title a:active,
+.proposal-detail-value a:link,
+.proposal-detail-value a:visited,
+.proposal-detail-value a:active {
+    color: #333;
+}
+
+.authors .proposal-detail-value {
+    width: 280px;
+}
+
+.authors a {
+    white-space: nowrap;
+}
+
+.review-manager .proposal-detail-value {
+    width: 223px;
+}
+
+.bug-list {
+    width: 310px;
+}
+
+.bug-list a {
+    word-wrap: break-word;
+}
+
+.proposal-title {
+    font-weight: 400;
+    margin-top: 0;
+    display: inline-block;
+    max-width: 650px;
+}
+
+.status-pill-container {
+    margin-top: -2px;
+}
+
+.status-pill {
+    display: inline-block;
+    border: 1px solid black;
+    border-radius: 4px;
+    padding: 0px;
+    white-space: nowrap;
+    font-size: 16px;
+    font-weight: 200;
+    line-height: 26px;
+    text-align: center;
+    width: 152px;
+    min-width: 152px;
+    max-width: 152px;
+    margin-right: 20px;
+}
+
+/*
+    Filtering
+*/
+
+.filter-by-status {
+    padding-bottom: 0.75em;
+    padding-top: 7px;
+    max-width: 800px;
+}
+
+.filter-by-status li {
+    margin-right: 6px;
+    margin-bottom: 6px;
+}
+
+.filter-by-status label {
+    border: 1px solid #888;
+    border-radius: 4px;
+    padding: 3px 16px;
+    font-size: 16px;
+    margin: 0 0px;
+    height: 28px;
+    cursor: pointer;
+}
+
+.filter-by-status, .filter-by-status li {
+    display: inline-block;
+    -webkit-user-select: none;
+}
+
+.filter-by-status input[type=checkbox] {
+    display: none;
+}
+
+.filter-by-status input[type=checkbox] + label {
+    color: #888;
+}
+
+.filter-by-status input[type=checkbox]:checked + label {
+    background: #888;
+    color: white;
+}
+
+.filter-toggle a {
+    color: #0088cc;
+    font-weight: 400;
+    cursor: pointer;
+}
+
+.filter-toggle-contents {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    line-height: 20px;
+    height: 30px;
+}
+
+.filter-button {
+    cursor: pointer;
+    line-height: 40px;
+    order: 3;
+    
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+}
+
+.filter-description {
+    font-size: 14px;
+    color: #888;
+    max-height: 70%;
+    margin-right: 10px;
+}
+
+.toggle-filter-panel {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+}
+
+.active .icon-line {
+    stroke: white;
+}
+
+.active .icon-circle {
+    fill: #888;
+}
+
+.expandable {
+    display: none;
+    max-height: 0px;
+    overflow: hidden;
+}
+
+.expandable.expanded {
+    display: block;
+    flex-basis: 100%;
+    overflow: hidden;
+    max-height: 100vh;
+    order: 4;
+}
+
+#filter-options-label, #version-options-label {
+    font-size: 14px;
+    font-weight: 300;
+    margin: 10px 0 0 0;
+}
+
+#search-icon {
+    position: relative;
+    top: 4px;
+    left: 8px;
+    z-index: 1;
+}
+
+#search-container {
+    flex-grow: 100;
+}
+
+.filter {
+    -webkit-appearance: textfield;
+    font-size: 14px;
+    height: 28px;
+    max-height: 28px;
+    width: 200px;
+    padding: 0px 25px;
+    position: relative;
+    left: -20px;
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, Verdana, sans-serif;
+}
+
+::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+}
+
+#clear-button {
+    position: relative;
+    top: 2px;
+    left: -45px;
+    z-index: 1;
+    cursor: pointer;
+}
+
+@media (max-width: 1000px) {
+    body {
+        font-size: 16px;
+    }
+    
+    header {
+        height: auto;
+    }
+    
+    #logo {
+        width: 40px;
+        height: 40px;
+        background-size: 40px;
+    }
+    
+    .header-contents {
+        flex-basis: auto;
+    }
+    
+    .nav-contents {
+        width: 90%;
+        justify-content: center;
+    }
+    
+    .footer-contents {
+        flex-basis: 90%;
+    }
+    
+    #title {
+        font-size: 34px;
+        line-height: 75px;
+        margin: 5px 5px;
+    }
+    
+    h3 {
+        font-size: 14pt;
+    }
+    
+    .filter {
+        padding: 0px 25px;
+    }
+    
+    #search-container {
+        flex-grow: 100;
+        margin-top: 3px;
+        height: 38px;
+    }
+    
+    .filter-button {
+        margin-right: 10px;
+        margin-top: 3px;
+    }
+    
+    #search-filter {
+        width: calc(100% - 37px);
+    }
+    
+    #search-icon {
+        top: 3px;
+        width: 14px;
+        height: 14px;
+    }
+    
+    #clear-button {
+        left: -50px;
+    }
+    
+    #proposals-count {
+        margin-left: 6px;
+    }
+    
+    h4 a {
+        white-space: normal;
+        display: inline-block;
+        line-height: 24px;
+        -webkit-hyphens: auto;
+        -ms-hyphens: auto;
+        hyphens: auto;
+    }
+    
+    .status-pill {
+        width: inherit;
+        max-width: inherit;
+        min-width: inherit;
+        padding: 0px 8px;
+        margin-bottom: 6px;
+    }
+    
+    .authors a {
+        white-space: normal;
+    }
+    
+    .proposal {
+        flex-direction: column;
+        max-width: 100%;
+        padding: 0px 10px;
+    }
+    
+    .proposal-header {
+        flex-direction: column;
+    }
+    
+    .proposal-detail {
+        display: block;
+    }
+    
+    .proposal-detail-label, .proposal-detail-value {
+        display: inline;
+    }
+}
+
+@media (max-width: 768px) {
+    h1 {
+        font-size: 54px
+    }
+}
+
+@media (max-width: 414px){
+    .filter-button {
+        order: 0;
+    }
+}
+
+/* status label colors */
+
+.color-awaiting-review {
+    color: rgb(255, 149, 0);
+    border-color: rgb(255, 149, 0);
+}
+
+.color-scheduled-for-review {
+    color: rgb(255, 149, 0);
+    border-color: rgb(255, 149, 0);
+}
+
+.color-active-review {
+    color: rgb(255, 149, 0);
+    border-color: rgb(255, 149, 0);
+}
+.color-returned-for-revision {
+    color: rgb(255, 149, 0);
+    border-color: rgb(255, 149, 0);
+}
+
+.color-deferred {
+    color: rgb(88, 86, 214);
+    border-color: rgb(88, 86, 214);
+}
+.color-accepted,.color-accepted-with-revisions {
+    color: rgb(76, 217, 100);
+    border-color: rgb(76, 217, 100);
+}
+.color-rejected {
+    color: rgb(255, 59, 48);
+    border-color: rgb(255, 59, 48);
+}
+.color-implemented {
+    color: rgb(0, 122, 255);
+    border-color: rgb(0, 122, 255);
+}
+.color-withdrawn {
+    color: rgb(255, 59, 48);
+    border-color: rgb(255, 59, 48);
+}

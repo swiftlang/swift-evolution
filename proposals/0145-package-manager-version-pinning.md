@@ -3,8 +3,10 @@
 * Proposal: [SE-0145](0145-package-manager-version-pinning.md)
 * Author: [Daniel Dunbar](https://github.com/ddunbar), [Ankit Aggarwal](https://github.com/aciidb0mb3r), [Graydon Hoare](https://github.com/graydon)
 * Review Manager: [Anders Bertelrud](https://github.com/abertelrud)
-* Status: **Returned for Revision**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20161107/028758.html)
+* Status: **Implemented (Swift 3.1)**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-December/000302.html)
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/91725ee83fa34c81942a634dcdfa9d2441fbd853/proposals/0145-package-manager-version-pinning.md)
+* Previous Discussion: [Email Thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20161107/028758.html)
 
 ## Introduction
 
@@ -55,23 +57,6 @@ Our proposal is designed to satisfy several different use cases for such a behav
    dependencies in use, so that the resulting product can be exactly recreated
    later if necessary.
 
-### Mechanism and policy
-
-This proposal primarily addresses the _mechanism_ used to record
-and manage version-pinning information, in support of _specific
-workflows_ with elevated demands for reproducible builds.
-
-In addition to this, certain _policy_ choices around default
-behavior are included; these are set initially to different
-defaults than in many package managers. Specifically the default
-behavior is to _not_ generate pinning information unless
-requested, for reasons outlined in the alternatives discussion.
-
-If the policy choice turns out to be wrong, the default can be
-changed without difficulty. We actively expect to revisit this policy
-choice once we have had experience with the mechanism, and can
-observe how it is being used.
-
 ### Current Behavior
 
 The package manager *NEVER* updates a locally cloned package from its current
@@ -90,10 +75,6 @@ clones were "pinned", however, there has heretofore been no way to share that
 pinning information with other team members. This proposal is aimed at
 addressing that.
 
-Thus, although our policy choice here is to not _generate_ pinning information
-by default in a location which is likely to be checked in, our local behavior on
-any individual developers desktop is always as if there is some pinning.
-
 ## Proposed solution
 
 We will introduce support for an **optional** new file `Package.pins` adjacent
@@ -111,15 +92,29 @@ practice it will be a JSON data file.
 This file *may* be checked into SCM by the user, so that its effects apply to
 all users of the package. However, it may also be maintained only locally (e.g.,
 placed in the `.gitignore` file). We intend to leave it to package authors to
-decide which use case is best for their project.
+decide which use case is best for their project. We will **recommend** that it
+not be checked in by library authors, at least for released versions, since pins
+are not inherited and thus this information may be confusing. We may codify this
+recommendation into a warning in a future package manager workflow which
+provided assistance in publishing package versions.
 
 In the presence of a top-level `Package.pins` file, the package manager will
 respect the pinned dependencies recorded in the file whenever it needs to do
 dependency resolution (e.g., on the initial checkout or when updating).
 
-The pins file will not override Manifest specified version requirements and it
-will be an error (with proper diagnostics) if there is a conflict between the pins
-and the manifest specification.
+In the absence of a top-level `Package.pins` file, the package manager will
+operate based purely on the requirements specified in the package manifest, but
+will then automatically record the choices it makes into a `Package.pins` file
+as part of the "automatic pinning" feature. The goal of this behavior is to
+encourage reproducible behavior among package authors who share the pin file
+(typically by checking it in).
+
+We will also provide an explicit mechanism by which package authors can opt out
+of the automatic pinning default for their package.
+
+The pins file will *not* override manifest specified version requirements and it
+will be a warning if there is a conflict between the pins and the manifest
+specification.
 
 The pins file will also not influence dependency resolution for dependent packages;
 for example if application A depends on library B which in turn depends on library C,
@@ -134,7 +129,7 @@ library B when deciding which version of library C to use.
 	```
 	$ swift package pin ( [--all] | [<package-name>] [<version>] ) [--message <message>]
 	```
-    
+
 	The `package-name` refers to the name of the package as specified in its manifest.
 
 	This command pins one or all dependencies. The command which pins a single version can optionally take a specific version to pin to, if unspecified (or with `--all`) the behavior is to pin to the current package version in use. Examples:  
@@ -142,9 +137,9 @@ library B when deciding which version of library C to use.
 	* `$ swift package pin Foo` - pins `Foo` at current resolved version.
 	* `$ swift package pin Foo 1.2.3` - pins `Foo` at 1.2.3. The specified version should be valid and resolvable.
 
-  The `--reason` option is an optional argument to document the reason for pinning a dependency. This could be helpful for user to later remember why a dependency was pinned. Example:   
+  The `--message` option is an optional argument to document the reason for pinning a dependency. This could be helpful for user to later remember why a dependency was pinned. Example:   
  
-	`$ swift package pin Foo --reason "The patch updates for Foo are really unstable and need screening."`
+	`$ swift package pin Foo --message "The patch updates for Foo are really unstable and need screening."`
 
   NOTE: When we refer to dependencies in the context of pinning, we are
   referring to *all* dependencies of a package, i.e. the transitive closure of
@@ -153,15 +148,29 @@ library B when deciding which version of library C to use.
   behavior for the closure of the dependencies outside of them being named in
   the manifest.
    
+2. We will add two additional commands to `pin` as part of the automatic pinning
+   workflow (see below):
 
-2. Dependencies are never automatically pinned, pinning is only ever taken as a result of an explicit user action.
- 
+	```
+	$ swift package pin ( [--enable-autopin] | [--disable-autopin] )
+	```
+
+   These will enable or disable automatic pinning for the package (this state is
+   recorded in the `Package.pins` file).
+
+   These commands are verbose, but the expectation is that they are very
+   infrequently run, just to establish the desired behavior for a particular
+   project, and then the pin file (containing this state) is checked in to
+   source control.
+
 3. We will add a new command `unpin`:
 
 	```
 	$ swift package unpin ( [--all] | [<package-name>] )
 	``` 
 	This is the counterpart to the pin command, and unpins one or all packages.
+
+   It is an error to attempt to `unpin` when automatic pinning is enabled.
 
 4. We will fetch and resolve the dependencies when running the pin commands, in case we don't have the complete dependency graph yet.
 
@@ -171,15 +180,58 @@ library B when deciding which version of library C to use.
 	$ swift package update [--repin]
 	```
 
-	* Update command errors if there are no unpinned packages which can be updated.
+	* The update command will warn if there are no unpinned packages which can be updated.
 
 	* Otherwise, the behavior is to update all unpinned packages to the latest possible versions which can be resolved while respecting the existing pins.
 
 	* The `[--repin]` argument can be used to lift the version pinning restrictions. In this case, the behavior is that all packages are updated, and packages which were previously pinned are then repinned to the latest resolved versions.
 
+   When automatic pinning is enabled, `package update` would by default have absolutely no effect without `--repin`. Thus, we will make `package update` act as if `--repin` was specified whenever automatic pinning is enabled. This is a special case, but we believe it is most likely to match what the user expects, and avoids have a command syntax which has no useful behavior in the automatic pinning mode.
+
 6. The update and checkout will both emit logs, notifying the user that pinning is in effect.
 
 7. The `swift package show-dependencies` subcommand will be updated to indicate if a dependency is pinned.
+
+
+### Automatic Pinning
+
+The package manager will have automatic pinning enabled by default (this is
+equivalent to `swift package pin --enable-autopin`), although package project
+owners can choose to disable this if they wish to have more fine grained control
+over their pinning behavior.
+
+When automatic pinning is enabled, the package manager will automatic record all
+package dependencies in the `Package.pins` file. If package authors do not check
+this file into their source control, the behavior will typically be no different
+than the existing package manager behavior (one exception is the `package
+update` behavior described above).
+
+If a package author does check the file into source control, the effect will be
+that anyone developing directly on this package will end up sharing the same
+dependency versions (and modifications will be commited as part of the SCM
+history).
+
+The automatic pinning behavior is an extension of the behaviors above, and works
+as follows:
+
+ * When enabled, the package manager will write all dependency versions into the
+   pin file after any operation which changes the set of active working
+   dependencies (for example, if a new dependency is added).
+
+ * A package author can still change the individual pinned versions using the
+   `package pin` commands, these will simply update the pinned state.
+
+ * Some commands do not make sense when automatic pinning is enabled; for
+   example, it is not possible to `unpin` and attempts to do so will produce an
+   error.
+
+Since package pin information is **not** inherited across dependencies, our
+recommendation is that packages which are primarily intended to be consumed by
+other developers either *disable* automatic pinning or put the `Package.pins`
+file into `.gitignore`, so that users are not confused why they get different
+versions of dependencies that are those being used by the library authors while
+they develop.
+
 
 ## Future Directions
 
@@ -195,7 +247,24 @@ There will be change in the behaviors of `swift build` and `swift package update
 
 ## Alternative considered
 
+### Minimal pin feature set
+
+A prior version of this proposal did not pin by default. Since this proposal
+includes this behavior, we could in theory eliminate the fine grained pinning
+feature set we expose, like `package pin <name>` and `package unpin`.
+
+However, we believe it is important for package authors to retain a large amount
+of control over how their package is developed, and we wish the community to
+aspire to following semantic versioning strictly. For that reason, we wanted to
+support mechanisms so that package authors wishing to follow this model could
+still pin individual dependencies.
+
+
 ### Pin by default
+
+_This discussion is historical, from a prior version of a proposal which did not
+include the automatic pinning behavior; which we altered the proposal for. We
+have left it in the proposal for historical context._
 
 Much discussion has revolved around a single policy-default question: whether
 SwiftPM should generate a pins file as a matter of course any time it
