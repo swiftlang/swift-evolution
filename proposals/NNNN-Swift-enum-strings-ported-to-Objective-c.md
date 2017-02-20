@@ -50,20 +50,16 @@ public enum Food: String {
 ### The counter part to NS_EXTENSIBLE_STRING_ENUM
 
 ```
-// a new attribute `@objcstring` can be applied to a struct to make it available to objective-c and it will make the struct conform to the protocol `NSObjectExtString`:
+// a new attribute `@objcstring` can be applied to a struct to make it available to objective-c:
 //
-protocol NSObjectExtString {
-  var rawValue: String { get }
-  init(rawValue: String) 
-}
 
 @objcstring
 public struct Planets {
-  public let rawValue: String
-  init(rawValue: String) { self.rawValue = rawValue }
+  public let rawValue: String //<- This should be automatically defined by @objcstring
+  init(rawValue: String) { self.rawValue = rawValue } //<- This should be automatically defined by @objcstring 
   
-  public static let Earth = Planets(rawValue: "Earth")
-  public static let Venus = Planets(rawValue: "Venus")
+  public static let Earth = Planets(rawValue: "Earth") //<- user defines these
+  public static let Venus = Planets(rawValue: "Venus") //<- user defines these
 }
 
 // This can be ported over to objective-c as a class
