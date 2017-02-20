@@ -222,7 +222,7 @@ constrained by having to be part of a tuple.
 
 To maintain maximum source compatibility, we could introduce a rule that matches
 all associated values to a labeled tuple. As T.J. Usiyan
-[pointed out][TJs comment], implementation of the equality protocal would be
+[pointed out][TJs comment], implementation of the equality protocol would be
 simplified due to tuple's conformance to `Equatable`. This feature may still be
 introduced with alternative syntax (perhaps related to splats) later without
 source-breakage.  And the need to implement `Equatable` may also disappear with
