@@ -140,7 +140,7 @@ public enum Food: String {
 
 ### NS_STRING_ENUM - methods
 
-swift enums allow methods to be defined.  If you mark a method with @objcstring it should be made available to objective-c.  The enum needs to have @objcstring applied to it in order to be allowed to add @objc to one of the functions.
+swift enums allow methods to be defined.  If you mark a method with @objc it should be made available to objective-c.  The enum needs to have @objcstring applied to it in order to be allowed to add @objc to one of the functions.
 
 ``` 
 // Swift
