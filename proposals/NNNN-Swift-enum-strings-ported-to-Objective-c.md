@@ -216,7 +216,7 @@ extension Planet {
 - (instancetype _Nonnull)Pluto;
 @end
 
-@implementation Planet
+@implementation Planet (extention_1)
 - (instancetype _Nonnull)Pluto {
   return [[Planet alloc] initWithRawValue:@"Pluto"];
 }
