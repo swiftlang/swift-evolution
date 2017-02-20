@@ -171,65 +171,11 @@ From a source compatibility perspective, this is a purely additive change if the
 is possible that users may have written code which defines semantically incorrect associated types, which the compiler
 now rejects because of the additional constraints. We do not consider this scenario "source-breaking".
 
-The following source listing is an example of code accepted by the Swift 3.0.1 compiler which is nevertheless
-semantically incorrect, and would be rejected by a Swift compiler implementing this change.
-
-```swift
-struct BadSequence : Sequence, IteratorProtocol {
-    typealias Element = Int
-    // BadSubSequence.Element isn't equal to BadSequence.Element; this is incorrect.
-    typealias SubSequence = BadSubSequence
-
-    var idx = 0
-
-    // Incorrect implementations of protocol requirements.
-    public func prefix(_ maxLength: Int) -> BadSubSequence { return BadSubSequence() }
-    public func suffix(_ maxLength: Int) -> BadSubSequence { return BadSubSequence() }
-    public func dropFirst(_ n: Int) -> BadSubSequence { return BadSubSequence() }
-    public func dropLast(_ n: Int) -> BadSubSequence { return BadSubSequence() }
-    public func split(maxSplits: Int,
-                      omittingEmptySubsequences: Bool,
-                      whereSeparator isSeparator: (Int) throws -> Bool) rethrows -> [BadSubSequence] {
-        return [BadSubSequence()]
-    }
-
-    mutating func next() -> Int? {
-        if idx == 10 {
-            return nil
-        }
-        let value = idx * 10
-        idx = idx + 1
-        return value
-    }
-
-    func makeIterator() -> BadSequence {
-        var aCopy = self
-        aCopy.idx = 0
-        return aCopy
-    }
-}
-
-struct BadSubSequence : Sequence, IteratorProtocol {
-    typealias Element = String
-
-    var idx = 0
-
-    mutating func next() -> String? {
-        if idx == 10 {
-            return nil
-        }
-        let value = "\(idx)"
-        idx = idx + 1
-        return value
-    }
-
-    func makeIterator() -> BadSubSequence {
-        var aCopy = self
-        aCopy.idx = 0
-        return aCopy
-    }
-}
-```
+An example of code that currently compiles but is semantically invalid is an implementation of a range-replacable
+collection's subsequence that isn't itself range-replaceable. This is a constraint that cannot be enforced by the compiler
+without this change. For some time, the `Data` type in Foundation violated this constraint; user-written code that is
+similarly problematic will cease to compile using a Swift toolchain that includes these standard library and compiler
+changes.
 
 ## Impact on ABI stability
 
