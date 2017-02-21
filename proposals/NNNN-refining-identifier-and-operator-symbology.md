@@ -98,7 +98,7 @@ distinct identifiers. For example:
     let Å = "Latin Capital Letter A + Combining Ring Above"
 
 Non-printing characters such as ZERO WIDTH SPACE and ZERO WIDTH NON-JOINER are
-also accepted as valid identifier chracters without any restrictions.
+also accepted as valid identifier characters without any restrictions.
 
     let ab = "ab"
     let a​b = "a + ZERO WIDTH SPACE + b"
@@ -327,7 +327,7 @@ presentation, and future versions of Unicode may add such an emoji presentation
 to any Swift operator character. Some but not all "environments" or applications
 (for instance, Safari but not TextWrangler) display the alternative emoji
 presentation at all times, and such discrepancies between applications are
-explicitly permitted by Unicode recommendations (see dicussion in _Emoji_).
+explicitly permitted by Unicode recommendations (see discussion in _Emoji_).
 However, it would be highly unusual to define the set of valid operator
 characters based on an essentially arbitrary criterion as to whether an
 alternative emoji presentation is retroactively assigned to a code point, and
@@ -399,7 +399,7 @@ presents significant challenges:
 - Emoji characters are not displayed uniformly across different platforms.
 
 - Whether any particular character is presented as emoji or text depends on a
-matrix of considerations, including "environment" (e.g., Safari vs. XCode),
+matrix of considerations, including "environment" (e.g., Safari vs. Xcode),
 presence or absence of a variant selector, and whether the character itself
 defaults to "emoji presentation" or "text presentation." This behavior is
 specifically documented in [Unicode
