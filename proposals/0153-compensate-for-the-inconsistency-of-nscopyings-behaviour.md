@@ -210,7 +210,7 @@ GUI IDE will be expected to leave developers a fixable error or warning, and thu
 
 Inferring `AutoInferredClassType` from context should be the responsibility of compiler.
 
-However, occasionally an _constructor_ might be non-copying on purpose, so we'll need a way to disable the error or warning. That is, there would be two key factors determining whether a _fixable_ error or warning should be emitted:
+However, occasionally a _constructor_ might be non-copying on purpose, so we'll need a way to disable the error or warning. That is, there would be two key factors determining whether a _fixable_ error or warning should be emitted:
 
 * If the _destination_ property has been declared as `@NSCopying` in class definition
 * If the _source_ value conforms to `<NSCopying>` protocol
