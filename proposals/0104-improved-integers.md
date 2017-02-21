@@ -251,7 +251,7 @@ public protocol Number : Equatable, ExpressibleByIntegerLiteral {
   ///     let y = Int8(exactly: 1_000)
   ///     // y == nil
   ///
-  /// - Parameter source: A floating-point value to convert to an integer.
+  /// - Parameter source: A BinaryInteger value to convert to an integer.
   init?<T : BinaryInteger>(exactly source: T)
 
   /// A type that can represent the absolute value of any possible value of the
