@@ -442,9 +442,8 @@ selector)*, minus `Emoji_Defectives` and `ID_Continue`. Again, exclude
 Miscellaneous Symbols, Miscellaneous Technical. (Note that the emoji picker on
 Apple platforms--and, possibly, other platforms--automatically inserts U+FE0F
 VARIATION SELECTOR-16 when a user selects such code points; for instance,
-selecting ❤️ inserts U+2764 U+FE0F. Therefore, it is important that the
-invisible U+FE0F be permitted strictly in this use case. Note also that
-variation selectors are discarded by normalization.)
+selecting ❤️ inserts U+2764 U+FE0F. Note also that variation selectors are
+discarded by normalization.)
 
 - Emoji shall include `Emoji_Flag_Sequences`, `Emoji_Keycap_Sequences`, and (to
 the extent not already included) `Emoji_Modifier_Sequences`.
