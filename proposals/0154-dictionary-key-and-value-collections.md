@@ -3,7 +3,8 @@
 - Proposal: [SE-0154](0154-dictionary-key-and-value-collections.md)
 - Author: [Nate Cook](https://github.com/natecook1000)
 - Review Manager: [Doug Gregor](https://github.com/DougGregor)
-- Status: **Active review (February 17...22, 2017)**
+- Status: **Accepted**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170220/033159.html)
 
 ## Introduction
 
