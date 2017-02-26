@@ -12,21 +12,39 @@
 
 ## Introduction
 
-Currently, you can add NS_STRING_ENUM or NS_EXSTENSIBLE_STRING_ENUM to your Objective-c global strings to make them available in swift as a struct thanks to SE-0033.  This is a one way port.  This proposal seeks a way to write an enum of strings or a struct of strings that can be ported to objective-c by introducing a new attribute, @objcstring.
+We should allow swift-enum-strings and swift-struct-strings to be bridged to objective-c.  We can use the following notation:
 
-Swift-evolution thread: [Discussion thread topic for that proposal](https://lists.swift.org/pipermail/swift-evolution/)
+@objc enum Planets: String {
+  case Mercury
+}
+
+@objc struct Food: String {
+  public static let hamburger = Food(rawValue: "hamburger")
+}
+
+Creating a bridgable version will allow objective-c to enjoy some of the benefits that swift enjoys. 
+
+Swift-evolution thread: 
+[Discussion](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20161114/028950.html)
+[Discussion](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170220/032656.html)
+
 
 ## Motivation
 
-In SE-0033, we were given NS_STRING_ENUM and NS_EXSTENSIBLE_STRING_ENUM which is suppose to port to a swift enum and swift struct respectively.  NS_STRING_ENUM allows Objective-C global strings to be available in swift as a string enum.  However there is currently no way to bring string enums into Objective-c.  Although NS_STRING_ENUM aims to create a swift enum, it fails and ends up generating a struct instead. According to this bug report it seems like it is impossible to do (https://bugs.swift.org/browse/SR-3146 ).  If turning global string into an enum is impossible then perhaps we should rethink the data structure.
+NS_STRING_ENUM and NS_EXSTENSIBLE_STRING_ENUM are annotations that you can add to an objective-c global string.
+The annotations will make swift interpret the objective-c global strings as enum and structs respectively in theory.
+But it actually [doesn't ever create enums](https://bugs.swift.org/browse/SR-3146).
+
+The problem seems to stem from the conversion from objc to swift.  It might be more fruitful to make a conversion from swift to objc.
+
+However, what if we take it a step further?  Turning a swift-string-enum into a bunch of global NSStrings really limits its power.  There are many classes written by apple that are structs in swift but become classes in objective-c.  There is a special bridging mechanism.  I think we should expand on that.
 
 ## Proposed solution
 
-### The counter part to NS_STRING_ENUM
 ```
-// a new attribute `@objcstring` can be applied to an enum to make it available to objective-c:
+// `@objc` and `String` can be applied to an enum to make it available to objective-c:
 //
-@objcstring
+@objc
 public enum Food: String {
    case Calamari 
    case Fish
@@ -47,16 +65,14 @@ public enum Food: String {
 
 ```
 
-### The counter part to NS_EXTENSIBLE_STRING_ENUM
-
 ```
-// a new attribute `@objcstring` can be applied to a struct to make it available to objective-c:
+// `@objc` and `String` can be applied to a struct to make it available to objective-c:
 //
 
-@objcstring
-public struct Planets {
-  public let rawValue: String //<- This should be automatically defined by @objcstring
-  init(rawValue: String) { self.rawValue = rawValue } //<- This should be automatically defined by @objcstring 
+@objc
+public struct Planets: String {
+  public let rawValue: String //<- This should be implicit and the user should not need to add it
+  init(rawValue: String) { self.rawValue = rawValue } //<- This should be implicit and the user should not need to add it
   
   public static let Earth = Planets(rawValue: "Earth") //<- user defines these
   public static let Venus = Planets(rawValue: "Venus") //<- user defines these
@@ -72,15 +88,17 @@ public struct Planets {
 @end
 ```
 
+The different between a swift-enum-string and a swift-struct-string is that swift-enum-string provides a failable initializer while swift-struct-string provides a non-failable initializer.
+
 ## Detailed design
 
-### NS_STRING_ENUM - case/string translations
+### swift-string-enum - case/string translations
 
-A swift enum string, is created with cases and it has an implicit string value based on the name of the case.  The user may also add a name that does not equal the name of the case.
+A swift-enum-string, is created with cases and it has an implicit string value based on the name of the case.  The user may also add a name that does not equal the name of the case.
 
 ```
 // Swift
-@objcstring
+@objc
 public enum Food: String {
   case Calamari 
   case Fish = "Flounder" //<-- User wants Fish to be Flounder
@@ -103,13 +121,13 @@ public enum Food: String {
 @end
 ```
 
-### NS_STRING_ENUM - failable initializer
+### swift-string-enum - failable initializer
 
-A swift enum string has the ability to be initialized with a string.  If the string matches one of the possible cases, then it returns it, otherwise it will return nil.  This feature might be implemented as a dictionary or some other means that gets the same results; Below is my suggestion.
+A swift-enum-string has the ability to be initialized with a string.  If the string matches one of the possible cases, then it returns it, otherwise it will return nil.  This feature might be implemented as a dictionary or some other means that gets the same results; Below is my suggestion.
 
 ```
 // Assuming this swift implementation
-@objcstring
+@objc
 public enum Food: String {
   case Calamari 
   case Fish = "Flounder" //<-- User wants Fish to be Flounder
@@ -138,13 +156,13 @@ public enum Food: String {
 @end
 ```
 
-### NS_STRING_ENUM - methods
+### swift-string-enum - methods
 
-swift enums allow methods to be defined.  If you mark a method with @objc it should be made available to objective-c.  The enum needs to have @objcstring applied to it in order to be allowed to add @objc to one of the functions.
+swift enums allow methods to be defined.  If you mark a method with `@objc` it should be made available to objective-c. 
 
 ``` 
 // Swift
-@objcstring
+@objc
 public enum Food: String {
   case Calamari 
   case Fish
@@ -164,13 +182,13 @@ public enum Food: String {
 @end
 ```
 
-### NS_EXTENSIBLE_STRING_ENUM - string translations
+### swift-struct-string - string translations
 
-A struct marked with @objcstring will have an objective-c class produced.  A property or method must be marked with @objc to be made available to objective-c.
+A swift-struct-string needs to be marked with `@objc` and inherit from `String` to bridge to objective-c.  A property or method must be marked with @objc to be made available to objective-c.
 
 ```
 // Swift
-@objcstring
+@objc
 struct Planet {
   @objc public static let Earth = Planet(rawValue: "Earth")
 
@@ -184,9 +202,9 @@ struct Planet {
 @end
 ```
 
-### NS_EXTENSIBLE_STRING_ENUM - non-failable initializer
+### swift-struct-string - non-failable initializer
 
-The initializer should not be failable and will accept any string value
+The swift-struct-string initializer should not be failable and will accept any string value
 
 ```
 @implementation Planet
@@ -200,9 +218,9 @@ The initializer should not be failable and will accept any string value
 @end
 ```
 
-### NS_EXTENSIBLE_STRING_ENUM - extension
+### swift-struct-string - extension
 
-One of the key attributes of an extensible string enum is that it can be extended.  This should produce something available to objective-c.  The original definition of Planet needs to have been marked with @objcstring.
+One of the key attributes of an extensible string enum is that it can be extended.  This should produce something available to objective-c.  The original definition of Planet needs to have been marked with @objc.
 
 ```
 // Swift
@@ -223,12 +241,14 @@ extension Planet {
 @end
 ```
 
-### NS_STRING_ENUM && NS_EXTENSIBLE_STRING_ENUM - equality/hash
+### swift-string-enum && swift-struct-string - equality/hash/rawValue
 
-When an enum or struct is marked with @objcstring, the objective-c class that is produced should have its equality/hash methods implicitly be implemented.  The user should not need to implement these on his/her own. 
+When an enum or struct is marked with `@objc` and `String`, the objective-c class that is produced should have its equality/hash methods and rawValue property implicitly be implemented.  The user should not need to implement these on his/her own. 
 
 ```
 @implementation Food
+
+- (instancetype)rawValue { return _rawValue; }
 
 - (NSUInteger)hash {
   return [[self rawValue] hash];
@@ -250,8 +270,8 @@ In the above examples, the objective-c name of the class and the swift name of t
 
 ```
 // Swift
-@objcstring
-enum Planet { ... }
+@objc
+enum Planet: String { ... }
 
 // Objective-c
 @interface ENUMPlanet
@@ -262,7 +282,7 @@ The programmer should still be able to add their own name by specifying it as an
 
 ```
 // Swift
-@objcstring(CustomPlanet)
+@objc(CustomPlanet)
 enum Planet { ... }
 
 // Objective-c
@@ -276,6 +296,6 @@ This will be an additive feature and will not break anything existing.
 
 ## Alternatives considered
 
-- Continuing to use NS_STRING_ENUM to make available strings that can be accessed in objective-c and swift.  This is not a good solution because it forces the programmer to use Objective-c;  The proposed solution would allow developers to continue developing in swift.
-
 - Implement a swift class that implements the above described behviors.
+
+- Don't change anything.
