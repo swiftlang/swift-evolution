@@ -37,7 +37,7 @@ But it actually [doesn't ever create enums](https://bugs.swift.org/browse/SR-314
 
 The problem seems to stem from the conversion from objc to swift.  It might be more fruitful to make a conversion from swift to objc.
 
-However, what if we take it a step further?  Turning a swift-string-enum into a bunch of global NSStrings really limits its power.  There are many classes written by apple that are structs in swift but become classes in objective-c.  There is a special bridging mechanism.  I think we should expand on that.
+However, what if we take it a step further?  Turning a swift-string-enum into a bunch of global NSStrings really limits its power.  There are many classes written by apple that are structs in swift but become classes in objective-c (i.e. String becomes NSString, Date becomes NSDate, Array becomes NSArray, etc).  There is a special bridging mechanism that allows this to be possible.  I think we should expand on that.
 
 ## Proposed solution
 
