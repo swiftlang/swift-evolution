@@ -139,16 +139,18 @@ public enum Food: String {
 - (instancetype _Nullable)initWithRawValue:(NSString *_Nonnull)rawValue {
   static NSDictionary <NSString *, NSString *>*states;
   if (!states) {
-    // A dictionary where the KEYs are the acceptable rawValue's and the VALUE are the string representation of a static method signature
+    // A dictionary where the KEYs are the acceptable rawValue's and the VALUE are empty strings
     states = @{
-      @"Calimari" : @"Calimari",
-      @"Flounder" : @"Fish"
+      @"Calimari" : @"",
+      @"Flounder" : @""
     }
   }
 
-  NSString *method;
-  if ((method = states[rawValue])) {
-    return [[Food class] performSelector:NSSelectorFromString(method)];
+  if ((self = [super init])) {
+    if (states[rawValue]) {
+      _rawValue = rawValue
+      return self;
+    }
   }
   return nil;
 }
