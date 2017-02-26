@@ -228,11 +228,11 @@ case-insensitive use cases. Fullwidth variants such as FULLWIDTH HYPHEN-MINUS
 are equivalent to their non-fullwidth counterparts after normalization under
 NFKC (but not NFC).
 
-- [**986** code points](http://unicode.org/cldr/utility/list-unicodeset.jsp?a=[%5b%5b%3aPattern%5fSyntax%3a%5d%20%26%20%5b%3aMath%3a%5d%0d%0a%2d%20%5b%3aBlock%3dGeometric%20Shapes%3a%5d%0d%0a%2d%20%5b%3aBlock%3dMiscellaneous%20Symbols%3a%5d%0d%0a%2d%20%5b%3aBlock%3dMiscellaneous%20Technical%3a%5d%0d%0a%5b%21%20%25%20%5c%26%20%2a%20%5c%2d%20%2f%20%3f%20%5c%5c%20%5c%5e%20¡%20¦%20§%20°%20¶%20¿%20†%20‡%20•%20‰%20‱%20※%20‽%20⁂%20⁅%20⁆%20⁊%20⁋%20⁌%20⁍%20⁎%20⁑%5d%5d%26%5b%5b%0d%0a%5b%2f%20%5c%2d%20%2b%20%21%20%2a%20%25%20%3c%2d%3e%20%5c%26%20%7c%20%5c%5e%20%7e%20%3f%5d%0d%0aU%2b00A1%2dU%2b00A7%0d%0aU%2b00A9%20U%2b00AB%0d%0aU%2b00AC%20U%2b00AE%0d%0aU%2b00B0%2dU%2b00B1%20U%2b00B6%20U%2b00BB%20U%2b00BF%20U%2b00D7%20U%2b00F7%0d%0aU%2b2016%2dU%2b2017%20U%2b2020%2dU%2b2027%0d%0aU%2b2030%2dU%2b203E%0d%0aU%2b2041%2dU%2b2053%0d%0aU%2b2055%2dU%2b205E%0d%0aU%2b2190%2dU%2b23FF%0d%0aU%2b2500%2dU%2b2775%0d%0aU%2b2794%2dU%2b2BFF%0d%0aU%2b2E00%2dU%2b2E7F%0d%0aU%2b3001%2dU%2b3003%0d%0aU%2b3008%2dU%2b3030%0d%0a%5d%0d%0a%5b%0d%0aU%2b0300%2dU%2b036F%0d%0aU%2b1DC0%2dU%2b1DFF%0d%0aU%2b20D0%2dU%2b20FF%0d%0aU%2bFE00%2dU%2bFE0F%0d%0aU%2bFE20%2dU%2bFE2F%0d%0aU%2bE0100%2dU%2bE01EF%0d%0a%5d%5d]) **are valid** in Swift 3 operators and **shall remain valid** with this proposal.
+- [**984** code points](http://unicode.org/cldr/utility/list-unicodeset.jsp?a=[%5b%5b%3aPattern%5fSyntax%3a%5d%20%26%20%5b%3aMath%3a%5d%0d%0a%2d%20%5b%3aBlock%3dGeometric%20Shapes%3a%5d%0d%0a%2d%20%5b%3aBlock%3dMiscellaneous%20Symbols%3a%5d%0d%0a%2d%20%5b%3aBlock%3dMiscellaneous%20Technical%3a%5d%0d%0a%5b%21%20%25%20%5c%26%20%2a%20%5c%2d%20%2f%20%3f%20%5c%5c%20%5c%5e%20¡%20¦%20§%20°%20¶%20¿%20†%20‡%20•%20‰%20‱%20※%20‽%20⁂%20⁊%20⁋%20⁌%20⁍%20⁎%20⁑%5d%5d%26%5b%5b%0d%0a%5b%2f%20%5c%2d%20%2b%20%21%20%2a%20%25%20%3c%2d%3e%20%5c%26%20%7c%20%5c%5e%20%7e%20%3f%5d%0d%0aU%2b00A1%2dU%2b00A7%0d%0aU%2b00A9%20U%2b00AB%0d%0aU%2b00AC%20U%2b00AE%0d%0aU%2b00B0%2dU%2b00B1%20U%2b00B6%20U%2b00BB%20U%2b00BF%20U%2b00D7%20U%2b00F7%0d%0aU%2b2016%2dU%2b2017%20U%2b2020%2dU%2b2027%0d%0aU%2b2030%2dU%2b203E%0d%0aU%2b2041%2dU%2b2053%0d%0aU%2b2055%2dU%2b205E%0d%0aU%2b2190%2dU%2b23FF%0d%0aU%2b2500%2dU%2b2775%0d%0aU%2b2794%2dU%2b2BFF%0d%0aU%2b2E00%2dU%2b2E7F%0d%0aU%2b3001%2dU%2b3003%0d%0aU%2b3008%2dU%2b3030%0d%0a%5d%0d%0a%5b%0d%0aU%2b0300%2dU%2b036F%0d%0aU%2b1DC0%2dU%2b1DFF%0d%0aU%2b20D0%2dU%2b20FF%0d%0aU%2bFE00%2dU%2bFE0F%0d%0aU%2bFE20%2dU%2bFE2F%0d%0aU%2bE0100%2dU%2bE01EF%0d%0a%5d%5d]) **are valid** in Swift 3 operators and **shall remain valid** with this proposal.
 
 - Only `\` **is invalid** in Swift 3 operators but **shall become valid** with this proposal.
 
-- [**130** unassigned code points and **2,024** other code points](http://unicode.org/cldr/utility/list-unicodeset.jsp?a=[%5b%5b%0d%0a%5b%2f%20%5c%2d%20%2b%20%21%20%2a%20%25%20%3c%2d%3e%20%5c%26%20%7c%20%5c%5e%20%7e%20%3f%5d%0d%0aU%2b00A1%2dU%2b00A7%0d%0aU%2b00A9%20U%2b00AB%0d%0aU%2b00AC%20U%2b00AE%0d%0aU%2b00B0%2dU%2b00B1%20U%2b00B6%20U%2b00BB%20U%2b00BF%20U%2b00D7%20U%2b00F7%0d%0aU%2b2016%2dU%2b2017%20U%2b2020%2dU%2b2027%0d%0aU%2b2030%2dU%2b203E%0d%0aU%2b2041%2dU%2b2053%0d%0aU%2b2055%2dU%2b205E%0d%0aU%2b2190%2dU%2b23FF%0d%0aU%2b2500%2dU%2b2775%0d%0aU%2b2794%2dU%2b2BFF%0d%0aU%2b2E00%2dU%2b2E7F%0d%0aU%2b3001%2dU%2b3003%0d%0aU%2b3008%2dU%2b3030%0d%0a%5d%0d%0a%5b%0d%0aU%2b0300%2dU%2b036F%0d%0aU%2b1DC0%2dU%2b1DFF%0d%0aU%2b20D0%2dU%2b20FF%0d%0aU%2bFE00%2dU%2bFE0F%0d%0aU%2bFE20%2dU%2bFE2F%0d%0aU%2bE0100%2dU%2bE01EF%0d%0a%5d%5d-%5b%5b%3aPattern%5fSyntax%3a%5d%20%26%20%5b%3aMath%3a%5d%0d%0a%2d%20%5b%3aBlock%3dGeometric%20Shapes%3a%5d%0d%0a%2d%20%5b%3aBlock%3dMiscellaneous%20Symbols%3a%5d%0d%0a%2d%20%5b%3aBlock%3dMiscellaneous%20Technical%3a%5d%0d%0a%5b%21%20%25%20%5c%26%20%2a%20%5c%2d%20%2f%20%3f%20%5c%5c%20%5c%5e%20¡%20¦%20§%20°%20¶%20¿%20†%20‡%20•%20‰%20‱%20※%20‽%20⁂%20⁅%20⁆%20⁊%20⁋%20⁌%20⁍%20⁎%20⁑%5d%5d]) **are valid** in Swift 3 operators but **shall become invalid** with this proposal; of these, **98** are emoji that become valid in identifiers.
+- [**130** unassigned code points and **2,026** other code points](http://unicode.org/cldr/utility/list-unicodeset.jsp?a=[%5b%5b%0d%0a%5b%2f%20%5c%2d%20%2b%20%21%20%2a%20%25%20%3c%2d%3e%20%5c%26%20%7c%20%5c%5e%20%7e%20%3f%5d%0d%0aU%2b00A1%2dU%2b00A7%0d%0aU%2b00A9%20U%2b00AB%0d%0aU%2b00AC%20U%2b00AE%0d%0aU%2b00B0%2dU%2b00B1%20U%2b00B6%20U%2b00BB%20U%2b00BF%20U%2b00D7%20U%2b00F7%0d%0aU%2b2016%2dU%2b2017%20U%2b2020%2dU%2b2027%0d%0aU%2b2030%2dU%2b203E%0d%0aU%2b2041%2dU%2b2053%0d%0aU%2b2055%2dU%2b205E%0d%0aU%2b2190%2dU%2b23FF%0d%0aU%2b2500%2dU%2b2775%0d%0aU%2b2794%2dU%2b2BFF%0d%0aU%2b2E00%2dU%2b2E7F%0d%0aU%2b3001%2dU%2b3003%0d%0aU%2b3008%2dU%2b3030%0d%0a%5d%0d%0a%5b%0d%0aU%2b0300%2dU%2b036F%0d%0aU%2b1DC0%2dU%2b1DFF%0d%0aU%2b20D0%2dU%2b20FF%0d%0aU%2bFE00%2dU%2bFE0F%0d%0aU%2bFE20%2dU%2bFE2F%0d%0aU%2bE0100%2dU%2bE01EF%0d%0a%5d%5d-%5b%5b%3aPattern%5fSyntax%3a%5d%20%26%20%5b%3aMath%3a%5d%0d%0a%2d%20%5b%3aBlock%3dGeometric%20Shapes%3a%5d%0d%0a%2d%20%5b%3aBlock%3dMiscellaneous%20Symbols%3a%5d%0d%0a%2d%20%5b%3aBlock%3dMiscellaneous%20Technical%3a%5d%0d%0a%5b%21%20%25%20%5c%26%20%2a%20%5c%2d%20%2f%20%3f%20%5c%5c%20%5c%5e%20¡%20¦%20§%20°%20¶%20¿%20†%20‡%20•%20‰%20‱%20※%20‽%20⁂%20⁊%20⁋%20⁌%20⁍%20⁎%20⁑%5d%5d]) **are valid** in Swift 3 operators but **shall become invalid** with this proposal; of these, **98** are emoji that become valid in identifiers.
 
 **Dots.** Adopt a rule to allow dots to appear in operators at any location, but
 only in runs of two or more. (Currently, dots must be leading.)
@@ -312,8 +312,7 @@ shall be augmented with the following Latin-1 Supplement characters: `¡`, `¦`,
 `§`, `°`, `¶`, `¿`. For the same reason, augment the set of valid operator
 characters with the following General Punctuation characters: † DAGGER, ‡ DOUBLE
 DAGGER, • BULLET, ‰ PER MILLE SIGN, ‱ PER TEN THOUSAND SIGN, ※ REFERENCE MARK, ‽
-INTERROBANG, ⁂ ASTERISM, ⁅ LEFT SQUARE BRACKET WITH QUILL, ⁆ RIGHT SQUARE
-BRACKET WITH QUILL, ⁊ TIRONIAN SIGN ET, ⁋ REVERSED PILCROW SIGN, ⁌ BLACK
+INTERROBANG, ⁂ ASTERISM, ⁊ TIRONIAN SIGN ET, ⁋ REVERSED PILCROW SIGN, ⁌ BLACK
 LEFTWARDS BULLET, ⁍ BLACK RIGHTWARDS BULLET, ⁎ LOW ASTERISK, ⁑ TWO ASTERISKS
 ALIGNED VERTICALLY.
 
@@ -340,8 +339,8 @@ U+FE0E VARIATION SELECTOR-15 (text presentation selector) is _optionally_
 permitted to follow an operator character that has an alternative emoji
 presentation. Note that variation selectors are discarded by normalization.
 
-[These revised rules](http://unicode.org/cldr/utility/list-unicodeset.jsp?a=%5B%3APattern_Syntax%3A%5D+%26+%5B%3AMath%3A%5D%0D%0A-+%5B%3ABlock%3DGeometric+Shapes%3A%5D%0D%0A-+%5B%3ABlock%3DMiscellaneous+Symbols%3A%5D%0D%0A-+%5B%3ABlock%3DMiscellaneous+Technical%3A%5D%0D%0A%5B%21+%25+%5C%26+*+%5C-+%2F+%3F+%5C%5C+%5C%5E+¡+¦+§+°+¶+¿+†+‡+•+‰+‱+※+‽+⁂+⁅+⁆+⁊+⁋+⁌+⁍+⁎+⁑%5D&g=&i=)
-produce a set of 987 code points for operator characters. Since `ID_Start` is
+[These revised rules](http://unicode.org/cldr/utility/list-unicodeset.jsp?a=%5B%3APattern_Syntax%3A%5D+%26+%5B%3AMath%3A%5D%0D%0A-+%5B%3ABlock%3DGeometric+Shapes%3A%5D%0D%0A-+%5B%3ABlock%3DMiscellaneous+Symbols%3A%5D%0D%0A-+%5B%3ABlock%3DMiscellaneous+Technical%3A%5D%0D%0A%5B%21+%25+%5C%26+*+%5C-+%2F+%3F+%5C%5C+%5C%5E+¡+¦+§+°+¶+¿+†+‡+•+‰+‱+※+‽+⁂+⁊+⁋+⁌+⁍+⁎+⁑%5D&g=&i=)
+produce a set of 985 code points for operator characters. Since `ID_Start` is
 derived in part by exclusion of `Pattern_Syntax` code points, it is assured that
 operator and identifier characters do not overlap (although this assurance does
 not extend to emoji, which require additional design as detailed below).
@@ -397,7 +396,7 @@ Incorporating the "two-dot rule" offers the following benefits:
     operator-characters → operator-character operator-characters[opt]
 
     operator-compatibility-head → ¡ | ¦ | § | ° | ¶ | ¿
-    operator-compatibility-head → † | ‡ | • | ‰ | ‱ | ※ | ‽ | ⁂ | ⁅ | ⁆ | ⁊ | ⁋ | ⁌ | ⁍ | ⁎ | ⁑
+    operator-compatibility-head → † | ‡ | • | ‰ | ‱ | ※ | ‽ | ⁂ | ⁊ | ⁋ | ⁌ | ⁍ | ⁎ | ⁑
     operator-dot → .
     operator-dots → operator-dot operator-dots[opt]
 
