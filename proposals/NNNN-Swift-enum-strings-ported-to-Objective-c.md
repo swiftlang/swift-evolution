@@ -88,7 +88,7 @@ public struct Planets: String {
 @end
 ```
 
-The different between a swift-enum-string and a swift-struct-string is that swift-enum-string provides a failable initializer while swift-struct-string provides a non-failable initializer.
+The difference between a swift-enum-string and a swift-struct-string is that swift-enum-string provides a failable initializer while swift-struct-string provides a non-failable initializer.
 
 ## Detailed design
 
