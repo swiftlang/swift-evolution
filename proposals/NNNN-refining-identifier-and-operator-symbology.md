@@ -439,7 +439,7 @@ selector)*, minus `Emoji_Defectives` and `ID_Continue`. Again, exclude
 `Pattern_Syntax` code points unless they are in the following blocks:
 Miscellaneous Symbols, Miscellaneous Technical. (Note that the emoji picker on
 Apple platforms--and, possibly, other platforms--automatically inserts U+FE0F
-VARIATION SELECTOR-16 when a user selects such code points; for instance,
+VARIATION SELECTOR-16 when a user selects many such code points; for instance,
 selecting ❤️ inserts U+2764 U+FE0F. Note also that variation selectors are
 discarded by normalization.)
 
