@@ -255,8 +255,7 @@ UAX#31](http://unicode.org/reports/tr31/#Conformance) as follows:
     definition of "Default Identifiers" with the following **profiles**:
 
     1. `ID_Start` and `ID_Continue` shall be used for `Start` and `Continue`,
-       replacing `XID_Start` and `XID_Continue`. This **excludes** characters in
-       `Other_ID_Start` and `Other_ID_Continue`.
+       replacing `XID_Start` and `XID_Continue`.
 
     2. _ 005F LOW LINE shall additionally be allowed as a `Start` character.
     
