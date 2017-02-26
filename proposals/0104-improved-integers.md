@@ -2,8 +2,8 @@
 
 * Proposal: [SE-0104](0104-improved-integers.md)
 * Authors: [Dave Abrahams](https://github.com/dabrahams), [Maxim Moiseev](https://github.com/moiseev)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Joe Groff](https://github.com/jckarter)
+* Status: **Active review (February 17...25, 2017)**
 * Bug: [SR-3196](https://bugs.swift.org/browse/SR-3196)
 * Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/0440700fc555a6c72abb4af807c8b79fb1bec592/proposals/0104-improved-integers.md), [2](https://github.com/apple/swift-evolution/blob/957ab545e05adb94507792e7871b38e34b56a0a5/proposals/0104-improved-integers.md).
 * Discussion on swift-evolution: [here](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170109/030191.html).
@@ -65,7 +65,7 @@ more easily extensible.
 ~~~~
                 +--------------+  +-------------+
         +------>+    Number    |  | Comparable  |
-        |       |   (+,-,*,/)  |  | (==,<,>,...)|
+        |       |    (+,-,*)   |  | (==,<,>,...)|
         |       +-------------++  +---+---------+
         |                     ^       ^
 +-------+------------+        |       |
@@ -251,7 +251,7 @@ public protocol Number : Equatable, ExpressibleByIntegerLiteral {
   ///     let y = Int8(exactly: 1_000)
   ///     // y == nil
   ///
-  /// - Parameter source: A floating-point value to convert to an integer.
+  /// - Parameter source: A BinaryInteger value to convert to an integer.
   init?<T : BinaryInteger>(exactly source: T)
 
   /// A type that can represent the absolute value of any possible value of the

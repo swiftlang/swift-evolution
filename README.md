@@ -31,16 +31,13 @@ source stability for Swift 3 code and to provide ABI stability for the
 Swift standard library. To that end, the Swift 4 release will be
 divided into two stages.
 
-Stage 1 focuses on the essentials required for source and ABI
+Stage 1 focused on the essentials required for source and ABI
 stability. Features that don't fundamentally change the ABI of
 existing language features or imply an ABI-breaking change to the
-standard library will not be considered in this stage. **Swift 4 is
-currently only considering proposals that fit in Stage 1**.
+standard library will not be considered in this stage. 
 
-Stage 2 will commence once the implementation work on the Stage 1
-features is cresting, and can contain a few other large and small
-features. We expect that stage 2 will commence some time in Spring
-2017.
+Stage 2 opened in mid-February and extends until April 1, 2017, after
+which proposals will be held for a later version of Swift.
 
 The high-priority features supporting Stage 1's source and ABI
 stability goals are:
@@ -93,6 +90,40 @@ stability goals are:
   memory ownership model is likely too large for Swift 4 stage 1, we
   need a comprehensive design to understand how it will change the
   ABI.
+
+Swift 4 stage 2 builds on the goals of stage 1. It differs in that
+stage 2 proposals may include some additive changes and changes to
+existing features that don't affect the ABI. There are a few focus
+areas for Swift 4 stage 2:
+
+* Stage 1 proposals: Any proposal that would have been eligible for
+  stage 1 is a priority for stage 2.
+
+* Source-breaking changes: The Swift 4 compiler will provide a
+  source-compatibility mode to allow existing Swift 3 sources to
+  compile, but source-breaking changes can manifest in "Swift 4"
+  mode. That said, changes to fundamental parts of Swift's syntax or
+  standard library APIs that breaks source code are better
+  front-loaded into Swift 4 than delayed until later
+  releases. Relative to Swift 3, the bar for such changes is
+  significantly higher:
+
+  * The existing syntax/API being changed must be actively harmful.
+  * The new syntax/API must clearly be better and not conflict with existing Swift syntax.
+  * There must be a reasonably automatable migration path for existing code.
+
+* Improvements to existing Standard Library facilities: Additive
+  changes that improve existing standard library facilities can be
+  considered. With standard library additions in particular, proposals
+  that provide corresponding implementations are preferred. Potential
+  focus areas for improvement include collections (e.g., new
+  collection algorithms) and improvements to the ergonomics of
+  `Dictionary`.
+
+* Foundation improvements: We anticipate proposing some targeted
+  improvements to Foundation API to continue the goal of making the
+  Cocoa SDK work seamlessly in Swift. Details on the specific goals
+  will be provided as we get started on Swift 4 stage 2.
 
 ## Previous releases
 

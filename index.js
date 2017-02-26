@@ -303,6 +303,10 @@ function renderBody () {
         detailNodes.push(renderReviewPeriod(proposal.status))
       }
 
+      if (state === '.returnedForRevision') {
+        detailNodes.push(renderStatus(proposal.status))
+      }
+
       var details = html('div', { className: 'proposal-details' }, detailNodes)
 
       proposalBody.querySelector('.proposal-content').appendChild(details)
