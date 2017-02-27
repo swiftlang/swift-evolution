@@ -215,7 +215,7 @@ However, occasionally a _constructor_ might be non-copying on purpose, so we'll 
 * If the _destination_ property has been declared as `@NSCopying` in class definition
 * If the _source_ value conforms to `<NSCopying>` protocol
 
-Once both are **TRUE**, then what compiler can be sure about is that developer definitely missed the required manual copy invocation and it would emit either an error or a warning correspondingly. Otherwise, it would not complain of anything and would just leave the decision up to developers.
+Once both are **TRUE**, then what compiler can be sure about is that developer definitely missed the required manual copy invocation and consequently it would emit either an error or a warning correspondingly. Otherwise, it would not complain of anything and would just leave the decision up to developers.
 
 ## Source compatibility
 
