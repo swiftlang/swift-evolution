@@ -3,7 +3,8 @@
 * Proposal: [SE-0153](0153-compensate-for-the-inconsistency-of-nscopyings-behaviour.md)
 * Authors: [Torin Kwok](https://github.com/TorinKwok)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Active review (February 17...22, 2017)**
+* Status: **Accepted**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170227/033357.html)
 
 <!--*During the review process, add the following fields as needed:*
 
@@ -185,13 +186,21 @@ Speaking of Swift, however, there is no stuff like `->` operator to access ivar 
 
 ## Proposed solution
 
-### Compiler magic
-
 Do the compiler magic to call `copy( with: )` in the initializer so that `@NSCopying` attribute no longer subjects to the fact that setter methods would not be invoked in initializers. **Copying should always take place after a property has been declared as `@NSCopying`**. It seems like the most direct way to maintain the `@NSCopying` contract without changing the underlying direct-storage model.
+
+## Source compatibility
+
+Projects written with prior versions of Swift that have not yet adopted this proposal may fail to be built due to the compile-time error. But overall, it will be easy to be resolved. IDEs' Fix-it and auto migrator tools will deal with all works painlessly.
+
+## Effect on ABI stability
+
+The proposal doesn't change the ABI of existing language features.
+
+## Alternatives Considered
 
 ### Compile-time checking
 
-Have compiler emit a **compile-time error or warning** if developers are performing an assignment operation from within an initializer between a property declared as `@NSCopying` and an instance of a `<NSCopying>` protocol conforming class. Also, speaking of GUI integrated development environments such as Xcode, leaving this kind of error or warning **FIXABLE** would be needed in order to make them can be quickly fixed by both IDEs and migrator tools through simply appending `.copy() as! AutoInferredClassType`.
+Instead of introduce the copy within the initializer, have the compiler emit a **compile-time error or warning** if developers are performing an assignment operation from within an initializer between a property declared as `@NSCopying` and an instance of a `<NSCopying>` protocol conforming class. Also, speaking of GUI integrated development environments such as Xcode, leaving this kind of error or warning **FIXABLE** would be needed in order to make them can be quickly fixed by both IDEs and migrator tools through simply appending `.copy() as! AutoInferredClassType`.
 
 With the adjustment mentioned above, following code fragment, for instance, will no longer be successfully compiled:
 
@@ -213,15 +222,3 @@ GUI IDE will be expected to leave developers a fixable error or warning, and thu
 > self.employee = candidate***.copy() as! Person***
 
 Inferring `AutoInferredClassType` from context should be the responsibility of compiler.
-
-## Source compatibility
-
-Projects written with prior versions of Swift that have not yet adopted this proposal may fail to be built due to the compile-time error. But overall, it will be easy to be resolved. IDEs' Fix-it and auto migrator tools will deal with all works painlessly.
-
-## Effect on ABI stability
-
-The proposal doesn't change the ABI of existing language features.
-
-## Alternatives Considered
-
-There is no alternatives considered at this time.
