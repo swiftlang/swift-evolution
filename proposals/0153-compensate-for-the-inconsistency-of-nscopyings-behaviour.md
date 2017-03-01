@@ -214,6 +214,13 @@ GUI IDE will be expected to leave developers a fixable error or warning, and thu
 
 Inferring `AutoInferredClassType` from context should be the responsibility of compiler.
 
+However, occasionally a _constructor_ might be non-copying on purpose, so we'll need a way to disable the error or warning. That is, there would be two key factors determining whether a _fixable_ error or warning should be emitted:
+
+* If the _destination_ property has been declared as `@NSCopying` in class definition
+* If the _source_ value conforms to `<NSCopying>` protocol
+
+Once both are **TRUE**, then what compiler can be sure about is that developer definitely missed the required manual copy invocation and consequently it would emit either an error or a warning correspondingly. Otherwise, it would not complain of anything and would just leave the decision up to developers.
+
 ## Source compatibility
 
 Projects written with prior versions of Swift that have not yet adopted this proposal may fail to be built due to the compile-time error. But overall, it will be easy to be resolved. IDEs' Fix-it and auto migrator tools will deal with all works painlessly.
