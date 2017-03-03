@@ -96,7 +96,7 @@ in mind, and incorporate both recursive constraints and `where` clauses. The cha
 in the _Detailed Design_ section below.
 
 This second change will affect the sort of user code which is accepted by the compiler. User code which uses the
-affected protocols and types will require fewer generic parameter constraints to considered valid. Conversely,
+affected protocols and types will require fewer generic parameter constraints to be considered valid. Conversely,
 user code which (incorrectly) uses the private protocols removed by this proposal, or which uses the affected public
 protocols in an incorrect manner, might cease to be accepted by the compiler after this change is implemented. 
 
