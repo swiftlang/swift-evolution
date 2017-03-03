@@ -134,7 +134,7 @@ class D : P12 {} // Valid
 
 Class `E` above inherits a base class. The inheritance must be explicitly declared in the inheritance clause and can't be implicitly derived from a typealias:
 
-```
+```swift
 class E : C, P1 {} // Valid
 typealias CP1 = C & P1
 class E : CP1 {} // Compiler error: class 'E' does not inherit from class 'C'
