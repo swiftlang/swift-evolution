@@ -120,7 +120,7 @@ There are several benefits provided by this model over the old one:
   The proposed model eliminates the 'largest integer type' concept previously
   used to interoperate between integer types (see `toIntMax` in the current
   model) and instead provides access to machine words. It also introduces the
-  `multiplied(by:_:FullWidth)`, `dividing(_:, _:FullWidth)`, and
+  `multipliedFullWidth(by:)`, `dividingFullWidth(_:)`, and
   `quotientAndRemainder` methods. Together these changes can be used to provide
   an efficient implementation of bignums that would be hard to achieve
   otherwise.
@@ -812,19 +812,16 @@ extension BinaryInteger {
 The `FixedWidthInteger` protocol adds the notion of endianness as well as static
 properties for type bounds and bit width.
 
-The `WithOverflow` family of methods is used in default implementations of
+The `ReportingOverflow` family of methods is used in default implementations of
 mutating arithmetic methods (see the `Numeric` protocol). Having these
 methods allows the library to provide both bounds-checked and masking
 implementations of arithmetic operations, without duplicating code.
 
-The `multiplied(by:, _: FullWidth)` and `dividing(_:, _: FullWidth)` methods
-are necessary building blocks to implement support for integer types of a
-greater width such as arbitrary-precision integers.
+The `multipliedFullWidth(by:)` and `dividingFullWidth(_:)` methods are
+necessary building blocks to implement support for integer types of a greater
+width such as arbitrary-precision integers.
 
 ```Swift
-
-public enum FullWidth { case fullWidth }
-public enum ReportingOverflow { case reportingOverflow }
 
 public protocol FixedWidthInteger : BinaryInteger {
   /// The number of bits used for the underlying binary representation of
@@ -864,7 +861,7 @@ public protocol FixedWidthInteger : BinaryInteger {
   ///   `other`.
   ///
   /// - SeeAlso: `+`
-  func adding(_ other: Self, _: ReportingOverflow)
+  func addingReportingOverflow(_ other: Self)
     -> (partialValue: Self, overflow: ArithmeticOverflow)
 
   /// Returns the difference of this value and the given value along with a
@@ -879,7 +876,7 @@ public protocol FixedWidthInteger : BinaryInteger {
   ///   result of `other` subtracted from this value.
   ///
   /// - SeeAlso: `-`
-  func subtracting(_ other: Self, _: ReportingOverflow)
+  func subtractingReportingOverflow(_ other: Self)
     -> (partialValue: Self, overflow: ArithmeticOverflow)
 
   /// Returns the product of this value and the given value along with a flag
@@ -893,8 +890,8 @@ public protocol FixedWidthInteger : BinaryInteger {
   ///   occurred and the `partialValue` component contains the truncated
   ///   product of this value and `other`.
   ///
-  /// - SeeAlso: `*`, `multiplied(by:_:FullWidth)`
-  func multiplied(by other: Self, _: ReportingOverflow)
+  /// - SeeAlso: `*`, `multipliedFullWidth(by:)`
+  func multipliedReportingOverflow(by other: Self)
     -> (partialValue: Self, overflow: ArithmeticOverflow)
 
   /// Returns the quotient of dividing this value by the given value along with
@@ -910,8 +907,8 @@ public protocol FixedWidthInteger : BinaryInteger {
   ///   If the `overflow` component is `.overflow`, an overflow occurred and
   ///   the `partialValue` component contains the truncated quotient.
   ///
-  /// - SeeAlso: `/`, `dividing(_:_:FullWidth)`
-  func divided(by other: Self, _: ReportingOverflow)
+  /// - SeeAlso: `/`, `dividingFullWidth(_:)`
+  func dividedReportingOverflow(by other: Self)
     -> (partialValue: Self, overflow: ArithmeticOverflow)
 
   /// Returns a double-width value containing the high and low parts of the
@@ -919,14 +916,14 @@ public protocol FixedWidthInteger : BinaryInteger {
   ///
   /// Use this method to calculate the full result of a product that would
   /// otherwise overflow. Unlike traditional truncating multiplication, the
-  /// `multiplied(by:_:FullWidth)` method returns both the high and low
+  /// `multipliedFullWidth(by:)` method returns both the high and low
   /// parts of the product of `self` and `other`. The following example uses
   /// this method to multiply two `UInt8` values that normally overflow when
   /// multiplied:
   ///
   ///     let x: UInt8 = 100
   ///     let y: UInt8 = 20
-  ///     let result = x.multiplied(by: y, .fullWidth)
+  ///     let result = x.multipliedFullWidth(by: y)
   ///     // result.high == 0b00000111
   ///     // result.low  == 0b11010000
   ///
@@ -944,8 +941,8 @@ public protocol FixedWidthInteger : BinaryInteger {
   /// - Returns: A tuple containing the high and low parts of the result of
   ///   multiplying `self` and `other`.
   ///
-  /// - SeeAlso: `multiplied(by:,_:ReportingOverflow)`
-  func multiplied(by other: Self, _: FullWidth) -> DoubleWidth<Self>
+  /// - SeeAlso: `multipliedReportingOverflow(by:)`
+  func multipliedFullWidth(by other: Self) -> DoubleWidth<Self>
 
   /// Returns a tuple containing the quotient and remainder of dividing the
   /// first argument by this value.
@@ -960,7 +957,7 @@ public protocol FixedWidthInteger : BinaryInteger {
   ///     type is signed.
   /// - Returns: A tuple containing the quotient and remainder of `lhs` divided
   ///   by `self`.
-  func dividing(_ lhs: DoubleWidth<Self>, _: FullWidth)
+  func dividingFullWidth(_ lhs: DoubleWidth<Self>)
     -> (quotient: Self, remainder: Self)
 
   /// The number of bits equal to 1 in this value's binary representation.
