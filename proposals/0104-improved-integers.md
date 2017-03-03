@@ -199,9 +199,11 @@ types.
   words, and also allow standard library to provide a default conformance to
   `Hashable`.
 
+* `popcount` property was renamed to `populationCount`.
+
 * `trailingZeroBits` property was added to the `BinaryInteger` protocol.
 
-  `leadingZeroBits` and `popcount` properties are still defined by the
+  `leadingZeroBits` and `populationCount` properties are still defined by the
   `FixedWidthInteger` protocol.
 
 * Endian-converting initializers and properties were added to the
@@ -968,8 +970,8 @@ public protocol FixedWidthInteger : BinaryInteger {
   ///
   ///     let x: Int8 = 0b0001_1111
   ///     // x == 31
-  ///     // x.popcount == 5
-  var popcount: Int { get }
+  ///     // x.populationCount == 5
+  var populationCount: Int { get }
 
   /// The number of leading zeros in this value's binary representation.
   ///
