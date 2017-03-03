@@ -65,13 +65,13 @@ We propose a new model that does not have above mentioned problems and is
 more easily extensible.
 
 ~~~~
-                +--------------+  +-------------+
-        +------>+    Number    |  | Comparable  |
-        |       |    (+,-,*)   |  | (==,<,>,...)|
-        |       +-------------++  +---+---------+
+                +-------------+   +-------------+
+        +------>+   Numeric   |   | Comparable  |
+        |       |   (+,-,*)   |   | (==,<,>,...)|
+        |       +------------++   +---+---------+
         |                     ^       ^
 +-------+------------+        |       |
-|    SignedNumber    |      +-+-------+-----------+
+|    SignedNumeric   |      +-+-------+-----------+
 |     (unary -)      |      |    BinaryInteger    |
 +------+-------------+      |(words,%,bitwise,...)|
        ^                    ++---+-----+----------+
@@ -109,11 +109,11 @@ There are several benefits provided by this model over the old one:
 
 - It enables protocol sharing between integer and floating point types.
 
-  Note the exclusion of the `%` operation from `Number`. Its behavior for
+  Note the exclusion of the `%` operation from `Numeric`. Its behavior for
   floating point numbers is sufficiently different from the one for integers
   that using it in generic context would lead to confusion. The `FloatingPoint`
   protocol introduced by [SE-0067](0067-floating-point-protocols.md) should now
-  refine `SignedNumber`.
+  refine `SignedNumeric`.
 
 - It makes future extensions possible.
 
@@ -187,8 +187,8 @@ types.
   We believe there are no useful entities that support bitwise operations, but
   at the same time are not binary integers.
 
-* `Arithmetic` and `SignedArithmetic` protocols have been renamed to `Number`
-  and `SignedNumber`.
+* `Arithmetic` and `SignedArithmetic` protocols have been renamed to `Numeric`
+  and `SignedNumeric`.
 
 * `minimumSignedRepresentationBitWidth` property was removed.
 
@@ -213,9 +213,9 @@ types.
 
 ### Protocols
 
-#### `Number`
+#### `Numeric`
 
-The `Number` protocol declares binary arithmetic operators – such as `+`,
+The `Numeric` protocol declares binary arithmetic operators – such as `+`,
 `-`, and `*` — and their mutating counterparts.
 
 It provides a suitable basis for arithmetic on scalars such as integers and
@@ -238,7 +238,7 @@ as its argument.
 
 
 ```Swift
-public protocol Number : Equatable, ExpressibleByIntegerLiteral {
+public protocol Numeric : Equatable, ExpressibleByIntegerLiteral {
   /// Creates a new instance from the given integer, if it can be represented
   /// exactly.
   ///
@@ -343,19 +343,19 @@ public protocol Number : Equatable, ExpressibleByIntegerLiteral {
   static func *=(_ lhs: inout Self, rhs: Self)
 }
 
-extension Number {
+extension Numeric {
   public static prefix func + (x: Self) -> Self {
     return x
   }
 }
 ```
 
-#### `SignedNumber`
+#### `SignedNumeric`
 
-The `SignedNumber` protocol is for numbers that can be negated.
+The `SignedNumeric` protocol is for numbers that can be negated.
 
 ```Swift
-public protocol SignedNumber : Number {
+public protocol SignedNumeric : Numeric {
   /// Returns the additive inverse of this value.
   ///
   ///     let x = 21
@@ -380,7 +380,7 @@ public protocol SignedNumber : Number {
   mutating func negate()
 }
 
-extension SignedNumber {
+extension SignedNumeric {
   public static prefix func - (_ operand: Self) -> Self {
     var result = operand
     result.negate()
@@ -413,7 +413,7 @@ type conforming to `BinaryInteger`, using different strategies:
 
 ```Swift
 public protocol BinaryInteger :
-  Comparable, Hashable, Number, CustomStringConvertible, Strideable {
+  Comparable, Hashable, Numeric, CustomStringConvertible, Strideable {
 
   associatedtype Words : Collection // where Iterator.Element == UInt
 
@@ -811,7 +811,7 @@ The `FixedWidthInteger` protocol adds the notion of endianness as well as static
 properties for type bounds and bit width.
 
 The `WithOverflow` family of methods is used in default implementations of
-mutating arithmetic methods (see the `Number` protocol). Having these
+mutating arithmetic methods (see the `Numeric` protocol). Having these
 methods allows the library to provide both bounds-checked and masking
 implementations of arithmetic operations, without duplicating code.
 
@@ -1019,7 +1019,7 @@ public protocol FixedWidthInteger : BinaryInteger {
 public protocol UnsignedInteger : BinaryInteger {
   associatedtype Magnitude : BinaryInteger
 }
-public protocol SignedInteger : BinaryInteger, SignedNumber {
+public protocol SignedInteger : BinaryInteger, SignedNumeric {
   associatedtype Magnitude : BinaryInteger
 }
 ```
