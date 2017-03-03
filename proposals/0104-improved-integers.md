@@ -260,7 +260,7 @@ public protocol Numeric : Equatable, ExpressibleByIntegerLiteral {
 
   /// A type that can represent the absolute value of any possible value of the
   /// conforming type.
-  associatedtype Magnitude : Equatable, ExpressibleByIntegerLiteral
+  associatedtype Magnitude : Numeric, Comparable
 
   /// The magnitude of this value.
   ///
