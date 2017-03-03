@@ -3,10 +3,12 @@
 * Proposal: [SE-0104](0104-improved-integers.md)
 * Authors: [Dave Abrahams](https://github.com/dabrahams), [Maxim Moiseev](https://github.com/moiseev)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Active review (February 17...25, 2017)**
+* Status: **Accepted**
 * Bug: [SR-3196](https://bugs.swift.org/browse/SR-3196)
 * Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/0440700fc555a6c72abb4af807c8b79fb1bec592/proposals/0104-improved-integers.md), [2](https://github.com/apple/swift-evolution/blob/957ab545e05adb94507792e7871b38e34b56a0a5/proposals/0104-improved-integers.md).
 * Discussion on swift-evolution: [here](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170109/030191.html).
+* Decision notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170227/033372.html)
+
 
 ## Introduction
 
@@ -63,13 +65,13 @@ We propose a new model that does not have above mentioned problems and is
 more easily extensible.
 
 ~~~~
-                +--------------+  +-------------+
-        +------>+    Number    |  | Comparable  |
-        |       |    (+,-,*)   |  | (==,<,>,...)|
-        |       +-------------++  +---+---------+
+                +-------------+   +-------------+
+        +------>+   Numeric   |   | Comparable  |
+        |       |   (+,-,*)   |   | (==,<,>,...)|
+        |       +------------++   +---+---------+
         |                     ^       ^
 +-------+------------+        |       |
-|    SignedNumber    |      +-+-------+-----------+
+|    SignedNumeric   |      +-+-------+-----------+
 |     (unary -)      |      |    BinaryInteger    |
 +------+-------------+      |(words,%,bitwise,...)|
        ^                    ++---+-----+----------+
@@ -107,18 +109,18 @@ There are several benefits provided by this model over the old one:
 
 - It enables protocol sharing between integer and floating point types.
 
-  Note the exclusion of the `%` operation from `Number`. Its behavior for
+  Note the exclusion of the `%` operation from `Numeric`. Its behavior for
   floating point numbers is sufficiently different from the one for integers
   that using it in generic context would lead to confusion. The `FloatingPoint`
   protocol introduced by [SE-0067](0067-floating-point-protocols.md) should now
-  refine `SignedNumber`.
+  refine `SignedNumeric`.
 
 - It makes future extensions possible.
 
   The proposed model eliminates the 'largest integer type' concept previously
   used to interoperate between integer types (see `toIntMax` in the current
   model) and instead provides access to machine words. It also introduces the
-  `multiplied(by:_:FullWidth)`, `dividing(_:, _:FullWidth)`, and
+  `multipliedFullWidth(by:)`, `dividingFullWidth(_:)`, and
   `quotientAndRemainder` methods. Together these changes can be used to provide
   an efficient implementation of bignums that would be hard to achieve
   otherwise.
@@ -185,8 +187,8 @@ types.
   We believe there are no useful entities that support bitwise operations, but
   at the same time are not binary integers.
 
-* `Arithmetic` and `SignedArithmetic` protocols have been renamed to `Number`
-  and `SignedNumber`.
+* `Arithmetic` and `SignedArithmetic` protocols have been renamed to `Numeric`
+  and `SignedNumeric`.
 
 * `minimumSignedRepresentationBitWidth` property was removed.
 
@@ -197,9 +199,11 @@ types.
   words, and also allow standard library to provide a default conformance to
   `Hashable`.
 
+* `popcount` property was renamed to `populationCount`.
+
 * `trailingZeroBits` property was added to the `BinaryInteger` protocol.
 
-  `leadingZeroBits` and `popcount` properties are still defined by the
+  `leadingZeroBits` and `populationCount` properties are still defined by the
   `FixedWidthInteger` protocol.
 
 * Endian-converting initializers and properties were added to the
@@ -211,9 +215,9 @@ types.
 
 ### Protocols
 
-#### `Number`
+#### `Numeric`
 
-The `Number` protocol declares binary arithmetic operators – such as `+`,
+The `Numeric` protocol declares binary arithmetic operators – such as `+`,
 `-`, and `*` — and their mutating counterparts.
 
 It provides a suitable basis for arithmetic on scalars such as integers and
@@ -236,7 +240,7 @@ as its argument.
 
 
 ```Swift
-public protocol Number : Equatable, ExpressibleByIntegerLiteral {
+public protocol Numeric : Equatable, ExpressibleByIntegerLiteral {
   /// Creates a new instance from the given integer, if it can be represented
   /// exactly.
   ///
@@ -256,7 +260,7 @@ public protocol Number : Equatable, ExpressibleByIntegerLiteral {
 
   /// A type that can represent the absolute value of any possible value of the
   /// conforming type.
-  associatedtype Magnitude : Equatable, ExpressibleByIntegerLiteral
+  associatedtype Magnitude : Numeric, Comparable
 
   /// The magnitude of this value.
   ///
@@ -341,19 +345,19 @@ public protocol Number : Equatable, ExpressibleByIntegerLiteral {
   static func *=(_ lhs: inout Self, rhs: Self)
 }
 
-extension Number {
+extension Numeric {
   public static prefix func + (x: Self) -> Self {
     return x
   }
 }
 ```
 
-#### `SignedNumber`
+#### `SignedNumeric`
 
-The `SignedNumber` protocol is for numbers that can be negated.
+The `SignedNumeric` protocol is for numbers that can be negated.
 
 ```Swift
-public protocol SignedNumber : Number {
+public protocol SignedNumeric : Numeric {
   /// Returns the additive inverse of this value.
   ///
   ///     let x = 21
@@ -378,7 +382,7 @@ public protocol SignedNumber : Number {
   mutating func negate()
 }
 
-extension SignedNumber {
+extension SignedNumeric {
   public static prefix func - (_ operand: Self) -> Self {
     var result = operand
     result.negate()
@@ -411,7 +415,7 @@ type conforming to `BinaryInteger`, using different strategies:
 
 ```Swift
 public protocol BinaryInteger :
-  Comparable, Hashable, Number, CustomStringConvertible, Strideable {
+  Comparable, Hashable, Numeric, CustomStringConvertible, Strideable {
 
   associatedtype Words : Collection // where Iterator.Element == UInt
 
@@ -808,19 +812,16 @@ extension BinaryInteger {
 The `FixedWidthInteger` protocol adds the notion of endianness as well as static
 properties for type bounds and bit width.
 
-The `WithOverflow` family of methods is used in default implementations of
-mutating arithmetic methods (see the `Number` protocol). Having these
+The `ReportingOverflow` family of methods is used in default implementations of
+mutating arithmetic methods (see the `Numeric` protocol). Having these
 methods allows the library to provide both bounds-checked and masking
 implementations of arithmetic operations, without duplicating code.
 
-The `multiplied(by:, _: FullWidth)` and `dividing(_:, _: FullWidth)` methods
-are necessary building blocks to implement support for integer types of a
-greater width such as arbitrary-precision integers.
+The `multipliedFullWidth(by:)` and `dividingFullWidth(_:)` methods are
+necessary building blocks to implement support for integer types of a greater
+width such as arbitrary-precision integers.
 
 ```Swift
-
-public enum FullWidth { case fullWidth }
-public enum ReportingOverflow { case reportingOverflow }
 
 public protocol FixedWidthInteger : BinaryInteger {
   /// The number of bits used for the underlying binary representation of
@@ -860,7 +861,7 @@ public protocol FixedWidthInteger : BinaryInteger {
   ///   `other`.
   ///
   /// - SeeAlso: `+`
-  func adding(_ other: Self, _: ReportingOverflow)
+  func addingReportingOverflow(_ other: Self)
     -> (partialValue: Self, overflow: ArithmeticOverflow)
 
   /// Returns the difference of this value and the given value along with a
@@ -875,7 +876,7 @@ public protocol FixedWidthInteger : BinaryInteger {
   ///   result of `other` subtracted from this value.
   ///
   /// - SeeAlso: `-`
-  func subtracting(_ other: Self, _: ReportingOverflow)
+  func subtractingReportingOverflow(_ other: Self)
     -> (partialValue: Self, overflow: ArithmeticOverflow)
 
   /// Returns the product of this value and the given value along with a flag
@@ -889,8 +890,8 @@ public protocol FixedWidthInteger : BinaryInteger {
   ///   occurred and the `partialValue` component contains the truncated
   ///   product of this value and `other`.
   ///
-  /// - SeeAlso: `*`, `multiplied(by:_:FullWidth)`
-  func multiplied(by other: Self, _: ReportingOverflow)
+  /// - SeeAlso: `*`, `multipliedFullWidth(by:)`
+  func multipliedReportingOverflow(by other: Self)
     -> (partialValue: Self, overflow: ArithmeticOverflow)
 
   /// Returns the quotient of dividing this value by the given value along with
@@ -906,8 +907,8 @@ public protocol FixedWidthInteger : BinaryInteger {
   ///   If the `overflow` component is `.overflow`, an overflow occurred and
   ///   the `partialValue` component contains the truncated quotient.
   ///
-  /// - SeeAlso: `/`, `dividing(_:_:FullWidth)`
-  func divided(by other: Self, _: ReportingOverflow)
+  /// - SeeAlso: `/`, `dividingFullWidth(_:)`
+  func dividedReportingOverflow(by other: Self)
     -> (partialValue: Self, overflow: ArithmeticOverflow)
 
   /// Returns a double-width value containing the high and low parts of the
@@ -915,14 +916,14 @@ public protocol FixedWidthInteger : BinaryInteger {
   ///
   /// Use this method to calculate the full result of a product that would
   /// otherwise overflow. Unlike traditional truncating multiplication, the
-  /// `multiplied(by:_:FullWidth)` method returns both the high and low
+  /// `multipliedFullWidth(by:)` method returns both the high and low
   /// parts of the product of `self` and `other`. The following example uses
   /// this method to multiply two `UInt8` values that normally overflow when
   /// multiplied:
   ///
   ///     let x: UInt8 = 100
   ///     let y: UInt8 = 20
-  ///     let result = x.multiplied(by: y, .fullWidth)
+  ///     let result = x.multipliedFullWidth(by: y)
   ///     // result.high == 0b00000111
   ///     // result.low  == 0b11010000
   ///
@@ -940,8 +941,8 @@ public protocol FixedWidthInteger : BinaryInteger {
   /// - Returns: A tuple containing the high and low parts of the result of
   ///   multiplying `self` and `other`.
   ///
-  /// - SeeAlso: `multiplied(by:,_:ReportingOverflow)`
-  func multiplied(by other: Self, _: FullWidth) -> DoubleWidth<Self>
+  /// - SeeAlso: `multipliedReportingOverflow(by:)`
+  func multipliedFullWidth(by other: Self) -> DoubleWidth<Self>
 
   /// Returns a tuple containing the quotient and remainder of dividing the
   /// first argument by this value.
@@ -956,7 +957,7 @@ public protocol FixedWidthInteger : BinaryInteger {
   ///     type is signed.
   /// - Returns: A tuple containing the quotient and remainder of `lhs` divided
   ///   by `self`.
-  func dividing(_ lhs: DoubleWidth<Self>, _: FullWidth)
+  func dividingFullWidth(_ lhs: DoubleWidth<Self>)
     -> (quotient: Self, remainder: Self)
 
   /// The number of bits equal to 1 in this value's binary representation.
@@ -966,8 +967,8 @@ public protocol FixedWidthInteger : BinaryInteger {
   ///
   ///     let x: Int8 = 0b0001_1111
   ///     // x == 31
-  ///     // x.popcount == 5
-  var popcount: Int { get }
+  ///     // x.populationCount == 5
+  var populationCount: Int { get }
 
   /// The number of leading zeros in this value's binary representation.
   ///
@@ -1017,7 +1018,7 @@ public protocol FixedWidthInteger : BinaryInteger {
 public protocol UnsignedInteger : BinaryInteger {
   associatedtype Magnitude : BinaryInteger
 }
-public protocol SignedInteger : BinaryInteger, SignedNumber {
+public protocol SignedInteger : BinaryInteger, SignedNumeric {
   associatedtype Magnitude : BinaryInteger
 }
 ```
