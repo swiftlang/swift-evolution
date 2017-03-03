@@ -15,7 +15,7 @@ Since the release of Swift 3, the access level change of SE-0025 was met with di
 
 The `private` keyword is a "soft default" access modifier for restricting access within a file. Scoped access is not a good behavior for a "soft default" because it is extremely common to use several extensions within a file. A "soft default" (and therefore `private`) should work well with this idiom. It is fair to say that changing the behavior of `private` such that it does not work well with extensions meets the criteria of actively harmful in the sense that it subtly encourages overuse of scoped access control and discourages the more reasonable default by giving it the awkward name `fileprivate`.
 
-Compared to a file-based access level, the scoped-based access level adds meaningful information by hiding implementation details which do not concern other types or extensions in the same file. But is that distinction between `private` and `fileprivate` actively used by the larger community of Swift developers? And if it were used pervasively, would it be worth the cognitive load and complexity of keeping two very similar access levels in the language? This proposal argues that answer to both questions is no and therefore wish to simplify Swift's access control story by removing scoped access.
+Compared to a file-based access level, the scoped-based access level adds meaningful information by hiding implementation details which do not concern other types or extensions in the same file. But is that distinction between `private` and `fileprivate` actively used by the larger community of Swift developers? And if it were used pervasively, would it be worth the cognitive load and complexity of keeping two very similar access levels in the language? This proposal argues that answer to both questions is no and therefore wish to simplify Swift's access control story by removing scoped access and leaving more design breathing space for future discussions around submodules.
 
 ## Detailed design
 
@@ -47,4 +47,4 @@ extension Foo {
 
 ## Thanks
 
-I'd like to extend my thanks to Matthew Johnson who has contributed and wrote many points in the motivation section.
+I'd like to extend my thanks to Xiaodi Wu and Matthew Johnson for their respective contributions.
