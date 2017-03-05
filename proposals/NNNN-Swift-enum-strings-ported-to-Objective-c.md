@@ -89,7 +89,7 @@ public enum Food: String {
 } 
 
 // Objective-c
-
+// The variable will <name_of_enum><name_of_case>.  And should follow camel-case rules.
 typedef NSString *_Nonnull Food;
 static Food const FoodCalamari = @"Calamari";
 static Food const FoodFish = @"Flounder";
