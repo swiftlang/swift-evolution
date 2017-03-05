@@ -21,13 +21,13 @@ The standard library currently has protocols that use the term `Convertible` in 
 
 Further, the standard library team has observed:
 
-    The "literal" protocols are not about conversion, they are about adopting
-    a certain syntax provided by the language.  "Convertible" in the name is 
-    a red herring: a type can't be convertible from an integer literal because 
-    there is no "IntegerLiteral" entity in the type system.  
-    The literal *becomes* typed as the corresponding literal type 
-    (e.g., Int or String), and as far as the user at the call site is concerned, 
-    there is no visible conversion (even if one is happening behind the scenes).
+> The "literal" protocols are not about conversion, they are about adopting
+> a certain syntax provided by the language.  "Convertible" in the name is 
+> a red herring: a type can't be convertible from an integer literal because 
+> there is no "IntegerLiteral" entity in the type system.  
+> The literal *becomes* typed as the corresponding literal type 
+> (e.g., Int or String), and as far as the user at the call site is concerned, 
+> there is no visible conversion (even if one is happening behind the scenes).
 
 [An earlier proposal](https://github.com/apple/swift-evolution/blob/master/proposals/0041-conversion-protocol-conventions.md) was intended to address the first problem by introducing strong naming conventions for three kinds of conversion protocols (*from*, *to*, and *bidirectional*).  The review highlighted the difficulty in establishing conventions that everyone is happy with.  This proposal takes a different approach to solving the problem that originally inspired that proposal while also solving the awkwardness of the current names described by the standard library team.
 
@@ -83,26 +83,26 @@ The discussion thread for this proposal includes abundant bike shedding on the n
 
 Some of the names that have been suggested have been inaccurate due to a misunderstanding of what the protocols do.  Dave Abrahams explained during the discussion:
 
-    No, it's exactly the opposite, as I keep saying.  Conformance to this
-    protocol does *not* mean you can initialize the type with a literal.
-    Proof:
-
-```swift
-  func f<T: IntegerLiteralConvertible>() -> T {
-    return T(integerLiteral: 43) // Error
-    return T(43)                 // Also an Error
-  }
-
-// It means an instance of the type can be *written* as a literal:
-
-  func f<T: IntegerLiteralConvertible>() -> T {
-    return 43   // OK
-  }
-```
-
-    Everybody's confused about the meaning of the protocol, and doesn't like
-    the proposed names because they imply exactly the actual meaning of the
-    protocol, which they misunderstand.
+> No, it's exactly the opposite, as I keep saying.  Conformance to this
+> protocol does *not* mean you can initialize the type with a literal.
+> Proof:
+>
+> ```swift
+> func f<T: IntegerLiteralConvertible>() -> T {
+>    return T(integerLiteral: 43) // Error
+>    return T(43)                 // Also an Error
+> }
+>
+> // It means an instance of the type can be *written* as a literal:
+>
+> func f<T: IntegerLiteralConvertible>() -> T {
+>    return 43   // OK
+> }
+>```
+>
+> Everybody's confused about the meaning of the protocol, and doesn't like
+> the proposed names because they imply exactly the actual meaning of the
+> protocol, which they misunderstand.
 
 ### Previous Version
 
@@ -121,35 +121,35 @@ Several commenters suggested that this naming scheme is confusing at the site of
 
 Nate Cook provided the best explanation of the potential confusion:
 
-    Primarily, the new names read like we're saying that a conforming type is a 
-    literal, compounding a common existing confusion between literals and types 
-    that can be initialized with a literal. Swift's type inference can sometimes 
-    make it seem like dark magic is afoot with literal conversions—for example, 
-    you need to understand an awful lot about the standard library to figure out 
-    why line 1 works here but not line 2:
+> Primarily, the new names read like we're saying that a conforming type is a 
+> literal, compounding a common existing confusion between literals and types 
+> that can be initialized with a literal. Swift's type inference can sometimes 
+> make it seem like dark magic is afoot with literal conversions—for example, 
+> you need to understand an awful lot about the standard library to figure out 
+> why line 1 works here but not line 2:
 
-Note: The comment above is still valid if it is corrected to say "types that can have instances *written as* a literal" rather than "types that can be *initialized with* a literal".
+>```swift
+>var x = [1, 2, 3, 4, 5]
+>let y = [10, 20]
+>
+>x[1..<2] = [10, 20]     // 1
+>x[1..<2] = y            // 2
+>```
 
-```swift
-var x = [1, 2, 3, 4, 5]
-let y = [10, 20]
+(Note: The comment above is still valid if it is corrected to say "types that can have instances *written as* a literal" rather than "types that can be *initialized with* a literal".)
 
-x[1..<2] = [10, 20]     // 1
-x[1..<2] = y            // 2
-```
-
-    These new names are a (small) step in the wrong direction. While it's true 
-    that the type system doesn't have an IntegerLiteral type, the language does 
-    have integer literals. If someone reads:
-
-```swift
-extension MyInt : Syntax.IntegerLiteral { ... }
-```
-
-    the implication is that MyInt is an integer literal, and therefore instances 
-    of MyInt should be usable wherever an integer literal is usable. 
-    The existing "Convertible" wording may be a red herring, but it at least 
-    suggests that there's a difference between a literal and a concrete type.
+> These new names are a (small) step in the wrong direction. While it's true 
+> that the type system doesn't have an IntegerLiteral type, the language does 
+> have integer literals. If someone reads:
+>
+>```swift
+>extension MyInt : Syntax.IntegerLiteral { ... }
+>```
+>
+> the implication is that MyInt is an integer literal, and therefore instances 
+> of MyInt should be usable wherever an integer literal is usable. 
+> The existing "Convertible" wording may be a red herring, but it at least 
+> suggests that there's a difference between a literal and a concrete type.
 
 
 ### Namespace names
