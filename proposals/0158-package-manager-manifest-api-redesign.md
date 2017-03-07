@@ -1,9 +1,10 @@
 # Package Manager Manifest API Redesign
 
-* Proposal: [SE-XXXX](xxxx-package-manager-manifest-api-redesign.md)
+* Proposal: [SE-0158](0158-package-manager-manifest-api-redesign.md)
 * Author: [Ankit Aggarwal](https://github.com/aciidb0mb3r)
 * Review Manager: [Rick Ballard](https://github.com/rballard)
-* Status: **Discussion**
+* Status: **Active review (March 7...March 13, 2017)**
+* Bug: [SR-3949](https://bugs.swift.org/browse/SR-3949)
 
 ## Introduction
 
