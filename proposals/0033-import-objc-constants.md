@@ -4,7 +4,7 @@
 * Author: [Jeff Kelley](https://github.com/SlaunchaMan)
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-April/000097.html)
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160307/011996.html)
 
 ## Introduction
 

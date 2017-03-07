@@ -200,8 +200,8 @@ function renderNav () {
   })
 
   var expandableArea = html('div', { className: 'filter-options expandable' }, [
-    html('h5', { id: 'filter-options-label'}, 'Status'),
-    html('ul', { className: 'filter-by-status'})
+    html('h5', { id: 'filter-options-label' }, 'Status'),
+    html('ul', { className: 'filter-by-status' })
   ])
 
   nav.querySelector('.nav-contents').appendChild(expandableArea)
@@ -218,7 +218,7 @@ function renderNav () {
   if (implementedCheckboxIfPresent) {
     // add an extra row of options to filter by language version
     var versionRowHeader = html('h5', { id: 'version-options-label', className: 'hidden' }, 'Language Version')
-    var versionRow = html('ul', { id: 'version-options', className: 'filter-by-status hidden'})
+    var versionRow = html('ul', { id: 'version-options', className: 'filter-by-status hidden' })
 
     /** Helper to give versions like 3.0.1 an okay ID to use in a DOM element. (swift-3-0-1) */
     function idSafeName (name) {
@@ -274,7 +274,7 @@ function renderBody () {
         ]),
         html('div', { className: 'proposal-content' }, [
           html('div', { className: 'proposal-header' }, [
-            html('span', { className: 'proposal-id'}, [
+            html('span', { className: 'proposal-id' }, [
               proposal.id
             ]),
             html('h4', { className: 'proposal-title' }, [
@@ -301,6 +301,10 @@ function renderBody () {
       if (state === '.activeReview' || state === '.scheduledForReview') {
         detailNodes.push(renderStatus(proposal.status))
         detailNodes.push(renderReviewPeriod(proposal.status))
+      }
+
+      if (state === '.returnedForRevision') {
+        detailNodes.push(renderStatus(proposal.status))
       }
 
       var details = html('div', { className: 'proposal-details' }, detailNodes)
@@ -340,7 +344,7 @@ function renderAuthors (authors) {
 function renderReviewManager (reviewManager) {
   return html('div', { className: 'review-manager proposal-detail' }, [
     html('div', { className: 'proposal-detail-label' }, 'Review Manager: '),
-    html('div', { className: 'proposal-detail-value'}, [
+    html('div', { className: 'proposal-detail-value' }, [
       reviewManager.link
         ? html('a', { href: reviewManager.link, target: '_blank' }, reviewManager.name)
         : reviewManager.name
@@ -408,19 +412,32 @@ function renderReviewPeriod (status) {
   var start = new Date(status.start)
   var end = new Date(status.end)
 
+  var startMonth = start.getUTCMonth()
+  var endMonth = end.getUTCMonth()
+
+  var detailNodes = [months[startMonth], ' ']
+
+  if (startMonth === endMonth) {
+    detailNodes.push(
+      start.getUTCDate().toString(),
+      '–',
+      end.getUTCDate().toString()
+    )
+  } else {
+    detailNodes.push(
+      start.getUTCDate().toString(),
+      ' – ',
+      months[endMonth],
+      ' ',
+      end.getUTCDate().toString()
+    )
+  }
+
   return html('div', { className: 'proposal-detail' }, [
     html('div', { className: 'proposal-detail-label' }, [
       'Scheduled: '
     ]),
-    html('div', { className: 'proposal-detail-value' }, [
-      months[start.getUTCMonth()],
-      ' ',
-      start.getUTCDate().toString(),
-      ' — ',
-      months[end.getUTCMonth()],
-      ' ',
-      end.getUTCDate().toString()
-    ])
+    html('div', { className: 'proposal-detail-value' }, detailNodes)
   ])
 }
 
@@ -735,11 +752,11 @@ function updateFilterDescription (selectedStateNames) {
 
   if (swiftVersionStates.length > 0 && swiftVersionStates.length <= FILTER_DESCRIPTION_LIMIT) {
     selectedStateNames = selectedStateNames.filter(function (state) { return !state.match(/swift|implemented/i) })
-      .concat(`Implemented (${swiftVersionStates.join(', ')})`)
+      .concat('Implemented (' + swiftVersionStates.join(', ') + ')')
   }
 
   if (selectedStateNames.length > FILTER_DESCRIPTION_LIMIT) {
-    container.innerText = `${stateCount} Filters`
+    container.innerText = stateCount + ' Filters'
   } else if (selectedStateNames.length === 0) {
     container.innerText = 'All Statuses'
   } else {

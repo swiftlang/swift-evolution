@@ -1,9 +1,11 @@
 # Move UnsafeMutablePointer.initialize(from:) to UnsafeMutableBufferPointer
 
 * Proposal: [SE-0147](0147-move-unsafe-initialize-from.md)
-* Authors: [Ben Cohen](https://github.com/airspeedswift)
+* Author: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted**
+* Status: **Implemented (Swift 3.1)**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170102/029945.html)
+* Pull Request: [apple/swift#6601](https://github.com/apple/swift/pull/6601)
 
 ## Introduction
 

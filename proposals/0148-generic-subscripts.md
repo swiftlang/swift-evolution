@@ -1,11 +1,11 @@
 # Generic Subscripts
 
 * Proposal: [SE-0148](0148-generic-subscripts.md)
-* Authors: [Chris Eidhof](http://github.com/chriseidhof/)
+* Author: [Chris Eidhof](https://github.com/chriseidhof)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Active review (January 19...January 24, 2017)**
-
-* Bugs: [SR-115](https://bugs.swift.org/browse/SR-115?jql=text%20~%20%22Generic%20subscript%22)
+* Status: **Implemented (Swift 4)**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170123/031048.html)
+* Bug: [SR-115](https://bugs.swift.org/browse/SR-115)
 
 ## Introduction
 

@@ -3,9 +3,9 @@
 * Proposal: [SE-0149](0149-package-manager-top-of-tree.md)
 * Author: [Boris Bügling](https://github.com/neonichu)
 * Review Manager: [Daniel Dunbar](https://github.com/ddunbar)
-* Status: **Active review (January 24...January 31, 2017)**
-
-* Bugs: [SR-3709](https://bugs.swift.org/browse/SR-3709)
+* Status: **Implemented (Swift 4)**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170130/031427.html)
+* Bug: [SR-3709](https://bugs.swift.org/browse/SR-3709)
 
 ## Introduction
 
