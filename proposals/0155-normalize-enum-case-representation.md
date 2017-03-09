@@ -42,7 +42,7 @@ There are many surprising aspects of enum constructors, however:
 1. After [SE-0111][], Swift function's fully qualified name consists of its base
    name and all of its argument labels. User can use the full name of the
    function at use site. In the example above, `locals` and `body` are currently
-   not part of the case constructors name, therefore the expected syntax in
+   not part of the case constructors name, therefore the expected syntax is
    invalid.
 
    ```swift
@@ -52,11 +52,6 @@ There are many surprising aspects of enum constructors, however:
    ```
 2. Case constructors cannot include a default value for each parameter. This
    is yet another feature available to functions.
-
-3. Some user may expect, similar to function, that case constructors can be
-   overloaded. After all, two enum cases with the same full name but different
-   types are clearly distinct to both the compiler and the user.  This is
-   unavailable to Swift 3 users.
 
 As previous mentioned, these are symptoms of associated values being a tuple
 instead of having its own distinct semantics. This problem manifests more in
@@ -163,35 +158,6 @@ element-name = identifier;
 enum-case-element-default-value-clause = "=" expression;
 ```
 
-### Enum Case "Overloading"
-
-An enum may contain cases with the same full name but with associated values of
-different types. For example:
-
-```swift
-enum Expr {
-    case literal(Bool)
-    case literal(Int)
-}
-```
-
-The above cases have overloaded constructors, which follow the same rules as
-functions at call site for disambiguation:
-
-```swift
-// It's clear which case is being constructed in the following.
-let aBool: Expr = .literal(false)
-let anInt: Expr = .literal(42)
-```
-
-User must specify an `as` expression in sub-patterns in pattern matching, in
-order to match with such cases:
-
-```swift
-case .literal(let value) // this is ambiguous
-case .literal(let value as Bool) // matches `case literal(Bool)`
-```
-
 ### Alternative Payload-less Case Declaration
 
 In Swift 3, the following syntax is valid:
@@ -204,12 +170,12 @@ enum Tree {
 
 `Tree.leaf` has a very unexpected type to most Swift users: `(()) -> Tree`
 
-We propose this syntax declare the "bare" case instead. So it's going to be
-the equivalent of
+We propose this syntax become illegal. User must explicitly declare
+associated value of type `Void` if needed:
 
 ```swift
 enum Tree {
-    case leaf // `()` is optional and does the same thing.
+    case leaf(Void)
 }
 ```
 
@@ -326,6 +292,9 @@ The previous revision of this proposal mandated that the labeled form of
 sub-pattern (`case .elet(locals: let x, body: let y)`) be the only acceptable
 pattern. Turns out the community considers this to be too verbose in some cases.
 
+A drafted version of this proposal considered allowing "overloaded" declaration
+of enum cases (same full-name, but with associated values with different types).
+We ultimately decided that this feature is out of the scope of this proposal.
 
 [SE-0155]: 0155-normalize-enum-case-representation.md
 [SE-0111]: 0111-remove-arg-label-type-significance.md
