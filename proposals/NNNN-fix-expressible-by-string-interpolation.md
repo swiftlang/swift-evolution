@@ -210,10 +210,12 @@ A prototype of this design is available in [this branch](https://github.com/appl
 
 In the constraint generator, we constrain all literal segments' 
 types to equal the type of the `InterpolatedStringLiteralExpr` itself. 
-(**Note:** This will complicate a constraint system which was radically 
+
+> **Draft note:** This will complicate a constraint system which was radically 
 simplified in [21ee10b][21ee10b], apparently to improve compile times; 
-not having access to the underlying bug, I can't tell how serious this 
-problem might be.)
+not having access to the underlying bug, I can't tell if this might 
+cause a regression. I'd appreciate input from someone involved in the 
+original fix, or who can at least see rdar://problem/29389887.
 
 In the constraint applier, we only wrap interpolated segments, not 
 literal segments, in `init(stringInterpolationSegment:)` calls.
