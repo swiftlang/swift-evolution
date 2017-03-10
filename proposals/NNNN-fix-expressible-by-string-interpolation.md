@@ -220,10 +220,10 @@ original fix, or who can at least see rdar://problem/29389887.
 In the constraint applier, we only wrap interpolated segments, not 
 literal segments, in `init(stringInterpolationSegment:)` calls.
 
-Finally, we update the protocol in the standard library. We make it 
-require `ExpressibleByStringLiteral` conformance. (This is actually 
-a sensible design anyway: you need this conformance to support literals 
-without any interpolations.)
+Finally, we update the `_ExpressibleByStringInterpolation` protocol in the 
+standard library to make it require `ExpressibleByStringLiteral` conformance. 
+(This is actually a sensible design anyway: you need this conformance to 
+support literals without any interpolations.)
 
 ```swift
 -public protocol _ExpressibleByStringInterpolation {
