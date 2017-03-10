@@ -208,18 +208,6 @@ and only interpolated segments are processed by
 
 A prototype of this design is available in [this branch](https://github.com/apple/swift/compare/master...brentdax:new-interpolation).
 
-In the standard library, we change the definition of 
-`ExpressibleByStringInterpolation` to require 
-`ExpressibleByStringLiteral` conformance:
-
-```swift
--public protocol _ExpressibleByStringInterpolation {
-+public protocol _ExpressibleByStringInterpolation: ExpressibleByStringLiteral {
-```
-
-This is actually a sensible design anyway: you need this conformance 
-to support literals without any interpolations.
-
 In the constraint generator, we constrain all literal segments' 
 types to equal the type of the `InterpolatedStringLiteralExpr` itself. 
 (**Note:** This will complicate a constraint system which was radically 
@@ -227,12 +215,26 @@ simplified in [21ee10b][21ee10b], apparently to improve compile times;
 not having access to the underlying bug, I can't tell how serious this 
 problem might be.)
 
-Finally, in the constraint applier, we only wrap interpolated segments, 
-not literal segments, in `init(stringInterpolationSegment:)` calls.
+In the constraint applier, we only wrap interpolated segments, not 
+literal segments, in `init(stringInterpolationSegment:)` calls.
+
+Finally, we update the protocol in the standard library. We make it 
+require `ExpressibleByStringLiteral` conformance. (This is actually 
+a sensible design anyway: you need this conformance to support literals 
+without any interpolations.)
+
+```swift
+-public protocol _ExpressibleByStringInterpolation {
++public protocol _ExpressibleByStringInterpolation: ExpressibleByStringLiteral {
+```
+
+We also update its documentation to describe the new semantics; see 
+[this commit][7bae8ce] for precise proposed wording.
 
 And...that's it. This change is surprisingly surgical.
 
   [21ee10b]: https://github.com/apple/swift/commit/21ee10b63b168727aa6d05fe7360c8dac535a44f
+  [7bae8ce]: https://github.com/brentdax/swift/commit/7bae8ce241ef7fd16d94394e80336105427db195
 
 ## Source compatibility
 
