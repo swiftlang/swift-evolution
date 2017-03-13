@@ -17,7 +17,7 @@
 
 First of all, in Swift, the Objective-C `copy` property attribute translates to `@NSCopying`.
 
-Like Objective-C, in Swift, avoiding accessing ivar via setter methods in initializer is considered as the best pratice. Unlike Objective-C, which gives developers the freedom to decide on whether assign a value to a property by invoking setter or by accessing ivar directly, accessing a property in Swift from within an initializer always does direct access to the storage rather than going through the setter, even if using `dot` syntax.
+Like Objective-C, in Swift, avoiding accessing ivar via setter methods in initializer is considered as the best practice. Unlike Objective-C, which gives developers the freedom to decide on whether assign a value to a property by invoking setter or by accessing ivar directly, accessing a property in Swift from within an initializer always does direct access to the storage rather than going through the setter, even if using `dot` syntax.
 
 However, as a side-effect, `@NSCopying` attribute does not work as consistently as we usually expected in Swift initializers after developers declared a property as `@NSCopying`.
 
@@ -90,7 +90,7 @@ print( johnAppleseed )		 // Prints "John Appleseed, Engineer"
 // job stored in `johnAppleseed`.
 ```
 
-Up to now, everything seems to run right. However, problem will soon emerge once we begin introducing a new class consuming instances of `Person` class:
+Up to now, everything seems to run right. However, problems will soon emerge once we begin introducing a new class consuming instances of `Person` class:
 
 ``` swift
 class Department: NSObject {
@@ -140,7 +140,7 @@ print( lab.employee )	// Prints "Isaac Newton, Astronomer"
 
 Setting the job of `isaacNewton` affects the job stored in `lab.employee`. That's an unexpected behavior as we have declared `employee` property as `@NSCopying`. Obviously, `@NSCopying` semantic became effectless implicitly in the initializer of `Department` class.
 
-For the moment, if we indeed require copy we have to invoke `copy()` method explictly on instances that wanna be copied to make sure that classes' properties are able to store deeply-copied results during the initialization:
+For the moment, if we indeed require copy we have to invoke `copy()` method explictly on instances that want to be copied to make sure that classes' properties are able to store deeply-copied results during the initialization:
 
 ``` swift
 init( employee candidate: Person ) {
@@ -160,9 +160,9 @@ print( isaacNewton )	// Prints "Isaac Newton, Physicist"
 print( lab.employee ) 	// Prints "Isaac Newton, Astronomer"
 ```
 
-It is undeniably reasonable to enfoce programmers to access instance variables directly from initializer methods because of the potential troubles made by setter methods' additional side-effects when the initialization is not complete yet. However, I believe we at least should be warned by Swift compiler when we assigned an instance of `NSCopying` conforming class to a class's property declared as `@NSCopying` during the initialization.
+It is undeniably reasonable to enforce programmers to access instance variables directly from initializer methods because of the potential troubles made by setter methods' additional side-effects when the initialization is not complete yet. However, I believe we at least should be warned by the Swift compiler when we assigned an instance of `NSCopying` conforming class to a class's property declared as `@NSCopying` during the initialization.
 
-In Objective-C, developers can make decision on this process explicitly by writting done either:
+In Objective-C, developers can make a decision on this process explicitly by writing done either:
 
 ```objc
 - ( instancetype )initWithName: ( NSString* )name {
@@ -182,7 +182,7 @@ or:
   }
 ```
 
-Speaking of Swift, however, there is no stuff like `->` operator to access ivar directly. As a result, with property marked with `@NSCopying` attribute, developers who are new to this language, expecially those who have had experience of writting Objective-C, are likely to automatically suppose it acts normally when they're writing down code like `self.employee = candidate` in initializer. That's bug-prone.
+Speaking of Swift, however, there is no stuff like `->` operator to access ivar directly. As a result, with property marked with `@NSCopying` attribute, developers who are new to this language, expecially those who have had experience of writing Objective-C, are likely to automatically suppose it acts normally when they're writing down code like `self.employee = candidate` in initializer. That's bug-prone.
 
 ## Proposed solution
 
