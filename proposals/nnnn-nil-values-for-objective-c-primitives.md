@@ -56,23 +56,21 @@ This is easy to miss. An annotated version would read as follows:
 
 Here, the first thing the developer sees is that `0` is a null value upon return, and the Swift compiler will treat it as an `Int`, forcing the developer to handle `nil` cases.
 
-Another place where primitives are commonly used is CoreGraphics. Here, we could annotate a method on `CGContext` to return the current point in a non-empty path:
+This would work with existing constants, as with `UIApplication`’s handling of background task identifiers:
 
 ```Objective-C
-nullable(CGPointZero) CGPoint CGContextGetPathCurrentPoint(CGContextRef c);
+‑ (nullable(UIBackgroundTaskInvalid) UIBackgroundTaskIdentifier)beginBackgroundTaskWithExpirationHandler:(void(^ __nullable)(void))handler
 ```
 
-From the documentation on this method:
+Another place where primitives are commonly used is in structs like points. Here, we could annotate a method on `WKInterfaceMap` to indicate that a center offset of `0, 0` is `nil`:
 
-> If there is no path, the function returns `CGPointZero`.
-
-With this annotation, the Swift version would change to:
-
-```Swift
-var currentPointOfPath: CGPoint? { get }
+```Objective-C
+- (void)addAnnotation:(CLLocationCoordinate2D)location
+            withImage:(UIImage *)image
+         centerOffset:(nullable(CGPointZero) CGPoint)offset;
 ```
 
-Making the current point an optional is a more clear way for the API to tell the developer that there may not *be* a current point.
+Using this from Swift (especially if there’s a default value and it can be omitted), it’s more clear that providing `nil` means you don’t want to move the image at all on the map.
 
 ## Detailed design
 
