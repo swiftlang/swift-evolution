@@ -34,7 +34,7 @@ The function would behave much like its name describes.
 Given a `clamped(to:)` function existed it could be called in the following way, yielding the results in the adjacent comments:
 
 ```swift
-var foo = 100
+let foo = 100
 
 // Closed range variant
 
