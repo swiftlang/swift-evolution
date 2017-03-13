@@ -35,12 +35,23 @@ Given a `clamped(to:)` function existed it could be called in the following way,
 
 ```swift
 var foo = 100
-foo.clamp(to: 0...50) // 50
-foo.clamp(to: 200...300) // 200
-foo.clamp(to: 0...150) // 100
+
+// Closed range variant
+
+foo.clamped(to: 0...50) // 50
+foo.clamped(to: 200...300) // 200
+foo.clamped(to: 0...150) // 100
+
+// Half-Open range variant
+
+foo.clamped(to: 0..<50) // 49
+foo.clamped(to: 200..<300) // 200
+foo.clamped(to: 0..<150) // 100
 ```
 
 ## Detailed design
+
+The implementation of `clamped(to:)` that is being proposed is composed of two protocol extensions; one protocol extension on `Comparable` and another on `Strideable`.
 
 The implementation for `clamped(to:)` as an extension to `Comparable` accepting a range of type `ClosedRange<Self>` would look like the following:
 
@@ -54,6 +65,17 @@ extension Comparable {
         } else {
             return self
         }
+    }
+}
+```
+
+The implementation of `clamped(to:)` as an extension on `Strideable` would be confined to cases where the stride is of type `Integer`.
+The implementation would be as follows:
+
+```swift
+extension Strideable where Stride: Integer {
+    func clamped(to range: Range<Self>) -> Self {
+        return clamped(to: range.lowerBound...(range.upperBound - 1))
     }
 }
 ```
@@ -72,4 +94,4 @@ The proposed function would become part of the API but purely additive.
 
 ## Alternatives considered
 
-`clamped(to:)` could be made a global function like `min` and `max` but a protocol extension seems like a better choice.
+Aside from doing nothing, no other alternatives were considered.
