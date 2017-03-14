@@ -54,7 +54,7 @@ This is easy to miss. An annotated version would read as follows:
                                      error:(out NSError * _Nullable *)error;
 ```
 
-Here, the first thing the developer sees is that `0` is a null value upon return, and the Swift compiler will treat it as an `Int`, forcing the developer to handle `nil` cases.
+Here, the first thing the developer sees is that `0` is a null value upon return, and the Swift compiler will treat it as an `Int?`, forcing the developer to handle `nil` cases.
 
 This would work with existing constants, as with `UIApplication`’s handling of background task identifiers:
 
