@@ -200,7 +200,7 @@ The proposal doesn't change the ABI of existing language features.
 
 ### Compile-time checking
 
-Instead of introduce the copy within the initializer, have the compiler emit a **compile-time error or warning** if developers are performing an assignment operation from within an initializer between a property declared as `@NSCopying` and an instance of a `<NSCopying>` protocol conforming class. Also, speaking of GUI integrated development environments such as Xcode, leaving this kind of error or warning **FIXABLE** would be needed in order to make them can be quickly fixed by both IDEs and migrator tools through simply appending `.copy() as! AutoInferredClassType`.
+Instead of introducing the copy within the initializer, have the compiler emit a **compile-time error or warning** if developers are performing an assignment operation from within an initializer between a property declared as `@NSCopying` and an instance of a `<NSCopying>` protocol conforming class. Also, speaking of GUI integrated development environments such as Xcode, leaving this kind of error or warning **FIXABLE** would be needed in order to make them can be quickly fixed by both IDEs and migrator tools through simply appending `.copy() as! AutoInferredClassType`.
 
 With the adjustment mentioned above, following code fragment, for instance, will no longer be successfully compiled:
 
