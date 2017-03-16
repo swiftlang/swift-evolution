@@ -80,7 +80,7 @@ The implementation would be as follows:
 ```swift
 extension Strideable where Stride: Integer {
     func clamped(to range: Range<Self>) -> Self {
-        if range.isEmpty { fatalError("Can't form Range with upperBound < lowerBound") }
+        guard !range.isEmpty { fatalError("Can not clamp to an empty range.") }
         return clamped(to: range.lowerBound...(range.upperBound - 1))
     }
 }
