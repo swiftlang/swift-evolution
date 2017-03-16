@@ -394,3 +394,4 @@ Much like new API added to the standard library, once added, some changes to thi
 
 ## Alternatives considered
 
+None. This is a companion to the Swift Archival and Serialization API.
