@@ -14,22 +14,27 @@
 
 ## Introduction
 
-This proposal aims to add functionality to the standard library for clamping a value to a `ClosedRange`.
+This proposal aims to add functionality to the standard library for clamping a value to a provided `Range`.
 The proposed function would allow the user to specify a range to clamp a value to where if the value fell within the range, the value would be returned as is, if the value being clamped exceeded the upper or lower bound in value the value of the boundary the value exceeded would be returned.   
 
 Swift-evolution thread: [Add a `clamp` function to Algorithm.swift](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170306/thread.html#33674)
 
 ## Motivation
 
-There have been quite a few times in my professional and personal programming life where I reached for a `clamped` function and was disappointed it was not part of the standard library.
+There have been quite a few times in my professional and personal programming life where I reached for a function to limit a value to a given range and was disappointed it was not part of the standard library.
+
+There already exists an extension to `CountableRange` in the standard library  implementing `clamped(to:)` that will limit the calling range to that of the provided range, so having the same functionality but just for types that conform to the `Comparable` protocol would be conceptually consistent.
 
 Having functionality like `clamped(to:)` added to `Comparable` as a protocol extension would benefit users of the Swift language who wish
-to guarantee that a value is kept within bounds.
+to guarantee that a value is kept within bounds, perhaps one example of this coming in handy would be to limit the result of some calculation between two acceptable numerical limits, say the bounds of a coordinate system.
 
 ## Proposed solution
 
-The solution proposed is simply that there be a `clamped(to:)` function added to the Swift Standard Library.
-The function would behave much like its name describes.
+The proposed solution is to add a `clamped(to:)` function to the Swift Standard Library as an extension to `Comparable` and `Strideable`.
+The function would return a value within the bounds of the provided range, if the value `clamped(to:)` is being called on falls within the provided range then the original value would be returned.
+If the value was less or greater than the bounds of the provided range then the respective lower or upper bound of the range would be returned.
+
+It does not make sense to call `clamped(to:)` with an empty range, therefore calling `clamped(to:)` and passing an empty range like `foo.clamped(to: 0..<0)` would result in a fatal error.
 
 Given a `clamped(to:)` function existed it could be called in the following way, yielding the results in the adjacent comments:
 
@@ -75,6 +80,7 @@ The implementation would be as follows:
 ```swift
 extension Strideable where Stride: Integer {
     func clamped(to range: Range<Self>) -> Self {
+        if range.isEmpty { fatalError("Can't form Range with upperBound < lowerBound") }
         return clamped(to: range.lowerBound...(range.upperBound - 1))
     }
 }
