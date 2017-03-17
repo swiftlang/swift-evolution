@@ -44,7 +44,7 @@ var luke = Person(name: "Luke Skywalker", friends: [han])
 
 let firstFriendsNameKeyPath = Person.friends[0].name
 
-let firstFriend = luke[path] // han
+let firstFriend = luke[firstFriendsNameKeyPath] // han
 
 // or equivalently, with type inferred from context
 let firstFriendName = luke[.friends[0].name]
