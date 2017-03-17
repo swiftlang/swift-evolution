@@ -3,7 +3,7 @@
 * Proposal: [SE-0158](0158-package-manager-manifest-api-redesign.md)
 * Author: [Ankit Aggarwal](https://github.com/aciidb0mb3r)
 * Review Manager: [Rick Ballard](https://github.com/rballard)
-* Status: **Active review (March 7...March 13, 2017)**
+* Status: **Active review (March 7...March 15, 2017)**
 * Bug: [SR-3949](https://bugs.swift.org/browse/SR-3949)
 
 ## Introduction
@@ -404,16 +404,13 @@ access modifier is `public` for all APIs unless specified.
           /// The requirement is specified by a source control branch.
           case branch(String)
 
-          /// Creates a specifier for an exact version.
-          static func only(_ version: Version) -> Requirement
-
           /// Creates a specified for a range starting at the given lower bound
           /// and going upto next major version.
-          static func uptoNextMajor(_ version: Version) -> Requirement
+          static func upToNextMajor(from version: Version) -> Requirement
 
           /// Creates a specified for a range starting at the given lower bound
           /// and going upto next minor version.
-          static func uptoNextMinor(_ version: Version) -> Requirement
+          static func upToNextMinor(from version: Version) -> Requirement
       }
       ```
 
@@ -421,13 +418,13 @@ access modifier is `public` for all APIs unless specified.
 
       ```swift
       // 1.5.8 ..< 2.0.0
-      .package(url: "/SwiftyJSON", .uptoNextMajor("1.5.8")),
+      .package(url: "/SwiftyJSON", .upToNextMajor(from: "1.5.8")),
 
       // 1.5.8 ..< 1.6.0
-      .package(url: "/SwiftyJSON", .uptoNextMinor("1.5.8")),
+      .package(url: "/SwiftyJSON", .upToNextMinor(from: "1.5.8")),
 
       // 1.5.8
-      .package(url: "/SwiftyJSON", .only("1.5.8")),
+      .package(url: "/SwiftyJSON", .exact("1.5.8")),
       ```
 
     * This will also give us ability to add more complex features in future:
@@ -436,9 +433,9 @@ access modifier is `public` for all APIs unless specified.
       > Note that we're not actually proposing these as part of this proposal.
 
       ```swift
-      .package(url: "/SwiftyJSON", .uptoNextMajor("1.5.8").excluding("1.6.4")),
+      .package(url: "/SwiftyJSON", .upToNextMajor(from: "1.5.8").excluding("1.6.4")),
 
-      .package(url: "/SwiftyJSON", .only("1.5.8", "1.6.3")),
+      .package(url: "/SwiftyJSON", .exact("1.5.8", "1.6.3")),
       ```
 
     * We will introduce a factory method which takes `Range<Version>`, to specify
@@ -456,13 +453,14 @@ access modifier is `public` for all APIs unless specified.
       // Constraint to an arbitrary closed range.
       .package(url: "/SwiftyJSON", "1.2.3"..."1.2.8"),
       ```
-    * As specified by branch
-      [proposal](https://github.com/apple/swift-evolution/blob/master/proposals/0150-package-manager-branch-support.md),
-      we will add these factory methods:
+    * As a slight modification to the
+      [branch proposal](https://github.com/apple/swift-evolution/blob/master/proposals/0150-package-manager-branch-support.md),
+      we will add cases for specifying a branch or revision, rather than
+      adding factory methods for them:
 
       ```swift
-      .package(url: "/SwiftyJSON", branch: "develp"),
-      .package(url: "/SwiftyJSON", revision: "e74b07278b926c9ec6f9643455ea00d1ce04a021")
+      .package(url: "/SwiftyJSON", .branch("develop")),
+      .package(url: "/SwiftyJSON", .revision("e74b07278b926c9ec6f9643455ea00d1ce04a021"))
       ```
 
     * We will remove all of the current factory methods:
@@ -512,9 +510,9 @@ access modifier is `public` for all APIs unless specified.
             .libary(name: "PaperDy", type: .dynamic, targets: ["Paper"]),
         ],
         dependencies: [
-            .package(url: "http://github.com/SwiftyJSON", from: "1.2.3"),
-            .package(url: "../CHTTPParser", .uptoNextMinor("2.2.0")),
-            .package(url: "http://some/other/lib", .only("1.2.3")),
+            .package(url: "http://github.com/SwiftyJSON/SwiftyJSON"", from: "1.2.3"),
+            .package(url: "../CHTTPParser", .upToNextMinor(from: "2.2.0")),
+            .package(url: "http://some/other/lib", .exact("1.2.3")),
         ]
         targets: [
             .target(
@@ -554,9 +552,9 @@ let package = Package(
         .libary(name: "PaperDynamic", type: .dynamic, targets: ["Paper"]),
     ],
     dependencies: [
-        .package(url: "http://github.com/SwiftyJSON", from: "1.2.3"),
-        .package(url: "../CHTTPParser", .uptoNextMinor("2.2.0")),
-        .package(url: "http://some/other/lib", .only("1.2.3")),
+        .package(url: "http://github.com/SwiftyJSON/SwiftyJSON"", from: "1.2.3"),
+        .package(url: "../CHTTPParser", .upToNextMinor(from: "2.2.0")),
+        .package(url: "http://some/other/lib", .exact("1.2.3")),
     ]
     targets: [
         .target(
