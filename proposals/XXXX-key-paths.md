@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status: **Awaiting Review**
 * Associated PRs:
-   * TBD
+   * [#644](https://github.com/apple/swift-evolution/pull/644)
 
 ## Introduction
 We propose a family of concrete _Key Path_ types that represent uninvoked references to properties that can be composed to form paths through many values and directly get/set their underlying values.
