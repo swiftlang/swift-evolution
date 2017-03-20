@@ -3,7 +3,8 @@
 * Proposal: [SE-0156](0156-subclass-existentials.md)
 * Authors: [David Hart](http://github.com/hartbit), [Austin Zheng](http://github.com/austinzheng)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Active review (February 28...March 7, 2017)**
+* Status: **Accepted**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170320/034123.html)
 
 ## Introduction
 
