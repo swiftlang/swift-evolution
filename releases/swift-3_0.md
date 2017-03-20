@@ -43,8 +43,8 @@ development experience. It focused on several areas:
 
 Swift 3 is the first release to enable
 broad scale adoption across multiple platforms, including significant
-functionality in the [Swift core libraries](../https://swift.org/core-libraries/)
-(Foundation, libdispatch, XCTest, etc), portability to a number of platforms including Linux/x86, Raspberry Pi, and Android, and the [Swift package manager](../https://swift.org/package-manager/) to easily manage the distribution of Swift soure code.
+functionality in the [Swift core libraries](https://swift.org/core-libraries/)
+(Foundation, libdispatch, XCTest, etc), portability to a number of platforms including Linux/x86, Raspberry Pi, and Android, and the [Swift package manager](https://swift.org/package-manager/) to easily manage the distribution of Swift soure code.
 
 Finally, Swift 3 also includes a mix of relatively small but important additions
 to the language and standard library that make solving common problems easier and
