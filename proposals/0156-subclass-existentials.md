@@ -31,7 +31,7 @@ We propose to provide similar expressive power to Swift, which will also improve
 
 ## Proposed solution
 
-The proposal keeps the existing `&` syntax but allows the first element, and only the first, to be either the `AnyObject` keyword or of class type. The equivalent to the above Objective-C types would look like this:
+The proposal keeps the existing `&` syntax but allows one of the elements to be either `AnyObject` or of class type. The equivalent to the above Objective-C types would look like this:
 
 ```swift
 AnyObject & Protocol1 & Protocol2
@@ -42,18 +42,20 @@ As in Objective-C, the first line is an existential of classes which conform to 
 
 Here are the new proposed rules for what is valid in a existential conjunction syntax:
 
-### 1. The first element in the protocol composition syntax can be the `AnyObject` keyword to enforce a class constraint:
+### 1. An element in the protocol composition syntax can be the `AnyObject` keyword to enforce a class constraint:
 
 ```swift
 protocol P {}
 struct S : P {}
 class C : P {}
-let t: P & AnyObject // Compiler error: AnyObject requirement must be in first position
-let u: AnyObject & P = S() // Compiler error: S is not of class type
-let v: AnyObject & P = C() // Compiles successfully
+class D { }
+let t: AnyObject & P = S() // Compiler error: S is not of class type
+let u: AnyObject & P = C() // Compiles successfully
+let v: P & AnyObject = C() // Compiles successfully
+let w: P & AnyObject = D() // Compiler error: class D does not conform to protocol P
 ```
 
-### 2. The first element in the protocol composition syntax can be a class type to enforce the existential to be a subtype of the class:
+### 2. An element in the protocol composition syntax can be a class type to enforce the existential to be a subtype of the class:
 
 ```swift
 protocol P {}
@@ -61,17 +63,37 @@ struct S {}
 class C {}
 class D : P {}
 class E : C, P {}
-let t: P & C // Compiler error: subclass constraint must be in first position
 let u: S & P // Compiler error: S is not of class type
 let v: C & P = D() // Compiler error: D is not a subtype of C
 let w: C & P = E() // Compiles successfully
 ```
 
-### 3. When a protocol composition type contains a typealias, the validity of the type is determined using the following steps:
-    
-* Expand the typealias
-* Normalize  the type by removing duplicate constraints and replacing less specific constraints by more specific constraints (a `class` constraint is less specific than a class type constraint, which is less specific than a constraint of a subclass of that class).
-* Check that the type does not contain two class-type constraints
+### 3. If a protocol composition contains both a class type and `AnyObject`, the class type supersedes the `AnyObject` constraint:
+
+```swift
+protocol P {}
+class C {}
+class D : C, P { }
+let u: AnyObject & C & P = D() // Okay: D is a subclass of C and conforms to P 
+let v: C & P = u               // Okay: C & P is equivalent to AnyObject & C & P
+let w: AnyObject & C & P = v   // Okay: AnyObject & C & P is equivalent to C & P
+```
+
+### 4. If a protocol composition contains two class types, either the class types must be the same or one must be a subclass of the other. In the latter case, the subclass type supersedes the superclass type:
+
+```swift
+protocol P {}
+class C {}
+class D : C { }
+class E : C { }
+class F : D, P { }
+let t: C & D & P = F() // Okay: F is a subclass of D and conforms to P
+let u: D & P = t       // Okay: D & P is equivalent to C & D & P
+let v: C & D & P = u   // Okay: C & D & P is equivalent to D & P
+let w: D & E & P       // Compiler error: D is not a subclass of E or vice-versa
+```
+
+### 5. When a protocol composition type contains one or more typealiases, the validity of the type is determined by expanding the typealiases into their component protocols, class types, and `AnyObject` constraints, then following the rules described above:
 
 ```swift
 class C {}
@@ -180,6 +202,14 @@ That would then cause the Swift code run in version 4 mode to fail to compile wi
 ## Alternatives considered
 
 An alternative solution to the `class`/`AnyObject` duplication was to keep both, redefine `AnyObject` as `typealias AnyObject = class` and favor the latter when used as a type name.
+
+The [reviewed version of the
+proposal](https://github.com/apple/swift-evolution/blob/78da25ec4acdc49ad9b68fb58300e49c33bc6355/proposals/0156-subclass-existentials.md)
+included rules that required the class type (or `AnyObject`) to be
+first within the protocol composition, e.g., `AnyObject & Protocol1`
+was well-formed but `Protocol1 & AnyObject` would produce a compiler
+error. When accepting this proposal, the core team removed these
+rules; see the decision notes at the top for more information.
 
 ## Acknowledgements
 
