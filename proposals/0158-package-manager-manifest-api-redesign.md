@@ -44,6 +44,7 @@ access modifier is `public` for all APIs unless specified.
     <details>
       <summary>View diff</summary>
       <p>
+
     ```diff
     struct Version {
     -    func successor() -> Version
@@ -74,7 +75,7 @@ access modifier is `public` for all APIs unless specified.
       <summary>View diff and example</summary>
       <p>
 
-      Diff:
+    Diff:
     ```diff
     final class Target {
     -    let name: String
@@ -511,7 +512,7 @@ access modifier is `public` for all APIs unless specified.
             .libary(name: "PaperDy", type: .dynamic, targets: ["Paper"]),
         ],
         dependencies: [
-            .package(url: "http://github.com/SwiftyJSON/SwiftyJSON"", from: "1.2.3"),
+            .package(url: "http://github.com/SwiftyJSON/SwiftyJSON", from: "1.2.3"),
             .package(url: "../CHTTPParser", .upToNextMinor(from: "2.2.0")),
             .package(url: "http://some/other/lib", .exact("1.2.3")),
         ]
