@@ -1,9 +1,9 @@
 # Fix Private Access Levels
 
-* Proposal: [SE-XXXX]()
+* Proposal: [SE-0159]()
 * Authors: [David Hart](http://github.com/hartbit)
-* Review Manager: TBD
-* Status: TBD
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Active review (March 20...27, 2017)**
 
 ## Introduction
 
