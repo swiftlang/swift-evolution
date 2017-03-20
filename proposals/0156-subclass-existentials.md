@@ -5,6 +5,7 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Accepted**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170320/034123.html)
+* Bug: [SR-4296](https://bugs.swift.org/browse/SR-4296)
 
 ## Introduction
 
