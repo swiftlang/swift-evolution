@@ -1,6 +1,6 @@
 # Fix Private Access Levels
 
-* Proposal: [SE-0159]()
+* Proposal: [SE-0159](0159-fix-private-access-levels.md)
 * Authors: [David Hart](http://github.com/hartbit)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Active review (March 20...27, 2017)**
