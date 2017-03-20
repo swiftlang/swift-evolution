@@ -249,8 +249,8 @@ access modifier is `public` for all APIs unless specified.
         let package = Package(
             name: "Foo",
             target: [
-    -           Target(name: "Foo", dependencies: ["Utility"]),
-    +           .target(name: "Foo", dependencies: ["Utility"]),
+        -        Target(name: "Foo", dependencies: ["Utility"]),
+        +        .target(name: "Foo", dependencies: ["Utility"]),
             ]
         )
         ```
