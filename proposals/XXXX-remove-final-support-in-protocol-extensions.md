@@ -10,6 +10,8 @@
 This proposal disallows the `final` keyword when declaring functions in protocol
 extensions. 
 
+*Discussion took place on the Swift Evolution mailing list in the [Remove support for final in protocol extensions](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170306/033604.html) thread.*
+
 ## Motivation
 
 In the current version of Swift, the `final` keyword does not modify 
