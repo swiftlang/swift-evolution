@@ -4,6 +4,8 @@
 * Authors: [Douglas Gregor](https://github.com/DougGregor), [Erica Sadun](https://github.com/erica), [Austin Zheng](https://github.com/austinzheng)
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Accepted**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170320/034266.html)
+* Bug: [SR-1445](https://bugs.swift.org/browse/SR-1445)
 
 ## Introduction
 
