@@ -1,9 +1,9 @@
 # Limiting `@objc` inference
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-objc-inference.md)
-* Author(s): [Doug Gregor](https://github.com/DougGregor)
-* Status: **Awaiting review**
-* Review manager: TBD
+* Proposal: [SE-0160](https://github.com/apple/swift-evolution/blob/master/proposals/0160-objc-inference.md)
+* Author: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Active review (March 21...28, 2017)**
+* Review manager: [Chris Lattner](http://github.com/lattner)
 
 ## Introduction
 
