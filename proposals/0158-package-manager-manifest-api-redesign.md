@@ -18,7 +18,7 @@ separate proposals.
 ## Motivation
 
 The `Package.swift` manifest APIs were designed prior to the [API Design
-Guidelines] (https://swift.org/documentation/api-design-guidelines/), and their
+Guidelines](https://swift.org/documentation/api-design-guidelines/), and their
 design was not reviewed by the evolution process. Additionally, there are
 several small areas which can be cleaned up to make the overall API more
 "Swifty".
