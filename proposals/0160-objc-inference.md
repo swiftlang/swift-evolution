@@ -204,7 +204,7 @@ extension P {
   func bar() { }
 }
 
-class C : NSObject { }
+class C : NSObject, P { }
 
 let c = C()
 print(c.respondsToSelector("bar")) // prints "false"
