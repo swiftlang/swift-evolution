@@ -3,143 +3,145 @@
 * Proposal: [SE-0155][]
 * Authors: [Daniel Duan][], [Joe Groff][]
 * Review Manager: [John McCall][]
-* Status: **Returned for revision**
+* Status: **Awaiting review**
+* Previous Revision: [1][Revision 1]
 
 ## Introduction
 
-In Swift 3, associated values for an enum case are represented by
-a labeled-tuple. This has several undesired effects: inconsistency in enum value
-construction syntax, many forms of pattern matching, missing features such as
-specifying default value and missed opportunity for layout improvements.
+In Swift 3, associated values of an enum case are represented by a tuple. This
+implementation causes inconsistencies in case declaration, construction and
+pattern matching in several places.
 
-This proposal aims to make enums more "regular" by replacing tuple as the
-representation of associated values, making declaration and construction of enum
-cases more function-like.
+Enums, therefore, can be made more "regular" when we replace tuple as the
+representation of associated case values. This proposal aims to define the
+effect of doings so on various parts of the language.
 
-Swift-evolution thread: [Compound Names For Enum Cases][SE Thread]
+Swift-evolution thread: [Normalize Enum Case Representation (rev. 2)][]
 
 ## Motivation
 
-**Each enum case declares a function that can be used to create a corresponding
-value. To users who expect these functions to behave "normally", surprises
-await.**
-
-1. Associated value labels aren't part of the function name.
-
-    After [SE-0111][] Swift function's fully qualified name consists of its
-    base-name and all argument labels. As an illustration, one can invoke
-    a function with its full name:
-
-
-    ```swift
-    func f(x: Int, y: Int) {}
-    f(x: y:)(0, 0) // Okay, this is equivalent to f(x: 0, y: 0)
-    ```
-
-    This, however, cannot be done when enum cases with associated value were
-    constructed:
-
-    ```swift
-    enum Foo {
-        case bar(x: Int, y: Int)
-    }
-    Foo.bar(x: y:)(0, 0) // Does not compile as of Swift 3
-    ```
-
-    Here, `x` and `y` are labels of bar's payload (a tuple), as opposed to being
-    part of the case's formal name. This is inconsistent with rest of the
-    language.
-
-2. Default value for parameters isn't available in case declarations.
-
-    ```swift
-    enum Animation {
-        case fadeIn(duration: TimeInterval = 0.3) // Nope!
-    }
-    let anim = Animation.fadeIn() // Would be nice, too bad!
-    ```
-
-**Associated values being a tuple complicates pattern matching.**
-
-The least unexpected pattern to match a `bar` value is the following:
+When user declares a case for an enum, a function which constructs the
+corresponding case value is declared. We'll refer to such functions as _case
+constructors_ in this proposal.
 
 ```swift
-if case let .bar(x: p, y: q) = Foo.bar(x: 0, y: 1) {
-    print(p, q) // 0 1
+enum Expr {
+    // this case declares the case constructor `Expr.elet(_:_:)`
+    indirect case elet(locals: [(String, Expr)], body: Expr)
 }
+
+// f's signature is f(_: _), type is ([(String, Expr)], Expr) -> Expr
+let f = Expr.elet
+
+// `f` is just a function
+f([], someExpr) // construct a `Expr.elet`
 ```
 
-In Swift 3, there are a few alternatives that may not be obvious to new users.
+There are many surprising aspects of enum constructors, however:
+
+1. After [SE-0111][], Swift function's fully qualified name consists of its base
+   name and all of its argument labels. User can use the full name of the
+   function at use site. In the example above, `locals` and `body` are currently
+   not part of the case constructors name, therefore the expected syntax is
+   invalid.
+
+   ```swift
+   func f(x: Int, y: Int) {}
+   f(x: y:)(0, 0) // Okay, this is equivalent to f(x: 0, y: 0)
+   Expr.elet(locals: body:)([], someExpr) // this doesn't work in Swift 3
+   ```
+2. Case constructors cannot include a default value for each parameter. This
+   is yet another feature available to functions.
+
+As previous mentioned, these are symptoms of associated values being a tuple
+instead of having its own distinct semantics. This problem manifests more in
+Swift 3's pattern matching:
 
 1. A pattern with a single value would match and result in a tuple:
 
     ```swift
-    if case let .bar(wat) = Foo.bar(x: 0, y: 1) {
-        print(wat.y) // 1
+    // this works for reasons most user probably don't expect!
+    if case .elet(let wat) = anExpr {
+        eval(wat.body)
     }
     ```
 
 2. Labels in patterns are not enforced:
 
     ```swift
-    // note: there's no label in the following pattern
-    if case let .bar(p, q) = Foo.bar(x: 0, y: 1) {
-        print(p, q) // 0 1
+    // note: there's no label in the first sub-pattern
+    if case .elet(let p, let body: q) = anExpr {
+        // code
     }
     ```
 
-These complex rules makes pattern matching difficult to teach and to expand to
+These extra rules makes pattern matching difficult to teach and to expand to
 other types.
-
-**Moving away from tuple-as-associated-value also give us opportunity to improve
-enum's memory layout** since each associated value would no longer play double
-duty as part of the tuple's memory layout.
 
 ## Proposed Solution
 
-When a enum case has associated values, they will no longer form a tuple. Their
-labels will become part of the case's declared name. Patterns matching such
-values must include labels.
-
-This proposal also introduce the ability to include a default value for each
-associated value in the declaration.
+We'll add first class syntax (which largely resemble the syntax in Swift 3) for
+declaring associated values with labels. Tuple will no longer be used to
+represent the aggregate of associated values for an enum case. This means
+pattern matching for enum cases needs its own syntax as well (as opposed to
+piggybacking on tuple patterns, which remains in the language for tuples.).
 
 ## Detailed Design
 
-### Make associated value labels part of case's name
-When labels are present in enum case's payload, they will become part of case's
-declared name instead of being labels for fields in a tuple.  In details, when
-constructing an enum value with the case name, label names must either be
+### Compound Names For Enum Constructors
+
+Associated values' labels should be part of the enum case's constructor name.
+When constructing an enum value with the case name, label names must either be
 supplied in the argument list it self, or as part of the full name.
 
 ```swift
-Foo.bar(x: 0, y: 0) // Okay, the Swift 3 way.
-Foo.bar(x: y:)(0, 0) // Equivalent to the previous line.
-Foo.bar(x: y:)(x: 0, y: 0) // This would be an error, however.
+Expr.elet(locals: [], body: anExpr) // Okay, the Swift 3 way.
+Expr.elet(locals: body:)([], anExpr) // Okay, equivalent to the previous line.
+Expr.elet(locals: body:)(locals: 0, body: 0) // This would be an error, however.
 ```
 
 Note that since the labels aren't part of a tuple, they no longer participate in
-type checking, similar to functions:
+type checking, behaving consistently with functions.
 
 ```swift
-let f = Foo.bar // f has type (Int, Int) -> Foo
-f(0, 0) // Okay!
-f(x: 0, y: 0) // Won't compile.
+let f = Expr.elet // f has type ([(String, Expr)], Expr) -> Expr
+f([], anExpr) // Okay!
+f(locals: [], body: anExpr) // Won't compile.
 ```
 
-Enum cases should have distinct *full* names. Therefore, shared base name will be allowed:
+Enum cases should have distinct *full* names. Therefore, shared base name will
+be allowed:
 
 ```swift
-enum Expr {
-    case literal(bool: Bool)
-    case literal(int: Int)
+enum SyntaxTree {
+    case type(variables: [TypeVariable])
+    case type(instantiated: [Type])
 }
 ```
 
-### Add default value in enum case declarations
+Using only the base name in pattern matching for the previous example would be
+ambiguous and result in an compile error. In this case, the full name must be
+supplied to disambiguate.
+
+```swift
+case .type // error: ambiguous
+case .type(variables: let variables) // Okay
+```
+
+### Default Parameter Values For Enum Constructors
+
 From a user's point view, declaring an enum case should remain the same as Swift
 3 except now it's possible to add `= expression` after the type of an
-associated value to convey a default value for that field. Updated syntax:
+associated value to convey a default value for that field.
+
+```swift
+enum Animation {
+    case fadeIn(duration: TimeInterval = 0.3) // Okay!
+}
+let anim = Animation.fadeIn() // Great!
+```
+
+Updated syntax:
 
 ```ebnf
 union-style-enum-case = enum-case-name [enum-case-associated-value-clause];
@@ -150,98 +152,155 @@ enum-case-associated-value-list = enum-associated-value-element
                                   enum-case-associated-value-list;
 enum-case-associated-value-element = element-name type-annotation
                                      [enum-case-element-default-value-clause]
-                                   | type [enum-case-element-default-value-clause];
+                                   | type
+                                     [enum-case-element-default-value-clause];
 element-name = identifier;
 enum-case-element-default-value-clause = "=" expression;
 ```
 
-### Simplify pattern matching rules on enums
-Syntax for enum case patterns will be the following:
+### Alternative Payload-less Case Declaration
 
-```ebnf
-enum-case-pattern = [type-identifier] "." enum-case-name [enum-case-associated-value-pattern];
-enum-case-associated-value-pattern = "(" [enum-case-associated-value-list-pattern] ")";
-enum-case-associated-value-list-pattern = enum-case-associated-value-list-pattern-element
-                                        | enum-case-associated-value-list-pattern-element ","
-                                          enum-case-associated-value-list-pattern;
-enum-case-associated-value-list-element = pattern | identifier ":" pattern;
-```
-
-… and `case-associated-value-pattern` will be added to the list of various
-`pattern`s.
-
-Note that `enum-case-associated-value-pattern` is identical to `tuple-pattern`
-except in names. It is introduced here to denote semantic difference between the
-two.  Whereas the syntax in Swift 3 allows a single `tuple-pattern-element` to
-match the entire case payload, the number of
-`enum-case-associated-value-list-pattern-element`s must be equal to that of
-associated value of the case in order to be a match. This means code in the next
-example will be deprecated under this proposal:
+In Swift 3, the following syntax is valid:
 
 ```swift
-if case let .bar(wat) = Foo.bar(x: 0, y: 1) { // syntax error
-    // …
+enum Tree {
+    case leaf() // the type of this constructor is confusing!
 }
 ```
 
-Further, `identifier` in `enum-case-associated-value-list-pattern-element` must
-be the same as the label of corresponding associated value intended for the
-match. So this will be deprecated as well:
+`Tree.leaf` has a very unexpected type to most Swift users: `(()) -> Tree`
+
+We propose this syntax become illegal. User must explicitly declare
+associated value of type `Void` if needed:
 
 ```swift
-if case let .bar(p, q) = Foo.bar(x: 0, y: 1) { // missing `x:` and `y:`
-    // …
+enum Tree {
+    case leaf(Void)
+}
+```
+
+### Pattern Consistency
+
+*(The following enum will be used throughout code snippets in this section).*
+
+```swift
+indirect enum Expr {
+    case variable(name: String)
+    case lambda(parameters: [String], body: Expr)
+}
+```
+
+Compared to patterns in Swift 3, matching against enum cases will follow
+stricter rules. This is a consequence of no longer relying on tuple patterns.
+
+When an associated value has a label, the sub-pattern must include the label
+exactly as declared. There are two variants that should look familiar to Swift
+3 users. Variant 1 allows user to bind the associated value to arbitrary name in
+the pattern by requiring the label:
+
+```swift
+case .variable(name: let x) // okay
+case .variable(x: let x) // compile error; there's no label `x`
+case .lambda(parameters: let params, body: let body) // Okay
+case .lambda(params: let params, body: let body) // error: 1st label mismatches
+```
+
+User may choose not to use binding names that differ from labels. In this
+variant, the corresponding value will bind to the label, resulting in this
+shorter form:
+
+```swift
+case .variable(let name) // okay, because the name is the same as the label
+case .lambda(let parameters, let body) // this is okay too, same reason.
+case .variable(let x) // compiler error. label must appear one way or another.
+case .lambda(let params, let body) // compiler error, same reason as above.
+```
+
+Only one of these variants may appear in a single pattern. Swift compiler will
+raise a compile error for mixed usage.
+
+```swift
+case .lambda(parameters: let params, let body) // error, can not mix the two.
+```
+
+Some patterns will no longer match enum cases. For example, all associated
+values can bind as a tuple in Swift 3, this will no longer work after this
+proposal:
+
+```swift
+// deprecated: matching all associated values as a tuple
+if case let .lambda(f) = anLambdaExpr {
+    evaluateLambda(parameters: f.parameters, body: f.body)
 }
 ```
 
 ## Source compatibility
 
-As detailed in the previous section, this proposal deprecates certain pattern
-matching syntax.
+Despite a few additions, case declaration remain mostly source-compatible with
+Swift 3, with the exception of the change detailed in "Alternative Payload-less
+Case Declaration".
 
-Other changes to the syntax are additive and source-compatible with Swift 3. For
-example, matching a case with associated value solely by its name should still
-work:
+Syntax for case constructor at use site remain source-compatible.
 
-```swift
-switch Foo.bar(x: 0, y: 1) {
-case .bar: // matches.
-    print("bar!")
-}
-```
+A large portion of pattern matching syntax for enum cases with associated values
+remain unchanged. But patterns for matching all values as a tuple, patterns that
+elide the label and binds to names that differ from the labels, patterns that
+include labels for some sub-patterns but the rest of them are deprecated by this
+proposal. Therefore this is a source breaking change.
 
 ## Effect on ABI stability and resilience
 
-After this proposal, enum cases may have compound names, which would be mangled
-differently than Swift 3.
-
-The compiler may also layout enums differently now that payloads are not
-constrained by having to be part of a tuple.
+After this proposal, enum cases may have compound names. This means the standard
+library will expose different symbols for enum constructors. The name mangling
+rules should also change accordingly.
 
 ## Alternative Considered
 
-To maintain maximum source compatibility, we could introduce a rule that matches
-all associated values to a labeled tuple. As T.J. Usiyan
-[pointed out][TJs comment], implementation of the equality protocol would be
-simplified due to tuple's conformance to `Equatable`. This feature may still be
-introduced with alternative syntax (perhaps related to splats) later without
+Between case declaration and pattern matching, there exist many reasonable
+combinations of improvement. On one hand, we can optimize for consistency,
+simplicity and teachability by bringing in as much similarity between enum and
+other part of the language as possible. Many decisions in the first revision
+were made in favor if doing so. Through the feedbacks from swift-evolution, we
+found that some of the changes impedes the ergonomics of these features too much
+. In this section, we describe some of the alternatives that were raised and
+rejected in hope to strike a balance between the two end of the goals.
+
+We discussed allowing user to declare a *parameter name* ("internal names")
+for each associated value. Such names may be used in various rules in pattern
+matching. Some feedback suggested they maybe used as property names when we
+make enum case subtypes of the enum and resembles a struct. This feature is not
+included in this proposal because parameter names are not very useful *today*.
+Using them in patterns actually don't improve consistency as users don't use
+them outside normal function definitions at all. If enum case gains a function
+body in a future proposal, it'd be better to define the semantics of parameter
+names then, as opposed to locking it down now.
+
+To maintain ergonomics/source compatibility, we could allow user to choose
+arbitrary bindings for each associated value. The problem is it makes the
+pattern deviate a lot from declaration and makes it hard for beginners to
+understand. This also decrease readability for seasoned users.
+
+Along the same line, a pattern that gets dropped is binding all associated
+values as a labeled tuple, which tuple pattern allowed in Swift 3. As T.J.
+Usiyan [pointed out][TJs comment], implementation of the equality protocol would
+be simplified due to tuple's conformance to `Equatable`. This feature may still
+be introduced with alternative syntax (perhaps related to splats) later without
 source-breakage.  And the need to implement `Equatable` may also disappear with
 auto-deriving for `Equatable` conformance.
 
-A syntax that did stay for source compatibility is allowing `()` in patterns
-that match enum cases without associated values:
+The previous revision of this proposal mandated that the labeled form of
+sub-pattern (`case .elet(locals: let x, body: let y)`) be the only acceptable
+pattern. Turns out the community considers this to be too verbose in some cases.
 
-```swift
-if let case .x() = Foo.baz { // … }
-```
+A drafted version of this proposal considered allowing "overloaded" declaration
+of enum cases (same full-name, but with associated values with different types).
+We ultimately decided that this feature is out of the scope of this proposal.
 
-We could remove this syntax as it would make the pattern look more consistent to
-the case's declaration.
-
-[SE-0111]: https://github.com/apple/swift-evolution/blob/master/proposals/0111-remove-arg-label-type-significance.md
+[SE-0155]: 0155-normalize-enum-case-representation.md
+[SE-0111]: 0111-remove-arg-label-type-significance.md
 [Daniel Duan]: https://github.com/dduan
 [Joe Groff]: https://github.com/jckarter
-[SE-0155]: 0155-normalize-enum-case-representation.md
-[TJs comment]: https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170116/030614.html
-[SE Thread]: https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170116/030477.html
 [John McCall]: https://github.com/rjmccall
+[TJs comment]: https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170116/030614.html
+[Revision 1]: https://github.com/apple/swift-evolution/blob/43ca098355762014f53e1b54e02d2f6a01253385/proposals/0155-normalize-enum-case-representation.md
+[Normalize Enum Case Representation (rev. 2)]: https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170306/033626.html
