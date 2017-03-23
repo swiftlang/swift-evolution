@@ -204,10 +204,10 @@ extension P {
   func bar() { }
 }
 
-class C : NSObject { }
+class C : NSObject, P { }
 
 let c = C()
-print(c.respondsToSelector("bar")) // prints "false"
+print(c.responds(to: Selector("bar"))) // prints "false"
 ```
 
 The expectation that `P.bar()` has an Objective-C entry point is set
