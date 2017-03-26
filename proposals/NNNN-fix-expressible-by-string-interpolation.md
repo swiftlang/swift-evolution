@@ -216,7 +216,9 @@ any value to be interpolated into a string, but it should not have an
 unconstrained `init<T>(_: T)` initializer (see [SE-0089][se0089]). To 
 support this, an interpolation with no first label will match both 
 unlabeled overloads and overloads with a `forInterpolation:` label. 
-It will give a slight preference to `forInterpolation:` overloads.
+It will give a slight preference to `forInterpolation:` overloads, but 
+an unlabeled initializer with a much better type match may still be 
+selected over a `forInterpolation:` initializer with a poor type match.
 	
   [se0089]: https://github.com/apple/swift-evolution/blob/master/proposals/0089-rename-string-reflection-init.md
 
