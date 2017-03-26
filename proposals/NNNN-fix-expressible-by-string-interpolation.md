@@ -222,12 +222,34 @@ selected over a `forInterpolation:` initializer with a poor type match.
 	
   [se0089]: https://github.com/apple/swift-evolution/blob/master/proposals/0089-rename-string-reflection-init.md
 
-We do not propose that supporting initializers in string interpolation 
-will be the only string formatting feature Swift will ever support. But 
+#### Rationale for use of initializers
+
+The `StringInterpolationType` acts as a sort of filter or funnel which 
+controls which interpolations are permitted and marshals them into a 
+single type that the `ExpressibleByStringInterpolation` implementation 
+can handle in a uniform way. At the same time, because 
+`StringInterpolationType` is not constrained by a formal protocol, 
+the type has infinite flexibility in *what* it permits to interpolate 
+and *how* it handles that input. It can overload to support different 
+types, it can use argument labels to request special handling, and it 
+can take additional parameters to customize the result. It is also free 
+to *reject* certain inputs by not providing an initializer that accepts 
+them; the Swift compiler will then diagnose those errors at compile time.
+
+By having this be a separate associated type, rather than using 
+initializers on `Self`, types can delegate the job to another type. In 
+particular, they can delegate it to `String`, which has a wide variety 
+of useful initializers and is a common extension point for additional 
+ones. We expect that many types will use `String`, especially if they 
+handle arbitrary text. But those types which need precise control over 
+interpolation can designate themselves or a helper type instead.
+
+We do not propose that every formatting feature Swift supports should 
+be accessed by adding labeled parameters to initializers. But 
 we believe that feeding interpolated values through an initializer on 
 an associated type is a good primitive for formatting features. For 
-instance, [here's a sketch of a formatting DSL][formatsketch] which 
-lets you say things like:
+instance, [here's a sketch of a formatting DSL][formatsketch] 
+compatible with this proposal which lets you say things like:
 
 ```swift
 "You are number \(ticketNumber %% int(sign: .never) %% width(padding: .leading, to: 5))"
@@ -235,14 +257,15 @@ lets you say things like:
 
   [formatsketch]: https://gist.github.com/brentdax/c3f9dc7c03a34c979e5e363826c2e19d
 
-The point is not to propose this design, but rather to show that what 
-we *do* propose has the flexibility to accommodate many formatting 
-designs. We leave the precise design of such a feature to future 
-proposals and community-led projects.
+We show this example not to propose this design, but rather to 
+demonstrate that what we *are* proposing here has the flexibility to 
+accommodate many formatting designs. We leave the precise design of 
+such a feature to future proposals and community-led projects.
 
-We also believe that initializers are an adequate solution for the 
-code-generation use case, where you don't want the flexibility of a 
-general-purpose formatting system:
+We also believe that, even without any additional formatting features, 
+initializers are an adequate solution for the code-generation use 
+case, where you don't want the flexibility of a general-purpose 
+formatting system:
 
 ```swift
 extension SQLStatement {
