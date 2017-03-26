@@ -310,7 +310,10 @@ The changes include:
 5. The `init(stringInterpolation:)` initializer is modified so that, 
    instead of having a variadic `Self` parameter, it has a variadic 
    `StringInterpolationSegment<StringLiteralType, StringInterpolationType>`
-   parameter. (Specifying these here means that, by )
+   parameter. (Passing both as separate generic parameters, rather 
+   than specifying `Self` as the generic parameter, means that 
+   defining `init(stringInterpolation:)` is enough to pin these types 
+   for the associated type inference engine.)
 
 6. The deprecation is dropped, and the underscored version becomes a 
    typealias.
