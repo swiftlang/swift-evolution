@@ -3,7 +3,7 @@
 * Proposal: [SE-NNNN](NNNN-fix-expressible-by-string-interpolation.md)
 * Authors: [Brent Royal-Gordon](https://github.com/brentdax)
 * Review Manager: TBD
-* Status: **First draft**
+* Status: **Awaiting review**
 
 ## Introduction
 
@@ -285,11 +285,11 @@ tightly constrained by `StringLiteralType` and `StringInterpolationType`.
 
 ## Detailed design
 
-A prototype of this design is available in [this branch][enum-branch].
+A prototype of this design is available in [this pull request][enum-pr].
 Note that this prototype is not production-ready; it is more proof of 
 concept than final implementation.
 
-  [enum-branch]: https://github.com/apple/swift/compare/master...brentdax:new-interpolation-enum
+  [enum-pr]: https://github.com/apple/swift/pull/8352
 
 ### New `ExpressibleByStringInterpolation` design
 
