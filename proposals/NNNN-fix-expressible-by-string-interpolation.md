@@ -151,7 +151,7 @@ construction.
 
 ### Defect 3: Cannot constrain interpolated types
 
-Types like `SQLKit.SQLStatement` only support certain certain types 
+Types like `SQLKit.SQLStatement` only support certain types 
 being interpolated—`String`, `Data`, `Date`, `Bool`, `BinaryInteger`s, 
 `FloatingPoint`s, and `Decimal`s, but not `UIView`s, `Array`s, 
 or `User`s. Even `LocalizableString`, if implemented using 
