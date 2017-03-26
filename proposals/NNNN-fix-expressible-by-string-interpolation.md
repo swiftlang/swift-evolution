@@ -265,23 +265,28 @@ We address defects 1 and 2 by:
 1. Making `ExpressibleByStringInterpolation` a refinement of 
    `ExpressibleByStringLiteral`;
    
-2. Introducing a `StringInterpolationSegment` generic enum; and
+2. Introducing a `StringInterpolationSegment` generic enum and making 
+   `init(stringInterpolation:)` take a variadic list of them; and
 
 3. Removing the `init(stringInterpolationSegment:)` call.
 
-The generated code for the `"Hello, \(name)!"` example above becomes:
+Combined with the new rule of interpreting interpolations as initializer 
+calls, the generated code for the `"Hello, \(name)!"` example above 
+becomes:
 
 ```swift
 .init(stringInterpolation:
 	.literal("Hello, "),
-	.interpolation(name),
+	.interpolation(.init(forInterpolation: name)),
 	.literal("!")
 )
 ````
 
 This fixes both problems at once: literal and interpolated segments are 
-clearly labeled for the initializer to interpret, and the segments are 
-tightly constrained by `StringLiteralType` and `StringInterpolationType`.
+clearly labeled for the initializer to interpret, and the type can 
+tightly control the segment types using `StringLiteralType`, 
+`StringInterpolationType`, and the `StringInterpolationType`'s 
+initializers.
 
 ## Detailed design
 
@@ -379,7 +384,7 @@ public enum StringInterpolationSegment<Literal: _ExpressibleByBuiltinStringLiter
 /// Interpolated segments are represented as values of the associated
 /// `StringInterpolationType` type. The code beween the two parentheses is 
 /// treated as parameters to an initializer on the `StringInterpolationType`; 
-/// if the first parameter is unlabled, Swift will prefer an initializer with 
+/// if the first parameter is unlabeled, Swift will prefer an initializer with 
 /// the label `forInterpolation:`, but will also permit an initializer with 
 /// an unlabeled first parameter. Once a value of the `StringInterpolationType` 
 /// has been constructed, it is wrapped in a 
@@ -432,9 +437,6 @@ public protocol ExpressibleByStringInterpolation: ExpressibleByStringLiteral {
   ///                       each containing a portion of the literal's contents.
   init(stringInterpolation segments: StringInterpolationSegment<StringLiteralType, StringInterpolationType>...)
 }
-
-// FIXME: This should probably be removed.
-public typealias _ExpressibleByStringInterpolation = ExpressibleByStringInterpolation
 
 extension ExpressibleByStringInterpolation {
   /// Creates an instance initialized to the given string value.
