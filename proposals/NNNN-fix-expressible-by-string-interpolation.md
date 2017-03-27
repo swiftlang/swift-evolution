@@ -777,7 +777,7 @@ extension ExpressibleByStringInterpolation {
 * We considered a design where `ExpressibleByStringInterpolation` was abolished 
   entirely; instead, `ExpressibleByStringLiteral` would gain a 
   `StringInterpolationType` associated type which would be `Never` by default,
-  this disabling interpolation. We decided this was too clever by half.
+  thus disabling interpolation. We decided this was too clever by half.
 
 * We considered leaving out the `forInterpolation:` label matching and instead 
   just matching unlabeled initializer parameters when an interpolation like 
