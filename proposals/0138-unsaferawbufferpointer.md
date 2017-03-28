@@ -1139,6 +1139,50 @@ extension ${Self} {
   }
 }
 %end
+
+% for mutable in (True, False):
+%  Mutable = 'Mutable' if mutable else ''
+
+extension Unsafe${Mutable}BufferPointer<Element> {
+
+%  if not Mutable:
+  /// Creates a buffer over the same memory as the given buffer slice.
+  ///
+  /// The new buffer will represent the same region of memory as the slice,
+  /// but it's indices will be rebased to zero. Given:
+  ///
+  ///   let slice = buffer[n..<m]
+  ///   let rebased = UnsafeBufferPointer(rebasing: slice)
+  ///
+  /// One may assume `rebased.startIndex == 0` and `rebased[0] == slice[n]`.
+  ///
+  /// - Parameter slice: the raw buffer slice to rebase.
+  public init(rebasing slice: RandomAccessSlice<UnsafeBufferPointer<Element>>) {
+    self.init(start: slice.base.baseAddress! + slice.startIndex,
+      count: slice.count)
+  }
+%  end # !mutable
+
+  /// Creates a buffer over the same memory as the given buffer slice.
+  ///
+  /// The new buffer will represent the same region of memory as the slice,
+  /// but it's indices will be rebased to zero. Given:
+  ///
+  ///   let slice = buffer[n..<m]
+  ///   let rebased = UnsafeBufferPointer(rebasing: slice)
+  ///
+  /// One may assume `rebased.startIndex == 0` and `rebased[0] == slice[n]`.
+  ///
+  /// - Parameter slice: the buffer slice to rebase.
+  public init(
+    rebasing slice:
+    MutableRandomAccessSlice<UnsafeMutableBufferPointer<Element>>
+  ) {
+    self.init(start: slice.base.baseAddress! + slice.startIndex,
+      count: slice.count)
+  }
+}
+% end
 ```
 
 ## Implementation status
