@@ -154,6 +154,57 @@ Add an `Array.withUnsafe[Mutable]Bytes<R>(_)` method that passes an
 Add a `withUnsafeMutableBytes<T, R>(of:_)` function that passes an
 `UnsafeRawBufferPointer` view of a value of type `T` to the closure body.
 
+## Amendment to normalize the slice type
+
+The original version of this proposal defined
+`Unsafe[Mutable]BufferPointer` to be its own `SubSequence` type. This
+is the `Collection`'s slice type returned by a range subscript
+getter. Using a single type for buffers and buffer slices is very
+convenient for working with flat memory regions, but it is
+inconsistent with Swift's `Collection` semantics. The problem is that
+it transparently rebases the slice's `Int`-type indices to zero. This
+has the potential to break generic algorithms, which expect to use the
+same indices across both the original `Collection` and its slices.
+
+The amended version of this proposal changes `SubSequence` to `[Mutable]RandomAccessSlice<Unsafe[Mutable]RawBufferPointer>`
+
+`rebasing` initializers have been added to allow explicit conversion
+from a slice to a zero-based `Unsafe[Mutable]RawBufferPointer`.
+
+This results in the following behavioral changes:
+
+Passing a region within buffer to another function that takes a buffer
+can no longer be done via subscript:
+
+Incorrect: `takesRawBuffer(buffer[i..<j])`
+
+This now requires an explicit cast:
+
+Correct: `takesRawBuffer(UnsafeRawBufferPointer(rebasing: buffer[i..<j]))`
+
+Subscript assignment directly from a buffer no longer compiles:
+
+Incorrect: `buffer[n..<m] = smaller_buffer`
+
+This now requires creation of a slice from the complete source buffer:
+
+Correct: `buffer[n..<m] = smaller_buffer.suffix(from: 0)`
+
+UnsafeRawBufferPointer's slice type no longer has a nonmutating
+subscript setter. So assigning into a mutable `let` buffer no longer
+compiles:
+
+```
+let slice = buffer[n..<m]
+slice[i..<j] = buffer[k..<l]
+```
+
+The assigned buffer slice now needs to be a `var`.
+```
+var slice = buffer[n..<m]
+slice[i..<j] = buffer[k..<l]
+```
+
 ## Migration Examples
 
 Consider these real code migration examples:
@@ -698,7 +749,8 @@ public struct Unsafe${Mutable}RawBufferPointer
 
   public typealias Index = Int
   public typealias IndexDistance = Int
-  public typealias SubSequence = ${Self}
+  public typealias SubSequence =
+    ${Mutable}RandomAccessSlice<Unsafe${Mutable}RawBufferPointer>
 
   /// An iterator for the bytes referenced by `${Self}`.
   public struct Iterator : IteratorProtocol, Sequence {
@@ -866,6 +918,44 @@ public struct Unsafe${Mutable}RawBufferPointer
   }
 %  end # !mutable
 
+%  if not mutable:
+  /// Creates a raw buffer over the same memory as the given raw buffer slice.
+  ///
+  /// The new raw buffer will represent the same region of memory as the slice,
+  /// but it's indices will be rebased to zero. Given:
+  ///
+  ///   let slice = buffer[n..<m]
+  ///   let rebased = UnsafeRawBufferPointer(rebasing: slice)
+  ///
+  /// One may assume `rebased.startIndex == 0` and `rebased[0] == slice[n]`.
+  ///
+  /// - Parameter slice: the raw buffer slice to rebase.
+  @_inlineable
+  public init(rebasing slice: RandomAccessSlice<UnsafeRawBufferPointer>) {
+    self.init(start: slice.base.baseAddress! + slice.startIndex,
+      count: slice.count)
+  }
+%  end # !mutable
+
+  /// Creates a raw buffer over the same memory as the given raw buffer slice.
+  ///
+  /// The new raw buffer will represent the same region of memory as the slice,
+  /// but it's indices will be rebased to zero. Given:
+  ///
+  ///   let slice = buffer[n..<m]
+  ///   let rebased = UnsafeRawBufferPointer(rebasing: slice)
+  ///
+  /// One may assume `rebased.startIndex == 0` and `rebased[0] == slice[n]`.
+  ///
+  /// - Parameter slice: the raw buffer slice to rebase.
+  @_inlineable
+  public init(
+    rebasing slice: MutableRandomAccessSlice<UnsafeMutableRawBufferPointer>
+  ) {
+    self.init(start: slice.base.baseAddress! + slice.startIndex,
+      count: slice.count)
+  }
+
   /// Always zero, which is the index of the first byte in a
   /// non-empty buffer.
   public var startIndex: Int {
@@ -905,13 +995,11 @@ public struct Unsafe${Mutable}RawBufferPointer
 
   /// Accesses the bytes in the memory region within `bounds` as a `UInt8`
   /// values.
-  public subscript(bounds: Range<Int>) -> Unsafe${Mutable}RawBufferPointer {
+  public subscript(bounds: Range<Int>) -> ${Mutable}RandomAccessSlice<Unsafe${Mutable}RawBufferPointer> {
     get {
       _debugPrecondition(bounds.lowerBound >= startIndex)
       _debugPrecondition(bounds.upperBound <= endIndex)
-      return Unsafe${Mutable}RawBufferPointer(
-        start: baseAddress.map { $0 + bounds.lowerBound },
-        count: bounds.count)
+      return ${Mutable}RandomAccessSlice(base: self, bounds: bounds)
     }
 %  if mutable:
     nonmutating set {
@@ -1051,6 +1139,50 @@ extension ${Self} {
   }
 }
 %end
+
+% for mutable in (True, False):
+%  Mutable = 'Mutable' if mutable else ''
+
+extension Unsafe${Mutable}BufferPointer<Element> {
+
+%  if not Mutable:
+  /// Creates a buffer over the same memory as the given buffer slice.
+  ///
+  /// The new buffer will represent the same region of memory as the slice,
+  /// but it's indices will be rebased to zero. Given:
+  ///
+  ///   let slice = buffer[n..<m]
+  ///   let rebased = UnsafeBufferPointer(rebasing: slice)
+  ///
+  /// One may assume `rebased.startIndex == 0` and `rebased[0] == slice[n]`.
+  ///
+  /// - Parameter slice: the raw buffer slice to rebase.
+  public init(rebasing slice: RandomAccessSlice<UnsafeBufferPointer<Element>>) {
+    self.init(start: slice.base.baseAddress! + slice.startIndex,
+      count: slice.count)
+  }
+%  end # !mutable
+
+  /// Creates a buffer over the same memory as the given buffer slice.
+  ///
+  /// The new buffer will represent the same region of memory as the slice,
+  /// but it's indices will be rebased to zero. Given:
+  ///
+  ///   let slice = buffer[n..<m]
+  ///   let rebased = UnsafeBufferPointer(rebasing: slice)
+  ///
+  /// One may assume `rebased.startIndex == 0` and `rebased[0] == slice[n]`.
+  ///
+  /// - Parameter slice: the buffer slice to rebase.
+  public init(
+    rebasing slice:
+    MutableRandomAccessSlice<UnsafeMutableBufferPointer<Element>>
+  ) {
+    self.init(start: slice.base.baseAddress! + slice.startIndex,
+      count: slice.count)
+  }
+}
+% end
 ```
 
 ## Implementation status
