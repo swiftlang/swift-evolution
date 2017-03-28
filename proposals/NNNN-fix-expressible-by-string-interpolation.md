@@ -198,10 +198,10 @@ as a parameter list.
 When `StringInterpolationType` is the built-in `String` type, this will 
 leverage existing initializers on `String`:
 
-```string
+```swift
 print("\(number) in hex is \(number, radix: 16)")
 print("Debug info: \(reflecting: object)")
-print("Disclaimer: \(contentsOfURL: Bundle.main.url(forResource: "disclaimer", withExtension: "txt")!)")
+print(try "Disclaimer: \(contentsOf: Bundle.main.url(forResource: "disclaimer", withExtension: "txt")!)")
 ```
 
 A type can specify a different `StringInterpolationType` (usually itself) 
