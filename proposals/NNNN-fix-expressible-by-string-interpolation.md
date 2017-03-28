@@ -215,10 +215,10 @@ but not by ordinary initialization of the type. For instance, `String` should pe
 any value to be interpolated into a string, but it should not have an 
 unconstrained `init<T>(_: T)` initializer (see [SE-0089][se0089]). To 
 support this, an interpolation with no first label will match both 
-unlabeled overloads and overloads with a `forInterpolation:` label. 
-It will give a slight preference to `forInterpolation:` overloads, but 
+unlabeled overloads and overloads with a `stringInterpolationSegment:` label. 
+It will give a slight preference to `stringInterpolationSegment:` overloads, but 
 an unlabeled initializer with a much better type match may still be 
-selected over a `forInterpolation:` initializer with a poor type match.
+selected over a `stringInterpolationSegment:` initializer with a poor type match.
 	
   [se0089]: https://github.com/apple/swift-evolution/blob/master/proposals/0089-rename-string-reflection-init.md
 
@@ -302,7 +302,7 @@ becomes:
 ```swift
 .init(stringInterpolation:
 	.literal("Hello, "),
-	.interpolation(.init(forInterpolation: name)),
+	.interpolation(.init(stringInterpolationSegment: name)),
 	.literal("!")
 )
 ````
@@ -410,7 +410,7 @@ public enum StringInterpolationSegment<Literal: _ExpressibleByBuiltinStringLiter
 /// `StringInterpolationType` type. The code beween the two parentheses is 
 /// treated as parameters to an initializer on the `StringInterpolationType`; 
 /// if the first parameter is unlabeled, Swift will prefer an initializer with 
-/// the label `forInterpolation:`, but will also permit an initializer with 
+/// the label `stringInterpolationSegment:`, but will also permit an initializer with 
 /// an unlabeled first parameter. Once a value of the `StringInterpolationType` 
 /// has been constructed, it is wrapped in a 
 /// `StringInterpolationSegment.interpolation` instance.
@@ -479,7 +479,7 @@ extension ExpressibleByStringInterpolation {
 
 `String` and a few test-related types are modified to handle this.
 In particular, the old `init(stringInterpolationSegment:)` methods 
-on `String` have been renamed to `init(forInterpolation:)`. Although 
+on `String` have been renamed to `init(stringInterpolationSegment:)`. Although 
 they're used in a different way, the old implementations work fine for 
 their new purpose.
 
@@ -488,7 +488,7 @@ their new purpose.
 `Parser::parseExprStringLiteral` is modified to parse interpolations 
 as simple expression lists and turn them into `UnresolvedMemberExpr`s 
 calling an `init` member of a type. If the first parameter has no 
-label, the label `forInterpolation` is inserted.
+label, the label `stringInterpolationSegment` is inserted.
 
 ### Modifications to constraint solving
 
@@ -509,7 +509,7 @@ cases.
 ### Modifications to argument matching
 
 When matching parameter lists to argument lists, an argument labeled 
-`forInterpolation` is, if certain flags are passed, allowed to match a 
+`stringInterpolationSegment` is, if certain flags are passed, allowed to match a 
 parameter with no label.
 
 The implementation is as follows: Several call-related AST nodes have a 
@@ -779,7 +779,7 @@ extension ExpressibleByStringInterpolation {
   `StringInterpolationType` associated type which would be `Never` by default,
   thus disabling interpolation. We decided this was too clever by half.
 
-* We considered leaving out the `forInterpolation:` label matching and instead 
+* We considered leaving out the `stringInterpolationSegment:` label matching and instead 
   just matching unlabeled initializer parameters when an interpolation like 
   `\(foo)` was used. However, this meant that many interpolations had to 
   be specified as `\(describing: foo)`. This was rather burdensome.
