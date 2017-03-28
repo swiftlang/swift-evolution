@@ -783,3 +783,10 @@ extension ExpressibleByStringInterpolation {
   just matching unlabeled initializer parameters when an interpolation like 
   `\(foo)` was used. However, this meant that many interpolations had to 
   be specified as `\(describing: foo)`. This was rather burdensome.
+
+* We considered leaving out the extra parameter and fuzzy parameter 
+  label matching, and simply considering all single-argument 
+  `init(stringInterpolationSegment:)` overloads on 
+  `StringInterpolationType`. This leaves use cases like `SQLStatement` 
+  in the lurch, but it avoids relatively risky parts of this proposal 
+  without preventing us from eventually introducing that feature.
