@@ -186,7 +186,7 @@ class MyViewController {
 which allows calling the function with an invalid parameter:
 
 ```swift
-let myViewController: MyViewController()
+let myViewController = MyViewController()
 myViewController.setup(UIViewController())
 ```
 
