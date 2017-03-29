@@ -81,7 +81,7 @@ Our proposed solution is as follows:
 
    If a such an editable package is present in `Packages`, then `swift build`
    will always use the exact sources in this directory to build, regardless of
-   it's state, git repository status, tags, or the tag desired by dependency
+   its state, git repository status, tags, or the tag desired by dependency
    resolution. In other words, this will "just build" against the sources that
    are present.
 
