@@ -323,7 +323,7 @@ determined, but are not adversely affected by this proposal.
 ## Alternatives considered
 
 For a more in-depth discussion of some of the trade-offs in string design, see
-the manifesto and associated [evolution thread]().
+the manifesto and associated [evolution thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170116/thread.html#30497).
 
 This proposal does not yet introduce an implicit conversion from `Substring` to
 `String`. The decision on whether to add this will be deferred pending feedback
