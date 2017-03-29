@@ -420,7 +420,7 @@ commit a single file when making manifest changes.
 Package.swift manifest, instead of needing to look in a separate file.
 
 * Supporting the `.swift-version` standard would require supporting toolchain
-names as a standing for a Swift tools version, which complicates this mechanism
+names as a stand-in for a Swift tools version, which complicates this mechanism
 significantly.
 
 ### Specify the Swift tools version with a more "Swifty" syntax
