@@ -28,31 +28,37 @@ Making indirect references to a properties' concrete types also lets us expose m
 We would also like to support being able to use _Key Paths_ to access into collections, which is not currently possible.
 
 ## Proposed solution
-We propose introducing a new expression akin to `Type.method`, but for properties and subscripts. These property reference expressions produce `KeyPath` objects, rather than `Strings`. `KeyPaths` are a family of generic classes _(structs and protocols here would be ideal, but requires generalized existentials)_ which encapsulate a property reference or chain of property references, including the type, mutability, property name(s), and ability to set/get values.
+We propose expanding the capabilities of the `#keyPath` directive to produce `KeyPath` objects instead of `Strings`. `KeyPaths` are a family of generic classes _(structs and protocols here would be ideal, but requires generalized existentials)_ which encapsulate a property reference or chain of property references, including the type, mutability, property name(s), and ability to set/get values.
 
 Here's a sample of it in use:
 
 ```swift
-struct Person {
-	var name: String
-	var friends: [Person]
-	var bestFriend: Person?
+class Person {
+    var name: String
+    var friends: [Person] = []
+    var bestFriend: Person? = nil
+    init(name: String) {
+        self.name = name
+    }
 }
 
-var han = Person(name: "Han Solo", friends: [])
-var luke = Person(name: "Luke Skywalker", friends: [han])
+var han = Person(name: "Han Solo")
+var luke = Person(name: "Luke Skywalker")
+luke.friends.append(han)
 
-let firstFriendsNameKeyPath = Person.friends[0].name
-
-let firstFriend = luke[firstFriendsNameKeyPath] // han
+// create a key path and use it
+let firstFriendsNameKeyPath = #keyPath(Person, .friends[0].name)
+let firstFriend = luke[keyPath: firstFriendsNameKeyPath] // "Han Solo"
 
 // or equivalently, with type inferred from context
-let firstFriendName = luke[.friends[0].name]
+luke[keyPath: #keyPath(.friends[0].name)] // "Han Solo"
 
 // rename Luke's first friend
-luke[firstFriendsNameKeyPath] = "A Disreputable Smuggler"
+luke[keyPath: firstFriendsNameKeyPath] = "A Disreputable Smuggler"
 
-let bestFriendsName = luke[.bestFriend]?.name  // nil, if he is the last jedi
+// optional properties work too
+let bestFriendsNameKeyPath = #keyPath(Person, .bestFriend?.name) 
+let bestFriendsName = luke[keyPath: bestFriendsNameKeyPath]  // nil, if he is the last Jedi
 ```
 
 ## Detailed design
@@ -60,7 +66,7 @@ let bestFriendsName = luke[.bestFriend]?.name  // nil, if he is the last jedi
 `KeyPaths` are a hierarchy of progressively more specific classes, based on whether we have prior knowledge of the path through the object graph we wish to traverse. 
 
 ##### Unknown Path / Unknown Root Type
-`AnyKeyPath` is fully type-erased, referring to 'any route' through an object/value graph for 'any root'.  Because of type-erasure many operations can fail at runtime and are thus nillable. 
+`AnyKeyPath` is fully type-erased, referring to 'any route' through an object/value graph for 'any root'.  Because of type-erasure many operations can fail at runtime and are thus optional. 
 
 ```swift
 class AnyKeyPath: CustomDebugStringConvertible, Hashable {
@@ -77,7 +83,7 @@ class AnyKeyPath: CustomDebugStringConvertible, Hashable {
 }
 ```
 ##### Unknown Path / Known Root Type
-If we know a little more type information (what kind of thing the key path is relative to), then we can use `PartialKeyPath <Root>`, which refers to an 'any route' from a known root:
+If we know a little more type information (what kind of thing the key path is relative to), then we can use `PartialKeyPath<Root>`, which refers to an 'any route' from a known root:
 
 ```swift
 class PartialKeyPath<Root>: AnyKeyPath {
@@ -90,7 +96,7 @@ class PartialKeyPath<Root>: AnyKeyPath {
 ```
 
 ##### Known Path / Known Root Type
-When we know both what the path is relative to and what it refers to, we can use `KeyPath`.  Thanks to the knowledge of the Root and Value types, all of the failable operations lose their Optional.  
+When we know both what the path is relative to and what it refers to, we can use `KeyPath<Root, Value>`.  Thanks to the knowledge of the `Root` and `Value` types, all of the failable operations lose their `Optional`.  
 
 ```swift
 public class KeyPath<Root, Value>: PartialKeyPath<Root> {
@@ -115,31 +121,32 @@ class ReferenceWritableKeyPath<Root, Value>: WritableKeyPath<Root, Value> {
 }
 ```
 
-
 ### Access and Mutation Through KeyPaths
 To get or set values for a given root and key path we effectively add the following subscripts to all Swift types. 
 
 ```swift
 extension Any {
-    subscript(path: AnyKeyPath) -> Any? { get }
-    subscript<Root: Self>(path: PartialKeyPath<Root>) -> Any { get }
-    subscript<Root: Self, Value>(path: KeyPath<Root, Value>) -> Value { get }
-    subscript<Root: Self, Value>(path: WritableKeyPath<Root, Value>) -> Value { set, get }
+    subscript(keyPath path: AnyKeyPath) -> Any? { get }
+    subscript<Root: Self>(keyPath path: PartialKeyPath<Root>) -> Any { get }
+    subscript<Root: Self, Value>(keyPath path: KeyPath<Root, Value>) -> Value { get }
+    subscript<Root: Self, Value>(keyPath path: WritableKeyPath<Root, Value>) -> Value { set, get }
 }
 ```
 
 This allows for code like
 
 ```swift
-person[.name] // Self.type is inferred
+let someKeyPath = ... 
+person[keyPath: someKeyPath]
 ```
 
-which is both appealingly readable, and doesn't require read-modify-write copies (subscripts access `self` inout). Conflicts with existing subscripts are avoided by using generic subscripts to specifically only accept key paths with a `Root` of the type in question.
+which is both appealingly readable, and doesn't require read-modify-write copies (subscripts access `self` inout). Conflicts with existing subscripts are avoided by using a named parameter and generics to only accept key paths with a `Root` of the type in question.
 
 ### Referencing Key Paths
-Forming a `KeyPath` borrows from the same syntax used to reference methods and initializers,`Type.instanceMethod` only now working for properties and collections. Optionals are handled via optional-chaining. Multiply dotted expressions are allowed as well, and work just as if they were composed via the `appending` methods on `KeyPath`.
+Forming a `KeyPath` borrows from the same syntax added in Swift 3 to confirm the existence of a given key path, only now producing concrete values instead of Strings.  Optionals are handled via optional-chaining. Multiply dotted expressions are allowed as well, and work just as if they were composed via the `appending` methods on `KeyPath`.
 
-There is no change or interaction with the #keyPath() syntax introduced in Swift 3. 
+
+There is no change or interaction with the #keyPath() syntax introduced in Swift 3. `#keyPath(Person.bestFriend.name)` will still produce a String, whereas `#keyPath(Person, .bestFriend.name)` will produce a `KeyPath<Person, String>`.
 
 ### Performance
 The performance of interacting with a property via `KeyPaths` should be close to the cost of calling the property directly.
@@ -163,13 +170,33 @@ This should not significantly impact API resilience, as it merely provides a new
 Various drafts of this proposal have included additional features (decomposable key paths, prefix comparisons, support for custom `KeyPath` subclasses, creating a `KeyPath` from a `String` at runtime, `KeyPaths` conforming to `Codable`, bound key paths as a concrete type, etc.).  We anticipate approaching these enhancements additively once the core `KeyPath` functionality is in place. 
 
 #### Spelling
-We also explored many different spellings, each with different strengths. We have chosen the current syntax due to the balance with existing function type references.
+We also explored many different spellings, each with different strengths. We have chosen the current syntax for the clarity and discoverability it provides in practice.
 
-| Current | `#keyPath` | Lisp-style |
+| `#keyPath` | Function Type Reference | Lisp-style |
 | --- | --- | --- |
-| `Person.friends[0].name`  | `#keyPath(Person, .friends[0].name)` | \``Person.friend.name` |
-| `luke[.friends[0].name]` |  `#keyPath(luke, .friends[0].name)` | `luke`\``.friends[0].name` |
-| `luke.friends[0][.name]` | `#keyPath(luke.friends[0], .name)` |  `luke.friends[0]`\``.name` |
- 
+| `#keyPath(Person, .friends[0].name)` | `Person.friends[0].name` | \``Person.friend.name` |
+| `#keyPath(luke, .friends[0].name)` |`luke[.friends[0].name]`  | `luke`\``.friends[0].name` |
+| `#keyPath(luke.friends[0], .name)`| `luke.friends[0][.name]` |  `luke.friends[0]`\``.name` |
 
-While the crispness is very appealing, the spelling of the 'escape' character was hard to agree upon (along with the fact that it requires parentheses to reduce ambiguity).  `#keyPath` was very specific, but verbose especially when composing multiple key paths together. 
+While the crispness of the function-type-reference is appealing, it becomes ambigious when working with type properties.  The spelling of the escape-sigil of the Lisp-style remains a barrier to adoption, but could be considered in the future should `#keyPath` prove a burden.
+
+We think most of the situations where `#keyPath` could be overly taxing likely wont show up outside of demonstrative examples:
+
+```swift
+// you would likely never type this:
+#keyPath(Person, .friends).appending(#keyPath(Array, [0]))
+
+// since you can just type this:
+#keyPath(Person, .friends[0])
+
+// .appending is more likely used in situations like this:
+let somePath : PartialKeyPath<[Person]> =  ... 
+#keyPath(Person, .friends).appending(somePath)
+
+// similarly, you'd never type this:
+person[keyPath: #keyPath(Person, .friends[0]))
+
+// since that is just a roundabout way of saying:
+person.friends[0]
+```
+
