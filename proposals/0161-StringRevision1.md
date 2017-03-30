@@ -1,6 +1,6 @@
 # String Revision: Collection Conformance, C Interop, Transcoding
 
-* Proposal: [SE-NNNN](NNNN-StringCollection.md)
+* Proposal: [SE-0161](0161-StringRevision1.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift), [Dave Abrahams](http://github.com/dabrahams/)
 * Review Manager: TBD
 * Status: **Awaiting review**
@@ -18,7 +18,7 @@ Specifically:
  * Create a `Substring` type for `String.SubSequence`
  * Create a `Unicode` protocol to allow for generic operations over both types.
  * Consolidate on a concise set of C interop methods.
- * Revise the transoding infrastructure.
+ * Revise the transcoding infrastructure.
 
 Other existing aspects of `String` remain unchanged for the purposes of this 
 proposal.
