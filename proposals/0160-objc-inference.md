@@ -2,7 +2,9 @@
 
 * Proposal: [SE-0160](https://github.com/apple/swift-evolution/blob/master/proposals/0160-objc-inference.md)
 * Author: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Active review (March 21...28, 2017)**
+* Status: **Returned for Revision** ([Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170327/034730.html))
+* Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/0389b1f49fc55b1a898701c549ce89738307b9fc/proposals/0160-objc-inference.md)
+
 * Review manager: [Chris Lattner](http://github.com/lattner)
 * Implementation: [Pull request](https://github.com/apple/swift/pull/8379)
 
@@ -71,7 +73,9 @@ these thunks).
 
 The proposed solution is to limit the inference of `@objc` to only
 those places where it is required for semantic consistency of the
-programming model. 
+programming model. Then, add some class-level and extension-level
+annotations to reduce boilerplate for cases where one wants to
+enable/disable `@objc` inference more widely.
 
 ### Constructs that (still) infer `@objc`
 
@@ -127,6 +131,19 @@ for a declaration when:
 The list above describes cases where Swift 3 already performs
 inference of `@objc` and will continue to do so if this proposal is
 accepted.
+
+### Additional constructs that will infer `@objc`
+
+These are new cases that *should* infer `@objc`, but currently don't
+in Swift. `@objc` should be inferred when:
+
+* The declaration has the `@GKInspectable` attribute. This inference
+  is required because the interaction with GameplayKit occurs entirely
+  through the Objective-C runtime.
+
+* The declaration has the `@IBInspectable` attribute. This inference
+  is required because the interaction with Interface Builder occurs entirely
+  through the Objective-C runtime.
 
 ### `dynamic` no longer infers `@objc`
 
@@ -192,6 +209,89 @@ With this proposal, neither method specifies `@objc` nor is either
 required by the semantic model to expose an Objective-C entrypoint,
 so they don't infer `@objc`: there is no need to reason about the
 type of the parameter's suitability in Objective-C.
+
+### Re-enabling `@objc` inference within a class hierarchy
+
+Some libraries and systems still depend greatly on the Objective-C
+runtime's introspection facilities. For example, XCTest uses
+Objective-C runtime metadata to find the test cases in `XCTestCase`
+subclasses. To support such systems, introduce a new attribute for
+classes in Swift, spelled `@objcMembers`, that re-enables `@objc`
+inference for the class, its extensions, its subclasses, and (by
+extension) all of their extensions. For example:
+
+```swift
+@objcMembers
+class MyClass : NSObject {
+  func foo() { }             // implicitly @objc
+
+  func bar() -> (Int, Int)   // not @objc, because tuple returns
+      // aren't representable in Objective-C
+}
+
+extension MyClass {
+  func baz() { }   // implicitly @objc
+}
+
+class MySubClass : MyClass {
+  func wibble() { }   // implicitly @objc
+}
+
+extension MySubClass {
+  func wobble() { }   // implicitly @objc
+}
+```
+
+This will be paired with an Objective-C attribute, spelled
+`swift_objc_members`, that allows imported Objective-C classes to be
+imported as `@objcMembers`:
+
+```objective-c
+__attribute__((swift_objc_members))
+@interface XCTestCase : XCTest
+/* ... */
+@end
+```
+
+will be imported into Swift as:
+
+```swift
+@objcMembers
+class XCTestCase : XCTest { /* ... */ }
+```
+
+### Enabling/disabling `@objc` inference within an extension
+
+There might be certain regions of code for which all of (or none of)
+the entry points should be exposed to Objective-C. Allow either
+`@objc` or `@nonobjc` to be specified on an `extension`. The `@objc`
+or `@nonobjc` will apply to any member of that extension that does not
+have its own `@objc` or `@nonobjc` annotation. For example:
+
+```swift
+class SwiftClass { }
+
+@objc extension SwiftClass {
+  func foo() { }            // implicitly @objc
+  func bar() -> (Int, Int)  // error: tuple type (Int, Int) not
+      // expressible in @objc. add @nonobjc or move this method to fix the issue
+}
+
+@objcMembers
+class MyClass : NSObject {
+  func wibble() { }    // implicitly @objc
+}
+
+@nonobjc extension MyClass {
+  func wobble() { }    // not @objc, despite @objcMembers
+}
+```
+
+Note that `@objc` on an extension provides less-surprising behavior
+than the implicit `@objc` inference of Swift 3, because it indicates
+the intent to expose *everything* in that extension to Objective-C. If
+some member within that extension cannot be exposed to Objective-C,
+such as `SwiftClass.bar()`, the compiler will produce an error.
 
 ## Side benefit: more reasonable expectations for `@objc` protocol extensions
 
@@ -502,3 +602,9 @@ creating boilerplate.
 
 Thanks to Brian King for noting the inference of `dynamic` and its
 relationship to this proposal.
+
+# Revision history
+
+[Version 1](https://github.com/apple/swift-evolution/blob/0389b1f49fc55b1a898701c549ce89738307b9fc/proposals/0160-objc-inference.md)
+of this proposal did not include the use of `@objcMembers` on classes
+or the use of `@objc`/`@nonobjc` on extensions to mass-annotate.
