@@ -25,7 +25,14 @@ and the result:
 
 but these are a readability nightmare. Additionally, developers may not make
 the leap to realize `contains` can be used this way, so may hand-roll their own
-`for` loop, which could be buggy or inefficient.
+`for` loop, which could be buggy, or compose other inefficient alternatives:
+
+```swift
+// misses opportunity to bail early
+nums.reduce(true) { $0.0 && $0.1 == 9 }
+// the most straw-man travesty I could think of...
+Set(nums).count == 1 && Set(nums).first == 9
+```
 
 ## Proposed solution
 
@@ -70,5 +77,4 @@ This change is purely additive so has no API resilience consequences.
 ## Alternatives considered
 
 Not adding it.
-
 
