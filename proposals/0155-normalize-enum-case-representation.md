@@ -3,7 +3,7 @@
 * Proposal: [SE-0155][]
 * Authors: [Daniel Duan][], [Joe Groff][]
 * Review Manager: [John McCall][]
-* Status: **Awaiting review**
+* Status: **Active review (March 31...April 10, 2017)**
 * Previous Revision: [1][Revision 1]
 
 ## Introduction
