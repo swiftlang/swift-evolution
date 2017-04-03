@@ -19,6 +19,8 @@ As a consequence, experience with using Swift 3 has caused mixed reactions from 
 
 In the hopes of fulfilling the initial goal of [SE-0025](0025-scoped-access-level.md), this proposal defines the visibility of the `private` access level to extensions, declarations and nested types of the member's type in the same file to increase its usefulness and as a good default private access level. `fileprivate` then logically achieves its intended goal of being more rarely used and adheres to Swift's "progressive disclosure” philosophy.
 
+While it has been argued that access level changes should wait until a future design of submodules, the increasing importance of source stability in Swift severly diminishes that argument. Changes of the level of those described in this proposal will most probably be impossible post Swift 4, making this the last chance of correcting the deficiencies of [SE-0025](0025-scoped-access-level.md).
+
 ## Detailed design
 
 The design of this proposal defines the visibility of a `private` member declared within a type `X` or an extension of type `X` to:
@@ -79,7 +81,7 @@ extension Person {
         case male
         case female
 
-        private var secrecyAge {
+        private var secrecyAge: Int {
             switch self {
             case .male: return 60
             case .female: return 50
@@ -87,7 +89,8 @@ extension Person {
         }
 
         static func shouldRevealAge(_ person: Person) -> Bool {
-            // age is accessible because we are in the declaration of a nested type that declared age
+            // age is accessible because it was declared in the same file and we are
+            // in the declaration of a type nested in the type that declared age
             return person.age < person.gender.secrecyAge
         }
     }
@@ -95,7 +98,8 @@ extension Person {
 
 extension Gender {
     static func leakAge(of person: Person) {
-        // age is accessible because we are in the extension of a nested type in the same file
+        // age is accessible because we are in the extension of a type nested in the
+        // type same file
         return person.age
     }
 }
@@ -114,8 +118,20 @@ extension Person : CustomStringConvertible {
 
 ## Source compatibility
 
-Incoming...
+In Swift 3 compatibility mode, the compiler will continue to treat `private` as before. In Swift 4 mode, the compiler will modify the semantics of `private` to follow the rules of this proposal. No migration will be necessary as this proposal merely broadens the visibility of `private`.
+
+Cases where a type had `private` declarations with the same signature in the same type/extension but in different scopes will produce a compiler error in Swift 4. For example, the following piece of code compiles in Swift 3 compatibilty mode but generates a `Invalid redeclaration of 'bar()'` error in Swift 4 mode:
+
+```swift
+struct Foo {
+    private func bar() {}
+}
+
+extension Foo {
+    private func bar() {}
+}
+```
 
 ## Alternatives Considered
 
-Incoming...
+The alternative to this proposals which tried to solve the same goal was [SE-0159](0159-fix-private-access-levels.md). That proposal was rejected.
