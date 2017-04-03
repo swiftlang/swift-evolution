@@ -3,7 +3,7 @@
 * Proposal: [SE-0100](0100-add-sequence-based-init-and-merge-to-dictionary.md)
 * Author: [Nate Cook](https://github.com/natecook1000)
 * Review Manager: TBD
-* Status: **Deferred**
+* Status: **Withdrawn**
 
 ## Introduction
 
