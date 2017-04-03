@@ -392,9 +392,17 @@ Exact listing:
 /// `interpolation` case's associated value. The `Literal` generic 
 /// parameter must be `String` or `StaticString`.
 /// 
+/// The `Interpolation` generic parameter can be any concrete type 
+/// with initializers; those initializers will be used to convert 
+/// interpolated expressions to the `Interpolation` type.
+/// 
 /// - SeeAlso: ExpressibleByStringInterpolation
 public enum StringInterpolationSegment<Literal: _ExpressibleByBuiltinStringLiteral, Interpolation> {
+  // A segment of the string literal which appeared verbatim in the 
+  // source code.
   case literal(Literal)
+  
+  // A segment of the string literal which was calculated at runtime.
   case interpolation(Interpolation)
 }
 
@@ -454,8 +462,8 @@ public enum StringInterpolationSegment<Literal: _ExpressibleByBuiltinStringLiter
 ///    )
 /// 
 /// This protocol refines the `ExpressibleByStringLiteral` protocol, but it 
-/// provides a default implementation of the supertype `init(stringLiteral:)` 
-/// which calls `init(stringInterpolation:) with a single literal segment.
+/// provides a default implementation of the `init(stringLiteral:)` initializer 
+/// which calls `init(stringInterpolation:)` with a single literal segment.
 public protocol ExpressibleByStringInterpolation: ExpressibleByStringLiteral {
   /// The type which is used to convert interpolated segments into values that 
   /// can be interpolated.
