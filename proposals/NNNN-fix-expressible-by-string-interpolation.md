@@ -247,7 +247,7 @@ print("Hello, \(name as Any)")
 
 The `StringInterpolationType` acts as a sort of filter or funnel which 
 controls which interpolations are permitted and marshals them into a 
-single type that the `ExpressibleByStringInterpolation` implementation 
+single type that `init(stringInterpolation:)` 
 can handle in a uniform way. At the same time, because 
 `StringInterpolationType` is not constrained by a formal protocol, 
 the type has infinite flexibility in *what* it permits to interpolate 
