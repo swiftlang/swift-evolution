@@ -836,7 +836,7 @@ Consuming types may then support setting contextual information to inform their 
 
 ```swift
 public struct Person : Encodable {
-    public static let codingUserInfoKey = CodingUserInfoKey(rawValue: "com.foocorp.person.codingUserInfoKey")
+    public static let codingUserInfoKey = CodingUserInfoKey("com.foocorp.person.codingUserInfoKey")
 
     public struct UserInfo {
         let shouldEncodePrivateFields: Bool
@@ -844,7 +844,7 @@ public struct Person : Encodable {
     }
 
     func encode(to encoder: Encoder) throws {
-        if let context = encoder.userInfo[.codingUserInfoKey] as? Person.UserInfo {
+        if let context = encoder.userInfo[Person.codingUserInfoKey] as? Person.UserInfo {
             if context.shouldEncodePrivateFields {
                 // Do something special.
             }
@@ -2195,6 +2195,7 @@ public struct CodingUserInfoKey : RawRepresentable, Hashable {
     typealias RawValue = String
     let rawValue: String
     init?(rawValue: String)
+    init(_ value: String)
 }
 
 // Repeat for all primitive types...
