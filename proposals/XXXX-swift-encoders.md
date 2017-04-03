@@ -9,13 +9,13 @@
 
 ## Introduction
 
-As part of the proposal for a Swift archival and serialization API (SE-NNNN), we are also proposing new API for specific new encoders and decoders, as well as introducing support for new `Codable` types in `NSKeyedArchiver` and `NSKeyedUnarchiver`.
+As part of the proposal for a Swift archival and serialization API ([SE-NNNN](https://github.com/itaiferber/swift-evolution/blob/swift-archival-serialization/proposals/XXXX-swift-archival-serialization.md)), we are also proposing new API for specific new encoders and decoders, as well as introducing support for new `Codable` types in `NSKeyedArchiver` and `NSKeyedUnarchiver`.
 
-This proposal composes the latter two stages laid out in SE-NNNN.
+This proposal composes the latter two stages laid out in [SE-NNNN](https://github.com/itaiferber/swift-evolution/blob/swift-archival-serialization/proposals/XXXX-swift-archival-serialization.md).
 
 ## Motivation
 
-With the base API discussed in SE-NNNN, we want to provide new encoders for consumers of this API, as well as provide a consistent story for bridging this new API with our existing `NSCoding` implementations. We would like to offer a base level of support that users can depend on, and set a pattern that third parties can follow in implementing and extending their own encoders.
+With the base API discussed in [SE-NNNN](https://github.com/itaiferber/swift-evolution/blob/swift-archival-serialization/proposals/XXXX-swift-archival-serialization.md), we want to provide new encoders for consumers of this API, as well as provide a consistent story for bridging this new API with our existing `NSCoding` implementations. We would like to offer a base level of support that users can depend on, and set a pattern that third parties can follow in implementing and extending their own encoders.
 
 ## Proposed solution
 
@@ -42,7 +42,7 @@ open class JSONEncoder {
     /// - returns: A new `Data` value containing the encoded JSON data.
     /// - throws: `CocoaError.coderInvalidValue` if a non-comforming floating-point value is encountered during archiving, and the encoding strategy is `.throw`.
     /// - throws: An error if any value throws an error during encoding.
-    open func encode<Value : Codable>(_ value: Value) throws -> Data
+    open func encode<T : Encodable>(_ value: T) throws -> Data
 
     // MARK: Customization
 
@@ -110,6 +110,9 @@ open class JSONEncoder {
 
     /// The strategy to use in encoding non-conforming numbers. Defaults to `.throw`.
     open var nonConformingFloatEncodingStrategy: NonConformingFloatEncodingStrategy
+
+    /// Contextual information to expose during encoding.
+    open var userInfo: [CodingUserInfoKey : Any]
 }
 
 open class JSONDecoder {
@@ -122,7 +125,7 @@ open class JSONDecoder {
     /// - returns: A value of the requested type.
     /// - throws: `CocoaError.coderReadCorrupt` if values requested from the payload are corrupted, or if the given data is not valid JSON.
     /// - throws: An error if any value throws an error during decoding.
-    open func decode<Value : Codable>(_ type: Value.Type, from data: Data) throws -> Value
+    open func decode<T : Decodable>(_ type: T.Type, from data: Data) throws -> Value
 
     // MARK: Customization
 
@@ -174,6 +177,9 @@ open class JSONDecoder {
 
     /// The strategy to use in decoding non-conforming numbers. Defaults to `.throw`.
     open var nonConformingFloatDecodingStrategy: NonConformingFloatDecodingStrategy
+
+    /// Contextual information to expose during decoding.
+    open var userInfo: [CodingUserInfoKey : Any]
 }
 ```
 
@@ -229,12 +235,15 @@ open class PropertyListEncoder {
     /// - parameter value: The value to encode.
     /// - returns: A new `Data` value containing the encoded property list data.
     /// - throws: An error if any value throws an error during encoding.
-    open func encode<Value : Codable>(_ value: Value) throws -> Data
+    open func encode<T : Encodable>(_ value: T) throws -> Data
 
     // MARK: Customization
 
     /// The output format to write the property list data in. Defaults to `.binary`.
     open var outputFormat: PropertyListSerialization.PropertyListFormat
+
+    /// Contextual information to expose during encoding.
+    open var userInfo: [CodingUserInfoKey : Any]
 }
 
 open class PropertyListDecoder {
@@ -247,7 +256,7 @@ open class PropertyListDecoder {
     /// - returns: A value of the requested type.
     /// - throws: `CocoaError.coderReadCorrupt` if values requested from the payload are corrupted, or if the given data is not a valid property list.
     /// - throws: An error if any value throws an error during decoding.
-    open func decode<Value : Codable>(_ type: Value.Type, from data: Data) throws -> Value
+    open func decode<T : Decodable>(_ type: T.Type, from data: Data) throws -> Value
 
     /// Decodes a top-level value of the given type from the given property list representation.
     ///
@@ -257,7 +266,12 @@ open class PropertyListDecoder {
     /// - returns: A value of the requested type along with the detected format of the property list.
     /// - throws: `CocoaError.coderReadCorrupt` if values requested from the payload are corrupted, or if the given data is not a valid property list.
     /// - throws: An error if any value throws an error during decoding.
-    open func decode<Value : Codable>(_ type: Value.Type, from data: Data, format: inout PropertyListSerialization.PropertyListFormat) throws -> Value
+    open func decode<T : Decodable>(_ type: Value.Type, from data: Data, format: inout PropertyListSerialization.PropertyListFormat) throws -> Value
+
+    // MARK: Customization
+
+    /// Contextual information to expose during decoding.
+    open var userInfo: [CodingUserInfoKey : Any]
 }
 ```
 
@@ -318,7 +332,7 @@ The localized description strings associated with the two new error codes are:
 * `.coderInvalidValue`: "The data is not valid for encoding in this format."
 * `.coderTypeMismatch`: "The data couldn't be read because it isn't in the correct format." (Precedent from `NSCoderReadCorruptError`.)
 
-All of these errors will include the coding key path that led to the failure in the error's `userInfo` dictionary under `NSCodingKeyContextErrorKey`, along with a non-localized, developer-facing failure reason under `NSDebugDescriptionErrorKey`.
+All of these errors will include the coding key path that led to the failure in the error's `userInfo` dictionary under `NSCodingPathErrorKey`, along with a non-localized, developer-facing failure reason under `NSDebugDescriptionErrorKey`.
 
 ### `NSKeyedArchiver` & `NSKeyedUnarchiver` Changes
 
@@ -329,11 +343,11 @@ To do this, we want to introduce changes to `NSKeyedArchiver` and `NSKeyedUnarch
 ```swift
 // These are provided in the Swift overlay, and included in swift-corelibs-foundation.
 extension NSKeyedArchiver {
-    public func encodeCodable(_ codable: Codable?, forKey key: String) { ... }
+    public func encodeCodable(_ codable: Encodable?, forKey key: String) { ... }
 }
 
 extension NSKeyedUnarchiver {
-    public func decodeCodable<T : Codable>(_ type: T.Type, forKey key: String) -> T? { ... }
+    public func decodeCodable<T : Decodable>(_ type: T.Type, forKey key: String) -> T? { ... }
 }
 ```
 
@@ -392,6 +406,3 @@ The addition of this API will not be an ABI-breaking change. However, this will 
 
 Much like new API added to the standard library, once added, some changes to this API will be ABI- and source-breaking changes. Changes to the new encoder and decoder classes provided above will be restricted as described in the [library evolution document](https://github.com/apple/swift/blob/master/docs/LibraryEvolution.rst) in the Swift repository; in particular, the removal of methods or nested types or changes to argument types will break client behavior. Additionally, additions to provided options `enum`s will be a source-breaking change for users performing an exhaustive switch over their cases; removal of cases will be ABI-breaking.
 
-## Alternatives considered
-
-None. This is a companion to the Swift Archival and Serialization API.
