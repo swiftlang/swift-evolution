@@ -24,7 +24,7 @@ In the hopes of fulfilling the initial goal of [SE-0025](0025-scoped-access-leve
 The design of this proposal defines the visibility of a `private` member declared within a type `X` or an extension of type `X` to:
 
 * the declaration of `X` if it occurs in the same file
-* all extensions of `X` or subclasses of `X` in the same file
+* all extensions of `X` in the same file
 * all declarations of nested types of `X` in the same file
 * all extensions of nested types of `X` in the same file
 
