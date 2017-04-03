@@ -48,13 +48,15 @@ struct Person {
     }
 
     func greet() {
-        // age is accessible because it is defined in the same declaration but secreyAge is not because it is defined
-        // in a nested type so the following piece of code would generate a compilation error:
+        // age is accessible because it is defined in the same declaration
+        // secretAge is not because it is defined in a nested type
+        // Therefore, following piece of code would generate a compilation error:
         // if age < gender.secrecyAge {
-        // instead:
+        
+        // Instead:
         if Gender.shouldRevealAge(self) {
-            // fullGreeting is accessible because it is defined in an
-            // extension of the same type in the same file
+            // fullGreeting is accessible because it is defined in an extension
+            // of the same type in the same file
             print(fullGreeting)
         } else {
             print(greeting)
@@ -66,7 +68,8 @@ struct Person {
 private extension Person {
     // fullGreeting is implictly private due to the extension's modifier
     var fullGreeting: String {
-        // age is accessible because it is defined in the declaration of the extension's type in the same file
+        // age is accessible because it is defined in the declaration of the extension's type in the
+        // same file
         return "Hello, my name is \(name), I'm \(age) years old."
     }
 }
