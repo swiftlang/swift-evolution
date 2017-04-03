@@ -318,7 +318,7 @@ We address defects 1 and 2 by:
 2. Introducing a `StringInterpolationSegment` generic enum and making 
    `init(stringInterpolation:)` take a variadic list of them; and
 
-3. Removing the `init(stringInterpolationSegment:)` call.
+3. Removing the `init(stringInterpolationSegment:)` call from the protocol.
 
 Combined with the new rule of interpreting interpolations as initializer 
 calls, the generated code for the `"Hello, \(name)!"` example above 
