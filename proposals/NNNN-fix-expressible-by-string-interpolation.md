@@ -304,6 +304,10 @@ extension SQLStatement: ExpressibleByStringLiteral {
 let result = conn.query("SELECT \(raw: field) FROM users WHERE name = \(name)")
 ```
 
+We use initializers instead of static methods because initializers 
+always return a value of the type they belong to, creating the funnel 
+effect we're looking for.
+
 ### Redesign `ExpressibleByStringInterpolation` calling sequences
 
 We address defects 1 and 2 by:
