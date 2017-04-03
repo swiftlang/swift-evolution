@@ -689,11 +689,11 @@ The resulting call sequence looks something like this:
 
 ```swift
 {
-	var buffer = T.makeStringInterpolationBuffer()
-	T.appendLiteralSegment("Hello, ", to: &buffer)
-	T.appendInterpolatedSegment(.init(name), to: &buffer)
-	T.appendLiteralSegment("!", to: &buffer)
-	return T(stringInterpolation: buffer)
+	var $buffer = T.makeStringInterpolationBuffer()
+	T.appendLiteralSegment("Hello, ", to: &$buffer)
+	T.appendInterpolatedSegment(.init(name), to: &$buffer)
+	T.appendLiteralSegment("!", to: &$buffer)
+	return T(stringInterpolation: $buffer)
 }()
 ```
 
@@ -707,8 +707,8 @@ The advantages of this approach are:
 2. Each interpolation is its own statement, and none of the 
    interpolations are in the same statement as the interpolated 
    string as a whole, so the constraint solver does not have to 
-   consider interdependencies between them. The current string 
-   interpolation implementation has achieved the same behavior, 
+   consider interdependencies between them. The Swift 3 string 
+   interpolation implementation has achieved the same property, 
    but only by hand optimization.
 
 3. The use of a separate buffer type means that the conforming type 
@@ -716,13 +716,11 @@ The advantages of this approach are:
    But if the type natively supports appending, you could also just use 
    `Self` as the buffer type.
 
-4. It would be possible to provide default implementations for 
-   the three buffer methods if the buffer type were `String` or 
-   a `RangeReplaceableCollection` and the literal and interpolation 
-   types were also compatible types. This could make simple 
-   conformances very easy: just implement 
-   `init(stringInterpolation: String)` and the standard library 
-   would provide default implementations for the rest.
+4. We could provide default implementations of `makeStringInterpolationBuffer()`, 
+   `appendLiteralSegment(_:to:)`, and `appendInterpolatedSegment(_:to:)` 
+   which would cover many common scenarios, such as when the associated 
+   types were `String`. This would mean that, in practice, many 
+   conforming types would only need to implement the initializer.
 
 The disadvantages are:
 
@@ -737,11 +735,11 @@ The disadvantages are:
    changes necessary to do this are relatively invasive and I'm not 
    sure I've done everything necessary yet.
 
-4. The closure body cannot be fully generated until CSApply because, 
+4. The closure body cannot be fully generated until constraint application because, 
    until that time, we do not know the type to call the static methods 
    on, and it can't be inferred across the closure boundary because 
-   type inference does not operate on multi-statement closures. CSApply 
-   is a very unnatural place to generate closures, and doing so 
+   type inference does not operate on multi-statement closures. Constraint application 
+   is a very unnatural time to generate closures, and doing so 
    requires several half-baked hacks which seem to introduce additional 
    bugs.
 
