@@ -228,6 +228,18 @@ unlabeled overloads and overloads with a `stringInterpolationSegment:` label.
 It will give a slight preference to `stringInterpolationSegment:` overloads, but 
 an unlabeled initializer with a much better type match may still be 
 selected over a `stringInterpolationSegment:` initializer with a poor type match.
+
+```swift
+let name = readLine()
+
+print("Hello, \(name)!")
+//             ^~~~~~
+//    String<T>(_: T) where T: LosslessStringConvertible
+  
+print("Hello, \(name as Any)")
+//             ^~~~~~~~~~~~~
+//    String<T>(stringInterpolationSegment: T)
+```
 	
   [se0089]: https://github.com/apple/swift-evolution/blob/master/proposals/0089-rename-string-reflection-init.md
 
