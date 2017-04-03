@@ -32,7 +32,7 @@ To illustrate the consequence of those rules, the following examples will be use
 
 ### Person.swift
 
-```
+```swift
 struct Person {
     let name: String
     let gender: Gender
@@ -100,7 +100,7 @@ extension Gender {
 
 ### Other.swift
 
-```
+```swift
 extension Person : CustomStringConvertible {
     var desription: String {
         return fullGreeting
