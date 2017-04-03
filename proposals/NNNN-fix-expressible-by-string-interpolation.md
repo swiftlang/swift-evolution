@@ -365,7 +365,7 @@ Exact listing:
 /// This type has two generic parameters. The first is the type of the 
 /// `literal` case's associated value; the second is the type of the 
 /// `interpolation` case's associated value. The `Literal` generic 
-/// parameter must be `ExpressibleByStringLiteral`.
+/// parameter must be `String` or `StaticString`.
 /// 
 /// - SeeAlso: ExpressibleByStringInterpolation
 public enum StringInterpolationSegment<Literal: _ExpressibleByBuiltinStringLiteral, Interpolation> {
@@ -404,7 +404,7 @@ public enum StringInterpolationSegment<Literal: _ExpressibleByBuiltinStringLiter
 /// 
 /// Literal segments are represented as instances of the associated 
 /// `StringLiteralType` type wrapped in a `StringInterpolationSegment.literal` 
-/// instance. `StringLiteralType` must be `ExpressibleByStringLiteral`.
+/// instance. `StringLiteralType` must be `String` or `StaticString`.
 /// 
 /// Interpolated segments are represented as values of the associated
 /// `StringInterpolationType` type. The code beween the two parentheses is 
@@ -478,9 +478,8 @@ extension ExpressibleByStringInterpolation {
 ```
 
 `String` and a few test-related types are modified to handle this.
-In particular, the old `init(stringInterpolationSegment:)` methods 
-on `String` have been renamed to `init(stringInterpolationSegment:)`. Although 
-they're used in a different way, the old implementations work fine for 
+Although the `init(stringInterpolationSegment:)` methods on `String` 
+are used in a different way, the old implementations work fine for 
 their new purpose.
 
 ### Modifications to parsing
