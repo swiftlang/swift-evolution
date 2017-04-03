@@ -579,10 +579,10 @@ for omittable labels.
 
 ### Test status
 
-There are currently two failing tests. One is for the aforementioned 
-"interpolating an optional" diagnostic; the other is because it 
+There are currently three failing tests. One is for the aforementioned 
+"interpolating an optional" diagnostic; the second is because it 
 generates complicated constraint systems which we hope to simplify
-in the future.
+in the future; the third notes that this change is not binary-compatible.
 
 New tests have been added which ensure the generated code calls 
 `ExpressibleByStringInterpolation` APIs in the expected way.
