@@ -7,6 +7,7 @@
 
 * Review manager: [Chris Lattner](http://github.com/lattner)
 * Implementation: [Pull request](https://github.com/apple/swift/pull/8379)
+* Bug: [SR-4481](https://bugs.swift.org/browse/SR-4481)
 
 ## Introduction
 
