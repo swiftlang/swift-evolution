@@ -1,9 +1,9 @@
-# Package Manager Custom Targets Layout
+# Package Manager Custom Target Layouts
 
-* Proposal: [SE-NNNN](NNNN-package-manager-custom-targets-layout.md)
+* Proposal: [SE-0162](0162-package-manager-custom-target-layouts.md)
 * Author: [Ankit Aggarwal](https://github.com/aciidb0mb3r)
 * Review Manager: [Rick Ballard](https://github.com/rballard)
-* Status: **Discussion**
+* Status: **Active review (April 4...April 10, 2017)**
 * Bug: [SR-29](https://bugs.swift.org/browse/SR-29)
 
 ## Introduction
