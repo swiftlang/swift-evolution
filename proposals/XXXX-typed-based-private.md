@@ -30,12 +30,14 @@ The design of this proposal defines the visibility of a `private` member declare
 * all declarations of nested types of `X` in the same file
 * all extensions of nested types of `X` in the same file
 
+This visibility does **not** extend to subclasses of `X` in the same file.
+
 To illustrate the consequence of those rules, the following examples will be used with two files in the same module:
 
 ### Person.swift
 
 ```swift
-struct Person {
+class Person {
     let name: String
     let gender: Gender
     private let age: String
@@ -102,6 +104,13 @@ extension Gender {
         // type same file
         return person.age
     }
+}
+
+class VIP: Person {
+   var leakedAge: Int {
+       // error: age is not visible because it is defined in another type
+       return age
+   }
 }
 ```
 
