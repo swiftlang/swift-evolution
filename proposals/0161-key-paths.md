@@ -28,7 +28,7 @@ Making indirect references to a properties' concrete types also lets us expose m
 We would also like to support being able to use _Key Paths_ to access into collections and other subscriptable types, which is not currently possible.
 
 ## Proposed solution
-We propose introducing a new expression similar to function type references (e.g. `Type.method`), but for properties and subscripts.  To avoid ambiguities with type properties, we propose we escape such expressions using `\` to indicate that you are talking the property, not its invocation. 
+We propose introducing a new expression similar to function type references (e.g. `Type.method`), but for properties and subscripts.  To avoid ambiguities with type properties, we propose we escape such expressions using `\` to indicate that you are talking about the property, not its invocation. 
 
 These property reference expressions produce `KeyPath` objects, rather than `Strings`. `KeyPaths` are a family of generic classes _(structs and protocols here would be ideal, but requires generalized existentials)_ which encapsulate a property reference or chain of property references, including the type, mutability, property name(s), and ability to set/get values.
 
@@ -145,7 +145,7 @@ person[keyPath: someKeyPath]
 which is both appealingly readable, and doesn't require read-modify-write copies (subscripts access `self` inout). Conflicts with existing subscripts are avoided by using a named parameter and generics to only accept key paths with a `Root` of the type in question.
 
 ### Referencing Key Paths
-Forming a `KeyPath` utilizes a new sigil `\` for escaping the execution of a key path. We feel this best serves our needs of disambiguating from existing `#keyPath` expressions (which will continue to produce `Strings`) and existing type properties.
+Forming a `KeyPath` utilizes a new escape sigil `\`. We feel this best serves our needs of disambiguating from existing `#keyPath` expressions (which will continue to produce `Strings`) and existing type properties.
 
 Optionals are handled via optional-chaining. Multiply dotted expressions are allowed as well, and work just as if they were composed via the `appending` methods on `KeyPath`.
 
