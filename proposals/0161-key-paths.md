@@ -180,6 +180,17 @@ We also explored many different spellings, each with different strengths. We hav
 
 While the crispness of the function-type-reference is appealing, it becomes ambigious when working with type properties.  The escape-sigil variant avoids this, and remains quite readable.
 
+#### Why `\`?
+During review many different sigils were considered: 
+
+**No Sigil**: This matches function type references, but suffers from ambigiuty with wanting to actually call a type property. Having to type `let foo: KeyPath<Baz, Bar>` while consistent with function type references, really is not that great (even for  function type references). 
+
+**Back Tick**: Borrowing from lisp, back-tick was what we used in initial discussions of this proposal (it was easy to write on a white-board), but it was not chosen because it is hard to type in markdown, and comes dangerously close to conflicting with other parser intrinsics.
+
+**Pound**: We considered `#` as well, and while it is appealing, we'd like to save it for the future. `#` also has a slightly more computational connotation in Swift so far. For instance, `#keyPath` 'identifies if its valid and returns a String', `#available` does the neccesary computation to verify availability and yields a boolean. 
+
+**Back Slash**: Where `#` is computational, `\` in Swift has more of a 'behave differently for a moment' connotation, and that seems to fit exactly what we want when forming a key path. 
+
 #### Function Type References
 We think the disambiguating benefits of the escape-sigil would greatly benefit function type references, but such considerations are outside the scope of this proposal.
 
