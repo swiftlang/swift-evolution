@@ -3,7 +3,7 @@
 * Proposal: [SE-0161](0161-key-paths.md)
 * Authors: [David Smith](https://github.com/Catfish-Man), [Michael LeHew](https://github.com/mlehew), [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Active review (March 30...April 5, 2017)**
+* Status: **Returned for revision** ([Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170403/035061.html))
 * Associated PRs:
    * [#644](https://github.com/apple/swift-evolution/pull/644)
 
