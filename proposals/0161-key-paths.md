@@ -25,10 +25,12 @@ While methods can be referred to without invoking them (`let x = foo.bar` instea
 Making indirect references to a properties' concrete types also lets us expose metadata about the property, and in the future additional behaviors.
 
 #### More Expressive KeyPaths
-We would also like to support being able to use _Key Paths_ to access into collections, which is not currently possible.
+We would also like to support being able to use _Key Paths_ to access into collections and other subscriptable types, which is not currently possible.
 
 ## Proposed solution
-We propose expanding the capabilities of the `#keyPath` directive to produce `KeyPath` objects instead of `Strings`. `KeyPaths` are a family of generic classes _(structs and protocols here would be ideal, but requires generalized existentials)_ which encapsulate a property reference or chain of property references, including the type, mutability, property name(s), and ability to set/get values.
+We propose introducing a new expression similar to function type references (e.g. `Type.method`), but for properties and subscripts.  To avoid ambiguities with type properties, we propose we escape such expressions using `\` to indicate that you are talking about the property, not its invocation. 
+
+These property reference expressions produce `KeyPath` objects, rather than `Strings`. `KeyPaths` are a family of generic classes _(structs and protocols here would be ideal, but requires generalized existentials)_ which encapsulate a property reference or chain of property references, including the type, mutability, property name(s), and ability to set/get values.
 
 Here's a sample of it in use:
 
@@ -47,17 +49,17 @@ var luke = Person(name: "Luke Skywalker")
 luke.friends.append(han)
 
 // create a key path and use it
-let firstFriendsNameKeyPath = #keyPath(Person, .friends[0].name)
+let firstFriendsNameKeyPath = \Person.friends[0].name)
 let firstFriend = luke[keyPath: firstFriendsNameKeyPath] // "Han Solo"
 
 // or equivalently, with type inferred from context
-luke[keyPath: #keyPath(.friends[0].name)] // "Han Solo"
+luke[keyPath: \.friends[0].name] // "Han Solo"
 
 // rename Luke's first friend
 luke[keyPath: firstFriendsNameKeyPath] = "A Disreputable Smuggler"
 
 // optional properties work too
-let bestFriendsNameKeyPath = #keyPath(Person, .bestFriend?.name) 
+let bestFriendsNameKeyPath = \Person.bestFriend?.name) 
 let bestFriendsName = luke[keyPath: bestFriendsNameKeyPath]  // nil, if he is the last Jedi
 ```
 
@@ -143,13 +145,14 @@ person[keyPath: someKeyPath]
 which is both appealingly readable, and doesn't require read-modify-write copies (subscripts access `self` inout). Conflicts with existing subscripts are avoided by using a named parameter and generics to only accept key paths with a `Root` of the type in question.
 
 ### Referencing Key Paths
-Forming a `KeyPath` borrows from the same syntax added in Swift 3 to confirm the existence of a given key path, only now producing concrete values instead of Strings.  Optionals are handled via optional-chaining. Multiply dotted expressions are allowed as well, and work just as if they were composed via the `appending` methods on `KeyPath`.
+Forming a `KeyPath` utilizes a new escape sigil `\`. We feel this best serves our needs of disambiguating from existing `#keyPath` expressions (which will continue to produce `Strings`) and existing type properties.
 
+Optionals are handled via optional-chaining. Multiply dotted expressions are allowed as well, and work just as if they were composed via the `appending` methods on `KeyPath
 
-There is no change or interaction with the #keyPath() syntax introduced in Swift 3. `#keyPath(Person.bestFriend.name)` will still produce a String, whereas `#keyPath(Person, .bestFriend.name)` will produce a `KeyPath<Person, String>`.
+Forming a key path through subscripts (e.g. Array / Dictionary) will have the limitation that the parameter's type(s) must be `Hashable`.  Should the archival and serialization proposal be accepted, we would also like to include `Codable` with an eye towards being able to make key paths `Codable` themselves in the future. 
 
 ### Performance
-The performance of interacting with a property via `KeyPaths` should be close to the cost of calling the property directly.
+The performance of interacting with a property/subscript via `KeyPaths` should be close to the cost of calling the property directly.
 
 ## Source compatibility
 This change is additive and there should no affect on existing source. 
@@ -172,31 +175,24 @@ Various drafts of this proposal have included additional features (decomposable 
 #### Spelling
 We also explored many different spellings, each with different strengths. We have chosen the current syntax for the clarity and discoverability it provides in practice.
 
-| `#keyPath` | Function Type Reference | Lisp-style |
-| --- | --- | --- |
-| `#keyPath(Person, .friends[0].name)` | `Person.friends[0].name` | \``Person.friend.name` |
-| `#keyPath(luke, .friends[0].name)` |`luke[.friends[0].name]`  | `luke`\``.friends[0].name` |
-| `#keyPath(luke.friends[0], .name)`| `luke.friends[0][.name]` |  `luke.friends[0]`\``.name` |
+| Case | `#keyPath` | Function Type Reference | Escape |
+| --- | --- | --- | --- |
+| Fully qualified | `#keyPath(Person, .friends[0].name)` | `Person.friends[0].name` | `\Person.friends[0].name` |
+| Type Inferred| `#keyPath(.friends[0].name)` |`Person.friends[0].name]`  | `\.friends[0].name` |
 
-While the crispness of the function-type-reference is appealing, it becomes ambigious when working with type properties.  The spelling of the escape-sigil of the Lisp-style remains a barrier to adoption, but could be considered in the future should `#keyPath` prove a burden.
+While the crispness of the function-type-reference is appealing, it becomes ambigious when working with type properties.  The escape-sigil variant avoids this, and remains quite readable.
 
-We think most of the situations where `#keyPath` could be overly taxing likely wont show up outside of demonstrative examples:
+#### Why `\`?
+During review many different sigils were considered: 
 
-```swift
-// you would likely never type this:
-#keyPath(Person, .friends).appending(#keyPath(Array, [0]))
+**No Sigil**: This matches function type references, but suffers from ambigiuty with wanting to actually call a type property. Having to type `let foo: KeyPath<Baz, Bar>` while consistent with function type references, really is not that great (even for  function type references). 
 
-// since you can just type this:
-#keyPath(Person, .friends[0])
+**Back Tick**: Borrowing from lisp, back-tick was what we used in initial discussions of this proposal (it was easy to write on a white-board), but it was not chosen because it is hard to type in markdown, and comes dangerously close to conflicting with other parser intrinsics.
 
-// .appending is more likely used in situations like this:
-let somePath : PartialKeyPath<[Person]> =  ... 
-#keyPath(Person, .friends).appending(somePath)
+**Pound**: We considered `#` as well, and while it is appealing, we'd like to save it for the future. `#` also has a slightly more computational connotation in Swift so far. For instance, `#keyPath` 'identifies if its valid and returns a String', `#available` does the neccesary computation to verify availability and yields a boolean. 
 
-// similarly, you'd never type this:
-person[keyPath: #keyPath(Person, .friends[0]))
+**Back Slash**: Where `#` is computational, `\` in Swift has more of a 'behave differently for a moment' connotation, and that seems to fit exactly what we want when forming a key path. 
 
-// since that is just a roundabout way of saying:
-person.friends[0]
-```
+#### Function Type References
+We think the disambiguating benefits of the escape-sigil would greatly benefit function type references, but such considerations are outside the scope of this proposal.
 
