@@ -25,12 +25,15 @@ While it has been argued that access level changes should wait until a future de
 
 The design of this proposal defines the visibility of a `private` member declared within a type `X` or an extension of type `X` to:
 
-* the declaration of `X` if it occurs in the same file
-* all extensions of `X` in the same file
-* all declarations of nested types of `X` in the same file
-* all extensions of nested types of `X` in the same file
+* the declaration of `X` if it occurs in the same file,
+* all extensions of `X` in the same file,
+* all declarations of nested types of `X` in the same file,
+* all extensions of nested types of `X` in the same file.
 
-This visibility does **not** extend to subclasses of `X` in the same file.
+Several precisions:
+
+* This visibility does **not** extend to subclasses of `X` in the same file.
+* This visibility **does** extend to constrained extensions of the same generic types (for example, `Optional where Wrapped == String` and `extension Optional where Wrapped == Int`).
 
 To illustrate the consequence of those rules, the following examples will be used with two files in the same module:
 
@@ -53,7 +56,7 @@ class Person {
 
     func greet() {
         // age is accessible because it is defined in the same declaration
-        // secretAge is not because it is defined in a nested type
+        // secrecyAge is not because it is defined in a nested type
         // Therefore, following piece of code would generate a compilation error:
         // if age < gender.secrecyAge {
         
@@ -98,7 +101,7 @@ extension Person {
     }
 }
 
-extension Gender {
+extension Person.Gender {
     static func leakAge(of person: Person) {
         // age is accessible because we are in the extension of a type nested in the
         // type same file
