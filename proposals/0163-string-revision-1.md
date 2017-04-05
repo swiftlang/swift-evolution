@@ -1,9 +1,9 @@
 # String Revision: Collection Conformance, C Interop, Transcoding
 
-* Proposal: [SE-0161](0161-StringRevision1.md)
+* Proposal: [SE-0163](0161-string-reivision-1.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift), [Dave Abrahams](http://github.com/dabrahams/)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [John McCall](https://github.com/rjmccall)
+* Status: **Active review (April 5...11, 2017)**
 
 ## Introduction
 
