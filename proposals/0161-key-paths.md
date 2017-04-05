@@ -6,7 +6,7 @@
 * Status: **Active review (April 5...9, 2017)**
 * Associated PRs:
    * [#644](https://github.com/apple/swift-evolution/pull/644)
-* Previous Revision: [1][https://github.com/apple/swift-evolution/blob/55e61f459632eca2face40e571a517919f846cfb/proposals/0161-key-paths.md]
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/55e61f459632eca2face40e571a517919f846cfb/proposals/0161-key-paths.md)
 
 ## Introduction
 We propose a family of concrete _Key Path_ types that represent uninvoked references to properties that can be composed to form paths through many values and directly get/set their underlying values.
