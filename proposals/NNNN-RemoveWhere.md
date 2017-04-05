@@ -1,0 +1,126 @@
+# Adding in-place `removeAll` to the Standard Library
+
+* Proposal: [SE-NNNN](NNNN-filename.md)
+* Authors: [Ben Cohen](https://github.com/airspeedswift)
+* Review Manager: TBD
+* Status: **Awaiting review**
+
+## Introduction
+
+It is common to want to remove all occurrences of a certain element from a
+collection. This proposal is to add two in-place `remove` algorithms to the
+standard library, which will remove all entries in a collection in-place
+matching either an `Equatable` value, or match that a certain criteria.
+
+## Motivation
+
+Removing all elements matching some criteria is a very common operation.
+However, it can be tricky to implement correctly and
+efficiently.
+
+The easiest way to achieve this effect in Swift 3 is to use `filter` and assign
+back, negating the thing you want to remove (because `filter` takes a closure
+of items to "keep"):
+
+```swift
+var nums = [1,2,3,4,5]
+// remove odd elements
+nums = nums.filter { !isOdd($0) }
+```
+
+In addition to readability concerns, this has two performance problems: fresh
+memory allocation, and a copy of all the elements in full even if none need to
+be removed.
+
+The alternative is to open-code a `for` loop. The simplest performant solution
+is the "shuffle-down" approach. While not especially complex, it is certainly
+non-trivial:
+
+```swift
+if var i = nums.index(where: isOdd) {
+  var j = i + 1
+  while j != nums.endIndex {
+    let e = nums[j]
+    if !isOdd(nums[j]) {
+      nums[i] = nums[j]
+      i += 1
+    }
+    j += 1
+  }
+  nums.removeSubrange(i..<nums.endIndex)
+}
+```
+
+Possibilities for logic and performance errors abound. There are probably some
+in the above code.
+
+Additionally, this approach does not work for range-replaceable collections
+that are _not_ mutable i.e. collections that can replace subranges, but can't
+guarantee replacing a single element in constant time. `String` is the most
+important example of this, because its elements (graphemes) are variable width.
+
+## Proposed solution
+
+Add the following methods to `RangeReplaceableCollection`:
+
+```swift
+nums.removeAll(equalTo: 9)
+nums.removeAll(where: isOdd)
+```
+
+The default implementation will use the protocol's `init()` and `append(_:)`
+operations to implement a copy-based version. Collections which also conform to
+`MutableCollection` will get the more efficient "shuffle-down" implementation,
+but still require `RangeReplaceableCollection` as well because of the need to
+trim at the end.
+
+Collections which are range replaceable but _not_ mutable (like `String`) will
+be able to implement their own version which makes use of their internal
+layout. Collections like `Array` may also implement more efficient versions
+using memory copying operations.
+
+Since `Dictionary` and `Set` would benefit from this functionality as well, but
+are not range-replaceable, they should be given concrete implementations for
+consistency.
+
+## Detailed design
+
+Add the following to `RangeReplaceableCollection`:
+
+```swift
+protocol RangeReplaceableCollection {
+  /// Removes every element satisfying the given predicate from the collection.
+  mutating func removeAll(where: (Iterator.Element) throws -> Bool) rethrows
+}
+
+extension RangeReplaceableCollection where Iterator.Element: Equatable {
+  /// Removes every element equal to the given element from the collection.
+  mutating func removeAll(equalTo element: Iterator.Element)
+}
+```
+
+## Source compatibility
+
+This change is purely additive so has no source compatibility consequences.
+
+## Effect on ABI stability
+
+This change is purely additive so has no ABI stability consequences.
+
+## Effect on API resilience
+
+This change is purely additive so has no API resilience consequences.
+
+## Alternatives considered
+
+Regarding the name: `remove` instead of `removeAll` was considered.
+`removeAll(equalTo: 5)` seems clearer when seen alongside similar methods
+`removeFirst(5)` and `remove(at: 5)`. In the case of `remove(where:)`, the
+`All` in the basename is preserved for trailing closures.
+
+`removeAll(where:)` takes a closure with `true` for elements to remove.
+`filter` takes a closure with elements to keep. In both cases, `true` is the
+"active" case, so likely to be what the user wants without having to apply a
+negation. The naming of `filter` is unfortunately ambiguous as to whether it's
+a removing or keeping operation, but re-considering that is outside the scope
+of this proposal.
