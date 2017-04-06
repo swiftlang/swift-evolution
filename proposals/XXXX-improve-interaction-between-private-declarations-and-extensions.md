@@ -1,6 +1,6 @@
 # Improve Interaction Between `private` Declarations and Extensions
 
-* Proposal: [SE-XXXX](XXXX-typed-based-private.md)
+* Proposal: [SE-XXXX](XXXX-improve-interaction-between-private-declarations-and-extensions.md)
 * Authors: [David Hart](http://github.com/hartbit), [Chris Lattner](https://github.com/lattner)
 * Review Manager: TBD
 * Status: TBD
@@ -12,7 +12,6 @@ In Swift 3, a declaration marked `private` may be accessed by anything nested in
 This model was introduced by [SE-0025](0025-scoped-access-level.md) and with nearly a year of experience using this model, it has worked well in almost all cases.  The primary case it falls down is when the implementation of a type is split into a base definition and a set of extensions.  Because of the SE-0025 model, extensions to the type are not allowed to access private members defined on that type.
 
 This proposal recommends extending `private` access control so that members defined in an extension of a type has the same access as members defined on the type itself, so long as the type and extension are in the same source file.  We expect this to dramatically reduce the number of uses of `fileprivate` in practice.
-
 
 ## Motivation
 
