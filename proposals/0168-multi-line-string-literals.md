@@ -1,4 +1,4 @@
-# Feature name
+# Multi-Line String Literals
 
 * Proposal: [SE-0168](https://github.com/apple/swift-evolution/blob/master/proposals/0168-multi-line-string-literals.md)
 * Author(s): [John Holdsworth](https://github.com/johnno1962), [Brent Royal-Gordon](https://github.com/brentdax), [Tyler Cloutier](https://github.com/TheArtOfEngineering)
