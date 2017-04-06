@@ -1,0 +1,63 @@
+Feature name: provide default func ==(_:_:) for types declared Equatable
+
+Proposal: SE-NNNN
+Author: Jan E.Schotsman
+Status: Awaiting review
+Review manager: TBD
+
+Introduction:
+
+If all of a type's stored properties are Equatable it makes sense for Swift to provide a default equality implementation.
+
+Motivation:
+
+In a project where many large types are defined that need to be Equatable it gets cumbersome to write explicit equality functions for all types.
+Swift-evolution thread: https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160125/007876.html
+
+Proposed solution
+
+If a type is declared Equatable, all its stored properties are Equatable and no func ==(_:_:) is defined by the developer the compiler will synthetisize a memberwise equality function.
+(Recursiveness of this procedure is almost automatic)
+
+A default func ==(_:_:) is always made available inside a custom definition of the equality operator, even if not all stored properties are equatable. This way a custom implementation can be based on the default one.
+
+By "available inside a custom definition" I mean this:
+
+within the developer's definition of equality for type MyType the  
+symbol == means the default equality operator (only for type MyType of  
+course)
+
+Then you can do:
+
+func ==(lhs:MyType,rhs:MyTYpe)
+  {
+  var equal = false
+  if lhs == rhs {equal = /*apply some additional test*/}
+  return equal
+  }
+
+or
+
+func ==(lhs:MyType,rhs:MyType)
+  {
+  var equal = false
+  var lhsCopy = lhs
+  var rhsCopy = rhs
+
+  lhsCopy.uncomparedProperty1 = 0
+  lhsCopy.uncomparedProperty2 = 0
+  rhsCopy.uncomparedProperty1 = 0
+  rhsCopy.uncomparedProperty2 = 0
+
+  if lhsCopy == rhsCopy {equal =  
+lhs.someMoreRelevantCalculatedProperty ==  
+rhs.someMoreRelevantCalculatedProperty}
+
+  return equal
+  }
+
+For types with many prpoerties this can be a lot cleaner and a lot more efficient.
+
+Impact on existing code
+
+There is no impact on existing code. Equality functions equal to the default implementation can simply be removed.
