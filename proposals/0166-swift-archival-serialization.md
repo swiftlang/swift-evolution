@@ -1,9 +1,9 @@
 # Swift Archival & Serialization
 
-* Proposal: SE-NNNN
+* Proposal: [SE-0166](0166-swift-archival-serialization.md)
 * Author(s): [Itai Ferber](https://github.com/itaiferber), [Michael LeHew](https://github.com/mlehew), [Tony Parker](https://github.com/parkera)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Active review (April 6...12, 2017)**
 * Associated PRs:
   * [#8124](https://github.com/apple/swift/pull/8124)
   * [#8125](https://github.com/apple/swift/pull/8125)
