@@ -1,9 +1,9 @@
 # Feature name
 
-* Proposal: [SE-XXXX](https://github.com/apple/swift-evolution/blob/master/proposals/XXXX-name.md)
+* Proposal: [SE-0168](https://github.com/apple/swift-evolution/blob/master/proposals/0168-multi-line-string-literals.md)
 * Author(s): [John Holdsworth](https://github.com/johnno1962), [Brent Royal-Gordon](https://github.com/brentdax), [Tyler Cloutier](https://github.com/TheArtOfEngineering)
-* Status: **[Awaiting review](#rationale)**
-* Review manager: TBD
+* Status: **Active review (April 6...12, 2017)**
+* Review manager: [Joe Groff](https://github.com/jckarter)
 
 ## Introduction
 
@@ -120,10 +120,3 @@ is a more practical one: it is a more major departure for the compiler in that t
 in the AST are no longer in source file order. Testing has, however, shown the toolchain
 to be surprisingly robust in dealing with this change once a few assertions were removed.
 
--------------------------------------------------------------------------------
-
-# Rationale
-
-On [Date], the core team decided to **(TBD)** this proposal.
-When the core team makes a decision regarding this proposal,
-their rationale for the decision will be written here.
