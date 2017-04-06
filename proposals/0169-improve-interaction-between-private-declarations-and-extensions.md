@@ -1,9 +1,9 @@
 # Improve Interaction Between `private` Declarations and Extensions
 
-* Proposal: [SE-XXXX](XXXX-improve-interaction-between-private-declarations-and-extensions.md)
+* Proposal: [SE-0169](0169-improve-interaction-between-private-declarations-and-extensions.md)
 * Authors: [David Hart](http://github.com/hartbit), [Chris Lattner](https://github.com/lattner)
-* Review Manager: TBD
-* Status: TBD
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Active review (April 6...11, 2017)**
 
 ## Introduction
 
