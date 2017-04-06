@@ -45,40 +45,17 @@ And I believe that the proposition is directly in line with those objectives.
 
 ## Counter-argument
 
-The counter-argument brought up by two members of the community is that the current behaviour "makes the capturing semantics of self stand out more in closures". While this is true, the author finds its usefulness lacking.
-
-In the following lines of code, we know without a shadow of a doubt that `foobar` is a throwing function and that `barfoo` does not throw.
+One counter-argument brought up by members of the community is that the current behaviour "makes the capturing semantics of self stand out more in closures." For example:
 
 ```swift
-try foobar()
-barfoo()
+print(description)
+let obj = Obj()
+obj.storedClosure = {
+    print(self.description)
+}
 ```
 
-But with an example of `self` in a closure:
-
-```swift
-foobar({
-	print(self.description)
-})
-```
-
-The `self` keyword in the previous lines of code gives a hint but does not bring any certitudes:
-
-* `self` might have been forced by the compiler to hint at possible memory issues,
-* `self` might have been a programmer choice if the closure is non-escaping.
-
-And in the reverse example:
-
-```swift
-barfoo({
-	print(description)
-})
-```
-
-* the closure might be non-escaping,
-* the `description` might be referring to a local variable (which we missed the declaration of) shadowing the instance property in an escaping closure.
-
-In both of these examples, the `self` keyword does not tell us with any certainty that we should or not be careful about reference cycle issues without checking the signature of the called function, only that self is captured. With the proposition, `self` gets some meaning back: it indicates which are local and which are instance properties.
+In this example, the second use of `description` is in a closure, and thus prefixed by `self.`, indicating that `self` will be captured by the closure and may need extra consideration to avoid memory leaks or crashes. This stands out to the programmer because the code follows a common code style where `self` is avoided unless necessary (see the first use of `description` which is not prefixed by `self`). Making `self` required everywhere would make the capturing semantics of using `self` in closures stand out less.
 
 ## Proposed Solution
 
