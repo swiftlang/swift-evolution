@@ -1,21 +1,21 @@
 # Swift Encoders
 
-* Proposal: SE-NNNN
+* Proposal: [SE-0166](0167-swift-encoders.md)
 * Author(s): [Itai Ferber](https://github.com/itaiferber), [Michael LeHew](https://github.com/mlehew), [Tony Parker](https://github.com/parkera)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Active review (April 6...12, 2017)**
 * Associated PRs:
   * [#8124](https://github.com/apple/swift/pull/8124)
 
 ## Introduction
 
-As part of the proposal for a Swift archival and serialization API ([SE-NNNN](https://github.com/itaiferber/swift-evolution/blob/swift-archival-serialization/proposals/XXXX-swift-archival-serialization.md)), we are also proposing new API for specific new encoders and decoders, as well as introducing support for new `Codable` types in `NSKeyedArchiver` and `NSKeyedUnarchiver`.
+As part of the proposal for a Swift archival and serialization API ([SE-0166](0166-swift-archival-serialization.md)), we are also proposing new API for specific new encoders and decoders, as well as introducing support for new `Codable` types in `NSKeyedArchiver` and `NSKeyedUnarchiver`.
 
-This proposal composes the latter two stages laid out in [SE-NNNN](https://github.com/itaiferber/swift-evolution/blob/swift-archival-serialization/proposals/XXXX-swift-archival-serialization.md).
+This proposal composes the latter two stages laid out in [SE-0166](0166-swift-archival-serialization.md).
 
 ## Motivation
 
-With the base API discussed in [SE-NNNN](https://github.com/itaiferber/swift-evolution/blob/swift-archival-serialization/proposals/XXXX-swift-archival-serialization.md), we want to provide new encoders for consumers of this API, as well as provide a consistent story for bridging this new API with our existing `NSCoding` implementations. We would like to offer a base level of support that users can depend on, and set a pattern that third parties can follow in implementing and extending their own encoders.
+With the base API discussed in [SE-0166](0166-swift-archival-serialization.md), we want to provide new encoders for consumers of this API, as well as provide a consistent story for bridging this new API with our existing `NSCoding` implementations. We would like to offer a base level of support that users can depend on, and set a pattern that third parties can follow in implementing and extending their own encoders.
 
 ## Proposed solution
 

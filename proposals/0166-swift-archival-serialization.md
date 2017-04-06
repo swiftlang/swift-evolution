@@ -33,7 +33,7 @@ This proposal is the first stage of three that introduce different facets of a w
 2. The next stage will propose specific API for new encoders
 3. The final stage will discuss how this new API will interop with `NSCoding` as it is today
 
-[SE-NNNN](https://github.com/itaiferber/swift-evolution/blob/swift-encoders/proposals/XXXX-swift-encoders.md) provides stages 2 and 3.
+[SE-0167](https://github.com/itaiferber/swift-evolution/blob/swift-encoders/proposals/0167-swift-encoders.md) provides stages 2 and 3.
 
 ## Proposed solution
 
@@ -61,7 +61,7 @@ public struct Farm : Codable {
 }
 ```
 
-With developer participation, we will offer encoders and decoders (described in [SE-NNNN](https://github.com/itaiferber/swift-evolution/blob/swift-encoders/proposals/XXXX-swift-encoders.md), not here) that take advantage of this conformance to offer type-safe serialization of user models:
+With developer participation, we will offer encoders and decoders (described in [SE-0167](0167-swift-encoders.md), not here) that take advantage of this conformance to offer type-safe serialization of user models:
 
 ```swift
 let farm = Farm(name: "Old MacDonald's Farm",
