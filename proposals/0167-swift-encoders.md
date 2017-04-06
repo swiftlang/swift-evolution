@@ -1,6 +1,6 @@
 # Swift Encoders
 
-* Proposal: [SE-0166](0167-swift-encoders.md)
+* Proposal: [SE-0167](0167-swift-encoders.md)
 * Author(s): [Itai Ferber](https://github.com/itaiferber), [Michael LeHew](https://github.com/mlehew), [Tony Parker](https://github.com/parkera)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Active review (April 6...12, 2017)**
