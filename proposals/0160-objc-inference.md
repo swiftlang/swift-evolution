@@ -1,6 +1,6 @@
 # Limiting `@objc` inference
 
-* Proposal: [SE-0160](https://github.com/apple/swift-evolution/blob/master/proposals/0160-objc-inference.md)
+* Proposal: [SE-0160](0160-objc-inference.md)
 * Author: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Active Review March 31...April 2** 
 * Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/0389b1f49fc55b1a898701c549ce89738307b9fc/proposals/0160-objc-inference.md)
