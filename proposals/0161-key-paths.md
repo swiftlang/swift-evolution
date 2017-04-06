@@ -50,7 +50,7 @@ var luke = Person(name: "Luke Skywalker")
 luke.friends.append(han)
 
 // create a key path and use it
-let firstFriendsNameKeyPath = \Person.friends[0].name)
+let firstFriendsNameKeyPath = \Person.friends[0].name
 let firstFriend = luke[keyPath: firstFriendsNameKeyPath] // "Han Solo"
 
 // or equivalently, with type inferred from context
@@ -60,7 +60,7 @@ luke[keyPath: \.friends[0].name] // "Han Solo"
 luke[keyPath: firstFriendsNameKeyPath] = "A Disreputable Smuggler"
 
 // optional properties work too
-let bestFriendsNameKeyPath = \Person.bestFriend?.name) 
+let bestFriendsNameKeyPath = \Person.bestFriend?.name
 let bestFriendsName = luke[keyPath: bestFriendsNameKeyPath]  // nil, if he is the last Jedi
 ```
 
