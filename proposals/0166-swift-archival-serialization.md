@@ -33,7 +33,7 @@ This proposal is the first stage of three that introduce different facets of a w
 2. The next stage will propose specific API for new encoders
 3. The final stage will discuss how this new API will interop with `NSCoding` as it is today
 
-[SE-0167](https://github.com/itaiferber/swift-evolution/blob/swift-encoders/proposals/0167-swift-encoders.md) provides stages 2 and 3.
+[SE-0167](0167-swift-encoders.md) provides stages 2 and 3.
 
 ## Proposed solution
 
