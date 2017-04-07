@@ -24,14 +24,16 @@ break lines using string concatenation. Concatenation is ungainly and may result
 
 ## Proposed solution
 
-After consideration this proposal puts forward a single simple syntax for inclusion: `"""long strings"""`.
+After consideration, this proposal puts forward a single simple syntax for inclusion: `"""long strings"""`.
 This has the advantage that it is well supported by the syntax highlighters on github and existing editors
-and is a relatively minor change to the Swift Lexer. Interpolation would work as before.
+and is a relatively minor change to the Swift Lexer.
 
 ### Long strings
 
-Long strings are strings delimited by `"""triple quotes"""` that can contain newlines and individual `"`
-characters without the need to escape them.
+Taking a precedent from Python language, long strings are strings delimited by `"""triple quotes"""`
+that can contain newlines and single or double `"` characters without the need to escape them.
+All other escapes would be processed as before including interpolation, \n and \" (if useful to
+include """ within the string.) Trailing whitespace would not be removed.
 
     assert( xml == """
         <?xml version="1.0"?>
@@ -47,12 +49,13 @@ characters without the need to escape them.
         </catalog>
         """ )
 
-To allow free formatting of the literal an indentation stripping operation is applied whereby
+To allow free formatting of the literal, an indentation stripping operation is applied whereby
 any whitespace characters in front of the closing delimiter are removed from each of the lines 
 in the literal. As part of this process any initial linefeed is also removed. This allows the
 developer to paste literal content directly into the string without modification. Some concern
 has been expressed about could introduce confusion if the prefixing indentation of each line does
 not contain the same whitespace characters, though this can be checked for by a compiler warning.
+If this is considered too magical a #trimLeft("""literal""") could be introduced to make it explicit.
 
 ## Detailed design
 
