@@ -33,7 +33,9 @@ and is a relatively minor change to the Swift Lexer.
 Taking a precedent from Python language, long strings are strings delimited by `"""triple quotes"""`
 that can contain newlines and single or double `"` characters without the need to escape them.
 All other escapes would be processed as before including interpolation, \n and \" (if useful to
-include """ within the string.) Trailing whitespace would not be removed.
+include """ within the string.) An \ at the end of the line will mean that newline is not 
+included in the string. Trailing whitespace should not be removed & comments are not allowed
+inside the string unless you want them to be included in the literal!
 
     assert( xml == """
         <?xml version="1.0"?>
@@ -49,21 +51,20 @@ include """ within the string.) Trailing whitespace would not be removed.
         </catalog>
         """ )
 
-To allow free formatting of the literal, an indentation stripping operation is applied whereby
-any whitespace characters in front of the closing delimiter are removed from each of the lines 
-in the literal. As part of this process any initial linefeed is also removed. This allows the
-developer to paste literal content directly into the string without modification. Some concern
-has been expressed about could introduce confusion if the prefixing indentation of each line does
-not contain the same whitespace characters, though this can be checked for by a compiler warning.
+To allow free formatting of the literal, an indentation stripping operation is applied whereby any (all) 
+whitespace characters bwteen the last newline and the closing delimiter are removed from each of the
+lines in the literal. As part of this process any initial linefeed is also removed. This allows the
+developer to paste literal content directly into the string almost without modification. Some concern
+has been expressed that this could introduce confusion if the prefixing indentation of each line does
+not contain the exact same whitespace characters. This could be checked for by a compiler warning.
 If this is considered too magical a #trimLeft("""literal""") could be introduced to make it explicit.
 
 ## Detailed design
 
 These changes are envisaged to be mostly confined to the Swift tokeniser: lib/Parse/Lexer.cpp.
 The new string literals would be presented to the grammar as simply being string literals.
-This has been explored in a PR for a [prototype toolchain](https://github.com/apple/swift/pull/2275)
-and seems to be a robust approach. Other details are explored in the prototype such as
-escaping the newline in literals resulting in it not being included in the final literal.
+This has been explored in a [prototype toolchain](http://johnholdsworth.com/swift-LOCAL-2017-04-09-a-osx.tar.gz)
+and seems to be a robust approach.
 
 ## Impact on existing code
 
