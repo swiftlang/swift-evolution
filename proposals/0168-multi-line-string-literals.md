@@ -69,6 +69,13 @@ The new string literals would be presented to the grammar as simply being string
 This has been explored in a [prototype toolchain](http://johnholdsworth.com/swift-LOCAL-2017-04-09-a-osx.tar.gz)
 and seems to be a robust approach.
 
+The indent stripping is performed in two stages. First the code searches back from the end of the string
+for whitespace characters until it encounters a newline. If there are one or more witespace characters
+and only whitespace characters this becomes the indent removal string (including the leading newline.)
+The code them performs a global replace on the literal replacing the indent removal string with a
+single newline exept the first occurance which it replaces with an empty string. If the literal contains 
+carriage newline before each line this is included in the indent removal string for replacement with newline.
+
 ## Impact on existing code
 
 As this proposal is additive it does not affect existing code.
