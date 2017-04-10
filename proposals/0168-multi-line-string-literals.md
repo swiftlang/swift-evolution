@@ -37,6 +37,20 @@ include """ within the string.) An \ at the end of the line will mean that newli
 included in the string. Trailing whitespace should not be removed & comments are not allowed
 inside the string unless you want them to be included in the literal!
 
+    let author = "john", xml =
+        "<?xml version=\"1.0\"?>\n" +
+        "<catalog>\n" +
+        "   <book id=\"bk101\" empty=\"\">\n" +
+        "       <author>\(author)</author>\n" +
+        "       <title>XML Developer's Guide</title>\n" +
+        "       <genre>Computer</genre>\n" +
+        "       <price>44.95</price>\n" +
+        "       <publish_date>2000-10-01</publish_date>\n" +
+        "       <description>An in-depth look at creating applications with XML.</description>\n" +
+        "   </book>\n" +
+        "</catalog>\n"
+
+    // multiline syntax
     assert( xml == """
         <?xml version="1.0"?>
         <catalog>
