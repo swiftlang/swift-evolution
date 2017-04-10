@@ -52,7 +52,7 @@ inside the string unless you want them to be included in the literal!
         """ )
 
 To allow free formatting of the literal, an indentation stripping operation is applied whereby any (all) 
-whitespace characters bwteen the last newline and the closing delimiter are removed from each of the
+whitespace characters between the last newline and the closing delimiter are removed from each of the
 lines in the literal. As part of this process any initial linefeed is also removed. This allows the
 developer to paste literal content directly into the string almost without modification. Some concern
 has been expressed that this could introduce confusion if the prefixing indentation of each line does
