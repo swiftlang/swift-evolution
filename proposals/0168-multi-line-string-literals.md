@@ -135,3 +135,8 @@ is a more practical one: it is a more major departure for the compiler in that t
 in the AST are no longer in source file order. Testing has, however, shown the toolchain
 to be surprisingly robust in dealing with this change once a few assertions were removed.
 
+### Asymetric delimiters
+
+In order to avoid ambiguity about exactly when a string starts an finishes It's been suggested
+to use delimiters such as @"long string"@ or #"long string"# instead of triple quotes. It was
+thought these were marginally more difficult to implement and have a greater impact on Swift syntax.
