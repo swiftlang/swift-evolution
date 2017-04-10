@@ -59,6 +59,9 @@ has been expressed that this could introduce confusion if the prefixing indentat
 not contain the exact same whitespace characters. This could be checked for by a compiler warning.
 If this is considered too magical a #trimLeft("""literal""") could be introduced to make it explicit.
 
+To support developers on the Windows platform as aside effect of the indentation stripping operation
+a character sequence carriage return linefeed in the source file would be normalised to linefeed.
+
 ## Detailed design
 
 These changes are envisaged to be mostly confined to the Swift tokeniser: lib/Parse/Lexer.cpp.
