@@ -37,6 +37,7 @@ include """ within the string.) An \ at the end of the line will mean that newli
 included in the string. Trailing whitespace should not be removed & comments are not allowed
 inside the string unless you want them to be included in the literal!
 
+```Swift
     let author = "john", xml =
         "<?xml version=\"1.0\"?>\n" +
         "<catalog>\n" +
@@ -64,6 +65,7 @@ inside the string unless you want them to be included in the literal!
             </book>
         </catalog>
         """ )
+```
 
 To allow free formatting of the literal, an indentation stripping operation is applied whereby any (all) 
 whitespace characters between the last newline and the closing delimiter are removed from each of the
