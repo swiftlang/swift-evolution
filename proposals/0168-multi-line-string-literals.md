@@ -32,7 +32,7 @@ and is a relatively minor change to the Swift Lexer.
 
 Taking a precedent from Python language, long strings are strings delimited by `"""triple quotes"""`
 that can contain newlines and single or double `"` characters without the need to escape them.
-All other escapes would be processed as before including interpolation, \n and \" (if useful to
+All other escapes would be processed as before including interpolation, \n and \\" (if useful to
 include """ within the string.) An \ at the end of the line will mean that newline is not 
 included in the string. Trailing whitespace should not be removed & comments are not allowed
 inside the string unless you want them to be included in the literal!
