@@ -3,7 +3,7 @@
 * Proposal: [SE-0162](0162-package-manager-custom-target-layouts.md)
 * Author: [Ankit Aggarwal](https://github.com/aciidb0mb3r)
 * Review Manager: [Rick Ballard](https://github.com/rballard)
-* Status: **Accepted**
+* Status: **Implemented (Swift 4)**
 * Bug: [SR-29](https://bugs.swift.org/browse/SR-29)
 
 ## Introduction
