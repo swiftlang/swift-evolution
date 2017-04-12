@@ -21,7 +21,7 @@ Swift-evolution thread: [Add a `clamp` function to Algorithm.swift](https://list
 
 ## Motivation
 
-There have been quite a few times in my professional and personal programming life where I reached for a function to limit a value to a given range and was disappointed it was not part of the standard library.
+There have been quite a few times in my professional and personal programming life where I reached for a function to limit a value to a given range and was disappointed that it was not part of the standard library.
 
 There already exists an extension to `CountableRange` in the standard library  implementing `clamped(to:)` that will limit the calling range to that of the provided range, so having the same functionality but just for types that conform to the `Comparable` protocol would be conceptually consistent.
 
@@ -34,7 +34,7 @@ The proposed solution is to add a `clamped(to:)` function to the Swift Standard 
 The function would return a value within the bounds of the provided range, if the value `clamped(to:)` is being called on falls within the provided range then the original value would be returned.
 If the value was less or greater than the bounds of the provided range then the respective lower or upper bound of the range would be returned.
 
-It does not make sense to call `clamped(to:)` with an empty range, therefore calling `clamped(to:)` and passing an empty range like `foo.clamped(to: 0..<0)` would result in a fatal error.
+Clamping on an empty range simply returns the value clamped to the `lowerBound` / `upperBound` of the `Range` no different from clamping on a non-empty range.
 
 Given a `clamped(to:)` function existed it could be called in the following way, yielding the results in the adjacent comments:
 
