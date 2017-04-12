@@ -644,7 +644,7 @@ warning: whitespace at start of multi-line string literal prevents indentation s
   Fix-it: Replace "↵" with "\n"
 ```
 
-#### Multi-line string with indentation stripping prevented by whitespace before leading newline
+#### Multi-line string with indentation stripping prevented by non-whitespace before trailing delimiter
 
 ```swift
 """↵
