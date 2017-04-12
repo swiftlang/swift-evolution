@@ -15,7 +15,7 @@
 ## Introduction
 
 This proposal aims to add functionality to the standard library for clamping a value to a provided `Range`.
-The proposed function would allow the user to specify a range to clamp a value to where if the value fell within the range, the value would be returned as is, if the value being clamped exceeded the upper or lower bound in value the value of the boundary the value exceeded would be returned.   
+The proposed function would allow the user to specify a range to clamp a value to where if the value fell within the range, the value would be returned as is, if the value being clamped exceeded the upper or lower bound then the upper or lower bound would be returned respectively.
 
 Swift-evolution thread: [Add a `clamp` function to Algorithm.swift](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170306/thread.html#33674)
 
@@ -30,7 +30,7 @@ to guarantee that a value is kept within bounds, perhaps one example of this com
 
 ## Proposed solution
 
-The proposed solution is to add a `clamped(to:)` function to the Swift Standard Library as an extension to `Comparable` and `Strideable`.
+The proposed solution is to add a `clamped(to:)` function to the Swift Standard Library as an extension to `Comparable` and to `Strideable`.
 The function would return a value within the bounds of the provided range, if the value `clamped(to:)` is being called on falls within the provided range then the original value would be returned.
 If the value was less or greater than the bounds of the provided range then the respective lower or upper bound of the range would be returned.
 
@@ -39,19 +39,18 @@ It does not make sense to call `clamped(to:)` with an empty range, therefore cal
 Given a `clamped(to:)` function existed it could be called in the following way, yielding the results in the adjacent comments:
 
 ```swift
-let foo = 100
-
 // Closed range variant
 
-foo.clamped(to: 0...50) // 50
-foo.clamped(to: 200...300) // 200
-foo.clamped(to: 0...150) // 100
+100.clamped(to: 0...50) // 50
+100.clamped(to: 200...300) // 200
+100.clamped(to: 0...150) // 100
 
 // Half-Open range variant
 
-foo.clamped(to: 0..<50) // 49
-foo.clamped(to: 200..<300) // 200
-foo.clamped(to: 0..<150) // 100
+100.clamped(to: 0..<50) // 49
+100.clamped(to: 200..<300) // 200
+100.clamped(to: 0..<150) // 100
+100.clamped(to: 42..<42) // 42
 ```
 
 ## Detailed design
@@ -80,8 +79,15 @@ The implementation would be as follows:
 ```swift
 extension Strideable where Stride: Integer {
     func clamped(to range: Range<Self>) -> Self {
-        guard !range.isEmpty { fatalError("Can not clamp to an empty range.") }
-        return clamped(to: range.lowerBound...(range.upperBound - 1))
+        let clampRange: ClosedRange<Self>
+
+        if range.lowerBound == range.upperBound {
+            clampRange = range.lowerBound...range.upperBound
+        } else {
+            clampRange = range.lowerBound...(range.upperBound - 1)
+        }
+
+        return clamped(to: clampRange)
     }
 }
 ```
