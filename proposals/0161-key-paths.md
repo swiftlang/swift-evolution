@@ -186,7 +186,7 @@ While the crispness of the function-type-reference is appealing, it becomes ambi
 #### Why `\`?
 During review many different sigils were considered: 
 
-**No Sigil**: This matches function type references, but suffers from ambigiuty with wanting to actually call a type property. Having to type `let foo: KeyPath<Baz, Bar>` while consistent with function type references, really is not that great (even for  function type references). 
+**No Sigil**: This matches function type references, but suffers from ambiguity with wanting to actually call a type property. Having to type `let foo: KeyPath<Baz, Bar>` while consistent with function type references, really is not that great (even for  function type references). 
 
 **Back Tick**: Borrowing from lisp, back-tick was what we used in initial discussions of this proposal (it was easy to write on a white-board), but it was not chosen because it is hard to type in markdown, and comes dangerously close to conflicting with other parser intrinsics.
 
