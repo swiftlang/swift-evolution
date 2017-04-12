@@ -40,8 +40,8 @@ string literals.
 ### Tripled string literal syntax
 
 We propose adding a new string literal syntax delimited by three double-quote marks.
-Unlike ordinary string literals, literal newline characters are permitted in these *tripled string 
-literals*, and sequences of one or two double-quotes do not need to be escaped:
+Unlike ordinary string literals, literal newline and tab characters are permitted in these 
+*tripled string literals*, and sequences of one or two double-quotes do not need to be escaped:
 
 ```swift
 """You want a revolution? I want a revelation
@@ -135,27 +135,27 @@ important, for tripled string literals to ignore the problem.
 ### Indentation stripping
 
 As specified so far, this syntax has one significant weakness: it interferes with 
-proper indentation of code. We propose that, when the opening delimiter ends its line and
-the closing delimiter starts its line, tripled string literals should 
-automatically remove whatever indentation is present before the closing delimiter from 
-each line above it, as well as removing the leading newline. Thus, this code:
+proper indentation of code. We propose that, when the space between the last 
+newline in the string and the closing delimiter contains only whitespace characters, 
+tripled string literals should automatically remove whatever indentation is present 
+before the closing delimiter from each line before it, except for the opening line. 
+Thus, this code:
 
 ```swift
-let xml = """
-    <?xml version="1.0"?>
-    <catalog>
-        <book id="bk101" empty="">
-            <author>John Doe</author>
-            <title>XML Developer's Guide</title>
-            <genre>Computer</genre>
-            <price>44.95</price>
-        </book>
-    </catalog>
-    """        // Note that there are four spaces before the delimiter on this line.
+let xml = """<?xml version="1.0"?>
+            <catalog>
+                <book id="bk101" empty="">
+                    <author>John Doe</author>
+                    <title>XML Developer's Guide</title>
+                    <genre>Computer</genre>
+                    <price>44.95</price>
+                </book>
+            </catalog>
+            """        // Note that there are 12 spaces before the delimiter on this line.
 ```
 
-Strips four spaces from the beginning of each line in the literal, producing a string with
-this content:
+Strips 12 spaces from the beginning of each line in the literal, producing a string with
+this content (including a trailing newline):
 
 ```xml
 <?xml version="1.0"?>
@@ -167,20 +167,55 @@ this content:
         <price>44.95</price>
     </book>
 </catalog>
+
 ```
 
-Tripled string literals with indentation stripping have a trailing newline by default; we 
-think this is the more common case with literals of this type. If you didn't want one, you 
-could put a backslash after `</catalog>`; this would remove the newline from the output, but 
-indentation stripping would still "see" that newline.
+Indentation stripping is concerned with the actual characters present in the source file, 
+not the logical characters produced by escapes, so indentation is stripped after an escaped 
+newline, but not after a `\n` sequence. That means escaped newlines work really well with 
+this feature—indentation after them will still be stripped.
+
+In fact, two special uses for escaped newlines fall naturally out of the two features' designs.
+When placed after the opening delimiter in a tripled string literal, an escaped newline lets 
+you start the content of the literal on a fresh line of text:
+
+```swift
+let xml = """\
+    <?xml version="1.0"?>
+    <catalog>
+        <book id="bk101" empty="">
+            <author>John Doe</author>
+            <title>XML Developer's Guide</title>
+            <genre>Computer</genre>
+            <price>44.95</price>
+        </book>
+    </catalog>
+    """
+```
+
+Contrarily, when placed at the end of the last full line in a string literal, an escaped 
+newline suppresses the trailing newline:
+
+```swift
+let xml = """<?xml version="1.0"?>
+            <catalog>
+                <book id="bk101" empty="">
+                    <author>John Doe</author>
+                    <title>XML Developer's Guide</title>
+                    <genre>Computer</genre>
+                    <price>44.95</price>
+                </book>
+            </catalog>\
+            """        // No trailing newline on this string.
+```
 
 If indentation stripping is enabled but some of the lines do not start with the 
-same sequence of whitespace characters as the last line, the compiler should leave 
-those lines unchanged and emit a warning about inconsistent indentation. This code sample 
+same sequence of whitespace characters as the last line, the compiler leaves those 
+lines unchanged and emits a warning about inconsistent indentation. This code sample 
 would emit a warning on the line with the `<catalog>` tag and leave two spaces before it:
 
 ```swift
-let xml = """
+let xml = """\
     <?xml version="1.0"?>
   <catalog>
         <book id="bk101" empty="">
@@ -197,15 +232,21 @@ Indentation stripping does not affect whitespace in the middle or at the end of 
 does it allow comments in the middle of tripled string literals. Fans of Perl's `/x` 
 regex modifier will need a different proposal.
 
-If the character immediately following the opening delimiter is *not* a newline, or 
-the line containing the closing delimiter contains at least one non-whitespace 
-character before the delimiter, no indentation-stripping logic will be applied.
-This preserves the feature's utility for short, possibly single-line strings and 
-for code generation use cases where nobody will read the code.
+If the line containing the closing delimiter *does* contains at least one 
+non-whitespace character before the delimiter, no indentation-stripping logic will 
+be applied. This preserves the feature's utility for short, possibly single-line 
+strings and for code generation use cases where nobody will read the code.
 
 #### Rationale
 
-The indentation stripping algorithm depends on the delimiter's indentation because it's the 
+We considered designs where a character explicitly marked the indentation on each line.
+While this was very clear, it meant that users would need to edit each line of the string, 
+rather than just inserting text verbatim. This made a lot of people very angry and was 
+widely regarded as a bad move.
+
+The best alternative, then, is to somehow infer the amount of indentation from the text, 
+preferably in a way that can also easily tell us whether indentation stripping should be 
+enabled at all. We use the closing delimiter's indentation because it's the 
 only part of the string literal's syntax whose distance from the first column has no other 
 meaning. By using it, we can support string literals which include indentation 
 *in their content*, which is helpful for many code-generation use cases, where you may care 
@@ -215,13 +256,13 @@ properly indented within the code using it. For instance, this example is both e
 by itself *and* generates easy-to-read XML:
 
 ```swift
-var xml = """
-<?xml version="1.0"?>
-<catalog>
-"""
+var xml = """\
+    <?xml version="1.0"?>
+    <catalog>
+    """
 
 for (id, author, title, genre, price) in bookTuples {
-    xml += """
+    xml += """\
             <book id="bk\(id)">
                 <author>\(author)</author>
                 <title>\(title)</title>
@@ -236,16 +277,21 @@ for (id, author, title, genre, price) in bookTuples {
     //  | of the string literal's contents.
 }
 
-xml += """
-</catalog>
-"""
+xml += """\
+    </catalog>
+    """
 ```
 
-At the same time, the contents of the string literal don't need to be modified except by 
-indenting them with normal editor commands (and you don't even need to do that if you don't 
-care about your code's indentation). We considered alternative syntaxes where some sort of 
-marker was placed at the left edge of each line of the literal, but this made a lot of people 
-very angry and was widely regarded as a bad move.
+We could instead use an algorithm where the longest common whitespace prefix is removed from 
+all lines; in well-formed code, that would produce the same behavior as this algorithm. But 
+when *not* well-formed—when one line was accidentally indented less than the delimiter, or 
+when a user mixed tabs and spaces accidentally—it would lead to valid, but incorrect and 
+undiagnosable, behavior. For instance, if one line used a tab and other lines used spaces, 
+Swift would not strip indentation from any of the lines; if most lines were indented four 
+spaces, but one line was indented three, Swift would strip three spaces of indentation from 
+all lines. And while you would still be able to create a string with all lines indented by 
+indenting the closing delimiter less than the others, many users would never discover this 
+trick.
 
 We discuss many alternative indentation stripping designs *ad nauseam* 
 [below](#indentation-stripping-alternatives). Suffice it to say, other languages have explored 
@@ -262,29 +308,44 @@ begins parsing a tripled string literal.
 When parsing an ordinary string literal, the lexer emits an error if it encounters a U+000A LINE FEED 
 ("LF") or U+000D CARRIAGE RETURN ("CR"). But when parsing a tripled string literal, this rule is 
 modified: The lexer permits either LF or CR LF and, in either case, inserts an LF into the resulting 
-string literal.(A CR without an LF in an tripled string literal is an error; while some operating 
+string literal. (A CR without an LF in an tripled string literal is an error; while some operating 
 systems have historically used CR alone or LF CR as line endings, they have largely been retired and 
 are unlikely platforms for future Swift development.)
+
+When parsing an ordinary string literal, the lexer also emits an error if it encounters a U+0009 CHARACTER 
+TABULATION ("tab") character. When parsing a tripled string literal, these characters will be permitted 
+and treated verbatim.
 
 Backslash escapes and interpolations are processed as in a normal string. However, an additional escape
 is added: If an LF (or CR LF) is preceded by a backslash, it is not included in the string literal's 
 contents, though it still "counts" for indentation stripping.
 
-Upon encountering a double-quote mark in a tripled string literal, the lexer again looks at the next two 
-characters. If they are both double-quote marks, the lexer consumes all three characters and ends the 
-triple-quote string literal. Otherwise, the double-quote mark is treated just like any other character 
-in the literal and processing continues with the next character. Therefore, in sequences of adjacent 
-double-quote marks, at least every third one must be escaped to avoid terminating the string early:
+Upon encountering a double-quote mark in a tripled string literal, the lexer examines the next few 
+characters to figure out how many quote marks there are in a row:
+
+* Just the one: One quote mark is added to the literal's contents.
+* Two: Two quote marks are added to the literal's contents.
+* Three: The literal is terminated.
+* Four: One quote mark is added to the literal's contents and the literal is terminated.
+* Five: Two quote marks are added to the literal's contents and the literal is terminated.
+* Six or more: A syntax error occurs.
+
+(The exact specifics of how this is accomplished are an implementation detail; the prototype 
+simply doesn't consider the delimiter matched until it finds three quotes and a non-quote.)
+
+These rules ensure that up to two unescaped double-quote marks may appear anywhere in a tripled 
+string literal, including adjacent to the closing delimiter. If you want a string with three 
+adjacent double-quote marks in it, you'll need to escape at least one of them:
 
 ```swift
-"""
+""""" <-- Two double-quote marks adjacent to the opening delimiter
 This is okay: "
 This is okay: ""
 This needs at least one escape: \"""
 This would work too: ""\"
 Or this, if you want to overdo it: \""\"
 This needs several escapes: \"""\"""\"""
-"""
+Two double-quote marks adjacent to the closing delimiter --> """""
 ```
 
 Other characters are processed as they would be in an ordinary string literal; that is, they are 
@@ -292,40 +353,28 @@ typically included verbatim.
 
 ### Stripping indentation from a literal
 
-For the purposes of this section:
+Indentation stripping is performed on the raw source code, after the delimiter has been 
+located but before backslash escapes are interpreted. That means that, when we talk about 
+an "LF", we mean a physical LF in the code, not a logical LF after escapes have been 
+processed—we will match escaped newlines, but not `\n` escapes. Similarly, tabs are actual 
+physical tab characters, not `\t` escapes.
 
-* A "whitespace character" is either U+0020 SPACE or U+0009 CHARACTER TABULATION.
-  This is how `Lexer::lexWhitespace()` currently defines whitespace in code; if 
-  that's changed, the indentation stripping algorithm should change to match.
+For the purposes of this section, a "whitespace character" is either a tab or U+0020 SPACE.
+This is how `Lexer::lexWhitespace()` currently defines whitespace in code; if 
+that's changed, the indentation stripping algorithm should change to match.
 
-* Backslash escapes are *not* interpreted. A backslashed LF is treated as a backslash
-  followed by an LF, not as an invisible sequence. A `\n` sequence is treated 
-  as a backslash followed by a lowercase "n", not an LF character.
+After locating the delimiters of the string, the lexer:
 
-* CR characters preceding an LF should be ignored; if we say, for instance, "delimiter 
-  followed by LF", that should also match delimiter-CR-LF.
+1. Examines the characters between the last LF and the closing delimiter. If there 
+   are any non-whitespace characters in this stretch (or there are no LFs in the string),
+   indentation stripping is disabled, and we skip the remaining steps.
 
-Indentation stripping is enabled if **both** of the following are true:
+2. Records the exact sequence of whitespace between the last LF and the closing delimiter 
+   as the indentation to be removed.
 
-1. The opening delimiter is immediately followed by an LF.
-
-2. All characters between the last LF in the string and the closing delimiter 
-   are whitespace characters. (There may be zero whitespace characters.)
-
-If condition #2 is met, and condition #1 would be met except that there is other 
-whitespace between the opening delimiter and the LF, a warning should be emitted 
-with a fix-it to remove the whitespace.
-
-If indentation stripping is enabled:
-
-1. The whitespace between the literal's last LF and its ending delimiter is recorded 
-   as the amount of indentation for that string literal.
-
-2. The compiler examines the string, looking at each LF. If the succeeding characters 
-   exactly match the recorded indentation, those characters are removed from the 
-   string literal contents. If the characters do not match, a warning should be emitted.
-
-3. The LF at the beginning of the string literal is removed.
+3. Examines the characters after each LF. If they exactly match the recorded indentation, 
+   the characters are removed from the string literal contents. Otherwise, a warning should 
+   be emitted.
 
 At this point, the remaining text should undergo normal processing, including processing 
 of backslash escapes.
@@ -340,14 +389,14 @@ We have prepared a [prototype implementation][proto] which includes:
 * Escaping newlines to remove them from the content string.
 * Indentation stripping similar to what is specified here.
 * Some work on newline normalization.
+* Tests similar to the ones in the "gallery" below.
 
 It does not include:
 
-* Thorough tests of the tripled string literal syntax.
-* Detailed diagnostics with fix-its for indentation mistakes.
+* Detailed indentation diagnostics with fix-its.
 * Specific diagnostics work for runaway tripled string literals.
-* Updating other clients of the tokenizer (IDE, Syntax, etc.) to fully understand tripled 
-  string literals.
+* Updates to other clients of the tokenizer (IDE, Syntax, etc.) so they fully understand 
+  tripled string literals.
 
 In our prototype, we were able to implement this feature solely by modifying the lexer; not 
 even the parser, let alone upstream components like type checking, code generation, or the 
@@ -358,11 +407,12 @@ to be very amenable to this change.
 
   [proto]: https://github.com/DoubleSpeak/swift/commit/d37fa1c08923707d598418227c481a3a87a54b4e
 
-### Gallery of interesting examples and their interpretations
+### Gallery of test cases
 
 We've prepared a series of examples to help illustrate some of the rules described above.
-Because whitespace is important to these examples, it is explicitly indicated: `·` is a space, 
-`⇥   ` is a tab, and `↵` is a newline.
+Each of these corresponds to a test in our prototype. Because whitespace is important to 
+these examples, it is explicitly indicated: `·` is a space, `⇥` is a tab, and `↵` is a 
+newline.
 
 Please keep in mind:
 
@@ -384,6 +434,17 @@ Creates a string with:
 Hello·world!
 ```
 
+#### Single-line string with quotes
+
+```swift
+"""Hello·"cruel"·world!"""
+```
+Creates a string with:
+```
+Hello·"cruel"·world!
+```
+
+
 #### Single-line string with quotes adjacent to delimiter
 
 ```swift
@@ -393,6 +454,21 @@ Creates a string with:
 ```
 "Hello·world!"
 ```
+
+#### Single-line string with only quotes inside
+
+```swift
+""""""""
+```
+Creates a string with:
+```
+""
+```
+
+This corner case is not very readable, but supporting it ensures that you can insert anything 
+into triple quotes as long as it doesn't have three adjacent, unescaped quote marks. In 
+practice, you should probably format code like this with escaped newlines next to both 
+delimiters.
 
 #### Simple multi-line string
 
@@ -435,10 +511,9 @@ multi-line string.
 #### Multi-line string with indentation stripping
 
 ```swift
-"""↵
-····Hello↵
-····world!↵
-····"""
+"""Hello↵
+···world!↵
+···"""
 ```
 Creates a string with:
 ```
@@ -449,10 +524,9 @@ world!↵
 #### Multi-line string with indentation stripping, escaped trailing newline
 
 ```swift
-"""↵
-····Hello↵
-····world!\↵
-····"""
+"""Hello↵
+···world!\↵
+···"""
 ```
 Creates a string with:
 ```
@@ -460,10 +534,24 @@ Hello↵
 world!
 ```
 
+#### Multi-line string with indentation stripping, escaped leading newline
+
+```swift
+"""\↵
+····Hello↵
+····world!↵
+····"""
+```
+Creates a string with:
+```
+Hello↵
+world!↵
+```
+
 #### Multi-line string with indentation stripping, one line indented more
 
 ```swift
-"""↵
+"""\↵
 ··Hello↵
 ····world!↵
 ··"""
@@ -477,7 +565,7 @@ Hello↵
 #### Multi-line string with indentation stripping, all lines indented more
 
 ```swift
-"""↵
+"""\↵
 ····Hello↵
 ····world!↵
 ··"""
@@ -488,27 +576,10 @@ Creates a string with:
 ··world!↵
 ```
 
-#### Multi-line string with indentation stripping, last line not indented
-
-```swift
-"""↵
-····Hello↵
-····world!↵
-"""
-```
-Creates a string with:
-```
-····Hello↵
-····world!↵
-```
-
-When there's no indentation before the closing delimiter, the indentation stripping feature 
-gracefully degrades; it merely allows you to start a literal's contents on a fresh line.
-
 #### Multi-line string with indentation stripping, missing indentation
 
 ```swift
-"""↵
+"""\↵
 ····Hello↵
 ··world!↵
 ····"""
@@ -531,7 +602,7 @@ warning: missing indentation in multi-line string literal
 #### Multi-line string with indentation stripping, missing indentation, `\t` escape
 
 ```swift
-"""↵
+"""\↵
 ⇥   Hello↵
 \tworld!↵
 ⇥   """
@@ -555,7 +626,7 @@ warning: missing indentation in multi-line string literal
 #### Multi-line string with indentation stripping, mismatched indentation
 
 ```swift
-"""↵
+"""\↵
 ····Hello↵
 ⇥   world!↵
 ····"""
@@ -579,7 +650,7 @@ warning: multi-line string literal indentation uses tabs and spaces inconsistent
 #### Multi-line string with indentation stripping, partially mismatched indentation
 
 ```swift
-"""↵
+"""\↵
 ····Hello↵
 ··⇥ world!↵
 ····"""
@@ -600,54 +671,10 @@ warning: multi-line string literal indentation uses tabs and spaces inconsistent
   Fix-it: Replace "⇥" with "··"
 ```
 
-#### Multi-line string with indentation stripping disabled by escaping leading newline
-
-```swift
-"""\↵
-····Hello↵
-····world!↵
-····"""
-```
-Creates a string with:
-```
-····Hello↵
-····world!↵
-····
-```
-
-Because there is a backslash between the leading `"""` and the LF, the delimiter and LF are 
-not adjacent and indentation stripping is not used.
-
-#### Multi-line string with indentation stripping prevented by whitespace before leading newline
-
-```swift
-"""····↵
-····Hello↵
-····world!↵
-····"""
-```
-Creates a string with:
-```
-····↵
-····Hello↵
-····world!↵
-····
-```
-
-A warning should be emitted on the first line:
-
-```
-warning: whitespace at start of multi-line string literal prevents indentation stripping
-  """····↵
-     ^~~~ 
-  Fix-it: Remove "····"
-  Fix-it: Replace "↵" with "\n"
-```
-
 #### Multi-line string with indentation stripping prevented by non-whitespace before trailing delimiter
 
 ```swift
-"""↵
+"""\↵
 ····Hello↵
 ····world!"""
 ```
@@ -658,15 +685,34 @@ Creates a string with:
 ····world!
 ```
 
-We're not certain whether this should be diagnosed, but a warning might be emitted on the 
-third line:
+Despite each line having some indentation, no indentation is stripped because the delimiter is 
+not on its own line. We might add a warning with a pair of fix-its to help people discover this 
+feature:
 
 ```
-warning: closing multi-line string delimiter must be first on line to enable indentation stripping
+warning: indentation will not be stripped from this multi-line string literal.
   ····world!"""
-  ^~~~~~~~~~
-  Fix-it: Insert "\↵····" before delimiter
+  ^~~~
+  Fix-it: Insert "\↵····" before delimiter to strip "····" from each line
+  Fix-it: Insert "\↵" before delimiter to disable this warning
 ```
+
+#### Multi-line string with indentation stripping, last line not indented
+
+```swift
+"""\↵
+····Hello↵
+····world!↵
+"""
+```
+Creates a string with:
+```
+····Hello↵
+····world!↵
+```
+
+When there's no indentation before the closing delimiter, the indentation stripping feature 
+gracefully degrades into merely specifying a trailing newline.
 
 #### Empty strings
 
