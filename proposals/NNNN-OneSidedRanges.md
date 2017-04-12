@@ -98,12 +98,12 @@ Add the following to the standard library:
 (a fuller work-in-progress implementation can be found here: https://github.com/apple/swift/pull/8710)
 
 NOTE: The following is subject to change depending on pending compiler
-features. Methods may actually be on `_`-ed protocols, and then moved once
-recursive protocols are implemented. Types may be collapsed using
-conditional conformance. This should not matter from a usage perspective –
-users are not expected to use these types directly or override any of the
-behaviors in their own types. Any final implementation will follow the below in
-spirit if not in practice.
+features. Methods may actually be on underscored protocols, and then moved once
+recursive protocols are implemented. Types may be collapsed using conditional
+conformance. This should not matter from a usage perspective – users are not
+expected to use these types directly or override any of the behaviors in their
+own types. Any final implementation will follow the below in spirit if not in
+practice.
 
 ```swift
 public protocol RangeExpression {
@@ -195,13 +195,15 @@ case of an `Int`, the iterator will trap when iterating past `Int.max`. Other
 types, such as a `BigInt` that could be incremented indefinitely, would behave
 differently.
 
-`prefix` and `suffix` _are_ currently protocol requirements, but should not be.
-This proposal will fix that as a side-effect.
+The `prefix` and `suffix` methods that take an index _are_ currently protocol
+requirements, but should not be. This proposal will fix that as a side-effect.
 
 ## Source compatibility
 
 The new operators/types are purely additive so have no source compatibility
-consequences. 
+consequences. Replacing the overloads taking concrete ranges other than `Range` 
+with a single generic version is source compatible. `prefix` and `suffix` will
+be deprecated in Swift 4 and later removed.
 
 ## Effect on ABI stability
 
