@@ -25,7 +25,7 @@ break lines using string concatenation. Concatenation is ungainly and may result
 ## Proposed solution
 
 After consideration this proposal puts forward a single simple syntax for inclusion: `"""long strings"""`.
-This has the advantage that it is well supported by the syntax highlighters on github and existing editors
+This has the advantage that it is well supported by the syntax highlighters on GitHub and existing editors
 and is a relatively minor change to the Swift Lexer. Interpolation would work as before.
 
 ### Long strings
