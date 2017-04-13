@@ -135,11 +135,10 @@ important, for tripled string literals to ignore the problem.
 ### Indentation stripping
 
 As specified so far, this syntax has one significant weakness: it interferes with 
-proper indentation of code. We propose that, when the space between the last 
-newline in the string and the closing delimiter contains only whitespace characters, 
-tripled string literals should automatically remove whatever indentation is present 
-before the closing delimiter from each line before it, except for the opening line. 
-Thus, this code:
+proper formatting of code. To address that, when the closing delimiter is the first thing on 
+its line, tripled string literals will automatically remove whatever indentation is 
+present before the closing delimiter from each line before it, except for the line that 
+the opening delimiter is on. Thus, when processing this code:
 
 ```swift
 let xml = """<?xml version="1.0"?>
@@ -154,7 +153,7 @@ let xml = """<?xml version="1.0"?>
             """        // Note that there are 12 spaces before the delimiter on this line.
 ```
 
-Strips 12 spaces from the beginning of each line in the literal, producing a string with
+The compiler will strip 12 spaces from the beginning of each line in the literal, producing a string with
 this content (including a trailing newline):
 
 ```xml
@@ -170,17 +169,11 @@ this content (including a trailing newline):
 
 ```
 
-Indentation stripping is concerned with the actual characters present in the source file, 
-not the logical characters produced by escapes, so indentation is stripped after an escaped 
-newline, but not after a `\n` sequence. That means escaped newlines work really well with 
-this feature—indentation after them will still be stripped.
-
-In fact, two special uses for escaped newlines fall naturally out of the two features' designs.
-When placed after the opening delimiter in a tripled string literal, an escaped newline lets 
-you start the content of the literal on a fresh line of text:
+Additionally, if the opening delimiter is immediately followed by a newline, indentation 
+stripping will remove that first newline. So you could instead write the above example as:
 
 ```swift
-let xml = """\
+let xml = """
     <?xml version="1.0"?>
     <catalog>
         <book id="bk101" empty="">
@@ -193,7 +186,13 @@ let xml = """\
     """
 ```
 
-Contrarily, when placed at the end of the last full line in a string literal, an escaped 
+Indentation stripping is concerned with the actual characters present in the source file, 
+not the logical characters produced by escapes. That means that indentation after a `\n` 
+escape is not stripped, but indentation after a stripped leading newline or an escaped 
+newline is.
+
+In fact, a special use for escaped newlines falls naturally out of the two features' designs.
+When placed at the end of the last full line in a string literal, an escaped 
 newline suppresses the trailing newline:
 
 ```swift
@@ -215,17 +214,16 @@ lines unchanged and emits a warning about inconsistent indentation. This code sa
 would emit a warning on the line with the `<catalog>` tag and leave two spaces before it:
 
 ```swift
-let xml = """\
-    <?xml version="1.0"?>
-  <catalog>
-        <book id="bk101" empty="">
-            <author>John Doe</author>
-            <title>XML Developer's Guide</title>
-            <genre>Computer</genre>
-            <price>44.95</price>
-        </book>
-    </catalog>
-    """
+let xml = """<?xml version="1.0"?>
+            <catalog>
+                  <book id="bk101" empty="">
+                      <author>John Doe</author>
+                      <title>XML Developer's Guide</title>
+                      <genre>Computer</genre>
+                      <price>44.95</price>
+                  </book>
+              </catalog>
+              """
 ```
 
 Indentation stripping does not affect whitespace in the middle or at the end of a line; nor 
@@ -256,13 +254,13 @@ properly indented within the code using it. For instance, this example is both e
 by itself *and* generates easy-to-read XML:
 
 ```swift
-var xml = """\
+var xml = """
     <?xml version="1.0"?>
     <catalog>
     """
 
 for (id, author, title, genre, price) in bookTuples {
-    xml += """\
+    xml += """
             <book id="bk\(id)">
                 <author>\(author)</author>
                 <title>\(title)</title>
@@ -277,7 +275,7 @@ for (id, author, title, genre, price) in bookTuples {
     //  | of the string literal's contents.
 }
 
-xml += """\
+xml += """
     </catalog>
     """
 ```
@@ -289,13 +287,38 @@ when a user mixed tabs and spaces accidentally—it would lead to valid, but inc
 undiagnosable, behavior. For instance, if one line used a tab and other lines used spaces, 
 Swift would not strip indentation from any of the lines; if most lines were indented four 
 spaces, but one line was indented three, Swift would strip three spaces of indentation from 
-all lines. And while you would still be able to create a string with all lines indented by 
+all lines, leaving an extra space before the lines that were indented correctly. 
+And while you would still be able to create a string with all lines indented by 
 indenting the closing delimiter less than the others, many users would never discover this 
 trick.
 
 We discuss many alternative indentation stripping designs *ad nauseam* 
 [below](#indentation-stripping-alternatives). Suffice it to say, other languages have explored 
 this problem space thoroughly, and we think this is the right design for Swift.
+
+##### Newline handling
+
+The treatment of leading and trailing newlines was especially controversial, but we believe 
+this design is the one that will work correctly most frequently.
+
+Leading newline stripping could be omitted, as a backslash in the same position would have 
+the same effect. But we concluded that requiring the backslash would be pointless: to ensure 
+users didn't mistakenly add a leading newline, we would need to emit a warning with a fix-it 
+escaping it, at which point we might as well auto-escape it for them. On the other hand, requiring 
+a newline would unnecessarily limit the user's flexibility; they might be forced to add an 
+extra line even when it did not improve their code's formatting. So although it creates an 
+unprincipled special case, we think including this feature is the most useful design.
+
+We could similarly strip a trailing newline, but we do not. The problem is that, if we strip 
+newlines on both ends, then concatenating two tripled string literals does not do what it 
+looks like it should. For instance, in the above example, the `</catalog>` tag would appear 
+on the same line as the last `</book>`. This seems like an absurd result.
+
+(Nevertheless, this decision has an unfortunate interaction with `print(_:)`, which—unlike 
+other Swift string primitives—concatenates a newline to its parameter by default. But if the 
+choice is between mishandling `print(_:)` and mishandling everything else, we're best off 
+mishandling `print(_:)`. It may make sense to emit a warning when we detect a tripled string 
+literal being used with `print(_:)` so we can prompt the user to add a `terminator:` parameter.)
 
 ## Detailed design
 
@@ -329,9 +352,6 @@ characters to figure out how many quote marks there are in a row:
 * Four: One quote mark is added to the literal's contents and the literal is terminated.
 * Five: Two quote marks are added to the literal's contents and the literal is terminated.
 * Six or more: A syntax error occurs.
-
-(The exact specifics of how this is accomplished are an implementation detail; the prototype 
-simply doesn't consider the delimiter matched until it finds three quotes and a non-quote.)
 
 These rules ensure that up to two unescaped double-quote marks may appear anywhere in a tripled 
 string literal, including adjacent to the closing delimiter. If you want a string with three 
@@ -376,6 +396,9 @@ After locating the delimiters of the string, the lexer:
    the characters are removed from the string literal contents. Otherwise, a warning should 
    be emitted.
 
+4. Removes the first character of the literal if it is an LF (or the first two characters 
+   if they are CR LF).
+
 At this point, the remaining text should undergo normal processing, including processing 
 of backslash escapes.
 
@@ -393,6 +416,7 @@ We have prepared a [prototype implementation][proto] which includes:
 
 It does not include:
 
+* An error when there are more than two quotation marks adjacent to the delimiter.
 * Detailed indentation diagnostics with fix-its.
 * Specific diagnostics work for runaway tripled string literals.
 * Updates to other clients of the tokenizer (IDE, Syntax, etc.) so they fully understand 
@@ -443,7 +467,6 @@ Creates a string with:
 ```
 Hello·"cruel"·world!
 ```
-
 
 #### Single-line string with quotes adjacent to delimiter
 
@@ -534,10 +557,10 @@ Hello↵
 world!
 ```
 
-#### Multi-line string with indentation stripping, escaped leading newline
+#### Multi-line string with indentation stripping, stripped leading newline
 
 ```swift
-"""\↵
+"""↵
 ····Hello↵
 ····world!↵
 ····"""
@@ -551,7 +574,7 @@ world!↵
 #### Multi-line string with indentation stripping, one line indented more
 
 ```swift
-"""\↵
+"""↵
 ··Hello↵
 ····world!↵
 ··"""
@@ -565,7 +588,7 @@ Hello↵
 #### Multi-line string with indentation stripping, all lines indented more
 
 ```swift
-"""\↵
+"""↵
 ····Hello↵
 ····world!↵
 ··"""
@@ -579,7 +602,7 @@ Creates a string with:
 #### Multi-line string with indentation stripping, missing indentation
 
 ```swift
-"""\↵
+"""↵
 ····Hello↵
 ··world!↵
 ····"""
@@ -602,7 +625,7 @@ warning: missing indentation in multi-line string literal
 #### Multi-line string with indentation stripping, missing indentation, `\t` escape
 
 ```swift
-"""\↵
+"""↵
 ⇥   Hello↵
 \tworld!↵
 ⇥   """
@@ -626,7 +649,7 @@ warning: missing indentation in multi-line string literal
 #### Multi-line string with indentation stripping, mismatched indentation
 
 ```swift
-"""\↵
+"""↵
 ····Hello↵
 ⇥   world!↵
 ····"""
@@ -650,7 +673,7 @@ warning: multi-line string literal indentation uses tabs and spaces inconsistent
 #### Multi-line string with indentation stripping, partially mismatched indentation
 
 ```swift
-"""\↵
+"""↵
 ····Hello↵
 ··⇥ world!↵
 ····"""
@@ -674,13 +697,12 @@ warning: multi-line string literal indentation uses tabs and spaces inconsistent
 #### Multi-line string with indentation stripping prevented by non-whitespace before trailing delimiter
 
 ```swift
-"""\↵
+"""↵
 ····Hello↵
 ····world!"""
 ```
 Creates a string with:
 ```
-····↵
 ····Hello↵
 ····world!
 ```
@@ -700,7 +722,7 @@ warning: indentation will not be stripped from this multi-line string literal.
 #### Multi-line string with indentation stripping, last line not indented
 
 ```swift
-"""\↵
+"""↵
 ····Hello↵
 ····world!↵
 """
@@ -740,9 +762,13 @@ Additionally, both of these produce an empty string through indentation strippin
 Although redundant with `""`, none of these forms cause errors or warnings; we don't 
 want to make life difficult for code generators.
 
-## Impact on existing code
+## Source compatibility
 
 This proposal is additive and does not affect existing code.
+
+## Effect on ABI stability and API resilience
+
+This proposal has no effect on either ABI stability or API resilience.
 
 ## Alternatives considered
 
