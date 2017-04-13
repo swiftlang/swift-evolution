@@ -239,10 +239,10 @@ strings and for code generation use cases where nobody will read the code.
 
 We considered designs where a character explicitly marked the indentation on each line.
 While this was very clear, it meant that users would need to edit each line of the string, 
-rather than just inserting text verbatim. This made a lot of people very angry and was 
-widely regarded as a bad move.
+rather than just inserting text verbatim. But some people *really* hated that, so we looked
+to other approaches.
 
-The best alternative, then, is to somehow infer the amount of indentation from the text, 
+The best alternative is to somehow infer the amount of indentation from the text, 
 preferably in a way that can also easily tell us whether indentation stripping should be 
 enabled at all. We use the closing delimiter's indentation because it's the 
 only part of the string literal's syntax whose distance from the first column has no other 
