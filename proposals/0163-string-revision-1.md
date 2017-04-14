@@ -86,8 +86,8 @@ a `const char *`).
 
 The C string interop methods will be updated to those described
 [here](https://github.com/apple/swift/blob/master/docs/StringManifesto.md#c-string-interop):
-a single `withCString` operation and two `init(cString:)` constructors, one for
-UTF8 and one for arbitrary encodings. The primary change is to remove
+two `withCString` operation and two `init(cString:)` constructors, one each for
+UTF8 and for arbitrary encodings. The primary change is to remove
 "non-repairing" variants of construction from nul-terminated C strings. In both
 of the construction APIs, any invalid encoding sequence detected will have its
 longest valid prefix replaced by `U+FFFD`, the Unicode replacement character,
@@ -96,6 +96,10 @@ done physically in the underlying storage and the validity of the result is
 recorded in the String's encoding such that future accesses need not be slowed
 down by possible error repair separately. Construction that is aborted when
 encoding errors are detected can be accomplished using APIs on the encoding.
+
+Additionally, an `init` that takes a collection of code units and an encoding 
+will allow for construction of a `String` from arbitrary collections – for example,
+an `UnsafeBuffer` containing a non-nul-terminated C string.
 
 The current transcoding support will be updated to improve usability and
 performance. The primary changes will be:
@@ -145,6 +149,14 @@ C string interop will be consolidated on the following methods:
 
 ```swift
 extension String {
+  /// Constructs a `String` having the same contents as `codeUnits`.
+  ///
+  /// - Parameter codeUnits: a collection of code units in
+  ///   the given `encoding`.
+  /// - Parameter encoding: describes the encoding in which the code units
+  ///   should be interpreted.
+  init<C: Collection, Encoding: UnicodeEncoding>(codeUnits: C, encoding: Encoding)
+
   /// Constructs a `String` having the same contents as `nulTerminatedUTF8`.
   ///
   /// - Parameter nulTerminatedUTF8: a sequence of contiguous UTF-8 encoded 
@@ -165,6 +177,11 @@ extension String {
   /// pointer to a null-terminated sequence of UTF-8 code units.
   func withCString<Result>(
     _ body: (UnsafePointer<CChar>) throws -> Result) rethrows -> Result
+
+  /// Invokes the given closure on the contents of the string, represented as a
+  /// pointer to a null-terminated sequence of code units in the given encoding.
+  func withCString<Result, Encoding: UnicodeEncoding>(encoding: Encoding,
+    _ body: (UnsafePointer<Encoding.CodeUnit>) throws -> Result) rethrows -> Result
 }
 ```
 
