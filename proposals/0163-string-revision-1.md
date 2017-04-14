@@ -145,6 +145,14 @@ C string interop will be consolidated on the following methods:
 
 ```swift
 extension String {
+  /// Constructs a `String` having the same contents as `codeUnits`.
+  ///
+  /// - Parameter codeUnits: a collection of code units in
+  ///   the given `encoding`.
+  /// - Parameter encoding: describes the encoding in which the code units
+  ///   should be interpreted.
+  init<C: Collection, Encoding: UnicodeEncoding>(codeUnits: C, encoding: Encoding)
+
   /// Constructs a `String` having the same contents as `nulTerminatedUTF8`.
   ///
   /// - Parameter nulTerminatedUTF8: a sequence of contiguous UTF-8 encoded 
@@ -165,6 +173,11 @@ extension String {
   /// pointer to a null-terminated sequence of UTF-8 code units.
   func withCString<Result>(
     _ body: (UnsafePointer<CChar>) throws -> Result) rethrows -> Result
+
+  /// Invokes the given closure on the contents of the string, represented as a
+  /// pointer to a null-terminated sequence of code units in the given encoding.
+  func withCString<Result, Encoding: UnicodeEncoding>(encoding: Encoding,
+    _ body: (UnsafePointer<Encoding.CodeUnit>) throws -> Result) rethrows -> Result
 }
 ```
 
