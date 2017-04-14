@@ -1,6 +1,6 @@
 # Reduce with `inout`
 
-* Proposal: [SE-0171](NNNN-reduce-with-inout.md)
+* Proposal: [SE-0171](0171-reduce-with-inout.md)
 * Authors: [Chris Eidhof](https://github.com/chriseidhof)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Active review (April 14...April 21, 2017)**
