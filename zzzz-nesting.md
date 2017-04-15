@@ -24,7 +24,9 @@ SE-0169 would render major parts of this idea useless, so I think it's qualified
 
 Remove the restriction that extensions can only be declared on top-level of a file.
 
-This proposal explicitly does not suggest to change the effect of access modifiers *inside* extensions (a method marked private in an extension will only be visible inside that extension), nor to change the meaning of access modifiers *on* extensions - although it would make much sense to get rid of the special treatment that `private` receives in top-level extensions.
+This proposal explicitly does not suggest to change the effect of access modifiers *inside* extensions (a method marked `private` in an extension will only be visible inside that extension).
+
+The meaning of access modifiers *on* nested extensions is the default to use for all of its members that aren't marked explicitely with a modifier.
 
 ## Detailed design
 
