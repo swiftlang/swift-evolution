@@ -37,7 +37,7 @@ Extensions should be allowed in type declarations and other extensions (I'm skip
 
 - The rules should be the same as for nested types, so marking a member of an extension `private` would restrict its visiblity to the scope of this extension.
 
-- The goals of SE-0169 could be achieved in this model by simply putting an extension inside a type declaration, while keeping `private` members protected.
+- The goals of SE-0169 could be achieved in this model by simply putting an extension inside a type declaration, while keeping `private` members protected from regular extensions.
 
 Nested extensions should also be allowed to contain stored properties of the enclosing class, thus enabling better visibility management for those as well:
 
