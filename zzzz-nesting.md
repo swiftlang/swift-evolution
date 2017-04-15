@@ -1,16 +1,9 @@
 # Nested extensions
 
 * Proposal: [SE-NNNN](NNNN-filename.md)
-* Authors: [Author 1](https://github.com/swiftdev), [Author 2](https://github.com/swiftdev)
+* Authors: [Tino Heth](https://github.com/tinoheth)
 * Review Manager: TBD
 * Status: **Awaiting review**
-
-*During the review process, add the following fields as needed:*
-
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/), [Additional Commentary](https://lists.swift.org/pipermail/swift-evolution/)
-* Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM)
-* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
-* Previous Proposal: [SE-XXXX](XXXX-filename.md)
 
 ## Introduction
 
@@ -35,8 +28,10 @@ This proposal explicitly does not suggest to change the effect of access modifie
 
 ## Detailed design
 
-There isn't much to add here:
+There isn't much to add here, but to clarify the implications:
 Extensions should be allowed in type declarations and other extensions (I'm skipping methods in this draft - I see neither big problems associated with extensions declared inside methods, nor convincing use cases for them).
+
+- Nesting would be allowed for extensions of all types that are visible in a given file.
 
 - The rules should be the same as for nested types, so marking a member of an extension `private` would restrict its visiblity to the scope of this extension.
 
@@ -50,9 +45,15 @@ Nested extensions should also be allowed to contain stored properties of the enc
 
 Because there is no natural limit of nesting extensions, this feature enables developers to design more sophisticated systems of access rights, without increasing Swifts complexity for users that are happy with "puplic-internal-private" and don't see the need for additional keywords or other changes in the language.
 
+To illustrate the expressiveness:
+
+You could create a property of a type that is only visible to a certain method of a different type - not even the owning type would be able to access it.
+
 ## Future enhancements
 
 For extensions of an enclosing type, that type could be easily inferred, so some repetition could be eliminated easily.
+
+It could also be desireable to add a shorthand to declare single-method extensions, to save one level of indentation for those.
 
 ## Source compatibility
 
