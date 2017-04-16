@@ -51,9 +51,15 @@ To illustrate the expressiveness:
 
 You could create a property of a type that is only visible to a certain method of a different type - not even the owning type would be able to access it.
 
+#### Extending nested types
+
+Extending inner types is possible with a `extension OuterType.InnerType`-syntax, which is left untouched - but name resolution should follow the existing rules that, for example, apply when you create an instance of an inner type.
+
+Therefor, it would be allowed to skip a prefix of the full identifier inside the declaration of an enclosing type.
+
 ## Possible future enhancements
 
-- For extensions of an enclosing type, that type could be easily inferred, so some repetition could be eliminated easily.
+- Repetition could be eliminated easily by assuming that a "typeless" nested extensions should belong to the enclosing type.
 
 - Add a shorthand to declare single-method extensions to save one level of indentation for those. As increased indention is the major drawback of this proposal, that would be quite desirable.
 
