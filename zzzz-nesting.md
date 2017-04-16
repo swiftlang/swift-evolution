@@ -71,6 +71,6 @@ None known
 
 ## Alternatives considered
 
-SE-0169, SE-0159, renaming `fileprivate` and/or `private`
+Status quo, SE-0169, SE-0159, several choices for renaming `fileprivate` and/or `private`, https://github.com/apple/swift-evolution/pull/681, removing all modifiers except `open` and `internal`
 
 All of those possibilities have their own strengths and weaknesses, and there is a huge dissent which of those are important: No matter which would be choosen, at least one group of Swift users is punished.
