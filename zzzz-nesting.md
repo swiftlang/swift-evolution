@@ -39,9 +39,9 @@ Extensions should be allowed in type declarations and other extensions (I'm skip
 
 - The goals of SE-0169 could be achieved in this model by simply putting an extension inside a type declaration, while keeping `private` members protected from regular extensions.
 
-Nested extensions should also be allowed to contain stored properties of the enclosing class, thus enabling better visibility management for those as well:
+Nested extensions should also be allowed to contain stored properties of the enclosing type, thus enabling better visibility management for those as well:
 
-- Stored properties in extensions have been requested before, but this approach enables them quite naturally, as the rule that you can only declare stored properties inside the declaration of a type is respected.
+- Stored properties in extensions have been requested before, but this approach enables them quite naturally, as the rule that you can only declare stored properties inside the declaration of a class or struct is respected.
 
 - It would also be possible to levearage the "default access level" feature of extensions to group properties that should have the same visibility.
 
