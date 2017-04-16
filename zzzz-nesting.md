@@ -51,11 +51,11 @@ To illustrate the expressiveness:
 
 You could create a property of a type that is only visible to a certain method of a different type - not even the owning type would be able to access it.
 
-## Future enhancements
+## Possible future enhancements
 
 - For extensions of an enclosing type, that type could be easily inferred, so some repetition could be eliminated easily.
 
-- It could also be desireable to add a shorthand to declare single-method extensions, to save one level of indentation for those.
+- Add a shorthand to declare single-method extensions to save one level of indentation for those. As increased indention is the major drawback of this proposal, that would be quite desirable.
 
 ## Source compatibility
 
