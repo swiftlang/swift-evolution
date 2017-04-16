@@ -26,7 +26,7 @@ Remove the restriction that extensions can only be declared on top-level of a fi
 
 This proposal explicitly does not suggest to change the effect of access modifiers *inside* extensions (a method marked `private` in an extension will only be visible inside that extension).
 
-The meaning of access modifiers *on* nested extensions is the default to use for all of its members that aren't marked explicitely with a modifier.
+The meaning of access modifiers *on* nested extensions is the default to use for all of its entities that aren't marked explicitely with a modifier.
 
 ## Detailed design
 
@@ -35,7 +35,7 @@ Extensions should be allowed in type declarations and other extensions (I'm skip
 
 - Nesting would be allowed for extensions of all types that are visible in a given file.
 
-- The rules should be the same as for nested types, so marking a member of an extension `private` would restrict its visiblity to the scope of this extension.
+- The rules should be the same as for nested types, so marking an entity in an extension `private` would restrict its visiblity to the scope of this extension.
 
 - The goals of SE-0169 could be achieved in this model by simply putting an extension inside a type declaration, while keeping `private` members protected from regular extensions.
 
