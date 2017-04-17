@@ -184,7 +184,7 @@ let xml = """<?xml version="1.0"?>
 ```
 
 The compiler will strip 12 spaces from the beginning of each line in the literal, producing a string with
-this content (including a trailing newline):
+this content:
 
 ```xml
 <?xml version="1.0"?>
@@ -201,25 +201,8 @@ this content (including a trailing newline):
 
 Indentation stripping is concerned with the actual characters present in the source file, 
 not the logical characters produced by escapes. That means that indentation after a `\n` 
-escape is not stripped, but indentation after a stripped leading newline or an escaped 
+escape is not stripped, but indentation after an escaped or otherwise non-significant 
 newline is.
-
-In fact, a special use for escaped newlines falls naturally out of the two features' designs.
-When placed at the end of the last full line in a string literal, an escaped 
-newline suppresses the trailing newline:
-
-```swift
-let xml = """<?xml version="1.0"?>
-            <catalog>
-                <book id="bk101" empty="">
-                    <author>John Doe</author>
-                    <title>XML Developer's Guide</title>
-                    <genre>Computer</genre>
-                    <price>44.95</price>
-                </book>
-            </catalog>\
-            """        // No trailing newline on this string.
-```
 
 If indentation stripping is enabled but some of the lines do not start with the 
 same sequence of whitespace characters as the last line, the compiler leaves those 
@@ -248,24 +231,6 @@ If the line containing the closing delimiter *does* contains at least one
 non-whitespace character before the delimiter, no indentation-stripping logic will 
 be applied. This preserves the feature's utility for short, possibly single-line 
 strings and for code generation use cases where nobody will read the code.
-
-As an additional feature, if the opening delimiter is immediately followed by a newline, that 
-newline will be removed, whether or not indentation stripping is enabled. That means this 
-example is equivalent to the first one in this section:
-
-```swift
-let xml = """
-    <?xml version="1.0"?>
-    <catalog>
-        <book id="bk101" empty="">
-            <author>John Doe</author>
-            <title>XML Developer's Guide</title>
-            <genre>Computer</genre>
-            <price>44.95</price>
-        </book>
-    </catalog>
-    """
-```
 
 #### Rationale
 
@@ -316,14 +281,80 @@ We discuss many alternative indentation stripping designs *ad nauseam*
 [below](#indentation-stripping-alternatives). Suffice it to say, other languages have explored 
 this problem space thoroughly, and we think this is the right design for Swift.
 
-##### Newline handling
+### Newline handling
 
-When described in terms of behaviors of specific characters, the newline behavior of this
-proposal sounds complex and inconsistent—a leading newline is not significant, while a 
-trailing newline is. We chose this design because we believe it makes code do what it
-*looks* like it should do. When reading code with formatted multiline string literals,
-we believe users think in terms of "lines", not characters, and the proposed behavior best 
-matches that mental model.
+The last newline before the closing delimiter is always significant, even when used to activate 
+indentation stripping. That means all of the examples in the previous section have trailing 
+newlines.
+
+However, like any other newline, a backslashed last newline is only for code formatting, and 
+doesn't insert a newline into the literal's contents:
+
+```swift
+let xml = """<?xml version="1.0"?>
+            <catalog>
+                <book id="bk101" empty="">
+                    <author>John Doe</author>
+                    <title>XML Developer's Guide</title>
+                    <genre>Computer</genre>
+                    <price>44.95</price>
+                </book>
+            </catalog>\
+            """        // No trailing newline on this string.
+```
+
+A newline immediately after the opening delimiter, on the other hand, is *not* significant. The 
+presence or absence of a newline in this position has no effect on the string's contents. So 
+this example from before:
+
+```swift
+let xml = """<?xml version="1.0"?>
+            <catalog>
+                  <book id="bk101" empty="">
+                      <author>John Doe</author>
+                      <title>XML Developer's Guide</title>
+                      <genre>Computer</genre>
+                      <price>44.95</price>
+                  </book>
+              </catalog>
+              """
+```
+
+Is exactly equivalent to this one:
+
+```swift
+let xml = """
+    <?xml version="1.0"?>
+    <catalog>
+        <book id="bk101" empty="">
+            <author>John Doe</author>
+            <title>XML Developer's Guide</title>
+            <genre>Computer</genre>
+            <price>44.95</price>
+        </book>
+    </catalog>
+    """
+```
+
+Only one leading newline is stripped, so in this string:
+
+```swift
+"""
+
+
+
+"""
+```
+
+The first newline is not significant, but the remaining three are, making it equivalent 
+to `"\n\n\n"`.
+
+#### Rationale
+
+This design sounds complex and inconsistent, but we chose it because we believe it makes 
+code do what it *looks* like it should do. When reading code with formatted multiline string 
+literals, we believe users think in terms of "lines", not characters, and the proposed behavior 
+best matches that mental model.
 
 For instance, consider the example we showed at the beginning of the proposal:
 
@@ -418,7 +449,7 @@ Two double-quote marks adjacent to the closing delimiter --> """""
 Other characters are processed as they would be in an ordinary string literal; that is, they are 
 typically included verbatim.
 
-### Stripping indentation from a literal
+### Stripping indentation and a leading newline from a literal
 
 Indentation stripping is performed on the raw source code, after the delimiter has been 
 located but before backslash escapes are interpreted. That means that, when we talk about 
