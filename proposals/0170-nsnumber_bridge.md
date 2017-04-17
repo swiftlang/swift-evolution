@@ -120,7 +120,7 @@ In this case `n` is storing a value of 543 obtained from a `UInt32`. Asking the 
 
 #### Solution Example 4
 ```swift
-// Failures when casting that losses the value stored
+// Failures when casting that lose the value stored
 let n = NSNumber(value: UInt32(543))
 let v = n as? Int8
 // v is nil
