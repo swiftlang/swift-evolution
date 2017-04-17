@@ -37,10 +37,14 @@ string literals.
 
 ## Proposed solution
 
-In brief, we propose adding a new *tripled string literal* syntax which allows literal newlines, tabs, 
-and double-quote marks within its delimiters. We further propose that, when the closing delimiter is 
-preceded by a newline and a sequence of whitespace characters, we treat that whitespace as indentation 
-to remove from each line.
+In brief, we propose adding a new *tripled string literal* syntax. This is the same as the
+existing string literal except that it uses """ as it's delimiter and:
+
+1. The string can contain " and "" character sequences and newlines
+2. All existing \\ escapes are processed as before including interpolation
+3. A new escape: \\ before a newline is an empty string used to join lines
+4. If the first line is empty, it is removed and, if the closing delimiter is preceded by a newline and a sequence of whitespace characters, we treat that whitespace as indentation 
+to remove from preceding lines.
 
 If accepted, this proposal will permit users to write code using long, complicated, formatted string 
 literals without compromising the readability of their own code:
