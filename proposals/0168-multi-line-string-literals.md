@@ -37,11 +37,41 @@ string literals.
 
 ## Proposed solution
 
+In brief, we propose adding a new *tripled string literal* syntax which allows literal newlines, tabs, 
+and double-quote marks within its delimiters. We further propose that, when the closing delimiter is 
+preceded by a newline and a sequence of whitespace characters, we treat that whitespace as indentation 
+to remove from each line.
+
+If accepted, this proposal will permit users to write code using long, complicated, formatted string 
+literals without compromising the readability of their own code:
+
+```swift
+var xml = """
+    <?xml version="1.0"?>
+    <catalog>
+    """
+
+for (id, author, title, genre, price) in bookTuples {
+    xml += """
+            <book id="bk\(id)">
+                <author>\(author)</author>
+                <title>\(title)</title>
+                <genre>\(genre)</genre>
+                <price>\(price)</price>
+            </book>
+        """
+}
+
+xml += """
+    </catalog>
+    """
+```
+
 ### Tripled string literal syntax
 
 We propose adding a new string literal syntax delimited by three double-quote marks.
-Unlike ordinary string literals, literal newline and tab characters are permitted in these 
-*tripled string literals*, and sequences of one or two double-quotes do not need to be escaped:
+Unlike ordinary string literals, literal newline and tab characters are permitted in 
+tripled string literals, and sequences of one or two double-quotes do not need to be escaped:
 
 ```swift
 """You want a revolution? I want a revelation
@@ -65,8 +95,8 @@ source code file to use CR LF line endings, a newline in a multi-line string lit
 always equivalent to a `\n` escape:
 
 ```swift
-"""Hello!
-""" == "Hello!\n"   // Always true, no matter how your editor is set.
+"""Platform
+independent""" == "Platform\nindependent"               // Always true
 ```
 
 Tripled string literals support backslash escapes and interpolation as normal, except that 
@@ -169,23 +199,6 @@ this content (including a trailing newline):
 
 ```
 
-Additionally, if the opening delimiter is immediately followed by a newline, indentation 
-stripping will remove that first newline. So you could instead write the above example as:
-
-```swift
-let xml = """
-    <?xml version="1.0"?>
-    <catalog>
-        <book id="bk101" empty="">
-            <author>John Doe</author>
-            <title>XML Developer's Guide</title>
-            <genre>Computer</genre>
-            <price>44.95</price>
-        </book>
-    </catalog>
-    """
-```
-
 Indentation stripping is concerned with the actual characters present in the source file, 
 not the logical characters produced by escapes. That means that indentation after a `\n` 
 escape is not stripped, but indentation after a stripped leading newline or an escaped 
@@ -228,30 +241,91 @@ let xml = """<?xml version="1.0"?>
 
 Indentation stripping does not affect whitespace in the middle or at the end of a line; nor 
 does it allow comments in the middle of tripled string literals. Fans of Perl's `/x` 
-regex modifier will need a different proposal.
+regex modifier will need a different proposal. (We might consider emitting a warning 
+when a line has trailing whitespace, however.)
 
 If the line containing the closing delimiter *does* contains at least one 
 non-whitespace character before the delimiter, no indentation-stripping logic will 
 be applied. This preserves the feature's utility for short, possibly single-line 
 strings and for code generation use cases where nobody will read the code.
 
+As an additional feature, if the opening delimiter is immediately followed by a newline, that 
+newline will be removed, whether or not indentation stripping is enabled. That means this 
+example is equivalent to the first one in this section:
+
+```swift
+let xml = """
+    <?xml version="1.0"?>
+    <catalog>
+        <book id="bk101" empty="">
+            <author>John Doe</author>
+            <title>XML Developer's Guide</title>
+            <genre>Computer</genre>
+            <price>44.95</price>
+        </book>
+    </catalog>
+    """
+```
+
 #### Rationale
 
-We considered designs where a character explicitly marked the indentation on each line.
-While this was very clear, it meant that users would need to edit each line of the string, 
-rather than just inserting text verbatim. But some people *really* hated that, so we looked
-to other approaches.
+We sought an indentation syntax which did not:
 
-The best alternative is to somehow infer the amount of indentation from the text, 
-preferably in a way that can also easily tell us whether indentation stripping should be 
-enabled at all. We use the closing delimiter's indentation because it's the 
-only part of the string literal's syntax whose distance from the first column has no other 
-meaning. By using it, we can support string literals which include indentation 
-*in their content*, which is helpful for many code-generation use cases, where you may care 
-about the indentation of both the generator and the output. With this design, even literals where 
-all lines are indented can be expressed without ambiguity, with the string literal itself 
-properly indented within the code using it. For instance, this example is both easy to read 
-by itself *and* generates easy-to-read XML:
+1. Assume particular indentation choices (tabs vs. spaces, four-space tabs, not mixing tabs and 
+   spaces on the same line, etc.). We were only willing to assume that users should use the same 
+   *sequence* of characters to indent every line—for instance, they would not use four spaces on 
+   one line, and then use a tab on the next.
+
+2. Require users to do anything besides selecting the literal and using an ordinary programming 
+   text editor's indentation commands when they wanted to change its indentation.
+
+3. Silently accept common indentation mistakes, like mixing tabs and spaces or indenting 
+   too little, without being able to warn the user about them. (This means that one location 
+   in the literal must specify the indentation, and each line either does or doesn't match 
+   that specification.)
+
+4. Prevent users from specifying that a literal should have *no* indentation stripped.
+
+5. Prevent users from specifying that all lines within a string should have leading whitespace.
+   (If you're generating code, you should be able to indent your code well *and* generate 
+   well-indented output.)
+
+6. Require you to edit a marker character into every line. (Feedback on the list about proposals 
+   like that indicated that many users found this too onerous.)
+
+The proposed design meets all of these criteria:
+
+1. It does not attempt to treat tabs as a certain number of spaces; it simply treats a tab 
+   where a space is specified, or vice versa, as inconsistent indentation.
+
+2. Changing the indentation merely requires you to select the closing delimiter along with the 
+   rest of the string, which you'll probably do anyway.
+
+3. If it detects an indentation mistake, it emits a warning.
+
+4. To avoid stripping indentation, either don't put the closing delimiter on its own line, or 
+   leave it against the left margin.
+
+5. If the delimiter is less indented than the other lines, then the extra indentation is part of 
+   the literal's contents.
+
+6. Text can be simply pasted into the literal and indented or unindented at will. You don't need 
+   to add a marker to each line.
+
+We discuss many alternative indentation stripping designs *ad nauseam* 
+[below](#indentation-stripping-alternatives). Suffice it to say, other languages have explored 
+this problem space thoroughly, and we think this is the right design for Swift.
+
+##### Newline handling
+
+When described in terms of behaviors of specific characters, the newline behavior of this
+proposal sounds complex and inconsistent—a leading newline is not significant, while a 
+trailing newline is. We chose this design because we believe it makes code do what it
+*looks* like it should do. When reading code with formatted multiline string literals,
+we believe users think in terms of "lines", not characters, and the proposed behavior best 
+matches that mental model.
+
+For instance, consider the example we showed at the beginning of the proposal:
 
 ```swift
 var xml = """
@@ -268,11 +342,6 @@ for (id, author, title, genre, price) in bookTuples {
                 <price>\(price)</price>
             </book>
         """
-    //  | The string literal as a whole is indented up to this line (eight spaces), but 
-    //  | the string it expresses also contains at least four spaces of indentation on 
-    //  | every line. The position of the ending `"""` tells the compiler how much of 
-    //  | that indentation is for source code formatting and how much is actually part 
-    //  | of the string literal's contents.
 }
 
 xml += """
@@ -280,45 +349,23 @@ xml += """
     """
 ```
 
-We could instead use an algorithm where the longest common whitespace prefix is removed from 
-all lines; in well-formed code, that would produce the same behavior as this algorithm. But 
-when *not* well-formed—when one line was accidentally indented less than the delimiter, or 
-when a user mixed tabs and spaces accidentally—it would lead to valid, but incorrect and 
-undiagnosable, behavior. For instance, if one line used a tab and other lines used spaces, 
-Swift would not strip indentation from any of the lines; if most lines were indented four 
-spaces, but one line was indented three, Swift would strip three spaces of indentation from 
-all lines, leaving an extra space before the lines that were indented correctly. 
-And while you would still be able to create a string with all lines indented by 
-indenting the closing delimiter less than the others, many users would never discover this 
-trick.
+This code "looks" correct; each literal specifies several lines of XML, and they get 
+concatenated together to form a file. But it only behaves correctly if the trailing newline 
+is significant, but the leading newline is not. We believe that people will intuitively try 
+to use multiline string literals in this way; to the extent that the syntax doesn't support 
+it, people will end up writing code that doesn't do what they expect.
 
-We discuss many alternative indentation stripping designs *ad nauseam* 
-[below](#indentation-stripping-alternatives). Suffice it to say, other languages have explored 
-this problem space thoroughly, and we think this is the right design for Swift.
+Unfortunately, having a trailing newline interacts poorly with the `print` function, which 
+appends a newline terminator by default. Given a choice between correctly handling `print` 
+and correctly handling all other concatenation and I/O, we believe disadvantaging `print` 
+is the right choice. But we should consider emitting a warning when we detect the user is 
+printing a tripled string literal with a trailing newline and isn't specifying the 
+`terminator:`.
 
-##### Newline handling
-
-The treatment of leading and trailing newlines was especially controversial, but we believe 
-this design is the one that will work correctly most frequently.
-
-Leading newline stripping could be omitted, as a backslash in the same position would have 
-the same effect. But we concluded that requiring the backslash would be pointless: to ensure 
-users didn't mistakenly add a leading newline, we would need to emit a warning with a fix-it 
-escaping it, at which point we might as well auto-escape it for them. On the other hand, requiring 
-a newline would unnecessarily limit the user's flexibility; they might be forced to add an 
-extra line even when it did not improve their code's formatting. So although it creates an 
-unprincipled special case, we think including this feature is the most useful design.
-
-We could similarly strip a trailing newline, but we do not. The problem is that, if we strip 
-newlines on both ends, then concatenating two tripled string literals does not do what it 
-looks like it should. For instance, in the above example, the `</catalog>` tag would appear 
-on the same line as the last `</book>`. This seems like an absurd result.
-
-(Nevertheless, this decision has an unfortunate interaction with `print(_:)`, which—unlike 
-other Swift string primitives—concatenates a newline to its parameter by default. But if the 
-choice is between mishandling `print(_:)` and mishandling everything else, we're best off 
-mishandling `print(_:)`. It may make sense to emit a warning when we detect a tripled string 
-literal being used with `print(_:)` so we can prompt the user to add a `terminator:` parameter.)
+The leading newline behavior was selected because we believe users will usually start a 
+multiline tripled string literal's contents on a new line, but see no good reason to 
+require it. If we required that users write `"""\` to begin a literal on a new line, we'd 
+probably need to warn them about a missing `\` anyway.
 
 ## Detailed design
 
@@ -387,7 +434,7 @@ After locating the delimiters of the string, the lexer:
 
 1. Examines the characters between the last LF and the closing delimiter. If there 
    are any non-whitespace characters in this stretch (or there are no LFs in the string),
-   indentation stripping is disabled, and we skip the remaining steps.
+   indentation stripping is disabled, and it skips steps 2 and 3.
 
 2. Records the exact sequence of whitespace between the last LF and the closing delimiter 
    as the indentation to be removed.
@@ -570,6 +617,22 @@ Creates a string with:
 Hello↵
 world!↵
 ```
+
+#### Multi-line string with stripped leading newline only
+
+```swift
+"""↵
+····Hello↵
+····world!"""
+```
+Creates a string with:
+```
+····Hello↵
+····world!
+```
+
+Because the closing delimiter is not on its own line, whitespace stripping is not 
+enabled, but leading newline stripping stil is.
 
 #### Multi-line string with indentation stripping, one line indented more
 
@@ -838,7 +901,23 @@ to be surprisingly robust in dealing with this change once a few assertions were
 
 The proposed indentation stripping algorithm is not included in Python, but it has precedent 
 Perl 6; that language has a similar feature for its heredocs, also based on the indentation 
-of the ending delimiter. We considered several alternatives:
+of the ending delimiter.
+
+The primary alternative we considered was to unindent by the longest common whitespace prefix, 
+instead of the whitespace present on the last line. In well-formed code where the closing 
+delimiter was on its own line, that would produce the same behavior as this algorithm. But 
+when *not* well-formed—when one line was accidentally indented less than the delimiter, or 
+when a user mixed tabs and spaces accidentally—it would lead to valid, but incorrect and 
+undiagnosable, behavior. For instance, if one line used a tab and other lines used spaces, 
+Swift would not strip indentation from any of the lines; if most lines were indented four 
+spaces, but one line was indented three, Swift would strip three spaces of indentation from 
+all lines, leaving an extra space before the lines that were indented correctly. 
+And while you would still be able to create a string with all lines indented by 
+indenting the closing delimiter less than the others, many users would never discover this 
+trick. We were not satisfied with an indentation-stripping algorithm which behaved so poorly 
+in the presence of such common errors.
+
+Here's a list of other options we considered:
 
 * **Not doing anything about it**: This would make code using multiline string literals quite 
   ugly. Perl and Ruby both used to do this; each added indentation stripping features in later 
@@ -849,7 +928,7 @@ of the ending delimiter. We considered several alternatives:
   for invalid indentation; and it loses the ability to reason from information only present in 
   the source code. (For instance, `\t` escapes would be indistinguishable from real tab 
   characters.) Python's standard library includes a module with a [`dedent` function][py-dedent] 
-  which does this.
+  which does this; Scala also does this.
 
 * **Explicitly marking literals to enable indentation stripping**: For instance, literals might be 
   annotated with a hash keyword like `#trimLeft()`, or a symbol or an `i` (for "indent") character 
@@ -857,11 +936,9 @@ of the ending delimiter. We considered several alternatives:
   stripping should be the default; good formatting should be the rule, not the exception. Ruby 2.3
   marks its heredocs with a `~` if indentation should be stripped.
 
-* **Stripping indentation to match the depth of the least indented line**: Instead of removing 
-  indentation to match the end delimiter, you remove indentation to match the least indented 
-  line of the string itself. The issue here is that, if all lines in a string should be 
-  indented, you can't use indentation stripping. Ruby 2.3 does this with its heredocs, and Python's 
-  `dedent` function also implements this behavior.
+* **Stripping indentation to match the depth of the least indented line**: Already described in 
+  detail. Ruby 2.3 does this with its heredocs, and Python's `dedent` function also implements 
+  this behavior.
 
 * **Stripping a common prefix from lines with partially matching indentation**: For instance, if 
   the delimiter line had four spaces, and an earlier line had two spaces and a tab, we would remove 
