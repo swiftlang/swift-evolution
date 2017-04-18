@@ -1,9 +1,9 @@
 # One-sided Ranges
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0172](0172-one-sided-ranges.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift), [Dave Abrahams](https://github.com/dabrahams), [Brent Royal-Gordon](https://github.com/brentdax)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Doug Gregor](https://github/com/DougGregor)
+* Status: **Active review (April 17...23, 2017)**
 
 ## Introduction
 
