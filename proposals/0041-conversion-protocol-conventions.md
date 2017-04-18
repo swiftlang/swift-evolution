@@ -151,7 +151,7 @@ particularly similar to one another.
 
 **Our Response**
 
-The semantics cover "converting to a type", "converting from a type", and "converting to and from a type". We have examples from our own code and from third party code on github that suggest conversion tasks are common enough that standardizing API naming conventions will be valuable.
+The semantics cover "converting to a type", "converting from a type", and "converting to and from a type". We have examples from our own code and from third party code on GitHub that suggest conversion tasks are common enough that standardizing API naming conventions will be valuable.
 
 ## Updated Approach
 
