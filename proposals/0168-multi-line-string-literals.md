@@ -37,17 +37,18 @@ string literals.
 
 ## Proposed solution
 
-In brief, we propose adding a new *tripled string literal* syntax. This is the same as the
-existing string literal except that it uses """ as it's delimiter and:
+In brief, we propose adding a new *tripled string literal* syntax. This behaves the same as the ordinary 
+string literal syntax, including supporting all existing backslash escapes and interpolations, except 
+that it:
 
-1. The string can contain " and "" character sequences and newlines
-2. All existing \\ escapes are processed as before including interpolation
-3. A new escape: \\ before a newline is an empty string used to join lines
-4. If the first line is empty, it is removed and, if the closing delimiter is preceded by a newline and a sequence of whitespace characters, we treat that whitespace as indentation 
-to remove from preceding lines.
+1. Uses `"""` as its delimiter.
+1. Can contain newlines, tabs, and `"` and `""` character sequences without using any escapes.
+3. Supports backslashing a newline, meaning that the newline is not present in the string's contents.
+4. Strips whitespace from each line if the closing delimiter is placed on a new line and indented.
+5. Optionally removes a leading newline immediately after the opening delimiter.
 
 If accepted, this proposal will permit users to write code using long, complicated, formatted string 
-literals without compromising the readability of their own code:
+literals without compromising its readability:
 
 ```swift
 var xml = """
