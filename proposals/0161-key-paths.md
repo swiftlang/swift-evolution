@@ -148,7 +148,7 @@ which is both appealingly readable, and doesn't require read-modify-write copies
 ### Referencing Key Paths
 Forming a `KeyPath` utilizes a new escape sigil `\`. We feel this best serves our needs of disambiguating from existing `#keyPath` expressions (which will continue to produce `Strings`) and existing type properties.
 
-Optionals are handled via optional-chaining. Multiply dotted expressions are allowed as well, and work just as if they were composed via the `appending` methods on `KeyPath
+Optionals are handled via optional-chaining. Multiply dotted expressions are allowed as well, and work just as if they were composed via the `appending` methods on `KeyPath`.
 
 Forming a key path through subscripts (e.g. Array / Dictionary) will have the limitation that the parameter's type(s) must be `Hashable`.  Should the archival and serialization proposal be accepted, we would also like to include `Codable` with an eye towards being able to make key paths `Codable` themselves in the future. 
 
