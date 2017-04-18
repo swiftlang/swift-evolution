@@ -97,8 +97,8 @@ struct Outer {
     struct Inner {
         private var innerValue = 57
 
-        func innerTest() {
-            print(outerValue)    // still ok.
+        func innerTest(_ o: Outer) {
+            print(o.outerValue)    // still ok.
         }
     }
 
