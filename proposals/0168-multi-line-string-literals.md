@@ -42,7 +42,7 @@ string literal syntax, including supporting all existing backslash escapes and i
 that it:
 
 1. Uses `"""` as its delimiter.
-1. Can contain newlines, tabs, and `"` and `""` character sequences without using any escapes.
+2. Can contain newlines, tabs, and `"` and `""` character sequences without using any escapes.
 3. Supports backslashing a newline, meaning that the newline is not present in the string's contents.
 4. Strips whitespace from each line if the closing delimiter is placed on a new line and indented.
 5. Optionally removes a leading newline immediately after the opening delimiter.

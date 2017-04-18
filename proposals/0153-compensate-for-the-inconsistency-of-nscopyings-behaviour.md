@@ -5,6 +5,7 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Accepted**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170227/033357.html)
+* Bug: [SR-4538](https://bugs.swift.org/browse/SR-4538)
 
 <!--*During the review process, add the following fields as needed:*
 
