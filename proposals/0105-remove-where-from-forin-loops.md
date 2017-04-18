@@ -26,7 +26,7 @@ public/core/Algorithm.swift:  for value in rest where value < minValue {
 public/core/Algorithm.swift:  for value in rest where value >= maxValue {
 ```
 
-I pulled down a random sample of popular Swift repositories from github and found one use of `for-in-where` among my sample vs over 650 `for-in` uses.
+I pulled down a random sample of popular Swift repositories from GitHub and found one use of `for-in-where` among my sample vs over 650 `for-in` uses.
 
 ```
 Carthage/Source/CarthageKit/Algorithms.swift: for (node, var incomingEdges) in workingGraph where incomingEdges.contains(lastSource) {
