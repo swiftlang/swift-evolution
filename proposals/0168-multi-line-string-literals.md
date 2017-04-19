@@ -44,8 +44,8 @@ that it:
 1. Uses `"""` as its delimiter.
 2. Can contain newlines, tabs, and `"` and `""` character sequences without using any escapes.
 3. Supports backslashing a newline, meaning that the newline is not present in the string's contents.
-4. If the closing delimiter is preceded by a newline and a sequence of whitespace characters, that whitespace is treated as indentation to remove from preceding lines.
-5. Optionally removes a leading newline immediately after the opening delimiter.
+4. If the opening delimiter is followed immediately by a newline, it is not included in the string's contents.
+5. If the closing delimiter is preceded by a newline and a sequence of whitespace characters, that whitespace is treated as indentation to remove from preceding lines.
 
 If accepted, this proposal will permit users to write code using long, complicated, formatted string 
 literals without compromising its readability:
