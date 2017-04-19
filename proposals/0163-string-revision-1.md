@@ -3,7 +3,7 @@
 * Proposal: [SE-0163](0163-string-revision-1.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift), [Dave Abrahams](http://github.com/dabrahams/)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active review (April 5...11, 2017)**
+* Status: **Accepted with revisions**
 
 ## Introduction
 
