@@ -4,8 +4,7 @@
 * Authors: [David Smith](https://github.com/Catfish-Man), [Michael LeHew](https://github.com/mlehew), [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2017-April/000356.html))
-* Associated PRs:
-   * [#644](https://github.com/apple/swift-evolution/pull/644)
+* Associated PR: [#644](https://github.com/apple/swift-evolution/pull/644)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/55e61f459632eca2face40e571a517919f846cfb/proposals/0161-key-paths.md)
 
 ## Introduction
@@ -29,7 +28,7 @@ Making indirect references to a properties' concrete types also lets us expose m
 We would also like to support being able to use _Key Paths_ to access into collections and other subscriptable types, which is not currently possible.
 
 ## Proposed solution
-We propose introducing a new expression similar to function type references (e.g. `Type.method`), but for properties and subscripts.  To avoid ambiguities with type properties, we propose we escape such expressions using `\` to indicate that you are talking about the property, not its invocation. 
+We propose introducing a new expression similar to function type references (e.g. `Type.method`), but for properties and subscripts.  To avoid ambiguities with type properties, we propose we escape such expressions using `\` to indicate that you are talking about the property, not its invocation. A key path expression takes the general form `\<Type>.<path>`, where `<Type>` is a type name, and `<path>` is a chain of one or more property, subscript, or optional chaining/forcing operators. If the type name can be inferred from context, then it can be elided, leaving `\.<path>`.
 
 These property reference expressions produce `KeyPath` objects, rather than `Strings`. `KeyPaths` are a family of generic classes _(structs and protocols here would be ideal, but requires generalized existentials)_ which encapsulate a property reference or chain of property references, including the type, mutability, property name(s), and ability to set/get values.
 
@@ -55,6 +54,10 @@ let firstFriend = luke[keyPath: firstFriendsNameKeyPath] // "Han Solo"
 
 // or equivalently, with type inferred from context
 luke[keyPath: \.friends[0].name] // "Han Solo"
+// The path must always begin with a dot, even if it starts with a
+// subscript component
+luke.friends[keyPath: \.[0].name] // "Han Solo"
+luke.friends[keyPath: \[Person].[0].name] // "Han Solo"
 
 // rename Luke's first friend
 luke[keyPath: firstFriendsNameKeyPath] = "A Disreputable Smuggler"
