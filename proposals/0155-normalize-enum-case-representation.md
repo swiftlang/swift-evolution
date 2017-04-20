@@ -3,7 +3,7 @@
 * Proposal: [SE-0155][]
 * Authors: [Daniel Duan][], [Joe Groff][]
 * Review Manager: [John McCall][]
-* Status: **Active review (March 31...April 10, 2017)**
+* Status: **Accepted with revisions** ([Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170417/035972.html))
 * Previous Revision: [1][Revision 1]
 
 ## Introduction
