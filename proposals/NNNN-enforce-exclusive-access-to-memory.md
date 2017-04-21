@@ -192,9 +192,10 @@ local variables, class and struct properties, and so on.
 This rule should be enforced as strongly as possible, depending on
 what sort of variable it is:
 
-* Local variables and struct properties can generally enforce the
-  rule statically.  The compiler can analyze all the accesses to the
-  variable and emit an error if it sees any conflicts.
+* Local variables, inout arguments, and struct properties can
+  generally enforce the rule statically.  The compiler can analyze
+  all the accesses to the variable and emit an error if it sees
+  any conflicts.
 
 * Class properties and global variables will have to enforce the
   rule dynamically.  The runtime can keep track of what accesses
@@ -207,6 +208,44 @@ what sort of variable it is:
 
 * No enforcement is required for immutable memory, like a ``let``
   binding or property, because all accesses must be reads.
+
+Examples:
+
+```swift
+var x = 0, y = 0
+
+// These two accesses to 'x' are both reads.  Each completes instantaneously,
+// so the accesses do not overlap and therefore do not conflict.
+// Even if they were not instantaneous, they are both reads and therefore
+// do no conflict.
+let z = x + x
+
+// The right-hand side of the assignment is a read of 'x' which completes
+// instantaneously.  The assignment is a write to 'x' which completes
+// instantaneously.  The accesses do not overlap and therefore do not
+// conflict.
+x = x
+
+// The right-hand side is a read of 'x' which completes instantaneously.
+// Calling the operator involves passing 'x' as an inout argument; this
+// is a write access which does not complete instantaneously, but it does
+// not begin until immediately before the call, after the right-hand side
+// is fully evaluated.  Therefore the accesses do not overlap and do not
+// conflict.
+x += x
+
+extension Int {
+  mutating func assignResultOf(_ function: () -> Int) {
+    self = function()  
+  }
+}
+
+// Calling a mutating method on a value type is a write access that
+// lasts for the duration of the method.  The read of 'x' in the closure
+// is evaluated while the method is executing, which means it overlaps
+// the method's formal access to 'x'.  Therefore these accesses conflict.
+x.assignResultOf { x + 1 }
+```
 
 ## Detailed design
 
@@ -342,10 +381,13 @@ It's always been somewhat fraught to do simultaneous accesses to
 an array because of copy-on-write.  The fact that you should not
 create an array and then fork off a bunch of threads that assign
 into different elements concurrently has been independently
-rediscovered by a number of different programmers.  The main
-new limitation here is that some idioms which did work on a
-single thread are going to be forbidden.  This may just be a
-cost of progress.
+rediscovered by a number of different programmers.  (Under this
+proposal, we will still not be reliably detecting this problem
+by default, because it is a race condition; see the section on
+concurrency.)  The main new limitation here is that some idioms
+which did work on a single thread are going to be forbidden.
+This may just be a cost of progress, but there are things we
+can do to mitigate the problem.
 
 In the long term, the API of ``Array`` and other collections
 should be extended to ensure that there are good ways of achieving
@@ -415,6 +457,21 @@ class TreeNode {
   @exclusivity(unchecked) var right: TreeNode?
 }
 ```
+
+### Closures
+
+Local variables which are captured in closures may sometimes require
+dynamic enforcement instead of static enforcement because the
+implementation cannot locally reason about when the closure will
+be called.  This is especially true when the closure is ``escaping``,
+but can apply even to non-escaping closures in somewhat arcane
+circumstances.
+
+In general, Swift is permitted to upgrade dynamic enforcement to
+static enforcement whenever it has sufficient information to do so.
+For example, if the compiler can prove that two acceses to a global
+variable will necessarily conflict, it may report that as an error
+statically.
 
 ## Source compatibility
 
