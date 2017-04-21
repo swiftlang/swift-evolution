@@ -212,13 +212,23 @@ what sort of variable it is:
 
 ### Concurrency
 
-Swift has always considered read/write and write/write races on
-the same variable to be undefined behavior which it is the
-programmer's responsibility to eliminate.  That does not change
-under this proposal.  Specifically, dynamic enforcement is not
-required to detect concurrent accesses to storage.  Our hope is
-that this will permit dynamic enforcement to be sufficiently
-efficient to be enabled by default.
+Swift has always considered read/write and write/write races on the same
+variable to be undefined behavior.  It is the programmer's responsibility
+to avoid such races in their code by using appropriate thread-safe
+programming techniques.
+
+We do not propose changing that.  Dynamic enforcement is not required to
+detect concurrent conflicting accesses, and we propose that by default
+it should not make any effort to do so.  This should allow the dynamic
+bookkeeping to avoid synchronizing between threads; for example, it
+can track accesses in a thread-local data structure instead of a global
+one protected by locks.  Our hope is that this will make dynamic
+access-tracking cheap enough to enable by default in all programs.
+
+The implementation should still be *permitted* to detect concurrent
+conflicting accesses, of course.  Some programmers may wish to use an
+opt-in thread-safe enforcement mechanism instead, at least in some
+build configurations.
 
 Any future concurrency design in Swift will have the elimination
 of such races as a primary goal.  To the extent that it succeeds,
@@ -264,7 +274,9 @@ argument will prevent the write-access to ``object.pair`` for the
 second argument from succeeding because of the dynamic enforcement
 used for the property.  Attempting to make dynamic enforcement
 aware of the fact that these accesses are modifying different
-elements of the property would be prohibitive.
+sub-components of the property would be prohibitive, both in terms
+of the additional performance cost and in terms of the complexity
+of the implementation.
 
 However, this limitation can be worked around by binding
 ``object.pair`` to an ``inout`` argument:
@@ -296,7 +308,35 @@ For example, ``Array``'s indexed subscript is an ordinary computed
 subscript on a value type.  Accordingly, mutating an element of an
 array will require exclusive access to the entire array, and
 therefore will disallow any other simultaneous accesses to the
-array.
+array, even to different elements.  For example:
+
+```swift
+var array = [[1,2], [3,4,5]]
+
+// These accesses to the elements of 'array' each complete
+// instantaneously and do not overlap each other.  Even if they
+// did overlap for some reason, they are both reads and therefore
+// do not conflict.
+print(array[0] + array[1])
+
+// The access done to read 'array[1]' completes before the modifying
+// access to 'array[0]' begins.  Therefore, these accesses do not
+// conflict.
+array[0] += array[1]
+
+// Passing 'array[i]' as an inout argument performs a write access
+// to it, and therefore to 'array', for the duration of the call.
+// This call makes two such accesses to the same array variable,
+// which therefore conflict.
+swap(&array[0], &array[1])
+
+// Calling a non-mutating method on 'array[0]' performs a read
+// access to it, and thus to 'array', for the duration of the
+// method.  Calling a mutating method on 'array[1]' performs
+// a write access to it, and thus to 'array', for the duration
+// of the method.  These accesses therefore conflict.
+array[0].forEach { array[1].append($0) }
+```
 
 It's always been somewhat fraught to do simultaneous accesses to
 an array because of copy-on-write.  The fact that you should not
@@ -322,10 +362,39 @@ than two ``inout`` arguments.
 
 ### Class properties
 
-Unlike value types, accesses to different stored properties of
-reference types are always tracked independently.  Accessing a
-property on a class reference never prevents overlapping accesses
-to different properties.
+Unlike value types, calling a method on a class doesn't somehow
+access the entire class instance.  Under this proposal, we don't
+try to enforce exclusivity of access on the whole-object level
+at all; we only enforce it for individual properties.  Among
+other things, this means that an access to a class property never
+conflicts with an access to a different property.
+
+There are two major reasons for this difference between value
+and reference types.
+
+The first reason is that it's important to allow overlapping method
+calls to a single class instance.  It's quite common for an object
+to have methods called on it concurrently from different threads.
+These methods may access different properties, or they may synchronize
+their accesses to the same properties using locks, dispatch queues,
+or some other thread-safe technique.  Regardless, it's a widespread
+pattern.
+
+The second reason is that there's no benefit to trying to enforce
+exclusivity of access to the entire class instance.  For a value
+type to be mutated, it has to be held in a variable, and it's
+often possible to reason quite strongly about how that variable
+is used.  That means that the exclusivity rule that we're proposing
+here allows us to make some very strong guarantees for value types,
+generally making them an even tighter, lower-cost abstraction.
+In contrast, it's inherent to the nature of reference types that
+references can be copied pretty arbitrarily throughout a program.
+The assumptions we want to make about value types depend on having
+unique access to the variable holding the value; there's no way
+to make a similar assumption about reference types without knowing
+that we have a unique reference to the object, which would
+radically change the programming model of classes and make them
+unacceptable for the concurrent patterns described above.
 
 ### Disabling dynamic enforcement.
 
