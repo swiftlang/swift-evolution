@@ -3,7 +3,7 @@
 * Proposal: [SE-0164](0164-remove-final-support-in-protocol-extensions.md)
 * Authors: [Brian King](https://github.com/KingOfBrian)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2017-April/000355.html))
+* Status: **Implemented (Swift 4)** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2017-April/000355.html))
 * Bug: [SR-1762](https://bugs.swift.org/browse/SR-1762)
 
 ## Introduction
