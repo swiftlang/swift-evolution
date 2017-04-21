@@ -1,7 +1,7 @@
 # Enforce Exclusive Access to Memory
 
-* Proposal: [SE-NNNN][NNNN-enforce-exclusive-access-to-memory.md]
-* Authors: [John McCall][https://github.com/rjmccall]
+* Proposal: [SE-NNNN](NNNN-enforce-exclusive-access-to-memory.md)
+* Authors: [John McCall](https://github.com/rjmccall)
 * Review Manager: TBD
 * Status: **Awaiting review**
 
