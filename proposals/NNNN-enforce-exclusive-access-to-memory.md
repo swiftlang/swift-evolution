@@ -192,7 +192,7 @@ local variables, class and struct properties, and so on.
 This rule should be enforced as strongly as possible, depending on
 what sort of variable it is:
 
-* Local variables, inout arguments, and struct properties can
+* Local variables, inout parameters, and struct properties can
   generally enforce the rule statically.  The compiler can analyze
   all the accesses to the variable and emit an error if it sees
   any conflicts.
@@ -203,7 +203,7 @@ what sort of variable it is:
   sometimes have to use dynamic enforcement when they are
   captured in closures.
 
-* Unsafe pointers will not use any active enforcemnet; it is the
+* Unsafe pointers will not use any active enforcement; it is the
   programmer's responsibility to follow the rule.
 
 * No enforcement is required for immutable memory, like a ``let``
@@ -214,25 +214,29 @@ Examples:
 ```swift
 var x = 0, y = 0
 
-// These two accesses to 'x' are both reads.  Each completes instantaneously,
-// so the accesses do not overlap and therefore do not conflict.
-// Even if they were not instantaneous, they are both reads and therefore
-// do no conflict.
+// *NOT A CONFLICT*.  These two accesses to 'x' are both reads.
+// Each completes instantaneously, so the accesses do not overlap and
+// therefore do not conflict.  Even if they were not instantaneous, they
+// are both reads and therefore do no conflict.
 let z = x + x
 
-// The right-hand side of the assignment is a read of 'x' which completes
-// instantaneously.  The assignment is a write to 'x' which completes
-// instantaneously.  The accesses do not overlap and therefore do not
-// conflict.
+// *NOT A CONFLICT*.  The right-hand side of the assignment is a read of
+// 'x' which completes instantaneously.  The assignment is a write to 'x'
+// which completes instantaneously.  The accesses do not overlap and
+// therefore do not conflict.
 x = x
 
-// The right-hand side is a read of 'x' which completes instantaneously.
-// Calling the operator involves passing 'x' as an inout argument; this
-// is a write access which does not complete instantaneously, but it does
-// not begin until immediately before the call, after the right-hand side
-// is fully evaluated.  Therefore the accesses do not overlap and do not
-// conflict.
+// *NOT A CONFLICT*.  The right-hand side is a read of 'x' which completes
+// instantaneously.  Calling the operator involves passing 'x' as an inout
+// argument; this is a write access for the duration of the call, but it does
+// not begin until immediately before the call, after the right-hand side is
+// fully evaluated.  Therefore the accesses do not overlap and do not conflict.
 x += x
+
+// *CONFLICT*.  Passing 'x' as an inout argument is a write access for the
+// duration of the call.  Passing the same variable twice means performing
+// two overlapping write accesses to that variable, which therefore conflict.
+swap(&x, &x)
 
 extension Int {
   mutating func assignResultOf(_ function: () -> Int) {
@@ -240,8 +244,8 @@ extension Int {
   }
 }
 
-// Calling a mutating method on a value type is a write access that
-// lasts for the duration of the method.  The read of 'x' in the closure
+// *CONFLICT*.  Calling a mutating method on a value type is a write access
+// that lasts for the duration of the method.  The read of 'x' in the closure
 // is evaluated while the method is executing, which means it overlaps
 // the method's formal access to 'x'.  Therefore these accesses conflict.
 x.assignResultOf { x + 1 }
@@ -318,7 +322,7 @@ of the additional performance cost and in terms of the complexity
 of the implementation.
 
 However, this limitation can be worked around by binding
-``object.pair`` to an ``inout`` argument:
+``object.pair`` to an ``inout`` parameter:
 
 ```swift
 func modifying<T>(_ value: inout T, _ function: (inout T) -> ()) {
@@ -329,8 +333,9 @@ modifying(&object.pair) { pair in swap(&pair.x, &pair.y) }
 ```
 
 This works because now there is only a single access to
-``object.pair`` and because ``inout`` arguments use purely
-static enforcement.
+``object.pair`` and because, once the the ``inout`` parameter is
+bound to that storage, accesses to the parameter within the
+function can use purely static enforcement.
 
 We expect that workarounds like this will only rarely be required.
 
@@ -352,28 +357,28 @@ array, even to different elements.  For example:
 ```swift
 var array = [[1,2], [3,4,5]]
 
-// These accesses to the elements of 'array' each complete
-// instantaneously and do not overlap each other.  Even if they
+// *NOT A CONFLICT*.  These accesses to the elements of 'array' each
+// complete instantaneously and do not overlap each other.  Even if they
 // did overlap for some reason, they are both reads and therefore
 // do not conflict.
 print(array[0] + array[1])
 
-// The access done to read 'array[1]' completes before the modifying
-// access to 'array[0]' begins.  Therefore, these accesses do not
-// conflict.
+// *NOT A CONFLICT*.  The access done to read 'array[1]' completes
+// before the modifying access to 'array[0]' begins.  Therefore, these
+// accesses do not conflict.
 array[0] += array[1]
 
-// Passing 'array[i]' as an inout argument performs a write access
-// to it, and therefore to 'array', for the duration of the call.
-// This call makes two such accesses to the same array variable,
+// *CONFLICT*.  Passing 'array[i]' as an inout argument performs a
+// write access to it, and therefore to 'array', for the duration of
+// the call.  This call makes two such accesses to the same array variable,
 // which therefore conflict.
 swap(&array[0], &array[1])
 
-// Calling a non-mutating method on 'array[0]' performs a read
-// access to it, and thus to 'array', for the duration of the
-// method.  Calling a mutating method on 'array[1]' performs
-// a write access to it, and thus to 'array', for the duration
-// of the method.  These accesses therefore conflict.
+// *CONFLICT*.  Calling a non-mutating method on 'array[0]' performs a
+// read access to it, and thus to 'array', for the duration of the method.
+// Calling a mutating method on 'array[1]' performs a write access to it,
+// and thus to 'array', for the duration of the method.  These accesses
+// therefore conflict.
 array[0].forEach { array[1].append($0) }
 ```
 
@@ -404,12 +409,11 @@ than two ``inout`` arguments.
 
 ### Class properties
 
-Unlike value types, calling a method on a class doesn't somehow
-access the entire class instance.  Under this proposal, we don't
-try to enforce exclusivity of access on the whole-object level
-at all; we only enforce it for individual properties.  Among
-other things, this means that an access to a class property never
-conflicts with an access to a different property.
+Unlike value types, calling a method on a class doesn't formally access
+the entire class instance.  In fact, we never try to enforce exclusivity
+of access on the whole object at all; we only enforce it for individual
+stored properties.  Among other things, this means that an access to a
+class property never conflicts with an access to a different property.
 
 There are two major reasons for this difference between value
 and reference types.
@@ -464,8 +468,7 @@ Local variables which are captured in closures may sometimes require
 dynamic enforcement instead of static enforcement because the
 implementation cannot locally reason about when the closure will
 be called.  This is especially true when the closure is ``escaping``,
-but can apply even to non-escaping closures in somewhat arcane
-circumstances.
+but can apply even to non-escaping closures in certain circumstances.
 
 In general, Swift is permitted to upgrade dynamic enforcement to
 static enforcement whenever it has sufficient information to do so.
