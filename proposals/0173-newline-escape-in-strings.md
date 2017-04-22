@@ -1,4 +1,4 @@
-# Feature name
+# Escaped newlines in all string literals
 
 * Proposal: [SE-0173](0173-newline-escape-in-strings.md)
 * Authors: [John Holdsworth](https://github.com/johnno1962)
