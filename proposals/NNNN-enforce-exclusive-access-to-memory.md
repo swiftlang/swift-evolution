@@ -214,26 +214,26 @@ Examples:
 ```swift
 var x = 0, y = 0
 
-// *NOT A CONFLICT*.  These two accesses to 'x' are both reads.
+// NOT A CONFLICT.  These two accesses to 'x' are both reads.
 // Each completes instantaneously, so the accesses do not overlap and
 // therefore do not conflict.  Even if they were not instantaneous, they
 // are both reads and therefore do no conflict.
 let z = x + x
 
-// *NOT A CONFLICT*.  The right-hand side of the assignment is a read of
+// NOT A CONFLICT.  The right-hand side of the assignment is a read of
 // 'x' which completes instantaneously.  The assignment is a write to 'x'
 // which completes instantaneously.  The accesses do not overlap and
 // therefore do not conflict.
 x = x
 
-// *NOT A CONFLICT*.  The right-hand side is a read of 'x' which completes
+// NOT A CONFLICT.  The right-hand side is a read of 'x' which completes
 // instantaneously.  Calling the operator involves passing 'x' as an inout
 // argument; this is a write access for the duration of the call, but it does
 // not begin until immediately before the call, after the right-hand side is
 // fully evaluated.  Therefore the accesses do not overlap and do not conflict.
 x += x
 
-// *CONFLICT*.  Passing 'x' as an inout argument is a write access for the
+// CONFLICT.  Passing 'x' as an inout argument is a write access for the
 // duration of the call.  Passing the same variable twice means performing
 // two overlapping write accesses to that variable, which therefore conflict.
 swap(&x, &x)
@@ -244,7 +244,7 @@ extension Int {
   }
 }
 
-// *CONFLICT*.  Calling a mutating method on a value type is a write access
+// CONFLICT.  Calling a mutating method on a value type is a write access
 // that lasts for the duration of the method.  The read of 'x' in the closure
 // is evaluated while the method is executing, which means it overlaps
 // the method's formal access to 'x'.  Therefore these accesses conflict.
@@ -357,24 +357,24 @@ array, even to different elements.  For example:
 ```swift
 var array = [[1,2], [3,4,5]]
 
-// *NOT A CONFLICT*.  These accesses to the elements of 'array' each
+// NOT A CONFLICT.  These accesses to the elements of 'array' each
 // complete instantaneously and do not overlap each other.  Even if they
 // did overlap for some reason, they are both reads and therefore
 // do not conflict.
 print(array[0] + array[1])
 
-// *NOT A CONFLICT*.  The access done to read 'array[1]' completes
+// NOT A CONFLICT.  The access done to read 'array[1]' completes
 // before the modifying access to 'array[0]' begins.  Therefore, these
 // accesses do not conflict.
 array[0] += array[1]
 
-// *CONFLICT*.  Passing 'array[i]' as an inout argument performs a
+// CONFLICT.  Passing 'array[i]' as an inout argument performs a
 // write access to it, and therefore to 'array', for the duration of
 // the call.  This call makes two such accesses to the same array variable,
 // which therefore conflict.
 swap(&array[0], &array[1])
 
-// *CONFLICT*.  Calling a non-mutating method on 'array[0]' performs a
+// CONFLICT.  Calling a non-mutating method on 'array[0]' performs a
 // read access to it, and thus to 'array', for the duration of the method.
 // Calling a mutating method on 'array[1]' performs a write access to it,
 // and thus to 'array', for the duration of the method.  These accesses
