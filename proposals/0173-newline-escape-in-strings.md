@@ -1,6 +1,6 @@
-# Escaped newlines in all string literals
+# Introducing a Universal Newline String Escape
 
-* Proposal: [SE-0173](0173-newline-escape-in-strings.md)
+* Proposal: [TBD](TBD.md)
 * Authors: [John Holdsworth](https://github.com/johnno1962)
 * Review Manager: TBD
 * Status: **Awaiting review**
@@ -9,48 +9,65 @@
 
 ## Introduction
 
-This is a lightning proposal intended for quick review for which an implementation
-is already available. During review of [SE-0168](0168-multi-line-string-literals.md)
-it was felt that the feature of escaping a newline to elide it from the literal should
-not be accepted as it would introduce an inconsistency with respect to conventional
-string literals. This proposal suggests that it should be a part of both syntaxes
-which would also bring Swift strings into line with the behaviour of C literals.
+This proposal introduces escaped newlines for all string types including single and multiple lines. Escaping elides in-text newline characters to support better code reading and improve the maintenance of source material containing excessively long lines. 
 
-Swift-evolution thread: [Discussion thread topic for that proposal](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170417/035923.html)
+This proposal adds onto [SE-0168](0168-multi-line-string-literals.md). It is a lightning proposal intended for quick review. An implementation is already available.
+
+Swift-evolution thread: [Discussion thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170417/035923.html)
 
 ## Motivation
 
-Newline continuation was an integral part of the design of multiline string literals
-so they could serve dual purpose as multiline literals but also as bulk literals for text
-the user does not want to contain newlines but that should be split over a number
-of lines in the source for legibility. For example:
+Newline escapes were not added during the [SE-0168](0168-multi-line-string-literals.md) process. Adding them to multi-line strings would have introduced an inconsistency with respect to conventional string literals. This proposal conforms both multi-line and conventional string construction to allow newline escaping, bringing Swift strings into line with C literals.
+
+Newline continuation enables developers to split text over multiple source lines without introducing new line breaks. This approach enhances source legibility. For example:
 
 ```
-        let text = """
+// Excessively long line that requires scrolling to read
+let text = """
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+            """
+
+// Shorter lines that are easier to read, but represent the same long line
+let text = """
             Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod \
             tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, \
             quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.\
             """
 ```
 
-Accepting the proposal without it has meant no way could be found to easily escape
-the last newline of a literal and as a result it was decided that it should always
-be stripped. This has reduced the intuitiveness and usability of the feature in the
-opinion of the author although this is the subject of some debate. This aside, having
-a continuation character is useful in its own right in formatting source, is
-precedented and carries very little risk of confusion for the naive user. Indeed,
-when I started using Swift this is something I expected to be able do.
+Accepting SE-0168 without newline escaping means there's no way to easily escape the last newline of a literal. As a result the core team decided that trailing newlines should always be stripped. This approach arguably reduces the feature's usability and intuitive adoption.
 
-## Proposed solution
-
-In order to enter long string literals that do not contain newlines it should
-be possible to extend the string past the end of the line using an escape character
-\ before the newline and have the string continue on the next line. The newline
-character would not be included in the literal.
+Incorporating a string continuation character is well founded, used in other development languages, and carries little risk of confusing naive users.
 
 ## Detailed design
 
-This would be a very small change confined to Lexer.cpp that would be very limited in scope.
+This proposal introduces `\` as a line continuation character, enabling strings to extend past the end of the source line. The `\` and the new line character that follow it in source are not incorporated into the string.
+
+This does not affect the indent removal feature of multiline strings and does not suggest that indent removal should be added to conventional strings but it does gave them consistent treatment. It also gives the user control over whether the final newline should be included in the string and it is recommended that it not always be stripped. This anticipated usage shows this is better suited to more common use cases:
+
+```swift
+var xml = """
+    <?xml version="1.0"?>
+    <catalog>
+    """
+
+for (id, author, title, genre, price) in bookTuples {
+    xml += """
+            <book id="bk\(id)">
+                <author>\(author)</author>
+                <title>\(title)</title>
+                <genre>\(genre)</genre>
+                <price>\(price)</price>
+            </book>
+        """
+}
+
+xml += """
+    </catalog>
+    """
+```
+
+This produces a high-impact well-focused language change with low costs, as the update is confined to Lexer.cpp.
 
 ## Source compatibility
 
@@ -59,14 +76,12 @@ allowed in Swift this does not affect existing source.
 
 ## Effect on ABI stability
 
-N/A
+This proposal does not affect ABI stability.
 
 ## Effect on API resilience
 
-N/A Additive proposal
+This proposal does not affect ABI resilience.
 
 ## Alternatives considered
 
-Some would suggest using concatenation but past a certain point this becomes 
-clumsy and as the expression becomes more complex, it can take a long time
-for the swift compiler to analyse.
+Concatenation can be considered as a "low rent" language solution alternative. This solution is less expressive, clumsier, and, as expressions become more complex, can produce higher compilation costs as it requires the Swift compiler to analyze and optimize each use.
