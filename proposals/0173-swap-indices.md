@@ -1,9 +1,9 @@
 # Add `MutableCollection.swap(_:with:)`
 
-* Proposal: [SE-NNNN](NNNN-swap-indices.md)
+* Proposal: [SE-0173](0173-swap-indices.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Ted Kremenek](https://github.com/tkremenek)
+* Status: **Active review (April 25...28, 2017)**
 
 ## Introduction
 
