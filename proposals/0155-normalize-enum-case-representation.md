@@ -5,6 +5,7 @@
 * Review Manager: [John McCall][]
 * Status: **Accepted with revisions** ([Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170417/035972.html))
 * Previous Revision: [1][Revision 1]
+* Bug: [SR-4691](https://bugs.swift.org/browse/SR-4691)
 
 ## Introduction
 
