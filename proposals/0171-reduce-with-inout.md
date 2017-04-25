@@ -1,9 +1,10 @@
 # Reduce with `inout`
 
 * Proposal: [SE-0171](0171-reduce-with-inout.md)
-* Authors: [Chris Eidhof](https://github.com/chriseidhof)
+* Author: [Chris Eidhof](https://github.com/chriseidhof)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active review (April 14...April 21, 2017)**
+* Status: **Accepted**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170424/036126.html)
 
 ## Introduction
 
