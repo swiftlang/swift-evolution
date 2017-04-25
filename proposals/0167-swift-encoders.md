@@ -5,7 +5,7 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Active review (April 6...12, 2017)**
 * Associated PRs:
-  * [#8124](https://github.com/apple/swift/pull/8124)
+  * [#9005](https://github.com/apple/swift/pull/9005)
 
 ## Introduction
 
