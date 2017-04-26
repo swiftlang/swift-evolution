@@ -1,7 +1,7 @@
 # NSNumber bridging and Numeric types
 
 * Proposal: [SE-0170](0170-nsnumber_bridge.md)
-* Author(s): [Philippe Hausler](https://github.com/phausler)
+* Author: [Philippe Hausler](https://github.com/phausler)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Active review (April 14...April 21, 2017)**
 
