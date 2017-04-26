@@ -11,7 +11,7 @@ As part of the introduction of the Law of Exclusivity, the current `swap(_:_:)`
 function must be addressed, as this most common uses of `swap` directly violate
 the law. This proposal introduces an alternative: a method on
 `MutableCollection` that takes two indices for swapping two elements in the
-same collection,.
+same collection.
 
 ## Motivation
 
@@ -25,11 +25,11 @@ some typical usage from that file:
     swap(&elements[lo], &elements[hi])
 ```
 
-Under changes proposed as part of the ownership manfifesto, this will no longer
+Under changes proposed as part of the ownership manifesto, this will no longer
 be legal Swift: a single variable (in this case, `elements`) cannot be passed
 as two different `inout` arguments to the same function.
 
-For more background on exclusivity and ownership, see the [manfiesto](https://github.com/apple/swift/blob/master/docs/OwnershipManifesto.md)
+For more background on exclusivity and ownership, see the [manifesto](https://github.com/apple/swift/blob/master/docs/OwnershipManifesto.md)
 
 ## Proposed solution
 
