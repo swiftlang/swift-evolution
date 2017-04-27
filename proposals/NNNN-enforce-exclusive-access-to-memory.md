@@ -106,7 +106,7 @@ translate to extra retains and releases of the string's buffer; in a more
 complex example, that could even lead to the underlying data being copied
 unnecessarily.
 
-In the above example, we've made the potentially-overlapping accesses
+In the above examples, we've made the potentially-overlapping accesses
 obvious, but they don't have to be.  For example, here is another method
 that takes a closure as an argument:
 
@@ -138,6 +138,31 @@ it's only checked once, before the loop begins).  But that optimization
 can't be applied in this example because the closure might change or
 copy ``self``.  The only realistic way to tell the compiler that
 that can't happen is to enforce exclusivity on ``self``.
+
+The same considerations that apply to ``self`` in a ``mutating``
+method also apply to ``inout`` parameters.  For example:
+
+```swift
+open class Person {
+  open var title: String
+}
+
+func collectTitles(people: [Person], into set: inout Set<String>) {
+  for person in people {
+    set.insert(person.title)
+  }
+}
+```
+
+This function mutates a set of strings, but it also repeatedly
+calls a class method.  The compiler cannot know how this method
+is implemented, because it is ``open`` and therefore overridable
+from an arbitrary module.  Therefore, because of overlap, the
+compiler must pessimistically assume that each of these method
+calls might somehow find a way to modify the original variable
+that ``set`` was bound to.  (And if the method did manage to do
+so, the resulting strange behavior would probably be seen as a bug
+by the caller of ``collectTitles``.)
 
 ### Eliminating non-instantaneous accesses?
 
