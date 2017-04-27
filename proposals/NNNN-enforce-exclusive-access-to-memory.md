@@ -57,6 +57,8 @@ manages to access the same property again, the accesses will overlap.
 There are several language features like this already in Swift, and
 Ownership will add a few more.
 
+### Examples of problems due to overlap
+
 Here's an example:
 
 ```swift
@@ -69,23 +71,73 @@ extension Int {
   // for the duration of the method.
   mutating func increaseByGlobal() {
     // Any accesses they do will overlap the access to that variable.
-    total += self
-    self += global
 
-    // If the accesses happen to be to the same variable that the
-    // method was called on, the results can be very difficult to
-    // reason about.  How does the behavior of this method change
-    // if it's called on 'global'?  On 'total'?
-
-    // In this example, we've made the potentially-overlapping
-    // accesses obvious, but they don't have to be.  For example,
-    // this method could take a closure as an argument.  We don't
-    // know what code that closure will execute, and therefore
-    // we don't know what variables it will access.  We could have
-    // overlaps even if this method is invoked on a local variable!
+    total += self // Might access 'total' through both 'total' and 'self'
+    self += global // Might access 'global' through both 'global' and 'self'
   }
 }
 ```
+
+If ``self`` is ``total`` or ``global``, the low-level semantics of this
+method don't change, but the programmer's high-level understanding
+of it almost certainly does.  A line that superficially seems to not
+change 'global' might suddenly start doubling it!  And the data dependencies
+between the two lines instantly go from simple to very complex.  That's very
+important information for someone maintaining this method, who might be
+tempted to re-arrange the code in ways that seem equivalent.  That kind of
+maintenance can get very frustrating because of overlap like this.
+
+The same considerations apply to the language implementation.
+The possibility of overlap means the language has to make
+pessimistic assumptions about the loads and stores in this method.
+For example, the following code avoids a seemingly-redundant load,
+but it's not actually equivalent because of overlap:
+
+```swift
+    let value = self
+    total += value
+    self = value + global
+```
+
+Because these variables just have type ``Int``, the cost of this pessimism
+is only an extra load.  If the types were more complex, like ``String``,
+it might mean doing extra copies of the ``String`` value, which would
+translate to extra retains and releases of the string's buffer; in a more
+complex example, that could even lead to the underlying data being copied
+unnecessarily.
+
+In the above example, we've made the potentially-overlapping accesses
+obvious, but they don't have to be.  For example, here is another method
+that takes a closure as an argument:
+
+```swift
+extension Array {
+  mutating func modifyElements(_ closure: (inout Element) -> ()) {
+    var i = startIndex
+    while i != endIndex {
+      closure(&self[i])
+      i = index(after: i)
+    }
+  }
+}
+```
+
+This method's implementation seems straightforwardly correct, but
+unfortunately it doesn't account for overlap.  Absolutely nothing
+prevents the closure from modifying ``self`` during the iteration,
+which means that ``i`` can suddenly become an invalid index, which
+could lead to all sorts of unwanted behavior.  Even if this never
+happen in reality, the fact that it's *possible* means that the
+implementation is blocked from pursuing all sorts of important
+optimizations.
+
+For example, the compiler has an optimization that "hoists" the
+uniqueness check on a copy-on-write collection from the inside of
+a loop (where it's run on each iteration) to the outside (so that
+it's only checked once, before the loop begins).  But that optimization
+can't be applied in this example because the closure might change or
+copy ``self``.  The only realistic way to tell the compiler that
+that can't happen is to enforce exclusivity on ``self``.
 
 ### Eliminating non-instantaneous accesses?
 
@@ -147,14 +199,11 @@ overwrites ``numbers`` with ``temp``.
 
 ### Consequences of non-instantaneous accesses
 
-So we have to live with non-instantaneous accesses.  That means
-programmers can write code that would naturally cause overlapping
-accesses to the same variable.  What does this mean for programming
-in Swift?
-
-In Swift 3, we simply allow the overlapping accesses to happen, and we
-try to live with the consequences.  In general, this translates to a
-lot of complexity and lost performance.
+So we have to accept that accesses can be non-instantaneous.  That
+means programmers can write code that would naturally cause overlapping
+accesses to the same variable.  We currently allow this to happen
+and make a best effort to live with the consequences.  The costs,
+in general, are a lot of complexity and lost performance.
 
 For example, the ``Array`` type has an optimization in its ``subscript``
 operator which allows callers to directly access the storage of array
@@ -403,9 +452,12 @@ In the short term, these problems can be worked around with
 ``withUnsafeMutableBufferPointer``.
 
 We do know that swapping two array elements will be problematic,
-and accordingly we are separately proposing to add a ``swap``
-method to ``MutableCollection`` that takes two indices rather
-than two ``inout`` arguments.
+and accordingly we are (separately proposing)[https://github.com/apple/swift-evolution/blob/master/proposals/0173-swap-indices.md] to add a
+``swapAt`` method to ``MutableCollection`` that takes two indices
+rather than two ``inout`` arguments.  The Swift 3 compatibility
+mode should recognize the swap-of-elements pattern and automatically
+translate it to use ``swapAt``, and the 3-to-4 migrator should
+perform this rewrite automatically.
 
 ### Class properties
 
@@ -444,12 +496,16 @@ unacceptable for the concurrent patterns described above.
 
 ### Disabling dynamic enforcement.
 
-We should add an attribute which allows dynamic enforcement to
+We could add an attribute which allows dynamic enforcement to
 be downgraded to an unsafe-pointer-style undefined-behavior rule
-on a variable-by-variable basis.  This will allow programmers to
+on a variable-by-variable basis.  This would allow programmers to
 opt out of the expense of dynamic enforcement when it is known
 to be unnecessary (e.g. because exclusivity is checked at some
 higher level) or when the performance burden is simply too great.
+
+There is some concern that adding this attribute might lead to
+over-use and that we should only support it if we are certain
+that the overheads cannot be reduced in some better way.
 
 Since the rule still applies, and it's merely no longer being checked,
 it makes sense to borrow the "checked" and "unchecked" terminology
