@@ -298,8 +298,8 @@ public protocol Numeric : Equatable, ExpressibleByIntegerLiteral {
   /// For example:
   ///
   ///     var x = 15
-  ///     y += 7
-  ///     // y == 22
+  ///     x += 7
+  ///     // x == 22
   static func +=(_ lhs: inout Self, rhs: Self)
 
   /// Returns the difference of the two given values.
@@ -319,8 +319,8 @@ public protocol Numeric : Equatable, ExpressibleByIntegerLiteral {
   /// For example:
   ///
   ///     var x = 15
-  ///     y -= 7
-  ///     // y == 8
+  ///     x -= 7
+  ///     // x == 8
   static func -=(_ lhs: inout Self, rhs: Self)
 
   /// Returns the product of the two given values.
@@ -340,8 +340,8 @@ public protocol Numeric : Equatable, ExpressibleByIntegerLiteral {
   /// For example:
   ///
   ///     var x = 15
-  ///     y *= 7
-  ///     // y == 105
+  ///     x *= 7
+  ///     // x == 105
   static func *=(_ lhs: inout Self, rhs: Self)
 }
 
@@ -573,8 +573,8 @@ public protocol BinaryInteger :
   /// For example:
   ///
   ///     var x = 15
-  ///     y /= 7
-  ///     // y == 2
+  ///     x /= 7
+  ///     // x == 2
   static func /=(_ lhs: inout Self, rhs: Self)
 
   /// Returns the remainder of dividing the first value by the second.
