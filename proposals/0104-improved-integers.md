@@ -298,8 +298,8 @@ public protocol Numeric : Equatable, ExpressibleByIntegerLiteral {
   /// For example:
   ///
   ///     var x = 15
-  ///     y += 7
-  ///     // y == 22
+  ///     x += 7
+  ///     // x == 22
   static func +=(_ lhs: inout Self, rhs: Self)
 
   /// Returns the difference of the two given values.
