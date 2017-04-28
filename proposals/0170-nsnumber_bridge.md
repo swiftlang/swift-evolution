@@ -46,7 +46,7 @@ if let value = n as? UInt8 {
 }
 ```
 
-But there are some subtile failures that occur as well -
+But there are some subtle failures that occur as well -
 
 #### Example 4
 ```swift
@@ -138,7 +138,7 @@ let v = Int8(NSNumber(value: Int64.max))
 
 ## Detailed design
 
-The following methods will be changed deprecated in swift 4 because the behavior is truncating not an assertion of exactly:
+The following methods will be changed in swift 4 because the behavior is truncating, not an assertion of exactly:
 
 ```swift
 extension Int8 {
