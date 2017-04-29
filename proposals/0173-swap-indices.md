@@ -1,4 +1,4 @@
-# Add `MutableCollection.swap(_:with:)`
+# Add `MutableCollection.swapAt(_:_:)`
 
 * Proposal: [SE-0173](0173-swap-indices.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
@@ -38,7 +38,7 @@ the elements from two indices:
 
 ```swift
   while hi != lo {
-    elements.swap(lo, with: hi)
+    elements.swapAt(lo, hi)
 ```
 
 As well as resolving the conflict with the proposed language change, this
@@ -69,11 +69,11 @@ in a later release.
 Add the following method to the standard library:
 
 ```swift
-extension MutableCollection {
-  /// Exchange the values at indices `a` and `b`.
+protocol MutableCollection {
+  /// Exchange the values at indices `i` and `i`.
   ///
-  /// Has no effect when `a` and `b` are equal.
-  public mutating func swap(_ i: Index, with b: Index)
+  /// Has no effect when `i` and `j` are equal.
+  public mutating func swapAt(_ i: Index, j: Index)
 }
 ```
 
@@ -88,10 +88,7 @@ Deprecate the existing `swap`, and obsolete it in a later version of Swift.
 
 ## Source compatibility
 
-This is purely additive so should not be source breaking. However, due to
-current compiler behavior, it may be necessary to declare a version of the
-old `swap` on `MutableCollection` for Swift 3 compatibility purposes. This
-version will forward to the free function.
+This is purely additive so should not be source breaking.
 
 ## Effect on ABI stability
 
@@ -103,11 +100,21 @@ N/A
 
 ## Alternatives considered
 
-Instead of `elements.swap(i, with: j)`, the following were considered:
+A number of possible alternative names for this method were considered:
 
 ```swift
+elements.swap(i, with: j)
 elements.swap(at: i, j)
 elements.swapElements(i, j)
 elements.swap(elements: i, j)
 ```
+
+`elements.swapAt(i, with: j)` was chosen on the basis of it reading most fluently, combined with adhering to the relevant parts of the naming guidelines:
+
+> "Omit all labels when arguments can’t be usefully distinguished”
+ 
+and:
+
+> "When the first argument forms part of a prepositional phrase, give it an argument label...An exception arises when the first two arguments represent parts of a single abstraction….In such cases, begin the argument label after the preposition, to keep the abstraction clear."
+
 
