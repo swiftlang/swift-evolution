@@ -74,7 +74,7 @@ protocol MutableCollection {
   /// Exchange the values at indices `i` and `i`.
   ///
   /// Has no effect when `i` and `j` are equal.
-  public mutating func swapAt(_ i: Index, j: Index)
+  public mutating func swapAt(_ i: Index, _ j: Index)
 }
 ```
 
