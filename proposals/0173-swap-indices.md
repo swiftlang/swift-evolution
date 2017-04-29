@@ -5,6 +5,7 @@
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Status: **Accepted**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170424/036229.html)
+* Associated PR: [#9119](https://github.com/apple/swift/pull/9119)
 
 ## Introduction
 
