@@ -1,9 +1,9 @@
 # Change `filter` to return an associated type
 
-* Proposal: [SE-NNNN](NNNN-filter-range-replaceable.md)
+* Proposal: [SE-0174](0174-filter-range-replaceable.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Active review (April 28...May 3, 2017)**
 
 ## Introduction
 
