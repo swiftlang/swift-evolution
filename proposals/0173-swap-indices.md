@@ -3,7 +3,8 @@
 * Proposal: [SE-0173](0173-swap-indices.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
-* Status: **Active review (April 25...28, 2017)**
+* Status: **Accepted**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170424/036229.html)
 
 ## Introduction
 
