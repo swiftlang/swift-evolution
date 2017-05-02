@@ -1,9 +1,9 @@
 # Package Manager Revised Dependency Resolution
 
-* Proposal: [SE-0170](0170-package-manager-revised-dependency-resolution.md)
+* Proposal: [SE-0175](0175-package-manager-revised-dependency-resolution.md)
 * Author: [Rick Ballard](https://github.com/rballard)
 * Review Manager: [Ankit Aggarwal](http://github.com/aciidb0mb3r)
-* Status: **Preparing for review**
+* Status: **Active review (May 2...May 9, 2017)**
 
 ## Introduction
 This proposal makes the package manager's dependency resolution behavior clearer and more intuitive. It removes the pinning commands (`swift package pin` & `swift package unpin`), replaces the `swift package fetch` command with a new `swift package resolve` command with improved behavior, and replaces the optional `Package.pins` file with a `Package.resolved` file which is always created during dependency resolution.
