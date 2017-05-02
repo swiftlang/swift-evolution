@@ -1,9 +1,9 @@
 # Enforce Exclusive Access to Memory
 
-* Proposal: [SE-NNNN](NNNN-enforce-exclusive-access-to-memory.md)
+* Proposal: [SE-0176](0176-enforce-exclusive-access-to-memory.md)
 * Authors: [John McCall](https://github.com/rjmccall)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
+* Status: **Active review (May 2...May 8)**
 
 ## Introduction
 
@@ -567,7 +567,7 @@ We can mitigate some of the impact of this break by implicitly migrating
 code matching certain patterns to use different patterns that are known
 to satisfy the exclusivity rule.  For example, it would be straightforward
 to automatically translate calls like ``swap(&array[i], &array[j])`` to
-``array.swapAt(i, with: j)``.  Whether this makes sense for any particular
+``array.swapAt(i, j)``.  Whether this makes sense for any particular
 migration remains to be seen; for example, ``swap`` does not appear to be
 used very often in practice outside of specific collection algorithms.
 
