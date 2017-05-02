@@ -553,7 +553,7 @@ but can apply even to non-escaping closures in certain circumstances.
 
 In general, Swift is permitted to upgrade dynamic enforcement to
 static enforcement whenever it has sufficient information to do so.
-For example, if the compiler can prove that two acceses to a global
+For example, if the compiler can prove that two accesses to a global
 variable will necessarily conflict, it may report that as an error
 statically.
 
@@ -567,7 +567,7 @@ We can mitigate some of the impact of this break by implicitly migrating
 code matching certain patterns to use different patterns that are known
 to satisfy the exclusivity rule.  For example, it would be straightforward
 to automatically translate calls like ``swap(&array[i], &array[j])`` to
-``array.swap(i, with: j)``.  Whether this makes sense for any particular
+``array.swapAt(i, with: j)``.  Whether this makes sense for any particular
 migration remains to be seen; for example, ``swap`` does not appear to be
 used very often in practice outside of specific collection algorithms.
 
