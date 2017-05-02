@@ -56,6 +56,8 @@ We considered continuing to write out the `Package.pins` file for packages whose
 
 We considered keeping the `pin` and `unpin` commands, with the new behavior as discussed briefly in this proposal. While we think we may wish to bring this feature back in the future, we do not consider it critical for this release; the workflow it supports (updating all packages except a handful which have been pinned) is not something most users will need, and there are workarounds (e.g. specify an explicit dependency in the `Package.swift` manifest).
 
+We considered using an `install` verb instead of `resolve`, as many other package managers use `install` for a very similar purpose. However, almost all of those package managers are for non-compiled languages, where downloading the source to a dependency is functionally equivalent to "installing" it as a product ready for use. In contrast, Swift is a compiled language, and our dependencies must be built (e.g. into libraries) before they can be installed. As such, `install` would be a misnomer for this workflow. In the future we may wish to add an `install` verb which actually does install built products, similar to `make install`.
+
 ### Why we didn't use "Package.lock"
 
 We considered using the `.lock` file extension for the new resolved versions file, to be consistent with many other package managers. We expect that the decision not to use this extension will be controversial, as following established precedent is valuable. However, we think that a "lockfile" is a very poor name for this concept, and that using that name would cause confusion when we re-introduce pins. Specifically:
