@@ -3,7 +3,8 @@
 * Proposal: [SE-0169](0169-improve-interaction-between-private-declarations-and-extensions.md)
 * Authors: [David Hart](http://github.com/hartbit), [Chris Lattner](https://github.com/lattner)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2017-April/000357.html))
+* Status: **Implemented (Swift 4)**
+* Decision Notes: ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2017-April/000357.html))
 * Previous Revision: [1][Revision 1]
 * Bug: [SR-4616](https://bugs.swift.org/browse/SR-4616)
 
