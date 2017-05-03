@@ -188,7 +188,7 @@ struct Array numbers = _Array_init();
 _Array_appendABunchOfStuff(&numbers);
 ```
 
-You can see clearly how ``_Int_appendABunchOfStuff`` will be working
+You can see clearly how ``_Array_appendABunchOfStuff`` will be working
 directly with the storage of ``numbers``, creating the abstract
 possibility of overlapping accesses to that variable.  To prevent
 this in general, we would need to pass a temporary copy instead:
