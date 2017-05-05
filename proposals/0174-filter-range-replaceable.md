@@ -16,7 +16,7 @@ associated type, and adds a default implementation to
 The recently accepted
 [SE-165](https://github.com/apple/swift-evolution/blob/master/proposals/0165-dict.md)
 introduced a version of `filter` on `Dictionary` that returned a
-`Dictionary`. This had both performance and useability benefits: in most cases,
+`Dictionary`. This had both performance and usability benefits: in most cases,
 a `Dictionary` is what the user wanted from the filter, and creating one
 directly from the filter operation is much more efficient than first creating
 an array then creating a `Dictionary` from it.
