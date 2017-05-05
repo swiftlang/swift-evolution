@@ -86,7 +86,7 @@ a `const char *`).
 
 The C string interop methods will be updated to those described
 [here](https://github.com/apple/swift/blob/master/docs/StringManifesto.md#c-string-interop):
-two `withCString` operation and two `init(cString:)` constructors, one each for
+two `withCString` operations and two `init(cString:)` constructors, one each for
 UTF8 and for arbitrary encodings. The primary change is to remove
 "non-repairing" variants of construction from nul-terminated C strings. In both
 of the construction APIs, any invalid encoding sequence detected will have its
@@ -156,6 +156,7 @@ extension String {
   /// - Parameter encoding: describes the encoding in which the code units
   ///   should be interpreted.
   init<C: Collection, Encoding: UnicodeEncoding>(codeUnits: C, encoding: Encoding)
+    where C.Iterator.Element == Encodeding.CodeUnit
 
   /// Constructs a `String` having the same contents as `nulTerminatedUTF8`.
   ///
