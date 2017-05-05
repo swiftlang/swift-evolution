@@ -3,7 +3,7 @@
 * Proposal: [SE-0170](0170-nsnumber_bridge.md)
 * Author: [Philippe Hausler](https://github.com/phausler)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Accepted**
+* Status: **Implemented (Swift 4)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170424/036226.html)
 
 ##### Revision history
