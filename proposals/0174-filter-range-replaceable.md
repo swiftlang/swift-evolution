@@ -3,7 +3,7 @@
 * Proposal: [SE-0174](0174-filter-range-replaceable.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Active review (April 28...May 3, 2017)**
+* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2017-May/000374.html))
 
 ## Introduction
 
