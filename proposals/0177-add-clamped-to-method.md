@@ -1,16 +1,9 @@
 # Add clamp(to:) to the stdlib
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0177](0177-add-clamped-to-method.md)
 * Authors: [Nicholas Maccharoli](https://github.com/Nirma)
 * Review Manager: TBD
 * Status: **Awaiting review**
-
-*During the review process, add the following fields as needed:*
-
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/), [Additional Commentary](https://lists.swift.org/pipermail/swift-evolution/)
-* Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM)
-* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
-* Previous Proposal: [SE-XXXX](XXXX-filename.md)
 
 ## Introduction
 
