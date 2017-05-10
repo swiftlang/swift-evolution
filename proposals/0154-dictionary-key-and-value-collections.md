@@ -1,9 +1,9 @@
 # Provide Custom Collections for Dictionary Keys and Values
 
-- Proposal: [SE-0154](0154-dictionary-key-and-value-collections.md)
-- Author: [Nate Cook](https://github.com/natecook1000)
-- Review Manager: [Doug Gregor](https://github.com/DougGregor)
-- Status: **Accepted**
+* Proposal: [SE-0154](0154-dictionary-key-and-value-collections.md)
+* Author: [Nate Cook](https://github.com/natecook1000)
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Accepted**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170220/033159.html)
 
 ## Introduction
