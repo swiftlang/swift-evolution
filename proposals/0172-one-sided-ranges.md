@@ -23,7 +23,7 @@ For example (assuming `String` is once more a `Collection`):
 
 ```swift
 let s = "Hello, World!"
-let i = s.index(where: ",")
+let i = s.index(of: ",")!
 let greeting = s[s.startIndex..<i]
 ```
 
