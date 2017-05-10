@@ -436,12 +436,4 @@ on the initial implementation. The intention is to make a preview toolchain
 available for feedback, including on whether this implicit conversion is
 necessary, prior to the release of Swift 4.
 
-Several of the types related to `String`, such as the encodings, would ideally
-reside inside a namespace rather than live at the top level of the standard
-library. The best namespace for this is probably `StringProtocol`, but this is also
-the name of the protocol. At some point if we gain the ability to nest enums
-and types inside protocols, they should be moved there. Putting them inside
-`String` or some other enum namespace is probably not worthwhile in the
-mean-time.
-
 
