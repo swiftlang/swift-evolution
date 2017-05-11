@@ -4,6 +4,7 @@
 * Authors: [Ben Cohen](https://github.com/airspeedswift), [Dave Abrahams](http://github.com/dabrahams/)
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Accepted with revisions**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170417/035919.html)
 
 ## Introduction
 
