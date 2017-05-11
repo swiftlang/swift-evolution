@@ -169,9 +169,9 @@ public typealias UnicodeScalar = Unicode.Scalar
 ```
 
 Unicode-specific protocols will be presented as members of this
-namespace.  For the time being, typealiases will be used, since
-neither sub-modules (the preferred solution) nor nested protocols are
-currently supported.  The intention is that diagnostics and
+namespace.  Pending the addition of more direct language support, 
+typealiases will be used to bring them in from underscored names in 
+the `Swift` namespace.  The intention is that diagnostics and
 documentation will display the nested, non-underscored names.
 
 ```swift
