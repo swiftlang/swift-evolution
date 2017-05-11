@@ -3,7 +3,7 @@
 * Proposal: [SE-0163](0163-string-revision-1.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift), [Dave Abrahams](http://github.com/dabrahams/)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Accepted with revisions**
+* Status: **Active review (May 11...17)**
 * Revision: 2
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/7513547ddac66b06770a1fd620aad915d75987ff/proposals/0163-string-revision-1.md)
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170417/035919.html)
