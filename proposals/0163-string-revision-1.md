@@ -4,6 +4,8 @@
 * Authors: [Ben Cohen](https://github.com/airspeedswift), [Dave Abrahams](http://github.com/dabrahams/)
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Accepted with revisions**
+* Revision: 2
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/7513547ddac66b06770a1fd620aad915d75987ff/proposals/0163-string-revision-1.md)
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170417/035919.html)
 
 ## Introduction
@@ -17,9 +19,10 @@ Specifically:
  * Make `String` conform to `BidirectionalCollection`
  * Make `String` conform to `RangeReplaceableCollection` 
  * Create a `Substring` type for `String.SubSequence`
- * Create a `Unicode` protocol to allow for generic operations over both types.
+ * Create a `StringProtocol` protocol to allow for generic operations over both types.
  * Consolidate on a concise set of C interop methods.
  * Revise the transcoding infrastructure.
+ * Sink Unicode-specific functionality into a `Unicode` namespace.
 
 Other existing aspects of `String` remain unchanged for the purposes of this 
 proposal.
@@ -29,9 +32,12 @@ proposal.
 This proposal follows up on a number of recommendations found in the manifesto:
 
 `Collection` conformance was dropped from `String` in Swift 2. After
-reevaluation, the feeling is that the minor semantic discrepancies (mainly with
-`RangeReplaceableCollection`) are outweighed by the significant benefits of
-restoring these conformances. For more detail on the reasoning, see
+reevaluation, the feeling is that the minor discrepancies with
+required `RangeReplaceableCollection` semantics (the fact that some
+characters may merge when Strings are concatenated) are outweighed by
+the significant benefits of restoring these conformances. For more
+detail on the reasoning,
+see
 [here](https://github.com/apple/swift/blob/master/docs/StringManifesto.md#string-should-be-a-collection-of-characters-again)
 
 While it is not a collection, the Swift 3 string does have slicing operations.
@@ -60,47 +66,52 @@ be documented as only for short- to medium-term storage:
 > a substring may therefore prolong the lifetime of elements that are no longer
 > otherwise accessible, which can appear to be memory leakage.
 
-Aside from minor differences, such as having a `SubSequence` of `Self` and a
-larger size to describe the range of the subsequence, `Substring`
-will be near-identical from a user perspective.
+Aside from minor differences, such as having a `SubSequence` of `Self`
+and a larger size to describe the range of the subsequence,
+`Substring` will be near-identical from a user perspective.
 
-In order to be able to write extensions accross both `String` and `Substring`,
-a new `Unicode` protocol to which the two types will conform will be
-introduced. For the purposes of this proposal, `Unicode` will be defined as a
-protocol to be used whenver you would previously extend `String`. It should be
-possible to substitute `extension Unicode { ... }` in Swift 4 wherever
+In order to be able to write extensions accross both `String` and
+`Substring`, a new `StringProtocol` protocol to which the two types
+will conform will be introduced. For the purposes of this proposal,
+`StringProtocol` will be defined as a protocol to be used whenever you
+would previously extend `String`. It should be possible to substitute
+`extension StringProtocol { ... }` in Swift 4 wherever 
 `extension String { ... }` was written in Swift 3, with one exception: any
 passing of `self` into an API that takes a concrete `String` will need to be
 rewritten as `String(self)`. If `Self` is a `String` then this should
 effectively optimize to a no-op, whereas if `Self` is a `Substring` then this
 will force a copy, helping to avoid the "memory leak" problems described above.
 
-The exact nature of the protocol – such as which methods should be protocol
-requirements vs which can be implemented as protocol extensions, are considered
-implementation details and so not covered in this proposal.
+The exact nature of the protocol – such as which methods should be
+protocol requirements vs which can be implemented as protocol
+extensions, are considered implementation details and so not covered
+in this proposal.
 
-`Unicode` will conform to `BidirectionalCollection`.
-`RangeReplaceableCollection` conformance will be added directly onto the
-`String` and `Substring` types, as it is possible future `Unicode`-conforming
-types might not be range-replaceable (e.g. an immutable type that wraps 
-a `const char *`).
+`StringProtocol` will conform to `BidirectionalCollection`.
+`RangeReplaceableCollection` conformance will be added directly onto
+the `String` and `Substring` types, as it is possible future
+`StringProtocol`-conforming types might not be range-replaceable
+(e.g. an immutable type that wraps a `const char *`).
 
-The C string interop methods will be updated to those described
+The C string interop methods will be updated to a variant of those
+described
 [here](https://github.com/apple/swift/blob/master/docs/StringManifesto.md#c-string-interop):
-two `withCString` operations and two `init(cString:)` constructors, one each for
-UTF8 and for arbitrary encodings. The primary change is to remove
-"non-repairing" variants of construction from nul-terminated C strings. In both
-of the construction APIs, any invalid encoding sequence detected will have its
-longest valid prefix replaced by `U+FFFD`, the Unicode replacement character,
-per the Unicode specification. This covers the common case. The replacement is
-done physically in the underlying storage and the validity of the result is
-recorded in the String's encoding such that future accesses need not be slowed
-down by possible error repair separately. Construction that is aborted when
-encoding errors are detected can be accomplished using APIs on the encoding.
+two `withCString` operations and two `init(cString:)` constructors,
+one each for UTF8 and for arbitrary encodings. The primary change is
+to remove "non-repairing" variants of construction from nul-terminated
+C strings. In both of the construction APIs, any invalid encoding
+sequence detected will have its longest valid prefix replaced by
+`U+FFFD`, the Unicode replacement character, per the Unicode
+specification. This covers the common case. The replacement can be
+done physically in the underlying storage and the validity of the
+result can be recorded in the String's encoding such that future
+accesses need not be slowed down by possible error repair
+separately. Construction that is aborted when encoding errors are
+detected can be accomplished using APIs on the encoding.
 
 Additionally, an `init` that takes a collection of code units and an encoding 
 will allow for construction of a `String` from arbitrary collections – for example,
-an `UnsafeBuffer` containing a non-nul-terminated C string.
+an `UnsafeBufferPointer` containing a non-nul-terminated C string.
 
 The current transcoding support will be updated to improve usability and
 performance. The primary changes will be:
@@ -109,44 +120,112 @@ performance. The primary changes will be:
    to triangulate through an intermediate scalar value
  - to add the ability to transcode an input collection in reverse, allowing the
    different views on `String` to be made bi-directional
- - to have decoding take a collection rather than an iterator, and return an
-   index of its progress into the source, allowing that method to be static
+ - to ensure that the APIs can be 
+   used to create performant bidirectional decoded and transcoded
+   views of underlying code units.
+ - to replace the `UnicodeCodec` with a stateless `Unicode.Encoding`
+   protocol having associated `ForwardParser` and `ReverseParser`
+   types for decoding.
 
 The standard library currently lacks a `Latin1` codec, so a 
-`enum Latin1: UnicodeEncoding` type will be added.
+`enum Latin1: Unicode.Encoding` type will be added.
 
 ## Detailed design
+
+### The `Unicode` Namespace
+
+A `Unicode` “namespace” will be added for components related to
+low-level Unicode operations such as transcoding and grapheme
+breaking. In the absence of true submodules, `Unicode` will, for the
+time, be implemented as a caseless `enum`.  [The caseless `enum`
+technique is precedented by `CommandLine`, which vends the equivalent
+of `argc` and `argv` for command-line applications.]
+
+```swift
+enum Unicode {
+  enum ASCII : Unicode.Encoding { ... }
+  enum UTF8 : Unicode.Encoding { ... }
+  enum UTF16 : Unicode.Encoding { ... }
+  enum UTF32 : Unicode.Encoding { ... }
+  ...
+  enum ParseResult<T> { ... }
+  struct Scalar { ... }
+}
+```
+
+The names `UTF8`, `UTF16`, `UTF32`, and `Scalar` correspond
+to entities that exist in Swift 3.  For backward compatibility they will
+be exposed to Swift 3 programs with their legacy spellings:
+
+```swift
+@available(swift, obsoleted: 4.0, renamed: "Unicode.UTF8")
+public typealias UTF8 = Unicode.UTF8
+@available(swift, obsoleted: 4.0, renamed: "Unicode.UTF16")
+public typealias UTF16 = Unicode.UTF16
+@available(swift, obsoleted: 4.0, renamed: "Unicode.UTF32")
+public typealias UTF32 = Unicode.UTF32
+@available(swift, obsoleted: 4.0, renamed: "Unicode.Scalar")
+public typealias UnicodeScalar = Unicode.Scalar
+```
+
+Unicode-specific protocols will be presented as members of this
+namespace.  For the time being, typealiases will be used, since
+neither sub-modules (the preferred solution) nor nested protocols are
+currently supported.  The intention is that diagnostics and
+documentation will display the nested, non-underscored names.
+
+```swift
+protocol _UnicodeEncoding { ... }
+protocol _UnicodeParser { ... }
+extension Unicode {
+  typealias Encoding = _UnicodeEncoding
+  typealias Parser = _UnicodeParser
+}
+```
+
+`UnicodeCodec` will be updated to refine `Unicode.Encoding`, and
+deprecated for Swift 4.  Existing models of `UnicodeCodec` such as
+`UTF8` will inherit `Unicode.Encoding` conformance for Swift 3.
+
+As noted [below](#higher-level-unicode-processing) we anticipate
+adding many more Unicode-specific components to the `Unicode`
+namespace in the near future.
+
+### `String`, `Substring`, and `StringProtocol`
 
 The following additions will be made to the standard library:
 
 ```swift
-protocol Unicode: BidirectionalCollection {
+protocol StringProtocol : BidirectionalCollection {
   // Implementation detail as described above
 }
 
-extension String: Unicode, RangeReplaceableCollection {
+extension String : StringProtocol, RangeReplaceableCollection {
   typealias SubSequence = Substring
+  subscript(bounds: Range<String.Index>) -> Substring { 
+    ...
+  }
 }
 
-struct Substring: Unicode, RangeReplaceableCollection {
+struct Substring : StringProtocol, RangeReplaceableCollection {
   typealias SubSequence = Substring
   // near-identical API surface area to String
 }
 ```
 
-The subscript operations on `String` will be amended to return `Substring`:
+The slicing operations on `String` will be amended to return
+`Substring`:
 
 ```swift
 struct String {
-  subscript(bounds: Range<String.Index>) -> Substring { get }
-  subscript(bounds: ClosedRange<String.Index>) -> Substring { get }
+  subscript(bounds: Range<Index>) -> Substring { ... }
 }
 ```
 
-Note that properties or methods that due to their nature create new `String`
-storage (such as `lowercased()`) will _not_ change.
+Note that properties or methods that due to their nature create new
+`String` storage (such as `lowercased()`) will _not_ change.
 
-C string interop will be consolidated on the following methods:
+C string interopability will be consolidated on the following methods:
 
 ```swift
 extension String {
@@ -156,8 +235,10 @@ extension String {
   ///   the given `encoding`.
   /// - Parameter encoding: describes the encoding in which the code units
   ///   should be interpreted.
-  init<C: Collection, Encoding: UnicodeEncoding>(codeUnits: C, encoding: Encoding)
-    where C.Iterator.Element == Encodeding.CodeUnit
+  init<C: Collection, Encoding: Unicode.Encoding>(
+    decoding codeUnits: C, as encoding: Encoding.Type
+  )
+    where C.Iterator.Element == Encoding.CodeUnit
 
   /// Constructs a `String` having the same contents as `nulTerminatedUTF8`.
   ///
@@ -171,9 +252,9 @@ extension String {
   ///   the given `encoding`, ending just before the first zero code unit.
   /// - Parameter encoding: describes the encoding in which the code units
   ///   should be interpreted.
-  init<Encoding: UnicodeEncoding>(
-    cString nulTerminatedCodeUnits: UnsafePointer<Encoding.CodeUnit>,
-    encoding: Encoding)
+  init<Encoding: Unicode.Encoding>(
+    decodingCString nulTerminatedCodeUnits: UnsafePointer<Encoding.CodeUnit>,
+    as: Encoding.Type)
     
   /// Invokes the given closure on the contents of the string, represented as a
   /// pointer to a null-terminated sequence of UTF-8 code units.
@@ -182,103 +263,119 @@ extension String {
 
   /// Invokes the given closure on the contents of the string, represented as a
   /// pointer to a null-terminated sequence of code units in the given encoding.
-  func withCString<Result, Encoding: UnicodeEncoding>(encoding: Encoding,
-    _ body: (UnsafePointer<Encoding.CodeUnit>) throws -> Result) rethrows -> Result
+  func withCString<Result, Encoding: Unicode.Encoding>(
+    encodedAs: Encoding.Type,
+    _ body: (UnsafePointer<Encoding.CodeUnit>) throws -> Result
+  ) rethrows -> Result
 }
 ```
 
-Additionally, the current ability to pass a Swift `String` into C methods that
-take a C string will remain as-is.
+Additionally, the current ability to pass a Swift `String` directly
+into methods that take a C string (`UnsafePointer<CChar>`) will remain
+as-is.
 
-A new protocol, `UnicodeEncoding`, will be added to replace the current 
-`UnicodeCodec` protocol:
+### Low-level Unicode Processing
+
+A new protocol, `Unicode.Encoding`, will be added to replace the
+current `UnicodeCodec` protocol.
 
 ```swift
-public enum UnicodeParseResult<T, Index> {
-/// Indicates valid input was recognized.
-///
-/// `resumptionPoint` is the end of the parsed region
-case valid(T, resumptionPoint: Index)  // FIXME: should these be reordered?
-/// Indicates invalid input was recognized.
-///
-/// `resumptionPoint` is the next position at which to continue parsing after
-/// the invalid input is repaired.
-case error(resumptionPoint: Index)
+extension Unicode { typealias Encoding = _UnicodeEncoding }
 
-/// Indicates that there was no more input to consume.
-case emptyInput
-
-  /// If any input was consumed, the point from which to continue parsing.
-  var resumptionPoint: Index? {
-    switch self {
-    case .valid(_,let r): return r
-    case .error(let r): return r
-    case .emptyInput: return nil
-    }
-  }
-}
-
-/// An encoding for text with UnicodeScalar as a common currency type
-public protocol UnicodeEncoding {
-  /// The maximum number of code units in an encoded unicode scalar value
-  static var maxLengthOfEncodedScalar: Int { get }
+public protocol _UnicodeEncoding {
+  /// The basic unit of encoding
+  associatedtype CodeUnit : UnsignedInteger, FixedWidthInteger
   
-  /// A type that can represent a single UnicodeScalar as it is encoded in this
-  /// encoding.
-  associatedtype EncodedScalar : EncodedScalarProtocol
+  /// A valid scalar value as represented in this encoding
+  associatedtype EncodedScalar : BidirectionalCollection
+    where EncodedScalar.Iterator.Element == CodeUnit
 
-  /// Produces a scalar of this encoding if possible; returns `nil` otherwise.
-  static func encode<Scalar: EncodedScalarProtocol>(
-    _:Scalar) -> Self.EncodedScalar?
-  
-  /// Parse a single unicode scalar forward from `input`.
+  /// A unicode scalar value to be used when repairing
+  /// encoding/decoding errors, as represented in this encoding.
   ///
-  /// - Parameter knownCount: a number of code units known to exist in `input`.
-  ///   **Note:** passing a known compile-time constant is strongly advised,
-  ///   even if it's zero.
-  static func parseScalarForward<C: Collection>(
-    _ input: C, knownCount: Int /* = 0, via extension */
-  ) -> ParseResult<EncodedScalar, C.Index>
-  where C.Iterator.Element == EncodedScalar.Iterator.Element
+  /// If the Unicode replacement character U+FFFD is representable in this
+  /// encoding, `encodedReplacementCharacter` encodes that scalar value.
+  static var encodedReplacementCharacter : EncodedScalar { get }
 
-  /// Parse a single unicode scalar in reverse from `input`.
+  /// Converts from encoded to encoding-independent representation
+  static func decode(_ content: EncodedScalar) -> Unicode.Scalar
+
+  /// Converts from encoding-independent to encoded representation, returning
+  /// `nil` if the scalar can't be represented in this encoding.
+  static func encode(_ content: Unicode.Scalar) -> EncodedScalar?
+
+  /// Converts a scalar from another encoding's representation, returning
+  /// `nil` if the scalar can't be represented in this encoding.
   ///
-  /// - Parameter knownCount: a number of code units known to exist in `input`.
-  ///   **Note:** passing a known compile-time constant is strongly advised,
-  ///   even if it's zero.
-  static func parseScalarReverse<C: BidirectionalCollection>(
-    _ input: C, knownCount: Int /* = 0 , via extension */
-  ) -> ParseResult<EncodedScalar, C.Index>
-  where C.Iterator.Element == EncodedScalar.Iterator.Element
-}
+  /// A default implementation of this method will be provided 
+  /// automatically for any conforming type that does not implement one.
+  static func transcode<FromEncoding : UnicodeEncoding>(
+    _ content: FromEncoding.EncodedScalar, from _: FromEncoding.Type
+  ) -> EncodedScalar?
 
-/// Parsing multiple unicode scalar values
-extension UnicodeEncoding {
-  @discardableResult
-  public static func parseForward<C: Collection>(
-    _ input: C,
-    repairingIllFormedSequences makeRepairs: Bool = true,
-    into output: (EncodedScalar) throws->Void
-  ) rethrows -> (remainder: C.SubSequence, errorCount: Int)
-  
-  @discardableResult    
-  public static func parseReverse<C: BidirectionalCollection>(
-    _ input: C,
-    repairingIllFormedSequences makeRepairs: Bool = true,
-    into output: (EncodedScalar) throws->Void
-  ) rethrows -> (remainder: C.SubSequence, errorCount: Int)
-  where C.SubSequence : BidirectionalCollection,
-        C.SubSequence.SubSequence == C.SubSequence,
-        C.SubSequence.Iterator.Element == EncodedScalar.Iterator.Element
+  /// A type that can be used to parse `CodeUnits` into
+  /// `EncodedScalar`s.
+  associatedtype ForwardParser : Unicode.Parser
+    where ForwardParser.Encoding == Self
+    
+  /// A type that can be used to parse a reversed sequence of
+  /// `CodeUnits` into `EncodedScalar`s.
+  associatedtype ReverseParser : Unicode.Parser
+    where ReverseParser.Encoding == Self
 }
 ```
 
+Parsing `CodeUnits` into `EncodedScalar`s, in either direction, is
+done with models of `Unicode.Parser`:
 
-`UnicodeCodec` will be updated to refine `UnicodeEncoding`, and all
-existing codecs will conform to it.
+```swift
+extension Unicode {  typealias Parser = _UnicodeParser }
 
-Note, depending on whether this change lands before or after some of the
-generics features, generic `where` clauses may need to be added temporarily.
+/// Types that separate streams of code units into encoded Unicode
+/// scalar values.
+public protocol _UnicodeParser {
+  /// The encoding with which this parser is associated
+  associatedtype Encoding : Unicode.Encoding
+
+  /// Constructs an instance that can be used to begin parsing `CodeUnit`s at
+  /// any Unicode scalar boundary.
+  init()
+
+  /// Parses a single Unicode scalar value from `input`.
+  mutating func parseScalar<I : IteratorProtocol>(
+    from input: inout I
+  ) -> Unicode.ParseResult<Encoding.EncodedScalar>
+  where I.Element == Encoding.CodeUnit
+}
+
+extension Unicode { 
+  /// The result of attempting to parse a `T` from some input.
+  public enum ParseResult<T> {
+  /// A `T` was parsed successfully
+  case valid(T)
+  
+  /// The input was entirely consumed.
+  case emptyInput
+  
+  /// An encoding error was detected.
+  ///
+  /// `length` is the number of underlying code units consumed by this
+  /// error (when decoding, the length of the longest prefix that
+  /// could be recognized of a valid encoding sequence).
+  case error(length: Int)
+  }
+}
+```
+
+### Higher-Level Unicode Processing
+
+The Unicode processing APIs proposed here are intentionally extremely
+low-level.  We have proven that they are sufficient to implement
+higher-level constructs, but those designs are still baking and not
+yet ready for review.  We expect to propose generic `Iterator`,
+`Sequence`, and `Collection` views that expose transcoded or segmented
+views of arbitrary underlying storage, as separate components in the
+`Unicode` namespace.
 
 ## Source compatibility
 
@@ -329,10 +426,13 @@ be removed in a subsequent release. `UnicodeCodec` will be similarly deprecated.
 
 ## Effect on ABI stability
 
-As a fundamental currency type for Swift, it is essential that the `String`
-type (and its associated subsequence) is in a good long-term state before being
-locked down when Swift declares ABI stability. Shrinking the size of `String`
-to be 64 bits is an important part of this.
+As a fundamental currency type for Swift, it is essential that the
+`String` type (and its associated subsequence) is in a good long-term
+state before being locked down when Swift declares ABI stability.
+Shrinking the size of `String` to be 64 bits is an important part of
+the story.  As full ABI stablity is not planned for Swift 4, it is
+currently unclear when the transition to a 64-bit memory layout will
+occur.
 
 ## Effect on API resilience
 
@@ -349,13 +449,5 @@ This proposal does not yet introduce an implicit conversion from `Substring` to
 on the initial implementation. The intention is to make a preview toolchain
 available for feedback, including on whether this implicit conversion is
 necessary, prior to the release of Swift 4.
-
-Several of the types related to `String`, such as the encodings, would ideally
-reside inside a namespace rather than live at the top level of the standard
-library. The best namespace for this is probably `Unicode`, but this is also
-the name of the protocol. At some point if we gain the ability to nest enums
-and types inside protocols, they should be moved there. Putting them inside
-`String` or some other enum namespace is probably not worthwhile in the
-mean-time.
 
 
