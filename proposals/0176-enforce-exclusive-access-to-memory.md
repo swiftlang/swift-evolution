@@ -4,6 +4,8 @@
 * Authors: [John McCall](https://github.com/rjmccall)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Active review (May 2...May 8)**
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/7e6816c22a29b0ba9bdf63ff92b380f9e963860a/proposals/0176-enforce-exclusive-access-to-memory.md)
+* Previous Discussion: [Email Thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170501/036308.html)
 
 ## Introduction
 
@@ -545,17 +547,117 @@ class TreeNode {
 
 ### Closures
 
-Local variables which are captured in closures may sometimes require
-dynamic enforcement instead of static enforcement because the
-implementation cannot locally reason about when the closure will
-be called.  This is especially true when the closure is ``escaping``,
-but can apply even to non-escaping closures in certain circumstances.
+A closure (including both local function declarations and closure
+expressions, whether explicit or autoclosure) is either "escaping" or
+"non-escaping".  Currently, a closure is considered non-escaping
+only if it is:
+
+- a closure expression which is immediately caled,
+
+- a closure expression which is passed as a non-escaping function
+  argument, or
+
+- a local function which captures something that is not allowed
+  to escape, like an ``inout`` parameter.
+
+It is likely that this definition will be broadened over time.
+
+Local variables which are captured in escaping closures will
+generally require dynamic enforcement instead of static enforcement
+because the implementation cannot locally reason about when the
+closure will be called and thus when the variable will be accessed.
+Swift may be able to use static enforcement, but only as a best-effort
+improvement for certain patterns of access.
+
+Local variables which are only captured in non-escaping closures will
+always use static enforcement.  (In order to achieve this, we
+must impose a new restriction on recursive uses of non-escaping
+closures; see below.)  This guarantee aligns a number of related
+semantic and performance goals.  For example, a local variable which
+is not captured in an escaping closure does not need to be allocated
+on the heap; this guarantee therefore ensures that it will have
+roughly C-like performance.  This guarantee also ensures that only
+static enforcement is needed for ``inout`` parameters, which cannot
+be captured in escaping closures; this substantially simplifies
+the implementation model for capturing ``inout`` parameters.
+
+### Diagnosing dynamic enforcement violations statically
 
 In general, Swift is permitted to upgrade dynamic enforcement to
-static enforcement whenever it has sufficient information to do so.
-For example, if the compiler can prove that two accesses to a global
-variable will necessarily conflict, it may report that as an error
-statically.
+static enforcement when it can prove that two accesses either
+always or never conflict.  This is analogous to Swift's rules
+about integer overflow.
+
+For example, if Swift can prove that two accesses to a global
+variable will always conflict, then it can report that error
+statically, even though global variables use dynamic enforcement:
+
+```swift
+var global: Int
+swap(&global, &global) // Two overlapping modifications to 'global'
+```
+
+Swift is not required to prove that both accesses will actually
+be executed dynamically in order to report a violation statically.
+It is sufficient to prove that one of the accesses cannot ever
+be executed without causing a conflict.  For example, in the
+following example, Swift does not need to prove that ``mutate``
+actually calls its argument function:
+
+```swift
+// The inout access lasts for the duration of the call.
+global.mutate { return global + 1 }
+```
+
+When a closure is passed as a non-escaping function argument
+or captured in a closure that is passed as a non-escaping function
+argument, Swift may assume that any accesses made by the closure
+will be executed during the call, potentially conflicting with
+accesses that overlap the call.
+
+### Restrictions on recursive uses of non-escaping closures
+
+In order to achieve the goal of guaranteeing the use of static
+enforcement for variables that are captured only by non-escaping
+closures, we do need to impose an additional restriction on
+the use of such closures.  This rule is as follows:
+
+  A non-escaping closure ``A`` may not be recursively invoked
+  during the execution of a non-escaping closure ``B`` which
+  captures the same local variable or ``inout`` parameter unless:
+
+    - ``A`` is defined within ``B`` or
+
+    - ``A`` is a local function declaration which is referenced
+      directly by ``B``.
+
+This rule is sufficient to establish that the variables captured
+by ``B`` will not be interfered with unless ``B`` delegates
+to something which is locally known by ``B`` to have access to
+those variables.  This, together with the fact that the uses of
+``B`` itself can be statically analyzed by its defining function,
+is sufficient to allow static enforcement for the variables it
+captures.
+
+Because of the tight restrictions on how non-escaping closures
+can be used in Swift today, it's actually quite difficult to
+violate this rule.  The following user-level restrictions are
+sufficient:
+
+  - A function may not call a non-escaping function parameter
+    passing a non-escaping function parameter as an argument.
+
+    For the purposes of this rule, a closure which captures a
+    non-escaping function parameter is treated as if it were
+    that parameter.
+
+  - Programmers using ``withoutActuallyEscaping`` should take
+    care not to allow the result to be recursively invoked.
+
+This restriction is a conservative over-approximation.  Code
+that needs to work around it can declare the function parameter
+``@escaping`` or use ``withoutActuallyEscaping``, assuming
+that the closures do not violate the broader rule above.
 
 ## Source compatibility
 
