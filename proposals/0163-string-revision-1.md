@@ -31,9 +31,12 @@ proposal.
 This proposal follows up on a number of recommendations found in the manifesto:
 
 `Collection` conformance was dropped from `String` in Swift 2. After
-reevaluation, the feeling is that the minor semantic discrepancies (mainly with
-`RangeReplaceableCollection`) are outweighed by the significant benefits of
-restoring these conformances. For more detail on the reasoning, see
+reevaluation, the feeling is that the minor discrepancies with
+required `RangeReplaceableCollection` semantics (the fact that some
+characters may merge when Strings are concatenated) are outweighed by
+the significant benefits of restoring these conformances. For more
+detail on the reasoning,
+see
 [here](https://github.com/apple/swift/blob/master/docs/StringManifesto.md#string-should-be-a-collection-of-characters-again)
 
 While it is not a collection, the Swift 3 string does have slicing operations.
@@ -130,27 +133,45 @@ The standard library currently lacks a `Latin1` codec, so a
 
 ### The `Unicode` Namespace
 
-A `Unicode` “namespace,” implemented as a caseless `enum`, will be
-added, for components related to low-level Unicode operations such as
-transcoding and grapheme breaking.  [The caseless `enum` technique is
-precedented by `CommandLine`, which vends the equivalent of `argc` and
-`argv` for command-line applications.]
+A `Unicode` “namespace” will be added for components related to
+low-level Unicode operations such as transcoding and grapheme
+breaking. In the absence of true submodules, `Unicode` will, for the
+time, be implemented as a caseless `enum`.  [The caseless `enum`
+technique is precedented by `CommandLine`, which vends the equivalent
+of `argc` and `argv` for command-line applications.]
 
 ```swift
 enum Unicode {
   enum ASCII : Unicode.Encoding { ... }
   enum UTF8 : Unicode.Encoding { ... }
   enum UTF16 : Unicode.Encoding { ... }
+  enum UTF32 : Unicode.Encoding { ... }
   ...
   enum ParseResult<T> { ... }
+  struct Scalar { ... }
 }
 ```
 
+The names `UTF8`, `UTF16`, `UTF32`, and `Scalar` correspond
+to entities that exist in Swift 3.  For backward compatibility they will
+be exposed to Swift 3 programs with their legacy spellings:
+
+```swift
+@available(swift, obsoleted: 4.0, renamed: "Unicode.UTF8")
+public typealias UTF8 = Unicode.UTF8
+@available(swift, obsoleted: 4.0, renamed: "Unicode.UTF16")
+public typealias UTF16 = Unicode.UTF16
+@available(swift, obsoleted: 4.0, renamed: "Unicode.UTF32")
+public typealias UTF32 = Unicode.UTF32
+@available(swift, obsoleted: 4.0, renamed: "Unicode.Scalar")
+public typealias UnicodeScalar = Unicode.Scalar
+```
+
 Unicode-specific protocols will be presented as members of this
-namespace.  For the time being, typealiases will be used since nested
-protocols are not currently supported.  The intention is that
-diagnostics and documentation will display the nested, non-underscored
-names.
+namespace.  For the time being, typealiases will be used, since
+neither sub-modules (the preferred solution) nor nested protocols are
+currently supported.  The intention is that diagnostics and
+documentation will display the nested, non-underscored names.
 
 ```swift
 protocol _UnicodeEncoding { ... }
@@ -161,37 +182,31 @@ extension Unicode {
 }
 ```
 
-Because encodings such as `ASCII` and `UTF8` are unmistakable and
-relatively commonly used, typealiases will expose them as top-level
-names in the `Swift` module:
+`UnicodeCodec` will be updated to refine `Unicode.Encoding`, and
+deprecated for Swift 4.  Existing models of `UnicodeCodec` such as
+`UTF8` will inherit `Unicode.Encoding` conformance for Swift 3.
 
-```swift
-typealias ASCII = Unicode.ASCII
-typealias UTF8 = Unicode.UTF8
-typealias UTF16 = Unicode.UTF16
-typealias UTF32 = Unicode.UTF32
-```
-
-There are no plans to sink `UnicodeScalar` into the `Unicode`
-namespace at this time.
+As noted [below](#higher-level-unicode-processing) we anticipate
+adding many more Unicode-specific components to the `Unicode`
+namespace in the near future.
 
 ### `String`, `Substring`, and `StringProtocol`
 
 The following additions will be made to the standard library:
 
 ```swift
-protocol StringProtocol: BidirectionalCollection {
+protocol StringProtocol : BidirectionalCollection {
   // Implementation detail as described above
 }
 
-extension String: StringProtocol, RangeReplaceableCollection {
+extension String : StringProtocol, RangeReplaceableCollection {
   typealias SubSequence = Substring
   subscript(bounds: Range<String.Index>) -> Substring { 
     ...
   }
 }
 
-struct Substring: StringProtocol, RangeReplaceableCollection {
+struct Substring : StringProtocol, RangeReplaceableCollection {
   typealias SubSequence = Substring
   // near-identical API surface area to String
 }
@@ -254,15 +269,18 @@ extension String {
 }
 ```
 
-Additionally, the current ability to pass a Swift `String` into C methods that
-take a C string will remain as-is.
+Additionally, the current ability to pass a Swift `String` directly
+into methods that take a C string (`UnsafePointer<CChar>`) will remain
+as-is.
 
 ### Low-level Unicode Processing
 
 A new protocol, `Unicode.Encoding`, will be added to replace the
-current `UnicodeCodec` protocol.  
+current `UnicodeCodec` protocol.
 
 ```swift
+extension Unicode { typealias Encoding = _UnicodeEncoding }
+
 public protocol _UnicodeEncoding {
   /// The basic unit of encoding
   associatedtype CodeUnit : UnsignedInteger, FixedWidthInteger
@@ -279,11 +297,11 @@ public protocol _UnicodeEncoding {
   static var encodedReplacementCharacter : EncodedScalar { get }
 
   /// Converts from encoded to encoding-independent representation
-  static func decode(_ content: EncodedScalar) -> UnicodeScalar
+  static func decode(_ content: EncodedScalar) -> Unicode.Scalar
 
   /// Converts from encoding-independent to encoded representation, returning
   /// `nil` if the scalar can't be represented in this encoding.
-  static func encode(_ content: UnicodeScalar) -> EncodedScalar?
+  static func encode(_ content: Unicode.Scalar) -> EncodedScalar?
 
   /// Converts a scalar from another encoding's representation, returning
   /// `nil` if the scalar can't be represented in this encoding.
@@ -304,13 +322,14 @@ public protocol _UnicodeEncoding {
   associatedtype ReverseParser : Unicode.Parser
     where ReverseParser.Encoding == Self
 }
-extension Unicode { typealias Encoding = _UnicodeEncoding }
 ```
 
 Parsing `CodeUnits` into `EncodedScalar`s, in either direction, is
 done with models of `Unicode.Parser`:
 
 ```swift
+extension Unicode {  typealias Parser = _UnicodeParser }
+
 /// Types that separate streams of code units into encoded Unicode
 /// scalar values.
 public protocol _UnicodeParser {
@@ -329,8 +348,6 @@ public protocol _UnicodeParser {
 }
 
 extension Unicode { 
-  typealias Parser = _UnicodeParser
-
   /// The result of attempting to parse a `T` from some input.
   public enum ParseResult<T> {
   /// A `T` was parsed successfully
@@ -342,8 +359,8 @@ extension Unicode {
   /// An encoding error was detected.
   ///
   /// `length` is the number of underlying code units consumed by this
-  /// error (the length of the longest prefix of a valid encoding
-  /// sequence that could be recognized).
+  /// error (when decoding, the length of the longest prefix that
+  /// could be recognized of a valid encoding sequence).
   case error(length: Int)
   }
 }
@@ -358,13 +375,6 @@ yet ready for review.  We expect to propose generic `Iterator`,
 `Sequence`, and `Collection` views that expose transcoded or segmented
 views of arbitrary underlying storage, as separate components in the
 `Unicode` namespace.
-
-
-### Backward Compatibility
-
-`UnicodeCodec` will be updated to refine `Unicode.Encoding`, and
-deprecated for Swift 4.  Existing models of `UnicodeCodec` such as
-`UTF8` will inherit `Unicode.Encoding` conformance for Swift 3.
 
 ## Source compatibility
 
@@ -415,10 +425,13 @@ be removed in a subsequent release. `UnicodeCodec` will be similarly deprecated.
 
 ## Effect on ABI stability
 
-As a fundamental currency type for Swift, it is essential that the `String`
-type (and its associated subsequence) is in a good long-term state before being
-locked down when Swift declares ABI stability. Shrinking the size of `String`
-to be 64 bits is an important part of this.
+As a fundamental currency type for Swift, it is essential that the
+`String` type (and its associated subsequence) is in a good long-term
+state before being locked down when Swift declares ABI stability.
+Shrinking the size of `String` to be 64 bits is an important part of
+the story.  As full ABI stablity is not planned for Swift 4, it is
+currently unclear when the transition to a 64-bit memory layout will
+occur.
 
 ## Effect on API resilience
 
