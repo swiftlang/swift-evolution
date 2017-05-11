@@ -88,9 +88,9 @@ for var i = 0 ; i < 10 ; i++ {
 and 
 
 ```swift
-var array = [10,20,30,40,50]
-for(var i=0 ; i < array.count ;i++){
-    println("array[i] \(array[i])")
+let array = [10, 20, 30, 40, 50]
+for var i = 0 ; i < array.count ; i++ {
+    print("array[\(i)] \(array[i])")
 }
 ```
 
