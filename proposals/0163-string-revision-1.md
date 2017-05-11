@@ -136,8 +136,8 @@ The standard library currently lacks a `Latin1` codec, so a
 
 A `Unicode` “namespace” will be added for components related to
 low-level Unicode operations such as transcoding and grapheme
-breaking. In the absence of true submodules, `Unicode` will, for the
-time, be implemented as a caseless `enum`.  [The caseless `enum`
+breaking. Absent more direct language support, `Unicode` will, for the
+time being, be implemented as a caseless `enum`.  [The caseless `enum`
 technique is precedented by `CommandLine`, which vends the equivalent
 of `argc` and `argv` for command-line applications.]
 
