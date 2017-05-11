@@ -1,9 +1,10 @@
 # Change `filter` to return an associated type
 
 * Proposal: [SE-0174](0174-filter-range-replaceable.md)
-* Authors: [Ben Cohen](https://github.com/airspeedswift)
+* Author: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted** ([Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2017-May/000374.html))
+* Status: **Accepted**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2017-May/000374.html)
 
 ## Introduction
 

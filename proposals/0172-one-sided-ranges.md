@@ -2,9 +2,9 @@
 
 * Proposal: [SE-0172](0172-one-sided-ranges.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift), [Dave Abrahams](https://github.com/dabrahams), [Brent Royal-Gordon](https://github.com/brentdax)
-* Review Manager: [Doug Gregor](https://github/com/DougGregor)
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 4)** 
-* Decision Notes: ([Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170424/036125.html))
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170424/036125.html)
 
 ## Introduction
 
@@ -23,7 +23,7 @@ For example (assuming `String` is once more a `Collection`):
 
 ```swift
 let s = "Hello, World!"
-let i = s.index(where: ",")
+let i = s.index(of: ",")!
 let greeting = s[s.startIndex..<i]
 ```
 
