@@ -1,9 +1,9 @@
 # Add `unicodeScalars` property to `Character`
 
-* Proposal: [SE-NNNN](NNNN-character-unicode-view.md)
+* Proposal: [SE-0178](0178-character-unicode-view.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Ted Kremenek](https://github.com/tkremenek)
+* Status: **Active review (May 12...17)**
 
 ## Introduction
 
