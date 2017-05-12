@@ -7,7 +7,7 @@
 
 ## Introduction
 
-This proposal adds a `unicodeScalar` view to `Character`, similar to that on `String`.
+This proposal adds a `unicodeScalars` view to `Character`, similar to that on `String`.
 
 ## Motivation
 
@@ -15,7 +15,7 @@ The `Character` element type of `String` is currently a black box that provides
 little functionality besides comparison, literal construction, and to be used
 as an argument to `String.init`.
 
-Many operations on `String` could be neatly/readbily implemented as operations
+Many operations on `String` could be neatly/readably implemented as operations
 on each character in the string, if `Character` exposed its scalars more
 directly. Many useful things can be determined by examining the scalars in a
 grapheme (for example is this an ASCII character?).
@@ -36,7 +36,7 @@ s.split { $0.unicodeScalars.contains(where: ws.contains) }
 
 ## Proposed solution
 
-Add a `unicodeScalars` property to `Character`, presending a lazy view of the
+Add a `unicodeScalars` property to `Character`, presenting a lazy view of the
 scalars in the character, along similar lines to the one on `String`.
 
 Unlike the view on `String`, this will _not_ be a mutable view – it will be
@@ -53,12 +53,13 @@ Add the following nested type to `Character`:
 extension Character {
   public struct UnicodeScalarView : BidirectionalCollection {
     public struct Index
-    public var startIndex: Index
-    public var endIndex: Index
+    public var startIndex: Index { get }
+    public var endIndex: Index { get }
     public func index(after i: Index) -> Index
-    public func index(before i: Index)
+    public func index(before i: Index) -> Index
     public subscript(i: Index) -> UnicodeScalar
   }
+  public var unicodeScalars: UnicodeScalarView { get }
 }
 ```
 
@@ -85,6 +86,6 @@ Purely additive, so no impact.
 Adding other views, such as `utf8` or `utf16`, was considered but not deemed useful
 enough compared to using these operations on `String` instead.
 
-In future, this feature could be used to implement convenience methods such as
+In the future, this feature could be used to implement convenience methods such as
 `isASCII` on `Character`. This could be done additively, given this building block,
 and is outside the scope of this initial proposal.
