@@ -562,24 +562,30 @@ only if it is:
 
 It is likely that this definition will be broadened over time.
 
-Local variables which are captured in escaping closures will
-generally require dynamic enforcement instead of static enforcement
-because the implementation cannot locally reason about when the
-closure will be called and thus when the variable will be accessed.
-Swift may be able to use static enforcement, but only as a best-effort
-improvement for certain patterns of access.
+A variable is said to be escaping if it is captured in an escaping
+closure; otherwise, it is non-escaping.
 
-Local variables which are only captured in non-escaping closures will
-always use static enforcement.  (In order to achieve this, we
-must impose a new restriction on recursive uses of non-escaping
-closures; see below.)  This guarantee aligns a number of related
-semantic and performance goals.  For example, a local variable which
-is not captured in an escaping closure does not need to be allocated
-on the heap; this guarantee therefore ensures that it will have
-roughly C-like performance.  This guarantee also ensures that only
-static enforcement is needed for ``inout`` parameters, which cannot
-be captured in escaping closures; this substantially simplifies
-the implementation model for capturing ``inout`` parameters.
+Escaping variables generally require dynamic enforcement instead of
+static enforcement.  This is because Swift cannot reason about when
+an escaping closure will be called and thus when the variable will
+be accessed.  There are some circumstances where static enforcement
+may still be allowed, for example when Swift can reason about how
+the variable will be used after it is escaped, but this is only
+possible as a best-effort improvement for special cases, not as a
+general rule.
+
+In contrast, non-escaping variables can always use static enforcement.
+(In order to achieve this, we must impose a new restriction on
+recursive uses of non-escaping closures; see below.)  This guarantee
+aligns a number of related semantic and performance goals.  For
+example, a non-escaping variable does not need to be allocated
+on the heap; by also promising to only use static enforcement for
+the variable, we are essentially able to guarantee that the variable
+will have C-like performance, which can be important for some kinds
+of program.  This guarantee also ensures that only static enforcement
+is needed for ``inout`` parameters, which cannot be captured in
+escaping closures; this substantially simplifies the implementation
+model for capturing ``inout`` parameters.
 
 ### Diagnosing dynamic enforcement violations statically
 
@@ -631,33 +637,86 @@ the use of such closures.  This rule is as follows:
     - ``A`` is a local function declaration which is referenced
       directly by ``B``.
 
-This rule is sufficient to establish that the variables captured
-by ``B`` will not be interfered with unless ``B`` delegates
-to something which is locally known by ``B`` to have access to
-those variables.  This, together with the fact that the uses of
-``B`` itself can be statically analyzed by its defining function,
-is sufficient to allow static enforcement for the variables it
-captures.
+For clarity, we will call this rule the Non-Escaping Recursion
+Restriction, or NRR.  The NRR is sufficient to prove that
+non-escaping variables captured by ``B`` will not be interfered
+with unless ``B`` delegates to something which is locally known by
+``B`` to have access to those variables.  This, together with the
+fact that the uses of ``B`` itself can be statically analyzed by
+its defining function, is sufficient to allow static enforcement
+for the non-escaping variables it captures.  (It also enables some
+powerful analyses of captured variables within non-escaping
+closures; we do not need to get into that here.)
 
 Because of the tight restrictions on how non-escaping closures
 can be used in Swift today, it's actually quite difficult to
-violate this rule.  The following user-level restrictions are
+violate the NRR.  The following user-level restrictions are
 sufficient:
 
   - A function may not call a non-escaping function parameter
     passing a non-escaping function parameter as an argument.
 
-    For the purposes of this rule, a closure which captures a
-    non-escaping function parameter is treated as if it were
-    that parameter.
+    For the purposes of this rule, a closure which captures
+    a non-escaping function parameter is treated the same as
+    the parameter.
+
+    We will call this rule the Non-Escaping Parameter Call
+    Restriction, or NPCR.
 
   - Programmers using ``withoutActuallyEscaping`` should take
     care not to allow the result to be recursively invoked.
 
-This restriction is a conservative over-approximation.  Code
-that needs to work around it can declare the function parameter
-``@escaping`` or use ``withoutActuallyEscaping``, assuming
-that the closures do not violate the broader rule above.
+The NPCR is a conservative over-approximation: that is, there
+is code which does not violate the NRR which will be considered
+ill-formed under the NPCR.  This is unfortunate but inevitable.
+
+Here is an example of the sort of code that will be disallowed
+under the NPCR:
+
+```swift
+func recurse(fn: (() -> ()) -> ()) {
+  // Invoke the closure, passing a closure which, if invoked,
+  // will invoke the closure again.
+  fn { fn { } }
+}
+
+func apply<T>(argProvider: () -> T, fn: (() -> T) -> T) {
+  // Pass the first argument function to the second.
+  fn(argProvider)
+}
+```
+
+Note that it's quite easy to come up with ways to use these
+functions that wouldn't violate the NRR.  For example, if
+either argument to ``apply`` is not a closure, the call
+cannot possibly violate the NRR.  Nonetheless, we feel that
+the NPCR is a reasonable restriction:
+
+- Functions like ``recurse`` that apply a function to itself are
+  pretty much just of theoretical interest.  Recursion is an
+  important programming tool, but nobody writes it like this
+  because it's just unnecessarily more difficult to reason about.
+
+- Functions like ``apply`` that take two closures are not uncommon,
+  but they're likely to either invoke the closures sequentially,
+  which would not violate the NPCR, or else be some sort of
+  higher-order combinator, which would require the closures to be
+  ``@escaping`` and thus also not violate the NPCR.
+
+Note that passing two non-escaping functions as arguments to the
+same call does not violate the NPCR.  This is because the NPCR
+will be enforced, recursively, in the callee.  (Imported C
+functions which take non-escaping block parameters can, of
+course, easily violate the NPCR.  They can also easily allow
+the block to escape.  We do not believe there are any existing
+functions or methods on our target platforms that directly
+violate the NPCR.)
+
+In general, programmers who find the NPCR an unnecessarily
+overbearing restriction can simply declare their function parameter
+to be ``@escaping`` or, if they are certain that their code will
+not violate the NRR, use ``withoutActuallyEscaping`` to disable
+the NPCR check.
 
 ## Source compatibility
 
