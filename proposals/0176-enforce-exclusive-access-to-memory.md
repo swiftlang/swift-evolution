@@ -552,7 +552,7 @@ expressions, whether explicit or autoclosure) is either "escaping" or
 "non-escaping".  Currently, a closure is considered non-escaping
 only if it is:
 
-- a closure expression which is immediately caled,
+- a closure expression which is immediately called,
 
 - a closure expression which is passed as a non-escaping function
   argument, or
