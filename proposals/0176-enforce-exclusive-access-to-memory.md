@@ -628,14 +628,14 @@ enforcement for variables that are captured only by non-escaping
 closures, we do need to impose an additional restriction on
 the use of such closures.  This rule is as follows:
 
-  A non-escaping closure ``A`` may not be recursively invoked
-  during the execution of a non-escaping closure ``B`` which
-  captures the same local variable or ``inout`` parameter unless:
-
-    - ``A`` is defined within ``B`` or
-
-    - ``A`` is a local function declaration which is referenced
-      directly by ``B``.
+> A non-escaping closure ``A`` may not be recursively invoked
+> during the execution of a non-escaping closure ``B`` which
+> captures the same local variable or ``inout`` parameter unless:
+>
+> - ``A`` is defined within ``B`` or
+>
+> - ``A`` is a local function declaration which is referenced
+>   directly by ``B``.
 
 For clarity, we will call this rule the Non-Escaping Recursion
 Restriction, or NRR.  The NRR is sufficient to prove that
@@ -649,22 +649,22 @@ powerful analyses of captured variables within non-escaping
 closures; we do not need to get into that here.)
 
 Because of the tight restrictions on how non-escaping closures
-can be used in Swift today, it's actually quite difficult to
+can be used in Swift today, it's already quite difficult to
 violate the NRR.  The following user-level restrictions are
-sufficient:
+sufficient to ensure that the NRR is obeyed:
 
-  - A function may not call a non-escaping function parameter
-    passing a non-escaping function parameter as an argument.
+- A function may not call a non-escaping function parameter
+  passing a non-escaping function parameter as an argument.
 
-    For the purposes of this rule, a closure which captures
-    a non-escaping function parameter is treated the same as
-    the parameter.
+  For the purposes of this rule, a closure which captures
+  a non-escaping function parameter is treated the same as
+  the parameter.
 
-    We will call this rule the Non-Escaping Parameter Call
-    Restriction, or NPCR.
+  We will call this rule the Non-Escaping Parameter Call
+  Restriction, or NPCR.
 
-  - Programmers using ``withoutActuallyEscaping`` should take
-    care not to allow the result to be recursively invoked.
+- Programmers using ``withoutActuallyEscaping`` should take
+  care not to allow the result to be recursively invoked.
 
 The NPCR is a conservative over-approximation: that is, there
 is code which does not violate the NRR which will be considered
