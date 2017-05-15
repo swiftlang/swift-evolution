@@ -30,7 +30,7 @@ The swift `run` command would be defined as:
 $ swift run --help
 OVERVIEW: Build and run executable
 
-USAGE: swift run [options] [executable] [-- arguments]
+USAGE: swift run [options] [executable] [--] [arguments]
 
 OPTIONS:
   --build-path            Specify build/cache directory [default: ./.build]
@@ -51,7 +51,15 @@ If needed, the command will build the product before running it. As a result, it
 
 After the options, the command optionally takes the name of an executable product defined in the `Package.swift` manifest and introduced in [SE-0146](0146-package-manager-product-definitions.md). If called without an executable and the manifest defines one and only one executable product, it will default to running that one. In any other case, the command fails.
 
-The executable can be called with arguments by prefixing them with a `--` to separate them from the executable name.
+All other arguments are passed as-is to the executable. When passing arguments to an implicit executable, the `--` argument should prefix the executable's arguments. For example:
+
+```bash
+$ swift run # .build/debug/exe
+$ swift run exe # .build/debug/exe
+$ swift run exe arg1 arg2 # .build/debug/exe arg1 arg2
+$ swift run -- arg1 arg2 # .build/debug/exe arg1 arg2
+$ swift run arg1 arg2 # error: could not find product executable named arg1
+```
 
 ## Alternatives considered
 
