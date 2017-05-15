@@ -1,9 +1,9 @@
 # Swift `run` Command
 
-* Proposal: [SE-XXXX](XXXX-swift-run-command.md)
+* Proposal: [SE-0179](0179-swift-run-command.md)
 * Authors: [David Hart](http://github.com/hartbit/)
-* Review Manager: TBD
-* Status: TBD
+* Review Manager: [Daniel Dunbar](https://github.com/ddunbar)
+* Status: **Active review (May 15...24)**
 
 ## Introduction
 
@@ -63,4 +63,4 @@ $ swift run arg1 arg2 # error: could not find product executable named arg1
 
 ## Alternatives considered
 
-One alternative to the Swift 4 change of build folder would be for the Swift Package Manager to create and update a symlink at `.build/debug` and `.build/release` that point to the latest build folder for that configuration. Although that should probably be done to retain backward-compatibility with tools that depended on the build location, it does not completely invalid the usefulness of the `run` command.
+One alternative to the Swift 4 change of build folder would be for the Swift Package Manager to create and update a symlink at `.build/debug` and `.build/release` that point to the latest build folder for that configuration. Although that should probably be done to retain backward-compatibility with tools that depended on the build location, it does not completely invalidate the usefulness of the `run` command.
