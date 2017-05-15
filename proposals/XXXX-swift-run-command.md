@@ -1,0 +1,69 @@
+# Swift `run` Command
+
+* Proposal: [SE-XXXX](XXXX-swift-run-command.md)
+* Authors: [David Hart](http://github.com/hartbit/)
+* Review Manager: TBD
+* Status: TBD
+
+## Introduction
+
+The proposal introduces a new `swift run` command to build and run an executable defined in the current package.
+
+## Motivation
+
+To run a package's executable product, one must first build it and then execute it from the build folder:
+
+```bash
+$ swift build
+$ .build/debug/myexecutable
+```
+  
+In Swift 4, the Swift Package Manager will build to a different path, containing a platform sub-folder (`.build/macosx-x86_64/debug` for mac and `.build/linux-x86_64/debug` for linux), making it more cumbersome to run the executable from the command line.
+  
+To improve the development workflow, the proposal suggest introducing a new first-level `swift run` command that will build if necessary and then run an executable defined in the `Package.swift` manifest, replacing the above steps into just one.
+
+## Proposed solution
+
+The swift `run` command would be defined as:
+
+```bash
+$ swift run --help
+OVERVIEW: Build and run executable
+
+USAGE: swift run [options] [executable] [-- arguments]
+
+OPTIONS:
+  --build-path            Specify build/cache directory [default: ./.build]
+  --chdir, -C             Change working directory before any other operation
+  --color                 Specify color mode (auto|always|never) [default: auto]
+  --configuration, -c     Build with configuration (debug|release) [default: debug]
+  --enable-prefetching    Enable prefetching in resolver
+  --skip-build            Skip building the executable product
+  --verbose, -v           Increase verbosity of informational output
+  -Xcc                    Pass flag through to all C compiler invocations
+  -Xlinker                Pass flag through to all linker invocations
+  -Xswiftc                Pass flag through to all Swift compiler invocations
+  --help                  Display available options
+```
+
+If needed, the command will build the product before running it. Therefore, as for the `swift test` command, it can be passed any options `swift build` accepts. As for `swift test`, it also accepts an extra `--skip-build` option.
+
+After the options, the command optionally takes the name of an executable product defined in the `Package.swift` manifest and introduced in [SE-0146](0146-package-manager-product-definitions.md). If called without an executable and the manifest defines one and only one executable product, it will default to running that one. In any other case, the command fails.
+
+The executable can be called with arguments by prefixing them with a `--` to separate them from the executable name.
+
+## Source compatibility
+
+This proposal has no effect on source compatibility.
+
+## Effect on ABI stability
+
+This proposal has no effect on ABI stability.
+
+## Effect on API resilience
+
+This proposal has no effect on API resilience.
+
+## Alternatives considered
+
+One alternative to the Swift 4 change of build folder would be for the Swift Package Manager to create and update a symlink at `.build/debug` and `.build/release` that point to the latest build folder for that configuration. Although that should probably be done to retain backward-compatibility with tools that depended on the build location, it does not completely invalid the usefulness of the `run` command.
