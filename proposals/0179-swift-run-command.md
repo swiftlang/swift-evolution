@@ -20,7 +20,7 @@ $ .build/debug/myexecutable
   
 In Swift 4, the Swift Package Manager will build to a different path, containing a platform sub-folder (`.build/macosx-x86_64/debug` for mac and `.build/linux-x86_64/debug` for linux), making it more cumbersome to run the executable from the command line.
   
-To improve the development workflow, the proposal suggest introducing a new first-level `swift run` command that will build if necessary and then run an executable defined in the `Package.swift` manifest, replacing the above steps into just one.
+To improve the development workflow, the proposal suggests introducing a new first-level `swift run` command that will build if necessary and then run an executable defined in the `Package.swift` manifest, replacing the above steps into just one.
 
 ## Proposed solution
 
