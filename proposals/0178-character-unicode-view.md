@@ -3,7 +3,7 @@
 * Proposal: [SE-0178](0178-character-unicode-view.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
-* Status: **Active review (May 12...17)**
+* Status: **Implemented (Swift 4)**
 
 ## Introduction
 
