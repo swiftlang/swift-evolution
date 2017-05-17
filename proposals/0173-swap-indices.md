@@ -72,7 +72,7 @@ Add the following method to the standard library:
 
 ```swift
 protocol MutableCollection {
-  /// Exchange the values at indices `i` and `i`.
+  /// Exchange the values at indices `i` and `j`.
   ///
   /// Has no effect when `i` and `j` are equal.
   public mutating func swapAt(_ i: Index, _ j: Index)
