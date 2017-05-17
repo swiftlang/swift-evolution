@@ -1,9 +1,11 @@
 # Add `unicodeScalars` property to `Character`
 
 * Proposal: [SE-0178](0178-character-unicode-view.md)
-* Authors: [Ben Cohen](https://github.com/airspeedswift)
+* Author: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Status: **Implemented (Swift 4)**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170515/036714.html)
+* Pull Request: [apple/swift#9675](https://github.com/apple/swift/pull/9675)
 
 ## Introduction
 
