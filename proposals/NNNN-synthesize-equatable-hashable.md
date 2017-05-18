@@ -111,9 +111,7 @@ implemented.
 ### Requesting synthesis is opt-in
 
 Users must _opt-in_ to automatic synthesis by declaring their type as
-`Equatable` or `Hashable` without implementing any of their requirements. This
-conformance must be part of the _original type declaration_; conformance in an
-extension does not cause synthesis to occur.
+`Equatable` or `Hashable` without implementing any of their requirements.
 
 Any type that declares such conformance and satisfies the conditions below
 will cause the compiler to synthesize an implementation of `==`/`hashValue`
