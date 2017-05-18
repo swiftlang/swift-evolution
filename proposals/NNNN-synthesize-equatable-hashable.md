@@ -147,6 +147,24 @@ under this proposal, changing this existing behavior would be source-breaking.
 The question of whether such `enum`s should be required to opt-in as well can
 be revisited at a later date if so desired.
 
+### Location of synthesized conformances
+
+Requirements will be synthesized for qualifying protocol conformances that are
+added anywhere that such a conformance is valid: on the type declaration itself
+or in an extension&mdash;either in the same module or a different module.
+
+During the discussion of this feature, concerns were raised about whether
+requirements should be derived for conformances added in extensions. However,
+synthesis via extensions falls out naturally from the implementation and
+forbidding them would involve additional work. Furthermore, `Encodable` and
+`Decodable` have already set a precedent that allows such derived conformances
+to be added in extensions, both intra- and inter-module.
+
+Therefore, the implementation for `Equatable` and `Hashable` has chosen to stay
+as close as possible to `Encodable`/`Decodable` for consistency. If issues arise
+regarding conformances in extensions (especially those outside the declaration's
+module), they should be addressed uniformly for all derived conformances.
+
 ### Overriding synthesized conformances
 
 Any user-provided implementations of `==` or `hashValue` will override the
@@ -228,13 +246,14 @@ the hash values of the fields as its terms, in definition order. If the `struct`
 has no stored properties, this property evaluates to a fixed value not specified
 here.
 
-<sup>†</sup> We intentionally leave the exact definition of the hash function
-unspecified here. A multiplicative hash function with good distribution is the
-likely candidate, but we do not rule out other possibilities. Users should not
-depend on the nature of the generated implementation or rely on particular
-outputs; we reserve the right to change it in the future.
+<sup>†</sup> The choice of hash function is left as an implementation detail,
+not a fixed part of the design; as such, users should not depend on specific
+characteristics of its behavior. The most likely implementation would call the
+standard library's `_mixInt` function on each member's hash value and then
+combine them with exclusive-or (`^`), which mirrors the way `Collection` types
+are hashed today.
 
-## Impact on existing code
+## Source compatibility
 
 By making the conformance opt-in, this is a purely additive change that does
 not affect existing code. We also avoid source-breaking changes by not changing
@@ -242,11 +261,19 @@ the behavior for `enum`s with no associated values, which will continue to
 implicitly conform to `Equatable` and `Hashable` even without explicitly
 declaring the conformance.
 
+## Effect on ABI stability
+
+This feature is purely additive and does not change ABI.
+
+## Effect on API resilience
+
+N/A.
+
 ## Alternatives considered
 
-For the purposes of scoping this proposal realistically, we note that we
-gave consideration to the points below but are omitting them from this proposal.
-These could be proposed additively later.
+In order to realistically scope this proposal, we considered but ultimately
+deferred the following items, some of which could be proposed additively in the
+future.
 
 ### Synthesis for `class` types and tuples
 
@@ -255,23 +282,15 @@ more complicated in inheritance hierarchies, and equality requires that
 `static func ==` be implemented in terms of an overridable instance method for
 it to be dispatched dynamically. Even for `final` classes, the conditions are
 not as clear-cut as they are for value types because we have to take superclass
-behavior into consideration.
+behavior into consideration. Finally, since objects have reference identity,
+memberwise equality may not necessarily imply that two instances are equal.
 
-We do not propose synthesizing these conformances for tuples at this time. While
-this would nicely round out the capabilities of value types, allow the standard
-library to remove the hand-crafted implementations of `==` for arity-6 tuples,
-and allow those types to be used in generic contexts where `Equatable`
-conformance is required, adding conformances to non-nominal types would require
-additional work; we recommend that be done as an additive proposal in the
-future.
-
-### Synthesis through retroactive conformance/conditional conformance
-
-Conformances added retroactively by extensions are not synthesized (even if
-declared in the same module or file). This also implies that conditional
-conformances will not be synthesized; in other words, a conformance like
-`extension Optional: Equatable where Wrapped: Equatable` will need to be
-implemented manually.
+We do not synthesize conformances for tuples at this time. While this would
+nicely round out the capabilities of value types, allow the standard library to
+remove the hand-crafted implementations of `==` for up-tp-arity-6 tuples, and
+allow those types to be used in generic contexts where `Equatable` conformance
+is required, adding conformances to non-nominal types would require additional
+work.
 
 ### Omitting fields from synthesized conformances
 
