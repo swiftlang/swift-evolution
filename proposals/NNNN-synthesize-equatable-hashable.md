@@ -1,9 +1,9 @@
 # Synthesizing `Equatable` and `Hashable` conformance
 
-* Proposal: [SE-0000](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-synthesize-equatable-hashable.md)
-* Author(s): [Tony Allevato](https://github.com/allevato)
-* Status: **[Awaiting review](#rationale)**
-* Review manager: TBD
+* Proposal: [SE-NNNN](NNNN-synthesize-equatable-hashable.md)
+* Author: [Tony Allevato](https://github.com/allevato)
+* Review Manager: TBD
+* Status: **Awaiting review**
 
 ## Introduction
 
@@ -14,7 +14,7 @@ the compiler to automatically synthesize conformance to `Equatable` and
 the correct implementation is known to be possible.
 
 Swift-evolution thread: [Universal Equatability, Hashability, and Comparability
-](http://thread.gmane.org/gmane.comp.lang.swift.evolution/8919)
+](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160307/012099.html)
 
 ## Motivation
 
@@ -338,11 +338,3 @@ Jimenez for providing great real-world examples of boilerplate needed to support
 equatability for some value types, Mark Sands for necromancing the
 swift-evolution thread that convinced me to write this up, and everyone on
 swift-evolution since then for giving me feedback on earlier drafts.
-
--------------------------------------------------------------------------------
-
-# Rationale
-
-On [Date], the core team decided to **(TBD)** this proposal.
-When the core team makes a decision regarding this proposal,
-their rationale for the decision will be written here.
