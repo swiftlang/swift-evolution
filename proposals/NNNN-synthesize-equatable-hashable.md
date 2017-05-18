@@ -20,7 +20,7 @@ Swift-evolution thread: [Universal Equatability, Hashability, and Comparability
 
 Building robust types in Swift can involve writing significant boilerplate
 code to support hashability and equatability. By eliminating the complexity for
-the users, we make `Equatable`/`Hashable` types must more appealing to users and
+the users, we make `Equatable`/`Hashable` types much more appealing to users and
 allow them to use their own types in contexts that require equatability and
 hashability with no added effort on their part (beyond declaring the
 conformance).
@@ -104,7 +104,7 @@ these fundamental protocols.
 
 In general, we propose that a type synthesize conformance to
 `Equatable`/`Hashable` if all of its members are `Equatable`/`Hashable`. We
-describe the specific conditions under which these conformances are synthesize
+describe the specific conditions under which these conformances are synthesized
 below, followed by the details of how the conformance requirements are
 implemented.
 
@@ -207,7 +207,7 @@ a `struct`:
 
 ### Considerations for recursive types
 
-By making the synthesizes conformance opt-in, recursive types have their
+By making the synthesized conformances opt-in, recursive types have their
 requirements fall into place with no extra effort. In any cycle belonging to a
 recursive type, every type in that cycle must declare its conformance
 explicitly. If a type does so but cannot have its conformance synthesized
@@ -285,7 +285,7 @@ memberwise equality may not necessarily imply that two instances are equal.
 
 We do not synthesize conformances for tuples at this time. While this would
 nicely round out the capabilities of value types, allow the standard library to
-remove the hand-crafted implementations of `==` for up-tp-arity-6 tuples, and
+remove the hand-crafted implementations of `==` for up-to-arity-6 tuples, and
 allow those types to be used in generic contexts where `Equatable` conformance
 is required, adding conformances to non-nominal types would require additional
 work.
