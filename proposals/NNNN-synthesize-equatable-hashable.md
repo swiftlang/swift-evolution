@@ -111,7 +111,10 @@ implemented.
 ### Requesting synthesis is opt-in
 
 Users must _opt-in_ to automatic synthesis by declaring their type as
-`Equatable` or `Hashable` without implementing any of their requirements.
+`Equatable` or `Hashable` without implementing any of their requirements. This
+conformance must be part of the _original type declaration_ and not on an
+extension (see [Synthesis in extensions](#synthesis-in-extensions) below for
+more on this).
 
 Any type that declares such conformance and satisfies the conditions below
 will cause the compiler to synthesize an implementation of `==`/`hashValue`
@@ -144,24 +147,6 @@ declaring those conformances. While this does add some inconsistency to `enum`s
 under this proposal, changing this existing behavior would be source-breaking.
 The question of whether such `enum`s should be required to opt-in as well can
 be revisited at a later date if so desired.
-
-### Location of synthesized conformances
-
-Requirements will be synthesized for qualifying protocol conformances that are
-added anywhere that such a conformance is valid: on the type declaration itself
-or in an extension&mdash;either in the same module or a different module.
-
-During the discussion of this feature, concerns were raised about whether
-requirements should be derived for conformances added in extensions. However,
-synthesis via extensions falls out naturally from the implementation and
-forbidding them would involve additional work. Furthermore, `Encodable` and
-`Decodable` have already set a precedent that allows such derived conformances
-to be added in extensions, both intra- and inter-module.
-
-Therefore, the implementation for `Equatable` and `Hashable` has chosen to stay
-as close as possible to `Encodable`/`Decodable` for consistency. If issues arise
-regarding conformances in extensions (especially those outside the declaration's
-module), they should be addressed uniformly for all derived conformances.
 
 ### Overriding synthesized conformances
 
@@ -272,6 +257,28 @@ N/A.
 In order to realistically scope this proposal, we considered but ultimately
 deferred the following items, some of which could be proposed additively in the
 future.
+
+### Synthesis in extensions
+
+Requirements will be synthesized only for protocol conformances that are
+_part of the type declaration itself;_ conformances added in extensions will
+not be synthesized.
+
+For `struct`s, synthesizing a requirement would not be safe in an extension
+in a different module or in a different file in the same module because any
+`private` or `fileprivate` members of the `struct` would not be accessible
+there. Extensions within the same file would be safe now that `private` members
+are also accessible from extensions of the containing type in the same file.
+
+However, to align with `Codable` in the context of
+[SR-4920](https://bugs.swift.org/browse/SR-4920), we will also currently
+forbid synthesized requirements in extensions in the same file; this specific
+case can be revisited later for all derived conformances.
+
+We note that conformances to `enum` types would be safe to synthesize anywhere
+because the cases and their associated values are always as accessible as the
+`enum` type itself, but we apply the same rule above for consistency; users do
+not have to memorize an intricate table of what is derivable and where.
 
 ### Synthesis for `class` types and tuples
 
