@@ -6,7 +6,7 @@
 * Status: **Accepted**
 * Revision: 2
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/7513547ddac66b06770a1fd620aad915d75987ff/proposals/0163-string-revision-1.md)
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170417/035919.html)
+* Decision Notes: [Rationale #1](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170417/035919.html), [Rationale #2](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170515/036728.html)
 
 ## Introduction
 
