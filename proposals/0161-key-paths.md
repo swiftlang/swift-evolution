@@ -183,7 +183,7 @@ We also explored many different spellings, each with different strengths. We hav
 | Case | `#keyPath` | Function Type Reference | Escape |
 | --- | --- | --- | --- |
 | Fully qualified | `#keyPath(Person, .friends[0].name)` | `Person.friends[0].name` | `\Person.friends[0].name` |
-| Type Inferred| `#keyPath(.friends[0].name)` |`Person.friends[0].name]`  | `\.friends[0].name` |
+| Type Inferred| `#keyPath(.friends[0].name)` |`Person.friends[0].name`  | `\.friends[0].name` |
 
 While the crispness of the function-type-reference is appealing, it becomes ambigious when working with type properties.  The escape-sigil variant avoids this, and remains quite readable.
 
