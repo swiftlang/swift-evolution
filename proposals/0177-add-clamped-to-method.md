@@ -3,7 +3,7 @@
 * Proposal: [SE-0177](0177-add-clamped-to-method.md)
 * Authors: [Nicholas Maccharoli](https://github.com/Nirma)
 * Review Manager: TBD
-* Status: **Awaiting review**
+* Status: **Returned for revision**
 
 ## Introduction
 
