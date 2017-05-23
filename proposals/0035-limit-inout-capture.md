@@ -26,7 +26,7 @@ unexpected aliasing or lifetime extension. Since Swift uses closures pervasively
 library collection operations, and even for assertions and operators like `&&` and
 `||` via its `@autoclosure` feature, it would be extremely limiting if `inout`
 parameters could not be captured at all. Dave Abrahams designed our current capture
-semantics as a compromise: an `inout` parameter is captured as a **shadow copy** that is
+semantics as a compromise: an `inout` parameter is captured as a **shallow copy** that is
 written back to the argument when the callee returns. This allows `inout` parameters
 to be captured and mutated with the expected semantics when the closure is called while
 the inout parameter is active:
@@ -41,7 +41,7 @@ captureAndCall(&x)
 print(x) // => 23
 ```
 
-But this leads to unintuitive results when the closure escapes, since the *shadow copy* is
+But this leads to unintuitive results when the closure escapes, since the *shallow copy* is
 persisted independently of the original argument:
 
 ```swift
@@ -106,10 +106,10 @@ func exampleWithNested(inout x: Int) {
 }
 ```
 
-As an implementation detail, this eliminates the need for a shadow copy to be emitted for
+As an implementation detail, this eliminates the need for a shallow copy to be emitted for
 inout parameters in case they are referenced by closures. For code that is still accepted
 after this change, this should not have an observable effect, since a guaranteed optimization
-pass always removes the shadow copy when it is known not to escape.
+pass always removes the shallow copy when it is known not to escape.
 
 ## Impact on existing code
 
@@ -124,15 +124,15 @@ legitimate cases that may be affected:
   outside the originating scope, for instance, by referencing the parameter in a `lazy`
   sequence adapter that is applied in the immediate scope, or by forking off one or more
   `dispatch_async` jobs that access different parts of the parameter but which are
-  synced with the originating scope before it exits. For these use cases, the shadow copy
+  synced with the originating scope before it exits. For these use cases, the shallow copy
   can be made explicit:
   
     ```swift
 	func foo(q: dispatch_queue_t, inout x: Int) {
-	  var shadowX = x; defer { x = shadowX }
+	  var shallowX = x; defer { x = shallowX }
 	  
-	  // Operate on shadowX asynchronously instead of the original x
-	  dispatch_async(q) { use(&shadowX) }
+	  // Operate on shallowX asynchronously instead of the original x
+	  dispatch_async(q) { use(&shallowX) }
 	  doOtherStuff()
 	  dispatch_sync(q) {}
 	}    
@@ -140,19 +140,19 @@ legitimate cases that may be affected:
     
 For migration, the compiler can offer one of the above fixits, checking the use of the captured
 `inout` for mutations after the capture to decide whether an immutable capture or explicit
-shadow copy is more appropriate. (Or naively, the fixit can just offer the shadow copy fixit.)
+shallow copy is more appropriate. (Or naively, the fixit can just offer the shallow copy fixit.)
 
 This also increases pressure on libraries to make more use of `@noescape` where possible, as
 proposed in [SE-0012](0012-add-noescape-to-public-library-api.md).
 
 ## Alternatives considered
 
-A possible extension of this proposal is to introduce a new capture kind to ask for shadow copy
+A possible extension of this proposal is to introduce a new capture kind to ask for shallow copy
 capture:
 
 ```swift
 func foo(inout x: Int) {
-  {[shadowcopy x] in use(&x) } // strawman syntax
+  {[shallowcopy x] in use(&x) } // strawman syntax
 }
 ```
 
