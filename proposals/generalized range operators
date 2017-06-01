@@ -1,0 +1,134 @@
+# Generalized range operators in `for-in` loops and other purposes
+
+## Introduction
+
+Departing from C-stype `for`loops, the Swift `for-in` loops use a range operator `...` for specifying the bounds of the range of values to be covered. In practice, a more useful operator `..<` which excludes the upper bound is used, typically for accessing array elements given the starting value 0 and the element count. We propose a generalisation of these interval operators, offering more complete description of the bound values, as well as enumeration order control when this is needed, typically when used in `for-in` loops.
+
+Our goal is to extend the available range operators using a simple and consistent logic for most useful tasks when it comes to enumerating items in `for-in` loops and other purposes, with simple control of enumeration order and bound exclusion. While we preserve the behavior of the `..<` operator and model the newcomers logically from it, we also extend the scope of the `...` operator in a useful and consistent way.
+
+## Proposed Approach
+
+We propose that ranges could be described by the following operators:
+
+`..<` , `.<.`, `<..`, `>..`, `.>.`, `..>`, `...`
+
+The various notations specifies if one of the boundaries should be excluded, and also specifies the eventual enumeration order (ascending or descending) that would typically be used in `for-in`loops.
+
+* Ascending order:
+
+`..<`: Ascending, start value included, end value excluded (Already exists).
+`[0 ..< 4] = [0, 1, 2, 3]`
+`[2 ..< 2] = []`
+`[4 ..< 0] = []`
+
+`.<.`: Ascending, start and end values included.
+`[0 .<. 4] = [0, 1, 2, 3, 4]`
+`[2 .<. 2] = [2]`
+`[4 .<. 0] = []`
+
+`<..`: Ascending, start value excluded, end value excluded.
+`[0 <.. 4] = [1, 2, 3, 4]`
+`[2 <.. 2] = []`
+`[4 <.. 0] = []`
+
+* Descending order
+
+`..>`: Descending, start value included, end value excluded.
+`[4 ..> 0] = [4, 3, 2, 1]`
+`[2 ..> 2] = []`
+`[4 ..> 0] = []`
+
+`.<.`: Descending, Start and end values included.
+`[4 .>. 0] = [4, 3, 2, 1, 0]`
+`[2 .>. 2] = [2]`
+`[0 .>. 4] = []`
+
+`<..`: Descending, start value excluded, end value included.
+`[4 >.. 0] = [3, 2, 1, 0]`
+`[2 >.. 2] = []`
+`[0 >.. 4] = []`
+
+* Adaptive order
+
+`...`: Ascending or descending according to the relative start and end values, which are included (Specification changed).
+`[0 ... 4] = [0, 1, 2, 3, 4]`
+`[2 ... 2] = [2]`
+`[4 ... 0] = [4, 3 ,2 ,1, 0]`
+
+## Usefulness
+
+Although there are simple algorithmic ways of reproducing the effect of these operators through the use of existing operators and bound value offsets, these variations nevertheless help improve code simplicity and clarity in many situations where `for-in` are used.
+Hence, while navigating through the indexes of an array would be done as follows:
+```swift
+for i in 0 ..< myArray.count {
+	ProcessArrayElement(i)
+}
+```
+Doing the same on a descending order gets a little more complicated:
+```swift
+for i in 0 ..< myArray.count {
+	ProcessArrayElement(myArray.count-1-i)
+}
+```
+Using the proposed generalised range operators, we can restore the simplicity for the descending order:
+```swift
+for i in myArray.count >.. 0 {
+	ProcessArrayElement(i)
+}
+```
+
+Another example, when processing needs to be done between two bounds regardless of their ordered value. Currently, it has to be done as such:
+```swift
+if startValue <= endValue {
+	for i in startValue ... endValue {
+		Process(i)
+	}
+} else {
+	for i in endValue ... startValue {
+		Process(startValue+endValue-i)
+	}
+}
+```
+With the new approach, this could simply be done as follows:
+```swift
+for i in startValue ... endValue {
+	Process(i)
+}
+```
+
+When ordering is not significant, these operators should be consistently equivalent. For example:
+```swift
+if case 10 ..< 100 = value {
+	print(value, " has two digits")
+}
+```
+Should be equivalent to:
+```swift
+if case 100 >.. 10 = value {
+	print(value, " has two digits")
+}
+```
+Another motivation to change the behavior of the `...` range operator is to alleviate the current inconsistency between the existing `...`and `..<` behaviors, Hence, currently, if `y` is smaller than `x`, `x ..< y+1`is an empty range while `x ... y`returns an error condition. With the proposed scheme, we take the opportunity to remove the redundancy between these two operators by extending the scope of `...` in a useful and logical way.
+
+## Impact on existing code
+
+This extension should allow numerous minor simplification in existing code, mostly by easing the specifications of bound values in `for-in`loops. Code clarity would be improved.
+Allowing explicit statement of element ordering also helps analysis of code consistency.
+
+## Compatitility with existing code
+
+The ordered operators are a generalisation of the `..<`range operaton which already exists in the current language specification. There is no significant compatibility issue for using them or not.
+
+The only significant departure from the existing specification is the ability of the `...` operator to describe a range if both ascending or descending order. Existing code which would create an error using `x ... y` when `y` is smaller than `x` would here not cause any error. This could have an impact when migrating old code if this error condition is used as a signal for inconsistent values during the processing, particularly as unreviewed code would not cause any error at compile time. Yet, upon code review, adding boundary order conditions for restoring the original limitations of the `...` range operator is fairly trivial.
+
+At a broader range in the language specification, the explicit inclusion on enumeration order (ascending, descending, adaptive) has to be evaluated and handled consistently anywhere where ranges can be used. Some other specification changes could be welcome for ensuring proper consistency generality and orthogonality, although we expect these to be minor and have no broad implication as a whole.
+
+## Alternative options
+
+* No changes, if we consider that the specification changes outweigh the benefits of having these range operators available for rewriting algorithms in a simplier way.
+
+* Preserving the old behavior of the `...` operator. This would preserve code compatibility and reduce possible migration woes, the ordered operators being additions that could be used or not. However, this would alter the consistency of the proposed enumeration order scheme, while loosing the benefit of being able to specify a border value order-agnostic range.
+
+* Restricting the proposed scheme for the range operators in `for-in`loops. This would alleviate the possible need to reconsider ordering for all language features using ranges, at the expense of loosing generality and orthogonality in the language specification.
+
+* Extend the scheme with additional operators allowing the exclusion of both bounds of the range (for example, with `<.<` and `>.>` operators). We don't expect this to have any significant practical use.
