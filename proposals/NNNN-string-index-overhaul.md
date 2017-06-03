@@ -18,7 +18,7 @@ and exposes a public `encodedOffset` property and initializer that can
 be used to serialize and deserialize positions in a `String` or
 `Substring`.
 
-Swift-evolution thread: [Discussion thread topic for that proposal](https://lists.swift.org/pipermail/swift-evolution/)
+Swift-evolution thread: [Pitch: String Index Overhaul](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170529/036874.html)
 
 ## Motivation
 
