@@ -156,12 +156,13 @@ completely distinct collections.
 
 An index that does not fall on an exact boundary in a given `String`
 or `Substring` view will be “rounded down” to the nearest boundary
-when used for slicing or range replacement.  So, for example,
+when used on that view.  So, for example,
 
 ```swift
-let s = "e\u{301}galite\u{301}"                          // "égalité"
-print(s[s.unicodeScalars.indices.dropFirst().first!...]) // "égalité"
-print(s[..<s.unicodeScalars.indices.last!])              // "égalit"
+let s = "e\u{301}galite\u{301}"                          // "égalité"
+print(s[s.unicodeScalars.indices.dropFirst().first!...]) // "égalité"
+print(s[..<s.unicodeScalars.indices.last!])              // "égalit"
+print(s[s.unicodeScalars.indices.dropFirst().first!])    // "é"
 ```
 
 Replacing the failable APIs listed [above](#motivation) that detect
