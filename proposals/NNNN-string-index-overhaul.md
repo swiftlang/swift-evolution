@@ -122,8 +122,8 @@ let html: String = "See <a href=\"http://swift.org\">swift.org</a>"
 
 // Search the UTF16, instead of characters, for performance reasons:
 let open = "<".utf16.first!, close = ">".utf16.first!
-let tagStart = s.utf16.index(of: open)
-let tagEnd = s.utf16[tagStart...].index(of: close)
+let tagStart = html.utf16.index(of: open)
+let tagEnd = html.utf16[tagStart...].index(of: close)
 
 // Slice the String with the UTF-16 indices to retrieve the tag.
 let tag = html[tagStart...tagEnd]
