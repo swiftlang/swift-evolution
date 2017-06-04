@@ -1,9 +1,9 @@
 # String Index Overhaul
 
-* Proposal: [SE-NNNN](NNNN-string-index-overhaul.md)
+* Proposal: [SE-0180](0180-string-index-overhaul.md)
 * Authors: [Dave Abrahams](https://github.com/dabrahams)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Ted Kremenek](https://github.com/tkremenek)
+* Status: **Active review (June 4...8)**
 * Pull Request Implementing This Proposal: https://github.com/apple/swift/pull/9806 
 
 *During the review process, add the following fields as needed:*
