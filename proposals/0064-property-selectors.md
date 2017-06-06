@@ -53,5 +53,5 @@ The introduction of the new `#selector` overrides has no impact on existing code
 
 ## Alternatives considered
 
-A long term alternive could arrise from the design of lenses in Swift. But as this is purely hypothetical and out of scope for Swift 3, this proposal fixes the need for referencing property selectors in a type-safe way straight-away.
+A long term alternative could arise from the design of lenses in Swift. But as this is purely hypothetical and out of scope for Swift 3, this proposal fixes the need for referencing property selectors in a type-safe way straight-away.
 
