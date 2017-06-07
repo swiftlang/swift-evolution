@@ -14,6 +14,13 @@ Swift-evolution thread: [Discussion thread topic for that proposal](https://list
 
 ## Motivation
 
+Because of implementation of SE-0110, Swift 4 has a horrible source compatibility breaking changed.
+
+The code in Swift 3, which is not passed the type checking in Swift 4.
+```swift
+[(1, 2)].map(+)  // return [3]
+```
+
 ## Proposed solution
 1. single element tuple always be flattened
 
@@ -27,6 +34,18 @@ let tuple3: ((((Int, Int))), Int) = ((0, 0), 0)  // TypeOf(tuple3) == ((Int, Int
 
 2. function arguments list also consider as a tuple, which means the
 function that accept a single tuple should always be flattened.
+
+```swift
+// TypeOf(add1) == `(Int, Int) -> Void`
+func add1(lhs: Int, rhs: Int) -> Int {
+    return lhs + rhs
+}
+
+// TypeOf(add2) == `(Int, Int) -> Void`, flattened
+func add2(pair: (Int, Int)) -> Int {
+    return pair.0 + pair.1
+}
+```
 
 ```swift
 let fn1: (Int, Int) -> Void = { _, _ in }  // TypeOf(fn1) == `(Int, Int) -> Void`
