@@ -181,7 +181,7 @@ func setter(_ val: Any) {
 
 For dynamic properties, we would want to reroute all sets through this thunk to ensure that the automatically-added KVO notifications will be fired. This will add a small performance cost due to the dynamic type check, but generally speaking, KVO is not a tool that one uses in performance-critical sections.
 
-One special-case that would be nice to add would be to make AnyKeyPath, PartialKeyPath, KeyPath, and friends bridge to Objective-C as a string, which would allow us to get rid of the one remaining time #keyPath needed to be used in the examples for this pitch, and declare dependencies instead as:
+One special-case that would be nice to add would be to make AnyKeyPath, PartialKeyPath, KeyPath, and friends bridge to Objective-C as a string, which would allow us to get rid of the one remaining time #keyPath needed to be used in the examples for this proposal, and declare dependencies instead as:
 
 ```swift
 @objc private static let keyPathsForValuesAffectingSuitName: Set<PartialKeyPath<PlayingCard>> = [\.suit]
