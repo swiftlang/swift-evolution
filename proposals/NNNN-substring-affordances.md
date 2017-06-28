@@ -1,4 +1,4 @@
-# Feature name
+# Substring performance affordances
 
 * Proposal: [SE-NNNN](NNNN-substring-affordances.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
