@@ -86,7 +86,7 @@ stability.
 
 ## Alternatives considered
 
-While they have a convenience benefit was well, this is not the primary goal of
+While they have a convenience benefit as well, this is not the primary goal of
 these additions, but a side-effect of helping avoid a performance problem. In
 many other cases, the performance issues can be avoided via modified use e.g.
 `Sequence.contains` of a `Substring` in a sequence of strings can be written as
