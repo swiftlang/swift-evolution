@@ -3,7 +3,7 @@
 * Proposal: [SE-0179](0179-swift-run-command.md)
 * Authors: [David Hart](http://github.com/hartbit/)
 * Review Manager: [Daniel Dunbar](https://github.com/ddunbar)
-* Status: **Accepted (Swift 4)**
+* Status: **Implemented (Swift 4)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170529/036909.html)
 * Pull Request: [apple/swift-package-manager#1187](https://github.com/apple/swift-package-manager/pull/1187)
 
@@ -32,12 +32,11 @@ The swift `run` command would be defined as:
 $ swift run --help
 OVERVIEW: Build and run executable
 
-USAGE: swift run [options] [executable] [--] [arguments]
+USAGE: swift run [options] [executable [arguments]]
 
 OPTIONS:
   --build-path            Specify build/cache directory [default: ./.build]
   --chdir, -C             Change working directory before any other operation
-  --in-dir, -I            Change working directory before running the executable
   --color                 Specify color mode (auto|always|never) [default: auto]
   --configuration, -c     Build with configuration (debug|release) [default: debug]
   --enable-prefetching    Enable prefetching in resolver
@@ -49,18 +48,16 @@ OPTIONS:
   --help                  Display available options
 ```
 
-If needed, the command will build the product before running it. As a result, it can be passed any options `swift build` accepts. As for `swift test`, it also accepts an extra `--skip-build` option to skip the build phase. A new `--in-dir` option is also introduced to run the executable from another directory.
+If needed, the command will build the product before running it. As a result, it can be passed any options `swift build` accepts. As for `swift test`, it also accepts an extra `--skip-build` option to skip the build phase.
 
 After the options, the command optionally takes the name of an executable product defined in the `Package.swift` manifest and introduced in [SE-0146](0146-package-manager-product-definitions.md). If called without an executable and the manifest defines one and only one executable product, it will default to running that one. In any other case, the command fails.
 
-All other arguments are passed as-is to the executable. When passing arguments to an implicit executable, the `--` argument should prefix the executable's arguments. For example:
+If the executable is explicitly defined, all remaining arguments are passed as-is to the executable.
 
 ```bash
 $ swift run # .build/debug/exe
 $ swift run exe # .build/debug/exe
 $ swift run exe arg1 arg2 # .build/debug/exe arg1 arg2
-$ swift run -- arg1 arg2 # .build/debug/exe arg1 arg2
-$ swift run arg1 arg2 # error: could not find product executable named arg1
 ```
 
 ## Alternatives considered

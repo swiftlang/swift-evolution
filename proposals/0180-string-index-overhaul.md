@@ -3,8 +3,10 @@
 * Proposal: [SE-0180](0180-string-index-overhaul.md)
 * Authors: [Dave Abrahams](https://github.com/dabrahams)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
-* Status: **Active review (June 4...8)**
+* Status: **Active review (June 22...28)**
 * Pull Request Implementing This Proposal: https://github.com/apple/swift/pull/9806 
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/72b8d90becd60b7cc7695607ae908ef251f1e966/proposals/0180-string-index-overhaul.md)
+
 
 *During the review process, add the following fields as needed:*
 
@@ -139,31 +141,47 @@ let end = String.Index(encodedOffset: n)
 assert(end == String.endIndex)
 ```
 
-# Comparison and Slicing Semantics
+# Comparison and Subscript Semantics
 
 When two indices being compared correspond to positions that are valid
 in any single `String` view, comparison semantics are already fully
-specified by the `Collection` requirements.  Where no single `String`
-view contains both index values, the indices compare unequal and
-ordering is determined by comparison of `encodedOffsets`.  These index
-values are not totally ordered but do satisfy strict weak ordering
-requirements, which is sufficient for algorithms such as `sort` to
-exhibit sensible behavior.  We might consider loosening the specified
-requirements on these algorithms and on `Comparable` to support strict
-weak ordering, but for now we can treat such index pairs as being
-outside the domain of comparison, like any other indices from
-completely distinct collections.
+specified by the `Collection` requirements.  The other cases occur
+when indices fall between Unicode scalar boundaries in views having
+distinct encodings.  For example, the string `"\u{1f773}"` (“🝳”) is
+encoded as `0xD83D, 0xDF73` in UTF-16 and `0xF0, 0x9F, 0x9D, 0xB3` in
+UTF-8, and there is no obvious way to compare the second positions in
+each of those sequences.  The proposed rule is that such indices are
+compared by comparing their `encodedOffset`s.  Such index values are
+not totally ordered but do satisfy strict weak ordering requirements,
+which is sufficient for algorithms such as `sort` to exhibit sensible
+behavior.  We might consider loosening the specified requirements on
+these algorithms and on `Comparable` to support strict weak ordering,
+but for now we can treat such index pairs as being formally outside
+the domain of comparison, like any other indices from completely
+distinct collections.
 
-An index that does not fall on an exact boundary in a given `String`
-or `Substring` view will be “rounded down” to the nearest boundary
-when used on that view.  So, for example,
+With respect to subscripts, an index that does not fall on an exact
+boundary in a given `String` or `Substring` view will be treated as
+falling at its `encodedOffset` in the underlying code units, with the
+actual contents of the result being an emergent property of applying
+the usual Unicode rules for decoding those code units.  For example,
+when slicing a string with an index `i` that falls between two
+`Character` boundaries, `i.encodedOffset` is treated as a position in
+the string's underlying code units, and the `Character`s of the result
+are determined by performing standard Unicode grapheme breaking on the
+resulting sequence of code units.
 
 ```swift
-let s = "e\u{301}galite\u{301}"                          // "égalité"
-print(s[s.unicodeScalars.indices.dropFirst().first!...]) // "égalité"
-print(s[..<s.unicodeScalars.indices.last!])              // "égalit"
-print(s[s.unicodeScalars.indices.dropFirst().first!])    // "é"
+let s = "e\u{301}galite\u{301}"           // "égalité"
+let i = Array(s.unicodeScalars.indices)
+print(s[i[1]...])                         // "◌́galité"
+print(s[..<p.last!])                      // "égalite"
+print(s[i[1])                             // "◌́"
 ```
+
+Similarly, assignment to a slice of a string is performed by replacing
+the corresponding code units, and again the resulting `Characters` are
+determined by re-applying standard grapheme breaking rules.
 
 Replacing the failable APIs listed [above](#motivation) that detect
 whether an index represents a valid position in a given view, and
@@ -371,4 +389,3 @@ This proposal makes no changes to the resilience of any APIs.
 ## Alternatives considered
 
 The only alternative considered was no action.
-
