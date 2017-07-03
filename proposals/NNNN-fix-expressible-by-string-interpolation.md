@@ -295,7 +295,7 @@ extension SQLStatement {
   init(_ parameter: SQLValue) { ... }
 }
 
-extension SQLStatement: ExpressibleByStringLiteral {
+extension SQLStatement: ExpressibleByStringInterpolation {
   typealias StringInterpolationType = SQLStatement
   ...
 }
