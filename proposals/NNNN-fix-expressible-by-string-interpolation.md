@@ -440,7 +440,7 @@ public enum StringInterpolationSegment<Literal: _ExpressibleByBuiltinStringLiter
 /// instance. `StringLiteralType` must be `String` or `StaticString`.
 /// 
 /// Interpolated segments are represented as values of the associated
-/// `StringInterpolationType` type. The code beween the two parentheses is 
+/// `StringInterpolationType` type. The code between the two parentheses is 
 /// treated as parameters to an initializer on the `StringInterpolationType`; 
 /// if the first parameter is unlabeled, Swift will prefer an initializer with 
 /// the label `stringInterpolationSegment:`, but will also permit an initializer with 
