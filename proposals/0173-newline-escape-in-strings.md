@@ -35,7 +35,7 @@ let text = """
             """
 ```
 
-Accepting SE-0168 without newline escaping means there's no way to easily escape the last newline of a literal. As a result the core team decided that trailing newlines should always be stripped. This approach arguably reduces the feature's usability and intuitive adoption.
+Accepting SE-0168 without newline escaping means there was no way to easily escape the last newline of a literal. As a result it was decided that trailing newlines should always be stripped from literals. This decision arguably reduces the feature's usability and intuitive adoption.
 
 Incorporating a string continuation character is well founded, used in other development languages, and carries little risk of confusing naive users.
 
@@ -43,7 +43,26 @@ Incorporating a string continuation character is well founded, used in other dev
 
 This proposal introduces `\` as a line continuation character, enabling strings to extend past the end of the source line. The `\` and the new line character that follow it in source are not incorporated into the string.
 
-This does not affect the indent removal feature of multiline strings and does not suggest that indent removal should be added to conventional strings but it does gave them consistent treatment. It also gives the user control over whether the final newline should be included in the string and it is recommended that it not always be stripped. This anticipated usage shows this is better suited to more common use cases:
+Any horizontal whitespace before the \\\<newline> combination will be included in the string as is. Additionally, if an escape character \\ is followed by only horizontal whitespace characters then a \<newline> nothing from the \\ character to the \<newline> (inclusive) will be included in the literal. For example:
+
+	let str1 = """↵
+		line one \↵
+		line two \		  ↵
+		line three↵
+		"""↵
+
+	let str2 = "line one \↵
+	line two \		  ↵
+	line three"↵
+
+	assert(str1 == "line one line two line three")
+	assert(str2 == "line one line two line three")
+
+An escape character at the end of the last line of a literal could be considered an error.
+
+This does not affect the indent removal feature of multiline strings and does not suggest that indent removal should be added to conventional strings but it does gave them consistent treatment.
+
+As separate debate, it also gives the user control over whether the final newline should be included in the string and it is recommended that it not always be stripped if this proposal were adopted. This anticipated usage shows this is better suited to more common use cases:
 
 ```swift
 var xml = """
