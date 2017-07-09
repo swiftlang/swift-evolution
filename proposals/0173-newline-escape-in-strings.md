@@ -60,9 +60,13 @@ Any horizontal whitespace before the \\\<newline> combination will be included i
 
 An escape character at the end of the last line of a literal could be considered an error.
 
-This does not affect the indent removal feature of multiline strings and does not suggest that indent removal should be added to conventional strings but it does gave them consistent treatment.
+This does not affect the indent removal feature of multiline strings and does not suggest that indent removal should be added to conventional strings but it does gave them consistent treatment with each other and with C.
 
-As separate debate, it also gives the user control over whether the final newline should be included in the string and it is recommended that it not always be stripped if this proposal were adopted. This anticipated usage shows this is better suited to more common use cases:
+This produces a high-impact well-focused language change with low costs, as the update is confined to Lexer.cpp.
+
+### Reopening whether the last newline in the multi-line strings should be included
+
+As separate debate, as this proposal would give the user control over whether the final newline should be included in the string it is recommended that it not always be stripped if this proposal were adopted. This anticipated usage shows this is better suited to more common use cases:
 
 ```swift
 var xml = """
@@ -85,8 +89,6 @@ xml += """
     </catalog>
     """
 ```
-
-This produces a high-impact well-focused language change with low costs, as the update is confined to Lexer.cpp.
 
 ## Source compatibility
 
