@@ -1,14 +1,12 @@
 # String Index Overhaul
 
 * Proposal: [SE-0180](0180-string-index-overhaul.md)
-* Authors: [Dave Abrahams](https://github.com/dabrahams)
+* Author: [Dave Abrahams](https://github.com/dabrahams)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Status: **Accepted**
-* Pull Request Implementing This Proposal: https://github.com/apple/swift/pull/9806 
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170703/037942.html)
+* Pull Request: [apple/swift#9806](https://github.com/apple/swift/pull/9806)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/72b8d90becd60b7cc7695607ae908ef251f1e966/proposals/0180-string-index-overhaul.md)
-
-
-*During the review process, add the following fields as needed:*
 
 ## Introduction
 
