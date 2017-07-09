@@ -779,8 +779,10 @@ function _applyFragment (fragment) {
     }
   })
 
-  if (actions.proposal || actions.search) {
-    document.querySelector('#search-filter').value = actions.proposal || actions.search
+  if (actions.proposal.length) {
+    document.querySelector('#search-filter').value = actions.proposal.join(',')
+  } else if(actions.search) {
+    document.querySelector('#search-filter').value = actions.search
   }
 
   if (actions.version.length) {
