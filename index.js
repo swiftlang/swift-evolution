@@ -889,7 +889,7 @@ function _updateURIFragment () {
   if (actions.search) fragments.push('search:' + encodeURIComponent(actions.search))
 
   if (!fragments.length) {
-    window.history.replaceState(null, null, '/')
+    window.history.replaceState(null, null, './')
     return
   }
 
