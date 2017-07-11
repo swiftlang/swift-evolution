@@ -1,9 +1,9 @@
 # Package Manager C/C++ Language Standard Support
 
-* Proposal: SE-NNNN
+* Proposal: [SE-0181](0181-package-manager-cpp-language-version.md)
 * Authors: [Ankit Aggarwal](https://github.com/aciidb0mb3r)
 * Review Manager: [Daniel Dunbar](https://github.com/ddunbar)
-* Status: **Discussion**
+* Status: **Active review (July 11...14)**
 
 ## Introduction
 
