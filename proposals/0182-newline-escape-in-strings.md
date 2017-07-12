@@ -1,17 +1,15 @@
 # String Newline Escaping
 
-* Proposal: [SE-XXXX](XXXX-newline-escape-in-strings.md)
+* Proposal: [SE-0182](0182-newline-escape-in-strings.md)
 * Authors: [John Holdsworth](https://github.com/johnno1962), [David Hart](https://github.com/hartbit), [Adrian Zubarev](https://github.com/DevAndArtist)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Chris Lattner](https://github.com/lattner)
+* Status: **Active review (July 12...17)**
 
 * Previous Proposal: [SE-0168](0168-multi-line-string-literals.md)
 
 ## Introduction
 
-This proposal introduces the ability to escape newlines in single and multi-line strings to improve readability and maintenance of source material containing excessively long lines.
-
-This proposal adds onto [SE-0168](0168-multi-line-string-literals.md).
+This proposal is a refinement of [SE-0168](0168-multi-line-string-literals.md) which introduces the ability to escape newlines in single and multi-line strings to improve readability and maintenance of source material containing excessively long lines.
 
 Swift-evolution thread: [Discussion thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170417/035923.html)
 
@@ -41,7 +39,7 @@ Incorporating a string continuation character is well founded, used in other dev
 
 ## Detailed design
 
-This proposal introduces `\` as a line continuation character which escapes newlines matching the following regular-expression: `/\\[ \t]*\n/`. In other terms, line continuation requires a `\` character, followed by zero or more whitespace characters, followed by a newline character. All those characters are omitted from the resulting string.
+This proposal introduces `\` as a line continuation character which escapes newlines matching the following regular-expression: `/\\[ \t]*\n/`. In other terms, line continuation requires a `\` character, followed by zero or more horizontal whitespace characters, followed by a newline character. All those characters are omitted from the resulting string.
 
 As a consequence, these rules follow:
 
@@ -69,43 +67,9 @@ assert(str1 == str2)
 
 This does not affect the indentation removal feature of multiline strings and does not suggest that indentation removal should be added to conventional strings but it does give them consistent treatment.
 
-## Further discussions
-
-The following topics are related to escaping newlines. If newline-escaping where accepted it may be appropriate to revisit these decisions when considering this proposal though that shouldn't be the focus of the discussion.
-
-### Reconsidering stripping the last newline in multi-line strings
-
-When SE-0168 was reviewed, it was decided to strip the last newline in multi-line strings. Doing the opposite would have been ill-advised without a line continuation character to escape it when necessary. If this proposal is accepted, it might be worth reconsidering this decision and include the final newline in the literal. For example, it would allow easier concatenation of multi-line strings:
-
-```swift
-var xml = """
-    <?xml version="1.0"?>
-    <catalog>
-    """
-
-for (id, author, title, genre, price) in bookTuples {
-    xml += """
-            <book id="bk\(id)">
-                <author>\(author)</author>
-                <title>\(title)</title>
-                <genre>\(genre)</genre>
-                <price>\(price)</price>
-            </book>
-        """
-}
-
-xml += """
-    </catalog>
-    """
-```
-
-### Warning about trailing whitespace in multi-line strings
-
-During the implementation of SE-0168, it was decided not to warn about trailing whitespace in multi-line strings. One of the reasons brought up was that the only way to silence the warning was with a no-op character sequence at the end of the line; the only option back then was `\("")`, which is less than ideal. With this proposal, a slightly more elegant solution is now available: `\n\`.
-
 ## Source compatibility
 
-As this proposal is additive proposing a syntax that is not currently allowed in Swift this does not affect existing source.
+This proposal does not affect existing source, because it is purely additive - enabling syntax that is not currently allowed in Swift.
 
 ## Effect on ABI stability
 
@@ -117,7 +81,7 @@ This proposal does not affect ABI resilience.
 
 ## Alternatives considered
 
-It has been heavily debated between the authors of the proposals wether newline escaping should be supported in single-line strings. One argument against it is that the lack of indentation stripping in single-line strings forces strings to include no indentation, hindering the readability of code by visually breaking scopes when returning the column 1:
+It has been heavily debated between the authors of the proposals whether newline escaping should be supported in single-line strings. One argument against it is that the lack of indentation stripping in single-line strings forces strings to include no indentation, hindering the readability of code by visually breaking scopes when returning the column 1:
 
 ```swift
 class Messager {
@@ -133,4 +97,9 @@ empty message, it has no meaning.")
 }
 ```
 
-Another counter-argument is that further proposals might come up to fix this problem by introducing indentation stripping to single-line strings, muddying the distinction between single and multi-line strings.
+Another argument against it is that lines that are sufficiently long and/or complex could use
+multi-line string literals with newline escaping, so there is no need to include them in single
+quoted strings.
+
+A counter-argument is that it is important to keep single and triple quoted strings consistent
+with each other.
