@@ -173,7 +173,7 @@ resulting sequence of code units.
 let s = "e\u{301}galite\u{301}"           // "égalité"
 let i = Array(s.unicodeScalars.indices)
 print(s[i[1]...])                         // "◌́galité"
-print(s[..<p.last!])                      // "égalite"
+print(s[..<i.last!])                      // "égalite"
 print(s[i[1])                             // "◌́"
 ```
 
