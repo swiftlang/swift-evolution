@@ -736,18 +736,18 @@ function _applyFilter (matchingProposals) {
 }
 
 /**
- * Parses a URI fragment and applies either a search or a filter to the page.
+ * Parses a URI fragment and applies a search and filters to the page.
  *
- * Syntax:
- *   fragment --> `#` parameter-value-list
- *   parameter-value-list --> parameter-value | parameter-value-pair `::` parameter-value-list
- *   parameter-value-pair --> parameter `:` value
- *   parameter --> `proposal` | `filter` | `version` | `search`
+ * Syntax (a query string within a fragment):
+ *   fragment --> `#?` parameter-value-list
+ *   parameter-value-list --> parameter-value | parameter-value-pair `&` parameter-value-list
+ *   parameter-value-pair --> parameter `=` value
+ *   parameter --> `proposal` | `status` | `version` | `search`
  *   value --> ** Any URL-encoded text. **
  *
  * For example:
- *   /#proposal:SE-0180,SE-0123
- *   /#filter:.rejected::version:3::search:access
+ *   /#?proposal:SE-0180,SE-0123
+ *   /#?status=rejected&version=3&search=access
  *
  * Four types of parameters are supported:
  * - proposal: A comma-separated list of proposal IDs. Treated as an 'or' search.
@@ -758,13 +758,15 @@ function _applyFilter (matchingProposals) {
  * @param {string} fragment - A URI fragment to use as the basis for a search.
  */
 function _applyFragment (fragment) {
-  if (!fragment) return
-  fragment = fragment.substring(1) // remove the #
+  if (!fragment || fragment.substr(0, 2) !== '#?') return
+  fragment = fragment.substring(2) // remove the #?
 
-  var actions = { proposal: [], search: null, filter: [], version: [] }
+  // use this literal's keys as the source of truth for key-value pairs in the fragment
+  var actions = { proposal: [], search: null, status: [], version: [] }
 
+  // parse the fragment as a query string
   Object.keys(actions).forEach(function (action) {
-    var pattern = new RegExp(action + ':([^:]+)(::|$)')
+    var pattern = new RegExp(action + '=([^=]+)(&|$)')
     var values = fragment.match(pattern)
 
     if (values) {
@@ -779,9 +781,11 @@ function _applyFragment (fragment) {
     }
   })
 
+  // perform key-specific parsing and checks
+
   if (actions.proposal.length) {
     document.querySelector('#search-filter').value = actions.proposal.join(',')
-  } else if(actions.search) {
+  } else if (actions.search) {
     document.querySelector('#search-filter').value = actions.search
   }
 
@@ -803,10 +807,20 @@ function _applyFragment (fragment) {
     }
   }
 
-  if (actions.filter.length) {
-    var statusSelections = actions.filter.map(function (status) {
-      var state = states[status]
-      if (!state) return // fragment contains a nonexistent state
+  // track this state specifically for toggling the version panel
+  var implementedSelected = false
+
+  // update the filter selections in the nav
+  if (actions.status.length) {
+    var statusSelections = actions.status.map(function (status) {
+      var stateName = Object.keys(states).filter(function (state) {
+        return states[state].className === status
+      })[0]
+
+      if (!stateName) return // fragment contains a nonexistent state
+      state = states[stateName]
+
+      if (stateName === '.implemented') implementedSelected = true
 
       return document.querySelector('#filter-by-' + state.className)
     }).filter(function (status) {
@@ -819,7 +833,7 @@ function _applyFragment (fragment) {
   }
 
   // the version panel needs to be activated if any are specified
-  if (actions.version.length) {
+  if (actions.version.length || implementedSelected) {
     ;['#version-options', '#version-options-label'].forEach(function (selector) {
       document.querySelector('.filter-options')
         .querySelector(selector).classList
@@ -828,7 +842,7 @@ function _applyFragment (fragment) {
   }
 
   // specifying any filter in the fragment should activate the filters in the UI
-  if (actions.version.length || actions.filter.length) {
+  if (actions.version.length || actions.status.length) {
     toggleFilterPanel()
     toggleFiltering()
   }
@@ -841,7 +855,7 @@ function _applyFragment (fragment) {
  * via window.replaceState.
  */
 function _updateURIFragment () {
-  var actions = { proposal: [], search: null, filter: [], version: [] }
+  var actions = { proposal: [], search: null, status: [], version: [] }
 
   var search = document.querySelector('#search-filter')
 
@@ -859,7 +873,7 @@ function _updateURIFragment () {
   actions.version = versions
 
   var selectedStatuses = document.querySelectorAll('.filtered-by-status:checked')
-  var filters = [].map.call(selectedStatuses, function (checkbox) {
+  var statuses = [].map.call(selectedStatuses, function (checkbox) {
     var className = checkbox.value
 
     var correspondingStatus = Object.keys(states).filter(function (status) {
@@ -867,34 +881,35 @@ function _updateURIFragment () {
       return false
     })[0]
 
-    return correspondingStatus
+    return states[correspondingStatus].className
   })
 
   // .implemented is redundant if any specific implementation versions are selected.
   if (actions.version.length) {
-    filters = filters.filter(function (status) {
-      return status !== '.implemented'
+    statuses = statuses.filter(function (status) {
+      return status !== states['.implemented'].className
     })
   }
 
-  actions.filter = filters
+  actions.status = statuses
 
   // build the actual fragment string.
   var fragments = []
-  if (actions.proposal.length) fragments.push('proposal:' + actions.proposal.join(','))
-  if (actions.filter.length) fragments.push('filter:' + actions.filter.join(','))
-  if (actions.version.length) fragments.push('version:' + actions.version.join(','))
+  if (actions.proposal.length) fragments.push('proposal=' + actions.proposal.join(','))
+  if (actions.status.length) fragments.push('status=' + actions.status.join(','))
+  if (actions.version.length) fragments.push('version=' + actions.version.join(','))
 
-  // encoding the search lets you search for `::` and other edge cases.
-  if (actions.search) fragments.push('search:' + encodeURIComponent(actions.search))
+  // encoding the search lets you search for `??` and other edge cases.
+  if (actions.search) fragments.push('search=' + encodeURIComponent(actions.search))
 
   if (!fragments.length) {
     window.history.replaceState(null, null, './')
     return
   }
 
-  var fragment = '#' + fragments.join('::')
+  var fragment = '#?' + fragments.join('&')
 
+  // avoid creating new history entries each time a search or filter updates
   window.history.replaceState(null, null, fragment)
 }
 
