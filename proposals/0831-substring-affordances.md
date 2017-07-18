@@ -1,9 +1,9 @@
 # Substring performance affordances
 
-* Proposal: [SE-NNNN](NNNN-substring-affordances.md)
+* Proposal: [SE-0831](0831-substring-affordances.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Chris Lattner](https://github.com/lattner)
+* Status: **Active review (July 18...21)**
 
 ## Introduction
 
