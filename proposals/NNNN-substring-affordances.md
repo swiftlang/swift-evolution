@@ -13,8 +13,7 @@ are commonly used with the `Substring` type:
  - Modify the `init` on floating point and integer types, to construct them
    from `StringProtocol` rather than `String`. 
 - Change `join` to be an extension `where Element: StringProtocol`
-- Add extensions to `Dictionary where Key == String` and `Set where Element ==
-   String` to test for presence of a `Substring`.
+- Have `Substring.filter` to return a `String`
 
 ## Motivation
 
@@ -29,13 +28,15 @@ where an API requires a `String`, the user must construct a new `String` from a
 avoided at the time of the slice.
 
 There are a few places in the standard library where it is notably inefficient
-to force a copy of a substring in order to use it with a string: performing
-lookups in hashed containers, joining substrings, and converting substrings to
-integers. In particular, these operations are likely to be used inside a loop
-over a number of substrings extracted from a string. For example, suppose you
-had a string of key/value pairs, where the values were integers and you wanted
-to sum them by key. You would be forced to convert both the `Substring` keys
-and values to `String` to do this.
+to force a copy of a substring in order to use it with a string: joining
+substrings, and converting substrings to integers. In particular, these
+operations are likely to be used inside a loop over a number of substrings
+extracted from a string – for example, splitting a string into substrings,
+then rejoining them.
+
+Additionally, per SE-163, operations on `Substring` that produce a fresh string
+(such as `.uppercase`) should return a `String`. This changes
+`Substring.filter` to do so.
 
 ## Proposed solution
 
@@ -54,16 +55,8 @@ extension Sequence where Element: StringProtocol {
   public func joined(separator: String = "") -> String
 }
 
-extension Dictionary where Key == String {
-  public subscript(key: Substring) -> Value? { get set }
-  public subscript(key: Substring, default defaultValue: @autoclosure () -> Value) -> Value { get set }
-}
-
-extension Set where Element == String {
-  public func contains(_ member: Substring) -> Bool
-  public func index(of member: Substring) -> Index?
-  public mutating func insert(_ newMember: Substring) -> (inserted: Bool, memberAfterInsert: Element)
-  public mutating func remove(_ member: Substring) -> Element?
+extension Substring {
+  public func filter(_ isIncluded: (Element) throws -> Bool) rethrows -> String
 }
 ```
 
@@ -74,37 +67,16 @@ alternatives considered section for more on this.
 
 ## Source compatibility
 
-No impact, these are either additive (in case of hashed containers) or
-generalize an existing API to a protocol (in case of numeric
-conversion/joining).
+No impact, these are generalizing an existing API to a protocol (in case of numeric conversion/joining) or modify a type newly introduced in Swift 4 (in
+case of `filter`).
 
 ## Effect on ABI stability
 
-The hashed container changes are additive so no impact. The switch from conrete
-to generic types for the numeric conversions needs to be made before ABI
-stability.
+The switch from conrete to generic types needs to be made before ABI stability.
 
 ## Alternatives considered
 
-While they have a convenience benefit as well, this is not the primary goal of
-these additions, but a side-effect of helping avoid a performance problem. In
-many other cases, the performance issues can be avoided via modified use e.g.
-`Sequence.contains` of a `Substring` in a sequence of strings can be written as
-`sequence.contains { $0 == substring }` .
-
-These changes are limited in scope, and further additions could be considered
-in the future. For example, should the `Dictionary.init(grouping:by:) where Key
-== String` operation be enhanced to similarly take a sequence of substrings?
-There is a long tail of these cases, and the need to keep unnecessary overloads
-to a minimum, avoiding typechecker work and code bloat, must be weighed against
-the likelyhood that string copies will be a performance problems.
-
-There is a more general problem of interoperating between collections and
-slices. In the future, there may be other affordances for converting/comparing
-them. For example, it might be desirable to require equatable collections to
-have equatable slices, and to automatically provide default implementations of
-`==` that efficiently compare a collection to its default slice. These
-enhancements rely on features such as conditional conformance, and so may be
-worth considering in later versions of Swift but are not an option currently.
-
-
+The goal of this proposal is to generalize existing methods that are specific
+to string processing. Further affordances, such as implicit or explicit
+conversions of `String` to `Substring`, might solve this problem more generally
+but are considered out of scope for this proposal.
