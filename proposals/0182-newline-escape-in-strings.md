@@ -3,7 +3,8 @@
 * Proposal: [SE-0182](0182-newline-escape-in-strings.md)
 * Authors: [John Holdsworth](https://github.com/johnno1962), [David Hart](https://github.com/hartbit), [Adrian Zubarev](https://github.com/DevAndArtist)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Active review (July 12...17)**
+* Status: **Accepted with Revision**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2017-July/000393.html)
 
 * Previous Proposal: [SE-0168](0168-multi-line-string-literals.md)
 
