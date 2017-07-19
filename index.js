@@ -119,6 +119,9 @@ function init () {
     if (document.querySelector('#search-filter').value.trim()) {
       filterProposals()
     }
+
+    // apply selections from the current page's URI fragment
+    _applyFragment(document.location.hash)
   })
 
   req.addEventListener('error', function (e) {
@@ -192,7 +195,7 @@ function renderNav () {
     var className = states[state].className
 
     return html('li', null, [
-      html('input', { type: 'checkbox', id: 'filter-by-' + className, value: className }),
+      html('input', { type: 'checkbox', className: 'filtered-by-status', id: 'filter-by-' + className, value: className }),
       html('label', { className: className, tabindex: '0', role: 'button', 'for': 'filter-by-' + className }, [
         states[state].name
       ])
@@ -220,23 +223,18 @@ function renderNav () {
     var versionRowHeader = html('h5', { id: 'version-options-label', className: 'hidden' }, 'Language Version')
     var versionRow = html('ul', { id: 'version-options', className: 'filter-by-status hidden' })
 
-    /** Helper to give versions like 3.0.1 an okay ID to use in a DOM element. (swift-3-0-1) */
-    function idSafeName (name) {
-      return 'swift-' + name.replace(/\./g, '-')
-    }
-
     var versionOptions = languageVersions.map(function (version) {
       return html('li', null, [
         html('input', {
           type: 'checkbox',
-          id: 'filter-by-swift-' + idSafeName(version),
+          id: 'filter-by-swift-' + _idSafeName(version),
           className: 'filter-by-swift-version',
-          value: 'swift-' + idSafeName(version)
+          value: 'swift-' + _idSafeName(version)
         }),
         html('label', {
           tabindex: '0',
           role: 'button',
-          'for': 'filter-by-swift-' + idSafeName(version)
+          'for': 'filter-by-swift-' + _idSafeName(version)
         }, 'Swift ' + version)
       ])
     })
@@ -594,13 +592,22 @@ function filterProposals () {
     clearButton.classList.remove('hidden')
   }
 
-  // The search input treats words as order-independent.
-  var matchingSets = filter.split(/\s/)
-    .filter(function (s) { return s.length > 0 })
-    .map(function (part) { return _searchProposals(part) })
+  var matchingSets = [proposals.concat()]
 
-  if (filter.trim().length === 0) {
-    matchingSets = [proposals.concat()]
+  // Comma-separated lists of proposal IDs are treated as an "or" search.
+  if (filter.match(/(SE-\d\d\d\d)($|((,SE-\d\d\d\d)+))/i)) {
+    var proposalIDs = filter.split(',').map(function (id) {
+      return id.toUpperCase()
+    })
+
+    matchingSets[0] = matchingSets[0].filter(function (proposal) {
+      return proposalIDs.indexOf(proposal.id) !== -1
+    })
+  } else if (filter.trim().length !== 0) {
+    // The search input treats words as order-independent.
+    matchingSets = filter.split(/\s/)
+      .filter(function (s) { return s.length > 0 })
+      .map(function (part) { return _searchProposals(part) })
   }
 
   var intersection = matchingSets.reduce(function (intersection, candidates) {
@@ -608,6 +615,7 @@ function filterProposals () {
   }, matchingSets[0] || [])
 
   _applyFilter(intersection)
+  _updateURIFragment()
 }
 
 /**
@@ -725,6 +733,189 @@ function _applyFilter (matchingProposals) {
   })
 
   updateProposalsCount(matchingProposals.length)
+}
+
+/**
+ * Parses a URI fragment and applies a search and filters to the page.
+ *
+ * Syntax (a query string within a fragment):
+ *   fragment --> `#?` parameter-value-list
+ *   parameter-value-list --> parameter-value | parameter-value-pair `&` parameter-value-list
+ *   parameter-value-pair --> parameter `=` value
+ *   parameter --> `proposal` | `status` | `version` | `search`
+ *   value --> ** Any URL-encoded text. **
+ *
+ * For example:
+ *   /#?proposal:SE-0180,SE-0123
+ *   /#?status=rejected&version=3&search=access
+ *
+ * Four types of parameters are supported:
+ * - proposal: A comma-separated list of proposal IDs. Treated as an 'or' search.
+ * - filter: A comma-separated list of proposal statuses to apply as a filter.
+ * - version: A comma-separated list of Swift version numbers to apply as a filter.
+ * - search: Raw, URL-encoded text used to filter by individual term.
+ *
+ * @param {string} fragment - A URI fragment to use as the basis for a search.
+ */
+function _applyFragment (fragment) {
+  if (!fragment || fragment.substr(0, 2) !== '#?') return
+  fragment = fragment.substring(2) // remove the #?
+
+  // use this literal's keys as the source of truth for key-value pairs in the fragment
+  var actions = { proposal: [], search: null, status: [], version: [] }
+
+  // parse the fragment as a query string
+  Object.keys(actions).forEach(function (action) {
+    var pattern = new RegExp(action + '=([^=]+)(&|$)')
+    var values = fragment.match(pattern)
+
+    if (values) {
+      var value = values[1] // 1st capture group from the RegExp
+      if (action === 'search') {
+        value = decodeURIComponent(value)
+      } else {
+        value = value.split(',')
+      }
+
+      actions[action] = value
+    }
+  })
+
+  // perform key-specific parsing and checks
+
+  if (actions.proposal.length) {
+    document.querySelector('#search-filter').value = actions.proposal.join(',')
+  } else if (actions.search) {
+    document.querySelector('#search-filter').value = actions.search
+  }
+
+  if (actions.version.length) {
+    var versionSelections = actions.version.map(function (version) {
+      return document.querySelector('#filter-by-swift-' + _idSafeName(version))
+    }).filter(function (version) {
+      return !!version
+    })
+
+    versionSelections.forEach(function (versionSelection) {
+      versionSelection.checked = true
+    })
+
+    if (versionSelections.length) {
+      document.querySelector(
+        '#filter-by-' + states['.implemented'].className
+      ).checked = true
+    }
+  }
+
+  // track this state specifically for toggling the version panel
+  var implementedSelected = false
+
+  // update the filter selections in the nav
+  if (actions.status.length) {
+    var statusSelections = actions.status.map(function (status) {
+      var stateName = Object.keys(states).filter(function (state) {
+        return states[state].className === status
+      })[0]
+
+      if (!stateName) return // fragment contains a nonexistent state
+      state = states[stateName]
+
+      if (stateName === '.implemented') implementedSelected = true
+
+      return document.querySelector('#filter-by-' + state.className)
+    }).filter(function (status) {
+      return !!status
+    })
+
+    statusSelections.forEach(function (statusSelection) {
+      statusSelection.checked = true
+    })
+  }
+
+  // the version panel needs to be activated if any are specified
+  if (actions.version.length || implementedSelected) {
+    ;['#version-options', '#version-options-label'].forEach(function (selector) {
+      document.querySelector('.filter-options')
+        .querySelector(selector).classList
+        .toggle('hidden')
+    })
+  }
+
+  // specifying any filter in the fragment should activate the filters in the UI
+  if (actions.version.length || actions.status.length) {
+    toggleFilterPanel()
+    toggleFiltering()
+  }
+
+  filterProposals()
+}
+
+/**
+ * Writes out the current search and filter settings to document.location
+ * via window.replaceState.
+ */
+function _updateURIFragment () {
+  var actions = { proposal: [], search: null, status: [], version: [] }
+
+  var search = document.querySelector('#search-filter')
+
+  if (search.value && search.value.match(/(SE-\d\d\d\d)($|((,SE-\d\d\d\d)+))/i)) {
+    actions.proposal = search.value.toUpperCase().split(',')
+  } else {
+    actions.search = search.value
+  }
+
+  var selectedVersions = document.querySelectorAll('.filter-by-swift-version:checked')
+  var versions = [].map.call(selectedVersions, function (checkbox) {
+    return checkbox.value.split('swift-swift-')[1].split('-').join('.')
+  })
+
+  actions.version = versions
+
+  var selectedStatuses = document.querySelectorAll('.filtered-by-status:checked')
+  var statuses = [].map.call(selectedStatuses, function (checkbox) {
+    var className = checkbox.value
+
+    var correspondingStatus = Object.keys(states).filter(function (status) {
+      if (states[status].className === className) return true
+      return false
+    })[0]
+
+    return states[correspondingStatus].className
+  })
+
+  // .implemented is redundant if any specific implementation versions are selected.
+  if (actions.version.length) {
+    statuses = statuses.filter(function (status) {
+      return status !== states['.implemented'].className
+    })
+  }
+
+  actions.status = statuses
+
+  // build the actual fragment string.
+  var fragments = []
+  if (actions.proposal.length) fragments.push('proposal=' + actions.proposal.join(','))
+  if (actions.status.length) fragments.push('status=' + actions.status.join(','))
+  if (actions.version.length) fragments.push('version=' + actions.version.join(','))
+
+  // encoding the search lets you search for `??` and other edge cases.
+  if (actions.search) fragments.push('search=' + encodeURIComponent(actions.search))
+
+  if (!fragments.length) {
+    window.history.replaceState(null, null, './')
+    return
+  }
+
+  var fragment = '#?' + fragments.join('&')
+
+  // avoid creating new history entries each time a search or filter updates
+  window.history.replaceState(null, null, fragment)
+}
+
+/** Helper to give versions like 3.0.1 an okay ID to use in a DOM element. (swift-3-0-1) */
+function _idSafeName (name) {
+  return 'swift-' + name.replace(/\./g, '-')
 }
 
 /**
