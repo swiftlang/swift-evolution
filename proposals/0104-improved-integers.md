@@ -2,8 +2,8 @@
 
 * Proposal: [SE-0104](0104-improved-integers.md)
 * Authors: [Dave Abrahams](https://github.com/dabrahams), [Maxim Moiseev](https://github.com/moiseev)
-* Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Implemented (Swift 4)**
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
+* Status: **Implemented (Swift 4). In revision review ** July 20-24 2017
 * Bug: [SR-3196](https://bugs.swift.org/browse/SR-3196)
 * Previous Revisions: 
   [1](https://github.com/apple/swift-evolution/blob/0440700fc555a6c72abb4af807c8b79fb1bec592/proposals/0104-improved-integers.md), 
