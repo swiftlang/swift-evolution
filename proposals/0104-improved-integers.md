@@ -5,7 +5,10 @@
 * Review Manager: [Joe Groff](https://github.com/jckarter)
 * Status: **Implemented (Swift 4)**
 * Bug: [SR-3196](https://bugs.swift.org/browse/SR-3196)
-* Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/0440700fc555a6c72abb4af807c8b79fb1bec592/proposals/0104-improved-integers.md), [2](https://github.com/apple/swift-evolution/blob/957ab545e05adb94507792e7871b38e34b56a0a5/proposals/0104-improved-integers.md).
+* Previous Revisions: 
+  [1](https://github.com/apple/swift-evolution/blob/0440700fc555a6c72abb4af807c8b79fb1bec592/proposals/0104-improved-integers.md), 
+  [2](https://github.com/apple/swift-evolution/blob/957ab545e05adb94507792e7871b38e34b56a0a5/proposals/0104-improved-integers.md),
+  [3](https://github.com/apple/swift-evolution/blob/80f57a6b7645126fe0220dcb91c19565e447d5d8/proposals/0104-improved-integers.md)
 * Discussion on swift-evolution: [here](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170109/030191.html).
 * Decision notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170227/033372.html)
 
@@ -140,9 +143,9 @@ as shown in the examples below:
 
 - `x << -2` is equivalent to `x >> 2`
 
-- `(1 as UInt8) >> 42)` will evaluate to `0`
+- `(1 as UInt8) >> 42` will evaluate to `0`
 
-- `(-128 as Int8) >> 42)` will evaluate to `0xff` or `-1`
+- `(-128 as Int8) >> 42` will evaluate to `0xff` or `-1`
 
 In most scenarios, the right hand operand is a literal constant, and branches
 for handling under- and over-shift cases can be optimized away.  For other
@@ -158,61 +161,66 @@ avoid undefined behavior and produce uniform semantics across architectures.
 
 ### What's new in this revision
 
-* [SE-0091][se91] removed the necessity to dispatch generic operators through
-special methods.
+* Shift operators were reorganized
+  ([pull request](https://github.com/apple/swift/pull/11044))
+  
+    - Masking shift operators were moved from `BinaryInteger` to
+      `FixedWidthInteger`.
+    - Non-masking shift operators were moved from `FixedWidthInteger` to
+      `BinaryInteger`.
 
-  All operators are now declared by protocols as `static func`s.
+  **Rationale:** attempts to implement masking shifts for
+  arbitrary-precision integers have failed because
+  the
+  [semantics aren't clear](https://gist.github.com/xwu/d68baefaae9e9291d2e65bd12ad51be2#semantics-of-masking-shifts-for-arbitrary-precision-integers).
+  Attempts to clarify the definition of the semantics of masking shift
+  for `BinaryInteger` have failed, indicating that the operation
+  doesn't actually make sense outside of `FixedWidthInteger`.
+  
+* `ArithmeticOverflow` was removed in favor of using a simple `Bool`.
 
-* Standard Library no longer provides `+` and `-` operators for `Strideable`
-types.
+   **Rationale:** the enum
+   [proves to have poor ergonomics](https://gist.github.com/xwu/d68baefaae9e9291d2e65bd12ad51be2#arithmeticoverflow).
+   It only appears as part of a result tuple, where a label already
+   helps counteract the readability deficit usually caused by 
+   returning an un-labeled `Bool`.
+   
+* `BinaryInteger`'s initializers from floating point values were
+  changed from:
 
-  They were problematic, as one could have written mixed-type code like `let x:
-  Int64 = 42; x += (1 as Int)`, which would compile, but shouldn't. Besides,
-  since the `Stride` of an unsigned type is signed, Standard Library had to
-  implement a hack to make code like `let x: UInt = 42; x += (1 as Int)`
-  ambiguous. These operators were only necessary because they made advancing
-  collection indices convenient, which is no longer the case since the
-  introduction of the [new indexing model](0065-collections-move-indices.md) in
-  Swift 3.
+    ```swift
+    init?<T : FloatingPoint>(exactly source: T)
+    init<T : FloatingPoint>(_ source: T)
+    ```
+    
+  to:
+  
+    ```swift
+    init?<T : BinaryFloatingPoint>(exactly source: T)
+    init<T : BinaryFloatingPoint>(_ source: T)
+    ```
 
-* Shifts and other bitwise operations were moved from `FixedWidthInteger` to
-`BinaryInteger`.
-
-  Left shift operation on an unbounded integer should infinitely extend the
-  number, and never drop set bits when they reach the most significant position
-  in the underlying representation.
-
-* `BitwiseOperations` protocol was deprecated.
-
-  We believe there are no useful entities that support bitwise operations, but
-  at the same time are not binary integers.
-
-* `Arithmetic` and `SignedArithmetic` protocols have been renamed to `Numeric`
-  and `SignedNumeric`.
-
-* `minimumSignedRepresentationBitWidth` property was removed.
-
-* `word(at:)` methods was replaced by `var words: Words` where `Words` is a new
-  associated type.
-
-  This will help avoid quadratic complexity in algorithms iterating over all
-  words, and also allow standard library to provide a default conformance to
-  `Hashable`.
-
-* `popcount` property was renamed to `populationCount`.
-
-* `trailingZeroBits` property was added to the `BinaryInteger` protocol.
-
-  `leadingZeroBits` and `populationCount` properties are still defined by the
-  `FixedWidthInteger` protocol.
-
-* Endian-converting initializers and properties were added to the
-`FixedWidthInteger` protocol.
-
-* Standard library introduces the new type `DoubleWidth<T>`.
-
-  See [this section](#doublewidtht) for more details.
-
+  **Rationale:** Attempts to implement these initializers for
+  arbitrary models of `FloatingPoint` have failed
+  (see
+  [here](https://github.com/apple/swift/blob/826f8daf4a25657965f65cbb7343e751c76fe2e1/stdlib/public/core/DoubleWidth.swift.gyb#L100-L106) and
+  [here](https://github.com/apple/swift/blob/826f8daf4a25657965f65cbb7343e751c76fe2e1/test/Prototypes/BigInt.swift#L145-L151))
+  whereas they are
+  clearly
+  [implementable](https://github.com/apple/swift/blob/826f8daf4a25657965f65cbb7343e751c76fe2e1/stdlib/public/core/DoubleWidth.swift.gyb#L108-L159) for
+  models of `BinaryFloatingPoint`, suggesting that the operation
+  doesn't actually make sense outside of `BinaryFloatingPoint`.
+  
+* `BinaryInteger`'s `init(extendingOrTruncating:)` was renamed to
+  `init(truncatingIfNeeded:)`
+  
+  **Rationale:** `extendingOrTruncating` emphasizes a part of the
+  semantics (“extending”) that is lossless and thus doesn't warrant
+  the implied warning of an argument label.  The two use cases for
+  this initializer are intentional truncation and optimizing out range
+  checks that are known by the programmer to be un-needed.  Both these
+  cases are better served by `truncatingIfNeeded`.
+  
 ### Protocols
 
 #### `Numeric`
@@ -439,7 +447,7 @@ public protocol BinaryInteger :
   ///     // y == nil
   ///
   /// - Parameter source: A floating-point value to convert to an integer.
-  init?<T : FloatingPoint>(exactly source: T)
+  init?<T : BinaryFloatingPoint>(exactly source: T)
 
   /// Creates an integer from the given floating-point value, truncating any
   /// fractional part.
@@ -460,7 +468,7 @@ public protocol BinaryInteger :
   ///
   /// - Parameter source: A floating-point value to convert to an integer.
   ///   `source` must be representable in this type after truncation.
-  init<T : FloatingPoint>(_ source: T)
+  init<T : BinaryFloatingPoint>(_ source: T)
 
   /// Creates an new instance from the given integer.
   ///
@@ -490,7 +498,7 @@ public protocol BinaryInteger :
   ///
   ///     let p: Int16 = -500
   ///     // 'p' has a binary representation of 11111110_00001100
-  ///     let q = Int8(extendingOrTruncating: p)
+  ///     let q = Int8(truncatingIfNeeded: p)
   ///     // q == 12
   ///     // 'q' has a binary representation of 00001100
   ///
@@ -501,21 +509,21 @@ public protocol BinaryInteger :
   ///
   ///     let u: Int8 = 21
   ///     // 'u' has a binary representation of 00010101
-  ///     let v = Int16(extendingOrTruncating: u)
+  ///     let v = Int16(truncatingIfNeeded: u)
   ///     // v == 21
   ///     // 'v' has a binary representation of 00000000_00010101
   ///
   ///     let w: Int8 = -21
   ///     // 'w' has a binary representation of 11101011
-  ///     let x = Int16(extendingOrTruncating: w)
+  ///     let x = Int16(truncatingIfNeeded: w)
   ///     // x == -21
   ///     // 'x' has a binary representation of 11111111_11101011
-  ///     let y = UInt16(extendingOrTruncating: w)
+  ///     let y = UInt16(truncatingIfNeeded: w)
   ///     // y == 65515
   ///     // 'y' has a binary representation of 11111111_11101011
   ///
   /// - Parameter source: An integer to convert to this type.
-  init<T : BinaryInteger>(extendingOrTruncating source: T)
+  init<T : BinaryInteger>(truncatingIfNeeded source: T)
 
   /// Creates a new instance with the representable value that's closest to the
   /// given integer.
@@ -665,117 +673,19 @@ public protocol BinaryInteger :
 
   /// Returns the result of shifting this value's binary representation the
   /// specified number of digits to the right.
-  ///
-  /// In a *masking shift*, the bit pattern of the value passed as `rhs` is
-  /// masked to produce a value between zero and the bit width of `lhs`. The
-  /// shift is performed using this masked value. Masking shifts require more
-  /// care to use correctly than a traditional bit shift, but are likely to be
-  /// more efficient when used with shift amounts that are not compile-time
-  /// constants. On most architectures, a masking shift compiles down to a
-  /// single instruction.
-  ///
-  /// For example, if you shift an 8-bit, unsigned integer by 2, the shift
-  /// amount requires no masking.
-  ///
-  ///     let x: UInt8 = 30                 // 0b00011110
-  ///     let y = x &>> 2
-  ///     // y == 7                         // 0b00000111
-  ///
-  /// However, if you shift it by 11, it first bitmasks `rhs` to `3`, and then
-  /// uses that masked value as the number of bits to shift `x`.
-  ///
-  ///     let z = x &>> 11
-  ///     // z == 3                         // 0b00000011
-  ///
-  /// Relationship to the Right Shift Operator
-  /// ----------------------------------------
-  ///
-  /// The masking right shift operator handles attempted overshifts and
-  /// undershifts differently from the right shift operator (`>>`). When the
-  /// value passed as `rhs` in a masking shift is within the range
-  /// `0...<bitWidth`, the operation is equivalent to using the right shift
-  /// operator.
-  ///
-  ///     let x: UInt8 = 30                 // 0b00011110
-  ///     let y1 = x &>> 2
-  ///     // y1 == 7                        // 0b00000111
-  ///     let y2 = x >> 2
-  ///     // y2 == 7                        // 0b00000111
-  ///
-  /// The right shift operator does not mask its right-hand-side argument, so
-  /// passing `11` as `rhs` shifts all the bits of `x` to zero.
-  ///
-  ///     let z1 = x &>> 11
-  ///     // z1 == 240                      // 0b00000011
-  ///     let z2 = x >> 11
-  ///     // z2 == 0                        // 0b00000000
-  ///
-  /// - Parameter rhs: The number of bits to shift this value to the right. If
-  ///   `rhs` is outside the range `0..<bitWidth`, it is masked to produce a
-  ///   value within that range.
-  /// - Returns: The result of shifting this value by the masked `rhs` to the
-  ///   right.
-  ///
-  /// - SeeAlso: `&<<`, `>>`
-  static func &>>(_ lhs: Self, _ rhs: Self) -> Self
-  static func &>>=(_ lhs: inout Self, _ rhs: Self)
+  static func >><RHS: BinaryInteger>(_ lhs: Self, _ rhs: RHS) -> Self
 
-  /// Returns the result of shifting this value's binary representation the
+  /// Stores the result of shifting a value's binary representation the
+  /// specified number of digits to the right in the left-hand-side variable.
+  static func >>=<RHS: BinaryInteger>(_ lhs: inout Self, _ rhs: RHS)
+
+  /// Returns the result of shifting a value's binary representation the
   /// specified number of digits to the left.
-  ///
-  /// In a *masking shift*, the bit pattern of the value passed as `rhs` is
-  /// masked to produce a value between zero and the bit width of `lhs`. The
-  /// shift is performed using this masked value. Masking shifts require more
-  /// care to use correctly than a traditional bit shift, but are likely to be
-  /// more efficient when used with shift amounts that are not compile-time
-  /// constants. On most architectures, a masking shift compiles down to a
-  /// single instruction.
-  ///
-  /// For example, if you shift an 8-bit, unsigned integer by 2, the shift
-  /// amount requires no masking.
-  ///
-  ///     let x: UInt8 = 30                 // 0b00011110
-  ///     let y = x &>> 2
-  ///     // y == 120                       // 0b01111000
-  ///
-  /// However, if you shift it by 11, it first bitmasks `rhs` to `3`, and then
-  /// uses that masked value as the number of bits to shift `x`.
-  ///
-  ///     let z = x &<< 11
-  ///     // z == 240                       // 0b11110000
-  ///
-  /// Relationship to the Left Shift Operator
-  /// ---------------------------------------
-  ///
-  /// The masking left shift operator handles attempted overshifts and
-  /// undershifts differently from the left shift operator (`<<`). When the
-  /// value passed as `rhs` in a masking shift is within the range
-  /// `0...<bitWidth`, the operation is equivalent to using the left shift
-  /// operator.
-  ///
-  ///     let x: UInt8 = 30                 // 0b00011110
-  ///     let y1 = x &<< 2
-  ///     // y1 == 120                      // 0b01111000
-  ///     let y2 = x << 2
-  ///     // y2 == 120                      // 0b01111000
-  ///
-  /// The left shift operator does not mask its right-hand-side argument, so
-  /// passing `11` as `rhs` shifts all the bits of `x` to zero.
-  ///
-  ///     let z1 = x &<< 11
-  ///     // z1 == 240                      // 0b11110000
-  ///     let z2 = x << 11
-  ///     // z2 == 0                        // 0b00000000
-  ///
-  /// - Parameter rhs: The number of bits to shift this value to the left. If
-  ///   `rhs` is outside the range `0..<bitWidth`, it is masked to produce a
-  ///   value within that range.
-  /// - Returns: The result of shifting this value by the masked `rhs` to the
-  ///   left.
-  ///
-  /// - SeeAlso: `&>>`, `<<`
-  static func &<<(_ lhs: Self, _ rhs: Self) -> Self
-  static func &<<=(_ lhs: inout Self, _ rhs: Self)
+  static func << <RHS: BinaryInteger>(_ lhs: Self, _ rhs: RHS) -> Self
+
+  /// Stores the result of shifting a value's binary representation the
+  /// specified number of digits to the left in the left-hand-side variable
+  static func <<= <RHS: BinaryInteger>(_ lhs: inout Self, _ rhs: RHS)
 
   /// Returns the quotient and remainder of this value divided by the given
   /// value.
@@ -862,7 +772,7 @@ public protocol FixedWidthInteger : BinaryInteger {
   ///
   /// - SeeAlso: `+`
   func addingReportingOverflow(_ other: Self)
-    -> (partialValue: Self, overflow: ArithmeticOverflow)
+    -> (partialValue: Self, overflow: Bool)
 
   /// Returns the difference of this value and the given value along with a
   /// flag indicating whether overflow occurred in the operation.
@@ -877,7 +787,7 @@ public protocol FixedWidthInteger : BinaryInteger {
   ///
   /// - SeeAlso: `-`
   func subtractingReportingOverflow(_ other: Self)
-    -> (partialValue: Self, overflow: ArithmeticOverflow)
+    -> (partialValue: Self, overflow: Bool)
 
   /// Returns the product of this value and the given value along with a flag
   /// indicating whether overflow occurred in the operation.
@@ -892,7 +802,7 @@ public protocol FixedWidthInteger : BinaryInteger {
   ///
   /// - SeeAlso: `*`, `multipliedFullWidth(by:)`
   func multipliedReportingOverflow(by other: Self)
-    -> (partialValue: Self, overflow: ArithmeticOverflow)
+    -> (partialValue: Self, overflow: Bool)
 
   /// Returns the quotient of dividing this value by the given value along with
   /// a flag indicating whether overflow occurred in the operation.
@@ -909,7 +819,7 @@ public protocol FixedWidthInteger : BinaryInteger {
   ///
   /// - SeeAlso: `/`, `dividingFullWidth(_:)`
   func dividedReportingOverflow(by other: Self)
-    -> (partialValue: Self, overflow: ArithmeticOverflow)
+    -> (partialValue: Self, overflow: Bool)
 
   /// Returns a double-width value containing the high and low parts of the
   /// result of multiplying this value by an argument.
@@ -1009,6 +919,27 @@ public protocol FixedWidthInteger : BinaryInteger {
 
   /// A representation of this integer with the byte order swapped.
   var byteSwapped: Self { get }
+
+
+  /// Returns the result of shifting a value's binary representation the
+  /// specified number of digits to the right, masking the shift amount to the
+  /// type's bit width.
+  static func &>>(_ lhs: Self, _ rhs: Self) -> Self
+
+  /// Calculates the result of shifting a value's binary representation the
+  /// specified number of digits to the right, masking the shift amount to the
+  /// type's bit width, and stores the result in the left-hand-side variable.
+  static func &>>=(_ lhs: inout Self, _ rhs: Self)
+  
+  /// Returns the result of shifting a value's binary representation the
+  /// specified number of digits to the left, masking the shift amount to the
+  /// type's bit width.
+  static func &<<(_ lhs: Self, _ rhs: Self) -> Self
+
+  /// Returns the result of shifting a value's binary representation the
+  /// specified number of digits to the left, masking the shift amount to the
+  /// type's bit width, and stores the result in the left-hand-side variable.
+  static func &<<=(_ lhs: inout Self, _ rhs: Self)
 }
 ```
 
@@ -1059,23 +990,31 @@ case let (high, low) = doubleWidthValue
 ### Extra operators
 
 In addition to the operators described in the [protocols section](#protocols),
-we also provide a few extensions that are not protocol requirements:
+we also provide a few extensions:
+
+#### Non-mutating homogeneous shifts
+
+```Swift
+extension FixedWidthInteger {
+  public static func &>> (lhs: Self, rhs: Self) -> Self
+  public static func &<< (lhs: Self, rhs: Self) -> Self
+```
 
 #### Heterogeneous shifts
 
 ```Swift
 extension BinaryInteger {
-  // Masking shifts
-  static func &>>  <Other : BinaryInteger>(lhs: Self, rhs: Other) -> Self
-  static func &>>= <Other : BinaryInteger>(lhs: inout Self, rhs: Other)
-  static func &<<  <Other : BinaryInteger>(lhs: Self, rhs: Other) -> Self
-  static func &<<= <Other : BinaryInteger>(lhs: inout Self, rhs: Other)
-
   // 'Smart' shifts
   static func >>  <Other : BinaryInteger>(lhs: Self, rhs: Other) -> Self
   static func >>= <Other : BinaryInteger>(lhs: inout Self, rhs: Other)
   static func <<  <Other : BinaryInteger>(lhs: Self, rhs: Other) -> Self
   static func <<= <Other : BinaryInteger>(lhs: inout Self, rhs: Other)
+}
+extension FixedWidthInteger {
+  public static func &>> <Other : BinaryInteger>(lhs: Self, rhs: Other) -> Self
+  public static func &>>= <Other : BinaryInteger>(lhs: inout Self, rhs: Other)
+  public static func &<< <Other : BinaryInteger>(lhs: Self, rhs: Other) -> Self
+  public static func &<<= <Other : BinaryInteger>(lhs: inout Self, rhs: Other)
 }
 ```
 
