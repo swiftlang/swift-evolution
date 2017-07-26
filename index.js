@@ -189,8 +189,8 @@ function renderNav () {
   // .acceptedWithRevisions proposals are combined in the filtering UI
   // with .accepted proposals.
   var checkboxes = [
-    '.awaitingReview', '.scheduledForReview', '.activeReview', '.returnedForRevision', '.accepted',
-    '.implemented', '.deferred', '.rejected', '.withdrawn'
+    '.awaitingReview', '.scheduledForReview', '.activeReview', '.accepted',
+    '.implemented', '.returnedForRevision', '.deferred', '.rejected', '.withdrawn'
   ].map(function (state) {
     var className = states[state].className
 
@@ -257,8 +257,8 @@ function renderBody () {
   var proposalAttachPoint = article.querySelector('.proposals-list')
 
   var proposalPresentationOrder = [
-    '.awaitingReview', '.scheduledForReview', '.activeReview', '.returnedForRevision', '.accepted',
-    '.acceptedWithRevisions', '.implemented', '.deferred', '.rejected', '.withdrawn'
+    '.awaitingReview', '.scheduledForReview', '.activeReview', '.accepted',
+    '.acceptedWithRevisions', '.implemented', '.returnedForRevision', '.deferred', '.rejected', '.withdrawn'
   ]
 
   proposalPresentationOrder.map(function (state) {
