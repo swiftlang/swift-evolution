@@ -1,9 +1,10 @@
 # Substring performance affordances
 
 * Proposal: [SE-0183](0183-substring-affordances.md)
-* Authors: [Ben Cohen](https://github.com/airspeedswift)
+* Author: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Active review (July 18...21)**
+* Status: **Accepted**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2017-July/000395.html)
 
 ## Introduction
 
