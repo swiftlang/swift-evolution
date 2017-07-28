@@ -304,7 +304,7 @@ access modifier is `public` for all APIs unless specified.
                 private init(name: String, type: LibraryType? = nil, targets: [String])
             }
 
-            /// Create a libary product.
+            /// Create a library product.
             static func library(name: String, type: LibraryType? = nil, targets: [String]) -> Library
 
             /// Create an executable product.
@@ -508,8 +508,8 @@ access modifier is `public` for all APIs unless specified.
         name: "Paper",
         products: [
             .executable(name: "tool", targets: ["tool"]),
-            .libary(name: "Paper", type: .static, targets: ["Paper"]),
-            .libary(name: "PaperDy", type: .dynamic, targets: ["Paper"]),
+            .library(name: "Paper", type: .static, targets: ["Paper"]),
+            .library(name: "PaperDy", type: .dynamic, targets: ["Paper"]),
         ],
         dependencies: [
             .package(url: "http://github.com/SwiftyJSON/SwiftyJSON", from: "1.2.3"),
@@ -549,9 +549,9 @@ let package = Package(
     name: "Paper",
     products: [
         .executable(name: "tool", targets: ["tool"]),
-        .libary(name: "Paper", targets: ["Paper"]),
-        .libary(name: "PaperStatic", type: .static, targets: ["Paper"]),
-        .libary(name: "PaperDynamic", type: .dynamic, targets: ["Paper"]),
+        .library(name: "Paper", targets: ["Paper"]),
+        .library(name: "PaperStatic", type: .static, targets: ["Paper"]),
+        .library(name: "PaperDynamic", type: .dynamic, targets: ["Paper"]),
     ],
     dependencies: [
         .package(url: "http://github.com/SwiftyJSON/SwiftyJSON", from: "1.2.3"),
