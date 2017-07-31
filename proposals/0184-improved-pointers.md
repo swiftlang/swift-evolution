@@ -1,7 +1,7 @@
 # Improved pointers
 
 * Proposal: [SE-0184](0184-improved-pointers.md)
-* Authors: [Kelvin Ma](https://github.com/kelvin13) (“*Taylor Swift*”)
+* Author: [Kelvin Ma (“Taylor Swift”)](https://github.com/kelvin13)
 * Review Manager: TBD
 * Status: **Awaiting review**
 
