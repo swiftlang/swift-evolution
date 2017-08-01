@@ -3,7 +3,7 @@
 * Proposal: [SE-0171](0171-reduce-with-inout.md)
 * Author: [Chris Eidhof](https://github.com/chriseidhof)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Accepted**
+* Status: **Implemented (Swift 4)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170424/036126.html)
 
 ## Introduction
