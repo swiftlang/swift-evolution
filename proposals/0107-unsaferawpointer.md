@@ -8,7 +8,7 @@
 
 For detailed instructions on how to migrate your code to this new
 Swift 3 API refer to the
-[UnsafeRawPointer Migration Guide](https://swift.org/migration-guide/se-0107-migrate.html). See
+[UnsafeRawPointer Migration Guide](https://swift.org/migration-guide-swift3/se-0107-migrate.html). See
 also: See `bindMemory(to:capacity:)`, `assumingMemoryBound(to:)`, and
 `withMemoryRebound(to:capacity:)`.
 
