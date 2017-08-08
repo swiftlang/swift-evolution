@@ -99,7 +99,7 @@ In detail, the following changes should be made:
 
 Removing `capacity` from `deallocate(capacity:)` will end the confusion over what `deallocate()` does, making it obvious that `deallocate()` will free the *entire* memory block at `self`, just as if `free()` were called on it.
 
-The old `deallocate(capacity:)` method should be marked as `unavailable` since it currently encourages dangerously incorrect code. This avoids misleading future users, forces current users to address this potentially catastrophic memory bug, and leaves the possibility open for us to add a `deallocate(count:)` method in the future, or perhaps even a `reallocate(toCount:)` method.
+The old `deallocate(capacity:)` method should be marked as `unavailable` since it currently encourages dangerously incorrect code. This avoids misleading future users, forces current users to address this potentially catastrophic memory bug, and leaves the possibility open for us to add a `deallocate(capacity:)` method in the future, or perhaps even a `reallocate(toCapacity:)` method.
 
 Along similar lines, the `bytes` and `alignedTo` parameters should be removed from the `deallocate(bytes:alignedTo:)` method on `UnsafeMutableRawPointer`.
 
@@ -228,7 +228,7 @@ struct UnsafeMutablePointer<Pointee>
 --- func moveAssign(from:UnsafeMutablePointer<Pointee>, count:Int)
 --- func moveInitialize(from:UnsafeMutablePointer<Pointee>, count:Int)
 --- func initialize(from:UnsafePointer<Pointee>, count:Int)
---- func initialize(repeating:Element, count:Int)
+--- func initialize(to:Pointee, count:Int)
 --- func deinitialize(count:Int)
 --- func withMemoryRebound<T, Result>(to:T.Type, count:Int, _ body:(UnsafeMutablePointer<T>) -> Result)
 
@@ -236,7 +236,7 @@ struct UnsafeMutablePointer<Pointee>
 +++ func moveAssign(from:UnsafeMutablePointer<Pointee>, count:Int = 1)
 +++ func moveInitialize(from:UnsafeMutablePointer<Pointee>, count:Int = 1)
 +++ func initialize(from:UnsafePointer<Pointee>, count:Int = 1)
-+++ func initialize(repeating:Element, count:Int = 1)
++++ func initialize(repeating:Pointee, count:Int = 1)
 +++ func deinitialize(count:Int = 1)
 +++ func withMemoryRebound<T, Result>(to:T.Type, count:Int = 1, _ body:(UnsafeMutablePointer<T>) -> Result)
 }
@@ -276,7 +276,7 @@ struct UnsafeMutableBufferPointer<Element>
 
 +++ func assign(from:UnsafeBufferPointer<Element>)
 +++ func assign(from:UnsafeMutableBufferPointer<Element>)
-+++ func assign(repeating:Pointee)
++++ func assign(repeating:Element)
 +++ func moveAssign(from:UnsafeMutableBufferPointer<Element>)
 +++ func moveInitialize(from:UnsafeMutableBufferPointer<Element>)
 +++ func initialize(from:UnsafeBufferPointer<Element>)
@@ -293,7 +293,7 @@ struct UnsafeMutableRawBufferPointer
 +++ static func allocate(bytes:Int, alignedTo:Int) -> UnsafeMutableRawBufferPointer
     func deallocate()
 +++ func bindMemory<Element>(to:Element.Type, count:Int)
---- func copyBytes(from: UnsafeRawBufferPointer)
+--- func copyBytes(from:UnsafeRawBufferPointer)
 +++ func copy(from:UnsafeRawBufferPointer)
 +++ func copy(from:UnsafeMutableRawBufferPointer)
 +++ func initializeMemory<Element>(as:Element.Type, at:Int, repeating:Element, count:Int)
