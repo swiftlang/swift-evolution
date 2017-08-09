@@ -1,9 +1,9 @@
 # Synthesizing `Equatable` and `Hashable` conformance
 
-* Proposal: [SE-NNNN](NNNN-synthesize-equatable-hashable.md)
+* Proposal: [SE-0185](0185-synthesize-equatable-hashable.md)
 * Author: [Tony Allevato](https://github.com/allevato)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Chris Lattner](https://github.com/lattner)
+* Status: **Active review (Aug 9...15)**
 
 ## Introduction
 
