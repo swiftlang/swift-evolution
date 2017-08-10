@@ -1,8 +1,8 @@
 # Swift Programming Language Evolution
-[![Swift](https://img.shields.io/badge/Swift%205-Open%20to%20requests-brightgreen.svg)](#swift_stage)
+[![Swift 5: August 8, 2017 ... March 1, 2018](https://img.shields.io/badge/Swift%205-August%208%2C%202017%20...%20March%201%2C%202018-orange.svg)](#swift_stage)
 
 
-**Before you initiate a pull request**, please read the process document. Ideas should be thoroughly discussed on the [swift-evolution mailing list](https://swift.org/community/#swift-evolution) first.
+**Before you initiate a pull request**, please read the [process](process.md) document. Ideas should be thoroughly discussed on the [swift-evolution mailing list](https://swift.org/community/#swift-evolution) first.
 
 This repository tracks the ongoing evolution of Swift. It contains:
 
