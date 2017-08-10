@@ -3,7 +3,7 @@
 * Proposal: [SE-0185](0185-synthesize-equatable-hashable.md)
 * Author: [Tony Allevato](https://github.com/allevato)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Active review (Aug 9...15)**
+* Status: **Active review (August 9...15)**
 
 ## Introduction
 
