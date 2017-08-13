@@ -11,13 +11,57 @@ Swift’s pointer types are an important interface for low-level memory manipula
 
 This proposal seeks to improve the Swift pointer API by ironing out naming inconsistencies, adding sensible default argument values, adding missing methods, and reducing excessive verbosity, offering a more convenient, more sensible, and less bug-prone API.
 
-The [previous draft](https://gist.github.com/kelvin13/a9c033193a28b1d4960a89b25fbffb06) of this proposal was relatively source-breaking, calling for a separation of functionality between singular pointer types and vector (buffer) pointer types. This proposal instead separates functionality between internally-tracked length pointer types and externally-tracked length pointer types. This results in an equally elegant API with about one-third less surface area.
+The [previous version](https://gist.github.com/kelvin13/1b8ae906be23dff22f7a7c4767f0c907) of this document ignored the generic initialization methods on `UnsafeMutableBufferPointer` and `UnsafeMutableRawBufferPointer`, leaving them to be overhauled at a later date, in a separate proposal. Instead, this version of the proposal leverages those existing methods to inform a more compact API design which has less surface area, and is more future-proof since it obviates the need to design and add another (redundant) set of protocol-oriented pointer APIs later.
 
 Swift-evolution thread: [Pitch: Improved Swift pointers](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170710/038013.html), [Pitch: More Improved Swift pointers](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170717/038121.html)
 
+## Background 
+
+There are four binary memorystate operations: *initialization*, *move-initialization*, *assignment*, and *move-assignment*. They can be grouped according to how they affect the source buffer and the destination buffer. **Copy** operations only read from the source buffer, leaving it unchanged. **Move** operations with deinitialize the source memory, decrementing the reference count by 1 if the memory type is not a trivial type. **Retaining** operations initialize the destination memory, incrementing the reference count by 1 if applicable. **Releasing** operations deinitialize the destination memory before reinitializing it with the new values, resulting in a net change in the reference count of 0, if applicable.
+
+|                    | Copy (+0)       | Move (−1)            |
+| -------------:     |----------:      | ---------:           |
+| **Retaining (+1)** | initialize (+1) | move-initialize (+0) |
+| **Releasing (+0)** | assign     (+0) |  move-assign    (−1) |
+
+Note: deinitialization is a unary operation; it decrements the reference count of the buffer by 1. 
+
+The four main types of Swift pointers we have currently support different subsets of this toolbox.
+
+### UnsafeMutablePointer 
+
+|               | Copy            | Move                 |
+| ------------- |----------:      | ---------:           |
+| **Retaining** | `initialize(to:count:)`, `initialize(from:count:)` | `moveInitialize(from:count:)` |
+| **Releasing** |                              `assign(from:count:)` |     `moveAssign(from:count:)` |
+
+### UnsafeMutableRawPointer 
+
+|               | Copy            | Move                 |
+| ------------- |----------:      | ---------:           |
+| **Retaining** | `initializeMemory<T>(as:at:count:to:)`, `initializeMemory<T>(as:from:count:)` | `moveInitializeMemory<T>(as:from:count:)` |
+| **Releasing** | | |
+
+### UnsafeMutableBufferPointer 
+
+|               | Copy            | Move                 |
+| ------------- |----------:      | ---------:           |
+| **Retaining** | `initialize<S>(from:)` | |
+| **Releasing** | | |
+
+
+### UnsafeMutableRawBufferPointer 
+
+|               | Copy            | Move                 |
+| ------------- |----------:      | ---------:           |
+| **Retaining** | `initializeMemory<S>(as:from:)` | |
+| **Releasing** | | |
+
+There are unary memorystate operations such as *deinitialization* and *type rebinding*, which are not listed in the tables, but are still covered by this proposal. Raw pointers also have a unique operation, *bitwise-copying*, which we will lump together with the memorystate functions, but does not actually change a pointer’s memory state.
+
 ## Motivation
 
-Right now, `UnsafeMutableBufferPointer` is kind of a black box when it comes to producing and modifying instances of it. To create, bind, allocate, initialize, deinitialize, and deallocate them, you have to extract `baseAddress`es and `count`s. This is unfortunate because `UnsafeMutableBufferPointer` provides a handy container for tracking the size of a memory buffer, but to actually make use of this information, the buffer pointer must be disassembled. In practice, this means the use of memory buffers requires frequent (and annoying) conversion back and forth between buffer pointers and base address–count pairs. For example, to move-initialize memory between two buffer pointers, you have to write this:
+Right now, `UnsafeMutableBufferPointer` is kind of a black box when it comes to producing and modifying instances of it. Much of the API present on `UnsafeMutablePointer` is absent on its buffer variant. To create, bind, allocate, initialize, deinitialize, and deallocate them, you have to extract `baseAddress`es and `count`s. This is unfortunate because `UnsafeMutableBufferPointer` provides a handy container for tracking the size of a memory buffer, but to actually make use of this information, the buffer pointer must be disassembled. In practice, this means the use of memory buffers requires frequent (and annoying) conversion back and forth between buffer pointers and base address–count pairs. For example, to move-initialize memory between two buffer pointers, you have to write this:
 
 ```swift
 buffer1.baseAddress?.moveInitialize(from: buffer2.baseAddress!, count: buffer1.count)
@@ -71,15 +115,13 @@ defer
 
 which is functionally equivalent. However this will lead to disastrous source breakage if the implementation of `deallocate(capacity:)` is ever “corrected”. Since the API would not change, such code would still compile, but suddenly start failing at runtime. Thus, the current API, combined with incorrect documentation, is serving as a vector for introducing memory bugs into Swift code.
 
-Inconsistencies exist in the memorystate functions. (The basic memorystate operations are *initialize*, *move-initialize*, *move*, *move-assign*, *assign*, *deinitialize*, and *rebind memory*; for the purposes of this document, *bitwise copying* is also considered a memorystate operation even though it does not change the memory state of a pointer.) The `initialize(from:count:)` method on `UnsafeMutablePointer` has a repeating variant, `initialize(to:count:)`, but `assign(from:count:)` has no such variant, even though it would make just as much sense for it to have one.
-
-While most of the memorystate functions are absent from `UnsafeMutableBufferPointer`, there is *one* strange exception — `UnsafeMutableBufferPointer` features an `initialize<S>(from:)` method which takes a `Sequence`. This method was originally an inhabitant of `UnsafeMutablePointer` before it was [supposedly](https://github.com/apple/swift-evolution/blob/master/proposals/0147-move-unsafe-initialize-from.md#detailed-design) moved to `UnsafeMutableBufferPointer` by [SE-147](https://github.com/apple/swift-evolution/blob/master/proposals/0147-move-unsafe-initialize-from.md). This decision appears to have never been carried out, as the type still features an active `initialize<C>(from:)` method which takes a `Collection`. (The original SE-147 method took a `Collection`.)
+The Swift pointer API is incomplete in other ways too. For example, the `initialize(from:count:)` method on `UnsafeMutablePointer` has a repeated-value copy variant, `initialize(to:count:)`, but `assign(from:count:)` has no such variant, even though it would make just as much sense for it to have one.
 
 Finally, the naming of some `UnsafeMutableRawPointer` members deserves a second look. While the original API intended to introduce a naming convention where `bytes` refers to uninitialized memory, `capacity` to uninitialized elements, and `count` to initialized elements, the actual usage of the three words does not always agree. In `copyBytes(from:count:)`, `count` refers to the number of *bytes*, which may or may not be initialized. Similarly, the `UnsafeMutableRawBufferPointer` `allocate(count:)` type method includes a `count` argument which actually refers to uninitialized bytes.
 
 ## Proposed solution
 
-The presence of an associated `count` variable in `UnsafeMutableBufferPointer`, and the absence of it in `UnsafeMutablePointer` leads to a very natural and elegant set of memory APIs. Because buffer length is tracked externally when using `UnsafeMutablePointer`, memory methods on it should explicitly ask for the sizing parameter. Conversely, because buffer length is tracked internally by `UnsafeMutableBufferPointer`, memory methods on it should supply the buffer’s own `count` property for the operation’s sizing parameter. This means you would call 
+The previous draft of this proposal sought to associate the `count` property in `UnsafeMutableBufferPointer` and `UnsafeMutableRawBufferPointer` with the various `count:` arguments, leading to a very natural and elegant set of memory APIs. Because buffer length is tracked externally when using `UnsafeMutablePointer`, memory methods on it should explicitly ask for the sizing parameter. Conversely, because buffer length is tracked internally by `UnsafeMutableBufferPointer`, memory methods on it should supply the buffer’s own `count` property for the operation’s sizing parameter. This means you would call 
 
 ```swift
 ptr1.initialize(from: ptr2, count: count)
@@ -91,45 +133,73 @@ on an `UnsafeMutablePointer`, but
 buffer1.initialize(from: buffer2)
 ```
 
-on an `UnsafeMutableBufferPointer`. This differs from the [previous draft](https://gist.github.com/kelvin13/a9c033193a28b1d4960a89b25fbffb06) of this proposal, in that this expansion is more additive and less source-breaking, preserving the much of the sized API present on `UnsafeMutablePointer`.
+on an `UnsafeMutableBufferPointer`. 
 
-In detail, the following changes should be made:
+This draft improves upon that system by making a small adjustment: when a buffer pointer memory method takes a source argument, the *source* supplies the count, not `self`. This agrees with the existing behavior of the `UnsafeMutableBufferPointer.initialize<S>(from:)` and `UnsafeMutableRawBufferPointer.initializeMemory<S>(as:from:)` methods, which take source arguments which conform to `Sequence`. It also lends itself well to real usage patterns — for example, to implement a dynamic array, to resize the array, you would move-initialize the entirety of the old array into a larger buffer, leaving the new buffer partially initialized, and the old buffer completely uninitialized.
 
-- **remove the `capacity` parameter from `deallocate(capacity:)` and `deallocate(bytes:alignedTo:)`**
+Adopting this convention reduces the amount of new API surface area created, by leveraging existing APIs instead of building parallel APIs. For example, since `UnsafeMutableBufferPointer.initialize<S>(from:)` takes a `Sequence`, and `UnsafeMutableBufferPointer` conforms to `Sequence`, we no longer need to provide a separate *initialize* method which takes an `UnsafeMutableBufferPointer`. There are performance issues that must be considered by making this operation generic, but those are implementation issues that do not affect the outward facing API.
 
-Removing `capacity` from `deallocate(capacity:)` will end the confusion over what `deallocate()` does, making it obvious that `deallocate()` will free the *entire* memory block at `self`, just as if `free()` were called on it.
+The envisioned new API will give buffer pointers parity with their plain variants. For copy operations, where the source argument would once have been another unsafe pointer, it will now be a `Sequence`. (Move operations still always take pointers since they perform deinitialization.) In addition, all the operations in the copy column (regardless of whether the pointer is a buffer pointer or a plain pointer) will support *repeated-value* sources, and actual *sequence sources*. Unlike sequence sources, repeated-value sources do not come with an associated count property, so `self.count` is used instead. Currently, only initialization methods support repeated-value sources. Under this proposal, assignment methods would get them too.
 
-The old `deallocate(capacity:)` method should be marked as `unavailable` since it currently encourages dangerously incorrect code. This avoids misleading future users, forces current users to address this potentially catastrophic memory bug, and leaves the possibility open for us to add a `deallocate(capacity:)` method in the future, or perhaps even a `reallocate(toCapacity:)` method.
+Typed pointers will support all memorystate operations. Raw pointers should only support retaining operations. The new API will look like this:
 
-Along similar lines, the `bytes` and `alignedTo` parameters should be removed from the `deallocate(bytes:alignedTo:)` method on `UnsafeMutableRawPointer`.
+### UnsafeMutablePointer 
 
-- **add unsized memory methods to `UnsafeMutableBufferPointer`**
+|               | Copy            | Move                 |
+| ------------- |----------:      | ---------:           |
+| **Retaining** | `initialize(repeating:count:)`, `initialize(from:count:)` | `moveInitialize(from:count:)` |
+| **Releasing** |         `assign(repeating:count:)`, `assign(from:count:)` |     `moveAssign(from:count:)` |
 
-The following methods will be added to `UnsafeMutableBufferPointer`, giving it parity with `UnsafeMutablePointer`.
+* count comes from explicit `count:` argument 
+* values either come from explicit `repeatedValue` parameter (repeated-value copy), `UnsafePointer` source (sourced copy), or `UnsafeMutablePointer` source (sourced move).
 
-```swift 
-static func allocate<Element>(capacity:Int) -> UnsafeMutableBufferPointer<Element>
-func deallocate()
+### UnsafeMutableRawPointer 
 
-func assign(from:UnsafeBufferPointer<Element>)
-func moveAssign(from:UnsafeMutableBufferPointer<Element>)
-func moveInitialize(from:UnsafeMutableBufferPointer<Element>)
-func initialize(from:UnsafeBufferPointer<Element>)
-func initialize(to:Element)
-func deinitialize()
-```
+|               | Copy            | Move                 |
+| ------------- |----------:      | ---------:           |
+| **Retaining** | `initializeMemory<T>(as:at:repeating:count:)`, `initializeMemory<T>(as:from:count:)` | `moveInitializeMemory<T>(as:from:count:)` |
 
-Where there would have been a `capacity:` or `count:` argument on these methods, this value will be filled by the buffer pointer’s own `count` property. For the binary operations `assign(from:)`, `moveAssign(from:)`, `moveInitialize(from:)`, and `initialize(from:)`, it is assumed that the other buffer pointer contains *at least* as many elements as `self` does.
+* count comes from explicit `count:` argument 
+* values either come from explicit `repeatedValue` parameter (repeated-value copy), `UnsafePointer` source (sourced copy), or `UnsafeMutablePointer` source (sourced move).
 
-- **add an `assign(to:count:)` method to `UnsafeMutablePointer` and an `assign(to:)` method to `UnsafeMutableBufferPointer`**
+### UnsafeMutableBufferPointer 
 
-This addresses the missing assignment analogues to the `initialize(to:count:)` and `initialize(to:)` methods.
+|               | Copy            | Move                 |
+| ------------- |----------:      | ---------:           |
+| **Retaining** | `initialize(repeating:)`, `initialize<S>(from:)` | `moveInitialize(from:)` |
+| **Releasing** |         `assign(repeating:)`, `assign<S>(from:)` |     `moveAssign(from:)` |
 
-- **add a default value of `1` to all size parameters on `UnsafeMutablePointer` and applicable size parameters on `UnsafeMutableRawPointer`**
+* count either comes from `self.count` (repeated-value copy), or iterating through `source` `Sequence` (sourced copy), or `source.count` (sourced move) 
+* values either come from explicit `repeatedValue` parameter (repeated-value copy), `Sequence` source (sourced copy), or `UnsafeMutableBufferPointer` source (sourced move).
+* sourced copy operations return updated source `Sequence` state
 
-Since the most common use case for plain pointers is to manage one single instance of a type, the size parameters on `UnsafeMutablePointer`’s memory methods are good candidates for a default value of `1`. Any size parameter on `UnsafeMutableRawPointer`’s memory methods which take a stride quantity should also receive a default value of `1`. The size parameters in `UnsafeMutableRawPointer`’s other methods should not receive a default value as they refer to byte quantities.
+### UnsafeMutableRawBufferPointer 
 
-- **rename `copyBytes(from:count:)` to `copy(from:bytes:)`**
+|               | Copy            | Move                 |
+| ------------- |----------:      | ---------:           |
+| **Retaining** | `initializeMemory<T>(as:repeating:)`, `initializeMemory<S>(as:from:)` | `moveInitializeMemory<T>(as:from:)` |
+
+* count either computed from `self.count` and `MemoryLayout<T>.stride` (repeated-value copy), or iterating through `source` `Sequence` (sourced copy), or `source.count` (sourced move) 
+* values either come from explicit `repeatedValue` parameter (repeated-value copy), `Sequence` source (sourced copy), or `UnsafeMutableBufferPointer` source (sourced move).
+* sourced copy operations return updated source `Sequence` state
+
+Note: raw pointers don’t get deinitializers for the same reasons that they do not support releasing operations. Deinitialization is nothing but a unary releasing operation that does not reinitialize the destination memory.
+
+Many other miscellaneous changes should also be made.
+
+## Detailed solution
+
+- **fix the ordering of the arguments in `initializeMemory<Element>(as:at:count:to:)` and rename the argument `to:` to `repeating:` in all repeated-value copy functions**
+
+The ordering of the `to:` and `count:` argument labels in the `initializeMemory<Element>(as:at:count:to:)` method on `UnsafeMutableRawPointer` contradicts the rest of the Swift pointer API, where `to:` precedes `count:`. 
+
+Because the ordering `initializeMemory<Element>(as:at:to:count:)` conflicts with the use of `to:` as the argument label for a target type, this argument should be renamed to `repeating:`. The word `repeating:` is much more clear in terms of describing the methods’ behavior, and is consistent with the use of the word in the `Array` API.
+
+- **add the repeated-value copy assignment method `assign(repeating:count:)`**
+
+This addresses the missing assignment analogue to the `initialize(to:count:)` method.
+
+- **rename `copyBytes(from:count:)` to `copy(from:bytes:)` on `UnsafeMutableRawPointer`**
 
 To reduce the inconsistency in our use of the words `bytes`, `count`, and `capacity`, we will enforce the convention that:
 
@@ -143,38 +213,65 @@ We do not rename the `count` property on `UnsafeMutableRawBufferPointer` to `byt
 
 - **rename `count` in `UnsafeMutableRawBufferPointer.allocate(count:)` to `bytes` and add an `alignedTo` parameter to make it `UnsafeMutableRawBufferPointer.allocate(bytes:alignedTo:)`**
 
-This brings it in line with the `UnsafeMutableRawPointer` allocator, and avoids the contradictory and inconsistent use of `count` to represent a byte quantity. Currently `UnsafeMutableRawBufferPointer.allocate(count:)` aligns to the size of `Int`, an assumption not shared by its plain variant.
+This brings it in line with the `UnsafeMutableRawPointer` allocator, and avoids the contradictory and inconsistent use of `count` to represent a byte quantity. Currently `UnsafeMutableRawBufferPointer.allocate(count:)` aligns to the size of `UInt`, an assumption not shared by its plain variant.
 
-- **fix the ordering of the arguments in `initializeMemory<Element>(as:at:count:to:)` and rename the argument `to:` to `repeating:` in all repeating memorystate functions**
+- **remove the `capacity` parameter from `deallocate(capacity:)` and `deallocate(bytes:alignedTo:)`**
 
-The ordering of the `to:` and `count:` argument labels in the `initializeMemory<Element>(as:at:count:to:)` method on `UnsafeMutableRawPointer` contradicts the rest of the Swift pointer API, where `to:` precedes `count:`. 
+Removing `capacity` from `deallocate(capacity:)` will end the confusion over what `deallocate()` does, making it obvious that `deallocate()` will free the *entire* memory block at `self`, just as if `free()` were called on it.
 
-Because the ordering `initializeMemory<Element>(as:at:to:count:)` conflicts with the use of `to:` as the argument label for a target type, this argument should be renamed to `repeating:`. The word `repeating:` is much more clear in terms of describing the methods’ behavior, and is consistent with the use of the word in the `Array` API.
+The old `deallocate(capacity:)` method should be marked as `unavailable` since it currently encourages dangerously incorrect code. This avoids misleading future users, forces current users to address this potentially catastrophic memory bug, and leaves the possibility open for us to add a `deallocate(capacity:)` method in the future, or perhaps even a `reallocate(toCapacity:)` method.
 
-- **add the sized memorystate functions `withMemoryRebound<Element, Result>(to:count:_:)` to `UnsafeMutableBufferPointer`, and `initializeMemory<Element>(as:at:repeating:count:)`, `initializeMemory<Element>(as:from:count:)` `moveInitializeMemory<Element>(as:from:count:)`, and `bindMemory<Element>(to:count:)` to `UnsafeMutableRawBufferPointer`**
+Along similar lines, the `bytes` and `alignedTo` parameters should be removed from the `deallocate(bytes:alignedTo:)` method on `UnsafeMutableRawPointer`.
 
-Since buffer pointers track their own `count`, this value is a natural fit for the `count:` argument in most of the memorystate functions. However, since raw buffer pointers don’t inherently “know” how many instances of an arbitrary type fit in themselves, `initializeMemory<Element>(as:at:repeating:count:)` and `bindMemory<Element>(to:capacity:)` should retain their size parameters.
+- **add unsized memory methods to `UnsafeMutableBufferPointer`**
 
-For similar reasons, `UnsafeMutableBufferPointer.withMemoryRebound<T, Result>(to:capacity:_:)` keeps its size parameter because `capacity` may be different from `count` with a differently laid out type.
+The following methods will be added to `UnsafeMutableBufferPointer`, giving it parity with `UnsafeMutablePointer`. Note that `UnsafeMutableBufferPointer` already contains a `initialize<S>(from:)` method.
+
+```swift 
+static func allocate<Element>(capacity:Int) -> UnsafeMutableBufferPointer<Element>
+func deallocate()
+
+func initialize(repeating:Element)
+// func initialize<S>(from:S) -> (S.Iterator, Index) where S:Sequence, S.Element == Element
+func assign(repeating:Element)
+func assign<S>(from:S) -> (S.Iterator, Index) where S:Sequence, S.Element == Element
+func moveAssign(from:UnsafeMutableBufferPointer<Element>)
+func moveInitialize(from:UnsafeMutableBufferPointer<Element>)
+
+func deinitialize()
+```
+
+Sourced copy operations should return the remainder of the iterator, and the past-the-end index of the written sub-buffer. This return value should be marked as `@discardableResult`.
+
+- **add unsized memory methods to `UnsafeMutableRawBufferPointer`**
+
+The following methods will be added to `UnsafeMutableRawBufferPointer`, giving it parity with `UnsafeMutableRawPointer`. Note that `UnsafeMutableRawBufferPointer` already contains an `allocate(bytes:alignedTo:)`, `deallocate()`, and `initializeMemory<S>(as:from:)` method.
+
+```swift 
+func initializeMemory<T>(as:T.Type, at:Int, repeating:T) -> UnsafeMutableBufferPointer<T>
+func moveInitializeMemory<T>(as:T.Type, from:UnsafeMutableBufferPointer<T>) 
+     -> UnsafeMutableBufferPointer<T>
+```
+
+`UnsafeMutableRawBufferPointer` will compute the count value based on its own `count` property. This involves performing integer division on the stride of `T`, but the standard library already seems to do this for `initializeMemory<S>(as:from:)`, so there is precedent for this behavior.
+
+- **add the unsized rebinding functions `withMemoryRebound<T, Result>(to:_:)` to `UnsafeMutableBufferPointer`, and `bindMemory<T>(to:)` to `UnsafeMutableRawBufferPointer`**
+
+Similarly, `UnsafeMutableBufferPointer` and `UnsafeMutableRawBufferPointer` will compute the count value based on their own lengths, and stride information.
+
+- **add a default value of `1` to all size parameters on `UnsafeMutablePointer` and applicable size parameters on `UnsafeMutableRawPointer`**
+
+Since the most common use case for plain pointers is to manage one single instance of a type, the size parameters on `UnsafeMutablePointer`’s memory methods are good candidates for a default value of `1`. Any size parameter on `UnsafeMutableRawPointer`’s memory methods which take a stride quantity should also receive a default value of `1`. The size parameters in `UnsafeMutableRawPointer`’s other methods should not receive a default value as they refer to byte quantities.
 
 - **add a `init(mutating:)` initializer to `UnsafeMutableBufferPointer`**
 
 This makes it much easier to make a mutable copy of an immutable buffer pointer. Such an initializer already exists on `UnsafeMutableRawBufferPointer`, so adding one to `UnsafeMutableBufferPointer` is also necessary for consistency. The reverse initializer, from `UnsafeMutableBufferPointer` to `UnsafeBufferPointer` should also be added for completeness.
 
-- **add mutable overloads to non-vacating memorystate method arguments on `UnsafeMutableBufferPointer` and `UnsafeMutableRawBufferPointer`**
+- **add a mutable overload to the `copy(from:)` method on `UnsafeMutableRawBufferPointer`**
 
-Non vacating memorystate operations such as `assign(from:)` and `initialize(from:)` on `UnsafeMutableBufferPointer`, and `copy(from:)` and `initializeMemory(at:from:count:)` on `UnsafeMutableRawBufferPointer` currently take immutable source arguments. They should be overloaded to accept mutable source arguments to reduce the need for pointer immutability casts. Currently, for plain pointers, this is covered by a compiler subtyping relationship between `UnsafePointer` and `UnsafeMutablePointer`. No such relationship exists between `UnsafeBufferPointer` and `UnsafeMutableBufferPointer` or their raw counterparts.
-
-- **finally deprecate `initialize<C>(from:)` from `UnsafeMutablePointer`**
-
-This method was supposed to be deprecated per [SE-147](https://github.com/apple/swift-evolution/blob/master/proposals/0147-move-unsafe-initialize-from.md). Better late than never.
-
+Currently, for plain pointers, there is a compiler subtyping relationship between `UnsafePointer` and `UnsafeMutablePointer`. No such relationship exists between `UnsafeBufferPointer` and `UnsafeMutableBufferPointer` or their raw counterparts. Note that it is not necessary to provide a mutable overload for `UnsafeMutableBufferPointer.initialize<S>(from:)` or `UnsafeMutableBufferPointer.assign<S>(from:)` due to their generic nature.
 
 ## What this proposal does not do 
-
-- **add missing memorystate functions that take `Collection`s and `Sequence`s**
-
-This proposal also does not address the missing `Collection`/`Sequence` memorystate functions, although it does call for (finally) removing `UnsafeMutablePointer.initialize<C>(from:)`. This is out of scope for this proposal, and the missing functions can always be filled in at a later date, as part of a purely additive proposal.
 
 - **remove subscripts from `UnsafePointer` and `UnsafeMutablePointer`**
 
@@ -220,8 +317,6 @@ struct UnsafeMutablePointer<Pointee>
 --- func deallocate(capacity _:Int)
 +++ func deallocate()
 
---- func initialize<C>(from:C)
-
 +++ func assign(repeating:Pointee, count:Int = 1)
 
 --- func assign(from:UnsafePointer<Pointee>, count:Int)
@@ -229,16 +324,22 @@ struct UnsafeMutablePointer<Pointee>
 --- func moveInitialize(from:UnsafeMutablePointer<Pointee>, count:Int)
 --- func initialize(from:UnsafePointer<Pointee>, count:Int)
 --- func initialize(to:Pointee, count:Int)
---- func deinitialize(count:Int)
---- func withMemoryRebound<T, Result>(to:T.Type, count:Int, _ body:(UnsafeMutablePointer<T>) -> Result)
-
 +++ func assign(from:UnsafePointer<Pointee>, count:Int = 1)
 +++ func moveAssign(from:UnsafeMutablePointer<Pointee>, count:Int = 1)
 +++ func moveInitialize(from:UnsafeMutablePointer<Pointee>, count:Int = 1)
 +++ func initialize(from:UnsafePointer<Pointee>, count:Int = 1)
 +++ func initialize(repeating:Pointee, count:Int = 1)
+
+--- func deinitialize(count:Int)
+--- func withMemoryRebound<T, Result>(to:T.Type, count:Int, _ body:(UnsafeMutablePointer<T>) -> Result)
 +++ func deinitialize(count:Int = 1)
 +++ func withMemoryRebound<T, Result>(to:T.Type, count:Int = 1, _ body:(UnsafeMutablePointer<T>) -> Result)
+}
+
+struct UnsafeRawPointer
+{
+--- func bindMemory<T>(to:T.Type, count:Int) -> UnsafeMutablePointer<T>
++++ func bindMemory<T>(to:T.Type, count:Int = 1) -> UnsafeMutablePointer<T>
 }
 
 struct UnsafeMutableRawPointer
@@ -248,18 +349,19 @@ struct UnsafeMutableRawPointer
 
 --- func copyBytes(from:UnsafeRawPointer, count:Int)
 +++ func copy(from:UnsafeRawPointer, bytes:Int)
---- func initializeMemory<T>(as:T.Type, at:Int, count:Int, to:T)
-+++ func initializeMemory<T>(as:T.Type, at:Int, repeating:T, count:Int = 1)
 
---- func initializeMemory<C>(as:C.Element.Type, from:C)
+--- func initializeMemory<T>(as:T.Type, at:Int, count:Int, to:T) -> UnsafeMutablePointer<T>
+--- func initializeMemory<T>(as:T.Type, from:UnsafePointer<T>, count:Int) -> UnsafeMutablePointer<T>
++++ func initializeMemory<T>(as:T.Type, at:Int, repeating:T, count:Int = 1) -> UnsafeMutablePointer<T>
++++ func initializeMemory<T>(as:T.Type, from:UnsafePointer<T>, count:Int = 1) -> UnsafeMutablePointer<T>
 
---- func bindMemory<T>(to:T.Type, count:Int)
---- func initializeMemory<T>(as:T.Type, from:UnsafePointer<T>, count:Int)
---- func moveInitializeMemory<T>(as:T.Type, from:UnsafeMutablePointer<T>, count:Int)
+--- func moveInitializeMemory<T>(as:T.Type, from:UnsafeMutablePointer<T>, count:Int) 
+---      -> UnsafeMutablePointer<T>
++++ func moveInitializeMemory<T>(as:T.Type, from:UnsafeMutablePointer<T>, count:Int = 1) 
++++      -> UnsafeMutablePointer<T>
 
-+++ func bindMemory<T>(to:T.Type, count:Int = 1)
-+++ func initializeMemory<T>(as:T.Type, from:UnsafePointer<T>, count:Int = 1)
-+++ func moveInitializeMemory<T>(as:T.Type, from:UnsafeMutablePointer<T>, count:Int = 1)
+--- func bindMemory<T>(to:T.Type, count:Int) -> UnsafeMutablePointer<T>
++++ func bindMemory<T>(to:T.Type, count:Int = 1) -> UnsafeMutablePointer<T>
 }
 
 struct UnsafeBufferPointer<Element> 
@@ -274,17 +376,17 @@ struct UnsafeMutableBufferPointer<Element>
 +++ static func allocate<Element>(capacity:Int) -> UnsafeMutableBufferPointer<Element>
 +++ func deallocate()
 
-+++ func assign(from:UnsafeBufferPointer<Element>)
-+++ func assign(from:UnsafeMutableBufferPointer<Element>)
-+++ func assign(repeating:Element)
-+++ func moveAssign(from:UnsafeMutableBufferPointer<Element>)
-+++ func moveInitialize(from:UnsafeMutableBufferPointer<Element>)
-+++ func initialize(from:UnsafeBufferPointer<Element>)
-+++ func initialize(from:UnsafeMutableBufferPointer<Element>)
 +++ func initialize(repeating:Element)
+    func initialize<S>(from:S) -> (S.Iterator, Index) where S:Sequence, S.Element == Element
++++ func assign(repeating:Element)
++++ func assign<S>(from:S) -> (S.Iterator, Index) where S:Sequence, S.Element == Element
+
++++ func moveInitialize(from:UnsafeMutableBufferPointer<Element>)
++++ func moveAssign(from:UnsafeMutableBufferPointer<Element>)
+
 +++ func deinitialize()
 +++ func withMemoryRebound<T, Result>
-+++ (to:T.Type, count:Int, _ body:(UnsafeMutableBufferPointer<T>) -> Result)
++++ (to:T.Type, _ body:(UnsafeMutableBufferPointer<T>) -> Result)
 }
 
 struct UnsafeMutableRawBufferPointer
@@ -292,20 +394,40 @@ struct UnsafeMutableRawBufferPointer
 --- static func allocate(count:Int) -> UnsafeMutableRawBufferPointer
 +++ static func allocate(bytes:Int, alignedTo:Int) -> UnsafeMutableRawBufferPointer
     func deallocate()
-+++ func bindMemory<Element>(to:Element.Type, count:Int)
+
++++ func bindMemory<T>(to:T.Type) -> UnsafeMutableBufferPointer<T>
 --- func copyBytes(from:UnsafeRawBufferPointer)
 +++ func copy(from:UnsafeRawBufferPointer)
 +++ func copy(from:UnsafeMutableRawBufferPointer)
-+++ func initializeMemory<Element>(as:Element.Type, at:Int, repeating:Element, count:Int)
-+++ func initializeMemory<Element>(as:Element.Type, from:UnsafeBufferPointer<Element>, count:Int)
-+++ func initializeMemory<Element>(as:Element.Type, from:UnsafeMutableBufferPointer<Element>, count:Int)
-+++ func moveInitializeMemory<Element>(as:Element.Type, from:UnsafeMutableBufferPointer<Element>, count:Int)
+
++++ func initializeMemory<T>(as:T.Type, at:Int, repeating:T) -> UnsafeMutableBufferPointer<T>
+    func initializeMemory<S>(as:S.Element.Type, from:S) 
+         -> (unwritten: S.Iterator, initialized: UnsafeMutableBufferPointer<S.Element>) 
+           where S:Sequence
++++ func moveInitializeMemory<T>(as:T.Type, from:UnsafeMutableBufferPointer<T>) 
++++      -> UnsafeMutableBufferPointer<T>
 }
 ```
 
 ## Source compatibility
 
-Some parts of this proposal are source breaking. This proposal is significantly less source breaking than its [previous iteration](https://gist.github.com/kelvin13/a9c033193a28b1d4960a89b25fbffb06).
+Some parts of this proposal are source breaking. This proposal is significantly less source breaking than its [previous iterations](https://gist.github.com/kelvin13/a9c033193a28b1d4960a89b25fbffb06).
+
+- **fix the ordering of the arguments in `initializeMemory<Element>(as:at:count:to:)` and rename the argument `to:` to `repeating:` in all repeated-value copy functions**
+
+This change is source breaking but can be trivially automigrated.
+
+- **add the repeated-value copy assignment method `assign(repeating:count:)`**
+
+This change is purely additive.
+
+- **rename `copyBytes(from:count:)` to `copy(from:bytes:)` on `UnsafeMutableRawPointer`**
+
+This change is source breaking but can be trivially automigrated.
+
+- **rename `count` in `UnsafeMutableRawBufferPointer.allocate(count:)` to `bytes` and add an `alignedTo` parameter to make it `UnsafeMutableRawBufferPointer.allocate(bytes:alignedTo:)`**
+
+This change is source breaking but can be trivially automigrated. The `alignedTo:` parameter can be filled in with `MemoryLayout<UInt>.stride`. If [SR-5664](https://bugs.swift.org/browse/SR-5664) is fixed, `MemoryLayout<UInt>.stride` can even be provided as a default argument.
 
 - **remove the `capacity` parameter from `deallocate(capacity:)` and `deallocate(bytes:alignedTo:)`**
 
@@ -315,7 +437,11 @@ This change is source-breaking, but this is a Good Thing™. The current API enc
 
 This change is purely additive.
 
-- **add an `assign(to:count:)` method to `UnsafeMutablePointer` and an `assign(to:)` method to `UnsafeMutableBufferPointer`**
+- **add unsized memory methods to `UnsafeMutableRawBufferPointer`**
+
+This change is purely additive.
+
+- **add the unsized rebinding functions `withMemoryRebound<T, Result>(to:_:)` to `UnsafeMutableBufferPointer`, and `bindMemory<T>(to:)` to `UnsafeMutableRawBufferPointer`**
 
 This change is purely additive.
 
@@ -323,37 +449,17 @@ This change is purely additive.
 
 This change is purely additive.
 
-- **rename `copyBytes(from:count:)` to `copy(from:bytes:)`**
-
-This change is source breaking but can be trivially automigrated.
-
-- **rename `count` in `UnsafeMutableRawBufferPointer.allocate(count:)` to `bytes` and add an `alignedTo` parameter to make it `UnsafeMutableRawBufferPointer.allocate(bytes:alignedTo:)`**
-
-This change is source breaking but can be trivially automigrated. The `alignedTo:` parameter can be filled in with `MemoryLayout<Int>.stride`.
-
-- **fix the ordering of the arguments in `initializeMemory<Element>(as:at:count:to:)` and rename the argument `to:` to `repeating:` in all repeating memorystate functions**
-
-This change is source breaking but can be trivially automigrated.
-
-- **add the sized memorystate functions `withMemoryRebound<Element, Result>(to:count:_:)` to `UnsafeMutableBufferPointer`, and `initializeMemory<Element>(as:at:repeating:count:)`, `initializeMemory<Element>(as:from:count:)` `moveInitializeMemory<Element>(as:from:count:)`, and `bindMemory<Element>(to:count:)` to `UnsafeMutableRawBufferPointer`**
-
-This change is purely additive.
-
 - **add a `init(mutating:)` initializer to `UnsafeMutableBufferPointer`**
 
 This change is purely additive.
 
-- **add mutable overloads to non-vacating memorystate method arguments on `UnsafeMutableBufferPointer` and `UnsafeMutableRawBufferPointer`**
+- **add a mutable overload to the `copy(from:)` method on `UnsafeMutableRawBufferPointer`**
 
 This change is purely additive.
 
-- **finally deprecate `initialize<C>(from:)` from `UnsafeMutablePointer`**
-
-This change is source-breaking only for the reason that such code should never have compiled in the first place.
-
 ## Effect on ABI stability
 
-Removing sized deallocators changes the existing ABI, as will renaming some of the methods and their argument labels.
+Removing sized deallocators changes the existing ABI, as will renaming some of the methods and their argument labels. `UnsafeMutableBufferPointer.initialize<S>(from:S)` and `UnsafeMutableRawBufferPointer.initializeMemory<S>(as:S.Element.Type, from:S) ` will receive a `@discardableResult` attribute, which should not affect ABI or API stability.
 
 ## Effect on API resilience
 
