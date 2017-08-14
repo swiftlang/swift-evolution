@@ -17,7 +17,7 @@ Swift-evolution thread: [Pitch: Improved Swift pointers](https://lists.swift.org
 
 ## Background 
 
-There are four binary memorystate operations: *initialization*, *move-initialization*, *assignment*, and *move-assignment*. They can be grouped according to how they affect the source buffer and the destination buffer. **Copy** operations only read from the source buffer, leaving it unchanged. **Move** operations with deinitialize the source memory, decrementing the reference count by 1 if the memory type is not a trivial type. **Retaining** operations initialize the destination memory, incrementing the reference count by 1 if applicable. **Releasing** operations deinitialize the destination memory before reinitializing it with the new values, resulting in a net change in the reference count of 0, if applicable.
+There are four binary memorystate operations: *initialization*, *move-initialization*, *assignment*, and *move-assignment*. They can be grouped according to how they affect the source buffer and the destination buffer. **Copy** operations only read from the source buffer, leaving it unchanged. **Move** operations deinitialize the source memory, decrementing the reference count by 1 if the memory type is not a trivial type. **Retaining** operations initialize the destination memory, incrementing the reference count by 1 if applicable. **Releasing** operations deinitialize the destination memory before reinitializing it with the new values, resulting in a net change in the reference count of 0, if applicable.
 
 |                    | Copy (+0)       | Move (−1)            |
 | -------------:     |----------:      | ---------:           |
@@ -215,7 +215,7 @@ We do not rename the `count` property on `UnsafeMutableRawBufferPointer` to `byt
 
 This brings it in line with the `UnsafeMutableRawPointer` allocator, and avoids the contradictory and inconsistent use of `count` to represent a byte quantity. Currently `UnsafeMutableRawBufferPointer.allocate(count:)` aligns to the size of `UInt`, an assumption not shared by its plain variant.
 
-- **remove the `capacity` parameter from `deallocate(capacity:)` and `deallocate(bytes:alignedTo:)`**
+- **remove the `capacity` parameter from `deallocate(capacity:)`, and remove all parameters from `deallocate(bytes:alignedTo:)`**
 
 Removing `capacity` from `deallocate(capacity:)` will end the confusion over what `deallocate()` does, making it obvious that `deallocate()` will free the *entire* memory block at `self`, just as if `free()` were called on it.
 
@@ -225,7 +225,7 @@ Along similar lines, the `bytes` and `alignedTo` parameters should be removed fr
 
 - **add unsized memory methods to `UnsafeMutableBufferPointer`**
 
-The following methods will be added to `UnsafeMutableBufferPointer`, giving it parity with `UnsafeMutablePointer`. Note that `UnsafeMutableBufferPointer` already contains a `initialize<S>(from:)` method.
+The following methods will be added to `UnsafeMutableBufferPointer`, giving it parity with `UnsafeMutablePointer`. Note that `UnsafeMutableBufferPointer` already contains an `initialize<S>(from:)` method.
 
 ```swift 
 static func allocate<Element>(capacity:Int) -> UnsafeMutableBufferPointer<Element>
@@ -263,7 +263,7 @@ Similarly, `UnsafeMutableBufferPointer` and `UnsafeMutableRawBufferPointer` will
 
 Since the most common use case for plain pointers is to manage one single instance of a type, the size parameters on `UnsafeMutablePointer`’s memory methods are good candidates for a default value of `1`. Any size parameter on `UnsafeMutableRawPointer`’s memory methods which take a stride quantity should also receive a default value of `1`. The size parameters in `UnsafeMutableRawPointer`’s other methods should not receive a default value as they refer to byte quantities.
 
-- **add a `init(mutating:)` initializer to `UnsafeMutableBufferPointer`**
+- **add an `init(mutating:)` initializer to `UnsafeMutableBufferPointer`**
 
 This makes it much easier to make a mutable copy of an immutable buffer pointer. Such an initializer already exists on `UnsafeMutableRawBufferPointer`, so adding one to `UnsafeMutableBufferPointer` is also necessary for consistency. The reverse initializer, from `UnsafeMutableBufferPointer` to `UnsafeBufferPointer` should also be added for completeness.
 
@@ -429,7 +429,7 @@ This change is source breaking but can be trivially automigrated.
 
 This change is source breaking but can be trivially automigrated. The `alignedTo:` parameter can be filled in with `MemoryLayout<UInt>.stride`. If [SR-5664](https://bugs.swift.org/browse/SR-5664) is fixed, `MemoryLayout<UInt>.stride` can even be provided as a default argument.
 
-- **remove the `capacity` parameter from `deallocate(capacity:)` and `deallocate(bytes:alignedTo:)`**
+- **remove the `capacity` parameter from `deallocate(capacity:)`, and remove all parameters from `deallocate(bytes:alignedTo:)`**
 
 This change is source-breaking, but this is a Good Thing™. The current API encourages incorrect code to be written, and sets us up for potentially catastrophic source breakage down the road should the implementations of `deallocate(capacity:)` and `deallocate(bytes:alignedTo:)` ever be “fixed”, so users should be forced to stop using them as soon as possible.
 
@@ -449,7 +449,7 @@ This change is purely additive.
 
 This change is purely additive.
 
-- **add a `init(mutating:)` initializer to `UnsafeMutableBufferPointer`**
+- **add an `init(mutating:)` initializer to `UnsafeMutableBufferPointer`**
 
 This change is purely additive.
 
