@@ -3,7 +3,8 @@
 * Proposal: [SE-0185](0185-synthesize-equatable-hashable.md)
 * Author: [Tony Allevato](https://github.com/allevato)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Active review (August 9...15)**
+* Status: **Accepted**
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2017-August/000400.html)
 
 ## Introduction
 
