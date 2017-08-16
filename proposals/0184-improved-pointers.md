@@ -15,6 +15,8 @@ The [previous version](https://gist.github.com/kelvin13/1b8ae906be23dff22f7a7c47
 
 Swift-evolution thread: [Pitch: Improved Swift pointers](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170710/038013.html), [Pitch: More Improved Swift pointers](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170717/038121.html)
 
+Prototype implementation: [**PR 11464**](https://github.com/apple/swift/pull/11464)
+
 ## Background 
 
 There are four binary memorystate operations: *initialization*, *move-initialization*, *assignment*, and *move-assignment*. They can be grouped according to how they affect the source buffer and the destination buffer. **Copy** operations only read from the source buffer, leaving it unchanged. **Move** operations deinitialize the source memory, decrementing the reference count by 1 if the memory type is not a trivial type. **Retaining** operations initialize the destination memory, incrementing the reference count by 1 if applicable. **Releasing** operations deinitialize the destination memory before reinitializing it with the new values, resulting in a net change in the reference count of 0, if applicable.
