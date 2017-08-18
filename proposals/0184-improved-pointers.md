@@ -309,6 +309,29 @@ while pixel < base + size
 }
 ```
 
+- **attempt to fully support partial initialization**
+
+Currently, in buffer pointers, sourced move memorystate operations like move-assignment and move-initialization assume that the source contains the same or fewer elements as the destination. In other words, it assumes the destination buffer is larger than the source buffer. This covers the common use case, since in Swift, collection buffers generally grow over time, not shrink. However, sometimes we want to do other things with our buffer pointers. For example:
+
+ - get a pointer to an element offset `n` strides from the beginning of the buffer
+ - copy part of a buffer pointer into another, smaller buffer pointer
+ - initialize or assign items at an offset from the beginning of the buffer
+
+Unfortunately, it is still not very ergonomic to do these things, even under this proposal, as they still require dropping down to `UnsafeMutablePointer` and `UnsafeMutableRawPointer`. 
+
+Right now, sourced-copy buffer operations like assignment and initialization attempt to cover the most general case, making no assumptions about the relative size of the two buffers. This proposal does not attempt to change that (flawed?) precendent. The return value of these methods is a tuple containing 
+
+- an index representing the amount of the destination buffer that was filled 
+- an iterator representing the amount of the source buffer that was consumed
+
+Clearly, since the source buffer must be either longer than, equal to, or shorter to the destination buffer, at most only one of these return values is useful. (And at any rate, tuple returns are a code smell.) In almost all real use cases, the user already expects one of the operands to be longer than the other at compile time, so it would make sense to offer a more specific buffer API that leverages this knowlege. 
+
+We expect possible solutions to this problem to largely additive, and would not require modifying the methods this proposal will introduce. (However, in the future, it may make sense to deprecate the general sourced-copy methods if they are deemed not useful and obsoleted by new, specific sourced-copy methods.) Possible remedies (not up for discussion at this time) may include:
+
+ - overloading `+` for buffer pointers, allowing pointer arithmetic to be performed on buffer pointers 
+ - easier buffer pointer slicing, where buffer pointers are their own `SubSequence` type
+ - adding new methods which specifically assume `source.count <= dest.count` or `source.count > dest.count`
+
 ## Detailed design
 
 ```diff
