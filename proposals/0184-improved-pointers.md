@@ -417,7 +417,7 @@ struct UnsafeMutableBufferPointer<Element>
 struct UnsafeMutableRawBufferPointer
 {
 --- static func allocate(count:Int) -> UnsafeMutableRawBufferPointer
-+++ static func allocate(bytes:Int, alignedTo:Int) -> UnsafeMutableRawBufferPointer
++++ static func allocate(bytes:Int, alignedTo:Int = MemoryLayout<UInt>.alignment) -> UnsafeMutableRawBufferPointer
     func deallocate()
 
 +++ func bindMemory<T>(to:T.Type) -> UnsafeMutableBufferPointer<T>
