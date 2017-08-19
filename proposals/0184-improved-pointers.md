@@ -223,6 +223,10 @@ Removing `capacity` from `deallocate(capacity:)` will end the confusion over wha
 
 The old `deallocate(capacity:)` method should be marked as `unavailable` since it currently encourages dangerously incorrect code. This avoids misleading future users, forces current users to address this potentially catastrophic memory bug, and leaves the possibility open for us to add a `deallocate(capacity:)` method in the future, or perhaps even a `reallocate(toCapacity:)` method.
 
+- **add `deallocate()` to `UnsafePointer` and `UnsafeBufferPointer`**
+
+Swift’s memory model does not require memory to be mutable for deallocation. This fixes [SR-3309](https://bugs.swift.org/browse/SR-3309). Note, immutable raw buffer pointers already support this API.
+
 Along similar lines, the `bytes` and `alignedTo` parameters should be removed from the `deallocate(bytes:alignedTo:)` method on `UnsafeMutableRawPointer`.
 
 - **add unsized memory methods to `UnsafeMutableBufferPointer`**
@@ -335,6 +339,11 @@ We expect possible solutions to this problem to largely additive, and would not 
 ## Detailed design
 
 ```diff
+struct UnsafePointer<Pointee> 
+{
++++ func deallocate()
+}
+
 struct UnsafeMutablePointer<Pointee>
 {
 --- static func allocate<Pointee>(capacity:Int) -> UnsafeMutablePointer<Pointee>
@@ -363,6 +372,9 @@ struct UnsafeMutablePointer<Pointee>
 
 struct UnsafeRawPointer
 {
+--- func deallocate(bytes _:Int, alignedTo _:Int)
++++ func deallocate()
+
 --- func bindMemory<T>(to:T.Type, count:Int) -> UnsafeMutablePointer<T>
 +++ func bindMemory<T>(to:T.Type, count:Int = 1) -> UnsafeMutablePointer<T>
 }
@@ -392,6 +404,8 @@ struct UnsafeMutableRawPointer
 struct UnsafeBufferPointer<Element> 
 {
 +++ init(_:UnsafeMutableBufferPointer<Element>)
+
++++ func deallocate()
 }
 
 struct UnsafeMutableBufferPointer<Element>
@@ -458,6 +472,10 @@ This change is source breaking but can be trivially automigrated. The `alignedTo
 - **remove the `capacity` parameter from `deallocate(capacity:)`, and remove all parameters from `deallocate(bytes:alignedTo:)`**
 
 This change is source-breaking, but this is a Good Thing™. The current API encourages incorrect code to be written, and sets us up for potentially catastrophic source breakage down the road should the implementations of `deallocate(capacity:)` and `deallocate(bytes:alignedTo:)` ever be “fixed”, so users should be forced to stop using them as soon as possible.
+
+- **add `deallocate()` to `UnsafePointer` and `UnsafeBufferPointer`**
+
+This change is purely additive.
 
 - **add unsized memory methods to `UnsafeMutableBufferPointer`**
 
