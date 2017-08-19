@@ -223,11 +223,11 @@ Removing `capacity` from `deallocate(capacity:)` will end the confusion over wha
 
 The old `deallocate(capacity:)` method should be marked as `unavailable` since it currently encourages dangerously incorrect code. This avoids misleading future users, forces current users to address this potentially catastrophic memory bug, and leaves the possibility open for us to add a `deallocate(capacity:)` method in the future, or perhaps even a `reallocate(toCapacity:)` method.
 
+Along similar lines, the `bytes` and `alignedTo` parameters should be removed from the `deallocate(bytes:alignedTo:)` method on `UnsafeMutableRawPointer` and `UnsafeRawPointer`.
+
 - **add `deallocate()` to `UnsafePointer` and `UnsafeBufferPointer`**
 
 Swift’s memory model does not require memory to be mutable for deallocation. This fixes [SR-3309](https://bugs.swift.org/browse/SR-3309). Note, immutable raw buffer pointers already support this API.
-
-Along similar lines, the `bytes` and `alignedTo` parameters should be removed from the `deallocate(bytes:alignedTo:)` method on `UnsafeMutableRawPointer`.
 
 - **add unsized memory methods to `UnsafeMutableBufferPointer`**
 
