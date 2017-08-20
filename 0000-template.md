@@ -4,6 +4,7 @@
 * Authors: [Author 1](https://github.com/swiftdev), [Author 2](https://github.com/swiftdev)
 * Review Manager: TBD
 * Status: **Awaiting review**
+* Pull Request: [apple/swift#NNNNN](https://github.com/apple/swift/pull/NNNNN)
 
 *During the review process, add the following fields as needed:*
 
