@@ -179,13 +179,13 @@ On actual pointer types, most of these parameters are unnecessary, and some of t
 
  - it only makes sense for immutable pointer types to support deallocation and type rebinding. Note that Swift’s memory model does not require memory to be mutable for deallocation. 
  
- - raw (untyped) pointers should not support any operations which involve deinitialization on `self`. This rules out deinitialization itself, as well as any releasing operations (assignment, move-assignment)
+ - raw (untyped) pointers should not support any operations which involve deinitialization on `self`. This rules out deinitialization itself, as well as any releasing operations (assignment, move-assignment).
 
- - typed pointers don’t need an `as:` parameter (except for type rebinding) — they already have a type. It also doesn’t make sense for them to support byte-wise copying
+ - typed pointers don’t need an `as:` parameter (except for type rebinding) — they already have a type. It also doesn’t make sense for them to support byte-wise copying.
 
- - pointers for which it is syntactically easy to offset in strides (for example, by pointer arithmetic with `+`), don’t need to take an `at:` argument
+ - pointers for which it is syntactically easy to offset in strides (for example, by pointer arithmetic with `+`), don’t need to take an `at:` argument.
 
-> note: some of these conceptual argument labels have different names in the real API. `as:` is written as `to:` in the type-rebinding methods because it sounds better. `count:` is sometimes written as `capacity:` or `bytes:` to express the assumptions about the initialization state of the memory in question. 
+> note: some of these conceptual argument labels have different names in the real API. `as:` is written as `to:` in the type-rebinding methods because it sounds better. `count:` is sometimes written as `capacity:` or `bytes:` to express the assumptions about the stride and initialization state of the memory in question. 
 
 > * `bytes` refers to, well, a byte quantity that is *not assumed* to be initialized.
 > * `capacity` refers to a strided quantity that is *not assumed* to be initialized.
@@ -200,7 +200,7 @@ func deallocate()
 func withMemoryRebound<T, Result>(to:capacity:_:) -> Result
 ```
 
-`UnsafePointer` does not get an allocator static method, since you almost always want a mutable pointer to newly allocated memory. Its type rebinding method is also written as a decorator, taking a trailing closure, for memory safety. `UnsafePointer` does not take `at:` arguments since `+` provides pointer arithmetic for them.
+`UnsafePointer` does not get an allocator static method, since you almost always want a mutable pointer to newly allocated memory. Its type rebinding method is also written as a decorator, taking a trailing closure, for memory safety. `UnsafePointer` does not take `at:` arguments since `+` provides pointer arithmetic for it.
 
 ### `UnsafeMutablePointer<Pointee>`
 
@@ -284,7 +284,7 @@ let pixels:Int = scanlines.map{ $0.count }.reduce(0, +)
 var image = UnsafeMutableBufferPointer<Pixel>.allocate(capacity: pixels)
 
 var filled:Int = 0
-for scanline in scanlines 
+for scanline:UnsafeMutableBufferPointer<Pixel> in scanlines 
 {
     image.moveInitialize(at: filled, from: scanline)
     filled += scanline.count
@@ -338,8 +338,6 @@ func deallocate()
 func bindMemory<T>(to:) -> UnsafeBufferPointer<T>
 ```
 
-> note: `copyBytes(from:)` takes an `at:` argument because just like `UnsafeBufferPointer`, offsetting its `baseAddress` is not syntactically easy. The function name also has “`Bytes`” in it since it’s missing the `bytes:` argument label, and we need to emphasize that it only performs a bytewise copy.
-
 ### `UnsafeMutableRawBufferPointer`
 
 ``` 
@@ -358,7 +356,9 @@ func copyBytes(at:from:)
 
 > note: `initializeMemory(as:repeating:)` performs integer division on `self.count` (just like `bindMemory(to:)`) 
 
-> note: the return values of `initializeMemory(as:repeating:)`, `initializeMemory(as:at:from:)`, and `moveInitializeMemory(as:at:from:)` should all be marked as `@discardableResult`.
+> note: the return values of `initializeMemory(as:repeating:)`, `initializeMemory(as:at:from:)`, and `moveInitializeMemory(as:at:from:)` should all be marked as `@discardableResult`. 
+
+> note: `copyBytes(from:)` takes an `at:` argument because just like `UnsafeBufferPointer`, offsetting its `baseAddress` is not syntactically easy. The function name also has “`Bytes`” in it since it’s missing the `bytes:` argument label, and we need to emphasize that it only performs a bytewise copy.
 
 ## Detailed changes
 
@@ -515,6 +515,12 @@ func bindMemory<T>(to:capacity:) -> UnsafeMutablePointer<T>
 
 ### `UnsafeRawBufferPointer`
 
+#### Existing methods 
+
+```
+deallocate()
+```
+
 #### New methods 
 
 ```diff 
@@ -522,6 +528,12 @@ func bindMemory<T>(to:capacity:) -> UnsafeMutablePointer<T>
 ```
 
 ### `UnsafeMutableRawBufferPointer`
+
+#### Existing methods 
+
+```
+deallocate()
+```
 
 #### New/renamed arguments 
 
@@ -548,8 +560,6 @@ func bindMemory<T>(to:capacity:) -> UnsafeMutablePointer<T>
 > note: for backwards compatibility, the `alignedTo:` argument in `allocate(bytes:alignedTo:)` should take a default value of `MemoryLayout<UInt>.alignment`. This requires [SR-5664](https://bugs.swift.org/browse/SR-5664) to be fixed before it will work properly.
 
 > note: The new `at:` argument in `copyBytes(at:from:)` has a backwards-compatible default argument of `0`. This poses no risk to memory state safety, since this method can only perform a bytewise copy anyways.
-
-
 
 ## What this proposal does not do 
 
