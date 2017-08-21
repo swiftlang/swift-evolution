@@ -575,7 +575,8 @@ struct UnsafePointer<Pointee>
 {
 +++ func deallocate()
 
-    func withMemoryRebound<T, Result>(to:T.Type, capacity:Int, _ body:(UnsafePointer<T>) -> Result) -> Result
+    func withMemoryRebound<T, Result>(to:T.Type, capacity:Int, _ body:(UnsafePointer<T>) -> Result) 
+         -> Result
 }
 
 struct UnsafeMutablePointer<Pointee>
@@ -598,7 +599,8 @@ struct UnsafeMutablePointer<Pointee>
 --- func deinitialize(count:Int)
 +++ func deinitialize(count:Int = 1)
 
-    func withMemoryRebound<T, Result>(to:T.Type, capacity:Int, _ body:(UnsafeMutablePointer<T>) -> Result) -> Result
+    func withMemoryRebound<T, Result>(to:T.Type, capacity:Int, _ body:(UnsafeMutablePointer<T>) -> Result) 
+         -> Result
 }
 
 struct UnsafeRawPointer
@@ -622,8 +624,10 @@ struct UnsafeMutableRawPointer
 --- func initializeMemory<T>(as:T.Type, from:UnsafePointer<T>, count:Int) -> UnsafeMutablePointer<T>
 --- func moveInitializeMemory<T>(as:T.Type, from:UnsafeMutablePointer<T>, count:Int) 
 ---      -> UnsafeMutablePointer<T>
-+++ func initializeMemory<T>(as:T.Type, at:Int = 0, from:UnsafePointer<T>, count:Int) -> UnsafeMutablePointer<T>
-+++ func moveInitializeMemory<T>(as:T.Type, at:Int = 0, from:UnsafeMutablePointer<T>, count:Int) -> UnsafeMutablePointer<T>
++++ func initializeMemory<T>(as:T.Type, at:Int = 0, from:UnsafePointer<T>, count:Int) 
++++      -> UnsafeMutablePointer<T>
++++ func moveInitializeMemory<T>(as:T.Type, at:Int = 0, from:UnsafeMutablePointer<T>, count:Int) 
++++      -> UnsafeMutablePointer<T>
 
     func bindMemory<T>(to:T.Type, count:Int) -> UnsafeMutablePointer<T>
 
@@ -679,9 +683,12 @@ struct UnsafeMutableRawBufferPointer
     func deallocate()
 
 +++ func initializeMemory<T>(as:T.Type, repeating:T) -> UnsafeMutableBufferPointer<T>
-+++ func initializeMemory<T>(as:T.Type, at:Int, from:UnsafeBufferPointer<T>) -> UnsafeMutableBufferPointer<T>
-+++ func initializeMemory<T>(as:T.Type, at:Int, from:UnsafeMutableBufferPointer<T>) -> UnsafeMutableBufferPointer<T>
-+++ func moveInitializeMemory<T>(as:T.Type, at:Int, from:UnsafeMutableBufferPointer<T>) -> UnsafeMutableBufferPointer<T>
++++ func initializeMemory<T>(as:T.Type, at:Int, from:UnsafeBufferPointer<T>) 
++++      -> UnsafeMutableBufferPointer<T>
++++ func initializeMemory<T>(as:T.Type, at:Int, from:UnsafeMutableBufferPointer<T>) 
++++      -> UnsafeMutableBufferPointer<T>
++++ func moveInitializeMemory<T>(as:T.Type, at:Int, from:UnsafeMutableBufferPointer<T>) 
++++      -> UnsafeMutableBufferPointer<T>
 
 +++ func bindMemory<T>(to:T.Type) -> UnsafeMutableBufferPointer<T>
 
