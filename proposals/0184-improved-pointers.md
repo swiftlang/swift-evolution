@@ -144,7 +144,7 @@ Because copy operations (initialization and assignment) don’t mutate the sourc
  - initialization (repeated-value)
  - assignment (repeated-value) 
  
-`UnsafeMutablePointer` and `UnsafeMutableRawPointer` already contain repeated-value methods for initialization in the form of `initialize(to:count:)` and `initializeMemory<T>(as:at:count:to:)`. This proposal will add the assignment analogues. For reasons explained later, the argument label for the repeated-value parameter will be referred to as `repeated:`, not `to:`.
+`UnsafeMutablePointer` and `UnsafeMutableRawPointer` already contain repeated-value methods for initialization in the form of `initialize(to:count:)` and `initializeMemory<T>(as:at:count:to:)`. This proposal will add the assignment analogues. For reasons explained later, the argument label for the repeated-value parameter will be referred to as `repeating:`, not `to:`.
 
 In their most general form, these functions are written like this:
 
