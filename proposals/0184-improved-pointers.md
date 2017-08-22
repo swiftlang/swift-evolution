@@ -19,10 +19,10 @@ Prototype implementation (out of date): [**PR 11464**](https://github.com/apple/
 
 There are four binary memorystate operations: *initialization*, *move-initialization*, *assignment*, and *move-assignment*. They can be grouped according to how they affect the source buffer and the destination buffer. **Copy** operations only read from the source buffer, leaving it unchanged. **Move** operations deinitialize the source memory, decrementing the reference count by 1 if the memory type is not a trivial type. **Retaining** operations initialize the destination memory, incrementing the reference count by 1 if applicable. **Releasing** operations deinitialize the destination memory before reinitializing it with the new values, resulting in a net change in the reference count of 0, if applicable.
 
-|                    | Copy (+0)       | Move (−1)            |
-| -------------:     |----------:      | ---------:           |
-| **Retaining (+1)** | initialize (+1) | move-initialize (+0) |
-| **Releasing (+0)** | assign     (+0) |  move-assign    (−1) |
+|                    | Copy (+0)  | Move (−1)       |
+| -------------:     |----------: | ---------:      |
+| **Retaining (+1)** | initialize | move-initialize |
+| **Releasing (+0)** | assign     |  move-assign    |
 
 Note: deinitialization by itself is a unary operation; it decrements the reference count of the buffer by 1. 
 
@@ -490,6 +490,8 @@ func bindMemory<T>(to:capacity:) -> UnsafeMutablePointer<T>
 #### New methods 
 
 ```diff 
++++ func deallocate()
+
 +++ withMemoryRebound<T, Result>(to:_:) -> Result
 ```
 
@@ -500,6 +502,7 @@ func bindMemory<T>(to:capacity:) -> UnsafeMutablePointer<T>
 ```diff 
 +++ static 
 +++ func allocate<Element>(capacity:) -> UnsafeMutableBufferPointer<Element>
++++ func deallocate()
 
 +++ func initialize(repeating:)
 +++ func initialize(at:from:)
