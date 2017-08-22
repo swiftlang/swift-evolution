@@ -262,20 +262,20 @@ The `as:` argument in `allocate(bytes:alignedTo:)` is represented by an alignmen
 Buffer pointers are conceptually similar, except the `count:` argument is often unnecessary since they track their own length internally. This means you would call 
 
 ```swift
-ptr1.deinitialize(count: count)
+ptr1.initialize(repeating: value, count: count)
 ```
 
 on an `UnsafeMutablePointer`, but 
 
 ```swift
-buffer1.deinitialize()
+buffer1.initialize(repeating: value)
 ```
 
 on an `UnsafeMutableBufferPointer`. 
 
-Implementing unary operations like repeated-value initialization, repeated-value assignment, deinitialization, and type rebinding is straightforward. However, with binary operations like move-initialization, which involves both a source buffer and a destination buffer, the question of whose `count` to use becomes important. 
+Implementing unary operations like repeated-value initialization, repeated-value assignment, and type rebinding is straightforward. However, with binary operations like move-initialization, which involves both a source buffer and a destination buffer, the question of whose `count` to use becomes important. 
 
-One option is to use the destination’s `count`, and set the precondition that source`.count` `>=` destination`.count`. The benefit to this is that the destination is always guaranteed to be fully initialized, so that `deinitialize()` can be safely called on it. However, in the case of move-initialization and move-assignment, it can leave the source buffer partially *deinitialized* which is just as big a problem. It is also not very useful in practice, since real collections tend to grow monotonically, periodically moving their contents into larger and larger buffers. 
+One option is to use the destination’s `count`, and set the precondition that source`.count` `>=` destination`.count`. The benefit to this is that the destination is always guaranteed to be fully initialized, so that a sizeless `deinitialize()` can be safely called on it. However, in the case of move-initialization and move-assignment, it can leave the source buffer partially *deinitialized* which is just as big a problem. It is also not very useful in practice, since real collections tend to grow monotonically, periodically moving their contents into larger and larger buffers. 
 
 A better option is to use the source’s `count`, combined with an `at:` offset, and set the precondition that `offset` `+` source`.count` `<=` destination`.count`. This *`at:from:`* system inspired by existing `UnsafeMutableRawPointer` APIs is an extremely useful system for supporting partially initialized buffer pointers by allowing us to initialize, assign, and move buffers in segments. For example, it would now be easy to concatenate multiple buffers into one.
 
@@ -290,13 +290,15 @@ for scanline:UnsafeMutableBufferPointer<Pixel> in scanlines
     filled += scanline.count
 }
 
-image.deinitialize()
+image.deinitialize(at: 0, count: filled)
 image.deallocate()
 ```
 
 Under this system, it will be impossible to leave part of a source buffer deinitialized, and every segment of a destination buffer will be accessible (instead of only segments starting at index `0`.)
 
 > note: we use `at:` instead of `+` because pointer arithmetic does not play well with the nillable buffer pointer `baseAddress`.
+
+> note: while deinitialization can be performed on a buffer pointer using its own `count` property, we have decided it’s better to explicitly ask for the `at:count:` pair to be consistent with real use patterns and the rest of the proposed API which operates on segments of `self`.
 
 ### `UnsafeBufferPointer<Element>`
 
@@ -322,7 +324,7 @@ func assign(repeating:)
 func assign(at:from:)
 func moveAssign(at:from:)
 
-func deinitialize()
+func deinitialize(at:count)
 func withMemoryRebound<T, Result>(to:_:) -> Result
 ```
 
@@ -514,7 +516,7 @@ func bindMemory<T>(to:capacity:) -> UnsafeMutablePointer<T>
 +++ func assign(at:from:)
 +++ func moveAssign(at:from:)
 
-+++ func deinitialize()
++++ func deinitialize(at:count:)
 +++ func withMemoryRebound<T, Result>(to:_:) -> Result
 ```
 
@@ -680,7 +682,7 @@ struct UnsafeMutableBufferPointer<Element>
 +++ func assign(at:Int, from:UnsafeMutableBufferPointer<Element>)
 +++ func moveAssign(at:Int, from:UnsafeMutableBufferPointer<Element>)
 
-+++ func deinitialize()
++++ func deinitialize(at:Int, count:Int)
 
 +++ func withMemoryRebound<T, Result>
 +++ (to:T.Type, _ body:(UnsafeMutableBufferPointer<T>) -> Result)
