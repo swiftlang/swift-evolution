@@ -485,6 +485,8 @@ func bindMemory<T>(to:capacity:) -> UnsafeMutablePointer<T>
 
 > note: The new `at:` argument has a backwards-compatible default argument of `0`. This not only makes sense, and is consistent with the existing default value of `at:` in `initializeMemory(as:at:count:to:)`, it also prevents source breakage.
 
+> note: We are adding a *new* default argument of `MemoryLayout<UInt>.alignment` for the `alignment` parameter in `allocate(bytes:alignedTo:)`. The rationale is that Swift is introducing a language-level default guarantee of word-aligned storage, so the default argument reflects Swift’s memory model. Higher alignments (such as 16-byte alignment) should be specified explicitly by the user.
+
 ### `UnsafeBufferPointer<Element>`
 
 #### New methods 
@@ -626,8 +628,11 @@ struct UnsafeRawPointer
 
 struct UnsafeMutableRawPointer
 {
-    static 
-    func allocate(bytes:Int, alignedTo:Int) -> UnsafeMutableRawPointer
+--- static 
+--- func allocate(bytes:Int, alignedTo:Int) -> UnsafeMutableRawPointer
++++ static
++++ func allocate(bytes:Int, alignedTo:Int = MemoryLayout<UInt>.alignment) 
++++      -> UnsafeMutableRawPointer
 --- func deallocate(bytes:Int, alignedTo:Int)
 +++ func deallocate()
 
