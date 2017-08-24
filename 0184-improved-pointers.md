@@ -13,7 +13,7 @@ This proposal seeks to improve the Swift pointer API by ironing out naming incon
 
 Swift-evolution thread: [Pitch: Improved Swift pointers](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170710/038013.html), [Pitch: More Improved Swift pointers](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170717/038121.html)
 
-Prototype implementation (out of date): [**PR 11464**](https://github.com/apple/swift/pull/11464)
+Implementation branch: [**PR 11464**](https://github.com/apple/swift/pull/11464)
 
 ## Background 
 
