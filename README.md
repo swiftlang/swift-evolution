@@ -1,5 +1,5 @@
 # Swift Programming Language Evolution
-[![Swift](https://img.shields.io/badge/Swift%204%20stage%202-Open%20to%20requests-brightgreen.svg)](#swift_stage)
+[![Swift](https://img.shields.io/badge/Swift%205-Open%20to%20requests-brightgreen.svg)](#swift_stage)
 
 
 **Before you initiate a pull request**, please read the process document. Ideas should be thoroughly discussed on the [swift-evolution mailing list](https://swift.org/community/#swift-evolution) first.
@@ -9,124 +9,81 @@ This repository tracks the ongoing evolution of Swift. It contains:
 * Goals for upcoming Swift releases (this document).
 * The [Swift evolution review status][proposal-status] tracking proposals to change Swift.
 * The [Swift evolution process](process.md) that governs the evolution of Swift.
-* [Commonly Rejected Changes](commonly_proposed.md), proposals which have been denied in the past.
+* [Commonly Rejected Changes](commonly_proposed.md), proposals that have been denied in the past.
 
 This document describes goals for the Swift language on a per-release
-basis, usually listing minor releases adding to the currently shipping
-version and one major release out.  Each release will have many
+basis. These releases include minor releases that add to the currently shipping
+version plus one major release out.  Each release will have many
 smaller features or changes independent of these larger goals, and not
-all goals are reached for each release.
+all goals will be reached for each release.
 
-Goals for past versions are included at the bottom of the document for
-historical purposes, but are not necessarily indicative of the
-features shipped. The release notes for each shipped version are the
-definitive list of notable changes in each release.
+For historical purposes, the bottom of the document includes goals for past versions. These goals do not necessarily indicate which
+features actually shipped for a given version. Those are documented in each version’s release notes.
+
 <a name="swift_stage"></a>
-## Development major version:  Swift 4.0
 
-Expected release date: Late 2017
+## Development major version:  Swift 5.0
 
-The Swift 4 release is designed around two primary goals: to provide
-source stability for Swift 3 code and to provide ABI stability for the
-Swift standard library. To that end, the Swift 4 release will be
-divided into two stages.
+Expected release date: Late 2018
 
-Stage 1 focused on the essentials required for source and ABI
-stability. Features that don't fundamentally change the ABI of
-existing language features or imply an ABI-breaking change to the
-standard library will not be considered in this stage. 
+### Primary Focus: ABI Stability
 
-Stage 2 opened in mid-February and extends until April 1, 2017, after
-which proposals will be held for a later version of Swift.
+The Swift 5 release **will** provide [ABI stability](https://github.com/apple/swift/blob/master/docs/ABIStabilityManifesto.md#what-is-abi-stability) for the Swift Standard Library.  ABI stability enables OS vendors to embed a Swift Standard Library and runtime in the OS that is compatible with applications built with Swift 5 or later.  Progress towards achieving ABI stability will be tracked at a high level on the [ABI Dashboard](https://swift.org/abi-stability/).
 
-The high-priority features supporting Stage 1's source and ABI
-stability goals are:
+ABI stability is only one of two pieces needed to support binary frameworks. The second half is *module stability* (see "[The Big Picture](https://github.com/apple/swift/blob/master/docs/ABIStabilityManifesto.md#the-big-picture)" of the [ABI Stability Manifesto](https://github.com/apple/swift/blob/master/docs/ABIStabilityManifesto.md) for more information).  While we’d like to support this for Swift 5, it will be a stretch goal, and may not make it in time.
 
-* Source stability features: the Swift language will need [some
-  accommodations](https://github.com/apple/swift-evolution/blob/master/proposals/0141-available-by-swift-version.md)
-  to support code bases that target different language versions, to
-  help Swift deliver on its source-compatibility goals while still
-  enabling rapid progress.
+The need to achieve ABI stability in Swift 5 will guide most of the priorities for the release.  In addition, there are important goals to complete that carry over from Swift 4 that are prerequisites to locking down the ABI of the standard library:
 
-* Resilience: resilience provides a way for public APIs to evolve over
-  time, while maintaining a stable ABI. For example, resilience
-  eliminates the [fragile base class
-  problem](https://en.wikipedia.org/wiki/Fragile_base_class) that
-  occurs in some object-oriented languages (e.g., C++) by describing
-  the types of API changes that can be made without breaking ABI
-  (e.g., "a new stored property or method can be added to a class").
+- **Generics features needed for standard library**.  We will finish implementing [conditional conformances](https://github.com/apple/swift-evolution/blob/master/proposals/0143-conditional-conformances.md) and [recursive protocol requirements](https://github.com/apple/swift-evolution/blob/master/proposals/0157-recursive-protocol-constraints.md), which are needed for the standard library to achieve ABI stability.  Both of these have gone through the evolution proposal process and there are no known other generics enhancements needed for ABI stability.
 
-* Stabilizing the ABI: There are a ton of small details that need to
-  be audited and improved in the code generation model, including
-  interaction with the Swift runtime. While not specifically
-  user-facing, the decisions here affect performance and (in some rare
-  cases) the future evolution of Swift.
+- **API resilience**. We will implement the essential pieces need to support API resilience, in order to allow public APIs for a library to evolve over time while maintaining a stable ABI.
 
-* Generics improvements needed by the standard library: the standard
-  library has a number of workarounds for language deficiencies, many
-  of which manifest as extraneous underscored protocols and
-  workarounds. If the underlying language deficiencies remain, they
-  become a permanent part of the stable ABI. [Conditional
-  conformances](https://github.com/apple/swift-evolution/blob/master/proposals/0143-conditional-conformances.md),
-  [recursive protocol
-  requirements](https://github.com/apple/swift/blob/master/docs/GenericsManifesto.md#recursive-protocol-constraints-),
-  and [where clauses for associated
-  types](https://github.com/apple/swift-evolution/blob/master/proposals/0142-associated-types-constraints.md)
-  are known to be in this category, but it's plausible that other
-  features will be in scope if they would be used in the standard
-  library.
+- **Memory ownership model**. An (opt-in) Cyclone/Rust-inspired memory [ownership model](https://github.com/apple/swift/blob/master/docs/OwnershipManifesto.md) is strongly desirable for systems programming and for other high-performance applications that require predictable and deterministic performance.  Part of this model was introduced in Swift 4 when we began to [ enforce exclusive access to memory](https://github.com/apple/swift-evolution/blob/master/proposals/0176-enforce-exclusive-access-to-memory.md).  In Swift 5 our goal is to tackle the [pieces of the ownership model that are key to ABI stability](https://github.com/apple/swift/blob/master/docs/OwnershipManifesto.md#priorities-for-abi-stability).
 
-* String re-evaluation: String is one of the most important
-  fundamental types in the language. Swift 4 seeks to make strings more
-  powerful and easier-to-use, while retaining Unicode correctness by
-  default.
+### Other Improvements
 
-* Memory ownership model: an (opt-in) Cyclone/Rust-inspired memory
-  ownership model is highly desired by systems programmers and for
-  other high-performance applications that want predictable and
-  deterministic performance. This feature will fundamentally shape the
-  ABI, from low-level language concerns such as "inout" and low-level
-  "addressors" to its impact on the standard library. While a full
-  memory ownership model is likely too large for Swift 4 stage 1, we
-  need a comprehensive design to understand how it will change the
-  ABI.
+Beyond ABI stability (which focuses mostly on getting a bunch of low-level implementation details of the language finalized), in Swift 5 the evolution process welcomes additions that improve the overall usability of the language and standard library, including but not restricted to:
 
-Swift 4 stage 2 builds on the goals of stage 1. It differs in that
-stage 2 proposals may include some additive changes and changes to
-existing features that don't affect the ABI. There are a few focus
-areas for Swift 4 stage 2:
+- **String ergonomics**. We will complete more of the work outlined in the [String Manifesto](https://github.com/apple/swift/blob/master/docs/StringManifesto.md) to make `String` easier to use and more performant.  This work may include the addition of new text processing affordances to the language and standard library, and language-level support for regular expressions.  In addition to ergonomic changes, the internal implementation of `String` offers many opportunities for enhancing performance which we would like to exploit.
 
-* Stage 1 proposals: Any proposal that would have been eligible for
-  stage 1 is a priority for stage 2.
+- **Improvements to existing standard library facilities**. We will consider other minor additions to existing library features, but are not open for significant new facilities outside of supporting the primary focuses of this release.
 
-* Source-breaking changes: The Swift 4 compiler will provide a
-  source-compatibility mode to allow existing Swift 3 sources to
-  compile, but source-breaking changes can manifest in "Swift 4"
-  mode. That said, changes to fundamental parts of Swift's syntax or
-  standard library APIs that breaks source code are better
-  front-loaded into Swift 4 than delayed until later
-  releases. Relative to Swift 3, the bar for such changes is
-  significantly higher:
+- **Foundation improvements**. We anticipate proposing some targeted improvements to Foundation API to further the goal of making the Cocoa SDK work seamlessly in Swift.
 
-  * The existing syntax/API being changed must be actively harmful.
-  * The new syntax/API must clearly be better and not conflict with existing Swift syntax.
-  * There must be a reasonably automatable migration path for existing code.
+- **Syntactic additions**. Syntactic changes do not increase the expressive power of the language but do increase its complexity.  Consequently, such changes must be extremely well-motivated and will be subject to additional scrutiny.  We will expect proposals to include concrete data about how wide spread the positive impact will be.
 
-* Improvements to existing Standard Library facilities: Additive
-  changes that improve existing standard library facilities can be
-  considered. With standard library additions in particular, proposals
-  that provide corresponding implementations are preferred. Potential
-  focus areas for improvement include collections (e.g., new
-  collection algorithms) and improvements to the ergonomics of
-  `Dictionary`.
+- **Laying groundwork for a new concurrency model**. We will lay groundwork for a new concurrency model, especially as needed for ABI stability.  Finalizing such a model, however, is a *non-goal* for Swift 5.  A key focus area will be on designing language affordances for creating and using asynchronous APIs and dealing with the problems created by callback-heavy code.
 
-* Foundation improvements: We anticipate proposing some targeted
-  improvements to Foundation API to continue the goal of making the
-  Cocoa SDK work seamlessly in Swift. Details on the specific goals
-  will be provided as we get started on Swift 4 stage 2.
+### Source Stability
+
+Similar to [Swift 4](releases/swift-4_0.md) , the Swift 5 compiler will provide a source compatibility mode to allow source code written using some previous versions of Swift to compile with the Swift 5 compiler.  The Swift 5 compiler will at least support code written in Swift 4, but may also extend back to supporting code written in Swift 3.  The final decision on the latter will be made in early 2018.
+
+Source-breaking changes in Swift 5 will have an even higher bar than in Swift 4, following these guidelines:
+
+* The current syntax/API must be shown to actively cause problems for users.
+* The new syntax/API must be clearly better and must not conflict with existing Swift syntax.
+* There must be a reasonably automated migration path for existing code.
+
+### Evolution Process for Swift 5
+
+Unlike [Swift 4](releases/swift-4_0.md), there will be no "stage 1" and "stage 2" for the evolution process.  Proposals that fit within the general focus of the release are welcome until **March 1, 2018**.  Proposals will still be considered after that, but the bar will be increasingly high to accept changes for Swift 5.
+
+The broader range of proposals for Swift 5 compared to Swift 4 incurs the risk of diluting the focus on ABI stability.
+To mitigate that risk, **every evolution proposal will need a working implementation, with test cases, in order to be considered for review**.  An idea can be pitched and a proposal written prior to providing an implementation, but a pull request for a proposal will not be accepted for review until an implementation is available.
+
+More precisely:
+
+1. Once a proposal is written, the authors submit the proposal via a pull request to the `swift-evolution` repository.
+
+2. The Core Team will regularly review `swift-evolution` pull requests, and provide feedback to the authors in the pull request on whether or not the proposal looks within reason of something that might be accepted.
+
+3. If a proposal gets a positive indicator from the Core Team for later review, the authors must provide an implementation prior to the proposal being formally reviewed.  An implementation should be provided in the form of a pull request against the impacted repositories (e.g., `swift`, `swift-package-manager`), and the proposal should be updated with a link to that pull request.  The existence of an implementation does not guarantee that the proposal will be accepted, but it is instrumental in evaluating the quality and impact of the proposal.
+
+We want to strike a balance between encouraging open discussion of potential changes to the language and standard library while also providing more focus when changes are actually reviewed.  Further, having implementations on hand allow the changes to be more easily tried out before they are officially accepted as part of the language.  In particular, development of the initial pull request for a proposal remains a very open review process that everyone in the community can contribute a lot to.  Similarly, members of the community can help craft implementations for a proposal even if they aren't the authors of the proposal.
 
 ## Previous releases
 
+* [Swift 4.0](releases/swift-4_0.md) - Endgame
 * [Swift 3.0](releases/swift-3_0.md) - Released on September 13, 2016
 * [Swift 2.2](releases/swift-2_2.md) - Released on March 21, 2016
 
