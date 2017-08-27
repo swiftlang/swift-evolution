@@ -178,14 +178,14 @@ protocol HasIdentity {
 }
 
 extension SomeWrapper: Equatable where Wrapped: Equatable {
-  static func ==(lhs: SomeWrapper<Wrapped>, rhs: SomeWrapper<Wrapper>) -> Bool {
+  static func ==(lhs: SomeWrapper<Wrapped>, rhs: SomeWrapper<Wrapped>) -> Bool {
     return lhs.wrapped == rhs.wrapped
   }
 }
 
 // error: SomeWrapper already stated conformance to Equatable
 extension SomeWrapper: Equatable where Wrapped: HasIdentity {
-  static func ==(lhs: SomeWrapper<Wrapped>, rhs: SomeWrapper<Wrapper>) -> Bool {
+  static func ==(lhs: SomeWrapper<Wrapped>, rhs: SomeWrapper<Wrapped>) -> Bool {
     return lhs.wrapped === rhs.wrapped
   }
 }
@@ -222,7 +222,7 @@ that are orthogonal to conditional conformances.
 ### Implied conditional conformances 
 
 Stating conformance to a protocol implicitly states conformances to
-any of the protocols that it the protocol inherits. This is already
+any of the protocols that the protocol inherits. This is already
 the case in Swift today: one can declare conformance to the
 `Collection` protocol, and it implies conformance to `Sequence` as
 well.
@@ -344,13 +344,13 @@ protocol HasIdentity {
 }
 
 extension SomeWrapper: Equatable where Wrapped: Equatable {
-  static func ==(lhs: SomeWrapper<Wrapped>, rhs: SomeWrapper<Wrapper>) -> Bool {
+  static func ==(lhs: SomeWrapper<Wrapped>, rhs: SomeWrapper<Wrapped>) -> Bool {
     return lhs.wrapped == rhs.wrapped
   }
 }
 
 extension SomeWrapper: Equatable where Wrapped: HasIdentity {
-  static func ==(lhs: SomeWrapper<Wrapped>, rhs: SomeWrapper<Wrapper>) -> Bool {
+  static func ==(lhs: SomeWrapper<Wrapped>, rhs: SomeWrapper<Wrapped>) -> Bool {
     return lhs.wrapped === rhs.wrapped
   }
 }
@@ -373,7 +373,7 @@ It is due to the possibility of #4 occurring that we refer to the two conditiona
 ```swift
 // Possible tie-breaker conformance
 extension SomeWrapper: Equatable where Wrapped: Equatable & HasIdentity, {
-  static func ==(lhs: SomeWrapper<Wrapped>, rhs: SomeWrapper<Wrapper>) -> Bool {
+  static func ==(lhs: SomeWrapper<Wrapped>, rhs: SomeWrapper<Wrapped>) -> Bool {
     return lhs.wrapped == rhs.wrapped
   }
 }
