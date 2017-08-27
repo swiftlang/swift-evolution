@@ -222,7 +222,7 @@ that are orthogonal to conditional conformances.
 ### Implied conditional conformances 
 
 Stating conformance to a protocol implicitly states conformances to
-any of the protocols that it the protocol inherits. This is already
+any of the protocols that the protocol inherits. This is already
 the case in Swift today: one can declare conformance to the
 `Collection` protocol, and it implies conformance to `Sequence` as
 well.
