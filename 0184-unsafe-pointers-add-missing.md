@@ -1,4 +1,4 @@
-# Improved pointers
+# Unsafe[Mutable][Raw][Buffer]Pointer: add missing methods, adjust existing labels for clarity, and remove deallocation size
 
 * Proposal: [SE-0184](0184-improved-pointers.md)
 * Author: [Kelvin Ma (“Taylor Swift”)](https://github.com/kelvin13)
