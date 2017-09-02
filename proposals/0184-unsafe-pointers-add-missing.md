@@ -4,6 +4,7 @@
 * Author: [Kelvin Ma (“Taylor Swift”)](https://github.com/kelvin13)
 * Review Manager: TBD
 * Status: **Awaiting review**
+* Pull Request: [apple/swift#11464](https://github.com/apple/swift/pull/11464)
 
 ## Introduction
 
