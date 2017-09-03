@@ -23,7 +23,7 @@ var languageVersions = ['2.2', '3', '3.0.1', '3.1', '4']
 var filterSelection = []
 
 var GITHUB_BASE_URL = 'https://github.com/'
-var REPO_PROPOSALS_BASE_URL = 'apple/swift-evolution/blob/master/proposals'
+var REPO_PROPOSALS_BASE_URL =  GITHUB_BASE_URL + 'apple/swift-evolution/blob/master/proposals'
 
 /**
  * `name`: Mapping of the states in the proposals JSON to human-readable names.
