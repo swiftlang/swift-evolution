@@ -3,7 +3,7 @@
 * Proposal: [SE-0075](0075-import-test.md)
 * Author: [Erica Sadun](http://github.com/erica)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
-* Status: **Accepted**
+* Status: **Implemented (Swift 4.1)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000159.html)
 * Bug: [SR-1560](https://bugs.swift.org/browse/SR-1560)
 
