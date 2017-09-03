@@ -22,7 +22,8 @@ var languageVersions = ['2.2', '3', '3.0.1', '3.1', '4']
 /** Storage for the user's current selection of filters when filtering is toggled off. */
 var filterSelection = []
 
-var REPO_PROPOSALS_BASE_URL = 'https://github.com/apple/swift-evolution/blob/master/proposals'
+var GITHUB_BASE_URL = 'https://github.com/'
+var REPO_PROPOSALS_BASE_URL = 'apple/swift-evolution/blob/master/proposals'
 
 /**
  * `name`: Mapping of the states in the proposals JSON to human-readable names.
@@ -293,7 +294,7 @@ function renderBody () {
       if (proposal.reviewManager.name) detailNodes.push(renderReviewManager(proposal.reviewManager))
       if (proposal.trackingBugs) detailNodes.push(renderTrackingBugs(proposal.trackingBugs))
       if (state === '.implemented') detailNodes.push(renderVersion(proposal.status.version))
-
+      if (proposal.pullRequests) detailNodes.push(renderPullRequests(proposal.pullRequests, state === '.implemented'))
       if (state === '.acceptedWithRevisions') detailNodes.push(renderStatus(proposal.status))
 
       if (state === '.activeReview' || state === '.scheduledForReview') {
@@ -371,6 +372,31 @@ function renderTrackingBugs (bugs) {
     ]),
     html('div', { className: 'bug-list proposal-detail-value' },
       bugNodes
+    )
+  ])
+}
+
+/** Implementation pull requests are required alongside proposals (after Swift 4.0). */
+function renderPullRequests (pullRequests, isImplemented) {
+  var prNodes = pullRequests.map(function (pullRequest) {
+    return html('a', {
+      href: GITHUB_BASE_URL + pullRequest.account + '/' + pullRequest.repository + '/pull/' + pullRequest.id
+    }, [
+      pullRequest.repository,
+      '#',
+      pullRequest.id.toString()
+    ])
+  })
+
+  prNodes = _joinNodes(prNodes, ', ')
+
+  var label = pullRequests.length > 1 ? 'Pull Requests: ' : 'Pull Request: '
+  if (isImplemented) label = 'Implementation: '
+
+  return html('div', { className: 'proposal-detail' }, [
+    html('div', { className: 'proposal-detail-label' }, [label]),
+    html('div', { className: 'pull-request-list proposal-detail-value' },
+      prNodes
     )
   ])
 }
@@ -638,6 +664,9 @@ function _searchProposals (filterText) {
       ['status', 'version'],
       ['authors', 'name'],
       ['authors', 'link'],
+      ['pullRequests', 'account'],
+      ['pullRequests', 'repository'],
+      ['pullRequests', 'id'],
       ['trackingBugs', 'link'],
       ['trackingBugs', 'status'],
       ['trackingBugs', 'id'],
