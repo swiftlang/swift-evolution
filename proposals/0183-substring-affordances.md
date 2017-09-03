@@ -3,8 +3,9 @@
 * Proposal: [SE-0183](0183-substring-affordances.md)
 * Author: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Accepted**
+* Status: **Implemented (Swift 4)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2017-July/000395.html)
+* Bug: [SR-4933](https://bugs.swift.org/browse/SR-4933)
 
 ## Introduction
 
