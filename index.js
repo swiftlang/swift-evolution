@@ -10,6 +10,8 @@
 //
 // ===---------------------------------------------------------------------===//
 
+'use strict'
+
 /** Holds the primary data used on this page: metadata about Swift Evolution proposals. */
 var proposals
 
