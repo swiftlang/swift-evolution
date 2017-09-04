@@ -33,7 +33,7 @@ let package = Package(
 ```
 
 These settings will apply to all the C and C++ targets in the package. The
-default value of these properties will be `nil`, i.e. language standard flag
+default value of these properties will be `nil`, i.e., a language standard flag
 will not be passed when invoking the C/C++ compiler.
 
 _Once we get the build settings feature, we will deprecate these properties._
