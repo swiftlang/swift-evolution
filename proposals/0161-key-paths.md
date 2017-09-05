@@ -5,7 +5,6 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Accepted**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2017-April/000356.html)
-* Associated PR: [#644](https://github.com/apple/swift-evolution/pull/644)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/55e61f459632eca2face40e571a517919f846cfb/proposals/0161-key-paths.md)
 
 ## Introduction

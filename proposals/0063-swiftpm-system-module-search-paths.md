@@ -5,7 +5,7 @@
 * Review Manager: [Anders Bertelrud](https://github.com/abertelrud)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-April/000103.html)
-* Pull Request: [apple/swift-package-manager#257](https://github.com/apple/swift-package-manager/pull/257)
+* Implementation: [apple/swift-package-manager#257](https://github.com/apple/swift-package-manager/pull/257)
 
 ## Introduction
 

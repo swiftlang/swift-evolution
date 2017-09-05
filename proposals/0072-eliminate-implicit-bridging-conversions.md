@@ -5,9 +5,7 @@
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000137.html)
-* Pull Requests: [apple/swift#2419](https://github.com/apple/swift/pull/2419),
-                 [apple/swift#2440](https://github.com/apple/swift/pull/2440),
-                 [apple/swift#2441](https://github.com/apple/swift/pull/2441)
+* Implementation: [apple/swift#2419](https://github.com/apple/swift/pull/2419)
 
 ## Introduction
 In Swift 1.2, we attempted to remove all implicit bridging conversions from the language. Unfortunately, problems with how the v1.2 compiler imported various un-annotated Objective-C APIs caused us to scale back on our ambitions.

@@ -5,7 +5,7 @@
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160321/013250.html)
-* Pull Request: [apple/swift#1383](https://github.com/apple/swift/pull/1383)
+* Implementation: [apple/swift#1383](https://github.com/apple/swift/pull/1383)
 
 ## Introduction
 

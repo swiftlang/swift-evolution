@@ -5,7 +5,7 @@
 * Review Manager: [Dave Abrahams](https://github.com/dabrahams)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160808/026164.html)
-* Pull Request: [apple/swift#4041](https://github.com/apple/swift/pull/4041)
+* Implementation: [apple/swift#4041](https://github.com/apple/swift/pull/4041)
 
 ## Introduction
 
