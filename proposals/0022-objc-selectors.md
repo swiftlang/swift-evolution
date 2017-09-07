@@ -5,7 +5,7 @@
 * Review Manager: [Joe Groff](https://github.com/jckarter)
 * Status: **Implemented (Swift 2.2)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160125/007797.html)
-* Pull Request: [apple/swift#1170](https://github.com/apple/swift/pull/1170)
+* Implementation: [apple/swift#1170](https://github.com/apple/swift/pull/1170)
 
 ## Introduction
 

@@ -5,7 +5,7 @@
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-April/000115.html), [Swift-evolution thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160229/011552.html)
-* Pull Request: [apple/swift#2108](https://github.com/apple/swift/pull/2108)
+* Implementation: [apple/swift#2108](https://github.com/apple/swift/pull/2108)
 * Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/21fac2e8034e79e4f44c1c8799808fc8cba83395/proposals/0065-collections-move-indices.md), [2](https://github.com/apple/swift-evolution/blob/1a821cf7ccbdf1d7566e9ce2e991bdd835ba3b7d/proposals/0065-collections-move-indices.md), [3](https://github.com/apple/swift-evolution/blob/d44c3e7c189ba39ddf8a914ae8b78b71f88fdcdf/proposals/0065-collections-move-indices.md), [4](https://github.com/apple/swift-evolution/blob/57639040dc08d2f0b16d9bda527db069589b58d1/proposals/0065-collections-move-indices.md)
 
 ## Summary

@@ -6,7 +6,7 @@
 * Status: **Implemented (Swift 4)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2017-April/000349.html) 
 * Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/0389b1f49fc55b1a898701c549ce89738307b9fc/proposals/0160-objc-inference.md)
-* Implementation: [Pull request](https://github.com/apple/swift/pull/8379)
+* Implementation: [apple/swift#8379](https://github.com/apple/swift/pull/8379)
 * Bug: [SR-4481](https://bugs.swift.org/browse/SR-4481)
 
 ## Introduction

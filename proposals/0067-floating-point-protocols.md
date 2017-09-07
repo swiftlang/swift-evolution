@@ -5,7 +5,7 @@
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000121.html)
-* Pull Request: [apple/swift#2453](https://github.com/apple/swift/pull/2453)
+* Implementation: [apple/swift#2453](https://github.com/apple/swift/pull/2453)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/fb1368a6a5474f57aa8f1846b5355d18753098f3/proposals/0067-floating-point-protocols.md)
 
 ## Introduction

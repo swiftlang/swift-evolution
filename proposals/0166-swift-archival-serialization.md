@@ -5,8 +5,7 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 4)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2017-April/000367.html)
-* Associated PRs:
-  * [#9004](https://github.com/apple/swift/pull/9004)
+* Implementation: [apple/swift#9004](https://github.com/apple/swift/pull/9004)
 
 ## Introduction
 

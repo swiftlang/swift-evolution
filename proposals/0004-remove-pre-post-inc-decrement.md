@@ -3,7 +3,7 @@
 * Proposal: [SE-0004](0004-remove-pre-post-inc-decrement.md)
 * Author: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Commit: [apple/swift@8e12008](https://github.com/apple/swift/commit/8e12008d2b34a605f8766310f53d5668f3d50955)
+* Implementation: [apple/swift@8e12008](https://github.com/apple/swift/commit/8e12008d2b34a605f8766310f53d5668f3d50955)
 
 ## Introduction
 

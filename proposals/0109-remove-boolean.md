@@ -5,8 +5,8 @@
 * Review Manager: [Doug Gregor](http://github.com/DougGregor)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160711/024270.html)
-* Commits: [apple/swift@76cf339](https://github.com/apple/swift/commit/76cf339694a41293dbbec9672b6df87a864087f2),
-           [apple/swift@af30ae3](https://github.com/apple/swift/commit/af30ae32226813ec14c2bef80cb090d3e6c586fb)
+* Implementation: [apple/swift@76cf339](https://github.com/apple/swift/commit/76cf339694a41293dbbec9672b6df87a864087f2),
+                  [apple/swift@af30ae3](https://github.com/apple/swift/commit/af30ae32226813ec14c2bef80cb090d3e6c586fb)
 
 ## Introduction
 
