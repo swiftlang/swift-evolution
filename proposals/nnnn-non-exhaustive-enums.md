@@ -17,7 +17,7 @@
 
 ## Introduction
 
-Currently, adding a new case to an enum is a source-breaking change, which is very inconvenient for library authors. This proposal aims to distinguish between enums that are _exhaustive_ (meaning they will never get any new cases) and those that are _non-exhaustive,_ and to ensure that clients handle any future cases when dealing with the latter. This declaration only affects clients from outside the original module.
+Currently, adding a new case to an enum is a source-breaking change, which is very inconvenient for library authors. This proposal aims to distinguish between enums that are _exhaustive_ (meaning they will never get any new cases) and those that are _non-exhaustive,_ and to ensure that clients handle any future cases when dealing with the latter. This change only affects clients from outside the original module.
 
 swift-evolution thread: [Enums and Source Compatibility](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170807/038663.html)
 
@@ -45,7 +45,7 @@ To see how this distinction will play out in practice, I investigated the public
 
 ## Proposed solution
 
-Public enums can be declared as `exhaustive` or as `nonexhaustive`, defaulting to `exhaustive` for consistency with Swift 4.0 and earlier.
+Public enums can be declared as `exhaustive` or as `nonexhaustive`. In Swift 4 mode, the default behavior will be `exhaustive` for source compatibility; in Swift 5 it will be `nonexhaustive`.
 
 When a client tries to switch over a `nonexhaustive` enum, they must include a `default` case unless the enum is declared in the same module as the switch. In Swift 4 mode, omitting this case will result in a warning; in Swift 5, it will be an error.
 
@@ -73,11 +73,11 @@ public exhaustive enum GregorianWeekday {
 }
 ```
 
-A public enum can now be declared `nonexhaustive` or `exhaustive`, with `exhaustive` as the default. (This is a context-sensitive keyword, like `final`.) In Swift 5 the compiler will warn if a public enum does not have either modifier; since it affects how the enum is used outside the library, it should be a conscious decision.
+A public enum can now be declared `nonexhaustive` or `exhaustive`. (This is a context-sensitive keyword, like `final`.) The default behavior is `exhaustive` in Swift 4 mode and `nonexhaustive` in Swift 5; there is further discussion of these defaults in the "Default behavior" section below.
 
 A warning is emitted when using either keyword on a non-public enum, since they have no effect within a module.
 
-The naming and spelling of these annotations is discussed in the "Alternatives Considered" section at the end of this proposal.
+The naming and spelling of these annotations is discussed in the "Alternatives considered" section at the end of this proposal.
 
 
 ### Use-side
@@ -114,10 +114,27 @@ case (_, false):
 
 This switch handles all *known* patterns, but still doesn't account for the possibility of a new enum case when the second tuple element is `true`. This should be an error in Swift 5 and a warning in Swift 4, like the first example.
 
-The consequences of losing exhaustiveness checking for `nonexhaustive` enums are discussed in the "Alternatives Considered" section at the end of this proposal.
+The consequences of losing exhaustiveness checking for `nonexhaustive` enums are discussed in the "Alternatives considered" section at the end of this proposal.
 
 
-### C Enums
+### Default behavior
+
+Making `nonexhaustive` the default behavior was not a lightly-made decision. There are two obvious alternatives here: leave `exhaustive` as the default, and have *no* default, at least in Swift 5 mode. An earlier version of this proposal went with the latter, but got significant pushback for making public enums more complicated than just adding `public`. This argues for having *some* default.
+
+The use cases for public enums fall into three main categories:
+
+| Use Case                       | Exhaustive                                                                                 | Non-exhaustive                                                                                 |
+|--------------------------------|--------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------|
+| Multi-module app               | The desired behavior. Compiler can find all clients if the enum becomes non-exhaustive.    | Compiler can find all clients if the enum becomes exhaustive.                                  |
+| Open-source library (SwiftPM)  | Changing to non-exhaustive is a source-breaking change; it produces errors in any clients. | Changing to exhaustive produces warnings in any clients.                                       |
+| ABI-stable library (Apple OSs) | **Cannot** change to non-exhaustive; it would break binary compatibility.                  | Changing to exhaustive produces warnings in clients (probably dependent on deployment target). |
+
+Although multi-module apps are likely responsible for most uses of `public`, they also provide the environment in which it is easiest to make changes, since both the "library" and the "client" are part of the same project. For actual libraries, `nonexhaustive` is a much better place to start; if it is a mistake, a minor release of the library can fix the issue without requiring immediate source changes in clients.
+
+Defaulting to `nonexhaustive` in Swift 5 is effectively a language change from Swift 4, where all enums were treated as exhaustive. This does require care when manually migrating code from Swift 4 to Swift 5, or when copying existing example code from online into a Swift 5 module. However, this still only affects situations where an enum is (1) public and (2) switched over (3) from another module, and even when this *does* occur it is still reasonable to fix.
+
+
+### C enums
 
 Enums imported from C are a bit trickier, because it's difficult to tell whether they're part of the current project or not. An `NS_ENUM` in Apple's SDK should probably be treated as non-exhaustive, but one in your own framework might be exhaustive. Even there, though, it's possible that there's a "private case" defined in a .m file:
 
@@ -194,9 +211,10 @@ It is not a binary-compatible change to add `@objc` to an enum, nor to remove it
 Taking an existing non-exhaustive enum and making it exhaustive is something we'd like to support without breaking binary compatibility, but there is no design for that yet. The reverse will not be allowed.
 
 
-## Future Direction: Non-Public Cases
+## Future direction: non-public cases
 
-The work required for non-exhaustive enums also allows for the existence of non-public cases in a public enum. This already shows up in practice in Apple's SDKs, as described briefly in the section on "C Enums" above. Like "enum inheritance", this kind of behavior can mostly be emulated by using a second enum inside the library, but that's not sufficient if the non-public values need to be vended opaquely to clients.
+The work required for non-exhaustive enums also allows for the existence of non-public cases in a public enum. This already shows up in practice in Apple's SDKs, as described briefly in the section on "C enums" above. Like "enum inheritance", this kind of behavior can mostly be emulated by using a second enum inside the library, but that's not sufficient if the non-public values need to be vended opaquely to clients.
+
 
 
 ## Alternatives considered
@@ -251,11 +269,6 @@ public enum HomeworkExcuse {
 `continue` and `final` were also suggested for this additional declaration. I'm not inherently against this approach, but it does seem a little harder to spot when looking at the generated interface for a library. Unless it receives significant acclaim over the modifier approach, I'm inclined to stick with the simpler thing.
 
 
-### Default to non-exhaustive
-
-My initial approach was to make `public` enums non-exhaustive by default, and require a library author to opt in to being exhaustive. However, this would be a source-breaking change, and therefore a source of significant confusion in updating from Swift 4 to Swift 5.
-
-
 ### Preserve exhaustiveness diagnostics for non-exhaustive enums
 
 In the initial discussion, multiple people were unhappy with the loss of compiler warnings for switches over non-exhaustive enums that comes with using `default`—they wanted to be able to handle all cases that exist today, and have the compiler tell them when new ones were added. Ultimately I decided not to include this in the proposal with the expectation is that switches over non-exhaustive enums should be uncommon.
@@ -293,6 +306,14 @@ case .thoughtItWasDueNextWeek:
 
 `switch!` is a more limited form than `future`, which does not support any action other than trapping when the enum is not one of the known cases. This avoids some of the problems with `future` (such as making it much less important to test), but isn't exactly in the spirit of non-exhaustive enums, where you *know* there will be more cases in the future. It's also still added complexity for the language.
 
+
+### Testing invalid cases
+
+Another issue with non-exhaustive enums is that clients cannot properly test what happens when a new case is introduced, almost by definition. Brent Royal-Gordon came with the idea to have a new type annotation that would allow the creation of an invalid enum value. Since this is only something to use for testing, the initial version of the idea used `@testable` as the spelling for the annotation. The tests could then use a special expression, `#invalid`, to pass this invalid value to a function with a `@testable` enum parameter.
+
+However, this would only work in cases where the action to be taken does not actually depend on the enum value. If it needs to be passed to the original library that owns the enum, or used with an API that is not does not have this annotation, the code still cannot be tested properly.
+
+This is an additive feature, so we can come back and consider it in more detail even if we leave it out of the language for now. Meanwhile, the effect can be imitated using an Optional or ImplicitlyUnwrappedOptional parameter.
 
 
 ### "Can there be a kind of open enum where you can add new cases in extensions?"
