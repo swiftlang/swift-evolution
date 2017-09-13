@@ -10,7 +10,7 @@
 
 Swift’s pointer types are an important interface for low-level memory manipulation, but the current API design is not very consistent, complete, or convenient. Many memory methods demand a `capacity:` or `count:` argument, forcing the user to manually track the size of the memory block, even though most of the time this is either unnecessary, or redundant as buffer pointers track this information natively. In some places, poor naming choices and overengineered function signatures compromise memory safety by leading users to believe that they have allocated or freed memory when in fact, they have not.
 
-This proposal seeks to improve the Swift pointer API by ironing out naming inconsistencies, adding sensible default argument values, adding missing methods, and reducing excessive verbosity, offering a more convenient, more sensible, and less bug-prone API. We also attempt to introduce a buffer pointer API that supports partial initialization without excessively compromising memory state safety.
+This proposal seeks to improve the Swift pointer API by ironing out naming inconsistencies, adding missing methods, and reducing excessive verbosity, offering a more convenient, more sensible, and less bug-prone API. We also attempt to introduce a buffer pointer API that supports partial initialization without excessively compromising memory state safety.
 
 Swift-evolution thread: [Pitch: Improved Swift pointers](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170710/038013.html), [Pitch: More Improved Swift pointers](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170717/038121.html)
 
@@ -154,15 +154,15 @@ static
 func allocate(as:count:) -> PointerType
 func deallocate()
 
-func initialize(as:at:repeating:count:)
-func initialize(as:at:from:count:)
-func moveInitialize(as:at:from:count:)
+func initialize(at:as:repeating:count:)
+func initialize(at:as:from:count:)
+func moveInitialize(at:as:from:count:)
 
-func assign(as:at:repeating:count:)
-func assign(as:at:from:count:)
-func moveAssign(as:at:from:count:)
+func assign(at:as:repeating:count:)
+func assign(at:as:from:count:)
+func moveAssign(at:as:from:count:)
 
-func deinitialize(as:at:count:)
+func deinitialize(at:as:count:)
 func rebindMemory(as:count:)
 
 func copyBytes(at:from:count:)
@@ -171,7 +171,7 @@ func copyBytes(at:from:count:)
 where 
 
  - **`as:`** refers to the element type 
- - **`at:`** refers to an offset from `self`, in strides of the element type 
+ - **`at:`** refers to an offset from `self`, in strides of the element type, if any 
  - **`repeating:`** refers to a repeating value 
  - **`from:`** refers to a second pointer which serves as the **source** 
  - **`count:`** refers the number of elements the operation operates on 
@@ -184,7 +184,9 @@ On actual pointer types, most of these parameters are unnecessary, and some of t
 
  - typed pointers don’t need an `as:` parameter (except for type rebinding) — they already have a type. It also doesn’t make sense for them to support byte-wise copying.
 
- - pointers for which it is syntactically easy to offset in strides (for example, by pointer arithmetic with `+`), don’t need to take an `at:` argument.
+ - pointers for which it is syntactically easy to offset in strides, or in the case of raw pointers, bytes (for example, by pointer arithmetic with `+`), don’t need to take an `at:` argument. 
+
+This proposal moves the `at:` parameter to the front of the parameter list. (Where this parameter used to appear in `UnsafeMutableRawPointer`, it came after the `as:` parameter.) The rationale for this is that this proposal redefines the `at:` parameter in terms of pointer arithmetic offsets, and pointer arithmetic is written “first” from left to right. Since some of our pointer types will use `at:` and others won’t, we want the offset value to occur roughly in the same reading order across all our pointer types. 
 
 > note: some of these conceptual argument labels have different names in the real API. `as:` is written as `to:` in the type-rebinding methods because it sounds better. `count:` is sometimes written as `capacity:` or `bytes:` to express the assumptions about the stride and initialization state of the memory in question. 
 
@@ -211,6 +213,7 @@ func allocate<Pointee>(capacity:) -> UnsafeMutablePointer<Pointee>
 func deallocate()
 
 func initialize(repeating:count:)
+func initializePointee(to:)
 func initialize(from:count:)
 func moveInitialize(from:count:)
 
@@ -222,11 +225,20 @@ func deinitialize(count:)
 func withMemoryRebound<T, Result>(to:capacity:_:) -> Result
 ```
 
-Like `UnsafePointer`, `UnsafeMutablePointer`’s type rebinding method is written as a decorator, and its methods do not need `at:` arguments.
+Like `UnsafePointer`, `UnsafeMutablePointer`’s type rebinding method is written as a decorator, and its methods do not need `at:` arguments. 
 
-> note: the `count:` argument in `initialize(repeating:count:)`, `assign(repeating:count:)`, and `deinitialize(count:)` and the `capacity:` argument in `allocate(capacity:)` should receive a default value of `1`, since those methods are commonly used with a count of `1`.
+Unlike earlier versions of this proposal, we propose adding a method `initializePointee(to:)` to `UnsafeMutablePointer`. Previously, the single-element initialization case was supported by a default argument of `1` on `initialize(repeating:count:)`’s `count:` parameter, but it was decided this was too confusing in terms of API readability. For example, calls to `initialize(repeating:count:)` and its corresponding method on `UnsafeMutableBufferPointer` were prone to look the same. 
 
-> `withMemoryRebound(to:capacity:_:)` should *not* receive a default `count:` value, to avoid misleading users about type binding in Swift’s memory model. (The entire memory block must be rebound, not just the first element under the pointer.)
+```swift 
+plainPointer.initialize(repeating: pointee) 
+bufferPointer.initialize(repeating: repeatedValue)
+```
+
+Increasing API surface by adding this method is justified by the large number of calls to `initialize(to:count:)` in the standard library (and likely other code) which rely on the default argument of `1`. We do *not* need to add a corresponding `assignPointee(to:)` method since this can be done with the assignment operator. 
+
+```swift 
+ptr.pointee = newValue 
+```
 
 ### `UnsafeRawPointer`
 
@@ -243,24 +255,24 @@ static
 func allocate(bytes:alignedTo:) -> UnsafeMutableRawPointer
 func deallocate()
 
-func initializeMemory<T>(as:at:repeating:count:) -> UnsafeMutablePointer<T>
-func initializeMemory<T>(as:at:from:count:) -> UnsafeMutablePointer<T>
-func moveInitializeMemory<T>(as:at:from:count:) -> UnsafeMutablePointer<T>
+func initializeMemory<T>(as:repeating:count:) -> UnsafeMutablePointer<T>
+func initializeMemory<T>(as:from:count:) -> UnsafeMutablePointer<T>
+func moveInitializeMemory<T>(as:from:count:) -> UnsafeMutablePointer<T>
 
 func bindMemory<T>(to:capacity:) -> UnsafeMutablePointer<T>
 
-func copy(from:bytes:)
+func copyMemory(from:bytes:)
 ```
 
 The `as:` argument in `allocate(bytes:alignedTo:)` is represented by an alignment parameter which takes an integer. This is more useful since we often need a computed alignment (like when aligning a structure) instead of a preset type alignment.
 
-> note: although raw pointers support pointer arithmetic, it is not done in strides, and `ptr + offset * MemoryLayout<T>.stride` is painfully verbose, so these methods take an `at:` offset.
+Currently, `UnsafeMutableRawPointer`’s methods take an `at:` offset argument that is interpreted in strides. This argument is not currently in use in the entire Swift standard library, and we believe that it is not useful in practice. This proposal replaces it with a `atByteOffset:` argument which takes a byte offset, a much more useful parameter. Since a byte offset off of a `UnsafeMutableRawPointer` can easily be obtained through pointer arithmetic, we do not actually need such an argument here.
 
-> note: the `at:` arguments in `UnsafeMutableRawPointer` should all have a default value of `0`; i.e., no offset.
+Unlike `UnsafeMutablePointer`, we do not add a single-instance initialize method to `UnsafeMutableRawPointer`, as such a method would probably not be useful. However, we still remove the default argument of `1` from the `count:` argument in `initializeMemory<T>(as:repeating:count:)` to prevent confusion with calls to its buffer variant.
 
 -------------
 
-Buffer pointers are conceptually similar, except the `count:` argument is often unnecessary since they track their own length internally. This means you would call 
+Buffer pointers are conceptually similar to plain pointers, except the `count:` argument is often unnecessary since they track their own length internally. This means you would call 
 
 ```swift
 ptr1.initialize(repeating: value, count: count)
@@ -295,7 +307,9 @@ image.deinitialize(at: 0, count: filled)
 image.deallocate()
 ```
 
-Under this system, it will be impossible to leave part of a source buffer deinitialized, and every segment of a destination buffer will be accessible (instead of only segments starting at index `0`.)
+Under this system, it will be impossible to leave part of a source buffer deinitialized, and every segment of a destination buffer will be accessible (instead of only segments starting at index `0`.) 
+
+For now, **calling `deallocate()` on a buffer pointer is only defined behavior if the buffer pointer references a complete heap memory block**. This operation may become supported in a wider variety of cases in the future if Swift gets a more sophisticated heap allocation backend.
 
 > note: we use `at:` instead of `+` because pointer arithmetic does not play well with the nillable buffer pointer `baseAddress`.
 
@@ -349,19 +363,19 @@ func allocate(bytes:alignedTo:) -> UnsafeMutableRawBufferPointer
 func deallocate()
 
 func initializeMemory<T>(as:repeating:) -> UnsafeMutableBufferPointer<T>
-func initializeMemory<T>(as:at:from:) -> UnsafeMutableBufferPointer<T>
-func moveInitializeMemory<T>(as:at:from:) -> UnsafeMutableBufferPointer<T>
+func initializeMemory<T>(atByteOffset:as:from:) -> UnsafeMutableBufferPointer<T>
+func moveInitializeMemory<T>(atByteOffset:as:from:) -> UnsafeMutableBufferPointer<T>
 
 func bindMemory<T>(to:) -> UnsafeMutableBufferPointer<T>
 
-func copyBytes(at:from:)
+func copyMemory(at:from:)
 ```
 
 > note: `initializeMemory(as:repeating:)` performs integer division on `self.count` (just like `bindMemory(to:)`) 
 
 > note: the return values of `initializeMemory(as:repeating:)`, `initializeMemory(as:at:from:)`, and `moveInitializeMemory(as:at:from:)` should all be marked as `@discardableResult`. 
 
-> note: `copyBytes(from:)` takes an `at:` argument because just like `UnsafeBufferPointer`, offsetting its `baseAddress` is not syntactically easy. The function name also has “`Bytes`” in it since it’s missing the `bytes:` argument label, and we need to emphasize that it only performs a bytewise copy.
+> note: even though the `at:` argument in `copyMemory(at:from:)` is in terms of bytes, it is not written as `atByteOffset` since there is no type object parameter in the function signature that could suggest that the offset is in typed strides. 
 
 ## Detailed changes
 
@@ -377,13 +391,11 @@ Because the ordering `initializeMemory<Element>(as:at:to:count:)` conflicts with
 
 This addresses the missing assignment analogue to the `initialize(to:count:)` method.
 
-- **rename `copyBytes(from:count:)` to `copy(from:bytes:)` on `UnsafeMutableRawPointer`**
+- **rename `copyBytes(from:count:)` and `copyBytes(from:)` to `copyMemory(from:bytes:)` and `copyMemory(at:from:)`**
 
-We will enforce the convention of the use of the words `bytes`, `count`, and `capacity`.
+This brings the method names in line with the rest of the raw pointer API.
 
-Since this makes the word “bytes” occur twice in `copyBytes(from:bytes:)`, we should drop the “Bytes” suffix and further rename the method to `copy(from:bytes:)`. Since `UnsafeMutableRawPointer` is inherently untyped, it is obvious that any memory transfer operation on it is a bytewise operation so the “Bytes” suffix adds only verbosity and no clarity. An unsized version of this method will also be added to `UnsafeMutableRawBufferPointer`, but keeping the “`Bytes`” suffix.
-
-We do not rename the `count` property on `UnsafeMutableRawBufferPointer` to `bytes` since this could be confused with the actual buffer data.
+> note: we do not change the `copyBytes<C>(from:)` collection method.
 
 - **rename `count` in `UnsafeMutableRawBufferPointer.allocate(count:)` to `bytes` and add an `alignedTo` parameter to make it `UnsafeMutableRawBufferPointer.allocate(bytes:alignedTo:)`**
 
@@ -393,7 +405,7 @@ This brings it in line with the `UnsafeMutableRawPointer` allocator, and avoids 
 
 This makes it much easier to make a mutable copy of an immutable buffer pointer. Such an initializer already exists on `UnsafeMutableRawBufferPointer`, so adding one to `UnsafeMutableBufferPointer` is also necessary for consistency. The reverse initializer, from `UnsafeMutableBufferPointer` to `UnsafeBufferPointer` should also be added for completeness.
 
-- **add a mutable overload to the `copy(from:)` method on `UnsafeMutableRawBufferPointer`, the `initialize(at:from:)` and `assign(at:from:)` methods on `UnsafeMutableBufferPointer`, and the `initializeMemory<T>(as:at:from:)` method on `UnsafeMutableRawBufferPointer`**
+- **add a mutable overload to the `copyMemory(at:from:)` method on `UnsafeMutableRawBufferPointer`, the `initialize(at:from:)` and `assign(at:from:)` methods on `UnsafeMutableBufferPointer`, and the `initializeMemory<T>(atByteOffset:as:from:)` method on `UnsafeMutableRawBufferPointer`**
 
 Currently, for plain pointers, there is a compiler subtyping relationship between `UnsafePointer` and `UnsafeMutablePointer`. No such relationship exists between `UnsafeBufferPointer` and `UnsafeMutableBufferPointer` or their raw counterparts, so it is necessary to provide mutable overloads for these functions.
 
@@ -406,6 +418,8 @@ The old `deallocate(capacity:)` method should be marked as `deprecated` and even
 Along similar lines, the `bytes` and `alignedTo` parameters should be removed from the `deallocate(bytes:alignedTo:)` method on `UnsafeMutableRawPointer` and `UnsafeRawPointer`.
 
 An unsized `deallocate()` method should be added to all pointer types, even immutable ones, as Swift’s memory model does not require memory to be mutable for deallocation. This fixes [SR-3309](https://bugs.swift.org/browse/SR-3309). Note, immutable raw buffer pointers already support this API.
+
+> note: the deallocation size parameters were originally included in early versions of Swift in order to support a more sophisticated hypothetical heap allocator backend that we wanted to have in the future. (Swift currently calls `malloc(_:)` and `free()`.) While such a backend would theoretically run more efficiently than the C backend, overengineering Swift to support it in the future has proven to be a detriment to users right now. By removing the size parameters now, we make it easier and safer to reintroduce such an API in the future without inadvertently causing silent source breakage.
 
 > note: changes to deallocation methods are not listed in the type-by-type overview below. All items in the following list are either non-source breaking, or trivially automigratable.
 
@@ -445,6 +459,7 @@ func withMemoryRebound<T, Result>(to:capacity:_:) -> Result
 #### New methods 
 
 ```diff 
++++ func initializePointee(to:)
 +++ func assign(repeating:count:)
 ```
 
@@ -464,29 +479,21 @@ func bindMemory<T>(to:capacity:) -> UnsafePointer<T>
 static 
 func allocate(bytes:alignedTo:) -> UnsafeMutableRawPointer
 
+func initializeMemory<T>(as:from:count:) -> UnsafeMutablePointer<T>
+func moveInitializeMemory<T>(as:from:count:) -> UnsafeMutablePointer<T>
+
 func bindMemory<T>(to:capacity:) -> UnsafeMutablePointer<T>
 ```
 
-#### Renamed methods 
+#### Renamed methods and dropped arguments
 
 ```diff 
 --- func initializeMemory<T>(as:at:count:to:) -> UnsafeMutablePointer<T>
-+++ func initializeMemory<T>(as:at:repeating:count:) -> UnsafeMutablePointer<T>
++++ func initializeMemory<T>(as:repeating:count:) -> UnsafeMutablePointer<T>
 
 --- func copyBytes(from:count:) 
-+++ func copy(from:bytes:)
++++ func copyMemory(from:bytes:)
 ```
-
-#### New arguments 
-
-```diff 
---- func initializeMemory<T>(as:from:count:) -> UnsafeMutablePointer<T>
---- func moveInitializeMemory<T>(as:from:count:) -> UnsafeMutablePointer<T>
-+++ func initializeMemory<T>(as:at:from:count:) -> UnsafeMutablePointer<T>
-+++ func moveInitializeMemory<T>(as:at:from:count:) -> UnsafeMutablePointer<T>
-```
-
-> note: The new `at:` argument has a backwards-compatible default argument of `0`. This not only makes sense, and is consistent with the existing default value of `at:` in `initializeMemory(as:at:count:to:)`, it also prevents source breakage.
 
 > note: We are adding a *new* default argument of `MemoryLayout<UInt>.alignment` for the `alignment` parameter in `allocate(bytes:alignedTo:)`. The rationale is that Swift is introducing a language-level default guarantee of word-aligned storage, so the default argument reflects Swift’s memory model. Higher alignments (such as 16-byte alignment) should be specified explicitly by the user.
 
@@ -543,7 +550,7 @@ deallocate()
 deallocate()
 ```
 
-#### New/renamed arguments 
+#### Renamed methods and new/renamed arguments 
 
 ```diff 
 --- static 
@@ -552,22 +559,22 @@ deallocate()
 +++ func allocate(bytes:alignedTo:) -> UnsafeMutableRawBufferPointer
 
 --- func copyBytes(from:) 
-+++ func copyBytes(at:from:)
++++ func copyMemory(at:from:)
 ```
 
 #### New methods 
 
 ```diff 
 +++ func initializeMemory<T>(as:repeating:) -> UnsafeMutableBufferPointer<T>
-+++ func initializeMemory<T>(as:at:from:) -> UnsafeMutableBufferPointer<T>
-+++ func moveInitializeMemory<T>(as:at:from:) -> UnsafeMutableBufferPointer<T>
++++ func initializeMemory<T>(atByteOffset:as:from:) -> UnsafeMutableBufferPointer<T>
++++ func moveInitializeMemory<T>(atByteOffset:as:from:) -> UnsafeMutableBufferPointer<T>
 
 +++ func bindMemory<T>(to:) -> UnsafeMutableBufferPointer<T>
 ```
 
 > note: for backwards compatibility, the `alignedTo:` argument in `allocate(bytes:alignedTo:)` should take a default value of `MemoryLayout<UInt>.alignment`. This requires [SR-5664](https://bugs.swift.org/browse/SR-5664) to be fixed before it will work properly.
 
-> note: The new `at:` argument in `copyBytes(at:from:)` has a backwards-compatible default argument of `0`. This poses no risk to memory state safety, since this method can only perform a bytewise copy anyways.
+> note: The new `at:` argument in `copyMemory(at:from:)` has a backwards-compatible default argument of `0`. This poses no risk to memory state safety, since this method can only perform a bytewise copy anyways.
 
 ## What this proposal does not do 
 
@@ -599,23 +606,22 @@ struct UnsafePointer<Pointee>
 
 struct UnsafeMutablePointer<Pointee>
 {
---- static func allocate<Pointee>(capacity:Int) -> UnsafeMutablePointer<Pointee>
-+++ static func allocate<Pointee>(capacity:Int = 1) -> UnsafeMutablePointer<Pointee>
+    static func allocate<Pointee>(capacity:Int) -> UnsafeMutablePointer<Pointee>
 
 --- func deallocate(capacity:Int)
 +++ func deallocate()
 
 --- func initialize(to:Pointee, count:Int = 1)
-+++ func initialize(repeating:Pointee, count:Int = 1)
++++ func initialize(repeating:Pointee, count:Int)
++++ func initializePointee(to:Pointee)
     func initialize(from:UnsafePointer<Pointee>, count:Int)
     moveInitialize(from:UnsafeMutablePointer<Pointee>, count:Int)
 
-+++ func assign(repeating:Pointee, count:Int = 1)
++++ func assign(repeating:Pointee, count:Int)
     func assign(from:UnsafePointer<Pointee>, count:Int)
     func moveAssign(from:UnsafeMutablePointer<Pointee>, count:Int)
 
---- func deinitialize(count:Int)
-+++ func deinitialize(count:Int = 1)
+    func deinitialize(count:Int)
 
     func withMemoryRebound<T, Result>(to:T.Type, capacity:Int, _ body:(UnsafeMutablePointer<T>) -> Result) 
          -> Result
@@ -640,20 +646,16 @@ struct UnsafeMutableRawPointer
 +++ func deallocate()
 
 --- func initializeMemory<T>(as:T.Type, at:Int = 0, count:Int = 1, to:T) -> UnsafeMutablePointer<T>
-+++ func initializeMemory<T>(as:T.Type, at:Int = 0, repeating:T, count:Int = 1) -> UnsafeMutablePointer<T>
++++ func initializeMemory<T>(as:T.Type, repeating:T, count:Int) -> UnsafeMutablePointer<T>
 
---- func initializeMemory<T>(as:T.Type, from:UnsafePointer<T>, count:Int) -> UnsafeMutablePointer<T>
---- func moveInitializeMemory<T>(as:T.Type, from:UnsafeMutablePointer<T>, count:Int) 
----      -> UnsafeMutablePointer<T>
-+++ func initializeMemory<T>(as:T.Type, at:Int = 0, from:UnsafePointer<T>, count:Int) 
-+++      -> UnsafeMutablePointer<T>
-+++ func moveInitializeMemory<T>(as:T.Type, at:Int = 0, from:UnsafeMutablePointer<T>, count:Int) 
-+++      -> UnsafeMutablePointer<T>
+    func initializeMemory<T>(as:T.Type, from:UnsafePointer<T>, count:Int) -> UnsafeMutablePointer<T>
+    func moveInitializeMemory<T>(as:T.Type, from:UnsafeMutablePointer<T>, count:Int) 
+         -> UnsafeMutablePointer<T>
 
     func bindMemory<T>(to:T.Type, count:Int) -> UnsafeMutablePointer<T>
 
 --- func copyBytes(from:UnsafeRawPointer, count:Int)
-+++ func copy(from:UnsafeRawPointer, bytes:Int)
++++ func copyMemory(from:UnsafeRawPointer, bytes:Int)
 }
 
 struct UnsafeBufferPointer<Element>
@@ -704,18 +706,18 @@ struct UnsafeMutableRawBufferPointer
     func deallocate()
 
 +++ func initializeMemory<T>(as:T.Type, repeating:T) -> UnsafeMutableBufferPointer<T>
-+++ func initializeMemory<T>(as:T.Type, at:Int, from:UnsafeBufferPointer<T>) 
++++ func initializeMemory<T>(atByteOffset:Int, as:T.Type, from:UnsafeBufferPointer<T>) 
 +++      -> UnsafeMutableBufferPointer<T>
-+++ func initializeMemory<T>(as:T.Type, at:Int, from:UnsafeMutableBufferPointer<T>) 
++++ func initializeMemory<T>(atByteOffset:Int, as:T.Type, from:UnsafeMutableBufferPointer<T>) 
 +++      -> UnsafeMutableBufferPointer<T>
-+++ func moveInitializeMemory<T>(as:T.Type, at:Int, from:UnsafeMutableBufferPointer<T>) 
++++ func moveInitializeMemory<T>(atByteOffset:Int, as:T.Type, from:UnsafeMutableBufferPointer<T>) 
 +++      -> UnsafeMutableBufferPointer<T>
 
 +++ func bindMemory<T>(to:T.Type) -> UnsafeMutableBufferPointer<T>
 
 --- func copyBytes(from:UnsafeRawBufferPointer)
-+++ func copyBytes(at:Int = 0, from:UnsafeRawBufferPointer)
-+++ func copyBytes(at:Int = 0, from:UnsafeMutableRawBufferPointer)
++++ func copyMemory(at:Int = 0, from:UnsafeRawBufferPointer)
++++ func copyMemory(at:Int = 0, from:UnsafeMutableRawBufferPointer)
 }
 ```
 
@@ -729,7 +731,7 @@ This change is source breaking but can be trivially automigrated.
 
 This change is purely additive.
 
-- **rename `copyBytes(from:count:)` to `copy(from:bytes:)` on `UnsafeMutableRawPointer`**
+- **rename `copyBytes(from:count:)` and `copyBytes(from:)` to `copyMemory(from:bytes:)` and `copyMemory(at:from:)`**
 
 This change is source breaking but can be trivially automigrated.
 
@@ -741,7 +743,7 @@ This change is source breaking but can be trivially automigrated. The `alignedTo
 
 This change is purely additive.
 
-- **add a mutable overload to the `copy(from:)` method on `UnsafeMutableRawBufferPointer`, the `initialize(at:from:)` and `assign(at:from:)` methods on `UnsafeMutableBufferPointer`, and the `initializeMemory<T>(as:at:from:)` method on `UnsafeMutableRawBufferPointer`**
+- **add a mutable overload to the `copyMemory(at:from:)` method on `UnsafeMutableRawBufferPointer`, the `initialize(at:from:)` and `assign(at:from:)` methods on `UnsafeMutableBufferPointer`, and the `initializeMemory<T>(atByteOffset:as:from:)` method on `UnsafeMutableRawBufferPointer`**
 
 This change is purely additive.
 
@@ -779,4 +781,3 @@ The label `value:` or `toValue:` doesn’t fully capture the repeating nature of
 ```swift
 ptr.initialize(value: value)
 ```
-
