@@ -71,6 +71,12 @@ public exhaustive enum GregorianWeekday {
   case saturday
   case sunday
 }
+
+// Defaults to 'nonexhaustive' in Swift 5.
+public enum PrinterKind {
+  case inkjet
+  case laser
+}
 ```
 
 A public enum can now be declared `nonexhaustive` or `exhaustive`. (This is a context-sensitive keyword, like `final`.) The default behavior is `exhaustive` in Swift 4 mode and `nonexhaustive` in Swift 5; there is further discussion of these defaults in the "Default behavior" section below.
@@ -94,6 +100,8 @@ case thoughtItWasDueNextWeek:
 ```
 
 In Swift 5, this would be an error. To maintain source compatibility, this would only produce a warning in Swift 4 mode. The Swift 4 program will trap at run time if an unknown enum case is actually encountered.
+
+To simplify a common use case, enums from modules imported as `@testable` will always be treated as exhaustive as well.
 
 All other uses of enums (`if case`, creation, accessing members, etc) do not change. Only the exhaustiveness checking of switches is affected by `exhaustive` and `nonexhaustive`, and then only across module boundaries. Non-exhaustive switches over `exhaustive` enums (and boolean values) will continue to be invalid in all language modes.
 
@@ -173,6 +181,8 @@ typedef NS_ENUM(NSInteger, GregorianMonth) {
 ```
 
 Apple doesn't speak about future plans for its SDKs, so having an alternate form of `NS_ENUM` that includes this attribute is out of scope for this proposal.
+
+This change will affect code *even in Swift 4 mode* (although it will only produce warnings there), so to ease the transition otherwise-unannotated C enums will continue to be `exhaustive` until Swift 5 is released. That is, all Swift 4.x compilers will treat unannotated `NS_ENUM` declarations as `exhaustive`; a Swift 5 compiler with a Swift 4 mode will treat them as `nonexhaustive`.
 
 Apart from the effect on switches, an imported `exhaustive` enum's `init(rawValue:)` will also enforce that the case is one of those known at compile time. Imported `nonexhaustive` enums will continue to perform no checking on the raw value.
 
