@@ -1,10 +1,10 @@
 # Remove ownership keyword support in protocols
 
 * Proposal: [SE-0186](0186-remove-ownership-keyword-support-in-protocols.md)
-* Authors: [Greg Spiers](https://github.com/gspiers)
+* Author: [Greg Spiers](https://github.com/gspiers)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Status: **Active review (September 20...27 2017)**
-* Pull Request: [apple/swift#11744](https://github.com/apple/swift/pull/11744)
+* Implementation: [apple/swift#11744](https://github.com/apple/swift/pull/11744)
 * Bug: [SR-479](https://bugs.swift.org/browse/SR-479)
 
 ## Introduction
