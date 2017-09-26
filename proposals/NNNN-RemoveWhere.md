@@ -1,4 +1,4 @@
-# Adding in-place `removeAll` to the Standard Library
+# Adding in-place `remove(where:)` to the Standard Library
 
 * Proposal: [SE-NNNN](NNNN-filename.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
@@ -61,11 +61,10 @@ important example of this, because its elements (graphemes) are variable width.
 
 ## Proposed solution
 
-Add the following methods to `RangeReplaceableCollection`:
+Add the following method to `RangeReplaceableCollection`:
 
 ```swift
-nums.removeAll(equalTo: 9)
-nums.removeAll(where: isOdd)
+nums.remove(where: isOdd)
 ```
 
 The default implementation will use the protocol's `init()` and `append(_:)`
