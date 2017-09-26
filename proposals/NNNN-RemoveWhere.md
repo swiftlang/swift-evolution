@@ -90,12 +90,19 @@ Add the following to `RangeReplaceableCollection`:
 ```swift
 protocol RangeReplaceableCollection {
   /// Removes every element satisfying the given predicate from the collection.
-  mutating func removeAll(where: (Iterator.Element) throws -> Bool) rethrows
+  mutating func remove(where: (Iterator.Element) throws -> Bool) rethrows
 }
 
-extension RangeReplaceableCollection where Iterator.Element: Equatable {
-  /// Removes every element equal to the given element from the collection.
-  mutating func removeAll(equalTo element: Iterator.Element)
+extension RangeReplaceableCollection {
+  mutating func remove(where: (Iterator.Element) throws -> Bool) rethrows {
+    // default implementation in terms of self = self.filter
+  }
+}
+
+extension RangeReplaceableCollection where Self: MutableCollection {
+  mutating func remove(where: (Iterator.Element) throws -> Bool) rethrows {
+    // more efficient implementation
+  }
 }
 ```
 
@@ -113,12 +120,7 @@ This change is purely additive so has no API resilience consequences.
 
 ## Alternatives considered
 
-Regarding the name: `remove` instead of `removeAll` was considered.
-`removeAll(equalTo: 5)` seems clearer when seen alongside similar methods
-`removeFirst(5)` and `remove(at: 5)`. In the case of `remove(where:)`, the
-`All` in the basename is preserved for trailing closures.
-
-`removeAll(where:)` takes a closure with `true` for elements to remove.
+`remove(where:)` takes a closure with `true` for elements to remove.
 `filter` takes a closure with elements to keep. In both cases, `true` is the
 "active" case, so likely to be what the user wants without having to apply a
 negation. The naming of `filter` is unfortunately ambiguous as to whether it's
