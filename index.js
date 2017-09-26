@@ -384,8 +384,6 @@ function renderImplementation (implementations) {
     return html('a', {
       href: GITHUB_BASE_URL + impl.account + '/' + impl.repository + '/' + impl.type + '/' + impl.id
     }, [
-      impl.account,
-      '/',
       impl.repository,
       impl.type === 'pull' ? '#' : '@',
       impl.id.substr(0, 7)
