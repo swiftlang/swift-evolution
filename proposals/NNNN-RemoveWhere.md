@@ -8,9 +8,9 @@
 ## Introduction
 
 It is common to want to remove all occurrences of a certain element from a
-collection. This proposal is to add two in-place `remove` algorithms to the
+collection. This proposal is to add a `remove` algorithm to the
 standard library, which will remove all entries in a collection in-place
-matching either an `Equatable` value, or match that a certain criteria.
+matching a given predicate.
 
 ## Motivation
 
@@ -47,7 +47,7 @@ if var i = nums.index(where: isOdd) {
     }
     j += 1
   }
-  nums.removeSubrange(i..<nums.endIndex)
+  nums.removeSubrange(i...)
 }
 ```
 
@@ -125,3 +125,10 @@ This change is purely additive so has no API resilience consequences.
 negation. The naming of `filter` is unfortunately ambiguous as to whether it's
 a removing or keeping operation, but re-considering that is outside the scope
 of this proposal.
+
+Several collection methods in the standard library (such as `index(where:)`)
+have an equivalent for collections of `Equatable` elements. A similar addition
+could be made that removes every element equal to a given value. This could
+easily be done as a further additive proposal later.
+
+
