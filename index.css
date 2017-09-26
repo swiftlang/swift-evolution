@@ -271,11 +271,11 @@ section ul, section li {
     width: 223px;
 }
 
-.bug-list, .pull-request-list {
+.bug-list, .implementation-list {
     width: 310px;
 }
 
-.bug-list a, .pull-request-list a {
+.bug-list a, .implementation-list a {
     word-wrap: break-word;
 }
 

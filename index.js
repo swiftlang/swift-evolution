@@ -296,7 +296,7 @@ function renderBody () {
       if (proposal.reviewManager.name) detailNodes.push(renderReviewManager(proposal.reviewManager))
       if (proposal.trackingBugs) detailNodes.push(renderTrackingBugs(proposal.trackingBugs))
       if (state === '.implemented') detailNodes.push(renderVersion(proposal.status.version))
-      if (proposal.pullRequests) detailNodes.push(renderPullRequests(proposal.pullRequests, state === '.implemented'))
+      if (proposal.implementation) detailNodes.push(renderImplementation(proposal.implementation))
       if (state === '.acceptedWithRevisions') detailNodes.push(renderStatus(proposal.status))
 
       if (state === '.activeReview' || state === '.scheduledForReview') {
@@ -378,27 +378,28 @@ function renderTrackingBugs (bugs) {
   ])
 }
 
-/** Implementation pull requests are required alongside proposals (after Swift 4.0). */
-function renderPullRequests (pullRequests, isImplemented) {
-  var prNodes = pullRequests.map(function (pullRequest) {
+/** Implementations are required alongside proposals (after Swift 4.0). */
+function renderImplementation (implementations) {
+  var implNodes = implementations.map(function (impl) {
     return html('a', {
-      href: GITHUB_BASE_URL + pullRequest.account + '/' + pullRequest.repository + '/pull/' + pullRequest.id
+      href: GITHUB_BASE_URL + impl.account + '/' + impl.repository + '/' + impl.type + '/' + impl.id
     }, [
-      pullRequest.repository,
-      '#',
-      pullRequest.id.toString()
+      impl.account,
+      '/',
+      impl.repository,
+      impl.type === 'pull' ? '#' : '@',
+      impl.id.substr(0, 7)
     ])
   })
 
-  prNodes = _joinNodes(prNodes, ', ')
+  implNodes = _joinNodes(implNodes, ', ')
 
-  var label = pullRequests.length > 1 ? 'Pull Requests: ' : 'Pull Request: '
-  if (isImplemented) label = 'Implementation: '
+  var label = 'Implementation: '
 
   return html('div', { className: 'proposal-detail' }, [
     html('div', { className: 'proposal-detail-label' }, [label]),
-    html('div', { className: 'pull-request-list proposal-detail-value' },
-      prNodes
+    html('div', { className: 'implementation-list proposal-detail-value' },
+      implNodes
     )
   ])
 }
@@ -666,9 +667,9 @@ function _searchProposals (filterText) {
       ['status', 'version'],
       ['authors', 'name'],
       ['authors', 'link'],
-      ['pullRequests', 'account'],
-      ['pullRequests', 'repository'],
-      ['pullRequests', 'id'],
+      ['implementation', 'account'],
+      ['implementation', 'repository'],
+      ['implementation', 'id'],
       ['trackingBugs', 'link'],
       ['trackingBugs', 'status'],
       ['trackingBugs', 'id'],
