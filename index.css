@@ -242,6 +242,7 @@ section ul, section li {
     font-weight: 200;
     display: inline-block;
     padding-right: 6px;
+    white-space: nowrap;
 }
 
 .proposal-detail-value {
@@ -270,11 +271,11 @@ section ul, section li {
     width: 223px;
 }
 
-.bug-list {
+.bug-list, .implementation-list {
     width: 310px;
 }
 
-.bug-list a {
+.bug-list a, .implementation-list a {
     word-wrap: break-word;
 }
 
