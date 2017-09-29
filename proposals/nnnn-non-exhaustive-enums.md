@@ -4,7 +4,8 @@
 * Authors: [Jordan Rose](https://github.com/jrose-apple)
 * Review Manager: TBD
 * Status: **Awaiting review**
-* Pull Request: [apple/swift#NNNNN](https://github.com/apple/swift/pull/NNNNN)
+* Pull Request: [apple/swift#11961](https://github.com/apple/swift/pull/11961)
+* Pre-review discussion: [Enums and Source Compatibility](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170807/038663.html), with additional [orphaned thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170911/039787.html)
 
 <!--
 *During the review process, add the following fields as needed:*
@@ -17,9 +18,10 @@
 
 ## Introduction
 
-Currently, adding a new case to an enum is a source-breaking change, which is very inconvenient for library authors. This proposal aims to distinguish between enums that are _exhaustive_ (meaning they will never get any new cases) and those that are _non-exhaustive,_ and to ensure that clients handle any future cases when dealing with the latter. This change only affects clients from outside the original module.
+Currently, adding a new case to an enum is a source-breaking change, which is very inconvenient for library authors. This proposal aims to distinguish between enums that are _exhaustive_ (meaning they will never get any new cases) and those that are _non-exhaustive,_ and to ensure that clients handle any future cases when dealing with the latter. Some key notes:
 
-swift-evolution thread: [Enums and Source Compatibility](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170807/038663.html)
+- This only affects `public` enums.
+- With rare exceptions, this does not affect `switch` statements in the same target as the enum.
 
 
 ## Motivation
@@ -141,6 +143,10 @@ Although multi-module apps are likely responsible for most uses of `public`, the
 
 Defaulting to `nonexhaustive` in Swift 5 is effectively a language change from Swift 4, where all enums were treated as exhaustive. This does require care when manually migrating code from Swift 4 to Swift 5, or when copying existing example code from online into a Swift 5 module. However, this still only affects situations where an enum is (1) public and (2) switched over (3) from another module, and even when this *does* occur it is still reasonable to fix.
 
+> This was one of the most controversial parts of the proposal. In the original swift-evolution thread, Rex Fenley [summarized the downsides][downsides] pretty well. Rather than present a simplified view of the concerns, I suggest reading his email directly.
+
+  [downsides]: https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170918/039867.html
+
 
 ### C enums
 
@@ -189,6 +195,37 @@ Apart from the effect on switches, an imported `exhaustive` enum's `init(rawValu
 > This section only applies to enums that Swift considers "true enums", rather than option sets or funny integer values. In the past, the only way to get this behavior was to use the `NS_ENUM` or `CF_ENUM` macros, but the presence of `enum_extensibility(closed)` *or* `enum_extensibility(open)` will instruct Swift to treat the enum as a "true enum". Similarly, the newly-added `flag_enum` C attribute can be used to signify an option set like `NS_OPTIONS`.
 
 
+## Comparison with other languages
+
+"Enums", "unions", "variant types", "sum types", or "algebraic data types" are present in a number of other modern languages, most of which don't seem to treat this as an important problem.
+
+
+### Languages without non-exhaustive enums
+
+**Haskell** and **OCaml** make heavy use of enums ("algebraic data types", or just "types") without any feature like this; adding a new "case" is always a source-breaking change. (Neither of these languages seems to care much about binary compatibility.) This is definitely a sign that you can have a successful language without a form of non-exhaustive enum other than "protocols". **Kotlin** also falls in this bucket, although it uses enums ("enum classes") less frequently.
+
+The **C#** docs have a nice section on [how the language isn't very helpful][c-sharp] for distinguishing exhaustive and non-exhaustive enums. **Objective-C**, of course, is in the same bucket, though Apple could start doing things with the `enum_extensibility` Clang attribute that was recently added.
+
+  [c-sharp]: https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/keywords/enum#robust-programming
+
+
+### Languages with alternate designs
+
+**F#** enums ("unions") [either expose all of their "cases" or none of them][f-sharp]. The Swift equivalent of this would be not allowing you to switch on such an enum at all, as if it were a struct with private fields.
+
+Enums in **D** are like enums in C, but D distinguishes `switch` from `final switch`, and only the latter is exhaustive. That is, it's a client-side decision at the use site, rather than a decision by the definer of the enum.
+
+
+  [f-sharp]: https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/signatures
+
+
+### Languages with designs similar to this proposal
+
+**Rust** has an [accepted proposal][rust] to add non-exhaustive enums that looks a lot like this one, but where "exhaustive" is still the default to not break existing Rust programs. (There are some interesting differences that come up in Rust but not Swift; in particular they need a notion of non-exhaustive structs because their structs can be decomposed in pattern-matching as well.)
+
+  [rust]: https://github.com/rust-lang/rfcs/blob/master/text/2008-non-exhaustive.md
+
+
 
 ## Source compatibility
 
@@ -226,6 +263,16 @@ Taking an existing non-exhaustive enum and making it exhaustive is something we'
 The work required for non-exhaustive enums also allows for the existence of non-public cases in a public enum. This already shows up in practice in Apple's SDKs, as described briefly in the section on "C enums" above. Like "enum inheritance", this kind of behavior can mostly be emulated by using a second enum inside the library, but that's not sufficient if the non-public values need to be vended opaquely to clients.
 
 
+## Future direction: compatibility checking
+
+Of course, the compiler can't stop a library author from adding a new case to a non-exhaustive enum, even though that will break source and binary compatibility. We already have two ideas on how we could catch mistakes of this nature:
+
+- A checker that can compare APIs across library versions, using swiftmodule files or similar.
+
+- Encoding the layout of a type in a symbol name. Clients could link against this symbol so that they'd fail to launch if it changes, but even without that an automated system could check the list of exported symbols to make sure nothing was removed.
+
+Exhaustive enums remain useful even without any automated checking, and such checking should account for more than just enums, so it's not being included in this proposal.
+
 
 ## Alternatives considered
 
@@ -248,14 +295,13 @@ Several more options were suggested during initial discussions:
 - `finite` / `nonfinite` (note: not "infinite")
 - `fixed` / ?
 - `locked` / ?
+- `sealed` / `nonsealed`
 - `total` / `partial`
 
-I don't have a strong preference for any particular choice as long as it *isn't* "closed" / "open", for the reasons described above. I picked `exhaustive` and `nonexhaustive` because they match the names proposed [in Rust][] and [in C++][], but they are a little long. (Unfortunately, Clang's `enum_extensibility` attribute, recently added by us at Apple, uses `open` and `closed`.)
+I don't have a strong preference for any particular choice as long as it *isn't* "closed" / "open", for the reasons described above. I picked `exhaustive` and `nonexhaustive` because they match the name proposed [in Rust][rust], but they are a little long. (Unfortunately, Clang's `enum_extensibility` attribute, recently added by us at Apple, uses `open` and `closed`.)
 
 Note that "extensible" does have one problem: Apple already uses [`NS_TYPED_EXTENSIBLE_ENUM `][NS_TYPED_EXTENSIBLE_ENUM] to refer to enum-like sets of constants (usually strings) that *clients* can add "cases" to. That's not the same meaning as the exhaustiveness discussed in this proposal.
 
-  [in Rust]: https://github.com/rust-lang/rust/issues/44109
-  [in C++]: http://open-std.org/JTC1/SC22/WG21/docs/papers/2016/p0375r0.html
   [NS_TYPED_EXTENSIBLE_ENUM]: https://developer.apple.com/library/content/documentation/Swift/Conceptual/BuildingCocoaApps/InteractingWithCAPIs.html#//apple_ref/doc/uid/TP40014216-CH8-ID206
 
 
@@ -323,7 +369,25 @@ Another issue with non-exhaustive enums is that clients cannot properly test wha
 
 However, this would only work in cases where the action to be taken does not actually depend on the enum value. If it needs to be passed to the original library that owns the enum, or used with an API that is not does not have this annotation, the code still cannot be tested properly.
 
+```swift
+override func process(_ transaction: @testable Transaction) {
+  switch transaction {
+  case .deposit(let amount):
+    // …
+  case .withdrawal(let amount):
+    // …
+  default:
+    super.process(transaction) // hmm…
+  }
+}
+```
+
 This is an additive feature, so we can come back and consider it in more detail even if we leave it out of the language for now. Meanwhile, the effect can be imitated using an Optional or ImplicitlyUnwrappedOptional parameter.
+
+
+### Drop `nonexhaustive`
+
+Since `nonexhaustive` is the default in Swift 5 mode, it's only going to be used in the "older" Swift 4 mode. It would simplify the language slightly to simply disallow Swift 4 code from declaring non-exhaustive enums; in that case we wouldn't need the `nonexhaustive` annotation at all.
 
 
 ### "Can there be a kind of open enum where you can add new cases in extensions?"
