@@ -10,6 +10,8 @@
 //
 // ===---------------------------------------------------------------------===//
 
+'use strict'
+
 /** Holds the primary data used on this page: metadata about Swift Evolution proposals. */
 var proposals
 
@@ -22,7 +24,8 @@ var languageVersions = ['2.2', '3', '3.0.1', '3.1', '4']
 /** Storage for the user's current selection of filters when filtering is toggled off. */
 var filterSelection = []
 
-var REPO_PROPOSALS_BASE_URL = 'https://github.com/apple/swift-evolution/blob/master/proposals'
+var GITHUB_BASE_URL = 'https://github.com/'
+var REPO_PROPOSALS_BASE_URL = GITHUB_BASE_URL + 'apple/swift-evolution/blob/master/proposals'
 
 /**
  * `name`: Mapping of the states in the proposals JSON to human-readable names.
@@ -293,7 +296,7 @@ function renderBody () {
       if (proposal.reviewManager.name) detailNodes.push(renderReviewManager(proposal.reviewManager))
       if (proposal.trackingBugs) detailNodes.push(renderTrackingBugs(proposal.trackingBugs))
       if (state === '.implemented') detailNodes.push(renderVersion(proposal.status.version))
-
+      if (proposal.implementation) detailNodes.push(renderImplementation(proposal.implementation))
       if (state === '.acceptedWithRevisions') detailNodes.push(renderStatus(proposal.status))
 
       if (state === '.activeReview' || state === '.scheduledForReview') {
@@ -371,6 +374,30 @@ function renderTrackingBugs (bugs) {
     ]),
     html('div', { className: 'bug-list proposal-detail-value' },
       bugNodes
+    )
+  ])
+}
+
+/** Implementations are required alongside proposals (after Swift 4.0). */
+function renderImplementation (implementations) {
+  var implNodes = implementations.map(function (impl) {
+    return html('a', {
+      href: GITHUB_BASE_URL + impl.account + '/' + impl.repository + '/' + impl.type + '/' + impl.id
+    }, [
+      impl.repository,
+      impl.type === 'pull' ? '#' : '@',
+      impl.id.substr(0, 7)
+    ])
+  })
+
+  implNodes = _joinNodes(implNodes, ', ')
+
+  var label = 'Implementation: '
+
+  return html('div', { className: 'proposal-detail' }, [
+    html('div', { className: 'proposal-detail-label' }, [label]),
+    html('div', { className: 'implementation-list proposal-detail-value' },
+      implNodes
     )
   ])
 }
@@ -638,6 +665,9 @@ function _searchProposals (filterText) {
       ['status', 'version'],
       ['authors', 'name'],
       ['authors', 'link'],
+      ['implementation', 'account'],
+      ['implementation', 'repository'],
+      ['implementation', 'id'],
       ['trackingBugs', 'link'],
       ['trackingBugs', 'status'],
       ['trackingBugs', 'id'],
@@ -818,7 +848,7 @@ function _applyFragment (fragment) {
       })[0]
 
       if (!stateName) return // fragment contains a nonexistent state
-      state = states[stateName]
+      var state = states[stateName]
 
       if (stateName === '.implemented') implementedSelected = true
 
