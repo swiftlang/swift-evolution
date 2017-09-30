@@ -256,6 +256,12 @@ As discussed earlier, an unsized `deallocate()` method should be added to all po
 func withMemoryRebound<T, Result>(to:capacity:_:) -> Result
 ```
 
+#### New methods 
+
+```diff 
++++ func deallocate()
+```
+
 ### `UnsafeMutablePointer<Pointee>`
 
 #### Existing methods 
@@ -277,6 +283,8 @@ func withMemoryRebound<T, Result>(to:capacity:_:) -> Result
 #### New methods 
 
 ```diff 
++++ func deallocate()
+
 +++ func initialize(to:)
 +++ func assign(repeating:count:)
 ```
@@ -289,12 +297,24 @@ func withMemoryRebound<T, Result>(to:capacity:_:) -> Result
 func bindMemory<T>(to:capacity:) -> UnsafePointer<T>
 ```
 
+#### New methods 
+
+```diff 
++++ func deallocate()
+```
+
 ### `UnsafeMutableRawPointer`
 
 #### Existing methods 
 
 ``` 
 func bindMemory<T>(to:capacity:) -> UnsafeMutablePointer<T>
+```
+
+#### New methods 
+
+```diff 
++++ func deallocate()
 ```
 
 #### Renamed methods and dropped arguments
