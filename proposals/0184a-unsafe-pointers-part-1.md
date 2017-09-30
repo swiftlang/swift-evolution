@@ -4,7 +4,7 @@
 * Author: [Kelvin Ma (“Taylor Swift”)](https://github.com/kelvin13)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: 
-* Implementation: 
+* Implementation: [PR 12200](https://github.com/apple/swift/pull/12200)
 
 ## Introduction
 
@@ -14,7 +14,7 @@ Swift’s pointer types are an important interface for low-level memory manipula
 
 Swift-evolution threads: [Pitch: Improved Swift pointers](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170710/038013.html), [Pitch: More Improved Swift pointers](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170717/038121.html)
 
-Implementation branch: 
+Implementation branch: [`kelvin13:se-0184a`](https://github.com/kelvin13/swift/tree/se-0184a)
 
 ## Background 
 
