@@ -563,7 +563,7 @@ section ul, section li {
 
 @media (max-width: 768px) {
     h1 {
-        font-size: 54px
+        font-size: 54px;
     }
 }
 
