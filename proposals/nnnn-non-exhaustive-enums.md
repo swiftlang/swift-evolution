@@ -126,6 +126,10 @@ This switch handles all *known* patterns, but still doesn't account for the poss
 
 The consequences of losing exhaustiveness checking for `nonexhaustive` enums are discussed in the "Alternatives considered" section at the end of this proposal.
 
+> A number of pre-reviewers have been concerned about the loss of exhaustiveness checking and the subsequent difficulty in updating to a new version of a dependency. In the original swift-evolution thread, Vladimir S. [describes the concerning scenario][scenario] in detail.
+
+  [scenario]: https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171002/040053.html
+
 
 ### Default behavior
 
