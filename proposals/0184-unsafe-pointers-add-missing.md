@@ -4,7 +4,7 @@
 * Author: [Kelvin Ma (“Taylor Swift”)](https://github.com/kelvin13)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Accepted**
-* Implementation: [PR 12200](https://github.com/apple/swift/pull/12200)
+* Implementation: [apple/swift#12200](https://github.com/apple/swift/pull/12200)
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171002/040248.html)
 
 
