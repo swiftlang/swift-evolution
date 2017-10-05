@@ -1,10 +1,11 @@
 # Unsafe[Mutable][Raw][Buffer]Pointer: add missing methods, adjust existing labels for clarity, and remove deallocation size
 
-* Proposal: [SE-0184](0184a-unsafe-pointers-part-1.md)
+* Proposal: [SE-0184](0184-unsafe-pointers-add-missing.md)
 * Author: [Kelvin Ma (“Taylor Swift”)](https://github.com/kelvin13)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: 
+* Status: **Accepted**
 * Implementation: [PR 12200](https://github.com/apple/swift/pull/12200)
+
 
 ## Introduction
 
