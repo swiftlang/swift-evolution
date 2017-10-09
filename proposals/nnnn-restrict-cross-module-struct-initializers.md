@@ -4,12 +4,12 @@
 * Authors: [Jordan Rose](https://github.com/jrose-apple)
 * Review Manager: TBD
 * Status: **Awaiting review**
+* Pull Request: [apple/swift#12352](https://github.com/apple/swift/pull/12352)
+* Pre-review discussion: [Restrict Cross-module Struct Initializers](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171002/040261.html)
 
 <!--
 *During the review process, add the following fields as needed:*
 
-* Pull Request: [apple/swift#FIXME]()
-* Pre-review discussion: FIXME
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/), [Additional Commentary](https://lists.swift.org/pipermail/swift-evolution/)
 * Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
@@ -71,6 +71,13 @@ The recommendation for library authors who wish to continue allowing this is to 
 C structs are not exempt from this rule, but all C structs are imported with a memberwise initializer anyway. This *still* does not guarantee source compatibility because C code owners occasionally decide to split up or rename members of existing structs, but this proposal does not make that situation worse. Most C structs also have a no-argument initializer that fills the struct with zeros unless one of the members is marked `_Nonnull`.
 
 
+### Testing
+
+As an exception, structs from modules imported as `@testable` will continue to allow initialization by assigning each property. This allows tests to avoid triggering behavior that isn't being tested without forcing an extra initializer to be included in the library that's only used for testing.
+
+> This exception only applies to struct initializers; the equivalent restriction for classes—only `convenience` initializers may be added to a class in an extension—remains in place even for test targets. This is because the inheritance of convenience initializers is controlled by a subclass's complete set of designated initializers.
+
+
 ## Source compatibility
 
 This makes existing code invalid in Swift 5, which is a source compatibility break.
@@ -99,4 +106,11 @@ We've survived so far, so we can live without this for libraries that don't have
 
 ### Distinguish between "structs with a fixed set of stored properties" and "structs that may get new stored properties later"
 
-This actually *is* a distinction we want to make for code in frameworks with binary compatibility constraints, where the ability to add new members to a struct forces client code to use extra indirection. However, this should be an advanced feature in the language, and limiting its use to binary frameworks is a good way to keep it out of the way for most developers. A library author can get nearly the same effect simply by defining a public memberwise initializer, something that's common to do anyway.
+This actually *is* a distinction we want to make for code in frameworks with binary compatibility constraints, where the ability to add new members to a struct forces client code to use extra indirection. (We've been spelling this `@_fixed_layout`, though that's just a placeholder.) However, enforcing invariants may still be relevant for such a "fixed-layout" struct, and a library author can get nearly the same effect simply by defining a public memberwise initializer, something that's common to do anyway. (If performance is a concern, the initializer can also be marked inlinable.) We don't think there should ever be a reason to annotate a struct as "fixed-layout" in a source package, and we wouldn't want this to become one.
+
+
+### Allow stored-property-wise initialization just for C structs
+
+C structs are similar to the "fixed-layout" structs described above in that their layout is known at compile time, and since that's just a property of C there's no annotation cost. However, allowing this would create an unnecessary distinction between C structs and Swift structs.
+
+Additionally, there have been requests in the past for a C-side annotation to restrict access to the implicit no-argument and memberwise initializers provided by the Swift compiler. This has been motivated by C structs that do effectively have invariants; just as C++ allows a library author to restrict how a struct may be initialized, so could Swift. This is just a possible future change (and probably unlikely to happen in Swift 5), but it works better with this proposal than without it.
