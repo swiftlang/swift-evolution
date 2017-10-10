@@ -3,8 +3,7 @@
 * Proposal: [SE-0186](0186-remove-ownership-keyword-support-in-protocols.md)
 * Author: [Greg Spiers](https://github.com/gspiers)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
-* Status: **Accepted**
-* Implementation: [apple/swift#11744](https://github.com/apple/swift/pull/11744)
+* Status: **Implemented (Swift 4.1)**
 * [Review thread on swift-evolution](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170918/039863.html)
 * Bug: [SR-479](https://bugs.swift.org/browse/SR-479)
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170925/040012.html)
