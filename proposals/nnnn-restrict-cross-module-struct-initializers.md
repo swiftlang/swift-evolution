@@ -71,13 +71,6 @@ The recommendation for library authors who wish to continue allowing this is to 
 C structs are not exempt from this rule, but all C structs are imported with a memberwise initializer anyway. This *still* does not guarantee source compatibility because C code owners occasionally decide to split up or rename members of existing structs, but this proposal does not make that situation worse. Most C structs also have a no-argument initializer that fills the struct with zeros unless one of the members is marked `_Nonnull`.
 
 
-### Testing
-
-As an exception, structs from modules imported as `@testable` will continue to allow initialization by assigning each property. This allows tests to avoid triggering behavior that isn't being tested without forcing an extra initializer to be included in the library that's only used for testing.
-
-> This exception only applies to struct initializers; the equivalent restriction for classes—only `convenience` initializers may be added to a class in an extension—remains in place even for test targets. This is because the inheritance of convenience initializers is controlled by a subclass's complete set of designated initializers.
-
-
 ## Source compatibility
 
 This makes existing code invalid in Swift 5, which is a source compatibility break.
@@ -114,3 +107,34 @@ This actually *is* a distinction we want to make for code in frameworks with bin
 C structs are similar to the "fixed-layout" structs described above in that their layout is known at compile time, and since that's just a property of C there's no annotation cost. However, allowing this would create an unnecessary distinction between C structs and Swift structs.
 
 Additionally, there have been requests in the past for a C-side annotation to restrict access to the implicit no-argument and memberwise initializers provided by the Swift compiler. This has been motivated by C structs that do effectively have invariants; just as C++ allows a library author to restrict how a struct may be initialized, so could Swift. This is just a possible future change (and probably unlikely to happen in Swift 5), but it works better with this proposal than without it.
+
+
+### Add an exception for unit tests
+
+An earlier version of the proposal included an exception for structs in modules imported as `@testable`, allowing unit tests to bypass the restriction that required calling an existing initializer. However, this can already be accomplished by providing an initializer marked `internal` in the original library.
+
+```swift
+public struct ExportConfiguration {
+  public let speed: Int
+  public let signature: String
+  public init(from fileURL: URL) {…}
+  internal init(manualSpeed: Int, signature: String) {…}
+}
+```
+
+```swift
+import XCTest
+@testable import MyApp
+
+class ExportTests: XCTestCase {
+  func testSimple() {
+    // Still avoids having to load from a file.
+    let config = ExportConfiguration(manualSpeed: 5, signature: "abc")
+    let op = ExportOperation(config)
+  }
+}
+```
+
+The downside is that the initializer is available to the rest of the module, which probably is not supposed to call it.
+
+Allowing per-stored-property initializers for `@testable` imports is an additive feature; if it turns out to be a common pain point, we can add it in a later proposal. Leaving it out means `@testable` remains primarily about access control.
