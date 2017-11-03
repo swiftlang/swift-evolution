@@ -1,12 +1,12 @@
-# Introduce Sequence.filteredMap(_:)
+# Introduce Sequence.filterMap(_:)
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0187](0187-introduce-filtermap.md)
 * Authors: [Max Moiseev](https://github.com/moiseev)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
+* Swift-evolution discussion: https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171023/040609.html
 
 <!--
-
 * During the review process, add the following fields as needed:*
 * Implementation: [apple/swift#NNNNN](https://github.com/apple/swift/pull/NNNNN)
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/), [Additional Commentary](https://lists.swift.org/pipermail/swift-evolution/)
@@ -23,10 +23,6 @@
 We propose to deprecate the controversial version of a `Sequence.flatMap` method
 and provide the same functionality under a different, and potentially more
 descriptive, name.
-
-<!-- TODO
-Swift-evolution thread: [Discussion thread topic for that proposal](https://lists.swift.org/pipermail/swift-evolution/)
--->
 
 ## Motivation
 
@@ -85,7 +81,7 @@ misleading.
 ## Proposed solution
 
 We propose to deprecate the controversial overload of `flatMap` and re-introduce
-the same functionality under a new name. The name being `filteredMap(_:)` as we
+the same functionality under a new name. The name being `filterMap(_:)` as we
 believe it best describes the intent of this function.
 
 For reference, here are the alternative names from other languages:
@@ -129,6 +125,3 @@ The following alternative names for this function were considered:
 - `mapSome(_:) `
   Reads more like «map some elements of the sequence, but not the others»
   rather than «process only the ones that produce an Optional.some»
-- `filterMap(_:)`
-   Does not really follow the naming guidelines and doesn’t seem to be common
-  enough to be considered a term of art.
