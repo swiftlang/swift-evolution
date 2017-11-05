@@ -67,7 +67,7 @@ enum Token: Equatable {
     switch (lhs, rhs) {
     case (.string(let lhsString), .string(let rhsString)):
       return lhsString == rhsString
-    case (.number(let lhsNumber), .number(let lhsNumber)):
+    case (.number(let lhsNumber), .number(let rhsNumber)):
       return lhsNumber == rhsNumber
     case (.lparen, .lparen), (.rparen, .rparen):
       return true
