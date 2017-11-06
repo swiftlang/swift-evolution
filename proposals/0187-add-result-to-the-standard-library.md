@@ -7,11 +7,134 @@
 
 ## Introduction
 
-A common desire for those using asynchronous APIs or wanting to pass the results of a throwing function around is the existence of a `Result` type. In addition, libraries adding this functionality currently exist and are quite popular. 
+Swift's current error-handling, using `throws`, `try`, and `catch`, is considered a typed and automatically propagating error system by the [Error Handling Rationale and Proposal](https://github.com/apple/swift/blob/master/docs/ErrorHandlingRationale.rst) document. As mentioned in that document, while this design works well in many situations, a manually propagated error type can enable even greater flexibility for error handling in Swift. Most commonly, developers using asynchronous APIs aren't served at all by the current error model. More generally, however, manual error propagation is useful for passing the results of a `throw`ing function without triggering automatic propagation or required handling, storing it locally, or otherwise working around awkwardness seen in certain scenarios when using the current automatic model. Additionally, the popularity of the `Result` type is well established, both in other languages and in Swift's own ecosystem. According to CocoaPods' statistics alone, Alamofire, which uses and exposes a `Result` type, is installed in over 490,000 apps. Additionally, the most popular standalone `Result` framework, [antitypical/Result](https://github.com/antitypical/Result), is installed in over 100,000.
+
+Therefore, as the [Error Handling Rationale and Proposal](https://github.com/apple/swift/blob/master/docs/ErrorHandlingRationale.rst) document suggested it, and the Swift community has implemented it, this proposal would add `Result<T>` to the standard library. 
 
 ## Motivation
 
-Currently, asynchronous error handling beyond simple error-capturing closures requires manual or third-party implementation for all Swift users. Adding a type that allows the capture of not only all asynchronous results but the encapsulation of the result of any throwing closure. Additionally, the popularity of the `Result` type, both in other languages and in Swift's own ecosystem, indicates that it should be part of the standard library. According to CocoaPods' statistics alone, Alamofire is installed in over 490,000 apps. Additionally, the most popular standalone `Result` framework, [antitypical/Result](https://github.com/antitypical/Result), is installed in over 100,000.
+Outlined below are several scenarios in which `Result<T>` is commonly used.
+
+### Asynchronous APIs
+
+Most commonly, and seen in abundance when using Apple or Foundation APIs, `Result<T>` can serve to unify the awkwardly disparate parameters seen in asynchronous completion handlers. For instance, `URLSession`'s completion handlers take three optional parameters:
+
+```swift
+func dataTask(with url: URL, completionHandler: @escaping (Data?, URLResponse?, Error?) -> Void) -> URLSessionDataTask
+```
+
+This can make it quite difficult to elegantly consume the results of these APIs:
+
+```swift
+URLSession.shared.dataTask(with: url) { (data, response, error) in
+    guard error != nil else { self.handleError(error!) }
+    
+    guard let data = data, let response = response else { return // Impossible? }
+    
+    handleResponse(response, data: data)
+}
+```
+
+While this code is only a few lines long, it exposes Swift's complete lack of automatic error handling for asynchronous APIs. Not only was the `error` forcibly unwrapped (or perhaps handled using a slightly less elegant `if` statement), but a possibly impossible scenario was created. What happens if `response` or `data` are `nil`? Is it even possible? It shouldn't be, but Swift currently lacks the ability to express this impossibility. Using `Result<T>` for the same scenario allows for much more elegant code:
+
+```swift
+URLSession.shared.dataTask(with: url) { (result: Result<(URLResponse, Data)>) in // Type added for illustration purposes.
+    switch result {
+    case .success(let response):
+        handleResponse(response.0, data: response.1)
+    case .failure(let error):
+        handleError(error)
+    }
+}
+```
+
+This API expresses exactly the intended result (either an error or data and response, never all or none) and allows them to be handled much more clearly. In fact, with the API outlined later in this proposal, we could make the handling even more succinct:
+
+```swift
+URLSession.shared.dataTask(with: url) { (result: Result<(URLResponse, Data)>) in // Type added for illustration purposes.
+    result.withValue { handleResponse($0.0, data: $0.1) }
+          .withError(handleError)
+}
+```
+## General APIs
+
+More generally, there are several scenarios in which `Result<T>` can make error handling and the surrounding APIs more elegant.
+
+### Delayed Handling
+
+There may be times where a developer wants to immediately execute a `throw`ing function but otherwise delay handling the error until a later time. Currently, if they wish to preserve the error, they must break the value and error apart, as is typically seen in completion handlers (see above). This is made even more obnoxious if the developer needs to store the results of more than one function.
+
+```swift
+// Properties 
+var configurationString: String?
+var configurationReadError: Error?
+
+do {
+    string = try String(contentsOfFile: configuration)
+} catch {
+    readError = error
+}
+
+// Sometime later...
+
+func doSomethingWithConfiguration() {
+    guard let configurationString = configurationString else { handle(configurationError!) }
+    
+    ... 
+}
+
+```
+
+This can be made somewhat cleaner by using a `(string: String?, error: Error?)` to store the result, but it would still have the same usage issues as in the asynchronous case. Using a `Result<T>` is the appropriate answer here, especially with the convenience API for creating a result from a `throw`ing function.
+
+```swift
+let configuration = Result { try String(contentsOfFile: configuration) }
+
+// Sometime later...
+
+func doSomethingWithConfiguration() {
+    ...
+}
+
+```
+
+### Separating Errors
+
+It's occasionally useful to be able to run `throw`able functions in such way as to allow the developer to disambiguate between the sources of the errors, especially if the errors don't contain the information necessary to do, or the developer doesn't want to implement such a check. For instance, if we needed to disambiguate between the errors possible when reading files:
+
+```swift
+do {
+    handleOne(try String(contentsOfFile: oneFile))
+} catch {
+    handleOneError(error)
+}
+
+do {
+    handleTwo(try String(contentsOfFile: twoFile))
+} catch {
+    handleTwoError(error)
+}
+
+do {
+    handleThree(try String(contentsOfFile: threeFile))
+} catch {
+    handleThreeError(error)
+}
+```
+This case can be expressed much more clearly using `Result<T>`:
+
+```swift
+Result { try String(contentsOfFile: oneFile) }.withValue(handleOne)
+                                              .withError(handleOneError)
+Result { try String(contentsOfFile: twoFile) }.withValue(handleTwo)
+                                              .withError(handleTwoError)
+Result { try String(contentsOfFile: threeFile) }.withValue(handleThree)
+                                                .withError(handleThreeError)
+```
+
+### General Usage
+
+This proposal also outlines several other convenience APIs for `Result`, including transforms, success and failure closures, and the ability to convert a `Result` back into a throwing function, increasing instances where `Result` can be used to make otherwise awkward `do`/`try` blocks more elegant.
 
 ## Proposed solution
 
@@ -309,7 +432,7 @@ As a high level feature there should be no affect on the ABI from adopting a `Re
 None directly, though adopting `Result` and later adding an `Either` type may not be ABI compatible if the desire is to make `Result` a type of `Either`.
 
 ## Alternatives considered
-- `Result<T, Error>`: This was considered during the redesign of Alamofire's `Result` type for Swift 3. However, due to the `Error` type changes introduced, it was felt that interacting with `Error` returning APIs would be made far too awkward, as `Error` doesn't conform to itself. This would lead to users being forced to typecast those errors to some other type, likely `NSError`, which is not good practice.
+- `Result<T, E: Error>`: This was considered during the redesign of Alamofire's `Result` type for Swift 3. However, due to the `Error` type changes introduced, it was felt that interacting with `Error` returning APIs would be made far too awkward, as `Error` doesn't conform to itself. This would lead to users being forced to typecast those errors to some other type, likely `NSError`, which is not good practice.
 
 - `Either<T, U>`: Rather than adopting `Result` directly, basing it on an `Either` type has been considered. However, it's felt that a `Result` type is a more generally useful case of `Either`, which gives users little in the way of actual API. Also, the two types can exist peacefully alongside each other with little conflict. Additionally, given the relatively unpopularity of the `Either` type in the community (48 apps use the [Either](https://github.com/runkmc/either) CocoaPod) seems to indicate that lacking this type isn't affecting Swift users that much.
 
