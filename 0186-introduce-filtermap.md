@@ -1,9 +1,9 @@
 # Introduce Sequence.filterMap(_:)
 
-* Proposal: [SE-0187](0187-introduce-filtermap.md)
+* Proposal: [SE-0186](0186-introduce-filtermap.md)
 * Authors: [Max Moiseev](https://github.com/moiseev)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Review Manager: [John McCall](https://github.com/rjmccall)
+* Status: **Active review  (November 7...14, 2017)**
 * Swift-evolution discussion: https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171023/040609.html
 
 <!--
