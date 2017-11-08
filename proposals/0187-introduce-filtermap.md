@@ -5,10 +5,9 @@
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Active review  (November 7...14, 2017)**
 * Swift-evolution discussion: https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171023/040609.html
-
+* Implementation: [apple/swift#12819](https://github.com/apple/swift/pull/12819)
 <!--
 * During the review process, add the following fields as needed:*
-* Implementation: [apple/swift#NNNNN](https://github.com/apple/swift/pull/NNNNN)
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/), [Additional Commentary](https://lists.swift.org/pipermail/swift-evolution/)
 * Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM)
 
