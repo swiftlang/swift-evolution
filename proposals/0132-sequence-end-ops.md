@@ -63,7 +63,7 @@ Put next to each other, we see a lot of inconsistent terminology:
   `drop(while:)` does not include a direction, but dropping a suffix of 
   matching elements is a plausible feature.
 
-* "Return copy after removing element(s)" and "Remove element(s)" are  
+* "Return copy after removing element(s)" and "Remove element(s)" are 
   closely related, but they have unrelated names. The name `drop`, while a 
   term of art from functional languages, sounds like a mutating operation that 
   deletes data.
