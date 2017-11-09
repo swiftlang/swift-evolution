@@ -141,20 +141,36 @@ interpretations, or other semantics.
 | `index(of element: Iterator.Element) -> Index?`   | `firstIndex(of element: Iterator.Element) -> Index?` |
 | `index(where predicate: @noescape (Iterator.Element) throws -> Bool) rethrows -> Index?` | `firstIndex(where predicate: @noescape (Iterator.Element) throws -> Bool) rethrows -> Index?` |
 
-## Impact on existing code
+## Source compatibility
 
 Developers using these members will need to change to the new names when migrating 
 to Swift 5. Compiler diagnostics and the migrator should be able to handle 
 these changes with a low chance of mistakes.
 
 In practice, we believe the changes to the underused `drop` methods will be 
-the least impactful. `removePrefix(_:)` and `removeSuffix(_:)` are probably also 
-used infrequently. `hasPrefix(_:)` will have some impact, mitigated by its 
-presence on `String`.
+the least impactful. `removeFirst(_:)` and `removeLast(_:)` are probably also 
+used infrequently. `starts(with:)` will have some impact, mitigated by the 
+presence of `hasPrefix(_:)` on `String`.
 
-`firstIndex(of:)` and `firstIndex(where:)` will have relatively widespread impact, 
+Changing `index(of:)` and `index(where:)` will have relatively widespread impact, 
 but the migrator should handle them gracefully, and a pair of `lastIndex` methods 
 seem like a relatively likely addition to Swift in the future.
+
+Developers using Swift 4.1 or later will see deprecation warnings, but don't need 
+to fix them immediately.
+
+## Effect on ABI stability
+
+Without this proposal, the old, suboptimal names would be frozen in the ABI.
+
+We propose removing the old names in Swift 5 so they do not become part of the 
+permanent standard library ABI. If the impact on source stability is considered 
+more important than a dozen redundant symbols, we could instead leave them 
+deprecated but available permanently.
+
+## Effect on API resilience
+
+None.
 
 ## Alternatives considered
 
