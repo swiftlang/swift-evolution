@@ -4,7 +4,8 @@
 * Authors: [Brent Royal-Gordon](https://github.com/brentdax), [Dave Abrahams](https://github.com/dabrahams)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Awaiting Review** (Draft 2)
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000267.html)
+* Implementation: **Needs Updating** [apple/swift#3793](https://github.com/apple/swift/pull/3793) 
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/3abbed3edd12dd21061181993df7952665d660dd/proposals/0132-sequence-end-ops.md)
 
 ## Introduction
 
