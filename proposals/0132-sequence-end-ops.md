@@ -21,7 +21,9 @@ Swift-evolution thread: [[Draft] Rationalizing Sequence end-operation names](htt
 The `Sequence` and `Collection` protocols offer a wide variety of APIs 
 which are defined to operate on, or from, one end of the sequence. Leaving 
 aside the `prefix(from:)`, `prefix(upTo:)`, and `prefix(through:)` methods, 
-which are being handled by [SE-NNNN][onesided], we have:
+which were obsoleted by [SE-0172][onesided], we have:
+
+  [onesided]: (0172-one-sided-ranges.md)
 
 * Get value of element(s):
   * First: `first`
