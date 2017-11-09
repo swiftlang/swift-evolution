@@ -131,8 +131,7 @@ These changes yield (bold parts are different):
   * Prefix of *n*: `**hasPrefix**(**other**)`, `**hasPrefix**(**other**, by: ==)`
     (where *n* is the parameter length)
 
-For compatibility, the old names will remain in place and un-deprecated. 
-Future versions of Swift may deprecate and eventually remove them.
+The old names will be deprecated immediately. They'll be removed in Swift 5 so they do not needlessly inflate the stabilized standard library.
 
 ## Detailed design
 
@@ -160,8 +159,7 @@ interpretations, or other semantics.
 
 ## Impact on existing code
 
-None, at least yet. Developers can migrate if and when they choose, or 
-even keep using the old names.
+Developers using these members will need to change to the new names when migrating to Swift 5. Compiler diagnostics and the migrator should be able to handle these changes with a low chance of mistakes.
 
 ## Alternatives considered
 
