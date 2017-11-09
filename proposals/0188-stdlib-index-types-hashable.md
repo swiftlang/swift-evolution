@@ -45,13 +45,14 @@ This is the breakdown of the standard library's index types:
 
 #### Wrapping Index Types
 
-- `AnyIndex`
 - `ClosedRangeIndex`
 - `FlattenCollectionIndex`
 - `LazyDropWhileIndex`
 - `LazyFilterIndex`
 - `LazyPrefixWhileIndex`
 - `ReversedIndex`
+
+`AnyIndex`, which type erases any index type at run-time, would not be hashable since it might wrap a non-hashable type.
 
 ## Source compatibility
 
