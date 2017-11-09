@@ -136,8 +136,6 @@ Future versions of Swift may deprecate and eventually remove them.
 
 ## Detailed design
 
-### Sequence-end operations
-
 The following methods should be renamed as follows wherever they appear 
 in the standard library, and compatibility aliases should be added for the 
 old names which call through to the new ones. These are simple textual 
@@ -167,7 +165,7 @@ even keep using the old names.
 
 ## Alternatives considered
 
-#### `skipping` instead of `removing`
+### `skipping` instead of `removing`
 
 If the type differences are seen as disqualifying `removing` as a 
 replacement for `drop`, we suggest using `skipping` instead.
