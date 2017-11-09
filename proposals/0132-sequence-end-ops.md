@@ -217,10 +217,16 @@ element equal to `x`.
 
 ### Adding functionality to the standard library
 
-This renaming exposes some gaps in our standard library functionality. For instance, `removingPrefix(while:)`, `hasPrefix(_:)`, `firstIndex(of:)`, etc. have no end-of-collection equivalents. It's tempting to fill these gaps, but these changes are purely additive and can be made in a future version of Swift.
+This renaming exposes some gaps in our standard library functionality. For 
+instance, `removingPrefix(while:)`, `hasPrefix(_:)`, `firstIndex(of:)`, etc. 
+have no end-of-collection equivalents. It's tempting to fill these gaps, but 
+these changes are purely additive and have no impact on ABI compatibility, 
+so there's no need to consider them in this proposal.
 
-### Renaming other `Sequence` and `Collection` methods
+### Renaming higher-order methods
 
-These types have other members which use non-Guideline-compatible names. Particularly, the higher-order operations—`map(_:)`, `filter(_:)`, `flatMap(_:)`, and `reduce(_:_:)`—all violate the "-ing/-ed rule" for nonmutating methods. There's a case to be made for giving them clearer, more "Swifty" names, such as `mapping(by:)`, `filtered(to:)`, `flattenedMapping(by:)`, and `reducing(startingWith:byCombiningWith:)`.
-
-However, compared to the methods we propose to change, the case for renaming the higher-order operations is much weaker—the prior art is stronger, the source compatibility impact is greater, and the confusion caused by the existing names is lower out of sheer familiarity. Including them in this proposal risks these less-controversial changes becoming collateral damage, so changing those should be proposed separately, if at all.
+`Sequence` methods like `map`, `filter`, `flatMap`, and `reduce` also do not 
+follow typical API Guideline conventions, but they don't fit into the name 
+scheme proposed here, and renaming them would be much more controversial. If 
+someone wants to make the case to rename them, they should do it in a 
+separate proposal.
