@@ -24,33 +24,30 @@ aside the `prefix(from:)`, `prefix(upTo:)`, and `prefix(through:)` methods,
 which were obsoleted by [SE-0172][onesided], we have:
 
   [onesided]: (0172-one-sided-ranges.md)
-
-* Get value of element(s):
-  * First element: `first`
-  * Last element: `last`
-  * First *n* elements: `prefix(3)`
-  * Last *n* elements: `suffix(3)`
-  * Leading elements matching closure: `prefix(while: isOdd)`
-  * Earliest element matching closure: `first(where: isOdd)`
-* Get index of element:
-  * Earliest element equal to value: `index(of: x)`
-  * Earliest element matching closure: `index(where: isPrime)`
-* Return copy after removing element(s):
-  * First element: `dropFirst()`
-  * Last element: `dropLast()`
-  * First *n* elements: `dropFirst(3)`
-  * Last *n* elements: `dropLast(3)`
-  * Leading elements matching closure: `drop(while: isOdd)`
-* Remove element(s):
-  * First element: `removeFirst()`
-  * Last element: `removeLast()`
-  * First *n* elements: `removeFirst(3)`
-  * Last *n* elements: `removeLast(3)`
-* Remove elements if present:
-  * First element: `popFirst()`
-  * Last element: `popLast()`
-* Test equality:
-  * First *n* elements: `starts(with: other)`, `starts(with: other, by: ==)`
+  
+| Operation        | Operand                           | Current name                  |
+| ---------------- | --------------------------------- | ----------------------------- |
+| Get value        | First element                     | `first`                       |
+| "                | Last element                      | `last`                        |
+| "                | First *n* elements                | `prefix(3)`                   |
+| "                | Last *n* elements                 | `suffix(3)`                   |
+| "                | Leading elements matching closure | `prefix(while: isOdd)`        |
+| "                | Earliest element matching closure | `first(where: isOdd)`         |
+| Get index        | Earliest element equal to value   | `index(of: x)`                |
+| "                | Earliest element matching closure | `index(where: isOdd)`         |
+| Remove from copy | First element                     | `dropFirst()`                 |
+| "                | Last element                      | `dropLast()`                  |
+| "                | First *n* elements                | `dropFirst(3)`                |
+| "                | Last *n* elements                 | `dropLast(3)`                 |
+| "                | Leading elements matching closure | `drop(while:)`                |
+| Remove from self | First element                     | `removeFirst()`               |
+| "                | Last element                      | `removeLast()`                |
+| "                | First *n* elements                | `removeFirst(3)`              |
+| "                | Last *n* elements                 | `removeLast(3)`               |
+| …if present      | First element                     | `popFirst()`                  |
+| "                | Last element                      | `popLast()`                   |
+| Test equality    | First *n* elements                | `starts(with: other)`         |
+| …with function   | "                                 | `starts(with: other, by: ==)` |
 
 Put next to each other, we see a lot of inconsistent terminology:
 
@@ -58,11 +55,11 @@ Put next to each other, we see a lot of inconsistent terminology:
   on the most-used category, "get value of element(s)". There, we suddenly 
   use `prefix` and `suffix`.
 
-* The "get index of element" methods do not indicate a direction, but adding 
+* The "get index" methods do not indicate a direction, but adding 
   versions which search from the end would be very plausible. Similarly, 
   `drop(while:)` does not include a direction, but dropping trailing elements is a plausible feature.
 
-* "Return copy after removing element(s)" and "Remove element(s)" are 
+* "Remove from copy" and "Remove from self" are 
   closely related, but they have unrelated names. The name `drop`, while a 
   term of art from functional languages, sounds like a mutating operation that 
   deletes data; in particular, developers experienced with SQL may find "drop" 
@@ -99,37 +96,34 @@ already does something unrelated.
 
 3. The `starts(with:)` method should be renamed to `hasPrefix(_:)`, 
    bringing it into this scheme and aligning it with Foundation.
+The old names should be deprecated immediately and removed in Swift 5 to avoid making them 
+part of the permanent ABI.
 
 These changes yield (bold parts are different):
 
-* Get value of element(s):
-  * First element: `first`
-  * Last element: `last`
-  * First *n* elements: `prefix(3)`
-  * Last *n* elements: `suffix(3)`
-  * Leading elements matching closure: `prefix(while: isOdd)`
-  * Earliest element matching closure: `first(where: isOdd)`
-* Get index of element:
-  * Earliest element equal to value: **`first`**`Index(of: x)`
-  * Earliest element matching closure: **`first`**`Index(where: isPrime)`
-* Return copy after removing element(s):
-  * First element: **`removing`**`First()`
-  * Last element: **`removing`**`Last()`
-  * First *n* elements: **`removingPrefix`**`(3)`
-  * Last *n* elements: **`removingSuffix`**`(3)`
-  * Leading elements matching closure: **`removingPrefix`**`(while: isOdd)`
-* Remove element(s):
-  * First element: `removeFirst()`
-  * Last element: `removeLast()`
-  * First *n* elements: `remove`**`Prefix`**`(3)`
-  * Last *n* elements: `remove`**`Suffix`**`(3)`
-* Remove elements if present:
-  * First element: `popFirst()`
-  * Last element: `popLast()`
-* Test equality:
-  * First *n* elements: **`hasPrefix`**`(`**`other`**`)`, **`hasPrefix`**`(`**`other`**`, by: ==)`
-
-The old names will be deprecated immediately. They'll be removed in Swift 5 so they do not needlessly inflate the stabilized standard library.
+| Operation        | Operand                           | Current name                  | New name                                 |
+| ---------------- | --------------------------------- | ----------------------------- | ---------------------------------------- |
+| Get value        | First element                     | `first`                       | `first`                                  |
+| "                | Last element                      | `last`                        | `last`                                   |
+| "                | First *n* elements                | `prefix(3)`                   | `prefix(3)`                              |
+| "                | Last *n* elements                 | `suffix(3)`                   | `suffix(3)`                              |
+| "                | Leading elements matching closure | `prefix(while: isOdd)`        | `prefix(while: isOdd)`                   |
+| "                | Earliest element matching closure | `first(where: isOdd)`         | `first(where: isOdd)`                    |
+| Get index        | Earliest element equal to value   | `index(of: x)`                | **`first`**`Index(of: x)`                |
+| "                | Earliest element matching closure | `index(where: isOdd)`         | **`first`**`Index(where: isOdd)`         |
+| Remove from copy | First element                     | `dropFirst()`                 | **`removing`**`First()`                  |
+| "                | Last element                      | `dropLast()`                  | **`removing`**`Last()`                   |
+| "                | First *n* elements                | `dropFirst(3)`                | **`removingPrefix`**`(3)`                |
+| "                | Last *n* elements                 | `dropLast(3)`                 | **`removingSuffix`**`(3)`                |
+| "                | Leading elements matching closure | `drop(while:)`                | **`removingPrefix`**`(while: isOdd)`     |
+| Remove from self | First element                     | `removeFirst()`               | `removeFirst()`                          |
+| "                | Last element                      | `removeLast()`                | `removeLast()`                           |
+| "                | First *n* elements                | `removeFirst(3)`              | `remove`**`Prefix`**`(3)`                |
+| "                | Last *n* elements                 | `removeLast(3)`               | `remove`**`Suffix`**`(3)`                |
+| …if present      | First element                     | `popFirst()`                  | `popFirst()`                             |
+| "                | Last element                      | `popLast()`                   | `popLast()`                              |
+| Test equality    | First *n* elements                | `starts(with: other)`         | **`hasPrefix`**`(`**`other`**`)`         |
+| …with function   | "                                 | `starts(with: other, by: ==)` | **`hasPrefix`**`(`**`other`**`, by: ==)` |
 
 ## Detailed design
 
