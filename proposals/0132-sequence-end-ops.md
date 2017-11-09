@@ -26,42 +26,41 @@ which were obsoleted by [SE-0172][onesided], we have:
   [onesided]: (0172-one-sided-ranges.md)
 
 * Get value of element(s):
-  * First: `first`
-  * Last: `last`
-  * Prefix of *n*: `prefix(3)`
-  * Suffix of *n*: `suffix(3)`
-  * Prefix all matching closure: `prefix(while: isOdd)`
-  * Earliest matching closure: `first(where: isOdd)`
+  * First element: `first`
+  * Last element: `last`
+  * First *n* elements: `prefix(3)`
+  * Last *n* elements: `suffix(3)`
+  * Leading elements matching closure: `prefix(while: isOdd)`
+  * Earliest element matching closure: `first(where: isOdd)`
 * Get index of element:
-  * Earliest equal to value: `index(of: x)`
-  * Earliest matching closure: `index(where: isPrime)`
+  * Earliest element equal to value: `index(of: x)`
+  * Earliest element matching closure: `index(where: isPrime)`
 * Return copy after removing element(s):
-  * First: `dropFirst()`
-  * Last: `dropLast()`
-  * Prefix of *n*: `dropFirst(3)`
-  * Suffix of *n*: `dropLast(3)`
-  * Prefix all matching closure: `drop(while: isOdd)`
+  * First element: `dropFirst()`
+  * Last element: `dropLast()`
+  * First *n* elements: `dropFirst(3)`
+  * Last *n* elements: `dropLast(3)`
+  * Leading elements matching closure: `drop(while: isOdd)`
 * Remove element(s):
-  * First: `removeFirst()`
-  * Last: `removeLast()`
-  * Prefix of *n*: `removeFirst(3)`
-  * Suffix of *n*: `removeLast(3)`
+  * First element: `removeFirst()`
+  * Last element: `removeLast()`
+  * First *n* elements: `removeFirst(3)`
+  * Last *n* elements: `removeLast(3)`
 * Remove elements if present:
-  * First: `popFirst()`
-  * Last: `popLast()`
+  * First element: `popFirst()`
+  * Last element: `popLast()`
 * Test equality:
-  * Prefix of *n*: `starts(with: other)`, `starts(with: other, by: ==)`
+  * First *n* elements: `starts(with: other)`, `starts(with: other, by: ==)`
 
 Put next to each other, we see a lot of inconsistent terminology:
 
-* Usually, "prefix of N" is handled by overloading a `first` method, except 
+* Usually, "first *n* elements" is handled by overloading a `first` method, except 
   on the most-used category, "get value of element(s)". There, we suddenly 
   use `prefix` and `suffix`.
 
 * The "get index of element" methods do not indicate a direction, but adding 
   versions which search from the end would be very plausible. Similarly, 
-  `drop(while:)` does not include a direction, but dropping a suffix of 
-  matching elements is a plausible feature.
+  `drop(while:)` does not include a direction, but dropping trailing elements is a plausible feature.
 
 * "Return copy after removing element(s)" and "Remove element(s)" are 
   closely related, but they have unrelated names. The name `drop`, while a 
@@ -84,15 +83,15 @@ already does something unrelated.
 1. Each of these APIs should be renamed to use a word which consistently 
    indicates a direction and size:
 
-| Operand                          | Word               |
-| -------------------------------- | ------------------ |
-| First                            | first              |
-| Earliest equal to value          | first              |
-| Earliest matching closure        | first              |
-| Last                             | last               |
-| Prefix of *n*                    | prefix             |
-| Prefix all matching closure      | prefix             |
-| Suffix of *n*                    | suffix             |
+| Operand                              | Word              |
+| ------------------------- | ------------ |
+| First element                        | `first`            |
+| Earliest element equal to value     | `first`            |
+| Earliest element matching closure  | `first`            |
+| Last element                         | `last`             |
+| First *n* elements                  | `prefix`           |
+| Leading elements matching closure | `prefix`           |
+| Last *n* elements                   | `suffix`           |
 
 2. The `drop` methods should be renamed to `removing`, indicating their 
    relationship to `remove`.
@@ -103,31 +102,31 @@ already does something unrelated.
 These changes yield (bold parts are different):
 
 * Get value of element(s):
-  * First: `first`
-  * Last: `last`
-  * Prefix of *n*: `prefix(3)`
-  * Suffix of *n*: `suffix(3)`
-  * Prefix all matching closure: `prefix(while: isOdd)`
-  * Earliest matching closure: `first(where: isOdd)`
+  * First element: `first`
+  * Last element: `last`
+  * First *n* elements: `prefix(3)`
+  * Last *n* elements: `suffix(3)`
+  * Leading elements matching closure: `prefix(while: isOdd)`
+  * Earliest element matching closure: `first(where: isOdd)`
 * Get index of element:
-  * Earliest equal to value: **`first`**`Index(of: x)`
-  * Earliest matching closure: **`first`**`Index(where: isPrime)`
+  * Earliest element equal to value: **`first`**`Index(of: x)`
+  * Earliest element matching closure: **`first`**`Index(where: isPrime)`
 * Return copy after removing element(s):
-  * First: **`removing`**`First()`
-  * Last: **`removing`**`Last()`
-  * Prefix of *n*: **`removingPrefix`**`(3)`
-  * Suffix of *n*: **`removingSuffix`**`(3)`
-  * Prefix all matching closure: **`removingPrefix`**`(while: isOdd)`
+  * First element: **`removing`**`First()`
+  * Last element: **`removing`**`Last()`
+  * First *n* elements: **`removingPrefix`**`(3)`
+  * Last *n* elements: **`removingSuffix`**`(3)`
+  * Leading elements matching closure: **`removingPrefix`**`(while: isOdd)`
 * Remove element(s):
-  * First: `removeFirst()`
-  * Last: `removeLast()`
-  * Prefix of *n*: `remove`**`Prefix`**`(3)`
-  * Suffix of *n*: `remove`**`Suffix`**`(3)`
+  * First element: `removeFirst()`
+  * Last element: `removeLast()`
+  * First *n* elements: `remove`**`Prefix`**`(3)`
+  * Last *n* elements: `remove`**`Suffix`**`(3)`
 * Remove elements if present:
-  * First: `popFirst()`
-  * Last: `popLast()`
+  * First element: `popFirst()`
+  * Last element: `popLast()`
 * Test equality:
-  * Prefix of *n*: **`hasPrefix`**`(`**`other`**`)`, **`hasPrefix`**`(`**`other`**`, by: ==)`
+  * First *n* elements: **`hasPrefix`**`(`**`other`**`)`, **`hasPrefix`**`(`**`other`**`, by: ==)`
 
 The old names will be deprecated immediately. They'll be removed in Swift 5 so they do not needlessly inflate the stabilized standard library.
 
