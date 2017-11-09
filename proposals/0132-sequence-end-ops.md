@@ -142,7 +142,18 @@ interpretations, or other semantics.
 
 ## Impact on existing code
 
-Developers using these members will need to change to the new names when migrating to Swift 5. Compiler diagnostics and the migrator should be able to handle these changes with a low chance of mistakes.
+Developers using these members will need to change to the new names when migrating 
+to Swift 5. Compiler diagnostics and the migrator should be able to handle 
+these changes with a low chance of mistakes.
+
+In practice, we believe the changes to the underused `drop` methods will be 
+the least impactful. `removePrefix(_:)` and `removeSuffix(_:)` are probably also 
+used infrequently. `hasPrefix(_:)` will have some impact, mitigated by its 
+presence on `String`.
+
+`firstIndex(of:)` and `firstIndex(where:)` will have relatively widespread impact, 
+but the migrator should handle them gracefully, and a pair of `lastIndex` methods 
+seem like a relatively likely addition to Swift in the future.
 
 ## Alternatives considered
 
