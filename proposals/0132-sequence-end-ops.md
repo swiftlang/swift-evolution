@@ -65,7 +65,8 @@ Put next to each other, we see a lot of inconsistent terminology:
 * "Return copy after removing element(s)" and "Remove element(s)" are 
   closely related, but they have unrelated names. The name `drop`, while a 
   term of art from functional languages, sounds like a mutating operation that 
-  deletes data.
+  deletes data; in particular, developers experienced with SQL may find "drop" 
+  alarming.
 
 * `starts(with:)` looks like nothing else in this list, even though it does 
   similar things, and even though Foundation uses `hasPrefix(_:)`, which 
