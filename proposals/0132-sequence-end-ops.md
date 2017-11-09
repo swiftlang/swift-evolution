@@ -78,24 +78,15 @@ already does something unrelated.
 
 ## Proposed solution
 
-1. Each of these APIs should be renamed to use a word which consistently 
-   indicates a direction and size:
+We should rename these methods to always use `first` or `last` to indicate 
+they operate on a single element, or `prefix` or `suffix` to indicate they 
+operate on many elements. Future APIs should follow this rule as well; for 
+instance, a method which removed and returned *n* leading elements should 
+be called `popPrefix(_:)`, not `popFirst(_:)` or `pop(_:)`.
 
-| Operand                              | Word              |
-| ------------------------- | ------------ |
-| First element                        | `first`            |
-| Earliest element equal to value     | `first`            |
-| Earliest element matching closure  | `first`            |
-| Last element                         | `last`             |
-| First *n* elements                  | `prefix`           |
-| Leading elements matching closure | `prefix`           |
-| Last *n* elements                   | `suffix`           |
+Additionally, the `drop` methods should be renamed with `removing`, to 
+match their mutating counterparts, which use `remove`.
 
-2. The `drop` methods should be renamed to `removing`, indicating their 
-   relationship to `remove`.
-
-3. The `starts(with:)` method should be renamed to `hasPrefix(_:)`, 
-   bringing it into this scheme and aligning it with Foundation.
 The old names should be deprecated immediately and removed in Swift 5 to avoid making them 
 part of the permanent ABI.
 
