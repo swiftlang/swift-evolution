@@ -51,7 +51,6 @@ which were obsoleted by [SE-0172][onesided], we have:
   * Last: `popLast()`
 * Test equality:
   * Prefix of *n*: `starts(with: other)`, `starts(with: other, by: ==)`
-    (where *n* is the parameter length)
 
 Put next to each other, we see a lot of inconsistent terminology:
 
@@ -111,25 +110,24 @@ These changes yield (bold parts are different):
   * Prefix all matching closure: `prefix(while: isOdd)`
   * Earliest matching closure: `first(where: isOdd)`
 * Get index of element:
-  * Earliest equal to value: `**first**Index(of: x)`
-  * Earliest matching closure: `**first**Index(where: isPrime)`
+  * Earliest equal to value: **`first`**`Index(of: x)`
+  * Earliest matching closure: **`first`**`Index(where: isPrime)`
 * Return copy after removing element(s):
-  * First: `**removing**First()`
-  * Last: `**removing**Last()`
-  * Prefix of *n*: `**removingPrefix**(3)`
-  * Suffix of *n*: `**removingSuffix**(3)`
-  * Prefix all matching closure: `**removingPrefix**(while: isOdd)`
+  * First: **`removing`**`First()`
+  * Last: **`removing`**`Last()`
+  * Prefix of *n*: **`removingPrefix`**`(3)`
+  * Suffix of *n*: **`removingSuffix`**`(3)`
+  * Prefix all matching closure: **`removingPrefix`**`(while: isOdd)`
 * Remove element(s):
   * First: `removeFirst()`
   * Last: `removeLast()`
-  * Prefix of *n*: `remove**Prefix**(3)`
-  * Suffix of *n*: `remove**Suffix**(3)`
+  * Prefix of *n*: `remove`**`Prefix`**`(3)`
+  * Suffix of *n*: `remove`**`Suffix`**`(3)`
 * Remove elements if present:
   * First: `popFirst()`
   * Last: `popLast()`
 * Test equality:
-  * Prefix of *n*: `**hasPrefix**(**other**)`, `**hasPrefix**(**other**, by: ==)`
-    (where *n* is the parameter length)
+  * Prefix of *n*: **`hasPrefix`**`(`**`other`**`)`, **`hasPrefix`**`(`**`other`**`, by: ==)`
 
 The old names will be deprecated immediately. They'll be removed in Swift 5 so they do not needlessly inflate the stabilized standard library.
 
