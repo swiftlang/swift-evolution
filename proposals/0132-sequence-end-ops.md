@@ -189,3 +189,6 @@ either these axes or other ones. (We would be particularly interested in
 names other than `removing` which draw an analogy to something else in 
 Swift.)
 
+### Adding functionality to the standard library
+
+This renaming exposes some gaps in our standard library functionality. For instance, `removingPrefix(while:)`, `hasPrefix(_:)`, `firstIndex(of:)`, etc. have no end-of-collection equivalents. It's tempting to fill these gaps, but these changes are purely additive and can be made in a future version of Swift.
