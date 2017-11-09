@@ -119,13 +119,14 @@ These changes yield (bold parts are different):
 
 ## Detailed design
 
-The following methods should be renamed as follows wherever they appear 
-in the standard library, and compatibility aliases should be added for the 
-old names which call through to the new ones. These are simple textual 
-substitutions; we propose no changes whatsoever to types, parameter 
-interpretations, or other semantics.
+The following methods will be renamed as follows wherever they appear 
+in the standard library. During the Swift 4 cycle, compatibility aliases 
+will be available for the old names which call through to the new ones.
 
-[Note: still need to check and update this list.]
+These are simple textual substitutions; we propose no changes whatsoever 
+to types, parameter interpretations, or other semantics.
+
+[**FIXME**: Need to check and update this list.]
 
 | Old method                                        | New method                                              |
 | ------------------------------------------------- | ------------------------------------------------------- |
@@ -140,6 +141,9 @@ interpretations, or other semantics.
 | `starts<PossiblePrefix : Sequence>(with possiblePrefix: PossiblePrefix, by areEquivalent: @noescape (Iterator.Element, Iterator.Element) throws -> Bool) rethrows -> Bool where ...` | `hasPrefix<PossiblePrefix : Sequence>(_ possiblePrefix: PossiblePrefix, by areEquivalent: @noescape (Iterator.Element, Iterator.Element) throws -> Bool) rethrows -> Bool where ...` |
 | `index(of element: Iterator.Element) -> Index?`   | `firstIndex(of element: Iterator.Element) -> Index?` |
 | `index(where predicate: @noescape (Iterator.Element) throws -> Bool) rethrows -> Index?` | `firstIndex(where predicate: @noescape (Iterator.Element) throws -> Bool) rethrows -> Index?` |
+
+An implementation is available in [pull request 3793](https://github.com/apple/swift/pull/3793)
+[**FIXME**: but it is currently out of date.]
 
 ## Source compatibility
 
