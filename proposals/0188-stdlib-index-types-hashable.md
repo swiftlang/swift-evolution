@@ -1,9 +1,9 @@
 # Make Standard Library Index Types Hashable
 
-* Proposal: [SE-0000](0000-stdlib-index-types-hashable.md)
+* Proposal: [SE-0188](0188-stdlib-index-types-hashable.md)
 * Author: [Nate Cook](https://github.com/natecook1000)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
+* Status: **Active Review (November 8...14, 2017)**
 * Implementation: [apple/swift#12777](https://github.com/apple/swift/pull/12777)
 
 ## Introduction
