@@ -192,3 +192,9 @@ Swift.)
 ### Adding functionality to the standard library
 
 This renaming exposes some gaps in our standard library functionality. For instance, `removingPrefix(while:)`, `hasPrefix(_:)`, `firstIndex(of:)`, etc. have no end-of-collection equivalents. It's tempting to fill these gaps, but these changes are purely additive and can be made in a future version of Swift.
+
+### Renaming other `Sequence` and `Collection` methods
+
+These types have other members which use non-Guideline-compatible names. Particularly, the higher-order operations—`map(_:)`, `filter(_:)`, `flatMap(_:)`, and `reduce(_:_:)`—all violate the "-ing/-ed rule" for nonmutating methods. There's a case to be made for giving them clearer, more "Swifty" names, such as `mapping(by:)`, `filtered(to:)`, `flattenedMapping(by:)`, and `reducing(startingWith:byCombiningWith:)`.
+
+However, compared to the methods we propose to change, the case for renaming the higher-order operations is much weaker—the prior art is stronger, the source compatibility impact is greater, and the confusion caused by the existing names is lower out of sheer familiarity. Including them in this proposal risks these less-controversial changes becoming collateral damage, so changing those should be proposed separately, if at all.
