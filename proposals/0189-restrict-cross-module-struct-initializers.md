@@ -1,10 +1,10 @@
 # Restrict Cross-module Struct Initializers
 
-* Proposal: [SE-0189](0189-non-exhaustive-enums.md)
+* Proposal: [SE-0189](0189-restrict-cross-module-struct-initializers.md)
 * Authors: [Jordan Rose](https://github.com/jrose-apple)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Status: **Active Review (November 14...21, 2017)**
-* Pull Request: [apple/swift#12834](https://github.com/apple/swift/pull/12834)
+* Implementation: [apple/swift#12834](https://github.com/apple/swift/pull/12834)
 * Pre-review discussion: [Restrict Cross-module Struct Initializers](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171002/040261.html)
 
 <!--
