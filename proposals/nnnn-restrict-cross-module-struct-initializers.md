@@ -4,7 +4,7 @@
 * Authors: [Jordan Rose](https://github.com/jrose-apple)
 * Review Manager: TBD
 * Status: **Awaiting review**
-* Pull Request: [apple/swift#12352](https://github.com/apple/swift/pull/12352)
+* Pull Request: [apple/swift#12834](https://github.com/apple/swift/pull/12834)
 * Pre-review discussion: [Restrict Cross-module Struct Initializers](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171002/040261.html)
 
 <!--
