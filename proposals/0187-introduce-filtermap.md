@@ -3,9 +3,11 @@
 * Proposal: [SE-0187](0187-introduce-filtermap.md)
 * Authors: [Max Moiseev](https://github.com/moiseev)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active review  (November 7...14, 2017)**
+* Status: **Active review  (November 15...20, 2017)**
 * Swift-evolution discussion: https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171023/040609.html
 * Implementation: [apple/swift#12819](https://github.com/apple/swift/pull/12819)
+* Previous Review: [Discussion](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171106/040999.html) [Decision Notes](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171113/041342.html)
+
 <!--
 * During the review process, add the following fields as needed:*
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/), [Additional Commentary](https://lists.swift.org/pipermail/swift-evolution/)
