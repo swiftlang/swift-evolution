@@ -188,16 +188,38 @@ Developers using these members will need to change to the new names when migrati
 to Swift 5. Compiler diagnostics and the migrator should be able to handle 
 these changes with a low chance of mistakes.
 
-In practice, we believe the changes to the underused `drop` methods will be 
-the least impactful. `removeFirst(_:)` and `removeLast(_:)` are probably also 
-used infrequently. `starts(with:)` will have some impact, mitigated by the 
-presence of `hasPrefix(_:)` on `String`.
+In the Swift Source Compatibility Suite, a simple regular-expression-based 
+analysis suggests that less than 1 in 1,300 lines of code would be affected 
+by this proposal: 
 
-Changing `index(of:)` and `index(where:)` will have relatively widespread impact, 
-but the migrator should handle them gracefully, and a pair of `lastIndex` methods 
-seem like a relatively likely addition to Swift in the future.
+| Method              | Uses     |
+| ------------------- | -------- |
+| `index(where:)`     | 153      |
+| `index(of:)`        | 76       |
+| `dropFirst()`       | 36       |
+| `dropLast()`        | 21       |
+| `starts(with:)`     | 14       |
+| `dropFirst(_:)`     | 9        |
+| `dropLast(_:)`      | 5        |
+| `removeFirst(_:)`   | 5        |
+| `removeLast(_:)`    | 5        |
+| `drop(while:)`      | 1        |
+| `starts(with:by:)`  | 0        |
+| Any match           | 325      |
+| Total lines of code | 431,816* |
 
-Developers using Swift 4.1 or later will see deprecation warnings, but don't need 
+(* "Total lines of code" excludes comments and blank lines, but the use counts 
+include all lines which appear to contain a use of the method, including 
+comments.)
+
+70% of matching lines use `index(of:)` or `index(where:)`; this agrees with 
+our intuition that these methods are the most frequently used ones we propose 
+to rename. We think this is worth the cost anyway. Migration should be 
+accurate and uncomplicated, and a pair of `lastIndex` methods seems like a 
+likely future addition to Swift.
+
+Developers using Swift 4.1 or later will see deprecation warnings at the 
+same rate Swift 5 users will need to change methods, but they won't need 
 to fix them immediately.
 
 ## Effect on ABI stability
