@@ -267,12 +267,19 @@ Swift.)
 
 Instead of using `prefix` and `suffix` for multiple elements, we could use 
 `first` and `last` for everything—`first(3)` for the first three elements, 
-etc. This would change fewer names, but the names it would change are 
-probably more frequently used, and it would further overload the `first` 
-and `last` properties with methods, which is confusing and potentially 
-ambiguous. We also think it wouldn't read as clearly. Finally, it would 
-foreclose the use of, for instance, `removeFirst(x)` to remove the first 
-element equal to `x`.
+etc. We rejected this option because:
+
+1. It would probably impact source stability more. The compatibility suite 
+   appears to have 441 hits for the affected methods instead of 325.
+
+2. It would further overload the `first` and `last` properties with methods; 
+   we believe this would be confusing.
+
+3. It would produce names that we think don't read as clearly, like `x.hasFirst(y)`.
+
+4. It would foreclose other uses of these names, such as a 
+   `RangeReplaceableCollection.removeFirst(_: Element)` method, which we 
+   think might be good additions to the standard library.
 
 ### Adding functionality to the standard library
 
