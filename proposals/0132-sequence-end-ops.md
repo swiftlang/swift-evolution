@@ -4,7 +4,7 @@
 * Authors: [Brent Royal-Gordon](https://github.com/brentdax), [Dave Abrahams](https://github.com/dabrahams)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Awaiting Review** (Draft 2)
-* Implementation: **Needs Updating** [apple/swift#3793](https://github.com/apple/swift/pull/3793) 
+* Implementation: [apple/swift#3793](https://github.com/apple/swift/pull/3793) 
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/3abbed3edd12dd21061181993df7952665d660dd/proposals/0132-sequence-end-ops.md)
 
 ## Introduction
@@ -119,31 +119,68 @@ These changes yield (bold parts are different):
 
 ## Detailed design
 
-The following methods will be renamed as follows wherever they appear 
-in the standard library. During the Swift 4 cycle, compatibility aliases 
-will be available for the old names which call through to the new ones.
+An implementation is available in [pull request 3793](https://github.com/apple/swift/pull/3793),
 
-These are simple textual substitutions; we propose no changes whatsoever 
-to types, parameter interpretations, or other semantics.
+No types, parameter positions, or semantics should change because of this 
+proposal—it merely affects names. The vast majority of the impact of this 
+feature is not in the Swift libraries themselves, but in benchmarks, tests, 
+and documentation comments.
 
-[**FIXME**: Need to check and update this list.]
+The following protocol requirements will be renamed:
 
-| Old method                                        | New method                                              |
-| ------------------------------------------------- | ------------------------------------------------------- |
-| `dropFirst() -> SubSequence`                      | `removingFirst() -> SubSequence`                        |
-| `dropLast() -> SubSequence`                       | `removingLast() -> SubSequence`                         |
-| `dropFirst(_ n: Int) -> SubSequence`              | `removingPrefix(_ n: Int) -> SubSequence`               |
-| `drop(@noescape while predicate: (Iterator.Element) throws -> Bool) rethrows -> SubSequence` | `removingPrefix(@noescape while predicate: (Iterator.Element) throws -> Bool) rethrows -> SubSequence` |
-| `dropLast(_ n: Int) -> SubSequence`               | `removingSuffix(_ n: Int) -> SubSequence`               |
-| `removeFirst(_ n: Int)`                           | `removePrefix(_ n: Int)`                                |
-| `removeLast(_ n: Int)`                            | `removeSuffix(_ n: Int)`                                |
-| `starts<PossiblePrefix: Sequence>(with possiblePrefix: PossiblePrefix) -> Bool where ...` | `hasPrefix<PossiblePrefix: Sequence>(_ possiblePrefix: PossiblePrefix) -> Bool where ...` |
-| `starts<PossiblePrefix : Sequence>(with possiblePrefix: PossiblePrefix, by areEquivalent: @noescape (Iterator.Element, Iterator.Element) throws -> Bool) rethrows -> Bool where ...` | `hasPrefix<PossiblePrefix : Sequence>(_ possiblePrefix: PossiblePrefix, by areEquivalent: @noescape (Iterator.Element, Iterator.Element) throws -> Bool) rethrows -> Bool where ...` |
-| `index(of element: Iterator.Element) -> Index?`   | `firstIndex(of element: Iterator.Element) -> Index?` |
-| `index(where predicate: @noescape (Iterator.Element) throws -> Bool) rethrows -> Index?` | `firstIndex(where predicate: @noescape (Iterator.Element) throws -> Bool) rethrows -> Index?` |
+| Protocol                     | Old name                | New name                  |
+| ---------------------------- | ----------------------- | ------------------------- |
+| `Sequence`                   | `dropFirst(_:)`         | `removingPrefix(_:)`      |
+| `Sequence`                   | `drop(while:)`          | `removingPrefix(while:)`  |
+| `Sequence`                   | `dropLast(_:)`          | `removingSuffix(_:)`      |
+| `RangeReplaceableCollection` | `removeFirst(_:)`       | `removePrefix(_:)`        |
+| `RangeReplaceableCollection` | `_customRemoveLast(_:)` | `_customRemoveSuffix(_:)` |
 
-An implementation is available in [pull request 3793](https://github.com/apple/swift/pull/3793)
-[**FIXME**: but it is currently out of date.]
+Deprecated compatibility wrappers will be installed in extensions on the 
+following protocols in Swift 4.1, and removed in Swift 5:
+
+| Protocol                                                         | Deprecated name    |
+| ---------------------------------------------------------------- | ------------------ |
+| `Sequence`                                                       | `drop(while:)`     |
+| `Sequence`                                                       | `dropFirst()`      |
+| `Sequence`                                                       | `dropFirst(_:)`    |
+| `Sequence`                                                       | `dropLast()`       |
+| `Sequence`                                                       | `dropLast(_:)`     |
+| `Sequence`                                                       | `starts(with:by:)` |
+| `Sequence where Element: Equatable`                              | `starts(with:)`    |
+| `Collection`                                                     | `index(where:)`    |
+| `Collection where Element: Equatable`                            | `index(of:)`       |
+| `Collection where SubSequence == Self`                           | `removeFirst(_:)`  |
+| `RangeReplaceableCollection`                                     | `removeFirst(_:)`  |
+| `BidirectionalCollection where SubSequence == Self`              | `removeLast(_:)`   |
+| `RangeReplaceableCollection where Self: BidirectionalCollection` | `removeLast(_:)`   |
+
+(A couple more may be needed on `RangeReplaceableCollection` to resolve ambiguities with 
+`removeFirst(_:)` and `removeLast(_:)`.)
+
+Concrete implementations of the following methods, throughout the standard library, will 
+be renamed:
+
+| Current name                      | New name                                   |
+| --------------------------------- | ------------------------------------------ |
+| `index(of: Element)`              | `firstIndex(of: Element)`                  |
+| `index(where: (Element) -> Bool)` | `firstIndex(where: (Element) -> Bool)`     |
+| `dropFirst()`                     | `removingFirst()`                          |
+| `dropLast()`                      | `removingLast()`                           |
+| `dropFirst(_: Int)`               | `removingPrefix(_: Int)`                   |
+| `dropLast(_: Int)`                | `removingSuffix(_: Int)`                   |
+| `drop(while: (Element) -> Bool)`  | `removingPrefix(while: (Element) -> Bool)` |
+| `removeFirst(_: Int)`             | `removePrefix(_: Int)`                     |
+| `removeLast(_: Int)`              | `removeSuffix(_: Int)`                     |
+| `starts(with: PossiblePrefix)`    | `hasPrefix(_: PossiblePrefix)`             |
+| `starts(with: PossiblePrefix, by: (Element, Element) -> Bool)` | `hasPrefix(PossiblePrefix, by: (Element, Element) -> Bool)` |
+
+Some internal types, methods, and properties will be renamed as well.
+
+The following things are currently *not* being renamed, but perhaps should be:
+
+* `Collection._customIndexOfEquatableElement(_:)` requirement
+* `LazyDropWhileCollection` struct
 
 ## Source compatibility
 
