@@ -1,9 +1,9 @@
 # Target environment platform condition
 
-* Proposal: SE-00XX
+* Proposal: SE-0190
 * Author(s): [Erica Sadun](http://github.com/erica), [Graydon Hoare](http://github.com/graydon)
-* Status: TBD
-* Review manager: TBD
+* Status: **Active Review (November 16...24, 2017)**
+* Review manager: [Ted Kremenek](https://github.com/tkremenek)
 
 ## Introduction
 
