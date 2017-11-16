@@ -281,6 +281,8 @@ etc. We rejected this option because:
    `RangeReplaceableCollection.removeFirst(_: Element)` method, which we 
    think might be good additions to the standard library.
 
+## Out of scope
+
 ### Adding functionality to the standard library
 
 This renaming exposes some gaps in our standard library functionality. For 
