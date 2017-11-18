@@ -50,7 +50,7 @@ Beyond ABI stability (which focuses mostly on getting a bunch of low-level imple
 
 - **Foundation improvements**. We anticipate proposing some targeted improvements to Foundation API to further the goal of making the Cocoa SDK work seamlessly in Swift.
 
-- **Syntactic additions**. Syntactic changes do not increase the expressive power of the language but do increase its complexity.  Consequently, such changes must be extremely well-motivated and will be subject to additional scrutiny.  We will expect proposals to include concrete data about how wide spread the positive impact will be.
+- **Syntactic additions**. Syntactic changes do not increase the expressive power of the language but do increase its complexity.  Consequently, such changes must be extremely well-motivated and will be subject to additional scrutiny.  We will expect proposals to include concrete data about how widespread the positive impact will be.
 
 - **Laying groundwork for a new concurrency model**. We will lay groundwork for a new concurrency model, especially as needed for ABI stability.  Finalizing such a model, however, is a *non-goal* for Swift 5.  A key focus area will be on designing language affordances for creating and using asynchronous APIs and dealing with the problems created by callback-heavy code.
 
@@ -83,7 +83,7 @@ We want to strike a balance between encouraging open discussion of potential cha
 
 ## Previous releases
 
-* [Swift 4.0](releases/swift-4_0.md) - Endgame
+* [Swift 4.0](releases/swift-4_0.md) - Released on September 19, 2017
 * [Swift 3.0](releases/swift-3_0.md) - Released on September 13, 2016
 * [Swift 2.2](releases/swift-2_2.md) - Released on March 21, 2016
 
