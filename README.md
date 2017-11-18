@@ -83,7 +83,7 @@ We want to strike a balance between encouraging open discussion of potential cha
 
 ## Previous releases
 
-* [Swift 4.0](releases/swift-4_0.md) - Endgame
+* [Swift 4.0](releases/swift-4_0.md) - Released on September 19, 2017
 * [Swift 3.0](releases/swift-3_0.md) - Released on September 13, 2016
 * [Swift 2.2](releases/swift-2_2.md) - Released on March 21, 2016
 
