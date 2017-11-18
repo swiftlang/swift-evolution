@@ -3,7 +3,7 @@
 * Proposal: [SE-0184](0184-unsafe-pointers-add-missing.md)
 * Author: [Kelvin Ma (“Taylor Swift”)](https://github.com/kelvin13)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted**
+* Status: **Implemented (Swift 4.1)**
 * Implementation: [apple/swift#12200](https://github.com/apple/swift/pull/12200)
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171002/040248.html)
 
