@@ -4,6 +4,7 @@
 * Author: [Tony Allevato](https://github.com/allevato)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 4.1)**
+* Implementation: [apple/swift#9619](https://github.com/apple/swift/pull/9619)
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2017-August/000400.html)
 
 ## Introduction
