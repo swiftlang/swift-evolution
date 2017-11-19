@@ -1,9 +1,10 @@
 # Target environment platform condition
 
-* Proposal: SE-0190
-* Author(s): [Erica Sadun](http://github.com/erica), [Graydon Hoare](http://github.com/graydon)
+* Proposal: [SE-0190](0190-target-environment-platform-condition.md)
+* Authors: [Erica Sadun](https://github.com/erica), [Graydon Hoare](https://github.com/graydon)
+* Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Status: **Active Review (November 16...24, 2017)**
-* Review manager: [Ted Kremenek](https://github.com/tkremenek)
+* Implementation: [apple/swift#12964](https://github.com/apple/swift/pull/12964)
 
 ## Introduction
 
@@ -11,9 +12,10 @@ This proposal introduces a platform condition to differentiate device and simula
 This condition subsumes a common pattern of conditional compilation for Metal, Keychain, and
 AVFoundation Camera code.
 
-This proposal was discussed on-list in the
-[Expanding Build Configuration Tests for Simulator and Device targets](http://article.gmane.org/gmane.comp.lang.swift.evolution/12136)
-thread.
+Swift-evolution threads:
+
+* [Expanding Build Configuration Tests for Simulator and Device targets](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160314/012557.html)
+* [Target environment platform condition](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171023/040652.html)
 
 ## Motivation
 
@@ -88,7 +90,7 @@ complex.
 
 None
 
-## Effect on ABI resilience
+## Effect on API resilience
 
 None
 
