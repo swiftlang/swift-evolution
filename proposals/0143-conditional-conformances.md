@@ -291,6 +291,21 @@ general) than the constraints `T: S`, because every `S` is also an
 extension Y: P where T: R { }
 ```
 
+## Standard library adoption
+
+Adopt conditional conformances to make various standard library types
+that already have a suitable `==` conform to `Equatable`. Specifically:
+
+```swift
+extension Optional: Equatable where Wrapped: Equatable { /*== already exists */ }
+extension Array: Equatable where Element: Equatable { /*== already exists */ }
+extension ArraySlice: Equatable where Element: Equatable { /*== already exists */ }
+extension ContiguousArray: Equatable where Element: Equatable { /*== already exists */ }
+extension Dictionary: Equatable where Value: Equatable { /*== already exists */ }
+```
+
+Note that `Set` is already (unconditionally) `Equatable`.
+
 ## Source compatibility
 
 From the language perspective, conditional conformances are purely additive. They introduce no new syntax, but instead provide semantics for existing syntax---an extension that both declares a protocol conformance and has a `where` clause---whose use currently results in a type checker failure. That said, this is a feature that is expected to be widely adopted within the Swift standard library, which may indirectly affect source compatibility.
