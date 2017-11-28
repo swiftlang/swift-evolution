@@ -3,7 +3,8 @@
 * Proposal: [SE-0190](0190-target-environment-platform-condition.md)
 * Authors: [Erica Sadun](https://github.com/erica), [Graydon Hoare](https://github.com/graydon)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
-* Status: **Active Review (November 16...24, 2017)**
+* Status: **Accepted**
+* [Swift Evolution Review Thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171127/041695.html)
 * Implementation: [apple/swift#12964](https://github.com/apple/swift/pull/12964)
 
 ## Introduction
