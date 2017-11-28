@@ -13,7 +13,7 @@ Eliminate the associated type `IndexDistance` from `Collection`, and modify all 
 ## Motivation
 
 `Collection` allows for the distance between two indices to be any `SignedInteger` type via the `IndexDistance` associated type. While in practice the distance between indices is almost always
-an `Int`, generic algorithms on `Collection` need to either constrain `IndexDistance == Int`, or write their algorithm to be generic over any `SignedInteger`.
+an `Int`, generic algorithms on `Collection` need to either constrain `IndexDistance == Int` or write their algorithm to be generic over any `SignedInteger`.
 
 Swift 4.0 introduced the ability to constrain associated types with `where` clauses
 ([SE-142](https://github.com/apple/swift-evolution/blob/master/proposals/0142-associated-types-constraints.md)) and will soon allow protocol constraints
@@ -27,7 +27,7 @@ IndexDistance = 0` instead of just `let i = 0`), and perform `numericCast` to co
 
 But these `numericCasts` are hard to use correctly. Given two collections with different index distances, it's very hard to reason about whether your
 `numericCast` is casting from the smaller to larger type correctly. This turns any problem of writing a generic collection algorithm into both a collection _and_
-problem. And chances are you are going to need to interoperate with a method that takes or provides a concrete `Int` anyway (like `Array.reserveCapacity` inside
+numeric problem. And chances are you are going to need to interoperate with a method that takes or provides a concrete `Int` anyway (like `Array.reserveCapacity` inside
 `Collection.map`). Much of the generic code in the standard library would trap if ever presented with a collection with a distance greater than `Int.max`.
 Additionally, this generalization makes specialization less likely and increases compile-time work.
 
