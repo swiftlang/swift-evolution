@@ -1,9 +1,9 @@
 # Eliminate `IndexDistance` from `Collection`
 
-* Proposal: [SE-NNNN](NNNN-eliminate-indexdistance.md)
+* Proposal: [SE-0191](0191-eliminate-indexdistance.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Active Review (November 27...December 3, 2017)**
 * Implementation: [apple/swift#12641](https://github.com/apple/swift/pull/12641)
 
 ## Introduction
