@@ -3,7 +3,7 @@
 * Proposal: [SE-0188](0188-stdlib-index-types-hashable.md)
 * Author: [Nate Cook](https://github.com/natecook1000)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Accepted**
+* Status: **Implemented (Swift 4.1)**
 * Implementation: [apple/swift#12777](https://github.com/apple/swift/pull/12777)
 
 ## Introduction
