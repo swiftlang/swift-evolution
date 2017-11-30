@@ -306,6 +306,42 @@ extension Dictionary: Equatable where Value: Equatable { /*== already exists */ 
 
 Note that `Set` is already (unconditionally) `Equatable`.
 
+In addition, it is intended that the standard library adopt conditional conformance
+to collapse a number of "variants" of base types where other generic parameters
+enable conformance to further protocols.
+
+For example, there is a type:
+
+```swift
+ReversedCollection<Base: BidirectionalCollection>: BidirectionalCollection
+```
+
+that provides a low-cost lazy reversal of any bidirecitonal collection.
+There is a variation on that type,
+
+```swift
+ReversedRandomAccessCollection<Base: RandomAccessCollection>: RandomAccessCollection
+```
+
+ that additionaly conforms to `RandomAccessCollection` when its base does.
+Users create these types via the `reversed()` extension method on
+`BidirectionalCollection` and `RandomAccessCollection` respectively.
+
+With conditional conformance, the `ReversedRandomAccessCollection` variant can
+be replaced with a conditional extension:
+
+```swift
+extension ReversedCollection: RandomAccessCollection where Base: RandomAccessCollection { }
+
+@available(*, deprecated, renamed: "ReversedCollection")
+public typealias ReversedRandomAccessCollection<T: RandomAccessCollection> = ReversedCollection<T>
+```
+
+Similar techniques can be used for variants of `Slice`, `LazySequence`,
+`DefaultIndices`, `Range` and others. These refactorings are considered an
+implementation detail of the existing functionality standard library and should
+be applied accross the board where applicable.
+
 ## Source compatibility
 
 From the language perspective, conditional conformances are purely additive. They introduce no new syntax, but instead provide semantics for existing syntax---an extension that both declares a protocol conformance and has a `where` clause---whose use currently results in a type checker failure. That said, this is a feature that is expected to be widely adopted within the Swift standard library, which may indirectly affect source compatibility.
