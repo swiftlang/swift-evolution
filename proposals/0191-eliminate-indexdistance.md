@@ -3,7 +3,7 @@
 * Proposal: [SE-0191](0191-eliminate-indexdistance.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted**
+* Status: **Implemented (Swift 4.1)**
 * Implementation: [apple/swift#12641](https://github.com/apple/swift/pull/12641)
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2017-December/000415.html)
 
