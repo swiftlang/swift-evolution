@@ -3,10 +3,11 @@
 * Proposal: [SE-0189](0189-restrict-cross-module-struct-initializers.md)
 * Authors: [Jordan Rose](https://github.com/jrose-apple)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
-* Status: **Accepted**
+* Status: **Implemented (Swift 4.1)**
 * Implementation: [apple/swift#12834](https://github.com/apple/swift/pull/12834)
 * Pre-review discussion: [Restrict Cross-module Struct Initializers](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171002/040261.html)
 * [Swift Evolution Review Thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171120/041478.html)
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171127/041801.html)
 
 <!--
 *During the review process, add the following fields as needed:*
