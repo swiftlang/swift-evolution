@@ -244,7 +244,7 @@ It is a source-compatible change to change a non-exhaustive enum into an exhaust
 
 Currently, the layout of a public enum is known at compile time in both the defining library and in its clients. For a library concerned about binary compatibility, the layout of a non-exhaustive enum must not be exposed to clients, since the library may choose to add a new case that does not fit in that layout in its next release.
 
-This change does not affect the layout of `@objc` enums, which always have the same representation as a similarly-defined C enum. For enums with raw types, a 32-bit integer can be used as the representation rather than a fully opaque value, on the grounds that 4 billion is a reasonable upper limit for the number of distinct cases in an enum without payloads. (Note that the representation of a non-`@objc` enum's case may differ from its raw value; this improves the efficiency of `switch` statements when all cases are known at compile time.)
+This change does not affect the layout of `@objc` enums, which always have the same representation as a similarly-defined C enum. (Note that the representation of a non-`@objc` enum's case may differ from its raw value; this improves the efficiency of `switch` statements when all cases are known at compile time.)
 
 These considerations should not affect libraries shipped with their clients, including SwiftPM packages. In these cases, the compiler is always free to optimize based on the layout of an enum because the library won't change.
 
@@ -254,8 +254,6 @@ These considerations should not affect libraries shipped with their clients, inc
 It is now a binary-compatible change to add a case to a non-exhaustive enum.
 
 It is still not a binary-compatible change to remove a case from an enum (exhaustive or non-exhaustive).
-
-The proposed specialized representation for enums with raw types means that adding or removing a raw type is not a binary-compatible change.
 
 It is not a binary-compatible change to add `@objc` to an enum, nor to remove it.
 
@@ -276,6 +274,50 @@ Of course, the compiler can't stop a library author from adding a new case to a 
 - Encoding the layout of a type in a symbol name. Clients could link against this symbol so that they'd fail to launch if it changes, but even without that an automated system could check the list of exported symbols to make sure nothing was removed.
 
 Exhaustive enums remain useful even without any automated checking, and such checking should account for more than just enums, so it's not being included in this proposal.
+
+
+## Future direction: efficient representation of enums with raw types
+
+For enums with raw types, a 32-bit integer can be used as the representation rather than a fully opaque value, on the grounds that 4 billion is a reasonable upper limit for the number of distinct cases in an enum without payloads. However, this would make it an ABI-breaking change to add or remove a raw type from an enum, and would make the following definitions not equivalent:
+
+```swift
+public nonexhaustive enum HTTPMethod: String {
+  case get = "GET"
+  case put = "PUT"
+  case post = "POST"
+  case delete = "DELETE"
+}
+```
+
+```swift
+public nonexhaustive enum HTTPMethod: RawRepresentable {
+  case get
+  case put
+  case post
+  case delete
+
+  public init?(rawValue: String) {
+    switch rawValue {
+    case "GET": return .get
+    case "PUT": return .put
+    case "POST": return .post
+    case "DELETE": return .delete
+    default: return nil
+    }
+  }
+
+  public var rawValue: String {
+    switch self {
+    case .get: return "GET"
+    case .put: return "PUT"
+    case .post: return "POST"
+    case .delete: return "DELETE"
+    }
+  }
+}
+```
+
+As such, this representation change is out of scope for this proposal.
 
 
 ## Alternatives considered
