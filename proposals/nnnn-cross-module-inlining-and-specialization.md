@@ -1,14 +1,14 @@
-# Cross-module inlining and specialization ("@inlinable")
+# Cross-module inlining and specialization
 
 * Proposal: [SE-NNNN](NNNN-filename.md)
 * Authors: [Slava Pestov](https://github.com/slavapestov)
 * Review Manager: TBD
 * Status: **Initial pitch**
-* Implementation: Already implemented as an underscored attribute `@_inlineable`
+* Implementation: Already implemented as a pair of underscored attributes `@_inlineable` and `@_versioned`
 
 ## Introduction
 
-We propose introducing an `@inlinable` attribute which exports the body of a function as part of a module's interface, making it available to the optimizer when referenced from other modules.
+We propose introducing a pair of new attributes, `@inlinable` and `@abiPublic`. The `@inlinable` attribute exports the body of a function as part of a module's interface, making it available to the optimizer when referenced from other modules. The `@abiPublic` attribute which marks an internal declaration as being part of the binary interface of a module, allowing it to be used from `@inlinable` code without exposing it as part of the module's source interface.
 
 ## Motivation
 
@@ -31,7 +31,7 @@ On the other hand, across module boundaries, runtime generics introduce unavoida
 
 However, for some advanced use cases, and in particular for the standard library, the overhead of runtime generics can dominate any useful work performed by the library. Examples include the various algorithms defined in protocol extensions of `Sequence` and `Collection`, for instance the `map` method of the `Sequence` protocol. Here the algorithm is very simple and spends most of its time manipulating generic values and calling to a user-supplied closure; specialization and inlining can completely eliminate the algorithm of the higher-order function call and generate equivalent code to a hand-written loop manipulating concrete types.
 
-We would like to annotate such functions with the `@inlinable` attribute. This will make their bodies available to the optimizer when building client code; on the other hand, calling such a function will cause it to be emitted into the client binary, meaning that if a library were to change the definition of such a function, only binaries built against the newer version of library will use the new definition.
+We would like to annotate such functions with the `@inlinable` attribute. This will make their bodies available to the optimizer when building client code. The optimizer may or may not make use of the function body; it might be inlined, specialized, or ignored, in which case the compiler will continue to reference the public entry point in the framework. If the framework were to change the definition of such a function, only binaries built against the newer version of library might continue using the old, inlined definition, they may use the new definition, or even a mix depending if certain call sites inlined the function or not.
 
 ## Proposed solution
 
@@ -54,11 +54,56 @@ The `@inlinable` attribute causes the body of a function to be emitted as part o
 
 A client binary built against this framework can call `allEqual()` and enjoy a possible performance improvement when built with optimizations enabled, due to the elimination of abstraction overhead.
 
-On the other hand, once the framework author comes to their senses and implements an iterative solution to replace the recursive algorithm defined above, the client binary cannot make use of the more efficient implementation until recompiled.
+On the other hand, once the framework author comes to their senses and implements an iterative solution to replace the recursive algorithm defined above, the client binary might not be able to make use of the more efficient implementation until recompiled.
 
 ## Detailed design
 
-The new `@inlinable` attribute can only be applied to the following kinds of declarations:
+### The `@abiPublic` attribute
+
+The `@abiPublic` attribute can be applied to all declarations which support access control modifiers. This includes almost all kinds of declarations, except for the following, which always have the same effective visibility as their containing declaration:
+
+* Protocol requirements
+* Enum cases
+* Class destructors
+
+When applied to a subscript or computed property, the attribute applies to all of the getter, setter, `didSet` and `willSet`, if present.
+
+The `@abiPublic` attribute can be applied to `internal` declarations, and not `private`, `fileprivate` or `public` declarations. The `@abiPublic` attribute does not affect source-level visibility of a declaration; it only results in the entry point being exported at the ABI level, allowing it to be referenced from `@inlinable` functions.
+
+This attribute allows us to introduce the notion of _ABI visibility_. A declaration is _ABI-public_ if the following conditions hold:
+
+- The declaration is a top-level declaration, or it is nested inside an ABI-public type.
+- The declaration must itself be `public`, or it can be `internal` and annotated with the `@abiPublic` attribute.
+
+In the following example, the method `C.f` is ABI-public:
+
+```swift
+public class C {
+  public func f() {}
+}
+```
+
+Another example of an ABI-public declaration is the method `C.D.f` below:
+
+```swift
+public class C {
+  @abiPublic internal class D {
+    @abiPublic internal func f() {}
+  }
+}
+```
+
+In the following, the method `C.f` is **not** ABI-public, because it is nested inside a type that is not `@abiPublic` or `public`:
+
+```swift
+internal class C {
+  public func f() {}
+}
+```
+
+### The `@inlinable` attribute
+
+The `@inlinable` attribute can be applied to the following kinds of declarations:
 
 * Functions and methods
 * Subscripts
@@ -66,35 +111,35 @@ The new `@inlinable` attribute can only be applied to the following kinds of dec
 * Initializers
 * Deinitializers
 
-The attribute can only be applied to public declarations. This is because the attribute only has an effect when the declaration is used from outside of the module. Within a module, the optimizer can always rely on the function body being available.
+The attribute can only be applied to ABI-public declarations.
 
-For similar reasons, the attribute cannot be applied to local declarations, that is, declarations nested inside functions or statements. However, local functions  and closure expressions defined inside public `@inlinable` functions are always implicitly `@inlinable`.
+The attribute cannot be applied to local declarations, that is, declarations nested inside functions or statements. However, local functions  and closure expressions defined inside public `@inlinable` functions are always implicitly `@inlinable`.
 
-When applied to subscripts or computed properties, the attribute applies to the getter, setter, `didSet` and `willSet`, if present.
+When applied to a subscript or computed property, the attribute applies to all of the getter, setter, `didSet` and `willSet`, if present.
 
 The compiler will enforce certain restrictions on bodies of inlinable declarations:
 
 * inlinable declarations cannot define local types. This is because all types have a unique identity in the Swift runtime, visible to the language in the form of the `==` operator on metatype values. It is not clear what it would mean if two different libraries inline the same local type from a third library, with all three libraries linked together into the same binary. This becomes even worse if two _different_ versions of the same inlinable function appear inside the same binary.
 
-* inlinable declarations can only reference other public declarations. This is because they can be emitted into the client binary, and are therefore limited to referencing symbols that the client binary can reference.
+* inlinable declarations can only reference ABI-public declarations. This is because they can be emitted into the client binary, and are therefore limited to referencing symbols that the client binary can reference.
 
-**Note:** The restrictions enforced on the bodies of `@inlinable` declarations are exactly those that we have in place on default argument expressions of `public` functions in Swift 4.
+**Note:** The restrictions enforced on the bodies of `@inlinable` declarations are exactly those that we have in place on default argument expressions of `public` functions in Swift 4. In particular, default argument expressions of public functions can now reference internal declarations, as long as those declarations are annotated with `@abiPublic`.
 
 ## Source compatibility
 
-The introduction of the `@inlinable` attribute is an additive change to the language and has no impact on source compatibility.
+The introduction of the `@inlinable` and `@abiPublic` attributes is an additive change to the language and has no impact on source compatibility.
 
 ## Effect on ABI stability
 
-The introduction of the `@inlinable` attribute does not change the ABI of existing declarations. However, adding `@inlinable` to an existing declaration changes ABI, because the declaration will no longer have a public entry point in the generated library. Removing `@inlinable` from an existing declaration does not change ABI, because it merely introduces a new public symbol in the generated library.
+Adding or removing `@inlinable` on an existing declaration does not change the ABI of that declaration.
 
-We have discussed adding a "versioned `@inlinable`" variant that preserves the public entry point for older clients, while making the declaration inlinable for newer clients. This will likely be a separate proposal and discussion.
+Adding `@abiPublic` to an existing declaration does not change the ABI of that declaration. Removing `@abiPublic` does however, and therefore is a binary-incompatible change.
 
 ## Effect on API resilience
 
-Because a declaration marked `@inlinable` is not part of the library ABI, removing such a declaration is a binary-compatible, but source-incompatible change.
+Any changes to the body of a declaration annotated as `@inlinable` should be considered very carefully. As a general guideline, we feel that `@inlinable` makes the most sense with "obviously correct" algorithms which manipulate other data types abstractly through protocols, so that any future changes to an `@inlinable` declaration are optimizations that do not change observed behavior.
 
-Any changes to the body of a declaration marked `@inlinable` should be considered very carefully. As a general guideline, we feel that `@inlinable` makes the most sense with "obviously correct" algorithms which manipulate other data types abstractly through protocols, so that any future changes to an `@inlinable` declaration are optimizations that do not change observed behavior.
+Also, an `@inlinable` function implementation must be prepared to interact with multiple versions of the same function linked into a single binary. For example, if a hashing function is `@inlinable`, the hash algorithm must not be changed to avoid introducing inconsistency.
 
 ## Comparison with other languages
 
@@ -102,9 +147,11 @@ The closest language feature to the `@inlinable` attribute is found in C and C++
 
 Header files mostly contain declarations without bodies, but can also declare `static inline` functions with bodies. Such functions are not part of the binary interface of the library, and are instead emitted into client code when referenced. As with `@inlinable` declarations, `static inline` functions can only reference other "public" declarations, that is, those that are defined in other header files.
 
+There is no equivalent to `@abiPublic` that we are aware of in other languages.
+
 ## Alternatives considered
 
-One possible alterative would be to add a new compiler mode where _all_ declarations become implicitly `@inlinable`.
+One possible alterative would be to add a new compiler mode where _all_ declarations become implicitly `@inlinable`, and _all_ private and internal declarations become `@abiPublic`.
 
 However, such a compilation mode would not solve the problem of delivering a stable ABI and standard library which can be deployed separately from user code. We _don't want_ all declaration bodies in the standard library to be available to the optimizer when building user code.
 
@@ -116,4 +163,4 @@ We have also considered generalizing `@inlinable` to allow it to be applied to e
 
 We originally used the spelling `@inlineable` for the attribute. However, we settled on `@inlinable` for consistency with the `Decodable` and `Encodable` protocols, which are named as they are and not `Decodeable` and `Encodeable`.
 
-Finally, we have considered some alternate spellings for this attribute. The name `@inlinable` is somewhat of a misnomer, because nothing about it actually forces the compiler to inline the declaration; it might simply generate a concrete specialization of it, or look at the body as part of an interprocedural analysis, or completely ignore the body. We have considered `@alwaysEmitIntoClient` as a more accurate, but awkward, spelling of the attribute's behavior.
+Finally, we have considered some alternate spellings for this attribute. The name `@inlinable` is somewhat of a misnomer, because nothing about it actually forces the compiler to inline the declaration; it might simply generate a concrete specialization of it, or look at the body as part of an interprocedural analysis, or completely ignore the body. However, nothing seemed to read as well as `@inlinable`.
