@@ -47,11 +47,13 @@ To see how this distinction will play out in practice, I investigated the public
 
 ## Proposed solution
 
-Public enums can be declared as `@exhaustive` or as `@nonexhaustive`. In Swift 4 mode, the default behavior will be `@exhaustive` for source compatibility; in Swift 5 it will be `@nonexhaustive`.
+In Swift 5, public enums can be declared as `@exhaustive`; public enums without this attribute are *non-exhaustive.*
 
 When a client tries to switch over a non-exhaustive enum, they must include a `default` case unless the enum is declared in the same module as the switch. In Swift 4 mode, omitting this case will result in a warning; in Swift 5, it will be an error.
 
-Enums imported from C will be `@nonexhaustive` by default, with a new C-side annotation to make them `@exhaustive`. These enums conservatively always have the "cross-module" behavior.
+In Swift 4 mode, all public enums will implicitly be `@exhaustive` for source compatibility.
+
+Enums imported from C will be non-exhaustive by default, with a new C-side annotation to make them `@exhaustive`. These enums conservatively always have the "cross-module" behavior.
 
 
 ## Detailed design
@@ -59,11 +61,6 @@ Enums imported from C will be `@nonexhaustive` by default, with a new C-side ann
 ### Definition-side
 
 ```swift
-@nonexhaustive public enum HomeworkExcuse {
-  case eatenByPet
-  case thoughtItWasDueNextWeek
-}
-
 @exhaustive public enum GregorianWeekday {
   case monday // ISO 8601 says weeks start on Monday
   case tuesday
@@ -74,18 +71,18 @@ Enums imported from C will be `@nonexhaustive` by default, with a new C-side ann
   case sunday
 }
 
-// Defaults to '@nonexhaustive' in Swift 5.
-public enum PrinterKind {
-  case inkjet
-  case laser
+// Defaults to "non-exhaustive" in Swift 5.
+public enum HomeworkExcuse {
+  case eatenByPet
+  case thoughtItWasDueNextWeek
 }
 ```
 
-A public enum can now be declared `@nonexhaustive` or `@exhaustive`. The default behavior is `@exhaustive` in Swift 4 mode and `@nonexhaustive` in Swift 5; there is further discussion of these defaults in the "Default behavior" section below.
+A public enum can now be declared `@exhaustive`. This attribute is implicitly added to public enums in Swift 4 mode; writing it explicitly is ignored. There is further discussion of these defaults in the "Default behavior" section below.
 
-A warning is emitted when using either attribute on a non-public enum, since they have no effect within a module.
+A warning is emitted when using `@exhaustive` on a non-public enum, since they have no effect within a module.
 
-The naming and spelling of these annotations is discussed in the "Alternatives considered" section at the end of this proposal.
+The naming and spelling of this annotation is discussed in the "Alternatives considered" section at the end of this proposal.
 
 
 ### Use-side
@@ -105,7 +102,7 @@ In Swift 5, this would be an error. To maintain source compatibility, this would
 
 To simplify a common use case, enums from modules imported as `@testable` will always be treated as exhaustive as well.
 
-All other uses of enums (`if case`, creation, accessing members, etc) do not change. Only the exhaustiveness checking of switches is affected by `@exhaustive` and `@nonexhaustive`, and then only across module boundaries. Non-exhaustive switches over `@exhaustive` enums (and boolean values) will continue to be invalid in all language modes.
+All other uses of enums (`if case`, creation, accessing members, etc) do not change. Only the exhaustiveness checking of switches is affected by `@exhaustive`, and then only across module boundaries. Non-exhaustive switches over `@exhaustive` enums (and boolean values) will continue to be invalid in all language modes.
 
 > Note: Once Swift supports cross-module inlinable functions, switch statements in such functions will also need to provide a catch-all case, even for non-exhaustive enums declared in the same module.
 
@@ -124,7 +121,7 @@ case (_, false):
 
 This switch handles all *known* patterns, but still doesn't account for the possibility of a new enum case when the second tuple element is `true`. This should be an error in Swift 5 and a warning in Swift 4, like the first example.
 
-The consequences of losing exhaustiveness checking for `@nonexhaustive` enums are discussed in the "Alternatives considered" section at the end of this proposal.
+The consequences of losing exhaustiveness checking for non-exhaustive enums are discussed in the "Alternatives considered" section at the end of this proposal.
 
 > A number of pre-reviewers have been concerned about the loss of exhaustiveness checking and the subsequent difficulty in updating to a new version of a dependency. In the original swift-evolution thread, Vladimir S. [describes the concerning scenario][scenario] in detail.
 
@@ -133,7 +130,7 @@ The consequences of losing exhaustiveness checking for `@nonexhaustive` enums ar
 
 ### Default behavior
 
-Making `@nonexhaustive` the default behavior was not a lightly-made decision. There are two obvious alternatives here: leave `@exhaustive` as the default, and have *no* default, at least in Swift 5 mode. An earlier version of this proposal went with the latter, but got significant pushback for making public enums more complicated than just adding `public`. This argues for having *some* default.
+Making "non-exhaustive" the default behavior was not a lightly-made decision. There are two obvious alternatives here: leave `@exhaustive` as the default, and have *no* default, at least in Swift 5 mode. An earlier version of this proposal went with the latter, but got significant pushback for making public enums more complicated than just adding `public`. This argues for having *some* default.
 
 The use cases for public enums fall into three main categories:
 
@@ -143,9 +140,9 @@ The use cases for public enums fall into three main categories:
 | Open-source library (SwiftPM)  | Changing to non-exhaustive is a source-breaking change; it produces errors in any clients. | Changing to exhaustive produces warnings in any clients.                                       |
 | ABI-stable library (Apple OSs) | **Cannot** change to non-exhaustive; it would break binary compatibility.                  | Changing to exhaustive produces warnings in clients (probably dependent on deployment target). |
 
-Although multi-module apps are likely responsible for most uses of `public`, they also provide the environment in which it is easiest to make changes, since both the "library" and the "client" are part of the same project. For actual libraries, `@nonexhaustive` is a much better place to start; if it is a mistake, a minor release of the library can fix the issue without requiring immediate source changes in clients.
+Although multi-module apps are likely responsible for most uses of `public`, they also provide the environment in which it is easiest to make changes, since both the "library" and the "client" are part of the same project. For actual libraries, "non-exhaustive" is a much better place to start; if it is a mistake, a minor release of the library can fix the issue without requiring immediate source changes in clients.
 
-Defaulting to `@nonexhaustive` in Swift 5 is effectively a language change from Swift 4, where all enums were treated as exhaustive. This does require care when manually migrating code from Swift 4 to Swift 5, or when copying existing example code from online into a Swift 5 module. However, this still only affects situations where an enum is (1) public and (2) switched over (3) from another module, and even when this *does* occur it is still reasonable to fix.
+Defaulting to non-exhaustive in Swift 5 is effectively a language change from Swift 4, where all enums were treated as exhaustive. This does require care when manually migrating code from Swift 4 to Swift 5, or when copying existing example code from online into a Swift 5 module. However, this still only affects situations where an enum is (1) public and (2) switched over (3) from another module, and even when this *does* occur it is still reasonable to fix.
 
 > This was one of the most controversial parts of the proposal. In the original swift-evolution thread, Rex Fenley [summarized the downsides][downsides] pretty well. Rather than present a simplified view of the concerns, I suggest reading his email directly.
 
@@ -171,7 +168,7 @@ static const PaperSize PaperSizeStickyNote = 255;
 
 (While this pattern may be unfamiliar, it is used in Apple's SDKs, though not often.)
 
-Therefore, enums imported from C will be treated conservatively: an otherwise-unannotated `NS_ENUM` will be imported as `@nonexhaustive` and treated as such in all contexts. The newly-added C attribute `enum_extensibility` can be used to override this behavior:
+Therefore, enums imported from C will be treated conservatively: an otherwise-unannotated `NS_ENUM` will be imported as non-exhaustive and treated as such in all contexts. The newly-added C attribute `enum_extensibility` can be used to override this behavior:
 
 ```objc
 typedef NS_ENUM(NSInteger, GregorianMonth) {
@@ -192,9 +189,9 @@ typedef NS_ENUM(NSInteger, GregorianMonth) {
 
 Apple doesn't speak about future plans for its SDKs, so having an alternate form of `NS_ENUM` that includes this attribute is out of scope for this proposal.
 
-This change will affect code *even in Swift 4 mode* (although it will only produce warnings there), so to ease the transition otherwise-unannotated C enums will continue to be `@exhaustive` until Swift 5 is released. That is, all Swift 4.x compilers will treat unannotated `NS_ENUM` declarations as `@exhaustive`; a Swift 5 compiler with a Swift 4 mode will treat them as `@nonexhaustive`.
+This change will affect code *even in Swift 4 mode* (although it will only produce warnings there), so to ease the transition otherwise-unannotated C enums will continue to be `@exhaustive` until Swift 5 is released. That is, all Swift 4.x compilers will treat unannotated `NS_ENUM` declarations as exhaustive; a Swift 5 compiler with a Swift 4 mode will treat them as non-exhaustive.
 
-Apart from the effect on switches, an imported `@exhaustive` enum's `init(rawValue:)` will also enforce that the case is one of those known at compile time. Imported `@nonexhaustive` enums will continue to perform no checking on the raw value.
+Apart from the effect on switches, an imported `@exhaustive` enum's `init(rawValue:)` will also enforce that the case is one of those known at compile time. Imported non-exhaustive enums will continue to perform no checking on the raw value.
 
 > This section only applies to enums that Swift considers "true enums", rather than option sets or funny integer values. In the past, the only way to get this behavior was to use the `NS_ENUM` or `CF_ENUM` macros, but the presence of `enum_extensibility(closed)` *or* `enum_extensibility(open)` will instruct Swift to treat the enum as a "true enum". Similarly, the newly-added `flag_enum` C attribute can be used to signify an option set like `NS_OPTIONS`.
 
@@ -281,7 +278,7 @@ Exhaustive enums remain useful even without any automated checking, and such che
 For enums with raw types, a 32-bit integer can be used as the representation rather than a fully opaque value, on the grounds that 4 billion is a reasonable upper limit for the number of distinct cases in an enum without payloads. However, this would make it an ABI-breaking change to add or remove a raw type from an enum, and would make the following definitions not equivalent:
 
 ```swift
-@nonexhaustive public enum HTTPMethod: String {
+/* non-exhaustive */ public enum HTTPMethod: String {
   case get = "GET"
   case put = "PUT"
   case post = "POST"
@@ -290,7 +287,7 @@ For enums with raw types, a 32-bit integer can be used as the representation rat
 ```
 
 ```swift
-@nonexhaustive public enum HTTPMethod: RawRepresentable {
+/* non-exhaustive */ public enum HTTPMethod: RawRepresentable {
   case get
   case put
   case post
@@ -333,27 +330,27 @@ The original description of the problem used "closed" and "open" to describe exh
 
 Several more options were suggested during initial discussions:
 
-- `complete` / `incomplete`
-- `covered` / ?
-- **`exhaustive` / `nonexhaustive`**
-- ? / `extensible`
-- `final` / `nonfinal`
-- `finite` / `nonfinite` (note: not "infinite")
-- `fixed` / ?
-- `locked` / ?
-- `sealed` / `nonsealed`
-- `total` / `partial`
+- `complete` ("incomplete")
+- `covered` (?)
+- **`exhaustive`** (non-exhaustive)
+- `nonextensible` (?)
+- `final` (non-final)
+- `finite` (non-finite, not "infinite")
+- `fixed` (?)
+- `locked` (?)
+- `sealed` (non-sealed)
+- `total` (partial)
 
-I don't have a strong preference for any particular choice as long as it *isn't* "closed" / "open", for the reasons described above. I picked `exhaustive` and `nonexhaustive` because they match the name proposed [in Rust][rust], but they are a little long. (Unfortunately, Clang's `enum_extensibility` attribute, recently added by us at Apple, uses `open` and `closed`.)
+I don't have a strong preference for any particular choice as long as it *isn't* "closed" / "open", for the reasons described above. I picked `exhaustive` because it matches the name proposed [in Rust][rust], but it is a little long. (Unfortunately, Clang's `enum_extensibility` attribute, recently added by us at Apple, uses `open` and `closed`.)
 
-Note that "extensible" does have one problem: Apple already uses [`NS_TYPED_EXTENSIBLE_ENUM `][NS_TYPED_EXTENSIBLE_ENUM] to refer to enum-like sets of constants (usually strings) that *clients* can add "cases" to. That's not the same meaning as the exhaustiveness discussed in this proposal.
+Note that "nonextensible" does have one problem: Apple already uses [`NS_TYPED_EXTENSIBLE_ENUM `][NS_TYPED_EXTENSIBLE_ENUM] to refer to enum-like sets of constants (usually strings) that *clients* can add "cases" to. That's not the same meaning as the exhaustiveness discussed in this proposal.
 
   [NS_TYPED_EXTENSIBLE_ENUM]: https://developer.apple.com/library/content/documentation/Swift/Conceptual/BuildingCocoaApps/InteractingWithCAPIs.html#//apple_ref/doc/uid/TP40014216-CH8-ID206
 
 
 #### Modifier or attribute?
 
-This proposal suggests new *attributes* for enums, `@nonexhaustive` and `@exhaustive`; they could also be modifiers `nonexhaustive` and `exhaustive`, implemented as context-sensitive keywords. The original version of the proposal went with a modifier because most attributes only affect the *definition* of an API, not its use, but in preliminary discussions the core team felt that an attribute was a better fit.
+This proposal suggests a new *attribute* for enums, `@exhaustive`; it could also be a modifier `exhaustive`, implemented as a context-sensitive keyword. The original version of the proposal went with a modifier because most attributes only affect the *definition* of an API, not its use, but in preliminary discussions the core team felt that an attribute was a better fit.
 
 
 #### Annotation or member?
@@ -368,7 +365,7 @@ public enum HomeworkExcuse {
 }
 ```
 
-`continue` and `final` were also suggested for this additional declaration. I'm not inherently against this approach, but it does seem a little harder to spot when looking at the generated interface for a library. Unless it receives significant acclaim over the modifier approach, I'm inclined to stick with the simpler thing.
+`continue` and `final` were also suggested for this additional declaration. I'm not inherently against this approach, but it does seem a little harder to spot when looking at the generated interface for a library. In preliminary discussions, the core team was not particularly fond of this approach, however.
 
 
 ### Preserve exhaustiveness diagnostics for non-exhaustive enums
@@ -431,9 +428,9 @@ override func process(_ transaction: @testable Transaction) {
 This is an additive feature, so we can come back and consider it in more detail even if we leave it out of the language for now. Meanwhile, the effect can be imitated using an Optional or ImplicitlyUnwrappedOptional parameter.
 
 
-### Drop `@nonexhaustive`
+### Non-exhaustive enums in Swift 4 mode
 
-Since `@nonexhaustive` is the default in Swift 5 mode, it's only going to be used in the "older" Swift 4 mode. It would simplify the language slightly to simply disallow Swift 4 code from declaring non-exhaustive enums; in that case we wouldn't need the `@nonexhaustive` annotation at all.
+This proposal provides no way to declare non-exhaustive enums in Swift 4 mode. We would need to introduce a new attribute (`@nonexhaustive`) to allow that. Since we expect people to move projects to Swift 5 over time, however, this isn't a long-term concern. Not every new feature needs to be available in Swift 4 mode, and the proposal is simpler without a negative attribute.
 
 
 ### "Can there be a kind of open enum where you can add new cases in extensions?"
