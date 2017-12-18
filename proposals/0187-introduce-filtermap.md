@@ -1,4 +1,4 @@
-# Introduce Sequence.filterMap(_:)
+# Introduce Sequence.compactMap(_:)
 
 * Proposal: [SE-0187](0187-introduce-filtermap.md)
 * Authors: [Max Moiseev](https://github.com/moiseev)
@@ -82,7 +82,7 @@ misleading.
 ## Proposed solution
 
 We propose to deprecate the controversial overload of `flatMap` and re-introduce
-the same functionality under a new name. The name being `filterMap(_:)` as we
+the same functionality under a new name. The name being `compactMap(_:)` as we
 believe it best describes the intent of this function.
 
 For reference, here are the alternative names from other languages:
@@ -126,3 +126,8 @@ The following alternative names for this function were considered:
 - `mapSome(_:) `
   Reads more like «map some elements of the sequence, but not the others»
   rather than «process only the ones that produce an Optional.some»
+- `filterMap(_:)`
+  Considered confusing, due to similarity with `filter`, but without any control
+  over what gets filtered out. Besides, even though it can be implemented as a
+  series of calls to `filter` and `map`, the order of these calls is different
+  from what the `filterMap` name suggests.
