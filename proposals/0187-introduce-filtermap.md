@@ -97,6 +97,11 @@ For reference, here are the alternative names from other languages:
 - Scala
   ` def collect[B](pf: PartialFunction[A, B]): List[B]`
 
+Filtering `nil` elements from the `Sequence` is very common, therefore we also
+propose adding a `Sequence.compact()` function. This function should only be
+available for sequences of optional elements, which is not expressible in
+current Swift syntax. Until we have the missing features, using
+`xs.compactMap { $0 }` is an option.
 
 ## Source compatibility
 
