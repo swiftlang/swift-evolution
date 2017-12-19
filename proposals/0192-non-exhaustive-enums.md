@@ -1,9 +1,9 @@
 # Non-Exhaustive Enums
 
-* Proposal: [SE-NNNN](NNNN-non-exhaustive-enums.md)
+* Proposal: [SE-0192](0192-non-exhaustive-enums.md)
 * Authors: [Jordan Rose](https://github.com/jrose-apple)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Ted Kremenek](https://github.com/tkremenek)
+* Status: **Active Review (December 19...January 3, 2017)**
 * Pull Request: [apple/swift#11961](https://github.com/apple/swift/pull/11961)
 * Pre-review discussion: [Enums and Source Compatibility](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170807/038663.html), with additional [orphaned thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170911/039787.html)
 
