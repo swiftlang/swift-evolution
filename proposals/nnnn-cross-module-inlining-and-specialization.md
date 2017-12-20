@@ -125,6 +125,14 @@ The compiler will enforce certain restrictions on bodies of inlinable declaratio
 
 **Note:** The restrictions enforced on the bodies of `@inlinable` declarations are exactly those that we have in place on default argument expressions of `public` functions in Swift 4. In particular, default argument expressions of public functions can now reference internal declarations, as long as those declarations are annotated with `@abiPublic`.
 
+### Future directions
+
+We would also like to add the ability to specify versioning information. This capability is not part of this proposal, but will be explored in the future, possibly using syntax like `@inlinable(2.0)` or `@available(inlinable, 2.0)`.
+
+This is needed when a function introduced in the original release of a framework becomes inlinable in a later release of the framework. The function body might use ABI-public functions that are only part of the later release, and therefore the function is only available for inlining if the client is deploying against the newer version of the framework.
+
+This versioning capability will also be required for non-exhaustive enums and fixed-contents structs, since enums can become exhaustive, and structs can become fixed-contents, after the fact, and the compiler can only make use of this information of deploying against a sufficiently-recent version of the framework.
+
 ## Source compatibility
 
 The introduction of the `@inlinable` and `@abiPublic` attributes is an additive change to the language and has no impact on source compatibility.
