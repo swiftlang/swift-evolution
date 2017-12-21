@@ -1,9 +1,9 @@
 # Cross-module inlining and specialization
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0193](0193-cross-module-inlining-and-specialization.md)
 * Authors: [Slava Pestov](https://github.com/slavapestov)
-* Review Manager: TBD
-* Status: **Initial pitch**
+* Review Manager: [Ted Kremenek](https://github.com/tkremenek)
+* Status:  **Active Review (December 20, 2017...January 5, 2018)**
 * Implementation: Already implemented as a pair of underscored attributes `@_inlineable` and `@_versioned`
 
 ## Introduction
