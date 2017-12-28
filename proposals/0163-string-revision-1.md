@@ -70,7 +70,7 @@ Aside from minor differences, such as having a `SubSequence` of `Self`
 and a larger size to describe the range of the subsequence,
 `Substring` will be near-identical from a user perspective.
 
-In order to be able to write extensions accross both `String` and
+In order to be able to write extensions across both `String` and
 `Substring`, a new `StringProtocol` protocol to which the two types
 will conform will be introduced. For the purposes of this proposal,
 `StringProtocol` will be defined as a protocol to be used whenever you

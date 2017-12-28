@@ -193,7 +193,7 @@ During review many different sigils were considered:
 
 **Back Tick**: Borrowing from lisp, back-tick was what we used in initial discussions of this proposal (it was easy to write on a white-board), but it was not chosen because it is hard to type in markdown, and comes dangerously close to conflicting with other parser intrinsics.
 
-**Pound**: We considered `#` as well, and while it is appealing, we'd like to save it for the future. `#` also has a slightly more computational connotation in Swift so far. For instance, `#keyPath` 'identifies if its valid and returns a String', `#available` does the neccesary computation to verify availability and yields a boolean. 
+**Pound**: We considered `#` as well, and while it is appealing, we'd like to save it for the future. `#` also has a slightly more computational connotation in Swift so far. For instance, `#keyPath` 'identifies if its valid and returns a String', `#available` does the necessary computation to verify availability and yields a boolean. 
 
 **Back Slash**: Where `#` is computational, `\` in Swift has more of a 'behave differently for a moment' connotation, and that seems to fit exactly what we want when forming a key path. 
 

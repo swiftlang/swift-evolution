@@ -340,7 +340,7 @@ public typealias ReversedRandomAccessCollection<T: RandomAccessCollection> = Rev
 Similar techniques can be used for variants of `Slice`, `LazySequence`,
 `DefaultIndices`, `Range` and others. These refactorings are considered an
 implementation detail of the existing functionality standard library and should
-be applied accross the board where applicable.
+be applied across the board where applicable.
 
 ## Source compatibility
 
