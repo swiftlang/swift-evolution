@@ -167,7 +167,7 @@ class E : C, CP1 {} // Valid: the inheritance is explicitly declared
 
 ## Source compatibility
 
-This change will not break Swift 3 compability mode because Objective-C types will continue to be imported as before. But in Swift 4 mode, all types bridged from Objective-C which use the equivalent Objective-C existential syntax could break code which does not meet the new protocol requirements. For example, the following Objective-C code:
+This change will not break Swift 3 compatibility mode because Objective-C types will continue to be imported as before. But in Swift 4 mode, all types bridged from Objective-C which use the equivalent Objective-C existential syntax could break code which does not meet the new protocol requirements. For example, the following Objective-C code:
 
 ```objc
 @interface MyViewController

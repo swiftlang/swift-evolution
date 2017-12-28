@@ -345,7 +345,7 @@ If, in practice, the resulting ecosystem either contains too many packages that
 fail to build, or if a majority of users emit pins files manually regardless of
 default, this policy choice can be revisited.
 
-We considered approachs to "pin by default" that used separate mechanisms when
+We considered approaches to "pin by default" that used separate mechanisms when
 publishing a package to help address the potential for overconstraint, but were
 unable to find a solution we felt was workable.
 

@@ -738,7 +738,7 @@ func stringFromBytes(size: Int, value: UInt8) {
   bytes.initialize(to: value, count: size)
   bytes[size] = 0
 
-  // Unsafe pointer conversion is requred to invoke readCString.
+  // Unsafe pointer conversion is required to invoke readCString.
   // If readCString is inlineable and compiled with strict aliasing,
   // then it could read uninitialized memory.
   readCStr(UnsafePointer(bytes))

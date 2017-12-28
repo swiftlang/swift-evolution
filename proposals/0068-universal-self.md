@@ -54,7 +54,7 @@ You will continue to specify full type names for any other use. Joe Groff writes
 
 Not at this time
 
-## Acknowlegements
+## Acknowledgements
 
 Thanks Sean Heber, Kevin Ballard, Joe Groff, Timothy Wood, Brent Royal-Gordon, Andrey Tarantsov, Austin Zheng
 

@@ -153,7 +153,7 @@ public func += <
 
 The addition of the new method does not affect source compatibility. The deprecation of the old method does, but since this is a fundamentally unsound operation that cannot be fixed except via a source-breaking change, it should be aggressively deprecated and then removed.
 
-The knock-on ability to remove the version of `Array.append(contentsOf:)` that takes a collection does not affect source compatability since the version for sequences will be called for collections instead.
+The knock-on ability to remove the version of `Array.append(contentsOf:)` that takes a collection does not affect source compatibility since the version for sequences will be called for collections instead.
 
 ## Effect on ABI stability
 
