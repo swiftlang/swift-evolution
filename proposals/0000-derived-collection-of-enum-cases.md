@@ -13,7 +13,7 @@
 
 This topic was brought up [three][se1] [different][se2] [times][se3] in just the first two months of swift-evolution's existence. It was the [very first language feature request][SR-30] on the Swift bug tracker. It's a [frequent][so1] [question][so2] on Stack Overflow (between them, these two questions have over 400 upvotes and 60 answers). It's a [popular][nateblog] [topic][ericablog] on blogs. It is one of just eight [examples][sourcery] shipped with Sourcery.
 
-We propose the introduction of a protocol, `ValueEnumerable`, to indicate that a type has a finite, enumerable set of values. Moreover, we propose that the compiler automatically derive an implementation of `ValueEnumerable` for the common case of a simple enum.
+We propose the introduction of a protocol, `ValueEnumerable`, to indicate that a type has a finite, enumerable set of values. Moreover, we propose an opt-in derived implementation of `ValueEnumerable` for the common case of a simple enum.
 
 ### Prior discussion on Swift-Evolution
 - [List of all Enum values (for simple enums)][se1] (December 8, 2015)
@@ -190,10 +190,10 @@ At the same time, the principle that libraries ought to control the promises the
 
 ## Proposed solution
 
-We propose introducing a `ValueEnumerable` protocol to the Swift Standard Library. The compiler will derive a conformance automatically for simple enums.
+We propose introducing a `ValueEnumerable` protocol to the Swift Standard Library. The compiler will derive an implementation automatically for simple enums when the conformance is specified.
 
 ```swift
-enum Ma { case 马, 吗, 妈, 码, 骂, 麻, 🐎, 🐴 }
+enum Ma: ValueEnumerable { case 马, 吗, 妈, 码, 骂, 麻, 🐎, 🐴 }
 
 Ma.allValues         // returns some Collection whose Iterator.Element is Ma
 Ma.allValues.count   // returns 8
@@ -211,10 +211,11 @@ Array(Ma.allValues)  // returns [Ma.马, .吗, .妈, .码, .骂, .麻, .🐎, .�
   }
   ```
 
-- The compiler will automatically synthesize an implementation of ValueEnumerable for an enum type if and only if:
+- The compiler will synthesize an implementation of ValueEnumerable for an enum type if and only if:
 
-  - The enum contains only cases without associated values;
-  - The enum is not `@objc`.
+  - the enum contains only cases without associated values;
+  - the enum is not `@objc`;
+  - the enum has an explicit `ValueEnumerable` conformance (and does not fulfil the protocol's requirements).
 
 - Enums **imported from C/Obj-C headers** have no runtime metadata, and thus will not participate in the derived ValueEnumerable conformance, given the proposed implementation.
 
@@ -263,8 +264,6 @@ In 2016, Robert Widmann put together a [sample implementation](https://github.co
 The community has not raised any solutions whose APIs differ significantly from this proposal, except for solutions which provide strictly **more** functionality.
 
 The functionality could also be provided entirely through the `Mirror`/reflection APIs. This would likely result in much more obscure and confusing usage patterns.
-
-Users could be required to explicitly write `enum MyEnum: ValueEnumerable` to trigger the synthesized conformance. This would raise the question of whether adding the conformance in an `extension` is allowed.
 
 Unavailable and deprecated cases could be excluded from `allValues`. This would require modifications to metadata or an implementation that does not rely on metadata.
 
