@@ -102,6 +102,17 @@ This change does not affect ABI stability or API resilience beyond the addition 
 
 ## Alternatives considered
 
-A previous proposal limited the new methods to the `BidirectionalCollection` protocol. This isn't a necessary limitation, as the standard library already has methods on sequences and forward collections with the same performance characteristics. 
+- A previous proposal limited the new methods to the `BidirectionalCollection` protocol. This isn't a necessary limitation, as the standard library already has methods on sequences and forward collections with the same performance characteristics.
 
-Another previous proposal included renaming `index(of:)` and `index(where:)` to `firstIndex(of:)` and `firstIndex(where:)`, respectively. This version of the proposal removes that source-breaking change.
+- Another previous proposal included renaming `index(of:)` and `index(where:)` to `firstIndex(of:)` and `firstIndex(where:)`, respectively. This version of the proposal removes that source-breaking change.
+
+- An [alternative approach](https://github.com/apple/swift-evolution/pull/773#issuecomment-351148673) is to add a defaulted `options` parameter to the existing searching methods, like so:
+
+    ```swift
+    let a = [20, 30, 10, 40, 20, 30, 10, 40, 20]
+    a.index(of: 10)                       // 2
+    a.index(of: 10, options: .backwards)  // 6
+    ```
+
+  This alternative approach matches the convention used in Foundation, such as  `NSString.range(of:options:)` and `NSArray.indexOfObject(options:passingTest:)`, but in the opinion of this author, separate functions better suit the structure of the Swift standard library.
+
