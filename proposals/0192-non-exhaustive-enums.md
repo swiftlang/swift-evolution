@@ -51,7 +51,7 @@ To see how this distinction will play out in practice, I investigated the public
 
 In Swift 5, public enums can be declared as `@frozen`; public enums without this attribute are *non-frozen.* (Grammatical note: they are not "unfrozen" because that implies that they were frozen at one point.)
 
-When a client tries to switch over a non-frozen enum, they must include a `default` case unless the enum is declared in the same module as the switch. In Swift 4 mode, omitting this case will result in a warning; in Swift 5, it will be an error.
+When a client tries to switch over a non-frozen enum, they must include either a `default` case or a new `unknown` case unless the enum is declared in the same module as the switch. In Swift 4 mode, omitting this case will result in a warning; in Swift 5, it will be an error.
 
 In Swift 4 mode, all public enums will implicitly be `@frozen` for source compatibility.
 
@@ -89,7 +89,7 @@ The naming and spelling of this annotation is discussed in the "Alternatives con
 
 ### Use-side
 
-When a non-frozen enum defined in module A is used **from another module**, any switch statement that matches against it must include a catch-all case (either `default` or an "ignore" `_` pattern).
+When a non-frozen enum defined in module A is used **from another module**, any switch statement that matches against it must include a catch-all case (`default`, an "ignore" `_` pattern, or the new `unknown` case described below).
 
 ```swift
 switch excuse {
@@ -123,11 +123,33 @@ case (_, false):
 
 This switch handles all *known* patterns, but still doesn't account for the possibility of a new enum case when the second tuple element is `true`. This should be an error in Swift 5 and a warning in Swift 4, like the first example.
 
-The consequences of losing exhaustiveness checking for non-frozen enums are discussed in the "Alternatives considered" section at the end of this proposal.
 
-> A number of pre-reviewers have been concerned about the loss of exhaustiveness checking and the subsequent difficulty in updating to a new version of a dependency. In the original swift-evolution thread, Vladimir S. [describes the concerning scenario][scenario] in detail.
+### `unknown case`
 
-  [scenario]: https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171002/040053.html
+The downside of using a `default` case is that the compiler can no longer alert a developer that a particular enum has elements that aren't explicitly handled in the `switch`. To remedy this, `switch` will be augmented with a new kind of case, spelled `unknown case`. 
+
+```swift
+switch excuse {
+case eatenByPet:
+  // …
+case thoughtItWasDueNextWeek:
+  // …
+unknown case:
+  // …
+}
+```
+
+Like `default`, `unknown case` matches any value. However, unlike `default` (and the "ignore" pattern `_`), the compiler will produce a *warning* if all known elements of the enum have not already been matched. This is a warning rather than an error so that adding new elements to the enum remains a source-compatible change.
+
+`unknown case` must be the last case in a `switch`. This is not strictly necessary, but it is consistent with `default`. This restriction is discussed further in the "`unknown case` patterns" section under "Future directions".
+
+The compiler will warn if the enum being matched by `unknown case` is `@frozen`. This is a warning rather than an error so that adding `@frozen` to the enum remains a source-compatible change. It is an error to use `unknown case` with a non-enum-typed value.
+
+A `switch` may not have both a `default` case and an `unknown case`. Since both patterns match any value, whichever pattern was written first would be chosen, making the other unreachable.
+
+`unknown case` has a downside that it is not testable, since there is no way to create an enum value that does not match any known cases, and there wouldn't be a safe way to use it if there was one. However, combining `unknown case` with other cases using `fallthrough` can get the effect of following another case's behavior while still getting compiler warnings for new cases.
+
+The name `unknown case` was chosen not conflict with any existing valid Swift code. Discussion of the naming for this case is included at the end of the proposal under "Alternatives Considered".
 
 
 ### Default behavior
@@ -259,14 +281,57 @@ It is not a binary-compatible change to add `@objc` to an enum, nor to remove it
 Taking an existing non-frozen enum and making it frozen is something we'd like to support without breaking binary compatibility, but there is no design for that yet. The reverse will not be allowed.
 
 
-## Future direction: non-public cases
+## Future directions
+
+### `unknown case` patterns
+
+As described, `unknown case` can only be used when switching over a single enum value; it does not work when trying to match a tuple element, or another enum's associated type. In theory, we could make a new *pattern* kind that allows matching unknown cases anywhere within a larger pattern:
+
+```swift
+switch (excuse, notifiedTeacherBeforeDeadline) {
+case (.eatenByPet, true):
+  // …
+case (.thoughtItWasDueNextWeek, true):
+  // …
+case (unknown case, true):
+  // …
+case (_, false):
+  // …
+}
+```
+
+However, I'm not quite sure how the exhaustivity checking falls out here. In the following code, which case is chosen for `(.thoughtItWasDueNextWeek, true)`?
+
+```swift
+switch (excuse, notifiedTeacherBeforeDeadline) {
+case (.eatenByPet, true): // 1
+  // …
+case (unknown case, true): // 2
+  // …
+case (_, false): // 3
+  // …
+case (.thoughtItWasDueNextWeek, _): // 4
+  // …
+}
+```
+
+- Case 2 is plausible because `unknown case` will catch any cases that aren't accounted for in the switch, and `.thoughtItWasDueNextWeek` hasn't been accounted for *yet.* This makes case 4 unreachable, which had better show up in a compiler warning.
+
+- Case 4 is also plausible because `.thoughtItWasDueNextWeek` is clearly mentioned in the switch, and therefore it's not "unknown". This is probably what the user intended, but would be much more difficult to implement.
+
+In the single value situation, `unknown case` must go last to avoid this question. It's not possible to enforce the same thing for arbitrary patterns because there may be multiple enums in the pattern whose unknown cases need to be treated differently.
+
+Therefore, generalized `unknown case` patterns are not being included in this proposal.
+
+
+### Non-public cases
 
 The work required for non-frozen enums also allows for the existence of non-public cases in a public enum. This already shows up in practice in Apple's SDKs, as described briefly in the section on "C enums" above. Like "enum inheritance", this kind of behavior can mostly be emulated by using a second enum inside the library, but that's not sufficient if the non-public values need to be vended opaquely to clients.
 
 Were such a proposal to be written, I advise that a frozen enum not be permitted to have non-public cases.
 
 
-## Future direction: compatibility checking
+### Compatibility checking
 
 Of course, the compiler can't stop a library author from adding a new case to a non-frozen enum, even though that will break source and binary compatibility. We already have two ideas on how we could catch mistakes of this nature:
 
@@ -277,7 +342,7 @@ Of course, the compiler can't stop a library author from adding a new case to a 
 Frozen enums remain useful even without any automated checking, and such checking should account for more than just enums, so it's not being included in this proposal.
 
 
-## Future direction: efficient representation of enums with raw types
+### Efficient representation of enums with raw types
 
 For enums with raw types, a 32-bit integer can be used as the representation rather than a fully opaque value, on the grounds that 4 billion is a reasonable upper limit for the number of distinct cases in an enum without payloads. However, this would make it an ABI-breaking change to add or remove a raw type from an enum, and would make the following definitions not equivalent:
 
@@ -325,12 +390,12 @@ As such, this representation change is out of scope for this proposal.
 
 ### Syntax
 
-#### Naming: "closed" and "open"
+#### Annotation naming: "closed" and "open"
 
 The original description of the problem used "closed" and "open" to describe frozen and non-frozen enums, respectively. However, this conflicts with the use of `open` in classes and their members. In this usage, `open` is clearly a greater level of access than `public`, in that clients of an `open` class can do everything they can with a `public` class and more; it is source-compatible to turn a `public` class into an `open` one. For enums, however, it is frozen enums that are "greater": you can do everything you can with a non-frozen enum and more, and it is source-compatible to turn a non-frozen enum into a frozen one (at the cost of a warning).
 
 
-#### Naming: Other options
+#### Annotation naming: other options
 
 Several more options were suggested during initial discussions:
 
@@ -374,31 +439,38 @@ public enum HomeworkExcuse {
 `continue` and `final` were also suggested for this additional declaration. I'm not inherently against this approach, but it does seem a little harder to spot when looking at the generated interface for a library. In preliminary discussions, the core team was not particularly fond of this approach, however.
 
 
-### Preserve exhaustiveness diagnostics for non-frozen enums
+#### `unknown case` naming
 
-In the initial discussion, multiple people were unhappy with the loss of compiler warnings for switches over non-frozen enums that comes with using `default`—they wanted to be able to handle all cases that exist today, and have the compiler tell them when new ones were added. Ultimately I decided not to include this in the proposal with the expectation is that switches over non-frozen enums should be uncommon.
+The first version of this proposal did not include `unknown case`, but did discuss it as a "considered alternative" under the name `future`. Previous discussions have also used `unexpected` or a plain `unknown` to describe this feature as well.
 
-There were two suggestions for this, described below. Both are additive features that could be added to the language later even if we decide to leave them out now.
+It was pointed out that neither `future` nor `unexpected` really described the feature being provided. `unknown case` does not just handle cases added in the future; it also handles private cases and invalid values for C enums. Nor are such cases entirely unexpected, since the compiler is telling the developer to expect them.
 
-#### `future` cases
+It would be nice™ if we could just spell this new case `unknown`. However, that's ambiguous with the existing syntax for labeled control-flow statements:
 
 ```swift
 switch excuse {
 case .eatenByPet:
   // …
 case .thoughtItWasDueNextWeek:
-  // …
-future:
-  // …
+  complainLoudly()
+  unknown: for next in contrivedExamples {
+    for inner in moreContrivedExamples {
+      if inner.use(next) {
+        break unknown
+      }
+    }
+  }
 }
 ```
 
-Like `default`, the `future` case would be executed if none of the other cases match; unlike `default`, the compiler would still warn you if you failed to account for all existing cases. However, this results in some of your code being *impossible to test,* since you can't write a test that passes an unknown value to this switch. This may be true in practice with a `default` case, but it's not expected to be the common case for non-frozen enums. The expectation is that switches over non-frozen enums are uncommon.
-
-(It's also unclear how this would work with switches over more complicated patterns, although it seems reasonable to limit it to matching a single enum value.)
+While it is *unlikely* that someone would use `unknown` for a control-flow label, it is possible. Making `unknown` a contextual keyword before `case` preserves this source compatibility.
 
 
-#### `switch!`
+### `switch!`
+
+`switch!` was an alternative to `unknown case` that would not support any action other than trapping when the enum is not one of the known cases. This avoids some of the problems with `unknown case` (such as making it much less important to test), but isn't exactly in the spirit of non-frozen enums, where you *know* there will be more cases in the future.
+
+The following two examples would be equivalent (except perhaps in the form of the diagnostic produced).
 
 ```swift
 switch! excuse {
@@ -409,7 +481,16 @@ case .thoughtItWasDueNextWeek:
 }
 ```
 
-`switch!` is a more limited form than `future`, which does not support any action other than trapping when the enum is not one of the known cases. This avoids some of the problems with `future` (such as making it much less important to test), but isn't exactly in the spirit of non-frozen enums, where you *know* there will be more cases in the future. It's also still added complexity for the language.
+```swift
+switch excuse {
+case .eatenByPet:
+  // …
+case .thoughtItWasDueNextWeek:
+  // …
+unknown case:
+  fatalError("unknown case in switch: \(excuse)")
+}
+```
 
 
 ### Testing invalid cases
