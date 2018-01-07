@@ -1,15 +1,16 @@
 # Derived Collection of Enum Cases
 
-* Proposal: [SE-0194](https://github.com/apple/swift-evolution/blob/master/proposals/0194-derived-collection-of-enum-cases.md)
-* Author(s): [Jacob Bandes-Storch](https://github.com/jtbandes), [Brent Royal-Gordon](https://github.com/brentdax), [Robert Widmann](https://github.com/CodaFi)
-* Status: **Active Review (January 6, 2017...January 11, 2018)**
-* Review manager: [Doug Gregor](https://github.com/DougGregor)
+* Proposal: [SE-0194](0194-derived-collection-of-enum-cases.md)
+* Authors: [Jacob Bandes-Storch](https://github.com/jtbandes), [Brent Royal-Gordon](https://github.com/brentdax), [Robert Widmann](https://github.com/CodaFi)
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Active review (January 6...11)**
+* Implementation: [apple/swift#13655](https://github.com/apple/swift/pull/13655)
 
 ## Introduction
 
 > *It is a truth universally acknowledged, that a programmer in possession of an `enum` with many cases, must eventually be in want of dynamic enumeration over them.*
 
-[Enumeration types](enums) without associated values (henceforth referred to as "*simple enums*") have a finite, fixed number of cases, yet working with them programmatically is challenging. It would be natural to enumerate all the cases, count them, determine the highest `rawValue`, or produce a Collection of them. However, despite the fact that both the Swift compiler and the Swift runtime are aware of this information, there is no safe and sanctioned way for users to retrieve it. Users must resort to various [workarounds](#workarounds) in order to iterate over all cases of a simple enum.
+[Enumeration types][enums] without associated values (henceforth referred to as "*simple enums*") have a finite, fixed number of cases, yet working with them programmatically is challenging. It would be natural to enumerate all the cases, count them, determine the highest `rawValue`, or produce a Collection of them. However, despite the fact that both the Swift compiler and the Swift runtime are aware of this information, there is no safe and sanctioned way for users to retrieve it. Users must resort to various [workarounds](#workarounds) in order to iterate over all cases of a simple enum.
 
 This topic was brought up [three][se1] [different][se2] [times][se3] in just the first two months of swift-evolution's existence. It was the [very first language feature request][SR-30] on the Swift bug tracker. It's a [frequent][so1] [question][so2] on Stack Overflow (between them, these two questions have over 400 upvotes and 60 answers). It's a [popular][nateblog] [topic][ericablog] on blogs. It is one of just eight [examples][sourcery] shipped with Sourcery.
 
