@@ -1,9 +1,9 @@
 # Derived Collection of Enum Cases
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/0000-derived-collection-of-enum-cases.md)
+* Proposal: [SE-0194](https://github.com/apple/swift-evolution/blob/master/proposals/0194-derived-collection-of-enum-cases.md)
 * Author(s): [Jacob Bandes-Storch](https://github.com/jtbandes), [Brent Royal-Gordon](https://github.com/brentdax), [Robert Widmann](https://github.com/CodaFi)
-* Status: **Awaiting implementation**
-* Review manager: TBD
+* Status: **Active Review (January 6, 2017...January 11, 2018)**
+* Review manager: [Doug Gregor](https://github.com/DougGregor)
 
 ## Introduction
 
