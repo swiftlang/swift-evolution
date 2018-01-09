@@ -30,7 +30,7 @@ Currently, adding a new case to an enum is a source-breaking change, which is ve
 
 It's well-established that many enums need to grow new cases in new versions of a library. For example, in last year's release of iOS 10, Foundation's [DateComponentsFormatter.UnitsStyle][] gained a `brief` case and UIKit's [UIKeyboardType][] gained an `asciiCapableNumberPad` case. Large error enums also often grow new cases to go with new operations supported by the library. This all implies that library authors *must* have a way to add new cases to enums.
 
-At the same time, we really like that you can exhaustively switch over enums. This feature helps prevent bugs and makes it possible to enforce [definitive initialization][DI] without having `default` cases in every `switch`. So we don't want to get rid of enums where every case is known, either. This calls for a new annotation that can distinguish between enums where every case can be known statically and enums that might grow new cases in the future.
+At the same time, we really like that you can exhaustively switch over enums. This feature helps prevent bugs and makes it possible to enforce [definitive initialization][DI] without having `default` cases in every `switch`. So we don't want to get rid of enums where every case is known, either. This calls for a new annotation that can distinguish between enums where every case can be known statically and enums that might grow new cases in the future, which will be applied to enums defined in Swift as well as those imported from C and Objective-C.
 
 To see how this distinction will play out in practice, I investigated the public headers of Foundation in the macOS SDK. Out of all 60 or so `NS_ENUM`s in Foundation, only 6 of them are clearly intended to be switched exhaustively:
 
@@ -51,7 +51,7 @@ To see how this distinction will play out in practice, I investigated the public
 
 In Swift 5, public enums can be declared as `@frozen`; public enums without this attribute are *non-frozen.* (Grammatical note: they are not "unfrozen" because that implies that they were frozen at one point.)
 
-When a client tries to switch over a non-frozen enum, they must include either a `default` case or a new `unknown` case unless the enum is declared in the same module as the switch. In Swift 4 mode, omitting this case will result in a warning; in Swift 5, it will be an error.
+When a client tries to switch over a non-frozen enum, they must include either a `default` case or a new `unknown` case unless the enum is declared in the same module as the switch. (This is only relevant across module boundaries because otherwise the compiler knows that the developer is able to update all use sites.) In Swift 4 mode, omitting this case will result in a warning; in Swift 5, it will be an error.
 
 In Swift 4 mode, all public enums will implicitly be `@frozen` for source compatibility.
 
@@ -93,9 +93,9 @@ When a non-frozen enum defined in module A is used **from another module**, any 
 
 ```swift
 switch excuse {
-case eatenByPet:
+case .eatenByPet:
   // …
-case thoughtItWasDueNextWeek:
+case .thoughtItWasDueNextWeek:
   // …
 }
 ```
@@ -130,9 +130,9 @@ The downside of using a `default` case is that the compiler can no longer alert 
 
 ```swift
 switch excuse {
-case eatenByPet:
+case .eatenByPet:
   // …
-case thoughtItWasDueNextWeek:
+case .thoughtItWasDueNextWeek:
   // …
 unknown case:
   // …
@@ -148,6 +148,18 @@ The compiler will warn if the enum being matched by `unknown case` is `@frozen`.
 A `switch` may not have both a `default` case and an `unknown case`. Since both patterns match any value, whichever pattern was written first would be chosen, making the other unreachable.
 
 `unknown case` has a downside that it is not testable, since there is no way to create an enum value that does not match any known cases, and there wouldn't be a safe way to use it if there was one. However, combining `unknown case` with other cases using `fallthrough` can get the effect of following another case's behavior while still getting compiler warnings for new cases.
+
+```swift
+switch excuse {
+case .eatenByPet:
+  showCutePicturesOfPet()
+
+case .thoughtItWasDueNextWeek:
+  fallthrough
+unknown case:
+  askForDueDateExtension()
+}
+```
 
 The name `unknown case` was chosen not conflict with any existing valid Swift code. Discussion of the naming for this case is included at the end of the proposal under "Alternatives Considered".
 
@@ -240,6 +252,7 @@ The **C#** docs have a nice section on [how the language isn't very helpful][c-s
 
 Enums in **D** are like enums in C, but D distinguishes `switch` from `final switch`, and only the latter is exhaustive. That is, it's a client-side decision at the use site, rather than a decision by the definer of the enum.
 
+**Scala** has enums, but the pattern most people seem to use is "sealed traits", which in Swift terms would be "protocols where all conforming types are known, usually singletons". A non-frozen enum would then just be a normal protocol. Some downsides of applying this to Swift are discussed below under "Use protocols instead".
 
   [f-sharp]: https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/signatures
 
@@ -261,6 +274,13 @@ It is still not a source-compatible change to remove a case from a public enum (
 It is a source-compatible change to change a non-frozen enum into a frozen enum, but not vice versa.
 
 
+### Breaking the contract
+
+If a library author adds a case to an enum marked `@frozen`, any existing switches will likely not handle this new case. The compiler will produce an error for any such switch (i.e. those without a `default` case or `_` pattern to match the enum value), noting that the case is unhandled; this is the same error that is produced for a non-exhaustive switch in Swift 4.
+
+If a library author removes `@frozen` from an enum previously marked `@frozen`, the compiler will likewise produce an error for any switch that does not have a `default` case or `_` pattern, noting that it needs either a `default` case or `unknown case`. This is the same error that people will see when porting code from Swift 4 to Swift 5, so it needs to explain the issue clearly and offer a clear recommendation of what to do.
+
+
 ## Effect on ABI stability
 
 Currently, the layout of a public enum is known at compile time in both the defining library and in its clients. For a library concerned about binary compatibility, the layout of a non-frozen enum must not be exposed to clients, since the library may choose to add a new case that does not fit in that layout in its next release.
@@ -279,6 +299,13 @@ It is still not a binary-compatible change to remove a case from a public enum (
 It is not a binary-compatible change to add `@objc` to an enum, nor to remove it.
 
 Taking an existing non-frozen enum and making it frozen is something we'd like to support without breaking binary compatibility, but there is no design for that yet. The reverse will not be allowed.
+
+
+### Breaking the contract
+
+Because the compiler uses the set of cases in a frozen enum to determine its in-memory representation and calling convention, adding a new case or removing `@frozen` from an enum in a library will result in "undefined behavior" from any client apps that have not been recompiled. This means a loss of memory-safety and type-safety on par with a misuse of "unsafe" types, which would most likely lead to crashes but could lead to code unexpectedly being executed or skipped. In short, things would be very bad.
+
+Some ideas for how to prevent library authors from breaking the rules accidentally are discussed in "Compatibility checking" under "Future directions".
 
 
 ## Future directions
@@ -319,7 +346,7 @@ case (.thoughtItWasDueNextWeek, _): // 4
 
 - Case 4 is also plausible because `.thoughtItWasDueNextWeek` is clearly mentioned in the switch, and therefore it's not "unknown". This is probably what the user intended, but would be much more difficult to implement.
 
-In the single value situation, `unknown case` must go last to avoid this question. It's not possible to enforce the same thing for arbitrary patterns because there may be multiple enums in the pattern whose unknown cases need to be treated differently.
+In the single value situation, `unknown case` must go last to avoid this question. It's not possible to enforce the same thing for arbitrary patterns because there may be multiple enums in the pattern whose unknown cases need to be treated differently. This also means that it will be more difficult to suggest missing cases in compiler diagnostics, since the cases may be order-dependent.
 
 Therefore, generalized `unknown case` patterns are not being included in this proposal.
 
@@ -465,6 +492,8 @@ case .thoughtItWasDueNextWeek:
 
 While it is *unlikely* that someone would use `unknown` for a control-flow label, it is possible. Making `unknown` a contextual keyword before `case` preserves this source compatibility.
 
+Other alternatives include using a symbol of some kind to distinguish the "unknown" from a normal label or pattern, leading to `case #unknown` or similar. I have no objections to this spelling; `unknown case` is slightly more aesthetically pleasing to me, but it does feel more like a special case.
+
 
 ### `switch!`
 
@@ -515,9 +544,114 @@ override func process(_ transaction: @testable Transaction) {
 This is an additive feature, so we can come back and consider it in more detail even if we leave it out of the language for now. Meanwhile, the effect can be imitated using an Optional or ImplicitlyUnwrappedOptional parameter.
 
 
+### Implicitly treat enums without binary compatibility concerns as `@frozen`
+
+Several people questioned whether it was necessary to make this distinction for libraries without binary compatibility concerns, i.e. those that are shipped with their client apps. While there may be a need to do something to handle enums shipped with Apple's OS SDKs, it's arguable whether this is worth it for "source libraries", such as SwiftPM packages.
+
+This question can be rephrased as "is adding a case to an enum a source-breaking change?" The distinction between frozen and non-frozen enums puts that choice in the hands of the library author, with the default answer—the one that does not require extra annotation—being "no, it is not". If adding a new enum case is not a source-breaking change, then it can be done in a minor version release of a library, one intended to be backwards-compatible. Like deprecations, this can produce new warnings, but not new errors, and it should not (if done carefully) break existing code. This isn't a critical feature for a language to have, but I would argue that it's a useful one for library developers.
+
+Karl Wagner also brought up the idea of putting this choice in the hands of the *client* by writing `@static import` or similar, stating in the code that a particular library should be imported without any particular support for "non-source-breaking changes". This is an implementable idea, but I'm not sure it's worth the additional complexity it adds to the language on top of this proposal, and it's not something that would be supported by system libraries. It's also additive and does not have ABI impact, so we can add it to the language later if need be.
+
+> I wrote a [longer response] to this idea to Dave DeLong on the swift-evolution list. Dave [wasn't entirely convinced][delong-response].
+
+  [longer response]: https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20180101/042530.html
+  [delong-response]: https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20180101/042549.html
+
+
+### Leave out `unknown case`
+
+The [initial version][] of this proposal did not include `unknown case`, and required people to use `default` to handle cases added in the future instead. However, many people were unhappy with the loss of exhaustivity checking for `switch` statements, both for enums in libraries distributed as source and enums imported from Apple's SDKs. While this is an additive feature that does not affect ABI, it seems to be one that the community considers a necessary part of a language model that provides non-frozen enums.
+
+  [initial version]: https://github.com/apple/swift-evolution/blob/a773d07ff4beab8b7855adf0ac56d1e13bb7b44c/proposals/0192-non-exhaustive-enums.md
+
+
+### Mixing `unknown case` and `default`
+
+The proposal as written forbids including both `unknown case` and `default` in the same `switch`. It's certainly possible to define what it would mean:
+
+```swift
+switch excuse {
+case .eatenByPet:
+  // Specific known case
+unknown case:
+  // Any cases not recognized by the compiler
+default:
+  // Any other cases the compiler *does* know about,
+  // such as .thoughtItWasDueNextWeek
+}
+```
+
+However, I can't think of an actual use case for this; it's not clear what action one would take in the `unknown case` that they wouldn't take in the `default` case. Furthermore, this becomes a situation where the same code behaves differently before and after recompilation:
+
+1. A new case is added to the HomeworkExcuse enum, say, `droppedInMud`.
+2. When using the new version of the library with an existing built client app, the `droppedInMud` case will end up in the `unknown case` part of the `switch`.
+3. When the client app *is* recompiled, the `droppedInMud` case will end up in the `default` case. The compiler will not (and cannot) provide any indication that the behavior has changed.
+
+Without a resolution to these concerns, this feature does not seem worth including in the proposal. It's also additive and has no ABI impact, so if we do find use cases for it in the future we can always add it then.
+
+
 ### Non-frozen enums in Swift 4 mode
 
 This proposal provides no way to declare non-frozen enums in Swift 4 mode. We would need to introduce a new attribute (`@nonfrozen`) to allow that. Since we expect people to move projects to Swift 5 over time, however, this isn't a long-term concern. Not every new feature needs to be available in Swift 4 mode, and the proposal is simpler without a negative attribute.
+
+
+### Introduce a new declaration kind instead
+
+There have been a few suggestions to distinguish `enum` from some other kind of declaration that acts similarly but allows adding cases, which would avoid breaking compatibility with Swift 4:
+
+```swift
+choices HomeworkExcuse {
+  case eatenByPet
+  case thoughtItWasDueNextWeek
+}
+```
+
+My biggest concern with this is that it increases the possibility of a library author accidentally publishing a (frozen) `enum` when they meant to publish a (non-frozen) `choices`. As described above, the opposite mistake is one that can be corrected without breaking source compatibility, but this one cannot.
+
+A smaller concern is that both `enum` and `choices` would behave the same when they *aren't* `public`.
+
+Stepping back, increasing the surface area of the language in this way does not seem desirable. Exhaustivity has been a key part of how Swift enums work, but it is not their only feature. Given how people already struggle with the decision of "struct vs. class" when defining a new type, introducing another pair of "similar but different" declaration kinds would have to come with strong benefits.
+
+My conclusion is that it is better to think of frozen and non-frozen enums as two variants of the same declaration kind, rather than as two different declaration kinds.
+
+
+### Use protocols instead
+
+Everything you can do with non-frozen enums, you can do with protocols as well, except for:
+
+- exhaustivity checking with `unknown case`
+- forbidding others from adding their own "cases"
+
+```swift
+protocol HomeworkExcuse {}
+struct EatenByPet: HomeworkExcuse {}
+struct ThoughtItWasDueNextWeek: HomeworkExcuse {}
+
+switch excuse {
+case is EatenByPet:
+  // …
+case is ThoughtItWasDueNextWeek:
+  // …
+default:
+  // …
+}
+```
+
+(Associated values are a little harder to get out of the cases, but let's assume we could come up for syntax as well.)
+
+This is a valid model; it's close to what Scala does (as mentioned above), and is independently useful in Swift. However, using this as the only way to get non-frozen enum semantics would lead to a world where `enum` is dangerous for library authors, because `public enum` is now a promise that no new cases will be added. Nothing else in Swift works that way. More practically, getting around this restriction would mean rewriting existing code to use the more verbose syntax of separate types conforming to a common protocol.
+
+(If Swift were younger, perhaps we would consider using protocols for *all* non-imported enums, not just non-frozen ones. But at this point that would be *way* too big a change to the language.)
+
+
+### Import non-frozen C enums as RawRepresentable structs
+
+The Swift compiler already makes a distinction between plain C enums, enums marked with the `flag_enum` Clang attribute (`NS_OPTIONS`), and enums marked with the `enum_extensibility` Clang attribute (`NS_ENUM`). The first two categories were deemed to not be sufficiently similar to Swift enums and are imported instead as structs. Given that we're most immediately concerned about *C* enums growing new cases (specifically, those in Apple's existing Objective-C SDKs), we could sidestep the problem by importing *all* C enums as structs except for those marked `enum_extensibility(closed)`. However, this doesn't solve the problem for future Swift libraries, while still requiring changes to existing `switch` statements across many many projects. Furthermore, it would probably be harder to implement high-quality migration support from Swift 4 to Swift 5, since the structs-formerly-enums will look like any other structs imported from C.
+
+
+### Get Apple to stop adding new cases to C enums
+
+This isn't going to happen, but I thought I'd mention it since it was brought up during discussion. While some may consider this a distasteful use of the C language, it's an established pattern for Apple frameworks and is not going to change.
 
 
 ### "Can there be a kind of open enum where you can add new cases in extensions?"
