@@ -3,7 +3,7 @@
 * Proposal: [SE-0187](0187-introduce-filtermap.md)
 * Authors: [Max Moiseev](https://github.com/moiseev)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Implemented (Swift 5)**
+* Status: **Implemented (Swift 4.1)**
 * Implementation: [apple/swift#12819](https://github.com/apple/swift/pull/12819)
 * Decision Notes:
     [Review #0](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171023/040609.html),
