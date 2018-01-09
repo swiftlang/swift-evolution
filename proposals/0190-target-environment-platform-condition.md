@@ -6,6 +6,7 @@
 * Status: **Implemented (Swift 4.1)**
 * [Swift Evolution Review Thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171127/041695.html)
 * Implementation: [apple/swift#12964](https://github.com/apple/swift/pull/12964)
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171127/041741.html)
 
 ## Introduction
 
