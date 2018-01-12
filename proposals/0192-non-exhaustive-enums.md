@@ -139,13 +139,13 @@ unknown case:
 }
 ```
 
-Like `default`, `unknown case` matches any value. However, unlike `default` (and the "ignore" pattern `_`), the compiler will produce a *warning* if all known elements of the enum have not already been matched. This is a warning rather than an error so that adding new elements to the enum remains a source-compatible change.
+Like `default`, `unknown case` matches any value. However, unlike `default` (and the "ignore" pattern `_`), the compiler will produce a *warning* if all known elements of the enum have not already been matched. This is a warning rather than an error so that adding new elements to the enum remains a source-compatible change. (This is also why `unknown case` matches any value rather than just those not seen at compile-time.)
 
 `unknown case` must be the last case in a `switch`. This is not strictly necessary, but it is consistent with `default`. This restriction is discussed further in the "`unknown case` patterns" section under "Future directions".
 
 The compiler will warn if the enum being matched by `unknown case` is `@frozen`. This is a warning rather than an error so that adding `@frozen` to the enum remains a source-compatible change. It is an error to use `unknown case` with a non-enum-typed value.
 
-A `switch` may not have both a `default` case and an `unknown case`. Since both patterns match any value, whichever pattern was written first would be chosen, making the other unreachable.
+A `switch` may not have both a `default` case and an `unknown case`. Since both patterns match any value, whichever pattern was written first would be chosen, making the other unreachable. This restriction is discussed further under "Alternatives considered".
 
 `unknown case` has a downside that it is not testable, since there is no way to create an enum value that does not match any known cases, and there wouldn't be a safe way to use it if there was one. However, combining `unknown case` with other cases using `fallthrough` can get the effect of following another case's behavior while still getting compiler warnings for new cases.
 
@@ -342,13 +342,15 @@ case (.thoughtItWasDueNextWeek, _): // 4
 }
 ```
 
-- Case 2 is plausible because `unknown case` will catch any cases that aren't accounted for in the switch, and `.thoughtItWasDueNextWeek` hasn't been accounted for *yet.* This makes case 4 unreachable, which had better show up in a compiler warning.
+- Case 2 is plausible because `unknown case` will catch any cases that aren't accounted for in the switch (in order to preserve source stability), and `.thoughtItWasDueNextWeek` hasn't been accounted for *yet.* This makes case 4 unreachable, which had better show up in a compiler warning.
 
-- Case 4 is also plausible because `.thoughtItWasDueNextWeek` is clearly mentioned in the switch, and therefore it's not "unknown". This is probably what the user intended, but would be much more difficult to implement.
+- Case 4 is also plausible because `.thoughtItWasDueNextWeek` is clearly mentioned in the switch, and therefore it's not "unknown". This is probably what the user intended, but would be much more difficult to implement, and runs into the same trouble as mixing `default` and `unknown case` as described below under "Alternatives considered".
 
-In the single value situation, `unknown case` must go last to avoid this question. It's not possible to enforce the same thing for arbitrary patterns because there may be multiple enums in the pattern whose unknown cases need to be treated differently. This also means that it will be more difficult to suggest missing cases in compiler diagnostics, since the cases may be order-dependent.
+In the single value situation, `unknown case` must go last to avoid these issues. It's not possible to enforce the same thing for arbitrary patterns because there may be multiple enums in the pattern whose unknown cases need to be treated differently. This also means that it will be more difficult to suggest missing cases in compiler diagnostics, since the cases may be order-dependent.
 
-Therefore, generalized `unknown case` patterns are not being included in this proposal.
+A key point of this discussion is that as proposed `unknown case` merely produces a *warning* when the compiler can see that some enum cases are unhandled, rather than an error. This is what makes it difficult to implement in non-top-level positions. If the compiler produced an error instead, it would make more sense to use a pattern-like syntax for `unknown case` now (see the naming discussions under "Alternatives considered"). However, if the compiler produced an error, then adding a new case would not be a source-compatible change.
+
+For all these reasons, generalized `unknown case` patterns are not being included in this proposal.
 
 
 ### Non-public cases
@@ -468,9 +470,9 @@ public enum HomeworkExcuse {
 
 #### `unknown case` naming
 
-The first version of this proposal did not include `unknown case`, but did discuss it as a "considered alternative" under the name `future`. Previous discussions have also used `unexpected` or a plain `unknown` to describe this feature as well.
+The first version of this proposal did not include `unknown case`, but did discuss it as a "considered alternative" under the name `future`. Previous discussions have also used `unexpected`, `undeclared`, or a plain `unknown` to describe this feature as well.
 
-It was pointed out that neither `future` nor `unexpected` really described the feature being provided. `unknown case` does not just handle cases added in the future; it also handles private cases and invalid values for C enums. Nor are such cases entirely unexpected, since the compiler is telling the developer to expect them.
+It was pointed out that neither `future` nor `unexpected` really described the feature being provided. `unknown case` does not just handle cases added in the future; it also handles private cases and invalid values for C enums. Nor are such cases entirely unexpected, since the compiler is telling the developer to expect them. `undeclared` has fewer issues, but certainly private cases are declared *somewhere;* the declarations just aren't visible.
 
 It would be nice™ if we could just spell this new case `unknown`. However, that's ambiguous with the existing syntax for labeled control-flow statements:
 
@@ -492,7 +494,9 @@ case .thoughtItWasDueNextWeek:
 
 While it is *unlikely* that someone would use `unknown` for a control-flow label, it is possible. Making `unknown` a contextual keyword before `case` preserves this source compatibility.
 
-Other alternatives include using a symbol of some kind to distinguish the "unknown" from a normal label or pattern, leading to `case #unknown` or similar. I have no objections to this spelling; `unknown case` is slightly more aesthetically pleasing to me, but it does feel more like a special case.
+During discussion, the name `unknown default` was suggested as an alternative to `unknown case`, since the semantics behave very much like `default`. I went with `unknown case` because it's a little shorter and a little more descriptive ("this is what to do with cases---as in enum cases---that I don't know about right now"), but I'm not too attached to it.
+
+A bigger change would be to make a custom *pattern* instead of a custom *case,* even if it were subject to the same restrictions in implementation (see "`unknown case` patterns" above). This usually meant using a symbol of some kind to distinguish the "unknown" from a normal label or pattern, leading to `case #unknown` or similar. This makes the new feature less special, since it's "just another pattern". However, it would be surprising to have such a pattern but keep the restrictions described in this proposal; thus, it would only make sense to do this if we were going to implement fully general pattern-matching for this feature. See "`unknown case` patterns" above for more discussion.
 
 
 ### `switch!`
