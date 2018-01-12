@@ -415,6 +415,23 @@ For enums with raw types, a 32-bit integer can be used as the representation rat
 As such, this representation change is out of scope for this proposal.
 
 
+### Revision-locked imports
+
+When a client module decides to import a *specific* version of a library, there's no danger of a non-frozen enum changing out from under them. This isn't something that can be done with system libraries, but it could be useful both for libraries you build yourself and for dependencies you plan to ship with your application. A few people have proposed syntax to indicate this:
+
+```swift
+static import ContrivedExampleKit
+// or
+import ContrivedExampleKit @ 1.20 // verifies the version number somehow
+```
+
+With this syntax, all public enums in the library will be treated as frozen. (It's questionable whether this also applies to libraries re-exported through the library named here as well.) This syntax would not, of course, be valid to use with libraries that are shipped as part of an OS; those libraries may be updated *without* recompiling the client, and so unknown cases must be handled.
+
+I'm leery of this being used for packages that depend on other packages, which would keep a client of both libraries from being able to update them each independently. That said, it's useful when you have a *multi-module* package, where the two targets in the package will clearly never get out of sync. (It's also mildly useful for multi-module *applications,* but there you can just mark every public enum as `@frozen` and get the same effect.)
+
+This is an additive feature that does not affect ABI, and as such could be added to the language in the future.
+
+
 ## Alternatives considered
 
 ### Syntax
@@ -553,8 +570,6 @@ This is an additive feature, so we can come back and consider it in more detail 
 Several people questioned whether it was necessary to make this distinction for libraries without binary compatibility concerns, i.e. those that are shipped with their client apps. While there may be a need to do something to handle enums shipped with Apple's OS SDKs, it's arguable whether this is worth it for "source libraries", such as SwiftPM packages.
 
 This question can be rephrased as "is adding a case to an enum a source-breaking change?" The distinction between frozen and non-frozen enums puts that choice in the hands of the library author, with the default answer—the one that does not require extra annotation—being "no, it is not". If adding a new enum case is not a source-breaking change, then it can be done in a minor version release of a library, one intended to be backwards-compatible. Like deprecations, this can produce new warnings, but not new errors, and it should not (if done carefully) break existing code. This isn't a critical feature for a language to have, but I would argue that it's a useful one for library developers.
-
-Karl Wagner also brought up the idea of putting this choice in the hands of the *client* by writing `@static import` or similar, stating in the code that a particular library should be imported without any particular support for "non-source-breaking changes". This is an implementable idea, but I'm not sure it's worth the additional complexity it adds to the language on top of this proposal, and it's not something that would be supported by system libraries. It's also additive and does not have ABI impact, so we can add it to the language later if need be.
 
 > I wrote a [longer response] to this idea to Dave DeLong on the swift-evolution list. Dave [wasn't entirely convinced][delong-response].
 
