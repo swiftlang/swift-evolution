@@ -26,6 +26,16 @@ Currently, adding a new case to an enum is a source-breaking change, which is ve
 - With rare exceptions, this does not affect `switch` statements in the same target as the enum.
 
 
+### Differences from the first revision
+
+- `unknown case` has been added, to preserve exhaustivity checking
+- The name of the attribute is now `@frozen` rather than `@exhaustive`
+- The proposal now describes what will happen if you "break the contract" in a new library version
+- Much more discussion of future directions and alternatives considered
+
+Thanks to everyone who offered feedback!
+
+
 ## Motivation
 
 It's well-established that many enums need to grow new cases in new versions of a library. For example, in last year's release of iOS 10, Foundation's [DateComponentsFormatter.UnitsStyle][] gained a `brief` case and UIKit's [UIKeyboardType][] gained an `asciiCapableNumberPad` case. Large error enums also often grow new cases to go with new operations supported by the library. This all implies that library authors *must* have a way to add new cases to enums.
