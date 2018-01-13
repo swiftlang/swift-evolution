@@ -3,9 +3,10 @@
 * Proposal: [SE-0192](0192-non-exhaustive-enums.md)
 * Authors: [Jordan Rose](https://github.com/jrose-apple)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
-* Status: **Active Review (December 19, 2017...January 3, 2018)**
+* Status: **Returned for revision**
 * Implementation: [apple/swift#11961](https://github.com/apple/swift/pull/11961)
 * Pre-review discussion: [Enums and Source Compatibility](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170807/038663.html), with additional [orphaned thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170911/039787.html)
+* Review discussion: [Review author summarizes some feedback from review discussion and proposes alternatives](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20180101/042480.html)
 
 <!--
 *During the review process, add the following fields as needed:*
