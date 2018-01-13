@@ -46,7 +46,7 @@ alternate object or value (as an `Any`) which would serve as their
 representation. The PlaygroundLogger framework, also part of
 swift-xcode-playground-support, will be updated to understand this protocol.
 
-Swift-evolution thread: [Discussion thread topic for that proposal](https://lists.swift.org/pipermail/swift-evolution/)
+Swift-evolution thread: [Discussion thread topic for that proposal](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20180108/042639.html)
 
 ## Motivation ##
 
