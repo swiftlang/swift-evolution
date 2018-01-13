@@ -1,0 +1,72 @@
+# Feature name
+
+* Proposal: [SE-NNNN](NNNN-filename.md)
+* Authors: [Chris Eidhof](http://chris.eidhof.nl)
+* Review Manager: TBD
+* Status: **Awaiting review**
+
+*During the review process, add the following fields as needed:*
+
+* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/), [Additional Commentary](https://lists.swift.org/pipermail/swift-evolution/)
+
+## Introduction
+
+I propose adding a `mutating func toggle` to `Bool`. It toggles the `Bool`.
+
+Swift-evolution thread: [Discussion thread topic for that proposal](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20180108/042767.html)
+
+## Motivation
+
+For `Bool` variables, it is common to want to toggle the state of the variable. In larger (nested) structs, the duplication involved can become especially annoying:
+
+```swift
+myVar.prop1.prop2.enabled = !myVar.prop1.prop2.enabled
+```
+
+It's also easy to make a mistake in the code above if there are multiple `Bool` vars.
+
+## Proposed solution
+
+Add a method `toggle` on `Bool`:
+
+```swift
+extension Bool {
+    mutating func toggle() {
+        self = !self
+    }
+}
+```
+
+This allows us to write the example above without duplication:
+
+```swift
+myVar.prop1.prop2.enabled.toggle()
+```
+
+## Detailed design
+
+N/A
+
+## Source compatibility
+
+This is strictly additive.
+
+## Effect on ABI stability
+
+N/A
+
+## Effect on API resilience
+
+N/A
+
+## Alternatives considered
+
+Other names could be:
+
+- `invert`
+- `negate`
+- `flip`
+
+From the brief discussion on SE, it seems like `toggle` is the clear winner.
+
+Some people also suggested adding a non-mutating variant (in other words, a method with the same semantics as the prefix `!` operator), but that's out of scope for this proposal.
