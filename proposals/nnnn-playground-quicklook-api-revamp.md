@@ -18,7 +18,7 @@
 ## Introduction ##
 
 The standard library currently includes API which allows a type to customize its
-representation in Xcode playgrounds and Swift Playgrounds. This API takes the
+description in Xcode playgrounds and Swift Playgrounds. This API takes the
 form of the `PlaygroundQuickLook` enum which enumerates types which are
 supported for quick looks, and the `CustomPlaygroundQuickLookable` protocol
 which allows a type to return a custom `PlaygroundQuickLook` value for an
@@ -36,14 +36,14 @@ packages, and other non-playground Swift code which use `PlaygroundQuickLook` or
 `CustomPlaygroundQuickLookable` when they switch to the Swift 5.0 compiler, even
 in the compatibility modes.)
 
-Since it is still useful to allow types to provide alternate representations for
+Since it is still useful to allow types to provide alternate descriptions for
 playgrounds, we propose to add a new protocol to the PlaygroundSupport framework
 which allows types to do just that. (PlaygroundSupport is a framework delivered
 by the [swift-xcode-playground-support project](https://github.com/apple/swift-xcode-playground-support)
 which provides API specific to working in the playgrounds environment). The new
-`CustomPlaygroundRepresentable` protocol would allow instances to return an
+`CustomPlaygroundConvertible` protocol would allow instances to return an
 alternate object or value (as an `Any`) which would serve as their
-representation. The PlaygroundLogger framework, also part of
+description. The PlaygroundLogger framework, also part of
 swift-xcode-playground-support, will be updated to understand this protocol.
 
 Swift-evolution thread: [Discussion thread topic for that proposal](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20180108/042639.html)
@@ -108,11 +108,11 @@ public protocol _DefaultCustomPlaygroundQuickLookable {
 
 To solve this issue, we propose the following changes:
 
-  - Introduce a new `CustomPlaygroundRepresentable` protocol in
+  - Introduce a new `CustomPlaygroundConvertible` protocol in
     PlaygroundSupport in Swift 4.1 to allow types to provide an alternate
-    representation for playground logging
+    description for playground logging
   - Deprecate `PlaygroundQuickLook` and `CustomPlaygroundQuickLookable` in Swift
-    4.1, suggesting users use `CustomPlaygroundRepresentable` instead
+    4.1, suggesting users use `CustomPlaygroundConvertible` instead
   - Remove `PlaygroundQuickLook` and `CustomPlaygroundQuickLookable` from the
     standard library in Swift 5.0
   - Provide an automatically-imported shim library for the playgrounds context
@@ -128,21 +128,21 @@ provides the ability to return an `Any` (or `nil`) that serves as a stand-in for
 the instance being logged:
 
 ```swift
-/// A type that supplies a custom representation for playground logging.
+/// A type that supplies a custom description for playground logging.
 ///
-/// All types have a default representation for playgrounds. This protocol
-/// allows types to provide custom representations which are then logged in
+/// All types have a default description for playgrounds. This protocol
+/// allows types to provide custom descriptions which are then logged in
 /// place of the original instance. Alternatively, implementors may choose to
-/// return `nil` in instances where the default representation is preferable.
+/// return `nil` in instances where the default description is preferable.
 ///
-/// Playground logging can generate, at a minimum, a structured representation
+/// Playground logging can generate, at a minimum, a structured description
 /// of any type. Playground logging is also capable of generating a richer,
-/// more specialized representation of core types -- for instance, the contents
+/// more specialized description of core types -- for instance, the contents
 /// of a `String` are logged, as are the components of an `NSColor` or
 /// `UIColor`.
 ///
 /// The current playground logging implementation logs specialized
-/// representations of at least the following types:
+/// descriptions of at least the following types:
 ///
 /// - `String` and `NSString`
 /// - `Int` and `UInt` (including the sized variants)
@@ -159,20 +159,19 @@ the instance being logged:
 /// - `NSBezierPath` and `UIBezierPath`
 /// - `NSView` and `UIView`
 ///
-/// Playground logging may also be able to support specialized representations
+/// Playground logging may also be able to support specialized descriptions
 /// of other types.
 ///
-/// Implementors of `CustomPlaygroundRepresentable` may return a value of one of
-/// the above types to also receive a specialized log representation.
+/// Implementors of `CustomPlaygroundConvertible` may return a value of one of
+/// the above types to also receive a specialized log description.
 /// Implementors may also return any other type, and playground logging will
 /// generated structured logging for the returned value.
-public protocol CustomPlaygroundRepresentable {
-  /// Returns the custom playground representation for this instance, or nil if
-  /// the default representation should be used.
+public protocol CustomPlaygroundConvertible {
+  /// Returns the custom playground description for this instance.
   ///
   /// If this type has value semantics, the instance returned should be
   /// unaffected by subsequent mutations if possible.
-  var playgroundRepresentation: Any? { get }
+  var playgroundDescription: Any { get }
 }
 ```
 
@@ -194,8 +193,8 @@ extension MyStruct: CustomPlaygroundQuickLookable {
 would be replaced with something like the following:
 
 ```swift
-extension MyStruct: CustomPlaygroundRepresentable {
-  var playgroundRepresentation: Any? {
+extension MyStruct: CustomPlaygroundConvertible {
+  var playgroundDescription: Any {
     return "A description of this MyStruct instance"
   }
 }
@@ -206,8 +205,8 @@ This proposal also allows types which wish to be represented structurally
 instead of requiring an implementation of the `CustomReflectable` protocol:
 
 ```swift
-extension MyStruct: CustomPlaygroundRepresentable {
-  var playgroundRepresentation: Any? {
+extension MyStruct: CustomPlaygroundConvertible {
+  var playgroundDescription: Any {
     return [1, 2, 3]
   }
 }
@@ -215,30 +214,29 @@ extension MyStruct: CustomPlaygroundRepresentable {
 
 This is an enhancement over the existing `CustomPlaygroundQuickLookable`
 protocol, which only supported returning opaque, quick lookable values for
-playground logging. (By returning an `Any?`, it also allows instances to opt-in
-to their standard playground representation if that is preferable some cases.)
+playground logging.
 
-Implementations of `CustomPlaygroundRepresentable` may potentially chain from
+Implementations of `CustomPlaygroundConvertible` may potentially chain from
 one to another. For instance, with:
 
 ```swift
-extension MyStruct: CustomPlaygroundRepresentable {
-  var playgroundRepresentation: Any? {
-    return "MyStruct representation"
+extension MyStruct: CustomPlaygroundConvertible {
+  var playgroundDescription: Any {
+    return "MyStruct description for playgrounds"
   }
 }
 
-extension MyOtherStruct: CustomPlaygroundRepresentable {
-  var playgroundRepresentation: Any? {
+extension MyOtherStruct: CustomPlaygroundConvertible {
+  var playgroundDescription: Any {
     return MyStruct()
   }
 }
 ```
 
 Playground logging for `MyOtherStruct` would generate the string "MyStruct
-representation" rather than the structural view of `MyStruct`. It is legal,
-however, for playground logging implementations to cap chaining to a reasonable
-limit to guard against infinite recursion.
+description for playgrounds" rather than the structural view of `MyStruct`. It
+is legal, however, for playground logging implementations to cap chaining to a
+reasonable limit to guard against infinite recursion.
 
 ## Source compatibility ##
 
@@ -269,21 +267,21 @@ compatibility mode.
 Due to the limited usage of these protocols, and the potential challenge in
 migration, this proposal does not include any proposed migrator changes to
 support the replacement of `CustomPlaygroundQuickLookable` with
-`CustomPlaygroundRepresentable`. Instead, we intend for Swift 4.1 to be a
+`CustomPlaygroundConvertible`. Instead, we intend for Swift 4.1 to be a
 deprecation period for these APIs, allowing any code bases which implement
 `CustomPlaygroundQuickLookable` to manually switch to the new protocol. While
 this migration may not be trivial programatically, it should -- in most cases --
 be fairly trivial for someone to hand-migrate to
-`CustomPlaygroundRepresentable`. During the deprecation period, the
+`CustomPlaygroundConvertible`. During the deprecation period, the
 PlaygroundLogger framework will continue to honor implementations of
 `CustomPlaygroundQuickLookable`, though it will prefer implementations of
-`CustomPlaygroundRepresentable` if both are present on a given type.
+`CustomPlaygroundConvertible` if both are present on a given type.
 
 ## Effect on ABI stability ##
 
 This proposal affects ABI stability as it removes an enum and a pair of
 protocols from the standard library. Since this proposal proposes adding
-`CustomPlaygroundRepresentable` to PlaygroundSupport instead of the standard
+`CustomPlaygroundConvertible` to PlaygroundSupport instead of the standard
 library, there is no impact of ABI stability from the new protocol, as
 PlaygroundSupport does not need to maintain a stable ABI, as its clients --
 playgrounds -- are always recompiled from source.
@@ -314,57 +312,57 @@ is not an acceptable alternative.
 ### Provide type-specific protocols ###
 
 Another alternative we considered was to provide type-specific protocols for
-providing playground representations. We would introduce new protocols like
+providing playground descriptions. We would introduce new protocols like
 `CustomNSColorConvertible`, `CustomNSAttributedStringConvertible`, etc. which
-would allow types to provide representations as each of the opaquely-loggable
+would allow types to provide descriptions as each of the opaquely-loggable
 types supported by PlaygroundLogger.
 
 This alternative was rejected as it would balloon the API surface for
 playgrounds, and it also would not provide a good way to select a preferred
-representation. (That is, what would PlaygroundLogger select as the
-representation of an instance if it implemented both `CustomNSColorConvertible`
+description. (That is, what would PlaygroundLogger select as the
+description of an instance if it implemented both `CustomNSColorConvertible`
 *and* `CustomNSAttributedStringConvertible`?)
 
-### Implement `CustomPlaygroundRepresentable` in the standard library ###
+### Implement `CustomPlaygroundConvertible` in the standard library ###
 
-As an alternative to implementing `CustomPlaygroundRepresentable` in
+As an alternative to implementing `CustomPlaygroundConvertible` in
 PlaygroundSupport, we could implement it in the standard library. This would
 make it available in all contexts (i.e. in projects and packages, not just in
 playgrounds), but this protocol is not particularly useful outside of the
 playground context, so this proposal elects not to place
-`CustomPlaygroundRepresentable` in the standard library.
+`CustomPlaygroundConvertible` in the standard library.
 
 Additionally, it should be a source-compatible change to move this protocol to
 the standard library in a future Swift version should that be desirable. Since
 playgrounds are always compiled from source, the fact that this would be an ABI
 change for PlaygroundSupport does not matter, and a compatibility typealias
 could be provided in PlaygroundSupport to maintain compatibility with code which
-explicitly qualified the name of the `CustomPlaygroundRepresentable` protocol.
+explicitly qualified the name of the `CustomPlaygroundConvertible` protocol.
 
-### Have `CustomPlaygroundRepresentable` return something other than `Any?` ###
+### Have `CustomPlaygroundConvertible` return something other than `Any` ###
 
-One minor alternative considered was to have `CustomPlaygroundRepresentable`
-return a value with a more specific type than `Any?`. For example:
+One minor alternative considered was to have `CustomPlaygroundConvertible`
+return a value with a more specific type than `Any`. For example:
 
 ```swift
-protocol CustomPlaygroundRepresentable {
-  var playgroundRepresentation: CustomPlaygroundRepresentable? { get }
+protocol CustomPlaygroundConvertible {
+  var playgroundDescription: CustomPlaygroundConvertible { get }
 }
 ```
 
 or:
 
 ```swift
-protocol PlaygroundRepresentation {}
+protocol PlaygroundDescription {}
 
-protocol CustomPlaygroundRepresentable {
-  var playgroundRepresentation: PlaygroundRepresentation? { get }
+protocol CustomPlaygroundConvertible {
+  var playgroundDescription: PlaygroundDescription { get }
 }
 ```
 
 In both cases, core types which the playground logger supports would conform to
 the appropriate protocol such that they could be returned from implementations
-of `playgroundRepresentation`.
+of `playgroundDescription`.
 
 The benefit to this approach is that it is more self-documenting than the
 approach proposed in this document, as a user can look up all of the types which
@@ -381,3 +379,29 @@ can implement support for opaque logging of new types without requiring library
 changes. (And IDEs can opt to support a subset of types if they prefer, whereas
 if the libraries promised support an IDE would effectively be compelled to
 provide it.)
+
+### Have `CustomPlaygroundConvertible` return an `Any?` instead of an `Any` ###
+
+One alternative considered was to have `CustomPlaygroundConvertible` return an
+`Any?` instead of an `Any`. This would permit individual instances to opt-out of
+a custom playground description by returning nil instead of a concrete value or
+object.
+
+Although that capability is no longer present, in most cases implementors of
+`CustomPlaygroundConvertible` may return a custom description which closely
+mirrors their default description. One big exception to this are classes which
+are considered core types, such as `NSView` and `UIView`, as one level of
+subclass may wish to customize its description while deeper level may wish to
+use the default description (which is currently a rendered image of the view).
+This proposal does not permit that; the second-level subclass must return a
+custom description one way or another, and due to the chaining nature of
+`CustomPlaygroundConvertible` implementations, it cannot return `self` and have
+that reliably indicate to the playground logger implementation that that means
+"don't use a custom description".
+
+This issue seems to be limited enough that it should not tarnish the API design
+as a whole. Returning `Any` and not `Any?` is easier to understand, so this
+proposal opts to do that. Should this be a larger issue than anticipated, a
+future proposal could introduce a struct like `DefaultPlaygroundDescription<T>`
+which the playground logger would understand to mean "don't check for a
+`CustomPlaygroundConvertible` conformance on the wrapped value".
