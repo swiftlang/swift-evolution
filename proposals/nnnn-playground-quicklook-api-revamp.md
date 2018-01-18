@@ -124,16 +124,15 @@ To solve this issue, we propose the following changes:
 To provide a more flexible API, we propose deprecating and ultimately removing
 the `PlaygroundQuickLook` enum and `CustomPlaygroundQuickLookable` protocol in
 favor of a simpler design. Instead, we propose introducing a protocol which just
-provides the ability to return an `Any` (or `nil`) that serves as a stand-in for
-the instance being logged:
+provides the ability to return an `Any` that serves as a stand-in for the
+instance being logged:
 
 ```swift
 /// A type that supplies a custom description for playground logging.
 ///
 /// All types have a default description for playgrounds. This protocol
 /// allows types to provide custom descriptions which are then logged in
-/// place of the original instance. Alternatively, implementors may choose to
-/// return `nil` in instances where the default description is preferable.
+/// place of the original instance.
 ///
 /// Playground logging can generate, at a minimum, a structured description
 /// of any type. Playground logging is also capable of generating a richer,
