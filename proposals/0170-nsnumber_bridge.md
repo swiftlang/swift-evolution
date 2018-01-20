@@ -84,7 +84,7 @@ let payload = JSONSerialization.jsonObject(with: response, options: []) as? [Str
 
 #### Example 6
 ```swift
-let itDoesntDoWhatYouThinkItDoes = Int8(NSNumber(value: Int64.max)) // counterintutively (as legacy baggage of C) this is Int8(-1)
+let itDoesntDoWhatYouThinkItDoes = Int8(NSNumber(value: Int64.max)) // counterintuitively (as legacy baggage of C) this is Int8(-1)
 ```
 
 All of these examples boil down to the simple question: what does `as?` mean for NSNumber. It is worth noting that `is` should follow the same logic as `as?`.

@@ -71,7 +71,7 @@ versions that take distances are not covered by this proposal, and would remain.
 This will require the introduction of new range types (e.g.
 `PartialRangeThrough`). There are already multiple range types (e.g.
 `ClosedRange`, `CountableHalfOpenRange`), which require overloads to allow them
-to be used whereever a `Range` can be.
+to be used wherever a `Range` can be.
 
 To unify these different range types, a new protocol, `RangeExpression` will be
 created and all ranges conformed to it. Existing overloads taking concrete

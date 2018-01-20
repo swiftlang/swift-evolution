@@ -1,30 +1,25 @@
-# Swift 4.0 - Expected to be released in Late 2017
+# Swift 4.0 - Released on September 19, 2017
 
-**Swift 4 is currently in engineering convergence, and no more evolution proposals are being accepted for this release.**
-
-The Swift 4 release is designed around two primary goals: to provide
+The Swift 4 release was designed around two primary goals: to provide
 source stability for Swift 3 code and to provide ABI stability for the
-Swift standard library. To that end, the Swift 4 release will be
-divided into two stages.
+Swift standard library. To that end, the Swift 4 release was divided
+into two stages.
 
 Stage 1 focused on the essentials required for source and ABI
 stability. Features that don't fundamentally change the ABI of
 existing language features or imply an ABI-breaking change to the
-standard library will not be considered in this stage. 
-
-Stage 2 opened in mid-February and extends until April 1, 2017, after
-which proposals will be held for a later version of Swift.
+standard library were not considered in this stage. 
 
 The high-priority features supporting Stage 1's source and ABI
-stability goals are:
+stability goals were:
 
-* Source stability features: the Swift language will need [some
+* Source stability features: The Swift language will need [some
   accommodations](https://github.com/apple/swift-evolution/blob/master/proposals/0141-available-by-swift-version.md)
   to support code bases that target different language versions, to
   help Swift deliver on its source-compatibility goals while still
   enabling rapid progress.
 
-* Resilience: resilience provides a way for public APIs to evolve over
+* Resilience: Resilience provides a way for public APIs to evolve over
   time, while maintaining a stable ABI. For example, resilience
   eliminates the [fragile base class
   problem](https://en.wikipedia.org/wiki/Fragile_base_class) that
@@ -38,7 +33,7 @@ stability goals are:
   user-facing, the decisions here affect performance and (in some rare
   cases) the future evolution of Swift.
 
-* Generics improvements needed by the standard library: the standard
+* Generics improvements needed by the standard library: The standard
   library has a number of workarounds for language deficiencies, many
   of which manifest as extraneous underscored protocols and
   workarounds. If the underlying language deficiencies remain, they
@@ -57,7 +52,7 @@ stability goals are:
   powerful and easier-to-use, while retaining Unicode correctness by
   default.
 
-* Memory ownership model: an (opt-in) Cyclone/Rust-inspired memory
+* Memory ownership model: An (opt-in) Cyclone/Rust-inspired memory
   ownership model is highly desired by systems programmers and for
   other high-performance applications that want predictable and
   deterministic performance. This feature will fundamentally shape the
@@ -67,9 +62,9 @@ stability goals are:
   need a comprehensive design to understand how it will change the
   ABI.
 
-Swift 4 stage 2 builds on the goals of stage 1. It differs in that
-stage 2 proposals may include some additive changes and changes to
-existing features that don't affect the ABI. There are a few focus
+Swift 4 stage 2 built on the goals of stage 1. It differed in that
+stage 2 proposals could include some additive changes and changes to
+existing features that don't affect the ABI. There were a few focus
 areas for Swift 4 stage 2:
 
 * Stage 1 proposals: Any proposal that would have been eligible for
@@ -79,7 +74,7 @@ areas for Swift 4 stage 2:
   source-compatibility mode to allow existing Swift 3 sources to
   compile, but source-breaking changes can manifest in "Swift 4"
   mode. That said, changes to fundamental parts of Swift's syntax or
-  standard library APIs that breaks source code are better
+  standard library APIs that break source code are better
   front-loaded into Swift 4 than delayed until later
   releases. Relative to Swift 3, the bar for such changes is
   significantly higher:
@@ -88,7 +83,7 @@ areas for Swift 4 stage 2:
   * The new syntax/API must clearly be better and not conflict with existing Swift syntax.
   * There must be a reasonably automatable migration path for existing code.
 
-* Improvements to existing Standard Library facilities: Additive
+* Improvements to existing standard library facilities: Additive
   changes that improve existing standard library facilities can be
   considered. With standard library additions in particular, proposals
   that provide corresponding implementations are preferred. Potential
@@ -98,5 +93,4 @@ areas for Swift 4 stage 2:
 
 * Foundation improvements: We anticipate proposing some targeted
   improvements to Foundation API to continue the goal of making the
-  Cocoa SDK work seamlessly in Swift. Details on the specific goals
-  will be provided as we get started on Swift 4 stage 2.
+  Cocoa SDK work seamlessly in Swift.

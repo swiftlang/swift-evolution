@@ -3,7 +3,7 @@
 * Proposal: [SE-0161](0161-key-paths.md)
 * Authors: [David Smith](https://github.com/Catfish-Man), [Michael LeHew](https://github.com/mlehew), [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Implemented (Swift 4.0)**
+* Status: **Implemented (Swift 4)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2017-April/000356.html)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/55e61f459632eca2face40e571a517919f846cfb/proposals/0161-key-paths.md)
 
@@ -193,7 +193,7 @@ During review many different sigils were considered:
 
 **Back Tick**: Borrowing from lisp, back-tick was what we used in initial discussions of this proposal (it was easy to write on a white-board), but it was not chosen because it is hard to type in markdown, and comes dangerously close to conflicting with other parser intrinsics.
 
-**Pound**: We considered `#` as well, and while it is appealing, we'd like to save it for the future. `#` also has a slightly more computational connotation in Swift so far. For instance, `#keyPath` 'identifies if its valid and returns a String', `#available` does the neccesary computation to verify availability and yields a boolean. 
+**Pound**: We considered `#` as well, and while it is appealing, we'd like to save it for the future. `#` also has a slightly more computational connotation in Swift so far. For instance, `#keyPath` 'identifies if its valid and returns a String', `#available` does the necessary computation to verify availability and yields a boolean. 
 
 **Back Slash**: Where `#` is computational, `\` in Swift has more of a 'behave differently for a moment' connotation, and that seems to fit exactly what we want when forming a key path. 
 

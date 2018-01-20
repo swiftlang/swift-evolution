@@ -4,6 +4,7 @@
 * Author: [Tony Allevato](https://github.com/allevato)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 4.1)**
+* Implementation: [apple/swift#9619](https://github.com/apple/swift/pull/9619)
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2017-August/000400.html)
 
 ## Introduction
@@ -67,7 +68,7 @@ enum Token: Equatable {
     switch (lhs, rhs) {
     case (.string(let lhsString), .string(let rhsString)):
       return lhsString == rhsString
-    case (.number(let lhsNumber), .number(let lhsNumber)):
+    case (.number(let lhsNumber), .number(let rhsNumber)):
       return lhsNumber == rhsNumber
     case (.lparen, .lparen), (.rparen, .rparen):
       return true

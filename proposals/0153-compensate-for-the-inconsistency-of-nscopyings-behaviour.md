@@ -141,7 +141,7 @@ print( lab.employee )	// Prints "Isaac Newton, Astronomer"
 
 Setting the job of `isaacNewton` affects the job stored in `lab.employee`. That's an unexpected behavior as we have declared `employee` property as `@NSCopying`. Obviously, `@NSCopying` semantic became effectless implicitly in the initializer of `Department` class.
 
-For the moment, if we indeed require copy we have to invoke `copy()` method explictly on instances that want to be copied to make sure that classes' properties are able to store deeply-copied results during the initialization:
+For the moment, if we indeed require copy we have to invoke `copy()` method explicitly on instances that want to be copied to make sure that classes' properties are able to store deeply-copied results during the initialization:
 
 ``` swift
 init( employee candidate: Person ) {
@@ -183,7 +183,7 @@ or:
   }
 ```
 
-Speaking of Swift, however, there is no stuff like `->` operator to access ivar directly. As a result, with property marked with `@NSCopying` attribute, developers who are new to this language, expecially those who have had experience of writing Objective-C, are likely to automatically suppose it acts normally when they're writing down code like `self.employee = candidate` in initializer. That's bug-prone.
+Speaking of Swift, however, there is no stuff like `->` operator to access ivar directly. As a result, with property marked with `@NSCopying` attribute, developers who are new to this language, especially those who have had experience of writing Objective-C, are likely to automatically suppose it acts normally when they're writing down code like `self.employee = candidate` in initializer. That's bug-prone.
 
 ## Proposed solution
 

@@ -4,6 +4,7 @@
 * Author: [Greg Spiers](https://github.com/gspiers)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Status: **Implemented (Swift 4.1)**
+* Implementation: [apple/swift#11744](https://github.com/apple/swift/pull/11744)
 * [Review thread on swift-evolution](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170918/039863.html)
 * Bug: [SR-479](https://bugs.swift.org/browse/SR-479)
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170925/040012.html)
