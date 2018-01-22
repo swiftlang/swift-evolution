@@ -43,6 +43,8 @@ This allows us to write the example above without duplication:
 myVar.prop1.prop2.enabled.toggle()
 ```
 
+`!` and `toggle()` mirror the API design for `-` and `negate()`. (Thanks to Xiaodi Wu for pointing this out).
+
 ## Detailed design
 
 N/A
@@ -69,4 +71,4 @@ Other names could be:
 
 From the brief discussion on SE, it seems like `toggle` is the clear winner.
 
-Some people also suggested adding a non-mutating variant (in other words, a method with the same semantics as the prefix `!` operator), but that's out of scope for this proposal.
+Some people also suggested adding a non-mutating variant (in other words, a method with the same semantics as the prefix `!` operator), but that's out of scope for this proposal, and in line with commonly rejected proposals.
