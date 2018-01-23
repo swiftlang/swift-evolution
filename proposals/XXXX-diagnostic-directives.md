@@ -66,15 +66,15 @@ warning-directive → #warning static-string-literal
 error-directive → #error static-string-literal
 ```
 
-Upon parsing a `#error` statement, the Swift compiler will emit the provided
+Upon parsing a `#error` directive, the Swift compiler will emit the provided
 string literal as an error, pointing to the beginning of the
-string, and ignore the statement.
+string, and ignore the directive.
 
-Upon parsing a `#warning` statement, the Swift compiler will emit the provided
+Upon parsing a `#warning` directive, the Swift compiler will emit the provided
 string literal as a warning, pointing to the beginning of the
-string, and ignore the statement.
+string, and ignore the directive.
 
-If a `#warning` or `#error` exists inside a branch of a `#if` statement that is
+If a `#warning` or `#error` exists inside a branch of a `#if` directive that is
 not taken, then no diagnostic is emitted.
 
 ```swift
@@ -86,6 +86,7 @@ not taken, then no diagnostic is emitted.
 #if true
 #warning "this will trigger a warning"
 #error "this will trigger an error"
+#endif
 ```
 
 ## Impact on existing code
