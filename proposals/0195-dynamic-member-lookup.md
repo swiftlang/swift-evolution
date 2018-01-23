@@ -2,9 +2,9 @@
 
 * Proposal: [SE-0195](0195-dynamic-member-lookup.md)
 * Author: [Chris Lattner](https://github.com/lattner)
-* Review Manager: TBD
+* Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Implementation: [PR13361](https://github.com/apple/swift/pull/13361)
-* Status: **Pending Review**
+* Status: **Active review (January 23...28)**
 
 ## Introduction
 
