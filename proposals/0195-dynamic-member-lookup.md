@@ -3,7 +3,7 @@
 * Proposal: [SE-0195](0195-dynamic-member-lookup.md)
 * Author: [Chris Lattner](https://github.com/lattner)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
-* Implementation: [PR13361](https://github.com/apple/swift/pull/13361)
+* Implementation: [apple/swift#13361](https://github.com/apple/swift/pull/13361)
 * Status: **Active review (January 23...28)**
 
 ## Introduction
@@ -215,13 +215,13 @@ are important to support, because it affects when and if values may be get and s
 a potentially immutable base type.  Alternative implementation approaches were explored,
 and are discussed in the "[Alternatives
 Considered](#declare-an-explicit-subscript-requirement)" section below.  It is important to
-note that despite the inability for the Swift langauge to check the requirements of the protocol
+note that despite the inability for the Swift language to check the requirements of the protocol
 itself, the implementation of this does so directly, so this is just an implementation concern.
 
 In the discussion cycle, there was significant concern about abuse of this feature, particularly
 if someone retroactively conforms a type to `DynamicMemberLookupProtocol`.  Further,
 it is easy to argue that dynamic behavior is a core part of the contract of a type's behavior,
-not something that should be changable retroactively.  For
+not something that should be changeable retroactively.  For
 this reason, the compiler only permits conformance of this protocol on the original type
 definition, not extensions.  If for some reason there becomes a reason to relax this requirement,
 we can evaluate that as a future swift-evolution proposal based on its own merits.  See the
@@ -352,12 +352,12 @@ This is a strictly additive proposal with no ABI breaking changes.
 ## Effect on API resilience
 
 Types that conform to this protocol will always succeed at member lookup (`x.foo` will
-always be accepted by the compiler): members that are explictly declared in the type or in
+always be accepted by the compiler): members that are explicitly declared in the type or in
 a visible extension will be found and referenced, and anything else will be handled by the
 dynamic lookup feature.
 
 That behavior could lead to a surprising behavior change if the API evolves over time: adding
-a new staticly declared member to the type or an extension will cause clients to resolve that
+a new statically declared member to the type or an extension will cause clients to resolve that
 name to the static declaration instead of being dynamically dispatched.  This is inherent to
 this sort of feature, and means it should not be used on types that have a large amount of
 API, API that is likely to change over time, or API with names that are likely to conflict.
@@ -470,7 +470,7 @@ modeled as a protocol, here are some reasons:
 3) This proposal allows a type to hook into primitive language syntax.  All of the ways to do
     this today are spelled with protocols (e.g. the `ExpressibleBy...` protocols.
 4) Attributes are syntactically very light-weight, which makes this easier to overlook - given
-    the sigificant effect on a type, we prefer it to be more visible.
+    the significant effect on a type, we prefer it to be more visible.
 5) The oddities observed above may be eliminated over time if there is a reason to: for
     example, there is no technical reasons that types cannot retroactively conform.  It is
     theoretically possible that the Swift generics system could be extended to support these
@@ -591,7 +591,7 @@ This does not improve clarity of code, it merely serves to obfuscate logic.  It 
 apparent from the APIs being used, the API style, and the static types (in Xcode or through
 static declarations) that this is all Python stuff.  When you start mixing in use of native Swift
 types like dictionaries (something we want to encourage because they are typed!) you end up
-with an inconsistent mismash where people would just try adding syntax or applying fixits
+with an inconsistent mishmash where people would just try adding syntax or applying fixits
 continuously until the code builds.
 
 The example gets ever worse if the implementation chooses to return a strong optional value,
