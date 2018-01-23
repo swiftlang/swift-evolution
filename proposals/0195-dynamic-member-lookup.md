@@ -76,7 +76,7 @@ Approaches](#alternative-python-interoperability-approaches) section.
 The conclusion of these many discussions was that it is better to embrace the fact
 that these languages are inherently dynamic and meet them where they are: F# type providers
 and generated wrappers require this proposal to work in the first place (because, for example,
-Javascript doesn't have classes and Python doesn't have stored property declarations) and
+Javascript do not have classes and Python doesn't have stored property declarations) and
 providing a good code completion experience for dynamic languages requires incorporation
 of flow-sensitive analysis into SourceKit (something that is [fully compatible](#future-directions-python-code-completion)
 with this proposal).
@@ -628,7 +628,7 @@ Observe:
     imported language has fully dynamic capabilities, and programmers use them.  This is
     pervasive in Python code, and is also reasonable common in Objective-C "the `id` type".
 3) The Objective-C interoperability approach to handling the "inherently dynamic" parts of
-   Objective-C is a feature called "AnyObject dispatch".  If you aren't failiar, it returns
+   Objective-C is a feature called "AnyObject dispatch".  If you aren't familiar, it returns
    members lookup as `ImplicitlyUnwrappedOptional` types (aka, `T!` types), which are
    extremely dangerous to work with - though not "unsafe" in the Swift sense.
 4) Beyond the problems with IUOs, Anyobject lookup is *also* completely non-type safe when
@@ -723,7 +723,7 @@ working with Python in Swift for several reasons, including:
 7) Type annotations help the most in situations when you are "mixing and matching" Swift
     code with an existing body of some other code that you are able to modify.  While it is
     possible that some people will want to mix and match Swift and Python, by far the most
-    common reason for wanting to interoperate with a dynamic langauge is to leverage the
+    common reason for wanting to interoperate with a dynamic language is to leverage the
     existing APIs that the community provides in a black box manner.  Being black box means
     that you want to reuse the code, but you don't want to touch and own it yourself.
 8) Finally, the idea of Swift providing a "better Python than Python itself does"
@@ -778,7 +778,7 @@ someday have fast compile times).
 
 ### Introduce a language independent "foreign class" feature to Swift
 
-One suggestion was to introduce a [general "foreign class" feature to Swift](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171218/042227.html).  The core team met to discuss this and concluded that it was the wrong direction to go.  Among opinions held by core team members, several believed it forcing other languages models into the Swift model would violate their fundamental principles (e.g. Go and Javascript doesn't *have* classes), some felt it would be too invasive into the compiler, and others believed that such an approach ends up requiring a `DynamicMemberLookup` related feature anyway - because
+One suggestion was to introduce a [general "foreign class" feature to Swift](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171218/042227.html).  The core team met to discuss this and concluded that it was the wrong direction to go.  Among opinions held by core team members, several believed that forcing other languages models into the Swift model would violate their fundamental principles (e.g. Go and Javascript doesn't *have* classes), some felt it would be too invasive into the compiler, and others believed that such an approach ends up requiring a `DynamicMemberLookup` related feature anyway - because
 e.g. Python doesn't require property declarations.
 
 ### Use "automatically generated wrappers" to interface with Python
