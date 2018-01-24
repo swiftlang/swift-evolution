@@ -95,10 +95,55 @@ This change is purely additive; no migration will be required.
 
 ## Alternatives considered
 
-We could do some kind of comment-parsing based approach to surface
-`TODO`s and `FIXME`s, but `#warning` serves as a general-purpose facility
-for reporting at compile time. It is also likely that there are `TODO` and
-`FIXME` comments that are not urgent, but that should be revisited. 
+- We could do some kind of comment-parsing based approach to surface
+  `TODO`s and `FIXME`s, but `#warning` serves as a general-purpose facility
+  for reporting at compile time. It is also likely that there are `TODO` and
+  `FIXME` comments that are not urgent, but that should be revisited. 
+
+- [Alexander Momchilov](https://forums.swift.org/t/pitch-warning/2819/41) brought
+  up the idea of using `TODO` and `warning` as functions in the standard
+  library with special compiler magic that will warn on their uses.
+
+  ```swift
+  func TODO(_ message: StaticString? = nil) {
+    if let s = message { print("TODO: \(s)") }
+  }
+
+  @discardableResult
+  func TODO<T>(_ message: StaticString? = nil, _ temporaryValue: T) -> T {
+    if let s = message { print("TODO: \(s)") }
+    return temporaryValue
+  }
+  ```
+  While these could be useful, I think `#warning` and `#error` have uses beyond
+  just marking unfinished code that would be unwieldy or impossible with
+  just an expression-oriented approach.
+
+- [Erik Little](https://forums.swift.org/t/pitch-warning/2819/42?) refined that
+  to instead use special directives `#warning` and `#error` in expression
+  position, like:
+
+  ```swift
+  let somethingSuspect = #warning("This is really the wrong function to call, but I'm being lazy", suspectFunction())
+  ```
+  However, I think there's not much of a benefit to this syntax vs. just
+  adding a `#warning` above the line:
+  ```swift
+  #warning "This is really the wrong function to call, but I'm being lazy"
+  let somethingSuspect = suspectFunction()
+  ```
+
+- [A few](https://forums.swift.org/t/pitch-warning/2819/39)
+  [people](https://forums.swift.org/t/pitch-warning/2819/37) have requested
+  `#message` or `#info`, as an analogue for Clang's `#pragma message`. This may
+  be something we want, but I didn't include it in this proposal because as of
+  this writing, Clang treats `#pragma message` as a warning and flags it
+  as `-W#pragma-message`.
+
+## Future directions
+
+Both `#message` and an expression-based `#warning` are additive with respect
+to this proposal, and both could be addressed in future proposals.
 
 -------------------------------------------------------------------------------
 
