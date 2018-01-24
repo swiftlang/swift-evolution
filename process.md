@@ -18,9 +18,9 @@ There is a natural tension between these two goals. Open evolution processes are
 ## Participation
 
 Everyone is welcome to propose, discuss, and review ideas to improve
-the Swift language and standard library on the [swift-evolution
-mailing list][swift-evolution-mailing-list]. Before posting a review,
-please see the section "What goes into a review?" below.
+the Swift language and standard library in the
+[Evolution section of the Swift forums](https://forums.swift.org/c/evolution).
+Before posting a review, please see the section "What goes into a review?" below.
 
 The Swift [core team](https://swift.org/community/#core-team) is
 responsible for the strategic direction of Swift. Core team members
@@ -51,7 +51,7 @@ described early in the release cycle. When proposing a change to
 Swift, please consider how your proposal fits in with the larger goals
 of the upcoming Swift release. Proposals that are clearly out of scope
 for the upcoming Swift release will not be brought up for review. If you can't resist discussing a proposal that you know is out of scope, please include the tag `[Out of scope]` in the subject.
-* **Socialize the idea**: propose a rough sketch of the idea on the [swift-evolution mailing list][swift-evolution-mailing-list], the problems it solves, what the solution looks like, etc., to gauge interest from the community.
+* **Socialize the idea**: propose a rough sketch of the idea in the ["pitches" section of the Swift forums](https://forums.swift.org/c/evolution/pitches), the problems it solves, what the solution looks like, etc., to gauge interest from the community.
 * **Develop the proposal**: expand the rough sketch into a complete proposal, using the [proposal template](0000-template.md), and continue to refine the proposal on the evolution mailing list. Prototyping an implementation and its uses along with the proposal is *required* because it helps ensure both technical feasibility of the proposal as well as validating that the proposal solves the problems it is meant to solve.
 * **Request a review**: initiate a pull request to the [swift-evolution repository][swift-evolution-repo] to indicate to the core team that you would like the proposal to be reviewed. When the proposal is sufficiently detailed and clear, and addresses feedback from earlier discussions of the idea, the pull request will be accepted. The proposal will be assigned a proposal number as well as a core team member to manage the review.
 * **Address feedback**: in general, and especially [during the review period][proposal-status], be responsive to questions and feedback about the proposal.
@@ -70,9 +70,8 @@ review. Reviews usually last a single week, but can run longer for
 particularly large or complex proposals.
 
 When the scheduled review period arrives, the review manager will post
-the proposal to the [swift-evolution mailing
-list][swift-evolution-mailing-list] with the subject "[Review]"
-followed by the proposal title and update the list of active
+the proposal to the ["Proposal reviews" section of the Swift forums][proposal-reviews]
+with the proposal title and update the list of active
 reviews. To avoid delays, it is important that the proposal authors be
 available to answer questions, address feedback, and clarify their
 intent during the review period.
@@ -91,10 +90,10 @@ A given proposal can be in one of several states:
   for the actual review will be placed in the proposal document. When the review
   period begins, the review manager will update the state to *Active review*.
 * **Scheduled for review (MONTH DAY...MONTH DAY)**: The public review of the proposal
-  on the [swift-evolution mailing list][swift-evolution-mailing-list]
+  in the [Swift forums][proposal-reviews]
   has been scheduled for the specified date range.
 * **Active review (MONTH DAY...MONTH DAY)**: The proposal is undergoing public review
-  on the [swift-evolution mailing list][swift-evolution-mailing-list].
+  in the [Swift forums][proposal-reviews].
   The review will continue through the specified date range.
 * **Returned for revision**: The proposal has been returned from review
   for additional revision to the current draft.
@@ -114,13 +113,13 @@ A given proposal can be in one of several states:
   write the version number for which the implementation will be complete.
 
 [swift-evolution-repo]: https://github.com/apple/swift-evolution  "Swift evolution repository"
-[swift-evolution-mailing-list]: https://swift.org/community/#swift-evolution  "Swift evolution mailing list"
+[proposal-reviews]: https://forums.swift.org/c/evolution/proposal-reviews "'Proposal reviews' category of the Swift forums"
 [proposal-status]: https://apple.github.io/swift-evolution/
 
 ## Review announcement
 
-When a proposal enters review, an email using the following template will be
-sent to the swift-evolution mailing list and BCC'd to the swift-evolution-announce mailing list:
+When a proposal enters review, a new topic will be posted to the ["Proposal Reviews" section of the Swift forums][proposal-reviews]
+using the following template:
 
 ---
 
@@ -129,23 +128,9 @@ Hello Swift community,
 The review of "\<\<PROPOSAL NAME>>" begins now and runs through \<\<REVIEW
 END DATE>>. The proposal is available here:
 
-> http://linkToProposal
+> https://linkToProposal
 
-Reviews are an important part of the Swift evolution process. All reviews
-should be sent to the swift-evolution mailing list at
-
-> <https://lists.swift.org/mailman/listinfo/swift-evolution>
-
-or, if you would like to keep your feedback private, directly to the
-review manager. When replying, please try to keep the proposal link at
-the top of the message:
-
-> Proposal link:
->>  http://linkToProposal
-
->  Reply text
-
->>  Other replies
+Reviews are an important part of the Swift evolution process. All review feedback should be either on this forum thread or, if you would like to keep your feedback private, directly to the review manager. When emailing the review manager directly, please keep the proposal link at the top of the message.
 
 ##### What goes into a review?
 
