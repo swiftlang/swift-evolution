@@ -1,9 +1,10 @@
 # Compiler Diagnostic Directives
 
-* Proposal: [SE-NNNN](https://github.com/apple/swift-evolution/blob/master/proposals/NNNN-name.md)
+* Proposal: [SE-0196](0196-diagnostic-directives.md)
 * Author: [Harlan Haskins](https://github.com/harlanhaskins)
-* Status: **[Awaiting review](#rationale)**
-* Review manager: TBD
+* Review Manager: [Ted Kremenek](https://github.com/tkremenek)
+* Implementation: [apple/swift#14048](https://github.com/apple/swift/pull/14048)
+* Status: **Active review (January 24...30)**
 
 ## Introduction
 
