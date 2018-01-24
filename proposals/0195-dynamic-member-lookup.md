@@ -31,7 +31,7 @@ This allows the static type of `someValue` to decide how to implement these dyna
 references.
 
 Many other languages have analogous features e.g., the [dynamic](https://docs.microsoft.com/en-us/dotnet/framework/reflection-and-codedom/dynamic-language-runtime-overview) feature in C#, the [Dynamic trait in Scala](https://blog.scalac.io/2015/05/21/dynamic-member-lookup-in-scala.html), the composition of Objective-C's
-[explicit properties](https://developer.apple.com/library/content/documentation/General/Conceptual/DevPedia-CocoaCore/DeclaredProperty.html) and underlying [messaging infrastructure](https://developer.apple.com/library/content/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtHowMessagingWorks.html)).  This sort
+[explicit properties](https://developer.apple.com/library/content/documentation/General/Conceptual/DevPedia-CocoaCore/DeclaredProperty.html) and underlying [messaging infrastructure](https://developer.apple.com/library/content/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtHowMessagingWorks.html).  This sort
 of functionality is great for implementing dynamic language interoperability, dynamic
 [proxy APIs](https://developer.apple.com/library/content/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtForwarding.html), and other APIs (e.g. for JSON processing).
 
@@ -95,9 +95,9 @@ class Dog:
     def __init__(self, name):
         self.name = name
         self.tricks = []    # creates a new empty list for each dog
-
     def add_trick(self, trick):
         self.tricks.append(trick)
+        return self
 ```
 
 we would like to be able to use this from Swift like this (the comments show the
@@ -193,7 +193,7 @@ public protocol DynamicMemberLookupProtocol {
 It also extends the language such that member lookup syntax (`x.y`) - when it otherwise fails
 (because there is no member `y` defined on the type of `x`) and when applied to a value which
 conforms to `DynamicMemberLookupProtocol` - is accepted and
-transformed into a call to the subscript in the protocol.  The produced value is a mutable
+transformed into a subscript on `x`.  The produced value is a mutable
 L-value if the type conforming to `DynamicMemberLookupProtocol` implements a mutable
 subscript, or immutable otherwise.  This allows the type to perform arbitrary runtime
 processing to calculate the value to return.  The dynamically computed property can be used
