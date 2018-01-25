@@ -4,7 +4,7 @@
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: TBD
 * Status: **Awaiting review**
-* Implementation: (apple/swift#11576)[https://github.com/apple/swift/pull/11576]
+* Implementation: [apple/swift#11576](https://github.com/apple/swift/pull/11576)
 
 ## Introduction
 
