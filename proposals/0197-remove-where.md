@@ -1,9 +1,9 @@
 # Adding in-place `remove(where:)` to the Standard Library
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
-* Authors: [Ben Cohen](https://github.com/airspeedswift)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Proposal: [SE-0197](0197-remove-where.md)
+* Author: [Ben Cohen](https://github.com/airspeedswift)
+* Review Manager: [John McCall](https://github.com/rjmccall)
+* Status: **Active review (January 25...30)**
 * Implementation: [apple/swift#11576](https://github.com/apple/swift/pull/11576)
 
 ## Introduction
