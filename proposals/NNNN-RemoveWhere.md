@@ -4,6 +4,7 @@
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: TBD
 * Status: **Awaiting review**
+* Implementation: apple/swift#11576
 
 ## Introduction
 
@@ -71,7 +72,7 @@ The default implementation will use the protocol's `init()` and `append(_:)`
 operations to implement a copy-based version. Collections which also conform to
 `MutableCollection` will get the more efficient "shuffle-down" implementation,
 but still require `RangeReplaceableCollection` as well because of the need to
-trim at the end.
+trim at the end. Other types may choose
 
 Collections which are range replaceable but _not_ mutable (like `String`) will
 be able to implement their own version which makes use of their internal
@@ -94,16 +95,15 @@ protocol RangeReplaceableCollection {
 
 extension RangeReplaceableCollection {
   mutating func remove(where: (Iterator.Element) throws -> Bool) rethrows {
-    // default implementation in terms of self = self.filter
-  }
-}
-
-extension RangeReplaceableCollection where Self: MutableCollection {
-  mutating func remove(where: (Iterator.Element) throws -> Bool) rethrows {
-    // more efficient implementation
+    // default implementation similar to self = self.filter
   }
 }
 ```
+
+Other protocols or types may also have custom implementations for a faster
+equivalent. For example `RangeReplaceableCollection where Self:
+MutableCollection` can provide a more efficient non-allocating default
+implementation. `String` is also likely to benefit from a custom implementation.
 
 ## Source compatibility
 
@@ -130,5 +130,4 @@ Several collection methods in the standard library (such as `index(where:)`)
 have an equivalent for collections of `Equatable` elements. A similar addition
 could be made that removes every element equal to a given value. This could
 easily be done as a further additive proposal later.
-
 
