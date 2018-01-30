@@ -2,13 +2,13 @@
 
 * Proposal: [SE-NNNN](NNNN-playground-quicklook-api-revamp.md)
 * Authors: [Connor Wakamo](https://github.com/cwakamo)
+* Implementation: Swift 4.1 deprecation ([apple/swift#13911](https://github.com/apple/swift/pull/13911)], introduction of new protocol ([apple/swift-xcode-playground-support#21](https://github.com/apple/swift-xcode-playground-support/pull/21)), Swift 5 removal + shim library ([apple/swift#14252](https://github.com/apple/swift/pull/14252), [apple/swift-corelibs-foundation#1415](https://github.com/apple/swift-corelibs-foundation/pull/1415), [apple/swift-xcode-playground-support#20](https://github.com/apple/swift-xcode-playground-support/pull/20))
 * Review Manager: TBD
-* Status: **Awaiting implementation**
+* Status: **Awaiting review**
 
 <!--
 *During the review process, add the following fields as needed:*
 
-* Implementation: [apple/swift#NNNNN](https://github.com/apple/swift/pull/NNNNN)
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/), [Additional Commentary](https://lists.swift.org/pipermail/swift-evolution/)
 * Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
