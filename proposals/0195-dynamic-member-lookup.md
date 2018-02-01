@@ -8,10 +8,10 @@
 
 ## Introduction
 
-This proposal introduces a new `DynamicMemberLookupProtocol` type to the standard
-library.  Types that conform to it provide "dot" syntax for arbitrary names which are resolved
-at runtime - in a **completely type safe** way.  It is simple syntactic sugar which has a
-non-invasive implementation in the compiler.  It allows the user to write:
+This proposal introduces a new `@dynamicMemberLookup` attribute.  Types that use it provide
+"dot" syntax for arbitrary names which are resolved
+at runtime - in a **completely type safe** way.  This provides syntactic sugar that allows the
+user to write:
 
 ```swift
   a = someValue.someMember
@@ -76,16 +76,16 @@ Approaches](#alternative-python-interoperability-approaches) section.
 The conclusion of these many discussions was that it is better to embrace the fact
 that these languages are inherently dynamic and meet them where they are: F# type providers
 and generated wrappers require this proposal to work in the first place (because, for example,
-Javascript do not have classes and Python doesn't have stored property declarations) and
+Javascript does not have classes and Python doesn't have stored property declarations) and
 providing a good code completion experience for dynamic languages requires incorporation
 of flow-sensitive analysis into SourceKit (something that is [fully compatible](#future-directions-python-code-completion)
 with this proposal).
 
 Given that Swift already has an intentionally incredibly syntax-extensible design, we only need
 two minor enhancements to the language to support these dynamic languages in an
-ergonomic way: this proposal (which introduces `DynamicMemberLookupProtocol`) and a
+ergonomic way: this proposal (which introduces the `@dynamicMemberLookup` attribute) and a
 related
-[`DynamicCallable`](https://gist.github.com/lattner/a6257f425f55fe39fd6ac7a2354d693d)
+[`@dynamicCallable`](https://gist.github.com/lattner/a6257f425f55fe39fd6ac7a2354d693d)
 proposal.
 
 To show the impact of these proposals, consider this Python code:
@@ -137,7 +137,7 @@ working with the Python `pickle` API and the builtin Python function `open`:
 
 This can all be expressed today as library functionality written in Swift, but without this
 proposal, the code required is unnecessarily verbose and gross. Without it (but *with* the
-related [`DynamicCallable` proposal](https://gist.github.com/lattner/a6257f425f55fe39fd6ac7a2354d693d)
+related [`@dynamicCallable` proposal](https://gist.github.com/lattner/a6257f425f55fe39fd6ac7a2354d693d)
 the code would have explicit member lookups all over the place:
 
 ```swift
@@ -171,67 +171,34 @@ where each field is dynamically looked up.  An example of this is shown below in
 
 ## Proposed solution
 
-We propose introducing a new protocol to the standard library:
+We propose introducing a new attribute to the Swift language, `@dynamicMemberLookup`.
 
-```swift
-/// Types type conform to this protocol have the behavior that member lookup -
-/// accessing `someval.member` will always succeed.  Failures to find normally
-/// declared members of `member` will be turned into subscript references using
-/// the `someval[dynamicMember: member]` member.
-///
-public protocol DynamicMemberLookupProtocol {
-  // Implementations of this protocol must have a subscript(dynamicMember:)
-  // implementation where the keyword type is some type that is
-  // ExpressibleByStringLiteral.  It can be get-only or get/set which defines
-  // the mutability of the resultant dynamic properties.
+Types with this attribute on their primary type declaration have the behavior that member
+lookup - accessing `someval.member` will always succeed.  Failures to find normally
+declared members of `member` will be turned into subscript references using the
+`someval[dynamicMember: member]` member.  It is an error to put the
+`@dynamicMemberLookup` attribute on a type but not have this subscript declared.
 
-  // subscript<KeywordType: ExpressibleByStringLiteral, LookupValue>
-  //   (dynamicMember name: KeywordType) -> LookupValue { get }
-}
-```
-
-It also extends the language such that member lookup syntax (`x.y`) - when it otherwise fails
-(because there is no member `y` defined on the type of `x`) and when applied to a value which
-conforms to `DynamicMemberLookupProtocol` - is accepted and
+This attribute extends the language such that member lookup syntax (`x.y`) - when it
+otherwise fails (because there is no member `y` defined on the type of `x`) and when applied
+to a value with the `@dynamicMemberLookup` attribute - is accepted and
 transformed into a subscript on `x`.  The produced value is a mutable
-L-value if the type conforming to `DynamicMemberLookupProtocol` implements a mutable
+L-value if the type implements a mutable
 subscript, or immutable otherwise.  This allows the type to perform arbitrary runtime
 processing to calculate the value to return.  The dynamically computed property can be used
 the same way as an explicitly declared computed property, including being passed `inout` if
 mutable.
 
-The protocol is intentionally designed to be flexible: the implementation can take the member
+The attribute is intentionally designed to be flexible: the implementation can take the member
 name through any `ExpressibleByStringLiteral` type, including `StaticString` and of
 course `String`.  The result type may also be any type the implementation desires, including
 an `Optional`, `ImplicitlyUnwrappedOptional` or some other type, which allows the
 implementation to reflect dynamic failures in a way the user can be expected to process (e.g.,
 see the JSON example below).
 
-This protocol is implemented as a "marker protocol" which enables the magic name lookup
-behavior, but does not have any explicitly declared requirements within its body.  This is
-because Swift's type system doesn't have the ability to directly express the requirements we
-have: consider that subscripts can have mutating getters and nonmutating setters.  These
-are important to support, because it affects when and if values may be get and set through
-a potentially immutable base type.  Alternative implementation approaches were explored,
-and are discussed in the "[Alternatives
-Considered](#declare-an-explicit-subscript-requirement)" section below.  It is important to
-note that despite the inability for the Swift language to check the requirements of the protocol
-itself, the implementation of this does so directly, so this is just an implementation concern.
-
-In the discussion cycle, there was significant concern about abuse of this feature, particularly
-if someone retroactively conforms a type to `DynamicMemberLookupProtocol`.  Further,
-it is easy to argue that dynamic behavior is a core part of the contract of a type's behavior,
-not something that should be changeable retroactively.  For
-this reason, the compiler only permits conformance of this protocol on the original type
-definition, not extensions.  If for some reason there becomes a reason to relax this requirement,
-we can evaluate that as a future swift-evolution proposal based on its own merits.  See the
-"[Alternatives Considered](#reducing-potential-abuse)" section below for further ways to
-reduce potential for abuse.
-
-
 ## Example Usage
 
-While there are many potential uses of this sort of API one motivating example comes from a
+While there are many potential uses of this sort of API, one motivating example comes from a
 [prototype Python interoperability layer](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171204/042029.html).
 There are many ways to implement this, and the details are not
 particularly important, but it is perhaps useful to know that this is directly useful to address
@@ -239,7 +206,8 @@ the motivation section described above.   Given a currency type of `PyVal`, an i
 may look like:
 
 ```swift
-struct PyVal : DynamicMemberLookupProtocol {
+@dynamicMemberLookup
+struct PyVal {
   ...
   subscript(dynamicMember member: String) -> PyVal {
     get {
@@ -292,11 +260,12 @@ extension JSON {
 ```
 
 This allows someone to drill into a JSON value with code like:
-`json[0]?["name"]?["first"]?.stringValue`.  On the other hand, if we add a simple
-conformance to `DynamicMemberLookupProtocol` like this:
+`json[0]?["name"]?["first"]?.stringValue`.  On the other hand, if we add the
+`@dynamicMemberLookup` attribute and an implementation like this:
 
 ```swift
-enum JSON : DynamicMemberLookupProtocol {
+@dynamicMemberLookup
+enum JSON {
   ...
   subscript(dynamicMember member: String) -> JSON? {
     if case .DictionaryValue(let dict) = self {
@@ -351,7 +320,7 @@ This is a strictly additive proposal with no ABI breaking changes.
 
 ## Effect on API resilience
 
-Types that conform to this protocol will always succeed at member lookup (`x.foo` will
+Types with this attribute will always succeed at member lookup (`x.foo` will
 always be accepted by the compiler): members that are explicitly declared in the type or in
 a visible extension will be found and referenced, and anything else will be handled by the
 dynamic lookup feature.
@@ -366,66 +335,22 @@ API, API that is likely to change over time, or API with names that are likely t
 
 A few alternatives were considered:
 
-### Naming
+### Spelling: Attribute vs Declaration Modifier
 
-Suggestions for a better name for the protocol and the subscript (along with rationale to
-support them) are more than welcome.
+This proposal argues for spelling this as a `@dynamicMemberLookup` attribute that is
+applied to a type, but there are many other ways this can be spelled.  There could be other
+]attribute names that are worth considering (suggestions welcome!), and it is also possible to
+spell this as a declaration modifier like `dynamicMemberLookup`.
 
-On naming of `subscript(dynamicMember:)`, we intentionally gave it a long and verbose
-names so they stay out of the way of user code completion.  The members of this protocol
-are really just compiler interoperability glue.  If there was a Swift attribute to disable the
-subscript from showing up in code completion, we would use it (such an attribute would
-also be useful for the `LiteralConvertible` and other compiler magic protocols).
+### Make this a marker protoocol
 
-### Declare an explicit subscript requirement
+We started with the approach of making this be a protocol that types conform to to get this
+behavior.  It turns out that this behavior is very non-protocol like: it is not useful to define
+generic algorithms over, and existential values are only useful if they define a specific
+subscript that implements the requirements implicit in this attribute.
 
-We considered (and tried hard) to declare an explicit `subscript` requirement inside the
-protocol, but ran into several problems:
-
-First, we seek to support both get-only and get/set dynamic
-properties.  If we tried to reflect these capabilities into the type system, we'd end up
-with two protocols: `DynamicMemberLookupProtocol` and
-`MutableDynamicMemberLookupProtocol`.  This expands the surface area of the proposal,
-and would make the implementation more complicated.
-
-Second, recall that getters and setters can be both `mutating` and `nonmutating`.  We definitely
-need the ability to represent that, but could choose to either reflect that in the requirement
-signature (dramatically expanding the number of protocols) or not (make the requirement be
-`mutating` for both, but allow an implementation to have a stricter implementation).  Both
-options could work, but neither is great.
-
-Third, the natural way to express the subscript requirement is with associated types, perhaps
-something like this (using the simplest get-only case to illustrate the point):
-
-```swift
-protocol DynamicMemberLookupProtocol {
-  associatedtype DynamicMemberLookupKeyword : ExpressibleByStringLiteral
-  associatedtype DynamicMemberLookupValue
-  subscript(dynamicMember name: DynamicMemberLookupKeyword)
-    -> DynamicMemberLookupValue { mutating get }
-}
-```
-
-However, if we go this approach, then this marker protocol is now a "Protocol with
-Associated Type" (PAT) which (among other things) prevents protocols that further refine the
-protocol from being usable as existentials - Swift does not yet support [Generalized
-Existentials](https://github.com/apple/swift/blob/master/docs/GenericsManifesto.md#generalized-existentials),
-and probably will not until Swift 6 at the earliest.  This also pollutes the type with the two
-associated type names.
-
-The other attempted way to implement this was with a generic subscript, like this:
-
-```swift
-protocol DynamicMemberLookupProtocol {
-  subscript<DynamicMemberLookupKeywordType: ExpressibleByStringLiteral,
-            DynamicMemberLookupValue>
-    (dynamicMember name: DynamicMemberLookupKeywordType)
-        -> DynamicMemberLookupValue { mutating get }
-}
-```
-
-This fixes the problem with PATs, but has the distinct disadvantage that it is impossible to
-fulfill the subscript requirement with a concrete (non-generic) subscript implementation.
+For these and other reasons, defining this as a protocol doesn't really fit into the design of
+Swift.
 
 ### Model this with methods, instead of a labeled subscript
 
@@ -435,57 +360,13 @@ parameterized l-values like we're are trying to expose here.  Exposing this as t
 doesn't fit into the language as cleanly, and would make the compiler implementation more
 invasive.  It is better to use the existing model for l-values directly.
 
-### Make this be a attribute on a type, instead of a protocol conformance
-
-One option that came up in discussion was to model this as an attribute instead of a protocol
-conformance.  Instead of:
-
-```swift
-struct PyVal : DynamicMemberLookupProtocol { ... }
-```
-
-we could spell this as something like:
-
-```swift
-@dynamicMemberLookup
-struct PyVal { ... }
-```
-
-Both of these approaches can work.  The primary arguments in favor of the attribute is that
-the `DynamicMemberLookupProtocol` is an unusual one in some ways:
-
-1) It has no formal members.
-2) The requirements are enforced by the compiler, not by the type system.
-3) The requirements permit and use arbitrary overloads.
-4) The protocol cannot (usefully) be used in a generic context or as a type constraint.
-5) This protocol can only be conformed to in the main declaration, not in an extension.
-
-All of those points are true, but the author of this proposal still thinks that this is better
-modeled as a protocol, here are some reasons:
-
-1) Protocols describe *semantics* of a conforming type, and this proposal provides key
-    behavior to the type that conforms to it.
-2) When a type uses this proposal, it provides a fundamental change to the type's behavior.
-   While it isn't perfectly followed, attributes generally do not have this sort of effect on a type.
-3) This proposal allows a type to hook into primitive language syntax.  All of the ways to do
-    this today are spelled with protocols (e.g. the `ExpressibleBy...` protocols.
-4) Attributes are syntactically very light-weight, which makes this easier to overlook - given
-    the significant effect on a type, we prefer it to be more visible.
-5) The oddities observed above may be eliminated over time if there is a reason to: for
-    example, there is no technical reasons that types cannot retroactively conform.  It is
-    theoretically possible that the Swift generics system could be extended to support these
-    requirements, etc.
-6) As Xiaodi Wu suggests, you could imagine this feature as one where conformance to the
-    protocol gives a default implementation of an infinite number of methods.
-
-
-
 ### Reducing Potential Abuse
 
 In the discussion cycle, there was significant concern about abuse of this feature, particularly
-if someone retroactively conforms a type to `DynamicMemberLookupProtocol`.  For
-this reason, the compiler only permits conformance of this protocol on the original type
-definition, not extensions.
+when this was spelled as a protocol that would allow someone to retroactively conform a type
+to the  `DynamicMemberLookupProtocol` protocol.  For this and other reasons, this proposal
+has been revised to be an attribute that can be applied to a primary type declaration, not to
+be a protocol.
 
 On the other hand, the potential for abuse has never been a strong guiding principle for Swift
 features (and many existing features could theoretically be abused (including operator
@@ -498,36 +379,18 @@ their evolution cycle, and no one has produced evidence that they led to abuse.
 
 Finally, despite **extensive discussion** on the mailing list and lots of concern
 about how this feature could be abused, no one has been able to produce (even one)
-non-malicious example where someone would adopt this protocol inappropriately and lead to
+non-malicious example where someone would use this feature inappropriately and lead to
 harm for users (and of course, if you're consuming an API produced by a malicious entity, you
 are already doomed. `:-)`).
 
-Fortunately (if and only if a compelling example of harm were demonstrated) there are many
-different ways to assuage concerns of "abuse" of this feature, e.g.:
+Fortunately (if and only if a compelling example of harm were demonstrated) there are
+different ways to assuage concerns of "abuse" of this feature, for example we could have
+the compiler specifically bless individual well-known types, e.g. `Python.PyVal` (or
+whatever it is eventually named) by baking in awareness of these types into the compiler.
+Such an approach would require a Swift evolution proposal to add a new type that
+conforms to this.
 
-1) We could prevent this from being a part of some other protocol definition, because any
-    types that conform to that protocol will transitively get the conformance.  The cost of this is
-    that it prevents use of dynamic member lookup with existentials (which are one of the core
-    dynamic features of Swift), but we could relax that requirement in the future if there was a
-    compelling use-case for doing so.
-
-2) Have the compiler specifically bless individual well-known types, e.g. `Python.PyVal` (or
-    whatever it is eventually named) by baking in awareness of these types into the compiler.
-    Such an approach would require a Swift evolution proposal to add a new type that
-    conforms to this.
-
-3) We could add a redundant attribute or use some other way to make conformance to
-    `DynamicMemberLookupProtocol` more visible, e.g.:
-
-```swift
-@dynamic
-struct PyVal : DynamicMemberLookupProtocol {...}
-```
-
-If you are concerned about abuse, feel free to "+1" one of these alternatives in the review
-cycle.  Ideas and other suggestions for how to reduce possibility of misuse are welcome as
-well.
-
+Despite such possibilities, this doesn't seem like a likely future direction.
 
 ### Increasing Visibility of Dynamic Member Lookups
 
@@ -549,12 +412,14 @@ haven't already used.  In my opinion, this is the wrong thing to do for several 
     pervasive through use of the APIs and just add visual noise, not clarity) undermines the
     entire purpose of this proposal.
 5) There are already other features (including operator overloading, subscripts, forthcoming
-    `DynamicCallable`, etc) that are just as dynamic as property lookup when implemented
+    `@dynamicCallable`, etc) that are just as dynamic as property lookup when implemented
     on a type like `PyVal`.  Requiring additional syntax for "`a.b`" but not "`a + b`" (which can
     be just as dynamic) would be inconsistent.
 6) Language syntax is not the only way to handle this.  IDEs like Xcode could color code
     dynamic member lookups differently, making their semantics visible without adversely
-    affecting the code that is written.
+    affecting the code that is written.  It is true that not all developers use Xcode, but since
+    many other major pieces of Swift assume a rich editor experience, it is consistent for this
+    one to expect it too.
 
 It probably helps to consider an example.  Assume we used the `^` sigil to represent a dynamic
 operation (member lookup, call, dynamic operator, etc).  This would give us syntax like
@@ -642,7 +507,7 @@ Observe:
     Beyond the code in the Clang importer library itself, it also has tendrils in almost
     every part of the compiler and runtime.
 
-in contrast, the combination of the `DynamicMemberLookup` and `DynamicCallable`
+in contrast, the combination of the `@dynamicMemberLookup` and `@dynamicCallable`
 proposals are both minimally invasive in the compiler, and fully type safe.  Implementations of
 these proposals may choose to provide one of three styles of fully type safe implementation:
 
