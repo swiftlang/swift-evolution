@@ -4,6 +4,7 @@
 * Author: [Harlan Haskins](https://github.com/harlanhaskins)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Implementation: [apple/swift#14048](https://github.com/apple/swift/pull/14048)
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/ab0c22a2340be9bfcb82e6f237752b4d959a93b7/proposals/0196-diagnostic-directives.md)
 * Status: **Active review (January 24...30)**
 
 ## Introduction
