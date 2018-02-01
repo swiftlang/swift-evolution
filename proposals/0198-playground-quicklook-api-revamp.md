@@ -1,10 +1,10 @@
 # Playground QuickLook API Revamp #
 
-* Proposal: [SE-NNNN](NNNN-playground-quicklook-api-revamp.md)
+* Proposal: [SE-0198](0198-playground-quicklook-api-revamp.md)
 * Authors: [Connor Wakamo](https://github.com/cwakamo)
 * Implementation: Swift 4.1 deprecation ([apple/swift#13911](https://github.com/apple/swift/pull/13911)], introduction of new protocol ([apple/swift-xcode-playground-support#21](https://github.com/apple/swift-xcode-playground-support/pull/21)), Swift 5 removal + shim library ([apple/swift#14252](https://github.com/apple/swift/pull/14252), [apple/swift-corelibs-foundation#1415](https://github.com/apple/swift-corelibs-foundation/pull/1415), [apple/swift-xcode-playground-support#20](https://github.com/apple/swift-xcode-playground-support/pull/20))
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift/)
+* Status: **Active review (February 1...8)**
 
 <!--
 *During the review process, add the following fields as needed:*
