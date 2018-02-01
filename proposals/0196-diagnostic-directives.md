@@ -28,7 +28,7 @@ don't happen. `#error` solves this problem:
 
 ```swift
 #if MYLIB_VERSION < 3 && os(macOS)
-#error "MyLib versions < 3 are not supported on macOS"
+#error("MyLib versions < 3 are not supported on macOS")
 #endif
 ```
 
@@ -37,9 +37,9 @@ the values of global constants or implement missing routines:
 
 ```swift
 enum APICredentials {
-  #warning "fill in your API key below"
+  #warning("fill in your API key below")
   static let key = ""
-  #warning "fill in your API secret below"
+  #warning("fill in your API secret below")
   static let secret = ""
 }
 ```
@@ -51,7 +51,7 @@ diagnostic with the contents, pointing to the start of the message.
 
 ```swift
 func configPath() -> String {
-  #warning "this should be made more safe"
+  #warning("this should be made more safe")
   return Bundle.main().path(forResource: "Config", ofType: "plist")!
 }
 ```
@@ -63,8 +63,8 @@ This will add four new productions to the Swift grammar:
 ```
 compiler-control-statement → warning-directive
 compiler-control-statement → error-directive
-warning-directive → #warning static-string-literal
-error-directive → #error static-string-literal
+warning-directive → #warning '(' static-string-literal ')'
+error-directive → #error '(' static-string-literal ')'
 ```
 
 Upon parsing a `#error` directive, the Swift compiler will emit the provided
@@ -80,13 +80,13 @@ not taken, then no diagnostic is emitted.
 
 ```swift
 #if false
-#warning "this will not trigger a warning"
-#error "this will not trigger an error"
+#warning("this will not trigger a warning")
+#error("this will not trigger an error")
 #endif
 
 #if true
-#warning "this will trigger a warning"
-#error "this will trigger an error"
+#warning("this will trigger a warning")
+#error("this will trigger an error")
 #endif
 ```
 
