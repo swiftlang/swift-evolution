@@ -1,15 +1,17 @@
-# Adding in-place `remove(where:)` to the Standard Library
+# Adding in-place `removeAll(where:)` to the Standard Library
 
 * Proposal: [SE-0197](0197-remove-where.md)
 * Author: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active review (January 25...30)**
+* Status: **Accepted with Revisions**
 * Implementation: [apple/swift#11576](https://github.com/apple/swift/pull/11576)
+* Review: [Thread](https://forums.swift.org/t/se-0197-add-in-place-remove-where/8872)
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/feec7890d6c193e9260ac9905456f25ef5656acd/proposals/0197-remove-where.md)
 
 ## Introduction
 
 It is common to want to remove all occurrences of a certain element from a
-collection. This proposal is to add a `remove` algorithm to the
+collection. This proposal is to add a `removeAll` algorithm to the
 standard library, which will remove all entries in a collection in-place
 matching a given predicate.
 
@@ -65,7 +67,7 @@ important example of this, because its elements (graphemes) are variable width.
 Add the following method to `RangeReplaceableCollection`:
 
 ```swift
-nums.remove(where: isOdd)
+nums.removeAll(where: isOdd)
 ```
 
 The default implementation will use the protocol's `init()` and `append(_:)`
@@ -90,11 +92,11 @@ Add the following to `RangeReplaceableCollection`:
 ```swift
 protocol RangeReplaceableCollection {
   /// Removes every element satisfying the given predicate from the collection.
-  mutating func remove(where: (Iterator.Element) throws -> Bool) rethrows
+  mutating func removeAll(where: (Iterator.Element) throws -> Bool) rethrows
 }
 
 extension RangeReplaceableCollection {
-  mutating func remove(where: (Iterator.Element) throws -> Bool) rethrows {
+  mutating func removeAll(where: (Iterator.Element) throws -> Bool) rethrows {
     // default implementation similar to self = self.filter
   }
 }
@@ -119,7 +121,7 @@ This change is purely additive so has no API resilience consequences.
 
 ## Alternatives considered
 
-`remove(where:)` takes a closure with `true` for elements to remove.
+`removeAll(where:)` takes a closure with `true` for elements to remove.
 `filter` takes a closure with elements to keep. In both cases, `true` is the
 "active" case, so likely to be what the user wants without having to apply a
 negation. The naming of `filter` is unfortunately ambiguous as to whether it's
@@ -130,4 +132,9 @@ Several collection methods in the standard library (such as `index(where:)`)
 have an equivalent for collections of `Equatable` elements. A similar addition
 could be made that removes every element equal to a given value. This could
 easily be done as a further additive proposal later.
+
+The initial proposal of this feature named it `remove(where:)`.  During review,
+it was agreed that this was unnecessarily ambiguous about whether all the
+matching elements should be removed or just the first, and so the method was
+renamed to `removeAll(where:)`.
 
