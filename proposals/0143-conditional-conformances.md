@@ -3,7 +3,7 @@
 * Proposal: [SE-0143](0143-conditional-conformances.md)
 * Author: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5)**
 * Decision Notes: [Review extended](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20161107/028745.html), [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20161114/028888.html)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/91725ee83fa34c81942a634dcdfa9d2441fbd853/proposals/0143-conditional-conformances.md)
 
