@@ -5,7 +5,9 @@
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Implementation: [apple/swift#13361](https://github.com/apple/swift/pull/13361)
 * [Previous Revision #1](https://github.com/apple/swift-evolution/commit/59c7455170c231f3df9ab0ba923262e126afaa06#diff-b3460d13f154c3d6b1d8396e4159a1d2)
-* Status: **Active review (January 23...February 8)**
+* Status: **Accepted**
+* Decision Notes: [Review extended](https://forums.swift.org/t/se-0195-introduce-user-defined-dynamic-member-lookup-types/8658/126), [Rationale](https://forums.swift.org/t/se-0195-introduce-user-defined-dynamic-member-lookup-types/8658/160)
+
 
 ## Introduction
 
