@@ -1,13 +1,10 @@
 # Adding `toggle` to `Bool`
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0199](0199-bool-toggle.md)
 * Authors: [Chris Eidhof](http://chris.eidhof.nl)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift/)
+* Status: **Active review (February 12-19)**
 
-*During the review process, add the following fields as needed:*
-
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/), [Additional Commentary](https://lists.swift.org/pipermail/swift-evolution/)
 
 ## Introduction
 
@@ -32,9 +29,14 @@ Add a method `toggle` on `Bool`:
 
 ```swift
 extension Bool {
-    mutating func toggle() {
-        self = !self
-    }
+  /// Equivalent to `someBool = !someBool`
+  ///
+  /// Useful when operating on long chains:
+  ///
+  ///    myVar.prop1.prop2.enabled.toggle()
+  mutating func toggle() {
+    self = !self
+  }
 }
 ```
 
