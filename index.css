@@ -235,6 +235,7 @@ section ul, section li {
 .proposal-detail {
     break-inside: avoid;
     display: flex;
+    max-width: 373px;
 }
 
 .proposal-detail-label {
