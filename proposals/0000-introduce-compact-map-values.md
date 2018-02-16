@@ -15,50 +15,58 @@
 
 ## Introduction
 
-Introduce `compactMapValues` to Dictonary to remove `nil` value or not convertible values.
+This proposal adds a combined filter/map operation to `Dictionary`, as a companion to the `mapValues` and filter methods introduced by [SE-0165](https://github.com/apple/swift-evolution/blob/master/proposals/0165-dict.md). The new compactMapValues operation corresponds to compactMap on Sequence.
+
+- Swift forums pitch: [Add compactMapValues to Dictionary](https://forums.swift.org/t/pitch-add-compactmapvalues-to-dictionary/8741)
 
 ## Motivation
 
-From Swift 4, `mapValues` were introduced to `Dictionary` with [SE-0165](https://github.com/apple/swift-evolution/blob/master/proposals/0165-dict.md).
+Swift 4 introduced two new `Dictionary` operations: the new method `mapValues` and a new version of `filter`. They correspond to the `Sequence` methods `map` and `filter`, respectively, but they operate on `Dictionary` values and return dictionaries rather than arrays.
 
-However, in some case, we have to remove `nil` values as below.
+However, [SE-0165](https://github.com/apple/swift-evolution/blob/master/proposals/0165-dict.md) left a gap in the API: it did not introduce a `Dictionary`-specific version of `compactMap`. We sometimes need to transform and filter values of a `Dictionary` at the same time, and `Dictionary` does not currently provide an operation that directly supports this.
 
-```swift
-let dic = ["a": "1", "b": nil, "c": "3"]
-let result = dic.reduce(into: [String: String]()) { (result, x) in
-    if let value = x.value { result[x.key] = value }
-}
-// ["a": "1", "c": "3"]
-```
-
-Or, to remove value failed to convert as below.
+For example, consider the task of filtering out `nil` values from a `Dictionary` of optionals:
 
 ```swift
-let dic = ["a": "1", "b": "2", "c": "three"]
-let result = dic.mapValues(Int.init).filter({ $0.value != nil }).mapValues({ $0! })
-// ["a": 1, "b": 2]
+let d: [String: String?] = ["a": "1", "b": nil, "c": "3"]
+let r1 = d.filter { $0.value != nil }.mapValues { $0! }
+let r2 = d.reduce(into: [String: String]()) { (result, item) in result[item.key] = item.value }
+// r1 == r2 == ["a": "1", "c": "3"]
 ```
 
-Now we have `Dictinary.mapValues`, but not `Dictionary.compactMapValues` yet.
+Or try running a failable conversion on dictionary values:
 
-The pitch on forum is [here](https://forums.swift.org/t/pitch-add-compactmapvalues-to-dictionary/8741).
+```swift
+let d: [String: String] = ["a": "1", "b": "2", "c": "three"]
+let r1 = d.mapValues(Int.init).filter { $0.value != nil }.mapValues { $0! }
+let r2 = d.reduce(into: [String: Int]()) { (result, item) in result[item.key] = Int(item.value) }
+// r == ["a": 1, "b": 2]
+```
+
+While `mapValues` and `filter` can be combined to solve this tasks, the solution needs multiple passes on the input dictionary, which is not particularly efficient. `reduce(into:)` provides a more efficient solution, but it is rather tricky to get right, and it obscures the intended meaning of the code with implementation details.
+
+It seems worth adding an extra extension method to `Dictionary` for this operation; its obvious name is `compactMapValues(_:)`, combining the precedents set by `compactMap` and `mapValues`.
+
+```swift
+let r3 = d.compactMapValues(Int.init)
+```
 
 ## Proposed solution
 
 Add the following to `Dictionary`:
 
 ```swift
-let dic = ["a": "1", "b": nil, "c": "3"]
-let result = dic.compactMapValues({$0})
-// ["a": "1", "c": "3"]
+let d: [String: String?] = ["a": "1", "b": nil, "c": "3"]
+let r4 = d.compactMapValues({$0})
+// r4 == ["a": "1", "c": "3"]
 ```
 
 Or, 
 
 ```swift
-let dic = ["a": "1", "b": "2", "c": "three"]
-let result = dic.compactMapValues(Int.init)
-// ["a": 1, "b": 2]
+let d: [String: String] = ["a": "1", "b": "2", "c": "three"]
+let r5 = d.compactMapValues(Int.init)
+// r5 == ["a": 1, "b": 2]
 ```
 
 ## Detailed design
@@ -67,7 +75,7 @@ Add the following to `Dictionary`:
 
 ```swift
 extension Dictionary {
-    public func compactMapValues<T>(_ transform: (Value) throws -> T?) rethrows -> [Key: T] {
+    public func compactMapValues<T``>(_ transform: (Value) throws -> T?) rethrows -> [Key: T] {
         return try self.reduce(into: [Key: T](), { (result, x) in
             if let value = try transform(x.value) {
                 result[x.key] = value
@@ -77,23 +85,11 @@ extension Dictionary {
 }
 ```
 
-Comparing with as below, the implementation above is much faster than below by `Dictionary.reduce` use `inout` result  from Swift 4.
-
-```swift
-extension Dictionary {
-    public func compactMapValues<T>(_ transform: (Value) throws -> T?) rethrows -> [Key: T] {
-        var transformed: [Key: T] = [:]
-        for (key, value) in self {
-            if let value = try transform(value) {
-                transformed[key] = value
-            }
-        }
-        return transformed
-    }
-}
-```
-
 ## Source compatibility
+
+This change is purely additive so has no source compatibility consequences.
+
+## Effect on ABI stability
 
 This change is purely additive so has no ABI stability consequences.
 
@@ -103,5 +99,4 @@ This change is purely additive so has no API resilience consequences.
 
 ## Alternatives considered
 
-We can implement as you see this proposal and add custom extension, but it's as boiler-plate for you in spite of having many usecases and highly useful.
-
+We can simply omit this method from the standard library -- however, we already have `mapValues` and `filter`, and it seems reasonable to fill the API hole left between them with a standard extension.
