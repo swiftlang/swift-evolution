@@ -338,6 +338,10 @@ the subscript.
 `KeyPath`'s can be used instead of raw indices. However, this means people are 
 required to learn about `KeyPath`'s to use this feature.
 
+### Only included a new half-open offset range
+This lacks any inclusivity options. And no obvious operator set could be found
+that makes sense and does not conflict with the current range operators.
+
 ### Rename Subscripts Offset Label
 A suggestion to rename the `offset` label in the subscript to `ordinal` was 
 suggested. The idea behind the name offset is apt as it is the exact operation
