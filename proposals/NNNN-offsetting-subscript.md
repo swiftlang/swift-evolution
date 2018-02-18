@@ -43,33 +43,17 @@ multiple methods and figure out that they can be composed in this way.
 ## Proposed solution
 A solution we propose to this problem is to extend `Collection` and 
 `RangeReplaceableCollection` with a subscript that takes a range, which 
-would be used to offset the starting index of a collection.
+would be used to offset an index of a collection.
 `Collection` and `MutableCollection` will receive subscripts that take a
 single `Int` to return a single element from the collection.
 
-A highly request ability for getting a slice of a collection was the ability to
-offset relative to the `endIndex` of a collection. Currently range supported can
+A highly request ability for getting a slice of a collection is the ability to
+offset relative to the `endIndex` of a collection. Currently range support can
 cover most of the desired requests, however, due to ranges requiring an 
-upperBound >= lowerBound constraint certain use cases fall short. To solve this
+upperBound >= lowerBound constraint certain use cases are not met. To solve this
 Four new operators should be added along with a new type to help model this 
 behavior. To encapsulate this behavior, a new protocol should also be added.
-The other range types will then also conditionally conform to this protocol. 
-
-```
-prefix operator ...-
-prefix operator ..<-
-infix operator ...- : RangeFormationPrecedence
-infix operator ..<- : RangeFormationPrecedence
-
-struct RelativeOffsetRange {
-  var lowerBound: Int
-  var upperBound: Int?
-}
-
-protocol RangeOffsetRangeExpression {
-  func relativeOffsetRange() -> RelativeOffsetRange
-}
-```
+The other range types will then also conditionally conform to this protocol.
 
 ## Detailed design
 A new protocol Should be added:
