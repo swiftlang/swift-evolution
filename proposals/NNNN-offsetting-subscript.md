@@ -1,4 +1,4 @@
-# Offsetting Range Subscript
+# Offsetting Subscript
 
 * Proposal: [SE-NNNN](NNNN-filename.md)
 * Authors: [Letanyan Arumugam](https://github.com/Letanyan)
