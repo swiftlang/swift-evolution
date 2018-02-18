@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status: **Implementation Ready**
 
-* Implementation: [apple/swift#14389](https://github.com/apple/swift/pull/14389)
+* Implementation: [apple/swift#14707](https://github.com/apple/swift/pull/14707)
 
 ## Introduction
 A collection that has an `Index` type that cannot be offset independently of its
