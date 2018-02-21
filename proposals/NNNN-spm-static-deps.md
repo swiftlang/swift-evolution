@@ -25,7 +25,64 @@ This proposal presents an alternative solution that better aligns with SPM's dec
 strength by allowing the `Package.swift` to import third-party dependencies. This increased usability will directly solve the problems mentioned in this proposal and
 hopefully many future problems as well.
 
-## Proposed solution
+## Tooling Problem
+
+Imagine the following `Package.swift` file:
+
+```swift
+// swift-tools-version:4.0
+import PackageDescription
+
+let package = Package(
+    name: "VaporApp",
+    dependencies: [
+        .package(url: "https://github.com/vapor/vapor.git", from: "3.0.0-beta"),
+    ],
+    targets: [ ... ]
+)
+```
+
+Let's say we want to programatically add this dependency: `.package(url: "https://github.com/vapor/fluent.git", from: "3.0.0-beta"),`. How would you do that? 
+
+Ideally, the resulting `Package.swift` file would look something like:
+
+```swift
+// swift-tools-version:4.0
+import PackageDescription
+
+let package = Package(
+    name: "VaporApp",
+    dependencies: [
+        .package(url: "https://github.com/vapor/vapor.git", from: "3.0.0-beta"),
+        .package(url: "https://github.com/vapor/fluent.git", from: "3.0.0-beta"),
+    ],
+    targets: [ ... ]
+)
+```
+
+Developers can hack around this by using Regular Expressions or other pseudo-Swift parsing methods, but nothing that works reliably. There is simply no way to do this in the current version of SPM. To do this reliably, you would need to parse the Swift into an AST, modify that AST, and serialize the Swift. But even that incredibly involved solution still has a lot of unanswered problems.
+
+For example, assume the original `Package.swift` file actually looked like this:
+
+```swift
+// swift-tools-version:4.0
+import PackageDescription
+
+let package = Package(
+    name: "VaporApp",
+    dependencies: [ ],
+    targets: [ ... ]
+)
+package.dependencies.append(.package(url: "https://github.com/vapor/vapor.git", from: "3.0.0-beta"))
+```
+
+How would you modify the Swift AST in this case? What would the edited manifest file look like?
+
+Given Swift is a full programming langage, there are probably an infinite number of ways you could construct your `Package.swift` file. This makes building developer tools around this manifest format impossible.
+
+## Static Dependencies
+
+One proposed solution to the tooling problem is through "static dependencies". How this applies directly to the tooling problem is summarized in the next section. Here we look at the syntax of static dependencies.
 
 The specific syntax of this proposal is very-much still up for discussion. Regard the syntax shown as simply examples to help you understand the core concept.
 
@@ -56,10 +113,9 @@ import MySPMUtils // http://github.com/tanner0101/my-spm-utils.git 1.0.0..<2.0.0
 let package = try MySPMUtils.generatePackage() // Package
 ```
 
-### Solution to the "edit problem"
+### Solution to the Tooling Problem
 
-With the ability to rely on arbitrary SPM dependencies in the `Package.swift` manifest itself, package authors can devise their own dependency schemes using 
-whichever file formats they like.
+With the ability to rely on arbitrary SPM dependencies in the `Package.swift` manifest itself, package authors can devise their own dependency schemes using whichever file formats they like.
 
 For example, the `MySPMUtils` package could depend on a `my-deps.yml` file with the following layout:
 
@@ -75,7 +131,7 @@ YML is a well-known file format that is very easy to parse _and serialize_ makin
 
 ### Solutions to other problems
 
-This proposal in particular focuses on the usage of static dependencies to solve the "edit problem" but there is no doubt this feature would allow much more flexility with SPM in general.
+This proposal in particular focuses on the usage of static dependencies to solve the tooling problem but there is no doubt this feature would allow much more flexility with SPM in general.
 
 Any ideas about how you might use this feature would be appreciated!
 
@@ -85,9 +141,17 @@ This is purely additive.
 
 ## Alternatives considered
 
+### `Package.json`
+
+A less involved fix that would address just the tooling problem would be for SPM to support a subset of the `Package.swift`'s features via a `Package.json`. This `.json` format could be used in-place of a `Package.swift` file. This would cover the majority of use cases for SPM packages (those that don't need advanced functionality) and be _much_ easier to create tooling around.
+
+Developer tools built around the `Package.json` file could simply error (and note which edits the developer must make manually) when run against packages that use a `Package.swift`.
+
+### Syntax 
+
 Some alternative syntax ideas are mentioned here. Please chip in your ideas for syntax!
 
-### Follow `swift-tools` pattern
+#### Follow `swift-tools` pattern
 
 ```swift
 import MySPMUtils // swift-tools-dependency: http://github.com/tanner0101/my-spm-utils.git@1.0.0..<2.0.0
@@ -102,7 +166,7 @@ import PackageDescription
 import MySPMUtils
 ```
 
-### Global import
+#### Global import
 
 This goes against SPM's desire to have sandboxed packages, but is worth a mention.
 
