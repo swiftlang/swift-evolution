@@ -10,7 +10,7 @@
 
 Chaining multiple `.map()`s and `.filter()`s on a lazy collection leads
 to suboptimal codegen, as well as large, painful type names.
-To improve this, we propose adding a LazyCompactMap{Sequence, Collection}
+To improve this, we propose adding a `LazyCompactMap{Sequence, Collection}`
 type along with some overloads on the other lazy collection types' `.map(_:)`
 and `.filter(_:)` functions which return this type to get better codegen
 and shorter type names.
