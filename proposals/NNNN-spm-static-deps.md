@@ -27,6 +27,8 @@ hopefully many future problems as well.
 
 ## Tooling Problem
 
+Before diving into the static dependency's syntax, let's take a look at a concrete example of the tooling problem.
+
 Imagine the following `Package.swift` file:
 
 ```swift
