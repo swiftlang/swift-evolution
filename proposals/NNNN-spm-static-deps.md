@@ -12,8 +12,8 @@ The idea is that this will greatly increase the usability and customization of t
 
 ## Motivation
 
-Since SPM uses Swift for its package manifest (not JSON or YML like many other dependency managers do) it is not easy to make reliable modifications to the manifest file.
-Without the ability to mechinically modify the `Package.swift` manifest, it is impossible for SPM or any convenience CLIs to help users configure their dependencies.
+Since SPM uses Swift for its package manifest (not JSON or YML like many other dependency managers do) it is not easy to make reliable modifications to the manifest file programatically.
+Without the ability to programatically modify the `Package.swift` manifest, it is impossible for SPM or any convenience CLIs to help users configure their dependencies.
 This includes installing new dependencies, automatically resolving errors in the manfiest, and more. This "edit problem" puts SPM at a huge disadvantage when compared 
 to other dependency managers.
 
