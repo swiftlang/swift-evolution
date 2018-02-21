@@ -12,7 +12,7 @@ The idea is that this will greatly increase the usability and customization of t
 
 ## Motivation
 
-Since SPM uses Swift for its package manfiest (not JSON or YML like many other dependency managers do) it is not easy to make reliable modifications to the manifest file.
+Since SPM uses Swift for its package manifest (not JSON or YML like many other dependency managers do) it is not easy to make reliable modifications to the manifest file.
 Without the ability to mechinically modify the `Package.swift` manifest, it is impossible for SPM or any convenience CLIs to help users configure their dependencies.
 This includes installing new dependencies, automatically resolving errors in the manfiest, and more. This "edit problem" puts SPM at a huge disadvantage when compared 
 to other dependency managers.
@@ -38,7 +38,7 @@ import MySPMUtils // http://github.com/tanner0101/my-spm-utils.git 1.0.0..<2.0.0
 When parsing the `Package.swift` file, SPM will first fetch the package at `http://github.com/tanner0101/my-spm-utils.git`. This will be an otherwise normal
 SPM package that produces `MySPMUtils` as a product.
 
-Any normal / static dependencies that `my-spm-utils.git` must be fetched and resolved before continuing. 
+Any normal / static dependencies that `my-spm-utils.git` relies on must be fetched and resolved before continuing. 
 
 ```swift
 let package = try MySPMUtils.generatePackage() // Package
@@ -46,7 +46,7 @@ let package = try MySPMUtils.generatePackage() // Package
 
 The code imported from `MySPMUtils` can then be used normally. In this case, we use it to generate the `Package` required for the manifest.
 
-Alltogether, we get the following code for a complete `Package.swift` manifest file.
+Altogether, we get the following code for a complete `Package.swift` manifest file.
 
 ```swift
 // swift-tools-version: x
@@ -58,7 +58,7 @@ let package = try MySPMUtils.generatePackage() // Package
 
 ### Solution to the "edit problem"
 
-With the ability to rely on arbitrary SPM dependencies in the `Package.swift` manifest itself, Package authors can devise their own dependency schemes using 
+With the ability to rely on arbitrary SPM dependencies in the `Package.swift` manifest itself, package authors can devise their own dependency schemes using 
 whichever file formats they like.
 
 For example, the `MySPMUtils` package could depend on a `my-deps.yml` file with the following layout:
