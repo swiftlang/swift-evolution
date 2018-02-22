@@ -2,7 +2,7 @@
 
 * Proposal: [SE-NNNN](NNNN-spm-static-deps.md)
 * Author: [Tanner Nelson](https://github.com/tanner0101)
-* Status: **Awaiting Review**
+* Status: **Closed** in favor of [SE-NNNN-swiftpm-extensible-build-tools](https://github.com/ddunbar/swift-evolution/blob/extensible-build-tools/proposals/NNNN-swiftpm-extensible-build-tools.md)
 * Review manager: TBD
 
 ## Introduction
