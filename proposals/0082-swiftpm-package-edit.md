@@ -70,7 +70,7 @@ intended user action with the current contents of the tree.
 
 Our proposed solution is as follows:
 
-1. Move the default location for checked depencency sources to be "hidden" (an
+1. Move the default location for checked dependency sources to be "hidden" (an
    implementation detail). The package manager build system will by default try
    to ensure that any normal build always runs against the exact sources
    specified by the tag which was selected by dependency resolution.
@@ -86,7 +86,7 @@ Our proposed solution is as follows:
    are present.
 
    When an editable package is present, it will be used to satisfy all instances
-   of that Package in the depencency graph. It should be possible to edit all,
+   of that Package in the dependency graph. It should be possible to edit all,
    some, or none of the packages in a dependency graph, without restriction.
 
 This solution is intended to directly address the desired behaviors of the
