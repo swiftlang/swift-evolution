@@ -1,6 +1,6 @@
 # Lazy CompactMap Sequence
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-NNNN](NNNN-lazy-compactmap-sequence.md)
 * Authors: [TellowKrinkle](https://github.com/TellowKrinkle), [Johannes Weiß](https://github.com/weissi)
 * Review Manager: TBD
 * Status: **Awaiting review**
