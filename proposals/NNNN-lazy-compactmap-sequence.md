@@ -1,10 +1,10 @@
-# Feature name
+# Lazy CompactMap Sequence
 
 * Proposal: [SE-NNNN](NNNN-filename.md)
 * Authors: [TellowKrinkle](https://github.com/TellowKrinkle), [Johannes Weiß](https://github.com/weissi)
 * Review Manager: TBD
-* Status: **Awaiting implementation**
-* Implementation: Coming Soon
+* Status: **Awaiting review**
+* Implementation: [apple/swift#14841](https://github.com/apple/swift/pull/14841)
 
 ## Introduction
 
