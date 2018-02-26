@@ -156,13 +156,15 @@ extension LazyCompactMapCollection {
 
 ## Source compatibility
 
-While most code will just work with the new extensions, code that does the following:
+While most code will just work with the new extensions, code that relies on
+the return type of `LazyCollection.compactMap(_:)` will break, however, the return type of the deprecated `LazyCollection.flatMap(_:)` has been left as is to reduce code breakage.
+
+In addition, code like following code will break:
 ```swift
 let array = [0, 1, 22]
 let tmp = array.lazy.map(String.init).filter { $0.count == 1 }
 let filtered: LazyFilterCollection<LazyMapCollection<[Int], String>> = tmp
 ```
-will break.
 
 However, this type of code is probably rare and similar code will already
 be broken by the previously mentioned change that coalesces
