@@ -3,7 +3,7 @@
 * Proposal: [SE-NNNN](NNNN-filename.md)
 * Authors: [Letanyan Arumugam](https://github.com/Letanyan)
 * Review Manager: TBD
-* Status: **Implementation Ready**
+* Status: **Awaiting review**
 
 * Implementation: [apple/swift#14707](https://github.com/apple/swift/pull/14707)
 
