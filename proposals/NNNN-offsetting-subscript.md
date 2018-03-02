@@ -95,8 +95,9 @@ A new type to represent a range offset:
 /// offset expression, use the collection's generic subscript that uses a 
 /// relative offset range expression as its parameter.
 ///
-///     let numbersPrefix = numbers[offset: upToFour]
-///     // numbersPrefix == [10, 20, 30, 40]
+///     let numbers = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+///     let numbersPrefix = numbers[offset: exceptLastFour]
+///     // numbersPrefix == [10, 20, 30, 40, 50, 60]
 ///
 /// - Returns: An offset range suitable for slicing `collection` as an offset. 
 ///   The returned range is *not* guaranteed to be inside the bounds of 
