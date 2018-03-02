@@ -86,8 +86,8 @@ A new type to represent a range offset:
 /// how a partial range from works:
 ///
 ///     let greeting = "Hello, Swift!"
-///     let greeting = numbers[offset: (-6)...]
-///     // greeting == "Swift!"
+///     let name = greeting[offset: (-6)...]
+///     // name == "Swift!"
 ///
 /// Use this method only if you need a range that will be used to slice a 
 /// `collection` with offsets relative to the start and/or end indices. To
