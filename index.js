@@ -12,20 +12,21 @@
 
 'use strict'
 
+
 /** Holds the primary data used on this page: metadata about Swift Evolution proposals. */
-var proposals
+let proposals;
 
 /**
  * To be updated when proposals are confirmed to have been implemented
  * in a new language version.
  */
-var languageVersions = ['2.2', '3', '3.0.1', '3.1', '4', '4.1', '4.2', '5']
+const languageVersions = ['2.2', '3', '3.0.1', '3.1', '4', '4.1', '4.2', '5'];
 
 /** Storage for the user's current selection of filters when filtering is toggled off. */
-var filterSelection = []
+let filterSelection = [];
 
-var GITHUB_BASE_URL = 'https://github.com/'
-var REPO_PROPOSALS_BASE_URL = GITHUB_BASE_URL + 'apple/swift-evolution/blob/master/proposals'
+const GITHUB_BASE_URL = 'https://github.com/';
+const REPO_PROPOSALS_BASE_URL = `${GITHUB_BASE_URL}apple/swift-evolution/blob/master/proposals`;
 
 /**
  * `name`: Mapping of the states in the proposals JSON to human-readable names.
@@ -36,7 +37,7 @@ var REPO_PROPOSALS_BASE_URL = GITHUB_BASE_URL + 'apple/swift-evolution/blob/mast
  * `className`: Mapping of states in the proposals JSON to the CSS class names used
  * to manipulate and display proposals based on their status.
  */
-var states = {
+const states = {
   '.awaitingReview': {
     name: 'Awaiting Review',
     shortName: 'Awaiting Review',
@@ -92,21 +93,19 @@ var states = {
     shortName: 'Error',
     className: 'error'
   }
-}
+};
 
 init()
 
 /** Primary entry point. */
 function init () {
-  var req = new window.XMLHttpRequest()
+  const req = new window.XMLHttpRequest();
 
-  req.addEventListener('load', function (e) {
+  req.addEventListener('load', e => {
     proposals = JSON.parse(req.responseText)
 
     // don't display malformed proposals
-    proposals = proposals.filter(function (proposal) {
-      return !proposal.errors
-    })
+    proposals = proposals.filter(proposal => !proposal.errors)
 
     // descending numeric sort based the numeric nnnn in a proposal ID's SE-nnnn
     proposals.sort(function compareProposalIDs (p1, p2) {
@@ -127,7 +126,7 @@ function init () {
     _applyFragment(document.location.hash)
   })
 
-  req.addEventListener('error', function (e) {
+  req.addEventListener('error', e => {
     document.querySelector('#proposals-count').innerText = 'Proposal data failed to load.'
   })
 
@@ -144,11 +143,11 @@ function init () {
  * @returns {Element} The new node.
  */
 function html (elementType, attributes, children) {
-  var element = document.createElement(elementType)
+  const element = document.createElement(elementType);
 
   if (attributes) {
-    Object.keys(attributes).forEach(function (attributeName) {
-      var value = attributes[attributeName]
+    Object.keys(attributes).forEach(attributeName => {
+      const value = attributes[attributeName];
       if (attributeName === 'className') attributeName = 'class'
       element.setAttribute(attributeName, value)
     })
@@ -157,9 +156,9 @@ function html (elementType, attributes, children) {
   if (!children) return element
   if (!Array.isArray(children)) children = [children]
 
-  children.forEach(function (child) {
+  children.forEach(child => {
     if (!child) {
-      console.warn('Null child ignored during creation of ' + elementType)
+      console.warn(`Null child ignored during creation of ${elementType}`)
       return
     }
     if (Object.getPrototypeOf(child) === String.prototype) {
@@ -186,63 +185,59 @@ function render () {
 
 /** Renders the top navigation bar. */
 function renderNav () {
-  var nav = document.querySelector('nav')
+  const nav = document.querySelector('nav');
 
   // This list intentionally omits .acceptedWithRevisions and .error;
   // .acceptedWithRevisions proposals are combined in the filtering UI
   // with .accepted proposals.
-  var checkboxes = [
+  const checkboxes = [
     '.awaitingReview', '.scheduledForReview', '.activeReview', '.accepted',
     '.implemented', '.returnedForRevision', '.deferred', '.rejected', '.withdrawn'
-  ].map(function (state) {
-    var className = states[state].className
+  ].map(state => {
+    const className = states[state].className;
 
     return html('li', null, [
-      html('input', { type: 'checkbox', className: 'filtered-by-status', id: 'filter-by-' + className, value: className }),
-      html('label', { className: className, tabindex: '0', role: 'button', 'for': 'filter-by-' + className }, [
+      html('input', { type: 'checkbox', className: 'filtered-by-status', id: `filter-by-${className}`, value: className }),
+      html('label', { className, tabindex: '0', role: 'button', 'for': `filter-by-${className}` }, [
         states[state].name
       ])
     ])
-  })
+  });
 
-  var expandableArea = html('div', { className: 'filter-options expandable' }, [
+  const expandableArea = html('div', { className: 'filter-options expandable' }, [
     html('h5', { id: 'filter-options-label' }, 'Status'),
     html('ul', { className: 'filter-by-status' })
-  ])
+  ]);
 
   nav.querySelector('.nav-contents').appendChild(expandableArea)
 
-  checkboxes.forEach(function (box) {
+  checkboxes.forEach(box => {
     nav.querySelector('.filter-by-status').appendChild(box)
   })
 
   // The 'Implemented' filter selection gets an extra row of options if selected.
-  var implementedCheckboxIfPresent = checkboxes.filter(function (cb) {
-    return cb.querySelector(`#filter-by-${states['.implemented'].className}`)
-  })[0]
+  const implementedCheckboxIfPresent = checkboxes.filter(cb => cb.querySelector(`#filter-by-${states['.implemented'].className}`))[0];
 
   if (implementedCheckboxIfPresent) {
     // add an extra row of options to filter by language version
-    var versionRowHeader = html('h5', { id: 'version-options-label', className: 'hidden' }, 'Language Version')
-    var versionRow = html('ul', { id: 'version-options', className: 'filter-by-status hidden' })
+    const versionRowHeader = html('h5', { id: 'version-options-label', className: 'hidden' }, 'Language Version');
+    const versionRow = html('ul', { id: 'version-options', className: 'filter-by-status hidden' });
 
-    var versionOptions = languageVersions.map(function (version) {
-      return html('li', null, [
-        html('input', {
-          type: 'checkbox',
-          id: 'filter-by-swift-' + _idSafeName(version),
-          className: 'filter-by-swift-version',
-          value: 'swift-' + _idSafeName(version)
-        }),
-        html('label', {
-          tabindex: '0',
-          role: 'button',
-          'for': 'filter-by-swift-' + _idSafeName(version)
-        }, 'Swift ' + version)
-      ])
-    })
+    const versionOptions = languageVersions.map(version => html('li', null, [
+      html('input', {
+        type: 'checkbox',
+        id: `filter-by-swift-${_idSafeName(version)}`,
+        className: 'filter-by-swift-version',
+        value: `swift-${_idSafeName(version)}`
+      }),
+      html('label', {
+        tabindex: '0',
+        role: 'button',
+        'for': `filter-by-swift-${_idSafeName(version)}`
+      }, `Swift ${version}`)
+    ]));
 
-    versionOptions.forEach(function (version) {
+    versionOptions.forEach(version => {
       versionRow.appendChild(version)
     })
 
@@ -255,21 +250,21 @@ function renderNav () {
 
 /** Displays the main list of proposals that takes up the majority of the page. */
 function renderBody () {
-  var article = document.querySelector('article')
+  const article = document.querySelector('article');
 
-  var proposalAttachPoint = article.querySelector('.proposals-list')
+  const proposalAttachPoint = article.querySelector('.proposals-list');
 
-  var proposalPresentationOrder = [
+  const proposalPresentationOrder = [
     '.awaitingReview', '.scheduledForReview', '.activeReview', '.accepted',
     '.acceptedWithRevisions', '.implemented', '.returnedForRevision', '.deferred', '.rejected', '.withdrawn'
-  ]
+  ];
 
-  proposalPresentationOrder.map(function (state) {
-    var matchingProposals = proposals.filter(function (p) { return p.status && p.status.state === state })
-    matchingProposals.map(function (proposal) {
-      var proposalBody = html('section', { id: proposal.id, className: 'proposal ' + proposal.id }, [
+  proposalPresentationOrder.map(state => {
+    const matchingProposals = proposals.filter(p => p.status && p.status.state === state);
+    matchingProposals.map(proposal => {
+      const proposalBody = html('section', { id: proposal.id, className: `proposal ${proposal.id}` }, [
         html('div', { className: 'status-pill-container' }, [
-          html('span', { className: 'status-pill color-' + states[state].className }, [
+          html('span', { className: `status-pill color-${states[state].className}` }, [
             states[proposal.status.state].shortName
           ])
         ]),
@@ -280,7 +275,7 @@ function renderBody () {
             ]),
             html('h4', { className: 'proposal-title' }, [
               html('a', {
-                href: REPO_PROPOSALS_BASE_URL + '/' + proposal.link,
+                href: `${REPO_PROPOSALS_BASE_URL}/${proposal.link}`,
                 target: '_blank'
               }, [
                 proposal.title
@@ -288,9 +283,9 @@ function renderBody () {
             ])
           ])
         ])
-      ])
+      ]);
 
-      var detailNodes = []
+      const detailNodes = [];
       detailNodes.push(renderAuthors(proposal.authors))
 
       if (proposal.reviewManager.name) detailNodes.push(renderReviewManager(proposal.reviewManager))
@@ -308,7 +303,7 @@ function renderBody () {
         detailNodes.push(renderStatus(proposal.status))
       }
 
-      var details = html('div', { className: 'proposal-details' }, detailNodes)
+      const details = html('div', { className: 'proposal-details' }, detailNodes);
 
       proposalBody.querySelector('.proposal-content').appendChild(details)
       proposalAttachPoint.appendChild(proposalBody)
@@ -323,13 +318,13 @@ function renderBody () {
 
 /** Authors have a `name` and optional `link`. */
 function renderAuthors (authors) {
-  var authorNodes = authors.map(function (author) {
+  let authorNodes = authors.map(author => {
     if (author.link.length > 0) {
       return html('a', { href: author.link, target: '_blank' }, author.name)
     } else {
       return document.createTextNode(author.name)
     }
-  })
+  });
 
   authorNodes = _joinNodes(authorNodes, ', ')
 
@@ -355,16 +350,14 @@ function renderReviewManager (reviewManager) {
 
 /** Tracking bugs linked in a proposal are updated via bugs.swift.org. */
 function renderTrackingBugs (bugs) {
-  var bugNodes = bugs.map(function (bug) {
-    return html('a', { href: bug.link, target: '_blank' }, [
-      bug.id,
-      ' (',
-      bug.assignee || 'Unassigned',
-      ', ',
-      bug.status,
-      ')'
-    ])
-  })
+  let bugNodes = bugs.map(bug => html('a', { href: bug.link, target: '_blank' }, [
+    bug.id,
+    ' (',
+    bug.assignee || 'Unassigned',
+    ', ',
+    bug.status,
+    ')'
+  ]));
 
   bugNodes = _joinNodes(bugNodes, ', ')
 
@@ -380,19 +373,17 @@ function renderTrackingBugs (bugs) {
 
 /** Implementations are required alongside proposals (after Swift 4.0). */
 function renderImplementation (implementations) {
-  var implNodes = implementations.map(function (impl) {
-    return html('a', {
-      href: GITHUB_BASE_URL + impl.account + '/' + impl.repository + '/' + impl.type + '/' + impl.id
-    }, [
-      impl.repository,
-      impl.type === 'pull' ? '#' : '@',
-      impl.id.substr(0, 7)
-    ])
-  })
+  let implNodes = implementations.map(impl => html('a', {
+    href: `${GITHUB_BASE_URL + impl.account}/${impl.repository}/${impl.type}/${impl.id}`
+  }, [
+    impl.repository,
+    impl.type === 'pull' ? '#' : '@',
+    impl.id.substr(0, 7)
+  ]));
 
   implNodes = _joinNodes(implNodes, ', ')
 
-  var label = 'Implementation: '
+  const label = 'Implementation: ';
 
   return html('div', { className: 'proposal-detail' }, [
     html('div', { className: 'proposal-detail-label' }, [label]),
@@ -409,7 +400,7 @@ function renderVersion (version) {
       'Implemented In: '
     ]),
     html('div', { className: 'proposal-detail-value' }, [
-      'Swift ' + version
+      `Swift ${version}`
     ])
   ])
 }
@@ -430,17 +421,17 @@ function renderStatus (status) {
  * Review periods are ISO-8601-style 'YYYY-MM-DD' dates.
  */
 function renderReviewPeriod (status) {
-  var months = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
     'August', 'September', 'October', 'November', 'December'
-  ]
+  ];
 
-  var start = new Date(status.start)
-  var end = new Date(status.end)
+  const start = new Date(status.start);
+  const end = new Date(status.end);
 
-  var startMonth = start.getUTCMonth()
-  var endMonth = end.getUTCMonth()
+  const startMonth = start.getUTCMonth();
+  const endMonth = end.getUTCMonth();
 
-  var detailNodes = [months[startMonth], ' ']
+  const detailNodes = [months[startMonth], ' '];
 
   if (startMonth === endMonth) {
     detailNodes.push(
@@ -468,9 +459,7 @@ function renderReviewPeriod (status) {
 
 /** Utility used by some of the `render*` functions to add comma text nodes between DOM nodes. */
 function _joinNodes (nodeList, text) {
-  return nodeList.map(function (node) {
-    return [node, text]
-  }).reduce(function (result, pair, index, pairs) {
+  return nodeList.map(node => [node, text]).reduce((result, pair, index, pairs) => {
     if (index === pairs.length - 1) pair.pop()
     return result.concat(pair)
   }, [])
@@ -478,53 +467,53 @@ function _joinNodes (nodeList, text) {
 
 /** Adds UI interactivity to the page. Primarily activates the filtering controls. */
 function addEventListeners () {
-  var nav = document.querySelector('nav')
+  const nav = document.querySelector('nav');
 
   // typing in the search field causes the filter to be reapplied.
   nav.addEventListener('keyup', filterProposals)
   nav.addEventListener('change', filterProposals)
 
   // clearing the search field also hides the X symbol
-  nav.querySelector('#clear-button').addEventListener('click', function () {
+  nav.querySelector('#clear-button').addEventListener('click', () => {
     nav.querySelector('#search-filter').value = ''
     nav.querySelector('#clear-button').classList.toggle('hidden')
     filterProposals()
   })
 
   // each of the individual statuses needs to trigger filtering as well
-  ;[].forEach.call(nav.querySelectorAll('.filter-by-status input'), function (element) {
+  ;[].forEach.call(nav.querySelectorAll('.filter-by-status input'), element => {
     element.addEventListener('change', filterProposals)
   })
 
-  var expandableArea = document.querySelector('.filter-options')
-  var implementedToggle = document.querySelector('#filter-by-implemented')
-  implementedToggle.addEventListener('change', function () {
+  const expandableArea = document.querySelector('.filter-options');
+  const implementedToggle = document.querySelector('#filter-by-implemented');
+  implementedToggle.addEventListener('change', () => {
     // hide or show the row of version options depending on the status of the 'Implemented' option
-    ;['#version-options', '#version-options-label'].forEach(function (selector) {
+    ;['#version-options', '#version-options-label'].forEach(selector => {
       expandableArea.querySelector(selector).classList.toggle('hidden')
     })
 
     // don't persist any version selections when the row is hidden
-    ;[].concat.apply([], expandableArea.querySelectorAll('.filter-by-swift-version')).forEach(function (versionCheckbox) {
+    ;[].concat(...expandableArea.querySelectorAll('.filter-by-swift-version')).forEach(versionCheckbox => {
       versionCheckbox.checked = false
     })
   })
 
   document.querySelector('.filter-button').addEventListener('click', toggleFiltering)
 
-  var filterToggle = document.querySelector('.filter-toggle')
+  const filterToggle = document.querySelector('.filter-toggle');
   filterToggle.querySelector('.toggle-filter-panel').addEventListener('click', toggleFilterPanel)
 
   // Behavior conditional on certain browser features
-  var CSS = window.CSS
+  const CSS = window.CSS;
   if (CSS) {
     // emulate position: sticky when it isn't available.
     if (!(CSS.supports('position', 'sticky') || CSS.supports('position', '-webkit-sticky'))) {
-      window.addEventListener('scroll', function () {
-        var breakpoint = document.querySelector('header').getBoundingClientRect().bottom
-        var nav = document.querySelector('nav')
-        var position = window.getComputedStyle(nav).position
-        var shadowNav // maintain the main content height when the main 'nav' is removed from the flow
+      window.addEventListener('scroll', () => {
+        const breakpoint = document.querySelector('header').getBoundingClientRect().bottom;
+        const nav = document.querySelector('nav');
+        const position = window.getComputedStyle(nav).position;
+        let shadowNav; // maintain the main content height when the main 'nav' is removed from the flow
 
         // this is measuring whether or not the header has scrolled offscreen
         if (breakpoint <= 0) {
@@ -546,8 +535,8 @@ function addEventListeners () {
 
   // on smaller screens, hide the filter panel when scrolling
   if (window.matchMedia('(max-width: 414px)').matches) {
-    window.addEventListener('scroll', function () {
-      var breakpoint = document.querySelector('header').getBoundingClientRect().bottom
+    window.addEventListener('scroll', () => {
+      const breakpoint = document.querySelector('header').getBoundingClientRect().bottom;
       if (breakpoint <= 0 && document.querySelector('.expandable').classList.contains('expanded')) {
         toggleFilterPanel()
       }
@@ -560,21 +549,21 @@ function addEventListeners () {
  * Additionally, toggles the presence of the "Filtered by:" status indicator.
  */
 function toggleFiltering () {
-  var filterDescription = document.querySelector('.filter-toggle')
-  var shouldPreserveSelection = !filterDescription.classList.contains('hidden')
+  const filterDescription = document.querySelector('.filter-toggle');
+  const shouldPreserveSelection = !filterDescription.classList.contains('hidden');
 
   filterDescription.classList.toggle('hidden')
-  var selected = document.querySelectorAll('.filter-by-status input[type=checkbox]:checked')
-  var filterButton = document.querySelector('.filter-button')
+  const selected = document.querySelectorAll('.filter-by-status input[type=checkbox]:checked');
+  const filterButton = document.querySelector('.filter-button');
 
   if (shouldPreserveSelection) {
-    filterSelection = [].map.call(selected, function (checkbox) { return checkbox.id })
-    ;[].forEach.call(selected, function (checkbox) { checkbox.checked = false })
+    filterSelection = [].map.call(selected, checkbox => checkbox.id)
+    ;[].forEach.call(selected, checkbox => { checkbox.checked = false })
 
     filterButton.setAttribute('aria-pressed', 'false')
   } else { // restore it
-    filterSelection.forEach(function (id) {
-      var checkbox = document.getElementById(id)
+    filterSelection.forEach(id => {
+      const checkbox = document.getElementById(id);
       checkbox.checked = true
     })
 
@@ -593,8 +582,8 @@ function toggleFiltering () {
  * Swift Evolution process.
  */
 function toggleFilterPanel () {
-  var panel = document.querySelector('.expandable')
-  var button = document.querySelector('.toggle-filter-panel')
+  const panel = document.querySelector('.expandable');
+  const button = document.querySelector('.toggle-filter-panel');
 
   panel.classList.toggle('expanded')
 
@@ -609,37 +598,31 @@ function toggleFilterPanel () {
  * Applies both the status-based and text-input based filters to the proposals list.
  */
 function filterProposals () {
-  var filterElement = document.querySelector('#search-filter')
-  var filter = filterElement.value
+  const filterElement = document.querySelector('#search-filter');
+  const filter = filterElement.value;
 
-  var clearButton = document.querySelector('#clear-button')
+  const clearButton = document.querySelector('#clear-button');
   if (filter.length === 0) {
     clearButton.classList.add('hidden')
   } else {
     clearButton.classList.remove('hidden')
   }
 
-  var matchingSets = [proposals.concat()]
+  let matchingSets = [proposals.concat()];
 
   // Comma-separated lists of proposal IDs are treated as an "or" search.
   if (filter.match(/(SE-\d\d\d\d)($|((,SE-\d\d\d\d)+))/i)) {
-    var proposalIDs = filter.split(',').map(function (id) {
-      return id.toUpperCase()
-    })
+    const proposalIDs = filter.split(',').map(id => id.toUpperCase());
 
-    matchingSets[0] = matchingSets[0].filter(function (proposal) {
-      return proposalIDs.indexOf(proposal.id) !== -1
-    })
+    matchingSets[0] = matchingSets[0].filter(proposal => proposalIDs.includes(proposal.id))
   } else if (filter.trim().length !== 0) {
     // The search input treats words as order-independent.
     matchingSets = filter.split(/\s/)
-      .filter(function (s) { return s.length > 0 })
-      .map(function (part) { return _searchProposals(part) })
+      .filter(s => s.length > 0)
+      .map(part => _searchProposals(part))
   }
 
-  var intersection = matchingSets.reduce(function (intersection, candidates) {
-    return intersection.filter(function (alreadyIncluded) { return candidates.indexOf(alreadyIncluded) !== -1 })
-  }, matchingSets[0] || [])
+  const intersection = matchingSets.reduce((intersection, candidates) => intersection.filter(alreadyIncluded => candidates.includes(alreadyIncluded)), matchingSets[0] || []);
 
   _applyFilter(intersection)
   _updateURIFragment()
@@ -655,9 +638,9 @@ function filterProposals () {
  * @returns {Proposal[]} The proposals that match the entered text, taken from the global list.
  */
 function _searchProposals (filterText) {
-  var filterExpression = filterText.toLowerCase()
+  const filterExpression = filterText.toLowerCase();
 
-  var searchableProperties = [
+  const searchableProperties = [
       ['id'],
       ['title'],
       ['reviewManager', 'name'],
@@ -672,24 +655,22 @@ function _searchProposals (filterText) {
       ['trackingBugs', 'status'],
       ['trackingBugs', 'id'],
       ['trackingBugs', 'assignee']
-  ]
+  ];
 
   // reflect over the proposals and find ones with matching properties
-  var matchingProposals = proposals.filter(function (proposal) {
-    var match = false
-    searchableProperties.forEach(function (propertyList) {
-      var value = proposal
+  const matchingProposals = proposals.filter(proposal => {
+    let match = false;
+    searchableProperties.forEach(propertyList => {
+      let value = proposal;
 
-      propertyList.forEach(function (propertyName, index) {
+      propertyList.forEach((propertyName, index) => {
         if (!value) return
         value = value[propertyName]
         if (index < propertyList.length - 1) {
           // For arrays, apply the property check to each child element.
           // Note that this only looks to a depth of one property.
           if (Array.isArray(value)) {
-            var matchCondition = value.some(function (element) {
-              return element[propertyList[index + 1]] && element[propertyList[index + 1]].toString().toLowerCase().indexOf(filterExpression) >= 0
-            })
+            const matchCondition = value.some(element => element[propertyList[index + 1]] && element[propertyList[index + 1]].toString().toLowerCase().includes(filterExpression));
 
             if (matchCondition) {
               match = true
@@ -697,14 +678,14 @@ function _searchProposals (filterText) {
           } else {
             return
           }
-        } else if (value && value.toString().toLowerCase().indexOf(filterExpression) >= 0) {
+        } else if (value && value.toString().toLowerCase().includes(filterExpression)) {
           match = true
         }
       })
     })
 
     return match
-  })
+  });
 
   return matchingProposals
 }
@@ -717,49 +698,41 @@ function _searchProposals (filterText) {
  */
 function _applyFilter (matchingProposals) {
   // filter out proposals based on the grouping checkboxes
-  var allStateCheckboxes = document.querySelector('nav').querySelectorAll('.filter-by-status input:checked')
-  var selectedStates = [].map.call(allStateCheckboxes, function (checkbox) { return checkbox.value })
+  const allStateCheckboxes = document.querySelector('nav').querySelectorAll('.filter-by-status input:checked');
+  const selectedStates = [].map.call(allStateCheckboxes, checkbox => checkbox.value);
 
-  var selectedStateNames = [].map.call(allStateCheckboxes, function (checkbox) { return checkbox.nextElementSibling.innerText.trim() })
+  const selectedStateNames = [].map.call(allStateCheckboxes, checkbox => checkbox.nextElementSibling.innerText.trim());
   updateFilterDescription(selectedStateNames)
 
   if (selectedStates.length) {
     matchingProposals = matchingProposals
-      .filter(function (proposal) {
-        return selectedStates.some(function (state) {
-          return proposal.status.state.toLowerCase().indexOf(state.split('-')[0]) >= 0
-        })
-      })
+      .filter(proposal => selectedStates.some(state => proposal.status.state.toLowerCase().includes(state.split('-')[0])))
 
     // handle version-specific filtering options
-    if (selectedStates.some(function (state) { return state.match(/swift/i) })) {
+    if (selectedStates.some(state => state.match(/swift/i))) {
       matchingProposals = matchingProposals
-        .filter(function (proposal) {
-          return selectedStates.some(function (state) {
-            if (!(proposal.status.state === '.implemented')) return true // only filter among Implemented (N.N.N)
+        .filter(proposal => selectedStates.some(state => {
+        if (!(proposal.status.state === '.implemented')) return true // only filter among Implemented (N.N.N)
 
-            var version = state.split(/\D+/).filter(function (s) { return s.length }).join('.')
+        const version = state.split(/\D+/).filter(s => s.length).join('.');
 
-            if (!version.length) return false // it's not a state that represents a version number
-            if (proposal.status.version === version) return true
-            return false
-          })
-        })
+        if (!version.length) return false // it's not a state that represents a version number
+        if (proposal.status.version === version) return true
+        return false
+      }))
     }
   }
 
-  var filteredProposals = proposals.filter(function (proposal) {
-    return matchingProposals.indexOf(proposal) === -1
+  const filteredProposals = proposals.filter(proposal => !matchingProposals.includes(proposal));
+
+  matchingProposals.forEach(proposal => {
+    const matchingElements = [].concat(...document.querySelectorAll(`.${proposal.id}`));
+    matchingElements.forEach(element => { element.classList.remove('hidden') })
   })
 
-  matchingProposals.forEach(function (proposal) {
-    var matchingElements = [].concat.apply([], document.querySelectorAll('.' + proposal.id))
-    matchingElements.forEach(function (element) { element.classList.remove('hidden') })
-  })
-
-  filteredProposals.forEach(function (proposal) {
-    var filteredElements = [].concat.apply([], document.querySelectorAll('.' + proposal.id))
-    filteredElements.forEach(function (element) { element.classList.add('hidden') })
+  filteredProposals.forEach(proposal => {
+    const filteredElements = [].concat(...document.querySelectorAll(`.${proposal.id}`));
+    filteredElements.forEach(element => { element.classList.add('hidden') })
   })
 
   updateProposalsCount(matchingProposals.length)
@@ -792,15 +765,15 @@ function _applyFragment (fragment) {
   fragment = fragment.substring(2) // remove the #?
 
   // use this literal's keys as the source of truth for key-value pairs in the fragment
-  var actions = { proposal: [], search: null, status: [], version: [] }
+  const actions = { proposal: [], search: null, status: [], version: [] };
 
   // parse the fragment as a query string
-  Object.keys(actions).forEach(function (action) {
-    var pattern = new RegExp(action + '=([^=]+)(&|$)')
-    var values = fragment.match(pattern)
+  Object.keys(actions).forEach(action => {
+    const pattern = new RegExp(`${action}=([^=]+)(&|$)`);
+    const values = fragment.match(pattern);
 
     if (values) {
-      var value = values[1] // 1st capture group from the RegExp
+      let value = values[1]; // 1st capture group from the RegExp
       if (action === 'search') {
         value = decodeURIComponent(value)
       } else {
@@ -820,51 +793,43 @@ function _applyFragment (fragment) {
   }
 
   if (actions.version.length) {
-    var versionSelections = actions.version.map(function (version) {
-      return document.querySelector('#filter-by-swift-' + _idSafeName(version))
-    }).filter(function (version) {
-      return !!version
-    })
+    const versionSelections = actions.version.map(version => document.querySelector(`#filter-by-swift-${_idSafeName(version)}`)).filter(version => !!version);
 
-    versionSelections.forEach(function (versionSelection) {
+    versionSelections.forEach(versionSelection => {
       versionSelection.checked = true
     })
 
     if (versionSelections.length) {
       document.querySelector(
-        '#filter-by-' + states['.implemented'].className
+        `#filter-by-${states['.implemented'].className}`
       ).checked = true
     }
   }
 
   // track this state specifically for toggling the version panel
-  var implementedSelected = false
+  let implementedSelected = false;
 
   // update the filter selections in the nav
   if (actions.status.length) {
-    var statusSelections = actions.status.map(function (status) {
-      var stateName = Object.keys(states).filter(function (state) {
-        return states[state].className === status
-      })[0]
+    const statusSelections = actions.status.map(status => {
+      const stateName = Object.keys(states).filter(state => states[state].className === status)[0];
 
       if (!stateName) return // fragment contains a nonexistent state
-      var state = states[stateName]
+      const state = states[stateName];
 
       if (stateName === '.implemented') implementedSelected = true
 
-      return document.querySelector('#filter-by-' + state.className)
-    }).filter(function (status) {
-      return !!status
-    })
+      return document.querySelector(`#filter-by-${state.className}`)
+    }).filter(status => !!status);
 
-    statusSelections.forEach(function (statusSelection) {
+    statusSelections.forEach(statusSelection => {
       statusSelection.checked = true
     })
   }
 
   // the version panel needs to be activated if any are specified
   if (actions.version.length || implementedSelected) {
-    ;['#version-options', '#version-options-label'].forEach(function (selector) {
+    ;['#version-options', '#version-options-label'].forEach(selector => {
       document.querySelector('.filter-options')
         .querySelector(selector).classList
         .toggle('hidden')
@@ -885,9 +850,9 @@ function _applyFragment (fragment) {
  * via window.replaceState.
  */
 function _updateURIFragment () {
-  var actions = { proposal: [], search: null, status: [], version: [] }
+  const actions = { proposal: [], search: null, status: [], version: [] };
 
-  var search = document.querySelector('#search-filter')
+  const search = document.querySelector('#search-filter');
 
   if (search.value && search.value.match(/(SE-\d\d\d\d)($|((,SE-\d\d\d\d)+))/i)) {
     actions.proposal = search.value.toUpperCase().split(',')
@@ -895,49 +860,45 @@ function _updateURIFragment () {
     actions.search = search.value
   }
 
-  var selectedVersions = document.querySelectorAll('.filter-by-swift-version:checked')
-  var versions = [].map.call(selectedVersions, function (checkbox) {
-    return checkbox.value.split('swift-swift-')[1].split('-').join('.')
-  })
+  const selectedVersions = document.querySelectorAll('.filter-by-swift-version:checked');
+  const versions = [].map.call(selectedVersions, checkbox => checkbox.value.split('swift-swift-')[1].split('-').join('.'));
 
   actions.version = versions
 
-  var selectedStatuses = document.querySelectorAll('.filtered-by-status:checked')
-  var statuses = [].map.call(selectedStatuses, function (checkbox) {
-    var className = checkbox.value
+  const selectedStatuses = document.querySelectorAll('.filtered-by-status:checked');
+  let statuses = [].map.call(selectedStatuses, checkbox => {
+    const className = checkbox.value;
 
-    var correspondingStatus = Object.keys(states).filter(function (status) {
+    const correspondingStatus = Object.keys(states).filter(status => {
       if (states[status].className === className) return true
       return false
-    })[0]
+    })[0];
 
     return states[correspondingStatus].className
-  })
+  });
 
   // .implemented is redundant if any specific implementation versions are selected.
   if (actions.version.length) {
-    statuses = statuses.filter(function (status) {
-      return status !== states['.implemented'].className
-    })
+    statuses = statuses.filter(status => status !== states['.implemented'].className)
   }
 
   actions.status = statuses
 
   // build the actual fragment string.
-  var fragments = []
-  if (actions.proposal.length) fragments.push('proposal=' + actions.proposal.join(','))
-  if (actions.status.length) fragments.push('status=' + actions.status.join(','))
-  if (actions.version.length) fragments.push('version=' + actions.version.join(','))
+  const fragments = [];
+  if (actions.proposal.length) fragments.push(`proposal=${actions.proposal.join(',')}`)
+  if (actions.status.length) fragments.push(`status=${actions.status.join(',')}`)
+  if (actions.version.length) fragments.push(`version=${actions.version.join(',')}`)
 
   // encoding the search lets you search for `??` and other edge cases.
-  if (actions.search) fragments.push('search=' + encodeURIComponent(actions.search))
+  if (actions.search) fragments.push(`search=${encodeURIComponent(actions.search)}`)
 
   if (!fragments.length) {
     window.history.replaceState(null, null, './')
     return
   }
 
-  var fragment = '#?' + fragments.join('&')
+  const fragment = `#?${fragments.join('&')}`;
 
   // avoid creating new history entries each time a search or filter updates
   window.history.replaceState(null, null, fragment)
@@ -945,7 +906,7 @@ function _updateURIFragment () {
 
 /** Helper to give versions like 3.0.1 an okay ID to use in a DOM element. (swift-3-0-1) */
 function _idSafeName (name) {
-  return 'swift-' + name.replace(/\./g, '-')
+  return `swift-${name.replace(/\./g, '-')}`
 }
 
 /**
@@ -958,26 +919,26 @@ function _idSafeName (name) {
  * Populated from the global `stateNames` array.
  */
 function updateFilterDescription (selectedStateNames) {
-  var FILTER_DESCRIPTION_LIMIT = 2
-  var stateCount = selectedStateNames.length
+  let FILTER_DESCRIPTION_LIMIT = 2;
+  const stateCount = selectedStateNames.length;
 
   // Limit the length of filter text on small screens.
   if (window.matchMedia('(max-width: 414px)').matches) {
     FILTER_DESCRIPTION_LIMIT = 1
   }
 
-  var container = document.querySelector('.toggle-filter-panel')
+  const container = document.querySelector('.toggle-filter-panel');
 
   // modify the state names to clump together Implemented with version names
-  var swiftVersionStates = selectedStateNames.filter(function (state) { return state.match(/swift/i) })
+  const swiftVersionStates = selectedStateNames.filter(state => state.match(/swift/i));
 
   if (swiftVersionStates.length > 0 && swiftVersionStates.length <= FILTER_DESCRIPTION_LIMIT) {
-    selectedStateNames = selectedStateNames.filter(function (state) { return !state.match(/swift|implemented/i) })
-      .concat('Implemented (' + swiftVersionStates.join(', ') + ')')
+    selectedStateNames = selectedStateNames.filter(state => !state.match(/swift|implemented/i))
+      .concat(`Implemented (${swiftVersionStates.join(', ')})`)
   }
 
   if (selectedStateNames.length > FILTER_DESCRIPTION_LIMIT) {
-    container.innerText = stateCount + ' Filters'
+    container.innerText = `${stateCount} Filters`
   } else if (selectedStateNames.length === 0) {
     container.innerText = 'All Statuses'
   } else {
@@ -987,6 +948,6 @@ function updateFilterDescription (selectedStateNames) {
 
 /** Updates the `${n} Proposals` display just above the proposals list. */
 function updateProposalsCount (count) {
-  var numberField = document.querySelector('#proposals-count-number')
-  numberField.innerText = (count.toString() + ' proposal' + (count !== 1 ? 's' : ''))
+  const numberField = document.querySelector('#proposals-count-number');
+  numberField.innerText = (`${count.toString()} proposal${count !== 1 ? 's' : ''}`)
 }
