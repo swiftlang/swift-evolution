@@ -3,7 +3,8 @@
 * Proposal: [SE-0194](0194-derived-collection-of-enum-cases.md)
 * Authors: [Jacob Bandes-Storch](https://github.com/jtbandes), [Brent Royal-Gordon](https://github.com/brentdax), [Robert Widmann](https://github.com/CodaFi)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Active review (January 6...11)**
+* Review Thread: [SE-0194 review][se8]
+* Status: **Accepted (with revisions)**
 * Implementation: [apple/swift#13655](https://github.com/apple/swift/pull/13655)
 
 ## Introduction
@@ -14,7 +15,7 @@
 
 This topic was brought up [three][se1] [different][se2] [times][se3] in just the first two months of swift-evolution's existence. It was the [very first language feature request][SR-30] on the Swift bug tracker. It's a [frequent][so1] [question][so2] on Stack Overflow (between them, these two questions have over 400 upvotes and 60 answers). It's a [popular][nateblog] [topic][ericablog] on blogs. It is one of just eight [examples][sourcery] shipped with Sourcery.
 
-We propose the introduction of a protocol, `ValueEnumerable`, to indicate that a type has a finite, enumerable set of values. Moreover, we propose an opt-in derived implementation of `ValueEnumerable` for the common case of a simple enum.
+We propose the introduction of a protocol, `CaseIterable`, to indicate that a type has a finite, enumerable set of values. Moreover, we propose an opt-in derived implementation of `CaseIterable` for the common case of a simple enum.
 
 ### Prior discussion on Swift-Evolution
 - [List of all Enum values (for simple enums)][se1] (December 8, 2015)
@@ -27,16 +28,18 @@ We propose the introduction of a protocol, `ValueEnumerable`, to indicate that a
 
 - [[Pitch] Synthesized static enum property to iterate over cases][se6] (September 8, 2017)
 - † [Re-pitch: Deriving collections of enum cases][se7] (November 6, 2017)
+- **Official Review**: [SE-0194: Derived Collection of Enum Cases][se8] (January 6, 2018)
 
 _**†** = a precursor to this proposal_
 
-[se1]: https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151207/001233.html
-[se2]: https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151221/003819.html
-[se3]: https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160111/006853.html
-[se4]: https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160111/006876.html
-[se5]: https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160411/015098.html
-[se6]: https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170904/039598.html
-[se7]: https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171106/040950.html
+[se1]: https://forums.swift.org/t/list-of-all-enum-values-for-simple-enums/337
+[se2]: https://forums.swift.org/t/proposal-enum-count-functionality/711
+[se3]: https://forums.swift.org/t/draft-proposal-count-property-for-enum-types/1103
+[se4]: https://forums.swift.org/t/pre-proposal-caseenumerable-protocol-derived-collection-of-enum-cases/1109
+[se5]: https://forums.swift.org/t/valueenumerable-protocol-with-derived-implementation-for-enums/2226
+[se6]: https://forums.swift.org/t/pitch-synthesized-static-enum-property-to-iterate-over-cases/6623
+[se7]: https://forums.swift.org/t/re-pitch-deriving-collections-of-enum-cases/6956
+[se8]: https://forums.swift.org/t/review-se-0194-derived-collection-of-enum-cases/7377
 
 [so1]: http://stackoverflow.com/questions/24007461/how-to-enumerate-an-enum-with-string-type
 [so2]: http://stackoverflow.com/questions/27094878/how-do-i-get-the-count-of-a-swift-enum
@@ -191,82 +194,56 @@ At the same time, the principle that libraries ought to control the promises the
 
 ## Proposed solution
 
-We propose introducing a `ValueEnumerable` protocol to the Swift Standard Library. The compiler will derive an implementation automatically for simple enums when the conformance is specified.
+We propose introducing a `CaseIterable` protocol to the Swift Standard Library. The compiler will derive an implementation automatically for simple enums when the conformance is specified.
 
 ```swift
-enum Ma: ValueEnumerable { case 马, 吗, 妈, 码, 骂, 麻, 🐎, 🐴 }
+enum Ma: CaseIterable { case 马, 吗, 妈, 码, 骂, 麻, 🐎, 🐴 }
 
-Ma.allValues         // returns some Collection whose Iterator.Element is Ma
-Ma.allValues.count   // returns 8
-Array(Ma.allValues)  // returns [Ma.马, .吗, .妈, .码, .骂, .麻, .🐎, .🐴]
+Ma.allCases         // returns some Collection whose Iterator.Element is Ma
+Ma.allCases.count   // returns 8
+Array(Ma.allCases)  // returns [Ma.马, .吗, .妈, .码, .骂, .麻, .🐎, .🐴]
 ```
 
 ## Detailed design
 
-- The `ValueEnumerable` protocol will have the following declaration:
+- The `CaseIterable` protocol will have the following declaration:
 
   ```swift
-  public protocol ValueEnumerable {
-    associatedtype ValueCollection: Collection where ValueCollection.Element == Self
-    static var allValues: ValueCollection { get }
+  public protocol CaseIterable {
+    associatedtype AllCases: Collection where AllCases.Element == Self
+    static var allCases: AllCases { get }
   }
   ```
 
-- The compiler will synthesize an implementation of ValueEnumerable for an enum type if and only if:
+- The compiler will synthesize an implementation of CaseIterable for an enum type if and only if:
 
   - the enum contains only cases without associated values;
-  - the enum is not `@objc`;
-  - the enum has an explicit `ValueEnumerable` conformance (and does not fulfil the protocol's requirements).
+  - the enum declaration has an explicit `CaseIterable` conformance (and does not fulfill the protocol's requirements).
 
-- Enums **imported from C/Obj-C headers** have no runtime metadata, and thus will not participate in the derived ValueEnumerable conformance, given the proposed implementation.
+- Enums imported from C/Obj-C headers will **not** participate in the derived CaseIterable conformance.
 
-- Cases marked `unavailable` or `deprecated` **will be** included in `allValues`, because they are present in the metadata. (Note that `switch` statements are already required to handle these cases.)
+- Cases marked `unavailable` or `deprecated` will **not** be included in `allCases`.
 
+- The implementation will **not** be synthesized if the conformance is on an `extension` — it must be on the original `enum` declaration.
 
-## Naming
-
-**tl;dr: Core team, please bikeshed!**
-
-The names `ValueEnumerable` / `T.allValues` were chosen for the following reasons:
-
-- the `-able` suffix indicates the [**capability**](https://swift.org/documentation/api-design-guidelines.html) to enumerate the type's values.
-- the `all-` prefix avoids confusion with other meanings of the word "values" (plural noun; transitive verb in simple present tense).
-- avoids the word "case", which might imply that the feature is `enum`-specific.
-- avoids the word "finite", which is slightly obscure — and finiteness is not a necessary condition for iterating over values.
-
-However, this proposal isn't all-or-nothing with regards to names; final naming should of course be at the Swift team's discretion. Other alternatives considered include:
-
-- `T.values`
-- `CaseEnumerable` / `T.cases` / `T.allCases`
-- `FiniteType`
-- `FiniteValueType`
 
 ## Source compatibility
 
-This proposal only adds functionality, so existing code will not be affected. (The identifier `ValueEnumerable` doesn't make very many appearances in Google and GitHub searches.)
+This proposal only adds functionality, so existing code will not be affected. (The identifier `CaseIterable` doesn't make very many appearances in Google and GitHub searches.)
 
 
 ## Effect on ABI stability
 
-The proposed implementation **adds** a runtime function `swift_EnumEnumerateCaseValues` returning the number of cases in a simple enum given its metadata. Changes to user code (adding or removing a case of a simple enum) do not affect ABI.
+The proposed implementation adds a derived conformance that makes use of no special ABI or runtime features.
 
 ## Effect on API resilience
 
-User programs will come to rely on the `ValueEnumerable` protocol and its `allValues` and `ValueCollection` requirements. Due to the use of an associated type for the property's type, the derived implementation is free to change the concrete Collection it returns without breaking the API.
-
-
-## Implementation
-
-In 2016, Robert Widmann put together a [sample implementation](https://github.com/apple/swift/commit/b8e6e9ff2e59c4834933dcd0fa7dd537fb25caaa) of CaseEnumerable. It provides a runtime function to read the number of cases from the enum type's metadata, and uses `Builtin.reinterpretCast` to convert each value to the enum type.
+User programs will come to rely on the `CaseIterable` protocol and its `allCases` and `AllCases` requirements. Due to the use of an associated type for the property's type, the derived implementation is free to change the concrete Collection it returns without breaking the API.
 
 
 ## Alternatives considered
 
-The community has not raised any solutions whose APIs differ significantly from this proposal, except for solutions which provide strictly **more** functionality.
-
 The functionality could also be provided entirely through the `Mirror`/reflection APIs. This would likely result in much more obscure and confusing usage patterns.
-
-Unavailable and deprecated cases could be excluded from `allValues`. This would require modifications to metadata or an implementation that does not rely on metadata.
 
 #### Provide a default collection 
 
@@ -275,8 +252,8 @@ to implement the protocol.  However, it also exposes a public unsafe entrypoint 
 reflection API that we consider unacceptable.
 
 ```swift
-extension ValueEnumerable where ValueCollection == DefaultCaseCollection<Self> {
-    public static var allValues: DefaultCaseCollection<Self> {
+extension CaseIterable where AllCases == DefaultCaseCollection<Self> {
+    public static var allCases: DefaultCaseCollection<Self> {
         return DefaultCaseCollection(unsafeForEnum: Self.self)
     }
 }
@@ -295,3 +272,9 @@ public struct DefaultCaseCollection<Enum>: RandomAccessCollection {
     }
 }
 ```
+
+### [Metatype conformance to Collection](https://forums.swift.org/t/re-pitch-deriving-collections-of-enum-cases/6956/11)
+
+A *type* inherently represents a set of its possible values, and as such, `for val in MyEnum.self { }` could be a natural way to express iteration over all cases of a type. Specifically, if the metatype `MyEnum.Type` could conform to `Collection` or `Sequence` (with `Element == MyEnum`), this would allow `for`-loop enumeration, `Array(MyEnum.self)`, and other use cases. In a generic context, the constraint `T: CaseIterable` could be expressed instead as `T.Type: Collection`.
+
+Absent the ability for a metatype to actually conform to a protocol, the compiler could be taught to treat the special case of enum types *as if* they conformed to Collection, enabling this syntax before metatype conformance became a fully functional feature.
