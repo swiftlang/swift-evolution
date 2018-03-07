@@ -222,7 +222,7 @@ Array(Ma.allCases)  // returns [Ma.马, .吗, .妈, .码, .骂, .麻, .🐎, .�
 
 - Enums imported from C/Obj-C headers will **not** participate in the derived CaseIterable conformance.
 
-- Cases marked `unavailable` or `deprecated` will **not** be included in `allCases`.
+- Cases marked `unavailable` will **not** be included in `allCases`.
 
 - The implementation will **not** be synthesized if the conformance is on an `extension` — it must be on the original `enum` declaration.
 
