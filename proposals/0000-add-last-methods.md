@@ -4,14 +4,14 @@
 * Author: [Nate Cook](https://github.com/natecook1000)
 * Status: **Awaiting review**
 * Review manager: TBD
-* Implementation: [Branch on natecook1000/swift](https://github.com/apple/swift/compare/master...natecook1000:nc-last)
+* Implementation: [PR #13337](https://github.com/apple/swift/pull/13337)
 * Related Bug: [\[SR-1504\] RFE: index(of:) but starting from end](https://bugs.swift.org/browse/SR-1504)
 
 ## Introduction
 
 The standard library should include methods for finding the last element in a sequence, and the index of the last element in a collection, that match a given predicate.
 
-* Swift-evolution thread: [\[swift-evolution\] (Draft) Add last(where:) and lastIndex(where:) methods](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160509/017048.html)
+* Swift-evolution thread: [\[swift-evolution\] (Draft) Add last(where:) and lastIndex(where:) methods](https://forums.swift.org/t/draft-add-last-where-and-lastindex-where-methods/7131)
 
 ## Motivation
 
@@ -90,7 +90,7 @@ extension BidirectionalCollection where Element: Equatable {
 }
 ```
 
-You can explore the usage (but not really the performance) of these methods in [this Swift sandbox](http://swift.sandbox.bluemix.net/#/repl/5a0345476e726279e5c6f486).
+You can try out the usage (but not really the performance) of these methods by copying [this gist](https://gist.github.com/natecook1000/45c3df2aa5f84a834063329a478c7972) into a playground.
 
 ## Source compatibility
 
