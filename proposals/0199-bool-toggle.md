@@ -3,8 +3,10 @@
 * Proposal: [SE-0199](0199-bool-toggle.md)
 * Authors: [Chris Eidhof](http://chris.eidhof.nl)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift/)
-* Status: **Active review (February 12-19)**
+* Status: **Accepted**
+* Decision notes: [Rationale](https://forums.swift.org/t/accepted-se-199-add-toggle-to-bool/10681)
 * Implementation: [apple/swift#14586](https://github.com/apple/swift/pull/14586)
+* Review thread: [Swift evolution forum](https://forums.swift.org/t/se-0199-adding-toggle-method-to-bool/)
 
 
 ## Introduction
