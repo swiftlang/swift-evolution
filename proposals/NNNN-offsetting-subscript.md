@@ -18,12 +18,13 @@ only take a single `Int` offset as an argument.
 Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/t/shorthand-for-offsetting-startindex-and-endindex/9397)
 
 ## Motivation
-Working with an index that cannot be offset independently, without the corresponding collection, causes the intent of code to get lost in an overly 
+Working with an index that cannot be offset independently, without the 
+corresponding collection, causes the intent of code to get lost in an overly 
 verbose call site.
 
 Currently to get a slice of a `String`, not anchored at the start or end of
 the collection, one might use the following subscript:
-```
+```swift
 let s = "Hello, Swift!"
 let subject = s[s.index(s.startIndex, offsetBy: 7)...s.index(s.startIndex, offsetBy: 11)]
 ```
@@ -32,7 +33,7 @@ to handle.
 
 A shorter approach, which is also available, is to use combinations of `prefix`, 
 `suffix` and the `drop` variants. A solution using these would follow like such:
-```
+```swift
 let subject = s.suffix(6).prefix(5)
 ```
 While this is much shorter, it suffers from multiple drawbacks. It is not as
@@ -55,9 +56,58 @@ Four new operators should be added along with a new type to help model this
 behavior. To encapsulate this behavior, a new protocol should also be added.
 The other range types will then also conditionally conform to this protocol.
 
+How some example cases of the proposed design will look like are shown below. 
+Where the first operation under each comment header is the proposed design and
+the following code under that is how one might do the same operation in Swift 
+currently.
+
+```swift
+var x = "ABCDEFGHIJ"
+
+// CDEFGH
+x[offset: 2..<-2]
+x[x.index(x.startIndex, offsetBy: 2)..<x.index(x.endIndex, offsetBy: -2)]
+
+// EFGH
+x[offset: 4...7] 
+
+let t = x.index(x.startIndex, offsetBy: 4)
+let u = x.index(t, offsetBy: 3)
+x[t...u]
+
+// x == ABCDEXYZ
+x[offset: 5...] = "XYZ"
+x.replaceSubrange(x.index(x.startIndex, offsetBy: 5)..., with: "XYZ")
+
+
+// x == ABCDE
+x[offset: (-3)...] = ""
+x.replaceSubrange(x.index(x.endIndex, offsetBy: -3)..., with: "")
+
+// x == A...E
+x[offset: 2..<-2] = "..."
+
+let start = x.index(x.startIndex, offsetBy: 1)
+let end = x.index(x.endIndex, offsetBy: -1)
+x.replaceSubrange(start..<end, with: "...")
+
+//An example of offset being used with a slice
+let y = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+
+let z = y[3..<9] //  40 50 60 70 80 90
+
+// 50 60 70 80
+z[offset: 1..<-1]
+z[z.index(z.startIndex, offsetBy: 1)..<z.index(z.endIndex, offsetBy: -1)]
+z[4..<8]
+```
+As shown by the last example the proposed solution helps with using slices that
+don't have a zero based `startIndex`. Using offset with a slice can be more
+natural to use.
+
 ## Detailed design
 A new protocol Should be added:
-```
+```swift
 /// A type that can be used to get a slice of a collection relative to the
 /// collections start and end indices.
 public protocol RelativeOffsetRangeExpression {
@@ -66,7 +116,7 @@ public protocol RelativeOffsetRangeExpression {
 }
 ```
 A new type to represent a range offset:
-```
+```swift
 /// Returns a relative offset range that represents a slice of a collection
 /// given two offset values relative to the collections start and/or end 
 /// indices.
@@ -121,7 +171,7 @@ public struct RelativeOffsetRange : RelativeOffsetRangeExpression {
 ```
 
 Other ranges should also conform to RelativeOffsetRangeExpression:
-```
+```swift
 extension Range : RelativeOffsetRangeExpression where Bound == Int {
   ...
 }
@@ -141,7 +191,7 @@ where Bound == Int {
 ```
 
 Add subscripts to `Collection`:
-```
+```swift
 extension Collection {
   /// Accesses a contiguous subrange of the collection's elements with a range
   /// that has offsets relative to the start and/or end indices.
@@ -170,7 +220,7 @@ extension Collection {
 ```
 
 Add a subscript to `MutableCollection`:
-```
+```swift
 extension MutableCollection {
   /// Accesses an element of the collection at a particular offset. Either from
   /// the start or end of the collection. Where a negative offset would imply
@@ -180,7 +230,7 @@ extension MutableCollection {
 ```
 
 Add a subscript to `RangeReplaceableCollection`:
-```
+```swift
 extension RangeReplaceableCollection {
   /// Accesses a contiguous subrange of the collection's elements with a range
   /// that has offsets relative to the start and/or end indices.
@@ -200,7 +250,7 @@ extension RangeReplaceableCollection {
 ```
 
 Implement range operators:
-```
+```swift
 public func ...-(lhs: Int, rhs: Int) -> RelativeOffsetRange {
   ...
 }
@@ -231,7 +281,7 @@ N/A
 
 ### Custom IndexOffset Enum Type
 We could add a new enum to the Standard Library (stdlib), `IndexOffset`.
-```
+```swift
 enum IndexOffset {
   case start(Int)
   case end(Int)
@@ -253,7 +303,7 @@ extension IndexOffset : Comparable {
 }
 ```
 With these semantics one can do the following:
-```
+```swift
 let s = "Hello, Swift!"
 let y = s[offset: .start(7) ... .end(-2)]
 ```
@@ -286,7 +336,7 @@ ability for a user to chose inclusivity.
 Adding convenience methods to offset `startIndex` and `endIndex` would help make
 intent more obvious. The following is an illustration of what this might look 
 like:
-```
+```swift
 let subject = s[s.startIndex(offsetBy: 7)...s.endIndex(offsetBy: -2)]
 ```
 
@@ -297,7 +347,7 @@ a rename. One suggested name was `index(atOffset:)`.
 ### Use a KeyPath
 Add an `index(_:offsetBy:)` method that would take a KeyPath as its first 
 argument. This will give us the following usage.
-```
+```swift
 let subject = s[s.index(\.startIndex, offsetBy: 7)..<s.index(\.endIndex, offsetBy: -1)]
 ```
 While this will shorten code, when the collection instance name is long, it is 
@@ -308,13 +358,13 @@ We could introduce a new type that would capture the idea of offsetting an index
 with a distance. This would then be passed to a collection to compute
 the new index. An example will look like the following:
 
-```
+```swift
 let x = [10, 20, 30, 40, 50, 60]
 x[offset: (x.startIndex + 2) ..< (x.startIndex + 4)]
 ```
 Any solution such as this will lose type info of the index. This means one 
 cannot write the following without an explicit type declaration.
-```
+```swift
 let i = x.startIndex + 3
 ```
 This would be surprising to many people and lead them to make the full call in 
