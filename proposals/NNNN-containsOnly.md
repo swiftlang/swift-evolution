@@ -3,6 +3,7 @@
 * Proposal: [SE-NNNN](NNNN-containsOnly.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: TBD
+* Implementation: [apple/swift#15120](https://github.com/apple/swift/pull/15120)
 * Status: **Awaiting review**
 
 ## Introduction
