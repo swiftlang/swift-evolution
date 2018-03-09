@@ -10,7 +10,7 @@
 
 This proposal's main focus is to create a unified random API, and a secure random API for all platforms.
 
-*This idea has been floating around swift-evolution for a while now, but this is the thread that started this proposal: https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170904/039605.html*
+*This idea has been floating around swift-evolution for a while now, but this is the thread that started this proposal: https://forums.swift.org/t/proposal-random-unification/6626*
 
 ## Motivation
 
@@ -93,29 +93,17 @@ To kick this off, we will be discussing the rngs that each operating system will
 
 #### Linux Platform
 
-We require that the kernel version be >= 3.17 as this was the release that introduced the `getrandom(2)` system call. We also require that glibc be >= 2.25 because this released exposed the `<sys/random.h>` header.
+We require that the kernel version be >= 3.17 as this was the release that introduced the `getrandom(2)` system call. We also require that glibc be >= 2.25 because this release exposed the `<sys/random.h>` header.
 
 | Kernel Version < 3.17 && Glibc Version < 2.25 | Kernel Version >= 3.17 && Glibc Version >= 2.25 |
 |:---------------------------------------------:|:-----------------------------------------------:|
 |            Read from `/dev/urandom`           |                Use `getrandom(2)`               |
 
-#### Android (Bionic) and Cygwin
+#### Other Platforms
 
-|  Bionic and Cygwin |
-|:------------------:|
-| Use `getrandom(2)` |
-
-#### Fuchsia
-
-|       Fuchsia       |
-|:-------------------:|
-| Use `getentropy(2)` |
-
-#### Windows
-
-|         Windows        |
-|:----------------------:|
-| Use `BCryptoGenRandom` |
+| Android (Bionic) and Cygwin |       Fuchsia       |         Windows        |
+|:---------------------------:|:-------------------:|:----------------------:|
+|      Use `getrandom(2)`     | Use `getentropy(2)` | Use `BCryptoGenRandom` |
 
 ### Random API
 
@@ -224,16 +212,21 @@ public struct Random : RandomNumberGenerator {
 
 public protocol Collection {
   // Returns a random element from the collection
-  func random(using generator: RandomNumberGenerator) -> Element?
+  func random<T: RandomNumberGenerator>(using generator: T) -> Element?
 }
 
 // Default implementation
 extension Collection {
-  // Returns a random element from the collection (defaults to using Random.default)
+  // Returns a random element from the collection
   // Can return nil if isEmpty is true
-  public func random(
-    using generator: RandomNumberGenerator = Random.default
+  public func random<T: RandomNumberGenerator>(
+    using generator: T
   ) -> Element?
+  
+  /// Uses the standard library's default rng
+  public func random() -> Element? {
+    return random(using: Random.default)
+  }
 }
 
 // We have to add this extension to support syntax like (Int.min ..< Int.max).random()
@@ -242,11 +235,16 @@ extension Collection {
 extension Range
 where Bound : FixedWidthInteger,
       Bound.Magnitude : UnsignedInteger {
-  // Returns a random element within lowerBound and upperBound (defaults to using Random.default)
+  // Returns a random element within lowerBound and upperBound
   // Can return nil if lowerBound == upperBound
-  public func random(
-    using generator: RandomNumberGenerator = Random.default
+  public func random<T: RandomNumberGenerator>(
+    using generator: T
   ) -> Element?
+  
+  /// Uses the standard library's default rng
+  public func random() -> Element? {
+    return random(using: Random.default)
+  }
 }
 
 // We have to add this extension to support syntax like (Int.min ... Int.max).random()
@@ -255,10 +253,15 @@ where Bound : FixedWidthInteger,
 extension ClosedRange
 where Bound : FixedWidthInteger,
       Bound.Magnitude : UnsignedInteger {
-  // Returns a random element within lowerBound and upperBound (defaults to using Random.default)
-  public func random(
-    using generator: RandomNumberGenerator = Random.default
+  // Returns a random element within lowerBound and upperBound
+  public func random<T: RandomNumberGenerator>(
+    using generator: T
   ) -> Element?
+  
+  /// Uses the standard library's default rng
+  public func random() -> Element? {
+    return random(using: Random.default)
+  }
 }
 
 // Enables developers to use things like Int.random(in: 5 ..< 12) which does not use modulo bias.
@@ -274,15 +277,25 @@ extension FixedWidthInteger
 where Self.Stride : SignedInteger,
       Self.Magnitude : UnsignedInteger {
 
-  public static func random(
+  public static func random<T: RandomNumberGenerator>(
     in range: Range<Self>,
-    using generator: RandomNumberGenerator = Random.default
+    using generator: T
   ) -> Self
 
-  public static func random(
+  /// Uses the standard library's default rng
+  public static func random(in range: Range<Self>) -> Self {
+    return Self.random(in: range, using: Random.default)
+  }
+
+  public static func random<T: RandomNumberGenerator>(
     in range: ClosedRange<Self>,
-    using generator: RandomNumberGenerator = Random.default
+    using generator: T
   ) -> Self
+  
+  /// Uses the standard library's default rng
+  public static func random(in range: ClosedRange<Self>) -> Self {
+    return Self.random(in: range, using: Random.default)
+  }
 }
 
 // Enables developers to use things like Double.random(in: 5 ..< 12) which does not use modulo bias.
@@ -299,15 +312,25 @@ where Self.RawSignificand : FixedWidthInteger,
       Self.RawSignificand.Stride : SignedInteger & FixedWidthInteger,
       Self.RawSignificand.Magnitude : UnsignedInteger {
 
-  public static func random(
+  public static func random<T: RandomNumberGenerator>(
     in range: Range<Self>,
-    using generator: RandomNumberGenerator = Random.default
+    using generator: T
   ) -> Self
 
-  public static func random(
+  /// Uses the standard library's default rng
+  public static func random(in range: Range<Self>) -> Self {
+    return Self.random(in: range, using: Random.default)
+  }
+
+  public static func random<T: RandomNumberGenerator>(
     in range: ClosedRange<Self>,
-    using generator: RandomNumberGenerator = Random.default
+    using generator: T
   ) -> Self
+  
+  /// Uses the standard library's default rng
+  public static func random(in range: ClosedRange<Self>) -> Self {
+    return Self.random(in: range, using: Random.default)
+  }
 }
 
 // We add this as a convenience to something like:
@@ -316,9 +339,14 @@ where Self.RawSignificand : FixedWidthInteger,
 // understand what is going on. This extension methods helps bring clarity to
 // operations like these.
 extension Bool {
-  public static func random(
-    using generator: RandomNumberGenerator = Random.default
+  public static func random<T: RandomNumberGenerator>(
+    using generator: T
   ) -> Bool
+  
+  /// Uses the standard library's default rng
+  public static func random() -> Bool {
+    return Bool.random(using: Random.default)
+  }
 }
 
 // Shuffle API
@@ -326,15 +354,25 @@ extension Bool {
 // The shuffle API will utilize the Fisher Yates algorithm
 
 extension Sequence {
-  public func shuffled(
-    using generator: RandomNumberGenerator = Random.default
+  public func shuffled<T: RandomNumberGenerator>(
+    using generator: T
   ) -> [Element]
+  
+  /// Uses the standard library's default rng
+  public func shuffled() -> [Element] {
+    return shuffled(using: Random.default)
+  }
 }
 
 extension MutableCollection {
-  public mutating func shuffle(
-    using generator: RandomNumberGenerator = Random.default
+  public mutating func shuffle<T: RandomNumberGenerator>(
+    using generator: T
   )
+  
+  /// Uses the standard library's default rng
+  public mutating func shuffle() {
+    shuffle(using: Random.default)
+  }
 }
 ```
 
