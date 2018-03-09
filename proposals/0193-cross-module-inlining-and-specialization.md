@@ -3,8 +3,10 @@
 * Proposal: [SE-0193](0193-cross-module-inlining-and-specialization.md)
 * Authors: [Slava Pestov](https://github.com/slavapestov)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
-* Status:  **Active Review (December 20, 2017...January 5, 2018)**
+* Status:  **Active Review (December 20, 2017...March 15, 2018)**
 * Implementation: Already implemented as a pair of underscored attributes `@_inlineable` and `@_versioned`
+
+**Note: the original review ran to January 5, 2018.  The review is now running for another week to discuss the spelling of `@abiPublic`.  Please see the [review thread](https://forums.swift.org/t/se-0193-cross-module-inlining-and-specialization/7310) to read the discussion and join in.**
 
 ## Introduction
 
