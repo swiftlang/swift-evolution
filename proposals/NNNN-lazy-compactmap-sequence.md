@@ -156,8 +156,8 @@ extension LazyCompactMapCollection {
 
 ## Source compatibility
 
-While most code will just work with the new extensions, code that relies on
-the return type of `LazyCollection.compactMap(_:)` will break, however, the return type of the deprecated `LazyCollection.flatMap(_:)` has been left as is to reduce code breakage.
+In Swift 5, while most code will work with the new extensions, code that relies on
+the return type of `LazyCollection.compactMap(_:)` will break.
 
 In addition, code like following code will break:
 ```swift
