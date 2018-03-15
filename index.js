@@ -94,6 +94,10 @@ var states = {
   }
 }
 
+function q(query){
+  return document.querySelector(query)
+}
+
 init()
 
 /** Primary entry point. */
@@ -119,7 +123,7 @@ function init () {
 
     // apply filters when the page loads with a search already filled out.
     // typically this happens after navigating backwards in a tab's history.
-    if (document.querySelector('#search-filter').value.trim()) {
+    if (q('#search-filter').value.trim()) {
       filterProposals()
     }
 
@@ -128,7 +132,7 @@ function init () {
   })
 
   req.addEventListener('error', function (e) {
-    document.querySelector('#proposals-count').innerText = 'Proposal data failed to load.'
+    q('#proposals-count').innerText = 'Proposal data failed to load.'
   })
 
   req.open('get', 'https://data.swift.org/swift-evolution/proposals')
@@ -186,7 +190,7 @@ function render () {
 
 /** Renders the top navigation bar. */
 function renderNav () {
-  var nav = document.querySelector('nav')
+  var nav = q('nav')
 
   // This list intentionally omits .acceptedWithRevisions and .error;
   // .acceptedWithRevisions proposals are combined in the filtering UI
@@ -255,7 +259,7 @@ function renderNav () {
 
 /** Displays the main list of proposals that takes up the majority of the page. */
 function renderBody () {
-  var article = document.querySelector('article')
+  var article = q('article')
 
   var proposalAttachPoint = article.querySelector('.proposals-list')
 
@@ -478,7 +482,7 @@ function _joinNodes (nodeList, text) {
 
 /** Adds UI interactivity to the page. Primarily activates the filtering controls. */
 function addEventListeners () {
-  var nav = document.querySelector('nav')
+  var nav = q('nav')
 
   // typing in the search field causes the filter to be reapplied.
   nav.addEventListener('keyup', filterProposals)
@@ -496,8 +500,8 @@ function addEventListeners () {
     element.addEventListener('change', filterProposals)
   })
 
-  var expandableArea = document.querySelector('.filter-options')
-  var implementedToggle = document.querySelector('#filter-by-implemented')
+  var expandableArea = q('.filter-options')
+  var implementedToggle = q('#filter-by-implemented')
   implementedToggle.addEventListener('change', function () {
     // hide or show the row of version options depending on the status of the 'Implemented' option
     ;['#version-options', '#version-options-label'].forEach(function (selector) {
@@ -510,9 +514,9 @@ function addEventListeners () {
     })
   })
 
-  document.querySelector('.filter-button').addEventListener('click', toggleFiltering)
+  q('.filter-button').addEventListener('click', toggleFiltering)
 
-  var filterToggle = document.querySelector('.filter-toggle')
+  var filterToggle = q('.filter-toggle')
   filterToggle.querySelector('.toggle-filter-panel').addEventListener('click', toggleFilterPanel)
 
   // Behavior conditional on certain browser features
@@ -521,8 +525,8 @@ function addEventListeners () {
     // emulate position: sticky when it isn't available.
     if (!(CSS.supports('position', 'sticky') || CSS.supports('position', '-webkit-sticky'))) {
       window.addEventListener('scroll', function () {
-        var breakpoint = document.querySelector('header').getBoundingClientRect().bottom
-        var nav = document.querySelector('nav')
+        var breakpoint = q('header').getBoundingClientRect().bottom
+        var nav = q('nav')
         var position = window.getComputedStyle(nav).position
         var shadowNav // maintain the main content height when the main 'nav' is removed from the flow
 
@@ -532,12 +536,12 @@ function addEventListeners () {
             shadowNav = nav.cloneNode(true)
             shadowNav.classList.add('clone')
             shadowNav.style.visibility = 'hidden'
-            nav.parentNode.insertBefore(shadowNav, document.querySelector('main'))
+            nav.parentNode.insertBefore(shadowNav, q('main'))
             nav.style.position = 'fixed'
           }
         } else if (position === 'fixed') {
           nav.style.position = 'static'
-          shadowNav = document.querySelector('nav.clone')
+          shadowNav = q('nav.clone')
           if (shadowNav) shadowNav.parentNode.removeChild(shadowNav)
         }
       })
@@ -547,8 +551,8 @@ function addEventListeners () {
   // on smaller screens, hide the filter panel when scrolling
   if (window.matchMedia('(max-width: 414px)').matches) {
     window.addEventListener('scroll', function () {
-      var breakpoint = document.querySelector('header').getBoundingClientRect().bottom
-      if (breakpoint <= 0 && document.querySelector('.expandable').classList.contains('expanded')) {
+      var breakpoint = q('header').getBoundingClientRect().bottom
+      if (breakpoint <= 0 && q('.expandable').classList.contains('expanded')) {
         toggleFilterPanel()
       }
     })
@@ -560,12 +564,12 @@ function addEventListeners () {
  * Additionally, toggles the presence of the "Filtered by:" status indicator.
  */
 function toggleFiltering () {
-  var filterDescription = document.querySelector('.filter-toggle')
+  var filterDescription = q('.filter-toggle')
   var shouldPreserveSelection = !filterDescription.classList.contains('hidden')
 
   filterDescription.classList.toggle('hidden')
   var selected = document.querySelectorAll('.filter-by-status input[type=checkbox]:checked')
-  var filterButton = document.querySelector('.filter-button')
+  var filterButton = q('.filter-button')
 
   if (shouldPreserveSelection) {
     filterSelection = [].map.call(selected, function (checkbox) { return checkbox.id })
@@ -581,7 +585,7 @@ function toggleFiltering () {
     filterButton.setAttribute('aria-pressed', 'true')
   }
 
-  document.querySelector('.expandable').classList.remove('expanded')
+  q('.expandable').classList.remove('expanded')
   filterButton.classList.toggle('active')
 
   filterProposals()
@@ -593,8 +597,8 @@ function toggleFiltering () {
  * Swift Evolution process.
  */
 function toggleFilterPanel () {
-  var panel = document.querySelector('.expandable')
-  var button = document.querySelector('.toggle-filter-panel')
+  var panel = q('.expandable')
+  var button = q('.toggle-filter-panel')
 
   panel.classList.toggle('expanded')
 
@@ -609,10 +613,10 @@ function toggleFilterPanel () {
  * Applies both the status-based and text-input based filters to the proposals list.
  */
 function filterProposals () {
-  var filterElement = document.querySelector('#search-filter')
+  var filterElement = q('#search-filter')
   var filter = filterElement.value
 
-  var clearButton = document.querySelector('#clear-button')
+  var clearButton = q('#clear-button')
   if (filter.length === 0) {
     clearButton.classList.add('hidden')
   } else {
@@ -717,7 +721,7 @@ function _searchProposals (filterText) {
  */
 function _applyFilter (matchingProposals) {
   // filter out proposals based on the grouping checkboxes
-  var allStateCheckboxes = document.querySelector('nav').querySelectorAll('.filter-by-status input:checked')
+  var allStateCheckboxes = q('nav').querySelectorAll('.filter-by-status input:checked')
   var selectedStates = [].map.call(allStateCheckboxes, function (checkbox) { return checkbox.value })
 
   var selectedStateNames = [].map.call(allStateCheckboxes, function (checkbox) { return checkbox.nextElementSibling.innerText.trim() })
@@ -814,14 +818,14 @@ function _applyFragment (fragment) {
   // perform key-specific parsing and checks
 
   if (actions.proposal.length) {
-    document.querySelector('#search-filter').value = actions.proposal.join(',')
+    q('#search-filter').value = actions.proposal.join(',')
   } else if (actions.search) {
-    document.querySelector('#search-filter').value = actions.search
+    q('#search-filter').value = actions.search
   }
 
   if (actions.version.length) {
     var versionSelections = actions.version.map(function (version) {
-      return document.querySelector('#filter-by-swift-' + _idSafeName(version))
+      return q('#filter-by-swift-' + _idSafeName(version))
     }).filter(function (version) {
       return !!version
     })
@@ -831,7 +835,7 @@ function _applyFragment (fragment) {
     })
 
     if (versionSelections.length) {
-      document.querySelector(
+      q(
         '#filter-by-' + states['.implemented'].className
       ).checked = true
     }
@@ -852,7 +856,7 @@ function _applyFragment (fragment) {
 
       if (stateName === '.implemented') implementedSelected = true
 
-      return document.querySelector('#filter-by-' + state.className)
+      return q('#filter-by-' + state.className)
     }).filter(function (status) {
       return !!status
     })
@@ -865,7 +869,7 @@ function _applyFragment (fragment) {
   // the version panel needs to be activated if any are specified
   if (actions.version.length || implementedSelected) {
     ;['#version-options', '#version-options-label'].forEach(function (selector) {
-      document.querySelector('.filter-options')
+      q('.filter-options')
         .querySelector(selector).classList
         .toggle('hidden')
     })
@@ -887,7 +891,7 @@ function _applyFragment (fragment) {
 function _updateURIFragment () {
   var actions = { proposal: [], search: null, status: [], version: [] }
 
-  var search = document.querySelector('#search-filter')
+  var search = q('#search-filter')
 
   if (search.value && search.value.match(/(SE-\d\d\d\d)($|((,SE-\d\d\d\d)+))/i)) {
     actions.proposal = search.value.toUpperCase().split(',')
@@ -966,7 +970,7 @@ function updateFilterDescription (selectedStateNames) {
     FILTER_DESCRIPTION_LIMIT = 1
   }
 
-  var container = document.querySelector('.toggle-filter-panel')
+  var container = q('.toggle-filter-panel')
 
   // modify the state names to clump together Implemented with version names
   var swiftVersionStates = selectedStateNames.filter(function (state) { return state.match(/swift/i) })
@@ -987,6 +991,6 @@ function updateFilterDescription (selectedStateNames) {
 
 /** Updates the `${n} Proposals` display just above the proposals list. */
 function updateProposalsCount (count) {
-  var numberField = document.querySelector('#proposals-count-number')
+  var numberField = q('#proposals-count-number')
   numberField.innerText = (count.toString() + ' proposal' + (count !== 1 ? 's' : ''))
 }
