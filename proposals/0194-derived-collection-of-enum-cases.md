@@ -4,8 +4,7 @@
 * Authors: [Jacob Bandes-Storch](https://github.com/jtbandes), [Brent Royal-Gordon](https://github.com/brentdax), [Robert Widmann](https://github.com/CodaFi)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Review Thread: [SE-0194 review][se8]
-* Status: **Accepted (with revisions)**
-* Implementation: [apple/swift#13655](https://github.com/apple/swift/pull/13655)
+* Status: **Implemented (Swift 4.2)**
 
 ## Introduction
 
