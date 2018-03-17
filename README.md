@@ -2,7 +2,7 @@
 [![Swift](https://img.shields.io/badge/Swift%205-Open%20to%20requests-brightgreen.svg)](#swift_stage)
 
 
-**Before you initiate a pull request**, please read the process document. Ideas should be thoroughly discussed on the [swift-evolution mailing list](https://swift.org/community/#swift-evolution) first.
+**Before you initiate a pull request**, please read the process document. Ideas should be thoroughly discussed on the [swift-evolution forums](https://swift.org/community/#swift-evolution) first.
 
 This repository tracks the ongoing evolution of Swift. It contains:
 
