@@ -11,7 +11,7 @@
 
 ## Introduction
 
-During the discussion on multi-line spring literals a mode for "raw-mode" strings was discussed but postponed for later consideration. This proposal looks to move this idea forward and suggests the smallest of changes be made to the Swift lexer to allow the entry of single and multi-line "raw" string literals by prefixing them with "r". This adopts the precedent from the Python language. In raw literals, the \ character would have no special meaning.
+During the discussion on multi-line string literals a mode for "raw-mode" strings was discussed but postponed for later consideration. This proposal looks to move this idea forward and suggests the smallest of changes be made to the Swift lexer to allow the entry of single and multi-line "raw" string literals by prefixing them with "r". This adopts the precedent from the Python language. In raw literals, the \ character would have no special meaning.
 
 ## Motivation
 
