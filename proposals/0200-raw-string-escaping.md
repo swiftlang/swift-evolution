@@ -4,9 +4,7 @@
 * Authors: [John Holdsworth](https://github.com/johnno1962)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Active Review (March 16...26, 2018)**
-
 * Implementation: [apple/swift#13055](https://github.com/apple/swift/pull/13055)
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/), [Additional Commentary](https://lists.swift.org/pipermail/swift-evolution/)
 * Bugs: [SR-6362](https://bugs.swift.org/browse/SR-6362)
 
 ## Introduction
