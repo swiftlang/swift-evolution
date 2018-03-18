@@ -34,7 +34,7 @@ escaping to use those APIs. For example:
 
 ## Proposed solution
 
-Allow the use of all keywords except `inout`, `var`, and `let` as argument labels. This affects the grammar in three places:
+Allow the use of all keywords except `var`, and `let` as argument labels. This affects the grammar in three places:
 
 * Call expressions, such as the examples above. Here, we have no grammatic ambiguities, because "<keyword> \`:\`" does not appear in any grammar production within a parenthesized expression list. This is, by far, the most important case.
 
@@ -44,13 +44,12 @@ Allow the use of all keywords except `inout`, `var`, and `let` as argument label
 func touchesMatching(phase: NSTouchPhase, in view: NSView?) -> Set<NSTouch>
 ```
 
-  Keywords that introduce or modify a parameter—-currently just
-"inout", "let", and "var"—-will need to retain their former
+  Keywords that introduce or modify a parameter—-currently just "let", and "var"—-will need to retain their former
 meanings. If we invent an API that uses such keywords, they will still
 need to be back-ticked:
 
 ```swift
-func addParameter(name: String, `inout`: Bool)
+func addParameter(name: String, `let`: Bool)
 ```
 
 * Function types: these are actually easier than #2, because the parameter name is always followed by a ‘:’:
