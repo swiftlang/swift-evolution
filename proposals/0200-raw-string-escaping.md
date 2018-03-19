@@ -19,6 +19,8 @@ Like multi-line strings which would also have a `#raw("""... """)` counterpart a
 
 Many have expressed concerns that this clutters the Swift language for marginal benefit. Strings are an important data type and it is one of the stated aims of Swift to provide rich support for them. This wouldn't be a feature that new users would be required to know and if they did encounter it the feature has been designed to be easy to understand.
 
+This proposal does not intend to put forward "custom delimiters" which would be too complex to implement and support in the IDE. The suggested format is sufficiently flexible to can contain any character sequence other than `")` (and new lines in single quoted raw literals.)
+
 ## Motivation
 
 Regular expressions represent the most common, but not singular, motivation for incorporating raw strings into the Swift language. Raw quoting enables users to enter regular expressions without having to escape each backslash use. Patterns often contain elements such as "\w" or "\S". These do not translate well to Swift's existing string literal syntax, resulting in overly complex strings such as:
