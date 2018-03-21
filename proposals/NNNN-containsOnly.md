@@ -45,6 +45,8 @@ nums.containsOnly(9)
 nums.containsOnly(where: isOdd)
 ```
 
+on the basis that it aids readability and avoids performance pitfalls from the composed alternatives.
+
 ## Detailed design
 
 Add the following extensions to `Sequence`:
@@ -77,4 +79,8 @@ This change is purely additive so has no API resilience consequences.
 
 ## Alternatives considered
 
-Not adding it.
+Not adding it, since it can be trivially (if confusingly) composed.
+
+Much name bikeshedding has ensued. The primary rival for `containsOnly` is `all`. `containsOnly` is preferred as it is more explicit, and echoes the existing `contains`. Naming it `all` suggests a renaming of `contains` to `any` would be appropriate – but this is already a fairly heavily-used term elsewhere in Swift, and is less explicit.
+
+`contains(only:)` is discounted due to trailing closures dropping the argument label, rendering it indistiguishable from `contains(where:)`.
