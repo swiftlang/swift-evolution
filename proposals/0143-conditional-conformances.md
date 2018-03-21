@@ -219,17 +219,16 @@ conformances](https://github.com/apple/swift/blob/master/docs/GenericsManifesto.
 that are orthogonal to conditional conformances.
 
 
-### Implied conditional conformances 
+### Implied conditional conformances
 
-Stating conformance to a protocol implicitly states conformances to
-any of the protocols that the protocol inherits. This is already
-the case in Swift today: one can declare conformance to the
-`Collection` protocol, and it implies conformance to `Sequence` as
-well.
-
-With conditional conformances, the constraints for the conformance to
-the inherited protocol may not be clear, so the conformance to the
-inherited protocol will need to be stated explicitly. For example:
+Stating a non-conditional conformance to a protocol implicitly states
+conformances to any of the protocols that the protocol inherits: one
+can declare conformance to the `Collection` protocol, and it implies
+conformance to `Sequence` as well. However, with conditional
+conformances, the constraints for the conformance to the inherited
+protocol may not be clear, and even when there is a clear choice, it
+will often be incorrect, so the conformance to the inherited protocol
+will need to be stated explicitly. For example, for the first case:
 
 ```swift
 protocol P { }
@@ -266,10 +265,10 @@ of `X` to `P` with the appropriate set of constraints, e.g.:
 extension X: P where T: P { }
 ```
 
-In cases where the different sets of constraints used to describe the
-implied inherited conformances can be ordered, the least-specialized
-(i.e., most general) constraints will be used for the implied inherited
-conformance. For example:
+For the second problem mentioned above, when there is an obvious set
+of requirements to use in an implied conformance, it is likely to be
+wrong, because of how often conditional conformances are used for
+wrapper types. For instance:
 
 ```swift
 protocol R: P { }
@@ -282,14 +281,62 @@ extension Y: S where T: S { }
 ```
 
 The conformances of `Y: R` and `Y: S` both imply the conformance
-`Y: P`. Note that the constraints `T: R` are less specialized (more
+`Y: P`, however the constraints `T: R` are less specialized (more
 general) than the constraints `T: S`, because every `S` is also an
-`R`. Therefore, `Y` will conform to `P` when `T: S`, e.g.:
+`R`. Therefore, it could be that `Y` will conform to `P` when `T: R`, e.g.:
 
 ```swift
 /// compiler produces the following implied inherited conformance:
 extension Y: P where T: R { }
 ```
+
+However, it is likely that the best conformance is actually the more
+relaxed (that is, applicable for more choices of `T`):
+
+``` swift
+extension Y: P where T: P { }
+```
+
+This is the case for almost all wrappers for the
+`Sequence`/`Collection`/`BidirectionalCollection`/... hierarchy (for
+instance, as discussed below, `Slice : BidirectionalCollection where
+Base : BidirectionalCollection` and similarly for
+`RandomAccessCollection`), and for most types conforming to several of
+`Equatable`, `Comparable` and `Hashable`.
+
+Implicitly constructing these conformances could be okay if it were
+possible to relax the overly-strong requirements when they're noticed
+in future. However, it can be backwards incompatible, and so not doing
+it implicitly is defaulting to the safer option. The backwards
+incompatibility comes from how requirements are inferred in function
+signatures: given `struct Z<A: P> {}`, Swift notices that a
+declaration `func foo<A>(x: Z<Y<A>>)` requires that `Y<A> : P`, since
+it is used in `Z`, and thus, if the implicit inherited conformance
+above existed, `A: R`. This conformance is part of the function's
+signature (and mangling!) and is available to be used inside `foo`:
+that function can use requirements from `R` on values of type `A`. If
+the library declaring `Y` was to change to the declaration of the
+conformance `Y: P`, the inferred requirement becomes `A: P`, which
+changes the `foo`'s mangled name, and what can be done with values of
+type `A`. This breaks both API and ABI compatibility.
+
+On the other hand, not allowing implicit inherited conformances means
+that one cannot insert a superprotocol to an existing protocol: for
+instance, if the second example started as `protocol R { }` and was
+changed to `protocol R: P { }`. However, we believe this is already
+incompatible, for unrelated reasons.
+
+Finally, it is a small change to get implicit behaviour explicitly, by
+adding the conformance declaration to the extension that would be
+implying the conformance. For instance, if it is correct for the
+second example to have `T: R` as the requirement on `Y: P`, the `Y: R`
+extension only needs to be changed to include `, P`:
+
+``` swift
+extension Y: R, P where T: R { }
+```
+
+This is something compilers can, and should, suggest as a fixit.
 
 ## Standard library adoption
 
