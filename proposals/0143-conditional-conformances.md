@@ -320,6 +320,15 @@ conformance `Y: P`, the inferred requirement becomes `A: P`, which
 changes the `foo`'s mangled name, and what can be done with values of
 type `A`. This breaks both API and ABI compatibility.
 
+(Note: the inference above is driven by having a unique conformance,
+and thus `Y: P` if *and only if* `A: P`. If overlapping conformances
+were allowed, this inference would not be possible. A possible
+alternative that's more directly future-proof with overlapping
+conformances would be to disable this sort of inference from
+conditional conformances, and instead require the user to write `func
+foo<A: P>`. This could also allow the conformances to be implied,
+since it would no longer be such a backwards-compatibility problem.)
+
 On the other hand, not allowing implicit inherited conformances means
 that one cannot insert a superprotocol to an existing protocol: for
 instance, if the second example started as `protocol R { }` and was
