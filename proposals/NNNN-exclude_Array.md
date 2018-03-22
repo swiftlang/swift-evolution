@@ -46,7 +46,6 @@ This allows us to write the example above without a second subset of array
 
    ```
    let arrayFirst = ["A","B","C","D","E","F","G"]
-   let arraySecond = ["B","C","D"]
 
    // need all arrayFirst elements
    self.callSomeFunction(arrayFirst)
