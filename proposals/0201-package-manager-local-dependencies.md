@@ -1,6 +1,6 @@
 # Package Manager Local Dependencies
 
-* Proposal: [SE-NNNN](NNNN-package-manager-local-dependencies.md)
+* Proposal: [SE-0201](0201-package-manager-local-dependencies.md)
 * Author: [Ankit Aggarwal](https://github.com/aciidb0mb3r)
 * Review Manager: [Boris Bügling](https://github.com/neonichu)
 * Status: **Active Review (March 22...29, 2018)**
