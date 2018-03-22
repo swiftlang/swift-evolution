@@ -30,6 +30,20 @@ I propose adding an `exclude` to `Array`. It excludes the given values from the 
 The proposal suggests a new method - "exclude" in `Array`. The method will create a sub array with only required values.
 
 
+```
+extension Array where Element:Equatable {
+    
+    func exclude(_ elements:Array) -> Array  {
+        
+        return self.filter{!elements.contains($0)}
+        //return self.filter { (!elements.contains(where: $0 as! (_) throws -> Bool,, }
+        //self.filter { !elements.contains(where: $0 as! (_) throws -> Bool)}
+    }
+}
+```
+
+This allows us to write the example above without a second subset of array
+
    ```
    let arrayFirst = ["A","B","C","D","E","F","G"]
    let arraySecond = ["B","C","D"]
