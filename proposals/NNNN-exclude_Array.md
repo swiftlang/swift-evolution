@@ -34,10 +34,7 @@ The proposal suggests a new method - "exclude" in `Array`. The method will creat
 extension Array where Element:Equatable {
     
     func exclude(_ elements:Array) -> Array  {
-        
         return self.filter{!elements.contains($0)}
-        //return self.filter { (!elements.contains(where: $0 as! (_) throws -> Bool,, }
-        //self.filter { !elements.contains(where: $0 as! (_) throws -> Bool)}
     }
 }
 ```
