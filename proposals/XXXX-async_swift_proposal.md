@@ -692,7 +692,7 @@ Furthermore, the shape and functionality of a future may also be affected by Swi
 
 The most commonly cited alternative design is to follow the model of (e.g.) C#, where calls to async functions return a future (aka `Task` in C#), instead of futures being a library feature separable from the core language.  Going this direction adds async/await to the language instead of adding a more general coroutine feature.
 
-Despite this model being widely know, we believe that the proposed design is
+Despite this model being widely known, we believe that the proposed design is
  superior for a number of reasons:
 
  - Coroutines are generally useful language features beyond the domain of async/await.  For example, building async/await into the compiler would require building generators in as well.
