@@ -1,9 +1,9 @@
 # Random Unification
 
-* Proposal: [SE-NNNN](NNNN-random-unification.md)
+* Proposal: [SE-202](0202-random-unification.md)
 * Authors: [Alejandro Alonso](https://github.com/Azoy)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Ben Cohen](http://github.com/AirspeedSwift/)
+* Status: **Active Review (March 23...April 3, 2018)**
 * Implementation: [apple/swift#12772](https://github.com/apple/swift/pull/12772)
 
 ## Introduction
