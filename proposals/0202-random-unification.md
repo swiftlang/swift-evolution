@@ -1,6 +1,6 @@
 # Random Unification
 
-* Proposal: [SE-202](0202-random-unification.md)
+* Proposal: [SE-0202](0202-random-unification.md)
 * Authors: [Alejandro Alonso](https://github.com/Azoy)
 * Review Manager: [Ben Cohen](http://github.com/AirspeedSwift/)
 * Status: **Active Review (March 23...April 3, 2018)**
