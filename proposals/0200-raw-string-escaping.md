@@ -4,7 +4,7 @@
 * Authors: [John Holdsworth](https://github.com/johnno1962)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Active Review (March 16...26, 2018)**
-* Toolchain: [swift-LOCAL-2018-03-18-a-osx.tar.gz](http://johnholdsworth.com/swift-LOCAL-2018-03-18-a-osx.tar.gz)
+* Toolchain: [swift-LOCAL-2018-03-24-a-osx.tar.gz](http://johnholdsworth.com/swift-LOCAL-2018-03-24-a-osx.tar.gz)
 * Implementation: [apple/swift#13055](https://github.com/apple/swift/pull/13055)
 * Forum Links: [Proposal](https://forums.swift.org/t/se-0200-raw-mode-string-literals/11048) [Pitch](https://forums.swift.org/t/pitch-raw-mode-string-literals/7120)
 * Bugs: [SR-6362](https://bugs.swift.org/browse/SR-6362)
@@ -19,7 +19,13 @@ Like multi-line strings which would also have a `#raw("""... """)` counterpart a
 
 Many have expressed concerns that this clutters the Swift language for marginal benefit. Strings are an important data type and it is one of the stated aims of Swift to provide rich support for them. This wouldn't be a feature that new users would be required to know and if they did encounter it the feature has been designed to be easy to understand.
 
-This proposal does not intend to put forward "custom delimiters" which would be too complex to implement and support in the IDE. The suggested format is sufficiently flexible to can contain any character sequence other than `")` (and new lines in single quoted raw literals.)
+This proposal can accommodate custom delimiters between the opening `(` and the `"` character and this sequence must be repeated at the end of the string. For example the following is valid:
+
+    print(#raw(🤡"SE-200"🤡))
+
+Further, the proposal suggests the inclusion of a feature of "interpolating raw strings" where no escapes are processed except for `\()` interpolations which are. This was found to be very useful in practice and does not overload the feature if we use the following double bracketed syntax reminiscent of the inclusions themselves:
+
+    print(#raw(("SE-\("200")")))
 
 ## Motivation
 
@@ -40,8 +46,8 @@ Windows uses backslash delimiters for file paths. It is easier to read and maint
 	
 This problem is encountered when writing code generators for `\` laden languages such as `Tex` or when looking to embed language code snippets of `C` or `Swift` itself which contain string that contain `\`.
 
-	#raw("    print("Hello World\n");")
-	"    print(\"Hello World\\n\"";"
+	#raw(_"    print("Hello World\n");"_)
+	"    print(\"Hello World\\n\");"
 
 Embed JSON messages offers similar challenges. JSON can contain `\` characters to escape `"`s in strings and if the message is to be pasted in verbatim then, raw string literals provide a simpler and more direct way to incorporate that content into Swift source.
 
@@ -67,8 +73,6 @@ Raw string literals allow you to cut and paste literal strings without hand-anno
 	
 Raw string literals go beyond convenience to improve clarity, correctness, and inspection. Raw strings simplify understanding exact string content at a glance.
 
-Interpolation would not be available in raw strings but if this is required the developer can use a place holder and string replace.
-
 ## Proposed solution
 
 The proposal suggests a new "raw" string literal syntax by surrounding any string with #raw("literal") which alters slightly the behaviour of the compiler in realising the literal. The `\` character would loose it's role as an escaping introducer altogether.
@@ -87,6 +91,12 @@ Some examples of raw mode literals and their existing literal equivalents:
 		Line One\
 		Line Two\
 		""") == "Line One\\\nLineTwo\\"
+
+The full syntax is as follows:
+
+	#raw([(][delimiter]"contents"[delimiter][)])
+
+Where a second enclosing set of brackets is used, the literal can still process interpolation escapes to include values. The delimiter is a convenience for particularly difficult cases where the string contents contain code or for decoration to make the extent of a multi-line literal, for example, clearer.
 
 ## Detailed design
 
@@ -108,8 +118,12 @@ None.
 
 An alternative proposal where known escapes retained their functionality and anything else was passed through was considered. This found to be too difficult to reason about in practice. 
 
-Alternative "introducers" where considered including using Python's Syntax `r""`. This doesn't follow Swift patterns and was unpopular among developers. 
+Alternative "introducers" where considered including using Python's Syntax `r""`. This doesn't follow Swift patterns and was very unpopular among developers.
 
-Other names for the `#raw` introducer could be considered such as `#rawStringLiteral` or `#rawString` but for the author it is obvious this is a String literal and such verbosity should not be imposed on the user. This name does not form a functional part of the feature and can be discussed in the forum. 
+Other names for the `#raw` introducer could be considered such as `#rawStringLiteral` or `#rawString` but for the author it is already obvious this is a String and a literal and such verbosity should not be imposed on the user. This name does not form a functional part of the feature and can be discussed in the forum.
 
-`\"a string with a \ in it"` was also considered and is not sufficiently self explanatory. Some have suggested using `'a string'` which has a precedent in Perl but I'd rather this was reserved for something single character related acknowledging Swift's origins in C.
+`\"a string with a \ in it"` was also considered and is not sufficiently self explanatory. Some have suggested using `'a string'` which has a precedent in Perl but the author would rather this was reserved for something single character related acknowledging Swift's origins in C. In the finish single character delimiters are simply not unique enough have the feature cover a wide range of use cases.
+
+## Acknowledgements
+
+Thanks to Erica Sadun for proofing various versions of this proposal and contributing the well written sections of the text.
