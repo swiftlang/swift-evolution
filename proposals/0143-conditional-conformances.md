@@ -304,7 +304,24 @@ extension ContiguousArray: Equatable where Element: Equatable { /*== already exi
 extension Dictionary: Equatable where Value: Equatable { /*== already exists */ }
 ```
 
-Note that `Set` is already (unconditionally) `Equatable`.
+In addition, implement conditional conformances to `Hashable` for the
+types above, as well as `Range` and `ClosedRange`:
+
+```swift
+extension Optional: Hashable where Wrapped: Hashable { /*...*/ }
+extension Array: Hashable where Element: Hashable { /*...*/ }
+extension ArraySlice: Hashable where Element: Hashable { /*...*/ }
+extension ContiguousArray: Hashable where Element: Hashable { /*...*/ }
+extension Dictionary: Hashable where Value: Hashable { /*...*/ }
+extension Range: Hashable where Bound: Hashable { /*...*/ }
+extension ClosedRange: Hashable where Bound: Hashable { /*...*/ }
+```
+
+While the standard library did not previously provide existing
+implementations of `hashValue` for these types, conditional `Hashable`
+conformance is a natural expectation for them.
+
+Note that `Set` is already (unconditionally) `Equatable` and `Hashable`.
 
 In addition, it is intended that the standard library adopt conditional conformance
 to collapse a number of "variants" of base types where other generic parameters
