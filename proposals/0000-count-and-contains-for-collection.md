@@ -119,13 +119,14 @@ extension BidirectionalCollection where Element: Equatable {
                 currentHelperSelfIndex = currentMainSelfIndex
                 currentOtherIndex = other.startIndex
             }
+            return count
         }
         while (currentMainSelfIndex == self.endIndex) == false {
-
-            while self[currentHelperSelfIndex] == other[currentOtherIndex] {
-
+                
+            while other[currentOtherIndex] == self[currentHelperSelfIndex] {
+                
                 if currentOtherIndex == other.index(before: other.endIndex) {
-
+                    
                     count += 1
                     currentMainSelfIndex = currentHelperSelfIndex
                     break
@@ -136,8 +137,8 @@ extension BidirectionalCollection where Element: Equatable {
                 currentOtherIndex = other.index(after: currentOtherIndex)
             }
             currentMainSelfIndex = self.index(after: currentMainSelfIndex)
-            currentOtherIndex = other.startIndex
             currentHelperSelfIndex = currentMainSelfIndex
+            currentOtherIndex = other.startIndex
         }
         return count
     }
@@ -157,24 +158,26 @@ extension BidirectionalCollection where Element: Equatable {
         
         if other.startIndex == other.endIndex { return true }
         
-        var currentSelfIndex = self.startIndex
+        var currentMainSelfIndex = self.startIndex
+        var currentHelperSelfIndex = self.startIndex
         var currentOtherIndex = other.startIndex
         
-        while (currentSelfIndex == self.endIndex) == false {
+        while (currentMainSelfIndex == self.endIndex) == false {
             
-            while self[currentSelfIndex] == other[currentOtherIndex] {
+            while other[currentOtherIndex] == self[currentHelperSelfIndex] {
                 
                 if currentOtherIndex == other.index(before: other.endIndex) {
                     
                     return true
                 }
-                if currentSelfIndex == self.index(before: self.endIndex) { return false }
+                if currentHelperSelfIndex == self.index(before: self.endIndex) { return false }
                 
-                currentSelfIndex = self.index(after: currentSelfIndex)
+                currentHelperSelfIndex = self.index(after: currentHelperSelfIndex)
                 currentOtherIndex = other.index(after: currentOtherIndex)
             }
+            currentMainSelfIndex = self.index(after: currentMainSelfIndex)
+            currentHelperSelfIndex = currentMainSelfIndex
             currentOtherIndex = other.startIndex
-            currentSelfIndex = self.index(after: currentSelfIndex)
         }
         return false
     }
