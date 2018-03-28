@@ -187,52 +187,55 @@ extension BidirectionalCollection where Element: Equatable {
 
 
 #### Complexity `count`
+
 <details>
 <summary>Expand</summary>
-
 * `n` is the sequence length, `m` is the subsequence length.
 
 * **Non-overlapping**
 
-   * **Time** `n + ceil(n / m)` = **ϴ(n)** `∀m in 1...n`
+   * **Time** **O(nm)**
 
       * best: **ϴ(1)**  `(m = 0)`
-      * worst: **ϴ(n)**
-      * average: **O(n)**
+      * worst: **ϴ(nm)**
+      * average: **O(nm)**
 
    * **Memory** Always **ϴ(1)**
 
 
 * **Overlapping**
 
-   * **Time**  `n + m * max(a)` = **O(n * m)**, `max(a) = (n - m + 1)`
+   * **Time**  `n + m * max(a)` = **O(nm)**, `max(a) = (n - m + 1)`
 `a` - number of occurrences.
 
       * best: **ϴ(1)**  `(m = 0)`
-      * worst: **ϴ(n * m)**
-      * average: **O(n * m)**
+      * worst: **ϴ(nm)**
+      * average: **O(nm)**
          
     * In practice, however, unless you are counting subsequences of equal elements in sequences of the same equal elements, which is very unlikely, the number of occurrences is predominantly **ϴ(1)**, meaning the average can be assumed to be **O(n)**.
 
    * **Memory** Always **ϴ(1)**
 
-* *Can’t think of a faster way yet. Anyway, ideas of faster variants, if they exist at all, are of course appreciated.*
+* *Can’t think of a faster way yet. Anyway, ideas of faster variants are of course appreciated.*
 </details>
 
+
 #### Complexity `contains` 
+
 <details>
 <summary>Expand</summary>
 
 * `n` is the sequence length, `m` is the subsequence length.
 
- * **Time**  **O(n)**
+ * **Time**  **O(nm)**
 
       * best: **ϴ(1)**  `(m = 0)`
-      * worst: **ϴ(n)**
-      * average: **O(n)**
+      * worst: **ϴ(nm)**
+      * average: **O(nm)**
 
   * **Memory** Always **ϴ(1)**
 </details>
+
 
 ## Source compatibility
 
