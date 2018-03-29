@@ -1,9 +1,9 @@
 # Add `last(where:)` and `lastIndex(where:)` Methods
 
-* Proposal: [SE-NNNN](0000-add-last-methods.md)
+* Proposal: [SE-0204](0204-add-last-methods.md)
 * Author: [Nate Cook](https://github.com/natecook1000)
-* Status: **Awaiting review**
-* Review manager: TBD
+* Status: **Active review (March 29...April 6, 2018)**
+* Review manager: [John McCall](https://github.com/rjmccall)
 * Implementation: [PR #13337](https://github.com/apple/swift/pull/13337)
 * Related Bug: [\[SR-1504\] RFE: index(of:) but starting from end](https://bugs.swift.org/browse/SR-1504)
 
