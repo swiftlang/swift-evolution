@@ -1,14 +1,10 @@
 # Rename Sequence.elementsEqual
 
-* Proposal: [SE-NNNN](NNNN-rename-sequence-elements-equal.md)
+* Proposal: [SE-0203](0203-rename-sequence-elements-equal.md)
 * Authors: [Xiaodi Wu](https://github.com/xwu)
-* Review Manager: TBD
-* Status: **Awaiting review**
-
-*During the review process, add the following fields as needed:*
-
+* Review Manager: [Ted Kremenek](https://github.com/tkremenek)
+* Status: **Active Review (March 29...April 6, 2018)**
 * Implementation: [apple/swift#12884](https://github.com/apple/swift/pull/12884)
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/), [Additional Commentary](https://lists.swift.org/pipermail/swift-evolution/)
 * Bugs: [SR-6102](https://bugs.swift.org/browse/SR-6102)
 
 ## Introduction
