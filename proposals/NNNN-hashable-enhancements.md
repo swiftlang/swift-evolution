@@ -262,10 +262,33 @@ the state of the hash function, and provides the following operations:
     }
     ```
 
-    (We expect most hashable types will have discrete components; the
-    bits to be hashed will rarely be available as a contiguous
-    byte sequence.)
+    We expect most hashable types will have discrete
+    components. However, we do provide an `append` overload that takes
+    bytes from an `UnsafeRawBufferPointer`, in cases where the bits to
+    be hashed are available as a single, contiguous byte sequence:
 
+    ```swift
+    extension Hasher {
+      public mutating func append(bits buffer: UnsafeRawBufferPointer)
+    }
+    ```
+
+    To make it easier to express `hash(into:)` in terms of `Hashable`
+    components, we provide a variant of `append` that simply calls
+    `hash(into:)` on the supplied value:
+
+    ```swift
+    extension Hasher {
+      @inlinable
+      public mutating func append<H: Hashable>(_ value: H) {
+        value.hash(into: &self)
+      }
+    }
+    ```
+
+    This is purely for convenience; `hasher.append(foo)` is slightly
+    easier to type than `foo.hash(into: &hasher)`.
+    
 3. An operation to finalize the state, extracting the hash value from it.
    
     ```swift
@@ -275,7 +298,7 @@ the state of the hash function, and provides the following operations:
     ```
 
    Finalizing the hasher state invalidates it; it is illegal to call
-   `append` or `finalized` on a finalized hasher.
+   `append` or `finalize` on a hasher that's already finalized.
 
 Here is how one may use `Hasher` as a standalone type:
 
