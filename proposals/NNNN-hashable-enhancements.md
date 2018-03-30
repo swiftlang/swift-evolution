@@ -74,11 +74,10 @@ Swift-evolution thread: [Combining Hashes](https://forums.swift.org/t/combining-
 
 The Swift Standard Library includes two general-purpose hashing
 collections, `Set` and `Dictionary`. These collections are built
-around hash tables, which are probabilistic data structures; their
-expected performance critically depends on the expected distribution
-of the elements stored in them, along with the quality of the hash
-function that is used to derive bucket indices for individual
-elements.
+around hash tables, whose expected performance critically depends on
+the expected distribution of the elements stored in them, along with
+the quality of the hash function that is used to derive bucket indices
+for individual elements.
 
 With a good hash function, simple lookups, insertions and removals
 take constant time on average. However, when the hash function is not
@@ -875,8 +874,10 @@ protocol Hashable {
 }
 ```
 
-However, we believe this would add an unnnecessary degree of freedom.
-In particular, we do not foresee a need for adding support for custom
+However, we believe this would add a degree of generality whose costs
+are unjustifiable relative to their potential gain. We expect the
+ability to create custom hashers would rarely be exercised. For
+example, we do not foresee a need for adding support for custom
 hashers in `Set` and `Dictionary`. On the other hand, there are
 distinct advantages to standardizing on a single, high-quality hash
 function:
@@ -888,9 +889,9 @@ function:
     standard hasher's opaque mutating functions won't ever perform any
     retain/release operations, or otherwise mutate any of the
     reference types we may encounter during hashing; describing this
-    fact to the compiler may enable optimizations that would not
+    fact to the compiler enables optimizations that would not
     otherwise be possible.
-* Generics aren't zero-cost abstractions in Swift. We may be tempted
+* Generics in Swift aren't zero-cost abstractions. We may be tempted
     to think that we could gain some performance by plugging in a less
     sophisticated hash function. This is not necessarily the case --
     support for custom hashers comes with significant overhead that
