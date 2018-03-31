@@ -74,20 +74,20 @@ Swift-evolution thread: [Combining Hashes](https://forums.swift.org/t/combining-
 
 The Swift Standard Library includes two general-purpose hashing
 collections, `Set` and `Dictionary`. These collections are built
-around hash tables, whose expected performance critically depends on
-the expected distribution of the elements stored in them, along with
-the quality of the hash function that is used to derive bucket indices
-for individual elements.
+around hash tables, whose performance is critically dependent on the
+expected distribution of the elements stored in them, along with the
+quality of the hash function that is used to derive bucket indices for
+individual elements.
 
 With a good hash function, simple lookups, insertions and removals
-take constant time on average. However, when the hash function is not
-well-suited to the data, expected performance can become proportional
-to the number of elements stored in the table. If the table is large
-enough, such a regression can easily lead to unacceptable performance.
-For example, when they're overwhelmed with hash collisions,
-applications and network services may stop processing new user events
-or network requests for prolonged periods of time; easily enough to
-crash the app or bring down the service.
+take constant time on average. However, when the hash function isn't
+carefully chosen to suit the data, the expected time of such
+operations can become proportional to the number of elements stored in
+the table. If the table is large enough, such a regression can easily
+lead to unacceptable performance.  For example, when they're
+overwhelmed with hash collisions, applications and network services
+may stop processing new events for prolonged periods of time; this can
+easily be enough to crash the app or to bring down the service.
 
 ### <a name="status-quo">The Status Quo</a>
 
@@ -241,8 +241,8 @@ the state of the hash function, and provides the following operations:
    
     ```swift
     public struct Hasher {
-      public init()         // Use the default per-execution random seed value
-      public init(seed: (UInt64, UInt64)) // Use the specified seed value
+      public init()  // Use the default per-execution random seed value
+      public init(seed: (UInt64, UInt64)) // Combines `seed` with the default seed
     }
     ```
 
@@ -474,11 +474,11 @@ worth the cost of a change to a basic protocol?
   approach:
   
   ```
-   1   hasher.append(bits: topLeft.x)     (in topLeft.hashValue)
+   1   hasher.append(bits: topLeft.x)     (in topLeft.hash(into:))
    1   hasher.append(bits: topLeft.y)
-   1   hasher.append(bits: bottomRight.x) (in bottomRight.hashValue)
+   1   hasher.append(bits: bottomRight.x) (in bottomRight.hash(into:))
    1   hasher.append(bits: bottomRight.y)
-   3   hasher.finalize()                  (outside of hash(into:))
+   3   hasher.finalize()                  (outside of GridRectangle.hash(into:))
   ---
    7
   ```
@@ -724,9 +724,11 @@ extension Hashable {
 
 However, in the case of `Hashable`, such default implementations would
 interfere with [SE-0185]'s automatic conformance synthesis. To ensure
-compatibility, we rather need to extend automatic synthesis to supply
-definitions functionally equivalent to the ones above, except directly
-within the compiler rather than in the standard library.
+compatibility, we [currently][either-or-requirements] need to move
+these definitions to the compiler, by extending automatic synthesis to
+supply definitions functionally equivalent to the ones above.
+
+[either-or-requirements]: https://forums.swift.org/t/mutually-exclusive-default-implementations/11044
 
 Code written for Swift 4.1 or earlier will continue to compile (in the
 corresponding language mode) after this proposal is implemented. The
@@ -744,7 +746,7 @@ instead of `hashValue`. There are two options for doing this:
     automatic synthesis available for many more types than before.
 2. In cases where automatic synthesis is unavailable, or if it would
     produce undesirable results, the `hashValue` implementation
-    need to be replaced by a corresponding implementation of
+    needs to be replaced by a corresponding implementation of
     `hash(into:)`.
 
 The compiler should simplify the migration process by providing
@@ -794,10 +796,10 @@ implementation for it, although the implementation may be provided
 automatically by compiler synthesis.
 
 To implement nondeterminism, `Hasher` uses an internal seed value
-initialized by the runtime during process startup. The value is
-usually produced by a random number generator, but this may be
-disabled by defining the `SWIFT_DETERMINISTIC_HASHING` environment
-variable with a value of `1` prior to starting a Swift process.
+initialized by the runtime during process startup. The seed is usually
+produced by a random number generator, but this may be disabled by
+defining the `SWIFT_DETERMINISTIC_HASHING` environment variable with a
+value of `1` prior to starting a Swift process.
 
 ## <a name="resilience">Effect on API resilience</a>
 
@@ -828,9 +830,8 @@ One option that we considered is to expose `Hasher`, but to leave the
 to choose whether or not to use it or to roll their own hash
 functions.
 
-We felt this was an unsatisfying approach, and we gave an extensive
-rationale for changing `Hashable` in the section on [The `hash(into:)`
-requirement](#hash-into).
+We felt this was an unsatisfying approach; the rationale behind this
+is explained in the section on [The `hash(into:)` requirement](#hash-into).
 
 ### <a name="protocol-refinement">Defining a protocol refinement</a>
 
