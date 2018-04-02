@@ -1,7 +1,7 @@
 # Rename Sequence.elementsEqual
 
 * Proposal: [SE-0203](0203-rename-sequence-elements-equal.md)
-* Authors: [Xiaodi Wu](https://github.com/xwu)
+* Author: [Xiaodi Wu](https://github.com/xwu)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Status: **Active Review (March 29...April 6, 2018)**
 * Implementation: [apple/swift#12884](https://github.com/apple/swift/pull/12884)

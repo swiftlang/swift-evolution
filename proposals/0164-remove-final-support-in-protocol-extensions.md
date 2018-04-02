@@ -1,7 +1,7 @@
 # Remove final support in protocol extensions
 
 * Proposal: [SE-0164](0164-remove-final-support-in-protocol-extensions.md)
-* Authors: [Brian King](https://github.com/KingOfBrian)
+* Author: [Brian King](https://github.com/KingOfBrian)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 4)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2017-April/000355.html)

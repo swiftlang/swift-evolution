@@ -1,7 +1,7 @@
 # Introduce Sequence.compactMap(_:)
 
 * Proposal: [SE-0187](0187-introduce-filtermap.md)
-* Authors: [Max Moiseev](https://github.com/moiseev)
+* Author: [Max Moiseev](https://github.com/moiseev)
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Implemented (Swift 4.1)**
 * Implementation: [apple/swift#12819](https://github.com/apple/swift/pull/12819)

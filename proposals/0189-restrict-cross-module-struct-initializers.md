@@ -1,7 +1,7 @@
 # Restrict Cross-module Struct Initializers
 
 * Proposal: [SE-0189](0189-restrict-cross-module-struct-initializers.md)
-* Authors: [Jordan Rose](https://github.com/jrose-apple)
+* Author: [Jordan Rose](https://github.com/jrose-apple)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Status: **Implemented (Swift 4.1)**
 * Implementation: [apple/swift#12834](https://github.com/apple/swift/pull/12834)

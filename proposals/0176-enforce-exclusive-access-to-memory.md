@@ -1,7 +1,7 @@
 # Enforce Exclusive Access to Memory
 
 * Proposal: [SE-0176](0176-enforce-exclusive-access-to-memory.md)
-* Authors: [John McCall](https://github.com/rjmccall)
+* Author: [John McCall](https://github.com/rjmccall)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Implemented (Swift 4)**
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/7e6816c22a29b0ba9bdf63ff92b380f9e963860a/proposals/0176-enforce-exclusive-access-to-memory.md)

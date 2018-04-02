@@ -1,7 +1,7 @@
 # Cross-module inlining and specialization
 
 * Proposal: [SE-0193](0193-cross-module-inlining-and-specialization.md)
-* Authors: [Slava Pestov](https://github.com/slavapestov)
+* Author: [Slava Pestov](https://github.com/slavapestov)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Status:  **Accepted**
 * Evolution review thread: [https://forums.swift.org/t/se-0193-cross-module-inlining-and-specialization/7310](https://forums.swift.org/t/se-0193-cross-module-inlining-and-specialization/7310)

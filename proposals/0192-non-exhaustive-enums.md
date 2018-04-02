@@ -1,7 +1,7 @@
 # Handling Future Enum Cases
 
 * Proposal: [SE-0192](0192-non-exhaustive-enums.md)
-* Authors: [Jordan Rose](https://github.com/jrose-apple)
+* Author: [Jordan Rose](https://github.com/jrose-apple)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Status: **Active Review (March 16...23, 2018)**
 * Implementation: [apple/swift#14945](https://github.com/apple/swift/pull/14945)

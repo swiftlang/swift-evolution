@@ -1,7 +1,7 @@
 # Swift `run` Command
 
 * Proposal: [SE-0179](0179-swift-run-command.md)
-* Authors: [David Hart](http://github.com/hartbit/)
+* Author: [David Hart](http://github.com/hartbit/)
 * Review Manager: [Daniel Dunbar](https://github.com/ddunbar)
 * Status: **Implemented (Swift 4)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170529/036909.html)

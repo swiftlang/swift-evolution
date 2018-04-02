@@ -1,7 +1,7 @@
 # Add clamp(to:) to the stdlib
 
 * Proposal: [SE-0177](0177-add-clamped-to-method.md)
-* Authors: [Nicholas Maccharoli](https://github.com/Nirma)
+* Author: [Nicholas Maccharoli](https://github.com/Nirma)
 * Review Manager: TBD
 * Status: **Returned for revision**
 

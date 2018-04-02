@@ -1,7 +1,7 @@
 # "Raw" mode string literals
 
 * Proposal: [SE-0200](0200-raw-string-escaping.md)
-* Authors: [John Holdsworth](https://github.com/johnno1962)
+* Author: [John Holdsworth](https://github.com/johnno1962)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Active Review (March 16...26, 2018)**
 * Implementation: [apple/swift#13055](https://github.com/apple/swift/pull/13055)
