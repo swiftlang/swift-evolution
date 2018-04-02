@@ -83,7 +83,7 @@ Considering all of this, I believe it is very important that Swift provides deve
 
 ### Random Number Generator
 
-To kick this off, we will be discussing the rngs that each operating system will utilize. We will make the default random generator cryptographically secure. This means on each operating system, the random api for Swift will produce a secure random number. In addition to being cryptographically secure, the default random generator will also be thread safe. It is also worth noting that if any of the following fail, particularly reading from /dev/urandom, then we produce a fatal error and abort the application. Reasons why I went with this approach in Alternatives Considered at the bottom of this proposal.
+To kick this off, we will be discussing the RNGs that each operating system will utilize. We will make the default random generator cryptographically secure. This means on each operating system, the random API for Swift will produce a secure random number. In addition to being cryptographically secure, the default random generator will also be thread safe. It is also worth noting that if any of the following fail, particularly reading from /dev/urandom, then we produce a fatal error and abort the application. Reasons why I went with this approach in Alternatives Considered at the bottom of this proposal.
 
 #### Darwin Platform
 
@@ -95,7 +95,7 @@ To kick this off, we will be discussing the rngs that each operating system will
 
 We require that the kernel version be >= 3.17 as this was the release that introduced the `getrandom(2)` system call. We also require that glibc be >= 2.25 because this release exposed the `<sys/random.h>` header.
 
-| Kernel Version < 3.17 && Glibc Version < 2.25 | Kernel Version >= 3.17 && Glibc Version >= 2.25 |
+| Kernel Version < 3.17 || Glibc Version < 2.25 | Kernel Version >= 3.17 && Glibc Version >= 2.25 |
 |:---------------------------------------------:|:-----------------------------------------------:|
 |            Read from `/dev/urandom`           |                Use `getrandom(2)`               |
 
@@ -107,11 +107,11 @@ We require that the kernel version be >= 3.17 as this was the release that intro
 
 ### Random API
 
-For the core API, introduce a new protocol named `RandomNumberGenerator`. This type is used to define rngs that can be used within the stdlib. Developers can conform to this type and use their own custom rng throughout their whole application.
+For the core API, introduce a new protocol named `RandomNumberGenerator`. This type is used to define RNGs that can be used within the stdlib. Developers can conform to this type and use their own custom RNG throughout their whole application.
 
-Then for the stdlib's default rng implementation, introduce a new struct named `Random`. This struct contains a singleton called `default` which provides access to the methods of `RandomNumberGenerator`.
+Then for the stdlib's default RNG implementation, introduce a new struct named `Random`. This struct contains a singleton called `default` which provides access to the methods of `RandomNumberGenerator`.
 
-Next, we will make extension methods for `FixedWidthInteger`, `BinaryFloatingPoint` and `Bool`. For numeric types, this allows developers to select a value within a range and swap out the rng used to select a value within the range.
+Next, we will make extension methods for `FixedWidthInteger`, `BinaryFloatingPoint` and `Bool`. For numeric types, this allows developers to select a value within a range and swap out the RNG used to select a value within the range.
 
 `FixedWidthInteger` example:
 ```swift
@@ -160,7 +160,7 @@ print(greetings.random(using: myCustomRandomNumberGenerator) as Any) // This ret
 
 #### Shuffle API
 
-As a result of adding the random api, it only makes sense to utilize that power to fuel the shuffle methods. We extend `MutableCollection` to add a method to shuffle the collection itself, and extend `Sequence` to add a method to return a shuffled version of itself in a new array. Example:
+As a result of adding the random API, it only makes sense to utilize that power to fuel the shuffle methods. We extend `MutableCollection` to add a method to shuffle the collection itself, and extend `Sequence` to add a method to return a shuffled version of itself in a new array. Example:
 
 ```swift
 var greetings = ["hey", "hi", "hello", "hola"]
@@ -180,7 +180,7 @@ The actual implementation can be found here: [apple/swift#12772](https://github.
 ```swift
 public protocol RandomNumberGenerator {
   // This determines the functionality for producing a random number.
-  // Required to implement by all rngs.
+  // Required to implement by all RNGs.
   func next() -> UInt64
 }
 
@@ -194,9 +194,9 @@ extension RandomNumberGenerator {
   public func next<T : FixedWidthInteger & UnsignedInteger>(upperBound: T) -> T
 }
 
-// The stdlib rng
+// The stdlib RNG.
 public struct Random : RandomNumberGenerator {
-  // Public facing api
+  // Public facing API
   public static let `default` = Random()
 
   // Prevents initialization of this struct
@@ -223,7 +223,7 @@ extension Collection {
     using generator: T
   ) -> Element?
   
-  /// Uses the standard library's default rng
+  /// Uses the standard library's default RNG
   public func random() -> Element? {
     return random(using: Random.default)
   }
@@ -241,7 +241,7 @@ where Bound : FixedWidthInteger,
     using generator: T
   ) -> Element?
   
-  /// Uses the standard library's default rng
+  /// Uses the standard library's default RNG
   public func random() -> Element? {
     return random(using: Random.default)
   }
@@ -258,7 +258,7 @@ where Bound : FixedWidthInteger,
     using generator: T
   ) -> Element?
   
-  /// Uses the standard library's default rng
+  /// Uses the standard library's default RNG
   public func random() -> Element? {
     return random(using: Random.default)
   }
@@ -282,7 +282,7 @@ where Self.Stride : SignedInteger,
     using generator: T
   ) -> Self
 
-  /// Uses the standard library's default rng
+  /// Uses the standard library's default RNG
   public static func random(in range: Range<Self>) -> Self {
     return Self.random(in: range, using: Random.default)
   }
@@ -292,7 +292,7 @@ where Self.Stride : SignedInteger,
     using generator: T
   ) -> Self
   
-  /// Uses the standard library's default rng
+  /// Uses the standard library's default RNG
   public static func random(in range: ClosedRange<Self>) -> Self {
     return Self.random(in: range, using: Random.default)
   }
@@ -317,7 +317,7 @@ where Self.RawSignificand : FixedWidthInteger,
     using generator: T
   ) -> Self
 
-  /// Uses the standard library's default rng
+  /// Uses the standard library's default RNG
   public static func random(in range: Range<Self>) -> Self {
     return Self.random(in: range, using: Random.default)
   }
@@ -327,7 +327,7 @@ where Self.RawSignificand : FixedWidthInteger,
     using generator: T
   ) -> Self
   
-  /// Uses the standard library's default rng
+  /// Uses the standard library's default RNG
   public static func random(in range: ClosedRange<Self>) -> Self {
     return Self.random(in: range, using: Random.default)
   }
@@ -343,7 +343,7 @@ extension Bool {
     using generator: T
   ) -> Bool
   
-  /// Uses the standard library's default rng
+  /// Uses the standard library's default RNG
   public static func random() -> Bool {
     return Bool.random(using: Random.default)
   }
@@ -358,7 +358,7 @@ extension Sequence {
     using generator: T
   ) -> [Element]
   
-  /// Uses the standard library's default rng
+  /// Uses the standard library's default RNG
   public func shuffled() -> [Element] {
     return shuffled(using: Random.default)
   }
@@ -369,7 +369,7 @@ extension MutableCollection {
     using generator: T
   )
   
-  /// Uses the standard library's default rng
+  /// Uses the standard library's default RNG
   public mutating func shuffle() {
     shuffle(using: Random.default)
   }
@@ -406,17 +406,17 @@ let randomDice = Int.random(in: 1 ... 6)!
 
 "I just want a random dice roll, what is this ! the compiler is telling me to add?"
 
-This syntax wouldn't make sense for a custom rng that deterministically generates numbers with no fail. This also goes against the "general use" design that the core team and much of the community expressed.
+This syntax wouldn't make sense for a custom RNG that deterministically generates numbers with no fail. This also goes against the "general use" design that the core team and much of the community expressed.
 
 Looking at Rust, we can observe that they also abort when an unexpected error occurs with any of the forms of randomness. [source](https://doc.rust-lang.org/rand/src/rand/os.rs.html)
 
-It would be silly to account for these edge cases that would only happen to those who need to update their os, optimize their file descriptors, or deleted their `/dev/urandom`. Accounting for these cases sacrifices the clean api for everyone else.
+It would be silly to account for these edge cases that would only happen to those who need to update their os, optimize their file descriptors, or deleted their `/dev/urandom`. Accounting for these cases sacrifices the clean API for everyone else.
 
 ### Shouldn't this fallback on something more secure at times of low entropy?
 
 Thomas Hühn explains it very well [here](https://www.2uo.de/myths-about-urandom/). There is also a deeper discussion [here talking about python's implementation](https://www.python.org/dev/peps/pep-0524). Both articles discuss that even though /dev/urandom may not have enough entropy at a fresh install, "It doesn't matter. The underlying cryptographic building blocks are designed such that an	attacker cannot predict the outcome." Using `getrandom(2)` on linux systems where the kernel version is >= 3.17, will block if it decides that the entropy pool is too small. In python's implementation, they fallback to reading `/dev/urandom` if `getrandom(2)` decides there is not enough entropy.
 
-### Why not make the default rng non-secure?
+### Why not make the default RNG non-secure?
 
 Swift is a safe language which means that it shouldn't be encouraging non-experienced developers to be pushing unsecure code. Making the default secure removes this issue and gives developers a feeling of comfort knowing their code is ready to go out of the box.
 
