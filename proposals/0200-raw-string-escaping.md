@@ -3,7 +3,7 @@
 * Proposal: [SE-0200](0200-raw-string-escaping.md)
 * Author: [John Holdsworth](https://github.com/johnno1962)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: ****Returned for revision**
+* Status: **Returned for revision**
 * Implementation: [apple/swift#13055](https://github.com/apple/swift/pull/13055)
 * Bugs: [SR-6362](https://bugs.swift.org/browse/SR-6362)
 
