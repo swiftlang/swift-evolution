@@ -5,7 +5,7 @@
 * Status: **Active review (March 29...April 6, 2018)**
 * Review manager: [John McCall](https://github.com/rjmccall)
 * Implementation: [apple/swift#13337](https://github.com/apple/swift/pull/13337)
-* Related Bug: [\[SR-1504\] RFE: index(of:) but starting from end](https://bugs.swift.org/browse/SR-1504)
+* Bug: [SR-1504](https://bugs.swift.org/browse/SR-1504)
 
 ## Introduction
 
