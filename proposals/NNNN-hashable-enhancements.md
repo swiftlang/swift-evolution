@@ -232,19 +232,34 @@ a new, public struct type, called `Hasher`. This new struct captures
 the state of the hash function, and provides the following operations:
 
 1. An initializer to create an empty state. To make hash values less
-   predictable, the standard hash function uses an arbitrary 128-bit
-   seed value, specified as a tuple of two `UInt64` integers.
-   `Hasher` uses a per-execution random seed value by default;
-   however, we also allow programmers to specify their own seed
-   values, primarily to enable per-instance random seeding in their
-   custom hashing collections.
-   
+   predictable, the standard hash function uses a per-execution random
+   seed by default. A separate initializer also allows programmers to
+   optionally supply an additional 128-bit seed value, specified as a
+   tuple of two `UInt64` values:
+
     ```swift
     public struct Hasher {
       public init()  // Use the default per-execution random seed value
       public init(seed: (UInt64, UInt64)) // Combines `seed` with the default seed
     }
     ```
+
+   `Hasher` implements a separate hash function for each seed value,
+   uncorrelated with the others.  This enables `Hasher` to be used in
+   data structures requiring more than one hash function, such as
+   [Bloom filters][bloom]. (Per-instance seeding is also useful to
+   [stabilize the performance][quadratic-copy] of "regular" hashing
+   collections like `Set` and `Dictionary`.)
+   
+   [bloom]: https://en.wikipedia.org/wiki/Bloom_filter
+
+   Note that the custom seed is mixed with the default seed, so
+   specifying one *doesn't* disable nondeterministic hashing. The
+   algorithm implemented by `Hasher` is not part of its API, and
+   enforcing randomization makes it harder for Swift programs to
+   accidentally rely on any specific algorithm. Any such dependency
+   would make it more difficult for the standard library to change
+   `Hasher` in future releases.
 
 2. A set of operations to mix in new bits into the state of the hash
    function. For reasons of efficiency, these are built around
@@ -921,6 +936,11 @@ function:
     support for custom hashers comes with significant overhead that
     can easily overshadow the (slight, if any) algorithmic
     disadvantage of the standard `Hasher`.
+
+Note that the non-generic `Hasher` still has full support for Bloom
+filters and other data structures that require multiple hash
+functions. (To select a different hash function, we just need to
+supply a new seed value.)
 
 ### <a name="closure-hasher">Change `hash(into:)` to take a closure instead of a new type</a>
 
