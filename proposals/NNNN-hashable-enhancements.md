@@ -264,29 +264,29 @@ the state of the hash function, and provides the following operations:
 
 2. A set of operations to mix in new bits into the state of the hash
    function. For reasons of efficiency, these are built around
-   appending integer values to the hasher:
+   feeding integer values to the hasher:
    
     ```swift
     extension Hasher {
-      public mutating func append(bits: Int)
-      public mutating func append(bits: UInt)
-      public mutating func append(bits: Int64)
-      public mutating func append(bits: UInt64)
-      public mutating func append(bits: Int32)
-      public mutating func append(bits: UInt32)
+      public mutating func combine(bits: Int)
+      public mutating func combine(bits: UInt)
+      public mutating func combine(bits: Int64)
+      public mutating func combine(bits: UInt64)
+      public mutating func combine(bits: Int32)
+      public mutating func combine(bits: UInt32)
       // etc.
     }
     ```
 
     We expect most hashable types will consist of discrete components,
-    hashed sequentially, one by one. However, we provide an `append`
+    hashed sequentially, one by one. However, we provide a `combine`
     overload that takes bytes from an `UnsafeRawBufferPointer`, for
     use in cases where the bits to be hashed are available as a
     single, contiguous byte sequence:
 
     ```swift
     extension Hasher {
-      public mutating func append(bits buffer: UnsafeRawBufferPointer)
+      public mutating func combine(bits buffer: UnsafeRawBufferPointer)
     }
     ```
 
@@ -299,14 +299,14 @@ the state of the hash function, and provides the following operations:
     ```
 
    Finalizing the hasher state invalidates it; it is illegal to call
-   `append` or `finalize` on a hasher that's already finalized.
+   `combine` or `finalize` on a hasher that's already finalized.
 
 Here is how one may use `Hasher` as a standalone type:
 
 ```swift
 var hasher = Hasher()        // Initialize state, usually by random seeding
-hasher.append(bits: 23)      // Mix in several integers' worth of bits
-hasher.append(bits: 42)
+hasher.combine(bits: 23)     // Mix in several integers' worth of bits
+hasher.combine(bits: 42)
 let hash = hasher.finalize() // Finalize the state and return the hash
 ```
 
@@ -358,19 +358,19 @@ compatibility](#source-compatibility) on how we'll do this without
 breaking code written for previous versions of Swift.)
 
 To make it easier to express `hash(into:)` in terms of `Hashable`
-components, `Hasher` provides a variant of `append` that simply calls
+components, `Hasher` provides a variant of `combine` that simply calls
 `hash(into:)` on the supplied value:
 
 ```swift
 extension Hasher {
   @inlinable
-  public mutating func append<H: Hashable>(_ value: H) {
+  public mutating func combine<H: Hashable>(_ value: H) {
     value.hash(into: &self)
   }
 }
 ```
 
-This is purely for convenience; `hasher.append(foo)` is slightly
+This is purely for convenience; `hasher.combine(foo)` is slightly
 easier to type than `foo.hash(into: &hasher)`.
 
 
@@ -382,8 +382,8 @@ of its implementation:
 extension GridPoint: Hashable {
   var hashValue: Int { 
     var hasher = Hasher()
-    hasher.append(x)
-    hasher.append(y)
+    hasher.combine(x)
+    hasher.combine(y)
     return hasher.finalize()
   }
 }
@@ -402,8 +402,8 @@ worth the cost of a change to a basic protocol?
   ```swift
   extension GridPoint: Hashable {
     func hash(into hasher: inout Hasher) {
-      hasher.append(x)
-      hasher.append(y)
+      hasher.combine(x)
+      hasher.combine(y)
     }
   }
   ```
@@ -433,7 +433,7 @@ worth the cost of a change to a basic protocol?
 * **Better Performance** -- Similarly, `hash(into:)` moves the
   finalization step out of `Hashable`. Finalization is a relatively
   expensive operation; for example, in SipHash-1-3, it costs three
-  times as much as a single 64-bit `append`. Repeating it for every
+  times as much as a single 64-bit `combine`. Repeating it for every
   single component of a composite type would make hashing unreasonably
   slow.
   
@@ -450,8 +450,8 @@ worth the cost of a change to a basic protocol?
   extension GridRectangle: Hashable {
     var hashValue: Int { // SLOW, DO NOT USE
       var hasher = Hasher()
-      hasher.append(bits: topLeft.hashValue) 
-      hasher.append(bits: bottomRight.hashValue)
+      hasher.combine(bits: topLeft.hashValue) 
+      hasher.combine(bits: bottomRight.hashValue)
       return hasher.finalize()
     }
   }
@@ -459,17 +459,17 @@ worth the cost of a change to a basic protocol?
 
   Both of the `hashValue` invocations above create and finalize
   separate hashers. Assuming finalization takes three times as much
-  time as a single append (and generously assuming that initialization
-  is free) this takes 15 appends' worth of time:
+  time as a single combine call (and generously assuming that initialization
+  is free) this takes 15 combines' worth of time:
   
   ```
-   1   hasher.append(bits: topLeft.hashValue)
-   1       hasher.append(bits: topLeft.x)     (in topLeft.hashValue)
-   1       hasher.append(bits: topLeft.y)
+   1   hasher.combine(bits: topLeft.hashValue)
+   1       hasher.combine(bits: topLeft.x)     (in topLeft.hashValue)
+   1       hasher.combine(bits: topLeft.y)
    3       hasher.finalize()
-   1   hasher.append(bits: bottomRight.hashValue)
-   1       hasher.append(bits: bottomRight.x) (in bottomRight.hashValue)
-   1       hasher.append(bits: bottomRight.y)
+   1   hasher.combine(bits: bottomRight.hashValue)
+   1       hasher.combine(bits: bottomRight.x) (in bottomRight.hashValue)
+   1       hasher.combine(bits: bottomRight.y)
    3       hasher.finalize()
    3   hasher.finalize()
   ---
@@ -481,21 +481,21 @@ worth the cost of a change to a basic protocol?
   ```swift
   extension GridRegion: Hashable {
     func hash(into hasher: inout Hasher) {
-      hasher.append(topLeft)
-      hasher.append(bottomRight)
+      hasher.combine(topLeft)
+      hasher.combine(bottomRight)
     }
   }
   ```
   
-  This reduces the cost of hashing to just four appends and a single
+  This reduces the cost of hashing to just four combines and a single
   finalization, which takes less than half the time of our original
   approach:
   
   ```
-   1   hasher.append(bits: topLeft.x)     (in topLeft.hash(into:))
-   1   hasher.append(bits: topLeft.y)
-   1   hasher.append(bits: bottomRight.x) (in bottomRight.hash(into:))
-   1   hasher.append(bits: bottomRight.y)
+   1   hasher.combine(bits: topLeft.x)     (in topLeft.hash(into:))
+   1   hasher.combine(bits: topLeft.y)
+   1   hasher.combine(bits: bottomRight.x) (in bottomRight.hash(into:))
+   1   hasher.combine(bits: bottomRight.y)
    3   hasher.finalize()                  (outside of GridRectangle.hash(into:))
   ---
    7
@@ -520,13 +520,13 @@ Add the following type to the standard library:
 /// The hash function is a mapping from a 128-bit seed value and an 
 /// arbitrary sequence of bytes to an integer hash value. The seed value
 /// is specified during `Hasher` initialization, while the byte sequence
-/// is fed to the hasher using a series of calls to mutating `append`
+/// is fed to the hasher using a series of calls to mutating `combine`
 /// methods. When all bytes have been fed to the hasher, the hash value 
 /// can be retrieved by calling `finalize()`:
 ///
 ///     var hasher = Hasher()
-///     hasher.append(23)
-///     hasher.append("Hello")
+///     hasher.combine(23)
+///     hasher.combine("Hello")
 ///     let hashValue = hasher.finalize()
 ///
 /// The underlying hash algorithm is designed to exhibit avalanche
@@ -553,56 +553,57 @@ public struct Hasher {
   /// high-quality random source.
   public init(seed: (UInt64, UInt64))
   
-  /// Append `value` to this hasher.
+  /// Feed `value` to this hasher, mixing its essential parts into
+  /// the hasher state.
   @inlinable
-  public mutating func append<H: Hashable>(_ value: H) {
+  public mutating func combine<H: Hashable>(_ value: H) {
     value.hash(into: &self)
   }
 
-  /// Append the bit pattern `bits` to this hasher.
+  /// Mix the bit pattern `bits` into the state of this hasher. 
   /// This adds exactly `Int.bitWidth` bits to the hasher state,
   /// in native byte order.
-  public mutating func append(bits: Int)
+  public mutating func combine(bits: Int)
 
-  /// Append the bit pattern `bits` to this hasher. 
+  /// Mix the bit pattern `bits` into the state of this hasher. 
   /// This adds exactly `UInt.bitWidth` bits to the hasher state,
   /// in native byte order.
-  public mutating func append(bits: UInt)
+  public mutating func combine(bits: UInt)
 
-  /// Append the bit pattern `bits` to this hasher. 
+  /// Mix the bit pattern `bits` into the state of this hasher. 
   /// This adds exactly 8 bytes to the hasher state, in native byte order.
-  public mutating func append(bits: Int64)
+  public mutating func combine(bits: Int64)
 
-  /// Append the bit pattern `bits` to this hasher. 
+  /// Mix the bit pattern `bits` into the state of this hasher. 
   /// This adds exactly 8 bytes to the hasher state, in native byte order.
-  public mutating func append(bits: UInt64)
+  public mutating func combine(bits: UInt64)
 
-  /// Append the bit pattern `bits` to this hasher. 
+  /// Mix the bit pattern `bits` into the state of this hasher. 
   /// This adds exactly 4 bytes to the hasher state, in native byte order.
-  public mutating func append(bits: Int32)
+  public mutating func combine(bits: Int32)
 
-  /// Append the bit pattern `bits` to this hasher. 
+  /// Mix the bit pattern `bits` into the state of this hasher. 
   /// This adds exactly 4 bytes to the hasher state, in native byte order.
-  public mutating func append(bits: UInt32)
+  public mutating func combine(bits: UInt32)
 
-  /// Append the bit pattern `bits` to this hasher. 
+  /// Mix the bit pattern `bits` into the state of this hasher. 
   /// This adds exactly 2 bytes to the hasher state, in native byte order.
-  public mutating func append(bits: Int16)
+  public mutating func combine(bits: Int16)
 
-  /// Append the bit pattern `bits` to this hasher. 
+  /// Mix the bit pattern `bits` into the state of this hasher. 
   /// This adds exactly 2 bytes to the hasher state, in native byte order.
-  public mutating func append(bits: UInt16)
+  public mutating func combine(bits: UInt16)
 
-  /// Append the single byte `bits` to this hasher. 
-  public mutating func append(bits: Int8)
-  /// Append the single byte `bits` to this hasher. 
-  public mutating func append(bits: UInt8)
-  /// Append the raw bytes in `buffer` to this hasher.
-  public mutating func append(bits buffer: UnsafeRawBufferPointer)
+  /// Mix the single byte `bits` into the state of this hasher. 
+  public mutating func combine(bits: Int8)
+  /// Mix the single byte `bits` into the state of this hasher. 
+  public mutating func combine(bits: UInt8)
+  /// Mix the raw bytes in `buffer` into the state of this hasher.
+  public mutating func combine(bits buffer: UnsafeRawBufferPointer)
   
   /// Finalize the hasher state and return the hash value.
-  /// Finalizing invalidates the hasher; it cannot be appended to or
-  /// finalized again.
+  /// Finalizing invalidates the hasher; additional bits cannot be combined
+  /// into it, and it cannot be finalized again.
   public mutating func finalize() -> Int
 }
 ```
@@ -674,8 +675,8 @@ Change the `Hashable` protocol as follows.
 ///
 ///     extension GridPoint: Hashable {
 ///         func hash(into hasher: inout Hasher) {
-///             hasher.append(x)
-///             hasher.append(y)
+///             hasher.combine(x)
+///             hasher.combine(y)
 ///         }
 ///
 ///         static func == (lhs: GridPoint, rhs: GridPoint) -> Bool {
@@ -708,7 +709,8 @@ public protocol Hashable: Equatable {
   var hashValue: Int { get }
   
   /// Hash the essential components of this value into the hash function
-  /// represented by `hasher`, by appending them to it.
+  /// represented by `hasher`, by feeding them into it using its `combine`
+  /// methods.
   ///
   /// Essential components are precisely those that are compared in the type's
   /// implementation of `Equatable`.
@@ -735,7 +737,7 @@ terms of `hashValue`, and vice versa:
 extension Hashable {
   @available(*, obsoleted: 4.2)
   func hash(into hasher: inout Hasher) {
-    hasher.append(bits: self.hashValue)
+    hasher.combine(bits: self.hashValue)
   }
 
   @available(*, introduced: 4.2, deprecated: 4.2)
@@ -789,11 +791,11 @@ var hashValue: Int {
 
 // After:
 func hash(into hasher: inout Hasher) {
-  // Append all components that should be hashed.
+  // Feed all components that should be hashed into the hasher.
   // These should be the same components that you look at in your 
   // implementation of `==` for `Equatable`.
-  hasher.append(<# component1 #>)
-  hasher.append(<# component2 #>)
+  hasher.combine(<# component1 #>)
+  hasher.combine(<# component2 #>)
   
   // For reference, this type originally implemented `hashValue` 
   // as follows:
@@ -812,7 +814,7 @@ terrible hash values.
 `Hasher` and `hash(into:)` are additive changes that extend the ABI of
 the standard library. `Hasher` is a fully resilient struct, with
 opaque size/layout and mostly opaque members. (The only exception is
-the generic function `append(_:)`, which is provided as a syntactic
+the generic function `combine(_:)`, which is provided as a syntactic
 convenience.)
 
 While this proposal deprecates the `hashValue` requirement, it doesn't
@@ -926,8 +928,8 @@ functions, and to plug them into any `Hashable` type:
 
 ```swift
 protocol Hasher {
-  func append(bits: Int)
-  func append(bits: UInt)
+  func combine(bits: Int)
+  func combine(bits: UInt)
   /// etc.
 }
 protocol Hashable {
