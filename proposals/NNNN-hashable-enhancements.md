@@ -85,11 +85,10 @@ take constant time on average. However, when the hash function isn't
 carefully chosen to suit the data, the expected time of such
 operations can become proportional to the number of elements stored in
 the table. If the table is large enough, such a regression can easily
-lead to unacceptable performance.  For example, when they're
-overwhelmed with hash collisions, applications and network services
-may stop processing new events for prolonged periods of time; this can
-easily be enough to make the app unresponsive or to bring down the
-service.
+lead to unacceptable performance. When they're overwhelmed with hash
+collisions, applications and network services may stop processing new
+events for prolonged periods of time; this can easily be enough to
+make the app unresponsive or to bring down the service.
 
 ### <a name="status-quo">The status quo</a>
 
@@ -198,10 +197,10 @@ Luckily, this problem has occured in other contexts before, and there
 is an extensive list of hash functions that have been designed for
 exactly such cases: [Foller-Noll-Vo][FNV-1a], [MurmurHash],
 [CityHash], [SipHash], and [HighwayHash] are just a small selection of
-these. (The last two algorithms have some light cryptographic elements
-so that they provide reasonable level of protection against hash
-collision attacks.  This makes them better-suited for use in
-general-purpose hashed collections like `Set` and `Dictionary`.)
+these. The last two algorithms include some light cryptographic
+elements so that they provide a level of protection against deliberate
+hash collision attacks. This makes them a better choice for
+general-purpose hashed collections like `Set` and `Dictionary`.
 
 [FNV-1a]: http://www.isthe.com/chongo/tech/comp/fnv/index.html
 [MurmurHash]: https://github.com/aappleby/smhasher
@@ -346,7 +345,7 @@ We propose to change the `Hashable` protocol by adding a new
 `hashValue`:
 
 ```swift
-public protocol Hashable {
+public protocol Hashable: Equatable {
   @available(*, deprecated: 4.2)
   var hashValue: Int { get }
   
@@ -422,8 +421,8 @@ worth the cost of a change to a basic protocol?
   
 * **Hasher Customizability** -- `hash(into:)` moves the initialization
   of `Hasher` out of `Hashable` types, and into hashing
-  collections. This allows the standard library to customize `Hasher`
-  to each collection instance. For example, the stdlib could start
+  collections. This allows us to customize `Hasher` to the needs of
+  each hashing data structure. For example, the stdlib could start
   using a different seed value for every new `Set` and `Dictionary`
   instance; this somewhat improves reliability by making hash values
   even less predictable, but (probably more importantly), it
@@ -525,26 +524,33 @@ Add the following type to the standard library:
 /// methods. When all bytes have been fed to the hasher, the hash value 
 /// can be retrieved by calling `finalize()`:
 ///
-/// ```
-/// var hasher = Hasher() // Use the default per-execution seed.
-/// hasher.append(23)
-/// hasher.append("Hello") // You can append bits from any Hashable value.
-/// let hashValue = hasher.finalize()
-/// ```
+///     var hasher = Hasher()
+///     hasher.append(23)
+///     hasher.append("Hello")
+///     let hashValue = hasher.finalize()
 ///
 /// The underlying hash algorithm is designed to exhibit avalanche
 /// effects: slight changes to the seed or the input byte sequence
 /// will produce drastic changes in the generated hash value.
 ///
-/// - Note: The hash algorithm implemented by `Hasher` may change between 
-///   any two versions of the standard library. Do not save or otherwise
+/// - Note: `Hasher` is usually randomly seeded, which means it will return
+///   different values on every new execution of your program. The hash 
+///   algorithm implemented by `Hasher` may itself change between 
+///   any two versions of the standard library. Do not save or otherwise 
 ///   reuse hash values across executions of your program.
 public struct Hasher {
-  /// Initialize a new hasher from the default seed value.
+  /// Initialize a new hasher using the default seed value.
   /// The default seed is set during process startup, usually from a 
   /// high-quality random source.
+  ///
+  /// This is equivalent to calling `init(seed:)` with a value of `(0, 0)`.
   public init()
-  /// Initialize a new hasher from the specified seed value.
+
+  /// Initialize a new hasher using a seed value that is derived from a
+  /// combination of the default seed and the specified custom seed.
+  ///
+  /// The default seed is set during process startup, usually from a 
+  /// high-quality random source.
   public init(seed: (UInt64, UInt64))
   
   /// Append `value` to this hasher.
@@ -693,7 +699,7 @@ Change the `Hashable` protocol as follows.
 ///         print("New tap detected at (\(nextTap.x), \(nextTap.y)).")
 ///     }
 ///     // Prints "New tap detected at (0, 1).")
-public protocol Hashable {
+public protocol Hashable: Equatable {
   /// The hash value.
   ///
   /// Hash values are not guaranteed to be equal across different executions of
