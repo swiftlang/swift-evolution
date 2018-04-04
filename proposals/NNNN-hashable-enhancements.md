@@ -1,7 +1,7 @@
 # Hashable Enhancements
 
 * Proposal: [SE-NNNN](NNNN-hashable-enhancements.md)
-* Authors: [Karoy Lorentey](https://github.com/lorentey)
+* Authors: [Karoy Lorentey](https://github.com/lorentey), [Vincent Esche](https://github.com/regexident)
 * Review Manager: TBD
 * Status: **Awaiting review**
 * Implementation:<br> 
@@ -854,12 +854,24 @@ is explained in the section on [The `hash(into:)` requirement](#hash-into).
 
 ### <a name="new-protocol">Defining a new protocol</a>
 
-There have been several attempts ([1][h1], [2][h2], [3][h3]) to fix `Hashable`
-by creating a new protocol that refines it:
+There have been several attempts to fix `Hashable` by creating a new
+protocol to replace it. For example, there's a prototype
+implementation of a [`NewHashable` protocol][h1] in the Swift test
+suite. The authors of this proposal have done their share of this,
+too: Karoy has previously published an open-source [hashing
+package providing an opt-in replacement for `Hashable`][h2], while
+Vincent wrote [a detailed pitch for adding a `HashVisitable` protocol
+to the standard library][h3a] -- these efforts were direct precursors
+to this proposal.
+
+In these approaches, the new protocol could either be a refinement of
+`Hashable`, or it could be unrelated to it. Here is what a refinement
+would look like:
 
 [h1]: https://github.com/apple/swift/blob/swift-4.1-branch/validation-test/stdlib/HashingPrototype.swift
 [h2]: https://github.com/attaswift/SipHash
-[h3]: https://gist.github.com/regexident/1b8e84974da2243e5199e760508d2d25
+[h3a]: https://blog.definiteloops.com/ha-r-sh-visitors-8c0c3686a46f
+[h3b]: https://gist.github.com/regexident/1b8e84974da2243e5199e760508d2d25
 
 ```swift
 protocol Hashable: Equatable {
