@@ -3,11 +3,12 @@
 * Proposal: [SE-0192](0192-non-exhaustive-enums.md)
 * Author: [Jordan Rose](https://github.com/jrose-apple)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
-* Status: **Active Review (March 16...23, 2018)**
+* Status: **Accepted with Revision**
 * Implementation: [apple/swift#14945](https://github.com/apple/swift/pull/14945)
 * Previous revision: [1](https://github.com/apple/swift-evolution/blob/a773d07ff4beab8b7855adf0ac56d1e13bb7b44c/proposals/0192-non-exhaustive-enums.md), [2 (informal)](https://github.com/jrose-apple/swift-evolution/blob/57dfa2408fe210ed1d5a1251f331045b988ee2f0/proposals/0192-non-exhaustive-enums.md)
 * Pre-review discussion: [Enums and Source Compatibility](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170807/038663.html), with additional [orphaned thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170911/039787.html)
 * Review discussion: [Review author summarizes some feedback from review discussion and proposes alternatives](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20180101/042480.html), [full discussion thread](https://forums.swift.org/t/se-0192-non-exhaustive-enums/7291/337), plus [Handling unknown cases in enums](https://forums.swift.org/t/handling-unknown-cases-in-enums-re-se-0192/7388/)
+* Decision Notes: [Rationale](https://forums.swift.org/t/se-0192-non-exhaustive-enums-review-2/11043/62)
 
 <!--
 *During the review process, add the following fields as needed:*
