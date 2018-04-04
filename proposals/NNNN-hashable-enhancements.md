@@ -6,7 +6,8 @@
 * Status: **Awaiting review**
 * Implementation:<br> 
     [apple/swift#14913](https://github.com/apple/swift/pull/14913) (standard library, underscored),<br>
-    [apple/swift#15122](https://github.com/apple/swift/pull/15122) (automatic synthesis)
+    [apple/swift#15122](https://github.com/apple/swift/pull/15122) (automatic synthesis)<br>
+    TBD (de-underscoring, full `Hasher` API)
 
 <!--
 *During the review process, add the following fields as needed:*
@@ -21,7 +22,7 @@
 
 * [Introduction](#intro)
 * [Motivation](#why)
-    - [The Status Quo](#status-quo)
+    - [The status quo](#status-quo)
     - [Universal hash functions](#universal-hashing)
 * [Proposed solution](#proposed-solution)
     - [The `Hasher` struct](#hasher)
@@ -34,7 +35,7 @@
 * [Effect on API resilience](#resilience)
 * [Alternatives considered](#alternatives)
     - [Leaving `Hashable` as is](#leave-hashable-alone)
-    - [Defining a protocol refinement](#protocol-refinement)
+    - [Defining a new protocol](#new-protocol)
     - [Making `hash(into:)` generic over a `Hasher` protocol](#generic-hasher)
     - [Change `hash(into:)` to take a closure instead of a new type](#closure-hasher)
 
@@ -87,9 +88,10 @@ the table. If the table is large enough, such a regression can easily
 lead to unacceptable performance.  For example, when they're
 overwhelmed with hash collisions, applications and network services
 may stop processing new events for prolonged periods of time; this can
-easily be enough to crash the app or to bring down the service.
+easily be enough to make the app unresponsive or to bring down the
+service.
 
-### <a name="status-quo">The Status Quo</a>
+### <a name="status-quo">The status quo</a>
 
 Since Swift version 1.0, `Hashable` has had a single requirement on
 top of `Equatable`: the `hashValue` property. `hashValue` looks
@@ -277,10 +279,11 @@ the state of the hash function, and provides the following operations:
     }
     ```
 
-    We expect most hashable types will have discrete
-    components. However, we do provide an `append` overload that takes
-    bytes from an `UnsafeRawBufferPointer`, in cases where the bits to
-    be hashed are available as a single, contiguous byte sequence:
+    We expect most hashable types will consist of discrete components,
+    hashed sequentially, one by one. However, we provide an `append`
+    overload that takes bytes from an `UnsafeRawBufferPointer`, for
+    use in cases where the bits to be hashed are available as a
+    single, contiguous byte sequence:
 
     ```swift
     extension Hasher {
@@ -288,22 +291,6 @@ the state of the hash function, and provides the following operations:
     }
     ```
 
-    To make it easier to express `hash(into:)` in terms of `Hashable`
-    components, we provide a variant of `append` that simply calls
-    `hash(into:)` on the supplied value:
-
-    ```swift
-    extension Hasher {
-      @inlinable
-      public mutating func append<H: Hashable>(_ value: H) {
-        value.hash(into: &self)
-      }
-    }
-    ```
-
-    This is purely for convenience; `hasher.append(foo)` is slightly
-    easier to type than `foo.hash(into: &hasher)`.
-    
 3. An operation to finalize the state, extracting the hash value from it.
    
     ```swift
@@ -370,6 +357,23 @@ public protocol Hashable {
 (Please see the section on [Source
 compatibility](#source-compatibility) on how we'll do this without
 breaking code written for previous versions of Swift.)
+
+To make it easier to express `hash(into:)` in terms of `Hashable`
+components, `Hasher` provides a variant of `append` that simply calls
+`hash(into:)` on the supplied value:
+
+```swift
+extension Hasher {
+  @inlinable
+  public mutating func append<H: Hashable>(_ value: H) {
+    value.hash(into: &self)
+  }
+}
+```
+
+This is purely for convenience; `hasher.append(foo)` is slightly
+easier to type than `foo.hash(into: &hasher)`.
+
 
 At first glance, it may not be obvious why we need to replace
 `hashValue`. After all, `Hasher` can be used to take the guesswork out
@@ -848,7 +852,7 @@ functions.
 We felt this was an unsatisfying approach; the rationale behind this
 is explained in the section on [The `hash(into:)` requirement](#hash-into).
 
-### <a name="protocol-refinement">Defining a protocol refinement</a>
+### <a name="new-protocol">Defining a new protocol</a>
 
 There have been several attempts ([1][h1], [2][h2], [3][h3]) to fix `Hashable`
 by creating a new protocol that refines it:
@@ -858,7 +862,7 @@ by creating a new protocol that refines it:
 [h3]: https://gist.github.com/regexident/1b8e84974da2243e5199e760508d2d25
 
 ```swift
-protocol Hashable {
+protocol Hashable: Equatable {
   var hashValue: Int { get }
 }
 
@@ -875,7 +879,7 @@ extension Hashable2 {
 }
 ```
 
-While this is a useful approach for external hashing packages, we
+While this is a great approach for external hashing packages, we
 believe it to be unsuitable for the standard library. Adding a new
 protocol would add a significant new source of user confusion about
 hashing, and it would needlessly expand the standard library's API
@@ -890,7 +894,7 @@ believe it to be less harmful overall than leaving `Hashable`
 unchanged, or trying to have two parallel protocols for the same thing.
 
 Additionally, adding a second protocol would lead to complications
-with `Hashable` synthesis. It's also unclear if `Set` and `Dictionary`
+with `Hashable` synthesis. It's also unclear how `Set` and `Dictionary`
 would be able to consistently use `Hasher` for their primary hashing
 API. (These problems are not unsolvable, but they may involve adding
 special one-off compiler support for the new protocol. For example, we
@@ -937,8 +941,8 @@ function:
     can easily overshadow the (slight, if any) algorithmic
     disadvantage of the standard `Hasher`.
 
-Note that the non-generic `Hasher` still has full support for Bloom
-filters and other data structures that require multiple hash
+Note that the proposed non-generic `Hasher` still has full support for
+Bloom filters and other data structures that require multiple hash
 functions. (To select a different hash function, we just need to
 supply a new seed value.)
 
