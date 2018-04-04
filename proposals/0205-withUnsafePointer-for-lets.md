@@ -1,9 +1,9 @@
 # `withUnsafePointer(to:_:)` and `withUnsafeBytes(of:_:)` for immutable values
 
-* Proposal: [SE-NNNN](NNNN-withUnsafePointer-for-lets.md)
+* Proposal: [SE-0205](0205-withUnsafePointer-for-lets.md)
 * Authors: [Joe Groff](https://github.com/jckarter)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
+* Status: **In review (4th to 11th April)**
 * Implementation: [apple/swift#15608](https://github.com/apple/swift/pull/15608)
 
 ## Introduction
