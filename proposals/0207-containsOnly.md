@@ -1,10 +1,10 @@
-# Add an `containsOnly` algorithm to `Sequence`
+# Add a `containsOnly` algorithm to `Sequence`
 
-* Proposal: [SE-NNNN](NNNN-containsOnly.md)
+* Proposal: [SE-0207](0207-containsOnly.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
-* Review Manager: TBD
+* Review Manager: [Dave Abrahams](https://github.com/dabrahams)
 * Implementation: [apple/swift#15120](https://github.com/apple/swift/pull/15120)
-* Status: **Awaiting review**
+* Status: **Active review (April 4...13)**
 
 ## Introduction
 
