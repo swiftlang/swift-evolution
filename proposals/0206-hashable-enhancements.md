@@ -1,9 +1,9 @@
 # Hashable Enhancements
 
-* Proposal: [SE-NNNN](NNNN-hashable-enhancements.md)
+* Proposal: [SE-0206](0206-hashable-enhancements.md)
 * Authors: [Karoy Lorentey](https://github.com/lorentey), [Vincent Esche](https://github.com/regexident)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Joe Groff](https://github.com/jckarter)
+* Status: **Active review (April 4...13)**
 * Implementation:<br> 
     [apple/swift#14913](https://github.com/apple/swift/pull/14913) (standard library, underscored),<br>
     [apple/swift#15122](https://github.com/apple/swift/pull/15122) (automatic synthesis)<br>
