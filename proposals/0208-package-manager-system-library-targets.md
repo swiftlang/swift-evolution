@@ -1,9 +1,9 @@
 # Package Manager System Library Targets
 
-* Proposal: [SE-NNNN](NNNN-package-manager-system-library-targets.md)
+* Proposal: [SE-0208](0208-package-manager-system-library-targets.md)
 * Author: [Ankit Aggarwal](https://github.com/aciidb0mb3r), [Daniel Dunbar](https://github.com/ddunbar)
 * Review Manager: [Boris Bügling](https://github.com/neonichu)
-* Status: **Discussion**
+* Status: **Active review (April 06...April 13)**
 
 ## Introduction
 
