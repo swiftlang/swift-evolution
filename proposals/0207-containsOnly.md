@@ -9,7 +9,7 @@
 ## Introduction
 
 It is common to want to confirm that every element of a sequence equals a
-value, or matches a certain criteria. Many implementations of this can be found
+value, or matches certain criteria. Many implementations of this can be found
 in use on github. This proposal adds such a method to `Sequence`.
 
 ## Motivation
