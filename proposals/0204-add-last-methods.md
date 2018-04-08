@@ -50,6 +50,8 @@ Much better!
 
 `last(where:)` and `lastIndex(where:)` will be added to the standard library as `Sequence` and `Collection` protocol requirements, respectively. These methods will have default implementations in their respective protocols and in `BidirectionalCollection`, which can provide a more efficient implementation. `lastIndex(of:)` will be provided in `Collection` and `BidirectionalCollection` extensions constrained to `Equatable` elements. 
 
+In addition, the `index(of:)` and `index(where:)` methods will be renamed to `firstIndex(of:)` and `firstIndex(where:)`, respectively. This change is beneficial for two reasons. First, it groups the `first...` and `last...` methods into two symmetric analogous groups, and second, it leaves the `index...` methods as solely responsible for index manipulation.
+
 The new APIs are shown here:
 
 ```swift
@@ -64,6 +66,10 @@ protocol Sequence {
 
 protocol Collection {
     // Existing declarations...
+    
+    // Renamed from index(where:)
+    func firstIndex(where predicate: (Element) throws -> Bool) 
+        rethrows -> Index?
     
     /// Returns the index of the last element of the collection that satisfies 
     /// the given predicate, or `nil` if no element does.
@@ -80,6 +86,9 @@ extension BidirectionalCollection {
 }
 
 extension Collection where Element: Equatable {
+    // Renamed from index(of:)
+    func firstIndex(of element: Element) -> Index? { ... }
+    
     /// Returns the index of the last element equal to the given element, or 
     /// no matching element is found.
     func lastIndex(of element: Element) -> Index? { ... }
@@ -90,11 +99,13 @@ extension BidirectionalCollection where Element: Equatable {
 }
 ```
 
-You can try out the usage (but not really the performance) of these methods by copying [this gist](https://gist.github.com/natecook1000/45c3df2aa5f84a834063329a478c7972) into a playground.
+You can try out the usage (but not really the performance) of the `last...` methods by copying [this gist](https://gist.github.com/natecook1000/45c3df2aa5f84a834063329a478c7972) into a playground.
 
 ## Source compatibility
 
 The addition of the `last(where:)`, `lastIndex(where:)`, and `lastIndex(of:)` methods is strictly additive and should have no impact on existing code.
+
+The name changes to `index(of:)` and `index(where:)` are easily migratable, and will be deprecated in Swift 4.2 before being removed in Swift 5.
 
 ## Effect on ABI stability & API resilience
 
@@ -104,7 +115,7 @@ This change does not affect ABI stability or API resilience beyond the addition 
 
 - A previous proposal limited the new methods to the `BidirectionalCollection` protocol. This isn't a necessary limitation, as the standard library already has methods on sequences and forward collections with the same performance characteristics.
 
-- Another previous proposal included renaming `index(of:)` and `index(where:)` to `firstIndex(of:)` and `firstIndex(where:)`, respectively. This version of the proposal removes that source-breaking change.
+- Another previous proposal included renaming `index(of:)` and `index(where:)` to `firstIndex(of:)` and `firstIndex(where:)`, respectively. A proposal after *that one* removed that source-breaking change. *This* version of the proposal adds the source-breaking change back in again.
 
 - An [alternative approach](https://github.com/apple/swift-evolution/pull/773#issuecomment-351148673) is to add a defaulted `options` parameter to the existing searching methods, like so:
 
