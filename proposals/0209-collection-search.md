@@ -1,6 +1,7 @@
 # Collection search
 * Proposal: SE-XXXX
 * Authors: [Lance Parker](https://forums.swift.org/u/lancep) & [Anthony Latsis](https://forums.swift.org/u/anthonylatsis)
+* Implementation: [apple/swift#15854](https://github.com/apple/swift/pull/15854)
 * Review Manager: TBD
 * Status: TBD
 
@@ -13,7 +14,7 @@ Searching a collection for occurrences of smaller collections is a common thing 
 ## Proposed Solution
 ```swift
 protocol Collection {
-	public func firstRange<C: BidirectionalCollection>(of pattern: C) -> Range<Index>? where C.Element == Element, Element: Equatable
+  public func firstRange<C: BidirectionalCollection>(of pattern: C) -> Range<Index>? where C.Element == Element, Element: Equatable
 }
 
 extension Collection where Element: Equatable {
