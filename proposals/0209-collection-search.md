@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status: TBD
 
-## Summary]
+## Summary
 Searching through a collection's contents is extremely useful (and would fill some holes in today's String API as well). We should add facilities to `Collection`,  `BidirectionalCollection` and `RangeReplaceableCollection` that allow users to do this.
 
 ## Motivation
@@ -18,7 +18,7 @@ protocol Collection {
 }
 
 extension Collection where Element: Equatable {
-  public func count<C: BidirectionalCollection>(occurrencesOf pattern: C, overlapping: Bool = false) -> Int where C.Element == Element
+  public func count<C: BidirectionalCollection>(occurrencesOf pattern: C, allowOverlapping: Bool = false) -> Int where C.Element == Element
   public func contains<C: BidirectionalCollection>(occurrenceOf pattern: C) -> Bool where C.Element == Element
   public func firstRange<C: BidirectionalCollection>(of pattern: C) -> Range<Index>? where C.Element == Element { ... } //default implementation for the new protocol requirement on Collection
 }
@@ -29,18 +29,18 @@ extension BidirectionalCollection where Element: Equatable {
 
 extension RangeReplaceableCollection where Element: Equatable {
   public mutating func removeFirst<C: BidirectionalCollection>(occurrenceOf pattern: C) where C.Element == Element
-  public mutating func removeAll<C: BidirectionalCollection>(occurencesOf pattern: C) where C.Element == Element
-  public mutating func replaceAll<C: BidirectionalCollection>(occurrencesOf pattern: C, with replacement: C) where C.Element == Element
-  public mutating func replaceFirst<C: BidirectionalCollection>(occurrenceOf pattern: C, with replacement: C) where C.Element == Element
+  public mutating func removeAll<C: BidirectionalCollection>(occurrencesOf pattern: C) where C.Element == Element
+  public mutating func replaceAll<C: BidirectionalCollection, R: Collection>(occurrencesOf pattern: C, with replacement: R) where C.Element == Element, R.Element == Element
+  public mutating func replaceFirst<C: BidirectionalCollection, R: Collection>(occurrenceOf pattern: C, with replacement: R) where C.Element == Element, R.Element == Element
 }
 
 extension RangeReplaceableCollection where Self: BidirectionalCollection, Element: Equatable {
   public mutating func removeLast<C: BidirectionalCollection>(occurrenceOf pattern: C) where C.Element == Element
-  public mutating func replaceLast<C: BidirectionalCollection>(occurrenceOf pattern: C, with replacement: C) where C.Element == Element
+  public mutating func replaceLast<C: BidirectionalCollection, R: Collection>(occurrenceOf pattern: C, with replacement: R) where C.Element == Element, R.Element == Element
 }
 ```
 
-`firstRange(of:)` is a new requirement for `Collection`, with a default implementation provided.
+`firstRange(of:)` is a new requirement for `Collection`, with a default implementation provided. This allows types like `String` to provide a faster implementation of `firstRange(of:)`. We don't need customization points for the other methods because they are all implemented in terms of `firstRange(of:)`.
 
 ## Impact on String
 Under this proposal, the following `String` method would be deprecated as its functionality is replaced by the above methods:
