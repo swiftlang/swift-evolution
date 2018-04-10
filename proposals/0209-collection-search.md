@@ -47,7 +47,7 @@ Under this proposal, the following `String` method would be deprecated as its fu
 
 ```swift
 extension String {
-  public func contains<T : StringProtocol>(_ other: T) -> Bool
+  public func contains<T: StringProtocol>(_ other: T) -> Bool
 }
 ```
 
