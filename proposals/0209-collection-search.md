@@ -18,9 +18,9 @@ protocol Collection {
 }
 
 extension Collection where Element: Equatable {
-  public func count<C: BidirectionalCollection>(occurrencesOf pattern: C, allowOverlapping: Bool = false) -> Int where C.Element == Element
+  public func countOccurrences<C: BidirectionalCollection>(of pattern: C, allowingOverlaps: Bool = false) -> Int where C.Element == Element
   public func contains<C: BidirectionalCollection>(occurrenceOf pattern: C) -> Bool where C.Element == Element
-  public func firstRange<C: BidirectionalCollection>(of pattern: C) -> Range<Index>? where C.Element == Element { ... } //default implementation for the new protocol requirement on Collection
+  public func firstRange<C: BidirectionalCollection>(of pattern: C) -> Range<Index>? where C.Element == Element
 }
 
 extension BidirectionalCollection where Element: Equatable {
@@ -39,8 +39,6 @@ extension RangeReplaceableCollection where Self: BidirectionalCollection, Elemen
   public mutating func replaceLast<C: BidirectionalCollection, R: Collection>(occurrenceOf pattern: C, with replacement: R) where C.Element == Element, R.Element == Element
 }
 ```
-
-`firstRange(of:)` is a new requirement for `Collection`, with a default implementation provided. This allows types like `String` to provide a faster implementation of `firstRange(of:)`. We don't need customization points for the other methods because they are all implemented in terms of `firstRange(of:)`.
 
 ## Impact on String
 Under this proposal, the following `String` method would be deprecated as its functionality is replaced by the above methods:
