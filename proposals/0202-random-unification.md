@@ -95,9 +95,9 @@ To kick this off, we will be discussing the RNGs that each operating system will
 
 We require that the kernel version be >= 3.17 as this was the release that introduced the `getrandom(2)` system call. We also require that glibc be >= 2.25 because this release exposed the `<sys/random.h>` header.
 
-| Kernel Version < 3.17 || Glibc Version < 2.25 | Kernel Version >= 3.17 && Glibc Version >= 2.25 |
-|:---------------------------------------------:|:-----------------------------------------------:|
-|            Read from `/dev/urandom`           |                Use `getrandom(2)`               |
+| Kernel Version < 3.17 \|\| Glibc Version < 2.25 | Kernel Version >= 3.17 && Glibc Version >= 2.25 |
+|:-----------------------------------------------:|:-----------------------------------------------:|
+|            Read from `/dev/urandom`             |                Use `getrandom(2)`               |
 
 #### Other Platforms
 
