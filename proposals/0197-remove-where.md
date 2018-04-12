@@ -3,7 +3,7 @@
 * Proposal: [SE-0197](0197-remove-where.md)
 * Author: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Accepted with Revisions**
+* Status: **Implemented** for Swift 4.2
 * Implementation: [apple/swift#11576](https://github.com/apple/swift/pull/11576)
 * Review: [Thread](https://forums.swift.org/t/se-0197-add-in-place-remove-where/8872)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/feec7890d6c193e9260ac9905456f25ef5656acd/proposals/0197-remove-where.md)
