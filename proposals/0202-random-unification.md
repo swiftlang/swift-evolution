@@ -3,7 +3,7 @@
 * Proposal: [SE-0202](0202-random-unification.md)
 * Author: [Alejandro Alonso](https://github.com/Azoy)
 * Review Manager: [Ben Cohen](http://github.com/AirspeedSwift/)
-* Status: **Active Review (March 23...April 3, 2018)**
+* Status: **Active Review (March 23...April 16, 2018)**
 * Implementation: [apple/swift#12772](https://github.com/apple/swift/pull/12772)
 
 ## Introduction
