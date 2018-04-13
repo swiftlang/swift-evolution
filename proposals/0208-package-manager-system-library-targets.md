@@ -4,6 +4,7 @@
 * Author: [Ankit Aggarwal](https://github.com/aciidb0mb3r), [Daniel Dunbar](https://github.com/ddunbar)
 * Review Manager: [Boris Bügling](https://github.com/neonichu)
 * Status: **Accepted**
+* Bug: [SR-7434](https://bugs.swift.org/browse/SR-7434)
 
 ## Introduction
 
