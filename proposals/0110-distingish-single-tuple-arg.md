@@ -3,7 +3,7 @@
 * Proposal: [SE-0110](0110-distingish-single-tuple-arg.md)
 * Authors: Vladimir S., [Austin Zheng](https://github.com/austinzheng)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Accepted**
+* Status: **Implemented (Swift 4)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000215.html), [Additional Commentary](https://lists.swift.org/pipermail/swift-evolution-announce/2017-June/000386.html)
 * Bug: [SR-2008](https://bugs.swift.org/browse/SR-2008)
 
