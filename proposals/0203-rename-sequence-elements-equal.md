@@ -3,9 +3,10 @@
 * Proposal: [SE-0203](0203-rename-sequence-elements-equal.md)
 * Author: [Xiaodi Wu](https://github.com/xwu)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
-* Status: **Active Review (March 29...April 6, 2018)**
+* Status: **Rejected**
 * Implementation: [apple/swift#12884](https://github.com/apple/swift/pull/12884)
 * Bugs: [SR-6102](https://bugs.swift.org/browse/SR-6102)
+* Review thread: [Swift evolution forum](https://forums.swift.org/t/se-0203-rename-sequence-elementsequal/11482)
 
 ## Introduction
 
