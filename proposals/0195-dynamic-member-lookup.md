@@ -345,7 +345,7 @@ applied to a type, but there are many other ways this can be spelled.  There cou
 ]attribute names that are worth considering (suggestions welcome!), and it is also possible to
 spell this as a declaration modifier like `dynamicMemberLookup`.
 
-### Make this a marker protoocol
+### Make this a marker protocol
 
 We started with the approach of making this be a protocol that types conform to to get this
 behavior.  It turns out that this behavior is very non-protocol like: it is not useful to define
