@@ -3,7 +3,7 @@
 * Proposal: [SE-0209](0209-package-manager-swift-lang-version-update.md)
 * Author: [Ankit Aggarwal](https://github.com/aciidb0mb3r)
 * Review Manager: [Boris Bügling](https://github.com/neonichu)
-* Status: **Active review (April 10...April 17)**
+* Status: **Accepted**
 
 ## Introduction
 
