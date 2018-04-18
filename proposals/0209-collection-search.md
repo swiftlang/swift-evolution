@@ -1,4 +1,4 @@
-# Collection search
+# Collection search, remove & replace
 * Proposal: SE-XXXX
 * Authors: [Lance Parker](https://forums.swift.org/u/lancep) & [Anthony Latsis](https://forums.swift.org/u/anthonylatsis)
 * Implementation: [apple/swift#15854](https://github.com/apple/swift/pull/15854)
