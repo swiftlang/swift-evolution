@@ -8,7 +8,7 @@
 
 ## Introduction
 
-This proposal introduces a `compiler` directive that is synctactically equivalent to the `swift` version check but checks against the latest version of the language the compiler comes with, regardless of which mode it's currently compiling in.
+This proposal introduces a `compiler` directive that is syntactically equivalent to the `swift` version check but checks against the latest version of the language the compiler comes with, regardless of which mode it's currently compiling in.
 
 ## Motivation
 
