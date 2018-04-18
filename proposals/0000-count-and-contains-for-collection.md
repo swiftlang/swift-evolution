@@ -1,4 +1,4 @@
-# New `count` and `contains` methods for `BidirectionalCollection`
+# Add `count` and `contains` methods to `Collection`
 
 * Proposal: [SE-NNNN](NNNN-filename.md)
 * Authors: [Anthony Latsis](https://github.com/AnthonyLatsis)
@@ -8,18 +8,18 @@
 
 ## Introduction
 
-This is inspired by the [proposal](https://forums.swift.org/t/pitch-count-where-on-sequence/11186/27) of adding `count` methods to `Sequence`. Apart from `count(of: Element)` and `count(where:)`, there is another `count` method and, in addition, a `contains` method that would greatly suite ordered collections, currently assembled under `BidirectionalCollection`.
+This is inspired by the [proposal](https://forums.swift.org/t/pitch-count-where-on-sequence/11186/27) of adding `count` methods to `Sequence`. Apart from those, there is another `count` method and, in addition, a `contains` method that I consider a sensible addition to `Collection`. The goal of this proposal is to introduce a method for a common task, make it intuitive, easy to use and prevent the consumer from accidentally writing inefficient code.
 
 ### Methods
 ``` swift
-count<T: BidirectionalCollection>(of other: T, overlapping: Bool) -> Int where T.Element == Element
+count<T: Collection>(of other: T, overlapping: Bool) -> Int where T.Element == Element
 ```
-A method that counts the number of occurrences of a collection in another collection
+Returns the number of occurrences of the given subcollection in the collection. When `overlapping` is true, overlapping occurrences are also counted.
 
 ``` swift 
-contains<T: BidirectionalCollection>(_ other: T) -> Bool where T.Element == Element
+contains<T: Collection>(_ other: T) -> Bool where T.Element == Element
 ```
-The name speaks for itself :slightly_smiling_face:
+Returns a boolean value indicating whether the collection contains the given subcollection.
 
 [Swift-evolution pitch thread](https://forums.swift.org/t/pitch-count-of-subsequence-and-contains-subsequence-for-bidirectionalcollection/11245)
 
@@ -31,18 +31,18 @@ There is a rather tricky and non-trivial way (for a regular user) to count the n
 ``` swift
 str.components(separatedBy: "substring") - 1
 ```
-The method used in this approach not only is unintuitive for the task in question, but also unnecessarily inefficient – a shortcoming that is partially solved with `.lazy` without gaining any advantage in semantics, convenience an readability.
+The method used in this approach not only is unintuitive for the task in question, but also unnecessarily inefficient – a shortcoming that is partially solved with `.lazy` without gaining any advantage in semantics, ergonimics an readability.
 
-`StringProtocol` already has a [`contains<T>(_ other: T)`](https://developer.apple.com/documentation/swift/stringprotocol/2923423-contains) method, the counterpart of which can be of great benefit to ordered collections in general.
+`StringProtocol` has a [`contains<T>(_ other: T)`](https://developer.apple.com/documentation/swift/stringprotocol/2923423-contains) method as part of the `NSString` compatibility API, which can become a special case of the proposed method, thus avoiding breaking changes and redundancy.
 
 ### Arrays and Data
-As far as I know, there isn't either a way or a relatively short workaround to count the number of occurrences of a subsequence in an ordered collection or verify whether an ordered collection contains a subsequence. 
-It is sensible to wonder and have a efficient way to find out if or how many times a sequence occurs in an instance of `Data`, `Array` and other ordered collections.
+There is neither a way nor a relatively short workaround for counting the number of occurrences of a given subcollection in a collection or verify whether an ordered collection contains a given subcollection. 
+It is sensible to wonder and have a efficient way to find out if or how many times a sequence occurs in instances of `Data`, `Array` and other ordered collections.
 
 ## Proposed solution
 
 ### `contains`
-The `contains` method is naturally used the same way as it's analogue for finding elements:
+The `contains` method is naturally used similarly to its analogue for an element:
 
 ``` swift
 let array = [1, 2, 3, 4, 5]
@@ -63,33 +63,38 @@ data.contains([0xA3, 0x1F]) // true
 
 ### `count`
 
-Counting how many times a subsequence appears in a sequence is an ambiguous task - there has to be an option for considering overlapping appearances.
+Counting how many times a subsequence appears in a sequence can be done either considering or ignoring overlapping occurrences.
 ``` swift
 [1, 1, 1].count(of: [1, 1]) == 1 // non-overlapping
 [1, 1, 1].count(of: [1, 1]) == 2 // overlapping
 ```
 A straight-forward and natural solution is an additional parameter, `overlapping: Bool`.
 
-Coversely, splitting the method and hence extending the `count` naming for semantic integrity, in my opinion, is an intuitively harmful approach. 
+Coversely, splitting the method and hence extending the `count` naming for semantic integrity, in my opinion, is an intuitively harmful approach that also isn't consistent with the existing `count` name family and the guidelines. 
 
 ## Detailed design
 
-### `StringProtocol`
+### Kept generic
 
-It is reasonable to assume the current [`StringProtocol.contains<T>(_ other: T)`](https://developer.apple.com/documentation/swift/stringprotocol/2923423-contains) method is well optimized for strings, therefore it may be left as is.
 
-### `BidirectionalCollection` default implementation
 
-**(*)** *If the provided collection is empty, the below implementations return `1` and `true` respectively. However, I understand this can be misleading and it yet to be discussed which variant best fits.
-#### Code `count`
+### `StringProtocol` and naming
+
+The inspiration for generalizing `contains(other:)` to `Collection` originates from the existing [`StringProtocol.contains<T>(_ other: T)`](https://developer.apple.com/documentation/swift/stringprotocol/2923423-contains). The naming was considered as part of the plan to move the latter API to the Standard Library as a special case of the proposed method with minimum impact. This requires keeping the function's name and argument signature intact, which allows to seamlessly merge the existing and introduced APIs. `StringProtocol`'s `contains` is well optimized and fine-tuned for performant string processing. However, the implementation delegates to `CFString` from **Core Foundation**, which is predominantly written in C. For what it's worth, I suggest translating the implementation to Swift. 
+
+### `Collection` default implementation
+
+**(*)** *If the provided subcollection is empty, the below implementations return `1` and `true` respectively. However, I understand this can be misleading and it is yet to be discussed which variant is most convenient.
+### `count`
 
 <details>
-<summary>Expand</summary>
+<summary>Code</summary>
 
 ``` swift
-extension BidirectionalCollection where Element: Equatable {
+extension Collection where Element: Equatable {
     
-    func count<T: BidirectionalCollection>(of other: T, overlapping: Bool) -> Int where T.Element == Element  {
+    @_inlineable
+    public func count<T: Collection>(of other: T, overlapping: Bool) -> Int where T.Element == Element {
         
         if other.startIndex == other.endIndex { return 0 }
         if self.startIndex == self.endIndex { return 0 }
@@ -101,16 +106,16 @@ extension BidirectionalCollection where Element: Equatable {
         var currentOtherIndex = other.startIndex
         
         if overlapping {
-            while (currentMainSelfIndex == self.endIndex) == false {
-
+            while currentMainSelfIndex < self.endIndex {
+                
                 while other[currentOtherIndex] == self[currentHelperSelfIndex] {
-
-                    if currentOtherIndex == other.index(before: other.endIndex) {
+                    
+                    if other.index(after: currentOtherIndex) == other.endIndex {
                         
                         count += 1
                         break
                     }
-                    if currentHelperSelfIndex == self.index(before: self.endIndex) { return count }
+                    if self.index(after: currentHelperSelfIndex) == self.endIndex { return count }
                     
                     currentHelperSelfIndex = self.index(after: currentHelperSelfIndex)
                     currentOtherIndex = other.index(after: currentOtherIndex)
@@ -121,17 +126,17 @@ extension BidirectionalCollection where Element: Equatable {
             }
             return count
         }
-        while (currentMainSelfIndex == self.endIndex) == false {
-                
+        while currentMainSelfIndex < self.endIndex {
+            
             while other[currentOtherIndex] == self[currentHelperSelfIndex] {
                 
-                if currentOtherIndex == other.index(before: other.endIndex) {
+                if other.index(after: currentOtherIndex) == other.endIndex {
                     
                     count += 1
                     currentMainSelfIndex = currentHelperSelfIndex
                     break
                 }
-                if currentHelperSelfIndex == self.index(before: self.endIndex) { return count }
+                if self.index(after: currentHelperSelfIndex) == self.endIndex { return count }
                 
                 currentHelperSelfIndex = self.index(after: currentHelperSelfIndex)
                 currentOtherIndex = other.index(after: currentOtherIndex)
@@ -143,18 +148,31 @@ extension BidirectionalCollection where Element: Equatable {
         return count
     }
 }
-
 ```
 </details>
 
-#### Code `contains` 
 <details>
-<summary>Expand</summary>
+<summary>Complexity</summary>
+    
+* `n` is the collection `count`, `m` is the subcollection `count`.
+
+* **Time**
+   * best: **ϴ(n)**
+   * worst: **ϴ(nm)**
+   * average: **O(nm)**
+
+* **Memory** **ϴ(1)**
+</details>
+
+### `contains` 
+<details>
+<summary>Code</summary>
 
 ``` swift
-extension BidirectionalCollection where Element: Equatable {
+extension Collection where Element: Equatable {
     
-    public func contains<T: BidirectionalCollection>(_ other: T) -> Bool where T.Element == Element {
+    @_inlineable
+    public func contains<T: Collection>(_ other: T) -> Bool where T.Element == Element {
         
         if other.startIndex == other.endIndex { return true }
         
@@ -162,15 +180,15 @@ extension BidirectionalCollection where Element: Equatable {
         var currentHelperSelfIndex = self.startIndex
         var currentOtherIndex = other.startIndex
         
-        while (currentMainSelfIndex == self.endIndex) == false {
+        while currentMainSelfIndex < self.endIndex  {
             
             while other[currentOtherIndex] == self[currentHelperSelfIndex] {
                 
-                if currentOtherIndex == other.index(before: other.endIndex) {
+                if other.index(after: currentOtherIndex) == other.endIndex {
                     
                     return true
                 }
-                if currentHelperSelfIndex == self.index(before: self.endIndex) { return false }
+                if self.index(after: currentHelperSelfIndex) == self.endIndex { return false }
                 
                 currentHelperSelfIndex = self.index(after: currentHelperSelfIndex)
                 currentOtherIndex = other.index(after: currentOtherIndex)
@@ -185,55 +203,17 @@ extension BidirectionalCollection where Element: Equatable {
 ```
 </details>
 
-
-#### Complexity `count`
-
 <details>
-<summary>Expand</summary>
-* `n` is the sequence length, `m` is the subsequence length.
+<summary>Complexity</summary>
 
-* **Non-overlapping**
+* `n` is the collection `count`, `m` is the subcollection `count`.
 
-   * **Time** **O(nm)**
+* **Time**
+     * best: **ϴ(n)**
+     * worst: **ϴ(nm)**
+     * average: **O(nm)**
 
-      * best: **ϴ(1)**  `(m = 0)`
-      * worst: **ϴ(nm)**
-      * average: **O(nm)**
-
-   * **Memory** Always **ϴ(1)**
-
-
-* **Overlapping**
-
-   * **Time**  `n + m * max(a)` = **O(nm)**, `max(a) = (n - m + 1)`
-`a` - number of occurrences.
-
-      * best: **ϴ(1)**  `(m = 0)`
-      * worst: **ϴ(nm)**
-      * average: **O(nm)**
-         
-    * In practice, however, unless you are counting subsequences of equal elements in sequences of the same equal elements, which is very unlikely, the number of occurrences is predominantly **ϴ(1)**, meaning the average can be assumed to be **O(n)**.
-
-   * **Memory** Always **ϴ(1)**
-
-* *Can’t think of a faster way yet. Anyway, ideas of faster variants are of course appreciated.*
-</details>
-
-
-#### Complexity `contains` 
-
-<details>
-<summary>Expand</summary>
-
-* `n` is the sequence length, `m` is the subsequence length.
-
- * **Time**  **O(nm)**
-
-      * best: **ϴ(1)**  `(m = 0)`
-      * worst: **ϴ(nm)**
-      * average: **O(nm)**
-
-  * **Memory** Always **ϴ(1)**
+ * **Memory** **ϴ(1)**
 </details>
 
 
@@ -247,15 +227,8 @@ This feature is purely additive.
 
 ## Effect on API resilience
 
-API resilience describes the changes one can make to a public API
-without breaking its ABI. Does this proposal introduce features that
-would become part of a public API? If so, what kinds of changes can be
-made without breaking ABI? Can this feature be added/removed without
-breaking ABI? For more information about the resilience model, see the
-[library evolution
-document](https://github.com/apple/swift/blob/master/docs/LibraryEvolution.rst)
-in the Swift repository.
+The proposed changes do not affect ABI.
 
 ## Alternatives considered
 
-Because this proposal is closely related to the aforementioned, the motivation is pretty much the same – to introduce a method for a common task, make it eye-catching, intuitive, easy to use and prevent the user from accidentally writing inefficient code.
+
