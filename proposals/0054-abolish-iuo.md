@@ -3,9 +3,9 @@
 * Proposal: [SE-0054](0054-abolish-iuo.md)
 * Author: [Chris Willmore](http://github.com/cwillmor)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Implemented (Swift 3)**
+* Status: **Implemented (Swift 4.2)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000084.html)
-* Implementation: [apple/swift#2322](https://github.com/apple/swift/pull/2322)
+* Implementation: [apple/swift#14299](https://github.com/apple/swift/pull/14299)
 
 ## Introduction
 
