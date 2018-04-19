@@ -1,14 +1,16 @@
-# Add `count` and `contains` methods to `Collection`
+# New `count` and `contains` methods for `Collection`
 
 * Proposal: [SE-NNNN](NNNN-filename.md)
 * Authors: [Anthony Latsis](https://github.com/AnthonyLatsis)
 * Review Manager: TBD
-* Status: **Awaiting implementation**
+* Status: Awaiting implementation
 
 
 ## Introduction
 
-This is inspired by the [proposal](https://forums.swift.org/t/pitch-count-where-on-sequence/11186/27) of adding `count` methods to `Sequence`. Apart from those, there is another `count` method and, in addition, a `contains` method that I consider a sensible addition to `Collection`. The goal of this proposal is to introduce a method for a common task, make it intuitive, easy to use and prevent the consumer from accidentally writing inefficient code.
+This proposal introduces a two methods of existing name families that I consider a sensible addition to `Collection`. The goal is to introduce a solution for a common task, make it intuitive, easy to use and prevent the consumer from accidentally writing inefficient code.
+
+[Swift-evolution pitch thread](https://forums.swift.org/t/count-of-and-contains-other-for-collection/11245?u=anthonylatsis)
 
 ### Methods
 ``` swift
@@ -20,8 +22,6 @@ Returns the number of occurrences of the given subcollection in the collection. 
 contains<T: Collection>(_ other: T) -> Bool where T.Element == Element
 ```
 Returns a boolean value indicating whether the collection contains the given subcollection.
-
-[Swift-evolution pitch thread](https://forums.swift.org/t/pitch-count-of-subsequence-and-contains-subsequence-for-bidirectionalcollection/11245)
 
 ## Motivation
 
@@ -36,13 +36,13 @@ The method used in this approach not only is unintuitive for the task in questio
 `StringProtocol` has a [`contains<T>(_ other: T)`](https://developer.apple.com/documentation/swift/stringprotocol/2923423-contains) method as part of the `NSString` compatibility API, which can become a special case of the proposed method, thus avoiding breaking changes and redundancy.
 
 ### Arrays and Data
-There is neither a way nor a relatively short workaround for counting the number of occurrences of a given subcollection in a collection or verify whether an ordered collection contains a given subcollection. 
+There is neither a way nor a relatively short workaround for counting the occurrences of a given subcollection in a collection or verify whether an ordered collection contains a given subcollection. 
 It is sensible to wonder and have a efficient way to find out if or how many times a sequence occurs in instances of `Data`, `Array` and other ordered collections.
 
 ## Proposed solution
 
 ### `contains`
-The `contains` method is naturally used similarly to its analogue for an element:
+The `contains` method is naturally used similar to its analogue for a single element:
 
 ``` swift
 let array = [1, 2, 3, 4, 5]
@@ -74,17 +74,22 @@ Coversely, splitting the method and hence extending the `count` naming for seman
 
 ## Detailed design
 
-### Kept generic
+### Generic approach
 
+While at first glance it might seem logical to allow only subsequences of `Self` as an argument, there are several significant negative aspects in such constraints.
 
+#### Allow Sequences with an equal element type
+* In the majority of cases, you would want to pass a sequence of the same type or `Element` type. Subsequences as types are rarely instantiated directly – predominantly, they are a result of calling methods.
+
+* Proccessing can result in complex types i.e `LazyFilterCollection<LazyMapCollection<Array<T>, T>>`. It is sensible to provide the ability to *also* use `[T]` and other simple types as a subsequence against these types, instead of leaving the user to wonder how to instantiate such a sequence, let alone a *subsequence*. A similar example would be using `[UInt8]` for `Data`. 
 
 ### `StringProtocol` and naming
 
-The inspiration for generalizing `contains(other:)` to `Collection` originates from the existing [`StringProtocol.contains<T>(_ other: T)`](https://developer.apple.com/documentation/swift/stringprotocol/2923423-contains). The naming was considered as part of the plan to move the latter API to the Standard Library as a special case of the proposed method with minimum impact. This requires keeping the function's name and argument signature intact, which allows to seamlessly merge the existing and introduced APIs. `StringProtocol`'s `contains` is well optimized and fine-tuned for performant string processing. However, the implementation delegates to `CFString` from **Core Foundation**, which is predominantly written in C. For what it's worth, I suggest translating the implementation to Swift. 
+The inspiration for generalizing `contains(other:)` to `Collection` originates from the existing [`StringProtocol.contains<T>(_ other: T)`](https://developer.apple.com/documentation/swift/stringprotocol/2923423-contains). The naming was considered as part of the plan to move the latter API to the Standard Library as a special case of the proposed method with minimum impact. This requires keeping the function's name and argument signature intact, which allows to seamlessly merge the existing and introduced APIs. `StringProtocol`'s `contains` is well optimized and fine-tuned for performant string processing. However, the implementation delegates to `CFString` from **Core Foundation**, which is predominantly written in C. For what it's worth, I suggest providing a Swift translation implementation for `StringProtocol`. 
 
 ### `Collection` default implementation
 
-**(*)** *If the provided subcollection is empty, the below implementations return `1` and `true` respectively. However, I understand this can be misleading and it is yet to be discussed which variant is most convenient.
+* If the provided subcollection is empty, the below implementations return `1` and `true` respectively. However, I understand this can be misleading and it is yet to be discussed which variant is most convenient.
 ### `count`
 
 <details>
@@ -231,4 +236,4 @@ The proposed changes do not affect ABI.
 
 ## Alternatives considered
 
-
+There is an option to generalize the proposed `contains` method for `Sequence`. Since the method requires the ability to access an element of the sequence and subsequence multiple times non-desctructively, we will need additional **ϴ(m + n)** memory to store both the sequence and subsequence in arrays to account for single-pass sequences. Even then, there are cases when the method might be of no use, i.e infinite sequences. Nevertheless, this *is* an option and it would be sensible to keep methods of the `contains` family together.
