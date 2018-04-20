@@ -94,7 +94,7 @@ extension Unicode.Scalar {
     // Remaining API is defined in the subsections below.
   }
 
-  /// The value that encapsulates the properties exposed 
+  /// The value that encapsulates the properties exposed.
   public var properties: Properties { get }
 }
 ```
@@ -102,78 +102,86 @@ extension Unicode.Scalar {
 ### Boolean Properties
 
 Each of the Boolean properties in the first block below would be implemented by
-calling `u_hasBinaryProperty` with the property name indicated to the right of
-the computed property.
+calling ICU's `u_hasBinaryProperty` function. The official Unicode name of each
+property is indicated by the comment next to the computed properties below.
 
 We propose supporting all of the Boolean properties that are currently available
 using ICU's `u_hasBinaryProperty` that correspond to properties in the Unicode
-Standard, but _not_ ICU-specific properties, with the following exceptions:
+Standard (but _not_ ICU-specific properties), with the following exceptions:
 
-* `UCHAR_GRAPHEME_LINK` is omitted because it is deprecated and equivalent to
+* `Grapheme_Link` is omitted because it is deprecated and equivalent to
   canonical combining class 9.
-* `UCHAR_HYPHEN` is omitted because is deprecated in favor of the `Line_Break`
+* `Hyphen` is omitted because is deprecated in favor of the `Line_Break`
   property.
 
 ```swift
 extension Unicode.Scalar.Properties {
 
-  public var isAlphabetic: Bool { get }    // UCHAR_ALPHABETIC
-  public var isASCIIHexDigit: Bool { get }    // UCHAR_ASCII_HEX_DIGIT
-  public var isBidiControl: Bool { get }    // UCHAR_BIDI_CONTROL
-  public var isBidiMirrored: Bool { get }    // UCHAR_BIDI_MIRRORED
-  public var isDash: Bool { get }    // UCHAR_DASH
-  public var isDefaultIgnorableCodePoint: Bool { get }    // UCHAR_DEFAULT_IGNORABLE_CODE_POINT
-  public var isDeprecated: Bool { get }    // UCHAR_DEPRECATED
-  public var isDiacritic: Bool { get }    // UCHAR_DIACRITIC
-  public var isExtender: Bool { get }    // UCHAR_EXTENDER
-  public var isFullCompositionExclusion: Bool { get }    // UCHAR_FULL_COMPOSITION_EXCLUSION
-  public var isGraphemeBase: Bool { get }    // UCHAR_GRAPHEME_BASE
-  public var isGraphemeExtend: Bool { get }    // UCHAR_GRAPHEME_EXTEND
-  public var isHexDigit: Bool { get }    // UCHAR_HEX_DIGIT
-  public var isIDContinue: Bool { get }    // UCHAR_ID_CONTINUE
-  public var isIDStart: Bool { get }    // UCHAR_ID_START
-  public var isIdeographic: Bool { get }    // UCHAR_IDEOGRAPHIC
-  public var isIDSBinaryOperator: Bool { get }    // UCHAR_IDS_BINARY_OPERATOR
-  public var isIDSTrinaryOperator: Bool { get }    // UCHAR_IDS_TRINARY_OPERATOR
-  public var isJoinControl: Bool { get }    // UCHAR_JOIN_CONTROL
-  public var isLogicalOrderException: Bool { get }    // UCHAR_LOGICAL_ORDER_EXCEPTION
-  public var isLowercase: Bool { get }    // UCHAR_LOWERCASE
-  public var isMath: Bool { get }    // UCHAR_MATH
-  public var isNoncharacterCodePoint: Bool { get }    // UCHAR_NONCHARACTER_CODE_POINT
-  public var isQuotationMark: Bool { get }    // UCHAR_QUOTATION_MARK
-  public var isRadical: Bool { get }    // UCHAR_RADICAL
-  public var isSoftDotted: Bool { get }    // UCHAR_SOFT_DOTTED
-  public var isTerminalPunctuation: Bool { get }    // UCHAR_TERMINAL_PUNCTUATION
-  public var isUnifiedIdeograph: Bool { get }    // UCHAR_UNIFIED_IDEOGRAPH
-  public var isUppercase: Bool { get }    // UCHAR_UPPERCASE
-  public var isWhitespace: Bool { get }    // UCHAR_WHITESPACE
-  public var isXIDContinue: Bool { get }    // UCHAR_XID_CONTINUE
-  public var isXIDStart: Bool { get }    // UCHAR_XID_START
-  public var isCaseSensitive: Bool { get }    // UCHAR_CASE_SENSITIVE
-  public var isSentenceTerminal: Bool { get }    // UCHAR_S_TERM
-  public var isVariationSelector: Bool { get }    // UCHAR_VARIATION_SELECTOR
-  public var isNFDInert: Bool { get }    // UCHAR_NFD_INERT
-  public var isNFKDInert: Bool { get }    // UCHAR_NFKD_INERT
-  public var isNFCInert: Bool { get }    // UCHAR_NFC_INERT
-  public var isNFKCInert: Bool { get }    // UCHAR_NFKC_INERT
-  public var isSegmentStarter: Bool { get }    // UCHAR_SEGMENT_STARTER
-  public var isPatternSyntax: Bool { get }    // UCHAR_PATTERN_SYNTAX
-  public var isPatternWhitespace: Bool { get }    // UCHAR_PATTERN_WHITE_SPACE
-  public var isCased: Bool { get }    // UCHAR_CASED
-  public var isCaseIgnorable: Bool { get }    // UCHAR_CASE_IGNORABLE
-  public var changesWhenLowercased: Bool { get }    // UCHAR_CHANGES_WHEN_LOWERCASED
-  public var changesWhenUppercased: Bool { get }    // UCHAR_CHANGES_WHEN_UPPERCASED
-  public var changesWhenTitlecased: Bool { get }    // UCHAR_CHANGES_WHEN_TITLECASED
-  public var changesWhenCaseFolded: Bool { get }    // UCHAR_CHANGES_WHEN_CASEFOLDED
-  public var changesWhenCaseMapped: Bool { get }    // UCHAR_CHANGES_WHEN_CASEMAPPED
-  public var changesWhenNFKCCaseFolded: Bool { get }    // UCHAR_CHANGES_WHEN_NFKC_CASEFOLDED
-  public var isEmoji: Bool { get }    // UCHAR_EMOJI
-  public var isEmojiPresentation: Bool { get }    // UCHAR_EMOJI_PRESENTATION
-  public var isEmojiModifier: Bool { get }    // UCHAR_EMOJI_MODIFIER
-  public var isEmojiModifierBase: Bool { get }    // UCHAR_EMOJI_MODIFIER_BASE
+  public var isAlphabetic: Bool { get }    // Alphabetic
+  public var isASCIIHexDigit: Bool { get }    // ASCII_Hex_Digit
+  public var isBidiControl: Bool { get }    // Bidi_Control
+  public var isBidiMirrored: Bool { get }    // Bidi_Mirrored
+  public var isDash: Bool { get }    // Dash
+  public var isDefaultIgnorableCodePoint: Bool { get }    // Default_Ignorable_Code_Point
+  public var isDeprecated: Bool { get }    // Deprecated
+  public var isDiacritic: Bool { get }    // Diacritic
+  public var isExtender: Bool { get }    // Extender
+  public var isFullCompositionExclusion: Bool { get }    // Full_Composition_Exclusion
+  public var isGraphemeBase: Bool { get }    // Grapheme_Base
+  public var isGraphemeExtend: Bool { get }    // Grapheme_Extend
+  public var isHexDigit: Bool { get }    // Hex_Digit
+  public var isIDContinue: Bool { get }    // ID_Continue
+  public var isIDStart: Bool { get }    // ID_Start
+  public var isIdeographic: Bool { get }    // Ideographic
+  public var isIDSBinaryOperator: Bool { get }    // IDS_Binary_Operator
+  public var isIDSTrinaryOperator: Bool { get }    // IDS_Trinary_Operator
+  public var isJoinControl: Bool { get }    // Join_Control
+  public var isLogicalOrderException: Bool { get }    // Logical_Order_Exception
+  public var isLowercase: Bool { get }    // Lowercase
+  public var isMath: Bool { get }    // Math
+  public var isNoncharacterCodePoint: Bool { get }    // Noncharacter_Code_Point
+  public var isQuotationMark: Bool { get }    // Quotation_Mark
+  public var isRadical: Bool { get }    // Radical
+  public var isSoftDotted: Bool { get }    // Soft_Dotted
+  public var isTerminalPunctuation: Bool { get }    // Terminal_Punctuation
+  public var isUnifiedIdeograph: Bool { get }    // Unified_Ideograph
+  public var isUppercase: Bool { get }    // Uppercase
+  public var isWhitespace: Bool { get }    // Whitespace
+  public var isXIDContinue: Bool { get }    // XID_Continue
+  public var isXIDStart: Bool { get }    // XID_Start
+  public var isCaseSensitive: Bool { get }    // Case_Sensitive
+  public var isSentenceTerminal: Bool { get }    // Sentence_Terminal (S_Term)
+  public var isVariationSelector: Bool { get }    // Variation_Selector
+  public var isNFDInert: Bool { get }    // NFD_Inert
+  public var isNFKDInert: Bool { get }    // NFKD_Inert
+  public var isNFCInert: Bool { get }    // NFC_Inert
+  public var isNFKCInert: Bool { get }    // NFKC_Inert
+  public var isSegmentStarter: Bool { get }    // Segment_Starter
+  public var isPatternSyntax: Bool { get }    // Pattern_Syntax
+  public var isPatternWhitespace: Bool { get }    // Pattern_White_Space
+  public var isCased: Bool { get }    // Cased
+  public var isCaseIgnorable: Bool { get }    // Case_Ignorable
+  public var changesWhenLowercased: Bool { get }    // Changes_When_Lowercased
+  public var changesWhenUppercased: Bool { get }    // Changes_When_Uppercased
+  public var changesWhenTitlecased: Bool { get }    // Changes_When_Titlecased
+  public var changesWhenCaseFolded: Bool { get }    // Changes_When_Casefolded
+  public var changesWhenCaseMapped: Bool { get }    // Changes_When_Casemapped
+  public var changesWhenNFKCCaseFolded: Bool { get }    // Changes_When_NFKC_Casefolded
+  public var isEmoji: Bool { get }    // Emoji
+  public var isEmojiPresentation: Bool { get }    // Emoji_Presentation
+  public var isEmojiModifier: Bool { get }    // Emoji_Modifier
+  public var isEmojiModifierBase: Bool { get }    // Emoji_Modifier_Base
+}
+```
 
-  public var isDefined: Bool { get }  // u_isdefined
-  public var hasNormalizationBoundaryBefore: Bool { get }  // unorm2_hasBoundaryBefore
+We also propose the following Boolean computed property that is generally
+useful, though it does not correspond to a named Unicode property:
+
+```swift
+extension Unicode.Scalar.Properties {
+
+  // Implemented in terms of ICU's `u_isdefined`.
+  public var isDefined: Bool { get }
 }
 ```
 
@@ -198,23 +206,40 @@ extension Unicode.Scalar.Properties {
 
 ### Identification and Classification
 
+We add the following properties for the purposes of identifying and categorizing
+scalars.
+
+The `Canonical_Combining_Class` property is somewhat unique in that the Unicode
+standard provides names for some, but not all, of the 255 valid values. We
+choose to represent this in Swift as a `RawRepresentable` `struct` that wraps
+the raw integer value, while still being `Comparable` for the purposes of
+implementing manual decomposition logic if necessary, and still providing the
+named values through `static let` constants.
+
 ```swift
 extension Unicode.Scalar.Properties {
 
-  public var age: Unicode.Version? { get }    // u_charAge
+  /// Represents the version of Unicode in which a scalar was introduced.
+  public typealias Version = (major: Int, minor: Int)
 
+  /// Corresponds to the `Age` Unicode property, when a code point was first
+  /// defined.
+  public var age: Unicode.Version? { get }
+
+  /// Corresponds to the `Name` Unicode property.
   public var name: String? { get }
+
+  /// Corresponds to the `Name_Alias` Unicode property.
   public var nameAlias: String? { get }
 
-  public var generalCategory: Unicode.GeneralCategory? { get }  // U_CHAR_GENERAL_CATEGORY
+  /// Corresponds to the `General_Category` Unicode property.
+  public var generalCategory: Unicode.GeneralCategory? { get }
 
+  /// Corresponds to the `Canonical_Combining_Class` Unicode property.
   public var canonicalCombiningClass: Unicode.CanonicalCombiningClass { get }
 }
 
 extension Unicode {
-
-  /// Represents the version of Unicode in which a scalar was introduced.
-  public typealias Version = (major: Int, minor: Int)
 
   /// General categories returned by
   /// `Unicode.Scalar.Properties.generalCategory`. Listed along with their
@@ -291,10 +316,20 @@ extension Unicode {
 
 ### Numerics
 
+Many Unicode scalars have associated numeric values. These are not only the
+common digits zero through nine, but also vulgar fractions and various other
+linguistic characters and ideographs that have an innate numeric value. These
+properties are exposed below. They can be useful for determining whether
+segments of text contain numbers or non-numeric data, and can also help in the
+design of algorithms to determine the values of such numbers.
+
 ```swift
 extension Unicode.Scalar.Properties {
 
+  /// Corresponds to the `Numeric_Type` Unicode property.
   public var numericType: Unicode.NumericType?
+
+  /// Corresponds to the `Numeric_Value` Unicode property.
   public var numericValue: Double
 }
 
@@ -321,11 +356,15 @@ existing language features.
 ## Effect on API resilience
 
 The `Unicode.Scalar.Properties` struct is currently defined as a resilient
-(non-`@_fixed_layout`) struct whose only stored properties in the initial
-implementation represent the scalar whose properties are being retrieved, stored
-as an integer code point (for most ICU calls) and as a pair of UTF-16 code units
-(for a small number of case transformations). All other properties are computed
-properties, and new properties can be added without breaking the ABI.
+(non-`@_fixed_layout`) struct whose only stored property in the initial
+implementation is the integer value of the scalar whose properties are being
+retrieved. All other properties are computed properties, and new properties can
+be added without breaking the ABI.
+
+In the future, we may choose to cache certain properties if data show that they
+are more frequently accessed than others and that there would be a meaningful
+performance improvement by computing them early. It is too soon to make such a
+determination now, however.
 
 ## Alternatives considered
 
