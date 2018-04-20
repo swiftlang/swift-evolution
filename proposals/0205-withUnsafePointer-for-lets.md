@@ -3,7 +3,7 @@
 * Proposal: [SE-0205](0205-withUnsafePointer-for-lets.md)
 * Authors: [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Accepted** for Swift 4.2
+* Status: **Implemented (Swift 4.2)**
 * Implementation: [apple/swift#15608](https://github.com/apple/swift/pull/15608)
 
 ## Introduction
