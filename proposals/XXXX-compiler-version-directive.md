@@ -8,29 +8,40 @@
 
 ## Introduction
 
-This proposal introduces a `compiler` directive that is syntactically equivalent to the `swift` version check but checks against the latest version of the language the compiler comes with, regardless of which mode it's currently compiling in.
+This proposal introduces a `compiler` directive that is syntactically equivalent to the `#if swift` version check but checks against the version of the compiler, regardless of which compatibility mode it's currently running in.
 
 ## Motivation
 
-Since Swift 4, the compiler can run in a compatibility mode for previous Swift versions. To make this explicit, a new Swift version 3.2 was introduced to represent the 4.0 compiler running in Swift 3 compatibility mode. This allowed developers to conditionally compile Swift 3 code which depends on Standard Library or compiler changes that appeared in the Swift 4 compiler.
+The `#if swift` check allows conditionally compiling code depending on the version of the language. Prior to Swift 4, the version of the compiler and the language were one and the same. But since Swift 4, the compiler can run in a compatibility mode for previous Swift versions, introducing an new version dimension. To support code across multiple compiler versions and compatibility modes, extra language versions are regularly introduced to represent old language versions running under compatibility mode.
 
-```swift
-#if swift(>=3.2)
-// code depending on new stdlib/compiler
-#endif
-```
+For example, the release of Swift 4 introduced a Swift 3.2 language version representing the Swift 4 compiler in version 3 compatibility mode. Here is the current language matrix, as well as guesses as to what those versions will be for Swift 5.0 and 5.1.
 
-When Swift 4.1 was released, a new 3.3 version was introduced to represent the 4.1 compiler in Swift 3 compatibility mode. This is probablematic for two reasons:
+| Swift | --swift-version 3 | --swift-version 4 | --swift-version 4.2 | --swift-version 5 |
+|:----- |:----------------- |:----------------- |:------------------- |:----------------- |
+| 3.0   | N/A               | N/A               | N/A                 | N/A               |
+| 3.1   | N/A               | N/A               | N/A                 | N/A               |
+| 4.0   | 3.2               | 4.0               | N/A                 | N/A               |
+| 4.1   | 3.3               | 4.1               | N/A                 | N/A               |
+| 4.2   | 3.4               | 4.1.50            | 4.2                 | N/A               |
+| 5.0   | 3.5               | 4.1.51            | 4.3                 | 5.0               |
+| 5.1   | 3.6               | 4.1.52            | 4.4                 | 5.1               |
 
-1. Continually introducing new Swift versions for old language versions in new compilers will grow exponentially for every new major Swift release: Swift 4.2 will have to introduce a Swift 3.4 version but Swift 5 will have to introduce both a Swift 3.5 version (when in Swift 3 compatibility mode), as well as a Swift 4.3 version (when in Swift 4 compatibility mode).
+This solution is problematic for several reasons:
 
-2. Conditionally compiling for the Swift 4.1 compiler, whether we are in Swift 3 or 4 mode, as is necessary to support Standard Library changes, is untenable:
+* It creates an exponential growth in the number of Swift versions for each new compatibility version.
+* Conditionally compiling for a version of the compiler, regardless of the compatibility mode, is difficult and error prone:
 
 ```swift
 #if swift(>=4.1) || (swift(>=3.3) && !swift(>=4.0))
-return array.compactMap({ $0 })
-#else
-return array.flatMap({ $0 })
+// Code targeting the Swift 4.1 compiler and above.
+#endif
+
+#if swift(>=4.1.50) || (swift(>=3.4) && !swift(>=4.0))
+// Code targeting the Swift 4.2 compiler and above.
+#endif
+
+#if swift(>=5.0) || (swift(>=4.1.50) && !swift(>=4.2)) || (swift(>=3.5) && !swift(>=4.0))
+// Code targeting the Swift 5.0 compiler and above.
 #endif
 ```
 
@@ -38,16 +49,53 @@ return array.flatMap({ $0 })
 
 This proposal suggests:
 
-* introducing a new `compiler` directive that is synctactically equivalent to the `swift` directive but checks against the latest version of the language the compiler comes with,
-* and stop bumping old Swift versions when new versions of the compiler are released.
+* introducing a new `compiler` directive that is syntactically equivalent to the `swift` directive but checks against the version of the compiler,
+* stop bumping old Swift versions when new versions are introduced.
 
-While it is too late to use this for Swift 4.1, it will allow users to conditionally compile code which requires (or not) the Swift 5 compiler or Standard Library, regardless of the swift language version:
+This will simplify future Swift versions by stopping the artificial growth of old language versions:
+
+| Invocation                | Compiler Version | Language Version |
+|:------------------------- |:---------------- |:---------------- |
+| 3.0                       | N/A              | 3.0              |
+| 3.1                       | N/A              | 3.1              |
+| 4.0                       | N/A              | 4.0              |
+| 4.0 (--swift-version 3)   | N/A              | 3.2              |
+| 4.1                       | N/A              | 4.1              |
+| 4.1 (--swift-version 3)   | N/A              | 3.3              |
+| 4.2                       | 4.2              | 4.2              |
+| 4.2 (--swift-version 3)   | 4.2              | 3.3              |
+| 4.2 (--swift-version 4)   | 4.2              | 4.1              |
+| 5.0                       | 5.0              | 5.0              |
+| 5.0 (--swift-version 3)   | 5.0              | 3.3              |
+| 5.0 (--swift-version 4)   | 5.0              | 4.1              |
+| 5.0 (--swift-version 4.2) | 5.0              | 4.2              |
+| 5.1                       | 5.1              | 5.1              |
+| 5.1 (--swift-version 3)   | 5.1              | 3.3              |
+| 5.1 (--swift-version 4)   | 5.1              | 4.1              |
+| 5.1 (--swift-version 4.2) | 5.1              | 4.2              |
+
+This change is possible because it retains the ability to conditionally compiling code targeting a compiler in compatibility mode:
 
 ```swift
+#if swift(>=4.1) && compiler(>=5.0)
+// Code targeting the Swift 5.0 compiler and above in --swift-version 4 mode.
+#endif
+```
+
+It will also greatly simply conditional compilation based on compiler version alone:
+
+```swift
+#if swift(>=4.1) || (swift(>=3.3) && !swift(>=4.0))
+// Code targeting the Swift 4.1 compiler and above.
+// This can't change because it needs to continue working with older compilers.
+#endif
+
+#if compiler(>=4.2)
+// Code targeting the Swift 4.2 compiler and above.
+#endif
+
 #if compiler(>=5.0)
-// Use Swift 5 new and shiny Standard Library API
-#else
-// Use old Swift 4.2 Standard Library API
+// Code targeting the Swift 5.0 compiler and above.
 #endif
 ```
 
