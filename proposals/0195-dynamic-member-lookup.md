@@ -646,7 +646,7 @@ someday have fast compile times).
 
 ### Introduce a language independent "foreign class" feature to Swift
 
-One suggestion was to introduce a [general "foreign class" feature to Swift](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171218/042227.html).  The core team met to discuss this and concluded that it was the wrong direction to go.  Among opinions held by core team members, several believed that forcing other languages models into the Swift model would violate their fundamental principles (e.g. Go and Javascript doesn't *have* classes), some felt it would be too invasive into the compiler, and others believed that such an approach ends up requiring a `DynamicMemberLookup` related feature anyway - because
+One suggestion was to introduce a [general "foreign class" feature to Swift](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171218/042227.html).  The core team met to discuss this and concluded that it was the wrong direction to go.  Among opinions held by core team members, several believed that forcing other languages models into the Swift model would violate their fundamental principles (e.g. Go and Javascript don't *have* classes), some felt it would be too invasive into the compiler, and others believed that such an approach ends up requiring a `DynamicMemberLookup` related feature anyway - because
 e.g. Python doesn't require property declarations.
 
 ### Use "automatically generated wrappers" to interface with Python
