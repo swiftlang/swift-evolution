@@ -3,8 +3,9 @@
 * Proposal: [SE-0202](0202-random-unification.md)
 * Author: [Alejandro Alonso](https://github.com/Azoy)
 * Review Manager: [Ben Cohen](http://github.com/AirspeedSwift/)
-* Status: **Active Review (March 23...April 16, 2018)**
+* Status: **Accepted**
 * Implementation: [apple/swift#12772](https://github.com/apple/swift/pull/12772)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-020-random-unification/12040)
 
 ## Introduction
 
@@ -83,27 +84,7 @@ Considering all of this, I believe it is very important that Swift provides deve
 
 ### Random Number Generator
 
-To kick this off, we will be discussing the RNGs that each operating system will utilize. We will make the default random generator cryptographically secure. This means on each operating system, the random API for Swift will produce a secure random number. In addition to being cryptographically secure, the default random generator will also be thread safe. It is also worth noting that if any of the following fail, particularly reading from /dev/urandom, then we produce a fatal error and abort the application. Reasons why I went with this approach in Alternatives Considered at the bottom of this proposal.
-
-#### Darwin Platform
-
-|                    macOS < 10.12, iOS < 10                   |    macOS >= 10.12, iOS >= 10   |
-|:------------------------------------------------------------:|:------------------------------:|
-|      Use `SecRandomCopyBytes` in the Security framework      |       Use `arc4random(3)`      |
-
-#### Linux Platform
-
-We require that the kernel version be >= 3.17 as this was the release that introduced the `getrandom(2)` system call. We also require that glibc be >= 2.25 because this release exposed the `<sys/random.h>` header.
-
-| Kernel Version < 3.17 \|\| Glibc Version < 2.25 | Kernel Version >= 3.17 && Glibc Version >= 2.25 |
-|:-----------------------------------------------:|:-----------------------------------------------:|
-|            Read from `/dev/urandom`             |                Use `getrandom(2)`               |
-
-#### Other Platforms
-
-| Android (Bionic) and Cygwin |       Fuchsia       |         Windows        |
-|:---------------------------:|:-------------------:|:----------------------:|
-|      Use `getrandom(2)`     | Use `getentropy(2)` | Use `BCryptoGenRandom` |
+To kick this off, the standard library will provide a default RNG. Each platform vendor will have the freedom to decide the specific implementation for this RNG for their platform. The standard library should document what specific RNG implementation is used on a specific platform. The aspiration is that this RNG should be cryptographically secure, provide reasonable performance, and should be thread safe. If a vendor is unable to provide these goals, they should document it clearly. It is also worth mentioning, that if an RNG on a platform has the possibility of failing, then it must fail when it is unable to complete its operation. An example of this is reading from `/dev/urandom`. If an error is to occur during reading, then it should produce a fatal error and abort the application. Reasons why I went with this approach in Alternatives Considered at the bottom of this proposal.
 
 ### Random API
 
@@ -115,9 +96,10 @@ Next, we will make extension methods for `FixedWidthInteger`, `BinaryFloatingPoi
 
 `FixedWidthInteger` example:
 ```swift
-// Utilizes the standard library's default random (alias to Int.random(in: 0 ..< 10, using: Random.default))
+// Utilizes the standard library's default random
+/// (alias to Int.random(in: 0 ..< 10, using: &Random.default))
 let randomIntFrom0To10 = Int.random(in: 0 ..< 10)
-let randomUIntFrom10Through100 = UInt.random(in: 10 ... 100, using: myCustomRandomNumberGenerator)
+let randomUIntFrom10Through100 = UInt.random(in: 10 ... 100, using: &myCustomRandomNumberGenerator)
 
 // The following are examples on how to get full width integers
 
@@ -126,21 +108,23 @@ let randomInt = Int.random(in: .min ... .max)
 // an alternative spelling could be:
 // let randomUInt = myCustomRandomNumberGenerator.next()
 // this takes advantage of the fact that generators can produce unsigned integers
-let randomUInt = UInt.random(in: .min ... .max, using: myCustomRandomNumberGenerator)
+let randomUInt = UInt.random(in: .min ... .max, using: &myCustomRandomNumberGenerator)
 ```
 
 `BinaryFloatingPoint` example:
 ```swift
-// Utilizes the standard library's default random (alias to Float.random(in: 0 ..< 1, using: Random.default))
+// Utilizes the standard library's default random
+// (alias to Float.random(in: 0 ..< 1, using: &Random.default))
 let randomFloat = Float.random(in: 0 ..< 1)
-let randomDouble = Double.random(in: 0 ... .pi, using: myCustomRandomNumberGenerator)
+let randomDouble = Double.random(in: 0 ... .pi, using: &myCustomRandomNumberGenerator)
 ```
 
 `Bool` example:
 ```swift
-// Utilizes the standard library's default random (alias to Bool.random(using: Random.default))
+// Utilizes the standard library's default random
+// (alias to Bool.random(using: &Random.default))
 let randomBool1 = Bool.random()
-let randomBool2 = Bool.random(using: myCustomRandomNumberGenerator)
+let randomBool2 = Bool.random(using: &myCustomRandomNumberGenerator)
 ```
 
 ### Collection Additions
@@ -153,9 +137,10 @@ For `Collection` we add a random method with default implementation for collecti
 ```swift
 let greetings = ["hey", "hi", "hello", "hola"]
 
-// Utilizes the standard library's default random (alias to greetings.random(using: Random.default))
-print(greetings.random() as Any) // This returns an Optional
-print(greetings.random(using: myCustomRandomNumberGenerator) as Any) // This returns an Optional
+// Utilizes the standard library's default random
+// (alias to greetings.randomElement(using: &Random.default))
+print(greetings.randomElement()!) // This returns an Optional
+print(greetings.randomElement(using: &myCustomRandomNumberGenerator)!) // This returns an Optional
 ```
 
 #### Shuffle API
@@ -165,12 +150,13 @@ As a result of adding the random API, it only makes sense to utilize that power 
 ```swift
 var greetings = ["hey", "hi", "hello", "hola"]
 
-// Utilizes the standard library's default random (alias to greetings.shuffle(using: Random.default))
+// Utilizes the standard library's default random
+// (alias to greetings.shuffle(using: &Random.default))
 greetings.shuffle()
 print(greetings) // A possible output could be ["hola", "hello", "hey", "hi"]
 
 let numbers = 0 ..< 5
-print(numbers.shuffled(using: myCustomRandomNumberGenerator)) // A possible output could be [1, 3, 0, 4, 2]
+print(numbers.shuffled(using: &myCustomRandomNumberGenerator)) // A possible output could be [1, 3, 0, 4, 2]
 ```
 
 ## Detailed Design
@@ -181,51 +167,56 @@ The actual implementation can be found here: [apple/swift#12772](https://github.
 public protocol RandomNumberGenerator {
   // This determines the functionality for producing a random number.
   // Required to implement by all RNGs.
-  func next() -> UInt64
+  mutating func next() -> UInt64
 }
 
 // These sets of functions are not required and are provided by the stdlib by default
 extension RandomNumberGenerator {
   // This function provides generators a way of generating other unsigned integer types
-  public func next<T : FixedWidthInteger & UnsignedInteger>() -> T
+  public mutating func next<T : FixedWidthInteger & UnsignedInteger>() -> T
 
   // This function provides generators a mechanism for uniformly generating a number from 0 to upperBound
   // Developers can extend this function themselves and create different behaviors for different distributions
-  public func next<T : FixedWidthInteger & UnsignedInteger>(upperBound: T) -> T
+  public mutating func next<T : FixedWidthInteger & UnsignedInteger>(upperBound: T) -> T
 }
 
 // The stdlib RNG.
 public struct Random : RandomNumberGenerator {
   // Public facing API
-  public static let `default` = Random()
+  public static var `default`: Random {
+    get { return Random() }
+    set { /* Discard */ }
+  }
 
   // Prevents initialization of this struct
   private init() {}
 
   // Conformance for `RandomNumberGenerator`, calls one of the crypto functions.
-  public func next() -> UInt64
+  public mutating func next() -> UInt64
   
   // We override the protocol defined one to prevent unnecessary work in generating an
   // unsigned integer that isn't a UInt64
-  public func next<T: FixedWidthInteger & UnsignedInteger>() -> T
+  public mutating func next<T: FixedWidthInteger & UnsignedInteger>() -> T
 }
 
 public protocol Collection {
   // Returns a random element from the collection
-  func random<T: RandomNumberGenerator>(using generator: T) -> Element?
+  func randomElement<T: RandomNumberGenerator>(
+    using generator: inout T
+  ) -> Element?
 }
 
 // Default implementation
 extension Collection {
   // Returns a random element from the collection
   // Can return nil if isEmpty is true
-  public func random<T: RandomNumberGenerator>(
-    using generator: T
+  public func randomElement<T: RandomNumberGenerator>(
+    using generator: inout T
   ) -> Element?
   
   /// Uses the standard library's default RNG
-  public func random() -> Element? {
-    return random(using: Random.default)
+  public func randomElement() -> Element? {
+    return randomElement(using: &Random.default)
   }
 }
 
@@ -234,16 +225,17 @@ extension Collection {
 // from Int.min to Int.max, an Int overflows with that big of a value.
 extension Range
 where Bound : FixedWidthInteger,
+      Bound.Stride : SignedInteger,
       Bound.Magnitude : UnsignedInteger {
   // Returns a random element within lowerBound and upperBound
   // Can return nil if lowerBound == upperBound
-  public func random<T: RandomNumberGenerator>(
-    using generator: T
+  public func randomElement<T: RandomNumberGenerator>(
+    using generator: inout T
   ) -> Element?
   
   /// Uses the standard library's default RNG
-  public func random() -> Element? {
-    return random(using: Random.default)
+  public func randomElement() -> Element? {
+    return randomElement(using: &Random.default)
   }
 }
 
@@ -252,20 +244,21 @@ where Bound : FixedWidthInteger,
 // from Int.min to Int.max, an Int overflows with that big of a value.
 extension ClosedRange
 where Bound : FixedWidthInteger,
+      Bound.Stide : SignedInteger,
       Bound.Magnitude : UnsignedInteger {
   // Returns a random element within lowerBound and upperBound
-  public func random<T: RandomNumberGenerator>(
-    using generator: T
+  public func randomElement<T: RandomNumberGenerator>(
+    using generator: inout T
   ) -> Element?
   
   /// Uses the standard library's default RNG
-  public func random() -> Element? {
-    return random(using: Random.default)
+  public func randomElement() -> Element? {
+    return random(using: &Random.default)
   }
 }
 
 // Enables developers to use things like Int.random(in: 5 ..< 12) which does not use modulo bias.
-// This differs from things like (5 ..< 12).random() because those ranges return an Optional, whereas
+// This differs from things like (5 ..< 12).randomElement() because those ranges return an Optional, whereas
 // this returns a non-optional. Ranges get the benefit of using random, but this is the preferred
 // method as it provides a cleaner API to users and clearly expresses the operation.
 // It is worth noting that any empty range entered here will abort the program.
@@ -279,27 +272,27 @@ where Self.Stride : SignedInteger,
 
   public static func random<T: RandomNumberGenerator>(
     in range: Range<Self>,
-    using generator: T
+    using generator: inout T
   ) -> Self
 
   /// Uses the standard library's default RNG
   public static func random(in range: Range<Self>) -> Self {
-    return Self.random(in: range, using: Random.default)
+    return Self.random(in: range, using: &Random.default)
   }
 
   public static func random<T: RandomNumberGenerator>(
     in range: ClosedRange<Self>,
-    using generator: T
+    using generator: inout T
   ) -> Self
   
   /// Uses the standard library's default RNG
   public static func random(in range: ClosedRange<Self>) -> Self {
-    return Self.random(in: range, using: Random.default)
+    return Self.random(in: range, using: &Random.default)
   }
 }
 
 // Enables developers to use things like Double.random(in: 5 ..< 12) which does not use modulo bias.
-// This differs from things like (5.0 ..< 12.0).random() because those ranges return an Optional, whereas
+// This differs from things like (5.0 ..< 12.0).randomElement() because those ranges return an Optional, whereas
 // this returns a non-optional. Ranges get the benefit of using random, but this is the preferred
 // method as it provides a cleaner API to users and clearly expresses the operation.
 // It is worth noting that any empty range entered here will abort the program.
@@ -314,22 +307,22 @@ where Self.RawSignificand : FixedWidthInteger,
 
   public static func random<T: RandomNumberGenerator>(
     in range: Range<Self>,
-    using generator: T
+    using generator: inout T
   ) -> Self
 
   /// Uses the standard library's default RNG
   public static func random(in range: Range<Self>) -> Self {
-    return Self.random(in: range, using: Random.default)
+    return Self.random(in: range, using: &Random.default)
   }
 
   public static func random<T: RandomNumberGenerator>(
     in range: ClosedRange<Self>,
-    using generator: T
+    using generator: inout T
   ) -> Self
   
   /// Uses the standard library's default RNG
   public static func random(in range: ClosedRange<Self>) -> Self {
-    return Self.random(in: range, using: Random.default)
+    return Self.random(in: range, using: &Random.default)
   }
 }
 
@@ -340,12 +333,12 @@ where Self.RawSignificand : FixedWidthInteger,
 // operations like these.
 extension Bool {
   public static func random<T: RandomNumberGenerator>(
-    using generator: T
+    using generator: inout T
   ) -> Bool
   
   /// Uses the standard library's default RNG
   public static func random() -> Bool {
-    return Bool.random(using: Random.default)
+    return Bool.random(using: &Random.default)
   }
 }
 
@@ -355,23 +348,23 @@ extension Bool {
 
 extension Sequence {
   public func shuffled<T: RandomNumberGenerator>(
-    using generator: T
+    using generator: inout T
   ) -> [Element]
   
   /// Uses the standard library's default RNG
   public func shuffled() -> [Element] {
-    return shuffled(using: Random.default)
+    return shuffled(using: &Random.default)
   }
 }
 
 extension MutableCollection {
   public mutating func shuffle<T: RandomNumberGenerator>(
-    using generator: T
+    using generator: inout T
   )
   
   /// Uses the standard library's default RNG
   public mutating func shuffle() {
-    shuffle(using: Random.default)
+    shuffle(using: &Random.default)
   }
 }
 ```
@@ -394,14 +387,14 @@ There were very many alternatives to be considered in this proposal.
 
 ### Why would the program abort if it failed to generate a random number?
 
-I spent a lot of time deciding what to do if it failed. Ultimately it came down to the fact that these will almost never fail. In the cases where this can fail is where `/dev/urandom` doesn't exist, or there were too many file descriptors open on the process level or system level. In the case where `/dev/urandom` doesn't exist, either the kernel is too old to generate that file by itself on a fresh install, or a privileged user deleted it. Both of which are way out of scope for Swift in my opinion. In the case where there are too many file descriptors, with modern technology this should almost never happen. If the process has opened too many descriptors then it should be up to the developer to optimize opening and closing descriptors.
+I spent a lot of time deciding what to do if it failed. Ultimately it came down to the fact that many RNGs for platforms will almost never fail. In the cases where this can fail is where an RNG like `/dev/urandom` doesn't exist, or there were too many file descriptors open at once. In the case where `/dev/urandom` doesn't exist, either the kernel is too old to generate that file by itself on a fresh install, or a privileged user deleted it. Both of which are way out of scope for Swift in my opinion. In the case where there are too many file descriptors, with modern technology this should almost never happen. If the process has opened too many descriptors then it should be up to the developer to optimize opening and closing descriptors.
 
 In a world where this did return an error to Swift, it would require types like `Int` to return an optional on its static function. This would defeat the purpose of those static functions as it creates a double spelling for the same operation.
 
 ```swift
 let randomDice = Int.random(in: 1 ... 6)!
 // would be equivalent to
-// let randomDice = (1 ... 6).random()!
+// let randomDice = (1 ... 6).randomElement()!
 ```
 
 "I just want a random dice roll, what is this ! the compiler is telling me to add?"
@@ -410,11 +403,11 @@ This syntax wouldn't make sense for a custom RNG that deterministically generate
 
 Looking at Rust, we can observe that they also abort when an unexpected error occurs with any of the forms of randomness. [source](https://doc.rust-lang.org/rand/src/rand/os.rs.html)
 
-It would be silly to account for these edge cases that would only happen to those who need to update their os, optimize their file descriptors, or deleted their `/dev/urandom`. Accounting for these cases sacrifices the clean API for everyone else.
+It would be silly to account for these edge cases that would only happen to those who need to update their os, optimize their file descriptors, or deleted their `/dev/urandom`. Accounting for these edge cases for specific platforms sacrifices the clean API for everyone else.
 
 ### Shouldn't this fallback on something more secure at times of low entropy?
 
-Thomas Hühn explains it very well [here](https://www.2uo.de/myths-about-urandom/). There is also a deeper discussion [here talking about python's implementation](https://www.python.org/dev/peps/pep-0524). Both articles discuss that even though /dev/urandom may not have enough entropy at a fresh install, "It doesn't matter. The underlying cryptographic building blocks are designed such that an	attacker cannot predict the outcome." Using `getrandom(2)` on linux systems where the kernel version is >= 3.17, will block if it decides that the entropy pool is too small. In python's implementation, they fallback to reading `/dev/urandom` if `getrandom(2)` decides there is not enough entropy.
+Thomas Hühn explains it very well [here](https://www.2uo.de/myths-about-urandom/). There is also a deeper discussion [here talking about python's implementation](https://www.python.org/dev/peps/pep-0524). Both articles discuss that even though `/dev/urandom` may not have enough entropy at a fresh install, "It doesn't matter. The underlying cryptographic building blocks are designed such that an	attacker cannot predict the outcome." Using `getrandom(2)` on linux systems where the kernel version is >= 3.17, will block if it decides that the entropy pool is too small. In python's implementation, they fallback to reading `/dev/urandom` if `getrandom(2)` decides there is not enough entropy.
 
 ### Why not make the default RNG non-secure?
 
@@ -423,10 +416,6 @@ Swift is a safe language which means that it shouldn't be encouraging non-experi
 ### Rename `RandomNumberGenerator`
 
 It has been discussed to give this a name such as `RNG`. I went with `RandomNumberGenerator` because it is clear, whereas `RNG` has a level of obscurity to those who don't know the acronym.
-
-### Rename `Collection.random()` to `Collection.randomElement()`
-
-I chose `.random()` over `.randomElement()` here because `.randomElement()` doesn't match with things like `.first`, `.last`, `.min()`, or `.max()`. If the naming for those facilities ended in Element as well, then I would have chosen `.randomElement()`, but to be consistent I chose `.random()`.
 
 ### Add static `.random()` to numerical types
 
