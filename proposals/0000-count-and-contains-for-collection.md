@@ -221,6 +221,9 @@ extension Collection where Element: Equatable {
  * **Memory** **ϴ(1)**
 </details>
 
+### Optimizations
+
+The algorithm can be optimized for `Hashable` types using the Boyer-Moore techniques. **TBD** 
 
 ## Source compatibility
 
