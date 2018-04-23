@@ -4,7 +4,8 @@
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [Dave Abrahams](https://github.com/dabrahams)
 * Implementation: [apple/swift#15120](https://github.com/apple/swift/pull/15120)
-* Status: **Active review (April 4...13)**
+* Status: **Accepted With Revision**
+* Decision Notes: [Rationale](https://forums.swift.org/t/se-0207-add-a-containsonly-algorithm-to-sequence/11686/102)
 
 ## Introduction
 
