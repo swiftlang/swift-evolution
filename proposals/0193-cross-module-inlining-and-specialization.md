@@ -3,11 +3,9 @@
 * Proposal: [SE-0193](0193-cross-module-inlining-and-specialization.md)
 * Author: [Slava Pestov](https://github.com/slavapestov)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
-* Status:  **Accepted**
+* Status:  **Implemented (Swift 4.2)**
 * Evolution review thread: [https://forums.swift.org/t/se-0193-cross-module-inlining-and-specialization/7310](https://forums.swift.org/t/se-0193-cross-module-inlining-and-specialization/7310)
-* Implementation: Already implemented as a pair of underscored attributes `@_inlineable` and `@_versioned`
-
-**Note: the original review ran to January 5, 2018.  The review is now running for another week to discuss the spelling of `@usableFromInline`.  Please see the [review thread](https://forums.swift.org/t/se-0193-cross-module-inlining-and-specialization/7310) to read the discussion and join in.**
+* Implementation: [apple/swift#15787](https://github.com/apple/swift/pull/15787)
 
 ## Introduction
 
@@ -71,7 +69,7 @@ The `@inlinable` attribute can be applied to the following kinds of declarations
 * Initializers
 * Deinitializers
 
-The attribute can only be applied to ABI-public declarations (which are defined in the following section).
+The attribute can only be applied to declarations with `public` or `internal` visibility.
 
 The attribute cannot be applied to local declarations, that is, declarations nested inside functions or statements. However, local functions and closure expressions defined inside public `@inlinable` functions are always implicitly `@inlinable`.
 
@@ -87,14 +85,14 @@ The body of an inlinable declaration is an example of an _inlinable context_. Th
 
 * **Inlinable declarations can only reference ABI-public declarations.** This is because they can be emitted into the client binary, and are therefore limited to referencing symbols that the client binary can reference.
 
-**Note:** As of Swift 4.0, the above restrictions are already enforced on default argument expressions of ABI-public functions. This means that default argument expressions are inlinable contexts. Future evolution porposals may add new kinds of inlinable contexts.
+**Note:** Future evolution proposals may add new kinds of inlinable contexts.
 
 ### The `@usableFromInline` attribute
 
 This attribute allows us to introduce a notion of an _ABI-public_ declaration. A declaration is _ABI-public_ if both of the following conditions hold:
 
 - The declaration is a top-level declaration, or it is nested inside an ABI-public type.
-- The declaration is `public`, or is `internal` and annotated with the `@usableFromInline` attribute.
+- The declaration is `public`, or is `internal` and annotated with either the `@usableFromInline` attribute or `@inlinable` attribute.
 
 In the following example, the method `C.f` is ABI-public:
 
@@ -104,12 +102,14 @@ public class C {
 }
 ```
 
-Another example of an ABI-public declaration is the method `C.D.f` below:
+Two more examples of ABI-public declarations are the methods `C.D.f` and `C.D.g` below:
 
 ```swift
 public class C {
   @usableFromInline internal class D {
     @usableFromInline internal func f() {}
+    
+    @inlinable internal func g() {}
   }
 }
 ```
@@ -132,6 +132,8 @@ When applied to a subscript or computed property, the attribute applies to both 
 
 The `@usableFromInline` attribute can only be applied to `internal` declarations. It does not make sense on `public` declarations, which are already ABI-public. It also cannot be applied to `private` and `fileprivate` declarations. and not `private`, `fileprivate` or `public` declarations. The `@usableFromInline` attribute does not affect source-level visibility of a declaration; it only results in the entry point being exported at the ABI level, allowing it to be referenced from `@inlinable` functions.
 
+**Note:** On an internal declaration, `@inlinable` implies `@usableFromInline`. The compiler will emit a warning if a declaration has both attributes.
+
 ### Future directions
 
 We would also like to add the ability to specify versioning information. This capability is not part of this proposal, but will be explored in the future, possibly using syntax like `@inlinable(2.0)` or `@available(inlinable, 2.0)`.
@@ -146,15 +148,18 @@ The introduction of the `@inlinable` and `@usableFromInline` attributes is an ad
 
 ## Effect on ABI stability
 
-Adding or removing `@inlinable` on an existing declaration does not change the ABI of that declaration.
+The following changes are ABI compatible:
 
-Adding `@usableFromInline` to an existing declaration does not change the ABI of that declaration. Removing `@usableFromInline` does however, and therefore is a binary-incompatible change.
+- Adding `@inlinable` to a public or internal declaration
+- Removing `@inlinable` from a public declaration
+- Replacing `@inlinable` with `@usableFromInline` on an internal declaration
+- Adding `@usableFromInline` to an existing declaration
 
 ## Effect on API resilience
 
-Any changes to the body of a declaration annotated as `@inlinable` should be considered very carefully. As a general guideline, we feel that `@inlinable` makes the most sense with "obviously correct" algorithms which manipulate other data types abstractly through protocols, so that any future changes to an `@inlinable` declaration are optimizations that do not change observed behavior.
+Any changes to the body of an `@inlinable` declaration should be considered very carefully. As a general guideline, we feel that `@inlinable` makes the most sense with "obviously correct" algorithms which manipulate other data types abstractly through protocols, so that any future changes to an `@inlinable` declaration are optimizations that do not change observed behavior.
 
-Also, an `@inlinable` function implementation must be prepared to interact with multiple versions of the same function linked into a single binary. For example, if a hashing function is `@inlinable`, the hash algorithm must not be changed to avoid introducing inconsistency.
+An `@inlinable` function implementation must be prepared to interact with multiple versions of the same function linked into a single binary. For example, if a hashing function is `@inlinable`, the hash algorithm must not be changed to avoid introducing inconsistency.
 
 ## Comparison with other languages
 
