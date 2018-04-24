@@ -1,6 +1,6 @@
 # Add Unicode Properties to `Unicode.Scalar`
 
-* Proposal: [SE-NNNN](NNNN-unicode-scalar-properties.md)
+* Proposal: [SE-0211](0211-unicode-scalar-properties.md)
 * Authors: [Tony Allevato](https://github.com/allevato)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **In active review (April 24 – May 1)**
