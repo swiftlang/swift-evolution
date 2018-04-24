@@ -2,8 +2,8 @@
 
 * Proposal: [SE-NNNN](NNNN-unicode-scalar-properties.md)
 * Authors: [Tony Allevato](https://github.com/allevato)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
+* Status: **In active review (April 24 – May 1)**
 * Implementation: [apple/swift#15593](https://github.com/apple/swift/pull/15593)
 
 ## Introduction
