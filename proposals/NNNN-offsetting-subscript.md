@@ -50,60 +50,78 @@ single `Int` to return a single element from the collection.
 
 A highly request ability for getting a slice of a collection is the ability to
 offset relative to the `endIndex` of a collection. Currently range support can
-cover most of the desired requests, however, due to ranges requiring an 
+cover most of the desired requests, however, due to ranges requiring an
 upperBound >= lowerBound constraint certain use cases are not met. To solve this
-Four new operators should be added along with a new type to help model this 
+Four new operators should be added along with a new type to help model this
 behavior. To encapsulate this behavior, a new protocol should also be added.
 The other range types will then also conditionally conform to this protocol.
 
-How some example cases of the proposed design will look like are shown below. 
-Where the first operation under each comment header is the proposed design and
-the following code under that is how one might do the same operation in Swift 
+How some example cases of the proposed design will look like are shown below.
+Where the first operation is the proposed design and
+the following code under that is how one might do the same operation in Swift
 currently.
 
 ```swift
 var x = "ABCDEFGHIJ"
+```
 
+```swift
 // CDEFGH
 x[offset: 2..<-2]
-x[x.index(x.startIndex, offsetBy: 2)..<x.index(x.endIndex, offsetBy: -2)]
 
+x[x.index(x.startIndex, offsetBy: 2)..<x.index(x.endIndex, offsetBy: -2)]
+```
+```swift
 // EFGH
 x[offset: 4...7] 
 
 let t = x.index(x.startIndex, offsetBy: 4)
 let u = x.index(t, offsetBy: 3)
 x[t...u]
-
+```
+```swift
 // x == ABCDEXYZ
 x[offset: 5...] = "XYZ"
+
 x.replaceSubrange(x.index(x.startIndex, offsetBy: 5)..., with: "XYZ")
+```
 
+Now to delete the newly inserted sequence that are in the last 3 positions of
+the string.
 
+```swift
 // x == ABCDE
 x[offset: (-3)...] = ""
-x.replaceSubrange(x.index(x.endIndex, offsetBy: -3)..., with: "")
 
+x.replaceSubrange(x.index(x.endIndex, offsetBy: -3)..., with: "")
+```
+
+We replace the middle 3 characters with "..."
+```swift
 // x == A...E
 x[offset: 2..<-2] = "..."
 
 let start = x.index(x.startIndex, offsetBy: 1)
 let end = x.index(x.endIndex, offsetBy: -1)
 x.replaceSubrange(start..<end, with: "...")
+```
 
-//An example of offset being used with a slice
+An example of an offset being used with a slice:
+```swift
 let y = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
-
 let z = y[3..<9] //  40 50 60 70 80 90
+```
 
+```swift
 // 50 60 70 80
 z[offset: 1..<-1]
+
 z[z.index(z.startIndex, offsetBy: 1)..<z.index(z.endIndex, offsetBy: -1)]
 z[4..<8]
 ```
 As shown by the last example the proposed solution helps with using slices that
-don't have a zero based `startIndex`. Using offset with a slice can be more
-natural to use.
+don't have a zero based `startIndex`. Using offset with a slice can become more
+natural to use in certain situations with an offset if need be.
 
 ## Detailed design
 A new protocol Should be added:
