@@ -219,9 +219,6 @@ named values through `static let` constants.
 ```swift
 extension Unicode.Scalar.Properties {
 
-  /// Represents the version of Unicode in which a scalar was introduced.
-  public typealias Version = (major: Int, minor: Int)
-
   /// Corresponds to the `Age` Unicode property, when a code point was first
   /// defined.
   public var age: Unicode.Version? { get }
@@ -233,13 +230,16 @@ extension Unicode.Scalar.Properties {
   public var nameAlias: String? { get }
 
   /// Corresponds to the `General_Category` Unicode property.
-  public var generalCategory: Unicode.GeneralCategory? { get }
+  public var generalCategory: Unicode.GeneralCategory { get }
 
   /// Corresponds to the `Canonical_Combining_Class` Unicode property.
   public var canonicalCombiningClass: Unicode.CanonicalCombiningClass { get }
 }
 
 extension Unicode {
+
+  /// Represents the version of Unicode in which a scalar was introduced.
+  public typealias Version = (major: Int, minor: Int)
 
   /// General categories returned by
   /// `Unicode.Scalar.Properties.generalCategory`. Listed along with their
