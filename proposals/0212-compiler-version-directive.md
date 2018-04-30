@@ -1,10 +1,10 @@
 # Compiler Version Directive
 
-* Proposal: [SE-XXXX](XXXX-compiler-version-directive.md)
+* Proposal: [SE-0212](0212-compiler-version-directive.md)
 * Author: [David Hart](https://github.com/hartbit)
-* Review Manager: TBD
+* Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Implementation: [apple/swift#15977](https://github.com/apple/swift/pull/15977)
-* Status: TBD
+* Status: **In active review (April 30 – May 7)**
 
 ## Introduction
 
