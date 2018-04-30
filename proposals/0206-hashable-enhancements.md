@@ -9,13 +9,13 @@
     [apple/swift#14913](https://github.com/apple/swift/pull/14913) (standard library, underscored),<br>
     [apple/swift#15122](https://github.com/apple/swift/pull/15122) (automatic synthesis)<br>
     TBD (de-underscoring, full `Hasher` API)
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/f5a020ec79cdb64fc8700af91b1a1ece2d2fb141/proposals/0206-hashable-enhancements.md)
 
 <!--
 *During the review process, add the following fields as needed:*
 
 * Decision Notes: [Rationale](https://forums.swift.org/), [Additional Commentary](https://forums.swift.org/)
 * Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM)
-* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
 * Previous Proposal: [SE-XXXX](XXXX-filename.md)
 -->
 
@@ -111,8 +111,8 @@ time and effort to get this right for every `Hashable` type out
 there.
 
 For example, consider the code below, extracted directly from the
-documentation of `Hashable`. Is this a good implementation of
-`hashValue`?
+documentation of Swift 4.1's `Hashable`. Is this a good implementation
+of `hashValue`?
 
 ```swift
 struct GridPoint {
@@ -235,88 +235,62 @@ the state of the hash function, and provides the following operations:
 
 1. An initializer to create an empty state. To make hash values less
    predictable, the standard hash function uses a per-execution random
-   seed by default. A separate initializer also allows programmers to
-   optionally supply an additional 128-bit seed value, specified as a
-   tuple of two `UInt64` values:
+   seed, so that generated hash values will be different in each
+   execution of a Swift program.
 
     ```swift
     public struct Hasher {
-      public init()  // Use the default per-execution random seed value
-      public init(seed: (UInt64, UInt64)) // Combines `seed` with the default seed
+      public init()  // Uses a per-execution random seed value
     }
     ```
 
-   `Hasher` implements a separate hash function for each seed value,
-   uncorrelated with the others.  This enables `Hasher` to be used in
-   data structures requiring more than one hash function, such as
-   [Bloom filters][bloom]. (Per-instance seeding is also useful to
-   [stabilize the performance][quadratic-copy] of "regular" hashing
-   collections like `Set` and `Dictionary`.)
-   
-   [bloom]: https://en.wikipedia.org/wiki/Bloom_filter
-
-   Note that the custom seed is mixed with the default seed, so
-   specifying one *doesn't* disable nondeterministic hashing. The
-   algorithm implemented by `Hasher` is not part of its API, and
-   enforcing randomization makes it harder for Swift programs to
-   accidentally rely on any specific algorithm. Any such dependency
-   would make it more difficult for the standard library to change
-   `Hasher` in future releases.
-
-2. A set of operations to mix in new bits into the state of the hash
-   function. For reasons of efficiency, these are built around
-   feeding integer values to the hasher:
+2. Operations to feed new bytes to the hash function, mixing them
+   into its state:
    
     ```swift
     extension Hasher {
-      public mutating func combine(bits: Int)
-      public mutating func combine(bits: UInt)
-      public mutating func combine(bits: Int64)
-      public mutating func combine(bits: UInt64)
-      public mutating func combine(bits: Int32)
-      public mutating func combine(bits: UInt32)
-      // etc.
+      public mutating func combine(bytes buffer: UnsafeRawBufferPointer)
+      public mutating func combine<H: Hashable>(_ value: H)
     }
     ```
-
-    We expect most hashable types will consist of discrete components,
-    hashed sequentially, one by one. However, we provide a `combine`
-    overload that takes bytes from an `UnsafeRawBufferPointer`, for
-    use in cases where the bits to be hashed are available as a
-    single, contiguous byte sequence:
-
-    ```swift
-    extension Hasher {
-      public mutating func combine(bits buffer: UnsafeRawBufferPointer)
-    }
-    ```
+    
+    `combine(bytes:)` is the most general operation, suitable for use
+    when the bytes to be hashed are available as a single contiguous
+    region in memory. 
+    
+    `combine(_:)` is a convenience operation that can take any
+    `Hashable` value; we expect this will be more frequently
+    useful. (We'll see how this is implemented in the next section.)
 
 3. An operation to finalize the state, extracting the hash value from it.
    
     ```swift
     extension Hasher {
-      public mutating func finalize() -> Int
+      public __consuming func finalize() -> Int
     }
     ```
 
-   Finalizing the hasher state invalidates it; it is illegal to call
-   `combine` or `finalize` on a hasher that's already finalized.
+   Finalizing the hasher state consumes it; it is illegal to call
+   `combine` or `finalize` on a hasher you don't own, or on one that's
+   already been finalized.
 
-Here is how one may use `Hasher` as a standalone type:
+For example, here is how one may use `Hasher` as a standalone type:
 
 ```swift
 var hasher = Hasher()        // Initialize state, usually by random seeding
-hasher.combine(bits: 23)     // Mix in several integers' worth of bits
-hasher.combine(bits: 42)
-let hash = hasher.finalize() // Finalize the state and return the hash
+hasher.combine(23)           // Mix in several integer's worth of bytes
+hasher.combine(42)
+print(hasher.finalize())     // Finalize the state and return the hash
 ```
 
 Within the same execution of a Swift program, `Hasher`s are guaranteed
-to return the same hash value in `finalize()`, as long as they start
-with the same seed, and they are fed the exact same sequence of bytes.
+to return the same hash value in `finalize()`, as long as they are fed
+the exact same sequence of bytes. (Note that the order of `combine`
+operations matters; swapping the two integers above will produce a
+completely different hash.)
 
 However, `Hasher` may generate entirely different hash values in other
-executions, *even if it is seeded with the same value*. This
+executions, *even if it is fed the exact same byte sequence*. This
 randomization is a critical feature, as it makes it much harder for
 potential attackers to predict hash values. `Hashable` has always been
 documented to explicitly allow such nondeterminism:
@@ -342,21 +316,21 @@ Introducing `Hasher` is a big improvement, but it's only half of the
 story: `Hashable` itself needs to be updated to make better use of it.
 
 We propose to change the `Hashable` protocol by adding a new
-`hash(into:)` requirement, while, at the same time, deprecating
-`hashValue`:
+`hash(into:)` requirement:
 
 ```swift
 public protocol Hashable: Equatable {
-  @available(*, deprecated: 4.2)
   var hashValue: Int { get }
-  
   func hash(into hasher: inout Hasher)
 }
 ```
 
-(Please see the section on [Source
+At the same time, we deprecate custom implementations of the
+`hashValue` property. (Please see the section on [Source
 compatibility](#source-compatibility) on how we'll do this without
-breaking code written for previous versions of Swift.)
+breaking code written for previous versions of Swift.) In some future
+language version, we intend to convert `hashValue` to an extension
+method.
 
 To make it easier to express `hash(into:)` in terms of `Hashable`
 components, `Hasher` provides a variant of `combine` that simply calls
@@ -464,13 +438,13 @@ worth the cost of a change to a basic protocol?
   is free) this takes 15 combines' worth of time:
   
   ```
-   1   hasher.combine(bits: topLeft.hashValue)
-   1       hasher.combine(bits: topLeft.x)     (in topLeft.hashValue)
-   1       hasher.combine(bits: topLeft.y)
+   1   hasher.combine(topLeft.hashValue)
+   1       hasher.combine(topLeft.x)     (in topLeft.hashValue)
+   1       hasher.combine(topLeft.y)
    3       hasher.finalize()
-   1   hasher.combine(bits: bottomRight.hashValue)
-   1       hasher.combine(bits: bottomRight.x) (in bottomRight.hashValue)
-   1       hasher.combine(bits: bottomRight.y)
+   1   hasher.combine(bottomRight.hashValue)
+   1       hasher.combine(bottomRight.x) (in bottomRight.hashValue)
+   1       hasher.combine(bottomRight.y)
    3       hasher.finalize()
    3   hasher.finalize()
   ---
@@ -493,11 +467,11 @@ worth the cost of a change to a basic protocol?
   approach:
   
   ```
-   1   hasher.combine(bits: topLeft.x)     (in topLeft.hash(into:))
-   1   hasher.combine(bits: topLeft.y)
-   1   hasher.combine(bits: bottomRight.x) (in bottomRight.hash(into:))
-   1   hasher.combine(bits: bottomRight.y)
-   3   hasher.finalize()                  (outside of GridRectangle.hash(into:))
+   1   hasher.combine(topLeft.x)      (in topLeft.hash(into:))
+   1   hasher.combine(topLeft.y)
+   1   hasher.combine(bottomRight.x)  (in bottomRight.hash(into:))
+   1   hasher.combine(bottomRight.y)
+   3   hasher.finalize()             (outside of GridRectangle.hash(into:))
   ---
    7
   ```
@@ -540,19 +514,10 @@ Add the following type to the standard library:
 ///   any two versions of the standard library. Do not save or otherwise 
 ///   reuse hash values across executions of your program.
 public struct Hasher {
-  /// Initialize a new hasher using the default seed value.
-  /// The default seed is set during process startup, usually from a 
-  /// high-quality random source.
-  ///
-  /// This is equivalent to calling `init(seed:)` with a value of `(0, 0)`.
+  /// Initialize a new hasher using a per-execution seed value.
+  /// The seed is set during process startup, usually from a high-quality 
+  /// random source.
   public init()
-
-  /// Initialize a new hasher using a seed value that is derived from a
-  /// combination of the default seed and the specified custom seed.
-  ///
-  /// The default seed is set during process startup, usually from a 
-  /// high-quality random source.
-  public init(seed: (UInt64, UInt64))
   
   /// Feed `value` to this hasher, mixing its essential parts into
   /// the hasher state.
@@ -561,51 +526,16 @@ public struct Hasher {
     value.hash(into: &self)
   }
 
-  /// Mix the bit pattern `bits` into the state of this hasher. 
-  /// This adds exactly `Int.bitWidth` bits to the hasher state,
-  /// in native byte order.
-  public mutating func combine(bits: Int)
-
-  /// Mix the bit pattern `bits` into the state of this hasher. 
-  /// This adds exactly `UInt.bitWidth` bits to the hasher state,
-  /// in native byte order.
-  public mutating func combine(bits: UInt)
-
-  /// Mix the bit pattern `bits` into the state of this hasher. 
-  /// This adds exactly 8 bytes to the hasher state, in native byte order.
-  public mutating func combine(bits: Int64)
-
-  /// Mix the bit pattern `bits` into the state of this hasher. 
-  /// This adds exactly 8 bytes to the hasher state, in native byte order.
-  public mutating func combine(bits: UInt64)
-
-  /// Mix the bit pattern `bits` into the state of this hasher. 
-  /// This adds exactly 4 bytes to the hasher state, in native byte order.
-  public mutating func combine(bits: Int32)
-
-  /// Mix the bit pattern `bits` into the state of this hasher. 
-  /// This adds exactly 4 bytes to the hasher state, in native byte order.
-  public mutating func combine(bits: UInt32)
-
-  /// Mix the bit pattern `bits` into the state of this hasher. 
-  /// This adds exactly 2 bytes to the hasher state, in native byte order.
-  public mutating func combine(bits: Int16)
-
-  /// Mix the bit pattern `bits` into the state of this hasher. 
-  /// This adds exactly 2 bytes to the hasher state, in native byte order.
-  public mutating func combine(bits: UInt16)
-
-  /// Mix the single byte `bits` into the state of this hasher. 
-  public mutating func combine(bits: Int8)
-  /// Mix the single byte `bits` into the state of this hasher. 
-  public mutating func combine(bits: UInt8)
-  /// Mix the raw bytes in `buffer` into the state of this hasher.
-  public mutating func combine(bits buffer: UnsafeRawBufferPointer)
+  /// Feed the raw bytes in `buffer` into this hasher, mixing its bits into
+  /// the hasher state.
+  public mutating func combine(bytes buffer: UnsafeRawBufferPointer)
   
   /// Finalize the hasher state and return the hash value.
-  /// Finalizing invalidates the hasher; additional bits cannot be combined
-  /// into it, and it cannot be finalized again.
-  public mutating func finalize() -> Int
+  ///
+  /// Finalizing consumes the hasher: it is illegal to finalize a hasher you
+  /// don't own, or to perform operations on a finalized hasher. (These may
+  /// become compile-time errors in the future.)
+  public __consuming func finalize() -> Int
 }
 ```
 
@@ -706,7 +636,6 @@ public protocol Hashable: Equatable {
   ///
   /// Hash values are not guaranteed to be equal across different executions of
   /// your program. Do not save hash values to use during a future execution.
-  @available(*, deprecated: 4.2)
   var hashValue: Int { get }
   
   /// Hash the essential components of this value into the hash function
@@ -722,26 +651,53 @@ public protocol Hashable: Equatable {
 ## <a name="source-compatibility">Source compatibility</a>
 
 The introduction of the new `Hasher` type is a purely additive change.
-However, adding the `hash(into:)` requirement and deprecating
-`hashValue` are potentially source breaking changes. Deprecating a
-requirement in a basic protocol like `Hashable` is an especially
-drastic change; we must make every effort to make sure there is a
-smooth transition path to Swift 4.2 for existing code implementing
-`hashValue`.
+However, adding the `hash(into:)` requirement is potentially source
+breaking. To ensure we keep compatibility with code written for
+previous versions of Swift, while also allowing new code to only
+implement `hash(into:)`, we extend [SE-0185]'s automatic `Hashable`
+synthesis to automatically derive either of these requirements when
+the other has been manually implemented.
 
-Usually, such changes can be implemented in the standard library by
-adding appropriate default implementations gated on language
-version. For example, this is how `hash(into:)` can be expressed in
-terms of `hashValue`, and vice versa:
+Code written for Swift 4.1 or earlier will continue to compile (in the
+corresponding language mode) after this proposal is implemented. The
+compiler will synthesize the missing `hash(into:)` requirement
+automatically:
 
-```swift
-extension Hashable {
-  @available(*, obsoleted: 4.2)
-  func hash(into hasher: inout Hasher) {
-    hasher.combine(bits: self.hashValue)
+```
+struct GridPoint41: Hashable { // Written for Swift 4.1 or below
+  let x: Int
+  let y: Int
+  
+  var hashValue: Int {
+    return x.hashValue ^ y.hashValue &* 16777619
   }
+  
+  // Supplied automatically by the compiler:
+  func hash(into hasher: inout Hasher) {
+    hasher.combine(self.hashValue)
+  }
+}
+```
 
-  @available(*, introduced: 4.2, deprecated: 4.2)
+The compiler will emit a deprecation warning when it needs to do this
+in 4.2 mode. (However, note that code that merely uses `hashValue`
+will continue to compile without warnings.)
+
+Code written for Swift 4.2 or later should conform to `Hashable` by
+implementing `hash(into:)`. The compiler will then complete the
+conformance with a suitable `hashValue` definition:
+
+```
+struct GridPoint42: Hashable { // Written for Swift 4.2
+  let x: Int
+  let y: Int
+  
+  func hash(into hasher: inout Hasher) {
+    hasher.combine(x)
+    hasher.combine(y)
+  }
+  
+  // Supplied automatically by the compiler:
   var hashValue: Int {
     var hasher = Hasher()
     self.hash(into: &hasher)
@@ -750,65 +706,37 @@ extension Hashable {
 }
 ```
 
-However, in the case of `Hashable`, such default implementations would
-interfere with [SE-0185]'s automatic conformance synthesis. To ensure
-compatibility, we [currently][either-or-requirements] need to move
-these definitions to the compiler, by extending automatic synthesis to
-supply definitions functionally equivalent to the ones above.
-
-[either-or-requirements]: https://forums.swift.org/t/mutually-exclusive-default-implementations/11044
-
-Code written for Swift 4.1 or earlier will continue to compile (in the
-corresponding language mode) after this proposal is implemented. The
-compiler will synthesize the missing `hash(into:)` requirement
-automatically.
-
 When upgrading to Swift 4.2, `Hashable` types written for earlier
-versions of Swift will need to be migrated to implement `hash(into:)`
-instead of `hashValue`. There are two options for doing this:
+versions of Swift should be migrated to implement `hash(into:)`
+instead of `hashValue`. 
 
-1. For types that support [SE-0185]'s automatic `Hashable` synthesis,
-    upgrading to Swift 4.2 can be as simple as removing the explicit
-    `hashValue` implementation. Note that [SE-0143] added conditional
-    conformances to `Hashable` in the standard library, which makes
-    automatic synthesis available for many more types than before.
-2. In cases where automatic synthesis is unavailable, or if it would
-    produce undesirable results, the `hashValue` implementation
-    needs to be replaced by a corresponding implementation of
-    `hash(into:)`.
+For types that satisfy [SE-0185]'s requirements for `Hashable`
+synthesis, this can be as easy as removing the explicit `hashValue`
+implementation. Note that Swift 4.2 implements conditional `Hashable`
+conformances for many standard library types that didn't have it
+before; this enables automatic `Hashable` synthesis for types that use
+these as components.
 
-The compiler should simplify the migration process by providing
-fix-its for both options. A fix-it to remove `hashValue` should only
-be provided if automatic synthesis is available. For the second
-option, it would be nice to have the compiler suggest a full
-implementation of `hash(into:)`, but a template would probably
-suffice:
+For types that still need to manually implement `Hashable`, the
+migrator can be updated to help with this process. For example, the
+`GridPoint41.hashValue` implementation above can be mechanically
+rewritten as follows:
 
 ```
-// Before:
-var hashValue: Int {
-  return x.hashValue ^ y.hashValue &* 16777619
-}
+struct GridPoint41: Hashable { // Migrated from Swift 4.1
+  let x: Int
+  let y: Int
 
-// After:
-func hash(into hasher: inout Hasher) {
-  // Feed all components that should be hashed into the hasher.
-  // These should be the same components that you look at in your 
-  // implementation of `==` for `Equatable`.
-  hasher.combine(<# component1 #>)
-  hasher.combine(<# component2 #>)
-  
-  // For reference, this type originally implemented `hashValue` 
-  // as follows:
-  // ```
-  // return x.hashValue ^ y.hashValue &* 16777619
-  // ```
+  // Migrated from hashValue:
+  func hash(into hasher: inout Hasher) {
+    hash.combine(x.hashValue ^ y.hashValue &* 16777619)
+  }
 }
 ```
 
-Whatever the fix-it does, it must not leave the function body empty,
-because it would compile and run without warning, but it would produce
-terrible hash values.
+This will not provide the same hash quality as combining both members
+one by one, but it may be useful as a starting point.
+
 
 ## <a name="abi">Effect on ABI stability</a>
 
@@ -929,9 +857,7 @@ functions, and to plug them into any `Hashable` type:
 
 ```swift
 protocol Hasher {
-  func combine(bits: Int)
-  func combine(bits: UInt)
-  /// etc.
+  func combine(bytes: UnsafeRawBufferPointer)
 }
 protocol Hashable {
   func hash<H: Hasher>(into hasher: inout H)
