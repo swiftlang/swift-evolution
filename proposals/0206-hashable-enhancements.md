@@ -3,12 +3,12 @@
 * Proposal: [SE-0206](0206-hashable-enhancements.md)
 * Authors: [Karoy Lorentey](https://github.com/lorentey), [Vincent Esche](https://github.com/regexident)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Accepted**
+* Status: **Implemented (Swift 4.2)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0206-hashable-enhancements/11675/115)
 * Implementation:<br> 
     [apple/swift#14913](https://github.com/apple/swift/pull/14913) (standard library, underscored),<br>
-    [apple/swift#15122](https://github.com/apple/swift/pull/15122) (automatic synthesis)<br>
-    TBD (de-underscoring, full `Hasher` API)
+    [apple/swift#16009](https://github.com/apple/swift/pull/16009) (`Hasher` interface),<br>
+    [apple/swift#16073](https://github.com/apple/swift/pull/16073) (automatic synthesis, de-underscoring)<br>
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/f5a020ec79cdb64fc8700af91b1a1ece2d2fb141/proposals/0206-hashable-enhancements.md)
 
 <!--
