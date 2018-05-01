@@ -28,7 +28,7 @@ For example, the release of Swift 4 introduced a Swift 3.2 language version repr
 
 This solution is problematic for several reasons:
 
-* It creates an exponential growth in the number of Swift versions for each new compatibility version.
+* It creates a quadratic growth in the number of Swift versions for each new compatibility version.
 * Conditionally compiling for a version of the compiler, regardless of the compatibility mode, is difficult and error prone:
 
 ```swift
@@ -74,15 +74,15 @@ This will simplify future Swift versions by stopping the artificial growth of ol
 | 5.1 (--swift-version 4)   | 5.1              | 4.1              |
 | 5.1 (--swift-version 4.2) | 5.1              | 4.2              |
 
-This change is possible because it retains the ability to conditionally compiling code targeting a compiler in compatibility mode:
+This change is possible because it retains the ability to conditionally compile code targeting a compiler in compatibility mode:
 
 ```swift
 #if swift(>=4.1) && compiler(>=5.0)
-// Code targeting the Swift 5.0 compiler and above in --swift-version 4 mode.
+// Code targeting the Swift 5.0 compiler and above in --swift-version 4 mode and above.
 #endif
 ```
 
-It will also greatly simply conditional compilation based on compiler version alone:
+It will also greatly simplify conditional compilation based on compiler version alone:
 
 ```swift
 #if swift(>=4.1) || (swift(>=3.3) && !swift(>=4.0))
