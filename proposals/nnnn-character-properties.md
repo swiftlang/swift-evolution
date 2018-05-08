@@ -17,7 +17,7 @@ Pitch thread: [Character and String properties](https://forums.swift.org/t/pitch
 
 `String` is a collection whose element is `Character`, which represents an [extended grapheme cluster](https://unicode.org/reports/tr29/#Grapheme_Cluster_Boundaries) (commonly just called “grapheme”).  This makes `Character` one of the first types encountered both by newcomers to Swift as well as by experienced Swift developers playing around in new domains (e.g. scripting). Yet `Character` exposes little functionality other than the ability to order it with respect to other characters, and a way to access the raw [Unicode scalar values](https://unicode.org/glossary/#unicode_scalar_value) that comprise it.
 
-This proposal adds several queries to increase the usefulness of `Character` and approachability of programing in Swift. It tries to walk the fuzzy line between what Swift can give reasonably good answers to, and what would require the user to adopt more elaborate linguistic analysis frameworks or techniques.
+This proposal adds several queries to increase the usefulness of `Character` and approachability of programming in Swift. It tries to walk the fuzzy line between what Swift can give reasonably good answers to, and what would require the user to adopt more elaborate linguistic analysis frameworks or techniques.
 
 ## Proposed Solution
 (Note that Unicode does not define properties on graphemes in general. Swift is defining its own semantics in terms of Unicode semantics derived from scalar properties, semantics on strings, or both)
