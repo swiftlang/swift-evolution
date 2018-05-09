@@ -3,7 +3,7 @@
 * Proposal: [SE-0210](0210-key-path-offset.md)
 * Authors: [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Active review (April 19...25, 2018)**
+* Status: **Accepted**
 * Implementation: [apple/swift#15519](https://github.com/apple/swift/pull/15519)
 
 ## Introduction
