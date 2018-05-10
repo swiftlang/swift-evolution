@@ -34,7 +34,7 @@ expected literal protocol. As a result expressions like `UInt64(0xffff_ffff_ffff
 which result in compile-time overflow under current rules, become valid. It
 also simplifies type-checker logic and leads to speed-up in some complex expressions.
 
-This change also makes some of the errors which correctly only happen at runtime
+This change also makes some of the errors which currently only happen at runtime
 become compile-time instead e.g. `Character("ab")`.
 
 ## Detailed design
