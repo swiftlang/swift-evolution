@@ -1,6 +1,6 @@
 # Literal initialization via coercion
 
-* Proposal: [SE-0213](literal-init-via-coercion.md)
+* Proposal: [SE-0213](0213-literal-init-via-coercion.md)
 * Authors: [Pavel Yaskevich](https://github.com/xedin)
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Active Review (May 10...15)**
