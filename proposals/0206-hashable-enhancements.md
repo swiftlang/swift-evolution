@@ -3,7 +3,7 @@
 * Proposal: [SE-0206](0206-hashable-enhancements.md)
 * Authors: [Karoy Lorentey](https://github.com/lorentey), [Vincent Esche](https://github.com/regexident)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: Status: **Implemented (Swift 4.2)**
+* Status: **Implemented (Swift 4.2)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0206-hashable-enhancements/11675/115)
 * Implementation:<br> 
     [apple/swift#14913](https://github.com/apple/swift/pull/14913) (standard library, underscored),<br>
