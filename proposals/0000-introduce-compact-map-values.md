@@ -3,11 +3,11 @@
 * Proposal: [SE-NNNN](NNNN-filename.md)
 * Authors: [Daiki Matsudate](https://github.com/d-date)
 * Review Manager: TBD
-* Status: **Awaiting implementation**
+* Status: **Awaiting review**
 
 <!-- *During the review process, add the following fields as needed:* -->
 
-<!-- * Implementation: [apple/swift#NNNNN](https://github.com/apple/swift/pull/NNNNN) -->
+* Implementation: [apple/swift#15017](https://github.com/apple/swift/pull/15017)
 <!-- * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/), [Additional Commentary](https://lists.swift.org/pipermail/swift-evolution/) -->
 <!-- * Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM) -->
 <!-- * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md) -->
@@ -61,7 +61,7 @@ let r4 = d.compactMapValues({$0})
 // r4 == ["a": "1", "c": "3"]
 ```
 
-Or, 
+Or,
 
 ```swift
 let d: [String: String] = ["a": "1", "b": "2", "c": "three"]
