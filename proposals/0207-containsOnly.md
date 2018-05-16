@@ -1,4 +1,4 @@
-# Add a `containsOnly` algorithm to `Sequence`
+# Add a `allSatisfy` algorithm to `Sequence`
 
 * Proposal: [SE-0207](0207-containsOnly.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
