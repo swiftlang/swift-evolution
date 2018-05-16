@@ -1,4 +1,4 @@
-# Add a `allSatisfy` algorithm to `Sequence`
+# Add an `allSatisfy` algorithm to `Sequence`
 
 * Proposal: [SE-0207](0207-containsOnly.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
@@ -11,7 +11,7 @@
 
 It is common to want to confirm that every element of a sequence equals a
 value, or matches certain criteria. Many implementations of this can be found
-in use on github. This proposal adds such a method to `Sequence`.
+in use on GitHub. This proposal adds such a method to `Sequence`.
 
 ## Motivation
 
