@@ -1,4 +1,4 @@
-# Add a `allSatisfy` algorithm to `Sequence`
+# Add an `allSatisfy` algorithm to `Sequence`
 
 * Proposal: [SE-0207](0207-containsOnly.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
@@ -11,7 +11,7 @@
 
 It is common to want to confirm that every element of a sequence equals a
 value, or matches certain criteria. Many implementations of this can be found
-in use on github. This proposal adds such a method to `Sequence`.
+in use on GitHub. This proposal adds such a method to `Sequence`.
 
 ## Motivation
 
@@ -38,7 +38,7 @@ Set(nums).count == 1 && Set(nums).first == 9
 
 ## Proposed solution
 
-Introduce an algorithm on `Sequence` which test every element and return
+Introduce an algorithm on `Sequence` which tests every element and returns
 `true` if they all match a given predicate:
 
 ```swift
@@ -75,4 +75,4 @@ This change is purely additive so has no API resilience consequences.
 
 Not adding it, since it can be trivially (if confusingly) composed.
 
-Much name bikeshedding has ensued. Names considered included `containsOnly` and `all`. `all` has strong precedent in other languages, but was considered unclear at the call site (adding an argument label does not help here given trailing closures omit them). Naming it `all` suggests a renaming of `contains` to `any` would be appropriate – but this is already a fairly heavily-used term elsewhere in Swift, and is less explicit. `containsOnly` is is more explicit, and echoes the existing `contains`, but is too easily misread at the use-site as “contains one instance equal to,” especially when considering empty collections. `contains(only:)` was discounted due to trailing closures dropping the argument label, rendering it indistiguishable from `contains(where:)`.
+Much name bikeshedding has ensued. Names considered included `containsOnly` and `all`. `all` has strong precedent in other languages, but was considered unclear at the call site (adding an argument label does not help here given trailing closures omit them). Naming it `all` suggests a renaming of `contains` to `any` would be appropriate – but this is already a fairly heavily-used term elsewhere in Swift, and is less explicit. `containsOnly` is more explicit, and echoes the existing `contains`, but is too easily misread at the use-site as “contains one instance equal to,” especially when considering empty collections. `contains(only:)` was discounted due to trailing closures dropping the argument label, rendering it indistiguishable from `contains(where:)`.
