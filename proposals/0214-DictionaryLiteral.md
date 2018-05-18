@@ -2,9 +2,9 @@
 
 * Proposal: [SE-0214](0214-DictionaryLiteral.md)
 * Authors: [Erica Sadun](https://github.com/erica), [Chéyo Jiménez](https://github.com/masters3d)
-* Status: Active review (May 18...May 23, 2018) 
-* Review manager: [Chris Lattner](https://github.com/lattner)
-* Implementation: [PR16577](https://github.com/apple/swift/pull/16577) 
+* Review Manager: [Chris Lattner](https://github.com/lattner)
+* Status: **Active review (May 18...23)**
+* Implementation: [apple/swift#16577](https://github.com/apple/swift/pull/16577)
 
 ## Introduction
 
