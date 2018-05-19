@@ -13,7 +13,7 @@ Swift-evolution thread: [Discussion thread topic for that proposal](https://foru
 
 ## Motivation
 
-Oftentimes structures will have reasonable defaults defined. Consider an example where a user starts off with the [Earth's properties](https://nssdc.gsfc.nasa.gov/planetary/factsheet/):
+Oftentimes structures will have reasonable defaults. Consider an example of an Envirnoment that begins with [Earth's properties](https://nssdc.gsfc.nasa.gov/planetary/factsheet/):
 
 ```
 struct Environment {
@@ -33,12 +33,44 @@ struct Environment {
 An instance could easily be constructed thanks to the [default intializer](https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/Initialization.html#//apple_ref/doc/uid/TP40014097-CH18-ID213):
 
 ```
+/// An example of what is auto-synthesized by the default initializer
+init() { }
+```
+
+Example usage:
+
+```
 generatePlanet(
   name: "Earth",
   environment: Environment())
 ```
 
-An instance could be constructed by modifying all the properties thanks to the memberwise initializer:
+An instance could be constructed by modifying all the properties thanks to the memberwise initializer that would resemble:
+
+```
+/// An example of what is auto-synthesized by the memberwise initializer
+init(
+  mass: Double,
+  diameter: Int,
+  density: Int,
+  gravity: Double,
+  escapeVelocity: Double,
+  rotationPeriod: Double,
+  lengthOfDay: Int,
+  distanceFromSun: Double)
+{
+  self.mass = mass
+  self.diameter = diameter
+  self.density = density
+  self.gravity = gravity
+  self.escapeVelocity = escapeVelocity
+  self.rotationPeriod = rotationPeriod
+  self.lengthOfDay = lengthOfDay
+  self.distanceFromSun = distanceFromSun
+}
+```
+
+Example usage:
 
 ```
 generatePlanet(
@@ -70,9 +102,7 @@ generatePlanet(
     gravity: 9.9))
 ```
 
-However this won't compile. 
-
-These are the workarounds:
+However this won't compile. Instead, a workaround is required.
 
 #### Workaround 1.1: Use a variable
 
@@ -85,9 +115,30 @@ generatePlanet(
   environment: environment)
 ```
 
-The main drawback is that it requires more lines of code, and requires defining another variable everytime this strategy is used. In this simple example it meant 3 more lines of code and 1 extra variable, but when used in a 
+The main drawback is that it requires more lines of code, and requires defining another variable everytime this strategy is used. In this simple example it meant 3 more lines of code and 1 extra variable, but when used in other instances such as when constructing a screen with a bunch of components, it could mean significantly more lines of code and having difficulty with variable naming.
 
-#### Workaround 1.2: Supply all the default arguments
+#### Workaround 1.2: Creating a helper method
+
+```
+extension Environment {
+  func with(gravity: Double) -> Environment {
+    var environment = self
+    environment.gravity = gravity
+    return environment
+  }
+}
+
+generatePlanet(
+  name: "Earth",
+  environment: Environment().with(gravity: 9.9))
+```
+
+Disadvantages:
+
+- Again this requires more code.
+- To enable any of the other properties to be modified too, either one monolithic method would be needed, or 8 additional methods similar to the one above (one for each property).
+
+#### Workaround 1.3: Supply all the default arguments
 
 ```
 generatePlanet(
@@ -109,7 +160,7 @@ This has several disadvantages:
 - It's difficult to see which is the variable that is actually different from the defaults (i.e. gravity).
 - It no longer conforms to the [DRY principal](https://en.wikipedia.org/wiki/Don%27t_repeat_yourself), since the default values are repeated. If one of these defaults was found to be inaccurate, it would be difficult to ensure that all the places are updated accordingly.
 
-#### Workaround 1.3: Create a custom initializer
+#### Workaround 1.4: Create a custom initializer
 
 ```
 struct Environment {
@@ -131,7 +182,7 @@ struct Environment {
     gravity: Double? = nil,
     escapeVelocity: Double? = nil,
     rotationPeriod: Double? = nil,
-    lengthOfDay?: Int = nil,
+    lengthOfDay: Int? = nil,
     distanceFromSun: Double? = nil)
   {
     if let mass = mass { self.mass = mass }
@@ -158,18 +209,133 @@ This too has several disadvantages:
 - It either requires using `nil` as the default argument as in the example above, which keeps the default constant values DRY, but would not work well if any of the properties were optional; or
 - It requires duplicating the default values in the arguments as in the previous workaround.
 
+### Problem 2: If even a single non-default property is added, all the default values must be provided.
+
+Imagine a new `id` property is added to the structure and it has no sensible default.
+
+```
+struct Environment {
+  var id: Int
+  var mass = 5.97
+  var diameter = 12_756
+  var density = 3_340
+  var gravity = 9.8
+  var escapeVelocity = 11.2
+  var rotationPeriod = 23.9
+  var lengthOfDay = 24
+  var distanceFromSun = 149.6
+  
+  let speedOfLight: Int = 299_792_458
+}
 ```
 
+The user would like to initialize it like so:
 
+```
+let id = nextAutoIncrementID()
 
-Swift's memberwise initializers allows developers to adhere to the . 
+generatePlanet(
+  name: "Earth",
+  environment: Environment(
+    id: id))
+```
 
-Describe the problems that this proposal seeks to address. If the
-problem is that some common pattern is currently hard to express, show
-how one can currently get a similar effect and describe its
-drawbacks. If it's completely new functionality that cannot be
-emulated, motivate why this new functionality would help Swift
-developers create better Swift code.
+However, this is not possible. The default initializer no longer exists, and the memberwise initializer now looks like this:
+
+```
+/// An example of what is auto-synthesized by the memberwise initializer
+init(
+  id: Int,
+  mass: Double,
+  diameter: Int,
+  density: Int,
+  gravity: Double,
+  escapeVelocity: Double,
+  rotationPeriod: Double,
+  lengthOfDay: Int,
+  distanceFromSun: Double)
+{
+  self.id = id
+  self.mass = mass
+  self.diameter = diameter
+  self.density = density
+  self.gravity = gravity
+  self.escapeVelocity = escapeVelocity
+  self.rotationPeriod = rotationPeriod
+  self.lengthOfDay = lengthOfDay
+  self.distanceFromSun = distanceFromSun
+}
+```
+
+The user is forced to supply all the values again.
+
+#### Workaround 2.1: Supply a default value
+
+```
+struct Environment {
+  var id = 0
+  var mass = 5.97
+  var diameter = 12_756
+  var density = 3_340
+  var gravity = 9.8
+  var escapeVelocity = 11.2
+  var rotationPeriod = 23.9
+  var lengthOfDay = 24
+  var distanceFromSun = 149.6
+  
+  let speedOfLight: Int = 299_792_458
+}
+
+var environment = Environment()
+environment.id = nextAutoIncrementID()
+
+generatePlanet(
+  name: "Earth",
+  environment: environment))
+```
+
+Drawbacks:
+
+- The object exists for a period of time with a seemingly valid value (`0`) from the compiler's standpoint, but actually invalid value from the business logic standpoint.
+- The user could forget to update the value to a correct one.
+
+#### Workaround 2.2: Use a different type that can represent an invalid result
+
+```
+struct Environment {
+  var id: Int? = nil
+  var mass = 5.97
+  var diameter = 12_756
+  var density = 3_340
+  var gravity = 9.8
+  var escapeVelocity = 11.2
+  var rotationPeriod = 23.9
+  var lengthOfDay = 24
+  var distanceFromSun = 149.6
+  
+  let speedOfLight: Int = 299_792_458
+}
+
+var environment = Environment()
+environment.id = nextAutoIncrementID()
+
+generatePlanet(
+  name: "Earth",
+  environment: environment))
+```
+
+Drawbacks:
+
+- The underlying type was modified (i.e. `Int?` instead of `Int`), meaning everywhere that reads the code must handle the case where it is `nil`.
+- The user could forget to update the value to a correct one.
+
+#### Workaround 2.3: Supply all the default arguments
+
+This is similar to Workaround 2.3.
+
+#### Workaround 2.4: Create a custom initializer
+
+This is similar to Workaround 2.4.
 
 ## Proposed solution
 
