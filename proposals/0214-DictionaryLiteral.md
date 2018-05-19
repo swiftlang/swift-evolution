@@ -37,7 +37,7 @@ public init<Subject>(
 ```
 
 * This implementation depends on `DictionaryLiteral`'s continued existence. 
-* The `@dynamiccallable` proposal will provide another use case for this type.
+* The `@dynamicCallable` proposal will provide another use case for this type.
 
 Even when narrowly used, a type's reach is no longer a sufficient reason to deprecate it or remove it from the language. Absent *active harm*, source stability takes precedence. In this case, the `DictionaryLiteral` type causes no measurable harm beyond API sprawl and the issues with its name. The latter is easily fixed.
 
