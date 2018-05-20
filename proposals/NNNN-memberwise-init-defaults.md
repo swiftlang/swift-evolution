@@ -509,7 +509,7 @@ This will not affect source compatibility as it is purely additive:
 - This will only affect `struct`s that would receive auto-synthesized memberwise initializers.
 - Even though the default initializer would be removed, the same source code would compile due to the default arguments in the memberwise initializer being added.
 
-In the examples above, everywhere `A` or `B` were used, `A_Proposal` and `B_Proposal` could be used respectively without any modifications.
+In the examples above, everywhere `A` and `B` were used, `A_Proposal` and `B_Proposal` are used, respectively, and the code still compiles without any modifications.
 
 ## Effect on ABI stability
 
