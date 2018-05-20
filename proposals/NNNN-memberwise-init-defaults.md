@@ -33,7 +33,7 @@ struct Environment {
 The structure could easily be constructed thanks to the [default intializer](https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/Initialization.html#//apple_ref/doc/uid/TP40014097-CH18-ID213):
 
 ```
-/// An example of what is auto-synthesized by the default initializer
+/// The auto-synthesized default initializer behaves like this:
 init() { }
 ```
 
@@ -48,7 +48,7 @@ generatePlanet(
 The structure could also be constructed by modifying all of its properties thanks to the [memberwise initializers](https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/Initialization.html#//apple_ref/doc/uid/TP40014097-CH18-ID214):
 
 ```
-/// An example of what an auto-synthesized memberwise initializer essentially looks like:
+/// The auto-synthesized memberwise initializer behaves like this:
 init(
   mass: Double,
   diameter: Int,
@@ -409,7 +409,7 @@ struct B {
 
 // B() // Doesn't compile; OK
 // B(a: 1) // ❌ Doesn't compile; PROPOSAL: This should be valid
-// B(b: 1) // ❌ Doesn't compile; PROPOSAL: This should be valid
+// B(b: 1) // Doesn't compile; OK
 B(a: 1, b: 1)
 
 struct C {
