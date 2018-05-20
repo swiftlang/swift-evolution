@@ -45,7 +45,7 @@ generatePlanet(
   environment: Environment())
 ```
 
-And could be constructed by modifying all of its properties thanks to the [memberwise initializers](https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/Initialization.html#//apple_ref/doc/uid/TP40014097-CH18-ID214):
+The structure could also be constructed by modifying all of its properties thanks to the [memberwise initializers](https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/Initialization.html#//apple_ref/doc/uid/TP40014097-CH18-ID214):
 
 ```
 /// An example of what an auto-synthesized memberwise initializer essentially looks like:
