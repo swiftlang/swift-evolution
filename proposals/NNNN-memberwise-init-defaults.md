@@ -445,7 +445,7 @@ D(a: 1)
 This proposal only modifies the first two structures' (`A` and `B`) behavior:
 
 ```
-struct A_Fixed {
+struct A_Proposal {
   var a: Int = 1
   var b: Int = 1
 
@@ -456,12 +456,12 @@ struct A_Fixed {
   }
 }
 
-A_Fixed()
-A_Fixed(a: 1) // ✅ PROPOSAL: This would now be valid
-A_Fixed(b: 1) // ✅ PROPOSAL: This would now be valid
-A_Fixed(a: 1, b: 1)
+A_Proposal()
+A_Proposal(a: 1) // ✅ PROPOSAL: This would now be valid
+A_Proposal(b: 1) // ✅ PROPOSAL: This would now be valid
+A_Proposal(a: 1, b: 1)
 
-struct B_Fixed {
+struct B_Proposal {
   var a: Int
   var b: Int = 1
 
@@ -472,10 +472,10 @@ struct B_Fixed {
   }
 }
 
-// B_Fixed() // Doesn't compile; OK
-B_Fixed(a: 1) // ✅ PROPOSAL: This would now be valid
-// B_Fixed(b: 1) // Doesn't compile; OK
-B_Fixed(a: 1, b: 1)
+// B_Proposal() // Doesn't compile; OK
+B_Proposal(a: 1) // ✅ PROPOSAL: This would now be valid
+// B_Proposal(b: 1) // Doesn't compile; OK
+B_Proposal(a: 1, b: 1)
 ```
 
 A struct with all combinations of `var` and `let` would behave like this:
@@ -509,7 +509,7 @@ This will not affect source compatibility as it is purely additive:
 - This will only affect `struct`s that would receive auto-synthesized memberwise initializers.
 - Even though the default initializer would be removed, the same source code would compile due to the default arguments in the memberwise initializer being added.
 
-In the examples above, everywhere `A` or `B` were used, `A_Fixed` and `B_Fixed` could be used respectively without any modifications.
+In the examples above, everywhere `A` or `B` were used, `A_Proposal` and `B_Proposal` could be used respectively without any modifications.
 
 ## Effect on ABI stability
 
