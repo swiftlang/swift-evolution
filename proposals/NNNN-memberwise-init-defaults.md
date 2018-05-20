@@ -359,7 +359,7 @@ The solution is twofold:
 
 This would make initializers more **consistent**:
 
-- Today, a `struct` that does not define a custom initializer will have 1 or 2 initializers: it will always have a memberwise initializer; but it only receives a default intializer if all of its properties have default values. This proposal makes `struct`s more conisistent by providing exactly 1 auto-synthesized initializer.
+- Today, a `struct` that does not define a custom initializer will have 1 or 2 initializers: it will always have a memberwise initializer; but it only receives a default intializer if all of its properties have default values. This can be a [source of confusion](https://forums.swift.org/t/rules-for-structs-default-memberwise-initializers/5189). This proposal makes `struct`s more conisistent by providing exactly 1 auto-synthesized initializer.
 
 This would make initializers more **versatile**:
 
