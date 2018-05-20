@@ -142,7 +142,7 @@ Disadvantages:
 
 ```
 generatePlanet(
-  name: "Mars",
+  name: "Earth-like planet",
   environment: Environment(
     mass: 5.97,
     diameter: 12_756,
@@ -267,8 +267,6 @@ init(
 }
 ```
 
-The user is forced to supply all the values again.
-
 #### Workaround 2.1: Supply a default value
 
 ```
@@ -331,11 +329,26 @@ Drawbacks:
 
 #### Workaround 2.3: Supply all the default arguments
 
-This is similar to Workaround 2.3.
+This is similar to Workaround 1.3.
+
+```
+generatePlanet(
+  name: "Earth",
+  environment: Environment(
+    id: nextAutoIncrementID(),
+    mass: 5.97,
+    diameter: 12_756,
+    density: 3_340,
+    gravity: 9.8,
+    escapeVelocity: 11.2,
+    rotationPeriod: 23.9,
+    lengthOfDay: 24,
+    distanceFromSun: 149.6))
+```
 
 #### Workaround 2.4: Create a custom initializer
 
-This is similar to Workaround 2.4.
+This is similar to Workaround 1.4.
 
 ## Proposed solution
 
