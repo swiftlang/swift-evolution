@@ -359,12 +359,11 @@ The solution is twofold:
 
 This would make initializers more **consistent**:
 
-- Today, a `struct` that does not define a custom initializer will have 1 or 2 initializers: it will always have a memberwise initializers; but it will only receive a default intializer if all of its properties have default values. This proposal makes things more conisistent by providing exactly 1 auto-synthesized initalizer to a `struct`.
+- Today, a `struct` that does not define a custom initializer will have 1 or 2 initializers: it will always have a memberwise initializer; but it only receives a default intializer if all of its properties have default values. This proposal makes `struct`s more conisistent by providing exactly 1 auto-synthesized initializer.
 
 This would make initializers more **versatile**:
 
-- Today, memberwise initializers must be called with an argument corresponding to each property on a struct, regardless of them having default values. With this proposal, the user can provide zero or more arguments for those properties that have default values. This proposal makes the auto-synthesized initializer more versatile since it can be used in more scenarios.
-
+- Today, memberwise initializers must be called with an argument corresponding to each of the properties on a struct, even those with default values. This proposal makes the auto-synthesized memberwise initializer more versatile by allowing the user to provide zero or more arguments for each of the properties that have default values.
 
 ## Detailed design
 
