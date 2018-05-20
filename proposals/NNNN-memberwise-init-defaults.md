@@ -546,4 +546,4 @@ in the Swift repository.
 
 - Wait until [[SE-0018] Flexible Memberwise Initialization](https://github.com/apple/swift-evolution/blob/master/proposals/0018-flexible-memberwise-initialization.md) is reviewed again.
 
-  - In addition to adding default parameters to the memberwise initializer, SE-0018 solves several other (more contentious) problems and introduces new syntax. Rather than waiting until that proposal is modified/adopted/rejected, this proposal eliminates a lot of boilerplate, while sticking with current syntax. Even if SE-0018 is eventually adopted, this could be thought of as a stepping stone to that proposal.
+  - In addition to adding default parameters to the memberwise initializer, SE-0018 solves several other, more contentious problems, and introduces new syntax. Rather than waiting until that proposal is modified/adopted/rejected, this proposal eliminates a lot of boilerplate, while sticking with current syntax. Even if SE-0018 is eventually adopted, this could be thought of as a stepping stone to that proposal.
