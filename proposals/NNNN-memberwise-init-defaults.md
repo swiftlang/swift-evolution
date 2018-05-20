@@ -30,7 +30,7 @@ struct Environment {
 }
 ```
 
-An instance could easily be constructed thanks to the default intializer:
+The structure could easily be constructed thanks to the [default intializer](https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/Initialization.html#//apple_ref/doc/uid/TP40014097-CH18-ID213):
 
 ```
 /// An example of what is auto-synthesized by the default initializer
@@ -45,10 +45,10 @@ generatePlanet(
   environment: Environment())
 ```
 
-An instance could be constructed by modifying all the properties thanks to the memberwise initializer that would resemble:
+And could be constructed by modifying all of its properties thanks to the [memberwise initializers](https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/Initialization.html#//apple_ref/doc/uid/TP40014097-CH18-ID214):
 
 ```
-/// An example of what is auto-synthesized by the memberwise initializer
+/// An example of what an auto-synthesized memberwise initializer essentially looks like:
 init(
   mass: Double,
   diameter: Int,
@@ -359,7 +359,7 @@ The solution is twofold:
 
 This would make initializers more **consistent**:
 
-- Today, a `struct` that does not define a custom initializer will have 1 or 2 initializers: it will always have a [memberwise initializers](https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/Initialization.html#//apple_ref/doc/uid/TP40014097-CH18-ID214); but it will only receive a [default intializer](https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/Initialization.html#//apple_ref/doc/uid/TP40014097-CH18-ID213) if all of its properties have default values. This proposal makes things more conisistent by providing exactly 1 auto-synthesized initalizer to a `struct`.
+- Today, a `struct` that does not define a custom initializer will have 1 or 2 initializers: it will always have a memberwise initializers; but it will only receive a default intializer if all of its properties have default values. This proposal makes things more conisistent by providing exactly 1 auto-synthesized initalizer to a `struct`.
 
 This would make initializers more **versatile**:
 
