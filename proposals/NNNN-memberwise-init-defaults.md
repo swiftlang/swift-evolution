@@ -1,4 +1,4 @@
-# Memberwise Initialzers should have Default Values
+# Memberwise initialzers with default values
 
 * Proposal: [SE-NNNN](NNNN-memberwise-init-defaults.md)
 * Authors: [Ortal Yahdav](https://github.com/swift-ortal)
