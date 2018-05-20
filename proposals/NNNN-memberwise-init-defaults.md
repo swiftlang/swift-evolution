@@ -504,21 +504,12 @@ E(a: 1, b: 1, c: 1)
 
 ## Source compatibility
 
-Relative to the Swift 3 evolution process, the source compatibility
-requirements for Swift 4 are *much* more stringent: we should only
-break source compatibility if the Swift 3 constructs were actively
-harmful in some way, the volume of affected Swift 3 code is relatively
-small, and we can provide source compatibility (in Swift 3
-compatibility mode) and migration.
+This will not affect source compatibility as it is purely additive:
 
-Will existing correct Swift 3 or Swift 4 applications stop compiling
-due to this change? Will applications still compile but produce
-different behavior than they used to? If "yes" to either of these, is
-it possible for the Swift 4 compiler to accept the old syntax in its
-Swift 3 compatibility mode? Is it possible to automatically migrate
-from the old syntax to the new syntax? Can Swift applications be
-written in a common subset that works both with Swift 3 and Swift 4 to
-aid in migration?
+- This will only affect `struct`s that would receive auto-synthesized memberwise initializers.
+- Even though the default initializer would be removed, the same source code would compile due to the default arguments in the memberwise initializer being added.
+
+In the examples above, everywhere `A` or `B` were used, `A_Fixed` and `B_Fixed` could be used respectively without any modifications.
 
 ## Effect on ABI stability
 
