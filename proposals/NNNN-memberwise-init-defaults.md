@@ -7,7 +7,7 @@
 
 ## Introduction
 
-This proposal makes [structure memberwise initializers](https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/Initialization.html#//apple_ref/doc/uid/TP40014097-CH18-ID214) more consistent, and more versatile by adding [default parameter values](https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/Functions.html#//apple_ref/doc/uid/TP40014097-CH10-ID169) for all properties that have [default values](https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/Initialization.html#//apple_ref/doc/uid/TP40014097-CH18-ID206).
+This proposal makes structure auto-synthesized initializers more consistent, and more versatile by adding [default parameter values](https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/Functions.html#//apple_ref/doc/uid/TP40014097-CH10-ID169) to all parameters that have corresponding properties with [default values](https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/Initialization.html#//apple_ref/doc/uid/TP40014097-CH18-ID206).
 
 Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/)
 
@@ -30,7 +30,7 @@ struct Environment {
 }
 ```
 
-An instance could easily be constructed thanks to the [default intializer](https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/Initialization.html#//apple_ref/doc/uid/TP40014097-CH18-ID213):
+An instance could easily be constructed thanks to the default intializer:
 
 ```
 /// An example of what is auto-synthesized by the default initializer
@@ -352,18 +352,155 @@ This is similar to Workaround 1.4.
 
 ## Proposed solution
 
-Describe your solution to the problem. Provide examples and describe
-how they work. Show how your solution is better than current
-workarounds: is it cleaner, safer, or more efficient?
+The solution is twofold:
+
+1. Remove the default initializer for `struct`s.
+2. Modify the memberwise initializer for `struct`s to include default values equivalent to the default values of their corresponding properties.
+
+This would make initializers more **consistent**:
+
+- Today, a `struct` that does not define a custom initializer will have 1 or 2 initializers: it will always have a [memberwise initializers](https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/Initialization.html#//apple_ref/doc/uid/TP40014097-CH18-ID214); but it will only receive a [default intializer](https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/Initialization.html#//apple_ref/doc/uid/TP40014097-CH18-ID213) if all of its properties have default values. This proposal makes things more conisistent by providing exactly 1 auto-synthesized initalizer to a `struct`.
+
+This would make initializers more **versatile**:
+
+- Today, memberwise initializers must be called with an argument corresponding to each property on a struct, regardless of them having default values. With this proposal, the user can provide zero or more arguments for those properties that have default values. This proposal makes the auto-synthesized initializer more versatile since it can be used in more scenarios.
+
 
 ## Detailed design
 
-Describe the design of the solution in detail. If it involves new
-syntax in the language, show the additions and changes to the Swift
-grammar. If it's a new API, show the full API and its documentation
-comments detailing what it does. The detail in this section should be
-sufficient for someone who is *not* one of the authors to be able to
-reasonably implement the feature.
+Here is what would happen to each property type:
+
+ - `var` properties without default values will be required arguments. `var a: Int` -> `a: Int`
+ - `var` properties with default values will be arguments with default values. `var a: Int = 1` -> `a: Int = 1`
+ - `let` properties without default values will be required arguments (same as today's behavior). `let a: Int` -> `a: Int`
+ - `let` properties with default values will not be arguments (same as today's behavior). `let a: Int = 1` -> N/A
+ - `lazy` properties are untouched
+ - `static` properties are untouched
+ 
+The following can be pasted into a Swift Playground to see today's current behavior:
+ 
+```
+struct A {
+  var a: Int = 1
+  var b: Int = 1
+
+  // TODAY: this has 2 auto-synthesized init methods:
+  // init() { }
+  // init(a: Int, b: Int) {
+  //   self.a = a
+  //   self.b = b
+  // }
+}
+
+A()
+// A(a: 1) // ❌ Doesn't compile; PROPOSAL: This should be valid
+// A(b: 1) // ❌ Doesn't compile; PROPOSAL: This should be valid
+A(a: 1, b: 1)
+
+struct B {
+  var a: Int
+  var b: Int = 1
+
+  // TODAY: this has 1 auto-synthesized init method:
+  // init(a: Int, b: Int) {
+  //   self.a = a
+  //   self.b = b
+  // }
+}
+
+// B() // Doesn't compile; OK
+// B(a: 1) // ❌ Doesn't compile; PROPOSAL: This should be valid
+// B(b: 1) // ❌ Doesn't compile; PROPOSAL: This should be valid
+B(a: 1, b: 1)
+
+struct C {
+  let a: Int = 1
+  let b: Int = 1
+
+  // TODAY: this has 1 auto-synthesized init method:
+  // init() { }
+}
+
+C()
+// C(a: 1) // Doesn't compile; OK
+// C(b: 1) // Doesn't compile; OK
+// C(a: 1, b: 1) // Doesn't compile; OK
+
+struct D {
+  let a: Int
+  let b: Int = 1
+
+  // TODAY: this has 1 auto-synthesized init method:
+  // init(a: Int) {
+  //   self.a = a
+  // }
+}
+
+// D() // Doesn't compile; OK
+D(a: 1)
+// D(b: 1) // Doesn't compile; OK
+// D(a: 1, b: 1) // Doesn't compile; OK
+```
+
+This proposal only modifies the first two structures' (`A` and `B`) behavior:
+
+```
+struct A_Fixed {
+  var a: Int = 1
+  var b: Int = 1
+
+  // PROPOSAL: auto-synthesize this memberwise init:
+  init(a: Int = 1, b: Int = 1) {
+    self.a = a
+    self.b = b
+  }
+}
+
+A_Fixed()
+A_Fixed(a: 1) // ✅ PROPOSAL: This would now be valid
+A_Fixed(b: 1) // ✅ PROPOSAL: This would now be valid
+A_Fixed(a: 1, b: 1)
+
+struct B_Fixed {
+  var a: Int
+  var b: Int = 1
+
+  // PROPOSAL: auto-synthesize this memberwise init:
+  init(a: Int, b: Int = 1) {
+    self.a = a
+    self.b = b
+  }
+}
+
+// B_Fixed() // Doesn't compile; OK
+B_Fixed(a: 1) // ✅ PROPOSAL: This would now be valid
+// B_Fixed(b: 1) // Doesn't compile; OK
+B_Fixed(a: 1, b: 1)
+```
+
+A struct with all combinations of `var` and `let` would behave like this:
+
+```
+struct E {
+  var a: Int
+  var b: Int = 1
+  let c: Int
+  let d: Int = 1
+  static var e: Int = 1
+  static let f: Int = 1
+  lazy var g: Int = 1
+
+  // PROPOSAL: auto-synthesize this memberwise init
+  init(a: Int, b: Int = 1, c: Int) {
+    self.a = a
+    self.b = b
+    self.c = c
+  }
+}
+
+E(a: 1, c: 1)
+E(a: 1, b: 1, c: 1)
+```
 
 ## Source compatibility
 
