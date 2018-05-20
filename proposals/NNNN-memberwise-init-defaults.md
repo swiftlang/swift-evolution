@@ -7,13 +7,13 @@
 
 ## Introduction
 
-This proposal makes structure auto-synthesized initializers more consistent, and more versatile by adding [default parameter values](https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/Functions.html#//apple_ref/doc/uid/TP40014097-CH10-ID169) to all parameters that have corresponding properties with [default values](https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/Initialization.html#//apple_ref/doc/uid/TP40014097-CH18-ID206).
+This proposal makes structure's (`struct`) auto-synthesized initializers more consistent, and more versatile by adding [default parameter values](https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/Functions.html#//apple_ref/doc/uid/TP40014097-CH10-ID169) to all parameters that have corresponding properties with [default values](https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/Initialization.html#//apple_ref/doc/uid/TP40014097-CH18-ID206).
 
 Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/)
 
 ## Motivation
 
-Oftentimes structures will have reasonable defaults. Consider an example of an Envirnoment that begins with [Earth's properties](https://nssdc.gsfc.nasa.gov/planetary/factsheet/):
+Oftentimes structures will have reasonable defaults. Consider an example of an Envirnoment that defaults to [Earth's properties](https://nssdc.gsfc.nasa.gov/planetary/factsheet/):
 
 ```
 struct Environment {
