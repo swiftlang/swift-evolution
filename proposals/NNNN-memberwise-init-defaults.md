@@ -1,4 +1,4 @@
-# Memberwise initializers with default values
+# Memberwise Initializers With Default Values
 
 * Proposal: [SE-NNNN](NNNN-memberwise-init-defaults.md)
 * Authors: [Ortal Yahdav](https://github.com/swift-ortal)
@@ -544,5 +544,6 @@ in the Swift repository.
 
 ## Alternatives considered
 
-Describe alternative approaches to addressing the same problem, and
-why you chose this approach instead.
+- Wait until [[SE-0018] Flexible Memberwise Initialization](https://github.com/apple/swift-evolution/blob/master/proposals/0018-flexible-memberwise-initialization.md) is reviewed again.
+
+  - In addition to adding default parameters to the memberwise initializer, SE-0018 solves several other (more contentious) problems and introduces new syntax. Rather than waiting until that proposal is modified/adopted/rejected, this proposal eliminates a lot of boilerplate, while sticking with current syntax. Even if SE-0018 is eventually adopted, this could be thought of as a stepping stone to that proposal.
