@@ -3,7 +3,8 @@
 * Proposal: [SE-0201](0201-package-manager-local-dependencies.md)
 * Author: [Ankit Aggarwal](https://github.com/aciidb0mb3r)
 * Review Manager: [Boris Bügling](https://github.com/neonichu)
-* Status: **Accepted**
+* Status: **Implemented (Swift 4.2)**
+* Implementation: [apple/swift-package-manager#1583](https://github.com/apple/swift-package-manager/pull/1583)
 * Bug: [SR-7433](https://bugs.swift.org/browse/SR-7433)
 
 ## Introduction
