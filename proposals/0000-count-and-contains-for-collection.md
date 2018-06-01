@@ -8,7 +8,7 @@
 
 ## Introduction
 
-This proposal introduces a two methods of existing name families that I consider a sensible addition to `Collection`. The goal is to introduce a solution for a common task, make it intuitive, easy to use and prevent the consumer from accidentally writing inefficient code.
+This proposal introduces two methods of existing name families that I consider a sensible addition to `Collection`. The goal is to introduce a solution for a common task, make it intuitive, easy to use and prevent the consumer from accidentally writing inefficient code.
 
 [Swift-evolution pitch thread](https://forums.swift.org/t/count-of-and-contains-other-for-collection/11245?u=anthonylatsis)
 
@@ -54,9 +54,9 @@ array.contains([]) // true
 array.contains([2, 1]) // false
 array.contains([1, 2, 3, 4, 5, 6]) // false
 
-array.contains("hell") // true
-array.contains("") // true
-array.contains("aba") // false
+string.contains("hell") // true
+string.contains("") // true
+string.contains("aba") // false
 
 data.contains([0xA3, 0x1F]) // true
 ```
