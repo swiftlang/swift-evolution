@@ -179,28 +179,25 @@ concern for whether the generic type might be optional at runtime.
 
 ## Source compatibility
 
-This *is* a source-breaking change for most `try?` expressions that operate
-on an `Optional` sub-expression. We can provide backward-compatible behavior
-when the compiler is running in Swift 4 mode, and a migration should be
-possible for most common cases.
-
-It appears that most uses of `try?` in the Swift Compatibility Library
-are with non-optional expressions. The code most liikely to be impacted
-is of the form `try? foo() as? Bar`, but even that is relatively rare,
-and can be migrated.
+This is a source-breaking change for `try?` expressions that operate on an
+`Optional` sub-expression if they do not explicitly flatten the optional 
+themselves. It appears that those cases are rare, though; see the analysis
+below for details. We can provide backward-compatible behavior when the compiler
+is running in Swift 4 mode, and a migration should be possible for most common 
+cases.
 
 Source code that is intended for use with both Swift 4 and Swift 5
 compilers can write code as follows, which behaves identically in
 both Swift 4 and Swift 5 under this proposal:
 
-```
+```swift
 // Original Swift 4 code:
 let x = try? produceAnOptional()
 
 
 // If you only care about detecting whether a value was produced,
 // you can use `Optional.flatMap` to flatten the optional.
-let x = try? produceAnOptional().flatMap({ $0 })
+let x = (try? produceAnOptional()).flatMap { $0 }
 
 
 // If you want to detect the error case separately from the 
@@ -213,6 +210,36 @@ catch {
     // Handle the error case
 }
 ```
+
+#### Swift Source Compatibility Suite analysis
+
+The Swift Source Compatibility Suite suggests that this is unlikely to 
+be a breaking change for most users. I manually inspected the use
+cases of `try?` in the compatibility suite. Here are the results:
+
+* There are **613** total instances of `try?` in the compatibility suite. The vast majority of those appear to use non-optional sub-expressions, and would be unaffected by this proposal.
+
+* There are **4** instances of `try? ... as?`. All four of them wrap the `try?` in parentheses to get the flattening behavior, and would be source-compatible either way. They all look something like this:
+
+    ```swift
+    (try? JSONSerialization.jsonObject(with: $0)) as? NSDictionary
+    ```
+
+* There are **12** cases of `try? foo?.bar()` across 3 projects.
+**10** of those assign it to `_ = try? foo?.bar()` , so the resulting type does not matter.
+**2** of those cases have a `Void` sub-expression type, and do not assign the result to any variable.
+
+* There are **6** instances of `try? somethingReturningOptional()` . They all flatten it manually using `flatMap { $0 }`, and are thus source-compatible with this change.
+
+    ```swift
+    (try? get(key)).flatMap { $0 }
+    ```
+
+* As far as I can tell, there are **zero** cases in the entire suite where a double-optional is actually used to distinguish between the error case and the nil-as-a-value case.
+
+* As far as I can tell, there are **zero** cases of source incompatibility found in the compatibility suite.
+
+
 
 ## Effect on ABI stability
 
