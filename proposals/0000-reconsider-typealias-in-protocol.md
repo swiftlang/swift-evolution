@@ -71,9 +71,9 @@ I propose to bring consistency to the usage of type aliases within protocols and
   to propose the current syntax instead of simply producing **#3**, which is actually a generic error.
 * Type aliases in protocols should be always discouraged in **Swift 4.2** and always disallowed in **Swift 5**,
   the same way we disallow any implementation details.
-* Warning **#1** must become an error in **Swift 5**; in the case when the warning is not produced,
+* Warning **#1** should become an error in **Swift 5**; in the case when the warning is not produced,
   emit a generic `typealias should not be declared within a protocol` warning for **Swift 4.2** and error for **Swift 5**.
-* Warning **#2** must be superseded by the `typealias must not be declared within a protocol` error in **Swift 5**.
+* Warning **#2** should be superseded by the `typealias should/must not be declared within a protocol` warning/error in **Swift 4.2** and **Swift 5** respectively.
 
 ## Detailed design
 
