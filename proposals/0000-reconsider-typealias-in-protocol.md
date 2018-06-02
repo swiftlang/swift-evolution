@@ -7,19 +7,19 @@
 
 ## Introduction
 
-This proposal encourages to bring consistency to the grammar of using type aliases within protocols and their extensions.
+This proposal encourages to change the grammar of using type aliases within protocols and their extensions to be consistent relative to the language.
 
 [Swift-evolution pitch thread](https://forums.swift.org/t/disallow-type-aliases-in-protocols/11965?u=anthonylatsis)
 
 ## Motivation
 
 The ability to declare type aliases that share names with associated types in protocols and protocol extensions
-has been a workaround for same-type constraints in protocol declarations, introduced in **Swift 4** ([SE-0142](https://github.com/apple/swift-evolution/blob/master/proposals/0142-associated-types-constraints.md)).
+has been a workaround for same-type constraints in protocol declarations, introduced together with [SE-0142](https://github.com/apple/swift-evolution/blob/master/proposals/0142-associated-types-constraints.md) in **Swift 4**.
 
 Here, the declaration of a `typealias` that shares its name with an `associatedtype` is tantamount to a same-type constraint
 that is syntactically and semantically inconsistent with the language. This feature violates the rule that declarations
-in a protocol extension should never conflict with its requirements (the type alias does not act as a default value) and
-introduces counterproductive situations that often have no practical value and are thus hard to judge and assess. 
+in a protocol extension should never conflict with its requirements (the `typealias` does not act as a default value) and
+introduces counterproductive situations that often have no practical value and are hard to judge and assess. 
 
 ```swift
 protocol P {
@@ -36,13 +36,12 @@ class Foo: P {
 // This will break Foo and any other conformances to P and its descendants. 
 extension P { typealias E = Bool } 
 ```
-This feature is further inconsistent with the convention of not having any implementation details within a protocol body.
-Those are described in an extension or upon conformance.
+A further contradiction is seen with the convention of leaving out any implementation details within a protocol body:
+those are ought to be described in an extension or upon conformance.
 
 ## Proposed solution
 
-**Swift 4.1** began preparations to eliminate the feature by adding warnings and disallowing such type aliases in protocol
-extensions by raising a `type look up ambiguity` error towards appliances of the conflicting type name:
+**Swift 4.1** began preparations to eliminate the feature by adding certain warnings and conditionally disallowing such type aliases in protocol extensions by raising a `type look up ambiguity` error towards appliances of the conflicting type name, if any.
 
 #### `#1`
 ```swift
@@ -65,8 +64,8 @@ protocol P {
 extension P {typealias A = Int}
 ```
 
-Now that we have powerful enough where clauses for protocol declarations,
-I propose to bring consistency to the usage type aliases within protocols and protocol extensions:
+Having introduced powerful and expressive where clauses for protocol declarations,
+I propose to bring consistency to the usage of type aliases within protocols and protocol extensions:
 
 * Permit type aliases to act as default values for associated types in protocol extensions **or** change the error message
   to propose the current syntax instead of simply producing **#3**, which is actually a generic error.
