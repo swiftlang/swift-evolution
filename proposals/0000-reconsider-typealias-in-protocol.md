@@ -39,6 +39,26 @@ extension P { typealias E = Bool }
 A further contradiction is seen with the convention of leaving out any implementation details within a protocol body:
 those are ought to be described in an extension or upon conformance.
 
+### Type aliases in extensions
+Currently a `typealias` in a protocol extension that conflicts with an `associatedtype` is treated as a same-type constraint on the associatedtype **if** there are no appliances of the type name **among the requirements**. Example:
+
+```swift
+protocol P {associatedtype A}
+extension P {typealias A = Int} // same-type constraint on A.
+```
+
+If there **is** an appliance of `A`, an error occurs:
+
+```swift
+protocol P {
+  associatedtype A
+  func foo() -> A // 'A' is ambiguous for type lookup in this context
+}
+extension P {typealias A = Int}
+```
+
+This is inconsistent with the behavior of any other implementation details declared in protocol extensions, which become defaults. The fact that an appliance generates an error is either a bug or proof that the rules aren't solid and conflict with the language on the implementation level.
+
 ## Proposed solution
 
 **Swift 4.1** began preparations to eliminate the feature by adding certain warnings and conditionally disallowing such type aliases in protocol extensions by raising a `type look up ambiguity` error towards appliances of the conflicting type name, if any.
@@ -63,12 +83,14 @@ protocol P {
 }
 extension P {typealias A = Int}
 ```
-
+### Solution
 Having introduced powerful and expressive where clauses for protocol declarations,
-I propose to bring consistency to the usage of type aliases within protocols and protocol extensions:
+I propose to bring consistency to the usage of type aliases within protocols and protocol extensions.
 
-* Permit type aliases to act as default values for associated types in protocol extensions **or** change the error message
-  to propose the current syntax instead of simply producing **#3**, which is actually a generic error.
+* [Type aliases in protocol extensions](#type-aliases-in-protocol-extensions). There are two options:
+    * Permit type aliases to act as default values for associated types in protocol extensions. This is the preferred solution. 
+    * Change the error message to propose the current syntax instead of simply producing **#3**,
+    which is actually a generic error.
 * Type aliases in protocols should be always discouraged in **Swift 4.2** and always disallowed in **Swift 5**,
   the same way we disallow any implementation details.
 * Warning **#1** should become an error in **Swift 5**; in the case when the warning is not produced,
@@ -100,6 +122,10 @@ protocol P1: P {
   /// use 'associatedtype' to specify a default value for 'A' from protocol 'P' or a same-type constraint on the protocol.
 }
 ```
+### Type aliases in protocol extensions
+The benign second options stated under [Solution](#solution) will not break source, but will remain a contradictory case on the background of the proposed changes and in constrast to established language rules.
+
+The first case, however, is just as harmless: switching from same-type constraints to default values is source breaking **neither** in the case when there are no appliances of the `associatedtype` among the requirements, nor when there are: it relaxes an existing error.
 
 ## Source compatibility
 
