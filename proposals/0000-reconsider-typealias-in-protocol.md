@@ -84,17 +84,15 @@ protocol P {
 extension P {typealias A = Int}
 ```
 ### Solution
-Having introduced powerful and expressive where clauses for protocol declarations,
+Now that we have powerful and expressive where clauses for protocol declarations,
 I propose to bring consistency to the usage of type aliases within protocols and protocol extensions.
 
 * [Type aliases in protocol extensions](#type-aliases-in-protocol-extensions). There are two options:
-    * Permit type aliases to act as default values for associated types in protocol extensions. This is the preferred solution. 
+    * Permit type aliases to act as default values for associated types in protocol extensions. This is the preferred           solution. 
     * Change the error message to propose the current syntax instead of simply producing **#3**,
     which is actually a generic error.
-* Type aliases in protocols should be always discouraged in **Swift 4.2** and always disallowed in **Swift 5**,
-  the same way we disallow any implementation details.
-* Warning **#1** should become an error in **Swift 5**; in the case when the warning is not produced,
-  emit a generic `typealias should not be declared within a protocol` warning for **Swift 4.2** and error for **Swift 5**.
+* Type aliases in protocols should be always discouraged in **Swift 4.2** and always disallowed in **Swift 5**, the same way we disallow any implementation details.
+* Warning **#1** should be amended to a generic `typealias should/must not be declared within a protocol` warning/error for **Swift 4.2** and **Swift 5** respectively with fix-it options to either switch to an `associatedtype` or impose a same-type constraint on the protocol.
 * Warning **#2** should be superseded by the `typealias should/must not be declared within a protocol` warning/error in **Swift 4.2** and **Swift 5** respectively.
 
 ## Detailed design
@@ -115,11 +113,12 @@ protocol P {
 
 ```swift
 protocol P {associatedtype A}
-protocol P1: P {
-  typealias A = Int
+protocol P1: P {    // fix-it: where A == Int
+  typealias A = Int // fix-it: typealias -> associatedtype
   /// Swift 5
-  /// error: typealias must not be declared within a protocol;
-  /// use 'associatedtype' to specify a default value for 'A' from protocol 'P' or a same-type constraint on the protocol.
+  /// error: typealias must not be declared within a protocol
+  /// note: use 'associatedtype' to specify a default value for 'A' from protocol 'P'
+  /// note: use a same-type constraint on the protocol
 }
 ```
 ### Type aliases in protocol extensions
