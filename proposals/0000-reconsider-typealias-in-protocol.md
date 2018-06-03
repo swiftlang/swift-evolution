@@ -121,7 +121,7 @@ protocol P1: P {    // fix-it: where A == Int
   /// note: use a same-type constraint on the protocol
 }
 ```
-### Type aliases in protocol extensions
+#### Type aliases in protocol extensions
 The benign second options stated under [Solution](#solution) will not break source, but will remain a contradictory case on the background of the proposed changes and in constrast to established language rules.
 
 The first case, however, is just as harmless: switching from same-type constraints to default values is source breaking **neither** in the case when there are no appliances of the `associatedtype` among the requirements, nor when there are: it relaxes an existing error.
