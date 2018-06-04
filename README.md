@@ -24,7 +24,7 @@ features actually shipped for a given version. Those are documented in each vers
 
 ## Development major version:  Swift 5.0
 
-Expected release date: Late 2018
+Expected release date: Early 2019
 
 ### Primary Focus: ABI Stability
 
