@@ -3,7 +3,8 @@
 * Proposal: SE-TBD
 * Authors: [Chris Lattner](https://github.com/lattner), [Dan Zheng](https://github.com/dan-zheng)
 * Review Manager: TBD
-* Status: **Awaiting implementation**
+* Implementation: https://github.com/apple/swift/pull/16980
+* Status: **Awaiting review**
 
 Note: this proposal is largely adapted from Chris's original pitch [here](https://gist.github.com/lattner/a6257f425f55fe39fd6ac7a2354d693d).
 
