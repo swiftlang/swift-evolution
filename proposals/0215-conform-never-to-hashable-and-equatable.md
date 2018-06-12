@@ -1,9 +1,9 @@
 # Conform `Never` to `Equatable` and `Hashable`
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0215](0215-conform-never-to-hashable-and-equatable.md)
 * Author: [Matt Diephouse](https://github.com/mdiep)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Review Manager: [Ted Kremenek](https://github.com/tkremenek)
+* Status: **Active review (June 12...19)**
 
 ## Introduction
 Extend `Never` so it conforms to `Equatable` and `Hashable`.
