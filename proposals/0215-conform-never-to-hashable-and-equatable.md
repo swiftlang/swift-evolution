@@ -4,6 +4,7 @@
 * Author: [Matt Diephouse](https://github.com/mdiep)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Status: **Active review (June 12...19)**
+* Implementation: [apple/swift#16857](https://github.com/apple/swift/pull/16857)
 
 ## Introduction
 Extend `Never` so it conforms to `Equatable` and `Hashable`.
