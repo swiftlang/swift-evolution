@@ -48,15 +48,15 @@ APIs that feel right in Objective-C can feel wordy when used in
 Swift. For example:
 
 ```swift
-    let content = listItemView.text.stringByTrimmingCharactersInSet(
-       NSCharacterSet.whitespaceAndNewlineCharacterSet())
+let content = listItemView.text.stringByTrimmingCharactersInSet(
+   NSCharacterSet.whitespaceAndNewlineCharacterSet())
 ```
 
 The APIs used here follow the Objective-C guidelines. A more "Swifty"
 version of the same code might instead look like this:
 
 ```swift
-    let content = listItemView.text.trimming(.whitespaceAndNewlines)
+let content = listItemView.text.trimming(.whitespaceAndNewlines)
 ```
 
 The latter example more closely adheres to the [Swift API Design
@@ -140,43 +140,43 @@ To get a sense of what these transformations do, consider a portion of
 the imported `UIBezierPath` API in Swift 2:
 
 ```swift
-    class UIBezierPath : NSObject, NSCopying, NSCoding {
-      convenience init(ovalInRect: CGRect)
-      func moveToPoint(_: CGPoint)
-      func addLineToPoint(_: CGPoint)
-      func addCurveToPoint(_: CGPoint, controlPoint1: CGPoint, controlPoint2: CGPoint)
-      func addQuadCurveToPoint(_: CGPoint, controlPoint: CGPoint)
-      func appendPath(_: UIBezierPath)
-      func bezierPathByReversingPath() -> UIBezierPath
-      func applyTransform(_: CGAffineTransform)
-      var empty: Bool { get }
-      func containsPoint(_: CGPoint) -> Bool
-      func fillWithBlendMode(_: CGBlendMode, alpha: CGFloat)
-      func strokeWithBlendMode(_: CGBlendMode, alpha: CGFloat)
-      func copyWithZone(_: NSZone) -> AnyObject
-      func encodeWithCoder(_: NSCoder)
-    }
+class UIBezierPath : NSObject, NSCopying, NSCoding {
+  convenience init(ovalInRect: CGRect)
+  func moveToPoint(_: CGPoint)
+  func addLineToPoint(_: CGPoint)
+  func addCurveToPoint(_: CGPoint, controlPoint1: CGPoint, controlPoint2: CGPoint)
+  func addQuadCurveToPoint(_: CGPoint, controlPoint: CGPoint)
+  func appendPath(_: UIBezierPath)
+  func bezierPathByReversingPath() -> UIBezierPath
+  func applyTransform(_: CGAffineTransform)
+  var empty: Bool { get }
+  func containsPoint(_: CGPoint) -> Bool
+  func fillWithBlendMode(_: CGBlendMode, alpha: CGFloat)
+  func strokeWithBlendMode(_: CGBlendMode, alpha: CGFloat)
+  func copyWithZone(_: NSZone) -> AnyObject
+  func encodeWithCoder(_: NSCoder)
+}
 ```
 
 And the same API imported under our current, experimental implementation of this proposal:
 
 ```swift
-    class UIBezierPath : NSObject, NSCopying, NSCoding {
-      convenience init(ovalIn rect: CGRect)
-      func move(to point: CGPoint)
-      func addLine(to point: CGPoint)
-      func addCurve(to endPoint: CGPoint, controlPoint1 controlPoint1: CGPoint, controlPoint2 controlPoint2: CGPoint)
-      func addQuadCurve(to endPoint: CGPoint, controlPoint controlPoint: CGPoint)
-      func append(_ bezierPath: UIBezierPath)
-      func reversing() -> UIBezierPath
-      func apply(_ transform: CGAffineTransform)
-      var isEmpty: Bool { get }
-      func contains(_ point: CGPoint) -> Bool
-      func fill(_ blendMode: CGBlendMode, alpha alpha: CGFloat)
-      func stroke(_ blendMode: CGBlendMode, alpha alpha: CGFloat)
-      func copy(with zone: NSZone = nil) -> AnyObject
-      func encode(with aCoder: NSCoder)
-    }
+class UIBezierPath : NSObject, NSCopying, NSCoding {
+  convenience init(ovalIn rect: CGRect)
+  func move(to point: CGPoint)
+  func addLine(to point: CGPoint)
+  func addCurve(to endPoint: CGPoint, controlPoint1 controlPoint1: CGPoint, controlPoint2 controlPoint2: CGPoint)
+  func addQuadCurve(to endPoint: CGPoint, controlPoint controlPoint: CGPoint)
+  func append(_ bezierPath: UIBezierPath)
+  func reversing() -> UIBezierPath
+  func apply(_ transform: CGAffineTransform)
+  var isEmpty: Bool { get }
+  func contains(_ point: CGPoint) -> Bool
+  func fill(_ blendMode: CGBlendMode, alpha alpha: CGFloat)
+  func stroke(_ blendMode: CGBlendMode, alpha alpha: CGFloat)
+  func copy(with zone: NSZone = nil) -> AnyObject
+  func encode(with aCoder: NSCoder)
+}
 ```
 
 In the latter case, a number of words that restated type information
@@ -279,14 +279,14 @@ A couple of basic rules govern all matches:
   acronyms or prefixes:
 
   <pre>
-func documentFor<b>URL</b>(_: NS<b>URL</b>) -> NSDocument?
-</pre>
+  func documentFor<b>URL</b>(_: NS<b>URL</b>) -> NSDocument?
+  </pre>
 
-   while preventing partial-word mismatches:
+  while preventing partial-word mismatches:
 
-   <pre>
-   var thumbnailPre<b>view</b> : UI<b>View</b>  // not matched
-   </pre>
+  <pre>
+  var thumbnailPre<b>view</b> : UI<b>View</b>  // not matched
+  </pre>
 
 * **Matched text extends to the end of the type name**. Because we
   accept a match for *any suffix* of the type name, this code:
@@ -313,14 +313,14 @@ Matches are a sequence of one or more of the following:
     matches `String` in `NSString`:
 
     <pre>
-func append<b>String</b>(_: NS<b>String</b>)
-</pre>
+    func append<b>String</b>(_: NS<b>String</b>)
+    </pre>
 
   * `Index` in the selector piece matches `Int` in the type name:
 
     <pre>
-func characterAt<b>Index</b>(_: <b>Int</b>) -> unichar
-</pre>
+    func characterAt<b>Index</b>(_: <b>Int</b>) -> unichar
+    </pre>
 
 * **Collection matches**
 
@@ -328,33 +328,33 @@ func characterAt<b>Index</b>(_: <b>Int</b>) -> unichar
   the type name:
 
     <pre>
-func removeObjectsAt<b>Indexes</b>(_: NS<b>IndexSet</b>)
-</pre>
+    func removeObjectsAt<b>Indexes</b>(_: NS<b>IndexSet</b>)
+    </pre>
 
   * A plural noun in the selector piece matches a collection type name
     if the noun's singular form matches the name of the collection's
     element type:
 
-  <pre>
-func arrange<b>Objects</b>(_: <b>[</b>Any<b>Object]</b>) -> [AnyObject]
-</pre>
+    <pre>
+    func arrange<b>Objects</b>(_: <b>[</b>Any<b>Object]</b>) -> [AnyObject]
+    </pre>
 
 * **Special suffix matches**
 
   * The empty string in the selector piece matches `Type` or `_t` in the type name:
 
     <pre>
-func writableTypesFor<b>SaveOperation</b>(_: NS<b>SaveOperation</b><i>Type</i>) -> [String]
-func objectFor<b>Key</b>(_: <b>Key</b><i>Type</i>) -> AnyObject
-func startWith<b>Queue</b>(_: dispatch_<b>queue</b><i>_t</i>, completionHandler: MKMapSnapshotCompletionhandler)
-</pre>
+    func writableTypesFor<b>SaveOperation</b>(_: NS<b>SaveOperation</b><i>Type</i>) -> [String]
+    func objectFor<b>Key</b>(_: <b>Key</b><i>Type</i>) -> AnyObject
+    func startWith<b>Queue</b>(_: dispatch_<b>queue</b><i>_t</i>, completionHandler: MKMapSnapshotCompletionhandler)
+    </pre>
 
   * The empty string in the selector piece matches *one or more digits
     followed by "D"* in the type name:
 
     <pre>
-func pointFor<b>Coordinate</b>(_: CLLocation<b>Coordinate</b><i>2D</i>) -> NSPoint
-</pre>
+    func pointFor<b>Coordinate</b>(_: CLLocation<b>Coordinate</b><i>2D</i>) -> NSPoint
+    </pre>
 
 In the examples above, the italic text is effectively skipped, so the
 bold part of the selector piece can be matched and pruned.
@@ -378,27 +378,27 @@ skipped.
   user to write backticks.  For example,
 
   <pre>
-extension NSParagraphStyle {
-&nbsp;&nbsp;class func default<b>ParagraphStyle</b>() -> NS<b>ParagraphStyle</b>
-}
-let defaultStyle = NSParagraphStyle.<b>default</b>ParagraphStyle()  // OK
-</pre>
+  extension NSParagraphStyle {
+  &nbsp;&nbsp;class func default<b>ParagraphStyle</b>() -> NS<b>ParagraphStyle</b>
+  }
+  let defaultStyle = NSParagraphStyle.<b>default</b>ParagraphStyle()  // OK
+  </pre>
 
   would become:
 
   <pre>
-extension NSParagraphStyle {
-&nbsp;&nbsp;class func <b>`default`</b>() -> NSParagraphStyle
-}
-let defaultStyle = NSParagraphStyle.<b>`default`</b>()              // Awkward
-</pre>
+  extension NSParagraphStyle {
+  &nbsp;&nbsp;class func <b>`default`</b>() -> NSParagraphStyle
+  }
+  let defaultStyle = NSParagraphStyle.<b>`default`</b>()              // Awkward
+  </pre>
 
   By contrast, later selector pieces become argument labels, which
   are allowed to match Swift keywords without requiring backticks:
 
   <pre>
-receiver.handle(someMessage, <b>for</b>: somebody)  // OK
-</pre>
+  receiver.handle(someMessage, <b>for</b>: somebody)  // OK
+  </pre>
 
 * **Never transform a name into "get", "set", "with", "for", or
   "using"**, just to avoid creating absurdly vacuous names.
@@ -413,19 +413,19 @@ receiver.handle(someMessage, <b>for</b>: somebody)  // OK
   the parameter that follows.  For example,
 
   <pre>
-func setText<b>Color</b>(_: UI<b>Color</b>)
-...
-button.<b>setTextColor</b>(.red())  <b>// clear</b>
-</pre>
+  func setText<b>Color</b>(_: UI<b>Color</b>)
+  ...
+  button.<b>setTextColor</b>(.red())  <b>// clear</b>
+  </pre>
 
   If we were to drop `Color`, leaving just `Text`, call sites 
   would become confusing:
 
   <pre>
-func setText(_: UIColor)
-...
-button.<b>setText</b>(.red())      <b>// appears to be setting the text!</b>
-</pre>
+  func setText(_: UIColor)
+  ...
+  button.<b>setText</b>(.red())      <b>// appears to be setting the text!</b>
+  </pre>
 
   Note: We don't maintain a list of nouns, but if we did, this
   rule could be more simply phrased as "don't prune a suffix
@@ -438,9 +438,9 @@ button.<b>setText</b>(.red())      <b>// appears to be setting the text!</b>
   of the class.
 
   <pre>
-var <b>gestureRecognizers</b>: [UIGestureRecognizer]
-func add<b>GestureRecognizer</b>(_: UI<b>GestureRecognizer</b>)
-</pre>
+  var <b>gestureRecognizers</b>: [UIGestureRecognizer]
+  func add<b>GestureRecognizer</b>(_: UI<b>GestureRecognizer</b>)
+  </pre>
 
   If we were to drop `GestureRecognizer`, leaving just `add`, we end
   up with a method that conceptually modifies the
@@ -448,9 +448,9 @@ func add<b>GestureRecognizer</b>(_: UI<b>GestureRecognizer</b>)
   do so:
 
   <pre>
-var gestureRecognizers: [UIGestureRecognizer]
-func add(_: UIGestureRecognizer) <b>// should indicate that we're adding to the property</b>
-</pre>
+  var gestureRecognizers: [UIGestureRecognizer]
+  func add(_: UIGestureRecognizer) <b>// should indicate that we're adding to the property</b>
+  </pre>
 
 #### Pruning Steps
 
@@ -471,20 +471,20 @@ shown:
    receiver.  For example:
 
    <pre>
-extension NS<b>Color</b> {
-&nbsp;&nbsp;func <b>color</b><i>With</i>AlphaComponent(_: CGFloat) -> NS<b>Color</b>
-}
-let translucentForeground = <b>foregroundColor.color</b><i>With</i>AlphaComponent(0.5)
-</pre>
+   extension NS<b>Color</b> {
+   &nbsp;&nbsp;func <b>color</b><i>With</i>AlphaComponent(_: CGFloat) -> NS<b>Color</b>
+   }
+   let translucentForeground = <b>foregroundColor.color</b><i>With</i>AlphaComponent(0.5)
+   </pre>
 
    becomes:
 
    <pre>
-extension NS<b>Color</b> {
-&nbsp;&nbsp;func <i>with</i>AlphaComponent(_: CGFloat) -> NS<b>Color</b>
-}
-let translucentForeground = <b>foregroundColor</b>.<i>with</i>AlphaComponent(0.5)
-</pre>
+   extension NS<b>Color</b> {
+   &nbsp;&nbsp;func <i>with</i>AlphaComponent(_: CGFloat) -> NS<b>Color</b>
+   }
+   let translucentForeground = <b>foregroundColor</b>.<i>with</i>AlphaComponent(0.5)
+   </pre>
 
 2. **Prune an additional hanging "By"**. Specifically, if
 
@@ -497,20 +497,20 @@ let translucentForeground = <b>foregroundColor</b>.<i>with</i>AlphaComponent(0.5
    b.frobnicating(c)`.  For example:
 
    <pre>
-extension NSString {
-&nbsp;&nbsp;func string<b>By</b><i>Applying</i>Transform(_: NSString, reverse: Bool) -> NSString?
-}
-let sanitizedInput = rawInput.<b>stringByApplyingTransform</b>(NSStringTransformToXMLHex, reverse: false)
-</pre>
+   extension NSString {
+   &nbsp;&nbsp;func string<b>By</b><i>Applying</i>Transform(_: NSString, reverse: Bool) -> NSString?
+   }
+   let sanitizedInput = rawInput.<b>stringByApplyingTransform</b>(NSStringTransformToXMLHex, reverse: false)
+   </pre>
 
    becomes:
 
    <pre>
-extension NSString {
-&nbsp;&nbsp;func applyingTransform(_: NSString, reverse: Bool) -> NString?
-}
-let sanitizedInput = rawInput.<b>applyingTransform</b>(NSStringTransformToXMLHex, reverse: false)
-</pre>
+   extension NSString {
+   &nbsp;&nbsp;func applyingTransform(_: NSString, reverse: Bool) -> NString?
+   }
+   let sanitizedInput = rawInput.<b>applyingTransform</b>(NSStringTransformToXMLHex, reverse: false)
+   </pre>
 
 3. **Prune a match for any type name in the signature from the tail of
    the preceding selector piece**. Specifically,
@@ -524,54 +524,54 @@ let sanitizedInput = rawInput.<b>applyingTransform</b>(NSStringTransformToXMLHex
    For example,
 
    <pre>
-extension NSDocumentController {
-&nbsp;&nbsp;func documentFor<b>URL</b>(_ url: NS<b>URL</b>) -> NSDocument? // parameter introducer
-}
-extension NSManagedObjectContext {
-&nbsp;&nbsp;var parent<b>Context</b>: NSManagedObject<b>Context</b>?       // property
-}
-extension UIColor {
-&nbsp;&nbsp;class func darkGray<b>Color</b>() -> UI<b>Color</b>            // zero-argument method
-}
-...
-myDocument = self.documentFor<b>URL</b>(locationOfFile)
-if self.managedObjectContext.parent<b>Context</b> != changedContext { return }
-foregroundColor = .darkGray<b>Color</b>()
-</pre>
+   extension NSDocumentController {
+   &nbsp;&nbsp;func documentFor<b>URL</b>(_ url: NS<b>URL</b>) -> NSDocument? // parameter introducer
+   }
+   extension NSManagedObjectContext {
+   &nbsp;&nbsp;var parent<b>Context</b>: NSManagedObject<b>Context</b>?       // property
+   }
+   extension UIColor {
+   &nbsp;&nbsp;class func darkGray<b>Color</b>() -> UI<b>Color</b>            // zero-argument method
+   }
+   ...
+   myDocument = self.documentFor<b>URL</b>(locationOfFile)
+   if self.managedObjectContext.parent<b>Context</b> != changedContext { return }
+   foregroundColor = .darkGray<b>Color</b>()
+   </pre>
 
    becomes:
 
    <pre>
-extension NSDocumentController {
-&nbsp;&nbsp;func documentFor(_ url: NSURL) -> NSDocument?
-}
-extension NSManagedObjectContext {
-&nbsp;&nbsp;var parent : NSManagedObjectContext?
-}
-extension UIColor {
-&nbsp;&nbsp;class func darkGray() -> UIColor
-}
-...
-myDocument = self.<b>documentFor</b>(locationOfFile)
-if self.managedObjectContext.<b>parent</b> != changedContext { return }
-foregroundColor = .<b>darkGray</b>()
-</pre>
+   extension NSDocumentController {
+   &nbsp;&nbsp;func documentFor(_ url: NSURL) -> NSDocument?
+   }
+   extension NSManagedObjectContext {
+   &nbsp;&nbsp;var parent : NSManagedObjectContext?
+   }
+   extension UIColor {
+   &nbsp;&nbsp;class func darkGray() -> UIColor
+   }
+   ...
+   myDocument = self.<b>documentFor</b>(locationOfFile)
+   if self.managedObjectContext.<b>parent</b> != changedContext { return }
+   foregroundColor = .<b>darkGray</b>()
+   </pre>
 
 3. **Prune a match for the enclosing type from the base name of a method so long as the match starts after a verb**. For example,
 
    <pre>
-extension UI<b>ViewController</b> {
-&nbsp;&nbsp;func dismiss<b>ViewController</b>Animated(flag: Bool, completion: (() -> Void)? = nil)
-}
-</pre>
+   extension UI<b>ViewController</b> {
+   &nbsp;&nbsp;func dismiss<b>ViewController</b>Animated(flag: Bool, completion: (() -> Void)? = nil)
+   }
+   </pre>
 
    becomes:
 
    <pre>
-extension UIViewController {
-&nbsp;&nbsp;func dismissAnimated(flag: Bool, completion: (() -> Void)? = nil)
-}
-</pre>
+   extension UIViewController {
+   &nbsp;&nbsp;func dismissAnimated(flag: Bool, completion: (() -> Void)? = nil)
+   }
+   </pre>
 
 ##### Why Does Order Matter?
 
@@ -581,10 +581,12 @@ prevent both the head and tail from being pruned, prioritizing
 head-pruning steps can keep method families together.  For example,
 in NSFontDescriptor:
 
-    func fontDescriptorWithSymbolicTraits(_: NSFontSymbolicTraits) -> NSFontDescriptor
-    func fontDescriptorWithSize(_: CGFloat) -> UIFontDescriptor
-    func fontDescriptorWithMatrix(_: CGAffineTransform) ->  UIFontDescriptor
-    ...
+```swift
+func fontDescriptorWithSymbolicTraits(_: NSFontSymbolicTraits) -> NSFontDescriptor
+func fontDescriptorWithSize(_: CGFloat) -> UIFontDescriptor
+func fontDescriptorWithMatrix(_: CGAffineTransform) ->  UIFontDescriptor
+...
+```
 
 becomes:
 
@@ -633,9 +635,11 @@ UIView.animateWithDuration(
 
 to become:
 
-    rootViewController.present(alert, animated: true)
-    UIView.animateWithDuration(
-      0.2, delay: 0.0, animations: { self.logo.alpha = 0.0 }) { _ in self.logo.hidden = true }
+```swift
+rootViewController.present(alert, animated: true)
+UIView.animateWithDuration(
+  0.2, delay: 0.0, animations: { self.logo.alpha = 0.0 }) { _ in self.logo.hidden = true }
+```
 
 #### Add First Argument Labels
 
@@ -684,8 +688,10 @@ array.enumerateObjects() {               // OK
 **For Boolean properties, use the name of the getter as the property
   name in Swift*. For example:
 
-    @interface NSBezierPath : NSObject
-    @property (readonly,getter=isEmpty) BOOL empty;
+```swift
+@interface NSBezierPath : NSObject
+@property (readonly,getter=isEmpty) BOOL empty;
+```
 
 will become
 
@@ -712,13 +718,13 @@ as adopting `Comparable`.
 A survey of Foundation classes reveals not just NSDate but a few
 other classes that would be affected by this change.
 
-<pre>
+```swift
 func compare(other: NSDate) -> NSComparisonResult
 func compare(decimalNumber: NSNumber) -> NSComparisonResult
 func compare(otherObject: NSIndexPath) -> NSComparisonResult
 func compare(string: String) -> NSComparisonResult
 func compare(otherNumber: NSNumber) -> NSComparisonResult
-</pre>
+```
 
 ## Impact on existing code
 
