@@ -4,7 +4,7 @@
 * Author: [David Hart](https://github.com/hartbit)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Implementation: [apple/swift#15977](https://github.com/apple/swift/pull/15977)
-* Status: **Accepted**
+* Status: **Implemented (Swift 4.2)**
 
 ## Introduction
 
