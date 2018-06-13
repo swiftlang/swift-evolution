@@ -1,9 +1,9 @@
 # Introduce user-defined dynamically "callable" types
 
-* Proposal: SE-0216
+* Proposal: [SE-0216](0216-dynamic-callable.md)
 * Authors: [Chris Lattner](https://github.com/lattner), [Dan Zheng](https://github.com/dan-zheng)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Implementation: https://github.com/apple/swift/pull/16980
+* Implementation: [apple/swift#16980](https://github.com/apple/swift/pull/16980)
 * Status: **Active Review (June 12...26, 2018)**
 
 Note: this proposal is largely adapted from Chris's original pitch
