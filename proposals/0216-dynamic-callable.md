@@ -369,13 +369,16 @@ struct RubyObject {
 }
 ```
 
-### Variable-sized list of arguments
+### General callable behavior
 
-This proposal is mainly directed at dynamic language interoperability. In this
-use-case, it makes sense to take a variable sized list of arguments where each
-argument has the same type. However, there are other use cases where it could
-make sense to support static argument lists, akin to `operator()` in C++.
-For example, consider something like this:
+This proposal is mainly directed at dynamic language interoperability. For this
+use case, it makes sense for the `dynamicallyCall` method to take a
+variable-sized list of arguments where each argument has the same type.
+However, it may be useful to support general callable behavior (akin to
+`operator()` in C++) where the desugared "callable" method can have a fixed
+number of arguments and arguments of different types.
+
+For example, consider something like:
 
 ```swift
 struct BinaryFunction<T1, T2, U> {
@@ -389,11 +392,14 @@ generics](https://github.com/apple/swift/blob/master/docs/GenericsManifesto.md#v
 This could allow typesafe n-ary smart function pointer types.
 
 We feel that the approach outlined in this proposal supports this direction.
-When and if a motivating use case for the above feature comes up, we can
-simply add a new form to represent it, and enhance the type checker to prefer
-that according to the "most specific match" rule. If this is a likely
-direction, then it might be better to name the attribute `@callable` instead of
-`@dynamicCallable` in anticipation of that future growth.
+When/if a motivating use case for general callable behavior comes up, we can
+simply add a new form to represent it and enhance the type checker to prefer
+that during ambiguity resolution. If this is a likely direction, then it may be
+better to name the attribute `@callable` instead of `@dynamicCallable` in
+anticipation of that future growth.
+
+We believe that general callable behavior and `@dynamicCallable` are orthogonal
+features and should be evaluated separately.
 
 ## Alternatives considered
 
