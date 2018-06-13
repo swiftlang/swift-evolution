@@ -1,10 +1,10 @@
 # Introduce user-defined dynamically "callable" types
 
-* Proposal: SE-TBD
+* Proposal: SE-0216
 * Authors: [Chris Lattner](https://github.com/lattner), [Dan Zheng](https://github.com/dan-zheng)
-* Review Manager: TBD
+* Review Manager: [John McCall](https://github.com/rjmccall)
 * Implementation: https://github.com/apple/swift/pull/16980
-* Status: **Awaiting review**
+* Status: **Active Review (June 12...26, 2018)**
 
 Note: this proposal is largely adapted from Chris's original pitch
 [here](https://gist.github.com/lattner/a6257f425f55fe39fd6ac7a2354d693d).
