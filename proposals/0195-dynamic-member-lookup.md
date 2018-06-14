@@ -87,9 +87,7 @@ with this proposal).
 Given that Swift already has an intentionally incredibly syntax-extensible design, we only need
 two minor enhancements to the language to support these dynamic languages in an
 ergonomic way: this proposal (which introduces the `@dynamicMemberLookup` attribute) and a
-related
-[`@dynamicCallable`](https://gist.github.com/lattner/a6257f425f55fe39fd6ac7a2354d693d)
-proposal.
+related [`@dynamicCallable`](0216-dynamic-callable.md) proposal.
 
 To show the impact of these proposals, consider this Python code:
 
@@ -140,7 +138,7 @@ working with the Python `pickle` API and the builtin Python function `open`:
 
 This can all be expressed today as library functionality written in Swift, but without this
 proposal, the code required is unnecessarily verbose and gross. Without it (but *with* the
-related [`@dynamicCallable` proposal](https://gist.github.com/lattner/a6257f425f55fe39fd6ac7a2354d693d)
+related [`@dynamicCallable`](0216-dynamic-callable.md) proposal)
 the code would have explicit member lookups all over the place:
 
 ```swift
