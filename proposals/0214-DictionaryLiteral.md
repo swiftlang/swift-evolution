@@ -1,14 +1,16 @@
-# Renaming the `DictionaryLiteral` type to `KeyValueList`
+# Renaming the `DictionaryLiteral` type to `KeyValuePairs`
 
 * Proposal: [SE-0214](0214-DictionaryLiteral.md)
 * Authors: [Erica Sadun](https://github.com/erica), [Chéyo Jiménez](https://github.com/masters3d)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Active review (May 18...23)**
+* Status: **Accepted with revisions**
 * Implementation: [apple/swift#16577](https://github.com/apple/swift/pull/16577)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-revision-se-0214-renaming-the-dictionaryliteral-type-to-keyvaluepairs/13661)
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/12315c44dd6b36fec924f4f6c30f48d8784ae4cc/proposals/0214-DictionaryLiteral.md)
 
 ## Introduction
 
-This proposal renames the confusing and misnamed [`DictionaryLiteral`](https://github.com/apple/swift/blob/c25188bafd1c775d4ceecc4a795f614f00451bf9/stdlib/public/core/Mirror.swift#L646) type to `KeyValueList`. This type is neither a dictionary nor a literal. It is a list of key-value pairs.
+This proposal renames the confusing and misnamed [`DictionaryLiteral`](https://github.com/apple/swift/blob/c25188bafd1c775d4ceecc4a795f614f00451bf9/stdlib/public/core/Mirror.swift#L646) type to `KeyValuePairs`. This type is neither a dictionary nor a literal. It is a list of key-value pairs.
 
 There is no strong motivation to deprecate. The type does not produce active harm. Instead, it adds measurable (if small) utility and will be part of the ABI. A sensible renaming mitigates the most problematic issue with the type.
 
@@ -67,7 +69,7 @@ This key-value pair processing might support custom initializers. It allows dupl
 
 ## Detailed Design
 
-`DictionaryLiteral` is renamed to `KeyValueList`. A typealias preserves the old name for compatibility but can be deprecated as of Swift 5.0.
+`DictionaryLiteral` is renamed to `KeyValuePairs`. A typealias preserves the old name for compatibility but can be deprecated as of Swift 5.0.
 
 This name was extensively bikeshedded on the [Swift Forum thread](https://forums.swift.org/t/100-bikeshed-topic-dictionaryliteral/7385) before proposal. The runner up name was `KeyValueArray`.
 
