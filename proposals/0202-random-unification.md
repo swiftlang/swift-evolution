@@ -131,7 +131,7 @@ let randomBool2 = Bool.random(using: &myCustomRandomNumberGenerator)
 
 #### Random Element
 
-For `Collection` we add a random method with default implementation for collections to get a random element.
+For `Collection` we add an extension method for collections to get a random element.
 
 `Collection` example:
 ```swift
@@ -142,6 +142,13 @@ let greetings = ["hey", "hi", "hello", "hola"]
 print(greetings.randomElement()!) // This returns an Optional
 print(greetings.randomElement(using: &myCustomRandomNumberGenerator)!) // This returns an Optional
 ```
+
+Note that some types make it easy to form collections with more elements than
+can be represented as an `Int`, such as the range `Int.min...Int.max`, and
+`randomElement` will likely trap on such collections. However, such ranges
+are likely to trap when used with almost any collection API, and the
+`random(in:)` method on `FixedWidthInteger` can be used for this purpose
+instead.
 
 #### Shuffle API
 
@@ -199,14 +206,6 @@ public struct Random : RandomNumberGenerator {
   public mutating func next<T: FixedWidthInteger & UnsignedInteger>() -> T
 }
 
-public protocol Collection {
-  // Returns a random element from the collection
-  func randomElement<T: RandomNumberGenerator>(
-    using generator: inout T
-  ) -> Element?
-}
-
-// Default implementation
 extension Collection {
   // Returns a random element from the collection
   // Can return nil if isEmpty is true
@@ -220,52 +219,12 @@ extension Collection {
   }
 }
 
-// We have to add this extension to support syntax like (Int.min ..< Int.max).random()
-// That fails because Collection's implementation utilizes the count property and
-// from Int.min to Int.max, an Int overflows with that big of a value.
-extension Range
-where Bound : FixedWidthInteger,
-      Bound.Stride : SignedInteger,
-      Bound.Magnitude : UnsignedInteger {
-  // Returns a random element within lowerBound and upperBound
-  // Can return nil if lowerBound == upperBound
-  public func randomElement<T: RandomNumberGenerator>(
-    using generator: inout T
-  ) -> Element?
-  
-  /// Uses the standard library's default RNG
-  public func randomElement() -> Element? {
-    return randomElement(using: &Random.default)
-  }
-}
-
-// We have to add this extension to support syntax like (Int.min ... Int.max).random()
-// That fails because Collection's implementation utilizes the count property and
-// from Int.min to Int.max, an Int overflows with that big of a value.
-extension ClosedRange
-where Bound : FixedWidthInteger,
-      Bound.Stide : SignedInteger,
-      Bound.Magnitude : UnsignedInteger {
-  // Returns a random element within lowerBound and upperBound
-  public func randomElement<T: RandomNumberGenerator>(
-    using generator: inout T
-  ) -> Element?
-  
-  /// Uses the standard library's default RNG
-  public func randomElement() -> Element? {
-    return random(using: &Random.default)
-  }
-}
-
 // Enables developers to use things like Int.random(in: 5 ..< 12) which does not use modulo bias.
-// This differs from things like (5 ..< 12).randomElement() because those ranges return an Optional, whereas
-// this returns a non-optional. Ranges get the benefit of using random, but this is the preferred
-// method as it provides a cleaner API to users and clearly expresses the operation.
 // It is worth noting that any empty range entered here will abort the program.
 // We do this to preserve a general use case design that the core team expressed.
 // For those that are that unsure whether or not their range is empty or not,
-// they can simply call random from the range itself to produce an Optional, or if/guard check
-// whether or not the range is empty beforehand, then use these functions.
+// they can if/guard check whether or not the range is empty beforehand, then
+// use these functions.
 extension FixedWidthInteger
 where Self.Stride : SignedInteger,
       Self.Magnitude : UnsignedInteger {
@@ -292,9 +251,6 @@ where Self.Stride : SignedInteger,
 }
 
 // Enables developers to use things like Double.random(in: 5 ..< 12) which does not use modulo bias.
-// This differs from things like (5.0 ..< 12.0).randomElement() because those ranges return an Optional, whereas
-// this returns a non-optional. Ranges get the benefit of using random, but this is the preferred
-// method as it provides a cleaner API to users and clearly expresses the operation.
 // It is worth noting that any empty range entered here will abort the program.
 // We do this to preserve a general use case design that the core team expressed.
 // For those that are that unsure whether or not their range is empty or not,
@@ -393,8 +349,6 @@ In a world where this did return an error to Swift, it would require types like 
 
 ```swift
 let randomDice = Int.random(in: 1 ... 6)!
-// would be equivalent to
-// let randomDice = (1 ... 6).randomElement()!
 ```
 
 "I just want a random dice roll, what is this ! the compiler is telling me to add?"
