@@ -1,10 +1,12 @@
 # Add Unicode Properties to `Unicode.Scalar`
 
 * Proposal: [SE-0211](0211-unicode-scalar-properties.md)
-* Authors: [Tony Allevato](https://github.com/allevato)
+* Author: [Tony Allevato](https://github.com/allevato)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **In active review (April 24 – May 1)**
+* Status: **Accepted with revisions**
 * Implementation: [apple/swift#15593](https://github.com/apple/swift/pull/15593)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0211-add-unicode-properties-to-unicode-scalar/13857)
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/9b1c670206052f5c94bcb20df1c30c27a06e9755/proposals/0211-unicode-scalar-properties.md)
 
 ## Introduction
 
@@ -330,7 +332,7 @@ extension Unicode.Scalar.Properties {
   public var numericType: Unicode.NumericType?
 
   /// Corresponds to the `Numeric_Value` Unicode property.
-  public var numericValue: Double
+  public var numericValue: Double?
 }
 
 extension Unicode {
