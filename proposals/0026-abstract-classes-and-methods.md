@@ -133,8 +133,8 @@ stabilizing in Swift 3.0.
 
 ## Alternatives considered
 As first reading, it seems that protocols and protocol extensions might fit the need. It 
-actually does not because abstract classes can have attributs and properties that 
-protocols does not support.
+actually does not because abstract classes can have attributes and properties that 
+protocols do not support.
 
 An alternative solution would be to add attributes to protocols and protocol extensions, 
 but this might break compatibility with Objective-C runtime.
