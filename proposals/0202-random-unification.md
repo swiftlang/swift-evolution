@@ -131,16 +131,19 @@ let randomBool2 = Bool.random(using: &myCustomRandomNumberGenerator)
 
 #### Random Element
 
-For `Collection` we add a random method with default implementation for collections to get a random element.
+For `Collection` we add a random method with default implementation for collections to get the index of a random element, as well as get a random element directly.
 
 `Collection` example:
 ```swift
 let greetings = ["hey", "hi", "hello", "hola"]
 
 // Utilizes the standard library's default random
-// (alias to greetings.randomElement(using: &Random.default))
-print(greetings.randomElement()!) // This returns an Optional
-print(greetings.randomElement(using: &myCustomRandomNumberGenerator)!) // This returns an Optional
+// (alias to greetings.randomIndex(using: &Random.default))
+if let i = greetings.randomIndex() { // This returns an Optional
+  print(greetings[i]) 
+}
+
+print(greetings.randomElement(using: &myCustomRandomNumberGenerator)!) // This returns an Optional element directly
 ```
 
 #### Shuffle API
@@ -200,21 +203,36 @@ public struct Random : RandomNumberGenerator {
 }
 
 public protocol Collection {
-  // Returns a random element from the collection
-  func randomElement<T: RandomNumberGenerator>(
+  // Returns the index of a random element from the collection
+  func randomIndex<T: RandomNumberGenerator>(
     using generator: inout T
-  ) -> Element?
+  ) -> Index?
 }
 
 // Default implementation
 extension Collection {
-  // Returns a random element from the collection
+  // Returns the index of a random element from the collection
   // Can return nil if isEmpty is true
-  public func randomElement<T: RandomNumberGenerator>(
+  public func randomIndex<T: RandomNumberGenerator>(
     using generator: inout T
-  ) -> Element?
+  ) -> Index?
   
   /// Uses the standard library's default RNG
+  public func randomIndex() -> Element? {
+    return randomIndex(using: &Random.default)
+  }
+
+  // Return a random element directly
+
+  public func randomElement<T: RandomNumberGenerator>(
+    using generator: inout T
+  ) -> Element? {
+    if let index = randomIndex(using: &generator) {
+      return self[index]
+    }
+    return nil
+  }
+
   public func randomElement() -> Element? {
     return randomElement(using: &Random.default)
   }
@@ -229,13 +247,13 @@ where Bound : FixedWidthInteger,
       Bound.Magnitude : UnsignedInteger {
   // Returns a random element within lowerBound and upperBound
   // Can return nil if lowerBound == upperBound
-  public func randomElement<T: RandomNumberGenerator>(
+  public func randomIndex<T: RandomNumberGenerator>(
     using generator: inout T
   ) -> Element?
   
   /// Uses the standard library's default RNG
-  public func randomElement() -> Element? {
-    return randomElement(using: &Random.default)
+  public func randomIndex() -> Element? {
+    return randomIndex(using: &Random.default)
   }
 }
 
@@ -247,12 +265,12 @@ where Bound : FixedWidthInteger,
       Bound.Stide : SignedInteger,
       Bound.Magnitude : UnsignedInteger {
   // Returns a random element within lowerBound and upperBound
-  public func randomElement<T: RandomNumberGenerator>(
+  public func randomIndex<T: RandomNumberGenerator>(
     using generator: inout T
   ) -> Element?
   
   /// Uses the standard library's default RNG
-  public func randomElement() -> Element? {
+  public func randomIndex() -> Element? {
     return random(using: &Random.default)
   }
 }
