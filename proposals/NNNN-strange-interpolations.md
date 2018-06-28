@@ -4,7 +4,7 @@
 * Authors: [Brent Royal-Gordon](https://github.com/brentdax)
 * Review Manager: TBD
 * Status: **Implemented**
-* Implementation: [apple/swift#17587](https://github.com/apple/swift/pull/NNNNN)
+* Implementation: [apple/swift#17587](https://github.com/apple/swift/pull/17587)
 * Bugs: [SR-7937](https://bugs.swift.org/browse/SR-7937),
         [SR-7958](https://bugs.swift.org/browse/SR-7958)
 
