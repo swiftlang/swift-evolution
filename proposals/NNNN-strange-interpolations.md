@@ -13,8 +13,8 @@
 We propose deprecating several string interpolation syntaxes which were
 unintentionally permitted by the Swift parser, such as `"\(x, y)"` and
 `"\(foo: x)"`. Code using these constructs will emit warnings with
-fix-its in Swift 4.2, and will be removed or interpreted differently
-in a future version of Swift.
+fix-its, and a future version of Swift may reject them as invalid or
+change their meaning.
 
 Swift-evolution thread: [Pitch: Deprecate strange interpolations in Swift 4.2][thread]
 
@@ -97,23 +97,22 @@ This proposal is basically a gentle transition in anticipation of a
 source-breaking change in the future. Very few people are using this
 syntax; this proposal very politely tells those few to step aside.
 
-Existing uses will still compile and run with the same behavior as before
-in Swift 4.2, but a warning will now be emitted. The fix-its on that
-warning only add or remove a handful of characters and precisely preserve
-the old behavior. In some cases, code that caused compiler crashes in
-previous versions will actually compile and emit a warning in Swift 4.2.
+Existing uses will still compile and run with the same behavior as before,
+but a warning will now be emitted. The fix-its on that warning only add
+or remove a handful of characters and precisely preserve the old behavior.
+In some cases, code that caused compiler crashes in previous versions
+will actually compile and emit a warning now.
 
-The deprecation warning proposed here will be maintained until at least
-Swift 5, and we anticipate that its Swift 4.2 mode will continue to
-function as described in this proposal--emitting warnings without
-changing behavior.
+When we eventually remove or change the behavior of this construct in a
+future version of Swift, it should not be difficult for us to maintain the
+current behavior in the appropriate backwards-compatibility modes.
 
 ## Effect on ABI stability
 
 Almost none. The future interpolation proposal will affect ABI stability,
 but we could delay the part that would conflict with this proposal with
 a negligible effect on the standard library's ABI—basically, we might
-need a couple extra overloads.
+have to maintain a couple of overloads we might otherwise have deleted.
 
 ## Effect on API resilience
 
@@ -185,11 +184,12 @@ need of a spring cleaning.
   This would completely avoid ever breaking source compatibility, but would
   give up a desirable syntax for a marginal and unintended use case.
 
-* We could make these constructs hard errors in Swift 4.2. This would break
+* We could make these constructs hard errors immediately. This would break
   source compatibility for a small—but non-zero—number of projects in the
   wild.
 
 * We could do nothing today and change the interpretation of these
-  interpolations in Swift 5 without warning. This would be a source-breaking
-  change for a small—but non-zero—number of projects in the wild, and
-  users would not be able to transition by blindly trusting the fix-its.
+  interpolations in a future version of Swift without warning. This would
+  be a source-breaking change for a small—but non-zero—number of projects
+  in the wild, and users would not be able to transition by blindly trusting the
+  fix-its.
