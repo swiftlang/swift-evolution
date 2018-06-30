@@ -616,20 +616,18 @@ The throwing variation of `!!` could be named `?!`, taking an `Error` on the rhs
 
 Adding `?!` produces the following operator family:
 
-|----------|--------------------|
 | Operator | Use                |
-|----------|--------------------|
-| !        | Force unwrap       |
-| ?        | Optional chaining  |
-| !!       | Unwrap or die      |
-| ??       | Nil coalescing     |
-| ?!       | Unwrap or throw    |
-| try      | Throw on error     |
-| try!     | Die on error       |
-| try?     | Nil on error       |
-| as!      | Die on failed cast |
-| as?      | Nil on failed cast |
-|----------|--------------------|
+| :------- | :----------------- |
+| `!`      | Force unwrap       |
+| `?`      | Optional chaining  |
+| `!!`     | Unwrap or die      |
+| `??`     | Nil coalescing     |
+| `?!`     | Unwrap or throw    |
+| `try`    | Throw on error     |
+| `try!`   | Die on error       |
+| `try?`   | Nil on error       |
+| `as!`    | Die on failed cast |
+| `as?`    | Nil on failed cast |
 
 ## Source compatibility
 
