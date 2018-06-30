@@ -1,16 +1,9 @@
 # Introducing the `!!` "Unwrap or Die" operator to the Swift Standard Library
 
-* Proposal: [SE-0217](https://github.com/apple/swift-evolution/blob/master/proposals/0217-bangbang.md)
-* Author(s): [Ben Cohen](https://github.com/airspeedswift), [Dave DeLong](https://github.com/davedelong), [Paul Cantrell](https://github.com/pcantrell), [Erica Sadun](http://github.com/erica), and several other folk 
+* Proposal: [SE-0217](0217-bangbang.md)
+* Authors: [Ben Cohen](https://github.com/airspeedswift), [Dave DeLong](https://github.com/davedelong), [Paul Cantrell](https://github.com/pcantrell), [Erica Sadun](https://github.com/erica), and several other folk
+* Review Manager: [Joe Groff](https://github.com/jckarter)
 * Status: **Active Review (June 30...July 7, 2018)**
-
-<!---
-* Implementation: [apple/swift#NNNNN](https://github.com/apple/swift/pull/NNNNN)
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/), [Additional Commentary](https://lists.swift.org/pipermail/swift-evolution/)
-* Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM)
-* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
-* Previous Proposal: [SE-XXXX](XXXX-filename.md)
-* -->
 
 ## Introduction
 
