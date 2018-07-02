@@ -1,13 +1,14 @@
 # Introduce `compactMapValues` to Dictionary
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0218](0218-introduce-compact-map-values.md)
 * Authors: [Daiki Matsudate](https://github.com/d-date)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
+* Status: **Pending Review (July 3-9 2018)**
 
 <!-- *During the review process, add the following fields as needed:* -->
 
 * Implementation: [apple/swift#15017](https://github.com/apple/swift/pull/15017)
+* Pitch: [Forum thread](https://forums.swift.org/t/add-compactmapvalues-to-dictionary/8741)
 <!-- * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/), [Additional Commentary](https://lists.swift.org/pipermail/swift-evolution/) -->
 <!-- * Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM) -->
 <!-- * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md) -->
