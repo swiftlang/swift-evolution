@@ -1,24 +1,16 @@
 # Introduce `compactMapValues` to Dictionary
 
 * Proposal: [SE-0218](0218-introduce-compact-map-values.md)
-* Authors: [Daiki Matsudate](https://github.com/d-date)
+* Author: [Daiki Matsudate](https://github.com/d-date)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **In review: July 5...11**
-
-<!-- *During the review process, add the following fields as needed:* -->
-
+* Status: **Active review (July 5...11)**
 * Implementation: [apple/swift#15017](https://github.com/apple/swift/pull/15017)
-* Pitch: [Forum thread](https://forums.swift.org/t/add-compactmapvalues-to-dictionary/8741)
-<!-- * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/), [Additional Commentary](https://lists.swift.org/pipermail/swift-evolution/) -->
-<!-- * Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM) -->
-<!-- * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md) -->
-<!-- * Previous Proposal: [SE-XXXX](XXXX-filename.md) -->
 
 ## Introduction
 
 This proposal adds a combined filter/map operation to `Dictionary`, as a companion to the `mapValues` and filter methods introduced by [SE-0165](https://github.com/apple/swift-evolution/blob/master/proposals/0165-dict.md). The new compactMapValues operation corresponds to compactMap on Sequence.
 
-- Swift forums pitch: [Add compactMapValues to Dictionary](https://forums.swift.org/t/pitch-add-compactmapvalues-to-dictionary/8741)
+- Swift forums pitch: [Add compactMapValues to Dictionary](https://forums.swift.org/t/add-compactmapvalues-to-dictionary/8741)
 
 ## Motivation
 
