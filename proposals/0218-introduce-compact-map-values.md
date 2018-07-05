@@ -3,7 +3,7 @@
 * Proposal: [SE-0218](0218-introduce-compact-map-values.md)
 * Authors: [Daiki Matsudate](https://github.com/d-date)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **In review: July 5...11**
+* Status: **Active Review (July 5...July 11, 2018)**
 
 <!-- *During the review process, add the following fields as needed:* -->
 
