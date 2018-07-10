@@ -72,6 +72,10 @@ SwiftPM will allow overriding the path of the configuration file using the envir
 
 The `Package.resolved` file will contain the mirror URLs that were used during dependency resolution.
 
+## Security
+
+There is no security impact since mirrors only work for the top-level package, and dependencies can't add mirrors on downstream packages. There is a potential privacy concern in case someone accidentally commits their private mirror configuration file in a public package.
+
 ## Impact on existing packages
 
 This is an additive feature and doesn't impact existing packages.
