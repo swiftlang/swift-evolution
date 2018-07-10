@@ -3,7 +3,7 @@
 * Proposal: [SE-0219](0219-package-manager-dependency-mirroring.md)
 * Authors: [Ankit Aggarwal](https://github.com/aciidb0mb3r)
 * Review Manager: [Boris Bügling](https://github.com/neonichu)
-* Status: **Active review (07 10...07 17)**
+* Status: **Active review (July 10...17)**
 
 ## Introduction
 
