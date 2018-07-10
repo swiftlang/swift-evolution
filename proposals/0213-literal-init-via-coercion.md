@@ -4,7 +4,7 @@
 * Authors: [Pavel Yaskevich](https://github.com/xedin)
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Accepted**
-* Implementation: [apple/swift#15311](https://github.com/apple/swift/pull/15311)
+* Implementation: [apple/swift#15311](https://github.com/apple/swift/pull/17860)
 
 ## Introduction
 
