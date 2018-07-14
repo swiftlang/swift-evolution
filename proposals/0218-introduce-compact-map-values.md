@@ -3,8 +3,9 @@
 * Proposal: [SE-0218](0218-introduce-compact-map-values.md)
 * Author: [Daiki Matsudate](https://github.com/d-date)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active review (July 5...11)**
+* Status: **Accepted**
 * Implementation: [apple/swift#15017](https://github.com/apple/swift/pull/15017)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0218-introduce-compactmapvalues-to-dictionary/14448)
 
 ## Introduction
 
