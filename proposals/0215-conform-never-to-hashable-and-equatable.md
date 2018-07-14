@@ -3,7 +3,8 @@
 * Proposal: [SE-0215](0215-conform-never-to-hashable-and-equatable.md)
 * Author: [Matt Diephouse](https://github.com/mdiep)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
-* Status: **Active review (June 12...19)**
+* Status: **Accepted**
+* Decision Notes: [Rationale](https://forums.swift.org/t/se-0215-conform-never-to-equatable-and-hashable/13586/45)
 * Implementation: [apple/swift#16857](https://github.com/apple/swift/pull/16857)
 
 ## Introduction
@@ -78,3 +79,9 @@ extension Result: Equatable where Value == Never, Error == Never {
 ```
 
 Adding so many extra conditional conformances is an unreasonable amount of work.
+
+### Amendment from Core Team
+
+As part of the [review decision](https://forums.swift.org/t/se-0215-conform-never-to-equatable-and-hashable/13586/45) from the Core Team
+when accepting this proposal, in addition to `Equatable` and `Hashable` conformances being added to `Never` this proposal
+now also includes adding conformances to the `Comparable` and `Error` protocols as well.
