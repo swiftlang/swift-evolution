@@ -3,7 +3,8 @@
 * Proposal: [SE-0217](0217-bangbang.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift), [Dave DeLong](https://github.com/davedelong), [Paul Cantrell](https://github.com/pcantrell), [Erica Sadun](https://github.com/erica), and several other folk
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Active Review (June 30...July 7, 2018)**
+* Status: **Rejected**
+* Decision Notes: [Rationale](https://forums.swift.org/t/se-0217-the-unwrap-or-die-operator/14107/222)
 
 ## Introduction
 
