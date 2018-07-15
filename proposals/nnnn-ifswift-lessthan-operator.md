@@ -5,7 +5,8 @@
 * Review Manager: TBD
 * Status: TBD
 * Bugs: [SR-6852](https://bugs.swift.org/browse/SR-6852)
-* Implementation: TBD
+* Implementations: https://github.com/apple/swift/pull/14503 (Stale?)
+  https://github.com/apple/swift/pull/17960
 
 ## Introduction
 
