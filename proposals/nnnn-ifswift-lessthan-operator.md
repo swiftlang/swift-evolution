@@ -1,0 +1,85 @@
+# Support 'less than' operator in compilation conditions
+
+* Proposal: [SE-NNNN](NNNN-ifswift-lessthan-operator.md)
+* Authors: [Daniel Martín](https://github.com/danielmartin)
+* Review Manager: TBD
+* Status: TBD
+* Bugs: [SR-6852](https://bugs.swift.org/browse/SR-6852)
+* Implementation: TBD
+
+## Introduction
+
+This proposal augments the functionality implemented for proposal
+[SE-0020](https://github.com/apple/swift-evolution/blob/master/proposals/0020-if-swift-version.md)
+with the introduction of a new valid operator in compilation
+condition: "<". The aim is that the syntax `#if swift(<4.2)` is
+supported by the language.
+
+Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/t/support-for-more-operators-in-if-swift-build-configuration-option/14343)
+
+## Motivation
+
+The main motivation for introducing a new "<" operator in compilation
+conditions is to be able to write Swift code that is easier to read.
+
+For example, if we want to only compile some piece of code if the
+Swift version is less than 4.2, right now we have to write the following
+code:
+
+```swift
+#if !swift(>=4.2)
+// This will only be executed if the Swift version is less than 4.2.
+#endif
+```
+
+With the introduction of support for the "<" unary operator, the
+refactored code would be more clear and readable:
+
+```swift
+#if swift(<4.2)
+// This will only be executed if the Swift version is less than 4.2.
+#endif
+```
+
+In the former snippet, the `!` can be easily missed in a code
+review. The latter snippet reads more like plain English.
+
+## Proposed solution
+
+The solution is small change in the parser so that the operator "<" is
+supported. Diagnostic messages about invalid unary operators must be
+updated as well.
+
+## Detailed design
+
+The place in the parser where `#if swift(...)` is parsed is
+`ParseIfConfig.cpp`. There are two classes that will require
+modification: `ValidateIfConfigCondition`, to take into account the
+"<" operator, and `EvaluateIfConfigCondition`, to actually evaluate
+the new operator semantics. A new '<' operator for `Version` will also
+need to be implemented.
+
+The diagnostic message when the operator is not valid also needs to
+change. I propose changing it from
+
+```
+unexpected platform condition argument: expected a unary comparison, such as '>=2.2'
+```
+
+to
+
+```
+unexpected platform condition argument: expected a unary comparison '>=' or '<'; for example, '>=2.2' or '<2.2'
+```
+
+## Source compatibility
+
+This has no effect in source compatibility.
+
+## Effect on ABI stability
+
+This has no effect in ABI stability.
+
+## Effect on API resilience
+
+This has no effect in API resilience.
