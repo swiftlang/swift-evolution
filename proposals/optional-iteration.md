@@ -9,8 +9,7 @@
 
 Optionals are a key feature of Swift; they comprise a concise and elegant syntax that serves a great means of brevity
 when it comes to expressing "do something if there's a value, skip otherwise".
-Thereby, we have a powerful tool that seamlessly interacts with code. Some vivid examples are optional chaining,
-optional invocation `foo?()` and even `if let`. This proposal considers further supporting this convenience in `for-in` loops.
+Thereby, we have a powerful tool that seamlessly interacts with code. Some vivid examples are optional chaining with assignments, optional invocation `foo?()` and even `if let`. This proposal considers further supporting this convenience in `for-in` loops.
 
 Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/t/another-try-at-allowing-optional-iteration/14376?u=anthonylatsis)
 
