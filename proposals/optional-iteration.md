@@ -35,7 +35,7 @@ The bottom line being, if we don't require `else`, why not say `for? element in 
 
 Optional `for-in` loops and the possibility to use optional sequences therein. The `?` notation, however, will be a semantic
 emphasys rather than a functional syntactic unit. There will be no `for!`. The latter is redundant, but this decision was primarily
-made based on the potential confusion that an otherwise left without syntactic changes `for-in` loop could lead to confusion
+made based on the potential confusion that an otherwise left without syntactic changes `for-in` loop could lead to
 ("clarity over brevity"). The `?`, in fact, is not necessary: the sequence can be force-unwrapped if needed or left as-is
 without requiring addition syntax.
 
@@ -53,8 +53,7 @@ for? element in array { ... }
 An optional `for-in` loop over a nil sequence does nothing. Otherwise, it iterates normally. The `?` notation in `for?` is
 required if the passed sequence is optional. Roughly, one can imagine an optional `for-in` loop as `sequence?.forEach`.
 
-With a yet rather vague picture of the implementation, I assume one of the options is to enclose an optional loop in an `if-let`
-statement during sil-gen.
+With a yet rather vague picture of the implementation, I assume one of the options is to enclose an optional loop in an `if-let` statement during sil-gen.
 
 ## Source compatibility
 
@@ -67,5 +66,5 @@ This feature likely changes the code generation model.
 
 ## Alternatives considered
 
-An similar approach was to leave out any syntactic changes. The downsides are briefly explained in the
-(Proposed solution)[proposed-solution] section.
+A similar approach was to leave out any syntactic changes. The downside is briefly explained in the
+[Proposed solution](#proposed-solution) section.
