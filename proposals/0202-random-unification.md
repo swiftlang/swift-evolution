@@ -90,31 +90,31 @@ To kick this off, the standard library will provide a default RNG. Each platform
 
 For the core API, introduce a new protocol named `RandomNumberGenerator`. This type is used to define RNGs that can be used within the stdlib. Developers can conform to this type and use their own custom RNG throughout their whole application.
 
-Then for the stdlib's default RNG implementation, introduce a new struct named `Random`. This struct contains a singleton called `default` which provides access to the methods of `RandomNumberGenerator`.
+Then for the stdlib's default RNG implementation, introduce a new struct named `SystemRandomNumberGenerator`.
 
 Next, we will make extension methods for `FixedWidthInteger`, `BinaryFloatingPoint` and `Bool`. For numeric types, this allows developers to select a value within a range and swap out the RNG used to select a value within the range.
 
 `FixedWidthInteger` example:
 ```swift
 // Utilizes the standard library's default random
-/// (alias to Int.random(in: 0 ..< 10, using: &Random.default))
+// Alias to:
+// var rng = SystemRandomNumberGenerator()
+// Int.random(in: 0 ..< 10, using: &rng)
 let randomIntFrom0To10 = Int.random(in: 0 ..< 10)
 let randomUIntFrom10Through100 = UInt.random(in: 10 ... 100, using: &myCustomRandomNumberGenerator)
 
 // The following are examples on how to get full width integers
 
 let randomInt = Int.random(in: .min ... .max)
-
-// an alternative spelling could be:
-// let randomUInt = myCustomRandomNumberGenerator.next()
-// this takes advantage of the fact that generators can produce unsigned integers
 let randomUInt = UInt.random(in: .min ... .max, using: &myCustomRandomNumberGenerator)
 ```
 
 `BinaryFloatingPoint` example:
 ```swift
 // Utilizes the standard library's default random
-// (alias to Float.random(in: 0 ..< 1, using: &Random.default))
+// Alias to:
+// var rng = SystemRandomNumberGenerator()
+// Float.random(in: 0 ..< 1, using: &rng)
 let randomFloat = Float.random(in: 0 ..< 1)
 let randomDouble = Double.random(in: 0 ... .pi, using: &myCustomRandomNumberGenerator)
 ```
@@ -122,7 +122,9 @@ let randomDouble = Double.random(in: 0 ... .pi, using: &myCustomRandomNumberGene
 `Bool` example:
 ```swift
 // Utilizes the standard library's default random
-// (alias to Bool.random(using: &Random.default))
+// Alias to:
+// var rng = SystemRandomNumberGenerator()
+// Bool.random(using: &rng)
 let randomBool1 = Bool.random()
 let randomBool2 = Bool.random(using: &myCustomRandomNumberGenerator)
 ```
@@ -138,7 +140,9 @@ For `Collection` we add an extension method for collections to get a random elem
 let greetings = ["hey", "hi", "hello", "hola"]
 
 // Utilizes the standard library's default random
-// (alias to greetings.randomElement(using: &Random.default))
+// Alias to:
+// var rng = SystemRandomNumberGenerator()
+// greetings.randomElement(using: &rng)!
 print(greetings.randomElement()!) // This returns an Optional
 print(greetings.randomElement(using: &myCustomRandomNumberGenerator)!) // This returns an Optional
 ```
@@ -158,7 +162,9 @@ As a result of adding the random API, it only makes sense to utilize that power 
 var greetings = ["hey", "hi", "hello", "hola"]
 
 // Utilizes the standard library's default random
-// (alias to greetings.shuffle(using: &Random.default))
+// Alias to:
+// var rng = SystemRandomNumberGenerator()
+// greetings.shuffle(using: &rng)
 greetings.shuffle()
 print(greetings) // A possible output could be ["hola", "hello", "hey", "hi"]
 
@@ -188,15 +194,9 @@ extension RandomNumberGenerator {
 }
 
 // The stdlib RNG.
-public struct Random : RandomNumberGenerator {
-  // Public facing API
-  public static var `default`: Random {
-    get { return Random() }
-    set { /* Discard */ }
-  }
-
-  // Prevents initialization of this struct
-  private init() {}
+public struct SystemRandomNumberGenerator : RandomNumberGenerator {
+  
+  public init() {}
 
   // Conformance for `RandomNumberGenerator`, calls one of the crypto functions.
   public mutating func next() -> UInt64
@@ -215,7 +215,8 @@ extension Collection {
   
   /// Uses the standard library's default RNG
   public func randomElement() -> Element? {
-    return randomElement(using: &Random.default)
+    var g = SystemRandomNumberGenerator()
+    return randomElement(using: &g)
   }
 }
 
@@ -225,9 +226,7 @@ extension Collection {
 // For those that are that unsure whether or not their range is empty or not,
 // they can if/guard check whether or not the range is empty beforehand, then
 // use these functions.
-extension FixedWidthInteger
-where Self.Stride : SignedInteger,
-      Self.Magnitude : UnsignedInteger {
+extension FixedWidthInteger {
 
   public static func random<T: RandomNumberGenerator>(
     in range: Range<Self>,
@@ -236,7 +235,8 @@ where Self.Stride : SignedInteger,
 
   /// Uses the standard library's default RNG
   public static func random(in range: Range<Self>) -> Self {
-    return Self.random(in: range, using: &Random.default)
+    var g = SystemRandomNumberGenerator()
+    return Self.random(in: range, using: &g)
   }
 
   public static func random<T: RandomNumberGenerator>(
@@ -246,7 +246,8 @@ where Self.Stride : SignedInteger,
   
   /// Uses the standard library's default RNG
   public static func random(in range: ClosedRange<Self>) -> Self {
-    return Self.random(in: range, using: &Random.default)
+    var g = SystemRandomNumberGenerator()
+    return Self.random(in: range, using: &g)
   }
 }
 
@@ -256,10 +257,7 @@ where Self.Stride : SignedInteger,
 // For those that are that unsure whether or not their range is empty or not,
 // they can simply if/guard check the bounds to make sure they can correctly form
 // ranges which a random number can be formed from.
-extension BinaryFloatingPoint
-where Self.RawSignificand : FixedWidthInteger,
-      Self.RawSignificand.Stride : SignedInteger & FixedWidthInteger,
-      Self.RawSignificand.Magnitude : UnsignedInteger {
+extension BinaryFloatingPoint where Self.RawSignificand : FixedWidthInteger {
 
   public static func random<T: RandomNumberGenerator>(
     in range: Range<Self>,
@@ -268,7 +266,8 @@ where Self.RawSignificand : FixedWidthInteger,
 
   /// Uses the standard library's default RNG
   public static func random(in range: Range<Self>) -> Self {
-    return Self.random(in: range, using: &Random.default)
+    var g = SystemRandomNumberGenerator()
+    return Self.random(in: range, using: &g)
   }
 
   public static func random<T: RandomNumberGenerator>(
@@ -278,7 +277,8 @@ where Self.RawSignificand : FixedWidthInteger,
   
   /// Uses the standard library's default RNG
   public static func random(in range: ClosedRange<Self>) -> Self {
-    return Self.random(in: range, using: &Random.default)
+    var g = SystemRandomNumberGenerator()
+    return Self.random(in: range, using: &g)
   }
 }
 
@@ -294,7 +294,8 @@ extension Bool {
   
   /// Uses the standard library's default RNG
   public static func random() -> Bool {
-    return Bool.random(using: &Random.default)
+    var g = SystemRandomNumberGenerator()
+    return Bool.random(using: &g)
   }
 }
 
@@ -309,7 +310,8 @@ extension Sequence {
   
   /// Uses the standard library's default RNG
   public func shuffled() -> [Element] {
-    return shuffled(using: &Random.default)
+    var g = SystemRandomNumberGenerator()
+    return shuffled(using: &g)
   }
 }
 
@@ -320,7 +322,8 @@ extension MutableCollection {
   
   /// Uses the standard library's default RNG
   public mutating func shuffle() {
-    shuffle(using: &Random.default)
+    var g = SystemRandomNumberGenerator()
+    shuffle(using: &g)
   }
 }
 ```
@@ -379,6 +382,6 @@ There were a bit of discussion for and against this. Initially I was on board wi
 
 This was a very heavily discussed topic that we can't skip over.
 
-I think we came into agreement that `range.random()` should be possible, however the discussion was around whether or not this is the primary spelling for getting random numbers. Having a range as the primary spelling makes it fairly simple to get a random number from. Ranges are also very desirable because it doesn't encourage modulo bias. Also, since we decided pretty early on that we're going to trap if for whatever reason we can't get a random number, this gave `range.random()` the excuse to return a non optional.
+I think we came into agreement that `range.randomElement()` should be possible, however the discussion was around whether or not this is the primary spelling for getting random numbers. Having a range as the primary spelling makes it fairly simple to get a random number from. Ranges are also very desirable because it doesn't encourage modulo bias. Also, since we decided pretty early on that we're going to trap if for whatever reason we can't get a random number, this gave `range.randomElement()` the excuse to return a non optional.
 
-On the other end of the spectrum, we came into early agreement that `Collection.random()` needs to return an optional in the case of an empty collection. If ranges were the primary spelling, then we would need to create exceptions for them to return non optionals. This would satisfy the general use design, but as we agreed that `.random()` behaves more like `.first`, `.last`, `.min()`, and `.max()`. Because of this, `.random()` has to return an optional to keep the consistent semantics. This justifies the static functions on the numeric types as the primary spelling as they can be the ones to return non optionals. These static functions are also the spelling for how developers think about going about random numbers. "Ok, I need a random integer from x and y." This helps give these functions the upper hand in terms of discoverability.
+On the other end of the spectrum, we came into early agreement that `Collection.randomElement()` needs to return an optional in the case of an empty collection. If ranges were the primary spelling, then we would need to create exceptions for them to return non optionals. This would satisfy the general use design, but as we agreed that `.randomElement()` behaves more like `.first`, `.last`, `.min()`, and `.max()`. Because of this, `.randomElement()` has to return an optional to keep the consistent semantics. This justifies the static functions on the numeric types as the primary spelling as they can be the ones to return non optionals. These static functions are also the spelling for how developers think about going about random numbers. "Ok, I need a random integer from x and y." This helps give these functions the upper hand in terms of discoverability.
