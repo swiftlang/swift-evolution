@@ -27,7 +27,7 @@ if let sequence = optionalSequence {
 } // else { ... }
 ```
 
-Alternative workarounds include `?? []` (for `Array`) and `sequence?.forEach`.
+Alternative workarounds include `?? []` for `Array` and `sequence?.forEach`, which excludes usage of control transfer statements.
 
 The bottom line being, if we don't require `else`, why not say `for? element in optionalSequence { ... }` ?
 
