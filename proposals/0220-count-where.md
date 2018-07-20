@@ -1,9 +1,10 @@
-# `count(where:)`
+# Add `count(where:)` method to `Sequence`
 
 * Proposal: [SE-0220](0220-count-where.md)
-* Authors: [Soroush Khanlou](https://github.com/khanlou)
+* Author: [Soroush Khanlou](https://github.com/khanlou)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Scheduled for review (August 6...12)**
+* Implementation: [apple/swift#16099](https://github.com/apple/swift/pull/16099)
 
 ## Introduction
 
