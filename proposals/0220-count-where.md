@@ -3,7 +3,7 @@
 * Proposal: [SE-0220](0220-count-where.md)
 * Authors: [Soroush Khanlou](https://github.com/khanlou)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Scheduled for Review August 6 - 12, 2018 **
+* Status: **Scheduled for review (August 6...12)**
 
 ## Introduction
 
