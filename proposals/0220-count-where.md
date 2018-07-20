@@ -1,9 +1,9 @@
 # `count(where:)`
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0220](0220-count-where.md)
 * Authors: [Soroush Khanlou](https://github.com/khanlou)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Review Manager: [Chris Lattner](https://github.com/lattner)
+* Status: **Scheduled for Review August 6 - 12, 2018 **
 
 ## Introduction
 
@@ -68,3 +68,4 @@ This change is additive only.
 ## Alternatives considered
 
 One alternative worth discussing is the addition of `count(of:)`, which can be implemented on sequences where `Element: Equatable`. This function returns the count of all objects that are equal to the parameter. I'm open to amending this proposal to include this function, but in practice I've never used or needed this function, so I've omitted it here.
+
