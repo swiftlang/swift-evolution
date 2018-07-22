@@ -9,7 +9,7 @@
 
 @allevato (a co-author here) proposed [Add Unicode Properties to Unicode.Scalar](https://github.com/apple/swift-evolution/blob/master/proposals/0211-unicode-scalar-properties.md), which exposes Unicode properties from the [Unicode Character Database](http://unicode.org/reports/tr44/). These are Unicode expert/enthusiast oriented properties that give a finer granularity of control and answer highly-technical and specific Unicody enquiries.
 
-However, they are not ergonomic and Swift makes no attempt to clarify their interpretation or usage: meaning and proper interpretation is directly tied to the Unicode Standard and the version of Unicode available at run time. There's some low-hanging ergo-fruit ripe for picking by exposing properties directly on `Character`.
+However, they are not ergonomic and Swift makes no attempt to clarify their interpretation or usage: meaning and proper interpretation is directly tied to the Unicode Standard and the version of Unicode available at run time. There’s some low-hanging ergo-fruit ripe for picking by exposing properties directly on `Character`.
 
 Pitch thread: [Character and String properties](https://forums.swift.org/t/pitch-character-and-string-properties/11620)
 
@@ -28,17 +28,13 @@ This proposal adds several queries to increase the usefulness of `Character` and
 extension Character {
   /// Whether this Character is ASCII.
   @inlinable
-  public var isASCII: Bool { return asciiValue != nil }
+  public var isASCII: Bool { ... }
 
   /// Returns the ASCII encoding value of this Character, if ASCII.
   ///
   /// Note: "\r\n" (CR-LF) is normalized to "\n" (LF), which will return 0x0A
   @inlinable
-  public var asciiValue: UInt8? {
-    if _slowPath(self == ._crlf) { return 0x000A /* LINE FEED (LF) */ }
-    if _slowPath(!_isSingleScalar || _firstScalar.value >= 0x80) { return nil }
-    return UInt8(_firstScalar.value)
-  }
+  public var asciiValue: UInt8? { ... }
 
   /// Whether this Character represents whitespace, including newlines.
   ///
@@ -52,12 +48,13 @@ extension Character {
 
   /// Whether this Character represents a newline.
   ///
-  /// * "\n" (U+000A): LINE FEED (LF)
-  /// * "\r" (U+000D): CARRIAGE RETURN (CR)
-  /// * "\r\n" (U+000A U+000D): CR-LF
-  /// * U+0085: NEXT LINE (NEL)
-  /// * U+2028: LINE SEPARATOR
-  /// * U+2029: PARAGRAPH SEPARATOR
+  /// Examples:
+  ///   * "\n" (U+000A): LINE FEED (LF)
+  ///   * "\r" (U+000D): CARRIAGE RETURN (CR)
+  ///   * "\r\n" (U+000A U+000D): CR-LF
+  ///   * U+0085: NEXT LINE (NEL)
+  ///   * U+2028: LINE SEPARATOR
+  ///   * U+2029: PARAGRAPH SEPARATOR
   ///
   public var isNewline: Bool { ... }
 
@@ -75,7 +72,7 @@ extension Character {
   /// Whether this Character represents a whole number. See
   /// `Character.wholeNumberValue`
   @inlinable
-  public var isWholeNumber: Bool { return wholeNumberValue != nil }
+  public var isWholeNumber: Bool { ... }
 
   /// If this Character is a whole number, return the value it represents, else
   /// nil.
@@ -94,7 +91,7 @@ extension Character {
   /// fullwidth compatibility forms. To get their value, see
   /// `Character.hexadecimalDigitValue`
   @inlinable
-  public var isHexadecimalDigit: Bool { return hexadecimalDigitValue != nil }
+  public var isHexadecimalDigit: Bool { ... }
 
   /// If this Character is a hexadecimal digit, returns the value it represents,
   /// else nil.
@@ -109,7 +106,7 @@ extension Character {
   ///   * "A" (U+0041 LATIN CAPITAL LETTER A)
   ///   * "é" (U+0065 LATIN SMALL LETTER E, U+0301 COMBINING ACUTE ACCENT)
   ///   * "ϴ" (U+03F4 GREEK CAPITAL THETA SYMBOL)
-  //   * "ڈ" (U+0688 ARABIC LETTER DDAL)
+  ///   * "ڈ" (U+0688 ARABIC LETTER DDAL)
   ///   * "日" (U+65E5 CJK UNIFIED IDEOGRAPH-65E5)
   ///   * "ᚨ" (U+16A8 RUNIC LETTER ANSUZ A)
   ///
@@ -129,8 +126,7 @@ extension Character {
   ///
   /// Note: Returns a String as case conversion can result in multiple
   /// Characters.
-  @inlinable
-  public func uppercased() -> String { return String(self).uppercased() }
+  public func uppercased() -> String { ... }
 
   /// Perform case conversion to lowercase
   ///
@@ -144,13 +140,7 @@ extension Character {
   ///
   /// Note: Returns a String as case conversion can result in multiple
   /// Characters.
-  @inlinable
-  public func lowercased() -> String { return String(self).lowercased() }
-
-  @inlinable
-  internal var _isUppercased: Bool { return String(self) == self.uppercased() }
-  @inlinable
-  internal var _isLowercased: Bool { return String(self) == self.lowercased() }
+  public func lowercased() -> String { ... }
 
   /// Whether this Character is considered uppercase.
   ///
@@ -163,7 +153,7 @@ extension Character {
   ///   * "Π" (U+03A0 GREEK CAPITAL LETTER PI)
   ///
   @inlinable
-  public var isUppercase: Bool { return _isUppercased && isCased }
+  public var isUppercase: Bool { ... }
 
   /// Whether this Character is considered lowercase.
   ///
@@ -176,11 +166,11 @@ extension Character {
   ///   * "π" (U+03C0 GREEK SMALL LETTER PI)
   ///
   @inlinable
-  public var isLowercase: Bool { return _isLowercased && isCased }
+  public var isLowercase: Bool { ... }
 
   /// Whether this Character changes under any form of case conversion.
   @inlinable
-  public var isCased: Bool { return !_isUppercased || !_isLowercased }
+  public var isCased: Bool { ... }
 
   /// Whether this Character represents a symbol
   ///
@@ -223,10 +213,24 @@ extension Character {
   ///   * "“" (U+201C LEFT DOUBLE QUOTATION MARK)
   ///
   public var isPunctuation: Bool { ... }
+
+  /// Whether this Character has an emoji presentation
+  ///
+  /// Examples:
+  ///
+  ///  * "2\u{FE0F}\u{20E3}".isEmoji // True (2️⃣)
+  ///  * "\u{00A9}\u{FE0F}".isEmoji // True (©️)
+  ///  * "\u{2708}".isEmoji // False (U+2708 AIRPLANE)
+  ///  * "\u{2708}\u{FE0F}.isEmoji" // True (U+2708 AIRPLANE, emoji_presentation_selector)
+  ///
+  /// Note: When a presentation selector is absent, this returns whether the
+  /// Character is presented as emoji *by default*. Whether an environment
+  /// chooses to actually render these as emoji or textually may be context or
+  /// platform dependent.
+  ///
+  public var isEmoji: Bool { ... }
 }
 ```
-
-(example bodies of `@inlinable` methods are provided to demonstrate the semantic requirements impacted by ABI stability. They are not necessarily the most efficient implementation possible).
 
 Additionally, we propose an explicit `ascii:` label be added to `FixedWidthInteger`’s failable init from a `String`, and an additional one defined over `Character`. We argue the old name is harmful and an explicit label more closely adheres to the [API Design Guidelines](https://swift.org/documentation/api-design-guidelines/). See “Detailed Semantics and Rationale” below.
 
@@ -241,42 +245,30 @@ Additionally, we propose an explicit `ascii:` label be added to `FixedWidthInteg
 
 Some fuzziness is inherent in modeling human writing systems and the rules of grapheme breaking allow for semantically meaningless, yet technically valid, graphemes. In light of all this, we make a best effort and try to discover some principle to follow. Principles are useful for evaluating tradeoffs, but are not hard rules that always lead to a single clear answer.
 
-The closest applicable principle might be something similar to W3C’s [Principle of Tolerance](https://www.w3.org/DesignIssues/Principles.html), paraphrased as “Be liberal in what you accept, conservative in what you produce”. Perhaps another phrasing could be “Be permissive when fuzzy, restrictive when specific”. 
+The closest applicable principle might be something similar to W3C’s [Principle of Tolerance](https://www.w3.org/DesignIssues/Principles.html), paraphrased as “Be liberal in what you accept, conservative in what you produce”. Character properties can be roughly grouped into those that “produce” specific values or behaviors, and those that “accept” graphemes under a fuzzy classification.
 
-### Restrictive When Specific
+### Restrictive Properties
 
 Properties that provide a clear interpretation or which the stdlib produces a specific value for should be restrictive. One example is `wholeNumberValue`. `wholeNumberValue` *produces* an `Int` from a `Character`, which means it needs to be *restrictive*, permitting only the graphemes with unambiguous whole number values. It only returns a value for single-scalar graphemes whose sole scalar has an integral numeric value. Thus, `wholeNumberValue` returns nil for “7̅” (7 followed by U+0305 COMBINING OVERLINE) as there is no clear interpretation of the value. Any attempt to produce a specific integer from “7̅” would be suspect.
 
-### Permissive When Fuzzy
-
-Where there is no clear interpretation or specific value to produce, we try to be as permissive as reasonable. For example, `isLetter` just queries the first scalar to see if it is “letter-like”, and thus handles unforeseeable combinations of a base letter-like scalar with subsequent combining, modifying, or extending scalars. `isLetter` merely answers a general (fuzzy) question, but doesn’t prescribe further interpretation.
-
-Permissive APIs should in general be non-inlinable and their documentation may be less precise regarding details and corner cases. This allows for a greater degree of library evolution.
-
-### API Semantics
-
-Below is a grouping of semantics into “restrictive”, which means accept/reject based on analysis of the entire grapheme, and “permissive”, which means accept/reject based on analysis of a portion of the grapheme.
-
-Restrictive:
+Restrictive properties typically accept/reject based on an analysis of the entire grapheme.
 
 * Values:  `isASCII` / `asciiValue`, `isWholeNumber` / `wholeNumberValue`, `isHexDigit` / `hexDigitValue`
 * Casing:  `isUppercase` / `uppercased()`, `isLowercase` / `lowercased()`, `isCased`
 
-Permissive:
+### Permissive Properties
 
-* Fuzzy queries: `isNumber`, `isLetter`, `isSymbol` / `isMathSymbol` / `isCurrencySymbol`, `isPunctuation`
-* Whitespace (maybe*): `isWhitespace` and `isNewline` 
+Where there is no clear interpretation or specific value to produce, we try to be as permissive as reasonable. For example, `isLetter` just queries the first scalar to see if it is “letter-like”, and thus handles unforeseeable combinations of a base letter-like scalar with subsequent combining, modifying, or extending scalars. `isLetter` merely answers a general (fuzzy) question, but doesn’t prescribe further interpretation.
 
-\* Newlines encompass more than hard line-breaks in traditional written language; they are common terminators for programmer strings. If a `Character` is “\n\u{301}” (a newline with a combining accent over it), is this a newline? Either interpretation can lead to inconsistencies. If true, then a program might skip the first scalar in a new entry (whatever such a combining scalar at the start could mean). If we say false, then a `String` with newline terminators inside of it would return false for `myStr.contains { $0.isNewline }`, which is counter-intuitive. This same reasoning may apply to whitespace.
+Permissive APIs should in general be non-inlinable and their documentation may be less precise regarding details and corner cases. This allows for a greater degree of library evolution. Permissive properties typically accept/reject based on an analysis of part of the grapheme.
 
-A couple options:
+* Fuzzy queries: `isNumber`, `isLetter`, `isSymbol` / `isMathSymbol` / `isCurrencySymbol`, `isPunctuation`, `isEmoji`
 
-1. Permissive, to keep consistency with `myStr.contains { $0.isNewline }`, and is consistent with grapheme-by-grapheme processing concerns in general
-2. Restrictive, to prevent the programmer from skipping over relevant scalars, at the risk of counter-intuitive string processing behavior
-3. Rename to `hasNewline`, keeping permissive semantics
-4. Drop from this pitch in favor of an eventual `String.lines` or something similar.
+#### Newlines and Whitespace
 
-We think choice #1 is arguably less bad than #2 and more directly reflects the messy reality of grapheme-by-grapheme processing. We slightly prefer #1 to choice #3 or #4 as #1 is a common sense query that we feel Swift should be able to answer. Though it does permit some meaningless graphemes, we don’t see any clearly harmful behavior as a result for realistic inputs, nor anticipate malicious behavior for malicious inputs. But, we could easily be convinced either way (see Considered Alternatives below).
+Newlines encompass more than hard line-breaks in traditional written language; they are common terminators for programmer strings. Whether a `Character` such as `"\n\u{301}"` (a newline with a combining accent over it) is a newline is debatable. Either interpretation can lead to inconsistencies. If true, then a program might skip the first scalar in a new entry (whatever such a combining scalar at the start could mean). If false, then a `String` with newline terminators inside of it would return false for `myStr.contains { $0.isNewline }`, which is counter-intuitive. The same is true of whitespace.
+
+We recommend that the precise semantics of `isWhitespace` and `isNewline` be unspecified regarding graphemes consisting of leading whitespace/newlines followed by combining scalars.
 
 ### Adding `ascii:` Label to `FixedWidthInteger.init?<S: StringProtocol>(_: S, radix: Int = 10)`
 
@@ -292,13 +284,9 @@ This label’s clarity is more apparent in the proposed `FixedWithInteger.init?(
 The properties on `Character` are strictly additive. The addition of the `ascii:` label to `FixedWithInteger.init(_:String,radix:Int)` will need to go through the normal unavailable/renamed deprecation process.
 
 ## Effect on ABI Stability
-Most of these changes are additive: they introduce new ABI surface area to keep stable.
+These changes are ABI-additive: they introduce new ABI surface area to keep stable.
 
-### `@inlinable` and Non-`@inlinable` Properties
-
-`@inlinable` affects the ABI stability and library evolution impact of a change. `@inlinable`’s sweet spot hits APIs that are extremely unlikely to change their semantics and are frequently used or often part of a program’s “hot path”. ASCII-related queries check both of these boxes. For other properties whose semantics can be expressed entirely in terms of other API, `@inlinable` allows the optimizer to optimize across multiple calls and specific usage without giving up a meaningful degree of library evolution. `isWholeNumber` checking `wholeNumberValue` for `nil` is an example of this, as these two methods are semantically tied and the optimizer could (in theory) reuse the result of one for the other. We can always safely supply a new finely-tuned implementation of `isWholeNumber` in future versions of the stdlib, provided semantics are equivalent.
-
-Properties where we may change our strategy (or details of implementation) to accommodate future versions of Unicode and unanticipated changes or corner-cases should be non-`@inlinable`.
+The proposed solution includes recommended `@inlinable` annotations on properties which derive their value from other properties (thus benefitting from optimizations), or which are well-defined and stable under future Unicode versions (e.g. ASCII-related properties).
 
 ## Additions and Alternatives Considered
 
@@ -322,9 +310,9 @@ There could be something valuable to glean from this, but we reject this approac
 
 In addition to (or perhaps instead of) properties like `wholeNumberValue`, add `Character`-based `FixedWidthInteger.init?(_:Character)`. Similarly `FloatingPoint.init?(_:Character)` which includes vulgar fractions and the like (if single-scalar, perhaps). However, these do not have direct counterparts in this pitch as named, at least without an explicit argument label clarifying their semantics.
 
-We could consider adding something like `FixedWidthInteger.init?(hexDigit: Character)` and `FixedWithInteger.init?(wholeNumber: Character)` which correspond to `hexDigitValue` and `wholeNumberValue`, and similarly a counterpart for `String`. But, we don’t feel this carries it weight as surfaced directly at the top level of e.g. `Int`. We prefer to keep this avenue open for future directions involving more general number parsing and grapheme evaluation logic.
+We could consider adding something like `FixedWidthInteger.init?(hexDigit: Character)` and `FixedWithInteger.init?(wholeNumber: Character)` which correspond to `hexDigitValue` and `wholeNumberValue`, and similarly a counterpart for `String`. But, we don’t feel this carries its weight as surfaced directly at the top level of e.g. `Int`. We prefer to keep this avenue open for future directions involving more general number parsing and grapheme evaluation logic.
 
-### Keep `FixedWidthInteger.init(_:radix:)` around, or change `FixedWidthInteger.init(_:radix:) to support full-width compatibility forms`
+### Keep `FixedWidthInteger.init(_:radix:)` around, or change `FixedWidthInteger.init(_:radix:)` to support full-width compatibility forms`
 
 Rather than rename with an `ascii:` label, keep the old name around to be built upon later with a general number parsing system. We argue that the radix argument makes such an API highly dubious if not constrained to ASCII and full-width compatibility forms (e.g. akin to proposed `Character.hexDigitValue`).
 
@@ -335,3 +323,17 @@ Another alternative is to change the semantics to also accept full-width compati
 This alternative is to drop `isASCII`, `isHexDigit`, and `isWholeNumber` and instead use `if let` or compare explicitly to `nil`.
 
 We decided to provide these convenience properties both for discoverability as well as use in more complex expressions: `c.isHexDigit && c.isLetter`, `c.isASCII && c.isWhitespace`, etc. We don’t think they add significant weight or undue API surface area.
+
+### Replace `isEmoji` with 3 APIs, something something like `isEmojiPresentable`, `isEmojiWithDefaultTextPresentation`, and `isEmojiWithDefaultEmojiPresentation`
+
+`isEmoji` encompasses both Characters with a default emoji presentation, as well as Characters with a default textual presentation and an explicit `U+FE0F` (emoji presentation selector). It rejects default emoji presentation Characters with an explicit `U+FE0E` (text presentation selector), as well as default textual presentation Characters which do not have an emoji presentation selector.
+
+However, these only cover the default; whether something will actually be rendered as emoji depends on the render and environment. We’re open to further refining `isEmoji` with more API, but are unsure if they carry their weight. We currently feel this might be best left up to querying the rendering environment itself.  We’re interested in thoughts and/or use cases.
+
+We are also considering relaxing `isEmoji` to return true for default-textual Characters without an explicit  text presentation selector. For example, `U+2708` (AIRPLANE) by default is rendered as `✈` and not `✈️`. As proposed, `Character("\u{U+2708}").isEmoji` would return false, but we are considering having it return true because it *could* be rendered as emoji.
+
+
+
+
+
+
