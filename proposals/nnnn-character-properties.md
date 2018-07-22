@@ -324,6 +324,14 @@ This alternative is to drop `isASCII`, `isHexDigit`, and `isWholeNumber` and ins
 
 We decided to provide these convenience properties both for discoverability as well as use in more complex expressions: `c.isHexDigit && c.isLetter`, `c.isASCII && c.isWhitespace`, etc. We don’t think they add significant weight or undue API surface area.
 
+### Add `numericValue: Double?` in addition to, or instead of, `wholeNumberValue: Int?`. Alternatively, add a `rationalValue: (numerator: Int, denominator: Int)?`.
+
+Unicode defines numeric values for whole numbers, hex digits, and rational numbers (vulgar fractions). As an implementation artifact (ICU only vends a double), Unicode.Scalar.Properties’s `numericValue` is a double rather than an enum of a rational or whole number. We could follow suit and add such a value to `Character`, restricted to single-scalar graphemes. We could also remove `wholeNumberValue`, letting users test if the double is integral. Alternatively or additionally, we could provide a `rationalValue` capable of handling non-whole-numbers.
+
+As far as adding a `rationalValue` is concerned, we do not feel that support for vulgar fractions and other obscure Unicode scalars (e.g. baseball score-keeping) warrants an addition to `Character` directly. `wholeNumberValue` producing an Int is a more fluid solution than a Double which happens to be integral, so we’re hesitant to replace `wholeNumberValue` entirely with a `numericValue`. Since `numericValue` would only add utility for these obscure characters, we’re not sure if it’s worth adding.
+
+Suggestions for alternative names for `wholeNumberValue`would be appreciated.
+
 ### Replace `isEmoji` with 3 APIs, something something like `isEmojiPresentable`, `isEmojiWithDefaultTextPresentation`, and `isEmojiWithDefaultEmojiPresentation`
 
 `isEmoji` encompasses both Characters with a default emoji presentation, as well as Characters with a default textual presentation and an explicit `U+FE0F` (emoji presentation selector). It rejects default emoji presentation Characters with an explicit `U+FE0E` (text presentation selector), as well as default textual presentation Characters which do not have an emoji presentation selector.
@@ -331,9 +339,4 @@ We decided to provide these convenience properties both for discoverability as w
 However, these only cover the default; whether something will actually be rendered as emoji depends on the render and environment. We’re open to further refining `isEmoji` with more API, but are unsure if they carry their weight. We currently feel this might be best left up to querying the rendering environment itself.  We’re interested in thoughts and/or use cases.
 
 We are also considering relaxing `isEmoji` to return true for default-textual Characters without an explicit  text presentation selector. For example, `U+2708` (AIRPLANE) by default is rendered as `✈` and not `✈️`. As proposed, `Character("\u{U+2708}").isEmoji` would return false, but we are considering having it return true because it *could* be rendered as emoji.
-
-
-
-
-
 
