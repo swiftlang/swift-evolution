@@ -1,8 +1,8 @@
 # Character Properties
-* Proposal: TBD
+* Proposal: [SE-0221](0221-character-properties.md)
 * Authors: [Michael Ilseman](https://github.com/milseman), [Tony Allevato](https://github.com/allevato)
-* Review Manager: TBD
-* Status: TBD
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
+* Status: **In review (July 23...29)**
 * Implementation: https://github.com/apple/swift/pull/15880
 
 ## Introduction
