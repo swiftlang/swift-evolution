@@ -112,7 +112,7 @@ from a string.
 
 The primary alternative is [type-safe
 selectors](https://lists.swift.org/pipermail/swift-evolution/2015-December/000233.html),
-which would introduce a new "selector" calling convetion to capture
+which would introduce a new "selector" calling convention to capture
 the type of an `@objc` method, including its selector. One major
 benefit of type-safe selectors is that they can carry type
 information, improving type safety. From that discussion, referencing
