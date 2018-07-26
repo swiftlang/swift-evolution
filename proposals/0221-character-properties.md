@@ -157,8 +157,8 @@ extension Character {
 
   /// Whether this Character is considered lowercase.
   ///
-  /// Lowercase Characters vary under case-conversion to lowercase, but not when
-  /// converted to uppercase.
+  /// Lowercase Characters vary under case-conversion to uppercase, but not when
+  /// converted to lowercase.
   ///
   /// Examples:
   ///   * "é" (U+0065 LATIN SMALL LETTER E, U+0301 COMBINING ACUTE ACCENT)
@@ -316,7 +316,7 @@ We could consider adding something like `FixedWidthInteger.init?(hexDigit: Chara
 
 Rather than rename with an `ascii:` label, keep the old name around to be built upon later with a general number parsing system. We argue that the radix argument makes such an API highly dubious if not constrained to ASCII and full-width compatibility forms (e.g. akin to proposed `Character.hexDigitValue`).
 
-Another alternative is to change the semantics to also accept full-width compatibility forms. Much of the argument for why the API should have an explicit label still apply, though the `radix` label does provide some prodding when provided. We’d prefer the explicit label if possible, but this could be a lessor of evils source-compatibility-preserving alternative.
+Another alternative is to change the semantics to also accept full-width compatibility forms. Much of the argument for why the API should have an explicit label still apply, though the `radix` label does provide some prodding when provided. We’d prefer the explicit label if possible, but this could be a lesser of evils source-compatibility-preserving alternative.
 
 ### Drop `isASCII/HexDigit/WholeNumber`: Check for `nil` Instead
 
