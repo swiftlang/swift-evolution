@@ -7,7 +7,7 @@
 
 ## Introduction
 
-We propose adding `var isEven: Bool`, `var isOdd: Bool`, and `func isDivisible(by denominator: Self) -> Bool` to the `BinaryInteger` protocol. `isEven` and `isOdd` are convenience properties for querying the [parity](https://en.wikipedia.org/wiki/Parity_(mathematics)) of the integer and `isDivisible` is a more general function to determine the divisibility of an integer by an arbitrary denominator.
+This proposal adds `var isEven: Bool`, `var isOdd: Bool`, and `func isDivisible(by denominator: Self) -> Bool` to the `BinaryInteger` protocol. `isEven` and `isOdd` are convenience properties for querying the [parity](https://en.wikipedia.org/wiki/Parity_(mathematics)) of the integer and `isDivisible` is a more general function to determine the divisibility of an integer by an arbitrary denominator.
 
 Swift-evolution thread: [Even and Odd Integers](https://forums.swift.org/t/even-and-odd-integers/11774)
 
@@ -21,9 +21,11 @@ Currently, the most common way to test a value for divisibility is by using the 
 
 Alternatively, it is also possible to use the bitwise AND operator (`&`) to check the even/oddness of a value: `12 & 1 == 0 // returns true`.
 
+Some examples of divisibility in code (see more in appendix):
+
 ```swift
-// Gray background for even rows, white for odd.
-view.backgroundColor = indexPath.row % 2 == 0 ? .gray : .white
+// UITableView alternating row colour
+cell.contentView.backgroundColor = indexPath.row % 2 == 0 ? .gray : .white
 
 // Codable.swift.gyb in apple/swift
 guard count % 2 == 0 else { throw DecodingError.dataCorrupted(...) }
@@ -52,8 +54,8 @@ Convenience properties or functions equivalent to `isEven` and `isOdd` are avail
 The `isEven` and `isOdd` properties are also fewer characters wide than the remainder approach (maximum 7 characters for `.isEven` vs 9 for ` % 2 == 0`) which saves horizontal space while being clearer in intent.
 
 ```swift
-// Gray background for even rows, white for odd.
-view.backgroundColor = indexPath.row.isEven ? .gray : .white
+// UITableView alternating row colour
+cell.contentView.backgroundColor = indexPath.row.isEven ? .gray : .white
 
 // Codable.swift.gyb in apple/swift
 guard count.isEven else { throw DecodingError.dataCorrupted(...) }
@@ -67,13 +69,13 @@ public static func random<T: RandomNumberGenerator>(using generator: inout T) ->
 _sanityCheck(bytes > 0 && bytes.isDivisible(by: 4), "capacity must be multiple of 4 bytes")
 ```
 
-**Discoverability:** IDEs will be able to suggest `isEven`, `isOdd`, and `isDivisible` as part of autocomplete which will aid discoverability. It will also be familiar to users coming from languages that also support functionality similar to `isEven` and `isOdd`.
+**Discoverability:** IDEs will be able to suggest `isEven`, `isOdd`, and `isDivisible` as part of autocomplete on integer types which will aid discoverability. It will also be familiar to users coming from languages that also support functionality similar to `isEven` and `isOdd`.
 
 **Trivially composable:** It would be relatively easy to reproduce the proposed functionality in user code but there would be benefits to having a standard implementation. It may not be obvious to some users exactly which protocol these properties belong on (`Int`?, `SignedInteger`?, `FixedWidthInteger`?, `BinaryInteger`?). This inconsistency can be seen in a [popular Swift utility library](https://github.com/SwifterSwift/SwifterSwift/blob/master/Sources/Extensions/SwiftStdlib/SignedIntegerExtensions.swift#L28) which defines `isEven` and `isOdd` on `SignedInteger` which results in the properties being inaccessible for unsigned integers.
 
-Testing the parity of integers is also relatively common in sample code and educational usage. In this context, it’s usually not appropriate for an author to introduce this functionality (unless they are teaching extensions!) in order to avoid distracting from the main task at hand (e.g. filter, map, etc). It may also be the same situation for authoring test code: it'd be used if it were there but it's not worth the overhead of defining it manually.
+Testing the parity of integers is also relatively common in sample code and educational usage. In this context, it’s usually not appropriate for an author to introduce this functionality (unless they are teaching extensions!) in order to avoid distracting from the main task at hand (e.g. filter, map, etc). It may also be the same situation for authoring test code: it'd be used if it existed but it's not worth the overhead of defining it manually.
 
-This functionality will also eliminate the need to use the remainder operator or bitwise AND 1 when querying the divisibility of an integer.
+This functionality will also eliminate the need to use the remainder operator or bitwise AND when querying the divisibility of an integer.
 
 **Correctness:** It isn't [uncommon](https://github.com/apple/swift/blob/master/stdlib/public/core/RangeReplaceableCollection.swift#L1090) to see tests for oddness written as `value % 2 == 1` in Swift, but this is incorrect for negative odd values. The semantics of the `%` operator vary between programming languages, such as Ruby and Python, which can be surprising.
 ```
@@ -86,7 +88,7 @@ This functionality will also eliminate the need to use the remainder operator or
 -7 % 2 == 1 // true
 ```
 
-There is also a minor correctness risk in misinterpreting something like `value % 2 == 0`, particularly when used in a more complex statement, when compared to `value.isEven`.
+There is also a minor correctness risk in misinterpreting something like `value % 2 == 0`, particularly when used in a more complex statement, when compared to `value.isEven`, e.g. `bytes > 0 && bytes % 4 == 0`.
 
 **Performance:** It's _possible_ that `isDivisible` could be implemented in a more performant way than `% denominator == 0` for more complex types, such as a BigInteger/BigNum type.
 
@@ -97,6 +99,9 @@ The addition of `isEven` and `isOdd` likely won’t have a major positive impact
 Add two computed properties, `isEven` and `isOdd`, and a function `isDivisible` to the `BinaryInteger` protocol.
 
 ```swift
+// Integers.swift.gyb
+// On protocol BinaryInteger
+
     @inlinable
     /// A Boolean value indicating whether this value is even.
     ///
@@ -114,7 +119,15 @@ Add two computed properties, `isEven` and `isOdd`, and a function `isDivisible` 
     }
 
     @inlinable
+    /// Returns a Boolean value that indicates whether the integer is divisible
+    /// by another integer.
     ///
+    /// A number is divisible by another number if it is capable of being divided
+    /// by the other number without a remainder.
+    ///
+    /// - Parameter denominator: An integer to test divisibility by.
+    /// - Returns: `true` if the integer is divisible by `denominator`;
+    /// otherwise, `false`.
     func isDivisible(by denominator: Self) -> Bool {
         return self % denominator == 0
     }
@@ -138,4 +151,39 @@ N/A
 
 ## Alternatives considered
 
-N/A
+### `isEvenlyDivisible` instead of `isDivisible`
+
+There was some concern that `isDivisible` was not clearly named, but the majority of pitch respondents found `isDivisible` acceptable.
+
+### Only `isEven/isOdd` or only `isDivisible`.
+
+During the pitch phase there were discussions about including only one of `isEven/isOdd` or `isDivisible` in the proposal.
+
+On the one hand there were concerns that `isEven/isOdd` would not provide enough utility to justify inclusion into the standard library and that `isDivisible` was preferable as it was more general. `isEven/isOdd` are also trivial inverses of each other which Swift, as a rule, doesn't include in the standard library.
+
+On the other hand there was some unscientific analysis that indicated that even/oddness accounted for 60-80% of the operations in which the result of the remainder operator was compared against zero. This lent some support to including `isEven/isOdd` over `isDivisible`. There is also more precedence in other languages for including `isEven/isOdd` over `isDivisible`.
+
+The authors decided that both were worthy of including in the proposal. Odd and even numbers have had special [shorthand labels](http://mathforum.org/library/drmath/view/65413.html) for thousands of years and are used frequently enough to justify the small additional weight `isEven/isOdd` would add to the standard library. `isDivisible` will greatly improve clarity and readability for arbitrary divisibility checks and also avoid potentially surprising `%` operator semantics with negative values.
+
+## Appendix
+
+### Other example uses in code (and beyond)
+
+* `% 2 == 0` appears 63 times in the [Apple/Swift](https://github.com/apple/swift) repository.
+* [Initializing a cryptographic cipher](https://github.com/krzyzanowskim/CryptoSwift/blob/31efdd85ceb4190ee358a0516c6e82d8fd7b9377/Sources/CryptoSwift/Rabbit.swift#L89)
+* Colouring a checker/chess board and [determining piece colour](https://github.com/nvzqz/Sage/blob/dec5edd97ba45d46bf94bc2e264d3ce2be6404ad/Sources/Piece.swift#L276)
+* Multiple occurrences in cpp Boost library. [Example: handleResizingVertex45](https://www.boost.org/doc/libs/1_62_0/boost/polygon/polygon_45_set_data.hpp)
+* Alternating bar colours in a chart
+* [VoronoiFilter implementation](https://github.com/BradLarson/GPUImage/blob/master/framework/Source/GPUImageJFAVoronoiFilter.m#L428) and [PoissonBlendFilter](https://github.com/BradLarson/GPUImage/blob/167b0389bc6e9dc4bb0121550f91d8d5d6412c53/framework/Source/GPUImagePoissonBlendFilter.m#L142)
+* [Image blurring library](https://github.com/nicklockwood/FXBlurView/blob/master/FXBlurView/FXBlurView.m#L58)
+* UPC check digit calculation [(spec)](http://www.gs1.org/how-calculate-check-digit-manually) (values in odd digit indices are multiplied by 3)
+* [Precondition check in sqlite function](https://github.com/sqlcipher/sqlcipher/blob/c6f709fca81c910ba133aaf6330c28e01ccfe5f8/src/crypto_impl.c#L1296)
+* [Alternating UITableView cell background style](https://github.com/alloy/HockeySDK-CocoaPods/blob/master/Pods/HockeySDK/Classes/BITFeedbackListViewController.m#L502). NSTableView [has built in support](https://developer.apple.com/documentation/appkit/nstableview/1533967-usesalternatingrowbackgroundcolo?language=objc) for this.
+* [Barcode reading](https://github.com/TheLevelUp/ZXingObjC/blob/d952cc02beb948ab49832661528c5e3e4953885e/ZXingObjC/oned/rss/expanded/ZXRSSExpandedReader.m#L449)
+* [CSS row and column styling](https://www.w3.org/Style/Examples/007/evenodd.en.html) with `nth-child(even)` and `nth-child(odd)` (h/t @brentdax)
+* Various test code
+
+Some _really_ real-world examples:
+* [Printing even or odd pages only](https://i.stack.imgur.com/TE4Xn.png)
+* New [Hearthstone even/odd cards](https://blizzardwatch.com/2018/03/16/hearthstones-new-even-odd-cards-going-shake-meta/)
+* A variety of [even-odd rationing](https://en.m.wikipedia.org/wiki/Odd–even_rationing) rules: [parking rules](https://www.icgov.org/city-government/departments-and-divisions/transportation-services/parking/oddeven-parking), [water usage restrictions](https://vancouver.ca/home-property-development/understanding-watering-restrictions.aspx), [driving restrictions](https://auto.ndtv.com/news/odd-even-in-delhi-5-things-you-need-to-know-1773720)
