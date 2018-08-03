@@ -13,11 +13,11 @@ Swift-evolution thread: [Even and Odd Integers](https://forums.swift.org/t/even-
 
 ## Motivation
 
-It is sometimes necessary to know whether or not an integer is divisible by a particular value. The most common case is testing for divisibility by 2, even and oddness.
+It is sometimes necessary to know whether or not an integer is divisible by a particular value. The most common case is testing for divisibility by 2 (even and oddness).
 
-**Commonality:** Testing divisibility shows up in a surprising number of contexts including UI code, algorithm implementations (often in the form of assertions), tests, benchmarks, documentation and tutorial code.
+**Commonality:** Testing divisibility shows up in a surprising number of contexts including UI code, algorithm implementations (often in the form of assertions), tests, benchmarks, documentation and tutorial/educational code.
 
-The most common way to test a value for divisibility is by using the remainder operator (`%`) checking for a remainder of zero: `12 % 2 == 0 // returns true. 12 is divisible by 2`. Similarly, testing for indivisibility is done by checking for a remainder other than zero: `13 % 2 != 0 // returns true. 13 is not divisible by 2`.
+Currently, the most common way to test a value for divisibility is by using the remainder operator (`%`) checking for a remainder of zero: `12 % 2 == 0 // returns true. 12 is divisible by 2`. Similarly, testing for indivisibility is done by checking for a remainder other than zero: `13 % 2 != 0 // returns true. 13 is not divisible by 2`.
 
 Alternatively, it is also possible to use the bitwise AND operator (`&`) to check the even/oddness of a value: `12 & 1 == 0 // returns true`.
 
@@ -40,9 +40,16 @@ _sanityCheck(bytes > 0 && bytes % 4 == 0, "capacity must be multiple of 4 bytes"
 guard let i = reversedNumbers.firstIndex(where: { $0 % 2 == 0 })
 ```
 
-**Readability:** This proposal significantly improves readability.  There is no need to understand operator precedence rules (`%` has higher precedence than `==`) which are non-obvious.
+Determining whether a value is even or odd is a common question across programming languages, at least based on these Stack Overflow questions:
+[c - How do I check if an integer is even or odd?](https://stackoverflow.com/questions/160930/how-do-i-check-if-an-integer-is-even-or-odd) 300,000+ views
+[java - Check whether number is even or odd](https://stackoverflow.com/questions/7342237/check-whether-number-is-even-or-odd) 350,000+ views
+[Check if a number is odd or even in python](https://stackoverflow.com/questions/21837208/check-if-a-number-is-odd-or-even-in-python) 140,000+ views
 
-The properties are also fewer characters wide than the modulus approach (maximum 7 characters for `.isEven` vs 9 for ` % 2 == 0`) which saves horizontal space while being clearer in intent.
+Convenience properties or functions equivalent to `isEven` and `isOdd` are available in the standard libraries of many other programming languages, including: [Ruby](https://ruby-doc.org/core-2.2.2/Integer.html#method-i-odd-3F), [Haskell](http://hackage.haskell.org/package/base-4.11.1.0/docs/Prelude.html#v:even), [Clojure](https://clojuredocs.org/clojure.core/odd_q), and according to [RosettaCode](https://www.rosettacode.org/wiki/Even_or_odd): Julia, Racket, Scheme, Smalltalk, Common Lisp.
+
+**Readability:** This proposal significantly improves readability, as expressions read like straightforward English sentences. There is no need to mentally parse and understand non-obvious operator precedence rules (`%` has higher precedence than `==`).
+
+The `isEven` and `isOdd` properties are also fewer characters wide than the remainder approach (maximum 7 characters for `.isEven` vs 9 for ` % 2 == 0`) which saves horizontal space while being clearer in intent.
 
 ```swift
 // Gray background for even rows, white for odd.
@@ -60,29 +67,30 @@ public static func random<T: RandomNumberGenerator>(using generator: inout T) ->
 _sanityCheck(bytes > 0 && bytes.isDivisible(by: 4), "capacity must be multiple of 4 bytes")
 ```
 
-**Discoverability:** Determining whether a value is even or odd is a common question across programming languages, at least based on these Stack Overflow questions:
-[c - How do I check if an integer is even or odd?](https://stackoverflow.com/questions/160930/how-do-i-check-if-an-integer-is-even-or-odd) 300,000+ views
-[java - Check whether number is even or odd](https://stackoverflow.com/questions/7342237/check-whether-number-is-even-or-odd) 350,000+ views
-[Check if a number is odd or even in python](https://stackoverflow.com/questions/21837208/check-if-a-number-is-odd-or-even-in-python) 140,000+ views
+**Discoverability:** IDEs will be able to suggest `isEven`, `isOdd`, and `isDivisible` as part of autocomplete which will aid discoverability. It will also be familiar to users coming from languages that also support functionality similar to `isEven` and `isOdd`.
 
-IDEs will be able to suggest `.isEven` and `.isOdd` as part of autocomplete which will aid discoverability.
+**Trivially composable:** It would be relatively easy to reproduce the proposed functionality in user code but there would be benefits to having a standard implementation. It may not be obvious to some users exactly which protocol these properties belong on (`Int`?, `SignedInteger`?, `FixedWidthInteger`?, `BinaryInteger`?). This inconsistency can be seen in a [popular Swift utility library](https://github.com/SwifterSwift/SwifterSwift/blob/master/Sources/Extensions/SwiftStdlib/SignedIntegerExtensions.swift#L28) which defines `isEven` and `isOdd` on `SignedInteger` which results in the properties being inaccessible for unsigned integers.
 
-**Consistency:** It would be relatively easy to reproduce the properties in user code but there would be benefits to having a standard implementation. It may not be obvious to some users exactly which protocol these properties belong on (`Int`?, `SignedInteger`?, `FixedWidthInteger`?, `BinaryInteger`?). This inconsistency can be seen in a [popular Swift utility library](https://github.com/SwifterSwift/SwifterSwift/blob/master/Sources/Extensions/SwiftStdlib/SignedIntegerExtensions.swift#L28) which defines `isEven` and `isOdd` on `SignedInteger` which results in the properties being inaccessible for unsigned integers.
+Testing the parity of integers is also relatively common in sample code and educational usage. In this context, it’s usually not appropriate for an author to introduce this functionality (unless they are teaching extensions!) in order to avoid distracting from the main task at hand (e.g. filter, map, etc). It may also be the same situation for authoring test code: it'd be used if it were there but it's not worth the overhead of defining it manually.
 
-These properties will also eliminate the need to use remainder 2 and bitwise AND 1 to determine parity.
+This functionality will also eliminate the need to use the remainder operator or bitwise AND 1 when querying the divisibility of an integer.
 
-Adding `isEven` and `isOdd` is also consistent with the `.isEmpty` utility property, which is a convenience for `.count == 0`.
-```swift
-if array.count == 0 { ... }
-if array.isEmpty { ... }
+**Correctness:** It isn't [uncommon](https://github.com/apple/swift/blob/master/stdlib/public/core/RangeReplaceableCollection.swift#L1090) to see tests for oddness written as `value % 2 == 1` in Swift, but this is incorrect for negative odd values. The semantics of the `%` operator vary between programming languages, such as Ruby and Python, which can be surprising.
+```
+// Swift:
+7 % 2 == 1 // true
+-7 % 2 == 1 // false. -7 % 2 evaluates to -1
 
-if value % 2 == 0 { ... }
-if value.isEven { ... }
+// Ruby and Python
+7 % 2 == 1 // true
+-7 % 2 == 1 // true
 ```
 
-**Correctness:** There is a minor correctness risk in misinterpreting something like `value % 2 == 0`, particularly when used in a more complex statement, when compared to `value.isEven`.
+There is also a minor correctness risk in misinterpreting something like `value % 2 == 0`, particularly when used in a more complex statement, when compared to `value.isEven`.
 
-**Performance:** This proposal likely won’t have a major positive impact on performance but it should not introduce any additional overhead thanks to  `@inlineable`.
+**Performance:** It's _possible_ that `isDivisible` could be implemented in a more performant way than `% denominator == 0` for more complex types, such as a BigInteger/BigNum type.
+
+The addition of `isEven` and `isOdd` likely won’t have a major positive impact on performance but it should not introduce any additional overhead thanks to `@inlineable`.
 
 ## Proposed solution
 
