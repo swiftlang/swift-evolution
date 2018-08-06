@@ -3,7 +3,7 @@
 * Proposal: [SE-0222](0222-lazy-compactmap-sequence.md)
 * Authors: [TellowKrinkle](https://github.com/TellowKrinkle), [Johannes Weiß](https://github.com/weissi)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active review (July 30th...August 5th, 2018)**
+* Status: **Active review (July 30th...August 7th, 2018)**
 * Implementation: [apple/swift#14841](https://github.com/apple/swift/pull/14841)
 
 ## Introduction
