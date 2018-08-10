@@ -45,6 +45,12 @@ refactored code would be more clear and readable:
 In the former snippet, the `!` can be easily missed in a code
 review. The latter snippet reads more like plain English.
 
+Support for other operators like "<=" and ">" is not desired, as they
+make a statement about future releases and they don't account for
+patch releases. That means that client code will need to be updated if
+a patch release didn't fix a particular issue with the compiler, for
+example.
+
 ## Proposed solution
 
 The solution is small change in the parser so that the operator "<" is
