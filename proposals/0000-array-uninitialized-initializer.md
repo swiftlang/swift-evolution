@@ -54,12 +54,12 @@ of the newly created array's storage,
 and must set the intialized count of the array before exiting.
 
 ```swift
-var myArray = Array<Int>(unsafeUninitializedCapacity: 10) { buffer in
+var myArray = Array<Int>(unsafeUninitializedCapacity: 10) { buffer, initializedCount in
     for x in 1..<5 {
         buffer[x] = x
     }
     buffer[0] = 10
-    return 5
+    initializedCount = 5
 }
 // myArray == [10, 1, 2, 3, 4]
 ```
@@ -68,13 +68,13 @@ With this new initializer, it's possible to implement the stable partition
 as an extension to the `Collection` protocol, without any unnecessary copies:
 
 ```swift
-func stablyPartitioned(by belongsInFirstPartition: (Element) -> Bool) -> [Element] {
-    let result = Array<Element>(unsafeUninitializedCapacity: count) { 
+func stablyPartitioned(by belongsInFirstPartition: (Element) throws -> Bool) rethrows -> [Element] {
+    return try Array<Element>(unsafeUninitializedCapacity: count) { 
         buffer, initializedCount in
         var low = buffer.baseAddress!
         var high = low + buffer.count
         for element in self {
-            if belongsInFirstPartition(element) {
+            if try belongsInFirstPartition(element) {
                 low.initialize(to: element)
                 low += 1
             } else {
@@ -87,11 +87,8 @@ func stablyPartitioned(by belongsInFirstPartition: (Element) -> Bool) -> [Elemen
         buffer[highIndex...].reverse()
         initializedCount = buffer.count
     }
-    return result
 }
 ```
-
-The 
 
 ## Detailed design
 
@@ -101,7 +98,7 @@ The new initializer and method are added to both `Array` and `ContiguousArray`.
 /// Creates an array with the specified capacity, then calls the given closure
 /// with a buffer covering the array's uninitialized memory.
 ///
-/// The closure must return set its second parameter to a number `c`, the number 
+/// The closure must set its second parameter to a number `c`, the number 
 /// of elements that are initialized. The memory in the range `buffer[0..<c]`  
 /// must be initialized at the end of the closure's execution, and the memory 
 /// in the range `buffer[c...]` must be uninitialized.
@@ -129,8 +126,13 @@ public init(
     ) throws -> Void
 ) rethrows
 
-/// Calls the given closure with a pointer to the full capacity of the
-/// array's mutable contiguous storage.
+/// Calls the given closure with a buffer of the array's mutable contiguous 
+/// storage, reserving the specified capacity if necessary.
+///
+/// The closure must set its second parameter to a number `c`, the number 
+/// of elements that are initialized. The memory in the range `buffer[0..<c]`  
+/// must be initialized at the end of the closure's execution, and the memory 
+/// in the range `buffer[c...]` must be uninitialized.
 ///
 /// - Parameters:
 ///   - capacity: The capacity to guarantee for the array. `capacity` must
@@ -138,16 +140,16 @@ public init(
 ///   - body: A closure that can modify or deinitialize existing
 ///     elements or initialize new elements.
 ///     - Parameters:
-///       - buffer: An unsafe mutable buffer of the array's full storage,
-///         including any uninitialized capacity after the initialized
-///         elements. Only the elements in `buffer[0..<initializedCount]` are
-///         initialized. `buffer` covers the memory for exactly the number of 
-///         elements specified in the `capacity` parameter.
+///       - buffer: An unsafe mutable buffer of the array's storage, covering
+///         memory for the number of elements specifed by the `capacity`
+///         parameter. The elements in `buffer[0..<initializedCount]` are
+///         initialized, the memory in `buffer[initializedCount..<capacity]`
+///         is uninitialized.
 ///       - initializedCount: The count of the array's initialized elements.
 ///         If you initialize or deinitialize any elements inside `body`,
 ///         update `initializedCount` with the new count for the array.
 /// - Returns: The return value, if any, of the `body` closure parameter.
-public mutating func withUnsafeMutableBufferPointerToFullCapacity<Result>(
+public mutating func withUnsafeMutableBufferPointerToStorage<Result>(
     capacity: Int,
     _ body: (
         _ buffer: inout UnsafeMutableBufferPointer<Element>,
@@ -173,7 +175,7 @@ That is, this will result in a runtime error:
 
 ```swift
 var a = Array(1...10)
-a.withUnsafeMutableBufferPointerToFullCapacity(capacity: 5) { ... }
+a.withUnsafeMutableBufferPointerToStorage(capacity: 5) { ... }
 ```
 
 ### Guarantees after throwing
@@ -208,13 +210,21 @@ Because trailing closures are commonly used,
 it's important to include those terms in the initial argument label,
 such that they're always visible at the use site.
 
-#### `withUnsafeMutableBufferPointerToFullCapacity(capacity:_:)`
+#### `withUnsafeMutableBufferPointerToStorage(capacity:_:)`
 
 The mutating method is closely linked to the existing methods
 for accessing an array's storage via mutable buffer pointer,
-but has the important distinction of including access to uninitialized elements.
+but has the important distinction of including access
+to not just the elements of the array,
+but also the uninitialized portion of the array's storage.
 Extending the name of the closest existing method (`withUnsafeMutableBufferPointer`)
 to mark the distinction makes the relationship (hopefully) clear.
+
+**Suggested alternatives:**
+
+- `withUnsafeMutableBufferPointerToReservedCapacity(_:_:)`
+- `withUnsafeMutableBufferPointer(reservingCapacity:_:)`
+- `withUnsafeMutableBufferPointerToFullCapacity(capacity:_:)`
 
 #### Unused terminology
 
@@ -244,8 +254,6 @@ while this initializer performs the conversion as soon as the closure executes.
 As above, this term doesn't seem appropriate for use with this new API.
 
 
-
-
 ## Source compatibility
 
 This is an additive change to the standard library,
@@ -268,6 +276,17 @@ An earlier proposal had the initializer's closure return the new count,
 instead of using an `inout` parameter.
 This proposal uses the parameter instead,
 so that the method and initializer use the same closure type.
+
+In addition, the throwing behavior described above requires that
+the initialized count be set as an `inout` parameter instead of as a return value.
+Not every `Element` type can be trivially initialized,
+so a user that deinitializes some elements and then needs to throw an error would be stuck.
+(This is only an issue with the mutating method.)
+Removing the `throws` capability from the closure
+would solve this problem and simplify the new APIs' semantics,
+but would be inconsistent with the other APIs in this space
+and would make them unsuitable to use as building blocks
+for higher-level operations like `stablyPartitioned(by:)`.
 
 ### Creating an array from a buffer
 
@@ -293,20 +312,11 @@ extension Array {
             _ initializedCount: inout Int
         ) throws -> Void
     ) rethrows {
-        var buffer = UnsafeMutableBufferPointer<Element>.allocate(capacity: unsafeUninitializedCapacity)
-        var initializedCount = 0
-        defer {
-            buffer.baseAddress?.deinitialize(count: initializedCount)
-            buffer.deallocate() 
-        }
-        
-        try initializer(&buffer, &initializedCount)
         self = []
-        self.reserveCapacity(unsafeUninitializedCapacity)
-        self.append(contentsOf: buffer[..<initializedCount])
+        try self.withUnsafeMutableBufferPointerToStorage(capacity: unsafeUninitializedCapacity, initializer)
     }
 
-    public mutating func withUnsafeMutableBufferPointerToFullCapacity<Result>(
+    public mutating func withUnsafeMutableBufferPointerToStorage<Result>(
         capacity: Int,
         _ body: (
             _ buffer: inout UnsafeMutableBufferPointer<Element>,
