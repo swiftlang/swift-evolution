@@ -285,7 +285,7 @@ so a user that deinitializes some elements and then needs to throw an error woul
 Removing the `throws` capability from the closure
 would solve this problem and simplify the new APIs' semantics,
 but would be inconsistent with the other APIs in this space
-and would make them unsuitable to use as building blocks
+and would make them more difficult to use as building blocks
 for higher-level operations like `stablyPartitioned(by:)`.
 
 ### Creating an array from a buffer
