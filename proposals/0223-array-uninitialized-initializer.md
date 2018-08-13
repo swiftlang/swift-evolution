@@ -1,6 +1,6 @@
 # Accessing an Array's Uninitialized Buffer
 
-* Proposal: [SE-0223](0223-array-uninitialized-buffer.md)
+* Proposal: [SE-0223](0223-array-uninitialized-initializer.md)
 * Author: [Nate Cook](https://github.com/natecook1000)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
 * Status: **Active review (August 13...August 19, 2018)**
