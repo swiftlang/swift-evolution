@@ -104,7 +104,7 @@ Add two computed properties, `isEven` and `isOdd`, and a function `isMultiple` t
 // Integers.swift.gyb
 // On protocol BinaryInteger
 
-    @inlinable
+    @_transparent
     /// A Boolean value indicating whether this value is even.
     ///
     /// An integer is even if it is a multiple of two.
@@ -112,7 +112,7 @@ Add two computed properties, `isEven` and `isOdd`, and a function `isMultiple` t
         return isMultiple(of: 2)
     }
 
-    @inlinable
+    @_transparent
     /// A Boolean value indicating whether this value is odd.
     ///
     /// An integer is odd if it is not a multiple of two.
