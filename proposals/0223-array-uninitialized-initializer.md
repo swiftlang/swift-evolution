@@ -4,7 +4,7 @@
 * Author: [Nate Cook](https://github.com/natecook1000)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
 * Status: **Active review (August 13...August 19, 2018)**
-* Implementation: https://github.com/apple/swift/pull/17389
+* Implementation: [apple/swift#17389](https://github.com/apple/swift/pull/17389)
 * Bug: [SR-3087](https://bugs.swift.org/browse/SR-3087)
 
 ## Introduction
