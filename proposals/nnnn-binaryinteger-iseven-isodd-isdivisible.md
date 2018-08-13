@@ -1,4 +1,4 @@
-# Adding `isEven`, `isOdd`, `isDivisible` to `BinaryInteger`
+# Adding `isEven`, `isOdd`, `isMultiple` to `BinaryInteger`
 
 * Proposal: [SE-NNNN](NNNN-binaryinteger-iseven-isodd.md)
 * Authors: [Robert MacEachern](https://robmaceachern.com), [SiliconUnicorn](https://forums.swift.org/u/siliconunicorn/summary)
@@ -7,21 +7,21 @@
 
 ## Introduction
 
-This proposal adds `var isEven: Bool`, `var isOdd: Bool`, and `func isDivisible(by denominator: Self) -> Bool` to the `BinaryInteger` protocol. `isEven` and `isOdd` are convenience properties for querying the [parity](https://en.wikipedia.org/wiki/Parity_(mathematics)) of the integer and `isDivisible` is a more general function to determine the divisibility of an integer by an arbitrary denominator.
+This proposal adds `var isEven: Bool`, `var isOdd: Bool`, and `func isMultiple(of divisor: Self) -> Bool` to the `BinaryInteger` protocol. `isEven` and `isOdd` are convenience properties for querying the [parity](https://en.wikipedia.org/wiki/Parity_(mathematics)) of the integer and `isMultiple` is a more general function to determine whether an integer is a multiple of another integer.
 
 Swift-evolution thread: [Even and Odd Integers](https://forums.swift.org/t/even-and-odd-integers/11774)
 
 ## Motivation
 
-It is sometimes necessary to know whether or not an integer is divisible by a particular value. The most common case is testing for divisibility by 2 (even and oddness).
+It is sometimes necessary to know whether or not an integer is a multiple of another. The most common case is testing if a value is a multiple of 2 (even and oddness).
 
-**Commonality:** Testing divisibility shows up in a surprising number of contexts including UI code, algorithm implementations (often in the form of assertions), tests, benchmarks, documentation and tutorial/educational code.
+**Commonality:** Testing if a value is a multiple of another shows up in a surprising number of contexts including UI code, algorithm implementations (often in the form of assertions), tests, benchmarks, documentation and tutorial/educational code.
 
-Currently, the most common way to test a value for divisibility is by using the remainder operator (`%`) checking for a remainder of zero: `12 % 2 == 0 // returns true. 12 is divisible by 2`. Similarly, testing for indivisibility is done by checking for a remainder other than zero: `13 % 2 != 0 // returns true. 13 is not divisible by 2`.
+Currently, the most common way to test if a value is a multiple is by using the remainder operator (`%`) checking for a remainder of zero: `12 % 2 == 0 // returns true. 12 is a multiple of 2`. Similarly, testing that a value is _not_ a multiple of another is done by checking for a remainder other than zero: `13 % 2 != 0 // returns true. 13 is not a multiple of 2`.
 
 Alternatively, it is also possible to use the bitwise AND operator (`&`) to check the even/oddness of a value: `12 & 1 == 0 // returns true`.
 
-Some examples of divisibility in code (see more in appendix):
+Some examples of testing multiples in code (see more in appendix):
 
 ```swift
 // UITableView alternating row colour
@@ -66,10 +66,10 @@ public static func random<T: RandomNumberGenerator>(using generator: inout T) ->
 }
 
 // KeyPath.swift in apple/swift
-_sanityCheck(bytes > 0 && bytes.isDivisible(by: 4), "capacity must be multiple of 4 bytes")
+_sanityCheck(bytes > 0 && bytes.isMultiple(of: 4), "capacity must be multiple of 4 bytes")
 ```
 
-**Discoverability:** IDEs will be able to suggest `isEven`, `isOdd`, and `isDivisible` as part of autocomplete on integer types which will aid discoverability. It will also be familiar to users coming from languages that also support functionality similar to `isEven` and `isOdd`.
+**Discoverability:** IDEs will be able to suggest `isEven`, `isOdd`, and `isMultiple` as part of autocomplete on integer types which will aid discoverability. It will also be familiar to users coming from languages that also support functionality similar to `isEven` and `isOdd`.
 
 **Trivially composable:** It would be relatively easy to reproduce the proposed functionality in user code but there would be benefits to having a standard implementation. It may not be obvious to some users exactly which protocol these properties belong on (`Int`?, `SignedInteger`?, `FixedWidthInteger`?, `BinaryInteger`?). This inconsistency can be seen in a [popular Swift utility library](https://github.com/SwifterSwift/SwifterSwift/blob/master/Sources/Extensions/SwiftStdlib/SignedIntegerExtensions.swift#L28) which defines `isEven` and `isOdd` on `SignedInteger` which results in the properties being inaccessible for unsigned integers.
 
@@ -88,15 +88,17 @@ This functionality will also eliminate the need to use the remainder operator or
 -7 % 2 == 1 // true
 ```
 
+The `%` operator will also trap when the righthand side is zero. The proposed solution does not.
+
 There is also a minor correctness risk in misinterpreting something like `value % 2 == 0`, particularly when used in a more complex statement, when compared to `value.isEven`, e.g. `bytes > 0 && bytes % 4 == 0`.
 
-**Performance:** It's _possible_ that `isDivisible` could be implemented in a more performant way than `% denominator == 0` for more complex types, such as a BigInteger/BigNum type.
+**Performance:** It's _possible_ that `isMultiple` could be implemented in a more performant way than `% divisor == 0` for more complex types, such as a BigInteger/BigNum type.
 
 The addition of `isEven` and `isOdd` likely won’t have a major positive impact on performance but it should not introduce any additional overhead thanks to `@inlineable`.
 
 ## Proposed solution
 
-Add two computed properties, `isEven` and `isOdd`, and a function `isDivisible` to the `BinaryInteger` protocol.
+Add two computed properties, `isEven` and `isOdd`, and a function `isMultiple` to the `BinaryInteger` protocol.
 
 ```swift
 // Integers.swift.gyb
@@ -105,31 +107,34 @@ Add two computed properties, `isEven` and `isOdd`, and a function `isDivisible` 
     @inlinable
     /// A Boolean value indicating whether this value is even.
     ///
-    /// An integer is even if it is divisible by two.
+    /// An integer is even if it is a multiple of two.
     public var isEven: Bool {
-        return isDivisible(by: 2)
+        return isMultiple(of: 2)
     }
 
     @inlinable
     /// A Boolean value indicating whether this value is odd.
     ///
-    /// An integer is odd if it is not divisible by two.
+    /// An integer is odd if it is not a multiple of two.
     public var isOdd: Bool {
-        return !isDivisible(by: 2)
+        return !isEven
     }
 
     @inlinable
-    /// Returns a Boolean value that indicates whether the integer is divisible
-    /// by another integer.
+    /// Returns a Boolean value that indicates whether the integer is a
+    /// multiple of another integer.
     ///
-    /// A number is divisible by another number if it is capable of being divided
-    /// by the other number without a remainder.
+    /// For two integers a and b, b is a multiple of a if b = na for some integer n.
     ///
-    /// - Parameter denominator: An integer to test divisibility by.
-    /// - Returns: `true` if the integer is divisible by `denominator`;
+    /// - Note: 0 is a multiple of every integer.
+    ///
+    /// - Parameter divisor: The integer to test.
+    /// - Returns: `true` if `self` is a multiple of `divisor`;
     /// otherwise, `false`.
-    func isDivisible(by denominator: Self) -> Bool {
-        return self % denominator == 0
+    public func isMultiple(of divisor: Self) -> Bool {
+        guard self != 0 else { return true }
+        guard divisor != 0 else { return false }
+        return self % divisor == 0
     }
 ```
 
@@ -151,19 +156,26 @@ N/A
 
 ## Alternatives considered
 
-### `isEvenlyDivisible` instead of `isDivisible`
+### `isDivisible` instead of `isMultiple`
 
-There was some concern that `isDivisible` was not clearly named, but the majority of pitch respondents found `isDivisible` acceptable.
+The original discussions during the pitch phase where related to an `isDivisible(by:)` alternative to `isMultiple`. [Issues](https://forums.swift.org/t/even-and-odd-integers/11774/83) related to divisibility and division by zero were discussed and `isMultiple` was proposed as a solution that 1) avoids trapping on zero, and 2) avoids confusion where a value that is _divisible_ by zero would not be _dividable_ in Swift. e.g.
 
-### Only `isEven/isOdd` or only `isDivisible`.
+```
+let y = 0
+if 10.isDivisible(by: y) {
+	let val = 10 / y // traps
+}
+```
 
-During the pitch phase there were discussions about including only one of `isEven/isOdd` or `isDivisible` in the proposal.
+### Only `isEven/isOdd` or only `isMultiple`.
 
-On the one hand there were concerns that `isEven/isOdd` would not provide enough utility to justify inclusion into the standard library and that `isDivisible` was preferable as it was more general. `isEven/isOdd` are also trivial inverses of each other which Swift, as a rule, doesn't include in the standard library.
+During the pitch phase there were discussions about including only one of `isEven/isOdd` or `isMultiple` in the proposal.
 
-On the other hand there was some unscientific analysis that indicated that even/oddness accounted for 60-80% of the operations in which the result of the remainder operator was compared against zero. This lent some support to including `isEven/isOdd` over `isDivisible`. There is also more precedence in other languages for including `isEven/isOdd` over `isDivisible`.
+On the one hand there were concerns that `isEven/isOdd` would not provide enough utility to justify inclusion into the standard library and that `isMultiple` was preferable as it was more general. `isEven/isOdd` are also trivial inverses of each other which Swift, as a rule, doesn't include in the standard library.
 
-The authors decided that both were worthy of including in the proposal. Odd and even numbers have had special [shorthand labels](http://mathforum.org/library/drmath/view/65413.html) for thousands of years and are used frequently enough to justify the small additional weight `isEven/isOdd` would add to the standard library. `isDivisible` will greatly improve clarity and readability for arbitrary divisibility checks and also avoid potentially surprising `%` operator semantics with negative values.
+On the other hand there was some unscientific analysis that indicated that even/oddness accounted for 60-80% of the operations in which the result of the remainder operator was compared against zero. This lent some support to including `isEven/isOdd` over `isMultiple`. There is also more precedence in other languages for including `isEven/isOdd` over `isMultiple`.
+
+The authors decided that both were worthy of including in the proposal. Odd and even numbers have had special [shorthand labels](http://mathforum.org/library/drmath/view/65413.html) for thousands of years and are used frequently enough to justify the small additional weight `isEven/isOdd` would add to the standard library. `isMultiple` will greatly improve clarity and readability for arbitrary divisibility checks and also avoid potentially surprising `%` operator semantics with negative values.
 
 ## Appendix
 
