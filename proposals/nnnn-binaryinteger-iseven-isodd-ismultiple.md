@@ -109,7 +109,7 @@ Add two computed properties, `isEven` and `isOdd`, and a function `isMultiple` t
     ///
     /// An integer is even if it is a multiple of two.
     public var isEven: Bool {
-        return isMultiple(of: 2)
+        return _lowWord % 2 == 0
     }
 
     @_transparent
