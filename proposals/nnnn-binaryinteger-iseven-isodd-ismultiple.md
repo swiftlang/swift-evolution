@@ -8,7 +8,7 @@
 
 ## Introduction
 
-This proposal adds `var isEven: Bool`, `var isOdd: Bool`, and `func isMultiple(of divisor: Self) -> Bool` to the `BinaryInteger` protocol. `isEven` and `isOdd` are convenience properties for querying the [parity](https://en.wikipedia.org/wiki/Parity_(mathematics)) of the integer and `isMultiple` is a more general function to determine whether an integer is a multiple of another integer.
+This proposal adds `var isEven: Bool`, `var isOdd: Bool`, and `func isMultiple(of other: Self) -> Bool` to the `BinaryInteger` protocol. `isEven` and `isOdd` are convenience properties for querying the [parity](https://en.wikipedia.org/wiki/Parity_(mathematics)) of the integer and `isMultiple` is a more general function to determine whether an integer is a multiple of another integer.
 
 Swift-evolution thread: [Even and Odd Integers](https://forums.swift.org/t/even-and-odd-integers/11774)
 
