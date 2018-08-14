@@ -1,9 +1,9 @@
 # Support 'less than' operator in compilation conditions
 
-* Proposal: [SE-NNNN](NNNN-ifswift-lessthan-operator.md)
+* Proposal: [SE-0224](0224-ifswift-lessthan-operator.md)
 * Authors: [Daniel Martín](https://github.com/danielmartin)
-* Review Manager: TBD
-* Status: TBD
+* Review Manager: [Ted Kremenek](https://github.com/tkremenek)
+* Status: **Active review (August 13...August 19, 2018)**
 * Bugs: [SR-6852](https://bugs.swift.org/browse/SR-6852)
 * Implementations: https://github.com/apple/swift/pull/14503 (Stale?)
   https://github.com/apple/swift/pull/17960
