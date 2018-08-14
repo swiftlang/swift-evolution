@@ -79,6 +79,7 @@ Testing the parity of integers is also relatively common in sample code and educ
 This functionality will also eliminate the need to use the remainder operator or bitwise AND when querying the divisibility of an integer.
 
 **Correctness:** It isn't [uncommon](https://github.com/apple/swift/blob/master/stdlib/public/core/RangeReplaceableCollection.swift#L1090) to see tests for oddness written as `value % 2 == 1` in Swift, but this is incorrect for negative odd values. The semantics of the `%` operator vary between programming languages, such as Ruby and Python, which can be surprising.
+
 ```
 // Swift:
 7 % 2 == 1 // true
@@ -106,37 +107,12 @@ Add two computed properties, `isEven` and `isOdd`, and a function `isMultiple` t
 // On protocol BinaryInteger
 
     @_transparent
-    /// A Boolean value indicating whether this value is even.
-    ///
-    /// An integer is even if it is a multiple of two.
-    public var isEven: Bool {
-        return _lowWord % 2 == 0
-    }
+    public var isEven: Bool { return _lowWord % 2 == 0 }
 
     @_transparent
-    /// A Boolean value indicating whether this value is odd.
-    ///
-    /// An integer is odd if it is not a multiple of two.
-    public var isOdd: Bool {
-        return !isEven
-    }
+    public var isOdd: Bool { return !isEven }
 
-    @inlinable
-    /// Returns a Boolean value that indicates whether the integer is a
-    /// multiple of another integer.
-    ///
-    /// For two integers a and b, b is a multiple of a if b = na for some integer n.
-    ///
-    /// - Note: 0 is a multiple of every integer.
-    ///
-    /// - Parameter divisor: The integer to test.
-    /// - Returns: `true` if `self` is a multiple of `divisor`;
-    /// otherwise, `false`.
-    public func isMultiple(of divisor: Self) -> Bool {
-        guard self != 0 else { return true }
-        guard divisor != 0 else { return false }
-        return self % divisor == 0
-    }
+    func isMultiple(of other: Self) -> Bool
 ```
 
 ## Detailed design
