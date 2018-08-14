@@ -1,7 +1,7 @@
 # Adding `isEven`, `isOdd`, `isMultiple` to `BinaryInteger`
 
 * Proposal: [SE-NNNN](NNNN-binaryinteger-iseven-isodd.md)
-* Authors: [Robert MacEachern](https://robmaceachern.com), [SiliconUnicorn](https://forums.swift.org/u/siliconunicorn/summary)
+* Authors: [Robert MacEachern](https://github.com/robmaceachern), [SiliconUnicorn](https://forums.swift.org/u/siliconunicorn/summary)
 * Review Manager: TBD
 * Status: **Implemented**
 * Implementation: [apple/swift#18689](https://github.com/apple/swift/pull/18689)
