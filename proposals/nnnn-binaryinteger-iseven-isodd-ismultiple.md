@@ -3,7 +3,8 @@
 * Proposal: [SE-NNNN](NNNN-binaryinteger-iseven-isodd.md)
 * Authors: [Robert MacEachern](https://robmaceachern.com), [SiliconUnicorn](https://forums.swift.org/u/siliconunicorn/summary)
 * Review Manager: TBD
-* Status: **Awaiting implementation**
+* Status: **Implemented**
+* Implementation: [apple/swift#18689](https://github.com/apple/swift/pull/18689)
 
 ## Introduction
 
