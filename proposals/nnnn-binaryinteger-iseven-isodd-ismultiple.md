@@ -96,7 +96,7 @@ There is also a minor correctness risk in misinterpreting something like `value 
 
 **Performance:** It's _possible_ that `isMultiple` could be implemented in a more performant way than `% divisor == 0` for more complex types, such as a BigInteger/BigNum type.
 
-The addition of `isEven` and `isOdd` likely won’t have a major positive impact on performance but it should not introduce any additional overhead thanks to `@inlineable`.
+The addition of `isEven` and `isOdd` likely won’t have a major positive impact on performance but it should not introduce any additional overhead thanks to `@_transparent`.
 
 ## Proposed solution
 
