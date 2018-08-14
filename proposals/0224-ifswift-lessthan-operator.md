@@ -5,8 +5,7 @@
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Status: **Active review (August 13...August 19, 2018)**
 * Bugs: [SR-6852](https://bugs.swift.org/browse/SR-6852)
-* Implementations: https://github.com/apple/swift/pull/14503 (Stale?)
-  https://github.com/apple/swift/pull/17960
+* Implementations: [apple/swift#17389](https://github.com/apple/swift/pull/17389) (Stale?), [apple/swift#17960](https://github.com/apple/swift/pull/17960)
 
 ## Introduction
 
