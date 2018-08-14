@@ -8,7 +8,7 @@
 ## Introduction
 
 Optionals are a key feature of Swift and a powerful tool that seamlessly interacts with code;
-they comprise an elegant and concise syntax that serves a great means of brevity when it comes to expressing
+they comprise an elegant and concise syntax that serves a great means in expressing
 "act accordingly if there's a value, skip otherwise".
 Some vivid examples are optional chaining with assignments, optional invocation `foo?()` and even `if let`. This proposal considers further supporting this convenience in `for-in` loops.
 
@@ -18,8 +18,8 @@ Swift-evolution thread: [Discussion thread topic for that proposal](https://foru
 
 Loops are indeed a common statement. When working with optional sequences, a possibility to optionally iterate
 (that is, iterate if there is a value, otherwise skip) is self-explanatory. However, Swift currently doesn't offer a way to express
-this 'natively', in the language of optionals. Optional sequences are illegal as a `for-in` loop attribute. The most common and correct way of putting it,
-especially when we need to handle the `nil` case (`else`) is
+this 'natively', in the language of optionals: optional sequences are illegal as a `for-in` loop attribute. The most common and way of putting it,
+especially when handling the `nil` case (`else`) is required, would be
 
 ```swift
 if let sequence = optionalSequence {
@@ -33,9 +33,9 @@ The bottom line being, if we don't require `else`, why not say `for? element in 
 
 ## Proposed solution
 
-Optional `for-in` loops and the possibility to use optional sequences therein. The `?` notation, however, will be a semantic
+Optional `for-in` loops and hence the possibility to use optional sequences an the sequence attribute. The `?` notation, however, will be a semantic
 emphasys rather than a functional syntactic unit. There will be no `for!`. The latter is redundant, but this decision was primarily
-made based on the potential confusion that an otherwise left without syntactic changes `for-in` loop could lead to
+made based on the incosistency and potential confusion that an otherwise left without syntactic changes `for-in` loop could lead to
 ("clarity over brevity"). The `?`, in fact, is not necessary: the sequence can be force-unwrapped if needed or left as-is
 without requiring addition syntax.
 
