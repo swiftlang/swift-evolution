@@ -3,7 +3,7 @@
 * Proposal: [SE-0220](0220-count-where.md)
 * Author: [Soroush Khanlou](https://github.com/khanlou)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Active review (August 6...12)**
+* Status: **Accepted**
 * Implementation: [apple/swift#16099](https://github.com/apple/swift/pull/16099)
 
 ## Introduction
