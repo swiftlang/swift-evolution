@@ -33,7 +33,7 @@ Raw strings and their design have been discussed in the following Evolution foru
 Modern programming languages use several approaches to represent string literals.
 
 * A **conventional string literal** is exactly what you use in Swift today. It allows you to use escape sequences like `\\` and `\"` and `\u{n}` to express backslashes, quotes, and unicode scalars, among other special character sequences.
-* A **raw string literal** ignores escape sequences. It allows you to paste raw code. In a raw string literal the sequence `\\\n` represents three backslashes followed by the letter n, not a backslash followed by a line feed.
+* A **raw string literal** ignores escape sequences. It allows you to paste raw code. In a raw string literal the sequence `\\\n` represents three backslashes followed by the letter "n", not a backslash followed by a line feed.
 * A **"cooked" string literal** (the term from C++) allows you to adapt leading and trailing string delimiters so you can include quote marks within the string but retain interpolated sequences. This allows a string to have content like `She said "\(phrase)" to him`, where the quotes do not need escaping and `phrase` is expanded to its evaluated content.
 
 This proposal uses the following terms.
@@ -41,7 +41,7 @@ This proposal uses the following terms.
 * **String literals** represent a sequence of characters in source.
 * **String delimiters** establish the boundaries at the start and end of a character sequence. Swift's string delimiter is `"`, the double quote (U+0022).
 * **Escape characters** create a special interpretation of one or more subsequent characters within a string literal. Swift's escape character is `\`, the backslash (U+005C).
-* **Escape character sequences** (shortened to _escape sequence_) represent special characters. In the current version of Swift, the backslash escape character tells the compiler that a sequence should combine to produce one of these special characters. 
+* **Escape character sequences** (shortened to _escape sequence_) represent special characters. In the current version of Swift, the backslash escape character tells the compiler that a sequence should combine to produce one of these special characters.
 
 ## Motivation
 
@@ -51,7 +51,7 @@ Hand-escaped strings require time and effort to transform source material to an 
 
 Escaping actively interferes with inspection. Developers should be able to inspect and modify raw strings in-place without removing that text from source code. This is especially important when working with precise content such as code sources and regular expressions.
 
-Backslash escapes are common in other languages and formats, from JSON to LaTeX to Javascript to regular expressions. Embedding these to a string literal currently requires doubling-up escapes, or even quadrupling if the source is pre-escaped. Pre-escaped source should be maintained exactly as presented so it can be used, for example, when contacting web-based services.
+Backslash escapes are common in other languages and formats, from JSON to LaTeX to Javascript to regular expressions. Embedding these in a string literal currently requires doubling-up escapes, or even quadrupling if the source is pre-escaped. Pre-escaped source should be maintained exactly as presented so it can be used, for example, when contacting web-based services.
 
 Importantly, raw strings are transportable. They allow developers to cut and paste content both from and to the literal string. This allows testing, reconfiguration, and adaption of raw content without the hurdles escaping and unescaping that limit development.
 
@@ -89,11 +89,11 @@ public static var newlineSeparators: Set<Character> = [
 
 To preserve the intended text, each backslash must be escaped, for example `\\u{2029}`. This is a relatively minor edit but if the code is being copied in and out of the source to permit testing and modification, then each hand-escaped cycle introduces the potential for error.
 
-Single-line string literals may similarly be peppered with backslashes to preserve their original intent, as in the following examples. 
+Single-line string literals may similarly be peppered with backslashes to preserve their original intent, as in the following examples.
 
 ```
 // Quoted Text
-let quote = "Alice: "How long is forever?" White Rabbit: "Sometimes, just one second."" 
+let quote = "Alice: "How long is forever?" White Rabbit: "Sometimes, just one second.""
 let quote = "Alice: \"How long is forever?\" White Rabbit: \"Sometimes, just one second.\""
 
 // and
@@ -109,9 +109,9 @@ Escaping hinders readability and interferes with inspection, especially in the l
 
 A good candidate for using raw strings is non-trivial and is burdened by escaping because it:
 
-* Is obscured by escaping. Escaping actively harms code review and validation.
-* Is already escaped. Escaped material should not be pre-interpreted by the compiler.
-* Requires easy transport between source and code in both directions, whether for testing or just updating source.
+* **Is obscured by escaping.** Escaping actively harms code review and validation.
+* **Is already escaped.** Escaped material should not be pre-interpreted by the compiler.
+* **Requires easy transport between source and code in both directions**, whether for testing or just updating source.
 
 The following example is a poor case for using a raw string:
 
@@ -125,19 +125,19 @@ The example is trivial and the escaping is not burdensome. It's unlikely that th
 
 Raw strings are most valuable for the following scenarios.
 
-**Metaprogramming**: Use cases include code-producing-code. This incorporates utility programming and building test cases without escaping. Apps may generate color scheme type extensions (in Swift, ObjC, for SpriteKit/SceneKit, literals, etc) or date formatters, perform language-specific escaping, create markup, and more.  
+**Metaprogramming**: Use cases include code-producing-code. This incorporates utility programming and building test cases. Apps may generate color scheme type extensions (in Swift, ObjC, for SpriteKit/SceneKit, literals, etc) or date formatters, perform language-specific escaping, create markup, and more.
 
 Escaping complicates copying and pasting from working code into your source and back. When you're talking about code, and using code, having that code be formatted as an easily updated raw string is especially valuable.
 
 Examples of popular apps that perform these tasks include Kite Compositor and PaintCode. Any utility app that outputs code would benefit in some form.
 
-**Regular expressions**: While regex in general is a much larger problem than raw strings, it is a primary (if not the primary) use case for many Swift developers. Even if we get native regular expressions in Swift, we will still sometimes have to write regular expressions intended for use in other systems using raw literals. 
+**Regular expressions**: While we have bigger plans for regular expressions in the future, we think they will be a primary use case for raw strings in the short term, and will continue to have an important place in regex usage in the long term.
 
-For instance, if you need to send a regex to a server, or embed it in Javascript, or put it in a SQL query, or (because you're calling existing code which requires it) you need to use `NSRegularExpression` directly, you'll still express a regular expression as a string literal. Raw literals will make that much easier.
+Even if we introduce native regular expressions in a future version of Swift, users will still sometimes have to write regular expressions intended for use in other systems. For instance, if you need to send a regex to a server, or embed it in Javascript, or put it in a SQL query, or construct an `NSRegularExpression` and pass it to an existing API which uses that type, you'll still express that regular expression as a string literal, not a native regex. And when you do, raw   strings will make that much easier.
 
-Our design's pound syntax might also be useful to extend to native regex literals. If this proposal is accepted, we'd already have it established in the language.
+A raw string feature would thus help with all regular expressions now and some regular expressions in the future. And if the native regular expression feature involves some form of quoting and escaping, it can follow the by-then-established precedent of this proposal to support "raw regexes".
 
-**Pedagogy**: Not all Swift learning takes place in the playground and not all code described in Swift source files use the Swift programming language. 
+**Pedagogy**: Not all Swift learning takes place in the playground and not all code described in Swift source files use the Swift programming language.
 
 Code snippets extend beyond playground-only solutions for many applications. Students may be presented with source code, which may be explained in-context within an application or used to populate text edit areas as a starting point for learning.
 
@@ -153,9 +153,6 @@ Removing escaped snippets to external files makes code review harder. Escaping (
 
 The first iteration of [SE-0200](https://github.com/apple/swift-evolution/blob/master/proposals/0200-raw-string-escaping.md) proposed adopting Python's model, using `r"...raw string..."`. The proposal was returned for revision with the [following feedback](https://forums.swift.org/t/returned-for-revision-se-0200-raw-mode-string-literals/11630):
 
-> The review of SE-0200: "Raw" mode string literals ran from March 16…26, 2018. The proposed is returned for revision, and should be further discussed as a pitch to coalesce further before coming up for review again.
->
-> 
 > During the review discussion, a few issues surfaced with the proposal, including:
 >
 > The proposed r"..." syntax didn’t fit well with the rest of the language. The most-often-discussed replacement was #raw("..."), but the Core Team felt more discussion (as a pitch) is necessary.
@@ -192,12 +189,12 @@ In Rust, raw string literals are written as `r"..."`. To embed double-quotes in 
 
 Rust's design distinguishes between conventional and raw string literals. It also includes an asymmetric `r` off its leading edge. We found these distinctions unnecessary and the `r` aesthetically displeasing. Instead, our design powers up a conventional Swift `String` literal and in doing so, allows you to access features normally associated with raw and cooked literals.
 
-In this design, there is only *one* variety of string literals. There is no special "raw" syntax. A string literal is either 
+In this design, there is no separate "raw" syntax; rather, there is a small extension of the conventional string literal syntax. A conventional string literal is either:
 
 * a sequence of characters surrounded by double quotation marks ("), or 
 * a string that spans several lines surrounded by three double quotation marks.
 
-These are examples of Swift string literals:
+These are examples of conventional Swift string literals:
 
 ```
 "This is a single line Swift string literal"
@@ -208,7 +205,7 @@ These are examples of Swift string literals:
     """
 ```
 
-In this form, the revised string design acts exactly like any other string. You use escape character sequences including string interpolation exactly as you would today. A backslash escape character tells the compiler that a sequence should be interpolated, interpreted as an escaped character, or represent a unicode scalar. 
+In this form, the revised string design acts exactly like any other string. You use escape character sequences including string interpolation exactly as you would today. A backslash escape character tells the compiler that a sequence should be interpolated, interpreted as an escaped character, or represent a unicode scalar.
 
 Swift's escape sequences include:
 
@@ -236,7 +233,7 @@ static-string-literal -> " quoted-text " |
    # static-string-literal #
 ```
 
-Adding a pound signs *changes the string literal delimiter* allowing you to "cook" a string and include unescaped double quotes:
+Any instance of the delimiter which is not followed by the appropriate number of pound signs is treated as literal string contents, rather than as the end of the string literal. That is, the leading pound signs *change the string's delimiter* from `"` to `"#` (or `"##`', etc.). A plain `"` without pound signs after it is just a double-quote character inside the string.
 
 ```
 #"She said, "This is dialog!""#
@@ -253,7 +250,8 @@ When you need to include `#"` (pound-quote) or `"#` (quote-pound) in your charac
 
 ### Customized Escape Delimiters
 
-This design uses an *escape delimiter*, that is a sequence of one or more characters to indicate the beginning of an escape character sequence, rather than a single escape character.  Like Swift today, the escape delimiter begins with a backslash (Reverse Solidus, U+005C), and is followed by zero or more pound signs (Number Sign, U+0023). An escape delimiter in a string literal must match the number of pound signs used to delimit either end of the string.
+This design uses an *escape delimiter*, that is a sequence of one or more characters to indicate the beginning of an escape character sequence, rather than a single escape character.  Like Swift today, the escape delimiter begins with a backslash (Reverse Solidus, U+005C), but it is now followed by zero or more pound signs
+(Number Sign, U+0023). An escape delimiter in a string literal must match the number of pound signs used to delimit either end of the string.
 
 Here is the degenerate case. It is a normal string with no pound signs. The escape delimiter therefore needs no pound signs and a single backslash is sufficient to establish the escape character sequence:
 
@@ -272,7 +270,7 @@ Strings using custom boundary delimiters mirror their pound sign(s) after the le
 The escape delimiter customization matches the string. Any backslash that is not followed by the correct number of pound signs is treated as raw text. It is not an escape:
 
 ```
-#"This is not \(interpolated)"# 
+#"This is not \(interpolated)"#
 ```
 
 | String Start Delimiter | Escape Delimiter | String End Delimiter |
@@ -284,7 +282,7 @@ The escape delimiter customization matches the string. Any backslash that is not
 
 Inside the string, any backslash that is followed by too few pound signs (like `\#` in a `##""##` string) is not an escape delimiter. It is just that exact string. Any backslash  followed by too many pound signs (like `\##` in a `#""#` string) creates an invalid escape sequence because it is an escape delimiter followed by one or more pound signs.
 
-This escaping rule supports several important features: it provides for raw string support, cooked strings, *and* string interpolation.   We feel this is a huge win, especially for code generation applications. We believe this conceptual leap of elegance simplifies all our previous design workarounds and collapses them into one general solution. 
+This escaping rule supports several important features: it provides for raw string support, cooked strings, *and* string interpolation.   We feel this is a huge win, especially for code generation applications. We believe this conceptual leap of elegance simplifies all our previous design workarounds and collapses them into one general solution.
 
 This design retains Rust-inspired custom delimiters, offers all the features of both "cooked" and "raw" strings, introduces raw string interpolation, and does this _all_ without adding a new special-purpose string type to Swift.
 
@@ -341,13 +339,13 @@ Adjusting string delimiters allows you to eliminate escape sequences to present 
 ##"a string that needs "# in it"##
 
 #"""
-    a string with 
+    a string with
     """
     in it
     """#
 ```
 
-The following example terminates with backslash-r-backslash-n:
+The following example terminates with backslash-r-backslash-n, not a carriage return and line feed to the end.:
 
 ```
 #"a raw string containing \r\n"# 
@@ -377,6 +375,20 @@ Custom-delimited strings allow you to incorporate already-escaped text. For exam
 
 Without custom delimiters, Swift would silently unescape this content, yielding an invalid JSON message. Even if you did remember to escape, this process would be error-prone and difficult to maintain.
 
+However, if you wanted to interpolate the value of the "id" field, you could
+still do that without having to double-escape the other backslashes:
+
+```
+#"""
+	[
+		{
+			"id": "\#(idNumber)",
+			"title": "A title that \"contains\" \\\""
+		}
+	]
+	"""#
+```
+
 ## Errors
 
 The compiler errors when an escape delimiter is followed by an unrecognized value to complete an escape sequence. For example, using one-`#`-delimited strings:
@@ -389,10 +401,10 @@ The compiler errors when an escape delimiter is followed by an unrecognized valu
 
 The last example can introduce a fixit by adding another `#` to either side of the string so `\#` is no longer the escape delimiter. However, this eliminates the subsequent line feed (a valid escape sequence) that follows unless that, too, is appropriately updated.
 
-There are also wrong ways to add interpolated text. These examples are both errors. The escape delimiter in each case (respectively `\` and `\#`) is followed by `#`, forming an invalid escape sequences:
+There are also wrong ways to add interpolated text. These examples are both errors. The escape delimiter in each case (respectively `\` and `\#`) is followed by `#`, forming an invalid escape sequence:
 
 ```
-"This is not \#(correct)" 
+"This is not \#(correct)"
 
 #"This is not \##(correct)"#
 
@@ -435,7 +447,7 @@ We evaluated many, *many* designs from other languages and worked through a long
 
 Single quotes are a common syntax for raw strings in other languages. However, they're also commonly used for character literals (i.e. integer literals containing the value of a Unicode scalar) in other languages. If we use single quotes for raw strings, we cannot use them for character literals or any other future proposal. We see no need to burn single quotes on this feature.
 
-Similarly, while backticks preserve the meaning of "code voice" and "literal", as you are used to in markdown, they would conflict with escaped identifiers.
+Similarly, while backticks preserve the meaning of "code voice" and "literal", as you are used to in Markdown, they would conflict with escaped identifiers.
 
 ### Using "raw" and "rawString"
 
