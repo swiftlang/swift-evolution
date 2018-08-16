@@ -1,8 +1,9 @@
 # Enhancing String Literals Delimiters to Support Raw Text
 
 * Proposal: [SE-0200](0200-raw-string-escaping.md)
-* Author: [John Holdsworth](https://github.com/johnno1962), [Brent Royal-Gordon](https://github.com/brentdax), [Erica Sadun](https://github.com/erica)
+* Authors: [John Holdsworth](https://github.com/johnno1962), [Brent Royal-Gordon](https://github.com/brentdax), [Erica Sadun](https://github.com/erica)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/102b2f2770f0dab29f254a254063847388647a4a/proposals/0200-raw-string-escaping.md)
 * Status: **Returned for revision**
 * Implementation: [apple/swift#17668](https://github.com/apple/swift/pull/17668)
 * Toolchain: [available here](http://johnholdsworth.com/swift-RAWSTRINGII-DEVELOPMENT-SNAPSHOT-2018-06-27-a.tgz)
@@ -31,11 +32,10 @@ Raw strings and their design have been discussed in the following Evolution foru
 
 ## Background
 
-Modern programming languages use several approaches to represent string literals.
+Modern programming languages use two approaches to represent string literals.
 
 * A **conventional string literal** is exactly what you use in Swift today. It allows you to use escape sequences like `\\` and `\"` and `\u{n}` to express backslashes, quotes, and unicode scalars, among other special character sequences.
 * A **raw string literal** ignores escape sequences. It allows you to paste raw code. In a raw string literal the sequence `\\\n` represents three backslashes followed by the letter "n", not a backslash followed by a line feed.
-* A **"cooked" string literal** (the term from C++) allows you to adapt leading and trailing string delimiters so you can include quote marks within the string but retain interpolated sequences. This allows a string to have content like `She said "\(phrase)" to him`, where the quotes do not need escaping and `phrase` is expanded to its evaluated content.
 
 This proposal uses the following terms.
 
@@ -150,9 +150,9 @@ Removing escaped snippets to external files makes code review harder. Escaping (
 
 ## Initial Proposal
 
-"Raw-mode" strings were first discussed during the [SE-0168 Multi-Line String literals](https://github.com/apple/swift-evolution/blob/master/proposals/0168-multi-line-string-literals.md) review and postponed for later consideration. This proposal focuses on raw strongs to allow the entry of single and multi-line string literals.
+"Raw-mode" strings were first discussed during the [SE-0168 Multi-Line String literals](https://github.com/apple/swift-evolution/blob/master/proposals/0168-multi-line-string-literals.md) review and postponed for later consideration. This proposal focuses on raw strings to allow the entry of single and multi-line string literals.
 
-The first iteration of [SE-0200](https://github.com/apple/swift-evolution/blob/master/proposals/0200-raw-string-escaping.md) proposed adopting Python's model, using `r"...raw string..."`. The proposal was returned for revision with the [following feedback](https://forums.swift.org/t/returned-for-revision-se-0200-raw-mode-string-literals/11630):
+The first iteration of [SE-0200](https://github.com/apple/swift-evolution/blob/102b2f2770f0dab29f254a254063847388647a4a/proposals/0200-raw-string-escaping.md) proposed adopting Python's model, using `r"...raw string..."`. The proposal was returned for revision with the [following feedback](https://forums.swift.org/t/returned-for-revision-se-0200-raw-mode-string-literals/11630):
 
 > During the review discussion, a few issues surfaced with the proposal, including:
 >
@@ -188,7 +188,7 @@ In Rust, raw string literals are written as `r"..."`. To embed double-quotes in 
 
 ### Swiftifying Rust's Design
 
-Rust's design distinguishes between conventional and raw string literals. It also includes an asymmetric `r` off its leading edge. We found these distinctions unnecessary and the `r` aesthetically displeasing. Instead, our design powers up a conventional Swift `String` literal and in doing so, allows you to access features normally associated with raw and cooked literals.
+Rust's design distinguishes between conventional and raw string literals. It also includes an asymmetric `r` off its leading edge. We found these distinctions unnecessary and the `r` aesthetically displeasing. Instead, our design powers up a conventional Swift `String` literal and in doing so, allows you to access features normally associated with raw literals.
 
 In this design, there is no separate "raw" syntax; rather, there is a small extension of the conventional string literal syntax. A conventional string literal is either:
 
@@ -277,20 +277,20 @@ The escape delimiter customization matches the string. Any backslash that is not
 | String Start Delimiter | Escape Delimiter | String End Delimiter |
 | ---------------------- | ---------------- | -------------------- |
 | `"` | `\` | `"` |
-| `#"` | `#\` | `"#` |
-| `##"` | `##\` | `"##` |
-| `######"` | `######\` | `"######` |
+| `#"` | `\#` | `"#` |
+| `##"` | `\##` | `"##` |
+| `######"` | `\######` | `"######` |
 
 Inside the string, any backslash that is followed by too few pound signs (like `\#` in a `##""##` string) is not an escape delimiter. It is just that exact string. Any backslash  followed by too many pound signs (like `\##` in a `#""#` string) creates an invalid escape sequence because it is an escape delimiter followed by one or more pound signs.
 
-This escaping rule supports several important features: it provides for raw string support, cooked strings, *and* string interpolation.   We feel this is a huge win, especially for code generation applications. We believe this conceptual leap of elegance simplifies all our previous design workarounds and collapses them into one general solution.
+This escaping rule supports several important features: it provides for raw string support, *and* string interpolation.   We feel this is a huge win, especially for code generation applications. We believe this conceptual leap of elegance simplifies all our previous design workarounds and collapses them into one general solution.
 
-This design retains Rust-inspired custom delimiters, offers all the features of both "cooked" and "raw" strings, introduces raw string interpolation, and does this _all_ without adding a new special-purpose string type to Swift.
+This design retains Rust-inspired custom delimiters, offers all the features of "raw" strings, introduces raw string interpolation, and does this _all_ without adding a new special-purpose string type to Swift.
 
 Yes, this approach requires work:
 
 * You must use pound signs for any raw string.
-* You must use a more cumbersome interpolation sequence for raw and cooked strings than conventional strings.
+* You must use a more cumbersome interpolation sequence for raw strings than conventional strings.
 
 Hopefully the tradeoffs are worth it in terms of added expressibility and the resulting design is sufficiently elegant to pass muster.
 
@@ -361,6 +361,16 @@ The same behavior is extended to multi-line strings:
     """#
 ```
 
+New line escaping works as per [SE-182](https://github.com/apple/swift-evolution/blob/master/proposals/0182-newline-escape-in-strings.md):
+
+```
+#"""
+    this backslash and newline will be present in the string \
+    this newline will take it's escaped value in this case \#
+    and the line continues here with only a space joining. 
+    """#
+```
+
 Custom-delimited strings allow you to incorporate already-escaped text. For example, you can paste static data without having to worry about re-escaping a JSON message
 
 ```
@@ -388,6 +398,12 @@ still do that without having to double-escape the other backslashes:
 		}
 	]
 	"""#
+```
+
+It is anticipated raw strings will also work in attributes:
+```
+@available(swift, deprecated: 4.2, message:
+  #"Note: "\r\n" (CR-LF) is normalized to "\n" (LF)"#)
 ```
 
 ## Errors
