@@ -5,6 +5,7 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Returned for revision**
 * Implementation: [apple/swift#17668](https://github.com/apple/swift/pull/17668)
+* Toolchain: [available here](http://johnholdsworth.com/swift-RAWSTRINGII-DEVELOPMENT-SNAPSHOT-2018-06-27-a.tgz)
 * Bugs: [SR-6362](https://bugs.swift.org/browse/SR-6362) **Needs Update for New Design**
 
 ## Introduction
@@ -133,7 +134,7 @@ Examples of popular apps that perform these tasks include Kite Compositor and Pa
 
 **Regular expressions**: While we have bigger plans for regular expressions in the future, we think they will be a primary use case for raw strings in the short term, and will continue to have an important place in regex usage in the long term.
 
-Even if we introduce native regular expressions in a future version of Swift, users will still sometimes have to write regular expressions intended for use in other systems. For instance, if you need to send a regex to a server, or embed it in Javascript, or put it in a SQL query, or construct an `NSRegularExpression` and pass it to an existing API which uses that type, you'll still express that regular expression as a string literal, not a native regex. And when you do, raw   strings will make that much easier.
+Even if we introduce native regular expressions in a future version of Swift, users will still sometimes have to write regular expressions intended for use in other systems. For instance, if you need to send a regex to a server, or embed it in Javascript, or put it in a SQL query, or construct an `NSRegularExpression` and pass it to an existing API which uses that type, you'll still express that regular expression as a string literal, not a native regex. And when you do, raw strings will make that much easier.
 
 A raw string feature would thus help with all regular expressions now and some regular expressions in the future. And if the native regular expression feature involves some form of quoting and escaping, it can follow the by-then-established precedent of this proposal to support "raw regexes".
 
@@ -345,7 +346,7 @@ Adjusting string delimiters allows you to eliminate escape sequences to present 
     """#
 ```
 
-The following example terminates with backslash-r-backslash-n, not a carriage return and line feed to the end.:
+The following example terminates with backslash-r-backslash-n, not a carriage return and line feed:
 
 ```
 #"a raw string containing \r\n"# 
