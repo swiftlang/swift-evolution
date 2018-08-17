@@ -1,9 +1,9 @@
 # Adding `isEven`, `isOdd`, `isMultiple` to `BinaryInteger`
 
-* Proposal: [SE-0225](0225-binaryinteger-iseven-isodd.md)
+* Proposal: [SE-0225](0225-binaryinteger-iseven-isodd-ismultiple.md)
 * Authors: [Robert MacEachern](https://github.com/robmaceachern), [Micah Hansonbrook](https://github.com/SiliconUnicorn)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Scheduled** for August 20...26, 2018
+* Status: **Scheduled for review (August 20...26)**
 * Implementation: [apple/swift#18689](https://github.com/apple/swift/pull/18689)
 
 ## Introduction
