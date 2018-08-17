@@ -72,13 +72,13 @@ _sanityCheck(bytes > 0 && bytes.isMultiple(of: 4), "capacity must be multiple of
 
 **Discoverability:** IDEs will be able to suggest `isEven`, `isOdd`, and `isMultiple` as part of autocomplete on integer types which will aid discoverability. It will also be familiar to users coming from languages that also support functionality similar to `isEven` and `isOdd`.
 
-**Trivially composable:** It would be relatively easy to reproduce the proposed functionality in user code but there would be benefits to having a standard implementation. It may not be obvious to some users exactly which protocol these properties belong on (`Int`?, `SignedInteger`?, `FixedWidthInteger`?, `BinaryInteger`?). This inconsistency can be seen in a [popular Swift utility library](https://github.com/SwifterSwift/SwifterSwift/blob/master/Sources/Extensions/SwiftStdlib/SignedIntegerExtensions.swift#L28) which defines `isEven` and `isOdd` on `SignedInteger` which results in the properties being inaccessible for unsigned integers.
+**Trivially composable:** It would be relatively easy to reproduce the proposed functionality in user code but there would be benefits to having a standard implementation. It may not be obvious to some users exactly which protocol these properties belong on (`Int`?, `SignedInteger`?, `FixedWidthInteger`?, `BinaryInteger`?). This inconsistency can be seen in a [popular Swift utility library](https://github.com/SwifterSwift/SwifterSwift/blob/9eb6259faf6689a161825cc91cccec0c82edea8d/Sources/Extensions/SwiftStdlib/SignedIntegerExtensions.swift#L28) which defines `isEven` and `isOdd` on `SignedInteger` which results in the properties being inaccessible for unsigned integers.
 
 Testing the parity of integers is also relatively common in sample code and educational usage. In this context, it’s usually not appropriate for an author to introduce this functionality (unless they are teaching extensions!) in order to avoid distracting from the main task at hand (e.g. filter, map, etc). It may also be the same situation for authoring test code: it'd be used if it existed but it's not worth the overhead of defining it manually.
 
 This functionality will also eliminate the need to use the remainder operator or bitwise AND when querying the divisibility of an integer.
 
-**Correctness:** It isn't [uncommon](https://github.com/apple/swift/blob/master/stdlib/public/core/RangeReplaceableCollection.swift#L1090) to see tests for oddness written as `value % 2 == 1` in Swift, but this is incorrect for negative odd values. The semantics of the `%` operator vary between programming languages, such as Ruby and Python, which can be surprising.
+**Correctness:** It isn't [uncommon](https://github.com/apple/swift/blob/4a43ee83e701145d69141adca311497c082b7170/stdlib/public/core/RangeReplaceableCollection.swift#L1090) to see tests for oddness written as `value % 2 == 1` in Swift, but this is incorrect for negative odd values. The semantics of the `%` operator vary between programming languages, such as Ruby and Python, which can be surprising.
 
 ```
 // Swift:
@@ -163,11 +163,11 @@ The authors decided that both were worthy of including in the proposal. Odd and 
 * Colouring a checker/chess board and [determining piece colour](https://github.com/nvzqz/Sage/blob/dec5edd97ba45d46bf94bc2e264d3ce2be6404ad/Sources/Piece.swift#L276)
 * Multiple occurrences in cpp Boost library. [Example: handleResizingVertex45](https://www.boost.org/doc/libs/1_62_0/boost/polygon/polygon_45_set_data.hpp)
 * Alternating bar colours in a chart
-* [VoronoiFilter implementation](https://github.com/BradLarson/GPUImage/blob/master/framework/Source/GPUImageJFAVoronoiFilter.m#L428) and [PoissonBlendFilter](https://github.com/BradLarson/GPUImage/blob/167b0389bc6e9dc4bb0121550f91d8d5d6412c53/framework/Source/GPUImagePoissonBlendFilter.m#L142)
-* [Image blurring library](https://github.com/nicklockwood/FXBlurView/blob/master/FXBlurView/FXBlurView.m#L58)
+* [VoronoiFilter implementation](https://github.com/BradLarson/GPUImage/blob/167b0389bc6e9dc4bb0121550f91d8d5d6412c53/framework/Source/GPUImageJFAVoronoiFilter.m#L428) and [PoissonBlendFilter](https://github.com/BradLarson/GPUImage/blob/167b0389bc6e9dc4bb0121550f91d8d5d6412c53/framework/Source/GPUImagePoissonBlendFilter.m#L142)
+* [Image blurring library](https://github.com/nicklockwood/FXBlurView/blob/9530adfc62fa682d0d8b3f612d3bb3af7a60ab7e/FXBlurView/FXBlurView.m#L58)
 * UPC check digit calculation [(spec)](http://www.gs1.org/how-calculate-check-digit-manually) (values in odd digit indices are multiplied by 3)
 * [Precondition check in sqlite function](https://github.com/sqlcipher/sqlcipher/blob/c6f709fca81c910ba133aaf6330c28e01ccfe5f8/src/crypto_impl.c#L1296)
-* [Alternating UITableView cell background style](https://github.com/alloy/HockeySDK-CocoaPods/blob/master/Pods/HockeySDK/Classes/BITFeedbackListViewController.m#L502). NSTableView [has built in support](https://developer.apple.com/documentation/appkit/nstableview/1533967-usesalternatingrowbackgroundcolo?language=objc) for this.
+* [Alternating UITableView cell background style](https://github.com/alloy/HockeySDK-CocoaPods/blob/978f3f072d206cfa35f4789d3a5b3abb31b9df11/Pods/HockeySDK/Classes/BITFeedbackListViewController.m#L502). NSTableView [has built in support](https://developer.apple.com/documentation/appkit/nstableview/1533967-usesalternatingrowbackgroundcolo?language=objc) for this.
 * [Barcode reading](https://github.com/TheLevelUp/ZXingObjC/blob/d952cc02beb948ab49832661528c5e3e4953885e/ZXingObjC/oned/rss/expanded/ZXRSSExpandedReader.m#L449)
 * [CSS row and column styling](https://www.w3.org/Style/Examples/007/evenodd.en.html) with `nth-child(even)` and `nth-child(odd)` (h/t @brentdax)
 * Various test code
