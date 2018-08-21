@@ -1,9 +1,9 @@
 # Package Manager Target Based Dependency Resolution
 
-* Proposal: [SE-NNNN](NNNN-package-manager-target-based-dep-resolution.md)
+* Proposal: [SE-0226](0226-package-manager-target-based-dep-resolution.md)
 * Authors: [Ankit Aggarwal](https://github.com/aciidb0mb3r)
 * Review Manager: [Boris Bügling](https://github.com/neonichu)
-* Status: **Discussion**
+* Status: **Active review (08 21...08 28)**
 
 ## Introduction
 
