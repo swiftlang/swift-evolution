@@ -3,7 +3,7 @@
 * Proposal: [SE-0226](0226-package-manager-target-based-dep-resolution.md)
 * Authors: [Ankit Aggarwal](https://github.com/aciidb0mb3r)
 * Review Manager: [Boris Bügling](https://github.com/neonichu)
-* Status: **Active review (08 21...08 28)**
+* Status: **Active review (August 21...28)**
 
 ## Introduction
 
