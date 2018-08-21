@@ -65,7 +65,7 @@ refers to this `self` member:
 ```swift
 let id = \Int.self
 
-x[keyPath: id] 3
+x[keyPath: id] = 3
 print(x[keyPath: id]) // prints 3
 ```
 
