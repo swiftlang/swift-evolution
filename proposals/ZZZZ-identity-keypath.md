@@ -67,6 +67,15 @@ let id = \Int.self
 
 x[keyPath: id] = 3
 print(x[keyPath: id]) // prints 3
+
+struct Employee {
+  var name: String
+  var position: String
+}
+
+func updateValue(of vc: ValueController<Employee>) {
+  vc[\.self] = Employee(name: "Cassius Green", position: "Power Caller")
+}
 ```
 
 The identity key path is a `WritableKeyPath<T, T>`, since it can be used to
