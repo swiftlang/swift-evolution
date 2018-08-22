@@ -4,7 +4,7 @@
 * Authors: [John Holdsworth](https://github.com/johnno1962), [Brent Royal-Gordon](https://github.com/brentdax), [Erica Sadun](https://github.com/erica)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/102b2f2770f0dab29f254a254063847388647a4a/proposals/0200-raw-string-escaping.md)
-* Status: **Scheduled for review (August 21...28)**
+* Status: **Active review (August 22...29)**
 * Implementation: [apple/swift#17668](https://github.com/apple/swift/pull/17668)
 * Toolchain: [available here](http://johnholdsworth.com/swift-RAWSTRINGII-DEVELOPMENT-SNAPSHOT-2018-06-27-a.tgz)
 * Bugs: [SR-6362](https://bugs.swift.org/browse/SR-6362) **Needs Update for New Design**
