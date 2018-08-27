@@ -73,19 +73,27 @@ func stablyPartitioned(by belongsInFirstPartition: (Element) throws -> Bool) ret
         buffer, initializedCount in
         var low = buffer.baseAddress!
         var high = low + buffer.count
-        for element in self {
-            if try belongsInFirstPartition(element) {
-                low.initialize(to: element)
-                low += 1
-            } else {
-                high -= 1
-                high.initialize(to: element)
+        do {
+            for element in self {
+                if try belongsInFirstPartition(element) {
+                    low.initialize(to: element)
+                    low += 1
+                } else {
+                    high -= 1
+                    high.initialize(to: element)
+                }
             }
+            
+            let highIndex = high - buffer.baseAddress!
+            buffer[highIndex...].reverse()
+            initializedCount = buffer.count
+        } catch {
+            let lowCount = low - buffer.baseAddress!
+            let highCount = (buffer.baseAddress! + buffer.count) - high
+            buffer.baseAddress!.deinitialize(count: lowCount)
+            high.deinitialize(count: highCount)
+            throw error
         }
-        
-        let highIndex = high - buffer.baseAddress!
-        buffer[highIndex...].reverse()
-        initializedCount = buffer.count
     }
 }
 ```
