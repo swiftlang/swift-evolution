@@ -3,8 +3,9 @@
 * Proposal: [SE-0225](0225-binaryinteger-iseven-isodd-ismultiple.md)
 * Authors: [Robert MacEachern](https://github.com/robmaceachern), [Micah Hansonbrook](https://github.com/SiliconUnicorn)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active review (August 20...26)**
+* Status: **Accepted with modifications**
 * Implementation: [apple/swift#18689](https://github.com/apple/swift/pull/18689)
+* Review: [Discussion thread](https://forums.swift.org/t/se-0225-adding-iseven-isodd-ismultiple-to-binaryinteger/15382), [Announcement thread](https://forums.swift.org/t/accepted-with-modifications-se-0225-adding-iseven-isodd-ismultiple-to-binaryinteger/15689)
 
 ## Introduction
 
