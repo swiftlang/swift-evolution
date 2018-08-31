@@ -3,7 +3,8 @@
 * Proposal: [SE-0079](0079-upgrade-self-from-weak-to-strong.md)
 * Author: [Evan Maloney](https://github.com/emaloney)
 * Review Manager: TBD
-* Status: **Deferred**
+* Status: **Implemented (Swift 4.2)**
+* Implementation: [apple/swift#15306](https://github.com/apple/swift/pull/15306)
 
 ## Introduction
 
