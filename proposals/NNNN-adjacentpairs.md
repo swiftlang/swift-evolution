@@ -1,7 +1,7 @@
 # Add an `adjacentPairs` algorithm to `Sequence`
 
 * Proposal: [SE-NNNN](NNNN-adjacentpairs.md)
-* Authors: [Michael Pangburn](https://github.com/mpangburn)
+* Author: [Michael Pangburn](https://github.com/mpangburn)
 * Review Manager: TBD
 * Status: [Implemented](https://github.com/apple/swift/pull/19115)
 
