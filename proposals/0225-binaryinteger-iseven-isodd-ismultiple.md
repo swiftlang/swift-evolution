@@ -1,4 +1,4 @@
-# Adding `isEven`, `isOdd`, `isMultiple` to `BinaryInteger`
+# Adding `isMultiple` to `BinaryInteger`
 
 * Proposal: [SE-0225](0225-binaryinteger-iseven-isodd-ismultiple.md)
 * Authors: [Robert MacEachern](https://github.com/robmaceachern), [Micah Hansonbrook](https://github.com/SiliconUnicorn)
@@ -6,6 +6,8 @@
 * Status: **Implemented (Swift 5)** (with modifications, see Implementation Notes)
 * Implementation: [apple/swift#18689](https://github.com/apple/swift/pull/18689)
 * Review: [Discussion thread](https://forums.swift.org/t/se-0225-adding-iseven-isodd-ismultiple-to-binaryinteger/15382), [Announcement thread](https://forums.swift.org/t/accepted-with-modifications-se-0225-adding-iseven-isodd-ismultiple-to-binaryinteger/15689)
+
+Note: the title of this proposal has been modified to reflect what was accepted.  The original title was "Adding `isEven`, `isOdd`, and `isMultiple` to `BinaryInteger`".
 
 ## Introduction
 
