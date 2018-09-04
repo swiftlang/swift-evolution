@@ -1,9 +1,9 @@
 # Identity key path
 
-* Proposal: [SE-ZZZZ](ZZZZ-identity-keypath.md)
+* Proposal: [SE-0227](0227-identity-keypath.md)
 * Authors: [Joe Groff](https://github.com/jckarter)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
+* Status: **Active Review (Sep 4---Sep 12)**
 * Implementation: [apple/swift#18804](https://github.com/apple/swift/pull/18804)
 
 ## Introduction
