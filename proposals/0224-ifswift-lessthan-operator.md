@@ -31,6 +31,10 @@ code:
 #if !swift(>=4.2)
 // This will only be executed if the Swift version is less than 4.2.
 #endif
+
+#if !compiler(>=4.2)
+// This will only be executed if the Swift compiler version is less than 4.2.
+#endif
 ```
 
 With the introduction of support for the "<" unary operator, the
@@ -39,6 +43,10 @@ refactored code would be more clear and readable:
 ```swift
 #if swift(<4.2)
 // This will only be executed if the Swift version is less than 4.2.
+#endif
+
+#if compiler(<4.2)
+// This will only be executed if the Swift compiler version is less than 4.2.
 #endif
 ```
 
@@ -54,8 +62,8 @@ example.
 ## Proposed solution
 
 The solution is small change in the parser so that the operator "<" is
-supported. Diagnostic messages about invalid unary operators must be
-updated as well.
+supported for both the `#if swift` and `#if compiler` conditions. Diagnostic
+messages about invalid unary operators must be updated as well.
 
 ## Detailed design
 
