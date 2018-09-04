@@ -157,16 +157,9 @@ The authors decided that both were worthy of including in the proposal. Odd and 
 
 ## Implementation Notes
 
-Only `isMultiple(of:)` was approved during review, so the final implementation does not
-include `isEven` or `isOdd`. Two default implementations are provided in the standard library;
-one on `BinaryInteger` and one on `FixedWidthInteger & SignedInteger`. For types
-like concrete signed and unsigned fixed-size integers, like the standard library types, these
-two implementations should be nearly optimal.
+Only `isMultiple(of:)` was approved during review, so the final implementation does not include `isEven` or `isOdd`. Two default implementations are provided in the standard library; one on `BinaryInteger` and one on `FixedWidthInteger & SignedInteger`. For concrete signed and unsigned fixed-size integers, like the standard library types, these two implementations should be nearly optimal.
 
-For some user-defined types, especially bignum types, you may want to implement your own
-conformance for this function. Specifically, if your type does not have bounded min and max
-values, you should be able to do the divisibility check directly on the values rather than on the
-magnitudes, which may be more efficient.
+For some user-defined types, especially bignum types, you may want to implement your own conformance for this function. Specifically, if your type does not have bounded min and max values, you should be able to do the divisibility check directly on the values rather than on the magnitudes, which may be more efficient.
 
 ## Appendix
 
