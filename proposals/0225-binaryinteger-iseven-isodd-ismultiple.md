@@ -3,7 +3,7 @@
 * Proposal: [SE-0225](0225-binaryinteger-iseven-isodd-ismultiple.md)
 * Authors: [Robert MacEachern](https://github.com/robmaceachern), [Micah Hansonbrook](https://github.com/SiliconUnicorn)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Accepted with modifications**
+* Status: **Implemented (Swift 5)** (with modifications, see Implementation Notes)
 * Implementation: [apple/swift#18689](https://github.com/apple/swift/pull/18689)
 * Review: [Discussion thread](https://forums.swift.org/t/se-0225-adding-iseven-isodd-ismultiple-to-binaryinteger/15382), [Announcement thread](https://forums.swift.org/t/accepted-with-modifications-se-0225-adding-iseven-isodd-ismultiple-to-binaryinteger/15689)
 
@@ -154,6 +154,22 @@ On the one hand there were concerns that `isEven/isOdd` would not provide enough
 On the other hand there was some unscientific analysis that indicated that even/oddness accounted for 60-80% of the operations in which the result of the remainder operator was compared against zero. This lent some support to including `isEven/isOdd` over `isMultiple`. There is also more precedence in other languages for including `isEven/isOdd` over `isMultiple`.
 
 The authors decided that both were worthy of including in the proposal. Odd and even numbers have had special [shorthand labels](http://mathforum.org/library/drmath/view/65413.html) for thousands of years and are used frequently enough to justify the small additional weight `isEven/isOdd` would add to the standard library. `isMultiple` will greatly improve clarity and readability for arbitrary divisibility checks and also avoid potentially surprising `%` operator semantics with negative values.
+
+## Implementation Notes
+
+Only `isMultiple(of:)` was approved during review, so the final implementation does not
+include `isEven` or `isOdd`. A default implementation is provided for integers conforming to
+`FixedWidthInteger`; types conforming to `BinaryInteger` but not `FixedWidthInteger`
+will need to provide their own implementation. For *most* such types, the following will be
+correct:
+```swift
+func isMultiple(of other: Self) -> Bool {
+  if other == 0 { return self == 0 }
+  return self % other == 0
+}
+```
+but pay careful attention to the behavior around any edge cases where the result of `%` may
+not be representable in your type.
 
 ## Appendix
 
