@@ -1,10 +1,10 @@
 # Fix `ExpressibleByStringInterpolation`
 
-* Proposal: [SE-NNNN](NNNN-fix-expressible-by-string-interpolation.md)
+* Proposal: [SE-0228](0228-fix-expressible-by-string-interpolation.md)
 * Authors: [Brent Royal-Gordon](https://github.com/brentdax), [Michael Ilseman](https://github.com/milseman)
-* Review Manager: TBD
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Implementation: [apple/swift#18590](https://github.com/apple/swift/pull/18590)
-* Status: **Implemented**
+* Status: **Scheduled for review (September 10...September 18, 2018)**
 
 ## Introduction
 
