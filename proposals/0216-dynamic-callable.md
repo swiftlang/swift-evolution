@@ -119,7 +119,7 @@ original Python code in expressiveness:
 
 ```swift
 // import DogModule.Dog as Dog
-let Dog = Python.import(“DogModule.Dog")
+let Dog = Python.import("DogModule.Dog")
 
 // dog = Dog("Brianna")
 let dog = Dog("Brianna")
