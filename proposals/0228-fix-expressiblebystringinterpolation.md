@@ -88,6 +88,52 @@ String interpolation is the only remaining client of this type-checker entry poi
 
 </details>
 
+### Potential uses
+
+An improved string interpolation design could enable future standard library and Apple framework features; here are a few ideas. Note that we are not proposing these now and might not ever propose them in the future—they're just examples.
+
+#### Constructing formatted strings
+
+There are a number of approaches we could take to formatting values interpolated into strings. Here are a few examples with numbers:
+
+```swift
+// Use printf-style format strings:
+"The price is $\(cost, format: "%.2f")"
+
+// Use UTS #35 number formats:
+"The price is \(cost, format: "¤###,##0.00")"
+
+// Use Foundation.NumberFormatter, or a new type-safe native formatter:
+"The price is \(cost, format: moneyFormatter)"
+
+// Mimic String.init(_:radix:uppercase:)
+"The address is 0x\(addr, radix: 16)"
+```
+
+#### Logging
+
+Some logging facilities restrict the kinds of data that can be logged or require extra metadata on certain values; a more powerful interpolation feature could support that:
+
+```swift
+log("Processing \(public: tagName) tag containing \(private: contents)")
+```
+
+#### Constructing attributed strings
+
+`NSAttributedString` or a value-type wrapper around it could allow users to interpolate dictionaries of attributes to enable and disable them:
+
+```swift
+"\([.link: supportURL])Click here\([.link: nil]) to visit our support site"
+```
+
+#### Localization
+
+A `LocalizableString` type could be expressed by a string literal, which would be used to generate a format string key and a list of arguments; converting a `LocalizableString` to an ordinary `String` would look up the key in a `Bundle`'s localization table, then format the value with the arguments.
+
+```swift
+alert.messageText = Bundle.main.localized("The document “\(name)” could not be saved.")
+```
+
 ## Proposed solution
 
 We propose completely reworking the currently-deprecated `ExpressibleByStringInterpolation` as follows (doc comments omitted for brevity):
@@ -457,15 +503,3 @@ However, this requires that conformers expose a homogenous return value, which h
 We considered having a formal `appendInterpolation(_:)` requirement with an unconstrained generic parameter to mimic current behavior. We could even have a default implementation that vends strings and still honor overloading.
 
 However, we would have to give up on conformers being able to restrict the types or interpolation segment forms permitted.
-
-## Future directions
-
-This proposal does not include any new standard library features enabled by `appendInterpolation` overloads. These are out-of-scope for this proposal, but future work could include many kinds of formatting control:
-
-* Number formats, e.g. `\(myFloat, format: "###,###.##")`
-* Logging, e.g. `\(secret: userString)`
-* Existing String initializers, e.g.: `\(int, radix: 16, uppercase: true)`
-* Interpolation through a type-safe native formatter feature added by a future proposal
-* Interpolation in the style of the `print()` function, e.g. `\(x, y, z, separator: ",")`
-* Interpolation through Foundation formatters,  e.g. `\(date, with: myDateFormatter)`
-* Interpolation supporting attributed strings, localization, etc.
