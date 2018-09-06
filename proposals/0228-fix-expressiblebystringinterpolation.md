@@ -1,6 +1,6 @@
 # Fix `ExpressibleByStringInterpolation`
 
-* Proposal: [SE-0228](0228-fix-expressible-by-string-interpolation.md)
+* Proposal: [SE-0228](0228-fix-expressiblebystringinterpolation.md)
 * Authors: [Brent Royal-Gordon](https://github.com/brentdax), [Michael Ilseman](https://github.com/milseman)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Implementation: [apple/swift#18590](https://github.com/apple/swift/pull/18590)
