@@ -107,8 +107,10 @@ There are a number of approaches we could take to formatting values interpolated
 "The price is \(cost, format: moneyFormatter)"
 
 // Mimic String.init(_:radix:uppercase:)
-"The address is 0x\(addr, radix: 16)"
+"The checksum is 0x\(checksum, radix: 16)"
 ```
+
+You could imagine analogous formatting tools for other types, like `Data`, `Date`, or even just `String` itself.
 
 #### Logging
 
@@ -132,6 +134,7 @@ A `LocalizableString` type could be expressed by a string literal, which would b
 
 ```swift
 alert.messageText = Bundle.main.localized("The document “\(name)” could not be saved.")
+// Looks up "The document “%@” could not be saved."
 ```
 
 ## Proposed solution
