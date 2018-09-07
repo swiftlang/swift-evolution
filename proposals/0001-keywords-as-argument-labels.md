@@ -68,7 +68,7 @@ does not change the behavior of any well-formed code.
 
 ## Alternatives considered
 
-The primarily alternative here is to do nothing: Swift APIs will
+The primary alternative here is to do nothing: Swift APIs will
 continue to avoid keywords for argument labels, even when they are the
 most natural word for the label, and imported APIs will either
 continue to use backticks or will need to be renamed. This alternative
