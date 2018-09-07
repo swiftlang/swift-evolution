@@ -10,7 +10,7 @@
 Optionals are a key feature of Swift and a powerful tool that seamlessly interacts with code;
 they comprise an elegant and concise syntax that serves a great means in expressing
 "act accordingly if there's a value, skip otherwise".
-Some vivid examples are optional chaining, optional invocation `foo?()`,`if let`, `guard let` and `for let`. This proposal considers further supporting this convenience in `for-in` loops.
+Some vivid examples are optional chaining, optional invocation `foo?()`, `if let`, `guard let` and `for let`. This proposal considers further supporting this convenience in `for-in` loops.
 
 Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/t/another-try-at-allowing-optional-iteration/14376?u=anthonylatsis)
 
@@ -32,7 +32,7 @@ The bottom line being, if we don't require `else`, why not say `for? element in 
 ## Proposed solution
 
 Optional `for-in` loops and hence the possibility to use optional sequences as the sequence attribute. The `?` notation, however, will be a semantic
-emphasys rather than a functional syntactic unit. There will be no `for!`. The latter is redundant, but this decision was primarily made based on the incosistency and potential confusion that an otherwise left without syntactic changes `for-in` loop could potentially lead to ("clarity over brevity"). The `?`, in fact, is not necessary: the sequence can be force-unwrapped if needed or left as-is without additional syntax.
+emphasys rather than a functional syntactic unit. There will be no `for!`. The latter is redundant, but this decision was primarily made based on the inconsistency and potential confusion that an otherwise left without syntactic changes `for-in` loop could potentially lead to ("clarity over brevity"). The `?`, in fact, is not necessary: the sequence can be force-unwrapped if needed or left as-is without additional syntax.
 
 ``` swift
 var array: [Int]? = [1, 2, 3]
