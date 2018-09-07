@@ -10,16 +10,14 @@
 Optionals are a key feature of Swift and a powerful tool that seamlessly interacts with code;
 they comprise an elegant and concise syntax that serves a great means in expressing
 "act accordingly if there's a value, skip otherwise".
-Some vivid examples are optional chaining with assignments, optional invocation `foo?()` and even `if let`. This proposal considers further supporting this convenience in `for-in` loops.
+Some vivid examples are optional chaining, optional invocation `foo?()`,`if let`, `guard let` and `for let`. This proposal considers further supporting this convenience in `for-in` loops.
 
 Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/t/another-try-at-allowing-optional-iteration/14376?u=anthonylatsis)
 
 ## Motivation
 
-Loops are indeed a common statement. When working with optional sequences, a possibility to optionally iterate
-(that is, iterate if there is a value, otherwise skip) is self-explanatory. However, Swift currently doesn't offer a way to express
-this 'natively', in the language of optionals: optional sequences are illegal as a `for-in` loop attribute. The most common and way of putting it,
-especially when handling the `nil` case (`else`) is required, would be
+Loops are a common statement in almost every codebase. When working with optional sequences in Swift, a possibility to optionally iterate
+(that is, iterate if there is a value, otherwise skip) is self-explanatory. However, Swift currently doesn't offer a way to directly express this, in the language of optionals: optional sequences are illegal as a `for-in` loop attribute. The most common way of accomplishing this, especially when handling the `nil` case (`else`) is required, is
 
 ```swift
 if let sequence = optionalSequence {
@@ -27,17 +25,14 @@ if let sequence = optionalSequence {
 } // else { ... }
 ```
 
-Alternative workarounds include `?? []` for `Array` and `sequence?.forEach`, which excludes usage of control transfer statements.
+Among alternative workarounds that avoid an additional scope are `?? []` for `Array` and `sequence?.forEach`, which excludes usage of control transfer statements.
 
 The bottom line being, if we don't require `else`, why not say `for? element in optionalSequence { ... }` ?
 
 ## Proposed solution
 
-Optional `for-in` loops and hence the possibility to use optional sequences an the sequence attribute. The `?` notation, however, will be a semantic
-emphasys rather than a functional syntactic unit. There will be no `for!`. The latter is redundant, but this decision was primarily
-made based on the incosistency and potential confusion that an otherwise left without syntactic changes `for-in` loop could lead to
-("clarity over brevity"). The `?`, in fact, is not necessary: the sequence can be force-unwrapped if needed or left as-is
-without requiring addition syntax.
+Optional `for-in` loops and hence the possibility to use optional sequences as the sequence attribute. The `?` notation, however, will be a semantic
+emphasys rather than a functional syntactic unit. There will be no `for!`. The latter is redundant, but this decision was primarily made based on the incosistency and potential confusion that an otherwise left without syntactic changes `for-in` loop could potentially lead to ("clarity over brevity"). The `?`, in fact, is not necessary: the sequence can be force-unwrapped if needed or left as-is without additional syntax.
 
 ``` swift
 var array: [Int]? = [1, 2, 3]
@@ -50,21 +45,30 @@ for? element in array { ... }
 
 ## Detailed design
 
-An optional `for-in` loop over a nil sequence does nothing. Otherwise, it iterates normally. The `?` notation in `for?` is
-required if the passed sequence is optional. Roughly, one can imagine an optional `for-in` loop as `sequence?.forEach`.
+An optional `for-in` loop over a nil sequence does nothing. To be precise, it trips over nil when`sequence?.makeIterator()` is invoked and continues execution. Otherwise, it iterates normally. Roughly, one can imagine an optional `for-in` loop as `sequence?.forEach()`.
 
-With a yet rather vague picture of the implementation, I assume one of the options is to enclose an optional loop in an `if-let` statement during sil-gen.
+The `?` notation in `for?` is required if the passed sequence is optional and disallowed otherwise.
+```swift
+let array: [Int] = [1, 2, 3]
+let optArray: [Int]? = nil
+
+for element in optArray { // The usual 'must be force-unwrapped' error, but with the preffered fixit to use 'for?' 
+...
+}
+
+for? element in array { // error: optional for-in loop must not be used on a non-optional sequence of type '[Int]'
+...
+}
+```
 
 ## Source compatibility
 
-This feature is purely additive and hence does not imply source-breaking changes.
-Usage is context-sensitive and migration should be up to the user.
+This feature is purely additive.
 
 ## Effect on ABI stability
 
-This feature likely changes the code generation model.
+None
 
 ## Alternatives considered
 
-A similar approach was to leave out any syntactic changes. The downside is briefly explained in the
-[Proposed solution](#proposed-solution) section.
+The option of leaving out any syntactic changes was also discussed and met concern from the community. The drawback is briefly explained in the [Proposed solution](#proposed-solution) section.
