@@ -90,7 +90,7 @@ String interpolation is the only remaining client of this type-checker entry poi
 
 ### Potential uses
 
-An improved string interpolation design could enable future standard library and Apple framework features; here are a few ideas. Note that we are not proposing these now and might not ever propose them in the future—they're just examples.
+An improved string interpolation design could open many doors for future functionality in the standard library, in framework overlays, and in user code. To illustrate, here are some things we could use it for in code shipped with the Swift compiler. We're not proposing any of this, and any future proposal might look different—we're just demonstrating what's possible.
 
 #### Constructing formatted strings
 
@@ -133,8 +133,9 @@ log("Processing \(public: tagName) tag containing \(private: contents)")
 A `LocalizableString` type could be expressed by a string literal, which would be used to generate a format string key and a list of arguments; converting a `LocalizableString` to an ordinary `String` would look up the key in a `Bundle`'s localization table, then format the value with the arguments.
 
 ```swift
-alert.messageText = Bundle.main.localized("The document “\(name)” could not be saved.")
-// Looks up "The document “%@” could not be saved."
+// Builds a LocalizableString(key: "The document “%@” could not be saved.", arguments: [name])
+let message: LocalizableString = "The document “\(name)” could not be saved."
+alert.messageText = String(localized: message)
 ```
 
 ## Proposed solution
