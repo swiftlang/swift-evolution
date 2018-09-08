@@ -54,7 +54,7 @@ extension P where B: Collection {
   typealias A = B.Element
 }
 ```
-This is a feature the standard library has been using internal hack-arounds for to get defaulting behaviour for the `Indices` type of a constrained `RandomAccessCollection`: [RandomAccessCollection.swift](https://github.com/apple/swift/blob/master/stdlib/public/core/RandomAccessCollection.swift#L280-L283)
+This is a feature the standard library has been using internal hack-arounds for to get defaulting behaviour for the `Indices` type of a constrained `RandomAccessCollection`: [RandomAccessCollection.swift](https://github.com/apple/swift/blob/master/stdlib/public/core/RandomAccessCollection.swift#L270-L273)
 
 ### Edge Cases
 
@@ -116,6 +116,6 @@ protocol P {
   associatedtype R = Int
 }
 extension P {
-  typealias R = String
+  typealias R = String // Enforce existing syntax
 }
 ```
