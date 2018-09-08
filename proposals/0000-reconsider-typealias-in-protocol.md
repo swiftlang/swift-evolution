@@ -1,4 +1,4 @@
-# Overlook the semantics of type aliases in protocol extensions
+# Reconsider the semantics of type aliases in protocol extensions
 
 * Proposal: [SE-NNNN](NNNN-filename.md)
 * Authors: [Anthony Latsis](https://github.com/AnthonyLatsis)
