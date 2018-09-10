@@ -27,12 +27,23 @@ if let sequence = optionalSequence {
 
 To avoid additional nesting, you can coalesce with `?? []` for `Array` or use `sequence?.forEach`, which excludes usage of control transfer statements.
 
-The bottom line being, if we don't require `else`, why not say `for? element in optionalSequence { ... }` ?
-
 ## Proposed solution
 
-Optional `for-in` loops and hence the possibility to use optional sequences as the sequence attribute. The `?` notation, however, will be a semantic
-emphasys rather than a functional syntactic unit. There will be no `for!`. The latter is redundant, but this decision was primarily made based on the inconsistency and potential confusion that an otherwise left without syntactic changes `for-in` loop could potentially lead to ("clarity over brevity"). The `?`, in fact, is not necessary: the sequence can be force-unwrapped if needed or left as-is without additional syntax.
+This proposal introduces optional iteration (`for?`) and hence the possibility to use optional sequences as the sequence attribute in `for-in` loops. 
+
+``` swift 
+var array: [Int]? = nil
+
+for? element in array { ... } // Does nothing
+
+array = [1, 2, 3]
+
+for? element in array { ... }
+// Equivalent to
+for element in array! { ... }
+```
+
+The `?` notation, however, will be a semantic emphasys rather than a functional syntactic unit. There will be no `for!`. The latter is redundant, but this decision was primarily made based on the inconsistency and potential confusion that an otherwise left without syntactic changes `for-in` loop could potentially lead to ("clarity over brevity"). The `?`, in fact, is not necessary: the sequence can be force-unwrapped if needed or left as-is without additional syntax.
 
 ``` swift
 var array: [Int]? = [1, 2, 3]
