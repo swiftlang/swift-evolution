@@ -4,7 +4,7 @@
 * Authors: [Brent Royal-Gordon](https://github.com/brentdax), [Michael Ilseman](https://github.com/milseman)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Implementation: [apple/swift#18590](https://github.com/apple/swift/pull/18590)
-* Status: **Scheduled for review (September 10...September 18, 2018)**
+* Status: **Active review (September 10...September 18, 2018)**
 
 ## Introduction
 
