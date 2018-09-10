@@ -15,7 +15,7 @@ Swift-evolution thread: [Discussion thread topic for that proposal](https://foru
 
 ## Motivation
 
-Most statements provide convenience patterns and behavior for optionals. Consider `switch`, that can be used on optional values to switch over the unwrapped value if the value exists.
+Most statements provide convenience patterns and behavior for optionals. Consider `switch`, that can be used on optionals to switch over the unwrapped value if it exists.
 
 ```swift
 let str: Int? = nil
@@ -35,7 +35,7 @@ if let sequence = optionalSequence {
 }
 ```
 
-To avoid additional nesting, you can coalesce with `?? []` for `Array` only or use `sequence?.forEach`, which excludes usage of control transfer statements. As stated, both of these workarounds have considerable drawbacks.
+To avoid additional nesting, you can coalesce with `?? []` for `Array` only or use `sequence?.forEach`, which excludes usage of control transfer statements. As stated, both workarounds have considerable drawbacks.
 
 ## Proposed solution
 
@@ -90,4 +90,4 @@ None
 
 ## Alternatives considered
 
-The option of leaving out any syntactic changes was also discussed and met concern from the community. The drawback is briefly explained in the [Proposed solution](#proposed-solution) section. However, `switch` provides this convenience without additional syntactic sugar.
+The option of leaving out any syntactic changes was also discussed and met concern from the community. The drawback is briefly explained in the [Proposed solution](#proposed-solution) section. However, it is worth noting that `switch` provides this convenience without additional syntactic sugar.
