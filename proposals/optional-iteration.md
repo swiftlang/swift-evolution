@@ -17,15 +17,15 @@ Swift-evolution thread: [Discussion thread topic for that proposal](https://foru
 ## Motivation
 
 Loops are a common statement in almost every codebase. When working with optional sequences in Swift, a possibility to optionally iterate
-(that is, iterate if there is a value, otherwise skip) is self-explanatory. However, Swift currently doesn't offer a way to directly express this, in the language of optionals: optional sequences are illegal as a `for-in` loop attribute. The most common way of accomplishing this, especially when handling the `nil` case (`else`) is required, is
+(that is, iterate if there is a value, otherwise skip) is self-explanatory. However, Swift currently doesn't offer a way to directly express this, in the language of optionals: optional sequences are illegal as a `for-in` loop attribute. The most common way of accomplishing this is
 
 ```swift
 if let sequence = optionalSequence {
   for element in sequence { ... }
-} // else { ... }
+}
 ```
 
-Among alternative workarounds that avoid an additional scope are `?? []` for `Array` and `sequence?.forEach`, which excludes usage of control transfer statements.
+To avoid additional nesting, you can coalesce with `?? []` for `Array` or use `sequence?.forEach`, which excludes usage of control transfer statements.
 
 The bottom line being, if we don't require `else`, why not say `for? element in optionalSequence { ... }` ?
 
