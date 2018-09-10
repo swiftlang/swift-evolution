@@ -15,7 +15,7 @@ Swift-evolution thread: [Discussion thread topic for that proposal](https://foru
 
 ## Motivation
 
-Most statements provide convenience patterns and behavior for optionals. Consider `switch`, that be used on optional values to switch over the unwrapped value.
+Most statements provide convenience patterns and behavior for optionals. Consider `switch`, that can be used on optional values to switch over the unwrapped value if the value exists.
 
 ```swift
 let str: Int? = nil
@@ -24,6 +24,7 @@ switch str {
 case 0: print()
 case 1: print()
 default: print()
+}
 ```
 
 Loops are a common statement in almost every codebase. Similarly, a possibility to optionally iterate over a sequence (that is, iterate if there is a value, otherwise skip) is self-explanatory. However, Swift currently doesn't offer a pattern for expressing this directly: optional sequences are illegal as a `for-in` loop attribute. For a safe option, this makes us resort to optional binding:
