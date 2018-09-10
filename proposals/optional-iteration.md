@@ -8,14 +8,13 @@
 
 ## Introduction
 
-Optionals are a key feature of Swift and a powerful tool that seamlessly interacts with code; they comprise an elegant and concise syntax that serves a great means in expressing "act accordingly if there's a value, skip otherwise".
-Some vivid examples of such behavior are optional chaining, optional invocation `foo?()`, `if let`, `guard let` and `switch`. This proposal considers further supporting this convenience in `for-in` loops.
+Optionals are a key feature of Swift and a powerful tool that seamlessly interacts with code. In particular, they serve a great means in expressing "act accordingly if there's a value, skip otherwise". Some vivid examples of such behavior are optional chaining, optional invocation `foo?()`, `if let`, `guard let` and `switch`. This proposal considers further supporting this convenience in `for-in` loops.
 
 Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/t/another-try-at-allowing-optional-iteration/14376?u=anthonylatsis)
 
 ## Motivation
 
-Most statements provide convenience patterns and behavior for optionals. Consider `switch`, that can be used on optionals to switch over the unwrapped value if it exists.
+Most statements provide convenience patterns and behavior for optionals. Consider `switch`, that can be used on an optional to switch over the unwrapped value if it exists.
 
 ```swift
 let str: Int? = nil
@@ -27,7 +26,7 @@ default: print()
 }
 ```
 
-Loops are a common statement in almost every codebase. Similarly, a possibility to optionally iterate over a sequence (that is, iterate if there is a value, otherwise skip) is self-explanatory. However, Swift currently doesn't offer a pattern for expressing this directly: optional sequences are illegal as a `for-in` loop attribute. For a safe option, this makes us resort to optional binding:
+Loops too are a common statement in almost every codebase. Similarly, the possibility to optionally iterate over a sequence (that is, iterate if there is a value, otherwise skip) is self-explanatory. However, Swift currently doesn't offer a mechanism for expressing this directly: optional sequences are illegal as a `for-in` loop attribute. For a safe option, this makes us resort to optional binding:
 
 ```swift
 if let sequence = optionalSequence {
