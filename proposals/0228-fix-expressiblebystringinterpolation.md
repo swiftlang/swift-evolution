@@ -205,7 +205,11 @@ The associated `StringInterpolation` type is a sort of buffer or scratchpad wher
 
 The standard library will provide a `DefaultStringInterpolation` type; `StringProtocol`, and therefore `String` and `Substring`, will use this type for their interpolation. (`Substring` did not previously permit interpolation.)
 
-The standard library will also provide default implementations which forward the interpolated string to `init(stringLiteral:)`. The end result is that a type which already supports string literals can support interpolations without any special semantics by simply replacing `ExpressibleByStringLiteral` with `ExpressibleByStringInterpolation`.
+The standard library will also provide two sets of default implementations:
+
+* For types using `DefaultStringInterpolation`, it will provide a default `init(stringInterpolation:)` which extracts the value after interpolation and forwards it to `init(stringLiteral:)`. Thus, types which currently conform to `ExpressibleByStringLiteral` and use `String` as their literal type can add simple interpolation support by merely changing their conformance to `ExpressibleByStringInterpolation`.
+
+* For other types, it will provide a default `init(stringLiteral:)` which constructs a `Self.StringInterpolation` instance, calls its `appendLiteral(_:)` method, and forwards it to `init(stringInterpolation:)`. (An unavailable or deprecated `init(stringLiteral:)` will ensure that this is never used with the `init(stringInterpolation:)` provided for `DefaultStringInterpolation`-using types, which would cause infinite recursion.)
 
 ### The `appendInterpolation` method(s)
 
@@ -399,6 +403,7 @@ public struct DefaultStringInterpolation: StringInterpolationProtocol {
 }
 
 extension DefaultStringInterpolation: CustomStringConvertible {
+  @inlinable
   public var description: String {
     return _storage
   }
@@ -457,6 +462,8 @@ So did Swift library code size:
 | libswiftSwiftReflectionTest.dylib    | 0.92x            |
 
 We believe the current results already look pretty good, and further performance tuning is possible in the future. Other types can likely improve interpolation performance using `TextOutputStreamable`. Overall, this design has nowhere to go but up.
+
+The default `init(stringLiteral:)` (which is only used for types implementing fully custom string interpolation) is currently about 0.5x the speed of a manually-implemented `init(stringLiteral:)`, but prototyping indicates that inlining certain fast paths from `String.reserveCapacity(_:)` and `String.append(_:)` can reduce that penalty to 0.93x, and we may be able to squeeze out gains beyond that. Even if we cannot close this gap completely, performance-sensitive types can always implement `init(stringLiteral:)` manually.
 
 </details>
 
