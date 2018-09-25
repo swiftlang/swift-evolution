@@ -3,7 +3,7 @@
 * Proposal: [SE-0211](0211-unicode-scalar-properties.md)
 * Author: [Tony Allevato](https://github.com/allevato)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Accepted with revisions**
+* Status: **Implemented (Swift 5)**
 * Implementation: [apple/swift#15593](https://github.com/apple/swift/pull/15593)
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0211-add-unicode-properties-to-unicode-scalar/13857)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/9b1c670206052f5c94bcb20df1c30c27a06e9755/proposals/0211-unicode-scalar-properties.md)
