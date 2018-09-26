@@ -183,16 +183,6 @@ public protocol RandomNumberGenerator {
   mutating func next() -> UInt64
 }
 
-// These sets of functions are not required and are provided by the stdlib by default
-extension RandomNumberGenerator {
-  // This function provides generators a way of generating other unsigned integer types
-  public mutating func next<T : FixedWidthInteger & UnsignedInteger>() -> T
-
-  // This function provides generators a mechanism for uniformly generating a number from 0 to upperBound
-  // Developers can extend this function themselves and create different behaviors for different distributions
-  public mutating func next<T : FixedWidthInteger & UnsignedInteger>(upperBound: T) -> T
-}
-
 // The stdlib RNG.
 public struct SystemRandomNumberGenerator : RandomNumberGenerator {
   
@@ -200,10 +190,6 @@ public struct SystemRandomNumberGenerator : RandomNumberGenerator {
 
   // Conformance for `RandomNumberGenerator`, calls one of the crypto functions.
   public mutating func next() -> UInt64
-  
-  // We override the protocol defined one to prevent unnecessary work in generating an
-  // unsigned integer that isn't a UInt64
-  public mutating func next<T: FixedWidthInteger & UnsignedInteger>() -> T
 }
 
 extension Collection {
