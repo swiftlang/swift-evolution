@@ -394,6 +394,26 @@ The following Foundation Swift types will be adopting `Codable`, and will encode
 
 Along with these, the `Array`, `Dictionary`, and `Set` types will gain `Codable` conformance (as part of the Conditional Conformance feature), and encode through `NSKeyedArchiver` as `NSArray`, `NSDictionary`, and `NSSet` respectively.
 
+##### Standard Library Range Types Adopting `Codable`
+
+The following Standard Library range types will gain `Codable` conformance as part of the Conditional Conformance feature:
+
+* `Range`
+* `ClosedRange`
+* `PartialRangeFrom`
+* `PartialRangeThrough`
+* `PartialRangeUpTo`
+
+Due to all of the range types using `upperBound` and `lowerBound` throughout, the raw key values will be changed to make them unique and more verbose to prevent situations where `Range` is decoded to `ClosedRange` resulting in off by 1 errors.
+
+|Type|lowerBound|upperBound|
+|----|----------|----------|
+|Range|"from"|"upTo"|
+|ClosedRange|"from"|"through"|
+|PartialRangeFrom|"toEndFrom"| |
+|PartialRangeThrough| |"fromStartThrough"|
+|PartialRangeUpTo| |"fromStartUpTo"|
+
 ## Source compatibility
 
 The majority of this proposal is additive. The changes to `NSKeyedArchiver` are intended to be non-source-breaking changes, and non-behavior-breaking changes for subclasses in Objective-C and Swift.
