@@ -1,8 +1,8 @@
 # Flatten nested optionals resulting from 'try?'
 
-* Proposal: [SE-NNNN](NNNN-flatten-optional-try.md)
+* Proposal: [SE-0230](0230-flatten-optional-try.md)
 * Authors: [BJ Homer](https://github.com/bjhomer)
-* Review Manager: TBD
+* Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Awaiting review**
 * Implementation: [apple/swift#16942](https://github.com/apple/swift/pull/16942)
 
