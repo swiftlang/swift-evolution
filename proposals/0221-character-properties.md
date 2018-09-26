@@ -3,8 +3,10 @@
 * Proposal: [SE-0221](0221-character-properties.md)
 * Authors: [Michael Ilseman](https://github.com/milseman), [Tony Allevato](https://github.com/allevato)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active review (July 23...29)**
+* Status: **Accepted with revisions**
 * Implementation: [apple/swift#15880](https://github.com/apple/swift/pull/15880)
+* Review: [Discussion thread](https://forums.swift.org/t/se-0221-character-properties/14686), [Announcement thread](https://forums.swift.org/t/accepted-with-modification-se-0221-character-properties/14944/2)
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/fdb725c240033c5273860b0a66d2189d62a97608/proposals/0221-character-properties.md)
 
 ## Introduction
 
@@ -214,33 +216,8 @@ extension Character {
   ///   * "“" (U+201C LEFT DOUBLE QUOTATION MARK)
   ///
   public var isPunctuation: Bool { ... }
-
-  /// Whether this Character has an emoji presentation
-  ///
-  /// Examples:
-  ///
-  ///  * "2\u{FE0F}\u{20E3}".isEmoji // True (2️⃣)
-  ///  * "\u{00A9}\u{FE0F}".isEmoji // True (©️)
-  ///  * "\u{2708}".isEmoji // False (U+2708 AIRPLANE)
-  ///  * "\u{2708}\u{FE0F}.isEmoji" // True (U+2708 AIRPLANE, emoji_presentation_selector)
-  ///
-  /// Note: When a presentation selector is absent, this returns whether the
-  /// Character is presented as emoji *by default*. Whether an environment
-  /// chooses to actually render these as emoji or textually may be context or
-  /// platform dependent.
-  ///
-  public var isEmoji: Bool { ... }
 }
 ```
-
-Additionally, we propose an explicit `ascii:` label be added to `FixedWidthInteger`’s failable init from a `String`, and an additional one defined over `Character`. We argue the old name is harmful and an explicit label more closely adheres to the [API Design Guidelines](https://swift.org/documentation/api-design-guidelines/). See “Detailed Semantics and Rationale” below.
-
-```diff
-- FixedWidthInteger.init?<S: StringProtocol>(_: S, radix: Int = 10)
-+ FixedWidthInteger.init?<S: StringProtocol>(ascii: S, radix: Int = 10)
-+ FixedWithInteger.init?(ascii: Character, radix: Int = 10)
-```
-
 
 ## Detailed Semantics and Rationale
 
@@ -263,7 +240,7 @@ Where there is no clear interpretation or specific value to produce, we try to b
 
 Permissive APIs should in general be non-inlinable and their documentation may be less precise regarding details and corner cases. This allows for a greater degree of library evolution. Permissive properties typically accept/reject based on an analysis of part of the grapheme.
 
-* Fuzzy queries: `isNumber`, `isLetter`, `isSymbol` / `isMathSymbol` / `isCurrencySymbol`, `isPunctuation`, `isEmoji`
+* Fuzzy queries: `isNumber`, `isLetter`, `isSymbol` / `isMathSymbol` / `isCurrencySymbol`, `isPunctuation`
 
 #### Newlines and Whitespace
 
@@ -271,18 +248,8 @@ Newlines encompass more than hard line-breaks in traditional written language; t
 
 We recommend that the precise semantics of `isWhitespace` and `isNewline` be unspecified regarding graphemes consisting of leading whitespace/newlines followed by combining scalars.
 
-### Adding `ascii:` Label to `FixedWidthInteger.init?<S: StringProtocol>(_: S, radix: Int = 10)`
-
-We argue that the `ascii:` label is required to clarify two primary ambiguities: the kinds of digits accepted and the encoding subset supported.
-
-The existence of support for radices up to 36 implies that the kinds of digits accepted be restricted to Latin numerals and consecutively-encoded Latin letters (i.e. hexadecimal digits along with the next 20 letters). This is quite a mental leap to make without an explicit label. Additionally, this initializer rejects fullwidth compatibility forms which are otherwise considered digits with radices (i.e. they are hexadecimal digits with similar subsequent 20 letters).
-
-We argue that the rules regarding omitting argument label for value-preserving type conversions do not apply as this initializer is not monomorphic due to casing.
-
-This label’s clarity is more apparent in the proposed `FixedWithInteger.init?(ascii: Character, radix: Int = 10)`, and would preserve clarity with more-permissive initializers in the future.
-
 ## Source Compatibility
-The properties on `Character` are strictly additive. The addition of the `ascii:` label to `FixedWithInteger.init(_:String,radix:Int)` will need to go through the normal unavailable/renamed deprecation process.
+The properties on `Character` are strictly additive.
 
 ## Effect on ABI Stability
 These changes are ABI-additive: they introduce new ABI surface area to keep stable.
@@ -313,12 +280,6 @@ In addition to (or perhaps instead of) properties like `wholeNumberValue`, add `
 
 We could consider adding something like `FixedWidthInteger.init?(hexDigit: Character)` and `FixedWithInteger.init?(wholeNumber: Character)` which correspond to `hexDigitValue` and `wholeNumberValue`, and similarly a counterpart for `String`. But, we don’t feel this carries its weight as surfaced directly at the top level of e.g. `Int`. We prefer to keep this avenue open for future directions involving more general number parsing and grapheme evaluation logic.
 
-### Keep `FixedWidthInteger.init(_:radix:)` around, or change `FixedWidthInteger.init(_:radix:)` to support full-width compatibility forms`
-
-Rather than rename with an `ascii:` label, keep the old name around to be built upon later with a general number parsing system. We argue that the radix argument makes such an API highly dubious if not constrained to ASCII and full-width compatibility forms (e.g. akin to proposed `Character.hexDigitValue`).
-
-Another alternative is to change the semantics to also accept full-width compatibility forms. Much of the argument for why the API should have an explicit label still apply, though the `radix` label does provide some prodding when provided. We’d prefer the explicit label if possible, but this could be a lesser of evils source-compatibility-preserving alternative.
-
 ### Drop `isASCII/HexDigit/WholeNumber`: Check for `nil` Instead
 
 This alternative is to drop `isASCII`, `isHexDigit`, and `isWholeNumber` and instead use `if let` or compare explicitly to `nil`.
@@ -332,12 +293,3 @@ Unicode defines numeric values for whole numbers, hex digits, and rational numbe
 As far as adding a `rationalValue` is concerned, we do not feel that support for vulgar fractions and other obscure Unicode scalars (e.g. baseball score-keeping) warrants an addition to `Character` directly. `wholeNumberValue` producing an Int is a more fluid solution than a Double which happens to be integral, so we’re hesitant to replace `wholeNumberValue` entirely with a `numericValue`. Since `numericValue` would only add utility for these obscure characters, we’re not sure if it’s worth adding.
 
 Suggestions for alternative names for `wholeNumberValue`would be appreciated.
-
-### Replace `isEmoji` with 3 APIs, something something like `isEmojiPresentable`, `isEmojiWithDefaultTextPresentation`, and `isEmojiWithDefaultEmojiPresentation`
-
-`isEmoji` encompasses both Characters with a default emoji presentation, as well as Characters with a default textual presentation and an explicit `U+FE0F` (emoji presentation selector). It rejects default emoji presentation Characters with an explicit `U+FE0E` (text presentation selector), as well as default textual presentation Characters which do not have an emoji presentation selector.
-
-However, these only cover the default; whether something will actually be rendered as emoji depends on the render and environment. We’re open to further refining `isEmoji` with more API, but are unsure if they carry their weight. We currently feel this might be best left up to querying the rendering environment itself.  We’re interested in thoughts and/or use cases.
-
-We are also considering relaxing `isEmoji` to return true for default-textual Characters without an explicit  text presentation selector. For example, `U+2708` (AIRPLANE) by default is rendered as `✈` and not `✈️`. As proposed, `Character("\u{U+2708}").isEmoji` would return false, but we are considering having it return true because it *could* be rendered as emoji.
-
