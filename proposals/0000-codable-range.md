@@ -14,6 +14,10 @@ conformance.
 
 Swift-evolution thread: [Range conform to Codable](https://forums.swift.org/t/range-conform-to-codable/15552)
 
+## Motivation
+
+`Range` is a very useful type to have conform to `Codable`. A good usage example is a range being sent to/from a client/server to convey a range of time using `Date`, or a safe operating temperature range using `Measurement<UnitTemperature>`.
+
 ## Proposed solution
 
 The following Standard Library range types will gain `Codable` conformance
