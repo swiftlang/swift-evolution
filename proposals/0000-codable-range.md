@@ -8,7 +8,7 @@
 
 ## Introduction
 
-[SE-0167] introduced `Codable` conformance for some types in the standard
+[SE-0167](0167-swift-encoders.md) introduced `Codable` conformance for some types in the standard
 library, but not the `Range` family of types. This proposal adds that
 conformance.
 
