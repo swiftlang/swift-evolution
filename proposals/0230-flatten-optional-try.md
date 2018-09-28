@@ -49,7 +49,7 @@ The above examples are contrived, but it's actually quite common to end
 up with a nested optional in production code. For example:
 
 ```swift
-// The result of 'foo.makeBar()' is 'Bar?' because of the optional
+// The result of 'foo?.makeBar()' is 'Bar?' because of the optional
 // chaining on 'foo'. The 'try?' adds an additional layer of 
 // optionality. So the type of 'x' is 'Bar??'
 let x = try? foo?.makeBar()
@@ -60,8 +60,9 @@ let x = try? foo?.makeBar()
 let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
 ```
 
-A survey of existing code suggests that it is common for users to work around 
-this behavior using one of the following patterns:
+Although it is fairly easy to produce a nested optional using `try?`, a survey of
+existing code suggests that it is almost never the desired outcome. Code that uses
+`try?` with nested optionals is almost always accompanied by one of the following patterns:
 
 ```swift
 // Pattern 1: Double if-let or guard-let
@@ -92,9 +93,8 @@ it should probably be using `do/try/catch` instead.
 ## Proposed solution
 
 In Swift 5, `try?` will mirror the behavior of `as?` and `foo?.bar`: it will
-preserve the "optional-ness" of the sub-expression if possible. If the
-sub-expression produces a non-optional value, the one level of Optional will
-be added.
+reuse the "optional-ness" of the sub-expression if possible. If the
+sub-expression produces a non-optional value, it will be wrapped in an Optional.
 
 This results in the following changes to the type of a `try?` expression:
 
@@ -149,8 +149,8 @@ generic code, as in the following example:
 ```swift
 func test<T>(fn: () throws -> T) -> T? {
 
-    // Will this line change behavior if T is optional?
-    if let result = try? fn() {        
+    // Will this line change behavior if T is an Optional?
+    if let result = try? fn() {
         print("We got a result!")
         return result
     }
@@ -170,46 +170,22 @@ let value2 = test({ return 15 as Int? })
 The answer is that it does not matter if `T` is optional at runtime.
 At compile time, `result` has a clearly-defined type: `T`. This is 
 true in both Swift 4 and Swift 5 modes; because `T` is not known to be
-an `Optional` type, a single layer of `Optional` is added via the `try?`
-expression and then unwrapped via `if let`.
+an `Optional` type at compile-time, a single layer of `Optional` is added 
+via the `try?` expression and then unwrapped via `if let`.
 
 Generic code that uses `try?` can continue to use it as always without
-concern for whether the generic type might be optional at runtime.
+concern for whether the generic type might be optional at runtime. No
+behavior is changed in this case.
 
 
 ## Source compatibility
 
 This is a source-breaking change for `try?` expressions that operate on an
-`Optional` sub-expression if they do not explicitly flatten the optional 
-themselves. It appears that those cases are rare, though; see the analysis
+`Optional` sub-expression _if they do not explicitly flatten the optional 
+themselves_. It appears that those cases are rare, though; see the analysis
 below for details. We can provide backward-compatible behavior when the compiler
 is running in Swift 4 mode, and a migration should be possible for most common 
 cases.
-
-Source code that is intended for use with both Swift 4 and Swift 5
-compilers can write code as follows, which behaves identically in
-both Swift 4 and Swift 5 under this proposal:
-
-```swift
-// Original Swift 4 code:
-let x = try? produceAnOptional()
-
-
-// If you only care about detecting whether a value was produced,
-// you can use `Optional.flatMap` to flatten the optional.
-let x = (try? produceAnOptional()).flatMap { $0 }
-
-
-// If you want to detect the error case separately from the 
-// nil-value case, use do/try/catch:
-do {
-    let x = try produceAnOptional()
-    // Handle the optional result
-}
-catch {
-    // Handle the error case
-}
-```
 
 #### Swift Source Compatibility Suite analysis
 
@@ -219,7 +195,7 @@ cases of `try?` in the compatibility suite. Here are the results:
 
 * There are **613** total instances of `try?` in the compatibility suite. The vast majority of those appear to use non-optional sub-expressions, and would be unaffected by this proposal.
 
-* There are **4** instances of `try? ... as?`. All four of them wrap the `try?` in parentheses to get the flattening behavior, and would be source-compatible either way. They all look something like this:
+* There are **4** instances of `try? ... as?`. All four of them wrap the `try?` in parentheses to get the flattening behavior of `as?`, and would be source-compatible either way. They all look something like this:
 
     ```swift
     (try? JSONSerialization.jsonObject(with: $0)) as? NSDictionary
@@ -229,7 +205,7 @@ cases of `try?` in the compatibility suite. Here are the results:
 **10** of those assign it to `_ = try? foo?.bar()` , so the resulting type does not matter.
 **2** of those cases have a `Void` sub-expression type, and do not assign the result to any variable.
 
-* There are **6** instances of `try? somethingReturningOptional()` . They all flatten it manually using `flatMap { $0 }`, and are thus source-compatible with this change.
+* There are **6** instances of `try? somethingReturningOptional()` . They all flatten it manually using `flatMap { $0 }`, and are thus source-compatible with this change, as the return type is the same under either behavior.
 
     ```swift
     (try? get(key)).flatMap { $0 }
@@ -238,7 +214,6 @@ cases of `try?` in the compatibility suite. Here are the results:
 * As far as I can tell, there are **zero** cases in the entire suite where a double-optional is actually used to distinguish between the error case and the nil-as-a-value case.
 
 * As far as I can tell, there are **zero** cases of source incompatibility found in the compatibility suite.
-
 
 
 ## Effect on ABI stability
