@@ -87,8 +87,8 @@ learn and use, and they don't really give us any benefit in return.
 
 Code using `try?` generally does not care to distinguish between the error case
 and the nil-result case, which is why all these patterns focus on extracting the
-value and ignore the error. If code does care to specifically detect errors, 
-it should probably be using `do/try/catch` instead.
+value and ignore the error. If the developer does care to specifically detect errors, 
+they should probably be using `do/try/catch` instead.
 
 ## Proposed solution
 
@@ -187,7 +187,71 @@ below for details. We can provide backward-compatible behavior when the compiler
 is running in Swift 4 mode, and a migration should be possible for most common 
 cases.
 
-#### Swift Source Compatibility Suite analysis
+The bar for including source-breaking changes in Swift 5 is high, but I believe
+it passes the bar. These are the criteria listed in the swift-evolution README:
+
+### 1. The current syntax/API must be shown to actively cause problems for users.
+ 
+The current implementation allows a developer to detect the return value of `.some(nil)`,
+which indicates that the optional sub-expression returned `nil` and no error was thrown.
+However, actually writing code to do this produces code that is _more_ difficult to understand
+than just using `try`. Compare:
+
+```swift
+// Using 'try?'
+if let result = try? foo?.bar() {
+    // Do something with 'result', which may be nil
+    // even though we are in an 'if let'.
+}
+else {
+    // There was an error, but we don't know what it is
+}
+```
+
+```swift
+// Using 'try/catch'
+do {
+    let result = try foo?.bar()
+    // Do something with 'result', which may be nil due to optional chaining
+}
+catch {
+    // Handle the error
+}
+```
+
+The variant using `try?` is significantly less clear (what is the type of
+`result`?), and has no obvious advantages. Using `try?` _is_ better if you
+don't care about the _else_ clause and only want to handle a value if one
+exists, but that use case is better served by the proposed change.
+
+The current syntax is also harmful because of its interaction with `as?` casting,
+as seen here:
+
+```swift
+if let x = try? foo() as? String {
+    // We specifically called out `String` as the desired type here,
+    // so it unexpected that `x` is of type `Optional<String>`
+}
+```
+
+### 2. The new syntax/API must be clearly better and must not conflict with existing Swift syntax.
+
+The proposed change resolves all of the above problems, which is better.
+This change also clarifies the role of `try?` as a means for accessing 
+values when possible, rather than as an alternative error-handling 
+mechanism to `try/catch`.
+
+### 3. There must be a reasonably automated migration path for existing code.
+
+As shown in the analysis below, most source code will require no migration; 
+developers who have encountered code that produces nested Optionals are likely
+already using patterns that are source-compatible with this change. This proposal
+simply provides a way to simplify that code.
+
+Automated migration is implemented for the double `if/guard let` and 
+`case let value??:` patterns mentioned above.
+
+## Swift Source Compatibility Suite analysis
 
 The Swift Source Compatibility Suite suggests that this is unlikely to 
 be a breaking change for most users. I manually inspected the use
@@ -195,7 +259,7 @@ cases of `try?` in the compatibility suite. Here are the results:
 
 * There are **613** total instances of `try?` in the compatibility suite. The vast majority of those appear to use non-optional sub-expressions, and would be unaffected by this proposal.
 
-* There are **4** instances of `try? ... as?`. All four of them wrap the `try?` in parentheses to get the flattening behavior of `as?`, and would be source-compatible either way. They all look something like this:
+* There are **4** instances of `try? ... as?`. All four of them wrap the `try?` in parentheses to get the flattening behavior of `as?`, and are source-compatible with this change. They all look something like this:
 
     ```swift
     (try? JSONSerialization.jsonObject(with: $0)) as? NSDictionary
@@ -205,7 +269,7 @@ cases of `try?` in the compatibility suite. Here are the results:
 **10** of those assign it to `_ = try? foo?.bar()` , so the resulting type does not matter.
 **2** of those cases have a `Void` sub-expression type, and do not assign the result to any variable.
 
-* There are **6** instances of `try? somethingReturningOptional()` . They all flatten it manually using `flatMap { $0 }`, and are thus source-compatible with this change, as the return type is the same under either behavior.
+* There are **6** instances of `try? somethingReturningOptional()` . They all flatten it manually using `flatMap { $0 }`, and are thus source-compatible with this change, as the return type of that expression is the same under either behavior.
 
     ```swift
     (try? get(key)).flatMap { $0 }
