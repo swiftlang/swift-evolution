@@ -192,9 +192,12 @@ it passes the bar. These are the criteria listed in the swift-evolution README:
 
 ### 1. The current syntax/API must be shown to actively cause problems for users.
  
-The current implementation allows a developer to detect the return value of `.some(nil)`,
-which indicates that the optional sub-expression returned `nil` and no error was thrown.
-However, actually writing code to do this produces code that is _more_ difficult to understand
+Nested optionals are a complex concept. They have value in the language, but their
+use should be intentional. Currently, it's far too easy for beginners to create a
+nested optional without understanding why, due to the current interaction of
+`try?` and optional chaining or `as?` casting. 
+ 
+Code that uses `try?` to actually detect errors is _more_ difficult to understand
 than just using `try`. Compare:
 
 ```swift
