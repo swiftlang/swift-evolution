@@ -5,6 +5,7 @@
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Active review (September 29th...October 8th, 2018)**
 * Implementation: [apple/swift#16942](https://github.com/apple/swift/pull/16942)
+* Review: [forum thread](https://forums.swift.org/t/se-0230-flatten-nested-optionals-resulting-from-try/16570)
 
 ## Introduction
 
