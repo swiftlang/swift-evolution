@@ -89,4 +89,16 @@ None
 
 ## Alternatives considered
 
-The option of leaving out any syntactic changes was also discussed and met concern from the community. The drawback is briefly explained in the [Proposed solution](#proposed-solution) section. However, it is worth noting that `switch` provides this convenience without additional syntactic sugar.
+### Imitating optional chaining
+
+A syntactically less disruptive approach, the idea of which is denoting an optional iteration by following the sequence expression with `?`:
+
+```swift 
+let array: [Int]? = [1, 2, 3]
+for element in sequence? { ... }
+```
+Since a nonterminated optional chain is otherwise meaningless, this can be interpreted as bringing the `for` loop into the optional chain with the sequence and mirrors the force-unwrapping case. Furthermore, keeping the statement itself intact gives us an analogue that is more or less consistent with an "optional switch". 
+
+### Purely implicit
+
+The option of leaving out any syntactic changes was also discussed and met concern from the community. The drawback is briefly explained in the [Proposed solution](#proposed-solution) section. However, it is worth noting that `switch` too provides this convenience without additional denotations.
