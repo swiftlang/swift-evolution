@@ -3,7 +3,7 @@
 * Proposal: [SE-NNNN](NNNN-filename.md)
 * Authors: [Author 1](https://github.com/swiftdev), [Author 2](https://github.com/swiftdev)
 * Review Manager: TBD
-* Status: **Awaiting implementation**
+* Status: **Scheduled for Review (October 3...10, 2018)**
 
 *During the review process, add the following fields as needed:*
 
