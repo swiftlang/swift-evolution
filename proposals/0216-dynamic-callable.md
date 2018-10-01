@@ -186,7 +186,7 @@ We write `Arguments` as an array type and `KeywordArguments` as a dictionary
 type, but these can actually be any type that conforms to the
 `ExpressibleByArrayLiteral` and `ExpressibleByDictionaryLiteral` protocols,
 respectively. The later is inclusive of
-[`DictionaryLiteral`](https://developer.apple.com/documentation/swift/dictionaryliteral)
+[`KeyValuePairs`](https://developer.apple.com/documentation/swift/keyvaluepairs)
 which can represent multiple instances of a 'key' in the collection. This is
 important to support duplicated and positional arguments (because positional
 arguments have the empty string `""` as their key).
@@ -277,7 +277,7 @@ struct PythonObject {
   // arguments.
   @discardableResult
   func dynamicallyCall(
-    withKeywordArguments: DictionaryLiteral<String, PythonObject>
+    withKeywordArguments: KeyValuePairs<String, PythonObject>
   ) -> PythonObject { ... }
 
   // An implementation of a Python binding could choose to implement this
@@ -357,7 +357,7 @@ Here is a sample Ruby binding:
 struct RubyObject {
   @discardableResult
   func dynamicallyCallMethod(
-    named: String, withKeywordArguments: DictionaryLiteral<String, RubyObject>
+    named: String, withKeywordArguments: KeyValuePairs<String, RubyObject>
   ) -> RubyObject { ... }
 
   // This is a `@dynamicMemberLookup` requirement.
