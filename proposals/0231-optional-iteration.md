@@ -3,7 +3,7 @@
 * Proposal: [SE-0231](0231-optional-iteration.md)
 * Authors: [Anthony Latsis](https://github.com/AnthonyLatsis)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Awaiting implementation**
+* Status: **Scheduled for review (October 3...10, 2018)**
 * Pull request: [apple/swift#19207](https://github.com/apple/swift/pull/19207)
 
 ## Introduction
