@@ -93,13 +93,19 @@ they should probably be using `do/try/catch` instead.
 
 ## Proposed solution
 
-In Swift 5, `try?` will mirror the behavior of `as?` and `foo?.bar`: it will
-reuse the "optional-ness" of the sub-expression if possible. If the
-sub-expression produces a non-optional value, it will be wrapped in an Optional.
+In Swift 5, `try? someExpr()` will mirror the behavior of `foo?.someExpr()`: 
+
+- If `someExpr()` produces a non-optional value, it will be wrapped in an Optional.
+- If `someExpr()` produces an `Optional`, then no additional optional-ness is added.
 
 This results in the following changes to the type of a `try?` expression:
 
 ```swift
+// Swift 4: 'Int??'
+// Swift 5: 'Int?'
+let result = try? database?.countOfRows(matching: predicate)
+
+
 // Swift 4: 'String??'
 // Swift 5: 'String?'
 let myString = try? String(data: someData, encoding: .utf8)
@@ -109,8 +115,7 @@ let myString = try? String(data: someData, encoding: .utf8)
 let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
 ```
 
-There are no changes to the type when the sub-expression produces a non-optional
-type.
+There are no changes to the overall type when the sub-expression produces a non-optional.
 
 ```swift 
 // Swift 4: 'String?'
@@ -118,7 +123,7 @@ type.
 let fileContents = try? String(contentsOf: someURL)
 ```
 
-If the sub-expression produces a nested optional, the result is equally
+If the sub-expression already produces a nested optional, the result is equally
 nested:
 
 ```swift
@@ -130,6 +135,23 @@ func doubleOptionalInt() throws -> Int?? {
 // Swift 5: 'Int??'
 let x = try? doubleOptionalInt()
 ```
+
+> ### A side note about `try?` and `as?`
+> 
+> Although `as?` often has the effect of flattening Optionals (as shown in 
+> the example in the Motivation section) it does not exhibit exactly
+> the same behavior as proposed here for `try?`. Because `as?` takes
+> an explicit type, it can actually flatten multiple levels of nested
+> Optionals. `foo as? T` will always produce an `Optional<T>`, regardless
+> of how many optionals were on `foo`. This can potentially _add or subtract_
+> levels of optionals, depending on the type specified. (It can also cast between
+> subtypes and supertypes, which is unrelated to the behavior under consideration.)
+> 
+> In practice, the most common use of `as?` with nested optionals is to reduce from
+> `T??` to `T?`, which makes it superficially similar to the use optional-chaining
+> use case and the proposed behavior of `try?`. But `as?` is a more powerful
+> and versatile construct than what is proposed for `try?` here.
+
 
 ## Detailed design
 
