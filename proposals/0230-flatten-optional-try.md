@@ -21,43 +21,33 @@ Swift-evolution thread: [Make try? + optional chain flattening work together](ht
 
 ## Motivation
 
-It's currently quite easy to end up with a nested `Optional` type when 
-using `try?`. Although it is valid to construct a nested optional, it
-is usually not what the developer intended.
+The `try?` keyword in Swift is a convenience feature for situations
+where the user doesn't care about handling any error specifically,
+but just wants to evaluate the expression if possible. 
 
-Swift has various mechanisms to avoid accidentally creating nested optionals. For example:
+In Swift 4 and earlier, `try?` always wraps its expression in an Optional 
+to indicate whether there was an error. If the expression already produced
+an Optional type, the result is a nested optional. 
 
-```swift
-// Note how 'as?' produces the same type regardless of whether the value
-// being cast is optional or not.
-let x = nonOptionalValue() as? MyType    // x is of type 'MyType?'
-let y = optionalValue() as? MyType       // y is of type 'MyType?'
-
-// Note how optional chaining produces the same type whether or not the
-// call produces an optional value.
-let a = optThing?.pizza()             // a is of type 'Pizza?'
-let b = optThing?.optionalPizza()     // b is of type 'Pizza?'
-```
-
-However, `try?` behaves differently:
+Although it is _valid_ to construct a nested optional, it is usually not
+what the developer intended. `try?` is a convenience feature, and implicitly
+creating a nested optional is usually inconvenient for the developer.
 
 ```swift
-let q = try? harbor.boat()           // q is of type 'Boat?'
-let r = try? harbor.optionalBoat()   // r is of type 'Boat??'
-```
+// Using 'try?' with an optional sub-expression produces a
+// nested optional
+let q = try? harbor.makeBoat()                // q is of type 'Boat?'
+let r = try? harbor.existingBoatIfPresent()   // r is of type 'Boat??'
 
-The above examples are contrived, but it's actually quite common to end
-up with a nested optional in production code. For example:
 
-```swift
-// The result of 'foo?.makeBar()' is 'Bar?' because of the optional
-// chaining on 'foo'. The 'try?' adds an additional layer of 
-// optionality. So the type of 'x' is 'Bar??'
+// 'foo?.makeBar()' returns an optional. So the type of 'x' is 'Bar??'
 let x = try? foo?.makeBar()
 
-// JSONSerialization.jsonObject(with:) returns an 'Any'. We use 'as?' to 
-// verify that the result is of the expected type, but the result is that 'dict' 
-// is now of type '[String: Any]??' because 'try?' added an additional layer.
+
+// JSONSerialization.jsonObject(with:) returns an 'Any'. We use
+// 'as?' to verify that the result is of the expected type, but
+// the result is that 'dict' is now of type '[String: Any]??' 
+// because 'try?' added an additional layer.
 let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
 ```
 
@@ -86,14 +76,33 @@ if case let x?? = try? optionalThing() {
 The need for these workarounds makes the language more difficult to
 learn and use, and they don't really give us any benefit in return.
 
-Code using `try?` generally does not care to distinguish between the error case
-and the nil-result case, which is why all these patterns focus on extracting the
-value and ignore the error. If the developer does care to specifically detect errors, 
+Because nested optionals are usually not intentional unless explicitly created,
+Swift already takes steps to prevent their accidental creation. The Swift
+Programming Language book describe Optional chaining this way:
+
+> [...] However, multiple levels of optional chaining do not add more levels of optionality to the returned value.
+> - If the type you are trying to retrieve is not optional, it will become optional because of the optional chaining.
+> - If the type you are trying to retrieve is _already_ optional, it will not become _more_ optional because of the chaining.
+
+You can see this in the following example: 
+
+```swift
+// Note how optional chaining produces the same type whether or not the
+// call produces an optional value.
+let a = optThing?.pizza()             // a is of type 'Pizza?'
+let b = optThing?.optionalPizza()     // b is of type 'Pizza?'
+```
+
+Note that optional chaining does not distinguish between the case where
+`optThing` is nil and the case where `optionalPizza()` returned nil. Likewise,
+code using `try?` generally does not care to distinguish between the error case
+and the nil-result case. If the developer does care to specifically detect errors, 
 they should probably be using `do/try/catch` instead.
 
 ## Proposed solution
 
-In Swift 5, `try? someExpr()` will mirror the behavior of `foo?.someExpr()`: 
+In Swift 5, `try? someExpr()` will mirror the behavior of optional chaining as
+in `foo?.someExpr()`: 
 
 - If `someExpr()` produces a non-optional value, it will be wrapped in an Optional.
 - If `someExpr()` produces an `Optional`, then no additional optional-ness is added.
@@ -109,13 +118,14 @@ let result = try? database?.countOfRows(matching: predicate)
 // Swift 4: 'String??'
 // Swift 5: 'String?'
 let myString = try? String(data: someData, encoding: .utf8)
-    
+
+
 // Swift 4: '[String: Any]??'
 // Swift 5: '[String: Any]?'
 let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
 ```
 
-There are no changes to the overall type when the sub-expression produces a non-optional.
+There are no changes to the resulting type when the sub-expression produces a non-optional.
 
 ```swift 
 // Swift 4: 'String?'
@@ -124,7 +134,7 @@ let fileContents = try? String(contentsOf: someURL)
 ```
 
 If the sub-expression already produces a nested optional, the result is equally
-nested:
+nested. (This matches the behavior of optional chaining.)
 
 ```swift
 func doubleOptionalInt() throws -> Int?? {
@@ -135,23 +145,6 @@ func doubleOptionalInt() throws -> Int?? {
 // Swift 5: 'Int??'
 let x = try? doubleOptionalInt()
 ```
-
-> ### A side note about `try?` and `as?`
-> 
-> Although `as?` often has the effect of flattening Optionals (as shown in 
-> the example in the Motivation section) it does not exhibit exactly
-> the same behavior as proposed here for `try?`. Because `as?` takes
-> an explicit type, it can actually flatten multiple levels of nested
-> Optionals. `foo as? T` will always produce an `Optional<T>`, regardless
-> of how many optionals were on `foo`. This can potentially _add or subtract_
-> levels of optionals, depending on the type specified. (It can also cast between
-> subtypes and supertypes, which is unrelated to the behavior under consideration.)
-> 
-> In practice, the most common use of `as?` with nested optionals is to reduce from
-> `T??` to `T?`, which makes it superficially similar to the use optional-chaining
-> use case and the proposed behavior of `try?`. But `as?` is a more powerful
-> and versatile construct than what is proposed for `try?` here.
-
 
 ## Detailed design
 
@@ -204,7 +197,7 @@ behavior is changed in this case.
 ## Source compatibility
 
 This is a source-breaking change for `try?` expressions that operate on an
-`Optional` sub-expression _if they do not explicitly flatten the optional 
+`Optional` sub-expression, _but only if they do not explicitly flatten the optional 
 themselves_. It appears that those cases are rare, though; see the analysis
 below for details. We can provide backward-compatible behavior when the compiler
 is running in Swift 4 mode, and a migration should be possible for most common 
