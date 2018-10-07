@@ -130,9 +130,9 @@ if case let .some(unwrapped) = optionalInt { ... }
 if let unwrapped = optionalInt { ... }
 
 
-// Match against .some using optional pattern
+// Match against .some using an optional pattern
 switch optionalInt {
-case let unwrapped: print()
+case let unwrapped?: print()
 case nil: print()
 }
 
