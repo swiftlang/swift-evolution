@@ -106,7 +106,56 @@ A syntactically less disruptive approach, the idea of which is denoting an optio
 let array: [Int]? = [1, 2, 3]
 for element in sequence? { ... }
 ```
-Since a nonterminated optional chain is otherwise meaningless, this can be interpreted as bringing the `for` loop into the optional chain with the sequence and mirrors the force-unwrapping case. Furthermore, keeping the statement itself intact gives us an analogue that is more or less consistent with an "optional switch". 
+A terminating `?` sigil here can be thought of as bringing the `for` loop into the optional chain with the sequence and mirrors the force-unwrapping case (`sequence!`). On the other hand, this alternative sytactically has a lot in common with [optional patterns](https://docs.swift.org/swift-book/ReferenceManual/Patterns.html#grammar_optional-pattern) that are used as sugar for pattern-matching `.some(value)`. The following examples are equivalent per statement type:
+
+```swift
+let array: [Int?] = [1, 2, nil]
+
+// Match using an optional pattern.
+for case let element? in array { ... }
+
+// Match using an enum case pattern.
+for case let .some(element) in array { ... }
+
+
+let optionalInt: Int? = 0
+
+// Match using an optional pattern.
+if case let unwrapped? = optionalInt { ... }
+
+// Match using an enum case pattern.
+if case let .some(unwrapped) = optionalInt { ... }
+
+// Match using optional binding. 
+if let unwrapped = optionalInt { ... }
+
+
+// Match against .some using optional pattern
+switch optionalInt {
+case let unwrapped: print()
+case nil: print()
+}
+
+// Match against .some using enum case pattern
+switch optionalInt {
+case let .some(unwrapped): print()
+case nil: print()
+}
+```
+
+Using an optional pattern is especially convenient to selectively iterate over a sequence of optional values. Furthermore, optional patters are allowed to omit identifiers: you can match against `.some` without binding the unwrapped value to an identifier:
+
+```swift
+let optionalInt: Int? = 0
+
+if case let _? = optionalInt { ... }
+```
+
+Although Swift clearly has better alternatives to check for `nil`, this special case of optional pattern usage is very important in relation to the alternative currently discussed. The same tendency can be seen in `for element in sequence?`, but since binding the unwrapped sequence would effectively almost never be required, we omit the `case let _? =` part preceding `sequence?` as a rule of thumb. 
+
+#### Nested optionals
+
+Optional patterns do not flatten nested optionals. However, syntactically ignoring fairly rare cases involving them - `sequence???...` - would also be unfortunate. In the face of this proposal, `for-in`, as a mechanism that only runs on *non-optional* sequences, inherently asks for optional flattening. Besides, burdening the user with counting the nesting depth where it should be of no importance is something the author believes must be avoided. That said, the position herein is to enable implicit optional flattening so that nested optional can be optionally iterated without additional syntactic load.
 
 ### Purely implicit
 
