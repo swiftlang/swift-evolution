@@ -26,7 +26,7 @@ default: print()
 }
 ```
 
-Loops too are a common statement in almost every codebase. Similarly, the possibility to optionally iterate over a sequence (iterate if there is a value, otherwise skip) when the `nil` case is of no interest is self-explanatory. While usage of optional sequences is often treated as misconception, there are several common ways one could end up with an optional sequence through Standard Library APIs and language constructs themselves. Amongst the most prevalent are optional chaining and dictionary getters. An indentation-sensitive area of which optional arrays are an integral part is decoding and deserialization, i.e parsing a JSON response.
+Loops too are a common statement in almost every codebase. Similarly, a possibility to optionally iterate over a sequence (iterate if there is a value, otherwise skip) when the `nil` case is of no interest is self-explanatory. While usage of optional sequences is often treated as misconception, there are several common ways one could end up with an optional sequence through Standard Library APIs and language constructs themselves. Amongst the most prevalent are optional chaining and dictionary getters. An indentation-sensitive area of which optional arrays are an integral part is decoding and deserialization, i.e parsing a JSON response.
 Swift currently doesn't offer a mechanism for expressing optional iteration directly: optional sequences are illegal as a `for-in` loop attribute. For a safe option, this makes us resort to optional binding:
 
 ```swift
