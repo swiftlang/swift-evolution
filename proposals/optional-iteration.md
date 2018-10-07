@@ -1,9 +1,9 @@
 # Optional Iteration
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0231](0231-optional-iteration.md)
 * Authors: [Anthony Latsis](https://github.com/AnthonyLatsis)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Review Manager: [Joe Groff](https://github.com/jckarter)
+* Status: **Active review (October 5...12, 2018)**
 * Pull request: [apple/swift#19207](https://github.com/apple/swift/pull/19207)
 
 ## Introduction
@@ -155,7 +155,7 @@ Although Swift clearly has better alternatives to check for `nil`, this special 
 
 #### Nested optionals
 
-Optional patterns do not flatten nested optionals. However, syntactically ignoring fairly rare cases involving them - `sequence???...` - would also be unfortunate. In the face of this proposal, `for-in`, as a mechanism that only runs on *non-optional* sequences, inherently asks for optional flattening. Besides, burdening the user with counting the nesting depth where it should be of no importance is something the author believes must be avoided. That said, the position herein is to enable implicit optional flattening so that nested optional can be optionally iterated without additional syntactic load.
+Optional patterns do not flatten nested optionals. However, leaving fairly rare cases involving them unnoticed - `sequence???...` - would also be unfortunate. In consideration of proposed changes, `for-in`, as a mechanism that inherently runs only on *non-optional* sequences, asks for optional flattening. Besides, burdening the user with counting the nesting depth where it should be of no importance is something the author believes must be avoided. That said, the position inclines to enabling implicit optional flattening, so that nested optional can be optionally iterated without additional syntactic load.
 
 ### Purely implicit
 
