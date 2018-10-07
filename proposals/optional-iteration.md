@@ -143,7 +143,7 @@ case nil: print()
 }
 ```
 
-Using an optional pattern is especially convenient to selectively iterate over a sequence of optional values. Furthermore, optional patters are allowed to omit identifiers: you can match against `.some` without binding the unwrapped value to an identifier:
+Using an optional pattern is especially convenient to selectively iterate over a sequence of optional values. Furthermore, optional patterns are allowed to omit identifiers: you can match against `.some` without binding the unwrapped value to an identifier:
 
 ```swift
 let optionalInt: Int? = 0
