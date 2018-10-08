@@ -35,7 +35,7 @@ if let sequence = optionalSequence {
 }
 ```
 There are several workarounds to avoid that extra level of indentation, none of which can be called a general solution:
-* `guard` is a pretty straight-forward option for a simple scenario, but `guard` doesn't fall through; if handling the nil case is unnecessary and there follows subsequent arbitrary logic that is insensitive, resistant to `nil` or doesn't depend on that whatsoever, rearranging the flow with `guard` is likely to become a counterproductive experiment that affects readability while still keeping the indentation.
+* `guard` is a pretty straight-forward option for a simple scenario, but `guard` doesn't fall through – if handling the nil case is unnecessary and there follows subsequent arbitrary logic that is insensitive, resistant to `nil` or doesn't depend on that whatsoever, rearranging the flow with `guard` is likely to become a counterproductive experiment that affects readability while still keeping the indentation.
 * Coalescing with `?? []` is only valid with types that conform to `ExpressibleByArrayLiteral`. The needless allocation of `[]` is also something rather to be eschewed than encouraged. Furthermore, an empty instance is not guaranteed to exist for an arbitrary sequence.
 * Reaching for `sequence?.forEach` excludes control transfer statements, such as `continue` and `break`. The differences are clearly listed in the [documentation](https://developer.apple.com/documentation/swift/sequence/3018367-foreach):
 
