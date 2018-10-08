@@ -50,7 +50,7 @@ if let unwrappedArray = array {
 }
 ```
 
-The `?` notation, however, is a semantic emphasys rather than a functional syntactic unit. There is no `for!`. The latter is redundant, but this decision was primarily made based on the inconsistency and potential confusion that an otherwise left without syntactic changes `for-in` loop could potentially lead to ("clarity over brevity"). The `?`, in fact, is not necessary: the sequence can be force-unwrapped if needed or left as-is without additional syntax.
+The `?` notation, however, is a semantic emphasis rather than a functional syntactic unit. There is no `for!`. The latter is redundant, but this decision was primarily made based on the inconsistency and potential confusion that an otherwise left without syntactic changes `for-in` loop could potentially lead to ("clarity over brevity"). The `?`, in fact, is not necessary: the sequence can be force-unwrapped if needed or left as-is without additional syntax.
 
 ``` swift
 var array: [Int]? = [1, 2, 3]
