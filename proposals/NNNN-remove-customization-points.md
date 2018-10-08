@@ -1,0 +1,118 @@
+# Feature name
+
+* Proposal: [SE-NNNN](NNNN-remove-customization-points.md)
+* Author: [Ben Cohen](https://github.com/airspeedswift)
+* Review Manager: TBD
+* Status: **Awaiting implementation**
+* Implementation: [apple/swift#19769](https://github.com/apple/swift/pull/19769)
+
+## Introduction
+
+This proposal removes four customization points from protocols in the
+standard library:
+
+- `map` and `forEach` from `Sequence`
+- `first` from `Collection`
+- `last` on `BidirectionalCollection`
+
+Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/)
+
+## Motivation
+
+Customization points are methods that are declared on the protocol, as well as
+given default implementations in an extension. This way, when a type provides
+its own non-default implementation, this will be dispatched to in a generic
+context (e.g. when another method defined in an extension on the protocol calls
+the cusomized method). Without a customization point, the default
+implementation is called in the generic context.
+
+This serves broadly two purposes:
+
+1. Allowing for differences in behavior. For example, an "add element" method on
+  a set type might exclude duplicates while on a bag it might allow them.
+
+2. Allowing for more efficient implementations. For example, `count` on
+  forward-only collections takes O(n) (because without random access, the
+  implementation needs to iterate the collection to count it). But some
+  collection types might know their `count` even if they aren't random accesss.
+  
+Once ABI stability has been declared for a framework, customization points can
+never be removed, though they can be added.
+
+Customization points aren't free – they add a small cost at both compile time
+and run time. So they should only be added if there is a realistic possibility
+that one of the two reasons above are necessary. 
+
+In the case of the 4 customization points in this proposal, reason 1 does not
+apply. In fact it could be considered a serious bug if any type implemented
+these 4 features with anything other than the default obvervable behavior.
+
+It is also hard to find a good use case for reason 2 – whereas slight slowdowns
+from the presence of the customization points have been observed. While it is
+possible that a resilient type's `forEach` implementation might be able to eek
+out a small performance benefit (for example, to avoid the reference count bump
+of putting self into an iterator), it is generally harmful to encourage this
+kind of "maybe forEach could be faster" micro-optimization. For example, see
+[here](https://github.com/apple/swift/pull/17387), where error control flow was
+used in order to break out of the `forEach` early, causing unpleasant
+interference for debugging workflows that detected when errors were thrown.
+
+### Future move-only type considerations
+
+In the case of `first` and `last` there is an additional consideration: in the
+future, collections of move-only types (including `Array`) will not be able
+to reasonably fulfil these requirements.
+
+A collection that contains move-only types will only allow elements to be
+either removed and returned (e.g. with `popLast()`), or borrowed (e.g. via
+`subscript`).
+
+Returning an optional to represent the first element fits into neither of these
+buckets. You cannot write a generic implementation of `first` that fetches the
+first move-only element of a collection using a subscript, moves it into an
+optional, and then returns that optional.
+
+This means `first` and `last` need to be removed as requirements on the
+collection protocols in order to make it possible for collections of move only
+types to conform to them.
+
+They would remain on `Collection` via extensions. When move-only types are
+introduced, those extensions will be constrained to the collection element
+being copyable.
+
+Once the final functionality for move-only types is designed, it may be that
+language features will be added that allow for borrowing into an optional,
+allowing even collections of move-only types to implement a `first` property.
+But it's better to err on the side of caution for now and remove them from
+the protocol.
+
+## Proposed solution
+
+Remove these 4 customization points from the `Collection` protocols. The
+default implementations will remain. 
+
+## Source compatibility
+
+These are customization points with an existing default implementation, so
+there is no effect on source stability.
+
+It is theoretically possible that removing these customization points could
+result in a behavior change on types that rely on the dynamic dispatch to add
+additional logic. However, this would be an extremely dubious practice e.g.
+`MyCollection.first` should really never do anything more than return the first
+element.
+
+## Effect on ABI stability
+
+Removing customization points is not an ABI-stable operation. The driver for
+this proposal is to do this before declaring ABI stability.
+
+## Effect on API resilience
+
+None
+
+## Alternatives considered
+
+Describe alternative approaches to addressing the same problem, and
+why you chose this approach instead.
+
