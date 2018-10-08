@@ -1,10 +1,10 @@
 # Optional Iteration
 
 * Proposal: [SE-0231](0231-optional-iteration.md)
-* Authors: [Anthony Latsis](https://github.com/AnthonyLatsis)
+* Author: [Anthony Latsis](https://github.com/AnthonyLatsis)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
 * Status: **Active review (October 5...12, 2018)**
-* Pull request: [apple/swift#19207](https://github.com/apple/swift/pull/19207)
+* Implementation: [apple/swift#19207](https://github.com/apple/swift/pull/19207)
 
 ## Introduction
 
