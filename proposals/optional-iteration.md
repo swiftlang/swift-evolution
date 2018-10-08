@@ -8,7 +8,7 @@
 
 ## Introduction
 
-Optionals are a key feature of Swift and a powerful tool that seamlessly interacts with code. In particular, they serve a great means in expressing "act accordingly if there's a value, skip otherwise". Some vivid examples of such behavior are optional chaining, optional invocation `foo?()`, `if let` and `guard let`. This proposal considers further supporting this convenience in `for-in` loops.
+Optionals are a key feature of Swift and a powerful tool that seamlessly interacts with code. In particular, they serve a great means in expressing "act accordingly if there's a value, skip otherwise". Some vivid examples of such behavior are optional chaining, optional invocation `foo?()`, `if let` and `guard let`. This proposal considers further supporting this convenience in `for-in` loops .
 
 Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/t/another-try-at-allowing-optional-iteration/14376?u=anthonylatsis)
 
@@ -36,7 +36,7 @@ if let sequence = optionalSequence {
 ```
 There are several workarounds to avoid that extra level of indentation, none of which can be called a general solution:
 * `guard` is a pretty straight-forward option for a simple scenario, but `guard` doesn't fall through – if handling the nil case is unnecessary and there follows subsequent arbitrary logic that is insensitive, resistant to `nil` or doesn't depend on that whatsoever, rearranging the flow with `guard` is likely to become a counterproductive experiment that affects readability while still keeping the indentation.
-* Coalescing with `?? []` is only valid with types that conform to `ExpressibleByArrayLiteral`. The needless allocation of `[]` is also something rather to be eschewed than encouraged. Furthermore, an empty instance is not guaranteed to exist for an arbitrary sequence.
+* Coalescing with `?? []` is only valid with types that conform to `ExpressibleByArrayLiteral`. The needless allocation of `[]` is also something rather to be eschewed than encouraged. Furthermore, an empty instance is not guaranteed to exist for an arbitrary sequence. This helps to see another flaw in the `?? #placeholder#` fix-it from an engineer's perspective. There are potentially untraceable cases when the fix-it is wrong.
 * Reaching for `sequence?.forEach` excludes control transfer statements, such as `continue` and `break`. The differences are clearly listed in the [documentation](https://developer.apple.com/documentation/swift/sequence/3018367-foreach):
 
   > Using the forEach method is distinct from a for-in loop in two important ways:
@@ -66,14 +66,11 @@ The `?` notation here is a semantic emphasys rather than a functional unit: ther
 var array: [Int]? = [1, 2, 3]
 
 for element in array { ... } // Silently handling optionals implicitly is a style that Swift prefers to eschew.
-
-for? element in array { ... }
-
 ```
 
 ## Detailed design
 
-An optional `for-in` loop over a nil sequence does nothing. To be precise, it trips over nil when `sequence?.makeIterator()` is invoked and continues execution. Otherwise, it iterates normally. Roughly, one can imagine an optional `for-in` loop as `sequence?.forEach()`. 
+An optional `for-in` loop over a nil sequence does nothing. To be precise, it trips over nil when `sequence?.makeIterator()` is invoked and continues execution. Otherwise, it iterates normally. One can roughly imagine an optional `for-in` loop as `sequence?.forEach` with all the pattern-matching features and benefits of a `for-in` statement. 
 
 The `?` notation in `for?` is required when the passed sequence is optional and disallowed otherwise.
 ```swift
