@@ -77,7 +77,7 @@ The `?` notation in `for?` is required when the passed sequence is optional and 
 let array: [Int] = [1, 2, 3]
 let optArray: [Int]? = nil
 
-for element in optArray { // The usual 'must be force-unwrapped' error, but with the preffered fixit to use 'for?' 
+for element in optArray { // The usual 'must be force-unwrapped' error, but with the preferred fixit to use 'for?'
 ...
 }
 
