@@ -153,7 +153,7 @@ Although Swift clearly has better alternatives to check for `nil`, this special 
 
 #### Nested optionals
 
-Optional patterns do not flatten nested optionals. However, leaving fairly rare cases involving them unnoticed - `sequence???...` - would also be unfortunate. In consideration of proposed changes, `for-in`, as a mechanism that inherently runs only on *non-optional* sequences, asks for optional flattening. Besides, burdening the user with counting the nesting depth where it should be of no importance is something the author believes must be avoided. That said, the position inclines to enabling implicit optional flattening, so that nested optional can be optionally iterated without additional syntactic load.
+Optional patterns do not flatten nested optionals. However, leaving fairly rare cases involving them unnoticed - `sequence???...` - would also be unfortunate. In consideration of proposed changes, `for-in`, as a mechanism that inherently runs only on *non-optional* sequences, asks for optional flattening. Besides, burdening the user with counting the nesting depth where it should be of no importance is something the author believes must be avoided. That said, the position inclines to enabling implicit optional flattening, so that types like `[T]???...` can be iterated without additional syntactic load.
 
 ### Purely implicit
 
