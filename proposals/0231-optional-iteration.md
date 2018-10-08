@@ -60,7 +60,7 @@ if let unwrappedArray = array {
 }
 ```
 
-The `?` notation here is a semantic emphasys rather than a functional unit: there is no `for!`. Syntactically marking an optional iteration is redundant, however, in constrast to `switch`, nil values are *skipped silently*. Swift strives to follow a style where silent handling of `nil` is acknowledged via the `?` sigil, distinctly reflected in optional chaining. This decision was primarily based on inconsistency and potential confusion that an otherwise left without syntactic changes `for-in` loop could potentially lead to ("clarity over brevity").  
+The `?` notation here is a semantic emphasis rather than a functional unit: there is no `for!`. Syntactically marking an optional iteration is redundant, however, in constrast to `switch`, nil values are *skipped silently*. Swift strives to follow a style where silent handling of `nil` is acknowledged via the `?` sigil, distinctly reflected in optional chaining. This decision was primarily based on inconsistency and potential confusion that an otherwise left without syntactic changes `for-in` loop could potentially lead to ("clarity over brevity").  
 
 ``` swift
 var array: [Int]? = [1, 2, 3]
