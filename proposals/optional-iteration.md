@@ -27,14 +27,15 @@ default: print()
 ```
 
 Loops too are a common statement in almost every codebase. Similarly, a possibility to optionally iterate over a sequence (iterate if there is a value, otherwise skip) when the `nil` case is of no interest is self-explanatory. While usage of optional sequences is often treated as misconception, there are several common ways one could end up with an optional sequence through Standard Library APIs and language constructs themselves. Amongst the most prevalent are optional chaining and dictionary getters. An indentation-sensitive area of which optional arrays are an integral part is decoding and deserialization, i.e parsing a JSON response.
-Swift currently doesn't offer a mechanism for expressing optional iteration directly: optional sequences are illegal as a `for-in` loop attribute. For a safe option, this makes us resort to optional binding:
+Swift currently doesn't offer a mechanism for expressing optional iteration directly: optional sequences are illegal as a `for-in` loop argument. For a safe option, developers often resort to optional binding, which requires additional nesting:
 
 ```swift
 if let sequence = optionalSequence {
   for element in sequence { ... }
 }
 ```
-There are several workarounds to avoid additional nesting, none of which can be called a general solution:
+There are several workarounds to avoid that extra level of indentation, none of which can be called a general solution:
+* `guard` is a pretty straight-forward option for a simple scenario. But `guard`'s doesn't fall through; if handling the nil case is unnecessary and there follows subsequent arbitrary logic that is insensitive, resistant to `nil` or doesn't depend on that whatsoever, rearranging the flow with `guard` is likely to become a counterproductive experiment that affects readability while still keeping the indentation.
 * Coalescing with `?? []` is only valid with types that conform to `ExpressibleByArrayLiteral`. The needless allocation of `[]` is also something rather to be eschewed than encouraged. Furthermore, an empty instance is not guaranteed to exist for an arbitrary sequence.
 * Reaching for `sequence?.forEach` excludes control transfer statements, such as `continue` and `break`. The differences are clearly listed in the [documentation](https://developer.apple.com/documentation/swift/sequence/3018367-foreach):
 
