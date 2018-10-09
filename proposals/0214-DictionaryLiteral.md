@@ -39,7 +39,7 @@ public init<Subject>(
 ```
 
 * This implementation depends on `DictionaryLiteral`'s continued existence. 
-* The `@dynamicCallable` proposal will provide another use case for this type.
+* [The `@dynamicCallable` proposal](https://github.com/apple/swift-evolution/blob/master/proposals/0216-dynamic-callable.md) will provide another use case for this type.
 
 Even when narrowly used, a type's reach is no longer a sufficient reason to deprecate it or remove it from the language. Absent *active harm*, source stability takes precedence. In this case, the `DictionaryLiteral` type causes no measurable harm beyond API sprawl and the issues with its name. The latter is easily fixed.
 
