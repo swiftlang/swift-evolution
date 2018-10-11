@@ -113,6 +113,4 @@ None
 
 ## Alternatives considered
 
-Describe alternative approaches to addressing the same problem, and
-why you chose this approach instead.
-
+Leave them in. Live with the slight code/performance impact in the case of `map` and `forEach`, and work around the issue when designing move-only types.
