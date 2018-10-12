@@ -4,8 +4,9 @@
 * Authors: [John Holdsworth](https://github.com/johnno1962), [Brent Royal-Gordon](https://github.com/brentdax), [Tyler Cloutier](https://github.com/TheArtOfEngineering)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
 * Status: **Implemented (Swift 4)**
+* Implementation: [apple/swift#8813](https://github.com/apple/swift/pull/8813)
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170417/035923.html)
-* Bug: [SR-170](https://bugs.swift.org/browse/SR-170)
+* Bugs: [SR-170](https://bugs.swift.org/browse/SR-170), [SR-4701](https://bugs.swift.org/browse/SR-4701), [SR-4708](https://bugs.swift.org/browse/SR-4708), [SR-4874](https://bugs.swift.org/browse/SR-4874)
 
 ## Introduction
 
