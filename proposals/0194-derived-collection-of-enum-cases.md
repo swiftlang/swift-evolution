@@ -5,6 +5,8 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Review Thread: [SE-0194 review][se8]
 * Status: **Implemented (Swift 4.2)**
+* Implementation: [apple/swift#13655](https://github.com/apple/swift/pull/13655)
+* Bugs: [SR-7151](https://bugs.swift.org/browse/SR-7151), [SR-7152](https://bugs.swift.org/browse/SR-7152)
 
 ## Introduction
 
