@@ -4,8 +4,8 @@
 * Authors: [John Holdsworth](https://github.com/johnno1962), [David Hart](https://github.com/hartbit), [Adrian Zubarev](https://github.com/DevAndArtist)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 4)**
+* Implementation: [apple/swift#11080](https://github.com/apple/swift/pull/11080)
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2017-July/000393.html)
-
 * Previous Proposal: [SE-0168](0168-multi-line-string-literals.md)
 
 ## Introduction
