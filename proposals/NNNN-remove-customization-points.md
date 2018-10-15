@@ -15,7 +15,7 @@ standard library:
 - `first` from `Collection`
 - `last` on `BidirectionalCollection`
 
-Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/)
+Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/t/pitch-remove-some-customization-points-from-the-std-lib-collection-protocols/16911/)
 
 ## Motivation
 
