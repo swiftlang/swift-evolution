@@ -15,6 +15,10 @@ standard library:
 - `first` from `Collection`
 - `last` on `BidirectionalCollection`
 
+The default implementations of these symbols will remain, so sequences and
+collections will continue to have the same operations available that they
+do today.
+
 Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/t/pitch-remove-some-customization-points-from-the-std-lib-collection-protocols/16911/)
 
 ## Motivation
