@@ -27,7 +27,7 @@ Customization points are methods that are declared on the protocol, as well as
 given default implementations in an extension. This way, when a type provides
 its own non-default implementation, this will be dispatched to in a generic
 context (e.g. when another method defined in an extension on the protocol calls
-the cusomized method). Without a customization point, the default
+the customized method). Without a customization point, the default
 implementation is called in the generic context.
 
 This serves broadly two purposes:
@@ -45,11 +45,11 @@ never be removed, though they can be added.
 
 Customization points aren't free – they add a small cost at both compile time
 and run time. So they should only be added if there is a realistic possibility
-that one of the two reasons above are necessary. 
+that either of the two reasons above apply. 
 
 In the case of the 4 customization points in this proposal, reason 1 does not
 apply. In fact it could be considered a serious bug if any type implemented
-these 4 features with anything other than the default obvervable behavior.
+these 4 features with anything other than the default observable behavior.
 
 It is also hard to find a good use case for reason 2 – whereas slight slowdowns
 from the presence of the customization points have been observed. While it is
