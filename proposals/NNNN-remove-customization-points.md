@@ -53,9 +53,9 @@ these 4 features with anything other than the default obvervable behavior.
 
 It is also hard to find a good use case for reason 2 – whereas slight slowdowns
 from the presence of the customization points have been observed. While it is
-possible that a resilient type's `forEach` implementation might be able to eek
+possible that a resilient type's `forEach` implementation might be able to eke
 out a small performance benefit (for example, to avoid the reference count bump
-of putting self into an iterator), it is generally harmful to encourage this
+of putting `self` into an iterator), it is generally harmful to encourage this
 kind of "maybe forEach could be faster" micro-optimization. For example, see
 [here](https://github.com/apple/swift/pull/17387), where error control flow was
 used in order to break out of the `forEach` early, causing unpleasant
