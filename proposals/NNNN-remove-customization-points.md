@@ -38,7 +38,7 @@ This serves broadly two purposes:
 2. Allowing for more efficient implementations. For example, `count` on
   forward-only collections takes O(n) (because without random access, the
   implementation needs to iterate the collection to count it). But some
-  collection types might know their `count` even if they aren't random accesss.
+  collection types might know their `count` even if they aren't random access.
   
 Once ABI stability has been declared for a framework, customization points can
 never be removed, though they can be added.
