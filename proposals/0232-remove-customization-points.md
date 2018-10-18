@@ -1,6 +1,6 @@
 # Remove Some Customization Points from the Standard Library's `Collection` Hierarchy
 
-* Proposal: [SE-NNNN](NNNN-remove-customization-points.md)
+* Proposal: [SE-0232](0232-remove-customization-points.md)
 * Author: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [Dave Abrahams](https://github.com/dabrahams)
 * Status: **Awaiting review (October 22-26)**
