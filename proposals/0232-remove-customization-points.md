@@ -2,8 +2,8 @@
 
 * Proposal: [SE-NNNN](NNNN-remove-customization-points.md)
 * Author: [Ben Cohen](https://github.com/airspeedswift)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Review Manager: [Dave Abrahams](https://github.com/dabrahams)
+* Status: **Awaiting review (October 22-26)**
 * Implementation: [apple/swift#19769](https://github.com/apple/swift/pull/19769)
 
 ## Introduction
