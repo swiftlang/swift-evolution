@@ -15,7 +15,7 @@ This proposal makes two changes to the `SetAlgebra` protocol, as well as corresp
 
 These are **source breaking** changes. The primary motivation for breaking source now is ensuring that the ABI and API allow for future types and language features – specifically move-only types.
 
-Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/)
+Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/t/pitch-reform-setalgebra/17184)
 
 ## Motivation
 
@@ -154,15 +154,9 @@ extension PredicateSet {
 
 But some of them are impossible to implement.
 
-These requirements effectively require the ability to enumerate the elements:
+Some requirements effectively require the ability to enumerate the elements. `isEmpty` requires you to know `contains` will always return false. This is impossible for an opaque closure. `Equatable` conformance has the same problem.
 
-`isEmpty` requires you to know `contains` will always return false. This is impossible for an opaque closure. 
-
-`Equatable` conformance has the same problem.
-
-`init<S : Sequence>(_ sequence: S) where S.Element == Element` requires the ability to initialize from a sequence. At a minimum, this would require that `Element` be `Equatable` (and even then, testing would take `O(n)` — `Comparable` or `Hashable` is probably the minimum). In most cases, this is taken care of by the confoming type (e.g. `Set` requires `Element: Hashable`). But a predicate set _might not_ need this requirement – the predicate the user supplied could use some other means. Ideally, `SetAlgebra` wouldn't impose any requirement on `Element`, but also wouldn't require an unconstrained `init` from a sequence.
-
-`ExpressibleByArrayLiteral` has the same problem.
+`init<S : Sequence>(_ sequence: S) where S.Element == Element` requires the ability to initialize from a sequence. At a minimum, this would require that `Element` be `Equatable` (and even then, testing would take `O(n)` — `Comparable` or `Hashable` is probably the minimum). In most cases, this is taken care of by the confoming type (e.g. `Set` requires `Element: Hashable`). But a predicate set _might not_ need this requirement – the predicate the user supplied could use some other means. Ideally, `SetAlgebra` wouldn't impose any requirement on `Element`, but also wouldn't require an unconstrained `init` from a sequence. `ExpressibleByArrayLiteral` has the same problem.
 
 `isSubset(of:)`, `isSuperset(of:)` and `isDisjoint(with:)` are kind of a combination of both problems.
 
@@ -205,7 +199,7 @@ This is an ABI-breaking change. The motivation is to get the ABI right for sets 
 
 ## Effect on API resilience
 
-None
+None.
 
 ## Alternatives considered
 
