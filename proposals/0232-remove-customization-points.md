@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0232](0232-remove-customization-points.md)
 * Author: [Ben Cohen](https://github.com/airspeedswift)
-* Review Manager: [Dave Abrahams](https://github.com/dabrahams)
+* Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Status: **Scheduled for review (October 22...October 26)**
 * Implementation: [apple/swift#19769](https://github.com/apple/swift/pull/19769)
 
