@@ -1,4 +1,4 @@
-# Synthesize default values in the memberwise initializer
+# Synthesize default values for the memberwise initializer
 
 * Proposal: [SE-NNNN](NNNN-default-values-memberwise.md)
 * Author: [Alejandro Alonso](https://github.com/Azoy)
