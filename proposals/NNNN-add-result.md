@@ -105,7 +105,7 @@ func doSomethingWithConfiguration() {
 
 #### Separating Errors
 
-It's occasionally useful to be able to run `throw`able functions in such way as to allow the developer to disambiguate between the sources of the errors, especially if the errors don't contain the information necessary to do, or the developer doesn't want to implement such a check. For instance, if we needed to disambiguate between the errors possible when reading files:
+It's occasionally useful to be able to run `throw`able functions in such way as to allow the developer to disambiguate between the sources of the errors, especially if the errors don't contain the information necessary to do so, or the developer doesn't want to implement such a check. For instance, if we needed to disambiguate between the errors possible when reading files:
 
 ```swift
 do {
