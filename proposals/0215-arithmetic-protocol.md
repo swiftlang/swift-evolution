@@ -64,12 +64,14 @@ generalized arithmetic operator through the Swift standard library.
 
 We keep `Numeric`'s behavior and requirements intact, and introduce a new
 protocol to take ownership of `Numeric`'s arithmetic operators. `Numeric` will
-refine this new protocol. This idea comes from [Steve Canon's
+refine this new protocol. The new protocol will roughly correspond to the
+mathematical notion of [rng](https://en.wikipedia.org/wiki/Rng_(algebra)), i.e.
+ring without unity. This idea comes from [Steve Canon's
 response](https://forums.swift.org/t/should-numeric-not-refine-expressiblebyintegerliteral/15106/6?u=rxwei)
 on an earlier thread about this issue.
 
-The new protocol will roughly correspond to the mathematical notion of
-[rng](https://en.wikipedia.org/wiki/Rng_(algebra)), i.e. ring without unity.
+Vector protocols or types will then conform to `Arithmetic`, sharing arithmetic
+operators with scalar types without being prone to type-checking ambiguity.
 
 ## Detailed design
 
