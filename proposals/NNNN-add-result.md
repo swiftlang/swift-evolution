@@ -149,36 +149,27 @@ public enum Result<Value, Error> {
     case success(Value)
     case failure(Error)
     
-    var value: Value? {
+    public var value: Value? {
         switch self {
         case let .success(value): return value
         case .failure: return nil
         }
     }
     
-    var error: Error? {
+    public var error: Error? {
         switch self {
         case let .failure(error): return error
         case .success: return nil
         }
     }
     
-    var isSuccess: Bool {
+    public var isSuccess: Bool {
         switch self {
         case .success: return true
         case .failure: return false
         }
     }
     
-    @_transparent
-    public init(_ throwing: () throws -> Value) {
-        do {
-            let value = try throwing()
-            self = .success(value)
-        } catch {
-            self = .failure(error as! Error)
-        }
-    }
 }
 
 extension Result where Error: Swift.Error {
@@ -191,6 +182,16 @@ extension Result where Error: Swift.Error {
 }
 
 extension Result where Error == Swift.Error {
+    @_transparent
+    public init(_ throwing: () throws -> Value) {
+        do {
+            let value = try throwing()
+            self = .success(value)
+        } catch {
+            self = .failure(error)
+        }
+    }
+    
     public func unwrap() throws -> Value {
         switch self {
         case let .success(value): return value
