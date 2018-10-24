@@ -11,8 +11,8 @@
 This proposal removes four customization points from protocols in the
 standard library:
 
-- `map` and `forEach` from `Sequence`
-- `first` from `Collection`
+- `map`, `filter`, and `forEach` from `Sequence`
+- `first`,  `prefix(upTo:)`, `prefix(through:)`, and `suffix(from:)` from `Collection`
 - `last` on `BidirectionalCollection`
 
 The default implementations of these symbols will remain, so sequences and
@@ -47,15 +47,18 @@ Customization points aren't free – they add a small cost at both compile time
 and run time. So they should only be added if there is a realistic possibility
 that either of the two reasons above apply. 
 
-In the case of the 4 customization points in this proposal, reason 1 does not
+In the case of the customization points in this proposal, reason 1 does not
 apply. In fact it could be considered a serious bug if any type implemented
-these 4 features with anything other than the default observable behavior.
+these features with anything other than the default observable behavior.
 
 It is also hard to find a good use case for reason 2 – whereas slight slowdowns
-from the presence of the customization points have been observed. While it is
-possible that a resilient type's `forEach` implementation might be able to eke
-out a small performance benefit (for example, to avoid the reference count bump
-of putting `self` into an iterator), it is generally harmful to encourage this
+and code size bloatfrom the presence of the customization points have been observed.
+In some cases (for example `suffix(from:)`), the implementation is so simple that
+there is no reasonable alternative implementation.
+
+While it is possible that a resilient type's `forEach` implementation might be able 
+to eke out a small performance benefit (for example, to avoid the reference count 
+bump of putting `self` into an iterator), it is generally harmful to encourage this
 kind of "maybe forEach could be faster" micro-optimization. For example, see
 [here](https://github.com/apple/swift/pull/17387), where error control flow was
 used in order to break out of the `forEach` early, causing unpleasant
@@ -92,7 +95,7 @@ the protocol.
 
 ## Proposed solution
 
-Remove these 4 customization points from the `Collection` protocols. The
+Remove these customization points from the `Collection` protocols. The
 default implementations will remain. 
 
 ## Source compatibility
