@@ -146,71 +146,171 @@ As implemented in the PR (annotations pending):
 ```swift
 @_frozen
 public enum Result<Value, Error> {
-    case success(Value)
-    case failure(Error)
-    
-    public var value: Value? {
-        switch self {
-        case let .success(value): return value
-        case .failure: return nil
-        }
+  case success(Value)
+  case failure(Error)
+  
+  public var value: Value? {
+    switch self {
+    case let .success(value): return value
+    case .failure: return nil
     }
-    
-    public var error: Error? {
-        switch self {
-        case let .failure(error): return error
-        case .success: return nil
-        }
+  }
+  
+  public var error: Error? {
+    switch self {
+    case let .failure(error): return error
+    case .success: return nil
     }
-    
-    public var isSuccess: Bool {
-        switch self {
-        case .success: return true
-        case .failure: return false
-        }
+  }
+  
+  public var isSuccess: Bool {
+    switch self {
+    case .success: return true
+    case .failure: return false
     }
-    
+  }
+  
+  public func map<NewValue>(
+    _ transform: (Value) -> NewValue
+  ) -> Result<NewValue, Error> {
+    switch self {
+    case let .success(value): return .success(transform(value))
+    case let .failure(error): return .failure(error)
+    }
+  }
+  
+  public func mapError<NewError>(
+    _ transform: (Error) -> NewError
+  ) -> Result<Value, NewError> {
+    switch self {
+    case let .success(value): return .success(value)
+    case let .failure(error): return .failure(transform(error))
+    }
+  }
+  
+  public func flatMap<NewValue>(
+    _ transform: (Value) -> Result<NewValue, Error>
+  ) -> Result<NewValue, Error> {
+    switch self {
+    case let .success(value): return transform(value)
+    case let .failure(error): return .failure(error)
+    }
+  }
+  
+  public func flatMapError<NewError>(
+    _ transform: (Error) -> Result<Value, NewError>
+  ) -> Result<Value, NewError> {
+    switch self {
+    case let .success(value): return .success(value)
+    case let .failure(error): return transform(error)
+    }
+  }
+  
+  public func fold<Output>(
+    onSuccess: (Value) -> Output,
+    onFailure: (Error) -> Output
+    ) -> Output {
+    switch self {
+    case let .success(value): return onSuccess(value)
+    case let .failure(error): return onFailure(error)
+    }
+  }
 }
 
 extension Result where Error: Swift.Error {
-    public func unwrap() throws -> Value {
-        switch self {
-        case let .success(value): return value
-        case let .failure(error): throw error
-        }
+  public func unwrapped() throws -> Value {
+    switch self {
+    case let .success(value): return value
+    case let .failure(error): throw error
     }
+  }
 }
 
 extension Result where Error == Swift.Error {
-    @_transparent
-    public init(_ throwing: () throws -> Value) {
-        do {
-            let value = try throwing()
-            self = .success(value)
-        } catch {
-            self = .failure(error)
-        }
+  @_transparent
+  public init(_ throwing: () throws -> Value) {
+    do {
+      let value = try throwing()
+      self = .success(value)
+    } catch {
+      self = .failure(error)
     }
-    
-    public func unwrap() throws -> Value {
-        switch self {
-        case let .success(value): return value
-        case let .failure(error): throw error
-        }
+  }
+  
+  public func unwrapped() throws -> Value {
+    switch self {
+    case let .success(value): return value
+    case let .failure(error): throw error
     }
+  }
+  
+  public func map<NewValue>(
+    _ transform: (Value) throws -> NewValue
+  ) -> Result<NewValue, Error> {
+    do {
+      switch self {
+      case let .success(value): return .success(try transform(value))
+      case let .failure(error): return .failure(error)
+      }
+    } catch {
+      return .failure(error)
+    }
+  }
+  
+  public func mapError(
+    _ transform: (Error) throws -> Swift.Error
+  ) -> Result<Value, Swift.Error> {
+    do {
+      switch self {
+      case let .success(value): return .success(value)
+      case let .failure(error): return .failure(try transform(error))
+      }
+    } catch {
+      return .failure(error)
+    }
+  }
+  
+  public func flatMap<NewValue>(
+    _ transform: (Value) throws -> Result<NewValue, Error>
+  ) -> Result<NewValue, Error> {
+    do {
+      switch self {
+      case let .success(value): return try transform(value)
+      case let .failure(error): return .failure(error)
+      }
+    } catch {
+      return .failure(error)
+    }
+  }
+  
+  public func flatMapError(
+    _ transform: (Error) throws -> Result<Value, Swift.Error>
+  ) -> Result<Value, Swift.Error> {
+    do {
+      switch self {
+      case let .success(value): return .success(value)
+      case let .failure(error): return try transform(error)
+      }
+    } catch {
+      return .failure(error)
+    }
+  }
 }
 
 extension Result: Equatable where Value: Equatable, Error: Equatable {
-    public static func ==(lhs: Result<Value, Error>, rhs: Result<Value, Error>) -> Bool {
-        return lhs.value == rhs.value && lhs.error == rhs.error
-    }
+  public static func == (
+    lhs: Result<Value, Error>,
+    rhs: Result<Value, Error>
+  ) -> Bool {
+    return lhs.value == rhs.value && lhs.error == rhs.error
+  }
 }
 
 extension Result: Hashable where Value: Hashable, Error: Hashable {
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(value)
-        hasher.combine(error)
-    }
+  public func hash(into hasher: inout Hasher) {
+    hasher.combine(value)
+    hasher.combine(error)
+  }
 }
 ```
 
@@ -225,11 +325,11 @@ Many other languages have a `Result` type or equivalent:
 
 ## Source compatibility
 
-This is an additive change.
+This is an additive change, but could conflict with `Result` types already defined.
 
 ## Effect on ABI stability
 
-None.
+This proposal adds a type to the standard library and so will affect the ABI once added.
 
 ## Effect on API resilience
 
