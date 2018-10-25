@@ -5,7 +5,7 @@
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Accepted**
 * Implementation: [apple/swift#16942](https://github.com/apple/swift/pull/16942)
-* Review: [forum thread](https://forums.swift.org/t/se-0230-flatten-nested-optionals-resulting-from-try/16570)
+* Review: [forum thread](https://forums.swift.org/t/se-0230-flatten-nested-optionals-resulting-from-try/16570) [acceptance](https://forums.swift.org/t/accepted-se-230-flatten-nested-optionals-resulting-from-try/17376)
 
 ## Introduction
 
