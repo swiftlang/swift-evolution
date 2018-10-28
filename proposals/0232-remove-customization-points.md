@@ -52,7 +52,7 @@ apply. In fact it could be considered a serious bug if any type implemented
 these features with anything other than the default observable behavior.
 
 It is also hard to find a good use case for reason 2 – whereas slight slowdowns
-and code size bloatfrom the presence of the customization points have been observed.
+and code size bloat from the presence of the customization points have been observed.
 In some cases (for example `suffix(from:)`), the implementation is so simple that
 there is no reasonable alternative implementation.
 
