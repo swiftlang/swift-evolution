@@ -22,7 +22,7 @@ public enum Result<Value, Error> {
 }
 ```
 
-`Result<Value, Error>` is a pragmatic compromise between competing error handling concerns both present and future. It is unconstrained for the `Error` type captured in the `.failure` case to both allow for a possible type-`throws` future and allow failures to return values that don't conform to `Swift.Error`.
+`Result<Value, Error>` is a pragmatic compromise between competing error handling concerns both present and future. It is unconstrained for the `Error` type captured in the `.failure` case both to allow for a possible typed-`throws` future and to allow failures to return values that don't conform to `Swift.Error`.
 
 ### Usage
 
