@@ -69,7 +69,7 @@ x * 1 // Ambiguous! Can be both `x * Vector(integerLiteral: 1)` and `x * (1 as I
 
 We keep  `Numeric` 's behavior and requirements intact, and introduce a new protocol that
 - does not require `ExpressibleByIntegerLiteral` conformance, and
-- share common properties and operators between vectors and scalars.
+- shares common properties and operators between vectors and scalars.
 
 To achieve these, we can try to find a mathematical concept that is close enough to makes practical sense without depending on unnecessary algebraic abstractions. This concept is additive group, containing a zero and all additive operators that are defined on `Numeric` today. `Numeric` will refine this new protocol, and vector types/protocols will conform to/refine the new protocol as well.
 
@@ -79,11 +79,66 @@ We define a new protocol called  `AdditiveArithmetic` . This protocol requires a
 
 ```swift
 public protocol AdditiveArithmetic: Equatable {
+  /// A zero value.
   static var zero: Self { get }
-  prefix static func + (x: Self) -> Self
+
+  /// Adds two values and produces their sum.
+  ///
+  /// The addition operator (`+`) calculates the sum of its two arguments. For
+  /// example:
+  ///
+  ///     1 + 2                   // 3
+  ///     -10 + 15                // 5
+  ///     -15 + -5                // -20
+  ///     21.5 + 3.25             // 24.75
+  ///
+  /// You cannot use `+` with arguments of different types. To add values of
+  /// different types, convert one of the values to the other value's type.
+  ///
+  ///     let x: Int8 = 21
+  ///     let y: Int = 1000000
+  ///     Int(x) + y              // 1000021
+  ///
+  /// - Parameters:
+  ///   - lhs: The first value to add.
+  ///   - rhs: The second value to add.
   static func + (lhs: Self, rhs: Self) -> Self
+  
+  /// Adds two values and stores the result in the left-hand-side variable.
+  ///
+  /// - Parameters:
+  ///   - lhs: The first value to add.
+  ///   - rhs: The second value to add.
   static func += (lhs: inout Self, rhs: Self) -> Self
+  
+  /// Subtracts one value from another and produces their difference.
+  ///
+  /// The subtraction operator (`-`) calculates the difference of its two
+  /// arguments. For example:
+  ///
+  ///     8 - 3                   // 5
+  ///     -10 - 5                 // -15
+  ///     100 - -5                // 105
+  ///     10.5 - 100.0            // -89.5
+  ///
+  /// You cannot use `-` with arguments of different types. To subtract values
+  /// of different types, convert one of the values to the other value's type.
+  ///
+  ///     let x: UInt8 = 21
+  ///     let y: UInt = 1000000
+  ///     y - UInt(x)             // 999979
+  ///
+  /// - Parameters:
+  ///   - lhs: A numeric value.
+  ///   - rhs: The value to subtract from `lhs`.
   static func - (lhs: Self, rhs: Self) -> Self
+  
+  /// Subtracts the second value from the first and stores the difference in the
+  /// left-hand-side variable.
+  ///
+  /// - Parameters:
+  ///   - lhs: A numeric value.
+  ///   - rhs: The value to subtract from `lhs`.
   static func -= (lhs: inout Self, rhs: Self) -> Self
 }
 ```
@@ -103,9 +158,32 @@ public protocol Numeric: AdditiveArithmetic, ExpressibleByIntegerLiteral  {
 To make sure today's  `Numeric` -conforming types do not have to define a  `zero` , we provide an extension to  `AdditiveArithmetic` constrained on  `Self: ExpressibleByIntegerLiteral` .
 
 ```swift
-public extension AdditiveArithmetic where Self: ExpressibleByIntegerLiteral {
-  static var zero: Self {
+extension AdditiveArithmetic where Self: ExpressibleByIntegerLiteral {
+  public static var zero: Self {
     return 0
+  }
+}
+```
+
+In the existing standard library, prefix `+` is provided by an extension to
+`Numeric`. Since additive arithmetics are now defined on `AdditiveArithmetic`,
+we change this extension to apply to `AdditiveArithmetic`.
+
+```swift
+extension AdditiveArithmetic {
+  /// Returns the given number unchanged.
+  ///
+  /// You can use the unary plus operator (`+`) to provide symmetry in your
+  /// code for positive numbers when also using the unary minus operator.
+  ///
+  ///     let x = -21
+  ///     let y = +21
+  ///     // x == -21
+  ///     // y == 21
+  ///
+  /// - Returns: The given argument without any changes.
+  public static prefix func + (x: Self) -> Self {
+    return x
   }
 }
 ```
@@ -127,3 +205,5 @@ The proposed change will affect the existing ABI, and there is no way to make it
 1. Make  `Numeric`  no longer refine  `ExpressibleByIntegerLiteral`  and not introduce any new protocol. This can solve the type checking ambiguity problem in vector protocols, but will break existing code: Functions generic over  `Numeric`  may use integer literals for initialization. Plus, Steve Canon also pointed out that it is not mathematically accurate -- there's a canonical homomorphism from the integers to every ring with unity. Moreover, it makes sense for vector types to conform to  `Numeric`  to get arithmetic operators, but it is uncommon to make vectors, esp. fixed-rank vectors, be expressible by integer literal.
 
 2. On top of `AdditiveArithmetic`, add a `MultiplicativeArithmetic` protocol that refines `AdditiveArithmetic`, and make `Numeric` refine `MultiplicativeArithmetic`. This would be a natural extension to `AdditiveArithmetic`, but the practical benefit of this is unclear.
+
+3. Instead of a `zero` static computed property requirement, an `init()` could be used instead, and this would align well with Swift's preference for initializers. However, this would force conforming types to have an `init()`, which in some cases could be confusing or misleading. For example, it would be unclear whether `Matrix()` is creating a zero matrix or an identity matrix. Spelling it as `zero` eliminates that ambiguity.
