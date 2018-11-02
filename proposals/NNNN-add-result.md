@@ -256,12 +256,14 @@ extension Result where Error == Swift.Error {
   ///   the previous error value.
   public func flatMap<NewValue>(
     _ transform: (Value) throws -> NewValue
-  ) -> Result<NewValue, Swift.Error>
+  ) -> Result<NewValue, Error>
 }
 
-extension Result: Equatable where Value: Equatable, Error: Equatable { }
+extension Result : Equatable where Value : Equatable, Error : Equatable { }
 
-extension Result: Hashable where Value: Hashable, Error: Hashable { }
+extension Result : Hashable where Value : Hashable, Error : Hashable { }
+
+extension Result : CustomDebugStringConvertible { }
 ```
 
 ## Other Languages
@@ -286,6 +288,28 @@ This proposal adds a type to the standard library and so will affect the ABI onc
 Addition of `Result<Value, Error>` should be future proof against future needs surrounding error handling.
 
 ## Alternatives considered
+
+### Alternative Spellings of `Result<Value, Error>`
+Two alternate spellings were proposed:
+
+```swift
+enum Result<Value, Error> {
+    case value(Value)
+    case error(Error)
+}
+```
+and 
+
+```swift
+enum Result<Wrapped, Failure> {
+    case value(Value)
+    case error(Error)
+}
+```
+However, these spellings emphasize more of a similarity to `Optional` than seems appropriate. Emphasizing `Result` good/bad, yes/no, success/failure nature seems more inline with the typical usage and meaning of the type. Using `success` and `failure` cases makes that usage completely clear. The `Value`/`Error` generic types appropriately convey the usage of the individual types along the same lines. Ultimately, however, the proposed spelling benefits from the fact that's it's the most common spelling implemented by the Swift community, making it the easiest to drop in and replace existing implementations, as well as benefitting from the current level of community knowledge around the type.
+
+### Alternatives to `Result<Value, Error>`
+
 - `Result<T>`: A `Result` without a generic error type fits well with the current error design in Swift. However, it prevents the future addition of typed error handling (typed `throws`), as well as locking all `Result` usage into failure types which conform to `Error`.
 
 - `Result<T, E: Error>`: A `Result` that constrains its error type to just those types conforming to `Error` allows for fully typed error handling. However, this type is incompatible with current Swift error handling, as it cannot capture unconstrained `Error` values. This would require either casting to a specific error type (commonly `NSError`, which is an anti-pattern) or the addition of a `Error` box type, such as `AnyError`. Additionally, the constraint prevents future growth towards capturing non-`Error` conforming types.
