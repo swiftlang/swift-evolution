@@ -22,7 +22,7 @@ What's wrong with `Numeric`? Assuming that we need to conform to `Numeric` to ge
 
 `Numeric` roughly corresponds to a [ring](https://en.wikipedia.org/wiki/Ring_(mathematics)). Vector spaces are not rings. Multiplication is not defined between vectors. Requirements `*` and `*=` below would make vector types inconsistent with the mathematical definition.
 
-```
+```swift
 static func * (lhs: Self, rhs: Self) -> Self
 static func *= (lhs: inout Self, rhs: Self)
 ```
@@ -161,29 +161,6 @@ To make sure today's  `Numeric` -conforming types do not have to define a  `zero
 extension AdditiveArithmetic where Self: ExpressibleByIntegerLiteral {
   public static var zero: Self {
     return 0
-  }
-}
-```
-
-In the existing standard library, prefix `+` is provided by an extension to
-`Numeric`. Since additive arithmetics are now defined on `AdditiveArithmetic`,
-we change this extension to apply to `AdditiveArithmetic`.
-
-```swift
-extension AdditiveArithmetic {
-  /// Returns the given number unchanged.
-  ///
-  /// You can use the unary plus operator (`+`) to provide symmetry in your
-  /// code for positive numbers when also using the unary minus operator.
-  ///
-  ///     let x = -21
-  ///     let y = +21
-  ///     // x == -21
-  ///     // y == 21
-  ///
-  /// - Returns: The given argument without any changes.
-  public static prefix func + (x: Self) -> Self {
-    return x
   }
 }
 ```
