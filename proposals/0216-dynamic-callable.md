@@ -183,7 +183,7 @@ func dynamicallyCall(withKeywordArguments: <#KeywordArguments#>) -> <#R2#>
 // `<#KeywordArguments#>.Key` must be a type that conforms to `ExpressibleByStringLiteral`.
 // `<#KeywordArguments#>.Value` and the result type `<#R2#>` can be arbitrary.
 
-// Note: in these type signatures, bracketed types like <Arguments> and <KeywordArguments>
+// Note: in these type signatures, bracketed types like <#Arguments#> and <#KeywordArguments#>
 // are not actual types, but rather any actual type that meets the specified conditions.
 ```
 
