@@ -164,8 +164,8 @@ the precedent of
 [SE-0195](https://github.com/apple/swift-evolution/blob/master/proposals/0195-dynamic-member-lookup.md).
 
 Before this proposal, values of these types are not valid in a call expression:
-the only existing callable values in Swift has are those with function
-types (functions, methods, closures, etc) and metatypes (which are initializer
+the only existing callable values in Swift are those with function types
+(functions, methods, closures, etc) and metatypes (which are initializer
 expressions like `String(42)`). Thus, it is always an error to "call" an
 instance of a nominal type (like a struct, for instance).
 
@@ -174,25 +174,25 @@ primary type declaration become "callable". They are required to implement at
 least one of the following two methods for handling the call behavior:
 
 ```swift
-func dynamicallyCall(withArguments: <Arguments>) -> <R1>
-// `<Arguments>` can be any type that conforms to `ExpressibleByArrayLiteral`.
-// `<Arguments>.ArrayLiteralElement` and the result type `<R1>` can be arbitrary.
+func dynamicallyCall(withArguments: <#Arguments#>) -> <#R1#>
+// `<#Arguments#>` can be any type that conforms to `ExpressibleByArrayLiteral`.
+// `<#Arguments#>.ArrayLiteralElement` and the result type `<#R1#>` can be arbitrary.
 
-func dynamicallyCall(withKeywordArguments: <KeywordArguments>) -> <R2>
-// `<KeywordArguments>` can be any type that conforms to `ExpressibleByDictionaryLiteral`.
-// `<KeywordArguments>.Key` must be a type that conforms to `ExpressibleByStringLiteral`.
-// `<KeywordArguments>.Value` and the result type `<R2>` can be arbitrary.
+func dynamicallyCall(withKeywordArguments: <#KeywordArguments#>) -> <#R2#>
+// `<#KeywordArguments#>` can be any type that conforms to `ExpressibleByDictionaryLiteral`.
+// `<#KeywordArguments#>.Key` must be a type that conforms to `ExpressibleByStringLiteral`.
+// `<#KeywordArguments#>.Value` and the result type `<#R2#>` can be arbitrary.
 
 // Note: in these type signatures, bracketed types like <Arguments> and <KeywordArguments>
 // are not actual types, but rather any actual type that meets the specified conditions.
 ```
 
-As stated above, `<Arguments>` and `<KeywordArguments>` can be any types
+As stated above, `<#Arguments#>` and `<#KeywordArguments#>` can be any types
 that conform to the
 [`ExpressibleByArrayLiteral`](https://developer.apple.com/documentation/swift/expressiblebyarrayliteral)
 and
 [`ExpressibleByDictionaryLiteral`](https://developer.apple.com/documentation/swift/expressiblebydictionaryliteral)
-protocols, respectively. The later is inclusive of
+protocols, respectively. The latter is inclusive of
 [`KeyValuePairs`](https://developer.apple.com/documentation/swift/keyvaluepairs),
 which supports duplicate keys, unlike [`Dictionary`](https://developer.apple.com/documentation/swift/dictionary).
 Thus, using `KeyValuePairs` is recommended to support duplicate keywords and
