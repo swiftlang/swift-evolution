@@ -290,7 +290,7 @@ Addition of `Result<Value, Error>` should be future proof against future needs s
 ## Alternatives considered
 
 ### Alternative Spellings of `Result<Value, Error>`
-Two alternate spellings were proposed:
+A few alternate spellings were proposed:
 
 ```swift
 enum Result<Value, Error> {
@@ -298,15 +298,19 @@ enum Result<Value, Error> {
     case error(Error)
 }
 ```
-and 
-
 ```swift
 enum Result<Wrapped, Failure> {
     case value(Wrapped)
     case error(Failure)
 }
 ```
-However, these spellings emphasize more of a similarity to `Optional` than seems appropriate. Emphasizing `Result` good/bad, yes/no, success/failure nature seems more inline with the typical usage and meaning of the type. Using `success` and `failure` cases makes that usage completely clear. The `Value`/`Error` generic types appropriately convey the usage of the individual types along the same lines. Ultimately, however, the proposed spelling benefits from the fact that's it's the most common spelling implemented by the Swift community, making it the easiest to drop in and replace existing implementations, as well as benefitting from the current level of community knowledge around the type.
+```swift
+enum Result<Wrapped, Failure> {
+    case some(Wrapped)
+    case error(Failure)
+}
+```
+However, these spellings emphasize more of a similarity to `Optional` than seems appropriate. Emphasizing `Result` good/bad, yes/no, success/failure nature seems more in line with the typical usage and meaning of the type. Using `success` and `failure` cases makes that usage completely clear. The `Value`/`Error` generic types appropriately convey the usage of the individual types along the same lines. Ultimately, however, the proposed spelling benefits from the fact that's it's the most common spelling implemented by the Swift community, making it the easiest to drop in and replace existing implementations, as well as benefitting from the current level of community knowledge around the type.
 
 ### Alternatives to `Result<Value, Error>`
 
