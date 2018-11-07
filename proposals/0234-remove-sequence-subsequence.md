@@ -3,8 +3,9 @@
 * Proposal: [SE-0234](0234-remove-sequence-subsequence.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active review (November 8th...November 14th, 2018**
+* Status: **Active review (November 8th...November 14th, 2018**)
 * Implementation: [apple/swift#20221](https://github.com/apple/swift/pull/20221)
+* Review: [review thread](https://forums.swift.org/t/se-0234-removing-sequence-subsequence/17750)
 
 ## Introduction
 
