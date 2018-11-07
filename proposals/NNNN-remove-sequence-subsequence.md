@@ -4,7 +4,7 @@
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Awaiting review**
-* Implementation: [apple/swift#NNNNN](https://github.com/apple/swift/pull/20221)
+* Implementation: [apple/swift#20221](https://github.com/apple/swift/pull/20221)
 
 ## Introduction
 
@@ -93,8 +93,8 @@ For example, the `Slice` type that is the default `SubSequence` for
 works nicely when you add new conformances to a `Collection` that _uses_
 `Slice` as it’s `SubSequence` type. For more detail on this, watch Doug’s
 explanation in our WWDC [Swift
-Generics](https://developer.apple.com/videos/play/wwdc2018/406/) talk (starts
-at about minute 26).
+Generics](https://developer.apple.com/videos/play/wwdc2018/406/?time=1614) talk
+(starts at about minute 26).
 
 But the default type for `Sequence.SubSequence` is `AnySequence`, which is a
 conformance dead end. You cannot add additional capabilities to `AnySequence`
@@ -256,9 +256,8 @@ the standard library in underscored form.
 This will also have the useful side-effect that these methods can also be
 removed as customization points from `Collection` as well, similar to removing
 `prefix(upTo:)` in
-[SE-0232](https://github.com/apple/swift-evolution/blob/master/proposals/0232-re
-move-customization-points.md), because there’s no longer any reasonable
-customization to be done on a per-collection basis.
+[SE-0232](https://github.com/apple/swift-evolution/blob/master/proposals/0232-remove-customization-points.md),
+because there’s no longer any reasonable customization to be done on a per-collection basis.
 
 Doing this will have considerable benefits to code size as well. For example,
 the CoreAudio overlay that declares a handful of collections reduces in size by
@@ -270,17 +269,15 @@ enhancements to standard library types:
 - `LazySequenceProtocol` and `LazyCollectionProtocol` can be collapsed into a
   single protocol.
 
-- The following type can be collapsed, dropping the collection variant (with a
-  typealias provided for source compatability):
+- The following types can be collapsed, dropping the collection variant (with a
+  typealias provided for source compatibility):
 
-    - `FlattenSequence` and `Collection`
-    - `LazySequence` and `LazyCollection`
-    - `LazyMapSequence` and `Collection`
-    - `LazyFilterSequence` and `Collection`
-    - `LazyDropWhileSequence` and `Collection`
-    - `LazyPrefixWhileSequence` and `Collection`
-    - `LazyMapSequence` and `Collection`
-    - `FlattenSequence` and `Collection`
+    - `FlattenSequence` and `-Collection`
+    - `LazySequence` and `-Collection`
+    - `LazyMapSequence` and `-Collection`
+    - `LazyFilterSequence` and `-Collection`
+    - `LazyDropWhileSequence` and `-Collection`
+    - `LazyPrefixWhileSequence` and `-Collection`
 
 - The following types can be extended to support `Collection`:
 
