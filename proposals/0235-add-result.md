@@ -1,9 +1,9 @@
 # Add Result to the Standard Library
 
-* Proposal: [SE-NNNN](NNNN-add-result.md)
+* Proposal: [SE-0235](0235-add-result.md)
 * Authors: [Jon Shier](https://github.com/jshier)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Review Manager: [Chris Lattner](https://github.com/lattner)
+* Status: **Active review (November 7...12, 2018)**
 * Implementation: [apple/swift#19982](https://github.com/apple/swift/pull/19982)
 
 ## Introduction

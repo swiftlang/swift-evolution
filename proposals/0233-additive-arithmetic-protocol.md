@@ -3,7 +3,7 @@
 * Proposal: [SE-0233](0233-additive-arithmetic-protocol.md)
 * Author: [Richard Wei](https://github.com/rxwei)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status:  **Active review (November 1...6, 2018)**
+* Status:  **Accepted**
 * Implementation: [apple/swift#19989](https://github.com/apple/swift/pull/19989)
 
 ## Introduction
