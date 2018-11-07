@@ -3,14 +3,14 @@
 * Proposal: [SE-0216](0216-dynamic-callable.md)
 * Authors: [Chris Lattner](https://github.com/lattner), [Dan Zheng](https://github.com/dan-zheng)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Implementation: [apple/swift#16980](https://github.com/apple/swift/pull/16980)
+* Implementation: [apple/swift#20305](https://github.com/apple/swift/pull/20305)
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-216-user-defined-dynamically-callable-types/14110)
 * Status: **Accepted**
 
 ## Introduction
 
-This proposal is a follow-on to [SE-0195 - Introduce User-defined "Dynamic Member
-Lookup" Types](https://github.com/apple/swift-evolution/blob/master/proposals/0195-dynamic-member-lookup.md)
+This proposal is a follow-up to [SE-0195 - Introduce User-defined "Dynamic Member
+Lookup" Types](https://github.com/apple/swift-evolution/blob/master/proposals/0195-dynamic-member-lookup.md),
 which shipped in Swift 4.2. It introduces a new `@dynamicCallable` attribute, which marks
 a type as being "callable" with normal syntax. It is simple syntactic sugar
 which allows the user to write:
@@ -19,7 +19,7 @@ which allows the user to write:
 a = someValue(keyword1: 42, "foo", keyword2: 19)
 ````
 
-and have it be interpreted by the compiler as:
+and have it be rewritten by the compiler as:
 
 ```swift
 a = someValue.dynamicallyCall(withKeywordArguments: [
@@ -113,7 +113,7 @@ This capability works well, but the syntactic burden of having to use
 the syntactic weight, it directly harms code clarity by making code hard to
 read and understand, cutting against a core value of Swift.
 
-The `@dynamicCallable` attribute in this proposal directly solves this problem.
+The proposed `@dynamicCallable` attribute directly solves this problem.
 With it, these examples become more natural and clear, effectively matching the
 original Python code in expressiveness:
 
@@ -147,13 +147,14 @@ let blob = file.read()
 let result = pickle.loads(blob)
 ```
 
-This is a proposal is purely syntactic sugar - it introduces no new semantic
-model to Swift at all. We believe that interoperability with scripting
+This proposal merely introduces a syntactic sugar - it does not add any new
+semantic model to Swift. We believe that interoperability with scripting
 languages is an important and rising need in the Swift community, particularly
 as Swift makes inroads into the server development and machine learning
-communities. This sort of capability is also highly precedented in other
-languages, and is a generally useful language feature that could be used for
-other purposes as well (e.g. for implementing dynamic proxy objects).
+communities. This feature is also precedented in other languages (e.g. Scala's
+[`Dynamic`](https://www.scala-lang.org/api/current/scala/Dynamic.html) trait), and
+can be used for other purposes besides language interoperability (e.g.
+implementing dynamic proxy objects).
 
 ## Proposed solution
 
@@ -162,45 +163,53 @@ which may be applied to structs, classes, enums, and protocols. This follows
 the precedent of
 [SE-0195](https://github.com/apple/swift-evolution/blob/master/proposals/0195-dynamic-member-lookup.md).
 
-Before this proposal, values of these types are not valid in a function call
-position: the only callable values that Swift has are those with a function
-type (functions, methods, closures, etc) and metatypes (which are initializer
+Before this proposal, values of these types are not valid in a call expression:
+the only existing callable values in Swift are those with function types
+(functions, methods, closures, etc) and metatypes (which are initializer
 expressions like `String(42)`). Thus, it is always an error to "call" an
 instance of a nominal type (like a struct, for instance).
 
-With this proposal, types that adopt the new attribute on their primary type
-declaration become "callable" and are required to implement one or more methods
-for handling the call behavior.
-
-To support these cases, a type with this attribute is required to implement at
-least one of the following two methods. In the examples below, `T*` are
-arbitrary types, `S*` must conform to `ExpressibleByStringLiteral` (e.g.
-`String` and `StaticString`).
+With this proposal, types with the `@dynamicCallable` attribute on their
+primary type declaration become "callable". They are required to implement at
+least one of the following two methods for handling the call behavior:
 
 ```swift
-func dynamicallyCall(withArguments: [T1]) -> T2
-func dynamicallyCall(withKeywordArguments: [S : T3]) -> T4
+func dynamicallyCall(withArguments: <#Arguments#>) -> <#R1#>
+// `<#Arguments#>` can be any type that conforms to `ExpressibleByArrayLiteral`.
+// `<#Arguments#>.ArrayLiteralElement` and the result type `<#R1#>` can be arbitrary.
+
+func dynamicallyCall(withKeywordArguments: <#KeywordArguments#>) -> <#R2#>
+// `<#KeywordArguments#>` can be any type that conforms to `ExpressibleByDictionaryLiteral`.
+// `<#KeywordArguments#>.Key` must be a type that conforms to `ExpressibleByStringLiteral`.
+// `<#KeywordArguments#>.Value` and the result type `<#R2#>` can be arbitrary.
+
+// Note: in these type signatures, bracketed types like <#Arguments#> and <#KeywordArguments#>
+// are not actual types, but rather any actual type that meets the specified conditions.
 ```
 
-We write `Arguments` as an array type and `KeywordArguments` as a dictionary
-type, but these can actually be any type that conforms to the
-`ExpressibleByArrayLiteral` and `ExpressibleByDictionaryLiteral` protocols,
-respectively. The later is inclusive of
-[`KeyValuePairs`](https://developer.apple.com/documentation/swift/keyvaluepairs)
-which can represent multiple instances of a 'key' in the collection. This is
-important to support duplicated and positional arguments (because positional
-arguments have the empty string `""` as their key).
+As stated above, `<#Arguments#>` and `<#KeywordArguments#>` can be any types
+that conform to the
+[`ExpressibleByArrayLiteral`](https://developer.apple.com/documentation/swift/expressiblebyarrayliteral)
+and
+[`ExpressibleByDictionaryLiteral`](https://developer.apple.com/documentation/swift/expressiblebydictionaryliteral)
+protocols, respectively. The latter is inclusive of
+[`KeyValuePairs`](https://developer.apple.com/documentation/swift/keyvaluepairs),
+which supports duplicate keys, unlike [`Dictionary`](https://developer.apple.com/documentation/swift/dictionary).
+Thus, using `KeyValuePairs` is recommended to support duplicate keywords and
+positional arguments (because positional arguments are desugared as keyword
+arguments with the empty string `""` as the key).
 
 If a type implements the `withKeywordArguments:` method, it may be dynamically
-called with both positional and keyword arguments (positional arguments have
-the empty string `""` as their key). If a type only implements the
+called with both positional and keyword arguments: positional arguments have
+the empty string `""` as the key. If a type only implements the
 `withArguments:` method but is called with keyword arguments, a compile-time
 error is emitted.
 
-Because this is a syntactic sugar proposal, additional behavior of the
-implementation methods is directly expressed: for example, if these types are
-defined to be `throws` or `@discardableResult` then the corresponding sugared
-call is as well.
+Since dynamic calls are syntactic sugar for direct calls to `dynamicallyCall`
+methods, additional behavior of the `dynamicallyCall` methods is directly
+forwarded.  For example, if a `dynamicallyCall` method is marked with `throws`
+or `@discardableResult`, then the corresponding sugared dynamic call will
+forward that behavior.
 
 ### Ambiguity resolution: most specific match
 
@@ -209,17 +218,60 @@ handle some dynamic calls. What happens if a type specifies both the
 `withArguments:` and `withKeywordArguments:` methods?
 
 We propose that the type checker resolve this ambiguity towards the tightest
-match based on syntactic form of the expression. If a type implements both the
-`withArguments:` and `withKeywordArguments:` methods, the compiler will use the
-`withArguments:` method for call sites that have no keyword arguments and the
-`withKeywordArguments:` method for call sites that have at least one keyword
-argument.
+match based on syntactic form of the expression. The exact rules are:
 
-This ambiguity resolution rule works out very naturally given the behavior of
-the Swift type checker, because it only resolves call expressions when the type
-of the base expression is known. At that point, it knows the capabilities of
-the type (whether the base is a function type, metatype, or a valid
-`@dynamicCallable` type where one of these two methods exist) and it knows the
+- If a `@dynamicCallable` type implements the `withArguments:` method and it is
+  called with no keyword arguments, use the `withArguments:` method.
+- In all other cases, attempt to use the `withKeywordArguments:` method.
+  - This includes the case where a `@dynamicCallable` type implements the
+    `withKeywordArguments:` method and it is called with at least one keyword
+     argument.
+  - This also includes the case where a `@dynamicCallable` type implements only
+    the `withKeywordArguments:` method (not the `withArguments:` method) and
+    it is called with no keyword arguments.
+  - If `@dynamicCallable` type does not implement the `withKeywordArguments:`
+    method but the call site has keyword arguments, an error is emitted.
+
+Here are some toy illustrative examples:
+
+```swift
+@dynamicCallable
+struct Callable {
+  func dynamicallyCall(withArguments args: [Int]) -> Int { return args.count }
+}
+let c1 = Callable()
+c1() // desugars to `c1.dynamicallyCall(withArguments: [])`
+c1(1, 2) // desugars to `c1.dynamicallyCall(withArguments: [1, 2])`
+c1(a: 1, 2) // error: `Callable` does not define the 'withKeywordArguments:' method
+
+@dynamicCallable
+struct KeywordCallable {
+  func dynamicallyCall(withKeywordArguments args: KeyValuePairs<String, Int>) -> Int {
+    return args.count
+  }
+}
+let c2 = KeywordCallable()
+c2() // desugars to `c2.dynamicallyCall(withKeywordArguments: [:])`
+c2(1, 2) // desugars to `c2.dynamicallyCall(withKeywordArguments: ["": 1, "": 2])`
+c2(a: 1, 2) // desugars to `c2.dynamicallyCall(withKeywordArguments: ["a": 1, "": 2])`
+
+@dynamicCallable
+struct BothCallable {
+  func dynamicallyCall(withArguments args: [Int]) -> Int { return args.count }
+  func dynamicallyCall(withKeywordArguments args: KeyValuePairs<String, Int>) -> Int {
+    return args.count
+  }
+}
+let c3 = BothCallable()
+c3() // desugars to `c3.dynamicallyCall(withArguments: [])`
+c3(1, 2) // desugars to `c3.dynamicallyCall(withArguments: [1, 2])`
+c3(a: 1, 2) // desugars to `c3.dynamicallyCall(withKeywordArguments: ["a": 1, "": 2])`
+```
+
+This ambiguity resolution rule works out naturally given the behavior of the
+Swift type checker, because it only resolves call expressions when the type
+of the base expression is known. At that point, it knows whether the base is a
+function type, metatype, or a valid `@dynamicCallable` type, and it knows the
 syntactic form of the call.
 
 This proposal does not require massive or invasive changes to the constraint
