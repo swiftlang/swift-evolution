@@ -3,9 +3,9 @@
 * Proposal: [SE-0228](0228-fix-expressiblebystringinterpolation.md)
 * Authors: [Brent Royal-Gordon](https://github.com/brentdax), [Michael Ilseman](https://github.com/milseman)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5)**
 * Review: [Discussion thread](https://forums.swift.org/t/se-0228-fix-expressible-by-string-interpolation/16031), [Announcement thread](https://forums.swift.org/t/accepted-se-0228-fix-expressible-by-string-interpolation/16548)
-* Implementation: [apple/swift#18590](https://github.com/apple/swift/pull/18590)
+* Implementation: [apple/swift#20214](https://github.com/apple/swift/pull/20214)
 
 ## Introduction
 
