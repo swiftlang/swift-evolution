@@ -1,9 +1,9 @@
 # Remove `Sequence.SubSequence`
 
-* Proposal: [SE-NNNN](NNNN-remove-sequence-subsequence.md)
+* Proposal: [SE-0234](0234-remove-sequence-subsequence.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Awaiting review**
+* Status: **Active review (November 8th...November 14th, 2018**
 * Implementation: [apple/swift#20221](https://github.com/apple/swift/pull/20221)
 
 ## Introduction
