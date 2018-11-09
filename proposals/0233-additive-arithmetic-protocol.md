@@ -4,7 +4,8 @@
 * Author: [Richard Wei](https://github.com/rxwei)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status:  **Accepted**
-* Implementation: [apple/swift#19989](https://github.com/apple/swift/pull/19989)
+* Implementation: [apple/swift#20422](https://github.com/apple/swift/pull/20422)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0233-make-numeric-refine-a-new-additivearithmetic-protocol/17751)
 
 ## Introduction
 
