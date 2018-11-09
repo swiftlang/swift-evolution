@@ -5,7 +5,7 @@
 * Review Manager: [Joe Groff](https://github.com/jckarter)
 * Status: **Rejected**
 * Implementation: [apple/swift#19207](https://github.com/apple/swift/pull/19207)
-* Decision Notes: [Retionale](https://forums.swift.org/t/rejected-se-0231-optional-iteration/17805)
+* Decision Notes: [Rationale](https://forums.swift.org/t/rejected-se-0231-optional-iteration/17805)
 
 ## Introduction
 
