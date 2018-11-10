@@ -13,7 +13,7 @@ mutable version `MutableContiguousCollection`. These protocols will allow
 generic code to make use of the `withUnsafe{Mutable}BufferPointer` idiom,
 as well as provide fast paths in the standard library for adopting types.
 
-Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/t/contiguous-collection-protocols/17875)
+Swift-evolution thread: [Contiguous Collection Protocols](https://forums.swift.org/t/contiguous-collection-protocols/17875)
 
 ## Motivation
 
