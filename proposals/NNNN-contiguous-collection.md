@@ -79,8 +79,10 @@ protocol MutableCollection {
 
 This customization point already exists with an underscore in the standard
 library (it just returns `nil` by default), and should be exposed to
-general users, but could have a default implementation when the collection
-`Mutable` Use of this entry point can provide significant speedups in some
+general users, but could have a default implementation when the collection 
+conforms to `MutableContiguousCollection`.
+
+Use of this entry point can provide significant speedups in some
 algorithms, e.g. our current
 [`sort`](https://github.com/apple/swift/blob/6662ccc16dba27418eefd3cb7856bddda5a33386/stdlib/public/core/Sort.swift#L249)
 which needs to move elements of a collection back and forth between
