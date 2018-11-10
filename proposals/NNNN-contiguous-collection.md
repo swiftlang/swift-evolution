@@ -1,6 +1,6 @@
 # Introduce Contiguous Collection Protocols
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-NNNN](NNNN-contiguous-collection.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: TBD
 * Status: **Awaiting review**
