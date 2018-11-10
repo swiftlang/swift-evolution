@@ -13,7 +13,7 @@ mutable version `MutableContiguousCollection`. These protocols will allow
 generic code to make use of the `withUnsafe{Mutable}BufferPointer` idiom,
 as well as provide fast paths in the standard library for adopting types.
 
-Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/)
+Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/t/contiguous-collection-protocols/17875)
 
 ## Motivation
 
@@ -99,5 +99,5 @@ These are additive changes and do not affect ABI stability.
 ## Alternatives considered
 
 Some collections are not fully contiguous, but instead consist of multiple contiguous 
-regions (for example, a ring buffer is two separate contiguous regions). A protocol that
+regions (for example, a ring buffer is one or two separate contiguous regions). A protocol that
 exposed a collection of contiguous regions could be implemented on top of this protocol.
