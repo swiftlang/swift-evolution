@@ -23,7 +23,7 @@ What's wrong with `Numeric`? Assuming that we need to conform to `Numeric` to ge
 
 `Numeric` roughly corresponds to a [ring](https://en.wikipedia.org/wiki/Ring_(mathematics)). Vector spaces are not rings. Multiplication is not defined between vectors. Requirements `*` and `*=` below would make vector types inconsistent with the mathematical definition.
 
-```
+```swift
 static func * (lhs: Self, rhs: Self) -> Self
 static func *= (lhs: inout Self, rhs: Self)
 ```
