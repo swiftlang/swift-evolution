@@ -98,6 +98,6 @@ These are additive changes and do not affect ABI stability.
 
 ## Alternatives considered
 
-Describe alternative approaches to addressing the same problem, and
-why you chose this approach instead.
-
+Some collections are not fully contiguous, but instead consist of multiple contiguous 
+regions (for example, a ring buffer is two separate contiguous regions). A protocol that
+exposed a collection of contiguous regions could be implemented on top of this protocol.
