@@ -88,7 +88,7 @@ some storage.
 
 ## Source compatibility
 
-These are additive changes and do not affect ABI stability.
+These are additive changes and do not affect source compatibility.
 
 ## Effect on ABI stability
 
