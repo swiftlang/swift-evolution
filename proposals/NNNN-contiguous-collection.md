@@ -79,7 +79,7 @@ protocol MutableCollection {
 
 This customization point already exists with an underscore in the standard
 library (it just returns `nil` by default), and should be exposed to
-general users, but could have a default implementation when the collection 
+general users, with a default implementation when the collection 
 conforms to `MutableContiguousCollection`.
 
 Use of this entry point can provide significant speedups in some
