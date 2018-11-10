@@ -62,7 +62,7 @@ Conformances will be added for the following types:
 
 In addition, the following customization point should be added to
 `MutableCollection`, with a default implementation when the collection is
-mutably contiugously stored:
+mutably contiguously stored:
 
 ```swift
 protocol MutableCollection {
