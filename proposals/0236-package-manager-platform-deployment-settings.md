@@ -1,5 +1,10 @@
 # Package Manager Platform Deployment Settings
 
+* Proposal: [SE-0236](0236-package-manager-platform-deployment-settings.md)
+* Authors: [Ankit Aggarwal](https://github.com/aciidb0mb3r)
+* Review Manager: [Boris Bügling](https://github.com/neonichu)
+* Status: **Active review (November 14...26)**
+
 ## Introduction
 
 This is a proposal for adding support for specifying a per-platform minimum required deployment target in the `Package.swift` manifest file.
