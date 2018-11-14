@@ -1,6 +1,7 @@
 # Package Manager Platform Deployment Settings
 
 * Proposal: [SE-0236](0236-package-manager-platform-deployment-settings.md)
+* Decision Notes: [Draft Thread](https://forums.swift.org/t/draft-proposal-platform-deployment-settings/17903/11)
 * Authors: [Ankit Aggarwal](https://github.com/aciidb0mb3r)
 * Review Manager: [Boris Bügling](https://github.com/neonichu)
 * Status: **Active review (November 14...26)**
