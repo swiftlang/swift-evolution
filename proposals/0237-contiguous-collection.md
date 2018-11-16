@@ -1,9 +1,9 @@
 # Introduce Contiguous Collection Protocols
 
-* Proposal: [SE-NNNN](NNNN-contiguous-collection.md)
+* Proposal: [SE-0237](0237-contiguous-collection.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Doug Gregor](https://github.com/DougGRegor)
+* Status: **Upcoming review (November 16...23, 2018)**
 * Implementation: [apple/swift#20484](https://github.com/apple/swift/pull/20484)
 
 ## Introduction
