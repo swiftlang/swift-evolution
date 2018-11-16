@@ -52,7 +52,7 @@ where SubSequence: MutableContiguousCollection {
 }
 ```
 
-Note, the mutable variant takes the buffer `inout`. This is to facilitate the ergnomics 
+Note, the mutable variant takes the buffer `inout`. This is to facilitate the ergonomics 
 of calling `mutating` methods on it. Without this, users of the buffer would have to make a
 temporary mutable copy (which would still update the passed-in buffer due to reference
 semantics). Despite it being `inout`, any attempt to change the buffer to a different
@@ -122,7 +122,7 @@ exposed a collection of contiguous regions could be implemented on top of this p
 
 The `inout` argument to the closure in the mutating variant is debatable. It does imply the user
 can change the buffer to a totally different one. Nonetheless, this is better handled in documentation,
-since the improved ergnomics of the `inout` version are considerable. It would also be a source-breaking
+since the improved ergonomics of the `inout` version are considerable. It would also be a source-breaking
 change to alter `Array`'s implementation at this point.
 
 The choice to refine `RandomAccessCollection` is based on the assumption that there are no reasonable
