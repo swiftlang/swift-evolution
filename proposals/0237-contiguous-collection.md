@@ -3,7 +3,7 @@
 * Proposal: [SE-0237](0237-contiguous-collection.md)
 * Author: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Scheduled for review (November 16...23, 2018)**
+* Status: **Active review (November 16...23, 2018)**
 * Implementation: [apple/swift#20484](https://github.com/apple/swift/pull/20484)
 
 ## Introduction
