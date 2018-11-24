@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status: **Awaiting review**
 * Implementation: [apple/swift#19585](https://github.com/apple/swift/pull/19585)
-* Toolchain: [available here](http://johnholdsworth.com/swift-LOCAL-2018-10-07-a-osx.tar.gz)
+* Toolchain: [available here](http://johnholdsworth.com/swift-LOCAL-2018-10-25-a-osx.tar.gz)
 * Decision Notes: TBD
 * Bugs: [SR-8818](https://bugs.swift.org/browse/SR-8818)
 
