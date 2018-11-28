@@ -1,5 +1,11 @@
 # Package Manager Target Specific Build Settings
 
+* Proposal: [SE-0238](0238-package-manager-build-settings.md)
+* Decision Notes: [Draft Thread](https://forums.swift.org/t/draft-proposal-target-specific-build-settings/18031)
+* Authors: [Ankit Aggarwal](https://github.com/aciidb0mb3r)
+* Review Manager: [Boris Bügling](https://github.com/neonichu)
+* Status: **Active review (November 27...December 04)**
+
 ## Introduction
 
 This is a proposal for adding support for declaring some commonly used target-specific build settings in the `Package.swift` manifest file. As the name suggests, target-specific build settings are only applied to a particular target. SwiftPM also aims to support cross-target build settings that go across the target boundary and impart certain settings on a target's dependees, but this proposal is only concerned with the former type of build settings and the latter will be explored with a future proposal.
