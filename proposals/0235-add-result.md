@@ -228,9 +228,11 @@ extension Result : Hashable where Value : Hashable, Error : Hashable { }
 extension Result : CustomDebugStringConvertible { }
 ```
 
-## `Swift.Error` self-conformance
+## Adding `Swift.Error` self-conformance
 
-In order for this design to be practical, Swift's `Error` must be made to "self-conform" so that it can be used as the second type argument.  That change has been implemented and is now part of this proposal.
+It's expected that most uses of `Result` will use `Swift.Error` as the `Error` type argument.  Currently, that is impossible with the generic signature proposed here because the `Swift.Error` protocol type does not itself conform to the `Swift.Error` protocol.  This is due to a restriction in the generic system which only allows certain protocol types to conform to their associated protocol.  Lifting this restriction in general is out of scope for Swift 5, but it *can* be lifted specifically for `Swift.Error`, making it conform to itself.  This will have the immediate benefit of allowing `Swift.Error` to be used as the `Error` type argument; otherwise, the `Error` argument will have to be unconstrained.
+
+This self-conformance does not extend to protocol compositions including the `Swift.Error` protocol, only the exact type `Swift.Error`.  It will be possible to add such compositions in the future, but that is out of scope for Swift 5.
 
 ## Other Languages
 Many other languages have a `Result` type or equivalent:
@@ -290,7 +292,7 @@ The use of `Wrapped` in these spellings emphasizes more of a similarity to `Opti
 
 ### Constraint on the `Error` type
 
-A previous version of this proposal did not constrain the `Error` type to conform to `Swift.Error`.  This was largely due to technical limitations which will be lifted as part of this proposal.
+A previous version of this proposal did not constrain the `Error` type to conform to `Swift.Error`.  This was largely because adding such a requirement would block `Swift.Error` from being used as the `Error` type, since `Swift.Error` does not conform to itself.  Since we've now figured out how how to make that conformance work, this constraint is unblocked.
 
 Constraining the error type to conform to `Error` is a very low burden, and it has several benefits:
 
