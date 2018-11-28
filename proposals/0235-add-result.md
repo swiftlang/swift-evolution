@@ -224,8 +224,6 @@ extension Result where Error == Swift.Error {
 extension Result : Equatable where Value : Equatable, Error : Equatable { }
 
 extension Result : Hashable where Value : Hashable, Error : Hashable { }
-
-extension Result : CustomDebugStringConvertible { }
 ```
 
 ## Adding `Swift.Error` self-conformance
