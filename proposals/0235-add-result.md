@@ -5,6 +5,7 @@
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Active review (November 28th...December 2nd, 2018)**
 * Implementation: [apple/swift#19982](https://github.com/apple/swift/pull/19982)
+* Review: ([thread](https://forums.swift.org/t/se-0235-add-result-to-the-standard-library/17752))
 
 ## Introduction
 
