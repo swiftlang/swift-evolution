@@ -3,7 +3,7 @@
 * Proposal: [SE-0235](0235-add-result.md)
 * Authors: [Jon Shier](https://github.com/jshier)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Active review (November 7...12, 2018)**
+* Status: **Active review (November 28th...December 2nd, 2018)**
 * Implementation: [apple/swift#19982](https://github.com/apple/swift/pull/19982)
 
 ## Introduction
@@ -17,12 +17,14 @@ Swift's [Error Handling Rationale and Proposal](https://github.com/apple/swift/b
 ## Proposed solution
 
 ```swift
-public enum Result<Value, Error> {
-    case success(Value), failure(Error)
+public enum Result<Value, Error: Swift.Error> {
+    case value(Value), error(Error)
 }
 ```
 
-`Result<Value, Error>` is a pragmatic compromise between competing error handling concerns both present and future. It is unconstrained for the `Error` type captured in the `.failure` case both to allow for a possible typed-`throws` future and to allow failures to return values that don't conform to `Swift.Error`.
+`Result<Value, Error>` is a pragmatic compromise between competing error handling concerns both present and future.
+
+The `Error` type captured in the `.error` case is constrained to `Swift.Error` to simplify and underline `Result`'s intended use for manually propagating the result of a failable computation.
 
 ### Usage
 
@@ -49,11 +51,11 @@ URLSession.shared.dataTask(with: url) { (data, response, error) in
 While this code is only a few lines long, it exposes Swift's complete lack of automatic error handling for asynchronous APIs. Not only was the `error` forcibly unwrapped (or perhaps handled using a slightly less elegant `if` statement), but a possibly impossible scenario was created. What happens if `response` or `data` are `nil`? Is it even possible? It shouldn't be, but Swift currently lacks the ability to express this impossibility. Using `Result` for the same scenario allows for much more elegant code:
 
 ```swift
-URLSession.shared.dataTask(with: url) { (result: Result<(URLResponse, Data), (Error, URLResponse?)>) in // Type added for illustration purposes.
+URLSession.shared.dataTask(with: url) { (result: Result<(URLResponse, Data), Error>) in // Type added for illustration purposes.
     switch result {
-    case .success(let response):
+    case .value(let response):
         handleResponse(response.0, data: response.1)
-    case .failure(let error):
+    case .error(let error):
         handleError(error)
     }
 }
@@ -147,23 +149,12 @@ As implemented in the PR (annotations pending):
 /// A value that represents either a success or failure, capturing associated
 /// values in both cases.
 @_frozen
-public enum Result<Value, Error> {
-  /// A success, storing a `Value`.
-  case success(Value)
+public enum Result<Value, Error: Swift.Error> {
+  /// A normal result, storing a `Value`.
+  case value(Value)
   
-  /// A failure, storing an `Error`.
-  case failure(Error)
-  
-  /// The stored value of a successful `Result`. `nil` if the `Result` was a
-  /// failure.
-  public var value: Value? { get }
-  
-  /// The stored value of a failure `Result`. `nil` if the `Result` was a
-  /// success.
-  public var error: Error? { get }
-  
-  /// A Boolean value indicating whether the `Result` as a success.
-  public var isSuccess: Bool { get }
+  /// An error result, storing an `Error`.
+  case error(Error)
   
   /// Evaluates the given transform closure when this `Result` instance is
   /// `.success`, passing the value as a parameter.
@@ -213,20 +204,7 @@ public enum Result<Value, Error> {
   public func flatMapError<NewError>(
     _ transform: (Error) -> Result<Value, NewError>
   ) -> Result<Value, NewError>
-  
-  /// Evaluates the given transform closures to create a single output value.
-  ///
-  /// - Parameters:
-  ///   - onSuccess: A closure that transforms the success value.
-  ///   - onFailure: A closure that transforms the error value.
-  /// - Returns: A single `Output` value.
-  public func fold<Output>(
-    onSuccess: (Value) -> Output,
-    onFailure: (Error) -> Output
-  ) -> Output
-}
 
-extension Result where Error: Swift.Error {
   /// Unwraps the `Result` into a throwing expression.
   ///
   /// - Returns: The success value, if the instance is a success.
@@ -239,24 +217,7 @@ extension Result where Error == Swift.Error {
   ///
   /// - Parameter throwing: A throwing closure to evaluate.
   @_transparent
-  public init(_ throwing: () throws -> Value)
-  
-  /// Unwraps the `Result` into a throwing expression.
-  ///
-  /// - Returns: The success value, if the instance is a success.
-  /// - Throws:  The error value, if the instance is a failure.
-  public func unwrapped() throws -> Value
-  
-  /// Evaluates the given transform closure when this `Result` instance is
-  /// `.success`, passing the value as a parameter and flattening the result.
-  ///
-  /// - Parameter transform: A closure that takes the successful value of the
-  ///   instance.
-  /// - Returns: A new `Result` instance, either from the transform or from
-  ///   the previous error value.
-  public func flatMap<NewValue>(
-    _ transform: (Value) throws -> NewValue
-  ) -> Result<NewValue, Error>
+  public init(catching body: () throws -> Value)
 }
 
 extension Result : Equatable where Value : Equatable, Error : Equatable { }
@@ -265,6 +226,10 @@ extension Result : Hashable where Value : Hashable, Error : Hashable { }
 
 extension Result : CustomDebugStringConvertible { }
 ```
+
+## `Swift.Error` self-conformance
+
+In order for this design to be practical, Swift's `Error` must be made to "self-conform" so that it can be used as the second type argument.  That change has been implemented and is now part of this proposal.
 
 ## Other Languages
 Many other languages have a `Result` type or equivalent:
@@ -294,10 +259,13 @@ A few alternate spellings were proposed:
 
 ```swift
 enum Result<Value, Error> {
-    case value(Value)
-    case error(Error)
+    case success(Value)
+    case failure(Error)
 }
 ```
+
+This creates an unfortunate asymmetry between the names of the payload types and the names of the cases.  This is just additional complexity that has to be remembered.  It's true that these case names don't align with some of the most common community implementations of the `Result` type, meaning that adoption of `Result` will require additional source changes for clients of those projects.  However, this cannot be an overriding concern.
+
 ```swift
 enum Result<Wrapped, Failure> {
     case value(Wrapped)
@@ -310,12 +278,33 @@ enum Result<Wrapped, Failure> {
     case error(Failure)
 }
 ```
-However, these spellings emphasize more of a similarity to `Optional` than seems appropriate. Emphasizing `Result` good/bad, yes/no, success/failure nature seems more in line with the typical usage and meaning of the type. Using `success` and `failure` cases makes that usage completely clear. The `Value`/`Error` generic types appropriately convey the usage of the individual types along the same lines. Ultimately, however, the proposed spelling benefits from the fact that's it's the most common spelling implemented by the Swift community, making it the easiest to drop in and replace existing implementations, as well as benefitting from the current level of community knowledge around the type.
+
+The use of `Wrapped` in these spellings emphasizes more of a similarity to `Optional` than seems appropriate.
 
 ### Alternatives to `Result<Value, Error>`
 
-- `Result<T>`: A `Result` without a generic error type fits well with the current error design in Swift. However, it prevents the future addition of typed error handling (typed `throws`), as well as locking all `Result` usage into failure types which conform to `Error`.
-
-- `Result<T, E: Error>`: A `Result` that constrains its error type to just those types conforming to `Error` allows for fully typed error handling. However, this type is incompatible with current Swift error handling, as it cannot capture unconstrained `Error` values. This would require either casting to a specific error type (commonly `NSError`, which is an anti-pattern) or the addition of a `Error` box type, such as `AnyError`. Additionally, the constraint prevents future growth towards capturing non-`Error` conforming types.
+- `Result<T>`: A `Result` without a generic error type fits well with the current error design in Swift. However, it prevents the future addition of typed error handling (typed `throws`).
 
 - `Either<T, U>`: Rather than adopting `Result` directly, basing it on an `Either` type has been considered. However, it's felt that a `Result` type is a more generally useful case of `Either`, and `Either` gives users little in the way of actual API. Also, the two types can exist peacefully alongside each other with little conflict. Additionally, given the relatively unpopularity of the `Either` type in the community (59 apps use the [Either](https://github.com/runkmc/either) CocoaPod) seems to indicate that lacking this type isn't affecting Swift users that much.
+
+### Constraint on the `Error` type
+
+A previous version of this proposal did not constrain the `Error` type to conform to `Swift.Error`.  This was largely due to technical limitations which will be lifted as part of this proposal.
+
+Constraining the error type to conform to `Error` is a very low burden, and it has several benefits:
+
+- It simplifies interoperation with error handling by making such operations unconditionally available.
+
+- It encourages better practices for error values, such as using meaningful wrapper types for errors instead of raw `Int`s and `String`s.
+
+- It immediately catches the simple transposition error of writing `Result<Error, Value>`.  Programmers coming from functional languages that use `Either` as a `Result` type are especially prone to this mistake: such languages often write the error type as the first argument due to the useful monadic properties of `Either E`.
+
+### Operations
+
+A previous verson of this proposal included operations for optionally projecting out the `value` and `error` cases.  These operations are useful, but they should be added uniformly for all `enum`s, and `Result` should not commit to providing hard-coded versions that may interfere with future language evolution.  In the meantime, it is easy for programmers to add these operations with extensions in their own code.
+
+A previous version of this proposal included a `fold` operation.  This operation is essentially an expression-based `switch`, and like the optional case projections, it would be better to provide a general language solution for it than to add a more limited design that covers only a single type.
+
+A previous version of this proposal did not label the closure parameter for the catching initializer.  Single-argument unlabeled initializers are conventionally used for conversions, which this is not; usually the closure will be written explicitly, but in case it isn't, a parameter label is appropriate.
+
+There are several different names that would be reasonable for the `unwrapped` operation, such as `get`.  None of these names seem obviously better than `unwrapped`.
