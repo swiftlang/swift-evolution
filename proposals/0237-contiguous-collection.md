@@ -1,4 +1,4 @@
-# Introduce Contiguous Collection Protocols
+# Introduce `withUnsafe{Mutable}BufferPointerIfSupported` methods
 
 * Proposal: [SE-0237](0237-contiguous-collection.md)
 * Author: [Ben Cohen](https://github.com/airspeedswift)
