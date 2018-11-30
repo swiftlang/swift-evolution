@@ -9,7 +9,7 @@
 
 ## Introduction
 
-This proposal introduces two new methods, on `Sequence`, on
+This proposal introduces two new methods, on `Sequence` and
 `MutableCollection`. These methods will allow generic code on to make use of
 the thos respective protocols to make use of
 `withUnsafe{Mutable}BufferPointerIfAvailable` idiom in provide fast paths in
@@ -39,8 +39,9 @@ is contiguously stored.
 
 ## Proposed solution
 
-Introduce two new methods, with requirements representing the with-unsafe
-capabilities of `Array` & co:
+Introduce two new methods, providing access to the with-unsafe
+capabilities of `Array` & co when operating generically
+on protocols:
 
 ```swift
 protocol Sequence {
@@ -84,9 +85,8 @@ forwards on to its `Base`.
 
 A customization point already exists with an underscore in the standard library
 for the mutable version (it just returns `nil` by default), and should be
-exposed to general users, with a default implementation when the collection
-conforms to `MutableContiguousCollection`. In addition, there exist underscored
-customization points that could be replaced by the former.
+exposed to general users. In addition, there exist underscored
+customization points that could be replaced by the immutable variant.
 
 There are no guarantees made by the mutable version about the state left behind
 if the closure throws during mutation. The updates made may or may not be
@@ -112,7 +112,9 @@ These are additive changes and do not affect source compatibility.
 
 ## Effect on ABI stability
 
-These are additive changes and do not affect ABI stability.
+These are additive changes and so can be done without affecting ABI stability.
+However, some existing underscored entry points could be altered as a result 
+if done before ABI stability is declared.
 
 ## Alternatives considered
 
@@ -124,14 +126,11 @@ which case these protocols could be re-proposed.
 
 Some collections are not fully contiguous, but instead consist of multiple
 contiguous regions (for example, a ring buffer is one or two separate
-contiguous regions). A protocol that exposed a collection of contiguous regions
-could be implemented on top of this protocol.
+contiguous regions). Protocols or methods that handle this situation are 
+left to subsequent proposals.
 
 The `inout` argument to the closure in the mutating variant is debatable. It
 does imply the user can change the buffer to a totally different one.
 Nonetheless, this is better handled in documentation, since the improved
 ergonomics of the `inout` version are considerable. It would also be a
 source-breaking change to alter `Array`'s implementation at this point.
-
-The choice to refine `RandomAccessCollection` is based on the assumption that there are no reasonable
-contiguous collections that wouldn't also be random-access.
