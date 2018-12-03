@@ -4,7 +4,7 @@
 * Authors: [Jon Shier](https://github.com/jshier)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Active review (November 28th...December 2nd, 2018)**
-* Implementation: [apple/swift#19982](https://github.com/apple/swift/pull/19982) together with [apple/swift#20629](https://github.com/apple/swift/pull/20629)
+* Implementation: [apple/swift#20629](https://github.com/apple/swift/pull/20629), [apple/swift#20958](https://github.com/apple/swift/pull/20958)
 * Review: ([initial review](https://forums.swift.org/t/se-0235-add-result-to-the-standard-library/17752)) ([second review](https://forums.swift.org/t/revised-se-0235-add-result-to-the-standard-library/18371))
 
 ## Introduction
