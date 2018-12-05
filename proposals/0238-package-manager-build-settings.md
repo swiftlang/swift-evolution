@@ -64,7 +64,7 @@ Frameworks are autolinked for Swift and C/ObjC targets so most packages shouldn'
 
 This is an escape hatch that will allow targets to pass arbitrary command-line flags to the corresponding build tool. The "unsafe" here implies that SwiftPM can't safely determine if the build flags will have any negative side-effect to the build since certain flags can change the behavior of how a build is performed. It is similar to how the `-Xcc`, `-Xswiftc`, `-Xlinker` option work in the command-line SwiftPM tools.
 
-The primary purpose of this escape hatch is to enable experimentation and exploration for packages that currently use a makefile or script to pass the `-X*` flags. Products that contain a target which uses an unsafe flag will be ineligible to act as a dependency for other packages. Users who understand these risks can bypass this limitation by passing the command-line flag `--allow-unsafe-flags-in-dependencies` to invocation of command-line SwiftPM tools.
+The primary purpose of this escape hatch is to enable experimentation and exploration for packages that currently use a makefile or script to pass the `-X*` flags. Products that contain a target which uses an unsafe flag will be ineligible to act as a dependency for other packages.
 
 We have several such conditions (use of local dependencies, branch-based dependencies etc) that makes a package (individual products in this case) ineligible for acting as a dependency. This feature would be one more in that category. SwiftPM could provide a "pre-publish" command to detect and report such cases. RFC: https://forums.swift.org/t/rfc-swift-package-publish-precheck/15398
 
