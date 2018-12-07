@@ -10,10 +10,7 @@
 ## Introduction
 
 This proposal introduces two new methods, on `Sequence` and
-`MutableCollection`. These methods will allow generic code on to make use of
-the thos respective protocols to make use of
-`withUnsafe{Mutable}BufferPointerIfAvailable` idiom in provide fast paths in
-the standard library for adopting types.
+`MutableCollection`. These methods will allow generic code to make use of the `withUnsafe{Mutable}BufferPointer` idiom, as well as provide fast paths in the standard library for adopting types.
 
 Swift-evolution thread: [Contiguous Collection Protocols](https://forums.swift.org/t/contiguous-collection-protocols/17875)
 
