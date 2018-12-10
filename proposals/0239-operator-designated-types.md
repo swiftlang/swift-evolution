@@ -1,13 +1,13 @@
 # Extending operator declarations with designated types
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0239](0239-operator-designated-types.md)
 * Authors: [Mark Lacey](https://github.com/rudkx)
 * Review Manager: TBD
 * Status: **Implemented under staging options**
 
 *During the review process, add the following fields as needed:*
 
-* Implementation: This is currently in-tree, disabled by default, and enabled by staging options (`-enable-operator-designated-types`, `-solver-enable-operator-designated-types`) and only changes behavior in `-swift-version 5` mode.
+* Implementation: This is currently in-tree, disabled by default, and enabled by staging options (`-enable-operator-designated-types`, `-solver-enable-operator-designated-types`).
 * Decision Notes: [Rationale](https://forums.swift.org/), [Additional Commentary](https://forums.swift.org/)
 * Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
@@ -21,7 +21,7 @@ Some of these slow typechecking cases involve expressions that make use of opera
 
 This proposal addresses speeding up type checking for cases that are slow primarily due to the number of combinations of overloads of operators that are examined in the course of typechecking.
 
-Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/t/pitch-making-expression-type-checking-of-operator-expressions-fast/18037)
+Swift-evolution thread: [Pitch: Making expression type checking of operator expressions fast](https://forums.swift.org/t/pitch-making-expression-type-checking-of-operator-expressions-fast/18037)
 
 ## Motivation
 
@@ -65,7 +65,7 @@ In cases where there are multiple designated types for a given operator, the spe
 The implementation for this is already in-tree, and is enabled as such:
 
 - `-Xfrontend -enable-operator-designated-types`: enables parsing the extended operator declarations
-- `-Xfrontend -solver-enable-operator-designated-types`: enables having the constraint solver make use of the declarations, but only when `-swift-version 5` is also specified
+- `-Xfrontend -solver-enable-operator-designated-types`: enables having the constraint solver make use of the declarations
 
 The current implementation has been tested across 25 test cases that were known to be slow and/or result in the type checker giving up after expending substantial effort attempting to type check the expression.
 
@@ -116,8 +116,11 @@ A number (25+) of other test cases were previously compiling quickly were also t
 
 ## Source compatibility
 
-Because of the fact that we fall back to behavior that is very similar to the current behavior of the type checker (exhaustively testing combinations of operators in the cases), this change is very compatible with the current behavior. One failure was seen in the source compatibility suite when running with this new behavior enabled by default in all language modes. The failure was in `BlueSocket`, and that same failure also manifests if you build the affected code with `-swift-version 4`. Specificially, for `let mask = 1 << (2 as Int32)`, we now infer `mask` as `Int` rather than `Int32`.
+Because of the fact that we fall back to behavior that is very similar to the current behavior of the type checker (exhaustively testing combinations of operators in the cases), this change is very compatible with the current behavior. 
 
+One failure was seen in the source compatibility suite when running with this new behavior enabled by default in all language modes. The failure was in `BlueSocket`, and that same failure also manifests if you build the affected code with `-swift-version 4`. Specificially, for `let mask = 1 << (2 as Int32)`, we now infer `mask` as `Int` rather than `Int32`.
+
+It's possible to construct cases where behavior will change based on first attempting the overloads defined in the designated type and then checking no other alternatives if that overload succeeds. It's difficult to quantify how often existing code might hit this, but the same code would also potentially break due to implementation changes in the type checker. This proposal makes breaks like this less likely in the future by codifying another piece of behavior in the type checker.
 
 ## Effect on ABI stability
 
