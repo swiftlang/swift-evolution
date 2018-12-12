@@ -118,7 +118,7 @@ A number (25+) of other test cases were previously compiling quickly were also t
 
 Because of the fact that we fall back to behavior that is very similar to the current behavior of the type checker (exhaustively testing combinations of operators in the cases), this change is very compatible with the current behavior. 
 
-One failure was seen in the source compatibility suite when running with this new behavior enabled by default in all language modes. The failure was in `BlueSocket`, and that same failure also manifests if you build the affected code with `-swift-version 4`. Specificially, for `let mask = 1 << (2 as Int32)`, we now infer `mask` as `Int` rather than `Int32`.
+One failure was seen in the source compatibility suite when running with this new behavior enabled by default in all language modes. The failure was in `BlueSocket`, and that same failure also manifests if you build the affected code with `-swift-version 4`. Specifically, for `let mask = 1 << (2 as Int32)`, we now infer `mask` as `Int` rather than `Int32`.
 
 It's possible to construct cases where behavior will change based on first attempting the overloads defined in the designated type and then checking no other alternatives if that overload succeeds. It's difficult to quantify how often existing code might hit this, but the same code would also potentially break due to implementation changes in the type checker. This proposal makes breaks like this less likely in the future by codifying another piece of behavior in the type checker.
 
