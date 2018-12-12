@@ -40,7 +40,7 @@ This proposal aims to address only the first of these issues.
 
 We introduce syntax to define *designated types* in operator declarations. These types will be used as the first place to look up operator overloads for a given operator. If the expression successfully typechecks with an overload found via those types, we stop looking at the remaining overloads for the operator.
 
-The intent is to use this within `Policy.swift` in the standard library in order to provide a hint to the type checker as to which overload should be preferred for typechecking an operator. You can see the current usage of this syntax [here](https://github.com/apple/swift/blob/master/stdlib/public/core/Policy.swift#L398).
+The intent is to use this within `Policy.swift` in the standard library in order to provide a hint to the type checker as to which overload should be preferred for typechecking an operator. You can see the current usage of this syntax [here](https://github.com/apple/swift/blob/191a71e10dab37aa12b53f04b9496642dd3604b1/stdlib/public/core/Policy.swift#L382-L485).
 
 Users can also add their own designated types to operators that they declare, but they will not have a way to add their own types as designated types to operators already defined in `Policy.swift`.
 
