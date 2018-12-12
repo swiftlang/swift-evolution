@@ -122,6 +122,28 @@ One failure was seen in the source compatibility suite when running with this ne
 
 It's possible to construct cases where behavior will change based on first attempting the overloads defined in the designated type and then checking no other alternatives if that overload succeeds. It's difficult to quantify how often existing code might hit this, but the same code would also potentially break due to implementation changes in the type checker. This proposal makes breaks like this less likely in the future by codifying another piece of behavior in the type checker.
 
+One example of where we can expect to see breaks from this change is where users implement operators that are declared in the standard library for types that would also typecheck successfully with the standard library implementation. For example a user has a type that is `Equatable` and has defined `==` where one or both operands are the user's type, but where the implementation behaves differently than calling the `==` defined on `Equatable`.
+
+We can see this in the [`Anchorage`](https://github.com/RaizLabs/Anchorage) project on GitHub.
+
+```
+public func == <T: BinaryFloatingPoint>(lhs: NSLayoutDimension, rhs: T) -> NSLayoutConstraint {
+    return finalize(constraint: lhs.constraint(equalToConstant: CGFloat(rhs)))
+}
+```
+
+Here, `NSLayoutDimension` and `T` are both `Equatable`, and as a result code like:
+
+  ```
+     let equal = view1.widthAnchor == view2.widthAnchor
+  ```
+
+will currently call the `Anchorage` implementation of `==`, but with this proposal implemented would actually call the `==` on `Equatable`, resulting in `equal` being inferred to be a `Bool`, and subsequent code that references `equal` failing.
+
+Note that adding the type declaration `: NSLayoutConstraint` after `equal` will fix the code since it will result in solutions that attempt the `==` from `Equatable` to fail (since it returns a `Bool`). We could potentially generate fixes like these by performing the type check a second time with the designated types feature disabled and if type checking succeeds insert fixes for expressions which successfully typechecked both ways but where the inferred type has changed.
+
+In many cases operators are used in contexts where a particular type is already expected or where they are combined with other operators which further constrain the combinations that typecheck successfully, so in practice this may not turn out to be a significant source of breakage.
+
 ## Effect on ABI stability
 
 None.
