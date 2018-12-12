@@ -44,7 +44,7 @@ The intent is to use this within `Policy.swift` in the standard library in order
 
 Users can also add their own designated types to operators that they declare, but they will not have a way to add their own types as designated types to operators already defined in `Policy.swift`.
 
-In effect this ties a particular operator to the semantics of one (or occassionally multiple) particular named entity(ies), usually a protocol, but sometimes a concrete type. For example, if you're implementing `<<`, making `BinaryInteger` the designated type for that operator says that the expectation is that you will be implementing this for a type conforming to `BinaryInteger` and behaving in the way `BinaryInteger` would expect it to.
+In effect this ties a particular operator to the semantics of one (or occasionally multiple) particular named entity(ies), usually a protocol, but sometimes a concrete type. For example, if you're implementing `<<`, making `BinaryInteger` the designated type for that operator says that the expectation is that you will be implementing this for a type conforming to `BinaryInteger` and behaving in the way `BinaryInteger` would expect it to.
 
 The goal is to use this hint to replace the currently undocumented (and difficult to reason about) hacks in the type checker that are in place today and which are required in order to typecheck even relatively simple expressions.
 
