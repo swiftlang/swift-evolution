@@ -69,14 +69,14 @@ The implementation for this is already in-tree, and is enabled as such:
 
 The current implementation has been tested across 25 test cases that were known to be slow and/or result in the type checker giving up after expending substantial effort attempting to type check the expression.
 
-In addition to enabling this new *designated type* functionality, this testing disables the `shrink` portion of the expression type checker (via `-Xfrontend -solver-disable-shrink`).  This portion of the expression type checker is known to help occassionally but often results in substantially increasing the expression type checking time since it frequently doesn't provide any benefit but does a lot of work. We also disable a number of other problematic hacks (via `-Xfrontend -disable-constraint-solver-performance-hacks`).
+In addition to enabling this new *designated type* functionality, this testing disables the `shrink` portion of the expression type checker (via `-Xfrontend -solver-disable-shrink`).  This portion of the expression type checker is known to help ocassionally but often results in substantially increasing the expression type checking time since it frequently doesn't provide any benefit but does a lot of work. We also disable a number of other problematic hacks (via `-Xfrontend -disable-constraint-solver-performance-hacks`).
 
 In 14 cases, the expressions in question now typecheck in less than 30ms (often as little as 5ms). In the 11 remaining cases, the expression is either one that would fail to typecheck if we were able to typecheck it quickly, or involves other things that are known to be problematic, like closures. 
 
 
 Some illustrative examples:
 
-```
+```swift
 // Was "too complex", now 13ms:
 let i: Int? = 1
 let j: Int?
@@ -126,7 +126,7 @@ One example of where we can expect to see breaks from this change is where users
 
 We can see this in the [`Anchorage`](https://github.com/RaizLabs/Anchorage) project on GitHub.
 
-```
+```swift
 @discardableResult public func == (
   lhs: NSLayoutDimension,
   rhs: NSLayoutDimension
@@ -137,7 +137,7 @@ We can see this in the [`Anchorage`](https://github.com/RaizLabs/Anchorage) proj
 
 Here, `NSLayoutDimension` is `Equatable`, and as a result code like:
 
-  ```
+  ```swift
      let equal = view1.widthAnchor == view2.widthAnchor
   ```
 
