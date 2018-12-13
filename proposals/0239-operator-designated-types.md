@@ -127,20 +127,25 @@ One example of where we can expect to see breaks from this change is where users
 We can see this in the [`Anchorage`](https://github.com/RaizLabs/Anchorage) project on GitHub.
 
 ```
-public func == <T: BinaryFloatingPoint>(lhs: NSLayoutDimension, rhs: T) -> NSLayoutConstraint {
-    return finalize(constraint: lhs.constraint(equalToConstant: CGFloat(rhs)))
+@discardableResult public func == (
+  lhs: NSLayoutDimension,
+  rhs: NSLayoutDimension
+) -> NSLayoutConstraint {
+    return finalize(constraint: lhs.constraint(equalTo: rhs))
 }
 ```
 
-Here, `NSLayoutDimension` and `T` are both `Equatable`, and as a result code like:
+Here, `NSLayoutDimension` is `Equatable`, and as a result code like:
 
   ```
      let equal = view1.widthAnchor == view2.widthAnchor
   ```
 
-will currently call the `Anchorage` implementation of `==`, but with this proposal implemented would actually call the `==` on `Equatable`, resulting in `equal` being inferred to be a `Bool`, and subsequent code that references `equal` failing.
+which currently calls the `Anchorage` implementation of `==` would instead call the `==` on `Equatable`, resulting in `equal` being inferred to be a `Bool`, and subsequent code that references `equal` failing.
 
-Note that adding the type declaration `: NSLayoutConstraint` after `equal` will fix the code since it will result in solutions that attempt the `==` from `Equatable` to fail (since it returns a `Bool`). We could potentially generate fixes like these by performing the type check a second time with the designated types feature disabled and if type checking succeeds insert fixes for expressions which successfully typechecked both ways but where the inferred type has changed.
+Note that adding the type declaration `: NSLayoutConstraint` after `equal` will fix the code since it will result in solutions that attempt the `==` from `Equatable` to fail (since it returns a `Bool`).
+
+We could potentially generate fixes like these by performing the type check a second time with the designated types feature disabled and if type checking succeeds insert fixes for expressions which successfully typechecked both ways but where the inferred type has changed.
 
 In many cases operators are used in contexts where a particular type is already expected or where they are combined with other operators which further constrain the combinations that typecheck successfully, so in practice this may not turn out to be a significant source of breakage.
 
