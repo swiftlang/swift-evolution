@@ -41,7 +41,7 @@ potential data corruption. Consider this: if an application implements its own
 recommended, as both the protocol and the type are defined in the standard
 library), there might be data permanently stored somewhere (in the database, in
 a JSON or PLIST file, etc.) which was serialized using that conformance. Unless
-the serialization format is exaclty the same as the one used in the standard
+the serialization format is exactly the same as the one used in the standard
 library, that data will be considered invalid.
 
 When this proposal is implemented, any `Codable` conformance to the `Range` type
