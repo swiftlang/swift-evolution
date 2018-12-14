@@ -1,10 +1,10 @@
 # Add Codable conformance to Range types
 
-* Proposal: [SE-NNNN](NNNN-codable-range.md)
-* Authors: [Dale Buckley](https://github.com/dlbuckley)
-* Review Manager: TBD
+* Proposal: [SE-0239](0239-codable-range.md)
+* Authors: [Dale Buckley](https://github.com/dlbuckley), [Ben Cohen](https://github.com/airspeedswift), [Maxim Moiseev](https://github.com/moiseev)
+* Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Implementation: [apple/swift#19532](https://github.com/apple/swift/pull/19532)
-* Status: **Awaiting review**
+* Status: **Active review (December 13...20, 2018)**
 
 ## Introduction
 
