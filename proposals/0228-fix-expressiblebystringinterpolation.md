@@ -9,7 +9,7 @@
 
 ## Introduction
 
-String interpolation is a simple and powerful feature for expressing complex, runtime-created strings, but the current version of the `ExpressibleByStringInterpolation` protocol has been deprecated since Swift 3. We propose a new design which improves its performance, clarity, and efficiency.
+String interpolation is a simple and powerful feature for expressing complex, runtime-created strings, but the current version of the `ExpressibleByStringInterpolation` protocol has been deprecated since Swift 3. We propose a new design that improves its performance, clarity, and efficiency.
 
 Swift-evolution thread: [\[Draft\] Fix ExpressibleByStringInterpolation](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170306/033676.html), [String interpolation revamp](https://forums.swift.org/t/string-interpolation-revamp/9302), [String interpolation revamp: design decisions](https://forums.swift.org/t/string-interpolation-revamp-design-decisions/12624)
 
@@ -17,19 +17,19 @@ Swift-evolution thread: [\[Draft\] Fix ExpressibleByStringInterpolation](https:/
 
 ### Background
 
-An interpolated string literal contains one or more embedded expressions, delimited by `\(` and `)`. At runtime, these expressions are evaluated and concatenated with the string literal to produce a value. They are typically more readable than code which switches between string literals, concatenation operators, and arbitrary expressions.
+An interpolated string literal contains one or more embedded expressions, delimited by `\(` and `)`. At runtime, these expressions are evaluated and concatenated with the string literal to produce a value. They are typically more readable than code that switches between string literals, concatenation operators, and arbitrary expressions.
 
 Like most literal features in Swift, interpolated string literals are implemented with a protocol, `ExpressibleByStringInterpolation`. However, this protocol has been known to have issues since Swift 3, so it is currently deprecated.
 
 ### Desired use cases
 
-We see three general classes of types which might want to conform to `ExpressibleByStringInterpolation`:
+We see three general classes of types that might want to conform to `ExpressibleByStringInterpolation`:
 
-1. **Simple textual data**: Types which represent simple, unconstrained text, like `Swift.String` itself. String types from foreign languages (like `JavaScriptCore.JSValue`) and alternative representations of strings (like a hypothetical `ASCIIString` type) might also want to participate in string interpolation.
+1. **Simple textual data**: Types that represent simple, unconstrained text, like `Swift.String` itself. String types from foreign languages (like `JavaScriptCore.JSValue`) and alternative representations of strings (like a hypothetical `ASCIIString` type) might also want to participate in string interpolation.
    
-2. **Structured textual data**: Types which represent text, but have some additional semantics. For example, a `Foundation.AttributedString` type might allow you to interpolate dictionaries to set or clear attributes. [This gist’s `LocalizableString`][loc] type creates a format string which can be looked up in a `Foundation.Bundle`’s localization tables.
+2. **Structured textual data**: Types that represent text but have some additional semantics. For example, a `Foundation.AttributedString` type might allow you to interpolate dictionaries to set or clear attributes. [This gist’s `LocalizableString`][loc] type creates a format string, which can be looked up in a `Foundation.Bundle`’s localization tables.
 
-3. **Machine-readable code fragments**: Types which represent data in a format which will be understood by a machine, like [`SQLKit.SQLStatement`][sql] or [this blog post’s `SanitizedHTML`][html]. These types often require data included in them to be escaped or passed out-of-band; a good `ExpressibleByStringInterpolation` design might allow this to be done automatically without the programmer having to do anything explicit. They may only support specific types, or may want to escape by default but also have a way to insert unescaped data.
+3. **Machine-readable code fragments**: Types that represent data in a format that will be understood by a machine, like [`SQLKit.SQLStatement`][sql] or [this blog post’s `SanitizedHTML`][html]. These types often require data included in them to be escaped or passed out-of-band; a good `ExpressibleByStringInterpolation` design might allow this to be done automatically without the programmer having to do anything explicit. They may only support specific types, or may want to escape by default but also have a way to insert unescaped data.
 
 The current design handles simple textual data, but struggles to support structured textual data and machine-readable code fragments.
 
@@ -49,7 +49,7 @@ String(stringInterpolation:
   String(stringInterpolationSegment: "!"))
 ```
 
-The type checker considers all overloads of `init(stringInterpolationSegment:)`, not just the one which implements the protocol requirement. `Swift.String` uses this to add fast paths for types conforming to `CustomStringConvertible` and `TextOutputStreamable`.
+The type checker considers all overloads of `init(stringInterpolationSegment:)`, not just the one that implements the protocol requirement. `Swift.String` uses this to add fast paths for types conforming to `CustomStringConvertible` and `TextOutputStreamable`.
 
 ### Issues with the current design
 
@@ -165,7 +165,7 @@ public protocol StringInterpolationProtocol {
 }
 ```
 
-An interpolated string will be converted into code which:
+An interpolated string will be converted into code that:
 
 1. Initializes an instance of an associated `StringInterpolation` type, passing the total literal segment size and interpolation count as parameters.
    
@@ -208,21 +208,21 @@ The standard library will provide a `DefaultStringInterpolation` type; `StringPr
 
 The standard library will also provide two sets of default implementations:
 
-* For types using `DefaultStringInterpolation`, it will provide a default `init(stringInterpolation:)` which extracts the value after interpolation and forwards it to `init(stringLiteral:)`. Thus, types which currently conform to `ExpressibleByStringLiteral` and use `String` as their literal type can add simple interpolation support by merely changing their conformance to `ExpressibleByStringInterpolation`.
+* For types using `DefaultStringInterpolation`, it will provide a default `init(stringInterpolation:)` that extracts the value after interpolation and forwards it to `init(stringLiteral:)`. Thus, types that currently conform to `ExpressibleByStringLiteral` and use `String` as their literal type can add simple interpolation support by merely changing their conformance to `ExpressibleByStringInterpolation`.
 
-* For other types, it will provide a default `init(stringLiteral:)` which constructs a `Self.StringInterpolation` instance, calls its `appendLiteral(_:)` method, and forwards it to `init(stringInterpolation:)`. (An unavailable or deprecated `init(stringLiteral:)` will ensure that this is never used with the `init(stringInterpolation:)` provided for `DefaultStringInterpolation`-using types, which would cause infinite recursion.)
+* For other types, it will provide a default `init(stringLiteral:)` that constructs a `Self.StringInterpolation` instance, calls its `appendLiteral(_:)` method, and forwards it to `init(stringInterpolation:)`. (An unavailable or deprecated `init(stringLiteral:)` will ensure that this is never used with the `init(stringInterpolation:)` provided for `DefaultStringInterpolation`-using types, which would cause infinite recursion.)
 
 ### The `appendInterpolation` method(s)
 
 `StringInterpolation` types must conform to a `StringInterpolationProtocol`, which requires the `init(literalCapacity:interpolationCount:)` and `appendLiteral(_:)` methods.
 
-Non-literal segments are restricted at compile time to the overloads of `appendInterpolation` supplied by the conformer. This allows conforming types to restrict the values which can be interpolated into them by implementing only methods which accept the types they want to support. `appendInterpolation` can be overloaded to support several unrelated types.
+Non-literal segments are restricted at compile time to the overloads of `appendInterpolation` supplied by the conformer. This allows conforming types to restrict the values that can be interpolated into them by implementing only methods that accept the types they want to support. `appendInterpolation` can be overloaded to support several unrelated types.
 
 `appendInterpolation` methods can specify any parameter signature they wish. An `appendInterpolation` method can accept multiple parameters (with or without default values), can require a label on any parameter (including the first one), and can have variadic parameters. `appendInterpolation` methods can also throw; if one does, the string literal must be covered by a `try`, `try?`, or `try!` keyword. Future work includes enhancing String to accept formatting control.
 
 While this part of the design gives us great flexibility, it does introduce an implicit relationship between the compiler and ad-hoc methods declared by the conformer. It also restricts what values can be interpolated in a context generic over `StringInterpolationProtocol`, though further constraints can lift this restriction.
 
-Even though there is no formal requirement listed in the protocol, we have modified the compiler to emit an error if a `StringInterpolationProtocol`-conforming type does not have at least one overload of `appendInterpolation` which is as public as the type, does not return a value (or returns a discardable value), and is not static.
+Even though there is no formal requirement listed in the protocol, we have modified the compiler to emit an error if a `StringInterpolationProtocol`-conforming type does not have at least one overload of `appendInterpolation` that is as public as the type, does not return a value (or returns a discardable value), and is not static.
 
 ### Interpolation parsing changes
 
@@ -240,7 +240,7 @@ We will add `TextOutputStreamable` conformances to `Float`, `Double`, and `Float
 
 <details><summary>The `DefaultStringInterpolation` type</summary>
 
-The standard library uses `make()` to extract the final value; `CustomStringConvertible` is provided as a public equivalent for types which want to use `DefaultStringInterpolation` but do some processing in their `init(stringInterpolation:)` implementation.
+The standard library uses `make()` to extract the final value; `CustomStringConvertible` is provided as a public equivalent for types that want to use `DefaultStringInterpolation` but do some processing in their `init(stringInterpolation:)` implementation.
 
 ```swift
 /// Represents a string literal with interpolations while it is being built up.
@@ -472,11 +472,11 @@ The default `init(stringLiteral:)` (which is only used for types implementing fu
 
 Since `ExpressibleByStringInterpolation` has been deprecated since Swift 3, we need not maintain source compatibility with existing conformances, nor do we propose preserving existing conformances to `ExpressibleByStringInterpolation` even in Swift 4 mode.
 
-We do not propose preserving existing `init(stringInterpolation:)` or `init(stringInterpolationSegment:)` initializers, since they have always been documented as calls which should not be used directly. However, the source compatibility suite contains code which accidentally uses `init(stringInterpolationSegment:)` by writing `String.init` in a context expecting a `CustomStringConvertible` or `TextOutputStreamable` type. We have devised a set of overloads to `init(describing:)` which will match these accidental, implicit uses of `init(stringInterpolationSegment:)` without preserving explicit uses of `init(stringInterpolationSegment:)`.
+We do not propose preserving existing `init(stringInterpolation:)` or `init(stringInterpolationSegment:)` initializers, since they have always been documented as calls that should not be used directly. However, the source compatibility suite contains code that accidentally uses `init(stringInterpolationSegment:)` by writing `String.init` in a context expecting a `CustomStringConvertible` or `TextOutputStreamable` type. We have devised a set of overloads to `init(describing:)` that will match these accidental, implicit uses of `init(stringInterpolationSegment:)` without preserving explicit uses of `init(stringInterpolationSegment:)`.
 
-We propose a set of `String.StringInterpolation.appendInterpolation` overloads which exactly match the current `init(stringInterpolationSegment:)` overloads, so “normal” interpolations will work exactly as before.
+We propose a set of `String.StringInterpolation.appendInterpolation` overloads that exactly match the current `init(stringInterpolationSegment:)` overloads, so “normal” interpolations will work exactly as before.
 
-“Strange” interpolations like `\(x, y)` or `\(foo: x)` which are currently accepted by the Swift compiler will be errors in Swift 5 mode. In Swift 4.2 mode, we will preserve the existing behavior with a warning; this means that Swift 4.2 code will only be able to use `appendInterpolation` overloads with a single unlabeled parameter, unless all other parameters have default values. Migration involves inserting an extra pair of parens or removing an argument label to preserve behavior.
+“Strange” interpolations like `\(x, y)` or `\(foo: x)`, which are currently accepted by the Swift compiler will be errors in Swift 5 mode. In Swift 4.2 mode, we will preserve the existing behavior with a warning; this means that Swift 4.2 code will only be able to use `appendInterpolation` overloads with a single unlabeled parameter, unless all other parameters have default values. Migration involves inserting an extra pair of parens or removing an argument label to preserve behavior.
 
 ## Effect on ABI stability
 
@@ -490,7 +490,7 @@ This API is pretty foundational and it would be difficult to change compatibly i
 
 ### Variadic-based designs
 
-We considered several designs which, like the current design, passed segments to a variadic parameter. For example, we could wrap literal segments in `init(stringLiteral:)` instead of `init(stringInterpolationSegment:)` and otherwise keep the existing design:
+We considered several designs that, like the current design, passed segments to a variadic parameter. For example, we could wrap literal segments in `init(stringLiteral:)` instead of `init(stringInterpolationSegment:)` and otherwise keep the existing design:
 
 ```swift
 String(stringInterpolation:
@@ -512,6 +512,6 @@ However, this requires that conformers expose a homogenous return value, which h
 
 ### Have a formal `appendInterpolation(_:)` requirement
 
-We considered having a formal `appendInterpolation(_:)` requirement with an unconstrained generic parameter to mimic current behavior. We could even have a default implementation that vends strings and still honor overloading.
+We considered having a formal `appendInterpolation(_:)` requirement with an unconstrained generic parameter to mimic current behavior. We could even have a default implementation that vends strings and still honors overloading.
 
 However, we would have to give up on conformers being able to restrict the types or interpolation segment forms permitted.
