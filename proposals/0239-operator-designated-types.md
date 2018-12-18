@@ -1,6 +1,6 @@
 # Extending operator declarations with designated types
 
-* Proposal: [SE-0239](0239-operator-designated-types.md)
+* Proposal: [SE-NNNN](NNNN-operator-designated-types.md)
 * Authors: [Mark Lacey](https://github.com/rudkx)
 * Review Manager: TBD
 * Status: **Implemented under staging options**
