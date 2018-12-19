@@ -1,10 +1,12 @@
 # Add Result to the Standard Library
 
 * Proposal: [SE-0235](0235-add-result.md)
-* Authors: [Jon Shier](https://github.com/jshier)
+* Author: [Jon Shier](https://github.com/jshier)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Accepted with modifications**
-* Implementation: [apple/swift#20629](https://github.com/apple/swift/pull/20629), [apple/swift#20958](https://github.com/apple/swift/pull/20958)
+* Status: **Implemented (Swift 5)**
+* Implementation: [apple/swift#21073](https://github.com/apple/swift/pull/21073),
+                  [apple/swift#21225](https://github.com/apple/swift/pull/21225),
+                  [apple/swift#21378](https://github.com/apple/swift/pull/21378)
 * Review: ([initial review](https://forums.swift.org/t/se-0235-add-result-to-the-standard-library/17752)) ([second review](https://forums.swift.org/t/revised-se-0235-add-result-to-the-standard-library/18371)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0235-add-result-to-the-standard-library/18603))
 
 ## Introduction
