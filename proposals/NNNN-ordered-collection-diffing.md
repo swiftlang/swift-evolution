@@ -163,28 +163,17 @@ extension OrderedCollection where Element: Equatable {
 }
 ```
 
-A number of existing `Collection` types in the standard libraries will also adopt `OrderedCollection`:
+`BidirectionalCollection` will inherit from `OrderedCollection`, and a number of unidirectional `Collection` types will add conformance:
 
 ``` swift
-extension Array : OrderedCollection {}
-extension ArraySlice : OrderedCollection {}
-extension ClosedRange : OrderedCollection where Bound : Strideable, Bound.Stride : SignedInteger {}
-extension CollectionOfOne : OrderedCollection {}
-extension ContiguousArray : OrderedCollection {}
+extension BidirectionalCollection : OrderedCollection {}
+
 extension CountingIndexCollection : OrderedCollection where Base : OrderedCollection {}
-extension EmptyCollection : OrderedCollection {}
-extension Range : OrderedCollection where Bound : Strideable, Bound.Stride : SignedInteger {}
 extension Slice : OrderedCollection where Base : OrderedCollection {}
 extension String : OrderedCollection {}
 extension Substring : OrderedCollection {}
-extension UnsafeBufferPointer : OrderedCollection {}
-extension UnsafeMutableBufferPointer : OrderedCollection {}
 extension UnsafeMutableRawBufferPointer : OrderedCollection {}
 extension UnsafeRawBufferPointer : OrderedCollection {}
-
-// In Foundation:
-extension IndexPath : OrderedCollection {}
-extension DataProtocol : OrderedCollection {}
 ```
 
 The `difference(from:)` method on `OrderedCollection` produces a difference type, which is defined as:
