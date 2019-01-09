@@ -8,17 +8,17 @@
 
 ## Introduction
 
-This proposal describes additions to the standard library that provide diffing/patching functionality for ordered collection types.
+This proposal describes additions to the standard library that provide an interchange format for diffs as well as diffing/patching functionality for ordered collection types.
 
 ## Motivation
 
 Representing, manufacturing, and applying transactions between states today requires writing a lot of error-prone code. This proposal is inspired by the convenience of the `diffutils` suite when interacting with text files, and the reluctance to solve similar problems in code with `libgit2`.
 
-Many state management patterns would benefit from improvements in this area, including undo/redo stacks, generational stores, and syncing differential content to a service.
+Many state management patterns would benefit from improvements in this area, including undo/redo stacks, generational stores, and syncing differential content to/from a service.
 
 ## Proposed solution
 
-The concept of an ordered collection is formalized with a new protocol, and new types representing the differences between ordered collections are introduced along with methods that support their production and application among compatible types.
+A new type representing the difference between ordered collections is introduced along with methods that support its production and application.
 
 Using this API, a line-by-line three-way merge can be performed in a few lines of code:
 
@@ -29,7 +29,7 @@ let theirLines = theirs.components(separatedBy: "\n")
 let myLines = mine.components(separatedBy: "\n")
     
 // Create a difference from base to theirs
-let diff = theirLines.difference(from:baseLines)
+let diff = theirLines.shortestEditScript(from:baseLines)
     
 // Apply it to mine, if possible
 guard let patchedLines = myLines.applying(diff) else {
@@ -44,56 +44,19 @@ print(patched)
 
 ## Detailed design
 
-### Formalizing ordered collections
+### Producing diffs
 
-The Swift standard library lacks a protocol for operations that are only valid over `Collection` types with a strong sense of order, such as `elementsEqual(_:)`. The correctness of diffing operations also depend on order, so this proposal formalizes the characteristic with a new protocol, `OrderedCollection`:
+Collections can only be efficiently diffed when they have a strong sense of order, so difference production is added to `BidirectionalCollection`:
 
 ``` swift
-/// An ordered collection treats the structural positions of its elements as
-/// part of its interface. Differences in order always affect whether two
-/// instances are equal.
-///
-/// For example, a tree is an ordered collection; a dictionary is not.
 @available(swift, introduced: 5.1)
-public protocol OrderedCollection : Collection
-    where SubSequence : OrderedCollection
-{
-    /// Returns a Boolean value indicating whether this ordered collection and
-    /// another ordered collection contain equivalent elements in the same
-    /// order, using the given predicate as the equivalence test.
-    ///
-    /// The predicate must be a *equivalence relation* over the elements. That
-    /// is, for any elements `a`, `b`, and `c`, the following conditions must
-    /// hold:
-    ///
-    /// - `areEquivalent(a, a)` is always `true`. (Reflexivity)
-    /// - `areEquivalent(a, b)` implies `areEquivalent(b, a)`. (Symmetry)
-    /// - If `areEquivalent(a, b)` and `areEquivalent(b, c)` are both `true`,
-    ///   then `areEquivalent(a, c)` is also `true`. (Transitivity)
-    ///
-    /// - Parameters:
-    ///   - other: An ordered collection to compare to this ordered collection.
-    ///   - areEquivalent: A predicate that returns `true` if its two arguments
-    ///     are equivalent; otherwise, `false`.
-    /// - Returns: `true` if this ordered collection and `other` contain
-    ///   equivalent items, using `areEquivalent` as the equivalence test;
-    ///   otherwise, `false.`
-    ///
-    /// - Complexity: O(*m*), where *m* is the lesser of the length of the
-    ///   ordered collection and the length of `other`.
-    func elementsEqual<C>(
-       _ other: C, by areEquivalent: (Element, C.Element) throws -> Bool
-    ) rethrows -> Bool where C : OrderedCollection
-}
-
-extension OrderedCollection {
+extension BidirectionalCollection {
     /// Returns the difference needed to produce the receiver's state from the
-    /// parameter's state, using the provided closure to establish equivalence
-    /// between elements.
+    /// parameter's state with the fewest possible changes, using the provided
+    /// closure to establish equivalence between elements.
     ///
     /// This function does not infer element moves, but they can be computed
-    /// using `OrderedCollectionDifference.inferringMoves()` if
-    /// desired.
+    /// using `OrderedCollectionDifference.inferringMoves()` if desired.
     ///
     /// Implementation is an optimized variation of the algorithm described by
     /// E. Myers (1986).
@@ -107,21 +70,20 @@ extension OrderedCollection {
     ///   the parameter's state.
     ///
     /// - Complexity: O(*n* * *d*), where *n* is `other.count + self.count` and
-    ///   *d* is the number of differences between the two ordered collections.
-    public func difference<C>(
+    ///   *d* is the number of changes between the two ordered collections.
+    public func shortestEditScript<C>(
         from other: C, by areEquivalent: (Element, C.Element) -> Bool
     ) -> OrderedCollectionDifference<Element>
-        where C : OrderedCollection, C.Element == Self.Element
+        where C : BidirectionalCollection, C.Element == Self.Element
 }
 
-extension OrderedCollection where Element: Equatable {
+extension BidirectionalCollection where Element: Equatable {
     /// Returns the difference needed to produce the receiver's state from the
-    /// parameter's state, using equality to establish equivalence between
-    /// elements.
+    /// parameter's state with the fewest possible changes, using equality to
+    /// establish equivalence between elements.
     ///
     /// This function does not infer element moves, but they can be computed
-    /// using `OrderedCollectionDifference.inferringMoves()` if
-    /// desired.
+    /// using `OrderedCollectionDifference.inferringMoves()` if desired.
     ///
     /// Implementation is an optimized variation of the algorithm described by
     /// E. Myers (1986).
@@ -133,48 +95,12 @@ extension OrderedCollection where Element: Equatable {
     ///   the parameter's state.
     ///
     /// - Complexity: O(*n* * *d*), where *n* is `other.count + self.count` and
-    ///   *d* is the number of differences between the two ordered collections.
-    public func difference<C>(from other: C) -> OrderedCollectionDifference<Element>
-        where C: OrderedCollection, C.Element == Self.Element
-    
-    /// Returns a Boolean value indicating whether this ordered collection and
-    /// another ordered collection contain the same elements in the same order.
-    ///
-    /// This example tests whether one countable range shares the same elements
-    /// as another countable range and an array.
-    ///
-    ///     let a = 1...3
-    ///     let b = 1...10
-    ///
-    ///     print(a.elementsEqual(b))
-    ///     // Prints "false"
-    ///     print(a.elementsEqual([1, 2, 3]))
-    ///     // Prints "true"
-    ///
-    /// - Parameter other: An ordered collection to compare to this ordered
-    ///   collection.
-    /// - Returns: `true` if this ordered collection and `other` contain the
-    ///   same elements in the same order.
-    ///
-    /// - Complexity: O(*m*), where *m* is the lesser of the `count` of the
-    ///   ordered collection and the `count` of `other`.
-    public func elementsEqual<C>(_ other: C) -> Bool
-        where C : OrderedCollection, C.Element == Element
-}
+    ///   *d* is the number of changes between the two ordered collections.
+    public func shortestEditScript<C>(from other: C) -> OrderedCollectionDifference<Element>
+        where C: BidirectionalCollection, C.Element == Self.Element
 ```
 
-`BidirectionalCollection` will inherit from `OrderedCollection`, and a number of unidirectional `Collection` types will add conformance:
-
-``` swift
-extension BidirectionalCollection : OrderedCollection {}
-
-extension CountingIndexCollection : OrderedCollection where Base : OrderedCollection {}
-extension Slice : OrderedCollection where Base : OrderedCollection {}
-extension UnsafeMutableRawBufferPointer : OrderedCollection {}
-extension UnsafeRawBufferPointer : OrderedCollection {}
-```
-
-The `difference(from:)` method on `OrderedCollection` produces a difference type, which is defined as:
+The `shortestEditScript(from:)` method determines the fewest possible edits required to transition betewen the two states and stores them in a difference type, which is defined as:
 
 ``` swift
 /// A type that represents the difference between two ordered collection states.
@@ -195,7 +121,7 @@ public struct OrderedCollectionDifference<ChangeElement> {
     /// Creates an instance from a collection of changes.
     ///
     /// For clients interested in the difference between two ordered
-    /// collections, see `OrderedCollection.difference(from:)`.
+    /// collections, see `OrderedCollection.shortestEditScript(from:)`.
     ///
     /// To guarantee that instances are unambiguous and safe for compatible base
     /// states, this initializer will fail unless its parameter meets to the
@@ -219,7 +145,7 @@ public struct OrderedCollectionDifference<ChangeElement> {
     public var removals: [Change] { get }
 }
 
-/// An OrderedCollectionDifference is itself a RandomAccessCollection.
+/// An OrderedCollectionDifference is itself a Collection.
 ///
 /// The enumeration order of `Change` elements is:
 ///
@@ -265,6 +191,8 @@ A `Change` is a single mutating operation, an `OrderedCollectionDifference` is a
 
 Fundamentally, there are only two operations that mutate ordered collections, `insert(_:at:)` and `remove(at:)`, but there are benefits from being able to represent other operations such as moves and replacements, especially for UIs that may want to animate a move differently from an `insert`/`remove` pair. These operations are represented using `associatedWith:`. When non-`nil`, they refer to the offset of the counterpart as described in the headerdoc.
 
+In a similar way, the name `shortestEditScript(from:)` uses a term of art to admit the use of an algorithm that compromises between performance and a minimal output. It computes the [longest common subsequence](https://en.wikipedia.org/wiki/Longest_common_subsequence_problem) between the two collections, but not the [longest common substring](https://en.wikipedia.org/wiki/Longest_common_substring_problem) (which is a much slower operation). In the future other algorithms may be added as different methods to satisfy the need for different performance and output characteristics.
+
 ### Application of instances of `OrderedCollectionDifference`
 
 ``` swift
@@ -284,7 +212,7 @@ extension RangeReplaceableCollection {
 }
 ```
 
-Applying a diff to an incompatible base state is an error. `applying(_:)` expresses this by returning nil.
+Applying a diff to an incompatible base state is the only way application can fail. `applying(_:)` expresses this by returning nil.
 
 ## Source compatibility
 
@@ -300,13 +228,9 @@ This feature is additive and symbols marked with `@available(swift, introduced: 
 
 ## Alternatives considered
 
-### `difference(from:by:)` defined in protocol instead of extension
+### `shortestEditScript(from:by:)` defined in protocol instead of extension
 
-I'd love to hear feedback on this decision; it was informed by an intention to minimize defects without compromising performance.
-
-The diffing function is defined in an extension because thus far all performance opportunities have been possible to satisfy by adding different required protocol methods that provide functionality such as fast membership testing or identifying the first mismatch between two slices.
-
-Furthermore, making the algorithm that produces the diff immutable creates a guarantee that two diffs constructed from different collections but representing the same state transition will always equate to each other. This would certainly be violated if `difference(from:by:)` were overridden because of the possibility for the same state transition to be represented in multiple ways by implementations that don't produce [LCS](https://en.wikipedia.org/wiki/Longest_common_subsequence_problem) results.
+Different algorithms with different premises and/or semantics are free to be defined using different function names.
 
 ### Communicating changes via a series of callbacks
 
@@ -314,7 +238,36 @@ Breaking up a transaction into a sequence of imperative events is not very Swift
 
 ### More cases in `OrderedCollectionDifference.Change`
 
-While other cases such as `.move` are tempting, the proliferation of code in switch statements is unwanted overhead for clients that don't care about the "how" of a state transition so much as the "what".  The use of associated offsets allows for more information to be encoded into the diff without making it more difficult to use.
+While other cases such as `.move` are tempting, the proliferation of code in switch statements is unwanted overhead for clients that don't care about the "how" of a state transition so much as the "what".
+
+The use of associated offsets allows for more information to be encoded into the diff without making it more difficult to use. You've already seen how associated offsets can be used to illustrate moves (as produced by `inferringMoves()`):
+
+``` swift
+OrderedCollectionDifference<String>([
+    .remove(offset:0, element: "value", associatedWith: 4),
+    .insert(offset:4, element: "value", associatedWith: 0)
+])
+```
+
+But they can also be used to illustrate replacement when the offsets refer to the same position (and the element is different):
+
+``` swift
+OrderedCollectionDifference<String>([
+    .remove(offset:0, element: "oldvalue", associatedWith: 0),
+    .insert(offset:0, element: "newvalue", associatedWith: 0)
+])
+```
+
+Differing offsets and elements can be combined when a value is both moved and replaced (or changed):
+
+``` swift
+OrderedCollectionDifference<String>([
+    .remove(offset:4, element: "oldvalue", associatedWith: 0),
+    .insert(offset:0, element: "newvalue", associatedWith: 4)
+])
+```
+
+Neither of these two latter forms can be inferred from a diff by inferringMoves(), but they can be legally expressed by any API that vends a difference.
 
 ### `applying(_:) throws -> Self` instead of `applying(_:) -> Self?`
 
@@ -338,6 +291,14 @@ Both sort orders are "correct" in representing the same state transition.
 Application of differences would only be possible when both `Element` types were equal, and there would be additional cognitive overhead with comparators with the type `(Element, Other.Element) -> Bool`.
 
 Since the comparator forces both types to be effectively isomorphic, a diff generic over only one type can satisfy the need by mapping one (or both) ordered collections to force their `Element` types to match.
+
+### `difference(from:using:)` with an enum parameter for choosing the diff algorithm instead of `shortestEditScript(from:)`
+
+This is an attractive API concept, but it can be very cumbersome to extend. This is especially the case for types like `OrderedSet` that—through member uniqueness and fast membership testing—have the capability to support very fast diff algorithms that aren't appropriate for other types.
+
+### `CollectionDifference` or just `Difference` instead of `OrderedCollectionDifference`
+
+The name `OrderedCollectionDifference` gives us the opportunity to build a family of related types in the future, as the difference type in this proposal is (intentionally) unsuitable for representing differences between keyed collections (which don't shift their elements' keys on insertion/removal) or structural differences between treelike collections (which are multidimensional).
 
 ## Intentional omissions:
 
@@ -372,3 +333,7 @@ There is no mutating applicator because there is no algorithmic advantage to in-
 ### `mutating inferringMoves()`
 
 While there may be savings to be had from in-place move inferencing; we're holding this function for a future proposal.
+
+### Formalizing the concept of an ordered collection
+
+This problem warrants a proposal of its own.
