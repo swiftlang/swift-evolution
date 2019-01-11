@@ -29,6 +29,8 @@ when their `Bound` is also `Codable`:
  * `PartialRangeThrough`
  * `PartialRangeUpTo`
 
+These types will use an unkeyed container of their lower/upper bound (in sorted order, in cases of `Range` and `ClosedRange`).
+
 ## Effect on ABI stability, resilience, and source stability
 
 This is a purely additive change, and so has no impact.
