@@ -31,6 +31,8 @@ when their `Bound` is also `Codable`:
 
 These types will use an unkeyed container of their lower/upper bound (in sorted order, in cases of `Range` and `ClosedRange`).
 
+In addition, `ContiguousArray` is also missing a conformance to `Codable`, which will be added.
+
 ## Effect on ABI stability, resilience, and source stability
 
 This is a purely additive change, and so has no impact.
