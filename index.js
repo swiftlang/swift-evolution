@@ -482,8 +482,9 @@ function addEventListeners () {
   var nav = document.querySelector('nav')
 
   // typing in the search field causes the filter to be reapplied.
-  nav.addEventListener('keyup', filterProposals)
-  nav.addEventListener('change', filterProposals)
+  var filterProposalsDebounce = debounce(filterProposals, 250);
+  nav.addEventListener('keyup', filterProposalsDebounce)
+  nav.addEventListener('change', filterProposalsDebounce)
 
   // clearing the search field also hides the X symbol
   nav.querySelector('#clear-button').addEventListener('click', function () {
@@ -991,3 +992,14 @@ function updateProposalsCount (count) {
   var numberField = document.querySelector('#proposals-count-number')
   numberField.innerText = (count.toString() + ' proposal' + (count !== 1 ? 's' : ''))
 }
+
+function debounce(func, delay) {
+  let timeoutId = null;
+  return function() {
+    clearTimeout(timeoutId);
+    var args = arguments;
+    timeoutId = setTimeout(function() {
+      func.apply(undefined, args);
+    }, delay);
+  };
+};
