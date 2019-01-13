@@ -263,7 +263,7 @@ function renderBody () {
     '.awaitingReview', '.scheduledForReview', '.activeReview', '.accepted',
     '.acceptedWithRevisions', '.implemented', '.returnedForRevision', '.deferred', '.rejected', '.withdrawn'
   ]
-
+  proposalAttachPoint.innerHTML = '';
   proposalPresentationOrder.map(function (state) {
     var matchingProposals = proposals.filter(function (p) { return p.status && p.status.state === state })
     matchingProposals.map(function (proposal) {
