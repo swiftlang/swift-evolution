@@ -39,13 +39,13 @@ Using any of these operations will lead to a loss of laziness and the immediatel
 
 ## Proposed Solution
 
-I propose conforming all existing lazily implemented `Sequence`s to `LazySequenceProtocol`. For those inherited members from `Sequence` on `LazySequenceProtocol` that are eagerly implemented I propose creating overloads along with new types conforming to `LazySequenceProtocol` that are conventionally prefixed with `Lazy`.
+I propose conforming all existing lazily implemented `Sequence`s to `LazySequenceProtocol`. For those inherited members from `Sequence` that don't contain a lazy implementation on `LazySequenceProtocol`, overloads and types, conforming to `LazySequenceProtocol`, that are conventionally prefixed with `Lazy`.
 
 ## Detailed Design
 
 ### Conform Existing `Sequence`s To `LazySequenceProtocol`
 
-The following `Sequence`s *can't* conform to `LazySequenceProtocol`:
+The following `Sequence`s can't conform to `LazySequenceProtocol` because they don't contain an underlying `Sequence` and therefore can't conform to both `Sequence` and `LazySequenceProtocol`:
 
 - `AnyBidirectionalCollection`
 - `AnyCollection`
@@ -83,10 +83,16 @@ The following `Sequence`s *can't* conform to `LazySequenceProtocol`:
 - `UnsafeRawBufferPointer`
 - `UnsafeRawBufferPointer.Iterator`
 
-These `Sequence`s don't contain an underlying `Sequence` and therefore can't conform to both `Sequence` and `LazySequenceProtocol`.
+The following types can't conform to `LazySequenceProtocol` because they aren't sufficiently lazy:
+
+ - `DropFirstSequence`
+ - `DropWhileSequence`
+
+`DropFirstSequence` can't conform to `LazySequenceProtocol` because `makeIterator()` pre-emptively drops the first `k` elements due to performance reasons. For the latter type a lazy implementation already exists.
 
 The following `Sequence`s already conform to `LazySequenceProtocol` and require no modifications:
 
+- `LazyDropWhileSequence`
 - `LazyFilterSequence`
 - `LazyMapSequence`
 - `LazyPrefixWhileSequence`
@@ -111,120 +117,30 @@ The following `Sequence`s can conform to `LazySequenceProtocol` on the condition
 - `PrefixSequence`
 - `ReversedCollection.Iterator`
 
-Note that the conformance of `DropFirstSequence` and `DropWhileSequence` to `LazySequenceProtocol` is not possible. The former can't because `makeIterator()` pre-emptively drops elements due to performance reasons. The latter can't because `init(_:dropping:)` pre-emptively drops elements due to the non-escaping nature of `drop(while:)`'s `predicate`.
-
-The conformance of `FlattenSequence` to `LazySequenceProtocol` means we can remove `LazySequence` from the `return` types of `joined()` and `flatMap(_:)` on `LazySequenceProtocol`. The old implementations will be deprecated. It also requires the explicit declaration of `FlattenCollection.SubSequence` as `FlattenCollection.subscript(bounds:)` can't ...
+The conformance of `FlattenSequence` to `LazySequenceProtocol` means we can remove `LazySequence` from the `return` types of `joined()` and `flatMap(_:)` on `LazySequenceProtocol`. The old implementations will be deprecated. It also requires the explicit declaration of `FlattenCollection.SubSequence`.
 
 The following `Sequence`s can conform to `LazySequenceProtocol` on the condition that `Elements` conforms to `LazySequenceProtocol`:
 
 - `DefaultIndices`
 - `IndexingIterator`
 
-<!-- Todo: `LazySequence.indices` `return`s `Base.indices` which might potentially means a loss of laziness. -->
-
 Finally, `Zip2Sequence` can conform to `LazySequenceProtocol` on the condition that `Sequence1` and `Sequence2` conform to `LazySequenceProtocol`.
 
-#### Implementation
+### Add Missing Implementations And Types
 
-...
+The following inherited members from `Sequence` don't contain an overloaded lazy implementation on `LazySequenceProtocol`:
 
-### Add Missing Lazy Implementations
-
-#### `dropFirst(_:)`
-
-```swift
-extension Sequence {
-  @inlinable public __consuming func dropFirst (_ k: Int = 1) -> DropFirstSequence<Self>
-}
-```
-
-#### `dropLast(_:)`
-
-```swift
-extension Sequence {
-  @inlinable public __consuming func dropLast (_ k: Int = 1) -> [Self.Element]
-}
-```
-
-#### `drop(while:)`
-
-```swift
-extension Sequence {
-  @inlinable public __consuming func drop (while predicate: (Self.Element) throws -> Bool) rethrows -> DropWhileSequence<Self>
-}
-```
-
-#### `joined()`
-
-```swift
-extension Sequence where Self.Element: StringProtocol {
-  public func joined (separator: String = "") -> String
-}
-```
-
-#### `prefix(_:)`
-
-```swift
-extension Sequence {
-  @inlinable public __consuming func prefix (_ maxLength: Int) -> PrefixSequence<Self>
-  @inlinable public __consuming func prefix (while predicate: (Self.Element) throws -> Bool) rethrows -> [Self.Element]
-}
-```
-
-#### `reversed()`
-
-```swift
-extension Sequence {
-  @inlinable public __consuming func reversed () -> [Self.Element]
-}
-```
-
-#### `shuffled()` / `shuffled(using:)`
-
-```swift
-extension Sequence {
-  @inlinable public func shuffled <T: RandomNumberGenerator> (using generator: inout T) -> [Self.Element]
-  @inlinable public func shuffled () -> [Self.Element]
-}
-```
-
-#### `sorted(by:)` / `sorted()`
-
-```swift
-extension Sequence {
-  @inlinable public func sorted (by areInIncreasingOrder: (Self.Element, Self.Element) throws -> Bool) rethrows -> [Self.Element]
-}
-```
-
-```swift
-extension Sequence where Self.Element: Comparable {
-  @inlinable public func sorted () -> [Self.Element]
-}
-```
-
-#### `split(maxSplits:omittingEmptySubsequences:isSeparator:)` / `split(separator:maxSplits:omittingEmptySubsequences:)`
-
-```swift
-extension Sequence {
-  @inlinable public __consuming func split (maxSplits: Int = Int.max, omittingEmptySubsequences: Bool = true,
-    whereSeparator isSeparator: (Self.Element) throws -> Bool) rethrows -> [ArraySlice<Self.Element>]
-}
-```
-
-```swift
-extension Sequence where Self.Element: Equatable {
-  @inlinable public __consuming func split (separator: Self.Element, maxSplits: Int = Int.max,
-    omittingEmptySubsequences: Bool = true) -> [ArraySlice<Self.Element>]
-}
-```
-
-#### `suffix(_:)`
-
-```swift
-extension Sequence {
-  @inlinable public __consuming func suffix (_ maxLength: Int) -> [Self.Element]
-}
-```
+- `dropFirst(_:)`
+- `dropLast(_:)`
+- `prefix(while:)`
+- `reversed()`
+- `shuffled()`
+- `shuffled(using:)`
+- `sorted()`
+- `sorted(by:)`
+- `split(maxSplits:omittingEmptySubsequences:isSeparator:)`
+- `split(separator:maxSplits:omittingEmptySubsequences:)`
+- `suffix(_:)`
 
 ## Source Compatibility
 
