@@ -1,9 +1,9 @@
 # Ordered Collection Diffing
 
-* Proposal: SE-NNNN
+* Proposal: SE-0240
 * Authors: [Scott Perry](https://github.com/numist), [Kyle Macomber](https://github.com/kylemacomber)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Active review (January 14...22, 2019)**
 * Prototype: [numist/Diffing](https://github.com/numist/Diffing)
 
 ## Introduction
