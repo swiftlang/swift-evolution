@@ -1,6 +1,6 @@
 # Ordered Collection Diffing
 
-* Proposal: SE-0240
+* Proposal: [SE-0240](0240-ordered-collection-diffing.md)
 * Authors: [Scott Perry](https://github.com/numist), [Kyle Macomber](https://github.com/kylemacomber)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Active review (January 14...22, 2019)**
