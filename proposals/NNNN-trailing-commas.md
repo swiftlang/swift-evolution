@@ -203,7 +203,7 @@ N/A
 
 - Allow trailing commas in function calls, function declarations, tuple type definitions, and tuple literals (SE-0084).
 
-SE-0084 was [rejected](#https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000171.html).
+SE-0084 was [rejected](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000171.html).
 
 - Only allow trailing commas in expression lists when the surrounding whitespace satisfies some condition.  For example, allow a trailing comma whenever it is separated by a newline from the list closing token (parenthesis or bracket).
 
