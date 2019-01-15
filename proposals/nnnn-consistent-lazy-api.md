@@ -13,7 +13,9 @@ This proposal addresses the absence of lazy implementations of some `Sequence`-r
 
 ### Discussion
 
-A formal Swift Evolution forum thread will be posted as soon as possible.
+It has been discussed in the following Evolution forum thread:
+
+- [Consistent `lazy` API](https://forums.swift.org/t/consistent-lazy-api/19501).
 
 ## Motivation
 
@@ -35,11 +37,17 @@ print(type(of: sequence(first: 0, next: { $0 + 1 }).lazy.prefix(3).map(String.in
 // Prints "Array<String>"
 ```
 
-Using any of these operations will lead to a loss of laziness and the immediately evaluation of (a part of) the expression. In certain situations it might lead to less performant code or the usage of more memory than its lazy counterpart.
+Using any of these operations will lead to a loss of laziness and the immediately evaluation of (a part of) the expression.
 
 ## Proposed Solution
 
-I propose conforming all existing lazily implemented `Sequence`s to `LazySequenceProtocol`. For those inherited members from `Sequence` that don't contain a lazy implementation on `LazySequenceProtocol`, overloads and types, conforming to `LazySequenceProtocol`, that are conventionally prefixed with `Lazy`.
+I propose conforming all existing lazily implemented `Sequence`s to `LazySequenceProtocol`.
+
+For those inherited members from `Sequence` that don't contain a lazy implementation on `LazySequenceProtocol` and are sufficiently lazy, overloads and types, conforming to `LazySequenceProtocol` and conventionally prefixed with `Lazy`, are introduced.
+
+The documentation of those inherited members from `Sequence` that aren't sufficiently lazy should explicitly mention that calling them on a type conforming to `LazySequenceProtocol` will immediately evaluate the entire expression.
+
+From now on, any new member on `Sequence` that is sufficiently lazy must include a lazy variant.
 
 ## Detailed Design
 
@@ -59,7 +67,6 @@ The following `Sequence`s can't conform to `LazySequenceProtocol` because they d
 - `ContiguousArray`
 - `Dictionary`
 - `EmptyCollection`
-- `EmptyCollection.Iterator`
 - `KeyValuePairs`
 - `PartialRangeFrom`
 - `Range`
@@ -81,6 +88,17 @@ The following `Sequence`s can't conform to `LazySequenceProtocol` because they d
 - `UnsafeMutableBufferPointer`
 - `UnsafeMutableRawBufferPointer`
 - `UnsafeRawBufferPointer`
+
+The following types can't conform to `LazySequenceProtocol` because `Iterator`s shouldn't conform to `Sequence` in the first place:
+
+- `EmptyCollection.Iterator`
+- `EnumeratedSequence.Iterator`
+- `FlattenSequence.Iterator`
+- `IndexingIterator`
+- `LazyFilterSequence.Iterator`
+- `LazyMapSequence.Iterator`
+- `LazyPrefixWhileSequence.Iterator`
+- `ReversedCollection.Iterator`
 - `UnsafeRawBufferPointer.Iterator`
 
 The following types can't conform to `LazySequenceProtocol` because they aren't sufficiently lazy:
@@ -100,47 +118,49 @@ The following `Sequence`s already conform to `LazySequenceProtocol` and require 
 - `ReversedCollection`
 - `Slice`
 
-The following `Sequence`s can conform to `LazySequenceProtocol`:
-
-- `LazyFilterSequence.Iterator`
-- `LazyPrefixWhileSequence.Iterator`
-- `LazyMapSequence.Iterator`
-
 The following `Sequence`s can conform to `LazySequenceProtocol` on the condition that `Base` conforms to `LazySequenceProtocol`:
 
 - `EnumeratedSequence`
-- `EnumeratedSequence.Iterator`
 - `FlattenSequence`
-- `FlattenSequence.Iterator`
 - `IteratorSequence`
 - `JoinedSequence`
 - `PrefixSequence`
-- `ReversedCollection.Iterator`
 
 The conformance of `FlattenSequence` to `LazySequenceProtocol` means we can remove `LazySequence` from the `return` types of `joined()` and `flatMap(_:)` on `LazySequenceProtocol`. The old implementations will be deprecated. It also requires the explicit declaration of `FlattenCollection.SubSequence`.
 
-The following `Sequence`s can conform to `LazySequenceProtocol` on the condition that `Elements` conforms to `LazySequenceProtocol`:
-
-- `DefaultIndices`
-- `IndexingIterator`
+`DefaultIndices` can conform to `LazySequenceProtocol` on the condition that `Elements` conforms to `LazySequenceProtocol`.
 
 Finally, `Zip2Sequence` can conform to `LazySequenceProtocol` on the condition that `Sequence1` and `Sequence2` conform to `LazySequenceProtocol`.
 
+#### Implementation
+
+...
+
 ### Add Missing Implementations And Types
 
-The following inherited members from `Sequence` don't contain an overloaded lazy implementation on `LazySequenceProtocol`:
+The following inherited members from `Sequence` aren't sufficiently lazy enough to justify their existence as an overload on `LazySequenceProtocol`:
 
-- `dropFirst(_:)`
-- `dropLast(_:)`
-- `prefix(while:)`
 - `reversed()`
 - `shuffled()`
 - `shuffled(using:)`
 - `sorted()`
 - `sorted(by:)`
+- `suffix(_:)`
+
+The documentation for these operations should explicitly mention that calling them on a type conforming to `LazySequenceProtocol` will immediately evaluate the entire expression.
+
+The following inherited members from `Sequence` are sufficiently lazy to justify their existence as an overload on `LazySequenceProtocol`:
+
+- `dropFirst(_:)`
+- `dropLast(_:)`
 - `split(maxSplits:omittingEmptySubsequences:isSeparator:)`
 - `split(separator:maxSplits:omittingEmptySubsequences:)`
-- `suffix(_:)`
+
+These members require the introduction of `LazyDropFirstSequence`, `LazyDropLastSequence` and `LazySplitSequence`.
+
+#### Implementation
+
+...
 
 ## Source Compatibility
 
