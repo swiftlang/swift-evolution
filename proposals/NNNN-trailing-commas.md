@@ -105,6 +105,10 @@ print("red", "green",)
 ```swift
 foo.print("red", "green",)
 ```
+- initializer calls
+```swift
+let instance = Widget("red", "green",)
+```
 - subscript reads
 ```swift
 foo["red", "green",]
@@ -116,6 +120,10 @@ foo["red", "green",] = "yellow"
 - super method calls
 ```swift
 super.print("red", "green",)
+```
+- super initializer calls
+```swift
+super.init("red", "green",)
 ```
 - super subscript reads
 ```swift
