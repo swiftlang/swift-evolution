@@ -19,7 +19,7 @@ It has been discussed in the following Evolution forum thread:
 
 ## Motivation
 
-Lazy evaluation defers the computation of an operation until (a part of) its result is needed. In Swift, this strategy is implemented in two ways. The first, [lazy stored properties](https://docs.swift.org/swift-book/LanguageGuide/Properties.html#ID257), enables the user to defer the evaluation of a property's initial value until the first time it's called. The second, `Sequence`'s [`lazy`](https://developer.apple.com/documentation/swift/sequence/1641562-lazy) instance property, enables the user to lazily evaluate subsequent operations by only evaluation those elements that are needed. The latter is the primary focus of this proposal.
+Lazy evaluation defers the computation of an operation until (a part of) its result is needed. In Swift, this strategy is implemented in two ways. The first, [lazy stored properties](https://docs.swift.org/swift-book/LanguageGuide/Properties.html#ID257), enables the user to defer the evaluation of a property's initial value until the first time it's called. The second, `Sequence`'s [`lazy`](https://developer.apple.com/documentation/swift/sequence/1641562-lazy) instance property, enables the user to lazily evaluate subsequent operations by only evaluating those elements that are needed. The latter is the primary focus of this proposal.
 
 `lazy` works by wrapping a `Sequence` in a `LazySequence`. Both `LazySequence` and some of its operations conform to `LazySequenceProtocol` enabling subsequent lazily implemented operations:
 
