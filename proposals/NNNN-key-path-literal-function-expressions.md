@@ -94,7 +94,11 @@ users.map(f)
 
 ## Effect on source compatibility, ABI stability, and API resilience
 
-This is a purely additive change, and so has no impact.
+This is a purely additive change and has no impact.
+
+## Future direction
+
+It was noted [in the implementation's discussion](https://github.com/apple/swift/pull/19448) that it would be appropriate to define a `ExpressibleByKeyPathLiteral` protocol in the future. This work can happen further down the road, as functions are not nominal types and would not be able to conform at this time.
 
 ## Alternatives considered
 
@@ -118,8 +122,4 @@ Although handy, it is less readable and less convenient than using key path synt
 
 ### Accept `KeyPath` instead of the literal
 
-There has been some concern expressed that accepting the literal syntax but not key paths themselves would be confusing, though this behavior is in line with how other literals work, and the most general use case will be with literals, not key paths that are passed around.
-
-## Future direction
-
-It was noted [in the implementation](https://github.com/apple/swift/pull/19448) that it would be appropriate to define a `ExpressibleByKeyPathLiteral` protocol in the future. This work can happen further down the road, as functions are not nominal types and would not be able to conform at this time.
+There has been some concern expressed that accepting the literal syntax but not key paths themselves would be confusing, though this behavior is in line with how other literals work, and the most general use case will be with literals, not key paths that are passed around. Accepting key paths directly would also be more limiting and prevent exploring the [future direction](#future-direction) of an `ExpressibleByKeyPathLiteral` protocol.
