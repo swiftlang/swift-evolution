@@ -15,9 +15,7 @@ However, it is also common in programming to need to express values which are in
 
 ## Motivation 
 
-For both correctness and efficiency, `[UInt8]` (or another integer array type) is usually the most appropriate representation for an ASCII string. (See [*Stop converting `Data` to `String`*](https://gist.github.com/kelvin13/516a5e3bc699a6b72009ff23f836a4bd) for a discussion on why `String` is an *inappropriate* representation.)
-
-A major pain point of integer arrays is that they lack a clear and readable literal type. In C, `'a'` is a `uint8_t` literal, equivalent to `97`. Swift has no such equivalent, requiring awkward spellings like `UInt8(ascii: "a")`. Alternatives, like spelling out the values in hex or decimal directly, are even worse. This harms readability of code, and is one of the sore points of bytestring processing in Swift.
+A major pain point of using ASCII and unicode integer codepoint values in Swift is they lack a clear and readable literal type. In C, `'a'` is a `uint8_t` literal, equivalent to `97`. Swift has no such equivalent, requiring awkward spellings like `UInt8(ascii: "a")`. Alternatives, like spelling out the values in hex or decimal directly, are even worse. This harms readability of code, and is one of the sore points of bytestring processing in Swift.
 
 ```c
 static char const hexcodes[16] = {
@@ -80,7 +78,7 @@ Integer character literals would provide benefits to `String` users. One of the 
 
 ## Proposed solution 
 
-Let's do the obvious thing here, and conform Swift’s integer literal types to `ExpressibleByUnicodeScalarLiteral`. These conversions will only be valid for the ASCII range `U+0 ..< U+128`; unicode scalar literals outside of that range will be invalid and treated similar to the way we currently diagnose overflowing integer literals. This is a conservative limitation which we believe is warranted, as allowing transparent unicode conversion to integer types carries major encoding pitfalls we want to protect users from.
+Let's do the obvious thing here, and conform Swift’s integer types to `ExpressibleByUnicodeScalarLiteral`. These conversions will only be valid for the ASCII range `U+0 ..< U+128`; unicode scalar literals outside of that range will be invalid and treated similar to the way we currently diagnose overflowing integer literals. This is a conservative limitation which we believe is warranted, as allowing transparent unicode conversion to integer types carries major encoding pitfalls we want to protect users from.
 
 | `ExpressibleBy`… | `UnicodeScalarLiteral` | `ExtendedGraphemeClusterLiteral` | `StringLiteral` | 
 | --- | --- | --- | --- |
@@ -144,7 +142,7 @@ We propose to adopt the `'x'` syntax for all textual literal types up to and inc
 
 The default inferred literal type for `let x = 'a'` will be `Character`, following the principle of least surprise. This also allows for a natural user-side syntax for differentiating methods overloaded on both `Character` and `String`.
 
-Single-quoted literals will be inferred to be integer types in cases where a `Character` or `Unicode.Scalar` overload does not exist, but an integer overload does. This can lead to strange spellings such as `'1' + 1' == 98`. However, we forsee problems arising from this to be quite rare, as the type system will almost always catch such mistakes, and very few users are likely to express a `String` with two literals instead of the much more obvious `"11"`. 
+Single-quoted literals will be inferred to be integer types in cases where a `Character` or `Unicode.Scalar` overload does not exist, but an unambiguous integer overload does. This is not the case with most integer operators, so expressions like `'1' + '1' == 98` would be an ambiguity error under Swift’s overload resolution rules.
 
 Use of single quotes for character/scalar literals is *heavily* precedented in other languages, including C, Objective-C, C++, Java, and Rust, although different languages have slightly differing ideas about what a “character” is.  We choose to use the single quote syntax specifically because it reinforces the notion that strings and character values are different: the former is a sequence, the later is a scalar (and "integer-like").  Character types also don't support string literal interpolation, which is another reason to move away from double quotes.
 
