@@ -64,7 +64,19 @@ users.filter(\.isAdmin)
 
 ## Detailed design
 
-The implementation would be limited to key path syntax (for now). This means the following is not allowed:
+As implemented in [apple/swift#19448](https://github.com/apple/swift/pull/19448), occurrences of `\Root.value` are implicitly converted to key path applications where `(Root) -> Value` expressions are expected. For example:
+
+``` swift
+users.map(\.email)
+```
+
+Is equivalent to:
+
+``` swift
+users.map { $0[keyPath: \User.email] }
+```
+
+The implementation is limited to key path literal syntax (for now), which means the following is not allowed:
 
 ``` swift
 let kp = \User.email // KeyPath<User, String>
