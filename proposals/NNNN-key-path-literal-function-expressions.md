@@ -90,6 +90,9 @@ But the following is:
 ``` swift
 let f: (User) -> String = \User.email
 users.map(f)
+
+let g = \User.email as (User) -> String
+users.map(g)
 ```
 
 ## Effect on source compatibility, ABI stability, and API resilience
