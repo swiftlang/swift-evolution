@@ -64,7 +64,7 @@ users.filter(\.isAdmin)
 
 ## Detailed design
 
-As implemented in [apple/swift#19448](https://github.com/apple/swift/pull/19448), occurrences of `\Root.value` are implicitly converted to key path applications where `(Root) -> Value` expressions are expected. For example:
+As implemented in [apple/swift#19448](https://github.com/apple/swift/pull/19448), occurrences of `\Root.value` are implicitly converted to key path applications of `{ $0[keyPath: \Root.value] }` wherever `(Root) -> Value` expressions are expected. For example:
 
 ``` swift
 users.map(\.email)
