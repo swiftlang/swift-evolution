@@ -163,7 +163,7 @@ let c1: Character = "f"   // deprecated
 
 ## Detailed Design 
 
-The only standard library change will be to add `{UInt8, Int8, ..., Int}` to the list of allowed `Self.UnicodeScalarLiteralType` types. (This entails conforming the integer types to `_ExpressibleByBuiltinUnicodeScalarLiteral`.) The ASCII range checking will be performed at compile-time in the typechecker, in essentially the same way that overflow checking for `ExpressibleByIntegerLiteral.IntegerLiteralType` types works today.
+The only standard library changes will be to conform `{UInt8, Int8, ..., Int}` to `ExpressibleByUnicodeScalarLiteral`, and add them to the list of allowed `Self.UnicodeScalarLiteralType` types. (This entails conforming the integer types to `_ExpressibleByBuiltinUnicodeScalarLiteral` as well.) The ASCII range checking will be performed at compile-time in the typechecker, in essentially the same way that overflow checking for `ExpressibleByIntegerLiteral.IntegerLiteralType` types works today.
 
 ```swift
 protocol ExpressibleByUnicodeScalarLiteral {
