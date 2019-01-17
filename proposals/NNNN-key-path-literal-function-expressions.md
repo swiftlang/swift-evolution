@@ -17,7 +17,7 @@
 
 ## Introduction
 
-This proposal introduces the ability to use the key path literal syntax `\Root.value` wherever expressions of `(Root) -> Value` are allowed.
+This proposal introduces the ability to use the key path expression `\Root.value` wherever functions of `(Root) -> Value` are allowed.
 
 Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/)
 
@@ -54,7 +54,7 @@ These ad hoc closures are short and sweet but Swift already has a shorter and sw
 
 ## Proposed solution
 
-Swift should allow `\Root.value` key path syntax wherever it allows `(Root) -> Value` functions:
+Swift should allow `\Root.value` key path expressions wherever it allows `(Root) -> Value` functions:
 
 ```swift
 users.map(\.email)
@@ -64,7 +64,7 @@ users.filter(\.isAdmin)
 
 ## Detailed design
 
-As implemented in [apple/swift#19448](https://github.com/apple/swift/pull/19448), occurrences of `\Root.value` are implicitly converted to key path applications of `{ $0[keyPath: \Root.value] }` wherever `(Root) -> Value` expressions are expected. For example:
+As implemented in [apple/swift#19448](https://github.com/apple/swift/pull/19448), occurrences of `\Root.value` are implicitly converted to key path applications of `{ $0[keyPath: \Root.value] }` wherever `(Root) -> Value` functions are expected. For example:
 
 ``` swift
 users.map(\.email)
@@ -76,7 +76,7 @@ Is equivalent to:
 users.map { $0[keyPath: \User.email] }
 ```
 
-The implementation is limited to key path literal syntax (for now), which means the following is not allowed:
+The implementation is limited to key path literal expressions (for now), which means the following is not allowed:
 
 ``` swift
 let kp = \User.email // KeyPath<User, String>
@@ -123,6 +123,6 @@ users.filter(^\.isAdmin)
 
 Although handy, it is less readable and less convenient than using key path syntax alone.
 
-### Accept `KeyPath` instead of the literal
+### Accept `KeyPath` instead of literal expressions
 
-There has been some concern expressed that accepting the literal syntax but not key paths themselves would be confusing, though this behavior is in line with how other literals work, and the most general use case will be with literals, not key paths that are passed around. Accepting key paths directly would also be more limiting and prevent exploring the [future direction](#future-direction) of an `ExpressibleByKeyPathLiteral` protocol.
+There has been some concern expressed that accepting the literal syntax but not key paths may be confusing, though this behavior is in line with how other literals work, and the most general use case will be with literals, not key paths that are passed around. Accepting key paths directly would also be more limiting and prevent exploring the [future direction](#future-direction) of an `ExpressibleByKeyPathLiteral` protocol.
