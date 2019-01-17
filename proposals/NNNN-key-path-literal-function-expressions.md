@@ -1,4 +1,4 @@
-# Key Path Literal Function Expressions
+# Key Path Expressions as Functions
 
 * Proposal: [SE-NNNN](NNNN-filename.md)
 * Authors: [Stephen Celis](https://github.com/stephencelis), [Greg Titus](https://github.com/gregomni)
