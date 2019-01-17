@@ -19,7 +19,7 @@
 
 This proposal introduces the ability to use the key path expression `\Root.value` wherever functions of `(Root) -> Value` are allowed.
 
-Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/)
+Swift-evolution thread: [Key Path Expressions as Functions](https://forums.swift.org/t/key-path-expressions-as-functions/19587)
 
 Previous discussions:
 
