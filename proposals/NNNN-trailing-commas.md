@@ -209,3 +209,14 @@ SE-0084 was [rejected](https://lists.swift.org/pipermail/swift-evolution-announc
 
 Rationale: The grammar generally avoids legislating style.
 
+- Using newlines rather than commas to delimit multi-line expression lists.
+
+Rationale: Doing so would lead to ambiguities between member accesses and implicit member expressions such as
+
+```swift
+[
+    foo()
+    .bar
+]
+```
+
