@@ -88,11 +88,27 @@ users.map(kp)
 But the following is:
 
 ``` swift
-let f: (User) -> String = \User.email
-users.map(f)
+let f1: (User) -> String = \User.email
+users.map(f1)
 
-let g = \User.email as (User) -> String
-users.map(g)
+let f2: (User) -> String = \.email
+users.map(f2)
+
+let f3 = \User.email as (User) -> String
+users.map(f3)
+
+let f4 = \.email as (User) -> String
+users.map(f4)
+```
+
+Any key path expression can be used where a function of the same shape is expected. A few more examples include:
+
+``` swift
+// Multi-segment key paths
+users.map(\.email.count)
+
+// `self` key paths
+[1, nil, 3, nil, 5].compactMap(\.self)
 ```
 
 ## Effect on source compatibility, ABI stability, and API resilience
@@ -101,7 +117,13 @@ This is a purely additive change and has no impact.
 
 ## Future direction
 
-It was noted [in the implementation's discussion](https://github.com/apple/swift/pull/19448) that it would be appropriate to define a `ExpressibleByKeyPathLiteral` protocol in the future. This work can happen further down the road, as functions are not nominal types and would not be able to conform at this time.
+### `Callable` protocol
+
+It was suggested in [the proposal thread](https://forums.swift.org/t/key-path-expressions-as-functions/19587/4) that a future direction in Swift would be to introduce a `Callable` protocol as a static equivalent of `@dynamicCallable`. Functions could be treated as the existential of types that are `Callable`, and `KeyPath` could conform to `Callable` to adopt the same functionality as this proposal.
+
+### `ExpressibleByKeyPathLiteral` protocol
+
+It was also suggested [in the implementation's discussion](https://github.com/apple/swift/pull/19448) that it might be appropriate to define an `ExpressibleByKeyPathLiteral` protocol, though discussion in [the proposal thread](https://forums.swift.org/t/key-path-expressions-as-functions/19587/14) questioned the limited utility of such a protocol.
 
 ## Alternatives considered
 
