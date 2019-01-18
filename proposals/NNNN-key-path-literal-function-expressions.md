@@ -147,4 +147,4 @@ Although handy, it is less readable and less convenient than using key path synt
 
 ### Accept `KeyPath` instead of literal expressions
 
-There has been some concern expressed that accepting the literal syntax but not key paths may be confusing, though this behavior is in line with how other literals work, and the most general use case will be with literals, not key paths that are passed around. Accepting key paths directly would also be more limiting and prevent exploring the [future direction](#future-direction) of an `ExpressibleByKeyPathLiteral` protocol.
+There has been some concern expressed that accepting the literal syntax but not key paths may be confusing, though this behavior is in line with how other literals work, and the most general use case will be with literals, not key paths that are passed around. Accepting key paths directly would also be more limiting and prevent exploring the [future directions](#future-direction) of `Callable` or `ExpressibleByKeyPathLiteral` protocols.
