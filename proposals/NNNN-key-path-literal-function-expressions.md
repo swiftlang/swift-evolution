@@ -117,9 +117,9 @@ This is a purely additive change and has no impact.
 
 ## Future direction
 
-### `Callable` protocol
+### `@callable`
 
-It was suggested in [the proposal thread](https://forums.swift.org/t/key-path-expressions-as-functions/19587/4) that a future direction in Swift would be to introduce a `Callable` protocol as a static equivalent of `@dynamicCallable`. Functions could be treated as the existential of types that are `Callable`, and `KeyPath` could conform to `Callable` to adopt the same functionality as this proposal.
+It was suggested in [the proposal thread](https://forums.swift.org/t/key-path-expressions-as-functions/19587/4) that a future direction in Swift would be to introduce a `@callable` mechanism or `Callable` protocol as a static equivalent of `@dynamicCallable`. Functions could be treated as the existential of types that are `@callable`, and `KeyPath` could be `@callable` to adopt the same functionality as this proposal. Such a change would be backwards-compatible with this proposal and does not need to block its implementation.
 
 ### `ExpressibleByKeyPathLiteral` protocol
 
