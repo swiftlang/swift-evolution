@@ -79,7 +79,7 @@ While Swift's `reduce(_:_:)` method does not require monoids, it's common to use
 
 The monoid approach ensures that any non-empty sequence can be reduced correctly. The initial value will not affect the operation. Essentially, this best practices approach to `reduce(_:,_:)` says: "use a first argument that has no effect on the final result." In doing so, it's worth considering eliminating this identity.
 
-When following the monoid patter, any empty sequence returns its identity. The product of no numbers is `1`, the combination of no matrices is the identity matrix, and the greatest common divisor of no 0-based natural numbers is 0, and so forth. Removing that identity means approaching empty sequences in a different manner.
+When following the monoid pattern, any empty sequence returns its identity. The product of no numbers is `1`, the combination of no matrices is the identity matrix, and the greatest common divisor of no 0-based natural numbers is 0, and so forth. Removing that identity means approaching empty sequences in a different manner.
 
 The design of `reduce(:_)` returns `nil` in the absense of sequence members rather than an identity. It does this for two reasons:
 
