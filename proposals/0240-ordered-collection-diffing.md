@@ -29,7 +29,7 @@ let theirLines = theirs.components(separatedBy: "\n")
 let myLines = mine.components(separatedBy: "\n")
     
 // Create a difference from base to theirs
-let diff = theirLines.shortestEditScript(from:baseLines)
+let diff = theirLines.difference(from:baseLines)
     
 // Apply it to mine, if possible
 guard let patchedLines = myLines.applying(diff) else {
@@ -71,7 +71,7 @@ extension BidirectionalCollection {
     ///
     /// - Complexity: O(*n* * *d*), where *n* is `other.count + self.count` and
     ///   *d* is the number of changes between the two ordered collections.
-    public func shortestEditScript<C>(
+    public func difference<C>(
         from other: C, by areEquivalent: (Element, C.Element) -> Bool
     ) -> OrderedCollectionDifference<Element>
         where C : BidirectionalCollection, C.Element == Self.Element
@@ -96,11 +96,11 @@ extension BidirectionalCollection where Element: Equatable {
     ///
     /// - Complexity: O(*n* * *d*), where *n* is `other.count + self.count` and
     ///   *d* is the number of changes between the two ordered collections.
-    public func shortestEditScript<C>(from other: C) -> OrderedCollectionDifference<Element>
+    public func difference<C>(from other: C) -> OrderedCollectionDifference<Element>
         where C: BidirectionalCollection, C.Element == Self.Element
 ```
 
-The `shortestEditScript(from:)` method determines the fewest possible edits required to transition betewen the two states and stores them in a difference type, which is defined as:
+The `difference(from:)` method determines the fewest possible edits required to transition betewen the two states and stores them in a difference type, which is defined as:
 
 ``` swift
 /// A type that represents the difference between two ordered collection states.
@@ -121,7 +121,7 @@ public struct OrderedCollectionDifference<ChangeElement> {
     /// Creates an instance from a collection of changes.
     ///
     /// For clients interested in the difference between two ordered
-    /// collections, see `OrderedCollection.shortestEditScript(from:)`.
+    /// collections, see `OrderedCollection.difference(from:)`.
     ///
     /// To guarantee that instances are unambiguous and safe for compatible base
     /// states, this initializer will fail unless its parameter meets to the
@@ -191,7 +191,7 @@ A `Change` is a single mutating operation, an `OrderedCollectionDifference` is a
 
 Fundamentally, there are only two operations that mutate ordered collections, `insert(_:at:)` and `remove(at:)`, but there are benefits from being able to represent other operations such as moves and replacements, especially for UIs that may want to animate a move differently from an `insert`/`remove` pair. These operations are represented using `associatedWith:`. When non-`nil`, they refer to the offset of the counterpart as described in the headerdoc.
 
-In a similar way, the name `shortestEditScript(from:)` uses a term of art to admit the use of an algorithm that compromises between performance and a minimal output. It computes the [longest common subsequence](https://en.wikipedia.org/wiki/Longest_common_subsequence_problem) between the two collections, but not the [longest common substring](https://en.wikipedia.org/wiki/Longest_common_substring_problem) (which is a much slower operation). In the future other algorithms may be added as different methods to satisfy the need for different performance and output characteristics.
+In a similar way, the name `difference(from:)` uses a term of art to admit the use of an algorithm that compromises between performance and a minimal output. It computes the [longest common subsequence](https://en.wikipedia.org/wiki/Longest_common_subsequence_problem) between the two collections, but not the [longest common substring](https://en.wikipedia.org/wiki/Longest_common_substring_problem) (which is a much slower operation). In the future other algorithms may be added as different methods to satisfy the need for different performance and output characteristics.
 
 ### Application of instances of `OrderedCollectionDifference`
 
@@ -228,7 +228,7 @@ This feature is additive and symbols marked with `@available(swift, introduced: 
 
 ## Alternatives considered
 
-### `shortestEditScript(from:by:)` defined in protocol instead of extension
+### `difference(from:by:)` defined in protocol instead of extension
 
 Different algorithms with different premises and/or semantics are free to be defined using different function names.
 
@@ -292,7 +292,7 @@ Application of differences would only be possible when both `Element` types were
 
 Since the comparator forces both types to be effectively isomorphic, a diff generic over only one type can satisfy the need by mapping one (or both) ordered collections to force their `Element` types to match.
 
-### `difference(from:using:)` with an enum parameter for choosing the diff algorithm instead of `shortestEditScript(from:)`
+### `difference(from:using:)` with an enum parameter for choosing the diff algorithm instead of `difference(from:)`
 
 This is an attractive API concept, but it can be very cumbersome to extend. This is especially the case for types like `OrderedSet` that—through member uniqueness and fast membership testing—have the capability to support very fast diff algorithms that aren't appropriate for other types.
 
