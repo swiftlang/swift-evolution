@@ -4,7 +4,7 @@
 * Authors: [Kelvin Ma](https://github.com/kelvin13) ([@*taylorswift*](https://forums.swift.org/u/taylorswift/summary)), [Chris Lattner](https://github.com/lattner) ([@*Chris_Lattner3*](https://forums.swift.org/u/Chris_Lattner3/summary)), [John Holdsworth](https://github.com/johnno1962) ([@*johnno1962*](https://forums.swift.org/u/johnno1962/summary))
 * Review manager: 
 * Status: *Awaiting review*
-* Implementation (WIP): [apple/swift#21873](https://github.com/apple/swift/pull/21873)
+* Implementation: [apple/swift#21873](https://github.com/apple/swift/pull/21873)
 * Threads: [1](https://forums.swift.org/t/prepitch-character-integer-literals/10442)
 
 ## Introduction
