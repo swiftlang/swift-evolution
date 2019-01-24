@@ -57,7 +57,7 @@ While this code is only a few lines long, it exposes Swift's complete lack of au
 URLSession.shared.dataTask(with: url) { (result: Result<(response: URLResponse, data: Data), Error>) in // Type added for illustration purposes.
     switch result {
     case let .success(success):
-        handleResponse(success.response, data: data)
+        handleResponse(success.response, data: success.data)
     case let .error(error):
         handleError(error)
     }
