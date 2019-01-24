@@ -20,14 +20,14 @@ Swift's [Error Handling Rationale and Proposal](https://github.com/apple/swift/b
 ## Proposed solution
 
 ```swift
-public enum Result<Value, Error: Swift.Error> {
-    case value(Value), error(Error)
+public enum Result<Success, Failure: Error> {
+    case success(Success), failure(Failure)
 }
 ```
 
-`Result<Value, Error>` is a pragmatic compromise between competing error handling concerns both present and future.
+`Result<Success, Failure>` is a pragmatic compromise between competing error handling concerns both present and future.
 
-The `Error` type captured in the `.error` case is constrained to `Swift.Error` to simplify and underline `Result`'s intended use for manually propagating the result of a failable computation.
+The `Failure` type captured in the `.failure` case is constrained to `Error` to simplify and underline `Result`'s intended use for manually propagating the result of a failable computation.
 
 ### Usage
 
@@ -54,11 +54,11 @@ URLSession.shared.dataTask(with: url) { (data, response, error) in
 While this code is only a few lines long, it exposes Swift's complete lack of automatic error handling for asynchronous APIs. Not only was the `error` forcibly unwrapped (or perhaps handled using a slightly less elegant `if` statement), but a possibly impossible scenario was created. What happens if `response` or `data` are `nil`? Is it even possible? It shouldn't be, but Swift currently lacks the ability to express this impossibility. Using `Result` for the same scenario allows for much more elegant code:
 
 ```swift
-URLSession.shared.dataTask(with: url) { (result: Result<(URLResponse, Data), Error>) in // Type added for illustration purposes.
+URLSession.shared.dataTask(with: url) { (result: Result<(response: URLResponse, data: Data?), Error>) in // Type added for illustration purposes.
     switch result {
-    case .value(let response):
-        handleResponse(response.0, data: response.1)
-    case .error(let error):
+    case let .success(success):
+        handleResponse(success)
+    case let .error(error):
         handleError(error)
     }
 }
@@ -103,7 +103,9 @@ let configuration = Result { try String(contentsOfFile: configuration) }
 // Sometime later...
 
 func doSomethingWithConfiguration() {
-    ...
+    switch configuration {
+        ...
+    }
 }
 
 ```
@@ -149,90 +151,128 @@ Additional convenience API on `Result` could make many of these cases even more 
 As implemented in the PR (annotations pending):
 
 ```swift
-/// A value that represents either a success or failure, capturing associated
-/// values in both cases.
+/// A value that represents either a success or a failure, including an
+/// associated value in each case.
 @_frozen
-public enum Result<Value, Error: Swift.Error> {
-  /// A normal result, storing a `Value`.
-  case value(Value)
+public enum Result<Success, Failure: Error> {
+  /// A success, storing a `Success` value.
+  case success(Success)
   
-  /// An error result, storing an `Error`.
-  case error(Error)
+  /// A failure, storing a `Failure` value.
+  case failure(Failure)
   
-  /// Evaluates the given transform closure when this `Result` instance is
-  /// `.success`, passing the value as a parameter.
+  /// Returns a new result, mapping any success value using the given
+  /// transformation.
   ///
-  /// Use the `map` method with a closure that returns a non-`Result` value.
+  /// Use this method when you need to transform the value of a `Result`
+  /// instance when it represents a success. The following example transforms
+  /// the integer success value of a result into a string:
   ///
-  /// - Parameter transform: A closure that takes the successful value of the
+  ///     func getNextInteger() -> Result<Int, Error> { /* ... */ }
+  ///
+  ///     let integerResult = getNextInteger()
+  ///     // integerResult == .success(5)
+  ///     let stringResult = integerResult.map({ String($0) })
+  ///     // stringResult == .success("5")
+  ///
+  /// - Parameter transform: A closure that takes the success value of this
   ///   instance.
-  /// - Returns: A new `Result` instance with the result of the transform, if
-  ///   it was applied.
-  public func map<NewValue>(
-    _ transform: (Value) -> NewValue
-  ) -> Result<NewValue, Error>
+  /// - Returns: A `Result` instance with the result of evaluating `transform`
+  ///   as the new success value if this instance represents a success.
+  public func map<NewSuccess>(
+    _ transform: (Success) -> NewSuccess
+  ) -> Result<NewSuccess, Failure> { }
   
-  /// Evaluates the given transform closure when this `Result` instance is
-  /// `.failure`, passing the error as a parameter.
+  /// Returns a new result, mapping any failure value using the given
+  /// transformation.
   ///
-  /// Use the `mapError` method with a closure that returns a non-`Result`
-  /// value.
+  /// Use this method when you need to transform the value of a `Result`
+  /// instance when it represents a failure. The following example transforms
+  /// the error value of a result by wrapping it in a custom `Error` type:
+  ///
+  ///     struct DatedError: Error {
+  ///         var error: Error
+  ///         var date: Date
+  ///
+  ///         init(_ error: Error) {
+  ///             self.error = error
+  ///             self.date = Date()
+  ///         }
+  ///     }
+  ///
+  ///     let result: Result<Int, Error> = // ...
+  ///     // result == .failure(<error value>)
+  ///     let resultWithDatedError = result.mapError({ e in DatedError(e) })
+  ///     // result == .failure(DatedError(error: <error value>, date: <date>))
   ///
   /// - Parameter transform: A closure that takes the failure value of the
   ///   instance.
-  /// - Returns: A new `Result` instance with the result of the transform, if
-  ///   it was applied.
-  public func mapError<NewError>(
-    _ transform: (Error) -> NewError
-  ) -> Result<Value, NewError>
+  /// - Returns: A `Result` instance with the result of evaluating `transform`
+  ///   as the new failure value if this instance represents a failure.
+  public func mapError<NewFailure>(
+    _ transform: (Failure) -> NewFailure
+  ) -> Result<Success, NewFailure> { }
   
-  /// Evaluates the given transform closure when this `Result` instance is
-  /// `.success`, passing the value as a parameter and flattening the result.
+  /// Returns a new result, mapping any success value using the given
+  /// transformation and unwrapping the produced result.
   ///
-  /// - Parameter transform: A closure that takes the successful value of the
+  /// - Parameter transform: A closure that takes the success value of the
   ///   instance.
-  /// - Returns: A new `Result` instance, either from the transform or from
-  ///   the previous error value.
-  public func flatMap<NewValue>(
-    _ transform: (Value) -> Result<NewValue, Error>
-  ) -> Result<NewValue, Error>
+  /// - Returns: A `Result` instance with the result of evaluating `transform`
+  ///   as the new failure value if this instance represents a failure.
+  public func flatMap<NewSuccess>(
+    _ transform: (Success) -> Result<NewSuccess, Failure>
+  ) -> Result<NewSuccess, Failure> { }
   
-  /// Evaluates the given transform closure when this `Result` instance is
-  /// `.failure`, passing the error as a parameter and flattening the result.
+  /// Returns a new result, mapping any failure value using the given
+  /// transformation and unwrapping the produced result.
   ///
-  /// - Parameter transform: A closure that takes the error value of the
+  /// - Parameter transform: A closure that takes the failure value of the
   ///   instance.
-  /// - Returns: A new `Result` instance, either from the transform or from
-  ///   the previous success value.
-  public func flatMapError<NewError>(
-    _ transform: (Error) -> Result<Value, NewError>
-  ) -> Result<Value, NewError>
-
-  /// Unwraps the `Result` into a throwing expression.
+  /// - Returns: A `Result` instance, either from the closure or the previous 
+  ///   `.success`.
+  public func flatMapError<NewFailure>(
+    _ transform: (Failure) -> Result<Success, NewFailure>
+  ) -> Result<Success, NewFailure> { }
+  
+  /// Returns the success value as a throwing expression.
   ///
-  /// - Returns: The success value, if the instance is a success.
-  /// - Throws:  The error value, if the instance is a failure.
-  public func unwrapped() throws -> Value
+  /// Use this method to retrieve the value of this result if it represents a
+  /// success, or to catch the value if it represents a failure.
+  ///
+  ///     let integerResult: Result<Int, Error> = .success(5)
+  ///     do {
+  ///         let value = try integerResult.get()
+  ///         print("The value is \(value).")
+  ///     } catch error {
+  ///         print("Error retrieving the value: \(error)")
+  ///     }
+  ///     // Prints "The value is 5."
+  ///
+  /// - Returns: The success value, if the instance represents a success.
+  /// - Throws: The failure value, if the instance represents a failure.
+  public func get() throws -> Success { }
 }
 
-extension Result where Error == Swift.Error {
-  /// Create an instance by capturing the output of a throwing closure.
+extension Result where Failure == Swift.Error {
+  /// Creates a new result by evaluating a throwing closure, capturing the
+  /// returned value as a success, or any thrown error as a failure.
   ///
-  /// - Parameter throwing: A throwing closure to evaluate.
+  /// - Parameter body: A throwing closure to evaluate.
   @_transparent
-  public init(catching body: () throws -> Value)
+  public init(catching body: () throws -> Success) { }
 }
 
-extension Result : Equatable where Value : Equatable, Error : Equatable { }
+extension Result: Equatable where Success: Equatable, Failure: Equatable { }
 
-extension Result : Hashable where Value : Hashable, Error : Hashable { }
+extension Result: Hashable where Success: Hashable, Failure: Hashable { }
 ```
 
 ## Adding `Swift.Error` self-conformance
 
-It's expected that most uses of `Result` will use `Swift.Error` as the `Error` type argument.  Currently, that is impossible with the generic signature proposed here because the `Swift.Error` protocol type does not itself conform to the `Swift.Error` protocol.  This is due to a restriction in the generic system which only allows certain `@objc` protocol types to conform to their protocol.  Lifting this restriction in general is out of scope for Swift 5, but it *can* be lifted specifically for `Swift.Error`, making it conform to itself.  Making that change is part of this proposal.  This has the immediate benefit for this proposal of allowing `Swift.Error` to be used as the `Error` type argument; otherwise, the `Error` argument would have to be unconstrained.  It is also generally useful for working with errors in generic code.
+As part of the prepatory work for this proposal, self-conformance was added for `Error` (and only `Error`). This is also generally useful for working with errors in a generic context.
 
-This self-conformance does not extend to protocol compositions including the `Swift.Error` protocol, only the exact type `Swift.Error`.  It will be possible to add such compositions in the future, but that is out of scope for Swift 5.
+This self-conformance does not extend to protocol compositions including the `Error` protocol, only the exact type `Error`. It will be possible to add such compositions in the future, but that is out of scope for Swift 5.
 
 ## Other Languages
 Many other languages have a `Result` type or equivalent:
@@ -245,7 +285,7 @@ Many other languages have a `Result` type or equivalent:
 
 ## Source compatibility
 
-This is an additive change, but could conflict with `Result` types already defined.
+This is an additive change, but work done to improve type name shadowing has made it a non-issue.
 
 ## Effect on ABI stability
 
@@ -253,12 +293,23 @@ This proposal adds a type to the standard library and so will affect the ABI onc
 
 ## Effect on API resilience
 
-Addition of `Result<Value, Error>` should be future proof against future needs surrounding error handling.
+Addition of `Result<Succes, Failure>` should be future proof against additional needs surrounding error handling.
 
 ## Alternatives considered
 
-### Alternative Spellings of `Result<Value, Error>`
+### Alternative Spellings of `Result<Success, Failure>`
 A few alternate spellings were proposed:
+
+A previously revised version of this proposal proposed:
+```swift
+enum Result<Value, Error: Swift.Error> {
+    case value(Value)
+    case error(Error)
+}
+
+However, community opposition to this spelling resulted in the current, final spelling. 
+
+Additionally, a hybrid spelling was proposed:
 
 ```swift
 enum Result<Value, Error> {
@@ -267,7 +318,9 @@ enum Result<Value, Error> {
 }
 ```
 
-This creates an unfortunate asymmetry between the names of the payload types and the names of the cases.  This is just additional complexity that has to be remembered.  It's true that these case names don't align with some of the most common community implementations of the `Result` type, meaning that adoption of `Result` will require additional source changes for clients of those projects.  However, this cannot be an overriding concern.
+This creates an unfortunate asymmetry between the names of the payload types and the names of the cases. This is additional complexity that has to be remembered.
+
+Finally, spellings using `Wrapped` as the success type name were proposed:
 
 ```swift
 enum Result<Wrapped, Failure> {
@@ -284,7 +337,7 @@ enum Result<Wrapped, Failure> {
 
 The use of `Wrapped` in these spellings emphasizes more of a similarity to `Optional` than seems appropriate.
 
-### Alternatives to `Result<Value, Error>`
+### Alternatives to `Result<Success, Failure>`
 
 - `Result<T>`: A `Result` without a generic error type fits well with the current error design in Swift. However, it prevents the future addition of typed error handling (typed `throws`).
 
@@ -292,7 +345,7 @@ The use of `Wrapped` in these spellings emphasizes more of a similarity to `Opti
 
 ### Constraint on the `Error` type
 
-A previous version of this proposal did not constrain the `Error` type to conform to `Swift.Error`.  This was largely because adding such a requirement would block `Swift.Error` from being used as the `Error` type, since `Swift.Error` does not conform to itself.  Since we've now figured out how how to make that conformance work, this constraint is unblocked.
+A previous version of this proposal did not constrain the `Failure` type to conform to `Error`. This was largely because adding such a requirement would block `Error` from being used as the `Error` type, since `Error` does not conform to itself. Since we've now figured out how how to make that conformance work, this constraint is unblocked.
 
 Constraining the error type to conform to `Error` is a very low burden, and it has several benefits:
 
@@ -300,14 +353,14 @@ Constraining the error type to conform to `Error` is a very low burden, and it h
 
 - It encourages better practices for error values, such as using meaningful wrapper types for errors instead of raw `Int`s and `String`s.
 
-- It immediately catches the simple transposition error of writing `Result<Error, Value>`.  Programmers coming from functional languages that use `Either` as a `Result` type are especially prone to this mistake: such languages often write the error type as the first argument due to the useful monadic properties of `Either E`.
+- It immediately catches the simple transposition error of writing `Result<Error, Value>`. Programmers coming from functional languages that use `Either` as a `Result` type are especially prone to this mistake: such languages often write the error type as the first argument due to the useful monadic properties of `Either E`.
 
 ### Operations
 
-A previous verson of this proposal included operations for optionally projecting out the `value` and `error` cases.  These operations are useful, but they should be added uniformly for all `enum`s, and `Result` should not commit to providing hard-coded versions that may interfere with future language evolution.  In the meantime, it is easy for programmers to add these operations with extensions in their own code.
+A previous verson of this proposal included operations for optionally projecting out the `value` and `error` cases. These operations are useful, but they should be added uniformly for all `enum`s, and `Result` should not commit to providing hard-coded versions that may interfere with future language evolution. In the meantime, it is easy for programmers to add these operations with extensions in their own code.
 
-A previous version of this proposal included a `fold` operation.  This operation is essentially an expression-based `switch`, and like the optional case projections, it would be better to provide a general language solution for it than to add a more limited design that covers only a single type.
+A previous version of this proposal included a `fold` operation. This operation is essentially an expression-based `switch`, and like the optional case projections, it would be better to provide a general language solution for it than to add a more limited design that covers only a single type.
 
-A previous version of this proposal did not label the closure parameter for the catching initializer.  Single-argument unlabeled initializers are conventionally used for conversions, which this is not; usually the closure will be written explicitly, but in case it isn't, a parameter label is appropriate.
+A previous version of this proposal did not label the closure parameter for the catching initializer. Single-argument unlabeled initializers are conventionally used for conversions, which this is not; usually the closure will be written explicitly, but in case it isn't, a parameter label is appropriate.
 
-There are several different names that would be reasonable for the `unwrapped` operation, such as `get`.  None of these names seem obviously better than `unwrapped`.
+There are several different names that would be reasonable for the `unwrapped` operation, such as `get`. None of these names seem obviously better than `unwrapped`.
