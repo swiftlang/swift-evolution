@@ -285,7 +285,7 @@ Many other languages have a `Result` type or equivalent:
 
 ## Source compatibility
 
-This is an additive change, but work done to improve type name shadowing has made it a non-issue.
+This is an additive change which could conflict with existing `Result` types, but work done to improve type name shadowing has made it a non-issue.
 
 ## Effect on ABI stability
 
