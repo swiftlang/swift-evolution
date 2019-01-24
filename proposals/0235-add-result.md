@@ -54,10 +54,10 @@ URLSession.shared.dataTask(with: url) { (data, response, error) in
 While this code is only a few lines long, it exposes Swift's complete lack of automatic error handling for asynchronous APIs. Not only was the `error` forcibly unwrapped (or perhaps handled using a slightly less elegant `if` statement), but a possibly impossible scenario was created. What happens if `response` or `data` are `nil`? Is it even possible? It shouldn't be, but Swift currently lacks the ability to express this impossibility. Using `Result` for the same scenario allows for much more elegant code:
 
 ```swift
-URLSession.shared.dataTask(with: url) { (result: Result<(response: URLResponse, data: Data?), Error>) in // Type added for illustration purposes.
+URLSession.shared.dataTask(with: url) { (result: Result<(response: URLResponse, data: Data), Error>) in // Type added for illustration purposes.
     switch result {
     case let .success(success):
-        handleResponse(success)
+        handleResponse(success.response, data: data)
     case let .error(error):
         handleError(error)
     }
