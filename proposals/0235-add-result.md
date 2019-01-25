@@ -306,6 +306,7 @@ enum Result<Value, Error: Swift.Error> {
     case value(Value)
     case error(Error)
 }
+```
 
 However, community opposition to this spelling resulted in the current, final spelling. 
 
