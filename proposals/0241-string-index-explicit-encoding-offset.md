@@ -4,12 +4,11 @@
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Active review (January 29th...February 3rd, 2019)**
 * Implementation: [apple/swift#22108](https://github.com/apple/swift/pull/22108)
+* Review: ([review](https://forums.swift.org/t/se-0241-explicit-encoded-offsets-for-string-indices/19929))
 
 ## Introduction
 
 [SE-0180](https://github.com/apple/swift-evolution/blob/master/proposals/0180-string-index-overhaul.md) introduced a computed variable and initializer surrounding the concept of an `encodedOffset`. Unfortunately, that approach is flawed for its intended purpose, and is commonly misused in ways that Swift 5 is [more likely to expose](https://bugs.swift.org/browse/SR-9749). We propose a set of alternative APIs for each intended use and every existing misuse.
-
-Swift-evolution thread: TBD
 
 ## Motivation
 
