@@ -1,8 +1,8 @@
 # Explicit Encoded Offsets for String Indices
-* Proposal: SE-NNNN
+* Proposal: SE-0241
 * Authors: [Michael Ilseman](https://github.com/milseman)
-* Review Manager: John McCall
-* Status: **Awaiting review**
+* Review Manager: [John McCall](https://github.com/rjmccall)
+* Status: **Active review (January 29th...February 4rd, 2019)**
 * Implementation: [apple/swift#22108](https://github.com/apple/swift/pull/22108)
 
 ## Introduction
