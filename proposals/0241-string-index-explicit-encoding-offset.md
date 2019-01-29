@@ -1,5 +1,5 @@
 # Explicit Encoded Offsets for String Indices
-* Proposal: SE-0241
+* Proposal: [SE-0241](https://github.com/apple/swift-evolution/blob/master/proposals/0241-string-index-explicit-encoding-offset.md)
 * Authors: [Michael Ilseman](https://github.com/milseman)
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Active review (January 29th...February 4rd, 2019)**
