@@ -28,7 +28,7 @@ Swift-evolution thread: [Presence. [value.isEmpty ? nil : value]](https://forums
 A lot of cases when there is no need to work with object which is empty,
 and nowadays we have to write:
 ```swift
-func retrieve() -> [Array] {
+func retrieve() -> [Int]? {
   // implementation
 }
 
@@ -37,7 +37,7 @@ let array = retrieve()
 guard !array.isEmpty else { return }
 
 // 2
-func action() {
+func action() -> [Int]? {
   ...
   return array.isEmpty : nil : array
 }
@@ -49,7 +49,7 @@ Create protocols `Emptiable`, `Presencable` and extend `Collection`.
 
 Instead we can use property `presence` and be sure that we get value only if it's not being empty.
 ```swift
-func retrieve() -> [Array] {
+func retrieve() -> [Int]? {
   // implementation
 }
 
@@ -57,7 +57,7 @@ func retrieve() -> [Array] {
 guard let array = retrieve().presence else { return }
 
 // 2
-func action() {
+func action() -> [Int]? {
   ...
   return array.presence
 }
@@ -91,7 +91,8 @@ public protocol Collection : Sequence, Presencable {
 
 let arr = [1, 3]
 arr.dropFirst(2).presence // nil
-arr.presence // arr
+arr.presence // Optional([1, 3])
+arr.presence?.first! // strictly exist
 ```
 
 For types that are not implement `Collection`, directly reference to `Presencable` protocol is needed.
@@ -108,7 +109,7 @@ struct Foo: Presencable {
   }
 }
 
-Foo(1, 2, 3).presence // Foo
+Foo(1, 2, 3).presence // Optional(Foo)
 Foo().presence // nil
 ```
 
