@@ -11,11 +11,11 @@
 
 Swift’s `String` type is designed for Unicode correctness and abstracts away the underlying binary representation of the string to model it as a `Collection` of grapheme clusters. This is an appropriate string model for human-readable text, as to a human reader, the atomic unit of a string is (usually) the extended grapheme cluster. When treated this way, many logical string operations “just work” the way users expect. 
 
-However, it is also common in programming to need to express values which are intrinsically numeric, but have textual meaning, when taken as an ASCII value. We propose adding a new literal syntax takes single-quotes (`'`), and is transparently convertible to Swift’s integer types. This syntax, but not the behavior, will extend to all “scalar” text literals, up to and including `Character`, and will become the preferred literal syntax these types.
+However, it is also common in programming to need to express values which are intrinsically numeric, but have textual meaning, when taken as an ASCII value. We propose adding a new literal syntax takes single-quotes (`'`), and is transparently convertible to Swift’s integer types. This syntax, but not the behavior, will extend to all “single element” text literals, up to and including `Character`, and will become the preferred literal syntax these types.
 
 ## Motivation 
 
-A major pain point of using ASCII and unicode integer codepoint values in Swift is they lack a clear and readable literal type. In C, `'a'` is a `uint8_t` literal, equivalent to `97`. Swift has no such equivalent, requiring awkward spellings like `UInt8(ascii: "a")`. Alternatives, like spelling out the values in hex or decimal directly, are even worse. This harms readability of code, and is one of the sore points of bytestring processing in Swift.
+A pain point of using ASCII and unicode integer codepoint values in Swift is they lack a direct literal type. In C, `'a'` is a `uint8_t` literal, equivalent to `97`. Swift has no such equivalent, requiring awkward spellings like `UInt8(ascii: "a")`, or spelling out the values in hex or decimal directly. This harms readability of code, and makes bytestring processing in Swift painful.
 
 ```c
 static char const hexcodes[16] = {
@@ -33,7 +33,7 @@ let hexcodes = [
 ]    
 ```
 
-Sheer verbosity can be reduced by applying “clever” higher-level constructs such as
+Higher-level constructs can regain some readability, 
 
 ```swift 
 let hexcodes = [
@@ -44,14 +44,7 @@ let hexcodes = [
 ].map{ UInt8(ascii: $0) }
 ```
 
-or even 
-
-```swift 
-let hexcodes = Array(UInt8(ascii: "0") ... UInt8(ascii: "9")) + 
-               Array(UInt8(ascii: "a") ... UInt8(ascii: "f"))
-```
-
-though this comes at the expense of an even higher noise-to-signal ratio, as we are forced to reference concepts such as function mapping, or concatenation, range construction, `Array` materialization, and run-time type conversion, when all we wanted to express was a fixed set of hardcoded values.
+but may not be familiar to all users, and can come at a runtime cost.
 
 In addition, the `init(ascii:)` initializer only exists on `UInt8`. If you're working with other types like `Int8` (common when dealing with C APIs that take `char`), it is much more awkward.  Consider scanning through a `char*` buffer as an `UnsafeBufferPointer<Int8>`:
 
@@ -70,15 +63,15 @@ for scalar in int8buffer {
 }
 ```
 
-Aside from being ugly and verbose, transforming `Unicode.Scalar` literals also sacrifices compile-time guarantees. The statement `let char: UInt8 = 1989` is a compile time error, whereas `let char: UInt8 = .init(ascii: "߅")` is a run time error.
+Transforming `Unicode.Scalar` literals also sacrifices compile-time guarantees. The statement `let char: UInt8 = 1989` is a compile time error, whereas `let char: UInt8 = .init(ascii: "߅")` is a run time error.
 
-ASCII scalars are inherently textual, so it should be possible to express them with a textual literal without requiring layers upon layers of transformations. Just as applying the `String` APIs runs counter to Swift’s stated design goals of safety and efficiency, forcing users to express basic data values in such a convoluted and unreadable way runs counter to our design goal of [expressiveness](https://swift.org/about/#swiftorg-and-open-source).
+ASCII scalars are inherently textual, so it should be possible to express them with a textual literal directly. Just as applying the `String` APIs runs counter to Swift’s stated design goals of safety and efficiency, requiring users to express basic data values in such a verbose way runs counter to our design goal of [expressiveness](https://swift.org/about/#swiftorg-and-open-source).
 
-Integer character literals would provide benefits to `String` users. One of the [future directions](https://gist.github.com/milseman/bb39ef7f170641ae52c13600a512782f#unmanaged-strings) for `String` is to provide performance-sensitive or low-level users with direct access to code units. Having numeric character literals for use with this API is hugely motivating. Furthermore, improving Swift’s bytestring ergonomics is an [important part](https://forums.swift.org/t/prepitch-character-integer-literals/10442/140?u=taylorswift) of our long term goal of expanding into embedded platforms.
+Integer character literals would provide benefits to `String` users. One of the [future directions](https://gist.github.com/milseman/bb39ef7f170641ae52c13600a512782f#unmanaged-strings) for `String` is to provide performance-sensitive or low-level users with direct access to code units. Having numeric character literals for use with this API is highly motivating. Furthermore, improving Swift’s bytestring ergonomics is an [important part](https://forums.swift.org/t/prepitch-character-integer-literals/10442/140?u=taylorswift) of our long term goal of expanding into embedded platforms.
 
 ## Proposed solution 
 
-Let's do the obvious thing here, and conform Swift’s integer types to `ExpressibleByUnicodeScalarLiteral`. These conversions will only be valid for the ASCII range `U+0 ..< U+128`; unicode scalar literals outside of that range will be invalid and treated similar to the way we currently diagnose overflowing integer literals. This is a conservative limitation which we believe is warranted, as allowing transparent unicode conversion to integer types carries major encoding pitfalls we want to protect users from.
+Conform Swift’s integer types to `ExpressibleByUnicodeScalarLiteral`. These conversions will only be valid for the ASCII range `U+0 ..< U+128`; unicode scalar literals outside of that range will be invalid and will generate compile-time errors similar to the way we currently diagnose overflowing integer literals. This is a conservative approach, as allowing transparent unicode conversion to integer types carries encoding pitfalls users may not anticipate or easily understand.
 
 | `ExpressibleBy`… | `UnicodeScalarLiteral` | `ExtendedGraphemeClusterLiteral` | `StringLiteral` | 
 | --- | --- | --- | --- |
@@ -90,7 +83,7 @@ Let's do the obvious thing here, and conform Swift’s integer types to `Express
 
 > Cells marked with an asterisk `*` indicate behavior that is different from the current language behavior.
 
-As we are introducing a separate literal syntax `'a'` for “scalar” text objects, and making it the preferred syntax for `Unicode.Scalar` and `Character`, it will no longer be possible to initialize `String`s or `StaticString`s from unicode scalar literals or character literals. To users, this will have no discernable impact, as double quoted literals will simply be inferred as string literals.
+As we are introducing a separate literal syntax `'a'` for “single element” text objects, and making it the preferred syntax for `Unicode.Scalar` and `Character`, it will no longer be possible to initialize `String`s or `StaticString`s from unicode scalar literals or character literals. To users, this will have no discernable impact, as double-quoted literals will simply be inferred as string literals.
 
 This proposal will have no impact on custom `ExpressibleBy` conformances, however, integer types `UInt8` through `Int` will now be available as source types provided by the `ExpressibleByUnicodeScalarLiteral.init(unicodeScalarLiteral:)` initializer. For these specializations, the initializer will be responsible for enforcing the compile-time ASCII range check on the unicode scalar literal. 
 
@@ -144,13 +137,21 @@ The default inferred literal type for `let x = 'a'` will be `Character`, followi
 
 Single-quoted literals will be inferred to be integer types in cases where a `Character` or `Unicode.Scalar` overload does not exist, but an unambiguous integer overload does. This is not the case with most integer operators, so expressions like `'1' + '1' == 98` would be an ambiguity error under Swift’s overload resolution rules.
 
-Use of single quotes for character/scalar literals is *heavily* precedented in other languages, including C, Objective-C, C++, Java, and Rust, although different languages have slightly differing ideas about what a “character” is.  We choose to use the single quote syntax specifically because it reinforces the notion that strings and character values are different: the former is a sequence, the later is a scalar (and "integer-like").  Character types also don't support string literal interpolation, which is another reason to move away from double quotes.
+Use of single quotes for character/scalar literals is precedented in other languages, including C, Objective-C, C++, Java, and Rust, although different languages have slightly differing ideas about what a “character” is.  We choose to use the single quote syntax specifically because it reinforces the notion that strings and character values are different: the former is a sequence, the later is an element. Character types also don't support string literal interpolation, which is another reason to move away from double quotes.
 
 ### Single quotes in Swift, a historical perspective
 
-In Swift 1.0, we wanted to reserve single quotes for some yet-to-be determined syntactical purpose. However, today, pretty much all of the things that we once thought we might want to use single quotes for have already found homes in other parts of the Swift syntactical space.  For example, syntax for [multi-line string literals](https://github.com/apple/swift-evolution/blob/master/proposals/0168-multi-line-string-literals.md) uses triple quotes (`"""`), and string interpolation syntax uses standard double quote syntax. With the passage of [SE-0200](https://github.com/apple/swift-evolution/blob/master/proposals/0200-raw-string-escaping.md), raw-mode string literals settled into the `#""#` syntax. In current discussions around [regex literals](https://forums.swift.org/t/string-update/7398/6), most people seem to prefer slashes (`/`).
+In Swift 1.0, single quotes were reserved for some yet-to-be determined syntactical purpose. Since then, pretty much all of the things that might have used single quotes have already found homes in other parts of the Swift syntactical space:
 
-At this point, it is clear that the early syntactic conservatism was unwarranted.  We do not forsee another use for this syntax, and given the strong precedent in other languages for characters, it is natural to use it.
+- syntax for [multi-line string literals](https://github.com/apple/swift-evolution/blob/master/proposals/0168-multi-line-string-literals.md) uses triple quotes (`"""`)
+
+- string interpolation syntax uses standard double quote syntax. 
+
+- raw-mode string literals settled into the `#""#` syntax. 
+
+- In current discussions around [regex literals](https://forums.swift.org/t/string-update/7398/6), most people seem to prefer slashes (`/`).
+
+Given that, and the desire for lightweight syntax for single chararcter syntax, and the precedent in other languages for characters, it is natural to use single quotes for this purpose.
 
 ### Existing double quote initializers for characters
 
@@ -163,7 +164,7 @@ let c1: Character = "f"   // deprecated
 
 ## Detailed Design 
 
-The only standard library changes will be to conform `{UInt8, Int8, ..., Int}` to `ExpressibleByUnicodeScalarLiteral`, and add them to the list of allowed `Self.UnicodeScalarLiteralType` types. (This entails conforming the integer types to `_ExpressibleByBuiltinUnicodeScalarLiteral` as well.) The ASCII range checking will be performed at compile-time in the typechecker, in essentially the same way that overflow checking for `ExpressibleByIntegerLiteral.IntegerLiteralType` types works today.
+The only standard library changes will be to conform `{UInt8, Int8, ..., Int}` to `ExpressibleByUnicodeScalarLiteral`, and add them to the list of allowed `Self.UnicodeScalarLiteralType` types. ASCII range checking will be performed at compile-time.
 
 ```swift
 protocol ExpressibleByUnicodeScalarLiteral {
@@ -174,7 +175,7 @@ protocol ExpressibleByUnicodeScalarLiteral {
 }
 ```
 
-The default inferred type for all single-quoted literals will be `Character`, addressing a longstanding pain point in Swift, where `Character`s had no dedicated literal syntax.
+The default inferred type for all single-quoted literals will be `Character`. This addresses a language pain point where declaring a `Character` requires type context.
 
 ```
 typealias UnicodeScalarLiteralType           = Character
