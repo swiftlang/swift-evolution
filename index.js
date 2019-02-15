@@ -131,7 +131,7 @@ function init () {
     document.querySelector('#proposals-count-number').innerText = 'Proposal data failed to load.'
   })
 
-  document.querySelector('#proposals-count-number').innerHTML = 'Loading ...';
+  document.querySelector('#proposals-count-number').innerHTML = 'Loading ...'
   req.open('get', 'https://data.swift.org/swift-evolution/proposals')
   req.send()
 }
