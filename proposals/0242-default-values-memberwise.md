@@ -1,9 +1,9 @@
 # Synthesize default values for the memberwise initializer
 
-* Proposal: [SE-NNNN](NNNN-default-values-memberwise.md)
+* Proposal: [SE-0242](0242-default-values-memberwise.md)
 * Author: [Alejandro Alonso](https://github.com/Azoy)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Ted Kremenek](https://github.com/tkremenek)
+* Status: **Active review (February 18 - February 26, 2019)**
 * Implementation: [apple/swift#19743](https://github.com/apple/swift/pull/19743)
 
 ## Introduction
