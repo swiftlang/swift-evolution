@@ -56,7 +56,7 @@ Not at this time
 
 ## Acknowledgements
 
-Thanks Sean Heber, Kevin Ballard, Joe Groff, Timothy Wood, Brent Royal-Gordon, Andrey Tarantsov, Austin Zheng
+Thanks Sean Heber, Lily Ballard, Joe Groff, Timothy Wood, Brent Royal-Gordon, Andrey Tarantsov, Austin Zheng
 
 ## Rationale
 
