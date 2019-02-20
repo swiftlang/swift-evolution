@@ -1,7 +1,7 @@
 # Add `first(where:)` method to `Sequence`
 
 * Proposal: [SE-0032](0032-sequencetype-find.md)
-* Author: [Kevin Ballard](https://github.com/kballard)
+* Author: [Lily Ballard](https://github.com/lilyball)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000134.html)

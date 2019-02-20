@@ -101,6 +101,6 @@ for(var i=0 ; i < array.count ;i++){
 * "For what it's worth we don't have a single C style for loop in the Lyft codebase." -- Keith Smiley, keithbsmiley@gmail.com
 * "Just checked; ditto Khan Academy." -- Andy Matsuchak, andy@andymatuschak.org
 * "We’ve developed a number of Swift apps for various clients over the past year and have not needed C style for loops either." -- Eric Chamberlain, eric.chamberlain@arctouch.com
-* "Every time I've tried to use a C-style for loop, I've ended up switching to a while loop because my iteration variable ended up having the wrong type (e.g. having an optional type when the value must be non-optional for the body to execute). The Postmates codebase contains no instances of C-style for loops in Swift." -- Kevin Ballard, kevin@sb.org
+* "Every time I've tried to use a C-style for loop, I've ended up switching to a while loop because my iteration variable ended up having the wrong type (e.g. having an optional type when the value must be non-optional for the body to execute). The Postmates codebase contains no instances of C-style for loops in Swift." -- Lily Ballard, lily@sb.org
 * "I found a couple of cases of them in my codebase, but they were trivially transformed into “proper” Swift-style for loops that look better anyway. If it were a vote, I’d vote for eliminating C-style." -- Sean Heber, sean@fifthace.com
 

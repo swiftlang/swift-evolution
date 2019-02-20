@@ -1,7 +1,7 @@
 # Add StaticString.UnicodeScalarView
 
 * Proposal: [SE-0010](0010-add-staticstring-unicodescalarview.md)
-* Author: [Kevin Ballard](https://github.com/kballard)
+* Author: [Lily Ballard](https://github.com/lilyball)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Rejected**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-February/000045.html)

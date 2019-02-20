@@ -45,7 +45,7 @@ file-name → static-string-literal­
 
 ## Alternatives considered
 
-A more flexible grammar was suggested, however, as Kevin Ballard pointed out: 
+A more flexible grammar was suggested, however, as Lily Ballard pointed out: 
 
 > This feature isn't something end users are going to use. And it's not something that will ever reasonably apply to anything except `#file` and `#line`. This feature is only ever intended to be used by tools that auto-generate source files. The most important concerns here really should just be that whatever we use is trivial to generate correctly by even the simplest of tools and is readable. And since this won't ever apply to anything beyond `#file` and `#line`, there's no need to try to generalize this feature at all.
 

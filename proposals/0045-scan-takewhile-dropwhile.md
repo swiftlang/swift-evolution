@@ -1,7 +1,7 @@
 # Add prefix(while:) and drop(while:) to the stdlib
 
 * Proposal: [SE-0045](0045-scan-takewhile-dropwhile.md)
-* Author: [Kevin Ballard](https://github.com/kballard)
+* Author: [Lily Ballard](https://github.com/lilyball)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3.1)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000136.html)

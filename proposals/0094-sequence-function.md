@@ -1,7 +1,7 @@
 # Add sequence(first:next:) and sequence(state:next:) to the stdlib
 
 * Proposal: [SE-0094](0094-sequence-function.md)
-* Authors: [Kevin Ballard](https://github.com/kballard), [Erica Sadun](http://github.com/erica)
+* Authors: [Lily Ballard](https://github.com/lilyball), [Erica Sadun](http://github.com/erica)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000170.html)
