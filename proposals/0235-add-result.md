@@ -358,7 +358,7 @@ Constraining the error type to conform to `Error` is a very low burden, and it h
 
 ### Operations
 
-A previous verson of this proposal included operations for optionally projecting out the `value` and `error` cases. These operations are useful, but they should be added uniformly for all `enum`s, and `Result` should not commit to providing hard-coded versions that may interfere with future language evolution. In the meantime, it is easy for programmers to add these operations with extensions in their own code.
+A previous version of this proposal included operations for optionally projecting out the `value` and `error` cases. These operations are useful, but they should be added uniformly for all `enum`s, and `Result` should not commit to providing hard-coded versions that may interfere with future language evolution. In the meantime, it is easy for programmers to add these operations with extensions in their own code.
 
 A previous version of this proposal included a `fold` operation. This operation is essentially an expression-based `switch`, and like the optional case projections, it would be better to provide a general language solution for it than to add a more limited design that covers only a single type.
 
