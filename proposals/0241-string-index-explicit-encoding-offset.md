@@ -9,17 +9,17 @@
 
 ## Introduction
 
-[SE-0180](https://github.com/apple/swift-evolution/blob/master/proposals/0180-string-index-overhaul.md) introduced a computed variable and initializer surrounding the concept of an `encodedOffset` for serialization purposes. Unfortunately, that approach is flawed for its intended purpose and is commonly misused in ways that Swift 5 is [more likely to expose](https://bugs.swift.org/browse/SR-9749). It is too late in the Swift 5.0 release to solve all existing problems, so we propose deprecating `encodedOffset` and introducing a targeted, semantics-preserving alternative.
+[SE-0180][] introduced a computed variable and initializer surrounding the concept of an `encodedOffset` for serialization purposes. Unfortunately, that approach is flawed for its intended purpose and is commonly misused in ways that Swift 5 is [more likely to expose](https://bugs.swift.org/browse/SR-9749). It is too late in the Swift 5.0 release to solve all existing problems, so we propose deprecating `encodedOffset` and introducing a targeted, semantics-preserving alternative.
 
 ## Motivation
 
-String abstracts away details about the underlying encoding used in its storage. String.Index is opaque and represents a position within a String or Substring. This can make serializing a string alongside its indices difficult, and for that reason [SE-0180](https://github.com/apple/swift-evolution/blob/master/proposals/0180-string-index-overhaul.md) added a computed variable and initializer `encodedOffset` in Swift 4.0.
+String abstracts away details about the underlying encoding used in its storage. String.Index is opaque and represents a position within a String or Substring. This can make serializing a string alongside its indices difficult, and for that reason [SE-0180][] added a computed variable and initializer `encodedOffset` in Swift 4.0.
 
 String was always meant to be capable of handling multiple backing encodings for its contents, and this is realized in Swift 5. [String now uses UTF-8](https://forums.swift.org/t/string-s-abi-and-utf-8/17676) for its preferred “fast” native encoding, but has a resilient fallback for strings of different encodings. Currently, we only use this fall-back for lazily-bridged Cocoa strings, which are commonly encoded as UTF-16, though it can be extended in the future thanks to resilience.
 
-Unfortunately, [SE-0180](https://github.com/apple/swift-evolution/blob/master/proposals/0180-string-index-overhaul.md)’s approach of a single notion of `encodedOffset` is flawed. A string can be serialized with a choice of encodings, and the offset is therefore encoding-dependent and requires access to the contents of the string to calculate. A comment in [SE-0180](https://github.com/apple/swift-evolution/blob/master/proposals/0180-string-index-overhaul.md)’s example source mentioned that `encodedOffset` assumes UTF-16, which happened to be the only encoding used internally by String at the time (for offset purposes).
+Unfortunately, [SE-0180][]’s approach of a single notion of `encodedOffset` is flawed. A string can be serialized with a choice of encodings, and the offset is therefore encoding-dependent and requires access to the contents of the string to calculate. A comment in [SE-0180][]’s example source mentioned that `encodedOffset` assumes UTF-16, which happened to be the only encoding used internally by String at the time (for offset purposes).
 
-Furthermore, the majority of uses of `encodedOffset` in the wild are not following [SE-0180](https://github.com/apple/swift-evolution/blob/master/proposals/0180-string-index-overhaul.md)’s intended purpose and are sensitive to encoding changes. `encodedOffset` is frequently misused under the assumption that all Characters are comprised of a single code unit, which is error-prone and Swift 5 might surface the underlying bugs in more situations. It is also sometimes used for mapping Cocoa string indices, which happens to work in Swift 4 but might not in Swift 5, and Foundation already provides better alternatives.
+Furthermore, the majority of uses of `encodedOffset` in the wild are not following [SE-0180][]’s intended purpose and are sensitive to encoding changes. `encodedOffset` is frequently misused under the assumption that all Characters are comprised of a single code unit, which is error-prone and Swift 5 might surface the underlying bugs in more situations. It is also sometimes used for mapping Cocoa string indices, which happens to work in Swift 4 but might not in Swift 5, and Foundation already provides better alternatives.
 
 
 
@@ -72,13 +72,13 @@ Added APIs are all resilient and can be replaced with more efficient implementat
 
 ### Do Nothing
 
-If `encodedOffset` was only used for serialization, *and* such serialization/deserialization would record and preserve the original encoding, *and* we amend [SE-0180](https://github.com/apple/swift-evolution/blob/master/proposals/0180-string-index-overhaul.md)’s comment to avoid nailing it down to any given encoding, no change would be necessary. Unfortunately, there is no way to query or preserve internal encoding and there is considerable use and misuse in the wild, as mentioned in the “Uses in the Wild” disclosure section.
+If `encodedOffset` was only used for serialization, *and* such serialization/deserialization would record and preserve the original encoding, *and* we amend [SE-0180][]’s comment to avoid nailing it down to any given encoding, no change would be necessary. Unfortunately, there is no way to query or preserve internal encoding and there is considerable use and misuse in the wild, as mentioned in the “Uses in the Wild” disclosure section.
 
 ### Fix all the Bugs
 
 This proposal originally introduced a set of API attempting to solve 3 problems:
 
-1. SE-0180’s `encodedOffset`, meant for serialization purposes, needs to be parameterized over the encoding in which the string will be serialized in
+1. [SE-0180][]’s `encodedOffset`, meant for serialization purposes, needs to be parameterized over the encoding in which the string will be serialized in
 2. Existing uses of `encodedOffset` need a semantics-preserving off-ramp for Swift 5, which is expressed in terms of UTF-16 offsets
 3. Existing misuses of `encodedOffset`, which assume all characters are a single UTF-16 code unit, need a semantics-fixing alternative
 
@@ -99,7 +99,7 @@ Array(myString); Array(myString.indices) // Not an encoding, but provides offset
 #### Uses in the Wild
 <details>
 
-GitHub code search yields [nearly 1500 uses](https://github.com/search?l=Swift&q=encodedOffset&type=Code) , and nearly-none of them are for [SE-0180](https://github.com/apple/swift-evolution/blob/master/proposals/0180-string-index-overhaul.md)’s intended purpose. Below I present the 3 most common uses.
+GitHub code search yields [nearly 1500 uses](https://github.com/search?l=Swift&q=encodedOffset&type=Code) , and nearly-none of them are for [SE-0180][]’s intended purpose. Below I present the 3 most common uses.
 
 ```swift
 // Common code for these examples
@@ -225,3 +225,4 @@ However, it’s not clear this is the best approach for Swift and more design wo
 
 It is too late in the Swift 5.0 release to design and add all of these API. Instead, we’re proposing an urgent, targeted fix for the second problem.
 
+[SE-0180]: <https://github.com/apple/swift-evolution/blob/master/proposals/0180-string-index-overhaul.md>
