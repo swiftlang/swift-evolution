@@ -363,5 +363,3 @@ A previous version of this proposal included operations for optionally projectin
 A previous version of this proposal included a `fold` operation. This operation is essentially an expression-based `switch`, and like the optional case projections, it would be better to provide a general language solution for it than to add a more limited design that covers only a single type.
 
 A previous version of this proposal did not label the closure parameter for the catching initializer. Single-argument unlabeled initializers are conventionally used for conversions, which this is not; usually the closure will be written explicitly, but in case it isn't, a parameter label is appropriate.
-
-There are several different names that would be reasonable for the `unwrapped` operation, such as `get`. None of these names seem obviously better than `unwrapped`.
