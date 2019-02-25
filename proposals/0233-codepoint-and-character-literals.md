@@ -200,10 +200,10 @@ Here is a specific sketch of a deprecation policy:
   
   * Swift 6 would not accept the old syntax.
 
-During the transition period, `"a"` will remain a valid unicode scalar literal, so it will be possible to initialize integer types with double-quoted ASCII literals. 
+During the transition period, `"a"` will remain a valid unicode scalar literal, but attempting to initialize integer types with double-quoted ASCII literals will produce an error. 
 
 ```
-let ascii:Int8 = "a" // produces a deprecation warning 
+let ascii:Int8 = "a" // error
 ```
 
 However, as this will only be possible in new code, and will produce a deprecation warning from the outset, this should not be a problem.
