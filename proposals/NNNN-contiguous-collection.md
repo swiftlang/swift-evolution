@@ -33,16 +33,16 @@ For example, you might want to write a convenient wrapper for `vDSP_vsaddi`.
 // note this is **not** a proposal about vDSP wrappers, this is just a
 // simplified example :)
 func dspAdd<A: Collection, B: Collection>(
-  _ a: A, _ b: B, _ result: inout [Int32]
-) where A.Element == Int32, B.Element == Int32 {
+  _ a: A, _ b: B, _ result: inout [Float]
+) where A.Element == Float, B.Element == Float {
   let n = a.count
   // try accessing contiguous underlying buffers:
   let wasContiguous: ()?? =
     a.withContiguousStorageIfAvailable { abuf in
       b.withContiguousStorageIfAvailable { bbuf in
-        vDSP_vsaddi(abuf.baseAddress!, 1, bbuf.baseAddress!, &result, 1, UInt(n))
+        vDSP_vadd(abuf.baseAddress!, 1, bbuf.baseAddress!, 1, &result, 1, UInt(n))
       }
-    }
+  }
   // if they weren't contiguous, create two arrays try again
   if wasContiguous == nil || wasContiguous! == nil {
     dspAdd(Array(a), Array(b), &result)
@@ -115,12 +115,12 @@ side-benefit, it also cleans up the function implementation:
 ```swift
 func dspAdd<A: ContiguousCollection, B: ContiguousCollection, R: MutableContiguousCollection>(
   _ a: A, _ b: B, _ result: inout R
-) where A.Element == Int32, B.Element == Int32, R.Element == Int32 {
+) where A.Element == Float, B.Element == Float, R.Element == Float {
   let n = a.count
   a.withUnsafeBufferPointer { abuf in
     b.withUnsafeBufferPointer { bbuf in
       result.withUnsafeMutableBufferPointer { rbuf in
-        vDSP_vsaddi(abuf.baseAddress!, 1, bbuf.baseAddress!, rbuf.baseAddress!, 1, UInt(n))
+        vDSP_vadd(abuf.baseAddress!, 1, bbuf.baseAddress!, 1, rbuf.baseAddress!, 1, UInt(n))
       }
     }
   }
