@@ -128,9 +128,10 @@ function init () {
   })
 
   req.addEventListener('error', function (e) {
-    document.querySelector('#proposals-count').innerText = 'Proposal data failed to load.'
+    document.querySelector('#proposals-count-number').innerText = 'Proposal data failed to load.'
   })
 
+  document.querySelector('#proposals-count-number').innerHTML = 'Loading ...'
   req.open('get', 'https://data.swift.org/swift-evolution/proposals')
   req.send()
 }
@@ -263,7 +264,7 @@ function renderBody () {
     '.awaitingReview', '.scheduledForReview', '.activeReview', '.accepted',
     '.acceptedWithRevisions', '.implemented', '.returnedForRevision', '.deferred', '.rejected', '.withdrawn'
   ]
-
+    
   proposalPresentationOrder.map(function (state) {
     var matchingProposals = proposals.filter(function (p) { return p.status && p.status.state === state })
     matchingProposals.map(function (proposal) {
@@ -480,7 +481,7 @@ function _joinNodes (nodeList, text) {
 function addEventListeners () {
   var nav = document.querySelector('nav')
 
-  // typing in the search field causes the filter to be reapplied.
+  // typing in the search field causes the filter to be reapplied.  
   nav.addEventListener('keyup', filterProposals)
   nav.addEventListener('change', filterProposals)
 
