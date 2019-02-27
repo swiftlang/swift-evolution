@@ -79,7 +79,7 @@ where SubSequence: ContiguousCollection {
   /// Calls a closure with a pointer to the array's contiguous storage.
   func withUnsafeBufferPointer<R>(
     _ body: (UnsafeBufferPointer<Element>) throws -> R
-    ) rethrows -> R
+  ) rethrows -> R
 }
 
 /// A collection that supports mutable access to its underlying contiguous
@@ -90,7 +90,7 @@ where SubSequence: MutableContiguousCollection {
   /// storage.
   mutating func withUnsafeMutableBufferPointer<R>(
     _ body: (inout UnsafeMutableBufferPointer<Element>) throws -> R
-    ) rethrows -> R
+  ) rethrows -> R
 }
 ```
 
