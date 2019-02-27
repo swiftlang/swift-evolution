@@ -27,7 +27,7 @@ There is another class of operation that _only_ wants to be available when
 there is a fast path. A good example would be a Swift-friendly wrapper for
 the `vDSP` suite of algorithms. 
 
-For example, you might want to write a convenient wrapper for `vDSP_vsaddi`.
+For example, you might want to write a convenient wrapper for `vDSP_vadd`.
 
 ```swift 
 // note this is **not** a proposal about vDSP wrappers, this is just a
