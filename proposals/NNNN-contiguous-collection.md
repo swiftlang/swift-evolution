@@ -97,7 +97,7 @@ where SubSequence: MutableContiguousCollection {
 Conformances will be added for the following types:
 
 - `Array`, `ArraySlice` and `ContiguousArray` will conform to `MutableContiguousCollection`
-- `UnsafeBufferPointer` will conform to ContiguousCollection
+- `UnsafeBufferPointer` will conform to `ContiguousCollection`
 - `UnsafeMutableBufferPointer` will conform to `MutableContiguousCollection`
 - `Slice` will conditionally conform:
   - to `ContiguousCollection where Base: ContiguousCollection`
