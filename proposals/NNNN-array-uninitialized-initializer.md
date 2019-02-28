@@ -243,15 +243,18 @@ You can Try This At Home™ with this extension, which provides the semantics
 
 ```swift
 extension Array {
-  public init(
-    unsafeUninitializedCapacity: Int,
-    initializingWith initializer: (
-      _ buffer: inout UnsafeMutableBufferPointer<Element>,
-      _ initializedCount: inout Int
-    ) throws -> Void
-  ) rethrows {
-    self = []
-    try self.withUnsafeMutableBufferPointerToStorage(capacity: unsafeUninitializedCapacity, initializer)
-  }
+    public init(
+        unsafeUninitializedCapacity: Int,
+        initializingWith initializer: (
+            _ buffer: inout UnsafeMutableBufferPointer<Element>,
+            _ initializedCount: inout Int
+        ) throws -> Void
+    ) rethrows {
+        var buffer = UnsafeMutableBufferPointer<Element>
+            .allocate(capacity: unsafeUninitializedCapacity)
+        var count = 0
+        try initializer(&buffer, &count)
+        self = Array(buffer[0..<count])
+    }
 }
 ```
