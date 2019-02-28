@@ -38,7 +38,7 @@ import Math
 let z = exp(x) // 2.7182817
 ```
 By doing this, the free functions are not defined in the global namespace unless
-this module is explicitly improted, but the functionality is always available via the static
+this module is explicitly imported, but the functionality is always available via the static
 functions defined in the standard library.
 
 ## Detailed design
