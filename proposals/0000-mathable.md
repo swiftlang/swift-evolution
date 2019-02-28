@@ -99,7 +99,7 @@ some fixup around how the sign is handled, which makes it equivalent to getting 
 angle of the polar representation of the vector `(x, y)`. Second, it doesn't really make
 sense for complex types, which Mathable is intended to support; I don't know of
 another language that provides it on complex `T`. We can define it as `atan(y/x)` in
-those cases, but it's slightly weird. Ultimately, a Swifiter interface should be provided
+those cases, but it's slightly weird. Ultimately, a Swiftier interface should be provided
 on a two-dimensional vector type as `polar` and on complex types as `arg`
 to avoid this confusion, but we will retain `atan2` as a convenience for users familiar
 with it.
