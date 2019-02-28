@@ -71,35 +71,38 @@ Integer character literals would provide benefits to `String` users. One of the 
 
 ## Proposed solution 
 
-Conform Swift’s integer types to `ExpressibleByUnicodeScalarLiteral`. These conversions will only be valid for the ASCII range `U+0 ..< U+128`; unicode scalar literals outside of that range will be invalid and will generate compile-time errors similar to the way we currently diagnose overflowing integer literals. This is a conservative approach, as allowing transparent unicode conversion to integer types carries encoding pitfalls users may not anticipate or easily understand.
+The most straightforward solution is to conform Swift’s integer types to `ExpressibleByUnicodeScalarLiteral`. Due to ABI constraints, it is not currently possible to add this conformance, so we will add the conformance *implementations* to the standard library, and allow users to “enable” to the feature by declaring this conformance in user code.
+
+```swift 
+extension FixedWidthInteger : ExpressibleByUnicodeScalarLiteral {}
+```
+Once the Swift ABI supports retroactive conformances, this conformance can be declared in the standard library, making it available by default.
+
+These integer conversions will only be valid for the ASCII range `U+0 ..< U+128`; unicode scalar literals outside of that range will be invalid and will generate compile-time errors similar to the way we currently diagnose overflowing integer literals. This is a conservative approach, as allowing transparent unicode conversion to integer types carries encoding pitfalls users may not anticipate or easily understand.
+
+Because it is currently possible to call literal initializers at run-time, a run-time precondition failure will occur if a non-ASCII value is passed to the integer initializer. (We expect the compiler to elide this precondition check for “normal” invocations.)
+
+```swift 
+let u: Unicode.Scalar = '\u{FF}'
+let i1: Int = '\u{FF}'                          // compile-time error
+let i2: Int = .init(unicodeScalarLiteral: u)    // run-time error
+```
 
 | `ExpressibleBy`… | `UnicodeScalarLiteral` | `ExtendedGraphemeClusterLiteral` | `StringLiteral` | 
 | --- | --- | --- | --- |
-| `UInt8:`, … , `Int:` | yes* | no | no |
+| `UInt8:`, … , `Int:` | yes* (initially opt-in) | no | no |
 | `Unicode.Scalar:` | yes | no | no |
 | `Character:` | yes (inherited) | yes | no |
-| `String:` | no* | no* | yes |
-| `StaticString:` | no* | no* | yes |
+| `String:` | yes | yes | yes |
+| `StaticString:` | yes | yes | yes |
 
 > Cells marked with an asterisk `*` indicate behavior that is different from the current language behavior.
 
-As we are introducing a separate literal syntax `'a'` for “single element” text objects, and making it the preferred syntax for `Unicode.Scalar` and `Character`, it will no longer be possible to initialize `String`s or `StaticString`s from unicode scalar literals or character literals. To users, this will have no discernable impact, as double-quoted literals will simply be inferred as string literals.
-
-This proposal will have no impact on custom `ExpressibleBy` conformances, however, integer types `UInt8` through `Int` will now be available as source types provided by the `ExpressibleByUnicodeScalarLiteral.init(unicodeScalarLiteral:)` initializer. For these specializations, the initializer will be responsible for enforcing the compile-time ASCII range check on the unicode scalar literal. 
-
-| `init(`…`)` | `unicodeScalarLiteral` | `extendedGraphemeClusterLiteral` | `stringLiteral` | 
-| --- | --- | --- | --- |
-| `:UInt8`, … , `:Int` | yes* | no  | no  |
-| `:Unicode.Scalar`  | yes  | no  | no  |
-| `:Character`       | yes (upcast) | yes | no  |
-| `:String`          | yes (upcast) | yes (upcast) | yes (upcast) |
-| `:StaticString`    | yes (upcast) | yes (upcast) | yes |
-
-The ASCII range restriction will only apply to single-quote literals coerced to an integer type. Any valid `Unicode.Scalar` can be written as a single-quoted unicode scalar literal, and any valid `Character` can be written as a single-quoted character literal. 
+The ASCII range restriction will only apply to single-quote literals coerced to a `Unicode.Scalar` and (either statically or dynamically) converted to an integer type. Any valid `Unicode.Scalar` can be written as a single-quoted unicode scalar literal, and any valid `Character` can be written as a single-quoted character literal. 
 
 |                    | `'a'` | `'é'` | `'β'` | `'𓀎'` | `'👩‍✈️'` | `"ab"` |
 | --- | --- | --- | --- | --- | --- | --- |
-| `:String`          |          |        |          |       |         | "ab"
+| `:String`          | `"a"`    | `"é"`  | `"β"`    | `"𓀎"` | `"👩‍✈️"` | "ab"
 | `:Character`       | `'a'`    | `'é'`  | `'β'`    | `'𓀎'` | `'👩‍✈️'`
 | `:Unicode.Scalar`  | U+0061   | U+00E9 | U+03B2   | U+1300E
 | `:UInt32`          | 97       | 
@@ -135,8 +138,6 @@ We propose to adopt the `'x'` syntax for all textual literal types up to and inc
 
 The default inferred literal type for `let x = 'a'` will be `Character`, following the principle of least surprise. This also allows for a natural user-side syntax for differentiating methods overloaded on both `Character` and `String`.
 
-Single-quoted literals will be inferred to be integer types in cases where a `Character` or `Unicode.Scalar` overload does not exist, but an unambiguous integer overload does. This is not the case with most integer operators, so expressions like `'1' + '1' == 98` would be an ambiguity error under Swift’s overload resolution rules.
-
 Use of single quotes for character/scalar literals is precedented in other languages, including C, Objective-C, C++, Java, and Rust, although different languages have slightly differing ideas about what a “character” is.  We choose to use the single quote syntax specifically because it reinforces the notion that strings and character values are different: the former is a sequence, the later is an element. Character types also don't support string literal interpolation, which is another reason to move away from double quotes.
 
 ### Single quotes in Swift, a historical perspective
@@ -164,14 +165,11 @@ let c1: Character = "f"   // deprecated
 
 ## Detailed Design 
 
-The only standard library changes will be to conform `{UInt8, Int8, ..., Int}` to `ExpressibleByUnicodeScalarLiteral`, and add them to the list of allowed `Self.UnicodeScalarLiteralType` types. ASCII range checking will be performed at compile-time.
+The only standard library changes will be to extend `FixedWidthInteger` to have the `init(unicodeScalarLiteral:)` initializer required by `ExpressibleByUnicodeScalarLiteral`. Static ASCII range checking will be done in the type checker, dynamic ASCII range checking will be done by a runtime precondition.
 
 ```swift
-protocol ExpressibleByUnicodeScalarLiteral {
-    associatedtype UnicodeScalarLiteralType: 
-        {StaticString, ..., Unicode.Scalar} + {UInt8, Int8, ..., Int}
-    
-    init(unicodeScalarLiteral: UnicodeScalarLiteralType)
+extension FixedWidthInteger {
+    init(unicodeScalarLiteral: Unicode.Scalar)
 }
 ```
 
@@ -210,7 +208,7 @@ However, as this will only be possible in new code, and will produce a deprecati
 
 ## Effect on ABI stability 
 
-All changes except deprecating the `UInt8.init(ascii:)` initializer are either additive, or limited to the type checker, parser, or lexer. Removing `String` and `StaticString`’s `ExpressibleByUnicodeScalarLiteral` and `ExpressibleByExtendedGraphemeClusterLiteral` conformances would otherwise be ABI-breaking, but this can be implemented entirely in the type checker, since source literals are a compile-time construct.
+All changes except deprecating the `UInt8.init(ascii:)` initializer are either additive, or limited to the type checker, parser, or lexer.
 
 Removing `UInt8.init(ascii:)` would break ABI, but this is not necessary to implement the proposal, it’s merely housekeeping.
 
