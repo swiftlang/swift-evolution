@@ -45,8 +45,12 @@ functions defined in the standard library.
 
 The `Mathable` protocol is implemented as follows:
 ```swift
-public protocol Mathable {
+public protocol Mathable : Numeric {
   associatedtype Math: MathImplementations where Math.Value == Self
+  func /(lhs: Self, rhs: Self) -> Self
+  func /=(lhs: inout Self, rhs: Self)
+  func squareRoot() -> Self
+  mutating func formSquareRoot()
 }
 
 public protocol MathImplementations {
@@ -61,9 +65,8 @@ public protocol MathImplementations {
 vector types when the underlying Scalar type is `Mathable`. `Float16`, `Decimal`, and
 `Complex` types are all expected to conform as well if and when they become available.
 
-Because the implementation hooks are all just simple shims over existing C library
-functions, they can be marked `@_alwaysEmitIntoClient`, allowing us to back-deploy
-these interfaces, so they will also be available when targeting Swift 5.0.
+Square root and division are treated separately because they are "basic arithmetic"
+operations rather than transcendental functions.
 
 The `Math` module interfaces are even simpler:
 ```swift
@@ -77,13 +80,13 @@ public func sin<T>(_ x: T) -> T where T: Mathable {
 
 ...
 ```
+
 ### Functions defined on Mathable
 `cos`, `sin`, `tan`, `acos`, `asin`, `atan`, `atan2`, `exp`, `exp2`, `exp10`, `expm1`, `log`, `log2`,
 `log10`, `logp1`, `pow`, `root`, `cosh`, `sinh`, `tanh`, `acosh`, `asinh`, `atanh`, `erf`, `erfc`,
 `gamma`, `lgamma`.
 
-Most of these will directly shim the C math library equivalents. A few bear special
-discussion:
+Most of these directly shim the C math library equivalents. A few warrant special discussion:
 - `exp10` does not exist on all targets; we'll fall back on implementing it as `pow(10, x)`
 in those cases. On platforms where `pow` has sub-ulp accuracy this always yields correct
 results for exact powers of ten, but it may result in small but noticeable rounding errors
@@ -106,10 +109,10 @@ with it.
 
 ### Functions not defined on Mathable
 The following functions are exported by <math.h>, but will not be defined on Mathable:
-`frexp`, `ilogb`, `ldexp`, `logb`, `modf`, `scalbn`, `scalbln`, `fabs`, `cbrt`, `hypot`, `sqrt`,
-`ceil`, `floor`, `nearbyint`, `rint`, `lrint`, `llrint`, `round`, `lround`, `llround`, `trunc`,
-`fmod`, `remainder`, `remquo`, `copysign`, `nan`, `nextafter`, `nexttoward`, `fdim`, `fmin`,
-`fmax`, `fma`.
+`frexp`, `ilogb`, `ldexp`, `logb`, `modf`, `scalbn`, `scalbln`, `fabs`, `cbrt`, `hypot`, `ceil`,
+`floor`, `nearbyint`, `rint`, `lrint`, `llrint`, `round`, `lround`, `llround`, `trunc`, `fmod`,
+`remainder`, `remquo`, `copysign`, `nan`, `nextafter`, `nexttoward`, `fdim`, `fmin`, `fmax`,
+`fma`.
 
 Most of these are not defined on Mathable because they are inherently bound to the
 semantics of `FloatingPoint` or `BinaryFloatingPoint`, and so cannot be defined for
@@ -141,22 +144,35 @@ made to redirect people to the new operations.
 
 ## Effect on ABI stability
 For the standard library, this is an additive change. We'll need to continue to support the
-old platform hooks to provide binary stability.
+old platform hooks to provide binary stability, but will mark them deprecated or obsoleted.
 
 ## Effect on API resilience
-Because these are all lightweight shims, they should be marked `@_alwaysEmitIntoClient`,
-which allows this new API to backdeploy to older Swift versions; this means that there is
-no real impact on resilience either.
+This is an additive change.
 
 ## Alternatives considered
-We may also want to add `log(_ base: T, _ x: T) -> T` at some future point as a
+1. The name `Mathable` is at least not obviously great. So far, I have not come up with a
+better name for this protocol. There are more technical choices that we might opt
+for (things in the direction of `Analytic`, `TranscendentalFunctions`, `Calculus`,
+`CompleteField`, `ElementaryFunctions` etc), but these are not sufficiently better to
+justify unfamiliarity to most  users. We could go more explicit (`HasMathFunctions`), but
+that's not great either. Perhaps the best alternative would be simply `Math`.
+
+2. The names of these functions are strongly conserved across languages, but they are
+not universal; we *could* consider more verbose names inline with Swift usual patterns.
+`sine`, `cosine`, `inverseTangent`, etc. This holds some appeal especially for the more
+niche functions (like `expm1`), but the weight of common practice is pretty strong here;
+almost all languages use essentially the same names for these operations. Another
+alternative would be to break these up into `TrigonometricFunctions`, 
+`HyperbolicFunctions`, `ExponentialFunctions`, etc, but I don't think that actually
+buys us very much.
+
+3. We may also want to add `log(_ base: T, _ x: T) -> T` at some future point as a
 supplement to the existing `log`, `log2`, and `log10` functions. Python and Julia both
 provide a similar interface. Doing this correctly requires a building block that the C math
 library doesn't provide (an extra-precise `log` or `log2` that returns a head-tail
 representation of the result); without this building block rounding errors creep in even for
 exact cases:
 ```python
-Python
 >>> from math import log
 >>> log(3**20, 3)
 19.999999999999996
@@ -165,3 +181,18 @@ Julia includes a warning about this in their documentation that basically says "
 or log10 instead if base is 2 or 10". We could take that approach, but base 2 and 10
 cover 99% of uses, so I would rather wait to provide this function until we have time to
 do it correctly.
+
+4. We could have `Mathable` not inherit from `Numeric` and *only* provide the math
+implementations (leaving out division and square root). In practice, this would mean that
+generic algorithms would almost always end up needing to be constrained to something
+like `BinaryFloatingPoint & Mathable` or `Numeric & Mathable`. That's not terrible,
+but a fairly large body of code can be written directly against `Mathable` if we follow the
+proposal.
+
+5. We could put the free functions into the standard library instead of a separate module.
+Having them in a separate module helps avoid adding stuff to the global namespace
+unless you're actually using it, which is generally nice, and the precedent from other
+languages is pretty strong here: `#include <cmath>`, `import math`, etc. Having the 
+implementation hooks defined in the standard lib makes them available in modules that
+only need them in a few places or want to use them in inlinable functions but don't want
+to have them in the global namespace or re-export them.
