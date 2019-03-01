@@ -468,16 +468,15 @@ Note that having a name for the opaque result type still doesn't give informatio
 
 ### Grammar of opaque result types
 
-The grammatical productions for opaque result types are straightforward:
+The grammatical production for opaque result types is straightforward:
 
 ```
-type ::= opaque-type opaque-type*
-     |   '_'
+type ::= opaque-type
      
 opaque-type ::= 'some' type
 ```
 
-The first `type` production allows a sequence of `opaque-type` clauses. Each of those is `opaque` followed by a type (that is semantically restricted to an existential).
+The `type` following the `'some'` keyword is semantically restricted to be a class or existential type, meaning it must consist only of `Any`, `AnyObject`, protocols, or base classes, possibly composed using `&`.
 
 ### Restrictions on opaque result types
 
@@ -522,7 +521,7 @@ This includes any generic type arguments from outer contexts, e.g.,
 
 ```swift
 extension Array where Element: Comparable {
-  func opaqueSorted() -> some Sequence { /* ... * }
+  func opaqueSorted() -> some Sequence { /* ... */ }
 }
 
 var x = [1, 2, 3]. opaqueSorted()
@@ -563,7 +562,7 @@ The proposed Swift feature is largely based on Rust's `impl Trait` language feat
 
 ## Alternatives considered
 
-The main design question here is the keyword to use to introduce an opaque type
+The main design question here is the keyword to use to introduce an opaque
 return type. This proposal suggests the word `some`, since it has the right connotation by analogy to `Any` which is used to describe dynamically type-erased containers (and has been proposed to be a general way of referring to existential types)--a function that has an opaque return type returns *some* specific type
 that conforms to the given constraints, whereas an existential can contain *any* type dynamically at any point in time. There are nonetheless reasonable objections to this keyword:
 
@@ -686,7 +685,7 @@ extension BidirectionalCollection {
 
 Here, the opaque result type conforms to `MutableCollection` when the `Self` type conforms to `MutableCollection`. This conditional result is independent of whether the opaque result type conforms to `RandomAccessCollection`.
 
-Note that Rust [didn't tackle the issue of conditional constraints](https://github.com/rust-lang/rfcs/blob/master/text/1522-conservative-impl-trait.md#compatibility-with-conditional-trait-bounds) in their design of `impl Trait` types.
+Note that Rust [didn't tackle the issue of conditional constraints](https://github.com/rust-lang/rfcs/blob/master/text/1522-conservative-impl-trait.md#compatibility-with-conditional-trait-bounds) in their initial design of `impl Trait` types.
 
 ### Opaque type aliases
 
@@ -775,9 +774,9 @@ extension Reversed: RandomAccessCollection where Element == Base.Element { }
 
 The conditional conformance must be satisfied by the underlying concrete type (here, `ReversedCollection`), and the extension must be empty: `Reversed` would be the same as `ReversedCollection` at runtime, so one could not add any API to `Reversed` beyond what `ReversedCollection` supports.
 
-### "Opaque" argument types
+### Opaque argument types
 
-The idea of opaque result types could be analogized to argument types, as an alternative shorthand to writing simple generic functions that doesn't require explicit type arguments. [Rust RFC 1951](https://github.com/rust-lang/rfcs/blob/master/text/1951-expand-impl-trait.md) makes the argument for extending `impl Trait` to arguments in Rust. In Swift, this would mean that:
+The idea of opaque result types could be analogized to argument types, as an alternative shorthand to writing simple generic functions without explicit type arguments. [Rust RFC 1951](https://github.com/rust-lang/rfcs/blob/master/text/1951-expand-impl-trait.md) makes the argument for extending `impl Trait` to arguments in Rust. In Swift, this would mean that:
 
 ```swift
 func foo(x: some P) { ... }
