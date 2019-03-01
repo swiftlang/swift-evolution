@@ -348,7 +348,7 @@ func f9() -> some P {
 }
 ```
 
-This requirement is necessary because, even though `f9`'s return value cannot bereached, the return type of `f9` can still be propagated by local type inference
+This requirement is necessary because, even though `f9`'s return value cannot be reached, the return type of `f9` can still be propagated by local type inference
 or generic instantiation in ways that don't require evaluating `f9`, so a type
 for `f9` must be available:
 
