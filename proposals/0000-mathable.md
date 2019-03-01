@@ -172,17 +172,17 @@ provide a similar interface. Doing this correctly requires a building block that
 library doesn't provide (an extra-precise `log` or `log2` that returns a head-tail
 representation of the result); without this building block rounding errors creep in even for
 exact cases:
-```python
->>> from math import log
->>> log(3**20, 3)
-19.999999999999996
-```
-Julia includes a warning about this in their documentation that basically says "Use log2
+
+       >>> from math import log
+       >>> log(3**20, 3)
+       19.999999999999996
+
+   Julia includes a warning about this in their documentation that basically says "Use log2
 or log10 instead if base is 2 or 10". We could take that approach, but base 2 and 10
 cover 99% of uses, so I would rather wait to provide this function until we have time to
 do it correctly.
 
-4. We could have `Mathable` not inherit from `Numeric` and *only* provide the math
+4. We could have `Mathable` not inherit from `Numeric` and *only* provide the elementary function
 implementations (leaving out division and square root). In practice, this would mean that
 generic algorithms would almost always end up needing to be constrained to something
 like `BinaryFloatingPoint & Mathable` or `Numeric & Mathable`. That's not terrible,
@@ -193,6 +193,6 @@ proposal.
 Having them in a separate module helps avoid adding stuff to the global namespace
 unless you're actually using it, which is generally nice, and the precedent from other
 languages is pretty strong here: `#include <cmath>`, `import math`, etc. Having the 
-implementation hooks defined in the standard lib makes them available in modules that
+implementation hooks defined in the standard library makes them available in modules that
 only need them in a few places or want to use them in inlinable functions but don't want
 to have them in the global namespace or re-export them.
