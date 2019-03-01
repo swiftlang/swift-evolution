@@ -671,7 +671,7 @@ extension BidirectionalCollection {
 }
 ```
 
-Here, we add a second return type and `mose` clause that states additional information about the opaque result type (it is a `RandomAccessCollection`) as well as the requirements under which that capability is available (the `where Self: RandomAccessCollection`). One could have many conditional clauses, e.g.,
+Here, we add a second return type and `where` clause that states additional information about the opaque result type (it is a `RandomAccessCollection`) as well as the requirements under which that capability is available (the `where Self: RandomAccessCollection`). One could have many conditional clauses, e.g.,
 
 ```swift
 extension BidirectionalCollection {
