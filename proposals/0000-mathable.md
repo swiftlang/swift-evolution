@@ -83,7 +83,7 @@ public func sin<T>(_ x: T) -> T where T: Mathable {
 
 ### Functions defined on Mathable
 `cos`, `sin`, `tan`, `acos`, `asin`, `atan`, `atan2`, `exp`, `exp2`, `exp10`, `expm1`, `log`, `log2`,
-`log10`, `logp1`, `pow`, `root`, `cosh`, `sinh`, `tanh`, `acosh`, `asinh`, `atanh`, `erf`, `erfc`,
+`log10`, `logp1`, `pow`, `cosh`, `sinh`, `tanh`, `acosh`, `asinh`, `atanh`, `erf`, `erfc`,
 `gamma`, `lgamma`.
 
 Most of these directly shim the C math library equivalents. A few warrant special discussion:
