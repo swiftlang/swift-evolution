@@ -74,7 +74,7 @@ Integer character literals would provide benefits to `String` users. One of the 
 The most straightforward solution is to conform Swift’s integer types to `ExpressibleByUnicodeScalarLiteral`. Due to ABI constraints, it is not currently possible to add this conformance, so we will add the conformance *implementations* to the standard library, and allow users to “enable” to the feature by declaring this conformance in user code.
 
 ```swift 
-extension FixedWidthInteger : ExpressibleByUnicodeScalarLiteral {}
+extension %{UInt8, Int8, ..., UInt, Int} : ExpressibleByUnicodeScalarLiteral {}
 ```
 Once the Swift ABI supports retroactive conformances, this conformance can be declared in the standard library, making it available by default.
 
@@ -174,13 +174,6 @@ extension FixedWidthInteger {
 ```
 
 The default inferred type for all single-quoted literals will be `Character`. This addresses a language pain point where declaring a `Character` requires type context.
-
-```
-typealias UnicodeScalarLiteralType           = Character
-typealias ExtendedGraphemeClusterLiteralType = Character 
-```
-
-This will have no source-level impact, as all double-quoted literals get their default inferred type from the `StringLiteralType` typealias, which currently overshadows `ExtendedGraphemeClusterLiteralType` and `UnicodeScalarLiteralType`. The `UnicodeScalarLiteralType` typealias will remain meaningless, but `ExtendedGraphemeClusterLiteralType` typealias will now be used to infer a default type for single-quoted literals.
 
 ## Source compatibility 
 
