@@ -15,7 +15,9 @@ However, it is also common in programming to need to express values which are in
 
 ## Motivation 
 
-A pain point of using ASCII and unicode integer codepoint values in Swift is they lack a direct literal type. In C, `'a'` is a `uint8_t` literal, equivalent to `97`. Swift has no such equivalent, requiring awkward spellings like `UInt8(ascii: "a")`, or spelling out the values in hex or decimal directly. This harms readability of code, and makes bytestring processing in Swift painful.
+A pain point of using characters in Swift is they lack a first-class literal syntax. Users have to manually coerce string literals to a `Character` or `Unicode.Scalar` type using `as Character` or `as Unicode.Scalar`, respectively. Having the collection share the same syntax as its element also harms code clarity and makes it difficult to tell if a double-quoted literal is being used as a string or character in some cases.
+
+Additional challenges arise when using ASCII scalars in Swift. Swift currently provides no static mechanism to assert that a unicode scalar literal is restricted to the ASCII range, and lacks a readable literal syntax for such values as well. In C, `'a'` is a `uint8_t` literal, equivalent to `97`. Swift has no such equivalent, requiring awkward spellings like `UInt8(ascii: "a")`, or spelling out the values in hex or decimal directly. This harms readability of code, and makes bytestring processing in Swift painful.
 
 ```c
 static char const hexcodes[16] = {
