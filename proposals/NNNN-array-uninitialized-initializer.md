@@ -93,6 +93,32 @@ func stablyPartitioned(by belongsInFirstPartition: (Element) throws -> Bool) ret
 }
 ```
 
+This also facilitates efficient interfacing with C functions. For example,
+suppose you wanted to wrap the function `vDSP_vsadd` in a Swift function that
+returns the result as an array. This function requires you give it an unsafe
+buffer into which it writes results. This is easy to do with an array, but you
+would have to initialize the array with zeroes first. With a function like
+`vDSP_vsadd`, this unnecessary zeroing out would eat into the slight speed edge
+that the function gives you, defeating the point. This can be neatly solved
+by `unsafeUninitializedCapacity`:
+
+```swift
+extension Array where Element == Float {
+  func dspAdd(scalar: Float) -> [Float] {
+    let n = self.count
+    return self.withUnsafeBufferPointer { buf in
+      var scalar = scalar
+      return withUnsafePointer(to: &scalar) { ptr in
+        return Array<Float>(unsafeUninitializedCapacity: n) { rbuf, count in
+          vDSP_vsadd(buf.baseAddress!, 1, ptr, rbuf.baseAddress!, 1, UInt(n))
+          count = n
+        }
+      }
+    }
+  }
+}
+```
+
 ## Detailed design
 
 The new initializer and method are added to both `Array` and `ContiguousArray`.
