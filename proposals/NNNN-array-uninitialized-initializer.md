@@ -50,11 +50,11 @@ storage, and must set the intialized count of the array before exiting.
 
 ```swift
 var myArray = Array<Int>(unsafeUninitializedCapacity: 10) { buffer, initializedCount in
-    for x in 1..<5 {
-        buffer[x] = x
-    }
-    buffer[0] = 10
-    initializedCount = 5
+  for x in 1..<5 {
+    buffer[x] = x
+  }
+  buffer[0] = 10
+  initializedCount = 5
 }
 // myArray == [10, 1, 2, 3, 4]
 ```
@@ -108,11 +108,9 @@ extension Array where Element == Float {
     let n = self.count
     return self.withUnsafeBufferPointer { buf in
       var scalar = scalar
-      return withUnsafePointer(to: &scalar) { ptr in
-        return Array<Float>(unsafeUninitializedCapacity: n) { rbuf, count in
-          vDSP_vsadd(buf.baseAddress!, 1, ptr, rbuf.baseAddress!, 1, UInt(n))
-          count = n
-        }
+      return Array<Float>(unsafeUninitializedCapacity: n) { rbuf, count in
+        vDSP_vsadd(buf.baseAddress!, 1, &scalar, rbuf.baseAddress!, 1, UInt(n))
+        count = n
       }
     }
   }
