@@ -276,8 +276,15 @@ extension Array {
     ) rethrows {
         var buffer = UnsafeMutableBufferPointer<Element>
             .allocate(capacity: unsafeUninitializedCapacity)
+        defer { buffer.deallocate() }
+        
         var count = 0
-        try initializer(&buffer, &count)
+        do {
+            try initializer(&buffer, &count)
+        } catch {
+            buffer.baseAddress!.deinitialize(count: count)
+            throw error
+        }
         self = Array(buffer[0..<count])
     }
 }
