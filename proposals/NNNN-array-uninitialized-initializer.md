@@ -11,7 +11,7 @@
 ## Introduction
 
 This proposal suggests a new initializer for `Array` and `ContiguousArray`
-that provide access to an array's uninitialized storage buffer.
+that provides access to an array's uninitialized storage buffer.
 
 Swift-evolution thread: [https://forums.swift.org/t/array-initializer-with-access-to-uninitialized-buffer/13689](https://forums.swift.org/t/array-initializer-with-access-to-uninitialized-buffer/13689)
 
@@ -27,7 +27,7 @@ For example, one O(*n*) algorithm for performing a stable partition of an array 
 3. When finished iterating, reverse the slice of non-matching elements.
 
 Unfortunately, the standard library provides no way to create an array of a
-particular size without allocating and initializing every element. Even if we
+particular size without initializing every element. Even if we
 avoid initialization by manually allocating the memory using an
 `UnsafeMutableBufferPointer`, there's no way to convert that buffer into an
 array without copying the contents. There simply isn't a way to implement this
@@ -40,7 +40,7 @@ from an unsafe mutable buffer into an array after calling.
 
 ## Proposed solution
 
-Adding a new `Array` initializer that lets a program work with an uninitialized
+Add a new `Array` initializer that lets a program work with an uninitialized
 buffer.
 
 The new initializer takes a closure that operates on an
@@ -50,11 +50,11 @@ storage, and must set the intialized count of the array before exiting.
 
 ```swift
 var myArray = Array<Int>(unsafeUninitializedCapacity: 10) { buffer, initializedCount in
-  for x in 1..<5 {
-    buffer[x] = x
-  }
-  buffer[0] = 10
-  initializedCount = 5
+    for x in 1..<5 {
+        buffer[x] = x
+    }
+    buffer[0] = 10
+    initializedCount = 5
 }
 // myArray == [10, 1, 2, 3, 4]
 ```
@@ -100,26 +100,26 @@ buffer into which it writes results. This is easy to do with an array, but you
 would have to initialize the array with zeroes first. With a function like
 `vDSP_vsadd`, this unnecessary zeroing out would eat into the slight speed edge
 that the function gives you, defeating the point. This can be neatly solved
-by `unsafeUninitializedCapacity`:
+by using the proposed initializer:
 
 ```swift
 extension Array where Element == Float {
-  func dspAdd(scalar: Float) -> [Float] {
-    let n = self.count
-    return self.withUnsafeBufferPointer { buf in
-      var scalar = scalar
-      return Array<Float>(unsafeUninitializedCapacity: n) { rbuf, count in
-        vDSP_vsadd(buf.baseAddress!, 1, &scalar, rbuf.baseAddress!, 1, UInt(n))
-        count = n
-      }
+    func dspAdd(scalar: Float) -> [Float] {
+        let n = self.count
+        return self.withUnsafeBufferPointer { buf in
+            var scalar = scalar
+            return Array<Float>(unsafeUninitializedCapacity: n) { rbuf, count in
+                vDSP_vsadd(buf.baseAddress!, 1, &scalar, rbuf.baseAddress!, 1, UInt(n))
+                count = n
+            }
+        }
     }
-  }
 }
 ```
 
 ## Detailed design
 
-The new initializer and method are added to both `Array` and `ContiguousArray`.
+The new initializer is added to both `Array` and `ContiguousArray`.
 
 ```swift
 /// Creates an array with the specified capacity, then calls the given closure
@@ -128,7 +128,8 @@ The new initializer and method are added to both `Array` and `ContiguousArray`.
 /// The closure must set its second parameter to a number `c`, the number 
 /// of elements that are initialized. The memory in the range `buffer[0..<c]`  
 /// must be initialized at the end of the closure's execution, and the memory 
-/// in the range `buffer[c...]` must be uninitialized.
+/// in the range `buffer[c...]` must be uninitialized. This postcondition
+/// must hold even if the `initializer` closure throws an error.
 ///
 /// - Note: While the resulting array may have a capacity larger than the
 ///   requested amount, the buffer passed to the closure will cover exactly
@@ -141,7 +142,7 @@ The new initializer and method are added to both `Array` and `ContiguousArray`.
 ///     the new array.
 ///     - Parameters:
 ///       - buffer: A buffer covering uninitialized memory with room
-///         for the specified number of of elements.
+///         for the specified number of elements.
 ///       - initializedCount: The count of the array's initialized elements.
 ///         After initializing any elements inside `initializer`, update 
 ///         `initializedCount` with the new count for the array.
@@ -158,8 +159,7 @@ public init(
 
 The initializer takes the specific capacity that a user wants to work with as a
 parameter. The buffer passed to the closure has a count that is exactly the
-same as the specified capacity, even if the ultimate capacity of the new or
-existing array is larger.
+same as the specified capacity, even if the ultimate capacity of the new array is larger.
 
 ### Guarantees after throwing
 
@@ -168,8 +168,8 @@ value at the time an error is thrown is assumed to be correct. This means that
 a user who needs to throw from inside the closure has one of two options.
 Before throwing, they must:
 
-1. deinitialize any newly initialized instances or re-initialize any deinitialized instances, or
-2. update `initializedCount` to the new count.
+1. deinitialize any newly initialized instances, or
+2. update `initializedCount` to the correct count.
 
 In either case, the postconditions that `buffer[0..<initializedCount]` are
 initialized and `buffer[initializedCount...]` are deinitialized still hold.
@@ -218,7 +218,7 @@ so there is no effect on source compatibility.
 
 ## Effect on ABI stability
 
-These methods will need to be gated by OS versions on platforms that ship
+These initializers will need to be gated by OS versions on platforms that ship
 the standard library in the OS.
 
 ## Effect on API resilience
