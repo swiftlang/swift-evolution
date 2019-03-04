@@ -1,6 +1,6 @@
 # Integer-convertible character literals
 
-* Proposal: SE-0240
+* Proposal: [SE-0243]()
 * Authors: [Kelvin Ma](https://github.com/kelvin13) ([@*taylorswift*](https://forums.swift.org/u/taylorswift/summary)), [Chris Lattner](https://github.com/lattner) ([@*Chris_Lattner3*](https://forums.swift.org/u/Chris_Lattner3/summary)), [John Holdsworth](https://github.com/johnno1962) ([@*johnno1962*](https://forums.swift.org/u/johnno1962/summary))
 * Review manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: *Active review (March 4 - March 12, 2019)*
