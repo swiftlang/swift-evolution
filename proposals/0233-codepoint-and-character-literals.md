@@ -2,8 +2,8 @@
 
 * Proposal: SE-0240
 * Authors: [Kelvin Ma](https://github.com/kelvin13) ([@*taylorswift*](https://forums.swift.org/u/taylorswift/summary)), [Chris Lattner](https://github.com/lattner) ([@*Chris_Lattner3*](https://forums.swift.org/u/Chris_Lattner3/summary)), [John Holdsworth](https://github.com/johnno1962) ([@*johnno1962*](https://forums.swift.org/u/johnno1962/summary))
-* Review manager: 
-* Status: *Awaiting review*
+* Review manager: [Ben Cohen](https://github.com/airspeedswift)
+* Status: *Active review (March 4 - March 12, 2019)*
 * Implementation: [apple/swift#21873](https://github.com/apple/swift/pull/21873)
 * Threads: [1](https://forums.swift.org/t/prepitch-character-integer-literals/10442)
 
@@ -73,10 +73,10 @@ Integer character literals would provide benefits to `String` users. One of the 
 
 ## Proposed solution 
 
-The most straightforward solution is to conform Swift’s integer types to `ExpressibleByUnicodeScalarLiteral`. Due to ABI constraints, it is not currently possible to add this conformance, so we will add the conformance *implementations* to the standard library, and allow users to “enable” to the feature by declaring this conformance in user code.
+The most straightforward solution is to conform Swift’s integer types to `ExpressibleByUnicodeScalarLiteral`. Due to ABI constraints, it is not currently possible to add this conformance, so we will add the conformance *implementations* to the standard library, and allow users to “enable” to the feature by declaring this conformance in user code, for example:
 
 ```swift 
-extension %{UInt8, Int8, ..., UInt, Int} : ExpressibleByUnicodeScalarLiteral {}
+extension Int8: ExpressibleByUnicodeScalarLiteral { }
 ```
 Once the Swift ABI supports retroactive conformances, this conformance can be declared in the standard library, making it available by default.
 
