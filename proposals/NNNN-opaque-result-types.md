@@ -51,41 +51,78 @@ extension LazyMapCollection {
 
 This is less verbose, but requires the introduction of a new, public type solely to describe the result of this function, increasing the surface area of the standard library and requiring a nontrivial amount of implementation.
 
-Opaque result types allow the function to state the capabilities of its result type without tying it down to a concrete type. For example, `compactMap(_:)` would state that its result type is "some `Collection`". The implementation could return the original method chain:
+Other libraries may want to provide libraries of composable generic components in a similar manner.
+A graphics library could provide primitives for shapes:
 
 ```swift
-extension LazyMapCollection {
-  public func compactMap<ElementOfResult>(
-                _ transform: @escaping (Element) -> ElementOfResult?
-              )
-      -> some Collection {
-    return self.map(transform).filter { $0 != nil }.map { $0! }
+protocol Shape {
+  func draw(to: Surface)
+
+  func collides<Other: Shape>(with: Other) -> Bool
+}
+
+struct Rectangle: Shape { ... }
+struct Circle: Shape { ... }
+```
+
+along with composable transformations to combine and modify primitive shapes:
+
+```swift
+struct Union<A: Shape, B: Shape>: Shape {
+  var a: A, b: B
+  ...
+}
+
+struct Intersect<A: Shape, B: Shape>: Shape {
+  var a: A, b: B
+  ...
+}
+
+struct Transformed<S: Shape>: Shape {
+  var shape: S
+  var transform: Matrix3x3
+  ...
+}
+```
+
+One could compose these transformations by using the existential type `Shape` instead of generic arguments, but doing so would imply more dynamism and runtime overhead than may be desired. By composing generic containers, generic specialization can optimize together the composed operations like it does for `lazy` collections. A game or graphics app may want to define objects in terms of their shapes:
+
+```
+protocol GameObject {
+  // The shape of the object
+  associatedtype Shape: Shapes.Shape
+
+  var shape: Shape { get }
+}
+```
+
+However, this means that implementers of the `GameObject` protocol would now be burdened with writing out long, explicit types for their shapes:
+
+```
+struct EightPointedStar: GameObject {
+  var shape: Union<Rectangle, Transformed<Rectangle>> {
+    return Union(Rectangle(), Transformed(Rectangle(), by: .fortyFiveDegrees)
   }
 }
 ```
 
-or a custom *potentially `private`* type:
+Opaque result types allow the method to state the capabilities of its result type without tying it down to a concrete type. For example, the above could instead be written:
 
 ```swift
-private struct LazyCompactMapCollection<Base: Collection, Element> { ... }
-
-extension LazyMapCollection {
-  public func compactMap<ElementOfResult>(
-                _ transform: @escaping (Element) -> ElementOfResult?
-              )
-      -> some Collection {
-    return LazyCompactMapCollection<Base, ElementOfResult>(/*...*/)
+struct EightPointedStar: GameObject {
+  var shape: some Shape {
+    return Union(Rectangle(), Transformed(Rectangle(), by: .fortyFiveDegrees)
   }
 }
 ```
 
-Either way, clients only know that they are getting some `Collection`. The underlying concrete type is hidden, and can even change from one version of the library to the next without breaking those clients, because the actual type identity was never exposed. This allows us to provide potentially-more-efficient implementations without expanding the surface area of the library.
+to declare that an `EightPointedStar` has some `Shape` without having to specify exactly what shape thatis. The underlying concrete type is hidden, and can even change from one version of the library to the next without breaking those clients, because the actual type identity was never exposed. This allows the library to provide a potentially-more-efficient design without expanding the surface area of the library or burdening implementors of the library's protocols with impractical type compositions.
 
 Swift-evolution thread: [Opaque result types](https://forums.swift.org/t/opaque-result-types/15645)
 
 ## Proposed solution
 
-This proposal introduces syntax that can be used to describe an opaque result type for a function. Instead of specifying a specific return type, a function can declare that it returns `some` type that satisfies a set of constraints, such as protocol requirements. This `some` specifier can only be used in the result type of a function, the type of a property, or the element type of a subscript declaration. The return type is backed by some specific concrete type, but that type is only known to the implementation of that function/property/subscript. Everywhere else, the type is opaque, and is described only by its characteristics and originating function/property/subscript. For example:
+This proposal introduces syntax that can be used to describe an opaque result type for a function. Instead of specifying a specific return type, a function can declare that it returns `some` type that satisfies a set of constraints, such as protocol requirements. This `some` specifier can only be used in the result type of a function, the type of a property, or the element type of a subscript declaration. The return type is backed by some specific concrete type, but that type is only known to the implementation of that function/property/subscript. Everywhere else, the type is opaque, and is described only by its characteristics and originating function/property/subscript. For example, a function can declare that it produces something that's a `MutableCollection` and `RangeReplaceableCollection`:
 
 ```swift
 func makeMeACollection<T>(with element: T)
@@ -95,7 +132,7 @@ func makeMeACollection<T>(with element: T)
 }
 ```
 
-Following the `some` keyword is a class, protocol, `AnyObject`, or composition thereof (joined with `&`). A caller to `makeMeACollection(_:)` can rely on the result type satisfying all of the requirements listed. For example:
+Following the `some` keyword is a class, protocol, `Any`, `AnyObject`, or composition thereof (joined with `&`). A caller to `makeMeACollection(_:)` can rely on the result type satisfying all of the requirements listed. For example:
 
 ```swift
 var c = makeMeACollection(with: 17)
@@ -115,133 +152,6 @@ cc.append(c) // ok: cc's Element == the result type of makeMeACollection
 var c2 = makeMeACollection(with: 38)
 cc.append(c2)        // ok: Element == the result type of makeMeACollection
 ```
-
-### Opaque result types vs. existentials
-On the surface, opaque result types are quite similar to (generalized) existential types: in each case, the specific concrete type is unknown to the static type system, and can be manipulated only through the stated capabilities (e.g., protocol and superclass constraints). There are some similarities between the two features for code where the identity of the return type does not matter. For example:
-
-```swift
-protocol P
-  func foo()
-}
-
-func anyP() -> P { /* ... */ }
-func someP() -> some P { /* ... */ }
-
-anyP().foo()   // ok
-someP().foo()   // ok
-```
-
-However, the fundamental difference between opaque result types and existentials revolves around type identity. All instances of an opaque result type are guaranteed to have the same type at run time, whereas different instances of an existential type may have different types at run time. It is this aspect of existential types that makes their use so limited in Swift. For example, consider a function that takes two values of (existential) type `Equatable` and tries to compare them:
-
-```swift
-protocol Equatable {
-  static func ==(lhs: Self, rhs: Self) -> Bool
-}
-
-func isEqual(_ x: Equatable, y: Equatable) -> Bool {
-  return x == y
-}
-```
-
-The `==` operator is meant to take two values of the same type and compare them. It's clear how that could work for a call like `isEqual(1, 2)`, because both `x` and `y` store values of type `Int`.
-
-But what about a call `isEqual(1, "one")`? Both `Int` and `String` are `Equatable`, so the call to `isEqual` should be well-formed. However, how would the evaluation of `==` work? There is no operator `==` that works with an `Int` on the left and a `String` on the right, so it would fail at run-time with a type mismatch.
-
-Swift rejects the example with the following diagnostic:
-
-```
-error: protocol 'Equatable' can only be used as a generic constraint because it has Self or associated type requirements
-```
-
-The generalized existentials proposal dedicates quite a bit of its design space to [ways to check whether two instances of existential type contain the same type at runtime](https://github.com/austinzheng/swift-evolution/blob/az-existentials/proposals/XXXX-enhanced-existentials.md#real-types-to-existentials-associated-types) to cope with this aspect of existential types. Generalized existentials can make it *possible* to cope with values of `Equatable` type, but it can't make it easy. The following is a correct implementation of `isEqual` using generalized existentials:
-
-```swift
-func isEqual(_ x: Equatable, y: Equatable) -> Bool {
-  if let yAsX = y as? x.Self {
-    return x == yAsX
-  }
-  
-  if let xAsY = x as? y.Self {
-    return xAsY == y
-  }
-  
-  return false
-}
-```
-
-Note that the user must explicitly cope with the potential for run-time type mismatches, because the Swift language will not implicitly defer type checking to run time.
-
-Existentials also interact poorly with generics, because a value of existential type does not conform to its own protocol. For example:
-
-```swift
-protocol P { }
-
-func acceptP<T: P>(_: T) { }
-func provideP(_ p: P) {
-  acceptP(p) //  error: protocol type 'P' cannot conform to 'P' because only 
-             // concrete types can conform to protocols
-}
-```
-
-[Hamish](https://stackoverflow.com/users/2976878/hamish) provides a [complete explanation on StackOverflow](https://stackoverflow.com/questions/33112559/protocol-doesnt-conform-to-itself) as to why an existential of type `P` does not conform to the protocol `P`. The following example from that answer demonstrates the point with an initializer requirement:
-
-```swift
-protocol P {
-  init()
-}
-
-struct S: P {}
-struct S1: P {}
-
-extension Array where Element: P {
-  mutating func appendNew() {
-    // If Element is P, we cannot possibly construct a new instance of it, as you cannot
-    // construct an instance of a protocol.
-    append(Element())
-  }
-}
-
-var arr: [P] = [S(), S1()]
-
-// error: Using 'P' as a concrete type conforming to protocol 'P' is not supported
-arr.appendNew()
-```
-
-Hamish notes that:
-
-> We cannot possibly call `appendNew()` on a `[P]`, because `P` (the `Element`) is not a concrete type and therefore cannot be instantiated. It must be called on an array with concrete-typed elements, where that type conforms to `P`.
-
-The major limitations that Swift places on existentials are, fundamentally, because different instances of existential type may have different types at run time. Generalized existentials can lift some restrictions (e.g., they can allow values of type `Equatable` or `Collection` to exist), but they cannot make the potential for run-time type conflicts disappear without weakening the type-safety guarantees provided by the language (e.g., `x == y` for `Equatable` `x` and `y` will still be an error) nor make existentials as powerful as concrete types (existentials still won't conform to their own protocols).
-
-Opaque result types have none of these limitations, because an opaque result type is a name for some fixed-but-hidden concrete type. If a function returns `some Equatable` result type, one can compare the results of successive calls to the function with `==`:
-
-```swift
-func getEquatable() -> some Equatable {
-  return Int.random(in: 0..<10)
-}
-
-let x = getEquatable()
-let y = getEquatable()
-if x == y {           // ok: calls to getEquatable() always return values of the same type
-  print("Bingo!")
-}
-```
-
-Opaque result types *do* conform to the protocols they name, because opaque result types are another name for some concrete type that is guaranteed to conform to those protocols. For example:
-
-```swift
-func isEqualGeneric<T: Equatable>(_ lhs: T, _ rhs: T) -> Bool {
-  return lhs == rhs
-}
-
-let x = getEquatable()
-let y = getEquatable()
-if isEqual(x, y) {           // ok: the opaque result of getEquatable() conforms to Equatable
-  print("Bingo!")
-}
-```
-
-(Generalized) existentials are well-suited for use in heterogeneous collections, or other places where one expects the run-time types of values to vary and there is little need to compare two different values of existential type. However, they don't fit the use cases outlined for opaque result types, which require the types that result from calls to compose well with generics and provide the same capabilities as a concrete type.
 
 ### Type identity
 An opaque result type is not considered equivalent to its underlying type by the static type system:
@@ -370,11 +280,11 @@ func f9b() -> some P {
 
 ### Properties and subscripts
 
-Opaque result types can be used with properties and subscripts. For example, the `lazy` property of a collection could have an opaque result type:
+Opaque result types can also be used with properties and subscripts:
 
 ```swift
-extension Collection {
-  var lazy: some Collection { ... }
+struct GameObject {
+  var shape: some Shape { ... }
 }
 ```
 
@@ -403,7 +313,7 @@ import A
 someP.flip()  // ok: flip is a mutating function called on a variable
 ```
 
-With a subscript or a computed property, the type of the value provided to the setting (e.g., `newValue`) is determined by the `return` statements in the getter, so the type is consistent and known only to the implementation of the property or subscript. For example:
+With a subscript or a computed property, the type of the value provided to the setter (e.g., `newValue`) is determined by the `return` statements in the getter, so the type is consistent and known only to the implementation of the property or subscript. For example:
 
 ```swift
 protocol P { }
@@ -430,7 +340,7 @@ var vendor = Vendor()
 vendor[0] = vendor[2] // ok: can move elements around
 ```
 
-### "Naming" the opaque result type by associated type inference
+### Associated type inference
 While one can use type inference to declare variables of the opaque result type of a function, there is no direct way to name the opaque result type:
 
 ```swift
@@ -439,23 +349,19 @@ func f1() -> some P { /* ... */ }
 let vf1 = f1()    // type of vf1 is the opaque result type of f1()
 ```
 
-However, the type inference used to satisfy associated type requirements can be used to give a name to the opaque result type. For example:
+However, the type inference used to satisfy associated type requirements can deduce an opaque result type as the associated type of the protocol:
 
 ```swift
-protocol P { }
+protocol GameObject {
+  associatedtype ObjectShape: Shape
 
-protocol Q {
-  associatedtype SomeType: P
-  
-  func someValue() -> SomeType
+  var shape: ObjectShape
 }
 
-struct S: Q {
-  func someValue() -> some P {
-    /* ... */
-  }
+struct Player: GameObject {
+  var shape: some Shape { ... }
   
-  /* infers typealias SomeType = opaque result type of S.someValue() */
+  /* infers typealias Shape = opaque result type of Player.shape */
 }
 
 let sv: S.SomeType     // ok: names the opaque result type of S.someValue()
@@ -463,6 +369,134 @@ sv = S().someValue()   // ok: returns the same opaque result type
 ```
 
 Note that having a name for the opaque result type still doesn't give information about the underlying concrete type. For example, the only way to create an instance of the type `S.SomeType` is by calling `S.someValue()`.
+
+### Opaque result types vs. existentials
+
+On the surface, opaque result types are quite similar to (generalized) existential types: in each case, the specific concrete type is unknown to the static type system, and can be manipulated only through the stated capabilities (e.g., protocol and superclass constraints). There are some similarities between the two features for code where the identity of the return type does not matter. For example:
+
+```swift
+protocol P
+  func foo()
+}
+
+func anyP() -> P { /* ... */ }
+func someP() -> some P { /* ... */ }
+
+anyP().foo()   // ok
+someP().foo()   // ok
+```
+
+However, the fundamental difference between opaque result types and existentials revolves around type identity. All instances of an opaque result type are guaranteed to have the same type at run time, whereas different instances of an existential type may have different types at run time. It is this aspect of existential types that makes their use so limited in Swift. For example, consider a function that takes two values of (existential) type `Equatable` and tries to compare them:
+
+```swift
+protocol Equatable {
+  static func ==(lhs: Self, rhs: Self) -> Bool
+}
+
+func isEqual(_ x: Equatable, y: Equatable) -> Bool {
+  return x == y
+}
+```
+
+The `==` operator is meant to take two values of the same type and compare them. It's clear how that could work for a call like `isEqual(1, 2)`, because both `x` and `y` store values of type `Int`.
+
+But what about a call `isEqual(1, "one")`? Both `Int` and `String` are `Equatable`, so the call to `isEqual` should be well-formed. However, how would the evaluation of `==` work? There is no operator `==` that works with an `Int` on the left and a `String` on the right, so it would fail at run-time with a type mismatch.
+
+Swift rejects the example with the following diagnostic:
+
+```
+error: protocol 'Equatable' can only be used as a generic constraint because it has Self or associated type requirements
+```
+
+The generalized existentials proposal dedicates quite a bit of its design space to [ways to check whether two instances of existential type contain the same type at runtime](https://github.com/austinzheng/swift-evolution/blob/az-existentials/proposals/XXXX-enhanced-existentials.md#real-types-to-existentials-associated-types) to cope with this aspect of existential types. Generalized existentials can make it *possible* to cope with values of `Equatable` type, but it can't make it easy. The following is a correct implementation of `isEqual` using generalized existentials:
+
+```swift
+func isEqual(_ x: Equatable, y: Equatable) -> Bool {
+  if let yAsX = y as? x.Self {
+    return x == yAsX
+  }
+  
+  if let xAsY = x as? y.Self {
+    return xAsY == y
+  }
+  
+  return false
+}
+```
+
+Note that the user must explicitly cope with the potential for run-time type mismatches, because the Swift language will not implicitly defer type checking to run time.
+
+Existentials also interact poorly with generics, because a value of existential type does not conform to its own protocol. For example:
+
+```swift
+protocol P { }
+
+func acceptP<T: P>(_: T) { }
+func provideP(_ p: P) {
+  acceptP(p) //  error: protocol type 'P' cannot conform to 'P' because only 
+             // concrete types can conform to protocols
+}
+```
+
+[Hamish](https://stackoverflow.com/users/2976878/hamish) provides a [complete explanation on StackOverflow](https://stackoverflow.com/questions/33112559/protocol-doesnt-conform-to-itself) as to why an existential of type `P` does not conform to the protocol `P`. The following example from that answer demonstrates the point with an initializer requirement:
+
+```swift
+protocol P {
+  init()
+}
+
+struct S: P {}
+struct S1: P {}
+
+extension Array where Element: P {
+  mutating func appendNew() {
+    // If Element is P, we cannot possibly construct a new instance of it, as you cannot
+    // construct an instance of a protocol.
+    append(Element())
+  }
+}
+
+var arr: [P] = [S(), S1()]
+
+// error: Using 'P' as a concrete type conforming to protocol 'P' is not supported
+arr.appendNew()
+```
+
+Hamish notes that:
+
+> We cannot possibly call `appendNew()` on a `[P]`, because `P` (the `Element`) is not a concrete type and therefore cannot be instantiated. It must be called on an array with concrete-typed elements, where that type conforms to `P`.
+
+The major limitations that Swift places on existentials are, fundamentally, because different instances of existential type may have different types at run time. Generalized existentials can lift some restrictions (e.g., they can allow values of type `Equatable` or `Collection` to exist), but they cannot make the potential for run-time type conflicts disappear without weakening the type-safety guarantees provided by the language (e.g., `x == y` for `Equatable` `x` and `y` will still be an error) nor make existentials as powerful as concrete types (existentials still won't conform to their own protocols).
+
+Opaque result types have none of these limitations, because an opaque result type is a name for some fixed-but-hidden concrete type. If a function returns `some Equatable` result type, one can compare the results of successive calls to the function with `==`:
+
+```swift
+func getEquatable() -> some Equatable {
+  return Int.random(in: 0..<10)
+}
+
+let x = getEquatable()
+let y = getEquatable()
+if x == y {           // ok: calls to getEquatable() always return values of the same type
+  print("Bingo!")
+}
+```
+
+Opaque result types *do* conform to the protocols they name, because opaque result types are another name for some concrete type that is guaranteed to conform to those protocols. For example:
+
+```swift
+func isEqualGeneric<T: Equatable>(_ lhs: T, _ rhs: T) -> Bool {
+  return lhs == rhs
+}
+
+let x = getEquatable()
+let y = getEquatable()
+if isEqual(x, y) {           // ok: the opaque result of getEquatable() conforms to Equatable
+  print("Bingo!")
+}
+```
+
+(Generalized) existentials are well-suited for use in heterogeneous collections, or other places where one expects the run-time types of values to vary and there is little need to compare two different values of existential type. However, they don't fit the use cases outlined for opaque result types, which require the types that result from calls to compose well with generics and provide the same capabilities as a concrete type.
 
 ## Detailed design
 
@@ -585,7 +619,7 @@ The term "opaque" is also fairly heavily overloaded in the Swift implementation 
 ### `where` constraints on associated types of opaque types
 
 This proposal does not yet provide a syntax for specifying constraints on
-associated types implied by an opaque type's protocol constraints. This is important for the feature to be useful with many standard library protocols such as collections, but is itself a fairly involved language design discussion, so it makes sense to split it out as a separate proposal. Normally in
+associated types implied by an opaque type's protocol constraints. This is important for the feature to be useful with many standard library protocols such as `Collection`, since nearly every use case where someone wants to return `some Collection` would also want to specify the type of the `Element`s in that collection. The design of this feature is itself a fairly involved implementation effort and language design discussion, so it makes sense to split it out as a separate proposal. Normally in
 Swift these constraints are expressed in `where` clauses; however, this is
 not directly possible for opaque types because there is no way to name the
 underlying type. This is similar to the spelling problem for [generalized existentials](https://github.com/austinzheng/swift-evolution/blob/az-existentials/proposals/XXXX-enhanced-existentials.md), and we'd want to find a syntax solution that works well for both. Possibilities include:
