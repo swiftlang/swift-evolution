@@ -103,6 +103,11 @@ Conformances will be added for the following types:
   - to `ContiguousCollection where Base: ContiguousCollection`
   - to `MutableContiguousCollection where Base: MutableContiguousCollection`
 
+Conforming to to `ContiguousCollection` should also provide types with a default
+implementation of `Collection.withContiguousStorageIfAvailable`, via an extension 
+that calls `withUnsafeBufferPointer`. Same for `MutableContiguousCollection` and
+`Collection.withMutableContiguousStorageIfAvailable`.
+
 ## Detailed design
 
 The introduction of these protocols allows an appropriate constraint that would
