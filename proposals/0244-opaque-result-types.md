@@ -1,9 +1,9 @@
 # Opaque Result Types
 
-* Proposal: [SE-NNNN](NNNN-opaque-result-types.md)
+* Proposal: [SE-0244](0244-opaque-result-types.md)
 * Author: [Doug Gregor](https://github.com/DougGregor), [Joe Groff](https://github.com/jckarter)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
+* Status: **In review (March 5 – March 15)**
 * Pull Request: [apple/swift#21137](https://github.com/apple/swift/pull/21137)
 * Toolchain: https://github.com/apple/swift/pull/21137#issuecomment-468118328
 
