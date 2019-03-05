@@ -175,7 +175,7 @@ The following links explore the existing art in other languages. We were inspire
 | `R"(Hello, world!)"` | [C++11](https://en.cppreference.com/w/cpp/language/string_literal) | Yes | No |
 | `r"Hello, world!"` | [D](https://tour.dlang.org/tour/en/basics/alias-strings), [Python](http://wiki.c2.com/?RawStrings) | Yes | No |
 | `r#"Hello, world!"#` | [Rust](https://doc.rust-lang.org/reference/tokens.html#raw-string-literals) | Yes | Would need to drop the opening `r` and maybe change the delimiter from `#`. |
-| `"""hello \' world"""` and `raw"Hello, world!"` | Scala | No/Yes | No |
+| `"""hello \' world"""` and `raw"Hello, world!"` | [Scala](https://www.scala-lang.org/files/archive/spec/2.13/13-syntax-summary.html) | No/Yes | No |
 | ``` `Hello, world!` ``` | [D](https://tour.dlang.org/tour/en/basics/alias-strings), [Go](https://golang.org/ref/spec), \`...\` | No (conflicts with escaped identifiers) | No, needs Rust multiplicity |
 | ``` ``...`` ``` | [Java](http://openjdk.java.net/jeps/326), any number of \` | No (conflicts with escaped identifiers) | Yes |
 
