@@ -18,8 +18,6 @@ Several of the discussions below refer to "C family" languages. This is intended
 
 ## Strings, Characters, and Collection Types
 
- * [Single-quotes `''` for character literals](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151221/003977.html): Swift takes the approach of highly valuing Unicode.  However, there are multiple concepts of a character that could make sense in Unicode, and none is so much more commonly used than the others that it makes sense to privilege them.  We'd rather save single quoted literals for a greater purpose (e.g. non-escaped string literals).
-
  * Make `Array<T>` subscript access return `T?` or `T!` instead of `T`: The current array behavior is [intentional](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/002446.html), as it accurately reflects the fact that out-of-bounds array access is a logic error.  Changing the current behavior would slow `Array` accesses to an unacceptable degree. This topic has come up [multiple](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/002425.html) times before but is very unlikely to be accepted.
 
 ## Control Flow, Closures, Optional Binding, and Error Handling
