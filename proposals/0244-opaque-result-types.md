@@ -616,6 +616,29 @@ The term "opaque" is also fairly heavily overloaded in the Swift implementation 
 
 ## Future Directions
 
+### Opaque types in structural position
+
+This proposal only allows for the entire return type of a declaration to be
+made opaque. It would be reasonable to eventually generalize this to allow
+for opaque types to appear structurally, as part of an optional, array, or
+other generic type:
+
+```
+func collection(or not: Bool) -> (some Collection)? {
+  if not { return nil }
+  return [1, 2, 3]
+}
+```
+
+Furthermore, there could conceivably be multiple opaque parts of a compound
+return type:
+
+```
+func twoCollections() -> (some Collection, some Collection) {
+  return ([1, 2, 3], ["one": 1, "two": 2, "three": 3])
+}
+```
+
 ### `where` constraints on associated types of opaque types
 
 This proposal does not yet provide a syntax for specifying constraints on
