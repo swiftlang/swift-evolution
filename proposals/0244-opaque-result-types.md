@@ -22,29 +22,21 @@ If we want to encapsulate that code in another method, we're going to have to wr
 ```swift
 extension LazyMapCollection {
   public func compactMap<ElementOfResult>(
-                _ transform: @escaping (Elements.Element) -> ElementOfResult?
-              )
-      -> LazyMapSequence<
-           LazyFilterSequence<
-             LazyMapSequence<Elements, ElementOfResult?>
-           >,
-           ElementOfResult
-         > {
+    _ transform: @escaping (Elements.Element) -> ElementOfResult?
+  ) -> LazyMapSequence<LazyFilterSequence<LazyMapSequence<Elements, ElementOfResult?>>, ElementOfResult> {
     return self.map(transform).filter { $0 != nil }.map { $0! }
   }
 }
 ```
 
-The author of `compactMap(_:)` doesn't want to have to figure out that type,
-and the clients of `compactMap(_:)` don't want to have to reason about it. `compactMap(_:)` is the subject of [SE-0222](https://github.com/apple/swift-evolution/blob/master/proposals/0222-lazy-compactmap-sequence.md), which introduces a new standard library type `LazyCompactMapCollection` for the sole purpose of describing the result type of `compactMap(_:)`:
+The author of `compactMap(_:)` doesn't want to have to figure out that type, and the clients of `compactMap(_:)` don't want to have to reason about it. `compactMap(_:)` is the subject of [SE-0222](https://github.com/apple/swift-evolution/blob/master/proposals/0222-lazy-compactmap-sequence.md), which introduces a new standard library type `LazyCompactMapCollection` for the sole purpose of describing the result type of `compactMap(_:)`:
 
 ```swift
 extension LazyMapCollection {
   public func compactMap<ElementOfResult>(
-                _ transform: @escaping (Element) -> ElementOfResult?
-              )
-      -> LazyCompactMapCollection<Base, ElementOfResult> {
-    return LazyCompactMapCollection<Base, ElementOfResult>(/*...*/)
+    _ transform: @escaping (Element) -> ElementOfResult?
+  ) -> LazyCompactMapCollection<Base, ElementOfResult> {
+    return LazyCompactMapCollection<Base, ElementOfResult>(/* ... */)
   }
 }
 ```
@@ -61,8 +53,8 @@ protocol Shape {
   func collides<Other: Shape>(with: Other) -> Bool
 }
 
-struct Rectangle: Shape { ... }
-struct Circle: Shape { ... }
+struct Rectangle: Shape { /* ... */ }
+struct Circle: Shape { /* ... */ }
 ```
 
 along with composable transformations to combine and modify primitive shapes:
@@ -70,24 +62,24 @@ along with composable transformations to combine and modify primitive shapes:
 ```swift
 struct Union<A: Shape, B: Shape>: Shape {
   var a: A, b: B
-  ...
+  // ...
 }
 
 struct Intersect<A: Shape, B: Shape>: Shape {
   var a: A, b: B
-  ...
+  // ...
 }
 
 struct Transformed<S: Shape>: Shape {
   var shape: S
   var transform: Matrix3x3
-  ...
+  // ...
 }
 ```
 
 One could compose these transformations by using the existential type `Shape` instead of generic arguments, but doing so would imply more dynamism and runtime overhead than may be desired. By composing generic containers, generic specialization can optimize together the composed operations like it does for `lazy` collections. A game or graphics app may want to define objects in terms of their shapes:
 
-```
+```swift
 protocol GameObject {
   // The shape of the object
   associatedtype Shape: Shapes.Shape
@@ -98,7 +90,7 @@ protocol GameObject {
 
 However, this means that implementers of the `GameObject` protocol would now be burdened with writing out long, explicit types for their shapes:
 
-```
+```swift
 struct EightPointedStar: GameObject {
   var shape: Union<Rectangle, Transformed<Rectangle>> {
     return Union(Rectangle(), Transformed(Rectangle(), by: .fortyFiveDegrees)
@@ -116,7 +108,7 @@ struct EightPointedStar: GameObject {
 }
 ```
 
-to declare that an `EightPointedStar` has some `Shape` without having to specify exactly what shape thatis. The underlying concrete type is hidden, and can even change from one version of the library to the next without breaking those clients, because the actual type identity was never exposed. This allows the library to provide a potentially-more-efficient design without expanding the surface area of the library or burdening implementors of the library's protocols with impractical type compositions.
+to declare that an `EightPointedStar` has some `Shape` without having to specify exactly what shape that is. The underlying concrete type is hidden, and can even change from one version of the library to the next without breaking those clients, because the actual type identity was never exposed. This allows the library to provide a potentially-more-efficient design without expanding the surface area of the library or burdening implementors of the library's protocols with impractical type compositions.
 
 Swift-evolution thread: [Opaque result types](https://forums.swift.org/t/opaque-result-types/15645)
 
@@ -125,9 +117,7 @@ Swift-evolution thread: [Opaque result types](https://forums.swift.org/t/opaque-
 This proposal introduces syntax that can be used to describe an opaque result type for a function. Instead of specifying a specific return type, a function can declare that it returns `some` type that satisfies a set of constraints, such as protocol requirements. This `some` specifier can only be used in the result type of a function, the type of a property, or the element type of a subscript declaration. The return type is backed by some specific concrete type, but that type is only known to the implementation of that function/property/subscript. Everywhere else, the type is opaque, and is described only by its characteristics and originating function/property/subscript. For example, a function can declare that it produces something that's a `MutableCollection` and `RangeReplaceableCollection`:
 
 ```swift
-func makeMeACollection<T>(with element: T)
-     -> some MutableCollection & RangeReplaceableCollection
-{
+func makeMeACollection<T>(with element: T) -> some MutableCollection & RangeReplaceableCollection {
    return [element] // ok: an array of T satisfies all of the requirements
 }
 ```
@@ -136,12 +126,12 @@ Following the `some` keyword is a class, protocol, `Any`, `AnyObject`, or compos
 
 ```swift
 var c = makeMeACollection(with: 17)
-c.append(c.first!)         // ok: it's a RangeReplaceableCollection
+c.append(c.first!) // ok: it's a RangeReplaceableCollection
 c[c.startIndex] = c.first! // ok: it's a MutableCollection
-print(c.reversed())  // ok: all Collection/Sequence operations are available
+print(c.reversed()) // ok: all Collection/Sequence operations are available
 
 func foo<C: Collection>(_ : C) { }
-foo(c)               // ok: C inferred to opaque result type of makeMeACollection()
+foo(c) // ok: C inferred to opaque result type of makeMeACollection()
 ```
 
 Moreover, opaque result types to be used freely with other generics, e.g., forming a collection of the results:
@@ -150,15 +140,16 @@ Moreover, opaque result types to be used freely with other generics, e.g., formi
 var cc = [c]
 cc.append(c) // ok: cc's Element == the result type of makeMeACollection
 var c2 = makeMeACollection(with: 38)
-cc.append(c2)        // ok: Element == the result type of makeMeACollection
+cc.append(c2) // ok: Element == the result type of makeMeACollection
 ```
 
 ### Type identity
+
 An opaque result type is not considered equivalent to its underlying type by the static type system:
 
 ```swift
 var intArray = [Int]()
-cc.append(intArray)         // error: [Int] is not known to equal the result type of makeMeACollection
+cc.append(intArray) // error: [Int] is not known to equal the result type of makeMeACollection
 ```
 
 However, as with generic type parameters, one can inspect an opaque type's underlying type at runtime. For example, a conditional cast could determine whether the result of `makeMeACollection` is of a particular type:
@@ -173,7 +164,8 @@ if let arr = makeMeACollection(Int.self) as? [Int] {
 
 In other words, opaque result types are only opaque to the static type system. They don't exist at runtime.
 
-### Implementing a function returning an opaque type 
+### Implementing a function returning an opaque type
+
 The implementation of a function returning an opaque type must return a value of the same concrete type `T` from each `return` statement, and `T` must meet all of the constraints stated on the opaque type. For example:
 
 ```swift
@@ -185,33 +177,33 @@ func f1() -> some P {
   return "opaque"
 }
 
-func f2(i: Int) -> some P {   // ok: both returns produce Int
+func f2(i: Int) -> some P { // ok: both returns produce Int
   if i > 10 { return i }
   return 0
 }
 
 func f2(flip: Bool) -> some P {
   if flip { return 17 }
-  return "a string"       // error: different return types Int and String
+  return "a string" // error: different return types Int and String
 }
 
 func f3() -> some P {
-  return 3.1419           // error: Double does not conform to P
+  return 3.1419 // error: Double does not conform to P
 }
 
 func f4() -> some P {
   let p: P = "hello"
-  return p                // error: protocol type P does not conform to P
+  return p // error: protocol type P does not conform to P
 }
 
 func f5() -> some P {
-  return f1()             // ok: f1() returns an opaque type that conforms to P
+  return f1() // ok: f1() returns an opaque type that conforms to P
 }
 
 protocol Initializable { init() }
 
 func f6<T: P & Initializable>(_: T.Type) -> some P {
-  return T()              // ok: T will always be a concrete type conforming to P
+  return T() // ok: T will always be a concrete type conforming to P
 }
 ```
 
@@ -224,7 +216,7 @@ func f7(_ i: Int) -> some P {
   if i == 0 {
     return f7(1) // ok: returning our own opaque result type
   } else if i < 0 {
-    let result: Int = f7(-i)     // error: opaque result type of f7() is not convertible to Int
+    let result: Int = f7(-i) // error: opaque result type of f7() is not convertible to Int
     return result
   } else {
     return 0 // ok: grounds the recursion with a concrete type
@@ -247,8 +239,7 @@ func f8(_ i: Int) -> some P {
 }
 ```
 
-A function with an opaque result type is also required to have a `return`
-statement even if it does not terminate:
+A function with an opaque result type is also required to have a `return` statement even if it does not terminate:
 
 ```swift
 func f9() -> some P {
@@ -258,9 +249,7 @@ func f9() -> some P {
 }
 ```
 
-This requirement is necessary because, even though `f9`'s return value cannot be reached, the return type of `f9` can still be propagated by local type inference
-or generic instantiation in ways that don't require evaluating `f9`, so a type
-for `f9` must be available:
+This requirement is necessary because, even though `f9`'s return value cannot be reached, the return type of `f9` can still be propagated by local type inference or generic instantiation in ways that don't require evaluating `f9`, so a type for `f9` must be available:
 
 ```swift
 let delayedF9 = { f9() } // closure has type () -> return type of f9
@@ -271,7 +260,7 @@ conform to the constraints of the opaque type. If `Never` does conform, and it
 is desired as the underlying return type, that can be written explicitly as a
 `return` statement:
 
-```
+```swift
 extension Never: P {}
 func f9b() -> some P {
   return fatalError("not implemented") // OK, explicitly binds return type to Never
@@ -284,7 +273,7 @@ Opaque result types can also be used with properties and subscripts:
 
 ```swift
 struct GameObject {
-  var shape: some Shape { ... }
+  var shape: some Shape { /* ... */ }
 }
 ```
 
@@ -303,14 +292,14 @@ public protocol P {
 }
 
 private struct Witness: P {
-  mutating func flip() { ... }
+  mutating func flip() { /* ... */ }
 }
 
 public var someP: some P = Witness()
 
 // Module B
 import A
-someP.flip()  // ok: flip is a mutating function called on a variable
+someP.flip() // ok: flip is a mutating function called on a variable
 ```
 
 With a subscript or a computed property, the type of the value provided to the setter (e.g., `newValue`) is determined by the `return` statements in the getter, so the type is consistent and known only to the implementation of the property or subscript. For example:
@@ -320,7 +309,7 @@ protocol P { }
 private struct Impl: P { }
 
 public struct Vendor {
-  private var storage: [Impl] = [...]
+  private var storage: [Impl] = [/* ... */]
 
   public var count: Int {
     return storage.count
@@ -346,7 +335,7 @@ While one can use type inference to declare variables of the opaque result type 
 ```swift
 func f1() -> some P { /* ... */ }
 
-let vf1 = f1()    // type of vf1 is the opaque result type of f1()
+let vf1 = f1() // type of vf1 is the opaque result type of f1()
 ```
 
 However, the type inference used to satisfy associated type requirements can deduce an opaque result type as the associated type of the protocol:
@@ -359,13 +348,13 @@ protocol GameObject {
 }
 
 struct Player: GameObject {
-  var shape: some Shape { ... }
-  
-  /* infers typealias Shape = opaque result type of Player.shape */
+  var shape: some Shape { /* ... */ }
+
+  // infers typealias Shape = opaque result type of Player.shape
 }
 
-let sv: S.SomeType     // ok: names the opaque result type of S.someValue()
-sv = S().someValue()   // ok: returns the same opaque result type
+let pos: Player.ObjectShape // ok: names the opaque result type of S.someValue()
+pos = Player().shape // ok: returns the same opaque result type
 ```
 
 Note that having a name for the opaque result type still doesn't give information about the underlying concrete type. For example, the only way to create an instance of the type `S.SomeType` is by calling `S.someValue()`.
@@ -382,8 +371,8 @@ protocol P
 func anyP() -> P { /* ... */ }
 func someP() -> some P { /* ... */ }
 
-anyP().foo()   // ok
-someP().foo()   // ok
+anyP().foo() // ok
+someP().foo() // ok
 ```
 
 However, the fundamental difference between opaque result types and existentials revolves around type identity. All instances of an opaque result type are guaranteed to have the same type at run time, whereas different instances of an existential type may have different types at run time. It is this aspect of existential types that makes their use so limited in Swift. For example, consider a function that takes two values of (existential) type `Equatable` and tries to compare them:
@@ -415,11 +404,11 @@ func isEqual(_ x: Equatable, y: Equatable) -> Bool {
   if let yAsX = y as? x.Self {
     return x == yAsX
   }
-  
+
   if let xAsY = x as? y.Self {
     return xAsY == y
   }
-  
+
   return false
 }
 ```
@@ -433,7 +422,7 @@ protocol P { }
 
 func acceptP<T: P>(_: T) { }
 func provideP(_ p: P) {
-  acceptP(p) //  error: protocol type 'P' cannot conform to 'P' because only 
+  acceptP(p) // error: protocol type 'P' cannot conform to 'P' because only
              // concrete types can conform to protocols
 }
 ```
@@ -477,7 +466,7 @@ func getEquatable() -> some Equatable {
 
 let x = getEquatable()
 let y = getEquatable()
-if x == y {           // ok: calls to getEquatable() always return values of the same type
+if x == y { // ok: calls to getEquatable() always return values of the same type
   print("Bingo!")
 }
 ```
@@ -491,7 +480,7 @@ func isEqualGeneric<T: Equatable>(_ lhs: T, _ rhs: T) -> Bool {
 
 let x = getEquatable()
 let y = getEquatable()
-if isEqual(x, y) {           // ok: the opaque result of getEquatable() conforms to Equatable
+if isEqual(x, y) { // ok: the opaque result of getEquatable() conforms to Equatable
   print("Bingo!")
 }
 ```
@@ -506,7 +495,7 @@ The grammatical production for opaque result types is straightforward:
 
 ```
 type ::= opaque-type
-     
+
 opaque-type ::= 'some' type
 ```
 
@@ -518,7 +507,7 @@ Opaque result types can only be used as the result type of a function, the type 
 
 ```swift
 func f(flip: Bool) -> (some P)? { // error: `some P` is not the entire return type
-  ...
+  // ...
 }
 ```
 
@@ -526,7 +515,7 @@ Opaque result types cannot be used in the requirements of a protocol:
 
 ```swift
 protocol Q {
-  func f() -> some P        // error: cannot use opaque result type within a protocol
+  func f() -> some P // error: cannot use opaque result type within a protocol
 }
 ```
 
@@ -536,8 +525,8 @@ Similarly to the restriction on protocols, opaque result types cannot be used fo
 
 ```swift
 class C {
-  func f() -> some P { ... }         // error: cannot use opaque result type with a non-final method
-  final func g() -> some P { ... }  // ok
+  func f() -> some P { /* ... */ } // error: cannot use opaque result type with a non-final method
+  final func g() -> some P { /* ... */ } // ok
 }
 ```
 
@@ -548,7 +537,7 @@ Opaque result types are uniqued based on the function/property/subscript and any
 ```swift
 func makeOpaque<T>(_: T.Type) -> some Any { /* ... */ }
 var x = makeOpaque(Int.self)
-x = makeOpaque(Double.self)  // error: "opaque" type from makeOpaque<Double> is distinct from makeOpaque<Int>
+x = makeOpaque(Double.self) // error: "opaque" type from makeOpaque<Double> is distinct from makeOpaque<Int>
 ```
 
 This includes any generic type arguments from outer contexts, e.g.,
@@ -559,7 +548,7 @@ extension Array where Element: Comparable {
 }
 
 var x = [1, 2, 3]. opaqueSorted()
-x = ["a", "b", "c"].opaqueSorted()  // error: opaque result types for [Int].opaqueSorted() and [String].opaqueSorted() differ
+x = ["a", "b", "c"].opaqueSorted() // error: opaque result types for [Int].opaqueSorted() and [String].opaqueSorted() differ
 ```
 
 ### Implementation strategy
@@ -606,10 +595,10 @@ that conforms to the given constraints, whereas an existential can contain *any*
 
 Another obvious candidate is `opaque`, following the title of this very proposal. The word "opaque" is itself an overloaded term with existing meaning in many domains, which is unfortunate:
 
-```
+```swift
 protocol Shape {}
 
-func translucentRectangle() -> opaque Shape { ... }
+func translucentRectangle() -> opaque Shape { /* ... */ }
 ```
 
 The term "opaque" is also fairly heavily overloaded in the Swift implementation (albeit not so much the source-level programming model). It may be that there is a better term, such as "abstract return types", to refer to this feature in its entirety.
@@ -649,7 +638,7 @@ underlying type. This is similar to the spelling problem for [generalized existe
 
 - Allowing a placeholder like `_` to refer to the unnamed opaque type in the where clause:
 
-    ```
+    ```swift
     func foo() -> some Collection where _.Element == Int { ... }
     ```
 
@@ -661,7 +650,7 @@ underlying type. This is similar to the spelling problem for [generalized existe
 
 - Adding a shorthand similar to Rust's `Trait<AssocType = T>` syntax to allow associated constraints to be spelled together with the core protocol type. With opaque types, this could look something like this:
 
-    ```
+    ```swift
     // same type constraint
     func foo() -> some Collection<.Element == Int> { ... }
     // associated type protocol constraint
@@ -686,12 +675,11 @@ extension BidirectionalCollection {
 
 ```swift
 public struct ReversedCollection<C: BidirectionalCollection>: BidirectionalCollection {
-  /* ... */
+  // ...
 }
 
-extension ReversedCollection: RandomAccessCollection
-    where C: RandomAccessCollection {
-  /* ... */
+extension ReversedCollection: RandomAccessCollection where C: RandomAccessCollection {
+  // ...
 }
 ```
 
@@ -700,7 +688,7 @@ What happens if we hid the `ReversedCollection` adapter type behind an opaque re
 ```swift
 extension BidirectionalCollection {
   public func reversed() -> some BidirectionalCollection<.Element == Element> {
-    return ReversedCollection<Self>(...)
+    return ReversedCollection<Self>(/* ... */)
   }
 }
 ```
@@ -710,7 +698,7 @@ Now, clients that call `reversed()` on a `RandomAccessCollection` would get back
 ```swift
 extension RandomAccessCollection {
   public func reversed() -> some RandomAccessCollection<.Element == Element> {
-    return ReversedCollection<Self>(...)
+    return ReversedCollection<Self>(/* ... */)
   }
 }
 ```
@@ -719,10 +707,11 @@ However, doing so is messy, and the client would have no way to know that the ty
 
 ```swift
 extension BidirectionalCollection {
-  public func reversed() 
-      -> some BidirectionalCollection<.Element == Element>
-      -> some RandomAccessCollection where Self: RandomAccessCollection {
-    return ReversedCollection<Self>(...)
+  public func reversed()
+    -> some BidirectionalCollection<.Element == Element>
+    -> some RandomAccessCollection where Self: RandomAccessCollection
+  {
+    return ReversedCollection<Self>(/* ... */)
   }
 }
 ```
@@ -731,11 +720,12 @@ Here, we add a second return type and `where` clause that states additional info
 
 ```swift
 extension BidirectionalCollection {
-  public func reversed() 
-      -> some BidirectionalCollection<.Element == Element>
-      -> some RandomAccessCollection where Self: RandomAccessCollection
-      -> some MutableCollection where Self: MutableCollection {
-    return ReversedCollection<Self>(...)
+  public func reversed()
+    -> some BidirectionalCollection<.Element == Element>
+    -> some RandomAccessCollection where Self: RandomAccessCollection
+    -> some MutableCollection where Self: MutableCollection
+  {
+    return ReversedCollection<Self>(/* ... */)
   }
 }
 ```
@@ -753,12 +743,7 @@ Opaque type aliases would allow us to provide a named type with stated capabilit
 ```swift
 public typealias LazyCompactMapCollection<Elements, ElementOfResult>
   : some Collection<.Element == ElementOfResult>
-  = LazyMapSequence<
-      LazyFilterSequence<
-        LazyMapSequence<Elements, ElementOfResult?>
-      >,
-      ElementOfResult
-    >
+  = LazyMapSequence<LazyFilterSequence<LazyMapSequence<Elements, ElementOfResult?>>, ElementOfResult>
 ```
 
 In this strawman syntax, the opaque result type following the `:` is how clients see `LazyCompactMapCollection`. The underlying concrete type, spelled after the `=`, is visible only to the implementation (see below for more details).
@@ -767,13 +752,13 @@ With this feature, multiple APIs could be described as returning a `LazyCompactM
 
 ```swift
 extension LazyMapCollection {
-	public func compactMap<U>(_ transform: @escaping (Element) -> U?) -> LazyCompactMapCollection<Base, U> {
-	  // ...
-	}
+  public func compactMap<U>(_ transform: @escaping (Element) -> U?) -> LazyCompactMapCollection<Base, U> {
+    // ...
+ }
 
-	public func filter(_ isIncluded: @escaping (Element) -> Bool) -> LazyCompactMapCollection<Base, Element> {
-	  // ...
-	}
+  public func filter(_ isIncluded: @escaping (Element) -> Bool) -> LazyCompactMapCollection<Base, Element> {
+    // ...
+  }
 }
 ```
 
@@ -836,13 +821,13 @@ The conditional conformance must be satisfied by the underlying concrete type (h
 The idea of opaque result types could be analogized to argument types, as an alternative shorthand to writing simple generic functions without explicit type arguments. [Rust RFC 1951](https://github.com/rust-lang/rfcs/blob/master/text/1951-expand-impl-trait.md) makes the argument for extending `impl Trait` to arguments in Rust. In Swift, this would mean that:
 
 ```swift
-func foo(x: some P) { ... }
+func foo(x: some P) { /* ... */ }
 ```
 
 would be sugar for:
 
 ```swift
-func foo<T: P>(x: T) { ... }
+func foo<T: P>(x: T) { /* ... */ }
 ```
 
 And a more involved example like this:
@@ -851,9 +836,7 @@ And a more involved example like this:
 func concatenate<C: Collection, D: Collection>(
   _ x: C,
   _ y: D
-) -> some Collection<.Element == C.Element>
-  where C.Element == D.Element
-{
+) -> some Collection<.Element == C.Element> where C.Element == D.Element {
   return LazyConcat(x, y)
 }
 ```
@@ -861,9 +844,10 @@ func concatenate<C: Collection, D: Collection>(
 could be simplified to:
 
 ```swift
-func concatenate<E>(_ x: some Collection<.Element == E>,
-                    _ y: some Collection<.Element == E>)
-  -> some Collection<.Element == E> {
+func concatenate<E>(
+  _ x: some Collection<.Element == E>,
+  _ y: some Collection<.Element == E>
+) -> some Collection<.Element == E> {
   return LazyConcat(x, y)
 }
 ```
