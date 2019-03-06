@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status: **Awaiting review**
 * Previous Proposal: [SE-0223](https://github.com/apple/swift-evolution/blob/master/proposals/0223-array-uninitialized-initializer.md)
-* Implementation: [apple/swift#17389](https://github.com/apple/swift/pull/17389) (needs updating)
+* Implementation: [apple/swift#23134](https://github.com/apple/swift/pull/23134) (needs updating)
 * Bug: [SR-3087](https://bugs.swift.org/browse/SR-3087)
 
 ## Introduction
