@@ -37,8 +37,7 @@ This functionality existed internally as helpers and is generally useful (even i
 
 extension Unicode.ASCII {
   /// Returns whether the given code unit represents an ASCII scalar
-  @_alwaysEmitIntoClient
-  public static func isASCII(_ x: CodeUnit) -> Bool { ... }
+  public static func isASCII(_ x: CodeUnit) -> Bool
 }
 
 extension Unicode.UTF8 {
@@ -64,29 +63,24 @@ extension Unicode.UTF8 {
   ///
   /// - Parameter x: A Unicode scalar value.
   /// - Returns: The width of `x` when encoded in UTF-8, from `1` to `4`.
-  @_alwaysEmitIntoClient
-  public static func width(_ x: Unicode.Scalar) -> Int { ... }
+  public static func width(_ x: Unicode.Scalar) -> Int
 
   /// Returns whether the given code unit represents an ASCII scalar
-  @_alwaysEmitIntoClient
-  public static func isASCII(_ x: CodeUnit) -> Bool { ... }
+  public static func isASCII(_ x: CodeUnit) -> Bool
 }
 
 extension Unicode.UTF16 {
   /// Returns a Boolean value indicating whether the specified code unit is a
   /// high or low surrogate code unit.
-  @_alwaysEmitIntoClient
-  public static func isSurrogate(_ x: CodeUnit) -> Bool { ... }
+  public static func isSurrogate(_ x: CodeUnit) -> Bool
 
   /// Returns whether the given code unit represents an ASCII scalar
-  @_alwaysEmitIntoClient
-  public static func isASCII(_ x: CodeUnit) -> Bool { ... }
+  public static func isASCII(_ x: CodeUnit) -> Bool
 }
 
 extension Unicode.UTF32 {
   /// Returns whether the given code unit represents an ASCII scalar
-  @_alwaysEmitIntoClient
-  public static func isASCII(_ x: CodeUnit) -> Bool { ... }
+  public static func isASCII(_ x: CodeUnit) -> Bool
 }
 
 ```
@@ -135,15 +129,13 @@ extension String.Index {
   ///     `sourcePosition` must be a valid index of at least one of the views
   ///     of `target`.
   ///   - target: The string referenced by the resulting index.
-  @available(macOS 9999, iOS 9999, tvOS 9999, watchOS 9999, *)
   public init?<S: StringProtocol>(
     _ sourcePosition: String.Index, within target: S
-  ) { ... }
+  )
 }
 
 extension Range where Bound == String.Index {
-  @available(macOS 9999, iOS 9999, tvOS 9999, watchOS 9999, *)
-    public init?<S: StringProtocol>(_ range: NSRange, in string: __shared S) { ... }
+    public init?<S: StringProtocol>(_ range: NSRange, in string: __shared S)
 }
 ```
 
@@ -154,8 +146,7 @@ Slice, the default SubSequence type, provides `base` for accessing the original 
 ```swift
 extension Substring {
   /// Returns the underlying string from which this Substring was derived.
-  @_alwaysEmitIntoClient
-  public var base: String { return _slice.base }
+  public var base: String { get }
 }
 
 ```
@@ -172,16 +163,14 @@ extension Character {
   public typealias UTF8View = String.UTF8View
 
   /// A UTF-8 encoding of `self`.
-  @inlinable
-  public var utf8: UTF8View { ... }
+  public var utf8: UTF8View { get }
 
   /// A view of a character's contents as a collection of UTF-16 code units. See
   /// String.UTF16View for more information
   public typealias UTF16View = String.UTF16View
 
   /// A UTF-16 encoding of `self`.
-  @inlinable
-  public var utf16: UTF16View { ... }
+  public var utf16: UTF16View { get }
 }
 ```
 
@@ -192,42 +181,32 @@ Unicode.Scalar has a UTF16View with is a RandomAccessCollection, but not a UTF8V
 
 ```swift
 extension Unicode.Scalar {
-  @available(macOS 9999, iOS 9999, tvOS 9999, watchOS 9999, *)
-  @_fixed_layout
   public struct UTF8View {
-    @inlinable
-    internal init(value: Unicode.Scalar) { ... }
-    @usableFromInline
+    internal init(value: Unicode.Scalar)
     internal var value: Unicode.Scalar
   }
 
-  @available(macOS 9999, iOS 9999, tvOS 9999, watchOS 9999, *)
-  @inlinable
-  public var utf8: UTF8View { ... }
+  public var utf8: UTF8View { get }
 }
 
-@available(macOS 9999, iOS 9999, tvOS 9999, watchOS 9999, *)
 extension Unicode.Scalar.UTF8View : RandomAccessCollection {
   public typealias Indices = Range<Int>
 
   /// The position of the first code unit.
-  @inlinable
-  public var startIndex: Int { ... }
+  public var startIndex: Int { get }
 
   /// The "past the end" position---that is, the position one
   /// greater than the last valid subscript argument.
   ///
   /// If the collection is empty, `endIndex` is equal to `startIndex`.
-  @inlinable
-  public var endIndex: Int { ... }
+  public var endIndex: Int { get }
 
   /// Accesses the code unit at the specified position.
   ///
   /// - Parameter position: The position of the element to access. `position`
   ///   must be a valid index of the collection that is not equal to the
   ///   `endIndex` property.
-  @inlinable
-  public subscript(position: Int) -> UTF8.CodeUnit { ... }
+  public subscript(position: Int) -> UTF8.CodeUnit
 }
 ```
 
@@ -241,10 +220,10 @@ All changes are additive. ABI-relevant attributes are provided in “Detailed de
 
 ## Effect on API resilience
 
-* Unicode encoding changes and `Substring.base` are trivial and can never change in definition, so they are `@_alwaysEmitIntoClient` for back-deployment.
+* Unicode encoding additions and `Substring.base` are trivial and can never change in definition, so their implementations are exposed.
 * `String.Index` initializers are resilient and versioned.
-* Character’s views already exist as inlinable in 5.0 ABI, we just replace `internal` with `public`
-* Unicode.Scalar.UTF8View is fully non-resilient (for performance), but is versioned
+* Character’s views already exist as inlinable in 5.0, we just replace `internal` with `public`
+* Unicode.Scalar.UTF8View's implementation is fully exposed (for performance), but is versioned
 
 ## Alternatives considered
 
