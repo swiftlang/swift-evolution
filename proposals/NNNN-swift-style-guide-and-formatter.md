@@ -3,7 +3,7 @@
 * Proposal: [SE-NNNN](NNNN-swift-style-guide-and-formatter.md)
 * Authors: [Tony Allevato](https://github.com/allevato), [Dave Abrahams](https://github.com/dabrahams)
 * Review Manager: TBD
-* Status: **Awaiting discussion**
+* Status: **Awaiting review**
 
 ## Introduction
 
@@ -65,8 +65,13 @@ question:
 > Should the Swift language adopt a set of code style guidelines
 > and a formatting tool?
 
-If the answer to this is "yes", then a **subsequent proposal**
-will be pitched to discuss and ratify those guidelines.
+If the answer to this is "yes", then **subsequent proposals**
+will be pitched to discuss and ratify those guidelines. In order
+to keep those discussions scoped and focused, we plan to present
+proposed guidelines to the community in multiple phases with each
+centered around a particular theme, such as (but not necessarily
+limited to) **typographical concerns,** **code consistency,**
+and **best practices.**
 
 The proposal authors wish to emphasize that **we are not
 proposing that users be required or forced** to use a particular
@@ -88,12 +93,36 @@ accepted code style guidelings.
 
 The proposal authors ([among others](#acknowledgments)) have
 collaborated on the `swift-format` tool currently hosted at
-https://github.com/google/swift/tree/format and intend to propose
-its adoption into the Swift project.
+https://github.com/google/swift/tree/format and propose its
+adoption into the Swift project. We propose this specific tool
+because it satisfies all of the following goals:
+
+* It is syntax-oriented, which provides high reliability and
+  performance (especially once it adopts recently developed
+  in-process parsing APIs) as compared to SourceKit-based
+  solutions.
+* It uses SwiftSyntax to process code—the Swift project's
+  preferred method of developing such tools—rather than a
+  distinct parsing implementation that must separately track
+  language evolution.
+* It comes with a continuing support commitment from active
+  maintainers.
 
 The tool will be used as part of evaluating options for the
 proposed code style guidelines, as part of a follow-up proposal on
 the details of the guidelines themselves.
+
+`swift-format` will allow configuration of some practical
+formatting decisions like indentation size, line length, and
+respecting existing newlines. In mixed-language projects, some
+tools in a developer's workflow may not easily support
+configuring these on a per-language basis. Even if style
+guidelines ratified later encourage a particular default for
+these values, we feel that they need to be adjustable for the
+formatter to be useful to a wide audience. Beyond this, if
+additional configurability is desired, then those requests can
+certainly be considered; we do not necessarily expect the tool
+to stand still forever in this regard.
 
 As with the style guidelines above, the adopted formatting tool
 will not be forced upon a developer's workflow by any part of the
