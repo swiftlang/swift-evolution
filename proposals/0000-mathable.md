@@ -252,10 +252,10 @@ single value instead of a tuple. The sign is still available for real types
 via a new `signGamma` function, but requires a separate function call. The
 motivation for this approach is two-fold: first, the more common use case is
 to want only the first value, so returning a tuple creates noise:
-```swift
-let (result, _) = lgamma(x)
-```
-Second, there's an outstanding bug that results from the C interfaces being
+
+       let (result, _) = lgamma(x)
+       
+   Second, there's an outstanding bug that results from the C interfaces being
 re-exported in Swift where `lgamma` is ambiguous; it can be either the
 platform shim returning `(T, Int)`, or the C library function returning
 `Double`; we want to deprecate the first and make the second unavailable.
