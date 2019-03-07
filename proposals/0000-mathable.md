@@ -4,112 +4,274 @@
 * Author: [Stephen Canon](https://github.com/stephentyrone)
 * Review Manager: TBD
 * Status: **Awaiting Review**
-* Implementation: [apple/swift#NNNNN](https://github.com/apple/swift/pull/NNNNN)
+* Implementation: [apple/swift#23140](https://github.com/apple/swift/pull/23140)
 
 ## Introduction
 
-This proposal would introduce a new `Mathable` protocol that provides generic access
-to "basic math functions" (the functionality of math.h that is not implied by
-`FloatingPoint` and `BinaryFloatingPoint`).
+This proposal introduces two new protocols to the standard library: `ElementaryFunctions`
+and `Real`. These protocols combine to provide "basic math functions" in generic contexts
+for floating-point and SIMD types, and provide a path to extend that functionality to
+planned complex types in the future.
 
-Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/)
+[Swift Evolution Pitch thread](https://forums.swift.org/t/generic-math-functions/21059)
 
 ## Motivation
 
 `BinaryFloatingPoint` (and the protocols it refines) provides a powerful set of
 abstractions for writing numerical code, but it does not include the transcendental
 operations defined by the C math library, which are instead imported by the platform
-overlay as a set of overloaded concrete free functions. This makes it impossible to
-write generic code that uses, say `exp` or `sin` without defining your own trampolines
-or converting everything to and from `Double`, neither of which is very satisfying.
+overlay as a set of overloaded concrete free functions.
+
+There are two deficiencies with the current approach. First, *what* you need to import
+to get this functions varies depending on platform, forcing the familiar but awkward
+`#if` dance:
+```swift
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(GlibC)
+...
+```
+This shouldn't be required for functionality that is intended to be available on all
+platforms.
+
+Second, these bindings are overloaded for the various concrete `BinaryFloatingPoint`
+types, but there's no way to use them generically. Suppose we want to implement the
+"sigmoid" function generically:
+```swift
+func sigmoid<T>(_ x: T) -> T where T: FloatingPoint {
+  return 1/(1 + exp(-x))
+}
+```
+This doesn't work, because `exp` is not available on the `FloatingPoint` protocol.
+Currently you might work around this limitation by doing something like:
+```swift
+func sigmoid<T>(_ x: T) -> T where T: FloatingPoint {
+  return 1/(1 + T(exp(-Double(x))))
+}
+```
+but that's messy, inefficient if T is less precise than Double, and inaccurate if
+T is more precise than Double. We can and should do better in Swift.
+
+With the changes in this proposal, the full implementation would become:
+```swift
+import Math
+
+func sigmoid<T>(_ x: T) -> T where T: Real {
+  return 1/(1 + exp(-x))
+}
+```
 
 ## Proposed solution
 
-Introduce a new protocol, `Mathable`, that provides basic math functions as static
-functions defined under a `Math` namespace:
+There are four pieces of this proposal: first, we introduce the protocol
+`ElementaryFunctions`:
 ```swift
-let x: Float = 1
-let y = Float.Math.exp(x) // 2.7182817
+public protocol ElementaryFunctions {
+  associatedtype Math: ElementaryFunctionHooks where Math.Value == Self
+}
 ```
-Additionally, introduce a new *module*, `Math`, that provides the "customary" free 
-functions:
+The associatedtype provides implementation hooks for the elementary functions
+so that they are available as "namespaced" static functions like:
 ```swift
-import Math
-let z = exp(x) // 2.7182817
+(swift) Float.Math.exp(1)
+// r0 : Float = 2.7182817
 ```
-By doing this, the free functions are not defined in the global namespace unless
-this module is explicitly imported, but the functionality is always available via the static
-functions defined in the standard library.
+All of the standard library `FloatingPoint` types conform to
+`ElementaryFunctions`; SIMD types conform conditionally if their `Scalar`
+type conforms, and a planned `Complex` type would also conform.
+
+The second piece of the proposal is the protocol `Real`:
+```
+public protocol Real: FloatingPoint, ElementaryFunctions { }
+```
+This protocol does not add much API surface, but it is what most users will
+write generic code against. The benefit of this protocol is that it allows 
+us to avoid multiple constraints for most simple generic functions, and to 
+adopt a clearer naming scheme for the protocol that most users see, while
+also giving `ElementaryFunctions` a more precise name, suitable for
+sophisticated uses.
+
+The third piece of the proposal is the `Math` module. This module sits next
+to the standard library, and provides generic free function implementations
+of math operations. Unlike the previous two additions, the availability of
+these functions is gated on Swift 5.1.
+```swift
+(swift) import Math
+(swift) exp(1.0)
+// r0 : Float = 2.7182817
+```
+
+Finally, we will update the platform imports to obsolete existing functions
+covered by the new free functions in the `Math` module, and also remove the
+imports of the suffixed <math.h> functions (which were actually never
+intended to be available in Swift). The Platform module will re-export the
+Math module, which allows source code to mostly migrate without any changes
+necessary. Updates will only be necessary with functions like `atan2(y: x:)`
+where we are adding argument labels or `logGamma( )` where we have new
+function names. In these cases we will deprecate the old functions instead 
+of obsoleting them to allow users time to migrate.
 
 ## Detailed design
 
-The `Mathable` protocol is implemented as follows:
+The full API provided by `ElementaryFunctions` is as follows:
 ```swift
-public protocol Mathable : Numeric {
-  associatedtype Math: MathImplementations where Math.Value == Self
-  func /(lhs: Self, rhs: Self) -> Self
-  func /=(lhs: inout Self, rhs: Self)
-  func squareRoot() -> Self
-  mutating func formSquareRoot()
-}
+/// The square root of `x`.
+///
+/// For real types, if `x` is negative the result is `.nan`. For complex
+/// types there is a branch cut on the negative real axis.
+static func sqrt(_ x: Value) -> Value
 
-public protocol MathImplementations {
-  associatedtype Value
-  static func cos(_ x: Value) -> Value
-  static func sin(_ x: Value) -> Value
-  static func tan(_ x: Value) -> Value
-  ...
-}
+/// The cosine of `x`, interpreted as an angle in degrees.
+static func cos(_ x: Value) -> Value
+
+/// The sine of `x`, interpreted as an angle in degrees.
+static func sin(_ x: Value) -> Value
+
+/// The tangent of `x`, interpreted as an angle in degrees.
+static func tan(_ x: Value) -> Value
+
+/// The inverse cosine of `x` in degrees.
+static func acos(_ x: Value) -> Value
+
+/// The inverse sine of `x` in degrees.
+static func asin(_ x: Value) -> Value
+
+/// The inverse tangent of `x` in degrees.
+///
+/// See also atan2(y:x:).
+static func atan(_ x: Value) -> Value
+
+/// The hyperbolic cosine of `x`.
+static func cosh(_ x: Value) -> Value
+
+/// The hyperbolic sine of `x`.
+static func sinh(_ x: Value) -> Value
+
+/// The hyperbolic tangent of `x`.
+static func tanh(_ x: Value) -> Value
+
+/// The inverse hyperbolic cosine of `x`.
+static func acosh(_ x: Value) -> Value
+
+/// The inverse hyperbolic sine of `x`.
+static func asinh(_ x: Value) -> Value
+
+/// The inverse hyperbolic tangent of `x`.
+static func atanh(_ x: Value) -> Value
+
+/// The exponential function applied to `x`, or `e**x`.
+static func exp(_ x: Value) -> Value
+
+/// Two raised to to power `x`.
+static func exp2(_ x: Value) -> Value
+
+/// Ten raised to to power `x`.
+static func exp10(_ x: Value) -> Value
+
+/// `exp(x) - 1` evaluated so as to preserve accuracy close to zero.
+static func expm1(_ x: Value) -> Value
+
+/// The natural logarithm of `x`.
+static func log(_ x: Value) -> Value
+
+/// The base-two logarithm of `x`.
+static func log2(_ x: Value) -> Value
+
+/// The base-ten logarithm of `x`.
+static func log10(_ x: Value) -> Value
+
+/// `log(1 + x)` evaluated so as to preserve accuracy close to zero.
+static func log1p(_ x: Value) -> Value
+
+/// The error function evaluated at `x`.
+static func erf(_ x: Value) -> Value
+
+/// The complimentary error function evaluated at `x`.
+static func erfc(_ x: Value) -> Value
+
+/// The gamma function evaluated at `x`.
+///
+/// For integral `x`, `gamma(x)` is `(x-1)` factorial.
+static func gamma(_ x: Value) -> Value
+
+/// `x**y` interpreted as `exp(y * log(x))`
+///
+/// For real types, if `x` is negative the result is NaN, even if `y` has
+/// an integral value. For complex types, there is a branch cut on the
+/// negative real axis.
+static func pow(_ x: Value, _ y: Value) -> Value
+
+/// `x` raised to the `n`th power.
+///
+/// The product of `n` copies of `x`.
+static func pow(_ x: Value, _ n: Int) -> Value
+
+/// The `n`th root of `x`.
+///
+/// For real types, if `x` is negative and `n` is even, the result is NaN.
+/// For complex types, there is a branch cut along the negative real axis.
+static func root(_ x: Value, _ n: Int) -> Value
+
+/// `atan(y/x)` with quadrant fixup.
+///
+/// For real numbers `y` and `x`, there is an infinite family of angles
+/// whose tangent is `y/x`. `atan2` selects the representative that is the
+/// angle between the vector `(x, y)` and the real axis in the range [-π, π].
+///
+/// For complex numbers `y` and `x`, this function is simply defined by
+/// `atan(y/x)`, with the branch cuts implied by that defintion.
+static func atan2(y: Value, x: Value) -> Value
+
+/// `log(gamma(x))` computed without undue overflow.
+///
+/// For real types, `log(abs(gamma(x)))` is returned, and the sign of
+/// `gamma(x)` is available via `signGamma(x)`.
+///
+/// For complex types, `log(gamma(x))` is returned, and the `signGamma`
+/// function does not exist.
+static func logGamma(_ x: Value) -> Value
 ```
-`Float`, `Double` and `Float80` (when defined) all conform to `Mathable`, as do SIMD
-vector types when the underlying Scalar type is `Mathable`. `Float16`, `Decimal`, and
-`Complex` types are all expected to conform as well if and when they become available.
-
-Square root and division are treated separately because they are "basic arithmetic"
-operations rather than transcendental functions.
-
-The `Math` module interfaces are even simpler:
+For the most part, these functions directly follow the C math library names,
+as there is not a good reason to break with existing precedent. The changes
+worth noting are as follows:
+- `exp10` does not exist in most C math libraries. It is a generally useful
+function, corresponding to `log10`. We'll fall back on implementing it as
+`pow(10, x)` on platforms that don't have it in the system library.
+- There are *two* functions named `pow` with different signatures. One
+implements the IEEE 754 `powr` function (nan if `x` is negative), the other
+restricts the exponent to have type `Int`, and implements the IEEE 754 `pown`
+function.
+- The function `root` does not exist in most math libraries; it computes the
+nth root of x. For now this is implemented in terms of `pow`, but we may
+adopt other implementations for better speed or accuracy in the future.
+- Argument labels have been added to `atan2(y:x:)`. This is the only math.h
+function that regularly trips people up w.r.t. argument order, so having some
+additional clarity here seems good.
+- `logGamma` is introduced instead of the existing `lgamma`, and returns a
+single value instead of a tuple. The sign is still available for real types
+via a new `signGamma` function, but requires a separate function call. The
+motivation for this approach is two-fold: first, the more common use case is
+to want only the first value, so returning a tuple creates noise:
 ```swift
-public func cos<T>(_ x: T) -> T where T: Mathable {
-  return T.Math.cos(x)
-}
-
-public func sin<T>(_ x: T) -> T where T: Mathable {
-  return T.Math.sin(x)
-}
-
-...
+let (result, _) = lgamma(x)
 ```
+Second, there's an outstanding bug that results from the C interfaces being
+re-exported in Swift where `lgamma` is ambiguous; it can be either the
+platform shim returning `(T, Int)`, or the C library function returning
+`Double`; we want to deprecate the first and make the second unavailable.
+Simulataneously introducing yet another function with the same name would
+create a bit of a mess.
 
-### Functions defined on Mathable
-`cos`, `sin`, `tan`, `acos`, `asin`, `atan`, `atan2`, `exp`, `exp2`, `exp10`, `expm1`, `log`, `log2`,
-`log10`, `logp1`, `pow`, `cosh`, `sinh`, `tanh`, `acosh`, `asinh`, `atanh`, `erf`, `erfc`,
-`gamma`, `lgamma`.
-
-Most of these directly shim the C math library equivalents. A few warrant special discussion:
-- `exp10` does not exist on all targets; we'll fall back on implementing it as `pow(10, x)`
-in those cases. On platforms where `pow` has sub-ulp accuracy this always yields correct
-results for exact powers of ten, but it may result in small but noticeable rounding errors
-on platforms where `pow` does not have adequate quality of implementation. This should
-be considered a bug for Swift to address in the future.
-- We will adjust the edge cases of `pow` somewhat from the C library definition.
-Specifically, we will provide two overloads: `pow(_ x: T, _ y: T) -> T` and 
-`pow(_ x: T, _ n: Int) -> T`, corresponding to the IEEE-754 "powr" and "pown"
-operations.
-- There are two things that are weird about `atan2`. First, the argument order is trap.
-The signature is `atan2(_ y: T, _ x: T) -> T`, and it computes `atan(y/x)` with
-some fixup around how the sign is handled, which makes it equivalent to getting the
-angle of the polar representation of the vector `(x, y)`. Second, it doesn't really make
-sense for complex types, which Mathable is intended to support; I don't know of
-another language that provides it on complex `T`. We can define it as `atan(y/x)` in
-those cases, but it's slightly weird. Ultimately, a Swiftier interface should be provided
-on a two-dimensional vector type as `polar` and on complex types as `arg`
-to avoid this confusion, but we will retain `atan2` as a convenience for users familiar
-with it.
+### Future expansion
+The following functions recommended by IEEE 754 are not provided at this point
+(because implementations are not widely available), but are planned for future expansion,
+possibly with implementation directly in Swift: `cospi`, `sinpi`, `tanpi`, `acospi`, `asinpi,
+atanpi`, `exp2m1`, `exp10m1`, `log2p1`, `log10p1`, `compound` (these are the names
+used by IEEE 754; Swift can use different names if we like).
 
 ### Functions not defined on Mathable
 The following functions are exported by <math.h>, but will not be defined on Mathable:
-`frexp`, `ilogb`, `ldexp`, `logb`, `modf`, `scalbn`, `scalbln`, `fabs`, `cbrt`, `hypot`, `ceil`,
+`frexp`, `ilogb`, `ldexp`, `logb`, `modf`, `scalbn`, `scalbln`, `fabs`, `hypot`, `ceil`,
 `floor`, `nearbyint`, `rint`, `lrint`, `llrint`, `round`, `lround`, `llround`, `trunc`, `fmod`,
 `remainder`, `remquo`, `copysign`, `nan`, `nextafter`, `nexttoward`, `fdim`, `fmin`, `fmax`,
 `fma`.
@@ -117,25 +279,63 @@ The following functions are exported by <math.h>, but will not be defined on Mat
 Most of these are not defined on Mathable because they are inherently bound to the
 semantics of `FloatingPoint` or `BinaryFloatingPoint`, and so cannot be defined for
 types such as Complex or Decimal. Equivalents to many of them are already defined on
-`[Binary]FloatingPoint` anyway--in those cases free functions are be defined by
-the Math module, but will be generic over `FloatingPoint` or `BinaryFloatingPoint`.
-E.g.:
+`[Binary]FloatingPoint` anyway--in those cases free functions are defined by
+the Math module, but will be generic over `FloatingPoint` or `BinaryFloatingPoint`:
 ```swift
+@available(swift, introduced: 5.1)
+@_alwaysEmitIntoClient
+public func ceil<T>(_ x: T) -> T where T: FloatingPoint {
+  return x.rounded(.up)
+}
+
+@available(swift, introduced: 5.1)
+@_alwaysEmitIntoClient
 public func floor<T>(_ x: T) -> T where T: FloatingPoint {
   return x.rounded(.down)
 }
+
+@available(swift, introduced: 5.1)
+@_alwaysEmitIntoClient
+public func round<T>(_ x: T) -> T where T: FloatingPoint {
+  return x.rounded()
+}
+
+@available(swift, introduced: 5.1)
+@_alwaysEmitIntoClient
+public func trunc<T>(_ x: T) -> T where T: FloatingPoint {
+  return x.rounded(.towardZero)
+}
+
+@available(swift, introduced: 5.1)
+@_alwaysEmitIntoClient
+public func fma<T>(_ x: T, _ y: T, _ z: T) -> T where T: FloatingPoint {
+  return z.addingProduct(x, y)
+}
+
+@available(swift, introduced: 5.1)
+@_alwaysEmitIntoClient
+public func remainder<T>(_ x: T, _ y: T) -> T where T: FloatingPoint {
+  return x.remainder(dividingBy: y)
+}
+
+@available(swift, introduced: 5.1)
+@_alwaysEmitIntoClient
+public func fmod<T>(_ x: T, _ y: T) -> T where T: FloatingPoint {
+  return x.truncatingRemainder(dividingBy: y)
+}
 ```
-A few (`nearbyint`, `rint`, `lrint`, `llrint`) are fundamentally tied to the C language
-notion of dynamic floating-point rounding-modes, which is not modeled by Swift (and
-which we do not have plans to support--even if Swift adds rounding-mode control, we
-should avoid the C fenv model).
+These definitions replace the definitions existing in the platform module.
+
+A few of the other functions (`nearbyint`, `rint`) are fundamentally tied to the
+C language notion of dynamic floating-point rounding-modes, which is not modeled
+by Swift (and which we do not have plans to support--even if Swift adds rounding-
+mode control, we should avoid the C fenv model). These are deprecated.
+
+The remainder will not be moved into the Math module at this point, as they can
+be written more naturally in terms of the `FloatingPoint` API. We intend to
+deprecate them.
 
 ### Future expansion
-The following functions recommended by IEEE 754 are not provided at this point
-(because implementations are not widely available), but are planned for future expansion,
-possibly with implementation directly in Swift: `cospi`, `sinpi`, `tanpi`, `acospi`, `asinpi,
-atanpi`, `exp2m1`, `exp10m1`, `log2p1`, `log10p1`, `compound`, `root` (obviously, some of
-these names are bad; we're not locked into using the IEEE-754 names for Swift).
 
 ## Source compatibility
 This is an additive change, but it entails some changes for platform modules; the existing
@@ -150,12 +350,11 @@ old platform hooks to provide binary stability, but will mark them deprecated or
 This is an additive change.
 
 ## Alternatives considered
-1. The name `Mathable` is at least not obviously great. So far, I have not come up with a
-better name for this protocol. There are more technical choices that we might opt
-for (things in the direction of `Analytic`, `TranscendentalFunctions`, `Calculus`,
-`CompleteField`, `ElementaryFunctions` etc), but these are not sufficiently better to
-justify unfamiliarity to most  users. We could go more explicit (`HasMathFunctions`), but
-that's not great either. Perhaps the best alternative would be simply `Math`.
+1. The name `ElementaryFunctions` is a marked improvement on the earlier `Mathable`, but
+is still imperfect. It's ever so slightly a lie (Gamma is not considered elementary),
+but the other reasonable choice `Transcendental` would also be a lie (square root is not
+transcendental). As discussed above, the introduction of the `Real` protocol mostly 
+renders this issue moot; most code will be constrained to that instead.
 
 2. The names of these functions are strongly conserved across languages, but they are
 not universal; we *could* consider more verbose names inline with Swift usual patterns.
@@ -181,13 +380,6 @@ exact cases:
 or log10 instead if base is 2 or 10". We could take that approach, but base 2 and 10
 cover 99% of uses, so I would rather wait to provide this function until we have time to
 do it correctly.
-
-4. We could have `Mathable` not inherit from `Numeric` and *only* provide the elementary function
-implementations (leaving out division and square root). In practice, this would mean that
-generic algorithms would almost always end up needing to be constrained to something
-like `BinaryFloatingPoint & Mathable` or `Numeric & Mathable`. That's not terrible,
-but a fairly large body of code can be written directly against `Mathable` if we follow the
-proposal.
 
 5. We could put the free functions into the standard library instead of a separate module.
 Having them in a separate module helps avoid adding stuff to the global namespace
