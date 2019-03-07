@@ -1,4 +1,4 @@
-# Accessing an Array's Uninitialized Buffer
+# Add an Array Initializer with Access to Uninitialized Storage
 
 * Proposal: [SE-NNNN](NNNN-array-uninitialized-initializer.md)
 * Author: [Nate Cook](https://github.com/natecook1000)
