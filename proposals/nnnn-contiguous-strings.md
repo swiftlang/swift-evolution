@@ -51,16 +51,14 @@ extension String {
   /// give a result for String.UTF8View.withContiguousStorageIfAvailable.
   /// Contiguous strings also benefit from fast-paths and better optimizations.
   ///
-  @_alwaysEmitIntoClient
-  public var isContiguous: Bool { ... }
+  public var isContiguous: Bool { get }
 
   /// If this string is not contiguous, make it so. If this mutates the string,
   /// it will invalidate any pre-existing indices.
   ///
   /// Complexity: O(n) if non-contiguous, O(1) if already contiguous
   ///
-  @_alwaysEmitIntoClient
-  public mutating func makeContiguous() { ... }
+  public mutating func makeContiguous()
 
   /// Runs `body` over the content of this string in contiguous memory. If this
   /// string is not contiguous, this will first make it contiguous, which will
@@ -75,10 +73,9 @@ extension String {
   ///
   /// Complexity: O(n) if non-contiguous, O(1) if already contiguous
   ///
-  @_alwaysEmitIntoClient
   public mutating func withUTF8<R>(
     _ body: (UnsafeBufferPointer<UInt8>) throws -> R
-  ) rethrows -> R { ... }
+  ) rethrows -> R
 }
 
 // Contiguous UTF-8 strings
@@ -90,16 +87,14 @@ extension Substring {
   /// give a result for String.UTF8View.withContiguousStorageIfAvailable.
   /// Contiguous strings also benefit from fast-paths and better optimizations.
   ///
-  @_alwaysEmitIntoClient
-  public var isContiguous: Bool { ... }
+  public var isContiguous: Bool { get }
 
   /// If this string is not contiguous, make it so. If this mutates the
   /// substring, it will invalidate any pre-existing indices.
   ///
   /// Complexity: O(n) if non-contiguous, O(1) if already contiguous
   ///
-  @_alwaysEmitIntoClient
-  public mutating func makeContiguous() { ... }
+  public mutating func makeContiguous()
 
   /// Runs `body` over the content of this substring in contiguous memory. If
   /// this substring is not contiguous, this will first make it contiguous,
@@ -114,10 +109,9 @@ extension Substring {
   ///
   /// Complexity: O(n) if non-contiguous, O(1) if already contiguous
   ///
-  @_alwaysEmitIntoClient
   public mutating func withUTF8<R>(
     _ body: (UnsafeBufferPointer<UInt8>) throws -> R
-  ) rethrows -> R { ... }
+  ) rethrows -> R
 }
 ```
 
@@ -135,7 +129,7 @@ All changes are additive. ABI-relevant attributes are provided in “Detailed de
 
 ## Effect on API resilience
 
-The APIs for String and Substring are `@_alwaysEmitIntoClient`, as they are expressed in terms of assumptions and mechanisms already (non-resiliently) present  in Swift 5.0.
+The APIs for String and Substring have their implementations exposed, as they are expressed in terms of assumptions and mechanisms already (non-resiliently) present in Swift 5.0.
 
 
 ## Alternatives considered
@@ -160,6 +154,12 @@ Even for libraries confined to Cocoa-interoperable platforms, whether an importe
 
 The proposed compromise makes `withUTF8` mutating, forcing the contents to be bridged if noncontiguous. This has the downside of forcing such strings to be declared `var` rather than `let`, but mitigates the downsides of the other approaches. If the contents are worth reading, they’re worth ensuring contiguity.
 
+##### Or, introduce a separate type, `ContiguousUTF8String`, instead
+
+Introducing a new type would introduce an API schism and further complicate the
+nature of StringProtocol. We don't consider the downsides to be worth the upside
+of dropping `mutable`.
+
 ### What about StringProtocol?
 
 Adding these methods to StringProtocol would allow code to be generic over String and Substring (and in the somewhat unlikely event we add new conformers, those as well). This can be done at any time, but there are some issues with doing this right now.
@@ -178,3 +178,15 @@ Adding new versioned-and-defaulted requirements to a protocol can be done at any
 
 This can be added in the future.
 
+### Name it `isContiguousUTF8` and `makeContiguousUTF8()`
+
+This proposal is introducing the concept of "contiguous strings" which is
+blessed as *the* fast-path in String's stable ABI for strings that can provide
+UTF-8 contents in contiguous memory. If a string cannot provide UTF-8 content in
+contiguous memory, it does receive these benefits, even if it happens to have
+content in some other encoding in contiguous memory.
+
+We feel the concept of string contiguity in Swift is inherently tied to UTF-8,
+and worth claiming the term "contiguous" unqualified in encoding. That being
+said, this is a weakly held opinion and `isContiguousUTF8` is acceptable as
+well.
