@@ -43,7 +43,7 @@ func sigmoid<T>(_ x: T) -> T where T: FloatingPoint {
 }
 ```
 This doesn't work, because `exp` is not available on the `FloatingPoint` protocol.
-Currently you might work around this limitation by doing something like:
+Currently, you might work around this limitation by doing something like:
 ```swift
 func sigmoid<T>(_ x: T) -> T where T: FloatingPoint {
   return 1/(1 + T(exp(-Double(x))))
@@ -105,7 +105,7 @@ Finally, we will update the platform imports to obsolete existing functions
 covered by the new free functions in the `Math` module, and also remove the
 imports of the suffixed <math.h> functions (which were actually never
 intended to be available in Swift). The Platform module will re-export the
-Math module, which allows source code to mostly migrate without any changes
+Math module, which allows most source code to migrate without any changes
 necessary. Updates will only be necessary with functions like `atan2(y: x:)`
 where we are adding argument labels or `logGamma( )` where we have new
 function names. In these cases we will deprecate the old functions instead 
@@ -231,9 +231,9 @@ static func atan2(y: Value, x: Value) -> Value
 /// function does not exist.
 static func logGamma(_ x: Value) -> Value
 ```
-For the most part, these functions directly follow the C math library names,
-as there is not a good reason to break with existing precedent. The changes
-worth noting are as follows:
+These functions directly follow the math library names used in most other
+languages, as there is not a good reason to break with existing precedent.
+The changes worth noting are as follows:
 - `exp10` does not exist in most C math libraries. It is a generally useful
 function, corresponding to `log10`. We'll fall back on implementing it as
 `pow(10, x)` on platforms that don't have it in the system library.
@@ -245,8 +245,8 @@ function.
 nth root of x. For now this is implemented in terms of `pow`, but we may
 adopt other implementations for better speed or accuracy in the future.
 - Argument labels have been added to `atan2(y:x:)`. This is the only math.h
-function that regularly trips people up w.r.t. argument order, so having some
-additional clarity here seems good.
+function whose argument order regularly causes bugs, so it would be good
+to clarify here.
 - `logGamma` is introduced instead of the existing `lgamma`, and returns a
 single value instead of a tuple. The sign is still available for real types
 via a new `signGamma` function, but requires a separate function call. The
@@ -328,8 +328,8 @@ These definitions replace the definitions existing in the platform module.
 
 A few of the other functions (`nearbyint`, `rint`) are fundamentally tied to the
 C language notion of dynamic floating-point rounding-modes, which is not modeled
-by Swift (and which we do not have plans to support--even if Swift adds rounding-
-mode control, we should avoid the C fenv model). These are deprecated.
+by Swift (and which we do not have plans to support--even if Swift adds rounding-mode
+control, we should avoid the C fenv model). These are deprecated.
 
 The remainder will not be moved into the Math module at this point, as they can
 be written more naturally in terms of the `FloatingPoint` API. We intend to
