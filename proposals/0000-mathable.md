@@ -404,4 +404,5 @@ additive change to be considered in a separate proposal.
 handle these with hypothetical arbitrary-precision types, but that's not a great reason
 to keep them out for the concrete types we already have. Plus we already have `pi` on
 FloatingPoint, so someone implementing such a type already needs to make a decision about
-how to handle it.
+how to handle it. There's a second question of how to handle these with `Complex` or
+`SIMD` types; one solution would be to only define them for types conforming to `Real`.
