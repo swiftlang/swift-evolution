@@ -399,3 +399,9 @@ to have them in the global namespace or re-export them.
 have opted to keep new operators out of this proposal, in the interests of focusing on
 the functions and their implementation hooks. I would consider such an operator to be an
 additive change to be considered in a separate proposal.
+
+7. Add the constants `pi` and `e` to `T.Math`. There's a bit of a question about how to
+handle these with hypothetical arbitrary-precision types, but that's not a great reason
+to keep them out for the concrete types we already have. Plus we already have `pi` on
+FloatingPoint, so someone implementing such a type already needs to make a decision about
+how to handle it.
