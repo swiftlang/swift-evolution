@@ -394,3 +394,8 @@ languages is pretty strong here: `#include <cmath>`, `import math`, etc. Having 
 implementation hooks defined in the standard library makes them available in modules that
 only need them in a few places or want to use them in inlinable functions but don't want
 to have them in the global namespace or re-export them.
+
+6. We could define an operator like `^` or `**` for one or both definitions of `pow`. I
+have opted to keep new operators out of this proposal, in the interests of focusing on
+the functions and their implementation hooks. I would consider such an operator to be an
+additive change to be considered in a separate proposal.
