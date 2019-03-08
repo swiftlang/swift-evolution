@@ -381,6 +381,12 @@ or log10 instead if base is 2 or 10". We could take that approach, but base 2 an
 cover 99% of uses, so I would rather wait to provide this function until we have time to
 do it correctly.
 
+4. We could spell `log` (the natural logarithm) `ln`. This would resolve some ambiguity for
+users with a background in certain fields, at the cost of diverging from the vast majority
+of programming languages. Rust and Kotlin do spell it this way, so we wouldn't be completely
+alone. It would also avoid using a function name that potentially conflicts (visually or
+syntactically) with an obvious name for logging facilities.
+
 5. We could put the free functions into the standard library instead of a separate module.
 Having them in a separate module helps avoid adding stuff to the global namespace
 unless you're actually using it, which is generally nice, and the precedent from other
