@@ -34,7 +34,7 @@ people.sort { $0.age < $1.age }
 chats.sort { $0.lastMsg.date > $1.lastMsg.date }
 ```
 
-Most often, however, all we need to determine sorting is a key-path on an element. Other times, a comparison closure on its own happens to be inconvenient or inefficient: the base metric might be obtained through non-trivial computation, where a predicate alone instigates code duplication and makes it harder to spot the sorting order. When the values are expensive to retrieve, the predicate obscuring the computations also becomes a major obstacle for optimizations, such as trading memory for speed to warrant that each value is computed once per element. For clarity, applying the latter to a ϴ(n) operation can speed up sorting by a factor of 10. The goal is therefore to introduce an API that decouples the comparison of values from their calculations, favouring optimizations and providing greater convenience for an ample range of uses.
+Most often, however, all we need to determine sorting is a key-path on an element. Other times, a comparison closure on its own happens to be inconvenient or inefficient: the base metric might be obtained through non-trivial computation, where a predicate alone instigates code duplication and makes it harder to spot the sorting order. When the values are expensive to retrieve, the predicate obscuring the computations also becomes a major obstacle for optimizations, such as trading memory for speed to warrant that each value is computed once per element. For clarity, applying the latter to a ϴ(n) operation can speed up sorting by a factor of 10 for an array of 1500 elements. The goal is therefore to introduce an API that decouples the comparison of values from their calculations, favouring optimizations and providing greater convenience for an ample range of cases.
 
 ### Key-paths
 
@@ -46,8 +46,7 @@ chats.sort(by: \.lastMsg.date, >)
 ``` 
 
 Just like [`sort()`](https://developer.apple.com/documentation/swift/mutablecollection/2802575-sort)
-and [`sorted()`](https://developer.apple.com/documentation/swift/sequence/1641066-sorted), key-path sorting is a highly common practice and a fundamental case that deserves a convenience method in the Standard Library, the author believes. The only problem with focusing solely on key-paths is that we neglect custom transforms, whereas a general approach is both flexible and provident in leaving space for key-path conveniences were
-we to support implicit key-path-to-function conversions sometime in the future.
+and [`sorted()`](https://developer.apple.com/documentation/swift/sequence/1641066-sorted), key-path sorting is a highly common practice and a fundamental case that deserves a convenience method in the Standard Library, the author believes. The only problem with focusing solely on key-paths is that we neglect custom transforms, whereas a general approach is both flexible and provident in leaving space for key-path conveniences were we to support implicit key-path-to-function conversions sometime in the future.
 
 ## Proposed solution
 
