@@ -190,3 +190,52 @@ We feel the concept of string contiguity in Swift is inherently tied to UTF-8,
 and worth claiming the term "contiguous" unqualified in encoding. That being
 said, this is a weakly held opinion and `isContiguousUTF8` is acceptable as
 well.
+
+### Put this on the UTF8View
+
+Contiguous UTF-8 is baked into String's ABI as the fastest representation; this
+is about directly exposing that fact to performance-minded users. Other views
+will not have this, so we believe it makes sense to put directly on String.
+UTF-8 is special for performance and contiguity concerns.
+
+### The Most Viable Alternative
+
+Here's an alternative formulation that uses an explicit "UTF8" in the name and
+avoids `mutating` and index-invalidation (by using strategy \#1 above).
+
+```swift
+extension [Sub]String {
+  /// <as above>
+  public var isContiguousUTF8: Bool { get }
+
+  /// Produce a contiguous UTF-8 string with the same contents as `self`.
+  /// Returns `self` is already contiguous, otherwise returns a new copy.
+  ///
+  /// Complexity: O(1) if `self` is contiguous UTF-8, otherwise O(n)
+  ///
+  public var contiguousUTF8: [Sub]String { get }
+
+  /// Runs `body` over the content of this string in contiguous memory. If this
+  /// string is not contiguous UTF-8, this will first make a contiguous copy and
+  /// run over that.
+  ///
+  /// Note that it is unsafe to escape the pointer provided to `body`, even if
+  /// `self` is contiguous UTF-8. For example, strings of up to 15 UTF-8 code
+  /// units in length may be represented in a small-string representation, and
+  /// thus will be spilled into temporary stack space which is invalid after
+  /// `withUTF8` returns.
+  ///
+  /// Complexity: O(1) if `self` is contiguous UTF-8, otherwise O(n)
+  ///
+  public func withUTF8<R>(
+    _ body: (UnsafeBufferPointer<UInt8>) throws -> R
+  ) rethrows -> R
+}
+```
+
+This formulation would be preferable for situations where strings are nearly-
+always contiguous UTF-8. Also, the computed property is less invasive than a
+mutating method as it can be used on the right-hand-side of a let binding.
+
+Choosing between this and the version proposed depends on how users expect to
+use it. We're eagerly awaiting feedback during the review.
