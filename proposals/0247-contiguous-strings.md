@@ -1,9 +1,9 @@
 # Contiguous Strings
 
-* Proposal: SE-NNNN
+* Proposal: SE-0247
 * Authors: [Michael Ilseman](https://github.com/milseman)
-* Review Manager: TBD
-* Status: **Implementation In Progress**
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Active review (March 11 - 18, 2019)**
 * Implementation: [apple/swift#23051](https://github.com/apple/swift/pull/23051)
 * Bugs: [SR-6475](https://bugs.swift.org/browse/SR-6475)
 
@@ -24,7 +24,7 @@ Noncontiguous strings include:
 
 Contiguous strings are heavily optimized and more efficient to process than noncontiguous strings. However, noncontiguous string contents don’t have to be copied when imported into Swift, which is profitable for strings which may never be read from, such as imported NSString dictionary keys.
 
-Swift-evolution thread: TBD
+Swift-evolution thread: [Pitch: Contiguous Strings](https://forums.swift.org/t/pitch-contiguous-strings/21206)
 
 ## Motivation
 
