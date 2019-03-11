@@ -1,9 +1,9 @@
 # Generic Math(s) Functions
 
-* Proposal: [SE-NNNN](NNNN-mathable.md)
+* Proposal: [SE-0246](0246-mathable.md)
 * Author: [Stephen Canon](https://github.com/stephentyrone)
-* Review Manager: TBD
-* Status: **Awaiting Review**
+* Review Manager: [John McCall](https://github.com/rjmccall)
+* Status: **Active review (March 11 - 20, 2019)**
 * Implementation: [apple/swift#23140](https://github.com/apple/swift/pull/23140)
 
 ## Introduction
