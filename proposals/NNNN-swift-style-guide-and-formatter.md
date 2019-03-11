@@ -116,13 +116,17 @@ the details of the guidelines themselves.
 formatting decisions like indentation size, line length, and
 respecting existing newlines. In mixed-language projects, some
 tools in a developer's workflow may not easily support
-configuring these on a per-language basis. Even if style
-guidelines ratified later encourage a particular default for
-these values, we feel that they need to be adjustable for the
-formatter to be useful to a wide audience. Beyond this, if
-additional configurability is desired, then those requests can
-certainly be considered; we do not necessarily expect the tool
-to stand still forever in this regard.
+configuring these on a per-language basis.
+
+We are also willing to consider additional degrees of
+configurability. A tool that is not configurable only works for
+users who are completely satisfied with the defaults. A tool that
+is configurable is still usable by anyone who wants to leave it
+configured to the default settings, but can also be tailored to
+the unique needs of individual code bases. Even if style
+guidelines ratified later encourage a particular default
+configuration, users with different needs should still be able to
+reap benefits from using the tool.
 
 As with the style guidelines above, the adopted formatting tool
 will not be forced upon a developer's workflow by any part of the
@@ -131,10 +135,19 @@ option to simply not run it on their code.
 
 ## Alternatives considered
 
-One alternative would be to not propose any particular style
-guidelines and leave it to individual developers and teams to
-create their own (if they so desired). That, of course, does not
-address the points listed in [Motivation](#motivation) above.
+We could not propose any particular style guidelines and leave it
+to individual developers and teams to create their own (if they
+so desired). That does not address the points listed in
+[Motivation](#motivation) above.
+
+We could propose style guidelines but no official formatting
+tool. However, we feel that a tool that works out-of-the-box
+without any other installation requirements or mandatory
+configuration is a major benefit to users. The existence of such
+a tool does not diminish the value of other tools that aim to
+enforce good coding patterns, be they the same, complementary, or
+outright different patterns than those proposed in future Swift
+coding style guidelines.
 
 Some Swift users have suggested that instead of proposing any
 style guidelines, tooling should be able to transform code
