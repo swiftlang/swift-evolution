@@ -121,22 +121,22 @@ The full API provided by `ElementaryFunctions` is as follows:
 /// types there is a branch cut on the negative real axis.
 static func sqrt(_ x: Value) -> Value
 
-/// The cosine of `x`, interpreted as an angle in degrees.
+/// The cosine of `x`, interpreted as an angle in radians.
 static func cos(_ x: Value) -> Value
 
-/// The sine of `x`, interpreted as an angle in degrees.
+/// The sine of `x`, interpreted as an angle in radians.
 static func sin(_ x: Value) -> Value
 
-/// The tangent of `x`, interpreted as an angle in degrees.
+/// The tangent of `x`, interpreted as an angle in radians.
 static func tan(_ x: Value) -> Value
 
-/// The inverse cosine of `x` in degrees.
+/// The inverse cosine of `x` in radians.
 static func acos(_ x: Value) -> Value
 
-/// The inverse sine of `x` in degrees.
+/// The inverse sine of `x` in radians.
 static func asin(_ x: Value) -> Value
 
-/// The inverse tangent of `x` in degrees.
+/// The inverse tangent of `x` in radians.
 ///
 /// See also atan2(y:x:).
 static func atan(_ x: Value) -> Value
