@@ -269,14 +269,14 @@ possibly with implementation directly in Swift: `cospi`, `sinpi`, `tanpi`, `acos
 atanpi`, `exp2m1`, `exp10m1`, `log2p1`, `log10p1`, `compound` (these are the names
 used by IEEE 754; Swift can use different names if we like).
 
-### Functions not defined on Mathable
-The following functions are exported by <math.h>, but will not be defined on Mathable:
+### Functions not defined on ElementaryFunctions
+The following functions are exported by <math.h>, but will not be defined on ElementaryFunctions:
 `frexp`, `ilogb`, `ldexp`, `logb`, `modf`, `scalbn`, `scalbln`, `fabs`, `hypot`, `ceil`,
 `floor`, `nearbyint`, `rint`, `lrint`, `llrint`, `round`, `lround`, `llround`, `trunc`, `fmod`,
 `remainder`, `remquo`, `copysign`, `nan`, `nextafter`, `nexttoward`, `fdim`, `fmin`, `fmax`,
 `fma`.
 
-Most of these are not defined on Mathable because they are inherently bound to the
+Most of these are not defined on ElementaryFunctions because they are inherently bound to the
 semantics of `FloatingPoint` or `BinaryFloatingPoint`, and so cannot be defined for
 types such as Complex or Decimal. Equivalents to many of them are already defined on
 `[Binary]FloatingPoint` anyway--in those cases free functions are defined by
@@ -334,8 +334,6 @@ control, we should avoid the C fenv model). These are deprecated.
 The remainder will not be moved into the Math module at this point, as they can
 be written more naturally in terms of the `FloatingPoint` API. We intend to
 deprecate them.
-
-### Future expansion
 
 ## Source compatibility
 This is an additive change, but it entails some changes for platform modules; the existing
