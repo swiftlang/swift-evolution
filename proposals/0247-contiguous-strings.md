@@ -1,7 +1,7 @@
 # Contiguous Strings
 
-* Proposal: SE-0247
-* Authors: [Michael Ilseman](https://github.com/milseman)
+* Proposal: [SE-0247](0247-contiguous-strings.md)
+* Author: [Michael Ilseman](https://github.com/milseman)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Active review (March 11 - 18, 2019)**
 * Implementation: [apple/swift#23051](https://github.com/apple/swift/pull/23051)
