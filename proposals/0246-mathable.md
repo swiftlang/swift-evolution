@@ -5,6 +5,7 @@
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Active review (March 11 - 20, 2019)**
 * Implementation: [apple/swift#23140](https://github.com/apple/swift/pull/23140)
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/b5bbc5ae1f53189641951acfd50870f5b886859e/proposals/0246-mathable.md)
 
 ## Introduction
 
@@ -82,7 +83,9 @@ type conforms, and a planned `Complex` type would also conform.
 
 The second piece of the proposal is the protocol `Real`:
 ```
-public protocol Real: FloatingPoint, ElementaryFunctions { }
+public protocol Real: FloatingPoint, ElementaryFunctions
+where Math: RealFunctionHooks {
+}
 ```
 This protocol does not add much API surface, but it is what most users will
 write generic code against. The benefit of this protocol is that it allows 
@@ -137,8 +140,6 @@ static func acos(_ x: Value) -> Value
 static func asin(_ x: Value) -> Value
 
 /// The inverse tangent of `x` in radians.
-///
-/// See also atan2(y:x:).
 static func atan(_ x: Value) -> Value
 
 /// The hyperbolic cosine of `x`.
@@ -183,17 +184,6 @@ static func log10(_ x: Value) -> Value
 /// `log(1 + x)` evaluated so as to preserve accuracy close to zero.
 static func log1p(_ x: Value) -> Value
 
-/// The error function evaluated at `x`.
-static func erf(_ x: Value) -> Value
-
-/// The complimentary error function evaluated at `x`.
-static func erfc(_ x: Value) -> Value
-
-/// The gamma function evaluated at `x`.
-///
-/// For integral `x`, `gamma(x)` is `(x-1)` factorial.
-static func gamma(_ x: Value) -> Value
-
 /// `x**y` interpreted as `exp(y * log(x))`
 ///
 /// For real types, if `x` is negative the result is NaN, even if `y` has
@@ -211,25 +201,52 @@ static func pow(_ x: Value, _ n: Int) -> Value
 /// For real types, if `x` is negative and `n` is even, the result is NaN.
 /// For complex types, there is a branch cut along the negative real axis.
 static func root(_ x: Value, _ n: Int) -> Value
-
+```
+`Real` builds on this set by adding the following additional operations on 
+`RealFunctionHooks` that are either difficult to implement for complex types or only make
+sense for real types:
+```swift
 /// `atan(y/x)` with quadrant fixup.
 ///
-/// For real numbers `y` and `x`, there is an infinite family of angles
-/// whose tangent is `y/x`. `atan2` selects the representative that is the
-/// angle between the vector `(x, y)` and the real axis in the range [-π, π].
-///
-/// For complex numbers `y` and `x`, this function is simply defined by
-/// `atan(y/x)`, with the branch cuts implied by that defintion.
+/// There is an infinite family of angles whose tangent is `y/x`. `atan2`
+/// selects the representative that is the angle between the vector `(x, y)`
+/// and the real axis in the range [-π, π].
 static func atan2(y: Value, x: Value) -> Value
+
+/// The error function evaluated at `x`.
+static func erf(_ x: Value) -> Value
+
+/// The complimentary error function evaluated at `x`.
+static func erfc(_ x: Value) -> Value
+
+/// sqrt(x*x + y*y) computed without undue overflow or underflow.
+///
+/// Returns a numerically precise result even if one or both of x*x or
+/// y*y overflow or underflow.
+static func hypot(_ x: Value, _ y: Value) -> Value
+
+/// The gamma function evaluated at `x`.
+///
+/// For integral `x`, `gamma(x)` is `(x-1)` factorial.
+static func gamma(_ x: Value) -> Value
 
 /// `log(gamma(x))` computed without undue overflow.
 ///
-/// For real types, `log(abs(gamma(x)))` is returned, and the sign of
-/// `gamma(x)` is available via `signGamma(x)`.
-///
-/// For complex types, `log(gamma(x))` is returned, and the `signGamma`
-/// function does not exist.
+/// `log(abs(gamma(x)))` is returned. To recover the sign of `gamma(x)`,
+/// use `signGamma(x)`.
 static func logGamma(_ x: Value) -> Value
+
+/// The sign of `gamma(x)`.
+///
+/// This function is typically used in conjunction with `logGamma(x)`, which
+/// computes `log(abs(gamma(x)))`, to recover the sign information that is
+/// lost to the absolute value.
+///
+/// `gamma(x)` has a simple pole at each non-positive integer and an
+/// essential singularity at infinity; we arbitrarily choose to return
+/// `.plus` for the sign in those cases. For all other values, `signGamma(x)`
+/// is `.plus` if `x >= 0` or `trunc(x)` is odd, and `.minus` otherwise.
+static func signGamma(_ x: Value) -> FloatingPointSign
 ```
 These functions directly follow the math library names used in most other
 languages, as there is not a good reason to break with existing precedent.
@@ -248,8 +265,8 @@ adopt other implementations for better speed or accuracy in the future.
 function whose argument order regularly causes bugs, so it would be good
 to clarify here.
 - `logGamma` is introduced instead of the existing `lgamma`, and returns a
-single value instead of a tuple. The sign is still available for real types
-via a new `signGamma` function, but requires a separate function call. The
+single value instead of a tuple. The sign is still available via a new `signGamma`
+function, but requires a separate function call. The
 motivation for this approach is two-fold: first, the more common use case is
 to want only the first value, so returning a tuple creates noise:
 
@@ -271,7 +288,7 @@ used by IEEE 754; Swift can use different names if we like).
 
 ### Functions not defined on ElementaryFunctions
 The following functions are exported by <math.h>, but will not be defined on ElementaryFunctions:
-`frexp`, `ilogb`, `ldexp`, `logb`, `modf`, `scalbn`, `scalbln`, `fabs`, `hypot`, `ceil`,
+`frexp`, `ilogb`, `ldexp`, `logb`, `modf`, `scalbn`, `scalbln`, `fabs`, `ceil`,
 `floor`, `nearbyint`, `rint`, `lrint`, `llrint`, `round`, `lround`, `llround`, `trunc`, `fmod`,
 `remainder`, `remquo`, `copysign`, `nan`, `nextafter`, `nexttoward`, `fdim`, `fmin`, `fmax`,
 `fma`.
@@ -349,9 +366,7 @@ This is an additive change.
 
 ## Alternatives considered
 1. The name `ElementaryFunctions` is a marked improvement on the earlier `Mathable`, but
-is still imperfect. It's ever so slightly a lie (Gamma is not considered elementary),
-but the other reasonable choice `Transcendental` would also be a lie (square root is not
-transcendental). As discussed above, the introduction of the `Real` protocol mostly 
+is still imperfect. As discussed above, the introduction of the `Real` protocol mostly 
 renders this issue moot; most code will be constrained to that instead.
 
 2. The names of these functions are strongly conserved across languages, but they are
@@ -383,7 +398,8 @@ do it correctly.
 users with a background in certain fields, at the cost of diverging from the vast majority
 of programming languages. Rust and Kotlin do spell it this way, so we wouldn't be completely
 alone. It would also avoid using a function name that potentially conflicts (visually or
-syntactically) with an obvious name for logging facilities.
+syntactically) with an obvious name for logging facilities. However, depending on font,
+`ln` is easily confused with `in`, and it breaks the similarity with the other `log` functions.
 
 5. We could put the free functions into the standard library instead of a separate module.
 Having them in a separate module helps avoid adding stuff to the global namespace
@@ -404,3 +420,14 @@ to keep them out for the concrete types we already have. Plus we already have `p
 FloatingPoint, so someone implementing such a type already needs to make a decision about
 how to handle it. There's a second question of how to handle these with `Complex` or
 `SIMD` types; one solution would be to only define them for types conforming to `Real`.
+
+## Changes from previous revisions
+1. A number of functions (`atan2`, `erf`, `erfc`, `gamma`, `logGamma`) have been moved
+from `ElementaryFunctions` onto `Real`. The rationale for this is threefold: `atan2` never
+made much sense for non-real arguments. Implementations of `erf`, `erfc`, `gamma` and
+`logGamma` are not available on all platforms. Finally, those four functions are not actually
+"elementary", so the naming is more accurate following this change.
+
+2. `hypot` has been added to `Real`. We would like to have a more general solution for
+efficiently rescaling computations in the future, but `hypot` is a tool that people can use
+today.
