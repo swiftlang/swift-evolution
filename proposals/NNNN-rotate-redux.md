@@ -78,7 +78,7 @@ a.rotate(toFirst: i)
 ```
 
 There are three different versions of the rotate algorithm, optimized for
-collections with forward, bidirectional, and random access indices. The 
+collections with forward, bidirectional, and random access indices. The
 complexity of the implementation of these algorithms makes the generic rotate
 algorithm a perfect candidate for the standard library.
 
@@ -501,30 +501,30 @@ algorithm needs to be a requirement.
 extension MutableCollection {
     /// Rotates the elements such that the value at the given index is now
     /// at the last valid index before `endIndex`.
-    /// 
+    ///
     /// Passing the index value before `endIndex` as `middle` has no
     /// effect.
-    /// 
+    ///
     /// The method applies a right-rotation, bringing the target element's
     /// value towards `endIndex`.
-    /// 
+    ///
     ///     var letters = ["A", "B", "C", "D", "E", "F"]
     ///     letters.rotate(toLast: letters.index(after: letters.startIndex))
     ///     print(String(letters))
     ///     // Prints "CDEFAB"
-    /// 
+    ///
     /// - Precondition: `middle` must be a valid index of this collection
     ///   and not equal to `endIndex`.
-    /// 
+    ///
     /// - Parameter middle: The index of the element whose value will move
     ///   to the last valid element.
-    /// 
+    ///
     /// - Returns: The index of where the value originally at `startIndex`
     ///   went.
-    /// 
+    ///
     /// - Postcondition: The new value is a right-rotation of the old;
     ///   `newValue == oldValue[middle>..] + oldValue[...middle]`.
-    /// 
+    ///
     /// - Complexity: O(*n*), where *n* is the collection's length.
     @discardableResult
     public mutating func rotate(toLast middle: Index) -> Index
