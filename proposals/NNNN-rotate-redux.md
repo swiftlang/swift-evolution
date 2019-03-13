@@ -9,7 +9,7 @@
 
 *During the review process, add the following fields as needed:*
 
-* Implementation: [apple/swift#NNNNN](https://github.com/apple/swift/pull/NNNNN)
+* Implementation: [apple/swift#23259](https://github.com/apple/swift/pull/23259)
 * Decision Notes: [Rationale](https://forums.swift.org/),
   [Additional Commentary](https://forums.swift.org/)
 * Bugs: [SR-125](https://bugs.swift.org/browse/SR-125)
@@ -21,7 +21,7 @@
 This proposal is an update to SE-0078, providing rotation methods to the
 Standard Library's sequences and collections.
 
-Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/)
+Swift-evolution thread: [Discussion thread topic for the renewed pitch](https://forums.swift.org/t/a-new-call-to-rotate-an-update-to-se-0078/21250)
 
 From SE-0078: [Swift-evolution thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/002213.html),
 [Proposal review feedback](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160502/016642.html),
