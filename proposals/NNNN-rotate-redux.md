@@ -181,25 +181,13 @@ Standard Library over letting the users translate themselves.
 ## Proposed solution
 
 The Swift Standard Library should provide generic implementations of left- and
-right-rotations for sequences and collections.  Further, collections should have
-in-place rotation methods when possible.
+right-rotations for collections.  Further, collections should have in-place
+rotation methods when possible.
 
-For sequences, two rotation methods return new sequences.  Left-rotations need to
-save the first few elements, vend the rest, then vend the cached prefix.  These
-will be modeled with the generic `RotateLeftSequence` and `RotateLeftIterator`
-value types.  Right-rotations need to vend the suffix first, so the entire
-sequence needs to be cached, and therefore a basic `Array` will do.
-`Sequence`-conforming types can return these rotated sequences through the
-`rotated(hastenedBy:)` and `rotated(delayedBy:)` methods for left- and
-right-rotation, respectively.  There will be no `LazySequenceProtocol` variants;
-left-rotation already has lazy features and right-rotation cannot be done
-lazily.
-
-For collections, the `Sequence` rotation method base name is overloaded to
-return new collections that are immutable views to the receiver, and take a
-given index to the pivot element instead of using a shift offset count.  Left
-rotations take the pivot element as the new first one in `rotated(toFirst:)`,
-while right rotations take the pivot element as the new last one in
+The `rotated` methods on collections take an index to a pivot element and return
+new collections that are immutable views to the receiver.  Left-rotations use
+the pivot element as the returned view's first element in `rotated(toFirst:)`.
+Right-rotations use the pivot element as the returned view's last element in
 `rotated(toLast:)`.
 
 Also, for collections that allow mutable per-element state, in-place rotation
@@ -210,114 +198,6 @@ while right rotations take the pivot element as the new last one in
 `rotate(toLast:)`.
 
 ## Detailed design
-
-### Sequences
-
-Left-rotation is implemented in two parts.  The first part is a
-`RotateLeftIterator` that wraps a given iterator, caches its prefix, then vends
-the wrapped iterator's elements in a shifted order.
-
-```swift
-/// An iterator that vends the prefix of its wrapped underlying sequence
-/// after vending that sequence's suffix.
-public struct RotateLeftIterator<Base: IteratorProtocol>: IteratorProtocol {
-    mutating public func next() -> Base.Element?
-}
-```
-
-The main part, `RotateLeftSequence`, makes copies of its iterator based on the
-iterators of its wrapped sequence.  The underestimated count is passed on from
-the wrapped sequence.
-
-```swift
-/// A sequence that vends the prefix of its wrapped sequence after
-/// vending that sequence's suffix.
-public struct RotateLeftSequence<Base: Sequence>: Sequence {
-    public func makeIterator() -> RotateLeftIterator<Base.Iterator>
-    public var underestimatedCount: Int
-}
-```
-
-An extension method on `Sequence` takes an integer offset to vend a
-left-rotated sequence.
-
-```swift
-extension Sequence {
-    /// Returns a left-rotation of this sequence, which brings its suffix
-    /// forward by caching its prefix of a given length and delaying its
-    /// vending until after the suffix.
-    ///
-    /// If the skipped amount exceeds the number of elements in the
-    /// sequence, then that amount is reduced modulo the sequence length.
-    /// (This is the same effect as a series of single-step rotations.)
-    ///
-    ///     let numbers = [1, 2, 3, 4, 5, 6, 7]
-    ///     print(Array(numbers.rotated(hastenedBy: 3)))
-    ///     // Prints "[4, 5, 6, 7, 1, 2, 3]"
-    ///     print(Array(numbers.rotated(hastenedBy: 12)))
-    ///     // Prints "[6, 7, 1, 2, 3, 4, 5]"
-    ///     print(Array(numbers.rotated(hastenedBy: 14)))
-    ///     // Prints "[1, 2, 3, 4, 5, 6, 7]"
-    ///
-    /// - Precondition: `initialSkipCount >= 0`.
-    ///
-    /// - Parameter initialSkipCount: The number of elements to initially
-    ///   skip over.
-    ///
-    /// - Returns: A sequence of the suffix of this sequence followed by
-    ///   its prefix.
-    ///
-    /// - Complexity: O(1), except for O(*k*) at the first iteration call,
-    ///   where *k* is the displaced prefix length.
-    public func rotated(hastenedBy initialSkipCount: Int) -> RotateLeftSequence<Self>
-}
-```
-
-Right-rotation requires reading the entirety of the sequence so its suffix can
-be extracted and vended out first.  Since it can never be done lazily, the
-implementation is a single extension method to `Sequence`.
-
-```swift
-extension Sequence {
-    /// Returns a right-rotation of this sequence, which sets its prefix
-    /// back by caching its suffix of a given length and vending it before
-    /// the prefix.
-    ///
-    /// If the skipped amount exceeds the number of elements in the
-    /// sequence, then that amount is reduced modulo the sequence length.
-    /// (This is the same effect as a series of single-step rotations.)
-    ///
-    ///     let numbers = [1, 2, 3, 4, 5, 6, 7]
-    ///     print(Array(numbers.rotated(delayedBy: 3)))
-    ///     // Prints "[5, 6, 7, 1, 2, 3, 4]"
-    ///     print(Array(numbers.rotated(delayedBy: 12)))
-    ///     // Prints "[3, 4, 5, 6, 7, 1, 2]"
-    ///     print(Array(numbers.rotated(delayedBy: 14)))
-    ///     // Prints "[1, 2, 3, 4, 5, 6, 7]"
-    ///
-    /// - Precondition: `finalSkipCount >= 0`.
-    ///
-    /// - Parameter finalSkipCount: The number of suffix elements to skip
-    ///   ahead as the new start.
-    ///
-    /// - Returns: A sequence of the suffix of this sequence followed by
-    ///   its prefix.
-    ///
-    /// - Complexity: O(*n*), where *n* is the length of this sequence.
-    public func rotated(delayedBy finalSkipCount: Int) -> [Element]
-}
-```
-
-### Collections, Rotated Copies
-
-**To-Do:** Should there be overloads of `rotated(delayedBy:)` for
-`RangeReplaceableCollection` that change the return type to `Self`?  Reducing
-the offset by the length of the collection is hard unless the collection
-conforms to `RandomAccessCollection` due to the O(*n*) penalty calculating the
-length.  After that, finding the index to break the suffix is hard unless the
-collection conforms to `BidirectionalCollection` due to the O(*n*) penalty
-finding the suffix's starting index, opposed to only O(*k*) for bidirectional
-collections (or O(1) for random access collections).
 
 ### Collections, Rotated-View Copies
 
@@ -351,8 +231,6 @@ extension RotatedCollection.Index: Hashable where Base.Index: Hashable {}
 
 extension RotatedCollection: LazySequenceProtocol where Base: LazySequenceProtocol {}
 ```
-
-**To-Do:** Should `LazyCollectionProtocol` support be added?
 
 The rotated view allows bi-directional or random-access traversal when the
 wrapped collection type does, using conditional conformance.
@@ -596,10 +474,8 @@ protocol requirement.  It has a default implementation, though.
 ## Alternatives considered
 
 The primary alternative is to not include this feature set into the Standard
-Library.  This would require users to supply sequence/collection rotation
-themselves.
+Library.  This would require users to supply collection rotation themselves.
 
-This proposal renames some methods from SE-0078 and adds several types and
-other capabilities.  If the additional features are cut, then users would have
-to supply their own code for right rotations and rotating non-collection
-sequences.
+This proposal renames some methods from SE-0078 and adds other capabilities.  If
+the additional features are cut, then users would have to supply their own code
+for right rotations.
