@@ -1,17 +1,17 @@
 # String Gaps and Missing APIs
 
 * Proposal: [SE-0248](0248-string-gaps-missing-apis.md)
-* Authors: [Michael Ilseman](https://github.com/milseman)
+* Author: [Michael Ilseman](https://github.com/milseman)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Status: **Active review (March 13 - 22, 2019)**
-* Implementation: [apple/swift#22869](https://github.com/apple/swift/pull/22869/files)
+* Implementation: [apple/swift#22869](https://github.com/apple/swift/pull/22869)
 * Bugs: [SR-9955](https://bugs.swift.org/browse/SR-9955)
 
 ## Introduction
 
 String and related types are missing trivial and obvious functionality, much of which currently exists internally but has not been made API. We propose adding 9 new methods/properties and 3 new code unit views.
 
-Swift-evolution thread: TBD
+Swift-evolution thread: [Pitch: String Gaps and Missing APIs](https://forums.swift.org/t/pitch-string-gaps-and-missing-apis/20984)
 
 ## Motivation
 
