@@ -1,9 +1,9 @@
 # Key Path Expressions as Functions
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0247](0247-key-path-literal-function-expressions.md)
 * Authors: [Stephen Celis](https://github.com/stephencelis), [Greg Titus](https://github.com/gregomni)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
+* Status: **Scheduled (March 18 - 26, 2019)**
 * Implementation: [apple/swift#19448](https://github.com/apple/swift/pull/19448)
 
 <!--
