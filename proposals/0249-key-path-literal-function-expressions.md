@@ -6,15 +6,6 @@
 * Status: **Scheduled for review (March 18...26, 2019)**
 * Implementation: [apple/swift#19448](https://github.com/apple/swift/pull/19448)
 
-<!--
-*During the review process, add the following fields as needed:*
-
-* Decision Notes: [Rationale](https://forums.swift.org/), [Additional Commentary](https://forums.swift.org/)
-* Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM)
-* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
-* Previous Proposal: [SE-XXXX](XXXX-filename.md)
--->
-
 ## Introduction
 
 This proposal introduces the ability to use the key path expression `\Root.value` wherever functions of `(Root) -> Value` are allowed.
