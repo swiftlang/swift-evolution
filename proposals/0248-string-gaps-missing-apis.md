@@ -1,9 +1,9 @@
 # String Gaps and Missing APIs
 
-* Proposal: SE-NNNN
+* Proposal: [SE-0248](0248-string-gaps-missing-apis.md)
 * Authors: [Michael Ilseman](https://github.com/milseman)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Ted Kremenek](https://github.com/tkremenek)
+* Status: **Active review (March 13 - 22, 2019)**
 * Implementation: [apple/swift#22869](https://github.com/apple/swift/pull/22869/files)
 * Bugs: [SR-9955](https://bugs.swift.org/browse/SR-9955)
 
