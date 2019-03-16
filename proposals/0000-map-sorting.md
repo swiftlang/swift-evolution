@@ -8,7 +8,7 @@
 
 ## Introduction
 
-This proposal presents a minor addition to the Standard Library in an effort to make map sorting and, eventually, closureless key-path sorting a functional prerequisite for Swift.
+This proposal presents an addition to the Standard Library in an effort to make map sorting and, eventually, closureless key-path sorting a functional prerequisite for Swift.
 
 Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/t/map-sorting/21421)
 
@@ -34,27 +34,19 @@ people.sort { $0.age < $1.age }
 chats.sort { $0.lastMsg.date > $1.lastMsg.date }
 ```
 
-Most often, however, all we need to determine sorting is a key-path on an element. Other times, a comparison closure on its own happens to be inconvenient or inefficient: the base metric might be obtained through non-trivial computation, where a predicate alone instigates code duplication and makes it harder to spot the sorting order. When the values are expensive to retrieve, the predicate obscuring the computations also becomes a major obstacle for optimizations, such as trading memory for speed to warrant that each value is computed once per element. For clarity, applying the latter to a ϴ(n) operation can speed up sorting by a factor of 10 for an array of 1500 elements. The goal is therefore to introduce an API that decouples the comparison of values from their calculations, favouring optimizations and providing greater convenience for an ample range of cases.
-
-### Key-paths
-
-**Swift 4** key-path expressions enable us to get rid of the closure and hence retain the argument label, giving the call a surprising resemblance to actual human language.
-
-```swift
-people.sort(by: \.age)
-chats.sort(by: \.lastMsg.date, >)
-``` 
-
-Just like [`sort()`](https://developer.apple.com/documentation/swift/mutablecollection/2802575-sort)
-and [`sorted()`](https://developer.apple.com/documentation/swift/sequence/1641066-sorted), key-path sorting is a highly common practice and a fundamental case that deserves a convenience method in the Standard Library, the author believes. The only problem with focusing solely on key-paths is that we neglect custom transforms, whereas a general approach is both flexible and provident in leaving space for key-path conveniences were we to support implicit key-path-to-function conversions sometime in the future.
+Most often, however, all we need to determine sorting is a key-path on an element. Other times, a comparison closure on its own happens to be inconvenient or inefficient: the base metric might be obtained through non-trivial computation, where a predicate alone instigates code duplication and makes it harder to spot the sorting order. When the values are expensive to retrieve, the predicate obscuring the computations also becomes a major obstacle for optimizations, such as trading memory for speed to warrant that each value is computed once per element rather than O(nlogn) times. For clarity, applying the latter to a ϴ(n) operation theoretically speeds sorting up by a factor of 10 for an array of 1000 elements; in reality, the difference is even greater. The goal is therefore to introduce an API that decouples the comparison of values from their calculations, favouring optimizations and bringing ergonomic advantages for an ample range of cases.
 
 ## Proposed solution
 
-Add an overload for both the non-mutating `sorted` and in-place `sort` methods on `Sequence` and `MutableCollection` respectively. The predicate will lead the argument list, followed by a mapping closure. The ordering is such as to ensure a trailing position for the argument with a higher demand on closure expansion. Ideally, swapping property-based transforms for key-paths will be a matter of style. 
+Add an overload for both the non-mutating `sorted` and in-place `sort` methods on `Sequence` and `MutableCollection` respectively. A mapping closure on `Element` will lead the argument list, followed by the well known `areInIncreasingOrder` predicate and, finally, a flag that triggers the already mentioned [Schwarzian Transform](https://en.wikipedia.org/wiki/Schwartzian_transform) optimization. `transform` is positioned before the predicate specifically because the latter is type-dependent on and logically precedes the former, meaning, above all, fundamental type-checker and autocompletion support. Here are some example usages:
 
 ```swift
-chats.sort(using: >) { $0.lastMsg.date }
-chats.sort(using: >, by: \.lastMsg.date)
+chats.sort(on: { $0.lastMsg.date }, by: >)
+fileUnits.sort(
+  on: { $0.raw.count(of: "func") },
+  by: <,
+  isExpensiveTransform: true
+)
 ```
 
 
@@ -65,12 +57,23 @@ extension Sequence {
 
   @inlinable
   public func sorted<Value>(
-    using areInIncreasingOrder: (Value, Value) throws -> Bool,
-    by transform: (Element) -> Value
+    on transform: (Element) throws -> Value,
+    by areInIncreasingOrder: (Value, Value) throws -> Bool,
+    isExpensiveTransform: Bool = false
   ) rethrows -> [Element] {
-    return try sorted {
-      try areInIncreasingOrder(transform($0), transform($1))
+    guard isExpensiveTransform else {
+      return try sorted {
+        try areInIncreasingOrder(transform($0), transform($1))
+      }
     }
+    var pairs = try map {
+      try (element: $0, value: transform($0))
+    }
+    try pairs.sort {
+      try areInIncreasingOrder($0.value, $1.value)
+    }
+
+    return pairs.map { $0.element }
   }
 }
 
@@ -78,11 +81,24 @@ extension MutableCollection where Self: RandomAccessCollection {
 
   @inlinable
   public mutating func sort<Value>(
-    using areInIncreasingOrder: (Value, Value) throws -> Bool,
-    by transform: (Element) -> Value
+    on transform: (Element) throws -> Value,
+    by areInIncreasingOrder: (Value, Value) throws -> Bool,
+    isExpensiveTransform: Bool = false
   ) rethrows {
-    try sort {
-      try areInIncreasingOrder(transform($0), transform($1))
+    guard isExpensiveTransform else {
+      return try sort {
+        try areInIncreasingOrder(transform($0), transform($1))
+      }
+    }
+    var pairs = try map {
+      try (element: $0, value: transform($0))
+    }
+    try pairs.sort {
+      try areInIncreasingOrder($0.value, $1.value)
+    }
+
+    for (i, j) in zip(indices, pairs.indices) {
+      self[i] = pairs[j].element
     }
   }
 }
@@ -92,8 +108,27 @@ extension MutableCollection where Self: RandomAccessCollection {
 
 This is an ABI-compatible addition with no impact on source compatibility.
 
-
 ## Alternatives considered
 
-The implementation could be constrained to only accept transforms to `Comparable` types - so we can make calls shorter for ascending order by defaulting to the less-than (`<`) operator in exchange for flexibility: `people.sort { $0.age }`. Nevertheless, explicit sorting order has its readability merits and the advantage of saving the reader from looking up documentation notes on defaults.
+### Why not key-paths?
 
+**Swift 4** key-path expressions enable us to get rid of the closure and hence retain the argument label, giving the call a surprising resemblance to actual human language:
+
+```swift
+people.sort(by: \.age)
+chats.sort(by: \.lastMsg.date, >)
+``` 
+
+Like [`sort()`](https://developer.apple.com/documentation/swift/mutablecollection/2802575-sort)
+and [`sorted()`](https://developer.apple.com/documentation/swift/sequence/1641066-sorted), key-path sorting is a highly common practice and a fundamental case that deserves some out-of-the-box convenience. The only issue with focusing solely on key-paths in an ABI-stable world is that we risk API sprawl by neglecting custom transforms, whereas the generalized approach is both flexible and provident in leaving space for key-paths [were we to support implicit key-path-to-function conversions](https://github.com/apple/swift-evolution/pull/977) sometime in the future. Ideally, swapping property-based transforms for key-paths will be a matter of style.
+
+```swift
+chats.sort(on: { $0.lastMsg.date }, by: >)
+chats.sort(on: \.lastMsg.date, by: >)
+```
+
+### Argument label naming  
+
+* people.sort(over: { $0.age }, by: <)
+* people.sort(through: { $0.age }, by: <)
+* people.sort(by: { $0.age }, using: <)
