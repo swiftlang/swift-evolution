@@ -1,9 +1,10 @@
 # Expanding Swift `Self` to class members and value types
 
 * Proposal: [SE-0068](0068-universal-self.md)
-* Author: [Erica Sadun](http://github.com/erica)
-* Review Manager: [Chris Lattner](http://github.com/lattner)
-* Status: **Accepted with revisions**
+* Author: [Erica Sadun](https://github.com/erica)
+* Review Manager: [Chris Lattner](https://github.com/lattner)
+* Status: **Implemented (Swift 5.1)**
+* Implementation: [apple/swift#22863](https://github.com/apple/swift/pull/22863)
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160425/015977.html)
 * Bug: [SR-1340](https://bugs.swift.org/browse/SR-1340)
 * Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/bcd77b028cb2fc9f07472532b120e927c7e48b34/proposals/0068-universal-self.md), [2](https://github.com/apple/swift-evolution/blob/13d9771e86c5639b8320f05e5daa31a62bac0f07/proposals/0068-universal-self.md)
