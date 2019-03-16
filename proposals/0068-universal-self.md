@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0068](0068-universal-self.md)
 * Author: [Erica Sadun](http://github.com/erica)
-* Status: **[Accepted with modification](#rationale)** ([Bug](https://bugs.swift.org/browse/SR-1340))
+* Status: **[Implemented](#rationale)** ([Bug](https://bugs.swift.org/browse/SR-1340))
 * Review manager: [Chris Lattner](http://github.com/lattner)
 * Previous versions: [Review version](https://github.com/apple/swift-evolution/blob/13d9771e86c5639b8320f05e5daa31a62bac0f07/proposals/0068-universal-self.md), [Original version with `#Self` included](https://github.com/apple/swift-evolution/blob/bcd77b028cb2fc9f07472532b120e927c7e48b34/proposals/0068-universal-self.md)
 
