@@ -132,7 +132,7 @@ chats.sort(on: \.lastMsg.date, by: >)
 
 #### `people.sort(over: { $0.age }, by: <)`
 
-`over` has more of a mathematical flavor to it, where the `transform` argument is read as a set of values with an injective (one-to-one) relation to the elements of the sequence. For that matter, «map sorting» can therefore be thought of as sorting the set of transformed values and permuting the elements of the original sequence accordingly. While this variant emphasizes the strong correlation of mathematics and computer science, Swift as a multi-paradigm language should strive to settle with generally understandable names that are recognizable, ideally, regardless of the user's background.
+`over` has more of a mathematical flavor to it, where the `transform` argument is read as a set of values with an injective (one-to-one) relation to the elements of the sequence. For that matter, «map sorting» can be thought of as sorting the set of transformed values and permuting the elements of the original sequence accordingly. While this variant emphasizes the strong correlation of mathematics and computer science, Swift as a multi-paradigm language should strive to settle with generally understandable names that are recognizable, ideally, regardless of the user's background.
 
 #### `people.sort(by: { $0.age }, using: <)`
 
