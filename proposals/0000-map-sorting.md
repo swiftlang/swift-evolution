@@ -141,4 +141,4 @@ chats.sort(on: \.lastMsg.date, by: >)
 #### `people.sort(by: { $0.age }, using: <)`
 
 The `by` label is a perfect candidate to describe the yielded metric used to sort the sequence. `using`, on its turn, is just as fitting for a predicate or an operator. The pair in question is perhaps the only one that always boils down to a proper
-sentence - «*Sort-ed **by** a metric **using** a predicate*». Nevertheless, the author is convinced in the superior importance of preserving API uniformity and consistency with existing API the Standard Library developers have worked so hard to keep. We must be especially careful in this regard with ABI Stability in action, permanently precluding any amendments to public API signatures.
+sentence - «*Sort-ed **by** a metric **using** a predicate*». Nevertheless, the author is convinced in the superior importance of preserving API uniformity and consistency with existing API the Standard Library developers have worked so hard to keep. With ABI Stability kicking in, we no longer have an opportunity for amendments to public API signatures and must be especially careful in this regard.
