@@ -38,7 +38,7 @@ Most often, however, all we need to determine sorting is a key-path on an elemen
 
 ## Proposed solution
 
-Add an overload for both the non-mutating `sorted` and in-place `sort` methods on `Sequence` and `MutableCollection` respectively. A mapping closure on `Element` will lead the argument list, followed by the well known `areInIncreasingOrder` predicate and, finally, a flag that allows to opt into the already mentioned [Schwarzian Transform](https://en.wikipedia.org/wiki/Schwartzian_transform) optimization. `transform` is positioned before the predicate specifically because the latter is type-dependent on and logically precedes the former, meaning, above all, fundamental type-checker and autocompletion support. Here are some example usages:
+Add an overload for both the non-mutating `sorted` and in-place `sort` methods on `Sequence` and `MutableCollection` respectively. A mapping closure on `Element` will lead the argument list, followed by the well known `areInIncreasingOrder` predicate and, finally, a flag that allows to opt into the already mentioned [Schwartzian Transform](https://en.wikipedia.org/wiki/Schwartzian_transform) optimization. `transform` is positioned before the predicate specifically because the latter is type-dependent on and logically precedes the former, meaning, above all, fundamental type-checker and autocompletion support. Here are some example usages:
 
 ```swift
 chats.sort(on: { $0.lastMsg.date }, by: >)
