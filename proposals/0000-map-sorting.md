@@ -34,11 +34,15 @@ people.sort { $0.age < $1.age }
 chats.sort { $0.lastMsg.date > $1.lastMsg.date }
 ```
 
-Most often, however, all we need to determine sorting is a key-path on an element. Other times, a comparison closure on its own happens to be inconvenient or inefficient: the base metric might be obtained through non-trivial computation, where a predicate alone instigates code duplication and makes it harder to spot the sorting order. When the values are expensive to retrieve, the predicate obscuring the computations also becomes a major obstacle for optimizations, such as trading memory for speed to warrant that each value is computed once per element rather than O(*n* log*n*) times. For clarity, applying the latter to a ϴ(*n*) operation theoretically speeds up sorting by a factor of 10 for an array of 1000 elements. For that reason, the goal is to introduce an API that decouples the comparison of values from their calculations, favouring optimizations and bringing ergonomic advantages for an ample range of cases.
+Most often, however, all we need to determine sorting is a key-path on an element. Other times, a comparison closure on its own happens to be inconvenient or inefficient.
+* The `$0.property < $1.property` syntax often leads to copy-and-paste bugs.
+* The base metric might be obtained through non-trivial computation, where a predicate alone instigates code duplication and makes it harder to spot the sorting order.
+* When the values are expensive to retrieve, the predicate obscuring the computations also becomes a major obstacle for optimizations, such as trading memory for speed to warrant that each value is computed once per element rather than O(*n* log*n*) times. For clarity, applying the latter to a ϴ(*n*) operation theoretically speeds up sorting by a factor of 10 for an array of 1000 elements. 
+Thereby, the goal is to introduce an API that decouples the comparison of values from their calculations, favoring optimizations and bringing ergonomic advantages for an ample range of cases.
 
 ## Proposed solution
 
-Add an overload for both the non-mutating `sorted` and in-place `sort` methods on `Sequence` and `MutableCollection` respectively. A mapping closure on `Element` will lead the argument list, followed by the well known `areInIncreasingOrder` predicate and, finally, a flag that allows to opt into the already mentioned [Schwartzian Transform](https://en.wikipedia.org/wiki/Schwartzian_transform) optimization. `transform` is positioned before the predicate specifically because the latter is type-dependent on and logically precedes the former, meaning, above all, fundamental type-checker and autocompletion support. Here are some example usages:
+Add an overload for both the nonmutating `sorted` and in-place `sort` methods on `Sequence` and `MutableCollection` respectively. A mapping closure on `Element` will lead the argument list, followed by the well known `areInIncreasingOrder` predicate and, finally, a flag that allows to opt into the already mentioned [Schwartzian Transform](https://en.wikipedia.org/wiki/Schwartzian_transform) optimization. `transform` is positioned before the predicate specifically because the latter is type-dependent on and logically precedes the former, meaning, above all, fundamental type-checker and autocompletion support. Here are some example usages:
 
 ```swift
 chats.sort(on: { $0.lastMsg.date }, by: >)
