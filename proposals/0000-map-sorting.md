@@ -14,7 +14,7 @@ Swift-evolution thread: [Discussion thread topic for that proposal](https://foru
 
 ## Motivation
 
-A straightforward way to sort a collection over a `Comparable` property of its `Element` type is to use a regular predicate, welding together the accessing and comparison of values.
+The straightforward way to sort a collection over a `Comparable` property of its `Element` type is to use a regular predicate, welding together the accessing and comparison of values.
 
 ```swift
 struct Person {
@@ -42,6 +42,7 @@ Add an overload for both the non-mutating `sorted` and in-place `sort` methods o
 
 ```swift
 chats.sort(on: { $0.lastMsg.date }, by: >)
+
 fileUnits.sort(
   on: { $0.raw.count(of: "func") },
   by: <,
@@ -120,7 +121,7 @@ chats.sort(by: \.lastMsg.date, >)
 ``` 
 
 Like [`sort()`](https://developer.apple.com/documentation/swift/mutablecollection/2802575-sort)
-and [`sorted()`](https://developer.apple.com/documentation/swift/sequence/1641066-sorted), key-path sorting is a highly common practice and a fundamental case that deserves some out-of-the-box convenience. The only issue with focusing solely on key-paths in an ABI-stable world is that we risk API sprawl by neglecting custom transforms, whereas the generalized approach is both flexible and provident in leaving space for key-paths [were we to support implicit key-path-to-function conversions](https://github.com/apple/swift-evolution/pull/977) sometime in the future. Ideally, swapping property-based transforms for key-paths will be a matter of style.
+and [`sorted()`](https://developer.apple.com/documentation/swift/sequence/1641066-sorted), key-path sorting is a highly common practice and a fundamental case that deserves some out-of-the-box convenience. The only issue with focusing solely on key-paths in an ABI-stable world is that we risk API sprawl by neglecting custom mappings, whereas the closure-based approach is both flexible and provident in leaving space for [implicit key-path-to-function conversions](https://github.com/apple/swift-evolution/pull/977). Ideally, the choice between a key-path and a closure will but a matter of style:
 
 ```swift
 chats.sort(on: { $0.lastMsg.date }, by: >)
@@ -129,6 +130,11 @@ chats.sort(on: \.lastMsg.date, by: >)
 
 ### Argument label naming  
 
-* people.sort(over: { $0.age }, by: <)
-* people.sort(through: { $0.age }, by: <)
-* people.sort(by: { $0.age }, using: <)
+#### `people.sort(over: { $0.age }, by: <)`
+
+`over` has more of a mathematical flavor to it, where the `transform` argument is read as a set of values with an injective (one-to-one) relation to the elements of the sequence. For that matter, «map sorting» can therefore be thought of as sorting the set of tranformed values and permuting the elements of the original sequence accordingly. While this variant emphazises the strong correlation of mathematics and computer science, Swift as a multi-paradigm language should strive to settle with generally understandable names that are recognizable, ideally, regardless of the user's background.
+
+#### `people.sort(by: { $0.age }, using: <)`
+
+The `by` label is a perfect candidate to describe the yielded metric used to sort the sequence. `using`, on its turn, is just as fitting for a predicate or an operator. The pair in question is perhaps the only one that always boils down to a proper
+sentence - «*Sort[ed] **by** a property/metric **using** a predicate*». Nevertheless, the author is convinced in the superior importance of preserving API uniformity and constistency with existing API the Standard Library developers have worked so hard to keep. We must be especially careful in this regard with ABI Stability in action, permanently precluding any amendments to public API signatures.
