@@ -216,7 +216,7 @@ All changes are additive.
 
 ## Effect on ABI stability
 
-All changes are additive. ABI-relevant attributes are provided in “Detailed design”.
+All changes are additive.
 
 ## Effect on API resilience
 
