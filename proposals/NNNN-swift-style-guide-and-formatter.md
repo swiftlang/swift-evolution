@@ -10,6 +10,8 @@
 We propose that the Swift project adopt a set of code style
 guidelines and provide a formatting tool that lets users easily
 diagnose and update their code according to those guidelines.
+These guidelines would _not_ be mandatory for all projects, but
+encouraged for Swift code to follow for general consistency.
 
 ## Motivation
 
@@ -148,6 +150,13 @@ a tool does not diminish the value of other tools that aim to
 enforce good coding patterns, be they the same, complementary, or
 outright different patterns than those proposed in future Swift
 coding style guidelines.
+
+We could make style guidelines mandatory, or at least enforced in
+a very opinionated manner by the formatter (similar to Go). We
+have chosen not to do so given that Swift is a well-established
+language. Users who are happy with the default guidelines can
+simply use them as-is, developers who have different preferences
+are not unnecessarily constrained.
 
 Some Swift users have suggested that instead of proposing any
 style guidelines, tooling should be able to transform code
