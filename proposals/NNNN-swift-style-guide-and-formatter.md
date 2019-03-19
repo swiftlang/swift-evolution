@@ -114,6 +114,8 @@ The tool will be used as part of evaluating options for the
 proposed code style guidelines, as part of a follow-up proposal on
 the details of the guidelines themselves.
 
+### Configurability of Formatting
+
 `swift-format` will allow configuration of some practical
 formatting decisions like indentation size, line length, and
 respecting existing newlines. In mixed-language projects, some
