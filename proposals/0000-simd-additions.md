@@ -1,9 +1,9 @@
 # SIMD additions
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-NNNN](NNNN-simd-additions.md)
 * Authors: [Stephen Canon](https://github.com/stephentyrone)
 * Review Manager: TBD
-* Status: **Awaiting implementation**
+* Status: [**Implemented**](https://github.com/apple/swift/pull/23421)
 
 ## Introduction
 
@@ -12,177 +12,385 @@ and protocols to better support their use cases. In addition, there are some fea
 we punted out of the original review because we were up against a hard time
 deadline to which we would like to give further consideration.
 
-## Motivation
+This is a bit of a grab bag of SIMD features, so I'm deviating from the usual proposal
+structure. Each new addition has its own motivation, proposed solution, and alternatives
+considered section.
 
-This is a bit of a grab bag of SIMD features, so it's hard to present a single coherent
-motivation for their addition. Basically, they are features that people who are writing
-a significant amount of code against the existing SIMD types have found they are
-missing. I'll attempt to motivate each new API individually in the proposed solution
-section below.
+## Table of Contents
+1. [Static `scalarCount`](#scalarCount)
+2. [Extending Vectors](#extending)
+3. [Swizzling](#swizzling)
+4. [Reductions](#reduction)
+5. [Lanewise `min`, `max`, and `clamp`](#minMaxClamp)
+6. [`.one`](#one)
+7. [`any` and `all`](#anyAndAll)
+8. [`copysign`](#copysign)
 
-## Proposed solution
+<a name="scalarCount">
 
-### Extending vectors
-Add the following initializers:
+## Static scalarCount
+### Motivation
+In functions that construct new SIMD vectors, especially initializers, one frequently wants
+to perform some validation involving `scalarCount` *before* doing the work to create the
+vector. Currently, `scalarCount` is defined as an instance property (following the pattern
+of `count` on collection).
+
+However, all SIMD vectors of a given type have the same `scalarCount`, so semantically
+it makes sense to have available as a static property as well. There's precedent for having
+this duplication in the `.bitWidth` property on fixed-width integers.
+
+### Detailed Design
 ```swift
-extension SIMD3 {
-  /// The vector (xy.x, xy.y, z)
-  public init(_ xy: SIMD2<Scalar>, _ z: Scalar)
-}
-
-extension SIMD4 {
-  /// The vector (xyz.x, xyz.y, xyz.z, w)
-  public init(_ xyz: SIMD3<Scalar>, _ w: Scalar)
-}
-```
-These are broadly useful in graphics contexts for working with homogeneous coordinates,
-where the last component needs to be treated separately, and where you frequently want
-to extend vectors by adding an additional component at API boundaries. These could
-alternatively be spelled like `xy.appending(z)`; there are two reasons that I'm avoiding
-that:
-- I would expect `appending( )` to return the same type; here the result type is different.
-- I would expect `appending( )` to be available on all SIMD types, but it breaks down
-beyond `SIMD4`, because there is no `SIMD5` in the standard library.
-
-### Loading and storing from collections
-Add the following:
-```swift
-extension SIMD {
-  /// Extracts a vector with consecutive elements taken from `collection`
-  /// beginning at the index `start`.
-  ///
-  /// - Precondition: `collection` contains enough elements to fill the
-  ///   vector.
-  public init<C>(_ collection: C, start: C.Index)
-  where C: Collection, C.Element == Scalar
-  
-  /// Replaces the elements of `collection` beginning at the index
-  /// `start` with the elements of this vector.
-  ///
-  /// - Precondition: `collection` has space for all elements of the
-  ///   vector.
-  public func store<C>(into collection: inout C, start: C.Index)
-  where C: MutableCollection, C.Element == Scalar
-}
-```
-These are primarily useful for working with arrays or UBP of vector data, such as are used
-to marshal vertex or color data to and from the GPU. They are especially useful with
-3-element vector types, where we may want to avoid the extra padding element that
-`Array<SIMD3<T>>` or `UnsafeBufferPointer<SIMD3<T>>` would incur.
-
-The `init` is pretty clear; I am not really sold on the naming of `store` at this point, and
-would love to hear other suggestions. If `SIMD` types conformed to `Sequence`, this would
-nearly be `collection.replaceSubrange(start...start+v.count, with: v)` for 
-`RRC`, but we would like to enforce that this doesn't grow the collection; it should only
-replace exactly `count` elements, so it's slightly different--the `RRC` interface would be
-redundant.
-
-The intention is that these should codegen to vector loads when the elements are actually
-contiguous in memory, but still work with collections that are not contiguous. Early
-experimentation suggests that we get the desired codgen even with fully generic
-implementations of these operations.
-
-### Horizontal operations
-Generally in SIMD programming you try to avoid horizontal operations as much as
-possible, but frequently you need to do a few of them at the end of a chain of
-computations. The reductions that we most often need to perform are:
-```swift
-extension SIMD where Scalar: Comparable {
-  func min() -> Scalar
-  func max() -> Scalar
-}
-
-extension SIMD where Scalar: BinaryFloatingPoint {
-  func sum() -> Scalar
-}
-
-extension SIMD where Scalar: FixedWidthInteger {
-  func sum() -> Scalar
-}
-```
-One might reasonably ask why the last two are not collapsed onto `AdditiveArithmetic`.
-The answer is that we want to use `&+` for reduction on integer vectors, which isn't defined
-on `AdditiveArithmetic`. One might follow-up with "isn't that prone to overflow?" The
-answer is yes, but it's the operation you generally want in a SIMD context; to get the
-"safe" sum you widen to the double-width type, then sum that. We might reasonably use
-a different name for this operation though, like `wrappingSum`, to be explicit.
-
-In addition, we would provide the following two reductions on Mask vectors:
-```swift
-/// True if any lane of the mask is true
-func any<S>(_ mask: SIMDMask<S>) -> Bool
-
-/// True if every lane of the mask is true
-func all<S>(_ mask: SIMDMask<S>) -> Bool
-```
-These two are defined as free functions, because at use sites they read significantly more
-clearly like `if any(x .< 0)` than, e.g. `if (x .< 0).any()`. We could consider using a
-more verbose spelling like `if (x .< 0).anyIsTrue( )`, but these functions are used
-quite heavily, and there's a strong preference from the teams we've been working with for
-the concise free function spellings.
-
-We would also like to add:
-```swift
-extension SIMD where Scalar: Comparable {
-  func indexOfMinValue() -> Int
-  func indexOfMaxValue() -> Int
-}
-```
-The exact spelling of these is not super important to our would-be clients, and I'm not
-really wedded to these names. I would love to get some suggestions for them.
-
-### Min, max, clamp
-```swift
-extension SIMD where Scalar: Comparable {
-  static func min(_ lhs: Self, _ rhs: Self) -> Self
-  static func max(_ lhs: Self, _ rhs: Self) -> Self
-  mutating func clamp(to range: ClosedRange<Scalar>)
-  func clamped(to range: ClosedRange<Scalar>) -> Self
-  mutating func clamp(lowerBound: Self, upperBound: Self)
-  func clamped(lowerBound: Self, upperBound: Self) -> Self
-}
-```
-These are all fairly simple to implement in terms of the existing
-`replacing(with: where:)`, but for two factors: first, getting them right for floating-point
-types is a little bit subtle, and second these are so heavily used that it makes sense to
-have an actual API for them, rather than leaving each developer to implement them on their
-own.
-
-### "Swizzles" aka "Permutes"
-Early drafts of the previous proposal for SIMD had the following initializer:
-```swift
-init<D, I>(gathering source: D, at index: I)
-where D : SIMDVector, D.Element == Element,
-      I : SIMDIntegerVector & SIMDVectorN {
-  self.init()
-  for i in 0 ..< count {
-    if index[i] >= 0 && index[i] < source.count {
-      self[i] = source[Int(index[i])]
-    }
+extension SIMDStorage {
+  /// The number of scalars, or elements, in a vector of this type.
+  public static var scalarCount: Int {
+    return Self().scalarCount
   }
 }
 ```
-it was removed from later drafts because the naming wasn't quite right, but it's also not
-quite implementable with the "generic" SIMD structure that the community settled on. In
-particular, we can't enforce the constraint that the index vector (`I`) has the same number
-of elements as the vector type being initialized, because rather than having a
-`SIMDVectorN` protocol conformance, we just have the `SIMDN<T>` type.
+The property is defined as an extension on SIMDStorage because it makes semantic
+sense there (`SIMD` refines `SIMDStorage`). It is defined in terms of the existing member
+property (instead of the apparently more-logical vise-versa) because that way it 
+automatically works for all existing SIMD types with no changes. In practice this
+introduces no extra overhead at runtime.
 
-We can work around this by moving the init down to the types themselves, at the cost
-of some code repetition. This is a critical operation for writing efficient SIMD code,
-so we definitely want to provide it. In addition, we hope that it can eventually form the
-backing implementation for arbitrary named compile-time swizzles like `v.xyxy`.
+### Alternatives Considered
+Not doing anything. Users can always fall back on the weird-but-effective
+`Self().scalarCount`.
 
-I'm exploring a few ways to add this functionality now, but I'm interested in getting other
-thoughts from the community.
+<a name="extending">
 
-### "one"
-One last requestion from internal developers is
+## Extending vectors
+### Motivation
+When working with homogeneous coordinates in graphics, the last component frequently
+needs to be treated separately--this means that you frequently want to extract the first
+(n-1) components, do arithmetic on them and the final component separately, and then
+re-assemble them. At API boundaries, you frequently take in (n-1) component vectors,
+immediately extend them to perform math, and then return out only the first (n-1)
+components.
+
+### Detailed design
+In order to support extending vectors from (n-1) to n components, add the following two
+intializers:
 ```swift
-extension SIMD where Scalar: ExpressibleByIntegerLiteral {
-  static var one: Self { return Self(repeating: 1) }
+extension SIMD3 {
+  public init(_ xy: SIMD2<Scalar>, _ z: Scalar) {
+    self.init(xy.x, xy.y, z)
+  }
+}
+
+extension SIMD4 {
+  public init(_ xyz: SIMD3<Scalar>, _ w: Scalar) {
+    self.init(xyz.x, xyz.y, xyz.z, w)
+  }
 }
 ```
-This is a fairly niche feature, but gets used heavily enough that folks would really
-appreciate having a short name for it. `.zero` already exists from `AdditiveArithmetic`,
-which makes this seem somewhat reasonable to me.
+
+### Alternatives Considered
+These could alternatively be spelled like `xy.appending(z)`; there are two reasons that
+I'm avoiding that:
+- I would expect `appending( )` to return the same type; but the result type is different.
+- I would expect `appending( )` to be available on all SIMD types, but it breaks down
+beyond `SIMD4`, because there is no `SIMD5` in the standard library.
+
+We could have also used an explicit parameter label.
+```swift
+let v = SIMD3(...)
+let x = SIMD4(v, 1)            // proposed above
+let y = SIMD4(v, appending: 1) // with parameter label
+```
+My feeling is that the behavior is clear without the label, but it's very reasonable to argue
+for an explicit label instead.
+
+<a name="swizzling">
+
+## Swizzling
+### Motivation
+In C-family languages, clang defines "vector swizzles" (aka permutes, aka shuffles, ... )
+that let you select and re-arrange elements from a vector:
+```c
+#import <simd/simd.h>
+simd_float4 x = { 1, 2, 3, 4};
+x.zyx; // (simd_float3){3, 2, 1};
+```
+This comes from an identical feature in graphics shader-languages, where it is very
+heavily used.
+
+### Detailed design
+For Swift, we want to restrict the feature somewhat, but also make it more powerful.
+In shader languages and clang extensions, you can even use swizzled vectors as *lvalues*,
+so long as the same element does not appear twice. I proposed to define general
+permutes[†] as get-only subscripts. By restricting them from appearing as setters, we
+gain the flexibility to not require they be compile-time constants:
+```swift
+extension SIMD {
+  /// Extracts the scalars at specified indices to form a SIMD2.
+  ///
+  /// The low-order log2(scalarCount) bits of each element of the
+  /// `masking` index vector are used to index self. E.g.:
+  ///
+  ///   let x = SIMD4<Float>(0, 1, 2, 3)
+  ///   let y = x[SIMD2(5,2)] // (1, 2)
+  ///
+  /// Because of this, the index is always in-range and no trap
+  /// can occur.
+  public subscript<Index>(masking: SIMD2<Index>) -> SIMD2<Scalar>
+  where Index: FixedWidthInteger {
+    var result = SIMD2<Scalar>()
+    var masked = masking & Index(scalarCount - 1)
+    for i in result.indices {
+      result[i] = self[Int(masked[i])]
+    }
+    return result
+  }
+}
+
+let v = SIMD4<Float>(1,2,3,4)
+let xyz = SIMD3(2,1,0)
+let w = v[xyz] // SIMD3<Float>(3,2,1)
+```
+There's one special case, which is when the vector being subscripted has three elements.
+In this case, we can't just mask the index to log2(scalarCount) bits. Instead, we extend
+the vector being subscripted to a four-element vector (x, y, z, z) and mask to two bits.
+This is expected to be an exceptionally rare case--power-of-two dictionaries are the
+norm when dynamic indices are used; the principle concern is merely that we define the
+result to be *something understandable and easily computable* rather than leaving it
+undefined.
+
+### Alternatives Considered
+1. We might want an explicit label on this subscript, but as with the extending inits, I
+believe that its use is generally clear enough in context.
+
+2. The main question is "what should the behavior for out-of-range indices be?" The
+definition I have chosen here is simple to explain and maps efficiently to the hardware,
+but there are at least two other good options: it could be a precondition failure, or it
+could fill the vector with zero in lanes that have out of range indices. The first option
+(trapping) is undesirable because it's less efficient with dynamic indices. The second 
+would be slightly more efficient on some architectures, but is also significantly more
+magic. I believe that the proposed alternative has the best balance of explainable
+behavior and efficiency.
+
+<a name="reduction">
+
+## Reductions (or "Horizontal Operations")
+### Motivation
+Generally in SIMD programming you try to avoid horizontal operations as much as
+possible, but frequently you need to do a few of them at the end of a chain of
+computations. For example, if you're summing an array, you would sum into a bank
+of vector accumulators first, then sum those down to a single vector. Now you need
+to get from that vector to a scalar by summing the elements. This is where reductions
+enter.
+
+`sum` is also a basic building block for things like the dot product (and hence matrix
+multiplication), so it's very valuable to have an efficient implementation provided by the
+standard library. Similarly you want to have `min` and `max` to handle things like rescaling
+for computational geometry.
+
+### Detailed design
+```swift
+extension SIMD where Scalar: Comparable {
+  /// The least element in the vector.
+  public var min: Scalar
+
+  /// The greatest element in the vector.
+  public var max: Scalar
+}
+ 
+extension SIMD where Scalar: FixedWidthInteger { 
+  /// Returns the sum of the scalars in the vector, computed with
+  /// wrapping addition.
+  ///
+  /// Equivalent to indices.reduce(into: 0) { $0 &+= self[$1] }.
+  public var wrappedSum: Scalar
+}
+
+extension SIMD where Scalar: FloatingPoint {
+  /// Returns the sum of the scalars in the vector.
+  public var sum: Scalar
+}
+```
+
+### Alternatives Considered
+We could call the integer operation `sum` as well, but it seems better to reserve that name
+for the trapping operation in case we ever want to add it (just like we use `&+` for integer
+addition on vectors, even though there is no `+`). We may want to define a floating-point
+sum with relaxed semantics for accumulation ordering at some point in the future (I plan
+to define `sum` as the binary tree sum here--that's the best tradeoff between reproducibility
+and performance).
+
+I dropped `indexOfMinValue` and `indexOfMaxValue` from this proposal for two reasons:
+- there's some disagreement about whether or not they're important enough to include
+- it's not clear what we should name them; If they're sufficiently important, we probably
+want to have them on Collection some day, too, so the bar for the naming pattern that we
+establish is somewhat higher.
+
+<a name="anyAndAll">
+
+## `any` and `all`
+### Motivation
+`any` and `all` are special reductions that operate on boolean vectors (`SIMDMask`). They
+return `true` if and only if *any* (or *all*) lanes of the boolean vector are `true`. These are
+used to do things like branch around edge-case fixup:
+```swift
+if any(x .< 0) { // handle negative x }
+```
+
+### Detailed design
+`any` and `all` are free functions:
+```swift
+public func any<Storage>(_ mask: SIMDMask<Storage>) -> Bool {
+  return mask._storage.min < 0
+}
+
+public func all<Storage>(_ mask: SIMDMask<Storage>) -> Bool {
+  return mask._storage.max < 0
+}
+```
+
+### Alternatives Considered
+*Why* are `any` and `all` free functions while `max` and `min` and `sum` are member
+properties? Because of readability in their typical use sites. `min`, `max`, and `sum` are
+frequently applied to a named value:
+```swift
+let accumulator = /* do some work */
+return accumulator.sum
+```
+`any` and `all` are most often used with nameless comparison results:
+```swift
+if any(x .< minValue .| x .> maxValue) {
+  // handle special cases
+}
+```
+To my mind, this would read significantly less clearly as
+```swift
+if (x .< minValue .| x .> maxValue).any` {
+```
+or
+```swift
+if (x .< minValue .| x .> maxValue).anyIsTrue` {
+```
+because there's no "noun" that the property applies to. There was a proposal in the fall
+to make them static functions on `Bool` so that one could write
+```swift
+if .any(x .< minValue) {
+}
+```
+but I'm not convinced that's actually better than a free function.
+
+<a name="minMaxClamp">
+
+## `min`, `max`, and `clamp`
+### Motivation
+We have lanewise arithmetic on SIMD types, but we don't have lanewise `min` and `max`.
+We're also missing `clamp` to restrict values to a specified range.
+
+### Detailed design
+```swift
+extension SIMD where Scalar: Comparable {
+  /// The lanewise minimum of two vectors.
+  ///
+  /// Each element of the result is the minimum of the corresponding
+  /// elements of the inputs.
+  public static func min(_ lhs: Self, _ rhs: Self) -> Self 
+  
+  /// The lanewise maximum of two vectors.
+  ///
+  /// Each element of the result is the maximum of the corresponding
+  /// elements of the inputs.
+  public static func max(_ lhs: Self, _ rhs: Self) -> Self 
+  
+  /// Replace any values less than lowerBound with lowerBound, and any
+  /// values greater than upperBound with upperBound.
+  ///
+  /// For floating-point vectors, `.nan` is replaced with `lowerBound`.
+  public mutating func clamp(lowerBound: Self, upperBound: Self) {
+    self = self.clamped(lowerBound: lowerBound, upperBound: upperBound)
+  }
+  
+  /// The vector formed by replacing any values less than lowerBound
+  /// with lowerBound, and any values greater than upperBound with
+  /// upperBound.
+  ///
+  /// For floating-point vectors, `.nan` is replaced with `lowerBound`.
+  public func clamped(lowerBound: Self, upperBound: Self) -> Self {
+    return Self.min(upperBound, Self.max(lowerBound, self))
+  }
+}
+```
+
+### Alternatives Considered
+These could be free functions, but that introduces an ambiguity if someone retroactively
+conforms SIMD types to Comparable because they want lexicographic ordering.
+
+They could be spelled out `lanewiseMaximum` or similar, to clarify that they operate
+lanewise (Chris suggested this in the pitch thread), but we don't spell out `+` as
+"lanewise-plus", so it seems weird to do it here. The default assumption is that SIMD
+operations are lanewise.
+
+<a name="one">
+
+## `.one`
+### Motivation
+SIMD types cannot be `ExpressibleByIntegerLiteral` (it results in type system
+ambiguity for common expressions). We already have `.zero`, so adding `.one` makes
+sense as a convenience.
+
+### Detailed design
+```swift
+extension SIMD where Scalar: ExpressibleByIntegerLiteral {
+  public static var one: Self {
+    return Self(repeating: 1)
+  }
+}
+```
+
+### Alternatives Considered
+- Do nothing. We don't *need* this, but it has turned out to be a useful convenience.
+- Why stop at `one`? Why not `two`? Because that way lies madness.
+
+<a name="copysign">
+
+## `copysign`
+### Motivation
+Copysign is equivalent to the `init(signOf: magnitudeOf:)` init on `FloatingPoint`
+scalar types. It turns out to be a bit of a pain to implement, and folks would like to have it
+on vectors. This is more of an addition to SE-0246, but that's already nearly finished, and
+they are quite useful for working with vectors, so I'm tucking them in here.
+
+### Detailed design
+```swift
+// These two functions will actually go into the Math module, assuming
+// that SE-0246 is approved.
+public func copysign<V>(_ magnitude: V, _ sign: V) -> V
+where V: SIMD, V.Scalar: FloatingPoint
+
+public func copysign<T>(_ magnitude: T, _ sign: T) -> T
+where T: FloatingPoint
+
+```
+
+### Alternatives Considered
+Do nothing. Would make life a bit more painful, but we could always add them sometime
+in the future.
+
+## Source compatibility
+
+These are all purely additiive changes with no effect on source stability.
+
+## Effect on ABI stability
+
+These are all purely additiive changes with no effect on source stability.
+
+## Effect on API resilience
+
+These are all purely additiive changes with no effect on source stability.
+
+## Alternatives Considered
+
+The pitch for this proposal included some operations for loading and storing from a
+collection. As Jordan pointed out in the pitch thread, we already have an init from
+Sequence, which together with slices makes the load mostly irrelevant. The store
+operation did not have satisfactory naming, and I would like to come up with a better
+pattern for these that handles iterating over a sequence of SIMD vectors loaded from
+a collection of scalars and storing them out as a single pattern, rather than building
+it up one piece at a time.
