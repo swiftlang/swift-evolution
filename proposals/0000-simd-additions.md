@@ -25,7 +25,6 @@ considered section.
 5. [Lanewise `min`, `max`, and `clamp`](#minMaxClamp)
 6. [`.one`](#one)
 7. [`any` and `all`](#anyAndAll)
-8. [`copysign`](#copysign)
 
 <a name="scalarCount">
 
@@ -349,34 +348,9 @@ extension SIMD where Scalar: ExpressibleByIntegerLiteral {
 - Do nothing. We don't *need* this, but it has turned out to be a useful convenience.
 - Why stop at `one`? Why not `two`? Because that way lies madness.
 
-<a name="copysign">
-
-## `copysign`
-### Motivation
-Copysign is equivalent to the `init(signOf: magnitudeOf:)` init on `FloatingPoint`
-scalar types. It turns out to be a bit of a pain to implement, and folks would like to have it
-on vectors. This is more of an addition to SE-0246, but that's already nearly finished, and
-they are quite useful for working with vectors, so I'm tucking them in here.
-
-### Detailed design
-```swift
-// These two functions will actually go into the Math module, assuming
-// that SE-0246 is approved.
-public func copysign<V>(_ magnitude: V, _ sign: V) -> V
-where V: SIMD, V.Scalar: FloatingPoint
-
-public func copysign<T>(_ magnitude: T, _ sign: T) -> T
-where T: FloatingPoint
-
-```
-
-### Alternatives Considered
-Do nothing. Would make life a bit more painful, but we could always add them sometime
-in the future.
-
 ## Source compatibility
 
-These are all purely additiive changes with no effect on source stability.
+These are all purely additive changes with no effect on source stability.
 
 ## Effect on ABI stability
 
