@@ -3,7 +3,7 @@
 * Proposal: [SE-0246](0246-mathable.md)
 * Author: [Stephen Canon](https://github.com/stephentyrone)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active review (March 11 - 20, 2019)**
+* Status: **Active review (March 11 – 25th, 2019)**
 * Implementation: [apple/swift#23140](https://github.com/apple/swift/pull/23140)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/b5bbc5ae1f53189641951acfd50870f5b886859e/proposals/0246-mathable.md)
 
