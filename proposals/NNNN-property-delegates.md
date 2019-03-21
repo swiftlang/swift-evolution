@@ -13,7 +13,7 @@ Rather than hardcode a fixed set of patterns into the compiler,
 we should provide a general "property delegate" mechanism to allow
 these patterns to be defined as libraries.
 
-This is an alternative approach to some of the problems intended to be addressed by the [2015-2016 property behaviors proposal](https://github.com/apple/swift-evolution/blob/master/proposals/0030-property-behavior-decls.md). Some of the examples are the same, but this proposal and design is meant to be freestanding. However, there is a section that discusses the substantive differences from that design at the end of this proposal.
+This is an alternative approach to some of the problems intended to be addressed by the [2015-2016 property behaviors proposal](https://github.com/apple/swift-evolution/blob/master/proposals/0030-property-behavior-decls.md). Some of the examples are the same, but this proposal  a completely different approach designed to be simpler, easier to understand for users, and less invasive in the compiler implementation. There is a section that discusses the substantive differences from that design at the end of this proposal.
 
 [Pitch](TODO)<br/>
 
@@ -306,7 +306,7 @@ This implementation would address the problem detailed in
 
 ### `Unsafe(Mutable)Pointer`
 
-The `Unsafe(Mutable)Pointer` types could be augmented to be property delegate types, allowing one to access the referenced value directly. For example:
+The `Unsafe(Mutable)Pointer` types could be augmented to be property delegate types, allowing one to access the referenced value directly using the `by` syntax. For example:
 
 
 ```swift
