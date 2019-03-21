@@ -4,7 +4,7 @@
 * Authors: [Stephen Canon](https://github.com/stephentyrone)
 * Review Manager: TBD
 * Status: Awaiting Review
-* Implementation: [swift/#23421](https://github.com/apple/swift/pull/23421)
+* Implementation: [apple/swift#23421](https://github.com/apple/swift/pull/23421)
 
 ## Introduction
 
