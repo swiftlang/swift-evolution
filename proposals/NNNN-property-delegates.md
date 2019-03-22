@@ -559,19 +559,19 @@ feature.
 
 ### Using a formal protocol instead of `@propertyDelegate`
 
-Instead of a new attribute, we could introduce a `Propertydelegate`
+Instead of a new attribute, we could introduce a `PropertyDelegate`
 protocol to describe the semantic constraints on property delegate
 types. It might look like this:
 
 ```swift
-protocol Propertydelegate {
+protocol PropertyDelegate {
   associatedtype Value
   var value: Value { get }
 }
 ```
 
 There are a few issues here. First, a single protocol
-`Propertydelegate` cannot handle all of the variants of `value` that
+`PropertyDelegate` cannot handle all of the variants of `value` that
 are implied by the section 'Mutability of properties with delegates'_,
 because we'd need to cope with `mutating get` as well as `set` and
 `nonmutating set`. Moreover, protocols don't support optional
@@ -580,10 +580,10 @@ forms: one accepting a `Value` and one accepting an `@autoclosure ()
 -> Value`) and `init()`. To cover all of these cases, we would need a
 several related-but-subtly-different protocols.
 
-The second issue that, even if there were a single `Propertydelegate`
+The second issue that, even if there were a single `PropertyDelegate`
 protocol, we don't know of any useful generic algorithms or data
 structures that seem to be implemented in terms of only
-`Propertydelegate`.
+`PropertyDelegate`.
 
 ## The 2015-2016 property behaviors design
 
