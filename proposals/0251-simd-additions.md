@@ -1,9 +1,9 @@
 # SIMD additions
 
 * Proposal: [SE-0251](0251-simd-additions.md)
-* Authors: [Stephen Canon](https://github.com/stephentyrone)
+* Author: [Stephen Canon](https://github.com/stephentyrone)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: Active Review (March 22nd...April 1st, 2019)
+* Status: **Active Review (March 22nd...April 1st, 2019)**
 * Implementation: [apple/swift#23421](https://github.com/apple/swift/pull/23421)
 
 ## Introduction
@@ -71,7 +71,7 @@ components.
 
 ### Detailed design
 In order to support extending vectors from (n-1) to n components, add the following two
-intializers:
+initializers:
 ```swift
 extension SIMD3 {
   public init(_ xy: SIMD2<Scalar>, _ z: Scalar) {
@@ -354,11 +354,11 @@ These are all purely additive changes with no effect on source stability.
 
 ## Effect on ABI stability
 
-These are all purely additiive changes with no effect on source stability.
+These are all purely additive changes with no effect on source stability.
 
 ## Effect on API resilience
 
-These are all purely additiive changes with no effect on source stability.
+These are all purely additive changes with no effect on source stability.
 
 ## Alternatives Considered
 
