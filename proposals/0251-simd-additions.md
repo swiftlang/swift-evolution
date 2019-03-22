@@ -1,9 +1,9 @@
 # SIMD additions
 
-* Proposal: [SE-NNNN](NNNN-simd-additions.md)
+* Proposal: [SE-0251](0251-simd-additions.md)
 * Authors: [Stephen Canon](https://github.com/stephentyrone)
-* Review Manager: TBD
-* Status: Awaiting Review
+* Review Manager: [John McCall](https://github.com/rjmccall)
+* Status: Active Review (March 22nd...April 1st, 2019)
 * Implementation: [apple/swift#23421](https://github.com/apple/swift/pull/23421)
 
 ## Introduction
