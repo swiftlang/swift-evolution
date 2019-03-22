@@ -474,6 +474,20 @@ x2 = 17   // okay, treated as $x2 = .init(initialValue: 17)
 x2 = 42   // okay, treated as x2 = 42 (calls the Lazy.value setter)
 ```
 
+### Access to the storage property
+
+By default, the synthesized storage property will have `internal` access or the access of the original property, whichever is more restrictive. An alternative access can be provided for the synthesized storage property by specifying the access level after `by`, e.g.,
+
+```swift
+// both foo and $foo are publicly visible
+public var foo: Int by public Lazy = 1738
+
+// bar is publicly visible, $bar is privately visible
+public var bar: Int by private Lazy = 1738
+```
+
+The specified access level cannot be greater than `public` and cannot be greater than the original property.
+
 ### Memberwise initializers
 
 Structs implicitly declare memberwise initializers based on the stored
