@@ -20,11 +20,7 @@ This is an alternative approach to some of the problems intended to be addressed
 ## Motivation
 
 We've tried to accommodate several important patterns for properties with
-targeted language support, but this support has been narrow in scope and
-utility.  For instance, Swift provides `lazy` properties as a primitive
-language feature, since lazy initialization is common and is often necessary to
-avoid having properties be exposed as `Optional`. Without this language
-support, it takes a lot of boilerplate to get the same effect:
+targeted language support, like `lazy` and `@NSCopying`, but this support has been narrow in scope and utility.  For instance, Swift provides `lazy` properties as a primitive language feature, since lazy initialization is common and is often necessary to avoid having properties be exposed as `Optional`. Without this language support, it takes a lot of boilerplate to get the same effect:
 
 ```swift
 struct Foo {
@@ -176,17 +172,31 @@ access level after `by`, e.g.,
 public var foo: Int by public Lazy = 1738
 ```
 
-The property delegate instance can be initialized directly by providing the initializer arguments in parentheses after the name. For example,
+The property delegate instance can be initialized directly by providing the initializer arguments in parentheses after the name. This could be used, for example, when a particular property delegate requires more setup to provide access to a value (example courtesy of Harlan Haskins):
 
 ```swift
-extension Lazy {
-  init(closure: @escaping () -> Value) {
-    self = .uninitialized(closure)
+@propertyDelegate
+struct UserDefault<T> {
+  let key: String
+  let defaultValue: T
+  
+  var value: T {
+    get {
+      return UserDefaults.standard.object(forKey: key) as? T ?? defaultValue
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: key)
+    }
   }
 }
 
-public var foo: Int by Lazy(closure: { 42 })
+enum GlobalSettings {
+  static var isFooFeatureEnabled: Bool by UserDefault(key: "FOO_FEATURE_ENABLED", defaultValue: false)
+  static var isBarFeatureEnabled: Bool by UserDefault(key: "BAR_FEATURE_ENABLED", defaultValue: false)
+}
 ```
+
+Property delegates can be applied to properties at global, local, or type scope.
 
 ## Examples
 
