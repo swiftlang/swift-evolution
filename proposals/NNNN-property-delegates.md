@@ -555,6 +555,10 @@ introduce a `Lazy` property delegate type to cover many of the common
 use cases, leaving the more-magical `lazy` as a backward-compatibility
 feature.
 
+## Backward compatibility
+
+The property delegates language feature as proposed has no impact on the ABI or runtime. Binaries that use property delegates can be backward-deployed to the Swift 5.0 runtime.
+
 ## Alternatives considered
 
 ### Using a formal protocol instead of `@propertyDelegate`
