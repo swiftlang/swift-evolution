@@ -5,7 +5,7 @@
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Active review (March 11 – 25th, 2019)**
 * Implementation: [apple/swift#23140](https://github.com/apple/swift/pull/23140)
-* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/b5bbc5ae1f53189641951acfd50870f5b886859e/proposals/0246-mathable.md)
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/b5bbc5ae1f53189641951acfd50870f5b886859e/proposals/0246-mathable.md) [2](https://github.com/apple/swift-evolution/blob/3afc4c68a4062ff045415f5eafb9d4956b30551b/proposals/0246-mathable.md)
 
 ## Introduction
 
@@ -68,23 +68,54 @@ There are four pieces of this proposal: first, we introduce the protocol
 `ElementaryFunctions`:
 ```swift
 public protocol ElementaryFunctions {
-  associatedtype Math: ElementaryFunctionHooks where Math.Value == Self
+
+  /// The cosine of `x`.
+  static func cos(_ x: Self) -> Self
+
+  /// The sine of `x`.
+  static func sin(_ x: Self) -> Self
+
+  /// The tangent of `x`.
+  static func tan(_ x: Self) -> Self
+  
+  ...
 }
 ```
-The associatedtype provides implementation hooks for the elementary functions
-so that they are available as "namespaced" static functions like:
+Conformance to this protocol means that the elementary functions are available as 
+static functions:
 ```swift
-(swift) Float.Math.exp(1)
+(swift) Float.exp(1)
 // r0 : Float = 2.7182817
 ```
-All of the standard library `FloatingPoint` types conform to
-`ElementaryFunctions`; SIMD types conform conditionally if their `Scalar`
-type conforms, and a planned `Complex` type would also conform.
+(For the full set of functions provided, see Detailed Design below). All of the standard
+library `FloatingPoint` types conform to `ElementaryFunctions`; a future `Complex`
+type would also conform. `SIMD` types do not conform themselves, but the operations
+are defined on them when their scalar type conforms to the protocol.
 
 The second piece of the proposal is the protocol `Real`:
 ```
-public protocol Real: FloatingPoint, ElementaryFunctions
-where Math: RealFunctionHooks {
+public protocol Real: FloatingPoint, ElementaryFunctions {
+
+  /// `atan(y/x)` with quadrant fixup.
+  ///
+  /// There is an infinite family of angles whose tangent is `y/x`.
+  /// `atan2` selects the representative that is the angle between 
+  /// the vector `(x, y)` and the real axis in the range [-π, π].
+  static func atan2(y: Self, x: Self) -> Self
+
+  /// The error function evaluated at `x`.
+  static func erf(_ x: Self) -> Self
+
+  /// The complimentary error function evaluated at `x`.
+  static func erfc(_ x: Self) -> Self
+
+  /// sqrt(x*x + y*y) computed without undue overflow or underflow.
+  ///
+  /// Returns a numerically precise result even if one or both of x*x or
+  /// y*y overflow or underflow.
+  static func hypot(_ x: Self, _ y: Self) -> Self
+  
+  ...
 }
 ```
 This protocol does not add much API surface, but it is what most users will
@@ -122,119 +153,118 @@ The full API provided by `ElementaryFunctions` is as follows:
 ///
 /// For real types, if `x` is negative the result is `.nan`. For complex
 /// types there is a branch cut on the negative real axis.
-static func sqrt(_ x: Value) -> Value
+static func sqrt(_ x: Self) -> Self
 
 /// The cosine of `x`, interpreted as an angle in radians.
-static func cos(_ x: Value) -> Value
+static func cos(_ x: Self) -> Self
 
 /// The sine of `x`, interpreted as an angle in radians.
-static func sin(_ x: Value) -> Value
+static func sin(_ x: Self) -> Self
 
 /// The tangent of `x`, interpreted as an angle in radians.
-static func tan(_ x: Value) -> Value
+static func tan(_ x: Self) -> Self
 
 /// The inverse cosine of `x` in radians.
-static func acos(_ x: Value) -> Value
+static func acos(_ x: Self) -> Self
 
 /// The inverse sine of `x` in radians.
-static func asin(_ x: Value) -> Value
+static func asin(_ x: Self) -> Self
 
 /// The inverse tangent of `x` in radians.
-static func atan(_ x: Value) -> Value
+static func atan(_ x: Self) -> Self
 
 /// The hyperbolic cosine of `x`.
-static func cosh(_ x: Value) -> Value
+static func cosh(_ x: Self) -> Self
 
 /// The hyperbolic sine of `x`.
-static func sinh(_ x: Value) -> Value
+static func sinh(_ x: Self) -> Self
 
 /// The hyperbolic tangent of `x`.
-static func tanh(_ x: Value) -> Value
+static func tanh(_ x: Self) -> Self
 
 /// The inverse hyperbolic cosine of `x`.
-static func acosh(_ x: Value) -> Value
+static func acosh(_ x: Self) -> Self
 
 /// The inverse hyperbolic sine of `x`.
-static func asinh(_ x: Value) -> Value
+static func asinh(_ x: Self) -> Self
 
 /// The inverse hyperbolic tangent of `x`.
-static func atanh(_ x: Value) -> Value
+static func atanh(_ x: Self) -> Self
 
 /// The exponential function applied to `x`, or `e**x`.
-static func exp(_ x: Value) -> Value
+static func exp(_ x: Self) -> Self
 
 /// Two raised to to power `x`.
-static func exp2(_ x: Value) -> Value
+static func exp2(_ x: Self) -> Self
 
 /// Ten raised to to power `x`.
-static func exp10(_ x: Value) -> Value
+static func exp10(_ x: Self) -> Self
 
 /// `exp(x) - 1` evaluated so as to preserve accuracy close to zero.
-static func expm1(_ x: Value) -> Value
+static func expm1(_ x: Self) -> Self
 
 /// The natural logarithm of `x`.
-static func log(_ x: Value) -> Value
+static func log(_ x: Self) -> Self
 
 /// The base-two logarithm of `x`.
-static func log2(_ x: Value) -> Value
+static func log2(_ x: Self) -> Self
 
 /// The base-ten logarithm of `x`.
-static func log10(_ x: Value) -> Value
+static func log10(_ x: Self) -> Self
 
 /// `log(1 + x)` evaluated so as to preserve accuracy close to zero.
-static func log1p(_ x: Value) -> Value
+static func log1p(_ x: Self) -> Self
 
 /// `x**y` interpreted as `exp(y * log(x))`
 ///
 /// For real types, if `x` is negative the result is NaN, even if `y` has
 /// an integral value. For complex types, there is a branch cut on the
 /// negative real axis.
-static func pow(_ x: Value, _ y: Value) -> Value
+static func pow(_ x: Self, _ y: Self) -> Self
 
 /// `x` raised to the `n`th power.
 ///
 /// The product of `n` copies of `x`.
-static func pow(_ x: Value, _ n: Int) -> Value
+static func pow(_ x: Self, _ n: Int) -> Self
 
 /// The `n`th root of `x`.
 ///
 /// For real types, if `x` is negative and `n` is even, the result is NaN.
 /// For complex types, there is a branch cut along the negative real axis.
-static func root(_ x: Value, _ n: Int) -> Value
+static func root(_ x: Self, _ n: Int) -> Self
 ```
-`Real` builds on this set by adding the following additional operations on 
-`RealFunctionHooks` that are either difficult to implement for complex types or only make
-sense for real types:
+`Real` builds on this set by adding the following additional operations that are either
+difficult to implement for complex types or only make sense for real types:
 ```swift
 /// `atan(y/x)` with quadrant fixup.
 ///
 /// There is an infinite family of angles whose tangent is `y/x`. `atan2`
 /// selects the representative that is the angle between the vector `(x, y)`
 /// and the real axis in the range [-π, π].
-static func atan2(y: Value, x: Value) -> Value
+static func atan2(y: Self, x: Self) -> Self
 
 /// The error function evaluated at `x`.
-static func erf(_ x: Value) -> Value
+static func erf(_ x: Self) -> Self
 
 /// The complimentary error function evaluated at `x`.
-static func erfc(_ x: Value) -> Value
+static func erfc(_ x: Self) -> Self
 
 /// sqrt(x*x + y*y) computed without undue overflow or underflow.
 ///
 /// Returns a numerically precise result even if one or both of x*x or
 /// y*y overflow or underflow.
-static func hypot(_ x: Value, _ y: Value) -> Value
+static func hypot(_ x: Self, _ y: Self) -> Self
 
 /// The gamma function evaluated at `x`.
 ///
 /// For integral `x`, `gamma(x)` is `(x-1)` factorial.
-static func gamma(_ x: Value) -> Value
+static func gamma(_ x: Self) -> Self
 
 /// `log(gamma(x))` computed without undue overflow.
 ///
 /// `log(abs(gamma(x)))` is returned. To recover the sign of `gamma(x)`,
 /// use `signGamma(x)`.
-static func logGamma(_ x: Value) -> Value
+static func logGamma(_ x: Self) -> Self
 
 /// The sign of `gamma(x)`.
 ///
@@ -246,7 +276,7 @@ static func logGamma(_ x: Value) -> Value
 /// essential singularity at infinity; we arbitrarily choose to return
 /// `.plus` for the sign in those cases. For all other values, `signGamma(x)`
 /// is `.plus` if `x >= 0` or `trunc(x)` is odd, and `.minus` otherwise.
-static func signGamma(_ x: Value) -> FloatingPointSign
+static func signGamma(_ x: Self) -> FloatingPointSign
 ```
 These functions directly follow the math library names used in most other
 languages, as there is not a good reason to break with existing precedent.
@@ -365,8 +395,8 @@ old platform hooks to provide binary stability, but will mark them deprecated or
 This is an additive change.
 
 ## Alternatives considered
-1. The name `ElementaryFunctions` is a marked improvement on the earlier `Mathable`, but
-is still imperfect. As discussed above, the introduction of the `Real` protocol mostly 
+1. The name `ElementaryFunctions` is a marked improvement on the earlier `Mathable`,
+but is still imperfect. As discussed above, the introduction of the `Real` protocol mostly 
 renders this issue moot; most code will be constrained to that instead.
 
 2. The names of these functions are strongly conserved across languages, but they are
@@ -400,6 +430,8 @@ of programming languages. Rust and Kotlin do spell it this way, so we wouldn't b
 alone. It would also avoid using a function name that potentially conflicts (visually or
 syntactically) with an obvious name for logging facilities. However, depending on font,
 `ln` is easily confused with `in`, and it breaks the similarity with the other `log` functions.
+As an assistance, we will add `ln` in the `Math` module but mark it unavailable, referring
+users to `log`.
 
 5. We could put the free functions into the standard library instead of a separate module.
 Having them in a separate module helps avoid adding stuff to the global namespace
@@ -431,3 +463,12 @@ made much sense for non-real arguments. Implementations of `erf`, `erfc`, `gamma
 2. `hypot` has been added to `Real`. We would like to have a more general solution for
 efficiently rescaling computations in the future, but `hypot` is a tool that people can use
 today.
+
+3. I have dropped the `.Math` pseudo-namespace associatedtype from the protocols.
+In earlier versions of the proposal, the static functions were spelled `Float.Math.sin(x)`.
+This was motivated by a desire to avoid "magic" underscore-prefixed implementation
+trampolines, while still grouping these functions together under a single `.Math` in
+autocompletion lists. Whatever stylistic benefits this might have were judged to be not
+worth the extra layer of machinery that would be fixed into the ABI even if we get a "real"
+namespace mechanism at some future point. These functions now appear simply as
+`Float.sin(x)`.
