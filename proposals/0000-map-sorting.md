@@ -18,13 +18,13 @@ The straightforward way to sort a collection over a `Comparable` property of its
 
 ```swift
 struct Person {
-    ...
-    var age: Int
+  ...
+  var age: Int
 }
 
 struct Chat {
-    ...
-    var lastMsg: Message
+  ...
+  var lastMsg: Message
 }
 
 var people: [Person] = ...
@@ -146,8 +146,7 @@ sentence - «*Sort-ed **by** a metric **using** a predicate*». Nevertheless, th
 
 It has been considered to mirror the `sort()` & `sorted()` precedent by implementing two additional overloads that specialize on ascending order. The latter is known to be by far the most common scenario in practice; abundant enough for the aforementioned API to have overcome the moratorium on trivially composable sugar. [Browsing](https://forums.swift.org/t/map-sorting/21421/20?u=anthonylatsis) the [Swift Source Compatibility Suite](https://github.com/apple/swift-source-compat-suite) shows a 9:1 ratio in favor of parameter-less sorting method usage. At the same time, the presence or absence of a parameter becomes less tangible as the number of parameters increases.
 
-> *Not to be treated as an opposing argument, note that, as of today, trailing closure syntax is not supported  
-> for closures at non-trailing positions, even when subsequent parameters have default values. This leaves trailing closure syntax out of the game for now.*
+> *Not to be treated as an opposing argument, note that, as of today, trailing closure syntax is not supported for closures at non-trailing positions, even when subsequent parameters have default values. This leaves trailing closure syntax out of the game for now.*
 > ```swift
 > // OK
 > people.sorted(on: { $0.age }) 
