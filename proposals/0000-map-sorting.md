@@ -124,8 +124,7 @@ people.sort(by: \.age)
 chats.sort(by: \.lastMsg.date, >)
 ``` 
 
-Like [`sort()`](https://developer.apple.com/documentation/swift/mutablecollection/2802575-sort)
-and [`sorted()`](https://developer.apple.com/documentation/swift/sequence/1641066-sorted), key-path sorting is a highly common practice and a fundamental case that deserves some out-of-the-box convenience. The only issue with focusing solely on key-paths in an ABI-stable world is that we risk API sprawl by neglecting custom mappings, whereas the closure-based approach is both flexible and provident in leaving space for [implicit key-path-to-function conversions](https://github.com/apple/swift-evolution/pull/977). Ideally, the choice between a key-path and a closure will merely be a matter of style:
+Like [`sort()`](https://developer.apple.com/documentation/swift/mutablecollection/2802575-sort) and [`sorted()`](https://developer.apple.com/documentation/swift/sequence/1641066-sorted), key-path sorting is a highly common practice and a fundamental case that deserves some out-of-the-box convenience. The only issue with focusing solely on key-paths in an ABI-stable world is that we risk API sprawl by neglecting custom mappings, whereas the closure-based approach is both flexible and provident in leaving space for [implicit key-path-to-function conversions](https://github.com/apple/swift-evolution/pull/977). Ideally, the choice between a key-path and a closure will merely be a matter of style:
 
 ```swift
 chats.sort(on: { $0.lastMsg.date }, by: >)
@@ -140,5 +139,22 @@ chats.sort(on: \.lastMsg.date, by: >)
 
 #### `people.sort(by: { $0.age }, using: <)`
 
-The `by` label is a perfect candidate to describe the yielded metric used to sort the sequence. `using`, on its turn, is just as fitting for a predicate or an operator. The pair in question is perhaps the only one that always boils down to a proper
+The `by` label is a perfect candidate to describe the metric used to sort the sequence. `using`, on its turn, is just as fitting for a predicate or an operator. The pair in question is perhaps the only one that always boils down to a proper
 sentence - «*Sort-ed **by** a metric **using** a predicate*». Nevertheless, the author is convinced in the superior importance of preserving API uniformity and consistency with existing API the Standard Library developers have worked so hard to keep. With ABI Stability kicking in, we no longer have an opportunity for amendments to public API signatures and must be especially careful in this regard.
+
+### Convenience overloads
+
+It has been considered to mirror the `sort()` & `sorted()` precedent by implementing two additional overloads that specialize on ascending order. The latter is known to be by far the most common scenario in practice; abundant enough for the aforementioned API to have overcome the moratorium on trivially composable sugar. [Browsing](https://forums.swift.org/t/map-sorting/21421/20?u=anthonylatsis) the [Swift Source Compatibility Suite](https://github.com/apple/swift-source-compat-suite) shows a 9:1 ratio in favor of parameter-less sorting method usage. At the same time, the presence or absence of a parameter becomes less tangible as the number of parameters increases.
+
+> *Not to be treated as an opposing argument, note that, as of today, trailing closure syntax is not supported  
+> for closures at non-trailing positions, even when subsequent parameters have default values. This leaves trailing closure syntax out of the game for now.*
+> ```swift
+> // OK
+> people.sorted(on: { $0.age }) 
+> people.sorted(on: { $0.age }, by: <)
+> 
+> // conflict with sorted(by:)
+> people.sorted { $0.age } 
+> ```
+
+Overall, the attitude for functional sugar is positive, but the feedback remains somewhat occasional for a solid decision to follow. With the help and advice of the community and Core Team, the author hopes to arrive at a conclusion with everyone on this matter during review.
