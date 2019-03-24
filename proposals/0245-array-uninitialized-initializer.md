@@ -3,7 +3,7 @@
 * Proposal: [SE-0245](0245-array-uninitialized-initializer.md)
 * Author: [Nate Cook](https://github.com/natecook1000)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.1)**
 * Previous Proposal: [SE-0223](https://github.com/apple/swift-evolution/blob/master/proposals/0223-array-uninitialized-initializer.md)
 * Implementation: [apple/swift#23134](https://github.com/apple/swift/pull/23134)
 * Bug: [SR-3087](https://bugs.swift.org/browse/SR-3087)
