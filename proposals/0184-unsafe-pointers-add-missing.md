@@ -10,7 +10,7 @@
 
 ## Introduction
 
-*This document is a spin-off from a much larger [original proposal](https://github.com/kelvin13/swift-evolution/blob/e888af466c9993de977f6999a131eadd33291b06/proposals/0184-unsafe-pointers-add-missing.md), which covers only those aspects of SE-1084 which do not deal with partial buffer memory state. Designing the partial buffer memory state API clearly requires more work, and has been left out of the scope of this document.*
+*This document is a spin-off from a much larger [original proposal](https://github.com/kelvin13/swift-evolution/blob/e888af466c9993de977f6999a131eadd33291b06/proposals/0184-unsafe-pointers-add-missing.md), which covers only those aspects of SE-0184 which do not deal with partial buffer memory state. Designing the partial buffer memory state API clearly requires more work, and has been left out of the scope of this document.*
 
 Swift’s pointer types are an important interface for low-level memory manipulation, but the current API design is not very consistent, complete, or convenient. In some places, poor naming choices and overengineered function signatures compromise memory safety by leading users to believe that they have allocated or freed memory when in fact, they have not. This proposal seeks to improve the Swift pointer API by ironing out naming inconsistencies, adding missing methods, and reducing excessive verbosity, offering a more convenient, more sensible, and less bug-prone API. 
 
