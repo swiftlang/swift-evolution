@@ -13,7 +13,7 @@ Rather than hardcode a fixed set of patterns into the compiler,
 we should provide a general "property delegate" mechanism to allow
 these patterns to be defined as libraries.
 
-This is an alternative approach to some of the problems intended to be addressed by the [2015-2016 property behaviors proposal](https://github.com/apple/swift-evolution/blob/master/proposals/0030-property-behavior-decls.md). Some of the examples are the same, but this proposal  a completely different approach designed to be simpler, easier to understand for users, and less invasive in the compiler implementation. There is a section that discusses the substantive differences from that design at the end of this proposal.
+This is an alternative approach to some of the problems intended to be addressed by the [2015-2016 property behaviors proposal](https://github.com/apple/swift-evolution/blob/master/proposals/0030-property-behavior-decls.md). Some of the examples are the same, but this proposal takes a completely different approach designed to be simpler, easier to understand for users, and less invasive in the compiler implementation. There is a section that discusses the substantive differences from that design at the end of this proposal.
 
 [Pitch](TODO)<br/>
 
@@ -604,7 +604,7 @@ protocol, we don't know of any useful generic algorithms or data
 structures that seem to be implemented in terms of only
 `PropertyDelegate`.
 
-## The 2015-2016 property behaviors design
+### The 2015-2016 property behaviors design
 
 Property delegates address a similar set of use cases to *property behaviors*, which were [proposed and
 reviewed](https://github.com/apple/swift-evolution/blob/master/proposals/0030-property-behavior-decls.md)
@@ -634,3 +634,136 @@ the prior proposal are:
 * Delegates can be initialized out-of-line, and one
   can use the `$`-prefixed name to refer to the storage property.
   These were future directions in the property behaviors proposal.
+
+## Future Directions
+
+### Referencing the enclosing 'self' in a delegate type
+
+Manually-written getters and setters for properties declared in a type often refer to the `self` of their enclosing type. For example, this can be used to notify clients of a change to a property's value:
+
+```swift
+public class MyClass: Superclass {
+  private var backingMyVar: Int
+  public var myVar: Int {
+    get { return backingMyVar }
+    set {
+      if newValue != backingMyVar {
+        self.broadcastValueChanged(oldValue: backingMyVar, newValue: newValue)
+      }
+      backingMyVar = newValue
+    }
+  }
+}
+```
+
+This "broadcast a notification that the value has changed" implementation cannot be cleanly factored into a property behavior type, because it needs access to both the underlying storage value (here, `backingMyVar`) and the `self` of the enclosing type. We could require a separate call to register the `self` instance with the delegate type, e.g.,
+
+```swift
+protocol Observed {
+  func broadcastValueChanged<T>(oldValue: T, newValue: T)
+}
+
+@propertyDelegate
+public struct Observable<Value> {
+  public var stored: Value
+  var observed: Observed?
+  
+  public init(initialValue: Value) {
+    self.stored = initialValue
+  }
+  
+  public func register(_ observed: Observable) {
+    self.observed = observed
+  }
+  
+  public var value: Value {
+    get { return stored }
+    set {
+      if newValue != stored {
+        observed?.broadcastValueChanged(oldValue: stored, newValue: newValue)
+      }
+      stored = newValue
+    }
+  }
+}
+```
+
+However, this means that one would have to manually call `register(_:)` in the initializer for `MyClass`:
+
+```swift
+public class MyClass: Superclass {
+  public var myVar: Int by Observable = 17
+  
+  init() {
+    // self.$myVar gets initialized with Observable(initialValue: 17) here
+    super.init()
+    self.$myVar.register(self)    // register as an Observable
+  }
+}
+```
+
+This isn't as automatic as we would like, and it requires us to have a separate reference to the `self` that is stored within `Observable`.
+
+Instead, we could extend the ad hoc protocol used to access the storage property of a `@propertyDelegate` type a bit further. Instead of (or in addition to) a `value` property, a property delegate type could provide a `subscript(instanceSelf:)` and/or `subscript(typeSelf:)` that receive `self` as a parameter. For example:
+
+
+```swift
+@propertyDelegate
+public struct Observable<Value> {
+  public var stored: Value
+  
+  public init(initialValue: Value) {
+    self.stored = initialValue
+  }
+  
+  public subscript<OuterSelf: Observed>(instanceSelf observed: OuterSelf) -> Value {
+    get { return stored }
+    set {
+      if newValue != stored {
+        observed.broadcastValueChanged(oldValue: stored, newValue: newValue)
+      }
+      stored = newValue
+    }
+  }
+}
+```
+
+The (generic) subscript gets access to the enclosing `self` type via its subscript parameter, eliminating the need for the separate `register(_:)` step and the (type-erased) storage of the outer `self`. The desugaring within `MyClass` would be as follows:
+
+```swift
+public class MyClass: Superclass {
+  public var myVar: Int by Observable = 17
+  
+  // desugars to...
+  internal var $myVar: Observable<Int> = Observable(initialValue: 17)
+  public var myVar: Int {
+    get { return $myVar[instanceSelf: self] }
+    set { $myVar[instanceSelf: self] = newValue }
+  }
+}
+```
+
+This change is backward-compatible with the rest of the proposal. Property delegate types could provide any (non-empty) subset of the three ways to access the underlying value:
+
+* For instance properties, `subscript(instanceSelf:)` as shown above.
+* For static or class properties, `subscript(typeSelf:)`, similar to the above but accepting a metatype parameter.
+* For global/local properties, or when the appropriate `subscript` mentioned above isn't provided by the delegate type, the `value` property would be used.
+
+The main challenge with this design is that it doesn't directly work when the enclosing type is a value type and the property is settable. In such cases, one would expect `self` to be passed `inout`, e.g.,
+
+```swift
+public struct MyStruct {
+  public var myVar: Int by Observable = 17
+  
+  // desugars to...
+  internal var $myVar: Observable<Int> = Observable(initialValue: 17)
+  public var myVar: Int {
+    get { return $myVar[instanceSelf: self] }
+    set { $myVar[instanceSelf: &self] = newValue }
+  }
+}
+```
+
+There are a few issues here: first, subscripts don't allow `inout` parameters in the first place, so we would have to figure out how to implement support for such a feature. Second, passing `self` as `inout` while performing access to the property `self.myVar` violates Swift's exclusivity rules ([generalized accessors](https://github.com/apple/swift/blob/master/docs/OwnershipManifesto.md#generalized-accessors) might help address this). Third, property delegate types that want to support `subscript(instanceSelf:)` for both value and reference types would have to overload on `inout` or would have to have a different subscript name (e.g., `subscript(mutatingInstanceSelf:)`).
+
+So, while we feel that this is a promising future direction that fits in well with the proposal as-is, the open design questions are significant enough that we do not want to tackle them all in a single proposal.
