@@ -3,7 +3,7 @@
 * Proposal: [SE-0247](0247-contiguous-strings.md)
 * Author: [Michael Ilseman](https://github.com/milseman)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Active review (March 11 - 18, 2019)**
+* Status: **Accepted**
 * Implementation: [apple/swift#23051](https://github.com/apple/swift/pull/23051)
 * Bugs: [SR-6475](https://bugs.swift.org/browse/SR-6475)
 
@@ -51,14 +51,14 @@ extension String {
   /// give a result for String.UTF8View.withContiguousStorageIfAvailable.
   /// Contiguous strings also benefit from fast-paths and better optimizations.
   ///
-  public var isContiguous: Bool { get }
+  public var isContiguousUTF8: Bool { get }
 
   /// If this string is not contiguous, make it so. If this mutates the string,
   /// it will invalidate any pre-existing indices.
   ///
   /// Complexity: O(n) if non-contiguous, O(1) if already contiguous
   ///
-  public mutating func makeContiguous()
+  public mutating func makeContiguousUTF8()
 
   /// Runs `body` over the content of this string in contiguous memory. If this
   /// string is not contiguous, this will first make it contiguous, which will
@@ -87,14 +87,14 @@ extension Substring {
   /// give a result for String.UTF8View.withContiguousStorageIfAvailable.
   /// Contiguous strings also benefit from fast-paths and better optimizations.
   ///
-  public var isContiguous: Bool { get }
+  public var isContiguousUTF8: Bool { get }
 
   /// If this string is not contiguous, make it so. If this mutates the
   /// substring, it will invalidate any pre-existing indices.
   ///
   /// Complexity: O(n) if non-contiguous, O(1) if already contiguous
   ///
-  public mutating func makeContiguous()
+  public mutating func makeContiguousUTF8()
 
   /// Runs `body` over the content of this substring in contiguous memory. If
   /// this substring is not contiguous, this will first make it contiguous,
@@ -168,28 +168,15 @@ When it comes to adding these methods on StringProtocol, we have two options:
 
 ##### 1. Add it as a protocol extension
 
-This approach would add the functions in an extension, ideally resilient and versioned. Unfortunately, `makeContiguous()` wouldn’t be implementable, as we cannot reassign self to a concrete type, so we’d have to add some additional requirements to StringProtocol surrounding forming a new contiguous string of the same concrete type.
+This approach would add the functions in an extension, ideally resilient and versioned. Unfortunately, `makeContiguousUTF8()` wouldn’t be implementable, as we cannot reassign self to a concrete type, so we’d have to add some additional requirements to StringProtocol surrounding forming a new contiguous string of the same concrete type.
 
 ##### 2. Add it as a requirement with a default implementation
 
 This approach would add it as a customization hook that’s dynamically dispatched to the concrete type’s real implementations. The default implementation would be resilient and versioned and trap if called; any new conformers to StringProtocol would need to be versioned and accommodated here.
 
-Adding new versioned-and-defaulted requirements to a protocol can be done at any point while preserving ABI stability. For now, we’re not sure it’s worth the extra witness table entries at this point. This also hits some of the pain points of option 1: any conformers to StringProtocol must satisfy `makeContiguous`’s post-condition of ensuring contiguity without changing concrete type.
+Adding new versioned-and-defaulted requirements to a protocol can be done at any point while preserving ABI stability. For now, we’re not sure it’s worth the extra witness table entries at this point. This also hits some of the pain points of option 1: any conformers to StringProtocol must satisfy `makeContiguousUTF8`’s post-condition of ensuring contiguity without changing concrete type.
 
 This can be added in the future.
-
-### Name it `isContiguousUTF8` and `makeContiguousUTF8()`
-
-This proposal is introducing the concept of "contiguous strings" which is
-blessed as *the* fast-path in String's stable ABI for strings that can provide
-UTF-8 contents in contiguous memory. If a string cannot provide UTF-8 content in
-contiguous memory, it does receive these benefits, even if it happens to have
-content in some other encoding in contiguous memory.
-
-We feel the concept of string contiguity in Swift is inherently tied to UTF-8,
-and worth claiming the term "contiguous" unqualified in encoding. That being
-said, this is a weakly held opinion and `isContiguousUTF8` is acceptable as
-well.
 
 ### Put this on the UTF8View
 
@@ -200,8 +187,8 @@ UTF-8 is special for performance and contiguity concerns.
 
 ### The Most Viable Alternative
 
-Here's an alternative formulation that uses an explicit "UTF8" in the name and
-avoids `mutating` and index-invalidation (by using strategy \#1 above).
+Here's an alternative formulation that avoids `mutating` and
+index-invalidation (by using strategy \#1 above).
 
 ```swift
 extension [Sub]String {
