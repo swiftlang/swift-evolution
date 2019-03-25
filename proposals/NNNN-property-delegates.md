@@ -749,7 +749,7 @@ This change is backward-compatible with the rest of the proposal. Property deleg
 * For static or class properties, `subscript(typeSelf:)`, similar to the above but accepting a metatype parameter.
 * For global/local properties, or when the appropriate `subscript` mentioned above isn't provided by the delegate type, the `value` property would be used.
 
-The main challenge with this design is that it doesn't directly work when the enclosing type is a value type and the property is settable. In such cases, one would expect `self` to be passed `inout`, e.g.,
+The main challenge with this design is that it doesn't directly work when the enclosing type is a value type and the property is settable. In such cases, the parameter to the subscript would get a copy of the entire enclosing value, which would not allow mutation, On the other hand, one could try to pass `self` as `inout`, e.g.,
 
 ```swift
 public struct MyStruct {
@@ -766,4 +766,4 @@ public struct MyStruct {
 
 There are a few issues here: first, subscripts don't allow `inout` parameters in the first place, so we would have to figure out how to implement support for such a feature. Second, passing `self` as `inout` while performing access to the property `self.myVar` violates Swift's exclusivity rules ([generalized accessors](https://github.com/apple/swift/blob/master/docs/OwnershipManifesto.md#generalized-accessors) might help address this). Third, property delegate types that want to support `subscript(instanceSelf:)` for both value and reference types would have to overload on `inout` or would have to have a different subscript name (e.g., `subscript(mutatingInstanceSelf:)`).
 
-So, while we feel that this is a promising future direction that fits in well with the proposal as-is, the open design questions are significant enough that we do not want to tackle them all in a single proposal.
+So, while we feel that support for accessing the enclosing type's `self` is useful and as future direction, and this proposal could be extended to accommodate it, the open design questions are significant enough that we do not want to tackle them all in a single proposal.
