@@ -552,8 +552,9 @@ There are a number of restrictions on the use of property delegates when definin
 * A property with a delegate that is declared within a class must be
 `final` and cannot override another property. 
 * A property with a delegate may not declare any accessors.
-* A property with a delegate cannot be `lazy`, `@NSCopying`, or `@NSManaged`.
-* A property with a delegate must be the only property declared within its enclosing declaration (e.g., `var (x, y) by Lazy = /* ... */` is ill-formed)
+* A property with a delegate cannot be `lazy`, `@NSCopying`, `@NSManaged`, `weak`, or `unowned`.
+* A property with a delegate must be the only property declared within its enclosing declaration (e.g., `var (x, y) by Lazy = /* ... */` is ill-formed).
+* The `value` property and (if present) `init(initialValue:)` of a property delegate type shall have the same access as the property delegate type.
 
 ## Impact on existing code
 
