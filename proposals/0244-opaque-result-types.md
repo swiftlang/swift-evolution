@@ -3,9 +3,10 @@
 * Proposal: [SE-0244](0244-opaque-result-types.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor), [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active review (March 5...March 15, 2019)**
+* Status: **Returned for revision**
 * Implementation: [apple/swift#22072](https://github.com/apple/swift/pull/22072)
 * Toolchain: https://github.com/apple/swift/pull/21137#issuecomment-468118328
+* Review thread: https://forums.swift.org/t/se-0244-opaque-result-types/21252
 
 ## Introduction
 
