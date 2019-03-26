@@ -596,15 +596,3 @@ np.random.randint(-10, 10, dtype: np.float)
 // `PythonObject` with `call` members. The empty strings are killer.
 np.random.randint(["": -10, "": 10, "dtype": np.float])
 ```
- -10, "": 10, "dtype": np.float])
-```
-at is crucial for usability.
-
-```swift
-// Let `PythonObject` be a `@dynamicMemberLookup` type with callable functionality.
-let np: PythonObject = ...
-// `PythonObject` with `@dynamicCallable.
-np.random.randint(-10, 10, dtype: np.float)
-// `PythonObject` with `call` members. The empty strings are killer.
-np.random.randint(["": -10, "": 10, "dtype": np.float])
-```
