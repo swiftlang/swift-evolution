@@ -106,10 +106,10 @@ Variable-capturing closures can be modeled explicitly as structs that store the 
 ```swift
 // Represents a nullary function capturing a value of type `T`.
 struct BoundClosure<T> {
-  var function: (T) -> Void
-  var value: T
+    var function: (T) -> Void
+    var value: T
 
-  call() { return function(value) }
+    call() { return function(value) }
 }
 
 let x = "Hello world!"
