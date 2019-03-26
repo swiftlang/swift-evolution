@@ -3,7 +3,7 @@
 * Proposal: [SE-0240](0240-ordered-collection-diffing.md)
 * Authors: [Scott Perry](https://github.com/numist), [Kyle Macomber](https://github.com/kylemacomber)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.1)**
 * Implementation: [apple/swift#21845](https://github.com/apple/swift/pull/21845)
 * Decision notes: [Rationale](https://forums.swift.org/t/accepted-with-modifications-se-0240-ordered-collection-diffing/20008)
 

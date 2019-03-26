@@ -3,7 +3,8 @@
 * Proposal: [SE-0242](0242-default-values-memberwise.md)
 * Author: [Alejandro Alonso](https://github.com/Azoy)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
-* Status: **Active review (February 18 - February 26, 2019)**
+* Status: **Accepted**
+* Decision Notes: [Rationale](https://forums.swift.org/t/se-0242-synthesize-default-values-for-the-memberwise-initializer/20618/98)
 * Implementation: [apple/swift#19743](https://github.com/apple/swift/pull/19743)
 
 ## Introduction
@@ -68,10 +69,46 @@ I propose simply doing the obvious and synthesizing default values for propertie
 struct Dog {
   var age: Int = 0
   var name: String
+
+  // The generated memberwise init:
+  init(age: Int = 0, name: String)
 }
 
 // This now works
 let sparky = Dog(name: "Sparky") // Dog(age: 0, name: "Sparky")
+```
+
+The following example displays the memberwise initializer being produced by the compiler with a combination of variables with default values.
+
+```swift
+struct Alphabet {
+  var a: Int = 97
+  let b: String
+  var c: String = "c"
+  let d: Bool = true
+  var e: Double = Double.random(in: 0 ... .pi)
+
+  // The generated memberwise init:
+  init(
+    a: Int = 97,
+    b: String,
+    c: String = "c",
+    e: Double = Double.random(in: 0 ... .pi)
+  )
+}
+```
+
+Notice the `d` variable does not get an entry in the memberwise initializer because it is a constant whose value is already assigned. This behavior already exists with the current initializer.
+
+In the case where multiple variables are being initialized together, we cannot generate a default value for them in the memberwise initializer. For example:
+
+```swift
+struct Person {
+  var (firstName, lastName) = ("First", "Last")
+
+  // The generated memberwise init:
+  init(firstName: String, lastName: String)
+}
 ```
 
 ## Detailed design
