@@ -1,6 +1,6 @@
 # Introduce callables
 
-* Proposal: SE-NNNN
+* Proposal: [SE-0252](https://github.com/apple/swift-evolution/blob/master/proposals/0252-callable.md)
 * Authors: [Richard Wei](https://github.com/rxwei), [Dan Zheng](https://github.com/dan-zheng)
 * Review Manager: TBD
 * Status: Implementation in progress
