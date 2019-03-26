@@ -37,9 +37,9 @@ Currently, in Swift, only a few kinds of values are syntactically callable:
 - Type names (e.g. `T` can be called like `T(...)`, which is desugared to `T.init(...)`).
 - Values with a `@dynamicCallable` type.
 
-However, callable syntax can also be useful for other values, primarily those that behave like functions. This includes:
+However, call-syntax can also be useful for other values, primarily those that behave like functions. This includes:
 - Values that represent functions: mathematical functions, function expressions, etc.
-- Values that have one main use and want to provide a simple callable interface: neural network layers, parsers, efficient bound closures, etc.
+- Values that have one main use and want to provide a simple call-syntax interface: neural network layers, parsers, efficient bound closures, etc.
 
 Here are some concrete sources of motivation.
 
@@ -117,7 +117,7 @@ let closure = BoundClosure(function: { print($0) }, value: x)
 closure() // prints "Hello world!"
 ```
 
-A callable syntactic sugar would enable `BoundClosure` instances to be applied like normal functions.
+A call syntax sugar would enable `BoundClosure` instances to be applied like normal functions.
 
 ### Nominal types with one primary method
 
@@ -224,11 +224,11 @@ let sexp = sexpParser("(+ 1 2)")
 
 ### A static counterpart to `@dynamicCallable`
 
-[SE-0216 ](https://github.com/apple/swift-evolution/blob/master/proposals/0216-dynamic-callable.md) introduced user-defined dynamically callable values. In its [alternatives considered](https://github.com/apple/swift-evolution/blob/master/proposals/0216-dynamic-callable.md#alternatives-considered) section, it was requested that we design and implement the 'static callable' version of this proposal in conjunction with the dynamic version proposed. See its [pitch thread ](https://forums.swift.org/t/pitch-3-introduce-user-defined-dynamically-callable-types/12232) for discussions about "static callables".
+[SE-0216 ](https://github.com/apple/swift-evolution/blob/master/proposals/0216-dynamic-callable.md) introduced user-defined dynamically callable values. In its [alternatives considered](https://github.com/apple/swift-evolution/blob/master/proposals/0216-dynamic-callable.md#alternatives-considered) section, it was requested that we design and implement the "static callable" version of this proposal in conjunction with the dynamic version proposed. See its [pitch thread](https://forums.swift.org/t/pitch-3-introduce-user-defined-dynamically-callable-types/12232) for discussions about "static callables".
 
 ### Prior art
 
-Many languages offer the "callable" syntactic sugar:
+Many languages offer the call syntax sugar:
 
 * Python: [ `object.__call__(self[, args...])` ](https://docs.python.org/3/reference/datamodel.html#emulating-callable-objects)
 * C++: [ `operator()` (function call operator)](https://en.cppreference.com/w/cpp/language/operators)
@@ -468,7 +468,7 @@ struct Adder {
 }
 ```
 
-This approach achieves a similar effect as `call` declarations, except that methods can have a custom name and be directly referenced by that name. This is useful for types that want to make use of the callable syntactic sugar, but for which the name "call" does not accurately describe the callable functionality.
+This approach achieves a similar effect as `call` declarations, except that methods can have a custom name and be directly referenced by that name. This is useful for types that want to make use of the call syntax sugar, but for which the name "call" does not accurately describe the callable functionality.
 
 However, we feel that using a `@callableMethod` method attribute is more noisy. Introducing a `call` declaration kind makes the concept of "callables" feel more first-class in the language, just like subscripts. `call` is to `()` as `subscript` is to `[]`.
 
