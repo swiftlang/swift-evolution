@@ -468,7 +468,7 @@ struct Adder {
 }
 ```
 
-This approach achieves a similar effect as `call` declarations, except that methods can have a custom name and be directly referenced by that name. This is useful for types that want to make use of the callable syntactic sugar, but for which the name "call" does not accurately describe the callable functionality.
+This approach achieves a similar effect as `call` declarations, except that methods can have a custom name and be directly referenced by that name. This is useful for types that want to make use of the call syntax sugar, but for which the name "call" does not accurately describe the callable functionality.
 
 However, we feel that using a `@callableMethod` method attribute is more noisy. Introducing a `call` declaration kind makes the concept of "callables" feel more first-class in the language, just like subscripts. `call` is to `()` as `subscript` is to `[]`.
 
