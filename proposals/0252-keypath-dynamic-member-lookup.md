@@ -1,9 +1,9 @@
 # Key Path Member Lookup
 
-* Proposal: [SE-NNNN](NNNN-keypath-dynamic-member-lookup.md)
+* Proposal: [SE-0252](0252-keypath-dynamic-member-lookup.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor), [Pavel Yaskevich](https://github.com/xedin)
-* Review Manager: **TBD**
-* Status: **Awaiting review**
+* Review Manager: [Ted Kremenek](https://github.com/tkremenek)
+* Status: **Active review (March 26 - April 5, 2019)**
 * Implementation: [PR #23436](https://github.com/apple/swift/pull/23436)
 
 ## Introduction
