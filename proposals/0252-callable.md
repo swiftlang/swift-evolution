@@ -45,7 +45,7 @@ Here are some concrete sources of motivation.
 
 ### Values representing functions
 
-Values of some types exactly represent functions: in the mathematical sense (a mapping from inputs to outputs), or in the context of programming languages.
+Values of some nominal types exactly represent functions: in the mathematical sense (a mapping from inputs to outputs), or in the context of programming languages.
 
 Here are some examples:
 
