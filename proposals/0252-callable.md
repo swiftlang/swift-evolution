@@ -117,7 +117,7 @@ let closure = BoundClosure(function: { print($0) }, value: x)
 closure() // prints "Hello world!"
 ```
 
-A callable syntactic sugar would enable `BoundClosure` instances to be applied like normal functions.
+A call syntax sugar would enable `BoundClosure` instances to be applied like normal functions.
 
 ### Nominal types with one primary method
 
