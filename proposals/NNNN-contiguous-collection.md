@@ -62,10 +62,9 @@ loop. This encourages misuse by the caller, who might not realize they are
 getting worse performance than if they reorganized their code.
 
 Trapping on non-contiguous inputs would flag the problem more clearly to the
-user. In the case of the "return" buffer argument, if we wanted to make that
-generic, trapping is the only option as we cannot just convert that type to an
-array and rerun. But ideally we would use Swift's type system to enforce this
-instead, guiding the user to a better solution.
+user, who could realize immediately on first use, that types like `Range`
+should not be used with this API. But ideally we would use Swift's type system
+to enforce this instead, guiding the user to a better solution.
 
 ## Proposed solution
 
@@ -148,6 +147,32 @@ N/A
 
 ## Alternatives considered
 
-This is a re-pitch of these protocols. They originally appeared in SE-0237, but were
-deferred pending further use cases. This proposal is motivated by such cases.
+This is a re-pitch of these protocols. They originally appeared in SE-0237, but
+were deferred pending further use cases. This proposal is motivated by such
+cases.
 
+As mentioned in the motivation, there are some alternatives available in the
+absense of this protocol:
+
+- Libraries can add their own version of the protocol, and retroactively
+  conform standard library types to it. This is a workable solution, but has some downsides:
+  
+  - Non-standard types will not conform. Callers will need to conform these types to the
+    library's protocol themselves manually. A standard library protocol is more likely to
+    be adopted by other types.
+
+  - If this pattern proves common, it will lead to multiple libraries declaring
+    the same protocol.
+
+- Libraries can use the `IfAvailable` variant, and document that using types
+  without contiguous storage is inefficient. This leaves enforcing the correct
+  usage to the user. This is not always possible in a generic context, where
+  the calling function does not know exactly what concrete type they are using.
+
+- Libraries can use the `IfAvailable` variant, and trap when not available.
+  This could alert callers to inefficient usage on first use. For example, if
+  you ever pass in a `Range`, your call will always fail, detectable by any
+  testing. Some types, however, may respond to the `IfAvailable` call in some
+  cases but not others. For example, a ring buffer might often not have wrapped
+  around, so can provide a single contiguous buffer sometimes, but not always.
+  Trapping then would lead to unpredictable crashes.
