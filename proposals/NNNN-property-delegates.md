@@ -542,6 +542,35 @@ print($x)     // okay to refer to compiler-defined $x
 let $y = 17   // error: cannot declare entity with $-prefixed name '$y'
 ```
 
+### Accessors
+
+A property with a delegate can declare accessors explicitly (`get`, `set`, `didSet`, `willSet`). If either `get` or `set` is missing, it will be implicitly created by accessing the storage property (e.g., `$foo`). For example:
+
+```swift
+var x by Lazy = 17 {
+  set {
+    $x.value = newValue * 2
+  }
+
+  // implicitly synthesized...
+  get { return $x.value }
+}
+
+
+var y by Lazy = 42 {
+  didSet {
+    print("Overrode lazy value with \(oldValue)")
+  }
+
+  // implicitly synthesized...
+  set {
+    let oldValue = $y.value
+    $y.value = newValue
+    didSet(oldValue)
+  }
+}
+```
+
 ### Restrictions on the use of property delegates
 
 There are a number of restrictions on the use of property delegates when defining a property:
@@ -551,7 +580,6 @@ There are a number of restrictions on the use of property delegates when definin
 * An instance property may not be declared in an `enum`.
 * A property with a delegate that is declared within a class must be
 `final` and cannot override another property. 
-* A property with a delegate may not declare any accessors.
 * A property with a delegate cannot be `lazy`, `@NSCopying`, `@NSManaged`, `weak`, or `unowned`.
 * A property with a delegate must be the only property declared within its enclosing declaration (e.g., `var (x, y) by Lazy = /* ... */` is ill-formed).
 * The `value` property and (if present) `init(initialValue:)` of a property delegate type shall have the same access as the property delegate type.
