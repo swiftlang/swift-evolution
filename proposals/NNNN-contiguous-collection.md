@@ -176,3 +176,47 @@ absense of this protocol:
   cases but not others. For example, a ring buffer might often not have wrapped
   around, so can provide a single contiguous buffer sometimes, but not always.
   Trapping then would lead to unpredictable crashes.
+
+### `Array` and lazy bridging
+
+The conformance of `Array` to these protocols presents a particular concern.
+
+`Array` at its core is a contiguously stored block of memory, and so naturally
+lends itself to conformance to `ContiguousCollection`. However, this has one
+specific carved-out exception on Darwin platforms for the purposes of
+Objective-C interop. When an `NSArray` of classes is bridged from Objective-C
+code, it remains as an `NSArray`, and the `Array` forwards element accesses to
+that bridged `NSArray`.
+
+This is very different from `NSArray` itself, which abstracts away the storage
+to a much greater degree, giving it flexibility to present an "array-like"
+interface to multiple different backings.
+
+Here's a run-down of when Array will be contiguously stored:
+
+- Arrays created in Swift will **always** be contiguously stored;
+
+- Arrays of structs and enums will **always** be contiguously stored;
+
+- Arrays on platforms without an Objective-C runtime (i.e. non-Darwin
+  platforms) are **always** contiguously stored;
+
+- The only time an array **won't** be contiguously stored is if it is of
+  classes and has been bridged from an `NSArray`. Even then, in many cases, the
+  NSArray will be contiguously stored and could present a pointer at no or
+  amortized cost.
+
+These caveats should be documented clearly on both the protocol and on `Array`.
+Note that in use cases such as the `vDSP` family of functions, this is not a
+concern as the element types involved are structs. The documented caveat
+approach has precedent in several places already in Swift: the conformance of
+floating-point types to `Comparable`, the complexity of operations like `first`
+and `last` on some lazy random-access types, and of the existing implementation
+of `withUnsafeBufferPointer` on `Array` itself.
+
+Note that these caveats only apply to the un-mutable variant. The
+first thing an array does when you call a mutating method is ensure that it's
+uniquely referenced and contiguous, so even lazily bridged arrays will become
+contiguous at that point. This copying occurs naturally in other cases, such 
+as multiply-referenced CoW buffers.
+
