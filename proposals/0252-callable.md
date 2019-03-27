@@ -347,7 +347,7 @@ f(2) // => 3
 [1, 2, 3].map(add1.call) // => [2, 3, 4]
 ```
 
-When a type has both an instance method named "call" and a `call` member with the exact same type signature, a redeclaration error is emitted.
+When a type has both an instance method named "call" and a `call` member with the exact same type signature, a redeclaration error is produced.
 
 ```swift
 struct S {
@@ -504,7 +504,7 @@ struct Adder {
 
 We feel this approach is not ideal because:
 
-* A marker type attribute is not particularly meaningful. The call-syntax delegate methods of a type are what make values of that type callable - a type attribute means nothing by itself. In fact, there’s an edge case that needs to be explicitly handled: if a `@staticCallable` type defines no call-syntax delegate methods, an error must be emitted.
+* A marker type attribute is not particularly meaningful. The call-syntax delegate methods of a type are what make values of that type callable - a type attribute means nothing by itself. In fact, there’s an edge case that needs to be explicitly handled: if a `@staticCallable` type defines no call-syntax delegate methods, an error must be produced.
 * The name for call-syntax delegate methods (e.g. `func call` ) is not first-class in the language, while their call site syntax is.
 
 #### Use a `Callable` protocol to represent callable types
