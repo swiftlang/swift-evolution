@@ -15,7 +15,7 @@ these patterns to be defined as libraries.
 
 This is an alternative approach to some of the problems intended to be addressed by the [2015-2016 property behaviors proposal](https://github.com/apple/swift-evolution/blob/master/proposals/0030-property-behavior-decls.md). Some of the examples are the same, but this proposal takes a completely different approach designed to be simpler, easier to understand for users, and less invasive in the compiler implementation. There is a section that discusses the substantive differences from that design at the end of this proposal.
 
-[Pitch](TODO)<br/>
+[Pitch](https://forums.swift.org/t/pitch-property-delegates/21895)<br/>
 
 ## Motivation
 
