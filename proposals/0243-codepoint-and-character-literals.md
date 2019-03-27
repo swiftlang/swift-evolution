@@ -3,7 +3,7 @@
 * Proposal: [SE-0243](0243-codepoint-and-character-literals.md)
 * Authors: [Kelvin Ma (“Taylor Swift”)](https://github.com/kelvin13), [Chris Lattner](https://github.com/lattner), [John Holdsworth](https://github.com/johnno1962)
 * Review manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active review (March 4 - March 12, 2019)**
+* Status: **Rejected** ([Rationale](https://forums.swift.org/t/se-0243-codepoint-and-character-literals/21188/341))
 * Implementation: [apple/swift#21873](https://github.com/apple/swift/pull/21873)
 * Threads: [1](https://forums.swift.org/t/prepitch-character-integer-literals/10442)
 
