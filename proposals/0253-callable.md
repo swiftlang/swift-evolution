@@ -4,7 +4,7 @@
 * Authors: [Richard Wei](https://github.com/rxwei), [Dan Zheng](https://github.com/dan-zheng)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Active review (March 27 - April 5, 2019)**
-* Implementation: https://github.com/apple/swift/pull/23517
+* Implementation: [apple/swift#23517](https://github.com/apple/swift/pull/23517)
 
 ## Introduction
 
@@ -12,7 +12,7 @@ Note: throughout this document, let "call-syntax" refer to the syntax of applyin
 
 This proposal introduces [callables](https://en.wikipedia.org/wiki/Callable_object) to Swift. Callables are values that define function-like behavior and can be applied using function application syntax.
 
-In a nutshell, we propose to introduce a new declaration syntax with the keyword `call` :
+In a nutshell, we propose to introduce a new declaration syntax with the keyword `call`:
 
 ```swift
 struct Adder {
@@ -121,9 +121,8 @@ A call syntax sugar would enable `BoundClosure` instances to be applied like nor
 
 ### Nominal types with one primary method
 
-Some nominal types have a "primary method" that performs their main use. For example: calculators *calculate*, parsers *parse*, neural network layers *apply to inputs*, types representing functions *apply to arguments*, etc.
+Some nominal types have a "primary method" that performs their main use. For example:
 
-For example:
 * Calculators *calculate*: `calculator.calculating(query)`.
 * Parsers *parse*: `parser.parsing(text)`.
 * Neural network layers *apply to inputs*: `layer.applied(to: input)`.
@@ -131,11 +130,11 @@ For example:
 
 Types that have a primary method usually call that method frequently. Thus, it may be desirable to sugar applications of the main method with call syntax to reduce noise.
 
-Let’s explore neural network layers and string parsers in detail.
+Let's explore neural network layers and string parsers in detail.
 
 #### Neural network layers
 
-[Machine learning](https://en.wikipedia.org/wiki/Machine_learning) models often represent a function that contains an internal state called "trainable parameters", and the function takes an input and predicts the output. In code, models are often represented as a data structure that stores trainable parameters, and a method that defines the transformation from an input to an output in terms of these trained parameters. Here’s an example:
+[Machine learning](https://en.wikipedia.org/wiki/Machine_learning) models often represent a function that contains an internal state called "trainable parameters", and the function takes an input and predicts the output. In code, models are often represented as a data structure that stores trainable parameters, and a method that defines the transformation from an input to an output in terms of these trained parameters. Here's an example:
 
 ```swift
 struct Perceptron {
@@ -217,7 +216,7 @@ call(_ input: String) throws -> Output {
 ```
 
 ```swift
-let sexpParser: Parser<Expression> = …
+let sexpParser: Parser<Expression> = ...
 // Callable syntax.
 let sexp = sexpParser("(+ 1 2)")
 ```
@@ -326,7 +325,7 @@ When type-checking fails, error messages look like those for function calls. Whe
 
 ```swift
 add1("foo")
-// error: cannot invoke ‘add1’ with an argument list of type '(String)'
+// error: cannot invoke 'add1' with an argument list of type '(String)'
 // note: overloads for 'call' exist with these partially matching parameter lists: (Float), (Int)
 add1(1, 2, 3)
 // error: cannot invoke 'add1' with an argument list of type '(Int, Int, Int)'
@@ -334,7 +333,7 @@ add1(1, 2, 3)
 
 ### When the type is also `@dynamicCallable`
 
-A type can both have `call` members and be declared with `@dynamicCallable` . When type-checking a call expression, the type checker will first try to resolve the call to a function or initializer call, then a `call` member call, and finally a dynamic call.
+A type can both have `call` members and be declared with `@dynamicCallable`. When type-checking a call expression, the type checker will first try to resolve the call to a function or initializer call, then a `call` member call, and finally a dynamic call.
 
 ### Direct reference to a `call` member
 
@@ -388,7 +387,7 @@ The proposed feature adds a `call` keyword. Normally, this would require existin
 
 To maintain source compatibility, we propose making `call` a contextual keyword: that is, it is a keyword only in declaration contexts and a normal identifier elsewhere (e.g. in expression contexts). This means that `func call` and `call(...)` (apply expressions) continue to parse correctly.
 
-Here’s a comprehensive example of parsing `call` in different contexts:
+Here's a comprehensive example of parsing `call` in different contexts:
 
 ```swift
 struct Callable {
@@ -446,13 +445,13 @@ struct Adder {
     }
     // Option: `call` declaration modifier on unnamed `func` declarations.
     // Makes unnamed `func` less weird and clearly states "call".
-    call func(_ x: Int) -> Int { … }
+    call func(_ x: Int) -> Int { ... }
 }
 ```
 
 This approach represents call-syntax delegate methods as unnamed `func` declarations instead of creating a new `call` declaration kind.
 
-One option is to use `func(...)` without an identifier name. Since the word "call" does not appear, it is less clear that this denotes a call-syntax delegate method. Additionally, it’s not clear how direct references would work: the proposed design of referencing `call` declarations via `foo.call` is clear and consistent with the behavior of `init` declarations.
+One option is to use `func(...)` without an identifier name. Since the word "call" does not appear, it is less clear that this denotes a call-syntax delegate method. Additionally, it's not clear how direct references would work: the proposed design of referencing `call` declarations via `foo.call` is clear and consistent with the behavior of `init` declarations.
 
 To make unnamed `func(...)` less weird, one option is to add a `call` declaration modifier: `call func(...)`. The word `call` appears in both this option and the proposed design, clearly conveying "call-syntax delegate method". However, declaration modifiers are currently also treated as keywords, so with both approaches, parser changes to ensure source compatibility are necessary. `call func(...)` requires additional parser changes to allow `func` to sometimes not be followed by a name. The authors lean towards `call` declarations for terseness.
 
@@ -496,6 +495,10 @@ Also, we want to support direct references to call-syntax delegate methods via `
 struct Adder {
     var base: Int
     // Informal rule: all methods with a particular name (e.g. `func call`) are deemed call-syntax delegate methods.
+    //
+    // `StringInterpolationProtocol` has a similar informal requirement for
+    // `func appendInterpolation` methods.
+    // https://github.com/apple/swift-evolution/blob/master/proposals/0228-fix-expressiblebystringinterpolation.md#proposed-solution
     func call(_ x: Int) -> Int {
         return base + x
     }
@@ -504,7 +507,7 @@ struct Adder {
 
 We feel this approach is not ideal because:
 
-* A marker type attribute is not particularly meaningful. The call-syntax delegate methods of a type are what make values of that type callable - a type attribute means nothing by itself. In fact, there’s an edge case that needs to be explicitly handled: if a `@staticCallable` type defines no call-syntax delegate methods, an error must be produced.
+* A marker type attribute is not particularly meaningful. The call-syntax delegate methods of a type are what make values of that type callable - a type attribute means nothing by itself. In fact, there's an edge case that needs to be explicitly handled: if a `@staticCallable` type defines no call-syntax delegate methods, an error must be produced.
 * The name for call-syntax delegate methods (e.g. `func call` ) is not first-class in the language, while their call site syntax is.
 
 #### Use a `Callable` protocol to represent callable types
@@ -514,8 +517,6 @@ We feel this approach is not ideal because:
 struct Adder: Callable {
     var base: Int
     // Informal rule: all methods with a particular name (e.g. `func call`) are deemed call-syntax delegate methods.
-    // `StringInterpolationProtocol` has a similar informal requirement for `func appendInterpolation` methods.
-    // https://github.com/apple/swift-evolution/blob/master/proposals/0228-fix-expressiblebystringinterpolation.md#proposed-solution
     func call(_ x: Int) -> Int {
         return base + x
     }
@@ -536,13 +537,13 @@ Halide::Var x, y;
 foo(x, y) = x + y;
 ```
 
-This can be achieved via Swift’s subscripts, which can have a getter and a setter.
+This can be achieved via Swift's subscripts, which can have a getter and a setter.
 
 ```swift
 foo[x, y] = x + y
 ```
 
-Since the proposed `call` declaration syntax is like `subscript` in many ways, it’s in theory possible to allow `get` and `set` in a `call` declaration’s body.
+Since the proposed `call` declaration syntax is like `subscript` in many ways, it's in theory possible to allow `get` and `set` in a `call` declaration's body.
 
 ```swift
 call(x: T) -> U {
@@ -555,7 +556,7 @@ call(x: T) -> U {
 }
 ```
 
-However, we do not believe `call` should behave like a storage accessor like `subscript` . Instead, `call` ’s appearance should be as close to function calls as possible. Function call expressions today are not assignable because they can't return an l-value reference, so a call to a `call` member should not be assignable either.
+However, we do not believe `call` should behave like a storage accessor like `subscript`. Instead, `call`'s appearance should be as close to function calls as possible. Function call expressions today are not assignable because they can't return an l-value reference, so a call to a `call` member should not be assignable either.
 
 ### Static `call` members
 
