@@ -121,9 +121,8 @@ A call syntax sugar would enable `BoundClosure` instances to be applied like nor
 
 ### Nominal types with one primary method
 
-Some nominal types have a "primary method" that performs their main use. For example: calculators *calculate*, parsers *parse*, neural network layers *apply to inputs*, types representing functions *apply to arguments*, etc.
+Some nominal types have a "primary method" that performs their main use. For example:
 
-For example:
 * Calculators *calculate*: `calculator.calculating(query)`.
 * Parsers *parse*: `parser.parsing(text)`.
 * Neural network layers *apply to inputs*: `layer.applied(to: input)`.
