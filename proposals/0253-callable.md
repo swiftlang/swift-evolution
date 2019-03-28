@@ -4,7 +4,7 @@
 * Authors: [Richard Wei](https://github.com/rxwei), [Dan Zheng](https://github.com/dan-zheng)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Active review (March 27 - April 5, 2019)**
-* Implementation: https://github.com/apple/swift/pull/23517
+* Implementation: [apple/swift#23517](https://github.com/apple/swift/pull/23517)
 
 ## Introduction
 
