@@ -795,3 +795,14 @@ public struct MyStruct {
 There are a few issues here: first, subscripts don't allow `inout` parameters in the first place, so we would have to figure out how to implement support for such a feature. Second, passing `self` as `inout` while performing access to the property `self.myVar` violates Swift's exclusivity rules ([generalized accessors](https://github.com/apple/swift/blob/master/docs/OwnershipManifesto.md#generalized-accessors) might help address this). Third, property delegate types that want to support `subscript(instanceSelf:)` for both value and reference types would have to overload on `inout` or would have to have a different subscript name (e.g., `subscript(mutatingInstanceSelf:)`).
 
 So, while we feel that support for accessing the enclosing type's `self` is useful and as future direction, and this proposal could be extended to accommodate it, the open design questions are significant enough that we do not want to tackle them all in a single proposal.
+
+### Delegating to an existing property
+
+When specifying a delegate for a property, a backing storage property is implicitly created. However, it is possible that there already exists a property that can provide the backing. This allows greater control over the declaration of the backing property, e.g., to specify that it is `lazy` or `@objc` or to give it a more custom implementation:
+
+```swift
+lazy var fooBacking: SomeDelegate<Int>
+var foo: Int by var fooBacking
+```
+
+One could express this either by naming the property directly (as with the `by var` formulation above) or, for an even more general solution, by providing a keypath such as `\.someProperty.someOtherProperty`.
