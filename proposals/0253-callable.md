@@ -12,7 +12,7 @@ Note: throughout this document, let "call-syntax" refer to the syntax of applyin
 
 This proposal introduces [callables](https://en.wikipedia.org/wiki/Callable_object) to Swift. Callables are values that define function-like behavior and can be applied using function application syntax.
 
-In a nutshell, we propose to introduce a new declaration syntax with the keyword `call` :
+In a nutshell, we propose to introduce a new declaration syntax with the keyword `call`:
 
 ```swift
 struct Adder {
@@ -333,7 +333,7 @@ add1(1, 2, 3)
 
 ### When the type is also `@dynamicCallable`
 
-A type can both have `call` members and be declared with `@dynamicCallable` . When type-checking a call expression, the type checker will first try to resolve the call to a function or initializer call, then a `call` member call, and finally a dynamic call.
+A type can both have `call` members and be declared with `@dynamicCallable`. When type-checking a call expression, the type checker will first try to resolve the call to a function or initializer call, then a `call` member call, and finally a dynamic call.
 
 ### Direct reference to a `call` member
 
@@ -556,7 +556,7 @@ call(x: T) -> U {
 }
 ```
 
-However, we do not believe `call` should behave like a storage accessor like `subscript` . Instead, `call`'s appearance should be as close to function calls as possible. Function call expressions today are not assignable because they can't return an l-value reference, so a call to a `call` member should not be assignable either.
+However, we do not believe `call` should behave like a storage accessor like `subscript`. Instead, `call`'s appearance should be as close to function calls as possible. Function call expressions today are not assignable because they can't return an l-value reference, so a call to a `call` member should not be assignable either.
 
 ### Static `call` members
 
