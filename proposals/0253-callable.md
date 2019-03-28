@@ -1,9 +1,9 @@
 # Introduce callables
 
-* Proposal: [SE-0252](https://github.com/apple/swift-evolution/blob/master/proposals/0252-callable.md)
+* Proposal: [SE-0253](https://github.com/apple/swift-evolution/blob/master/proposals/0253-callable.md)
 * Authors: [Richard Wei](https://github.com/rxwei), [Dan Zheng](https://github.com/dan-zheng)
-* Review Manager: TBD
-* Status: Implementation in progress
+* Review Manager: [Chris Lattner](https://github.com/lattner)
+* Status: **Active review (March 27 - April 5, 2019)**
 * Implementation: https://github.com/apple/swift/pull/23517
 
 ## Introduction
