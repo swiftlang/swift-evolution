@@ -216,7 +216,7 @@ call(_ input: String) throws -> Output {
 ```
 
 ```swift
-let sexpParser: Parser<Expression> = …
+let sexpParser: Parser<Expression> = ...
 // Callable syntax.
 let sexp = sexpParser("(+ 1 2)")
 ```
@@ -445,7 +445,7 @@ struct Adder {
     }
     // Option: `call` declaration modifier on unnamed `func` declarations.
     // Makes unnamed `func` less weird and clearly states "call".
-    call func(_ x: Int) -> Int { … }
+    call func(_ x: Int) -> Int { ... }
 }
 ```
 
