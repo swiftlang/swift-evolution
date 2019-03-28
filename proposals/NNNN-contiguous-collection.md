@@ -3,8 +3,9 @@
 * Proposal: [SE-NNNN](NNNN-contiguous-collection.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: TBD
-* Status: **Awaiting implementation**
+* Status: **Awaiting review**
 * Previous Proposal: [SE-0237](0237-contiguous-collection.md)
+* Implementation: [apple/swift#23616](https://github.com/apple/swift/pull/23616)
 
 ## Introduction
 
