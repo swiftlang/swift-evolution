@@ -325,7 +325,7 @@ When type-checking fails, error messages look like those for function calls. Whe
 
 ```swift
 add1("foo")
-// error: cannot invoke ‘add1' with an argument list of type '(String)'
+// error: cannot invoke 'add1' with an argument list of type '(String)'
 // note: overloads for 'call' exist with these partially matching parameter lists: (Float), (Int)
 add1(1, 2, 3)
 // error: cannot invoke 'add1' with an argument list of type '(Int, Int, Int)'
