@@ -6,7 +6,7 @@
 * Status: **Accepted with modifications**
 * Implementation: [apple/swift#23140](https://github.com/apple/swift/pull/23140)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/b5bbc5ae1f53189641951acfd50870f5b886859e/proposals/0246-mathable.md) [2](https://github.com/apple/swift-evolution/blob/3afc4c68a4062ff045415f5eafb9d4956b30551b/proposals/0246-mathable.md)
-* Review: [review](https://forums.swift.org/t/se-0246-generic-math-s-functions/21479) [acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0246-generic-math-functions/22244)
+* Review: ([review](https://forums.swift.org/t/se-0246-generic-math-s-functions/21479)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0246-generic-math-functions/22244))
 
 **This proposal was accepted with modifications which have not yet been applied to this document.  Please see the acceptance post for further details.**
 
