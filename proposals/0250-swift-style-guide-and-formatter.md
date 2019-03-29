@@ -3,7 +3,7 @@
 * Proposal: [SE-0250](0250-swift-style-guide-and-formatter.md)
 * Authors: [Tony Allevato](https://github.com/allevato), [Dave Abrahams](https://github.com/dabrahams)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
-* Status:  **Active review (March 19 - April 10, 2019)**
+* Status:  **Returned for revision**
 * Discussion thread: [An Official Style Guide and Formatter for Swift](https://forums.swift.org/t/pitch-an-official-style-guide-and-formatter-for-swift/21025)
 
 ## Introduction
