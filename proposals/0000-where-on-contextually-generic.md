@@ -9,8 +9,7 @@
 ## Introduction
 
 The objective of this proposal is to lift the restriction on attaching `where` clauses to declarations that themselves
-do not declare generic parameters, but inherit the surrounding generic environment. Simply put, this means you no longer have
-to worry about the `'where' clause cannot be attached` error within generic contexts.
+do not carry a generic parameter list explicitly, but inherit the surrounding generic environment. Simply put, this means you no longer have to worry about the `'where' clause cannot be attached` error within generic contexts.
 
 ```swift
 struct Box<Wrapped> {
