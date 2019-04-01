@@ -1,4 +1,4 @@
-# `where` clauses on contextually generic declaractions
+# `where` clauses on contextually generic declarations
 
 * Proposal: [SE-NNNN](NNNN-filename.md)
 * Authors: [Anthony Latsis](https://github.com/AnthonyLatsis)
@@ -28,7 +28,7 @@ struct Box<Wrapped> {
 > }
 > 
 
-Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/)
+Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/t/where-clauses-on-contextually-generic-declaractions/22449)
 
 ## Motivation
 
