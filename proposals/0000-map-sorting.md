@@ -3,7 +3,7 @@
 * Proposal: [SE-NNNN](NNNN-filename.md)
 * Authors: [Anthony Latsis](https://github.com/AnthonyLatsis)
 * Review Manager: TBD
-* Status: **Draft**
+* Status: **Awaiting Review**
 * Implementation: [apple/swift#23156](https://github.com/apple/swift/pull/23156)
 
 ## Introduction
