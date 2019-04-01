@@ -8,7 +8,7 @@
 
 ## Introduction
 
-The objective of this proposal is to lift the restriction on attaching `where` clauses to generic declarations that themselves
+The objective of this proposal is to lift the restriction on attaching `where` clauses to declarations that themselves
 do not declare generic parameters, but inherit the surrounding generic environment. Simply put, this means you no longer have
 to worry about the `'where' clause cannot be attached` error within generic contexts.
 
@@ -19,8 +19,8 @@ struct Box<Wrapped> {
 
 ```
 
-> The described enhancement only applies to declarations that *can* be generic and already support being constrained via
-> an extension. Properties and new constraint kinds are out
+> Only declarations that can already be generic and support being constrained via a conditional
+> extension are covered by the described enhancement. Properties and new constraint kinds are out
 > of scope for this document. For example, the following remains an error:
 > ```swift
 > protocol P {
