@@ -39,7 +39,7 @@ becomes a pain point in heavily generic code that unnecessarily complicates the 
 and the compiler.
 
 Leaving ergonomic shortcomings behind, it is only natural for a `where` clause to work anywhere a constraint can be
-meaningfully imposed, meaning both of the these layout variants should be possible:
+meaningfully imposed, meaning both of these layout variants should be possible:
 ```swift
 struct Foo<T> // 'Foo' can be any kind of nominal type declaration. For a protocol, 'T' would be an associatedtype. 
 
