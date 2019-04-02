@@ -1,4 +1,4 @@
-# Implicit Returns from Single-Expression Functions
+# Implicit returns from single-expression functions
 
 * Proposal: [SE-NNNN](NNNN-omit-return.md)
 * Author: [Nate Chandler](https://github.com/nate_chandler)
@@ -57,7 +57,7 @@ Their prior exposure to functions which implicitly return the single expression 
 
 Interpret the bodies of function-like entities which consist of a single expression as returning that expression--unless the entity's return type is `Void` or the single expression's type is uninhabited.
 
-#### Function-Like Entities
+#### Function-like entities
 
 The following are the function-like entities eligible to implicitly return the single expression in their bodies:
 
