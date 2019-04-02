@@ -587,7 +587,11 @@ struct Adder {
 
 We feel this approach is not ideal because:
 
-* A marker type attribute is not particularly meaningful. The call-syntax delegate methods of a type are what make values of that type callable - a type attribute means nothing by itself. In fact, there's an edge case that needs to be explicitly handled: if a `@staticCallable` type defines no call-syntax delegate methods, an error must be produced.
+* A marker type attribute is not particularly meaningful. The call-syntax
+  delegate methods of a type are what make values of that type callable - a type
+  attribute means nothing by itself. There's an unforunate edge case that must
+  be explicitly handled: if a `@staticCallable` type defines no call-syntax
+  delegate methods, an error must be produced.
 * The name for call-syntax delegate methods (e.g. `func call` ) is not first-class in the language, while their call site syntax is.
 
 #### Use a `Callable` protocol to represent callable types
