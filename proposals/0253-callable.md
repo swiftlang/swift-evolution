@@ -95,7 +95,7 @@ extension Polynomial {
     }
 }
 let polynomial = Polynomial(coefficients: [2, 3, 4])
-// Callable syntax.
+// Call syntax.
 print(polynomial(2)) // => 24
 ```
 
@@ -179,7 +179,7 @@ struct Model {
     var dense = Dense<Float>(inputSize: 36 * 6, outputSize: 10)
 
     call(_ input: Tensor<Float>) -> Tensor<Float> {
-        // Callable syntax.
+        // Call syntax.
         return dense(flatten(maxPool(conv(input))))
     }
 }
@@ -217,7 +217,7 @@ call(_ input: String) throws -> Output {
 
 ```swift
 let sexpParser: Parser<Expression> = ...
-// Callable syntax.
+// Call syntax.
 let sexp = sexpParser("(+ 1 2)")
 ```
 
@@ -257,6 +257,10 @@ let add3 = Adder(base: 3)
 add3(10) // => 13
 ```
 
+Note: there are many alternative syntaxes for marking "call-syntax delegate
+methods". These are listed and explored in the ["Alternatives
+considered"](#alternative-ways-to-denote-call-syntax-delegate-methods) section.
+
 ## Detailed design
 
 ### `call` member declarations
@@ -266,18 +270,94 @@ add3(10) // => 13
 A `call` member declaration is similar to `subscript` in the following ways:
 
 * It does not take a name.
-* It must be an instance member of a type.
+* It must be an instance member of a type. (Though there is [a pitch to add
+  static and class subscripts][static-and-class-subscripts].)
 
 But it is more similar to a `func` declaration in that:
 
 * It does not allow `get` and `set` declarations inside the body.
-* When a parameter has a name, it is treated as the argument label.
-* It can throw.
+* When a parameter has a name, the name is treated as the argument label.
 * It can be referenced directly by name, e.g. `foo.call`.
 
-The rest of the `call` declaration grammar and semantics is identical to that of function declarations–same syntax for access level, generics, argument labels, return types, throwing, mutating, `where` clause, etcs. They can be overloaded based on argument and result types. Attributes that can be applied to function declarations can also be applied to `call` declarations.
+The rest of the `call` declaration grammar and semantics is identical to that of
+function declarations – it supports the same syntax for:
+- Access levels.
+- Generic parameter clauses.
+- Argument labels.
+- Return types.
+- `throws` and `rethrows`.
+- `mutating`.
+- `where` clauses.
 
-To support source compatibility, `call` is treated as a keyword only when parsing members of a nominal type. Otherwise, it is treated as a normal identifier. See the source compatibility section below.
+`call` declarations can be overloaded based on argument and result types.
+`call` declarations are inherited from superclasses, just like other class members.
+Most modifiers/attributes that can be applied to function declarations can also be applied to
+`call` declarations.
+
+<details>
+<summary>Click here for a comprehensive list of modifiers/attributes supported by <code>call</code> declarations.</summary>
+
+<br>
+
+Preface: `call` declarations are implemented as a `CallDecl` class, inheriting
+from `FuncDecl`, which in tern inherits from `AbstractFunctionDecl`.
+
+### Supported modifiers/attributes on `call` declarations
+
+The following attributes are supported on `AbstractFunctionDecl` or all
+declarations, and thus by default are supported on `call` declarations.
+(Disabling these attributes on `call` declarations is possible, but may require
+ad-hoc implementation changes.)
+
+* `fileprivate`, `internal`, `public`, `open`
+* `@available`
+* `@objc`
+* `@inlinable`
+* `@inline`
+* `@usableFromInline`
+* `@_alwaysEmitIntoClient`
+* `@_dynamicReplacement`
+* `@_effects`
+* `@_forbidSerializingReference``
+* `@_optimize`
+* `@_silgen_name`
+* `@_semantics`
+* `@__raw_doc_comment`
+
+The following attributes are supported on `FuncDecl`, and are also are supported on `call` declarations.
+
+* `final`
+* `optional`
+* `dynamic`
+* `__consuming`
+* `mutating`
+* `nonmutating`
+* `override`
+* `private`
+* `rethrows`
+* `@discardableResult`
+* `@nonobjc`
+* `@_cdecl`
+* `@_implements`
+* `@_implicitly_unwrapped_optional`
+* `@_nonoverride`
+* `@_specialize_`
+* `@_transparent`
+* `@_weakLinked`
+
+### Notable unsupported modifiers/attributes on `call` declarations
+
+* `@warn_unqualified_access`
+  * It would be weird to require qualified access (e.g. `self.call` in another
+    member) for `call` members, given their purpose as a call-syntax delegate
+    method.
+
+</details>
+<br>
+
+To support source compatibility, `call` is treated as a keyword only when
+parsing members of a nominal type. Otherwise, it is treated as a normal
+identifier. See the source compatibility section below.
 
 ```
 call-declaration → call-head generic-parameter-clause? function-signature generic-where-clause? function-body?
@@ -597,3 +677,5 @@ np.random.randint(-10, 10, dtype: np.float)
 // `PythonObject` with `call` members. The empty strings are killer.
 np.random.randint(["": -10, "": 10, "dtype": np.float])
 ```
+
+[static-and-class-subscripts]: https://forums.swift.org/t/pitch-static-and-class-subscripts/21850 
