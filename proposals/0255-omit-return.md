@@ -1,9 +1,9 @@
 # Implicit returns from single-expression functions
 
-* Proposal: [SE-NNNN](NNNN-omit-return.md)
+* Proposal: [SE-0255](NNNN-omit-return.md)
 * Author: [Nate Chandler](https://github.com/nate_chandler)
 * Review Manager: TBD
-* Status: Implemented
+* Status: **Active review (April 2 - April 11, 2019)**
 * Implementation: [apple/swift#23251](https://github.com/apple/swift/pull/23251)
 * Previous Proposal: [SE-NNNN](https://github.com/DevAndArtist/swift-evolution/blob/single_expression_optional_return/proposals/nnnn-single-expression-optional-return.md)
 
