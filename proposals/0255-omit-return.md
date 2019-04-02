@@ -1,7 +1,7 @@
 # Implicit returns from single-expression functions
 
-* Proposal: [SE-0255](NNNN-omit-return.md)
-* Author: [Nate Chandler](https://github.com/nate_chandler)
+* Proposal: [SE-0255](0255-omit-return.md)
+* Author: [Nate Chandler](https://github.com/nate-chandler)
 * Review Manager: TBD
 * Status: **Active review (April 2 - April 11, 2019)**
 * Implementation: [apple/swift#23251](https://github.com/apple/swift/pull/23251)
