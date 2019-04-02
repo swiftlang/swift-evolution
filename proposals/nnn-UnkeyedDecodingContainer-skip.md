@@ -4,6 +4,7 @@
 * Authors: [Igor Kulman](https://github.com/igorkulman)
 * Review Manager: TBD
 * Status: **Awaiting review**
+* Implementation: [apple/swift#23707](https://github.com/apple/swift/pull/23707)
 
 <!--
 
