@@ -1,9 +1,9 @@
 # Introduce `{Mutable}ContiguousCollection` protocol
 
-* Proposal: [SE-NNNN](NNNN-contiguous-collection.md)
+* Proposal: [SE-0256](0256-contiguous-collection.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Ted Kremenek](https://github.com/tkremenek)
+* Status: **Active review (April 3 - April 12, 2019)**
 * Previous Proposal: [SE-0237](0237-contiguous-collection.md)
 * Implementation: [apple/swift#23616](https://github.com/apple/swift/pull/23616)
 
