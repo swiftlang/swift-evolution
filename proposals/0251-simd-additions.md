@@ -181,10 +181,10 @@ for computational geometry.
 ```swift
 extension SIMD where Scalar: Comparable {
   /// The least element in the vector.
-  public var min: Scalar
+  public func min() -> Scalar
 
   /// The greatest element in the vector.
-  public var max: Scalar
+  public func max() -> Scalar
 }
  
 extension SIMD where Scalar: FixedWidthInteger { 
@@ -192,12 +192,12 @@ extension SIMD where Scalar: FixedWidthInteger {
   /// wrapping addition.
   ///
   /// Equivalent to indices.reduce(into: 0) { $0 &+= self[$1] }.
-  public var wrappedSum: Scalar
+  public func wrappedSum() -> Scalar
 }
 
 extension SIMD where Scalar: FloatingPoint {
   /// Returns the sum of the scalars in the vector.
-  public var sum: Scalar
+  public func sum() -> Scalar
 }
 ```
 
@@ -230,11 +230,11 @@ if any(x .< 0) { // handle negative x }
 `any` and `all` are free functions:
 ```swift
 public func any<Storage>(_ mask: SIMDMask<Storage>) -> Bool {
-  return mask._storage.min < 0
+  return mask._storage.min() < 0
 }
 
 public func all<Storage>(_ mask: SIMDMask<Storage>) -> Bool {
-  return mask._storage.max < 0
+  return mask._storage.max() < 0
 }
 ```
 
