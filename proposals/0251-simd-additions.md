@@ -8,9 +8,9 @@
 
 ## Introduction
 
-A few teams within Apple have requested additions to the new SIMD types 
-and protocols to better support their use cases. In addition, there are some features
-we punted out of the original review because we were up against a hard time
+Early adopters of SIMD types and protocols have encountered a few missing things as
+they've started to write more code that uses them. In addition, there are some
+features we punted out of the original review because we were up against a hard time
 deadline to which we would like to give further consideration.
 
 This is a bit of a grab bag of SIMD features, so I'm deviating from the usual proposal
@@ -120,7 +120,7 @@ heavily used.
 For Swift, we want to restrict the feature somewhat, but also make it more powerful.
 In shader languages and clang extensions, you can even use swizzled vectors as *lvalues*,
 so long as the same element does not appear twice. I proposed to define general
-permutes[†] as get-only subscripts. By restricting them from appearing as setters, we
+permutes as get-only subscripts. By restricting them from appearing as setters, we
 gain the flexibility to not require they be compile-time constants:
 ```swift
 extension SIMD {
@@ -134,12 +134,11 @@ extension SIMD {
   ///
   /// Because of this, the index is always in-range and no trap
   /// can occur.
-  public subscript<Index>(masking: SIMD2<Index>) -> SIMD2<Scalar>
+  public subscript<Index>(index: SIMD2<Index>) -> SIMD2<Scalar>
   where Index: FixedWidthInteger {
     var result = SIMD2<Scalar>()
-    var masked = masking & Index(scalarCount - 1)
     for i in result.indices {
-      result[i] = self[Int(masked[i])]
+      result[i] = self[Int(index[i]) % scalarCount]
     }
     return result
   }
@@ -149,14 +148,6 @@ let v = SIMD4<Float>(1,2,3,4)
 let xyz = SIMD3(2,1,0)
 let w = v[xyz] // SIMD3<Float>(3,2,1)
 ```
-There's one special case, which is when the vector being subscripted has three elements.
-In this case, we can't just mask the index to log2(scalarCount) bits. Instead, we extend
-the vector being subscripted to a four-element vector (x, y, z, z) and mask to two bits.
-This is expected to be an exceptionally rare case--power-of-two dictionaries are the
-norm when dynamic indices are used; the principle concern is merely that we define the
-result to be *something understandable and easily computable* rather than leaving it
-undefined.
-
 ### Alternatives Considered
 1. We might want an explicit label on this subscript, but as with the extending inits, I
 believe that its use is generally clear enough in context.
@@ -287,18 +278,6 @@ We're also missing `clamp` to restrict values to a specified range.
 ### Detailed design
 ```swift
 extension SIMD where Scalar: Comparable {
-  /// The lanewise minimum of two vectors.
-  ///
-  /// Each element of the result is the minimum of the corresponding
-  /// elements of the inputs.
-  public static func min(_ lhs: Self, _ rhs: Self) -> Self 
-  
-  /// The lanewise maximum of two vectors.
-  ///
-  /// Each element of the result is the maximum of the corresponding
-  /// elements of the inputs.
-  public static func max(_ lhs: Self, _ rhs: Self) -> Self 
-  
   /// Replace any values less than lowerBound with lowerBound, and any
   /// values greater than upperBound with upperBound.
   ///
@@ -316,13 +295,22 @@ extension SIMD where Scalar: Comparable {
     return Self.min(upperBound, Self.max(lowerBound, self))
   }
 }
+
+/// The lanewise minimum of two vectors.
+///
+/// Each element of the result is the minimum of the corresponding
+/// elements of the inputs.
+public func min<V>(_ lhs: V, _ rhs: V) -> V where V: SIMD, V.Scalar: Comparable
+
+/// The lanewise maximum of two vectors.
+///
+/// Each element of the result is the maximum of the corresponding
+/// elements of the inputs.
+public func max<V>(_ lhs: V, _ rhs: V) -> V where V: SIMD, V.Scalar: Comparable
 ```
 
 ### Alternatives Considered
-These could be free functions, but that introduces an ambiguity if someone retroactively
-conforms SIMD types to Comparable because they want lexicographic ordering.
-
-They could be spelled out `lanewiseMaximum` or similar, to clarify that they operate
+These could be spelled out `lanewiseMaximum` or similar, to clarify that they operate
 lanewise (Chris suggested this in the pitch thread), but we don't spell out `+` as
 "lanewise-plus", so it seems weird to do it here. The default assumption is that SIMD
 operations are lanewise.
