@@ -1,9 +1,10 @@
-# Feature name
+# Approximate Equality for Floating Point
 
 * Proposal: [SE-NNNN](NNNN-approximately-equal.md)
 * Author: [Stephen Canon](https://github.com/stephentyrone)
 * Review Manager: TBD
 * Status: **Awaiting Review**
+* Implementation: [apple/swift#23839](https://github.com/apple/swift/pull/23839)
 
 ## Introduction
 
