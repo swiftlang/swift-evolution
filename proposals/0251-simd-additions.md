@@ -125,15 +125,10 @@ gain the flexibility to not require they be compile-time constants:
 ```swift
 extension SIMD {
   /// Extracts the scalars at specified indices to form a SIMD2.
-  ///
-  /// The low-order log2(scalarCount) bits of each element of the
-  /// `masking` index vector are used to index self. E.g.:
-  ///
-  ///   let x = SIMD4<Float>(0, 1, 2, 3)
-  ///   let y = x[SIMD2(5,2)] // (1, 2)
-  ///
-  /// Because of this, the index is always in-range and no trap
-  /// can occur.
+	///
+	/// The elements of the index vector are wrapped modulo the count of elements
+	/// in this vector. Because of this, the index is always in-range and no trap
+	/// can occur.
   public subscript<Index>(index: SIMD2<Index>) -> SIMD2<Scalar>
   where Index: FixedWidthInteger {
     var result = SIMD2<Scalar>()
