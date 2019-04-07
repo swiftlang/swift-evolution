@@ -415,33 +415,28 @@ add1(1, 2, 3)
 
 A type can both have `call` members and be declared with `@dynamicCallable`. When type-checking a call expression, the type checker will first try to resolve the call to a function or initializer call, then a `call` member call, and finally a dynamic call.
 
-### Direct reference to a `call` member
+### Using `call` members
 
-Like methods and initializers, a `call` member can be directly referenced, either through the base name and the contextual type, or through the full name.
+Currently, `call` members cannot be directly referenced; create a closure to
+call them instead.
 
 ```swift
 let add1 = Adder(base: 1)
-let f: (Int) -> Int = add1.call
+let f: (Int) -> Int = { x in add1(x) }
 f(2) // => 3
-[1, 2, 3].map(add1.call) // => [2, 3, 4]
+[1, 2, 3].map { x in add1(x) } // => [2, 3, 4]
 ```
 
-When a type has both an instance method named "call" and a `call` member with the exact same type signature, a redeclaration error is produced.
+`call` members are represented as instance methods with a special-case name and
+not as instance methods with the actual name "call".
+
+Thus, no redeclaration error is produced for types that define an instance method named "call" and a `call` member with the exact same type signature.
 
 ```swift
 struct S {
-    func call() {}
-    call() {}
+    func call() {} // ok
+    call() {} // ok
 }
-```
-
-```console
-test.swift:3:5: error: invalid redeclaration of 'call()'
-    call() {}
-    ^
-test.swift:2:10: note: 'call()' previously declared here
-    func call() {}
-         ^
 ```
 
 When a type does not have a `call` member but has an instance method or an instance property named "call", a direct reference to `call` gets resolved to that member.
@@ -459,7 +454,16 @@ A value cannot be implicitly converted to a function when the destination functi
 let h: (Int) -> Int = add1 // error: cannot convert value of type `Adder` to expected type `(Int) -> Int`
 ```
 
-Implicit conversions are generally problematic in Swift, and as such we would like to get some experience with this base proposal before considering adding such capability.
+Implicit conversions impact the entire type system and require runtime support
+to work with dynamic casts; thus, further exploration is necessary for a formal
+proposal. This base proposal is self-contained; incremental proposals involving
+conversion can come later.
+
+A less controversial future direction may be to support explicit conversion via `as`:
+
+```swift
+let h = add1 as (Int) -> Int
+```
 
 ## Source compatibility
 
@@ -504,11 +508,13 @@ call {}
 
 ## Effect on ABI stability
 
-This proposal is about a syntactic sugar and has no ABI breaking changes.
+Adding a new `call` declaration is an additive change to the ABI.
+
+`call` declarations will not be supported when deploying to a Swift 5.0 runtime.
 
 ## Effect on API resilience
 
-This proposal is about a syntactic sugar and has no API breaking changes.
+`call` declarations will not be supported when deploying to a Swift 5.0 runtime.
 
 ## Alternatives considered
 
@@ -592,7 +598,8 @@ We feel this approach is not ideal because:
   attribute means nothing by itself. There's an unforunate edge case that must
   be explicitly handled: if a `@staticCallable` type defines no call-syntax
   delegate methods, an error must be produced.
-* The name for call-syntax delegate methods (e.g. `func call` ) is not first-class in the language, while their call site syntax is.
+* The name for call-syntax delegate methods (e.g. `func call` ) is not
+  first-class in the language, while their call site syntax is.
 
 #### Use a `Callable` protocol to represent callable types
 
@@ -607,7 +614,7 @@ struct Adder: Callable {
 }
 ```
 
-We feel this approach is not ideal for the same reasons as the marker type attribute. A marker protocol by itself is not meaningful and the name for call-syntax delegate methods is informal. Additionally, protocols should represent particular semantics, but "callable" behavior has no inherent semantics.
+We feel this approach is not ideal for the same reasons as the marker type attribute. A marker protocol by itself is not meaningful and the name for call-syntax delegate methods is informal. Additionally, protocols should represent particular semantics, but call-*syntax* behavior has no inherent semantics.
 
 In comparison, `call` declarations have a formal representation in the language and exactly indicate callable behavior (unlike a marker attribute or protocol).
 
@@ -668,6 +675,24 @@ Adder.self(base: 3) // okay
 ```
 
 But since this would be an additive feature on top of this proposal and that `subscript` cannot be `static` yet, we'd like to defer this feature to future discussions.
+
+### Direct references to `call` members
+
+Direct references to `call` members are intentionally not supported. An earlier
+version of the proposal included support for direct references to `call` members
+via `foo.call` (like referring to an instance method with the name "call").
+
+However, the direction for "callable values" is not to support direct `call`
+member references, but to support conversions of callable values to
+function-typed values. Supporting explicit conversion via `as` seems relatively
+non-controversial in forum discussions. Implicit conversion was a highly
+requested feature, but it likely has type-system-wide impact and requires more
+exploration.
+
+`call` members should be thought of and represented as "instance methods with a
+special-case name", not "instance methods with the name 'call'". For now,
+without support for conversion to function-typed values, create thunks like `{
+foo(...) }` instead.
 
 ### Unify callable functionality with `@dynamicCallable`
 
