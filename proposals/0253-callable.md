@@ -277,7 +277,6 @@ But it is more similar to a `func` declaration in that:
 
 * It does not allow `get` and `set` declarations inside the body.
 * When a parameter has a name, the name is treated as the argument label.
-* It can be referenced directly by name, e.g. `foo.call`.
 
 The rest of the `call` declaration grammar and semantics is identical to that of
 function declarations – it supports the same syntax for:
@@ -691,8 +690,8 @@ exploration.
 
 `call` members should be thought of and represented as "instance methods with a
 special-case name", not "instance methods with the name 'call'". For now,
-without support for conversion to function-typed values, create thunks like `{
-foo(...) }` instead.
+without support for conversion to function-typed values, create closures like
+`{ foo(...) }` instead.
 
 ### Unify callable functionality with `@dynamicCallable`
 
