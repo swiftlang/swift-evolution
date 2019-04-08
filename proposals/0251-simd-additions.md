@@ -3,8 +3,11 @@
 * Proposal: [SE-0251](0251-simd-additions.md)
 * Author: [Stephen Canon](https://github.com/stephentyrone)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active Review (March 22nd...April 1st, 2019)**
+* Status: **Accepted with Modifications**
 * Implementation: [apple/swift#23421](https://github.com/apple/swift/pull/23421)
+* Review: ([review](https://forums.swift.org/t/se-0251-simd-additions/21957)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0251-simd-additions/22801))
+
+
 
 ## Introduction
 
