@@ -11,9 +11,9 @@
 
 ## Introduction
 
-This proposal is the first part of a group of changes we're considering in a [design document for improving the UI of the generics model]. We'll try to make this proposal stand alone to describe opaque return types, their design, and motivation, but we also recommend reading the design document for more in-depth exploration of the relationships among other features we're considering. We'll link to relevant parts of that document throughout this proposal.
+This proposal is the first part of a group of changes we're considering in a [design document for improving the UI of the generics model](https://forums.swift.org/t/improving-the-ui-of-generics/22814). We'll try to make this proposal stand alone to describe opaque return types, their design, and motivation, but we also recommend reading the design document for more in-depth exploration of the relationships among other features we're considering. We'll link to relevant parts of that document throughout this proposal.
 
-This specific proposal addresses the problem of [type-level abstraction for returns]. Many libraries consist composable generic components. For example, a graphics library might provide primitive types for basic shapes:
+This specific proposal addresses the problem of [type-level abstraction for returns](https://forums.swift.org/t/improving-the-ui-of-generics/22814#heading--missing-type-level-abstraction). Many libraries consist of composable generic components. For example, a graphics library might provide primitive types for basic shapes:
 
 ```swift
 protocol Shape {
@@ -67,7 +67,7 @@ struct EightPointedStar: GameObject {
 }
 ```
 
-This is unsightly because it's verbose, but it's also not very helpful for someone reading this declaration. The exact return type doesn't really matter, only the fact that it conforms to `Shape`. Spelling out the return type also effectively reveals most of the implementation of `shape`, making the declaration brittle; clients of `EightPointedStar` could end up relying on its exact return type, making it harder if the author of `EightPointedStar` wants to change how they implement its shape. Right now, if you want to abstract the return type of a declaration from its signature, existentials or manual type erasure are your only options, and these [come with tradeoffs] that are not always acceptable.
+This is unsightly because it's verbose, but it's also not very helpful for someone reading this declaration. The exact return type doesn't really matter, only the fact that it conforms to `Shape`. Spelling out the return type also effectively reveals most of the implementation of `shape`, making the declaration brittle; clients of `EightPointedStar` could end up relying on its exact return type, making it harder if the author of `EightPointedStar` wants to change how they implement its shape. Right now, if you want to abstract the return type of a declaration from its signature, existentials or manual type erasure are your only options, and these [come with tradeoffs](https://forums.swift.org/t/improving-the-ui-of-generics/22814#heading--limits-of-existentials) that are not always acceptable.
 
 ## Proposed solution
 
@@ -85,7 +85,7 @@ struct EightPointedStar: GameObject {
 
 to declare that an `EightPointedStar` has some `Shape` without having to specify exactly what shape that is. The underlying concrete type is hidden, and can even change from one version of the library to the next without breaking those clients, because the underlying type identity is never exposed to clients. Unlike an existential, though, clients still have access to the type identity, so values This allows the library to provide a potentially-more-efficient design that leverages Swift's type system, without expanding the surface area of the library or making implementors of the library's protocols rely on exposing verbose implementation types.
 
-An opaque type behaves like a ["reverse generic"]. In a traditional generic function, the caller decides what types get bound to the callee's generic arguments:
+An opaque type behaves like a ["reverse generic"](https://forums.swift.org/t/reverse-generics-and-opaque-result-types/21608). In a traditional generic function, the caller decides what types get bound to the callee's generic arguments:
 
 ```swift
 func generic<T: Shape>() -> T { ... }
@@ -114,7 +114,7 @@ let x = reverseGeneric() // abstracted type chosen by reverseGeneric's implement
 ```
 
 Following the `some` keyword is a set of constraints on the implicit generic type variable: a class, protocol, `Any`, `AnyObject`, or some composition thereof (joined with `&`).
-This `some Protocol` sugar [can be generalized to generic arguments and more interesting returns] in the future, and we could also eventually support fully general generics in the return signature. To enable incremental progress on the implementation, we propose only supporting the `some` syntax in return position to begin with.
+This `some Protocol` sugar [can be generalized to generic arguments and more interesting returns](https://forums.swift.org/t/improving-the-ui-of-generics/22814#heading--directly-expressing-constraints) in the future, and we could also eventually support fully general generics in the return signature. To enable incremental progress on the implementation, we propose only supporting the `some` syntax in return position to begin with.
 
 ### Type identity
 
@@ -517,7 +517,7 @@ We see opaque return types as not only sugar for syntactically heavy return type
 ### Syntax for opaque return types
 
 This proposal suggests the word `some` to introduce opaque return types, since it has the right connotation by analogy to `Any` which is used to describe dynamically type-erased containers (and has been proposed to be a general way of referring to existential types)--a function that has an opaque return type returns *some* specific type
-that conforms to the given constraints, whereas an existential can contain *any* type dynamically at any point in time. The spelling would also work well if [generalized to implicit generic arguments] in the future. There are nonetheless reasonable objections to this keyword:
+that conforms to the given constraints, whereas an existential can contain *any* type dynamically at any point in time. The spelling would also work well if [generalized to implicit generic arguments](https://forums.swift.org/t/improving-the-ui-of-generics/22814#heading--directly-expressing-constraints) in the future. There are nonetheless reasonable objections to this keyword:
 
 - `some` is already used in the language as one of the case names for `Optional`; it is rare to need to spell `Optional.some` or `.some` explicitly, but it could nonetheless introduce confusion.
 - In spoken language, `some type` and `sum type` sound the same.
@@ -612,11 +612,11 @@ and the one using opaque typealiases requires an intermediate name, which one mu
 
 ## Future Directions
 
-As noted in the introduction, this proposal is the first part of a group of changes we're considering in a [design document for improving the UI of the generics model]. That design document lays out a number of related directions we can go based on the foundation establised by this proposal, including:
+As noted in the introduction, this proposal is the first part of a group of changes we're considering in a [design document for improving the UI of the generics model](https://forums.swift.org/t/improving-the-ui-of-generics/22814). That design document lays out a number of related directions we can go based on the foundation establised by this proposal, including:
 
-- allowing [fully generalized reverse generics]
-- [generalizing the `some` syntax] as shorthand for generic arguments, and allowing structural use in generic returns
-- [more compact constraint syntax] that can also work with generalized existentials
-- introducing [`any` as a dual to `some`] for explicitly spelling existential types
+- allowing [fully generalized reverse generics](https://forums.swift.org/t/improving-the-ui-of-generics/22814#heading--reverse-generics)
+- [generalizing the `some` syntax](https://forums.swift.org/t/improving-the-ui-of-generics/22814#heading--directly-expressing-constraints) as shorthand for generic arguments, and allowing structural use in generic returns
+- [more compact constraint syntax](https://forums.swift.org/t/improving-the-ui-of-generics/22814#heading--directly-expressing-constraints) that can also work with generalized existentials
+- introducing [`any` as a dual to `some`](https://forums.swift.org/t/improving-the-ui-of-generics/22814#heading--clarifying-existentials) for explicitly spelling existential types
 
 We recommend reading that document for a more in-depth exploration of these related ideas.
