@@ -8,8 +8,6 @@
 
 ## Introduction
 
-Note: throughout this document, let "call-syntax" refer to the syntax of applying a function to arguments: `f(x, y, z)`.
-
 This proposal introduces [callables](https://en.wikipedia.org/wiki/Callable_object) to Swift. Callables are values that define function-like behavior and can be applied using function application syntax.
 
 In a nutshell, we propose to introduce a new declaration syntax with the keyword `call`:
@@ -347,9 +345,7 @@ The following attributes are supported on `FuncDecl`, and are also are supported
 ### Notable unsupported modifiers/attributes on `call` declarations
 
 * `@warn_unqualified_access`
-  * It would be weird to require qualified access (e.g. `self.call` in another
-    member) for `call` members, given their purpose as a call-syntax delegate
-    method.
+  * Qualified access is not possible because direct references to `call` declarations is not supported.
 
 </details>
 <br>
@@ -438,7 +434,7 @@ struct S {
 }
 ```
 
-When a type does not have a `call` member but has an instance method or an instance property named "call", a direct reference to `call` gets resolved to that member.
+When a type does not have `call` members, but has instance methods or an instance properties named "call", direct references to `call` are resolved via existing overload resolution logic. There's nothing new here.
 
 ```swift
 struct S {
@@ -458,7 +454,7 @@ to work with dynamic casts; thus, further exploration is necessary for a formal
 proposal. This base proposal is self-contained; incremental proposals involving
 conversion can come later.
 
-A less controversial future direction may be to support explicit conversion via `as`:
+A less controversial future direction is to support explicit conversion via `as`:
 
 ```swift
 let h = add1 as (Int) -> Int
@@ -570,8 +566,6 @@ struct Adder {
 ```
 
 This approach represents call-syntax delegate methods as `func` declarations with a special name instead of creating a new `call` declaration kind. However, such `func` declarations do not convey "call-syntax delegate method" as clearly as the `call` keyword.
-
-Also, we want to support direct references to call-syntax delegate methods via `foo.call`. This makes more sense when call-syntax delegate methods are declared with the `call` keyword, and is consistent with `init` declarations and direct references (e.g. `foo.init`).
 
 #### Use a type attribute to mark types with call-syntax delegate methods
 
