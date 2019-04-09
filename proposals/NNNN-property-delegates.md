@@ -540,7 +540,7 @@ If there is no initializer for the delegate instance, and the property delegate 
 @Lazy var foo: Int    // okay: equivalent to @Lazy<Int> var foo: Int
 ```
 
-### Custom Attributes
+### Custom attributes
 
 Property delegates are a form of custom attribute, where the attribute syntax
 is used to refer to entities declared in Swift. Grammatically, the use of property delegates is described as follows:
@@ -557,7 +557,7 @@ The *type-identifier* must refer to a property delegate type, which can include 
 
 The *expr-paren*, if present, provides the initialization arguments for the delegate instance.
 
-This formulation of custom attributes fits in with a [larger proposal for custom attributes](https://github.com/hartbit/swift-evolution/blob/static-custom-attributes/proposals/XXXX-static-custom-attributes.md), which uses the same custom attribute syntax as the above but allows for other ways in which one can define a type to be used as an attribute. In this scheme, `@propertyDelegate` is just one kind of custom attribute: there will be other kinds of custom attributes that are available only at compile time (e.g., for tools) or runtime (via some reflection capability).
+This formulation of custom attributes fits in with a [larger proposal for custom attributes](https://forums.swift.org/t/pitch-introduce-custom-attributes/21335/47), which uses the same custom attribute syntax as the above but allows for other ways in which one can define a type to be used as an attribute. In this scheme, `@propertyDelegate` is just one kind of custom attribute: there will be other kinds of custom attributes that are available only at compile time (e.g., for tools) or runtime (via some reflection capability).
 
 ### Mutability of properties with delegates
 
