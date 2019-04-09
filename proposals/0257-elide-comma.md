@@ -1,9 +1,9 @@
 # Eliding commas from multiline expression lists
 
-* Proposal: [SE-NNNN](NNNN-elide-commas.md)
+* Proposal: [SE-0257](0257-elide-commas.md)
 * Author: [Nate Chandler](https://github.com/nate-chandler), [Matthew Johnson](https://github.com/anandabits)
-* Review Manager: TBD
-* Status: **Implemented**
+* Review Manager: [Ted Kremenek](https://github.com/tkremenek)
+* Status: **Active review (April 9 - April 18, 2019)**
 * Implementation: [apple/swift#21876](https://github.com/apple/swift/pull/22714)
 * Previous Pitch: [Trailing commas in all expression lists](https://forums.swift.org/t/trailing-commas-in-all-expression-lists/19527)
 * Previous Pitch: [SE-0084 spinoff: Newlines as item separators](https://forums.swift.org/t/se-0084-spinoff-newlines-as-item-separators/2659)
