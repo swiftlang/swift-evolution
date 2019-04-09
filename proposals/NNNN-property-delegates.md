@@ -4,7 +4,7 @@
 * Authors: [Doug Gregor](https://github.com/DougGregor), [Joe Groff](https://github.com/jckarter)
 * Review Manager: **TBD**
 * Status: **Awaiting review**
-* Implementation: [PR #23440](https://github.com/apple/swift/pull/23440)
+* Implementation: [PR #23701](https://github.com/apple/swift/pull/23701)
 
 ## Introduction
 
@@ -13,7 +13,7 @@ Rather than hardcode a fixed set of patterns into the compiler,
 we should provide a general "property delegate" mechanism to allow
 these patterns to be defined as libraries.
 
-This is an alternative approach to some of the problems intended to be addressed by the [2015-2016 property behaviors proposal](https://github.com/apple/swift-evolution/blob/master/proposals/0030-property-behavior-decls.md). Some of the examples are the same, but this proposal takes a completely different approach designed to be simpler, easier to understand for users, and less invasive in the compiler implementation. There is a section that discusses the substantive differences from that design at the end of this proposal.
+This is an alternative approach to some of the problems intended to be addressed by the [2015-2016 property behaviors proposal](https://github.com/apple/swift-evolution/blob/master/proposals/0030-property-behavior-decls.md). Some of the examples are the same, but this proposal takes a completely different approach designed to be simpler, easier to understand for users, and less invasive in the compiler implementation. There is a section that discusses the substantive differences from that design near the end of this proposal.
 
 [Pitch](https://forums.swift.org/t/pitch-property-delegates/21895)<br/>
 
@@ -87,13 +87,11 @@ class Foo {
 ## Proposed solution
 
 We propose the introduction of **property delegates**, which allow a
-`var` declaration to state which **delegate** is used to implement
-it. Borrowing from [Kotlin's delegated
-properties](https://kotlinlang.org/docs/reference/delegated-properties.html),
-we propose the `by` keyword to indicate the delegate:
+property declaration to state which **delegate** is used to implement
+it.  The delegate is described via an attribute:
 
 ```swift
-var foo by Lazy = 1738
+@Lazy var foo = 1738
 ```
 
 This implements the property `foo` in a way described by the *property delegate type* for `Lazy`:
@@ -127,13 +125,14 @@ enum Lazy<Value> {
 ```
 
 A property delegate type provides the storage for a property that
-names it after `by`. The `value` property provides the actual
+uses it as a delegate. The `value` property of the delegate type
+provides the actual
 implementation of the delegate, while the (optional)
 `init(initialValue:)` enables initialization of the storage from a
 value of the property's type. The property declaration
 
 ```swift
-var foo by Lazy = 1738
+@Lazy var foo = 1738
 ```
 
 translates to:
@@ -163,15 +162,6 @@ extension Lazy {
 $foo.reset(42)
 ```
 
-Like other declarations, the synthesized storage property will be
-`internal` by default, or the access level of the original property if it is less than `internal`. However, it can be given more lenient access by putting the
-access level after `by`, e.g.,
-
-```swift
-// both foo and $foo are publicly visible
-public var foo: Int by public Lazy = 1738
-```
-
 The property delegate instance can be initialized directly by providing the initializer arguments in parentheses after the name. This could be used, for example, when a particular property delegate requires more setup to provide access to a value (example courtesy of Harlan Haskins):
 
 ```swift
@@ -191,8 +181,11 @@ struct UserDefault<T> {
 }
 
 enum GlobalSettings {
-  static var isFooFeatureEnabled: Bool by UserDefault(key: "FOO_FEATURE_ENABLED", defaultValue: false)
-  static var isBarFeatureEnabled: Bool by UserDefault(key: "BAR_FEATURE_ENABLED", defaultValue: false)
+  @UserDefault(key: "FOO_FEATURE_ENABLED", defaultValue: false)
+  static var isFooFeatureEnabled: Bool
+  
+  @UserDefault(key: "BAR_FEATURE_ENABLED", defaultValue: false)
+  static var isBarFeatureEnabled: Bool
 }
 ```
 
@@ -268,7 +261,7 @@ This enables multi-phase initialization, like this:
 
 ```swift
 class Foo {
-  var x: Int by DelayedImmutable
+  @DelayedImmutable var x: Int
 
   init() {
     // We don't know "x" yet, and we don't have to set it
@@ -293,7 +286,7 @@ on new objects when the property is set. We can turn this into a delegate:
 
 ```swift
 @propertyDelegate
-stuct Copying<Value: NSCopying> {
+struct Copying<Value: NSCopying> {
   private var _value: Value
   
   init(initialValue value: Value) {
@@ -314,10 +307,108 @@ stuct Copying<Value: NSCopying> {
 This implementation would address the problem detailed in
 [SE-0153](https://github.com/apple/swift-evolution/blob/master/proposals/0153-compensate-for-the-inconsistency-of-nscopyings-behaviour.md). Leaving the `copy()` out of `init(initialValue:)` implements the pre-SE-0153 semantics.
 
-### `Unsafe(Mutable)Pointer`
+### `Atomic`
 
-The `Unsafe(Mutable)Pointer` types could be augmented to be property delegate types, allowing one to access the referenced value directly using the `by` syntax. For example:
+Support for atomic operations (load, store, increment/decementer, compare-and-exchange) is a commonly-requested Swift feature. While the implementation details for such a feature would involve compiler and standard library magic, the interface itself can be nicely expressed as a property delegate type:
 
+
+```swift
+@propertyDelegate
+struct Atomic<Value> {
+  private var _value: Value
+  
+  init(initialValue: Value) {
+    self._value = initialValue
+  }
+
+  var value: Value {
+    get { return load() }
+    set { store(newValue: newValue) }
+  }
+  
+  func load(order: MemoryOrder = .relaxed) { ... }
+  mutating func store(newValue: Value, order: MemoryOrder = .relaxed) { ... }
+  mutating func increment() { ... }
+  mutating func decrement() { ... }
+}
+
+extension Atomic where Value: Equatable {
+  mutating func compareAndExchange(oldValue: Value, newValue: Value, order: MemoryOrder = .relaxed)  -> Bool { 
+    ...
+  }
+}  
+
+enum MemoryOrder {
+  case relaxed, consume, acquire, release, acquireRelease, sequentiallyConsistent
+};
+```
+
+Here are some simple uses of `Atomic`. With atomic types, it's fairly common
+to weave lower-level atomic operations (`increment`, `load`, `compareAndExchange`) where we need specific semantics (such as memory ordering) with simple queries, so both the property and the synthesized storage property are used often:
+
+```swift
+@Atomic var counter: Int
+
+if thingHappened {
+  $counter.increment()
+}
+print(counter)
+
+@Atomic var initializedOnce: Int?
+if initializedOnce == nil {
+  let newValue: Int = /*computeNewValue*/
+  if !$initializedOnce.compareAndExchange(oldValue: nil, newValue: newValue) {
+    // okay, someone else initialized it. clean up if needed
+  }
+}
+print(initializedOnce)
+```
+
+### `CopyOnWrite`
+
+With some work, property delegates can provide copy-on-write wrappers (example courtesy of Brent Royal-Gordon):
+
+```swift
+protocol Copyable: AnyObject {
+  func copy() -> Self
+}
+
+@propertyDelegate
+struct CopyOnWrite<Value: Copyable> {
+  init(initialValue: Value) {
+    value = initialValue
+  }
+  
+  private(set) var value: Value
+  
+  var unique: Value {
+    mutating get {
+      if !isKnownUniquelyReferenced(&value) {
+        value = value.copy()
+      }
+      return value
+    }
+    set {
+      value = newValue
+    }
+  }
+}
+```
+
+The usage of the property delegate above is as follows:
+
+```swift
+@CopyOnWrite var storage: MyStorageBuffer
+
+// Non-modfying access:
+let index = storage.index(of: …)
+
+// For modification, use the `unique` property of the underlying storage:$storage.unique.append(…)
+```
+
+### Property delegate types in the wild
+
+There are a number of existing types that already provide the basic structure of a property delegate type. One fun case is `Unsafe(Mutable)Pointer`, which we could augment to allow easy access to the pointed-to value:
 
 ```swift
 @propertyDelegate
@@ -326,12 +417,33 @@ struct UnsafeMutablePointer<Pointee> {
   
   var value: Pointee {
     get { return pointee }
-    set { pointee = newValue
+    set { pointee = newValue }
   }
 }
+```
 
-var someInt: Int by UnsafeMutablePointer(mutating: addressOfAnInt)
-someInt = 17 // equivalent to someInt.value = 17
+From a user perspective, this allows us to set up the unsafe mutable pointer's address once, then mostly refer to the pointed-to value:
+
+```
+@UnsafeMutablePointer(mutating: addressOfAnInt)
+var someInt: Int
+
+someInt = 17 // equivalent to someInt.pointee = 17
+print(someInt)
+
+$someInt.deallocate()
+```
+
+RxSwift's [`BehaviorRelay`](https://github.com/ReactiveX/RxSwift/blob/master/RxCocoa/Traits/BehaviorRelay.swift) replays the most recent value provided to it for each of the subscribed observers. It is created with an initial value, has `value` property to access the current value, as well as API to `subscribe` a new observer: (Thanks to Adrian Zubarev for pointing this out)
+
+```swift
+@BehaviorRelay
+var myValue: Int = 17
+
+let observer = $myValue.subscribe(...)   // subscribe an observer
+$myValue.accept(42)  // set a new value via the synthesized storage property
+
+print(myValue)   // print the most recent value
 ```
 
 ## Detailed design
@@ -339,18 +451,15 @@ someInt = 17 // equivalent to someInt.value = 17
 ### Property delegate types
 
 A *property delegate type* is a type that can be used as a property
-delegate. There are three basic requirements for a property delegate
+delegate. There are two basic requirements for a property delegate
 type:
 
 1. The property delegate type must be defined with the attribute
 `@propertyDelegate`. The attribute indicates that the type is meant to
 be used as a property delegate type, and provides a point at which the
-compiler can verify the other consistency rules.
-2. The property delegate type must be generic, with a single generic
-type parameter. The type parameter will filled in with the type of the
-variable that uses the property delegate type.
-3. The property delegate type must have a property named `value` whose
-type is that of the single generic type parameter. This is the
+compiler can verify any other consistency rules.
+2. The property delegate type must have a property named `value`, whose
+access level is the same as that of the type itself. This is the
 property used by the compiler to access the underlying value on the
 delegate instance.
 
@@ -358,19 +467,20 @@ delegate instance.
 
 Introducing a property delegate to a property makes that property
 computed (with a getter/setter) and introduces a stored property whose
-type uses the delegate type. That stored property can be initialized
+type is the delegate type. That stored property can be initialized
 in one of two ways:
 
-1. Via a value of the original property's type (e.g., `Int` in `var
-    foo: Int by Lazy`, using the the property delegate type's
+1. Via a value of the original property's type (e.g., `Int` in `@Lazy var
+    foo: Int`, using the the property delegate type's
     `init(initialValue:)` initializer. That initializer must have a single
-    parameter of the property delegate type's generic type parameter (or
-    be an `@autoclosure` thereof). When `init(initialValue:)` is present,
+    parameter of the same type as the `value` property (or
+    be an `@autoclosure` thereof) and have the same access level as the 
+    property delegate type itself. When `init(initialValue:)` is present,
     is is always used for the initial value provided on the property
     declaration. For example:
     
     ```swift
-    var foo by Lazy = 17
+    @Lazy var foo = 17
     
     // ... implemented as
     var $foo: Lazy = Lazy(initialValue: 17)
@@ -378,11 +488,14 @@ in one of two ways:
     ```
 
 
-2. Via a value of the property delegate type, by placing the call arguments after the property delegate type:
+2. Via a value of the property delegate type, by placing the initializer
+   arguments after the property delegate type:
     
     ```swift
     var addressOfInt: UnsafePointer<Int> = ...
-    var someInt: Int by UnsafeMutablePointer(mutating: addressOfInt)
+    
+    @UnsafeMutablePointer(mutating: addressOfInt) 
+    var someInt: Int
     
     // ... implemented as
     var $someInt: UnsafeMutablePointer<Int> = UnsafeMutablePointer(mutating: addressOfInt)
@@ -397,46 +510,96 @@ type, using the initialization of the synthesized stored property. For
 example:
 
 ```swift
-var foo by Lazy = 17
+@Lazy var foo = 17
 // type inference as in...
 var $foo: Lazy = Lazy(initialValue: 17)
 // infers the type of 'foo' to be 'Int'
 ```
 
-The same applies when directly initialize the property delegate type, e.g.,
+The same applies when directly initializing the delegate instance, e.g.,
 
 ```swift
-var someInt by UnsafeMutablePointer(mutating: addressOfInt)
+@UnsafeMutablePointer(mutating: addressOfInt)
+var someInt
 // type inference as in...
 var $someInt: UnsafeMutablePointer = UnsafeMutablePointer.init(mutating: addressOfInt)
 // infers the type of 'someInt' to be 'Int'
 ```
 
-### Using delegates in property declarations
+The type of the `value` property of the property delegate type must coincide with that of the original property using that delegate type. Some examples:
 
-A property declaration can specify its delegate following the `by`
-keyword:
-
-```text
-pattern-initializer ::= pattern property-delegate[opt] initializer[opt]
-
-property-delegate ::= 'by' access-level-modifier[opt] type property-delegate-init[opt]
-
-property-delegate-init ::= parenthesized-expression
-                       ::= tuple-expression
+```swift
+@Lazy<Int> var foo: Int  // okay
+@Lazy<Int> var bar: Double  // error: Lazy<Int>.value is of type Int, not Double
 ```
 
-The *type* in a *property-delegate* must refer to a 'property delegate
-type'_ without specifying a generic argument. The
-*access-level-modifier* can be any of `private`, `fileprivate`,
-`internal`, or `public`, but cannot be less restrictive than the
-property declaration itself.
+If there is no initializer for the delegate instance, and the property delegate type takes a single generic parameter, the corresponding generic argument can be omitted:
+
+```swift
+@Lazy var foo: Int    // okay: equivalent to @Lazy<Int> var foo: Int
+```
+
+### Custom Attributes
+
+Property delegates are a form of custom attribute, where the attribute syntax
+is used to refer to entities declared in Swift. Grammatically, the use of property delegates is described as follows:
+
+```
+attribute ::= '@' type-identifier expr-paren?
+```
+
+The *type-identifier* must refer to a property delegate type, which can include generic arguments. Note that this allows for qualification of the attribute names, e.g.,
+
+```swift
+@Swift.Lazy var foo = 1742
+```
+
+The *expr-paren*, if present, provides the initialization arguments for the delegate instance.
+
+This formulation of custom attributes fits in with a [larger proposal for custom attributes](https://github.com/hartbit/swift-evolution/blob/static-custom-attributes/proposals/XXXX-static-custom-attributes.md), which uses the same custom attribute syntax as the above but allows for other ways in which one can define a type to be used as an attribute. In this scheme, `@propertyDelegate` is just one kind of custom attribute: there will be other kinds of custom attributes that are available only at compile time (e.g., for tools) or runtime (via some reflection capability).
 
 ### Mutability of properties with delegates
 
-A property with a delegate must be introduced with the `var` keyword.
-If the `value` property of the behavior type lacks a setter (or the setter is inaccessible), `value` will not have a setter. However, the
-synthesized storage property could still be mutated.
+Generally, a property that has a property delegate will have both a getter and a setter. However, there are several reasons for which the setter may be missing:
+
+* The `value` property of the property delegate type lacks a setter, or its setter is inaccessible
+* The property is declared as a `let`
+
+The synthesized getter will be `mutating` if the property delegate type's `value` property is `mutating` and the property is part of a `struct`. Similarly, the synthesized setter will be `nonmutating` if either the property delegate type's `value` property has a `nonmutating` setter or the property delegate type is a `class`. For example:
+
+```swift
+struct MutatingGetterDelegate<Value> {
+  var value: Value {
+    mutating get { ... }
+    set { ... }
+  }
+}
+
+struct NonmutatingSetterDelegate<Value> {
+  var value: Value {
+    get { ... }
+    nonmutating set { ... }
+  }
+}
+
+class ReferenceDelegate<Value> {
+  var value: Value
+}
+
+struct UseDelegates {
+  // x's getter is mutating
+  // x's setter is mutating
+  @MutatingGetterDelegate var x: Int
+
+  // y's getter is nonmutating
+  // y's setter is nonmutating
+  @NonmutatingSetterDelegate var y: Int
+  
+  // z's getter is nonmutating
+  // z's setter is nonmutating
+  @ReferenceDelegate var z: Int  
+}
+```
 
 ### Out-of-line initialization of properties with delegates
 
@@ -447,7 +610,7 @@ example:
 
 
 ```swift
-let x: Int by Lazy
+@Lazy let x: Int
 // ...
 x = 17   // okay, treated as $x = .init(initialValue: 17)
 ```
@@ -456,7 +619,7 @@ The synthesized storage property can also be initialized directly,
 e.g.,
 
 ```swift
-var y: Int by UnsafeMutable
+@UnsafeMutable var y: Int
 // ...
 $y = UnsafeMutable<Int>(pointer: addressOfInt) // okay
 ```
@@ -467,7 +630,7 @@ apply to properties that have delegates. Let's expand the example of
 `x` above to include a re-assignment and use `var`:
 
 ```swift
-var x2: Int by Lazy
+@Lazy var x2: Int
 // ...
 x2 = 17   // okay, treated as $x2 = .init(initialValue: 17)
 // ...
@@ -476,17 +639,7 @@ x2 = 42   // okay, treated as x2 = 42 (calls the Lazy.value setter)
 
 ### Access to the storage property
 
-By default, the synthesized storage property will have `internal` access or the access of the original property, whichever is more restrictive. An alternative access can be provided for the synthesized storage property by specifying the access level after `by`, e.g.,
-
-```swift
-// both foo and $foo are publicly visible
-public var foo: Int by public Lazy = 1738
-
-// bar is publicly visible, $bar is privately visible
-public var bar: Int by private Lazy = 1738
-```
-
-The specified access level cannot be greater than `public` and cannot be greater than the original property.
+By default, the synthesized storage property will have `internal` access or the access of the original property, whichever is more restrictive.
 
 ### Memberwise initializers
 
@@ -503,22 +656,17 @@ initializer for a property with a delegate is determined as follows:
 * If the delegate type contains an `init(initialValue:)`, the
   parameter type is the original type of the property. 
 * When the delegate type does not contain an `init(initialValue:)`,
-  the parameter type is the type of the synthesized storage property
-  (i.e., a specialization of the delegate type). In this case, the
-  access level of the implicit initializer may need to be adjusted to
-  account for a visibility of the delegate: if the delegate is private
-  (e.g., `var x: Int by private UnsafeMutablePointer`), then the implicit memberwise
-  initializer will be `private`.
+  the parameter type is the type of the synthesized storage property.
 
 For example:
 
 ```swift
 struct Foo {
-  var x: Int by fileprivate UnsafeMutable
-  var y: Int by Lazy = 17
+  @UnsafeMutable var x: Int
+  @Lazy var y: Int = 17
 
   // implicit memberwise initializer:
-  fileprivate init(x: UnsafeMutable<Int>, y: Int = 17) {
+  init(x: UnsafeMutable<Int>, y: Int = 17) {
     self.$x = x
     self.$y = .init(initialValue: y)
   }
@@ -547,7 +695,7 @@ let $y = 17   // error: cannot declare entity with $-prefixed name '$y'
 A property with a delegate can declare accessors explicitly (`get`, `set`, `didSet`, `willSet`). If either `get` or `set` is missing, it will be implicitly created by accessing the storage property (e.g., `$foo`). For example:
 
 ```swift
-var x by Lazy = 17 {
+@Lazy var x = 17 {
   set {
     $x.value = newValue * 2
   }
@@ -557,7 +705,7 @@ var x by Lazy = 17 {
 }
 
 
-var y by Lazy = 42 {
+@Lazy var y = 42 {
   didSet {
     print("Overrode lazy value with \(oldValue)")
   }
@@ -581,7 +729,7 @@ There are a number of restrictions on the use of property delegates when definin
 * A property with a delegate that is declared within a class must be
 `final` and cannot override another property. 
 * A property with a delegate cannot be `lazy`, `@NSCopying`, `@NSManaged`, `weak`, or `unowned`.
-* A property with a delegate must be the only property declared within its enclosing declaration (e.g., `var (x, y) by Lazy = /* ... */` is ill-formed).
+* A property with a delegate must be the only property declared within its enclosing declaration (e.g., `@Lazy var (x, y) = /* ... */` is ill-formed).
 * The `value` property and (if present) `init(initialValue:)` of a property delegate type shall have the same access as the property delegate type.
 
 ## Impact on existing code
@@ -632,6 +780,25 @@ protocol, we don't know of any useful generic algorithms or data
 structures that seem to be implemented in terms of only
 `PropertyDelegate`.
 
+
+### Kotlin-like `by` syntax
+
+A previous iteration of this proposal (and its [implementation](https://github.com/apple/swift/pull/23440)) used `by` syntax similar to that of [Kotlin's delegated
+properties](https://kotlinlang.org/docs/reference/delegated-properties.html), where the `by` followed the variable declaration. For example:
+
+```swift
+var foo by Lazy = 1738
+
+static var isFooFeatureEnabled: Bool by UserDefault(key: "FOO_FEATURE_ENABLED", defaultValue: false)
+```
+
+There are some small advantages to this syntax over the attribute formulation:
+
+* For cases like `UserDefault` where the delegate instance is initialized directly, the initialization happens after the original variable declaration, which reads better because the variable type and name come first, and how it's implemented come later. (Counter point: Swift developers are already accustomed to reading past long attributes, which are typically placed on the previous line)
+* The `by DelegateType` formulation leaves syntactic space for add-on features like specifying the access level of the delegate instance (`by private DelegateType`) or delegating to an existing property (`by someInstanceProperty`).
+
+The main problem with `by` is its novelty: there isn't anything else in Swift quite like the `by` keyword above, and it is unlikely that the syntax would be re-used for any other feature. As a keyword, `by` is quite meaningless, and brainstorming  during the [initial pitch](https://forums.swift.org/t/pitch-property-delegates/21895) didn't find any clearly good names for this functionality. 
+
 ### The 2015-2016 property behaviors design
 
 Property delegates address a similar set of use cases to *property behaviors*, which were [proposed and
@@ -643,7 +810,7 @@ feature and narrow the feature set. Some substantive differences from
 the prior proposal are:
 
 * Behaviors were introduced into a property with the `[behavior]`
-  syntax, rather than the `by delegate` syntax described here. See the
+  syntax, rather than the attribute syntax described here. See the
   property behaviors proposal for more information.
 * Delegates are always expressed by a (generic) type. Property behaviors
   had a new kind of declaration (introduced by the
@@ -664,6 +831,21 @@ the prior proposal are:
   These were future directions in the property behaviors proposal.
 
 ## Future Directions
+
+### Specifying access for the storage property
+
+Like other declarations, the synthesized storage property will be
+`internal` by default, or the access level of the original property if it is less than `internal`. However, we could provide separate access control for the storage property to make it more or less accessible using a syntax similar to that of `private(set)`:
+
+```swift
+// both foo and $foo are publicly visible
+@Lazy
+public public(storage) var foo: Int = 1738
+
+// bar is publicly visible, $bar is privately visible
+@Atomic
+public private(storage) var bar: Int = 1738
+```
 
 ### Referencing the enclosing 'self' in a delegate type
 
@@ -720,7 +902,7 @@ However, this means that one would have to manually call `register(_:)` in the i
 
 ```swift
 public class MyClass: Superclass {
-  public var myVar: Int by Observable = 17
+  @Observable public var myVar: Int = 17
   
   init() {
     // self.$myVar gets initialized with Observable(initialValue: 17) here
@@ -760,7 +942,7 @@ The (generic) subscript gets access to the enclosing `self` type via its subscri
 
 ```swift
 public class MyClass: Superclass {
-  public var myVar: Int by Observable = 17
+  @Observable public var myVar: Int = 17
   
   // desugars to...
   internal var $myVar: Observable<Int> = Observable(initialValue: 17)
@@ -781,7 +963,7 @@ The main challenge with this design is that it doesn't directly work when the en
 
 ```swift
 public struct MyStruct {
-  public var myVar: Int by Observable = 17
+  @Observable public var myVar: Int = 17
   
   // desugars to...
   internal var $myVar: Observable<Int> = Observable(initialValue: 17)
@@ -798,11 +980,15 @@ So, while we feel that support for accessing the enclosing type's `self` is usef
 
 ### Delegating to an existing property
 
-When specifying a delegate for a property, a backing storage property is implicitly created. However, it is possible that there already exists a property that can provide the backing. This allows greater control over the declaration of the backing property, e.g., to specify that it is `lazy` or `@objc` or to give it a more custom implementation:
+When specifying a delegate for a property, the synthesized storage property is implicitly created. However, it is possible that there already exists a property that can provide the storage. One could provide a form of property delegation that creates the getter/setter to forward to an existing property, e.g.:
 
 ```swift
 lazy var fooBacking: SomeDelegate<Int>
-var foo: Int by var fooBacking
+@delegate(to: fooBacking) var foo: Int
 ```
 
-One could express this either by naming the property directly (as with the `by var` formulation above) or, for an even more general solution, by providing a keypath such as `\.someProperty.someOtherProperty`.
+One could express this either by naming the property directly (as above) or, for an even more general solution, by providing a keypath such as `\.someProperty.someOtherProperty`.
+
+## Acknowledgments
+
+This proposal was greatly improved throughout its [first pitch](https://forums.swift.org/t/pitch-property-delegates/21895) by many people. Harlan Haskins, Brent Royal-Gordon, Adrian Zubarev, Jordan Rose and others provided great examples of uses of property delegates (several of which are in this proposal). Adrian Zubarev and Kenny Leung helped push on some of the core assumptions and restrictions of the original proposal, helping to make it more general. Vini Vendramini and David Hart helped tie this proposal together with custom attributes, which drastically reduced the syntactic surface area of this proposal.
