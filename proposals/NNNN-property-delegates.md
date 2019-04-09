@@ -366,7 +366,7 @@ print(initializedOnce)
 
 ### `CopyOnWrite`
 
-With some work, property delegates can provide copy-on-write wrappers (example courtesy of Brent Royal-Gordon):
+With some work, property delegates can provide copy-on-write wrappers (original example courtesy of Brent Royal-Gordon):
 
 ```swift
 protocol Copyable: AnyObject {
@@ -381,7 +381,7 @@ struct CopyOnWrite<Value: Copyable> {
   
   private(set) var value: Value
   
-  var unique: Value {
+  var storageValue: Value {
     mutating get {
       if !isKnownUniquelyReferenced(&value) {
         value = value.copy()
@@ -395,15 +395,16 @@ struct CopyOnWrite<Value: Copyable> {
 }
 ```
 
-The usage of the property delegate above is as follows:
+`storageValue` provides delegation for the synthesized storage property, allowing the copy-on-write wrapper to be used directly:
 
 ```swift
 @CopyOnWrite var storage: MyStorageBuffer
 
-// Non-modfying access:
+// Non-modifying access:
 let index = storage.index(of: …)
 
-// For modification, use the `unique` property of the underlying storage:$storage.unique.append(…)
+// For modification, access $storage, which goes through `storageValue`:
+$storage.append(…)
 ```
 
 ### Property delegate types in the wild
@@ -717,6 +718,54 @@ A property with a delegate can declare accessors explicitly (`get`, `set`, `didS
     didSet(oldValue)
   }
 }
+```
+
+### Delegating access to the storage property
+
+A property delegate type delegate access to the storage property (`$foo`) by
+providing a property named `storageValue`. As with the `value` property and (also optional) `init(initialValue:)`, the `storageValue` property must have the
+same access level as its property delegate type. When present, `storageValue` is used to delegate accesses to the synthesized storage property. For example:
+
+```swift
+class StorageManager {
+  func allocate<T>(_: T.Type) -> UnsafeMutablePointer<T> { ... }
+}
+
+@propertyDelegate
+struct LongTermStorage<Value> {
+  let pointer: UnsafeMutablePointer<Value>
+
+  init(manager: StorageManager, _ initialValue: Value) {
+    pointer = manager.allocate(Value.self)
+    pointer.initialize(to: initialValue)
+  }
+
+  var value: Value {
+    get { return pointer.pointee }
+    set { pointer.pointee = newValue }
+  }
+
+  var storageValue: UnsafeMutablePointer<Value> {
+    return pointer
+  }
+}
+```
+
+When we use the `LongTermStorage` delegate, it handles the coordination with the `StorageManager` and provides either direct access or an `UnsafeMutablePointer` with which to manipulate the value:
+
+```swift
+let manager = StorageManager(...)
+
+@LongTermStorage(manager: manager, initialValue: "Hello")
+var someValue: String
+
+print(someValue)     // prints "Hello"
+someValue = "World"  // update the value in storage to "World"
+
+// $someValue accesses the storageValue property of the delegate instance, which
+// is an UnsafeMutablePointer<String>
+let world = $someValue.move()   // take value directly from the storage
+$someValue.initialize(to: "New value")
 ```
 
 ### Restrictions on the use of property delegates
