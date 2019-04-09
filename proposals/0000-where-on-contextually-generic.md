@@ -9,7 +9,7 @@
 ## Introduction
 
 The objective of this proposal is to lift the restriction on attaching `where` clauses to declarations that themselves
-do not carry a generic parameter list explicitly, but inherit the surrounding generic environment. Simply put, this means you no longer have to worry about the `'where' clause cannot be attached` error within generic contexts.
+do not introduce type variables explicitly, but inherit the surrounding generic environment. Simply put, this means you no longer have to worry about the `'where' clause cannot be attached` error within generic contexts.
 
 ```swift
 struct Box<Wrapped> {
@@ -26,7 +26,7 @@ struct Box<Wrapped> {
 >     // error: Instance method requirement 'foo(arg:)' cannot add constraint 'Self: Equatable' on 'Self'
 >     func foo() where Self: Equatable  
 > }
-> 
+> ```
 
 Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/t/where-clauses-on-contextually-generic-declaractions/22449)
 
@@ -40,6 +40,7 @@ and the compiler.
 
 Leaving ergonomic shortcomings behind, it is only natural for a `where` clause to work anywhere a constraint can be
 meaningfully imposed, meaning both of these layout variants should be possible:
+
 ```swift
 struct Foo<T> // 'Foo' can be any kind of nominal type declaration. For a protocol, 'T' would be an associatedtype. 
 
@@ -62,7 +63,7 @@ extension Foo where T: Sequence, T.Element: Equatable {
 }
 ```
 A move towards «untying» generic parameter lists and `where` clauses is an obvious and farsighted improvement to the generics
-system with numerous future applications, including contextually generic computed properties, [opaque types](https://github.com/apple/swift-evolution/blob/master/proposals/0244-opaque-result-types.md), [generalized
+system with numerous future applications, including [opaque types](https://github.com/apple/swift-evolution/blob/master/proposals/0244-opaque-result-types.md), [generalized
 existentials](https://github.com/apple/swift/blob/master/docs/GenericsManifesto.md#generalized-existentials) and constrained protocol requirements. 
 
 ## Source compatibility and ABI stability
