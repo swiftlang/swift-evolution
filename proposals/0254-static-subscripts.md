@@ -3,8 +3,9 @@
 * Proposal: [SE-0254](0254-static-subscripts.md)
 * Authors: [Brent Royal-Gordon](https://github.com/brentdax)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Active review (April 2...9, 2019)**
+* Status: **Accepted**
 * Implementation: [apple/swift#23358](https://github.com/apple/swift/pull/23358), [macOS toolchain](https://ci.swift.org/job/swift-PR-toolchain-osx/264//artifact/branch-master/swift-PR-23358-264-osx.tar.gz), [Ubuntu Linux 16.04 toolchain](https://ci.swift.org/job/swift-PR-toolchain-Linux/205//artifact/branch-master/swift-PR-23358-205-ubuntu16.04.tar.gz)
+* Review: ([review](https://forums.swift.org/t/se-0254-static-and-class-subscripts/22537), [acceptance](https://forums.swift.org/t/accepted-se-0254-static-and-class-subscripts/22941))
 
 ## Introduction
 
