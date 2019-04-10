@@ -67,7 +67,7 @@ struct EightPointedStar: GameObject {
 }
 ```
 
-This is unsightly because it's verbose, but it's also not very helpful for someone reading this declaration. The exact return type doesn't really matter, only the fact that it conforms to `Shape`. Spelling out the return type also effectively reveals most of the implementation of `shape`, making the declaration brittle; clients of `EightPointedStar` could end up relying on its exact return type, making it harder if the author of `EightPointedStar` wants to change how they implement its shape. Right now, if you want to abstract the return type of a declaration from its signature, existentials or manual type erasure are your only options, and these [come with tradeoffs](https://forums.swift.org/t/improving-the-ui-of-generics/22814#heading--limits-of-existentials) that are not always acceptable.
+This is unsightly because it's verbose, but it's also not very helpful for someone reading this declaration. The exact return type doesn't really matter, only the fact that it conforms to `Shape`. Spelling out the return type also effectively reveals most of the implementation of `shape`, making the declaration brittle; clients of `EightPointedStar` could end up relying on its exact return type, making it harder if the author of `EightPointedStar` wants to change how they implement its shape, such as if a future version of the library provides a generic `NPointedStar` primitive. Right now, if you want to abstract the return type of a declaration from its signature, existentials or manual type erasure are your only options, and these [come with tradeoffs](https://forums.swift.org/t/improving-the-ui-of-generics/22814#heading--limits-of-existentials) that are not always acceptable.
 
 ## Proposed solution
 
@@ -114,7 +114,7 @@ let x = reverseGeneric() // abstracted type chosen by reverseGeneric's implement
 ```
 
 Following the `some` keyword is a set of constraints on the implicit generic type variable: a class, protocol, `Any`, `AnyObject`, or some composition thereof (joined with `&`).
-This `some Protocol` sugar [can be generalized to generic arguments and more interesting returns](https://forums.swift.org/t/improving-the-ui-of-generics/22814#heading--directly-expressing-constraints) in the future, and we could also eventually support fully general generics in the return signature. To enable incremental progress on the implementation, we propose only supporting the `some` syntax in return position to begin with.
+This `some Protocol` sugar [can be generalized to generic arguments and structural positions in return types](https://forums.swift.org/t/improving-the-ui-of-generics/22814#heading--directly-expressing-constraints) in the future, and we could also eventually support a fully general generic signature for opaque returns. To enable incremental progress on the implementation, we propose starting by only supporting the `some` syntax in return position.
 
 ### Type identity
 
@@ -127,12 +127,12 @@ func foo<T: Equatable>(x: T, y: T) -> some Equatable {
 }
 
 let x = foo("apples", "bananas")
-let y = foo(["apples"], ["apples"])
+let y = foo("apples", "some fruit nobody's ever heard of")
 
 print(x == y) // also OK to use ==, x and y are the same opaque return type
 ```
 
-If the opaque type exposes associated types, those associated types' identities are also maintained.This allows the full API of protocols like the `Collection` family to be used:
+If the opaque type exposes associated types, those associated types' identities are also maintained. This allows the full API of protocols like the `Collection` family to be used:
 
 ```swift
 func makeMeACollection<T>(with: T) -> some RangeReplaceableCollection & MutableCollection { ... }
@@ -143,16 +143,16 @@ c[c.startIndex] = c.first! // ok: it's a MutableCollection
 print(c.reversed()) // ok: all Collection/Sequence operations are available
 
 func foo<C: Collection>(_ : C) { }
-foo(c) // ok: C inferred to opaque result type of makeMeACollection()
+foo(c) // ok: C inferred to opaque result type of makeMeACollection<Int>
 ```
 
 Moreover, opaque result types preserve their identity when composed into other types, such as when forming a collection of the results:
 
 ```swift
 var cc = [c]
-cc.append(c) // ok: cc's Element == the result type of makeMeACollection
+cc.append(c) // ok: cc's Element == the result type of makeMeACollection<Int>
 var c2 = makeMeACollection(with: 38)
-cc.append(c2) // ok: Element == the result type of makeMeACollection
+cc.append(c2) // ok: Element == the result type of makeMeACollection<Int>
 ```
 
 The opaque return type can however depend on the generic arguments going into the function when
@@ -287,7 +287,7 @@ func f9b() -> some P {
 }
 ```
 
-This restriction on non-terminating functions could be something we lift in the future, by synthesizing bottom-type conformances to the protocols required by the opaque type, but we leave that as a future extension.
+This restriction on non-terminating functions could be something we lift in the future, by synthesizing bottom-type conformances to the protocols required by the opaque type. We leave that as a future extension.
 
 ### Properties and subscripts
 
@@ -361,7 +361,7 @@ func f1() -> some P { /* ... */ }
 let vf1 = f1() // type of vf1 is the opaque result type of f1()
 ```
 
-However, the type inference used to satisfy associated type requirements can deduce an opaque result type as the associated type of the protocol:
+However, type inference can deduce an opaque result type as the associated type of the protocol:
 
 ```swift
 protocol GameObject {
@@ -416,7 +416,7 @@ protocol Q {
 }
 ```
 
-Associated types provide a better way to model the same problem, and the requirements can then be satisfied by a function that produces an opaque result type.
+Associated types provide a better way to model the same problem, and the requirements can then be satisfied by a function that produces an opaque result type. (There might be an interesting shorthand feature here, where using `some` in a protocol requirement implicitly introduces an associated type, but we leave that for future language design to explore.)
 
 Similarly to the restriction on protocols, opaque result types cannot be used for a non-`final` declaration within a class:
 
@@ -426,6 +426,8 @@ class C {
   final func g() -> some P { /* ... */ } // ok
 }
 ```
+
+This restriction could conceivably be lifted in the future, but it would mean that override implementations would be constrained to returning the same type as their super implementation, meaning they must call `super.method()` to produce a valid return value.
 
 ### Uniqueness of opaque result types
 
@@ -484,19 +486,19 @@ The proposed Swift feature is largely inspired by Rust's `impl Trait` language f
 
 ### Return type inference
 
-Part of the motivation of this feature is to avoid having to spell out elaborate return types. This proposal achieves that for types that can be abstracted behind protocols, but in doing so introduces complexity in the form of a new kind of "reverse generic" type. There are also kinds of verbose return types that can't be effectively hidden behind protocol interfaces, like deeply nested collections:
+Part of the motivation of this feature is to avoid having to spell out elaborate return types. This proposal achieves that for types that can be abstracted behind protocols, but in doing so introduces complexity in the form of a new kind of "reverse generic" type. Meanwhile, there are kinds of verbose return types that can't be effectively hidden behind protocol interfaces, like deeply nested collections:
 
 ```swift
 func jsonBlob() -> [String: [String: [[String: Any]]]] { ... }
 ```
 
-We could theoretically address the verbosity problem by allowing return types to be inferred in general, like C++14's or D's `auto` return types:
+We could theoretically address the verbosity problem in its full generality and without introducing new type system features  by allowing return types to be inferred, like C++14's or D's `auto` return types:
 
 ```swift
 func jsonBlob() -> auto { ... }
 ```
 
-Although this would superficially address the problem of verbose return types, that isn't really the primary problem this proposal is trying to solve, which is to allow for *more precise description of interfaces*. The case of a verbose composed generic adapter type is fundamentally different from a deeply nested collection; in the former case, the concrete type is not only verbose, but it's largely irrelevant, because clients should only care about the common protocols the type conforms to. For a nested collection, the verbose type *is* the interface, and it is necessary to fully describe how someone interacts with that collection.
+Although this would superficially address the problem of verbose return types, that isn't really the primary problem this proposal is trying to solve, which is to allow for *more precise description of interfaces*. The case of a verbose composed generic adapter type is fundamentally different from a deeply nested collection; in the former case, the concrete type is not only verbose, but it's largely irrelevant, because clients should only care about the common protocols the type conforms to. For a nested collection, the verbose type *is* the interface: the full type is necessary to fully describe how someone interacts with that collection.
 
 Return type inference also has several undesirable traits as a language feature:
 
@@ -512,7 +514,7 @@ Return type inference also has several undesirable traits as a language feature:
   opaque type when the underlying type is known.
 - Similarly, inferred return types wouldn't provide any semantic abstraction once the type is inferred. Code that calls the function would still see the full concrete type, allowing clients to rely on unintentional details of the concrete type, and the implementation would be bound by ABI and source compatibility constraints if it needed to change the return type. Module interfaces and documentation would also still expose the full return type, meaning they don't get the benefit of the shorter notation.
 
-We see opaque return types as not only sugar for syntactically heavy return types, but also a tool for writing clearer, more resilient APIs. Return type inference would achieve the former but not the latter.
+We see opaque return types as not only sugar for syntactically heavy return types, but also a tool for writing clearer, more resilient APIs. Return type inference would achieve the former but not the latter, while also introducing another compile-time performance footgun into the language.
 
 ### Syntax for opaque return types
 
@@ -559,7 +561,7 @@ func translucentRectangle() -> anonymized Shape { ... }
 func translucentRectangle() -> nameless Shape { ... }
 ```
 
-Most of these are longer and not much clearer, and many wouldn't work well as generalized sugar for arguments and returns.
+In our opinion, most of these are longer and not much clearer, and many wouldn't work well as generalized sugar for arguments and returns.
 
 ### Opaque type aliases
 
@@ -608,7 +610,7 @@ to one using opaque return types:
 func foo<T>() -> some P { return 1 }
 ```
 
-and the one using opaque typealiases requires an intermediate name, which one must read and follow to its definition to understand the interface of `foo`. The definition of `ReturnTypeOfFoo` also needs to spell out the return type of `foo`, and the two declarations are tightly coupled; a change to `foo` will likely require a lockstep change to `ReturnTypeOfFoo`. We expect that, in the common use case for this feature, the types being abstracted are going to be tied to specific declarations, and there wouldn't be any better name to really give than "return type of (decl)," so making opaque type aliases the only way of expressing return type abstraction would introduce a lot of obscuring boilerplate.
+The one using opaque typealiases requires an intermediate name, which one must read and follow to its definition to understand the interface of `foo`. The definition of `ReturnTypeOfFoo` also needs to spell out the underlying concrete return type of `foo`, and the two declarations are tightly coupled; a change to `foo` will likely require a lockstep change to `ReturnTypeOfFoo`. We expect that, in the common use case for this feature, the types being abstracted are going to be tied to specific declarations, and there wouldn't be any better name to really give than "return type of (decl)," so making opaque type aliases the only way of expressing return type abstraction would introduce a lot of obscuring boilerplate.
 
 ## Future Directions
 
