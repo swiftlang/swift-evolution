@@ -83,7 +83,7 @@ struct EightPointedStar: GameObject {
 }
 ```
 
-to declare that an `EightPointedStar` has some `Shape` without having to specify exactly what shape that is. The underlying concrete type is hidden, and can even change from one version of the library to the next without breaking those clients, because the underlying type identity is never exposed to clients. Unlike an existential, though, clients still have access to the type identity, so values This allows the library to provide a potentially-more-efficient design that leverages Swift's type system, without expanding the surface area of the library or making implementors of the library's protocols rely on exposing verbose implementation types.
+to declare that an `EightPointedStar` has some `Shape` without having to specify exactly what shape that is. The underlying concrete type is hidden, and can even change from one version of the library to the next without breaking those clients, because the underlying type identity is never exposed to clients. Unlike an existential, though, clients still have access to the type identity. This allows the library to provide a potentially-more-efficient design that leverages Swift's type system, without expanding the surface area of the library or making implementors of the library's protocols rely on exposing verbose implementation types.
 
 An opaque type behaves like a ["reverse generic"](https://forums.swift.org/t/reverse-generics-and-opaque-result-types/21608). In a traditional generic function, the caller decides what types get bound to the callee's generic arguments:
 
