@@ -124,18 +124,18 @@ extension MutableCollection where Self: RandomAccessCollection {
 
 This is an ABI-compatible addition with no impact on source compatibility.
 
-## Future Directions
+## Considerations
 
-### Provide `<` as the default `areInIncreasingOrder` predicate when `Value: Comparable`
+### Provide `<` as the default predicate when `Value: Comparable`
 
-A future addition to the Standard Library's sorting API could provide a version of `sort(on:)` and `sorted(on:)` where `<` is provided as the default sorting predicate for `Comparable` values:
+A practically useful complement to the API in question would be a version of `sort(on:)` and `sorted(on:)` where `<` is provided as the default sorting predicate for `Comparable` values:
 
 ```swift
 people.sort(on: { $0.age })
 people.sort(on: \.age)
 ```
 
-This follows the precedent set by the existing `sort(by:)` and `sorted(by:)` methods. We chose to exclude these additional overloads from this initial proposal, as they are purely additive and could be included in either a later proposal or a final stage of this proposal (pending feedback during the review process).
+This follows the precedent set by the existing `sort(by:)` and `sorted(by:)` methods. We chose not to include these additional overloads in the main proposal, but expect them to be considered during review.
 
 ## Alternatives considered
 
