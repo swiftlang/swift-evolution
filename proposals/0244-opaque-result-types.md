@@ -382,6 +382,24 @@ pos = Player().shape // ok: returns the same opaque result type
 
 Note that having a name for the opaque result type still doesn't give information about the underlying concrete type. For example, the only way to create an instance of the type `S.SomeType` is by calling `S.someValue()`.
 
+Associated type inference can only infer an opaque result type for a non-generic requirement, because the opaque type is parameterized by the function's own generic arguments. For instance, in:
+
+```swift
+protocol P {
+  associatedtype A: P
+  func foo<T: P>(x: T) -> A
+}
+
+struct Foo: P {
+  func foo<T: P>(x: T) -> some P {
+    return x
+  }
+}
+```
+
+there is no single underlying type to infer `A` to, because the return type
+of `foo` is allowed to change with `T`.
+
 ## Detailed design
 
 ### Grammar of opaque result types
