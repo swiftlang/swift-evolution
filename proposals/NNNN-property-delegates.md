@@ -1008,6 +1008,7 @@ the prior proposal are:
   can use the `$`-prefixed name to refer to the storage property.
   These were future directions in the property behaviors proposal.
 
+
 ## Future Directions
 
 ### Specifying access for the storage property
@@ -1024,6 +1025,16 @@ public public(storage) var foo: Int = 1738
 @Atomic
 public private(storage) var bar: Int = 1738
 ```
+
+### Composition of property delegates
+
+Only one property delegate can currently be attached to a given property, so code such as the following is in error:
+
+```swift
+@UnsafeMutablePointer @Atomic var x: Int   // error: two attached property delegates
+```
+
+The [property behaviors proposal](https://github.com/apple/swift-evolution/blob/master/proposals/0030-property-behavior-decls.md#composing-behaviors) describes some of the concerns surrounding composing behaviors/delegates in this way, which would need to be addressed by a future proposal. Matthew Johnson [sketched out a potential direction](https://forums.swift.org/t/pitch-property-delegates/21895/103) for extending property delegates to support composition of property delegates.
 
 ### Referencing the enclosing 'self' in a delegate type
 
