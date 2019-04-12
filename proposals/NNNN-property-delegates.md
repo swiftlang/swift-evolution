@@ -365,7 +365,55 @@ if initializedOnce == nil {
 print(initializedOnce)
 ```
 
-### `CopyOnWrite`
+### Thread-specific storage
+
+Thread-specific storage (based on pthreads) can be implemented as a property delegate, too (example courtesy of Daniel Delwood):
+
+```swift
+@propertyDelegate
+final class ThreadSpecific<T> {
+  private var key = pthread_key_t()
+  private let initialValue: T
+
+  init(key: pthread_key_t, initialValue: T) {
+    self.key = key
+    self.initialValue = initialValue
+  }
+
+  init(initialValue: T) {
+    self.initialValue = initialValue
+    pthread_key_create(&key) {
+      // 'Any' erasure due to inability to capture 'self' or <T>
+      $0.assumingMemoryBound(to: Any.self).deinitialize(count: 1)
+      $0.deallocate()
+    }
+  }
+
+  deinit {
+    fatalError("\(ThreadSpecific<T>.self).deinit is unsafe and would leak")
+  }
+
+  private var box: UnsafeMutablePointer<Any> {
+    if let pointer = pthread_getspecific(key) {
+      return pointer.assumingMemoryBound(to: Any.self)
+    } else {
+      let pointer = UnsafeMutablePointer<Any>.allocate(capacity: 1)
+      pthread_setspecific(key, UnsafeRawPointer(pointer))
+      pointer.initialize(to: initialValue as Any)
+      return pointer
+    }
+  }
+
+  var value: T {
+    get { return box.pointee as! T }
+    set (v) {
+      box.withMemoryRebound(to: T.self, capacity: 1) { $0.pointee = v }
+    }
+  }
+}
+```
+
+### Copy-on-write
 
 With some work, property delegates can provide copy-on-write wrappers (original example courtesy of Brent Royal-Gordon):
 
@@ -407,6 +455,76 @@ let index = storage.index(of: …)
 // For modification, access $storage, which goes through `storageValue`:
 $storage.append(…)
 ```
+
+### `Ref` / `Box`
+
+We can define a property delegate type `Ref` that is an abstracted reference
+to some value that can be get/set, which is effectively a programmatic computed
+property:
+
+```swift
+@propertyDelegate
+struct Ref<Value> {
+  let read: () -> Value
+  let write: (Value) -> Void
+
+  var value: Value {
+    get { return read() }
+    nonmutating set { write(newValue) }
+  }
+
+  subscript<U>(dynamicMember keyPath: WritableKeyPath<Value, U>) -> Ref<U> {
+    return Ref<U>(
+        read: { self.value[keyPath: keyPath] },
+        write: { self.value[keyPath: keyPath] = $0 })
+  }
+}
+```
+
+The subscript is using [SE-0252 "Key Path Member Lookup"](https://github.com/apple/swift-evolution/blob/master/proposals/0252-keypath-dynamic-member-lookup.md) so that a `Ref` instance provides access to the properties of its value. Building on the example from SE-0252:
+
+```swift
+@Ref(read: ..., write: ...)
+var rect: Rectangle
+
+print(rect)          // accesses the Rectangle
+print(rect.topLeft)  // accesses the topLeft component of the rectangle
+
+let rect2 = $rect    // get the Ref<Rectangle>
+let topLeft2 = $rect.topLeft // get a Ref<Point> referring to the Rectangle's topLeft
+```
+
+The `Ref` type encapsulates read/write, and making it a property delegate lets
+us primarily see the underlying value. Often, one does not want to explicitly
+write out the getters and setters, and it's fairly common to have a `Box` type that boxes up a value and can vend `Ref` instances referring into that box. We can do so with another property delegate:
+
+```swift
+@propertyDelegate
+class Box<Value> {
+  var value: Value
+
+  init(initialValue: Value) {
+    self.value = initialValue
+  }
+
+  var storageValue: Ref<Value> {
+    return Ref<Value>(read: { self.value }, write: { self.value = $0 })
+  }
+}
+```
+
+Now, we can define a new `Box` directly:
+
+```swift
+@Box var rectangle: Rectangle = ...
+
+print(rectangle)  // access the rectangle
+print(rectangle.topLeft) // access the top left coordinate of the rectangle
+let rect2 = $rectangle   // through storageValue, produces a Ref<Rectangle>
+let topLeft2 = $rectangle.topLeft   // through storageValue, produces a Ref<Point>
+```
+
+The use of `storageValue` hides the box from the client, providing direct access to the value in the box (the common case) as well as access to the box contents via Ref.
 
 ### Property delegate types in the wild
 
