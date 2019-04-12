@@ -436,7 +436,7 @@ print(someInt)
 $someInt.deallocate()
 ```
 
-RxSwift's [`BehaviorRelay`](https://github.com/ReactiveX/RxSwift/blob/master/RxCocoa/Traits/BehaviorRelay.swift) replays the most recent value provided to it for each of the subscribed observers. It is created with an initial value, has `value` property to access the current value, as well as API to `subscribe` a new observer: (Thanks to Adrian Zubarev for pointing this out)
+RxCocoa's [`BehaviorRelay`](https://github.com/ReactiveX/RxSwift/blob/master/RxCocoa/Traits/BehaviorRelay.swift) replays the most recent value provided to it for each of the subscribed observers. It is created with an initial value, has `value` property to access the current value, as well as API to `subscribe` a new observer: (Thanks to Adrian Zubarev for pointing this out)
 
 ```swift
 @BehaviorRelay
@@ -648,37 +648,47 @@ By default, the synthesized storage property will have `internal` access or the 
 Structs implicitly declare memberwise initializers based on the stored
 properties of the struct. With a property that has a delegate, the
 property is technically computed because it's the synthesized property
-(of the delegate's type) that is stored. However, the delegate itself
-might be an implementation detail that should not affect the form of
-the memberwise initializer.
+(of the delegate's type) that is stored. Instance properties that have a
+property delegate will have a corresponding parameter in the memberwise
+initializer, whose type will either be the original property type or
+the delegate type, depending on the delegate type and the initial value
+(if provided). Specifically, the memberwise initializer parameter for
+an instance property with a property delegate will have the original
+property type if either of the following is true:
 
-The parameter type that is introduced into an implicit memberwise
-initializer for a property with a delegate is determined as follows:
+* The corresponding property has an initial value specified with the
+`=` syntax, e.g., `@Lazy var i = 17`, or
+- The corresponding property has no initial value, but the property
+delegate type has an `init(initialValue:)`.
 
-* If the delegate type contains an `init(initialValue:)`, the
-  parameter type is the original type of the property. 
-* When the delegate type does not contain an `init(initialValue:)`,
-  the parameter type is the type of the synthesized storage property.
-
-For example:
+Otherwise, the memberwise initializer parameter will have the same
+type as the delegate. For example:
 
 ```swift
 struct Foo {
-  @UnsafeMutable var x: Int
+  @UserDefault(key: "FOO_FEATURE_ENABLED", defaultValue: false)
+  static var x: Bool
   @Lazy var y: Int = 17
+  @Lazy(closure: { getBool() }) var z: Bool
+  @CopyOnWrite var w: Image
 
   // implicit memberwise initializer:
-  init(x: UnsafeMutable<Int>, y: Int = 17) {
+  init(x: UserDefault<Bool> = UserDefault(key: "FOO_FEATURE_ENABLED", defaultValue: false),
+       y: Int = 17,
+       z: Lazy<Bool> = Lazy(closure: { getBool() }),
+       w: Image) {
     self.$x = x
-    self.$y = .init(initialValue: y)
+    self.$y = Lazy(initialValue: y)
+    self.$z = z
+    self.$w = CopyOnWrite(initialValue: w)
   }
 }
 ```
 
 Synthesis for `Encodable`, `Decodable`, `Hashable`, and `Equatable`
-follows the same rules, using the underlying `value` of the property
-delegate type contains an `init(initialValue:)` and the synthesized
-storage property's type otherwise.
+using the underlying `value` of the property when the property
+delegate type contains an `init(initialValue:)` and the delegate's
+type otherwise.
 
 ### $ identifiers
 
