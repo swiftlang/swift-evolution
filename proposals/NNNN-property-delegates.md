@@ -851,9 +851,8 @@ A property with a delegate can declare accessors explicitly (`get`, `set`, `didS
 
 ### Delegating access to the storage property
 
-A property delegate type delegate access to the storage property (`$foo`) by
-providing a property named `storageValue`. As with the `value` property and (also optional) `init(initialValue:)`, the `storageValue` property must have the
-same access level as its property delegate type. When present, `storageValue` is used to delegate accesses to the synthesized storage property. For example:
+A property delegate type can choose to hide its instance entirely by providing a property named `storageValue`. As with the `value` property and`init(initialValue:)`, the `storageValue` property must have the
+same access level as its property delegate type. When present, the synthesized storage property is hidden completely and the property `$foo` becomes a computed property accessing the storage property's `storageValue`. For example:
 
 ```swift
 class StorageManager {
