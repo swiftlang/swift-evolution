@@ -355,7 +355,7 @@ Which translates to three possible restrictions:
 2. Fields of a fixed-contents struct may not be renamed, even non-public ones.
 3. Copying the struct requires calling a function because we can't see the private fields.
 
-(3) is a non-starter, since it defeats the performance motivation for `@fixedContents`. That leaves (1) and (2), and we decided it would be *really weird* if renaming the private property `angle` to `theta` changed the layout of the struct. So the restriction on reordering fields was considered the least bad solution. It helps that it matches the behavior of C, Rust, and other languages.
+(3) is a non-starter, since it defeats the performance motivation for `@frozen`. That leaves (1) and (2), and we decided it would be *really weird* if renaming the private property `angle` to `theta` changed the layout of the struct. So the restriction on reordering fields was considered the least bad solution. It helps that it matches the behavior of C, Rust, and other languages.
 
 
 ### Fixed-contents by default
