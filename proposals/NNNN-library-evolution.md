@@ -25,9 +25,7 @@ This proposal introduces:
 - a "library evolution" build mode for libraries that are declaring ABI stability, which preserves the ability to make certain changes to types without breaking the library's ABI; and
 - an attribute for such libraries to opt out of this flexibility on a per-type basis, allowing certain compile-time optimizations.
 
-The mechanisms for this are already in place, and were used to stabilize the
-ABI of the standard library. This proposal makes them features for use by
-any 3rd-party library that wishes to declare itself ABI stable.
+The mechanisms for this are already in place, and were used to stabilize the ABI of the standard library. This proposal makes them features for use by any 3rd-party library that wishes to declare itself ABI stable.
 
 **This build mode will have no impact on libraries built and distributed with an app**. Such libraries will receive the same optimization that they have in previous versions of Swift.
 
@@ -77,7 +75,7 @@ Turning on library evolution mode will have the following effects on source code
 
 When a library author is certain that there will never be a need to add fields to a struct in future, they may mark that type as `@frozen`. 
 
-This will allow the compiler to optimize away at compile time some calls that would otherwise need to be made at runtime (for example, it might access ).
+This will allow the compiler to optimize away at compile time some calls that would otherwise need to be made at runtime (for example, it might access fields directly without the indirection).
 
 When compiling with binary stability mode on, a struct can be marked `@frozen` as long as it meets all of the following conditions:
 
@@ -233,7 +231,7 @@ These considerations should not affect libraries shipped with their clients, inc
 
 ## Effect on Library Evolution
 
-Both structs and enums can gain new protocol conformances or methods, even when `@frozen`. Binary compatability only affects additions of fields or cases.
+Both structs and enums can gain new protocol conformances or methods, even when `@frozen`. Binary compatibility only affects additions of fields or cases.
 
 The set of binary-compatible changes to a struct's stored instance properties is described above. There are no binary-compatible changes to an enum's cases.
 
@@ -280,8 +278,7 @@ Other than `@frozen`, most names have revolved around the notion of "fixed" some
 
 #### Modifier or attribute?
 
-This proposal suggests a new *attribute* for structs, `@fixedContents`; it could also be a modifier `fixedContents` (or `fixed`), implemented as a context-sensitive keyword. Because this annotation only affects the struct's *implementation* rather than anything about its use, an attribute seemed more appropriate.
-
+This proposal suggests a new *attribute*, `@frozen`; it could also be a modifier `frozen`, implemented as a context-sensitive keyword. Because this annotation only affects the type's *implementation* rather than anything about its use, an attribute seemed more appropriate.
 
 ### Command-line flag naming
 
