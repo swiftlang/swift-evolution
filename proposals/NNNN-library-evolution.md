@@ -1,7 +1,7 @@
 # Library Evolution for Stable ABIs
 
-* Proposal: [SE-NNNN](NNNN-non-exhaustive-enums.md)
-* Authors: [Jordan Rose](https://github.com/jrose-apple)
+* Proposal: [SE-NNNN](NNNN-library-evolution.md)
+* Authors: [Jordan Rose](https://github.com/jrose-apple), [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: TBD
 * Status: **Awaiting review**
 * Implementation: Implemented in Swift 5 for standard library use
@@ -35,7 +35,7 @@ _Note: this proposal will use the word "field" to mean "stored instance property
 
 ## Motivation
 
-Starting in Swift 5, libraries are able to declare a stable ABI, allowing a  library binary to be replaced with a newer version without requiring client programs to be recompiled. 
+As of Swift 5, libraries are able to declare a stable ABI, allowing a  library binary to be replaced with a newer version without requiring client programs to be recompiled. 
 
 What consitutes the ABI of a library differs from language to language. In C and C++, the public ABI for a library includes information that ideally would be kept purely as an implementation detail. For example, the _size_ of a struct is fixed as part of the ABI, and is known to the library user at compile time. This prevents adding new fields to that type in later releases once the ABI is declared stable. If direct access to fields is allowed, the _layout_ of the struct can also become part of the ABI, so fields cannot then be reordered.
 
@@ -46,7 +46,7 @@ This often leads to manual workarounds. A common technique is to have the struct
 - it means that the fields of the struct data are not stored in contiguous memory when placed in an array; and 
 - the implementation of all this must be provided by the library author.
 
-A similar challenge occurs with enums. As discussed in [SE-0192][], introducing new cases to an enum can break source compatability. There are also ABI consequences to this: adding new enum cases sometimes means increasing the storage needed for the enum, which can affect the size and layout of an enum in the same way adding fields to a struct can.
+A similar challenge occurs with Swift enums. As discussed in [SE-0192][], introducing new cases to an enum can break source compatibility. There are also ABI consequences to this: adding new enum cases sometimes means increasing the storage needed for the enum, which can affect the size and layout of an enum in the same way adding fields to a struct can.
 
 The goal of this proposal is to reduce the burden on library developers by building into the compiler an automatic mechanism to reserve the flexibility to alter the internal representation of structs and enums, without manual workarounds. This mechanism can be implemented in such a way that optimizations such as stack allocation or contiguous inline storage of structs can still happen, while leaving the size of the type to be determined at runtime. 
 
@@ -56,11 +56,11 @@ The goal of this proposal is to reduce the burden on library developers by build
 
 The compiler will gain a new mode, called "library evolution mode". This mode will be off by default. A library compiled with this mode enabled is said to be _ABI-stable_.
 
-When a library is compiled with library evolution mode enabled, it is not an ABI-breaking change to modify the fields in a struct (to add, remove, or reorder them), and to add new enum cases (including with associated values). This implies that clients must manipulate fields and enum cases indirectly, via non-inlable function calls. Information such as the size of the type, and the layout of its fields, becomes something that can only be determined at runtime. Types that reserve this flexibility are referred to as "resilient types".
+When a library is compiled with library evolution mode enabled, it is not an ABI-breaking change to modify the fields in a struct (to add, remove, or reorder them), and to add new enum cases (including with associated values). This implies that clients must manipulate fields and enum cases indirectly, via non-inlinable function calls. Information such as the size of the type, and the layout of its fields, becomes something that can only be determined at runtime. Types that reserve this flexibility are referred to as "resilient types".
 
-A new `@frozen` keyword will be introduced to allow library authors to opt out of this flexibility on a per-type basis. This keyword promises that stored instance properties within the struct will not be *added,* *removed,* or *reordered*. The compiler will use this for optimization purposes when compiling clients of the struct. The precise set of allowed changes is defined below.
+A new `@frozen` keyword will be introduced to allow library authors to opt out of this flexibility on a per-type basis. This keyword promises that stored instance properties within the struct will not be *added,* *removed,* or *reordered*, and that an enum will never *add,* *remove,* or *reorder* its cases (note removing, and sometimes reordering, cases can already be source breaking, not just ABI breaking). The compiler will use this for optimization purposes when compiling clients of the type. The precise set of allowed changes is defined below.
 
-This attribute has no effect when binary stability mode is off. In that case, the compiler acts as if *every* struct or enum in the library being compiled is "frozen".
+This attribute has no effect when library evolution mode is off. In that case, the compiler acts as if *every* struct or enum in the library being compiled is "frozen".
 
 ## Detailed design
 
@@ -81,7 +81,7 @@ This will allow the compiler to optimize away at compile time some calls that wo
 
 When compiling with binary stability mode on, a struct can be marked `@frozen` as long as it meets all of the following conditions:
 
-- The struct is *ABI-public* (see [SE-0193][]), i.e. `public` or marked `@abiPublic`.
+- The struct is *ABI-public* (see [SE-0193][]), i.e. `public` or marked `@usableFromInline`.
 - Every class, enum, struct, protocol, or typealias mentioned in the types of the struct's fields is ABI-public.
 - No fields have observing accessors (`willSet` or `didSet`).
 - If a field has an initial value, the expression computing the initial value does not reference any types or functions that are not ABI-public.
@@ -115,8 +115,7 @@ This affects what changes to the struct's fields affect the ABI of the containin
 | Marking an `internal` field as `@abiPublic` | Allowed | Allowed
 | Changing an `internal` ABI-public field to be `public` | Allowed | Allowed
 
-
-> Note: This proposal is implemented already and in use by the standard library, albeit under different names. The command-line flag is `-enable-resilience`; the attribute is `@_fixed_layout` for structs, and `@frozen` for enums.
+> Note: This proposal is implemented already and in use by the standard library, albeit under different names. The command-line flag is `-enable-library-evolution`; the attribute is `@_fixed_layout` for structs, and `@_frozen` for enums.
 
   [SE-0193]: https://github.com/apple/swift-evolution/blob/master/proposals/0193-cross-module-inlining-and-specialization.md
 
@@ -126,15 +125,13 @@ Marking a struct `@frozen` only guarantees that its stored instance properties w
 
 - **It is not guaranteed to be "trivial"** ([in the C++ sense][trivial]). A frozen struct containing a class reference or closure still requires reference-counting when copied and when it goes out of scope.
 
-- **It is not guaranteed to be stored in registers.** Promoting structs to be stored in registers is considered an optimization in Swift, and as such the compiler is never *required* to do so. In particular, a struct with a `weak` reference in it must always be stored in memory if the compiler cannot prove that the weak reference is unused.
-
 - **It does not necessarily have a known size or alignment.** A generic frozen struct's layout might depend on the generic argument provided at run time.
 
 - **Even concrete instantiations may not have a known size or alignment.** A frozen struct with a field that's a *non-*frozen, has a size that may not be known until run time.
 
 - **It is not guaranteed to use the same layout as a C struct with a similar "shape".** If such a struct is necessary, it should be defined in a C header and imported into Swift.
 
-- **The fields are not guaranteed to be laid out in declaration order.** The compiler may choose to reorder fields to minimize padding while satisfying alignment requirements, for example, .
+- **The fields are not guaranteed to be laid out in declaration order.** The compiler may choose to reorder fields, for example to minimize padding while satisfying alignment requirements.
 
 That said, the compiler is allowed to use its knowledge of the struct's contents and layout to derive any of these properties. For instance, the compiler can statically prove that copying `Point` is "trivial", because each of its members has a statically-known type that is "trivial". However, depending on this at the language level is not supported, with two exceptions:
 
@@ -149,10 +146,11 @@ This proposal does not change either of these guarantees.
 
 ### `@frozen` on `enum` types
 
-Marking an enum as `@frozen` will also allow the compiler to optimize away runtime calls.
+Marking an enum as `@frozen` will similarly allow the compiler to optimize away runtime calls.
 
 In addition, marking an enum as frozen restores the ability of a library user to exhaustively switch over that enum without an `@unknown default:`, because it guarantees no further cases will be added.
 
+Once frozen, all changes made to an enum's cases affect its ABI.
 
 ## Naming
 
@@ -162,12 +160,12 @@ In addition, marking an enum as frozen restores the ability of a library user to
 
 - It would be reasonable to use `@frozen` to describe an enum without associated values that promises not to *add* any cases with associated values. This would allow for similar optimization as `@frozen` on a struct, while still not declaring that the enum is frozen.
 
-- Since this feature is only relevant for libraries with binary compatibility concerns, it may be more useful to tie its syntax to `@available` from the start, as with [SE-0193][]. In that case neither `@frozen` nor `@frozen` would be appropriate.
+- Since this feature is only relevant for libraries with binary compatibility concerns, it may be more useful to tie its syntax to `@available` from the start, as with [SE-0193][].
 
-But that said, `@frozen` still has the right *connotations* to describe a type whose stored instance properties or cases can no longer be changed, and that is *similar* to what `@frozen` does for enums even if the consequences are a little different. So the final candidates for names are:
+But that said, `@frozen` still has the right *connotations* to describe a type whose stored instance properties or cases can no longer be changed. So the final candidates for names are:
 
-- `@frozen`, to match [SE-0192][]
-- `@fixedContents`, or something else specific to structs
+- `@frozen` for both, to match the term used in [SE-0192][]
+- `@frozen` for enums but `@fixedContents`, or something else, specific to structs
 - `@available(*, frozen)`, to leave space for e.g. "frozen as of dishwasherOS 5"
 
 Other names are discussed in "Alternatives considered"
@@ -196,7 +194,7 @@ C++ structs may also contain non-trivial fields. Rather than client code being a
 
 Rust likewise has a custom layout algorithm for the fields of its structs. While Rust has not put too much effort into having a stable ABI (other than interoperation with C), their current design behaves a lot like C's in practice: layout is known at compile-time, and changing a struct's fields will change the ABI.
 
-(there is an interesting post from last year about [optimizing the layout of Rust structs, tuples, and enums][rust].)
+(there is an interesting post a couple of years ago about [optimizing the layout of Rust structs, tuples, and enums][rust].)
 
 Like C++ (and Swift), the fields of a Rust struct may be non-trivial to copy; unlike C++ (or Swift), Rust simply does not provide an implicit copy operation if that is the case. In fact, in order to preserve source compatibility, the author of the struct must *promise* that the type will *always* be trivial to copy by implementing a particular trait (protocol), if they want to allow clients to copy the struct through simple assignment.
 
@@ -230,21 +228,22 @@ This change does not impact source compatibility. It has always been a source-co
 
 Currently, the layout of a public struct is known at compile time in both the defining library and in its clients. For a library concerned about binary compatibility, the layout of a non-fixed-contents struct must not be exposed to clients, since the library may choose to add new stored instance properties that do not fit in that layout in its next release, or even remove existing properties as long as they are not public.
 
-These considerations should not affect libraries shipped with their clients, including SwiftPM packages. These libraries should always have binary stability mode turned off, indicating that the compiler is free to optimize based on the layout of a struct (because the library won't change).
+These considerations should not affect libraries shipped with their clients, including SwiftPM packages. These libraries should always have library evolution mode turned off, indicating that the compiler is free to optimize based on the layout of a type (because the library won't change).
 
 
 ## Effect on Library Evolution
 
-The set of binary-compatible changes to a struct's stored instance properties is described above.
+Both structs and enums can gain new protocol conformances or methods, even when `@frozen`. Binary compatability only affects additions of fields or cases.
 
-Taking an existing struct and marking it `@frozen` is something we'd like to support without breaking binary compatibility, but there is no design for that yet.
+The set of binary-compatible changes to a struct's stored instance properties is described above. There are no binary-compatible changes to an enum's cases.
 
-Removing `@frozen` from a struct is not allowed; this would break any existing clients that rely on the struct's existing layout.
+Taking an existing struct or enum and marking it `@frozen` is something we'd like to support without breaking binary compatibility, but there is no design for that yet.
 
+Removing `@frozen` from a type is not allowed; this would break any existing clients that rely on the existing layout.
 
 ### Breaking the contract
 
-Because the compiler uses the set of fields in a fixed-contents struct to determine its in-memory representation and calling convention, adding a new field or removing `@frozen` from a struct in a library will result in "undefined behavior" from any client apps that have not been recompiled. This means a loss of memory-safety and type-safety on par with a misuse of "unsafe" types, which would most likely lead to crashes but could lead to code unexpectedly being executed or skipped. In short, things would be very bad.
+Because the compiler uses the set of fields in a fixed-contents struct to determine its in-memory representation and calling convention, adding a new field or removing `@frozen` from a type in a library will result in "undefined behavior" from any client apps that have not been recompiled. This means a loss of memory-safety and type-safety on par with a misuse of "unsafe" types, which would most likely lead to crashes but could lead to code unexpectedly being executed or skipped. In short, things would be very bad.
 
 Some ideas for how to prevent library authors from breaking the rules accidentally are discussed in "Compatibility checking" under "Future directions".
 
@@ -258,10 +257,6 @@ Of course, the compiler can't stop a library author from modifying the fields of
 - A checker that can compare APIs across library versions, using swiftmodule files or similar.
 
 - Encoding the layout of a type in a symbol name. Clients could link against this symbol so that they'd fail to launch if it changes, but even without that an automated system could check the list of exported symbols to make sure nothing was removed.
-
-This is the same kind of checking described in [SE-0192][] "Non-exhaustive Enums".
-
-  [SE-0192]: https://github.com/apple/swift-evolution/blob/master/proposals/0192-non-exhaustive-enums.md
 
 
 ### Allowing observing accessors
@@ -290,14 +285,15 @@ This proposal suggests a new *attribute* for structs, `@fixedContents`; it could
 
 ### Command-line flag naming
 
-As mentioned above, the current spelling of the `-enable-library-evolution` flag is `-enable-resilience`. The term "resilience" has been an umbrella name for the Swift project's efforts to support evolving an API without breaking binary compatibility, but it isn't well-known outside of the Swift world. It's better to have this flag be more self-explanatory.
+As mentioned above, the current spelling of the flag`-enable-library-evolution`.
+
+The term "resilience" has been an umbrella name for the Swift project's efforts to support evolving an API without breaking binary compatibility, so for some time the flag was flag `-enable-resilience`. But it isn't well-known outside of the Swift world. It's better to have this flag be more self-explanatory.
 
 Alternate bikeshed colors:
 
 - `-enable-abi-stability`
 - `-enable-stable-abi`
 - just `-stable-abi`
-- (your suggestion here)
 
 In practice, the precise name of this flag won't be very important, because (1) the number of people outside of Apple making libraries with binary stability concerns won't be very high, and (2) most people will be building those libraries through Xcode or SwiftPM, which will have its own name for this mode. But naming the *feature* is still important.
 
