@@ -315,7 +315,7 @@ func layoutForFixedContentsStruct(fields: [Field]) -> [Offset: Field]
 To make things simple, let's assume all the fields in the struct have the same type, like this PolarPoint:
 
 ```swift
-@fixedContents public struct PolarPoint {
+@frozen public struct PolarPoint {
   // Yes, these have different access levels.
   // You probably wouldn't do that in real life,
   // but it's needed for this contrived example.
