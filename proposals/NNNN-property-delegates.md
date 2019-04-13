@@ -680,10 +680,7 @@ This formulation of custom attributes fits in with a [larger proposal for custom
 
 ### Mutability of properties with delegates
 
-Generally, a property that has a property delegate will have both a getter and a setter. However, there are several reasons for which the setter may be missing:
-
-* The `value` property of the property delegate type lacks a setter, or its setter is inaccessible
-* The property is declared as a `let`
+Generally, a property that has a property delegate will have both a getter and a setter. However, the setter may be missing if the `value` property of the property delegate type lacks a setter, or its setter is inaccessible.
 
 The synthesized getter will be `mutating` if the property delegate type's `value` property is `mutating` and the property is part of a `struct`. Similarly, the synthesized setter will be `nonmutating` if either the property delegate type's `value` property has a `nonmutating` setter or the property delegate type is a `class`. For example:
 
@@ -730,7 +727,7 @@ example:
 
 
 ```swift
-@Lazy let x: Int
+@Lazy var x: Int
 // ...
 x = 17   // okay, treated as $x = .init(initialValue: 17)
 ```
@@ -815,7 +812,7 @@ Currently, identifiers starting with a `$` are not permitted in Swift programs. 
 This proposal loosens these rules slightly: the Swift compiler will introduce identifiers that start with `$` (for the synthesized storage property), and Swift code can reference those properties. However, Swift code cannot declare any new entities with an identifier that begins with `$`. For example:
 
 ```swift
-var x by Lazy = 17
+@Lazy var x = 17
 print($x)     // okay to refer to compiler-defined $x
 let $y = 17   // error: cannot declare entity with $-prefixed name '$y'
 ```
@@ -944,7 +941,7 @@ protocol PropertyDelegate {
 
 There are a few issues here. First, a single protocol
 `PropertyDelegate` cannot handle all of the variants of `value` that
-are implied by the section 'Mutability of properties with delegates'_,
+are implied by the section on mutability of properties with delegates,
 because we'd need to cope with `mutating get` as well as `set` and
 `nonmutating set`. Moreover, protocols don't support optional
 requirements, like `init(initialValue:)` (which also has two
