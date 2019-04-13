@@ -68,7 +68,7 @@ This attribute has no effect when library evolution mode is off. In that case, t
 
 A new command-line argument, `-enable-library-evolution`, will enable this new mode.
 
-Turning on library evolution mode will have the following affects on source code:
+Turning on library evolution mode will have the following effects on source code:
 
 - The default behavior for enums will change to be non-frozen. This is the only change visible to _users_ of the library, who will need to use the `@unknown default:` technique described in SE-0192.
 - To ensure that all fields are initialized, inlinable `init`s of the type must delegate to a non-inlinable `init`.
