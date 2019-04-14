@@ -110,7 +110,7 @@ This affects what changes to the struct's fields affect the ABI of the containin
 | Changing a stored instance property to computed | Allowed | **Affects ABI**
 | Changing a computed instance property to stored | Allowed | **Affects ABI**
 | Changing the access of a non-ABI-public field | Allowed | Allowed
-| Marking an `internal` field as `@abiPublic` | Allowed | Allowed
+| Marking an `internal` field as `@usableFromInline` | Allowed | Allowed
 | Changing an `internal` ABI-public field to be `public` | Allowed | Allowed
 
 > Note: This proposal is implemented already and in use by the standard library, albeit under different names. The command-line flag is `-enable-library-evolution`; the attribute is `@_fixed_layout` for structs, and `@_frozen` for enums.
