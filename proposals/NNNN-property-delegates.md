@@ -4,7 +4,7 @@
 * Authors: [Doug Gregor](https://github.com/DougGregor), [Joe Groff](https://github.com/jckarter)
 * Review Manager: **TBD**
 * Status: **Awaiting review**
-* Implementation: [PR #23701](https://github.com/apple/swift/pull/23701), [Ubuntu 16.04 Linux toolchain](https://ci.swift.org/job/swift-PR-toolchain-Linux/221/artifact/branch-master/swift-PR-23701-221-ubuntu16.04.tar.gz), [macOS toolchain](https://ci.swift.org/job/swift-PR-toolchain-osx/287//artifact/branch-master/swift-PR-23701-287-osx.tar.gz)
+* Implementation: [PR #23701](https://github.com/apple/swift/pull/23701), [Ubuntu 16.04 Linux toolchain](https://ci.swift.org/job/swift-PR-toolchain-Linux/223/artifact/branch-master/swift-PR-23701-223-ubuntu16.04.tar.gz), [macOS toolchain](https://ci.swift.org/job/swift-PR-toolchain-osx/287//artifact/branch-master/swift-PR-23701-287-osx.tar.gz)
 
 ## Introduction
 
