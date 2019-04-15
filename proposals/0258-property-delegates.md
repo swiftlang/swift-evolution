@@ -1,9 +1,9 @@
 # Property Delegates
 
-* Proposal: [SE-NNNN](NNNN-property-delegates.md)
+* Proposal: [SE-0258](0258-property-delegates.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor), [Joe Groff](https://github.com/jckarter)
-* Review Manager: **TBD**
-* Status: **Awaiting review**
+* Review Manager: [John McCall](https://github.com/rjmccall)
+* Status: **Active review (April 15...23, 2019)**
 * Implementation: [PR #23701](https://github.com/apple/swift/pull/23701), [Ubuntu 16.04 Linux toolchain](https://ci.swift.org/job/swift-PR-toolchain-Linux/223/artifact/branch-master/swift-PR-23701-223-ubuntu16.04.tar.gz), [macOS toolchain](https://ci.swift.org/job/swift-PR-toolchain-osx/287//artifact/branch-master/swift-PR-23701-287-osx.tar.gz)
 
 ## Introduction
