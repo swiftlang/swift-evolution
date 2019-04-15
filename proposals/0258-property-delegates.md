@@ -571,14 +571,15 @@ print(myValue)   // print the most recent value
 ### Property delegate types
 
 A *property delegate type* is a type that can be used as a property
-delegate. There are two basic requirements for a property delegate
+delegate. There are three basic requirements for a property delegate
 type:
 
 1. The property delegate type must be defined with the attribute
 `@propertyDelegate`. The attribute indicates that the type is meant to
 be used as a property delegate type, and provides a point at which the
 compiler can verify any other consistency rules.
-2. The property delegate type must have a property named `value`, whose
+2. The name of the property delegate type must not match the regular expression `_*[a-z].*`. Such names are reserved for compiler-defined attributes.
+3. The property delegate type must have a property named `value`, whose
 access level is the same as that of the type itself. This is the
 property used by the compiler to access the underlying value on the
 delegate instance.
