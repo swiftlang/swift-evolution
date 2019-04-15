@@ -262,7 +262,7 @@ This enables multi-phase initialization, like this:
 
 ```swift
 class Foo {
-  @DelayedImmutable var x: Int
+  @DelayedImmutable() var x: Int
 
   init() {
     // We don't know "x" yet, and we don't have to set it
