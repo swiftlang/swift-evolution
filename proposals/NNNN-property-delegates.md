@@ -430,7 +430,7 @@ struct CopyOnWrite<Value: Copyable> {
   
   private(set) var value: Value
   
-  var storageValue: Value {
+  var delegateValue: Value {
     mutating get {
       if !isKnownUniquelyReferenced(&value) {
         value = value.copy()
@@ -444,7 +444,7 @@ struct CopyOnWrite<Value: Copyable> {
 }
 ```
 
-`storageValue` provides delegation for the synthesized storage property, allowing the copy-on-write wrapper to be used directly:
+`delegateValue` provides delegation for the synthesized storage property, allowing the copy-on-write wrapper to be used directly:
 
 ```swift
 @CopyOnWrite var storage: MyStorageBuffer
@@ -452,7 +452,7 @@ struct CopyOnWrite<Value: Copyable> {
 // Non-modifying access:
 let index = storage.index(of: …)
 
-// For modification, access $storage, which goes through `storageValue`:
+// For modification, access $storage, which goes through `delegateValue`:
 $storage.append(…)
 ```
 
@@ -507,7 +507,7 @@ class Box<Value> {
     self.value = initialValue
   }
 
-  var storageValue: Ref<Value> {
+  var delegateValue: Ref<Value> {
     return Ref<Value>(read: { self.value }, write: { self.value = $0 })
   }
 }
@@ -520,11 +520,11 @@ Now, we can define a new `Box` directly:
 
 print(rectangle)  // access the rectangle
 print(rectangle.topLeft) // access the top left coordinate of the rectangle
-let rect2 = $rectangle   // through storageValue, produces a Ref<Rectangle>
-let topLeft2 = $rectangle.topLeft   // through storageValue, produces a Ref<Point>
+let rect2 = $rectangle   // through delegateValue, produces a Ref<Rectangle>
+let topLeft2 = $rectangle.topLeft   // through delegateValue, produces a Ref<Point>
 ```
 
-The use of `storageValue` hides the box from the client, providing direct access to the value in the box (the common case) as well as access to the box contents via Ref.
+The use of `delegateValue` hides the box from the client, providing direct access to the value in the box (the common case) as well as access to the box contents via Ref.
 
 ### Property delegate types in the wild
 
@@ -848,8 +848,8 @@ A property with a delegate can declare accessors explicitly (`get`, `set`, `didS
 
 ### Delegating access to the storage property
 
-A property delegate type can choose to hide its instance entirely by providing a property named `storageValue`. As with the `value` property and`init(initialValue:)`, the `storageValue` property must have the
-same access level as its property delegate type. When present, the synthesized storage property is hidden completely and the property `$foo` becomes a computed property accessing the storage property's `storageValue`. For example:
+A property delegate type can choose to hide its instance entirely by providing a property named `delegateValue`. As with the `value` property and`init(initialValue:)`, the `delegateValue` property must have the
+same access level as its property delegate type. When present, the synthesized storage property is hidden completely and the property `$foo` becomes a computed property accessing the storage property's `delegateValue`. For example:
 
 ```swift
 class StorageManager {
@@ -870,7 +870,7 @@ struct LongTermStorage<Value> {
     set { pointer.pointee = newValue }
   }
 
-  var storageValue: UnsafeMutablePointer<Value> {
+  var delegateValue: UnsafeMutablePointer<Value> {
     return pointer
   }
 }
@@ -887,7 +887,7 @@ var someValue: String
 print(someValue)     // prints "Hello"
 someValue = "World"  // update the value in storage to "World"
 
-// $someValue accesses the storageValue property of the delegate instance, which
+// $someValue accesses the delegateValue property of the delegate instance, which
 // is an UnsafeMutablePointer<String>
 let world = $someValue.move()   // take value directly from the storage
 $someValue.initialize(to: "New value")
