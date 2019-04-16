@@ -235,7 +235,7 @@ a `let`:
 
 ```swift
 @propertyDelegate
-struct DelayedImmutable<Value>: Value {
+struct DelayedImmutable<Value> {
   private var _value: Value? = nil
 
   var value: Value {
