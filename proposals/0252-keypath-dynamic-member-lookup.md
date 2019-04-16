@@ -3,7 +3,7 @@
 * Proposal: [SE-0252](0252-keypath-dynamic-member-lookup.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor), [Pavel Yaskevich](https://github.com/xedin)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.1)**
 * Implementation: [PR #23436](https://github.com/apple/swift/pull/23436)
 
 ## Introduction
