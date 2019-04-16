@@ -252,7 +252,7 @@ struct DelayedImmutable<Value> {
       if _value != nil {
         fatalError("property initialized twice")
       }
-      _value = initialValue
+      _value = newValue
     }
   }
 }
