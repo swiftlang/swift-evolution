@@ -783,7 +783,7 @@ type as the delegate. For example:
 ```swift
 struct Foo {
   @UserDefault(key: "FOO_FEATURE_ENABLED", defaultValue: false)
-  static var x: Bool
+  var x: Bool
   @Lazy var y: Int = 17
   @Lazy(closure: { getBool() }) var z: Bool
   @CopyOnWrite var w: Image
