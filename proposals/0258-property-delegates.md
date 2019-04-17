@@ -861,7 +861,7 @@ class StorageManager {
 struct LongTermStorage<Value> {
   let pointer: UnsafeMutablePointer<Value>
 
-  init(manager: StorageManager, _ initialValue: Value) {
+  init(manager: StorageManager, initialValue: Value) {
     pointer = manager.allocate(Value.self)
     pointer.initialize(to: initialValue)
   }
