@@ -3,8 +3,9 @@
 * Proposal: [SE-0253](https://github.com/apple/swift-evolution/blob/master/proposals/0253-callable.md)
 * Authors: [Richard Wei](https://github.com/rxwei), [Dan Zheng](https://github.com/dan-zheng)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Active review (March 27 - April 5, 2019)**
+* Status: **Returned for revision**
 * Implementation: [apple/swift#23517](https://github.com/apple/swift/pull/23517)
+* Decision Notes: [Rationale](https://forums.swift.org/t/returned-for-revision-se-0253-static-callables/23290)
 
 ## Introduction
 
