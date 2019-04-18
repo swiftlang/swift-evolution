@@ -3,9 +3,10 @@
 * Proposal: [SE-0256](0256-contiguous-collection.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
-* Status: **Active review (April 3 - April 12, 2019)**
+* Status: **Rejected**
 * Previous Proposal: [SE-0237](0237-contiguous-collection.md)
 * Implementation: [apple/swift#23616](https://github.com/apple/swift/pull/23616)
+* Decision Notes: [Rationale](https://forums.swift.org/t/se-0256-introduce-mutable-contiguouscollection-protocol/22569/8)
 
 ## Introduction
 
