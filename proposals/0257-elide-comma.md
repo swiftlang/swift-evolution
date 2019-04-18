@@ -3,10 +3,11 @@
 * Proposal: [SE-0257](0257-elide-comma.md)
 * Author: [Nate Chandler](https://github.com/nate-chandler), [Matthew Johnson](https://github.com/anandabits)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
-* Status: **Active review (April 9 - April 18, 2019)**
+* Status: **Returned for revision**
 * Implementation: [apple/swift#21876](https://github.com/apple/swift/pull/22714)
 * Previous Pitch: [Trailing commas in all expression lists](https://forums.swift.org/t/trailing-commas-in-all-expression-lists/19527)
 * Previous Pitch: [SE-0084 spinoff: Newlines as item separators](https://forums.swift.org/t/se-0084-spinoff-newlines-as-item-separators/2659)
+* Decision Notes: [Rationale](https://forums.swift.org/t/se-0257-eliding-commas-from-multiline-expression-lists/22889/191)
 
 # Introduction
 
