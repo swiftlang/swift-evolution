@@ -55,17 +55,17 @@ users.filter(\.isAdmin)
 
 ## Detailed design
 
-As implemented in [apple/swift#19448](https://github.com/apple/swift/pull/19448), occurrences of `\Root.value` are implicitly converted to key path applications of `{ $0[keyPath: \Root.value] }` wherever `(Root) -> Value` functions are expected. For example:
+As implemented in [apple/swift#19448](https://github.com/apple/swift/pull/19448), occurrences of `\Root.value` are implicitly converted to key path applications of `$0[keyPath: \Root.value]` wherever `(Root) -> Value` functions are expected.
+
+The following are equivalent:
 
 ``` swift
-users.map(\.email)
+let f: (User) -> String = \User.email
+
+let g: (User) -> String = { kp in { $0[keyPath: \User.email } }(\User.email)
 ```
 
-Is equivalent to:
-
-``` swift
-users.map { $0[keyPath: \User.email] }
-```
+The key path expression is evaluated immediately (rather than lazily) to prevent arguments to key path subscripts from being evaluated more than once.
 
 The implementation is limited to key path literal expressions (for now), which means the following is not allowed:
 
