@@ -62,7 +62,7 @@ The following are equivalent:
 ``` swift
 let f: (User) -> String = \User.email
 
-let g: (User) -> String = { kp in { $0[keyPath: \User.email } }(\User.email)
+let g: (User) -> String = { kp in { $0[keyPath: kp] } }(\User.email)
 ```
 
 The key path expression is evaluated immediately (rather than lazily) to prevent arguments to key path subscripts from being evaluated more than once.
