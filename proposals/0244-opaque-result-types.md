@@ -47,7 +47,7 @@ struct Transformed<S: Shape>: Shape {
 }
 ```
 
-One could compose these transformations by using the existential type `Shape` instead of generic arguments, but doing so would imply more dynamism and runtime overhead than may be desired. If we directly compose the generic containers, maintaining the concrete types, then generic specialization can more readily optimize together the composed operations together, and the type system can also be used . A game or graphics app may want to define objects in terms of their shapes:
+One could compose these transformations by using the existential type `Shape` instead of generic arguments, but doing so would imply more dynamism and runtime overhead than may be desired. If we directly compose the generic containers, maintaining the concrete types, then generic specialization can more readily optimize the composed operations together, and the type system can also be used. A game or graphics app may want to define objects in terms of their shapes:
 
 ```swift
 protocol GameObject {
@@ -162,7 +162,7 @@ different:
 
 ```swift
 var d = makeMeACollection(with: "seventeen")
-c = d // error: types or makeMeACollection<Int> and makeMeACollection<String> are different
+c = d // error: types of makeMeACollection<Int> and makeMeACollection<String> are different
 ```
 
 Like a generic argument, the static type system does not consider the opaque type to be statically equivalent to the type it happens to be bound to:
@@ -230,7 +230,7 @@ func f6<T: P & Initializable>(_: T.Type) -> some P {
 
 These rules guarantee that there is a single concrete type produced by any call to the function. The concrete type can depend on the generic type arguments (as in the `f6()` example), but must be consistent across all `return` statements.
 
-Note that recursive calls *are* allowed, and are known to produce a value of the same concrete type, but that the concrete type itself is not known:
+Note that recursive calls *are* allowed, and are known to produce a value of the same concrete type, but the concrete type itself is not known:
 
 ```swift
 func f7(_ i: Int) -> some P {
