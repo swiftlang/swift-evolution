@@ -39,13 +39,13 @@ chats.sort { $0.lastMessage.date > $1.lastMessage.date }
 In many circumstances, this approach can cause issues:
 * The `$0.property < $1.property` syntax often leads to copy-and-paste bugs.
 * For long property names or complicated multi-line predicates, this syntax can be especially verbose since it requires duplicating the logic for retrieving the values.
-* When the values are expensive to retrieve or calculate, this type of predicate becomes an obstacle for optimizations. It may be desirable to trade memory for speed such that each value is computed once per element rather than O(*n* log*n*) times. For an ϴ(*n*) operation, this optimization can theoretically speed up sorting by a factor of 10 for an array of 1000 elements. This is called the  [Schwartzian Transform](https://en.wikipedia.org/wiki/Schwartzian_transform).
+* When the values are expensive to retrieve or calculate, a predicate alone becomes a performance deadlock: it may be desirable to trade memory for speed such that each value is computed once per element rather than O(*n* log*n*) times. Given a ϴ(*n*) mapping operation, the [Schwartzian Transform](https://en.wikipedia.org/wiki/Schwartzian_transform) theoretically provides a tenfold speedup for an array of 1000 elements. In *real-world* use, however, the speed gain is often substantially larger. This is a progressive optimization: the greater the array size and cost of the mapping operation, the greater the efficiency. 
 
 Thereby, the goal of this proposal is to introduce an API that decouples the comparison of values from their retrieval, bringing ergonomic benefits for an ample range of cases, and opening the door for new optimizations.
 
 ## Proposed solution
 
-The authors propose to add an overload for both the nonmutating `sorted` and in-place `sort` methods on `Sequence` and `MutableCollection` respectively. A mapping closure `(Element) -> Value` will lead the argument list, followed by the well known `areInIncreasingOrder` predicate of the type `(Value, Value) -> Bool`. Additionally, we propose a flag for opting in to the Schwartzian Transform optimization.
+The authors propose to add an overload for both the nonmutating `sorted` and in-place `sort` methods on `Sequence` and `MutableCollection` respectively. A mapping closure `(Element) -> Value` will lead the argument list, followed by the well known `areInIncreasingOrder` predicate of type `(Value, Value) -> Bool`. Additionally, we propose a flag for opting in to the Schwartzian Transform optimization.
  
  Here are some example usages:
 
@@ -160,7 +160,7 @@ The authors concluded that `transform` should be positioned *before* the `areInI
 
 ### `isExpensiveTransform`
 
-The `isExpensiveTransform` is an optional flag included in the proposed method so that the caller may opt-in to using the [Schwartzian Transform](https://en.wikipedia.org/wiki/Schwartzian_transform). The authors think that this optimization is useful enough to be worth including as a part of the proposal. Since it is an optional parameter (defaulting to `false`), it could alternatively be excluded. Callers seeking this sort of optimization would otherwise have to use a more complex pattern that is both easy to get wrong and generally less efficient than the implementation provided in this proposal.
+The `isExpensiveTransform` is an optional flag included in the proposed method so that the caller may opt-in to using the [Schwartzian Transform](https://en.wikipedia.org/wiki/Schwartzian_transform). The authors think that this optimization is useful enough to be worth including as a part of the proposal. Since it is an optional parameter (defaulting to `false`), it could alternatively be excluded. Performance-minded users would otherwise have to reinvent the wheel, which tends to be a source of mistakes and suboptimal performance.
 
 ```swift
 array.map { ($0, $0.count) }
