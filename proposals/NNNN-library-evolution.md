@@ -5,7 +5,7 @@
 * Review Manager: TBD
 * Status: **Awaiting review**
 * Implementation: Implemented in Swift 5 for standard library use
-* Pre-review discussion: (TODO)
+* Pre-review discussion: [Forum thread](https://forums.swift.org/t/pitch-library-evolution-for-stable-abis/)
 
 <!--
 *During the review process, add the following fields as needed:*
@@ -58,7 +58,9 @@ When a library is compiled with library evolution mode enabled, it is not an ABI
 
 A new `@frozen` keyword will be introduced to allow library authors to opt out of this flexibility on a per-type basis. This keyword promises that stored instance properties within the struct will not be *added,* *removed,* or *reordered*, and that an enum will never *add,* *remove,* or *reorder* its cases (note removing, and sometimes reordering, cases can already be source breaking, not just ABI breaking). The compiler will use this for optimization purposes when compiling clients of the type. The precise set of allowed changes is defined below.
 
-This attribute has no effect when library evolution mode is off. In that case, the compiler acts as if *every* struct or enum in the library being compiled is "frozen".
+This attribute has does not affect a compiled binary when library evolution mode is off. In that case, the compiler acts as if *every* struct or enum in the library being compiled is "frozen". However, restrictions such as requiring stored properties on frozen structs to be ABI-public will still be enforced to avoid confusion when moving between modes.
+
+Binaries compiled without this mode should not be declared as ABI-stable. While they should be stable even without library evolution mode turned on, doing this will not be a supported configuration.
 
 ## Detailed design
 
@@ -133,7 +135,7 @@ Marking a struct `@frozen` only guarantees that its stored instance properties w
 
 That said, the compiler is allowed to use its knowledge of the struct's contents and layout to derive any of these properties. For instance, the compiler can statically prove that copying `Point` is "trivial", because each of its members has a statically-known type that is "trivial". However, depending on this at the language level is not supported, with two exceptions:
 
-1. The run-time memory layout of a struct with a single field is always identical to the layout of the instance property on its own, whether the struct is declared `@frozen` or not. This has been true since Swift 1. (This does not extend to the calling convention, however.)
+1. The run-time memory layout of a struct with a single field is always identical to the layout of the instance property on its own, whether the struct is declared `@frozen` or not. This has been true since Swift 1. (This does not extend to the calling convention, however. If the struct is not frozen, it will be passed indirectly even if its single field is frozen and thus _can_ be passed directly)
 
 2. The representation of `nil` for any type that is "nullable" in C / Objective-C is the same as the representation of `nil` or `NULL` in those languages. This includes class references, class-bound protocol references, class type references, unsafe-pointers, `@convention(c)` functions, `@convention(block)` functions, OpaquePointer, Selector, and NSZone. This has been true since Swift 3 ([SE-0055][]).
 
