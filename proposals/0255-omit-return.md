@@ -3,7 +3,7 @@
 * Proposal: [SE-0255](0255-omit-return.md)
 * Author: [Nate Chandler](https://github.com/nate-chandler)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active review (April 2 - April 11, 2019)**
+* Status: **Accepted**
 * Implementation: [apple/swift#23251](https://github.com/apple/swift/pull/23251)
 * Previous Proposal: [SE-NNNN](https://github.com/DevAndArtist/swift-evolution/blob/single_expression_optional_return/proposals/nnnn-single-expression-optional-return.md)
 
