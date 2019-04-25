@@ -3,8 +3,8 @@
 * Proposal: [SE-0251](0251-simd-additions.md)
 * Author: [Stephen Canon](https://github.com/stephentyrone)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Accepted with Modifications**
-* Implementation: [apple/swift#23421](https://github.com/apple/swift/pull/23421)
+* Status: **Implemented with Modifications (Swift 5.1)**
+* Implementation: [apple/swift#23421](https://github.com/apple/swift/pull/23421) and [apple/swift#24136](https://github.com/apple/swift/pull/24136) 
 * Review: ([review](https://forums.swift.org/t/se-0251-simd-additions/21957)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0251-simd-additions/22801))
 
 
@@ -355,3 +355,7 @@ operation did not have satisfactory naming, and I would like to come up with a b
 pattern for these that handles iterating over a sequence of SIMD vectors loaded from
 a collection of scalars and storing them out as a single pattern, rather than building
 it up one piece at a time.
+
+## Implementation Notes
+
+Due to a desire to avoid collision between the `min(u, v)` (pointwise minimum on SIMD vectors) and `min(u, v)` (minimum defined on `Comparable`, if a user adds a retroactive conformance), the core team decided to rename the SIMD operations to `pointwiseMin(u, v)` and `pointwiseMax(u, v)`.
