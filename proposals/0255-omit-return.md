@@ -48,7 +48,7 @@ Even to readers without such exposure, though, the meaning will be clear: When r
 In fact, exposure to functions--whose types are always stated--without an explicit `return` keyword will help prepare new Swift users to understand code like
 
 ```swift
-let ages = persons.map { $0.name }
+let names = persons.map { $0.name }
 ```
 
 Their prior exposure to functions which implicitly return the single expression in their bodies will lead them to conclude that the closure being passed to map is returning the expression `$0.name` and that the return type of the closure is `String` (the type of `name`, here).
