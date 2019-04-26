@@ -442,8 +442,8 @@ struct Adder {
 }
 ```
 
-This alternative is in fact [the proposed solution in first round of
-review](https://github.com/apple/swift-evolution/blob/36ea8be09508db9380949954d0c7a101fdb15226/proposals/0253-callable.md),
+This alternative is in fact what's proposed in [the first revision of this
+proposal](https://github.com/apple/swift-evolution/blob/36ea8be09508db9380949954d0c7a101fdb15226/proposals/0253-callable.md),
 which got [returned for
 revision](https://forums.swift.org/t/returned-for-revision-se-0253-static-callables/23290).
 
