@@ -590,7 +590,7 @@ called "function calls".
   
   Both `apply` and `invoke` are clearly imperative verb phrases. If call-syntax
   delegate methods must be named `apply` or `invoke`, their declarations and
-  direct references will look almost certainly read like a mutating function
+  direct references will almost certainly read like a mutating function
   while they may not be.
   
   In contrast, `call` is both a noun and a verb. It is perfectly suited for
