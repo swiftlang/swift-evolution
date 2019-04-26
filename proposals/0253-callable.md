@@ -452,10 +452,15 @@ revision](https://forums.swift.org/t/returned-for-revision-se-0253-static-callab
 ```swift
 struct Adder {
     var base: Int
-    // Option: unnamed `func`.
-    func(_ x: Int) -> Int {
-        return base + x
-    }
+    // Option: `func` with literally no name.
+    func(_ x: Int) -> Int { ... }
+
+    // Option: `func` with an underscore at the base name position.
+    func _(_ x: Int) -> Int
+    
+    // Option: `func` with a `self` keyword at the base name position.
+    func self(_ x: Int) -> Int
+
     // Option: `call` method modifier on unnamed `func` declarations.
     // Makes unnamed `func` less weird and clearly states "call".
     call func(_ x: Int) -> Int { ... }
@@ -463,7 +468,7 @@ struct Adder {
 ```
 
 This approach represents call-syntax delegate methods as unnamed `func`
-declarations instead of creating a new `call` method kind.
+declarations instead of `func call`.
 
 One option is to use `func(...)` without an identifier name. Since the word
 "call" does not appear, it is less clear that this denotes a call-syntax
@@ -523,25 +528,9 @@ However, there are two concerns.
 In contrast, standardizing on a specific name defines these problems away and
 makes this feature easier to use.
 
-For reference: other languages with callable functionality typically require
+For reference: Other languages with callable functionality typically require
 call-syntax delegate methods to have a particular name (e.g. `def __call__` in
 Python, `def apply` in Scala).
-
-#### Use `func` with a special name to mark call-syntax delegate methods
-
-```swift
-struct Adder {
-    var base: Int
-    // Option: specially-named `func` declarations.
-    func _(_ x: Int) -> Int
-    func self(_ x: Int) -> Int
-}
-```
-
-This approach represents call-syntax delegate methods as `func` declarations
-with a special name instead of creating a new `call` method kind. However, such
-`func` declarations do not convey "call-syntax delegate method" as clearly as
-method declarations named `call`.
 
 #### Use a type attribute to mark types with call-syntax delegate methods
 
@@ -592,17 +581,17 @@ We feel this approach is not ideal for the same reasons as the marker type attri
 
 ### Alternative names for call-syntax delegate methods
 
-In addition to `call`, there are other names that can be used to denote the
+In addition to `call`, there are other words that can be used to denote the
 function call syntax. The most common ones are `apply` and `invoke` as they are
 used to declare call-syntax delegate methods in other programming languages.
 
 Both `apply` and `invoke` are good one-syllable English words that are
 technically correct, but we feel there are two concerns with these names:
 
-* They are new official terminology that need to be introduced. In [the
-_Functions_ chapter of _The Swift Programming Language_
+* They are officially completely new terminology to Swift. In [the _Functions_
+chapter of _The Swift Programming Language_
 book](https://docs.swift.org/swift-book/LanguageGuide/Functions.html), there is
-no mentions of "apply" or "invoke" anywhere. Function calls are officially
+no mention of "apply" or "invoke" anywhere. Function calls are officially
 called "function calls".
 
 * They do not work very well with Swift's API naming conventions. According to
@@ -613,10 +602,10 @@ called "function calls".
   > Those with side-effects should read as imperative verb phrases, e.g.,
   > `print(x)`, `x.sort()`, `x.append(y)`.
   
-  Both `apply` and `invoke` are clearly imperative verb phrases. If call-syntax
+  Both `apply` and `invoke` are clearly imperative verbs. If call-syntax
   delegate methods must be named `apply` or `invoke`, their declarations and
-  direct references will almost certainly read like a mutating function
-  while they may not be.
+  direct references will almost certainly read like a mutating function while
+  they may not be.
   
   In contrast, `call` is both a noun and a verb. It is perfectly suited for
   describing the precise functionality while not having a strong implication
