@@ -1,4 +1,4 @@
-# Introduce callables
+# User-defined callable values
 
 * Proposal: [SE-0253](https://github.com/apple/swift-evolution/blob/master/proposals/0253-callable.md)
 * Authors: [Richard Wei](https://github.com/rxwei), [Dan Zheng](https://github.com/dan-zheng)
@@ -10,9 +10,19 @@
 
 ## Introduction
 
-This proposal introduces [callables](https://en.wikipedia.org/wiki/Callable_object) to Swift. Callables are values that define function-like behavior and can be applied using function application syntax.
+This proposal introduces "statically"
+[callable](https://en.wikipedia.org/wiki/Callable_object) values to Swift.
+Callable values are values that define function-like behavior and can be called
+using function call syntax. In contrast to dynamically callable values
+introduced in
+[SE-0216](https://github.com/apple/swift-evolution/blob/master/proposals/0216-dynamic-callable.md),
+this feature supports statically declared arities, argument labels, and
+parameter types, and is not constrained to primary type declarations.
 
-In a nutshell, we propose to introduce a new declaration syntax with the keyword `call`:
+In a nutshell, values that have a method whose base name is `call` (referred to
+as a "`call` method" for the rest of this proposal) can be called like a
+function. The function call syntax forwards arguments to the corresponding
+`call` method.
 
 ```swift
 struct Adder {
@@ -21,11 +31,7 @@ struct Adder {
         return base + x
     }
 }
-```
 
-Values that have a `call` method can be applied like functions, forwarding arguments to the `call` method.
-
-```swift
 let add3 = Adder(base: 3)
 add3(10) // => 13
 ```
@@ -314,9 +320,22 @@ add1(1, 2, 3)
 // error: cannot invoke 'add1' with an argument list of type '(Int, Int, Int)'
 ```
 
+### Direct reference to `call`
+
+Since a `call` method is a normal method, one can refer to a `call` method using
+its declaration name and get a closure where `self` is captured. This is exactly
+how method references work today.
+
+```swift
+let add1 = Adder(base: 1)
+let f1: (Int) -> Int = add1.call
+let f2: (Float) -> Float = add1.call(_:)
+let f3: (Int, Bool) throws -> Int = add1.call(_:bang:)
+```
+
 ### When the type is also `@dynamicCallable`
 
-A type can both have `call` functions and be declared with `@dynamicCallable`.
+A type can both have `call` methods and be declared with `@dynamicCallable`.
 When type-checking a call expression, the type checker will first try to resolve
 the call to a function or initializer call, then a `call` method call, and
 finally a dynamic call.
@@ -597,11 +616,9 @@ called "function calls".
   describing the precise functionality while not having a strong implication
   about the function's side-effects.
   
-  > **call**
-  >
-  >   _v._ Cause (a subroutine) to be executed.
-  >
-  >   _n._ A command to execute a subroutine.
+  **call**
+  - _v._ Cause (a subroutine) to be executed.
+  - _n._ A command to execute a subroutine.
 
 ### Unify callable functionality with `@dynamicCallable`
 
