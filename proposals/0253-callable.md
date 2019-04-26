@@ -245,7 +245,8 @@ A long term goal with the type system is to unify compound types (e.g. function 
 
 ## Proposed design
 
-We propose to introduce a new keyword `call` and a new declaration syntax–the call declaration syntax.
+We propose to introduce a syntactic sugar for values that have an instance
+method whose base name is `call` (a `call` method).
 
 ```swift
 struct Adder {
@@ -256,16 +257,17 @@ struct Adder {
 }
 ```
 
-Values that have a `call` method can be called like a function, forwarding arguments to the `call` method.
+Values that have a `call` method can be called like a function, forwarding
+arguments to the `call` method.
 
 ```swift
 let add3 = Adder(base: 3)
 add3(10) // => 13
 ```
 
-Note: there are many alternative syntaxes for marking "call-syntax delegate
+Note: There are many alternative syntaxes for marking "call-syntax delegate
 methods". These are listed and explored in the ["Alternatives
-considered"](#alternative-ways-to-denote-call-syntax-delegate-methods) section.
+considered"](#alternative-ways-to-declare-call-syntax-delegate-methods) section.
 
 ## Detailed design
 
@@ -377,9 +379,10 @@ let h = add1 as (Int) -> Int
 
 On the [pitch
 thread](https://forums.swift.org/t/pitch-introduce-static-callables/21732/2),
-@jckarter brought up the possibility of allowing function types to be used as
-conformance constraints. Performance-minded programmers can define custom
-closure types where the closure context is not fully type-erased.
+[Joe Groff](https://github.com/jckarter) brought up the possibility of allowing
+function types to be used as conformance constraints. Performance-minded
+programmers can define custom closure types where the closure context is not
+fully type-erased.
 
 ```swift
 struct BoundClosure<T, F: (T) -> ()>: () -> () {
@@ -535,7 +538,10 @@ struct Adder {
 }
 ```
 
-This approach represents call-syntax delegate methods as `func` declarations with a special name instead of creating a new `call` method kind. However, such `func` declarations do not convey "call-syntax delegate method" as clearly as the `call` keyword.
+This approach represents call-syntax delegate methods as `func` declarations
+with a special name instead of creating a new `call` method kind. However, such
+`func` declarations do not convey "call-syntax delegate method" as clearly as
+method declarations named `call`.
 
 #### Use a type attribute to mark types with call-syntax delegate methods
 
