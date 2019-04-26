@@ -565,8 +565,6 @@ struct Adder: Callable {
 
 We feel this approach is not ideal for the same reasons as the marker type attribute. A marker protocol by itself is not meaningful and the name for call-syntax delegate methods is informal. Additionally, protocols should represent particular semantics, but call-*syntax* behavior has no inherent semantics.
 
-In comparison, `call` methods have a formal representation in the language and exactly indicate callable behavior (unlike a marker attribute or protocol).
-
 ### Alternative names for call-syntax delegate methods
 
 In addition to `call`, there are other names that can be used to denote the
@@ -599,8 +597,10 @@ called "function calls".
   describing the precise functionality while not having a strong implication
   about the function's side-effects.
   
-  > **call**:
+  > **call**
+  >
   >   _v._ Cause (a subroutine) to be executed.
+  >
   >   _n._ A command to execute a subroutine.
 
 ### Unify callable functionality with `@dynamicCallable`
