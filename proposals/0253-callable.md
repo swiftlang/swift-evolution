@@ -344,9 +344,14 @@ finally a dynamic call.
 
 ### Implementation
 
-The implementation is very simple: [less than 200 lines of
+The implementation is very simple and non-invasive: [less than 200 lines of
 code](https://github.com/apple/swift/pull/24299) in the type checker that
 performs lookup and expression rewrite.
+
+```swift
+let add1 = Adder(base: 1)
+add1(0) // Rewritten to `add1.call(0)` after type checking.
+```
 
 ## Source compatibility
 
