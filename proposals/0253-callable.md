@@ -369,16 +369,19 @@ This has no impact on API resilience which is not already captured by other lang
 
 ### Implicit conversions to function
 
-A value cannot be implicitly converted to a function when the destination function type matches the type of the `call` method.
-
-```swift
-let h: (Int) -> Int = add1 // error: cannot convert value of type `Adder` to expected type `(Int) -> Int`
-```
+A value cannot be implicitly converted to a function when the destination
+function type matches the type of the `call` method. Since `call` methods are
+normal methods, you can [refer to them directly](#direct-reference-to-call) via
+`.call` and get a function.
 
 Implicit conversions impact the entire type system and require runtime support
 to work with dynamic casts; thus, further exploration is necessary for a formal
 proposal. This base proposal is self-contained; incremental proposals involving
 conversion can come later.
+
+```swift
+let h: (Int) -> Int = add1
+```
 
 A less controversial future direction is to support explicit conversion via `as`:
 
