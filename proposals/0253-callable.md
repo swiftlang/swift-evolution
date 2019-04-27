@@ -1,4 +1,4 @@
-# User-defined callable values
+# User-defined non-function callable values
 
 * Proposal: [SE-0253](https://github.com/apple/swift-evolution/blob/master/proposals/0253-callable.md)
 * Authors: [Richard Wei](https://github.com/rxwei), [Dan Zheng](https://github.com/dan-zheng)
@@ -342,6 +342,12 @@ When type-checking a call expression, the type checker will first try to resolve
 the call to a function or initializer call, then a `call` method call, and
 finally a dynamic call.
 
+### Implementation
+
+The implementation is very simple: [less than 200 lines of
+code](https://github.com/apple/swift/pull/24299) in the type checker that
+performs lookup and expression rewrite.
+
 ## Source compatibility
 
 This is a strictly additive proposal with no source-breaking changes.
@@ -400,28 +406,43 @@ In this design, the function type constraint behaves like a protocol that
 requires a `call` method whose parameter types are the same as the function type's
 parameter types.
 
-### `static`/`class` `call` methods
-
-Static `call` methods could in theory look like initializers at the call site.
-
-```swift
-extension Adder {
-    static func call(base: Int) -> Int {
-        ...
-    }
-    static func call(_ x: Int) -> Int {
-        ...
-    }
-}
-Adder(base: 3) // error: ambiguous static member; do you mean `init(base:)` or `call(base:)`?
-Adder(3) // okay, returns an `Int`, but it looks really like an initializer that returns an `Adder`.
-```
-
-This is an interesting direction, but since parentheses followed by a type
-identifier often connote initialization and it is not source-compatible, further
-discussions in a separate pitch are necessary.
-
 ## Alternatives considered
+
+### Alternative names for call-syntax delegate methods
+
+In addition to `call`, there are other words that can be used to denote the
+function call syntax. The most common ones are `apply` and `invoke` as they are
+used to declare call-syntax delegate methods in other programming languages.
+
+Both `apply` and `invoke` are good one-syllable English words that are
+technically correct, but we feel there are two concerns with these names:
+
+* They are officially completely new terminology to Swift. In [the _Functions_
+chapter of _The Swift Programming Language_
+book](https://docs.swift.org/swift-book/LanguageGuide/Functions.html), there is
+no mention of "apply" or "invoke" anywhere. Function calls are officially
+called "function calls".
+
+* They do not work very well with Swift's API naming conventions. According to
+  [Swift API Design Guidelines - Strive for Fluent
+  Usage](https://swift.org/documentation/api-design-guidelines/#strive-for-fluent-usage),
+  functions should be named according to their side-effects.
+  
+  > Those with side-effects should read as imperative verb phrases, e.g.,
+  > `print(x)`, `x.sort()`, `x.append(y)`.
+  
+  Both `apply` and `invoke` are clearly imperative verbs. If call-syntax
+  delegate methods must be named `apply` or `invoke`, their declarations and
+  direct references will almost certainly read like a mutating function while
+  they may not be.
+  
+  In contrast, `call` is both a noun and a verb. It is perfectly suited for
+  describing the precise functionality while not having a strong implication
+  about the function's side-effects.
+  
+  **call**
+  - _v._ Cause (a subroutine) to be executed.
+  - _n._ A command to execute a subroutine.
 
 ### Alternative ways to declare call-syntax delegate methods
 
@@ -579,41 +600,26 @@ struct Adder: Callable {
 
 We feel this approach is not ideal for the same reasons as the marker type attribute. A marker protocol by itself is not meaningful and the name for call-syntax delegate methods is informal. Additionally, protocols should represent particular semantics, but call-*syntax* behavior has no inherent semantics.
 
-### Alternative names for call-syntax delegate methods
+### Also allow `static`/`class` `call` methods
 
-In addition to `call`, there are other words that can be used to denote the
-function call syntax. The most common ones are `apply` and `invoke` as they are
-used to declare call-syntax delegate methods in other programming languages.
+Static `call` methods could in theory look like initializers at the call site.
 
-Both `apply` and `invoke` are good one-syllable English words that are
-technically correct, but we feel there are two concerns with these names:
+```swift
+extension Adder {
+    static func call(base: Int) -> Int {
+        ...
+    }
+    static func call(_ x: Int) -> Int {
+        ...
+    }
+}
+Adder(base: 3) // error: ambiguous static member; do you mean `init(base:)` or `call(base:)`?
+Adder(3) // okay, returns an `Int`, but it looks really like an initializer that returns an `Adder`.
+```
 
-* They are officially completely new terminology to Swift. In [the _Functions_
-chapter of _The Swift Programming Language_
-book](https://docs.swift.org/swift-book/LanguageGuide/Functions.html), there is
-no mention of "apply" or "invoke" anywhere. Function calls are officially
-called "function calls".
-
-* They do not work very well with Swift's API naming conventions. According to
-  [Swift API Design Guidelines - Strive for Fluent
-  Usage](https://swift.org/documentation/api-design-guidelines/#strive-for-fluent-usage),
-  functions should be named according to their side-effects.
-  
-  > Those with side-effects should read as imperative verb phrases, e.g.,
-  > `print(x)`, `x.sort()`, `x.append(y)`.
-  
-  Both `apply` and `invoke` are clearly imperative verbs. If call-syntax
-  delegate methods must be named `apply` or `invoke`, their declarations and
-  direct references will almost certainly read like a mutating function while
-  they may not be.
-  
-  In contrast, `call` is both a noun and a verb. It is perfectly suited for
-  describing the precise functionality while not having a strong implication
-  about the function's side-effects.
-  
-  **call**
-  - _v._ Cause (a subroutine) to be executed.
-  - _n._ A command to execute a subroutine.
+This is an interesting direction, but parentheses followed by a type identifier
+often connote initialization and it is not source-compatible. We believe this
+would make call sites look very confusing.
 
 ### Unify callable functionality with `@dynamicCallable`
 
