@@ -3,14 +3,17 @@
 * Proposal: [SE-0251](0251-simd-additions.md)
 * Author: [Stephen Canon](https://github.com/stephentyrone)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active Review (March 22nd...April 1st, 2019)**
-* Implementation: [apple/swift#23421](https://github.com/apple/swift/pull/23421)
+* Status: **Implemented with Modifications (Swift 5.1)**
+* Implementation: [apple/swift#23421](https://github.com/apple/swift/pull/23421) and [apple/swift#24136](https://github.com/apple/swift/pull/24136) 
+* Review: ([review](https://forums.swift.org/t/se-0251-simd-additions/21957)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0251-simd-additions/22801))
+
+
 
 ## Introduction
 
-A few teams within Apple have requested additions to the new SIMD types 
-and protocols to better support their use cases. In addition, there are some features
-we punted out of the original review because we were up against a hard time
+Early adopters of SIMD types and protocols have encountered a few missing things as
+they've started to write more code that uses them. In addition, there are some
+features we punted out of the original review because we were up against a hard time
 deadline to which we would like to give further consideration.
 
 This is a bit of a grab bag of SIMD features, so I'm deviating from the usual proposal
@@ -120,26 +123,20 @@ heavily used.
 For Swift, we want to restrict the feature somewhat, but also make it more powerful.
 In shader languages and clang extensions, you can even use swizzled vectors as *lvalues*,
 so long as the same element does not appear twice. I proposed to define general
-permutes[†] as get-only subscripts. By restricting them from appearing as setters, we
+permutes as get-only subscripts. By restricting them from appearing as setters, we
 gain the flexibility to not require they be compile-time constants:
 ```swift
 extension SIMD {
   /// Extracts the scalars at specified indices to form a SIMD2.
-  ///
-  /// The low-order log2(scalarCount) bits of each element of the
-  /// `masking` index vector are used to index self. E.g.:
-  ///
-  ///   let x = SIMD4<Float>(0, 1, 2, 3)
-  ///   let y = x[SIMD2(5,2)] // (1, 2)
-  ///
-  /// Because of this, the index is always in-range and no trap
-  /// can occur.
-  public subscript<Index>(masking: SIMD2<Index>) -> SIMD2<Scalar>
+	///
+	/// The elements of the index vector are wrapped modulo the count of elements
+	/// in this vector. Because of this, the index is always in-range and no trap
+	/// can occur.
+  public subscript<Index>(index: SIMD2<Index>) -> SIMD2<Scalar>
   where Index: FixedWidthInteger {
     var result = SIMD2<Scalar>()
-    var masked = masking & Index(scalarCount - 1)
     for i in result.indices {
-      result[i] = self[Int(masked[i])]
+      result[i] = self[Int(index[i]) % scalarCount]
     }
     return result
   }
@@ -149,14 +146,6 @@ let v = SIMD4<Float>(1,2,3,4)
 let xyz = SIMD3(2,1,0)
 let w = v[xyz] // SIMD3<Float>(3,2,1)
 ```
-There's one special case, which is when the vector being subscripted has three elements.
-In this case, we can't just mask the index to log2(scalarCount) bits. Instead, we extend
-the vector being subscripted to a four-element vector (x, y, z, z) and mask to two bits.
-This is expected to be an exceptionally rare case--power-of-two dictionaries are the
-norm when dynamic indices are used; the principle concern is merely that we define the
-result to be *something understandable and easily computable* rather than leaving it
-undefined.
-
 ### Alternatives Considered
 1. We might want an explicit label on this subscript, but as with the extending inits, I
 believe that its use is generally clear enough in context.
@@ -190,10 +179,10 @@ for computational geometry.
 ```swift
 extension SIMD where Scalar: Comparable {
   /// The least element in the vector.
-  public var min: Scalar
+  public func min() -> Scalar
 
   /// The greatest element in the vector.
-  public var max: Scalar
+  public func max() -> Scalar
 }
  
 extension SIMD where Scalar: FixedWidthInteger { 
@@ -201,12 +190,12 @@ extension SIMD where Scalar: FixedWidthInteger {
   /// wrapping addition.
   ///
   /// Equivalent to indices.reduce(into: 0) { $0 &+= self[$1] }.
-  public var wrappedSum: Scalar
+  public func wrappedSum() -> Scalar
 }
 
 extension SIMD where Scalar: FloatingPoint {
   /// Returns the sum of the scalars in the vector.
-  public var sum: Scalar
+  public func sum() -> Scalar
 }
 ```
 
@@ -239,11 +228,11 @@ if any(x .< 0) { // handle negative x }
 `any` and `all` are free functions:
 ```swift
 public func any<Storage>(_ mask: SIMDMask<Storage>) -> Bool {
-  return mask._storage.min < 0
+  return mask._storage.min() < 0
 }
 
 public func all<Storage>(_ mask: SIMDMask<Storage>) -> Bool {
-  return mask._storage.max < 0
+  return mask._storage.max() < 0
 }
 ```
 
@@ -287,18 +276,6 @@ We're also missing `clamp` to restrict values to a specified range.
 ### Detailed design
 ```swift
 extension SIMD where Scalar: Comparable {
-  /// The lanewise minimum of two vectors.
-  ///
-  /// Each element of the result is the minimum of the corresponding
-  /// elements of the inputs.
-  public static func min(_ lhs: Self, _ rhs: Self) -> Self 
-  
-  /// The lanewise maximum of two vectors.
-  ///
-  /// Each element of the result is the maximum of the corresponding
-  /// elements of the inputs.
-  public static func max(_ lhs: Self, _ rhs: Self) -> Self 
-  
   /// Replace any values less than lowerBound with lowerBound, and any
   /// values greater than upperBound with upperBound.
   ///
@@ -316,13 +293,22 @@ extension SIMD where Scalar: Comparable {
     return Self.min(upperBound, Self.max(lowerBound, self))
   }
 }
+
+/// The lanewise minimum of two vectors.
+///
+/// Each element of the result is the minimum of the corresponding
+/// elements of the inputs.
+public func min<V>(_ lhs: V, _ rhs: V) -> V where V: SIMD, V.Scalar: Comparable
+
+/// The lanewise maximum of two vectors.
+///
+/// Each element of the result is the maximum of the corresponding
+/// elements of the inputs.
+public func max<V>(_ lhs: V, _ rhs: V) -> V where V: SIMD, V.Scalar: Comparable
 ```
 
 ### Alternatives Considered
-These could be free functions, but that introduces an ambiguity if someone retroactively
-conforms SIMD types to Comparable because they want lexicographic ordering.
-
-They could be spelled out `lanewiseMaximum` or similar, to clarify that they operate
+These could be spelled out `lanewiseMaximum` or similar, to clarify that they operate
 lanewise (Chris suggested this in the pitch thread), but we don't spell out `+` as
 "lanewise-plus", so it seems weird to do it here. The default assumption is that SIMD
 operations are lanewise.
@@ -369,3 +355,7 @@ operation did not have satisfactory naming, and I would like to come up with a b
 pattern for these that handles iterating over a sequence of SIMD vectors loaded from
 a collection of scalars and storing them out as a single pattern, rather than building
 it up one piece at a time.
+
+## Implementation Notes
+
+Due to a desire to avoid collision between the `min(u, v)` (pointwise minimum on SIMD vectors) and `min(u, v)` (minimum defined on `Comparable`, if a user adds a retroactive conformance), the core team decided to rename the SIMD operations to `pointwiseMin(u, v)` and `pointwiseMax(u, v)`.

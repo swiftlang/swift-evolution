@@ -3,7 +3,7 @@
 * Proposal: [SE-0242](0242-default-values-memberwise.md)
 * Author: [Alejandro Alonso](https://github.com/Azoy)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.1)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/se-0242-synthesize-default-values-for-the-memberwise-initializer/20618/98)
 * Implementation: [apple/swift#19743](https://github.com/apple/swift/pull/19743)
 

@@ -3,7 +3,7 @@
 * Proposal: [SE-0248](0248-string-gaps-missing-apis.md)
 * Author: [Michael Ilseman](https://github.com/milseman)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.1)**
 * Implementation: [apple/swift#22869](https://github.com/apple/swift/pull/22869)
 * Bugs: [SR-9955](https://bugs.swift.org/browse/SR-9955)
 

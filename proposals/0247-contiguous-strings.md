@@ -3,7 +3,7 @@
 * Proposal: [SE-0247](0247-contiguous-strings.md)
 * Author: [Michael Ilseman](https://github.com/milseman)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.1)**
 * Implementation: [apple/swift#23051](https://github.com/apple/swift/pull/23051)
 * Bugs: [SR-6475](https://bugs.swift.org/browse/SR-6475)
 
