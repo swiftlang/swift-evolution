@@ -102,6 +102,43 @@ users.map(\.email.count)
 [1, nil, 3, nil, 5].compactMap(\.self)
 ```
 
+### Precise semantics
+
+*(Note: Added after acceptance to clarify the proposed behavior.)*
+
+When inferring the type of a key path literal expression like `\Root.value`, the type checker will prefer `KeyPath<Root, Value>` or one of its subtypes, but will also allow `(Root) -> Value`. If it chooses `(Root) -> Value`, the compiler will generate a closure with semantics equivalent to capturing the key path and applying it to the `Root` argument. For example:
+
+```swift
+// You write this:
+let f: (User) -> String = \User.email
+
+// The compiler generates something like this:
+let f: (User) -> String = { kp in { root in root[keyPath: kp] } }(\User.email)
+```
+
+The compiler may generate any code that has the same semantics as this example; it might not even use a key path at all.
+
+Any side effects of the key path expression are evaluated when the closure is formed, not when it is called. In particular, if the key path contains subscripts, their arguments are evaluated once, when the closure is formed:
+
+```swift
+var nextIndex = 0
+func makeIndex() -> Int {
+  defer { nextIndex += 1 }
+  return nextIndex
+}
+
+let getFirst = \Array<Int>.[makeIndex()]     // Calls makeIndex(), gets 0, forms \Array<Int>.[0]
+let getSecond = \Array<Int>.[makeIndex()]    // Calls makeIndex(), gets 1, forms \Array<Int>.[1]
+
+assert(getFirst([1, 2, 3]) == 1)             // No matter how many times
+assert(getFirst([1, 2, 3]) == 1)             // you call getFirst(),
+assert(getFirst([1, 2, 3]) == 1)             // it always returns root[0].
+
+assert(getSecond([1, 2, 3]) == 2)            // No matter how many times
+assert(getSecond([1, 2, 3]) == 2)            // you call getSecond(),
+assert(getSecond([1, 2, 3]) == 2)            // it always returns root[1].
+```
+
 ## Effect on source compatibility, ABI stability, and API resilience
 
 This is a purely additive change and has no impact.
