@@ -3,8 +3,9 @@
 * Proposal: [SE-0258](0258-property-delegates.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor), [Joe Groff](https://github.com/jckarter)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active review (April 15...23, 2019)**
+* Status: **Returned for revision**
 * Implementation: [PR #23701](https://github.com/apple/swift/pull/23701), [Ubuntu 16.04 Linux toolchain](https://ci.swift.org/job/swift-PR-toolchain-Linux/233/artifact/branch-master/swift-PR-23701-233-ubuntu16.04.tar.gz), [macOS toolchain](https://ci.swift.org/job/swift-PR-toolchain-osx/300/artifact/branch-master/swift-PR-23701-300-osx.tar.gz)
+* Review: ([review](https://forums.swift.org/t/se-0258-property-delegates/23139)) ([revision announcement](https://forums.swift.org/t/returned-for-revision-se-0258-property-delegates/24080))
 
 ## Introduction
 
