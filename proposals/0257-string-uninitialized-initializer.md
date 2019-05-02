@@ -23,17 +23,19 @@ buffer.
 The new initializer takes a closure that operates on an
 `UnsafeMutableBufferPointer` and an `inout` count of initialized elements. This
 closure has access to the uninitialized contents of the newly created String's
-storage, and must set the intialized count of the array before exiting.
+storage, and returns the number of initialized buffer elements, or 0.
 
 ```swift
 let myCocoaString = NSString("The quick brown fox jumps over the lazy dog") as CFString
-var myString = String(unsafeUninitializedCapacity: CFStringGetMaximumSizeForEncoding(myCocoaString, …)) { buffer, initializedCount in
+var myString = String(uninitializedCapacity: CFStringGetMaximumSizeForEncoding(myCocoaString, …)) { buffer in
+    var initializedCount = 0
     CFStringGetBytes(
     	myCocoaString,
     	buffer,
     	…,
     	&initializedCount
     )
+    return initializedCount
 }
 // myString == "The quick brown fox jumps over the lazy dog"
 ```
@@ -47,9 +49,9 @@ Without this initializer we would have had to heap allocate an `UnsafeMutableBuf
   /// calls the given closure with a buffer covering the String's uninitialized
   /// memory.
   ///
-  /// The closure should set `initializedCount` to the number of
-  /// initialized code units, or 0 if it couldn't initialize the buffer
-  /// (for example if the requested capacity was too small).
+  /// The closure should return the number of initialized code units, 
+  /// or 0 if it couldn't initialize the buffer (for example if the 
+  /// requested capacity was too small).
   ///
   /// This method replaces ill-formed UTF-8 sequences with the Unicode
   /// replacement character (`"\u{FFFD}"`); This may require resizing
@@ -60,27 +62,27 @@ Without this initializer we would have had to heap allocate an `UnsafeMutableBuf
   /// sequences and the second with an ill-formed sequence at the end.
   ///
   ///     let validUTF8: [UInt8] = [67, 97, 102, -61, -87, 0]
-  ///     let s = String(unsafeUninitializedCapacity: validUTF8.count,
-  ///                    initializingUTF8With: { (ptr, count) in
+  ///     let s = String(uninitializedCapacity: validUTF8.count,
+  ///                    initializingUTF8With: { ptr in
   ///         ptr.initializeFrom(validUTF8)
-  ///         count = validUTF8.count
+  ///         return validUTF8.count
   ///     })
-  ///     // Prints "Optional(Café)"
+  ///     // Prints "Café"
   ///
   ///     let invalidUTF8: [UInt8] = [67, 97, 102, -61, 0]
-  ///     let s = String(unsafeUninitializedCapacity: invalidUTF8.count,
-  ///                    initializingUTF8With: { (ptr, count) in
+  ///     let s = String(uninitializedCapacity: invalidUTF8.count,
+  ///                    initializingUTF8With: { ptr in
   ///         ptr.initializeFrom(invalidUTF8)
-  ///         count = invalidUTF8.count
+  ///         return invalidUTF8.count
   ///     })
-  ///     // Prints "Optional(Caf�)"
+  ///     // Prints "Caf�"
   ///
-  ///     let s = String(unsafeUninitializedCapacity: invalidUTF8.count,
-  ///                    initializingUTF8With: { (ptr, count) in
+  ///     let s = String(uninitializedCapacity: invalidUTF8.count,
+  ///                    initializingUTF8With: { ptr in
   ///         ptr.initializeFrom(invalidUTF8)
-  ///         count = 0
+  ///         return 0
   ///     })
-  ///     // Prints "Optional("")"
+  ///     // Prints ""
   ///
   /// - Parameters:
   ///   - capacity: The number of UTF-8 code units worth of memory to allocate
@@ -90,22 +92,18 @@ Without this initializer we would have had to heap allocate an `UnsafeMutableBuf
   ///     - Parameters:
   ///       - buffer: A buffer covering uninitialized memory with room for the
   ///           specified number of UTF-8 code units.
-  ///       - initializedCount: Set this to the number of elements in `buffer`
-  ///           that were actually initialized by the `initializer`
-  @inlinable @inline(__always)
   public init(
-    unsafeUninitializedCapacity capacity: Int,
+    uninitializedCapacity capacity: Int,
     initializingUTF8With initializer: (
-    _ buffer: UnsafeMutableBufferPointer<UInt8>,
-    _ initializedCount: inout Int
-    ) throws -> Void
+      _ buffer: UnsafeMutableBufferPointer<UInt8>,
+    ) throws -> Int
   ) rethrows
 ```
 
 ### Specifying a capacity
 
 The initializer takes the specific capacity that a user wants to work with as a
-parameter. The buffer passed to the closure has a count that is exactly the
+parameter. The buffer passed to the closure has a count that is at least the
 same as the specified capacity, even if the ultimate size of the new `String` is larger.
 
 ### Guarantees after throwing
@@ -128,9 +126,9 @@ and will need to remain public API.
 
 ## Alternatives considered
 
-### Returning the new count from the initializer closure
+### Taking an inout count in the initializer rather than returning the new count
 
-This is more plausible for `String` than it was for `Array`, since there's no need to deal with deinitialization of elements in partially initialized buffers (`UInt8`s are trivial). However, it was considered more valuable to match `Array`'s behavior here.
+Consistency with `Array` (which has to use the inout count for correctness) has some appeal here, but ultimately we decided that the value of consistency lies in allowing skill transfer and in repeated use, and these highly specialized initializers don't really allow for that.
 
 ### Returning a `Bool` to indicate success from the closure
 
