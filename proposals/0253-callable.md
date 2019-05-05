@@ -1,9 +1,9 @@
 # Callable values of user-defined nominal types
 
-* Proposal: [SE-0253](https://github.com/apple/swift-evolution/blob/master/proposals/0253-callable.md)
+* Proposal: [SE-0253](0253-callable.md)
 * Authors: [Richard Wei](https://github.com/rxwei), [Dan Zheng](https://github.com/dan-zheng)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **[Active review](https://forums.swift.org/t/se-0253-callable-values-of-user-defined-nominal-types/24177?u=chris_lattner3) through May 13, 2019**
+* Status: **Active review (May 5...May 13)**
 * Implementation: [apple/swift#24299](https://github.com/apple/swift/pull/24299)
 * Previous Revisions: [[1](https://github.com/apple/swift-evolution/blob/36ea8be09508db9380949954d0c7a101fdb15226/proposals/0253-callable.md)]
 * Decision Notes: [Rationale](https://forums.swift.org/t/returned-for-revision-se-0253-static-callables/23290)
