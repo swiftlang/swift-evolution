@@ -4,7 +4,7 @@
 * Authors: [Jordan Rose](https://github.com/jrose-apple), [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: TBD
 * Status: **Awaiting review**
-* Implementation: Implemented in Swift 5 for standard library use
+* Implementation: Implemented in Swift 5 for standard library use. PR with renamed attributes [here](https://github.com/apple/swift/pull/24185).
 * Pre-review discussion: [Forum thread](https://forums.swift.org/t/pitch-library-evolution-for-stable-abis/)
 
 <!--
