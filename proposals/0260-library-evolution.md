@@ -6,6 +6,7 @@
 * Status: **Active Review (May 7...21, 2019)**
 * Implementation: Implemented in Swift 5 for standard library use. PR with renamed attributes [here](https://github.com/apple/swift/pull/24185).
 * Pre-review discussion: [Forum thread](https://forums.swift.org/t/pitch-library-evolution-for-stable-abis/)
+* Review: ([review](https://forums.swift.org/t/se-0260-library-evolution-for-stable-abis/24260))
 
 <!--
 *During the review process, add the following fields as needed:*
