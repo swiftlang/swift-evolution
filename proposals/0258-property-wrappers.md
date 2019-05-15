@@ -1,17 +1,18 @@
-# Property Delegates
+# Property Wrappers
 
-* Proposal: [SE-0258](0258-property-delegates.md)
+* Proposal: [SE-0258](0258-property-wrappers.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor), [Joe Groff](https://github.com/jckarter)
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Returned for revision**
 * Implementation: [PR #23701](https://github.com/apple/swift/pull/23701), [Ubuntu 16.04 Linux toolchain](https://ci.swift.org/job/swift-PR-toolchain-Linux/233/artifact/branch-master/swift-PR-23701-233-ubuntu16.04.tar.gz), [macOS toolchain](https://ci.swift.org/job/swift-PR-toolchain-osx/300/artifact/branch-master/swift-PR-23701-300-osx.tar.gz)
-* Review: ([review](https://forums.swift.org/t/se-0258-property-delegates/23139)) ([revision announcement](https://forums.swift.org/t/returned-for-revision-se-0258-property-delegates/24080))
+* Review: ([review #1](https://forums.swift.org/t/se-0258-property-delegates/23139)) ([revision announcement #1](https://forums.swift.org/t/returned-for-revision-se-0258-property-delegates/24080))
+* Previous versions: [Revision #1](https://github.com/apple/swift-evolution/commit/8c3499ec5bc22713b150e2234516af3cb8b16a0b)
 
 ## Introduction
 
 There are property implementation patterns that come up repeatedly.
 Rather than hardcode a fixed set of patterns into the compiler,
-we should provide a general "property delegate" mechanism to allow
+we should provide a general "property wrapper" mechanism to allow
 these patterns to be defined as libraries.
 
 This is an alternative approach to some of the problems intended to be addressed by the [2015-2016 property behaviors proposal](https://github.com/apple/swift-evolution/blob/master/proposals/0030-property-behavior-decls.md). Some of the examples are the same, but this proposal takes a completely different approach designed to be simpler, easier to understand for users, and less invasive in the compiler implementation. There is a section that discusses the substantive differences from that design near the end of this proposal.
@@ -88,18 +89,18 @@ class Foo {
 
 ## Proposed solution
 
-We propose the introduction of **property delegates**, which allow a
-property declaration to state which **delegate** is used to implement
-it.  The delegate is described via an attribute:
+We propose the introduction of **property wrappers**, which allow a
+property declaration to state which **wrapper** is used to implement
+it.  The wrapper is described via an attribute:
 
 ```swift
 @Lazy var foo = 1738
 ```
 
-This implements the property `foo` in a way described by the *property delegate type* for `Lazy`:
+This implements the property `foo` in a way described by the *property wrapper type* for `Lazy`:
 
 ```swift
-@propertyDelegate
+@propertyWrapper
 enum Lazy<Value> {
   case uninitialized(() -> Value)
   case initialized(Value)
@@ -126,10 +127,10 @@ enum Lazy<Value> {
 }
 ```
 
-A property delegate type provides the storage for a property that
-uses it as a delegate. The `value` property of the delegate type
+A property wrapper type provides the storage for a property that
+uses it as a wrapper. The `value` property of the wrapper type
 provides the actual
-implementation of the delegate, while the (optional)
+implementation of the wrapper, while the (optional)
 `init(initialValue:)` enables initialization of the storage from a
 value of the property's type. The property declaration
 
@@ -149,7 +150,7 @@ var foo: Int {
 
 The use of the prefix `$` for the synthesized storage property name is
 deliberate: it provides a predictable name for the backing storage,
-so that delegate types can provide API. For example, we could provide
+so that wrapper types can provide API. For example, we could provide
 a `reset(_:)` operation on `Lazy` to set it back to a new value:
 
 ```swift
@@ -164,10 +165,10 @@ extension Lazy {
 $foo.reset(42)
 ```
 
-The property delegate instance can be initialized directly by providing the initializer arguments in parentheses after the name. This could be used, for example, when a particular property delegate requires more setup to provide access to a value (example courtesy of Harlan Haskins):
+The property wrapper instance can be initialized directly by providing the initializer arguments in parentheses after the name. This could be used, for example, when a particular property wrapper requires more setup to provide access to a value (example courtesy of Harlan Haskins):
 
 ```swift
-@propertyDelegate
+@propertyWrapper
 struct UserDefault<T> {
   let key: String
   let defaultValue: T
@@ -191,16 +192,16 @@ enum GlobalSettings {
 }
 ```
 
-Property delegates can be applied to properties at global, local, or type scope.
+Property wrappers can be applied to properties at global, local, or type scope.
 
 ## Examples
 
 Before describing the detailed design, here are some more examples of
-delegates.
+wrappers.
 
 ### Delayed Initialization
 
-A property delegate can model "delayed" initialization delegate, where
+A property wrapper can model "delayed" initialization, where
 the definite initialization (DI) rules for properties are enforced
 dynamically rather than at compile time.  This can avoid the need for
 implicitly-unwrapped optionals in multi-phase initialization. We can
@@ -208,7 +209,7 @@ implement both a mutable variant, which allows for reassignment like a
 `var`:
 
 ```swift
-@propertyDelegate
+@propertyWrapper
 struct DelayedMutable<Value> {
   private var _value: Value? = nil
 
@@ -224,7 +225,7 @@ struct DelayedMutable<Value> {
     }
   }
 
-  /// "Reset" the delegate so it can be initialized again.
+  /// "Reset" the wrappe so it can be initialized again.
   mutating func reset() {
     _value = nil
   }
@@ -235,7 +236,7 @@ and an immutable variant, which only allows a single initialization like
 a `let`:
 
 ```swift
-@propertyDelegate
+@propertyWrapper
 struct DelayedImmutable<Value> {
   private var _value: Value? = nil
 
@@ -283,11 +284,11 @@ class Foo {
 
 Many Cocoa classes implement value-like objects that require explicit copying.
 Swift currently provides an `@NSCopying` attribute for properties to give
-them delegate like Objective-C's `@property(copy)`, invoking the `copy` method
-on new objects when the property is set. We can turn this into a delegate:
+them behavior like Objective-C's `@property(copy)`, invoking the `copy` method
+on new objects when the property is set. We can turn this into a wrappe:
 
 ```swift
-@propertyDelegate
+@propertyWrapper
 struct Copying<Value: NSCopying> {
   private var _value: Value
   
@@ -311,11 +312,11 @@ This implementation would address the problem detailed in
 
 ### `Atomic`
 
-Support for atomic operations (load, store, increment/decementer, compare-and-exchange) is a commonly-requested Swift feature. While the implementation details for such a feature would involve compiler and standard library magic, the interface itself can be nicely expressed as a property delegate type:
+Support for atomic operations (load, store, increment/decementer, compare-and-exchange) is a commonly-requested Swift feature. While the implementation details for such a feature would involve compiler and standard library magic, the interface itself can be nicely expressed as a property wrapper type:
 
 
 ```swift
-@propertyDelegate
+@propertyWrapper
 struct Atomic<Value> {
   private var _value: Value
   
@@ -368,10 +369,10 @@ print(initializedOnce)
 
 ### Thread-specific storage
 
-Thread-specific storage (based on pthreads) can be implemented as a property delegate, too (example courtesy of Daniel Delwood):
+Thread-specific storage (based on pthreads) can be implemented as a property wrapper, too (example courtesy of Daniel Delwood):
 
 ```swift
-@propertyDelegate
+@propertyWrapper
 final class ThreadSpecific<T> {
   private var key = pthread_key_t()
   private let initialValue: T
@@ -416,14 +417,14 @@ final class ThreadSpecific<T> {
 
 ### Copy-on-write
 
-With some work, property delegates can provide copy-on-write wrappers (original example courtesy of Brent Royal-Gordon):
+With some work, property wrappers can provide copy-on-write wrappers (original example courtesy of Brent Royal-Gordon):
 
 ```swift
 protocol Copyable: AnyObject {
   func copy() -> Self
 }
 
-@propertyDelegate
+@propertyWrapper
 struct CopyOnWrite<Value: Copyable> {
   init(initialValue: Value) {
     value = initialValue
@@ -431,7 +432,7 @@ struct CopyOnWrite<Value: Copyable> {
   
   private(set) var value: Value
   
-  var delegateValue: Value {
+  var wrapperValue: Value {
     mutating get {
       if !isKnownUniquelyReferenced(&value) {
         value = value.copy()
@@ -445,7 +446,7 @@ struct CopyOnWrite<Value: Copyable> {
 }
 ```
 
-`delegateValue` provides delegation for the synthesized storage property, allowing the copy-on-write wrapper to be used directly:
+`wrapperValue` provides delegation for the synthesized storage property, allowing the copy-on-write wrapper to be used directly:
 
 ```swift
 @CopyOnWrite var storage: MyStorageBuffer
@@ -453,18 +454,18 @@ struct CopyOnWrite<Value: Copyable> {
 // Non-modifying access:
 let index = storage.index(of: …)
 
-// For modification, access $storage, which goes through `delegateValue`:
+// For modification, access $storage, which goes through `wrapperValue`:
 $storage.append(…)
 ```
 
 ### `Ref` / `Box`
 
-We can define a property delegate type `Ref` that is an abstracted reference
+We can define a property wrapper type `Ref` that is an abstracted reference
 to some value that can be get/set, which is effectively a programmatic computed
 property:
 
 ```swift
-@propertyDelegate
+@propertyWrapper
 struct Ref<Value> {
   let read: () -> Value
   let write: (Value) -> Void
@@ -495,12 +496,12 @@ let rect2 = $rect    // get the Ref<Rectangle>
 let topLeft2 = $rect.topLeft // get a Ref<Point> referring to the Rectangle's topLeft
 ```
 
-The `Ref` type encapsulates read/write, and making it a property delegate lets
+The `Ref` type encapsulates read/write, and making it a property wrapper lets
 us primarily see the underlying value. Often, one does not want to explicitly
-write out the getters and setters, and it's fairly common to have a `Box` type that boxes up a value and can vend `Ref` instances referring into that box. We can do so with another property delegate:
+write out the getters and setters, and it's fairly common to have a `Box` type that boxes up a value and can vend `Ref` instances referring into that box. We can do so with another property wrapper:
 
 ```swift
-@propertyDelegate
+@propertyWrapper
 class Box<Value> {
   var value: Value
 
@@ -508,7 +509,7 @@ class Box<Value> {
     self.value = initialValue
   }
 
-  var delegateValue: Ref<Value> {
+  var wrapperValue: Ref<Value> {
     return Ref<Value>(read: { self.value }, write: { self.value = $0 })
   }
 }
@@ -521,18 +522,18 @@ Now, we can define a new `Box` directly:
 
 print(rectangle)  // access the rectangle
 print(rectangle.topLeft) // access the top left coordinate of the rectangle
-let rect2 = $rectangle   // through delegateValue, produces a Ref<Rectangle>
-let topLeft2 = $rectangle.topLeft   // through delegateValue, produces a Ref<Point>
+let rect2 = $rectangle   // through wrapperValue, produces a Ref<Rectangle>
+let topLeft2 = $rectangle.topLeft   // through wrapperValue, produces a Ref<Point>
 ```
 
-The use of `delegateValue` hides the box from the client, providing direct access to the value in the box (the common case) as well as access to the box contents via Ref.
+The use of `wrapperValue` hides the box from the client, providing direct access to the value in the box (the common case) as well as access to the box contents via Ref.
 
-### Property delegate types in the wild
+### Property wrapper types in the wild
 
-There are a number of existing types that already provide the basic structure of a property delegate type. One fun case is `Unsafe(Mutable)Pointer`, which we could augment to allow easy access to the pointed-to value:
+There are a number of existing types that already provide the basic structure of a property wrapper type. One fun case is `Unsafe(Mutable)Pointer`, which we could augment to allow easy access to the pointed-to value:
 
 ```swift
-@propertyDelegate
+@propertyWrapper
 struct UnsafeMutablePointer<Pointee> {
   var pointee: Pointee { ... }
   
@@ -569,35 +570,35 @@ print(myValue)   // print the most recent value
 
 ## Detailed design
 
-### Property delegate types
+### Property wrapper types
 
-A *property delegate type* is a type that can be used as a property
-delegate. There are three basic requirements for a property delegate
+A *property wrapper type* is a type that can be used as a property
+wrapper. There are three basic requirements for a property wrapper
 type:
 
-1. The property delegate type must be defined with the attribute
-`@propertyDelegate`. The attribute indicates that the type is meant to
-be used as a property delegate type, and provides a point at which the
+1. The property wrapper type must be defined with the attribute
+`@propertyWrapper`. The attribute indicates that the type is meant to
+be used as a property wrapper type, and provides a point at which the
 compiler can verify any other consistency rules.
-2. The name of the property delegate type must not match the regular expression `_*[a-z].*`. Such names are reserved for compiler-defined attributes.
-3. The property delegate type must have a property named `value`, whose
+2. The name of the property wrapper type must not match the regular expression `_*[a-z].*`. Such names are reserved for compiler-defined attributes.
+3. The property wrapper type must have a property named `value`, whose
 access level is the same as that of the type itself. This is the
 property used by the compiler to access the underlying value on the
-delegate instance.
+wrapper instance.
 
 ### Initialization of synthesized storage properties
 
-Introducing a property delegate to a property makes that property
+Introducing a property wrapper to a property makes that property
 computed (with a getter/setter) and introduces a stored property whose
-type is the delegate type. That stored property can be initialized
+type is the wrapper type. That stored property can be initialized
 in one of two ways:
 
 1. Via a value of the original property's type (e.g., `Int` in `@Lazy var
-    foo: Int`, using the the property delegate type's
+    foo: Int`, using the the property wrapper type's
     `init(initialValue:)` initializer. That initializer must have a single
     parameter of the same type as the `value` property (or
     be an `@autoclosure` thereof) and have the same access level as the 
-    property delegate type itself. When `init(initialValue:)` is present,
+    property wrapper type itself. When `init(initialValue:)` is present,
     is is always used for the initial value provided on the property
     declaration. For example:
     
@@ -610,8 +611,8 @@ in one of two ways:
     ```
 
 
-2. Via a value of the property delegate type, by placing the initializer
-   arguments after the property delegate type:
+2. Via a value of the property wrapper type, by placing the initializer
+   arguments after the property wrapper type:
     
     ```swift
     var addressOfInt: UnsafePointer<Int> = ...
@@ -624,10 +625,10 @@ in one of two ways:
     var someInt: Int { /* access via $someInt.value */ }
     ```
 
-### Type inference with delegates
+### Type inference with wrappers
 
-Type inference for properties with delegates involves both the type
-annotation of the original property (if present) and the delegate
+Type inference for properties with wrappers involves both the type
+annotation of the original property (if present) and the wrapper
 type, using the initialization of the synthesized stored property. For
 example:
 
@@ -638,7 +639,7 @@ var $foo: Lazy = Lazy(initialValue: 17)
 // infers the type of 'foo' to be 'Int'
 ```
 
-The same applies when directly initializing the delegate instance, e.g.,
+The same applies when directly initializing the wrapper instance, e.g.,
 
 ```swift
 @UnsafeMutablePointer(mutating: addressOfInt)
@@ -648,14 +649,14 @@ var $someInt: UnsafeMutablePointer = UnsafeMutablePointer.init(mutating: address
 // infers the type of 'someInt' to be 'Int'
 ```
 
-The type of the `value` property of the property delegate type must coincide with that of the original property using that delegate type. Some examples:
+The type of the `value` property of the property wrapper type must coincide with that of the original property using that wrapper type. Some examples:
 
 ```swift
 @Lazy<Int> var foo: Int  // okay
 @Lazy<Int> var bar: Double  // error: Lazy<Int>.value is of type Int, not Double
 ```
 
-If there is no initializer for the delegate instance, and the property delegate type takes a single generic parameter, the corresponding generic argument can be omitted:
+If there is no initializer for the wrapper instance, and the property wrapper type takes a single generic parameter, the corresponding generic argument can be omitted:
 
 ```swift
 @Lazy var foo: Int    // okay: equivalent to @Lazy<Int> var foo: Int
@@ -663,67 +664,67 @@ If there is no initializer for the delegate instance, and the property delegate 
 
 ### Custom attributes
 
-Property delegates are a form of custom attribute, where the attribute syntax
-is used to refer to entities declared in Swift. Grammatically, the use of property delegates is described as follows:
+Property wrappers are a form of custom attribute, where the attribute syntax
+is used to refer to entities declared in Swift. Grammatically, the use of property wrappers is described as follows:
 
 ```
 attribute ::= '@' type-identifier expr-paren?
 ```
 
-The *type-identifier* must refer to a property delegate type, which can include generic arguments. Note that this allows for qualification of the attribute names, e.g.,
+The *type-identifier* must refer to a property wrapper type, which can include generic arguments. Note that this allows for qualification of the attribute names, e.g.,
 
 ```swift
 @Swift.Lazy var foo = 1742
 ```
 
-The *expr-paren*, if present, provides the initialization arguments for the delegate instance.
+The *expr-paren*, if present, provides the initialization arguments for the wrapper instance.
 
-This formulation of custom attributes fits in with a [larger proposal for custom attributes](https://forums.swift.org/t/pitch-introduce-custom-attributes/21335/47), which uses the same custom attribute syntax as the above but allows for other ways in which one can define a type to be used as an attribute. In this scheme, `@propertyDelegate` is just one kind of custom attribute: there will be other kinds of custom attributes that are available only at compile time (e.g., for tools) or runtime (via some reflection capability).
+This formulation of custom attributes fits in with a [larger proposal for custom attributes](https://forums.swift.org/t/pitch-introduce-custom-attributes/21335/47), which uses the same custom attribute syntax as the above but allows for other ways in which one can define a type to be used as an attribute. In this scheme, `@propertyWrapper` is just one kind of custom attribute: there will be other kinds of custom attributes that are available only at compile time (e.g., for tools) or runtime (via some reflection capability).
 
-### Mutability of properties with delegates
+### Mutability of properties with wrappers
 
-Generally, a property that has a property delegate will have both a getter and a setter. However, the setter may be missing if the `value` property of the property delegate type lacks a setter, or its setter is inaccessible.
+Generally, a property that has a property wrapper will have both a getter and a setter. However, the setter may be missing if the `value` property of the property wrapper type lacks a setter, or its setter is inaccessible.
 
-The synthesized getter will be `mutating` if the property delegate type's `value` property is `mutating` and the property is part of a `struct`. Similarly, the synthesized setter will be `nonmutating` if either the property delegate type's `value` property has a `nonmutating` setter or the property delegate type is a `class`. For example:
+The synthesized getter will be `mutating` if the property wrapper type's `value` property is `mutating` and the property is part of a `struct`. Similarly, the synthesized setter will be `nonmutating` if either the property wrapper type's `value` property has a `nonmutating` setter or the property wrapper type is a `class`. For example:
 
 ```swift
-struct MutatingGetterDelegate<Value> {
+struct MutatingGetterwrapper<Value> {
   var value: Value {
     mutating get { ... }
     set { ... }
   }
 }
 
-struct NonmutatingSetterDelegate<Value> {
+struct NonmutatingSetterwrapper<Value> {
   var value: Value {
     get { ... }
     nonmutating set { ... }
   }
 }
 
-class ReferenceDelegate<Value> {
+class Referencewrapper<Value> {
   var value: Value
 }
 
-struct UseDelegates {
+struct Usewrappers {
   // x's getter is mutating
   // x's setter is mutating
-  @MutatingGetterDelegate var x: Int
+  @MutatingGetterwrapper var x: Int
 
   // y's getter is nonmutating
   // y's setter is nonmutating
-  @NonmutatingSetterDelegate var y: Int
+  @NonmutatingSetterwrapper var y: Int
   
   // z's getter is nonmutating
   // z's setter is nonmutating
-  @ReferenceDelegate var z: Int  
+  @Referencewrapper var z: Int  
 }
 ```
 
-### Out-of-line initialization of properties with delegates
+### Out-of-line initialization of properties with wrappers
 
-A property that has a delegate can be initialized after it is defined,
-either via the property itself (if the delegate type has an
+A property that has a wrapper can be initialized after it is defined,
+either via the property itself (if the wrapper type has an
 `init(initialValue:)`) or via the synthesized storage property. For
 example:
 
@@ -745,7 +746,7 @@ $y = UnsafeMutable<Int>(pointer: addressOfInt) // okay
 
 Note that the rules of [definite
 initialization](https://developer.apple.com/swift/blog/?id=28) (DI)
-apply to properties that have delegates. Let's expand the example of
+apply to properties that have wrappers. Let's expand the example of
 `x` above to include a re-assignment and use `var`:
 
 ```swift
@@ -763,23 +764,23 @@ By default, the synthesized storage property will have `internal` access or the 
 ### Memberwise initializers
 
 Structs implicitly declare memberwise initializers based on the stored
-properties of the struct. With a property that has a delegate, the
+properties of the struct. With a property that has a wrapper, the
 property is technically computed because it's the synthesized property
-(of the delegate's type) that is stored. Instance properties that have a
-property delegate will have a corresponding parameter in the memberwise
+(of the wrapper's type) that is stored. Instance properties that have a
+property wrapper will have a corresponding parameter in the memberwise
 initializer, whose type will either be the original property type or
-the delegate type, depending on the delegate type and the initial value
+the wrapper type, depending on the wrapper type and the initial value
 (if provided). Specifically, the memberwise initializer parameter for
-an instance property with a property delegate will have the original
+an instance property with a property wrapper will have the original
 property type if either of the following is true:
 
 * The corresponding property has an initial value specified with the
 `=` syntax, e.g., `@Lazy var i = 17`, or
 - The corresponding property has no initial value, but the property
-delegate type has an `init(initialValue:)`.
+wrapper type has an `init(initialValue:)`.
 
 Otherwise, the memberwise initializer parameter will have the same
-type as the delegate. For example:
+type as the wrapper. For example:
 
 ```swift
 struct Foo {
@@ -804,7 +805,7 @@ struct Foo {
 
 Synthesis for `Encodable`, `Decodable`, `Hashable`, and `Equatable`
 using the underlying `value` of the property when the property
-delegate type contains an `init(initialValue:)` and the delegate's
+wrapper type contains an `init(initialValue:)` and the wrapper's
 type otherwise.
 
 ### $ identifiers
@@ -821,7 +822,7 @@ let $y = 17   // error: cannot declare entity with $-prefixed name '$y'
 
 ### Accessors
 
-A property with a delegate can declare accessors explicitly (`get`, `set`, `didSet`, `willSet`). If either `get` or `set` is missing, it will be implicitly created by accessing the storage property (e.g., `$foo`). For example:
+A property with a wrapper can declare accessors explicitly (`get`, `set`, `didSet`, `willSet`). If either `get` or `set` is missing, it will be implicitly created by accessing the storage property (e.g., `$foo`). For example:
 
 ```swift
 @Lazy var x = 17 {
@@ -850,15 +851,15 @@ A property with a delegate can declare accessors explicitly (`get`, `set`, `didS
 
 ### Delegating access to the storage property
 
-A property delegate type can choose to hide its instance entirely by providing a property named `delegateValue`. As with the `value` property and`init(initialValue:)`, the `delegateValue` property must have the
-same access level as its property delegate type. When present, the synthesized storage property is hidden completely and the property `$foo` becomes a computed property accessing the storage property's `delegateValue`. For example:
+A property wrapper type can choose to hide its instance entirely by providing a property named `wrapperValue`. As with the `value` property and`init(initialValue:)`, the `wrapperValue` property must have the
+same access level as its property wrapper type. When present, the synthesized storage property is hidden completely and the property `$foo` becomes a computed property accessing the storage property's `wrapperValue`. For example:
 
 ```swift
 class StorageManager {
   func allocate<T>(_: T.Type) -> UnsafeMutablePointer<T> { ... }
 }
 
-@propertyDelegate
+@propertyWrapper
 struct LongTermStorage<Value> {
   let pointer: UnsafeMutablePointer<Value>
 
@@ -872,13 +873,13 @@ struct LongTermStorage<Value> {
     set { pointer.pointee = newValue }
   }
 
-  var delegateValue: UnsafeMutablePointer<Value> {
+  var wrapperValue: UnsafeMutablePointer<Value> {
     return pointer
   }
 }
 ```
 
-When we use the `LongTermStorage` delegate, it handles the coordination with the `StorageManager` and provides either direct access or an `UnsafeMutablePointer` with which to manipulate the value:
+When we use the `LongTermStorage` wrapper, it handles the coordination with the `StorageManager` and provides either direct access or an `UnsafeMutablePointer` with which to manipulate the value:
 
 ```swift
 let manager = StorageManager(...)
@@ -889,61 +890,61 @@ var someValue: String
 print(someValue)     // prints "Hello"
 someValue = "World"  // update the value in storage to "World"
 
-// $someValue accesses the delegateValue property of the delegate instance, which
+// $someValue accesses the wrapperValue property of the wrapper instance, which
 // is an UnsafeMutablePointer<String>
 let world = $someValue.move()   // take value directly from the storage
 $someValue.initialize(to: "New value")
 ```
 
-### Restrictions on the use of property delegates
+### Restrictions on the use of property wrappers
 
-There are a number of restrictions on the use of property delegates when defining a property:
+There are a number of restrictions on the use of property wrappers when defining a property:
 
-* A property with a delegate may not declared inside a protocol.
-* An instance property with a delegate may not declared inside an extension.
+* A property with a wrapper may not declared inside a protocol.
+* An instance property with a wrapper may not declared inside an extension.
 * An instance property may not be declared in an `enum`.
-* A property with a delegate that is declared within a class must be
+* A property with a wrapper that is declared within a class must be
 `final` and cannot override another property. 
-* A property with a delegate cannot be `lazy`, `@NSCopying`, `@NSManaged`, `weak`, or `unowned`.
-* A property with a delegate must be the only property declared within its enclosing declaration (e.g., `@Lazy var (x, y) = /* ... */` is ill-formed).
-* The `value` property and (if present) `init(initialValue:)` of a property delegate type shall have the same access as the property delegate type.
+* A property with a wrapper cannot be `lazy`, `@NSCopying`, `@NSManaged`, `weak`, or `unowned`.
+* A property with a wrapper must be the only property declared within its enclosing declaration (e.g., `@Lazy var (x, y) = /* ... */` is ill-formed).
+* The `value` property and (if present) `init(initialValue:)` of a property wrapper type shall have the same access as the property wrapper type.
 
 ## Impact on existing code
 
 By itself, this is an additive feature that doesn't impact existing
-code. However, with some of the property delegates suggested, it can
+code. However, with some of the property wrappers suggested, it can
 potentially obsolete existing, hardcoded language
 features. `@NSCopying` could be completely replaced by a `Copying`
-property delegate type introduced in the `Foundation` module. `lazy`
+property wrapper type introduced in the `Foundation` module. `lazy`
 cannot be completely replaced because it's initial value can refer to
 the `self` of the enclosing type; see 'deferred evaluation of
 initialization expressions_. However, it may still make sense to
-introduce a `Lazy` property delegate type to cover many of the common
+introduce a `Lazy` property wrapper type to cover many of the common
 use cases, leaving the more-magical `lazy` as a backward-compatibility
 feature.
 
 ## Backward compatibility
 
-The property delegates language feature as proposed has no impact on the ABI or runtime. Binaries that use property delegates can be backward-deployed to the Swift 5.0 runtime.
+The property wrappers language feature as proposed has no impact on the ABI or runtime. Binaries that use property wrappers can be backward-deployed to the Swift 5.0 runtime.
 
 ## Alternatives considered
 
-### Using a formal protocol instead of `@propertyDelegate`
+### Using a formal protocol instead of `@propertyWrapper`
 
-Instead of a new attribute, we could introduce a `PropertyDelegate`
-protocol to describe the semantic constraints on property delegate
+Instead of a new attribute, we could introduce a `Propertywrapper`
+protocol to describe the semantic constraints on property wrapper
 types. It might look like this:
 
 ```swift
-protocol PropertyDelegate {
+protocol Propertywrapper {
   associatedtype Value
   var value: Value { get }
 }
 ```
 
 There are a few issues here. First, a single protocol
-`PropertyDelegate` cannot handle all of the variants of `value` that
-are implied by the section on mutability of properties with delegates,
+`Propertywrapper` cannot handle all of the variants of `value` that
+are implied by the section on mutability of properties with wrappers,
 because we'd need to cope with `mutating get` as well as `set` and
 `nonmutating set`. Moreover, protocols don't support optional
 requirements, like `init(initialValue:)` (which also has two
@@ -951,16 +952,16 @@ forms: one accepting a `Value` and one accepting an `@autoclosure ()
 -> Value`) and `init()`. To cover all of these cases, we would need a
 several related-but-subtly-different protocols.
 
-The second issue that, even if there were a single `PropertyDelegate`
+The second issue that, even if there were a single `Propertywrapper`
 protocol, we don't know of any useful generic algorithms or data
 structures that seem to be implemented in terms of only
-`PropertyDelegate`.
+`Propertywrapper`.
 
 
 ### Kotlin-like `by` syntax
 
-A previous iteration of this proposal (and its [implementation](https://github.com/apple/swift/pull/23440)) used `by` syntax similar to that of [Kotlin's delegated
-properties](https://kotlinlang.org/docs/reference/delegated-properties.html), where the `by` followed the variable declaration. For example:
+A previous iteration of this proposal (and its [implementation](https://github.com/apple/swift/pull/23440)) used `by` syntax similar to that of [Kotlin's wrapperd
+properties](https://kotlinlang.org/docs/reference/wrapperd-properties.html), where the `by` followed the variable declaration. For example:
 
 ```swift
 var foo by Lazy = 1738
@@ -970,14 +971,14 @@ static var isFooFeatureEnabled: Bool by UserDefault(key: "FOO_FEATURE_ENABLED", 
 
 There are some small advantages to this syntax over the attribute formulation:
 
-* For cases like `UserDefault` where the delegate instance is initialized directly, the initialization happens after the original variable declaration, which reads better because the variable type and name come first, and how it's implemented come later. (Counter point: Swift developers are already accustomed to reading past long attributes, which are typically placed on the previous line)
-* The `by DelegateType` formulation leaves syntactic space for add-on features like specifying the access level of the delegate instance (`by private DelegateType`) or delegating to an existing property (`by someInstanceProperty`).
+* For cases like `UserDefault` where the wrapper instance is initialized directly, the initialization happens after the original variable declaration, which reads better because the variable type and name come first, and how it's implemented come later. (Counter point: Swift developers are already accustomed to reading past long attributes, which are typically placed on the previous line)
+* The `by wrapperType` formulation leaves syntactic space for add-on features like specifying the access level of the wrapper instance (`by private wrapperType`) or delegating to an existing property (`by someInstanceProperty`).
 
 The main problem with `by` is its novelty: there isn't anything else in Swift quite like the `by` keyword above, and it is unlikely that the syntax would be re-used for any other feature. As a keyword, `by` is quite meaningless, and brainstorming  during the [initial pitch](https://forums.swift.org/t/pitch-property-delegates/21895) didn't find any clearly good names for this functionality. 
 
 ### The 2015-2016 property behaviors design
 
-Property delegates address a similar set of use cases to *property behaviors*, which were [proposed and
+Property wrappers address a similar set of use cases to *property behaviors*, which were [proposed and
 reviewed](https://github.com/apple/swift-evolution/blob/master/proposals/0030-property-behavior-decls.md)
 in late 2015/early 2016. The design did not converge, and the proposal
 was deferred. This proposal picks up the thread, using much of the
@@ -988,21 +989,21 @@ the prior proposal are:
 * Behaviors were introduced into a property with the `[behavior]`
   syntax, rather than the attribute syntax described here. See the
   property behaviors proposal for more information.
-* Delegates are always expressed by a (generic) type. Property behaviors
+* wrappers are always expressed by a (generic) type. Property behaviors
   had a new kind of declaration (introduced by the
   `behavior` keyword). Having a new kind of declaration allowed for
   the introduction of specialized syntax, but it also greatly
   increased the surface area (and implementation cost) of the
-  proposal. Using a generic type makes property delegates more of a
+  proposal. Using a generic type makes property wrappers more of a
   syntactic-sugar feature that is easier to implement and explain.
-* Delegates cannot declare new kinds of accessors (e.g., the
+* wrappers cannot declare new kinds of accessors (e.g., the
   `didChange` example from the property behaviors proposal).
-* Delegates used for properties declared within a type cannot refer to
+* wrappers used for properties declared within a type cannot refer to
   the `self` of their enclosing type. This eliminates some use cases
-  (e.g., implementing a `Synchronized` property delegate type that
+  (e.g., implementing a `Synchronized` property wrapper type that
   uses a lock defined on the enclosing type), but simplifies the
   design.
-* Delegates can be initialized out-of-line, and one
+* wrappers can be initialized out-of-line, and one
   can use the `$`-prefixed name to refer to the storage property.
   These were future directions in the property behaviors proposal.
 
@@ -1024,17 +1025,17 @@ public public(storage) var foo: Int = 1738
 public private(storage) var bar: Int = 1738
 ```
 
-### Composition of property delegates
+### Composition of property wrappers
 
-Only one property delegate can currently be attached to a given property, so code such as the following is in error:
+Only one property wrapper can currently be attached to a given property, so code such as the following is in error:
 
 ```swift
-@UnsafeMutablePointer @Atomic var x: Int   // error: two attached property delegates
+@UnsafeMutablePointer @Atomic var x: Int   // error: two attached property wrappers
 ```
 
-The [property behaviors proposal](https://github.com/apple/swift-evolution/blob/master/proposals/0030-property-behavior-decls.md#composing-behaviors) describes some of the concerns surrounding composing behaviors/delegates in this way, which would need to be addressed by a future proposal. Matthew Johnson [sketched out a potential direction](https://forums.swift.org/t/pitch-property-delegates/21895/103) for extending property delegates to support composition of property delegates.
+The [property behaviors proposal](https://github.com/apple/swift-evolution/blob/master/proposals/0030-property-behavior-decls.md#composing-behaviors) describes some of the concerns surrounding composing behaviors/wrappers in this way, which would need to be addressed by a future proposal. Matthew Johnson [sketched out a potential direction](https://forums.swift.org/t/pitch-property-delegates/21895/103) for extending property wrappers to support composition of property wrappers.
 
-### Referencing the enclosing 'self' in a delegate type
+### Referencing the enclosing 'self' in a wrapper type
 
 Manually-written getters and setters for properties declared in a type often refer to the `self` of their enclosing type. For example, this can be used to notify clients of a change to a property's value:
 
@@ -1053,14 +1054,14 @@ public class MyClass: Superclass {
 }
 ```
 
-This "broadcast a notification that the value has changed" implementation cannot be cleanly factored into a property behavior type, because it needs access to both the underlying storage value (here, `backingMyVar`) and the `self` of the enclosing type. We could require a separate call to register the `self` instance with the delegate type, e.g.,
+This "broadcast a notification that the value has changed" implementation cannot be cleanly factored into a property behavior type, because it needs access to both the underlying storage value (here, `backingMyVar`) and the `self` of the enclosing type. We could require a separate call to register the `self` instance with the wrapper type, e.g.,
 
 ```swift
 protocol Observed {
   func broadcastValueChanged<T>(oldValue: T, newValue: T)
 }
 
-@propertyDelegate
+@propertyWrapper
 public struct Observable<Value> {
   public var stored: Value
   var observed: Observed?
@@ -1101,11 +1102,11 @@ public class MyClass: Superclass {
 
 This isn't as automatic as we would like, and it requires us to have a separate reference to the `self` that is stored within `Observable`.
 
-Instead, we could extend the ad hoc protocol used to access the storage property of a `@propertyDelegate` type a bit further. Instead of (or in addition to) a `value` property, a property delegate type could provide a `subscript(instanceSelf:)` and/or `subscript(typeSelf:)` that receive `self` as a parameter. For example:
+Instead, we could extend the ad hoc protocol used to access the storage property of a `@propertyWrapper` type a bit further. Instead of (or in addition to) a `value` property, a property wrapper type could provide a `subscript(instanceSelf:)` and/or `subscript(typeSelf:)` that receive `self` as a parameter. For example:
 
 
 ```swift
-@propertyDelegate
+@propertyWrapper
 public struct Observable<Value> {
   public var stored: Value
   
@@ -1140,11 +1141,11 @@ public class MyClass: Superclass {
 }
 ```
 
-This change is backward-compatible with the rest of the proposal. Property delegate types could provide any (non-empty) subset of the three ways to access the underlying value:
+This change is backward-compatible with the rest of the proposal. Property wrapper types could provide any (non-empty) subset of the three ways to access the underlying value:
 
 * For instance properties, `subscript(instanceSelf:)` as shown above.
 * For static or class properties, `subscript(typeSelf:)`, similar to the above but accepting a metatype parameter.
-* For global/local properties, or when the appropriate `subscript` mentioned above isn't provided by the delegate type, the `value` property would be used.
+* For global/local properties, or when the appropriate `subscript` mentioned above isn't provided by the wrapper type, the `value` property would be used.
 
 The main challenge with this design is that it doesn't directly work when the enclosing type is a value type and the property is settable. In such cases, the parameter to the subscript would get a copy of the entire enclosing value, which would not allow mutation, On the other hand, one could try to pass `self` as `inout`, e.g.,
 
@@ -1161,21 +1162,25 @@ public struct MyStruct {
 }
 ```
 
-There are a few issues here: first, subscripts don't allow `inout` parameters in the first place, so we would have to figure out how to implement support for such a feature. Second, passing `self` as `inout` while performing access to the property `self.myVar` violates Swift's exclusivity rules ([generalized accessors](https://github.com/apple/swift/blob/master/docs/OwnershipManifesto.md#generalized-accessors) might help address this). Third, property delegate types that want to support `subscript(instanceSelf:)` for both value and reference types would have to overload on `inout` or would have to have a different subscript name (e.g., `subscript(mutatingInstanceSelf:)`).
+There are a few issues here: first, subscripts don't allow `inout` parameters in the first place, so we would have to figure out how to implement support for such a feature. Second, passing `self` as `inout` while performing access to the property `self.myVar` violates Swift's exclusivity rules ([generalized accessors](https://github.com/apple/swift/blob/master/docs/OwnershipManifesto.md#generalized-accessors) might help address this). Third, property wrapper types that want to support `subscript(instanceSelf:)` for both value and reference types would have to overload on `inout` or would have to have a different subscript name (e.g., `subscript(mutatingInstanceSelf:)`).
 
 So, while we feel that support for accessing the enclosing type's `self` is useful and as future direction, and this proposal could be extended to accommodate it, the open design questions are significant enough that we do not want to tackle them all in a single proposal.
 
 ### Delegating to an existing property
 
-When specifying a delegate for a property, the synthesized storage property is implicitly created. However, it is possible that there already exists a property that can provide the storage. One could provide a form of property delegation that creates the getter/setter to forward to an existing property, e.g.:
+When specifying a wrapper for a property, the synthesized storage property is implicitly created. However, it is possible that there already exists a property that can provide the storage. One could provide a form of property delegation that creates the getter/setter to forward to an existing property, e.g.:
 
 ```swift
-lazy var fooBacking: SomeDelegate<Int>
-@delegate(to: fooBacking) var foo: Int
+lazy var fooBacking: Somewrapper<Int>
+@wrapper(to: fooBacking) var foo: Int
 ```
 
 One could express this either by naming the property directly (as above) or, for an even more general solution, by providing a keypath such as `\.someProperty.someOtherProperty`.
 
+## Changes from the first reviewed version
+
+* The name of the feature has been changed from "property delegates" to "property wrappers" to better communicate how they work and avoid the existing uses of the term "delegate" in the Apple developer community
+
 ## Acknowledgments
 
-This proposal was greatly improved throughout its [first pitch](https://forums.swift.org/t/pitch-property-delegates/21895) by many people. Harlan Haskins, Brent Royal-Gordon, Adrian Zubarev, Jordan Rose and others provided great examples of uses of property delegates (several of which are in this proposal). Adrian Zubarev and Kenny Leung helped push on some of the core assumptions and restrictions of the original proposal, helping to make it more general. Vini Vendramini and David Hart helped tie this proposal together with custom attributes, which drastically reduced the syntactic surface area of this proposal.
+This proposal was greatly improved throughout its [first pitch](https://forums.swift.org/t/pitch-property-delegates/21895) by many people. Harlan Haskins, Brent Royal-Gordon, Adrian Zubarev, Jordan Rose and others provided great examples of uses of property wrappers (several of which are in this proposal). Adrian Zubarev and Kenny Leung helped push on some of the core assumptions and restrictions of the original proposal, helping to make it more general. Vini Vendramini and David Hart helped tie this proposal together with custom attributes, which drastically reduced the syntactic surface area of this proposal.
