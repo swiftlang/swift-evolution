@@ -3,10 +3,10 @@
 * Proposal: [SE-0253](0253-callable.md)
 * Authors: [Richard Wei](https://github.com/rxwei), [Dan Zheng](https://github.com/dan-zheng)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Active review (May 5...May 13)**
+* Status: **Accepted with Revision**
 * Implementation: [apple/swift#24299](https://github.com/apple/swift/pull/24299)
 * Previous Revisions: [[1](https://github.com/apple/swift-evolution/blob/36ea8be09508db9380949954d0c7a101fdb15226/proposals/0253-callable.md)]
-* Decision Notes: [Rationale](https://forums.swift.org/t/returned-for-revision-se-0253-static-callables/23290)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-modification-se-0253-callable-values-of-user-defined-nominal-types/24605)
 
 ## Introduction
 
