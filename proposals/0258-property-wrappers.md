@@ -225,7 +225,7 @@ struct DelayedMutable<Value> {
     }
   }
 
-  /// "Reset" the wrappe so it can be initialized again.
+  /// "Reset" the wrapper so it can be initialized again.
   mutating func reset() {
     _value = nil
   }
@@ -264,7 +264,7 @@ This enables multi-phase initialization, like this:
 
 ```swift
 class Foo {
-  @DelayedImmutable() var x: Int
+  @DelayedImmutable var x: Int
 
   init() {
     // We don't know "x" yet, and we don't have to set it
@@ -591,7 +591,7 @@ wrapper instance.
 Introducing a property wrapper to a property makes that property
 computed (with a getter/setter) and introduces a stored property whose
 type is the wrapper type. That stored property can be initialized
-in one of two ways:
+in one of three ways:
 
 1. Via a value of the original property's type (e.g., `Int` in `@Lazy var
     foo: Int`, using the the property wrapper type's
@@ -624,6 +624,16 @@ in one of two ways:
     var $someInt: UnsafeMutablePointer<Int> = UnsafeMutablePointer(mutating: addressOfInt)
     var someInt: Int { /* access via $someInt.value */ }
     ```
+
+3. Implicitly, when no initializer is provided and the property wrapper type provides no-parameter initializer (`init()`). In such cases, the wrapper type's `init()` will be invoked to initialize the stored property.
+
+   ```swift
+   @DelayedMutable var x: Int
+
+   // ... implemented as
+   var $x: DelayedMutable<Int> = DelayedMutable<Int>()
+   var x: Int { /* access via $x.value */ }
+   ```
 
 ### Type inference with wrappers
 
@@ -1171,7 +1181,7 @@ So, while we feel that support for accessing the enclosing type's `self` is usef
 When specifying a wrapper for a property, the synthesized storage property is implicitly created. However, it is possible that there already exists a property that can provide the storage. One could provide a form of property delegation that creates the getter/setter to forward to an existing property, e.g.:
 
 ```swift
-lazy var fooBacking: Somewrapper<Int>
+lazy var fooBacking: SomeWrapper<Int>
 @wrapper(to: fooBacking) var foo: Int
 ```
 
@@ -1180,6 +1190,7 @@ One could express this either by naming the property directly (as above) or, for
 ## Changes from the first reviewed version
 
 * The name of the feature has been changed from "property delegates" to "property wrappers" to better communicate how they work and avoid the existing uses of the term "delegate" in the Apple developer community
+* When a property wrapper type has a no-parameter `init()`, properties that use that wrapper type will be implicitly initialized via `init()`.
 
 ## Acknowledgments
 
