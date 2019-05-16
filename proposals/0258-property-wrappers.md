@@ -568,6 +568,27 @@ $myValue.accept(42)  // set a new value via the synthesized storage property
 print(myValue)   // print the most recent value
 ```
 
+## Composition of property wrappers
+
+When multiple property wrappers are provided for a given property,
+the wrappers are composed together to get both effects. For example, consider the composition of `DelayedMutable` and `Copying`:
+
+```swift
+@DelayedMutable @Copying var path: UIBezierPath
+```
+
+Here, we have a property for which we can delay initialization until later. When we do set a value, it will be copied via `NSCopying`'s `copy` method.
+
+Composition is implemented by nesting later wrapper types inside earlier wrapper types, where the innermost nested type is the original property's type. For the example above, the backing storage will be of type `DelayedMutable<Copying<UIBezierPath>>`, and the synthesized getter/setter for `path` will look through both levels of `.value`:
+
+```swift
+var $path: DelayedMutable<Copying<UIBezierPath>> = .init()
+var path: UIBezierPath {
+  get { return $path.value.value }
+  set { $path.value.value = newValue }
+}  
+```
+
 ## Detailed design
 
 ### Property wrapper types
@@ -609,7 +630,15 @@ in one of three ways:
     var $foo: Lazy = Lazy(initialValue: 17)
     var foo: Int { /* access via $foo.value as described above */ }
     ```
-
+  When there are multiple, composed property wrappers, all of them must provide an `init(initialValue:)`, and the resulting initialization will wrap each level of call:
+  
+  ```swift
+  @Lazy @Copying var path = UIBezierPath()
+  
+  // ... implemented as
+  var $path: Lazy<Copying<UIBezierPath>> = .init(initialValue: .init(initialValue: UIBezierPath()))
+  var path: UIBezierPath { /* access via $path.value.value as described above */ }
+  ```
 
 2. Via a value of the property wrapper type, by placing the initializer
    arguments after the property wrapper type:
@@ -625,6 +654,8 @@ in one of three ways:
     var someInt: Int { /* access via $someInt.value */ }
     ```
 
+  When there are multiple, composed property wrappers, only the first  (outermost) wrapper may have initializer arguments.
+  
 3. Implicitly, when no initializer is provided and the property wrapper type provides no-parameter initializer (`init()`). In such cases, the wrapper type's `init()` will be invoked to initialize the stored property.
 
    ```swift
@@ -634,6 +665,8 @@ in one of three ways:
    var $x: DelayedMutable<Int> = DelayedMutable<Int>()
    var x: Int { /* access via $x.value */ }
    ```
+
+  When there are multiple, composed property wrappers, only the first (outermost) wrapper needs to have an `init()`.
 
 ### Type inference with wrappers
 
@@ -999,21 +1032,21 @@ the prior proposal are:
 * Behaviors were introduced into a property with the `[behavior]`
   syntax, rather than the attribute syntax described here. See the
   property behaviors proposal for more information.
-* wrappers are always expressed by a (generic) type. Property behaviors
+* Wrappers are always expressed by a (generic) type. Property behaviors
   had a new kind of declaration (introduced by the
   `behavior` keyword). Having a new kind of declaration allowed for
   the introduction of specialized syntax, but it also greatly
   increased the surface area (and implementation cost) of the
   proposal. Using a generic type makes property wrappers more of a
   syntactic-sugar feature that is easier to implement and explain.
-* wrappers cannot declare new kinds of accessors (e.g., the
+* Wrappers cannot declare new kinds of accessors (e.g., the
   `didChange` example from the property behaviors proposal).
-* wrappers used for properties declared within a type cannot refer to
+* Wrappers used for properties declared within a type cannot refer to
   the `self` of their enclosing type. This eliminates some use cases
   (e.g., implementing a `Synchronized` property wrapper type that
   uses a lock defined on the enclosing type), but simplifies the
   design.
-* wrappers can be initialized out-of-line, and one
+* Wrappers can be initialized out-of-line, and one
   can use the `$`-prefixed name to refer to the storage property.
   These were future directions in the property behaviors proposal.
 
@@ -1034,16 +1067,6 @@ public public(storage) var foo: Int = 1738
 @Atomic
 public private(storage) var bar: Int = 1738
 ```
-
-### Composition of property wrappers
-
-Only one property wrapper can currently be attached to a given property, so code such as the following is in error:
-
-```swift
-@UnsafeMutablePointer @Atomic var x: Int   // error: two attached property wrappers
-```
-
-The [property behaviors proposal](https://github.com/apple/swift-evolution/blob/master/proposals/0030-property-behavior-decls.md#composing-behaviors) describes some of the concerns surrounding composing behaviors/wrappers in this way, which would need to be addressed by a future proposal. Matthew Johnson [sketched out a potential direction](https://forums.swift.org/t/pitch-property-delegates/21895/103) for extending property wrappers to support composition of property wrappers.
 
 ### Referencing the enclosing 'self' in a wrapper type
 
@@ -1191,6 +1214,7 @@ One could express this either by naming the property directly (as above) or, for
 
 * The name of the feature has been changed from "property delegates" to "property wrappers" to better communicate how they work and avoid the existing uses of the term "delegate" in the Apple developer community
 * When a property wrapper type has a no-parameter `init()`, properties that use that wrapper type will be implicitly initialized via `init()`.
+* Support for property wrapper composition has been added, using a "nesting" model.
 
 ## Acknowledgments
 
