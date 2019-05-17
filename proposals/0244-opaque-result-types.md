@@ -170,7 +170,8 @@ Like a generic argument, the static type system does not consider the opaque typ
 ```swift
 func foo() -> some BinaryInteger { return 219 }
 var x = foo()
-x = 912 // error: Int is not known to be the same as the return type as foo()
+let i = 912
+x = i // error: Int is not known to be the same as the return type as foo()
 ```
 
 However, one can inspect an opaque type's underlying type at runtime using dynamic casting:
