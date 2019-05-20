@@ -863,35 +863,6 @@ print($x)     // okay to refer to compiler-defined $x
 let $y = 17   // error: cannot declare entity with $-prefixed name '$y'
 ```
 
-### Accessors
-
-A property with a wrapper can declare accessors explicitly (`get`, `set`, `didSet`, `willSet`). If either `get` or `set` is missing, it will be implicitly created by accessing the storage property (e.g., `$foo`). For example:
-
-```swift
-@Lazy var x = 17 {
-  set {
-    $x.value = newValue * 2
-  }
-
-  // implicitly synthesized...
-  get { return $x.value }
-}
-
-
-@Lazy var y = 42 {
-  didSet {
-    print("Overrode lazy value with \(oldValue)")
-  }
-
-  // implicitly synthesized...
-  set {
-    let oldValue = $y.value
-    $y.value = newValue
-    didSet(oldValue)
-  }
-}
-```
-
 ### Delegating access to the storage property
 
 A property wrapper type can choose to hide its instance entirely by providing a property named `wrapperValue`. As with the `value` property and`init(initialValue:)`, the `wrapperValue` property must have the
@@ -950,7 +921,10 @@ There are a number of restrictions on the use of property wrappers when defining
 `final` and cannot override another property. 
 * A property with a wrapper cannot be `lazy`, `@NSCopying`, `@NSManaged`, `weak`, or `unowned`.
 * A property with a wrapper must be the only property declared within its enclosing declaration (e.g., `@Lazy var (x, y) = /* ... */` is ill-formed).
+* A property with a wrapper shall not define a getter or setter.
 * The `value` property and (if present) `init(initialValue:)` of a property wrapper type shall have the same access as the property wrapper type.
+* The `wrapperValue` property, if present, shall have the same access as the property wrapper type.
+* The `init()` initializer, if present, shall have the same access as the property wrapper type.
 
 ## Impact on existing code
 
@@ -1215,6 +1189,7 @@ One could express this either by naming the property directly (as above) or, for
 * The name of the feature has been changed from "property delegates" to "property wrappers" to better communicate how they work and avoid the existing uses of the term "delegate" in the Apple developer community
 * When a property wrapper type has a no-parameter `init()`, properties that use that wrapper type will be implicitly initialized via `init()`.
 * Support for property wrapper composition has been added, using a "nesting" model.
+* A property with a wrapper can no longer have an explicit `get` or `set` declared, to match with the behavior of existing, similar features (`lazy`, `@NSCopying`).
 
 ## Acknowledgments
 
