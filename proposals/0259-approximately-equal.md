@@ -3,7 +3,7 @@
 * Proposal: [SE-0259](0259-approximately-equal.md)
 * Author: [Stephen Canon](https://github.com/stephentyrone)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active Review (April 24 – May 1)**
+* Status: **Returned for revision**
 * Implementation: [apple/swift#23839](https://github.com/apple/swift/pull/23839)
 
 ## Introduction
