@@ -601,8 +601,7 @@ type:
 `@propertyWrapper`. The attribute indicates that the type is meant to
 be used as a property wrapper type, and provides a point at which the
 compiler can verify any other consistency rules.
-2. The name of the property wrapper type must not match the regular expression `_*[a-z].*`. Such names are reserved for compiler-defined attributes.
-3. The property wrapper type must have a property named `value`, whose
+2. The property wrapper type must have a property named `value`, whose
 access level is the same as that of the type itself. This is the
 property used by the compiler to access the underlying value on the
 wrapper instance.
@@ -1191,6 +1190,7 @@ One could express this either by naming the property directly (as above) or, for
 * Support for property wrapper composition has been added, using a "nesting" model.
 * A property with a wrapper can no longer have an explicit `get` or `set` declared, to match with the behavior of existing, similar features (`lazy`, `@NSCopying`).
 * Added support for adjusting the accessibility of the backing storage property via, e.g., `private(wrapper)` or `public(wrapper)`. This was part of "future directions."
+* Removed the restriction banning property wrappers from having names that match the regular expression `_*[a-z].*`.
 
 ## Acknowledgments
 
