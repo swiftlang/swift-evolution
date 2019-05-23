@@ -724,6 +724,21 @@ The *expr-paren*, if present, provides the initialization arguments for the wrap
 
 This formulation of custom attributes fits in with a [larger proposal for custom attributes](https://forums.swift.org/t/pitch-introduce-custom-attributes/21335/47), which uses the same custom attribute syntax as the above but allows for other ways in which one can define a type to be used as an attribute. In this scheme, `@propertyWrapper` is just one kind of custom attribute: there will be other kinds of custom attributes that are available only at compile time (e.g., for tools) or runtime (via some reflection capability).
 
+### Specifying access for the backing storage property
+
+Like other declarations, the synthesized storage property will be
+`internal` by default, or the access level of the original property if it is less than `internal`. However, one can adjust the access of the backing storage property (the "wrapper") to make it more or less accessible using a syntax similar to that of `private(set)`:
+
+```swift
+// both foo and $foo are publicly visible
+@Lazy
+public public(wrapper) var foo: Int = 1738
+
+// bar is publicly visible, $bar is privately visible
+@Atomic
+public private(wrapper) var bar: Int = 1738
+```
+
 ### Mutability of properties with wrappers
 
 Generally, a property that has a property wrapper will have both a getter and a setter. However, the setter may be missing if the `value` property of the property wrapper type lacks a setter, or its setter is inaccessible.
@@ -1027,21 +1042,6 @@ the prior proposal are:
 
 ## Future Directions
 
-### Specifying access for the storage property
-
-Like other declarations, the synthesized storage property will be
-`internal` by default, or the access level of the original property if it is less than `internal`. However, we could provide separate access control for the storage property to make it more or less accessible using a syntax similar to that of `private(set)`:
-
-```swift
-// both foo and $foo are publicly visible
-@Lazy
-public public(storage) var foo: Int = 1738
-
-// bar is publicly visible, $bar is privately visible
-@Atomic
-public private(storage) var bar: Int = 1738
-```
-
 ### Referencing the enclosing 'self' in a wrapper type
 
 Manually-written getters and setters for properties declared in a type often refer to the `self` of their enclosing type. For example, this can be used to notify clients of a change to a property's value:
@@ -1190,6 +1190,7 @@ One could express this either by naming the property directly (as above) or, for
 * When a property wrapper type has a no-parameter `init()`, properties that use that wrapper type will be implicitly initialized via `init()`.
 * Support for property wrapper composition has been added, using a "nesting" model.
 * A property with a wrapper can no longer have an explicit `get` or `set` declared, to match with the behavior of existing, similar features (`lazy`, `@NSCopying`).
+* Added support for adjusting the accessibility of the backing storage property via, e.g., `private(wrapper)` or `public(wrapper)`. This was part of "future directions."
 
 ## Acknowledgments
 
