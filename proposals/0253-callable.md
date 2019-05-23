@@ -9,8 +9,8 @@
   [[1]](https://github.com/apple/swift-evolution/blob/36ea8be09508db9380949954d0c7a101fdb15226/proposals/0253-callable.md),
   [[2]](https://github.com/apple/swift-evolution/blob/e1dd65469e3525e5e230b877e1539bff1e1cc5e3/proposals/0253-callable.md)
 * Decision Notes:
-  [Rationale](https://forums.swift.org/t/accepted-with-modification-se-0253-callable-values-of-user-defined-nominal-types/24605),
-  [final revision note](https://forums.swift.org/t/accepted-with-modification-se-0253-callable-values-of-user-defined-nominal-types/24605/166?u=rxwei)
+  ([rationale](https://forums.swift.org/t/accepted-with-modification-se-0253-callable-values-of-user-defined-nominal-types/24605)),
+  ([final revision note](https://forums.swift.org/t/accepted-with-modification-se-0253-callable-values-of-user-defined-nominal-types/24605/166))
 
 ## Introduction
 
