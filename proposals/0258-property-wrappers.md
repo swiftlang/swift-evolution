@@ -858,10 +858,10 @@ struct Foo {
 }
 ```
 
+### Codable, Hashable, and Equatable synthesis
+
 Synthesis for `Encodable`, `Decodable`, `Hashable`, and `Equatable`
-using the underlying `value` of the property when the property
-wrapper type contains an `init(initialValue:)` and the wrapper's
-type otherwise.
+use the backing storage property. This allows property wrapper types to determine their own serialization and equality behavior.
 
 ### $ identifiers
 
@@ -1189,6 +1189,7 @@ One could express this either by naming the property directly (as above) or, for
 * A property with a wrapper can no longer have an explicit `get` or `set` declared, to match with the behavior of existing, similar features (`lazy`, `@NSCopying`).
 * Added support for adjusting the accessibility of the backing storage property via, e.g., `private(wrapper)` or `public(wrapper)`. This was part of "future directions."
 * Removed the restriction banning property wrappers from having names that match the regular expression `_*[a-z].*`.
+* `Codable`, `Hashable`, and `Equatable` synthesis are now based on the backing storage properties, which is a simpler model that gives more control to the authors of property wrapper types.
 
 ## Acknowledgments
 
