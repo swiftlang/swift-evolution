@@ -960,19 +960,19 @@ The property wrappers language feature as proposed has no impact on the ABI or r
 
 ### Using a formal protocol instead of `@propertyWrapper`
 
-Instead of a new attribute, we could introduce a `Propertywrapper`
+Instead of a new attribute, we could introduce a `PropertyWrapper`
 protocol to describe the semantic constraints on property wrapper
 types. It might look like this:
 
 ```swift
-protocol Propertywrapper {
+protocol PropertyWrapper {
   associatedtype Value
   var value: Value { get }
 }
 ```
 
 There are a few issues here. First, a single protocol
-`Propertywrapper` cannot handle all of the variants of `value` that
+`PropertyWrapper` cannot handle all of the variants of `value` that
 are implied by the section on mutability of properties with wrappers,
 because we'd need to cope with `mutating get` as well as `set` and
 `nonmutating set`. Moreover, protocols don't support optional
@@ -981,10 +981,10 @@ forms: one accepting a `Value` and one accepting an `@autoclosure ()
 -> Value`) and `init()`. To cover all of these cases, we would need a
 several related-but-subtly-different protocols.
 
-The second issue that, even if there were a single `Propertywrapper`
+The second issue that, even if there were a single `PropertyWrapper`
 protocol, we don't know of any useful generic algorithms or data
 structures that seem to be implemented in terms of only
-`Propertywrapper`.
+`PropertyWrapper`.
 
 
 ### Kotlin-like `by` syntax
