@@ -723,21 +723,6 @@ The *expr-paren*, if present, provides the initialization arguments for the wrap
 
 This formulation of custom attributes fits in with a [larger proposal for custom attributes](https://forums.swift.org/t/pitch-introduce-custom-attributes/21335/47), which uses the same custom attribute syntax as the above but allows for other ways in which one can define a type to be used as an attribute. In this scheme, `@propertyWrapper` is just one kind of custom attribute: there will be other kinds of custom attributes that are available only at compile time (e.g., for tools) or runtime (via some reflection capability).
 
-### Specifying access for the backing storage property
-
-Like other declarations, the synthesized storage property will be
-`internal` by default, or the access level of the original property if it is less than `internal`. However, one can adjust the access of the backing storage property (the "wrapper") to make it more or less accessible using a syntax similar to that of `private(set)`:
-
-```swift
-// both foo and $foo are publicly visible
-@Lazy
-public public(wrapper) var foo: Int = 1738
-
-// bar is publicly visible, $bar is privately visible
-@Atomic
-public private(wrapper) var bar: Int = 1738
-```
-
 ### Mutability of properties with wrappers
 
 Generally, a property that has a property wrapper will have both a getter and a setter. However, the setter may be missing if the `value` property of the property wrapper type lacks a setter, or its setter is inaccessible.
@@ -745,36 +730,39 @@ Generally, a property that has a property wrapper will have both a getter and a 
 The synthesized getter will be `mutating` if the property wrapper type's `value` property is `mutating` and the property is part of a `struct`. Similarly, the synthesized setter will be `nonmutating` if either the property wrapper type's `value` property has a `nonmutating` setter or the property wrapper type is a `class`. For example:
 
 ```swift
-struct MutatingGetterwrapper<Value> {
+@propertyWrapper
+struct MutatingGetterWrapper<Value> {
   var value: Value {
     mutating get { ... }
     set { ... }
   }
 }
 
-struct NonmutatingSetterwrapper<Value> {
+@propertyWrapper
+struct NonmutatingSetterWrapper<Value> {
   var value: Value {
     get { ... }
     nonmutating set { ... }
   }
 }
 
-class Referencewrapper<Value> {
+@propertyWrapper
+class ReferenceWrapper<Value> {
   var value: Value
 }
 
 struct Usewrappers {
   // x's getter is mutating
   // x's setter is mutating
-  @MutatingGetterwrapper var x: Int
+  @MutatingGetterWrapper var x: Int
 
   // y's getter is nonmutating
   // y's setter is nonmutating
-  @NonmutatingSetterwrapper var y: Int
+  @NonmutatingSetterWrapper var y: Int
   
   // z's getter is nonmutating
   // z's setter is nonmutating
-  @Referencewrapper var z: Int  
+  @ReferenceWrapper var z: Int  
 }
 ```
 
@@ -816,7 +804,17 @@ x2 = 42   // okay, treated as x2 = 42 (calls the Lazy.value setter)
 
 ### Access to the storage property
 
-By default, the synthesized storage property will have `internal` access or the access of the original property, whichever is more restrictive.
+By default, the synthesized storage property will have `internal` access or the access of the original property, whichever is more restrictive. However, one can adjust the access of the backing storage property (the "wrapper") to make it more or less accessible using a syntax similar to that of `private(set)`:
+
+```swift
+// both foo and $foo are publicly visible
+@Lazy
+public public(wrapper) var foo: Int = 1738
+
+// bar is publicly visible, $bar is privately visible
+@Atomic
+public private(wrapper) var bar: Int = 1738
+```
 
 ### Memberwise initializers
 
