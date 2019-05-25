@@ -3,19 +3,10 @@
 * Proposal: [SE-0260](0260-library-evolution.md)
 * Authors: [Jordan Rose](https://github.com/jrose-apple), [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active Review (May 7...21, 2019)**
+* Status: **Accepted**
 * Implementation: Implemented in Swift 5 for standard library use. PR with renamed attributes [here](https://github.com/apple/swift/pull/24185).
 * Pre-review discussion: [Forum thread](https://forums.swift.org/t/pitch-library-evolution-for-stable-abis/)
-* Review: ([review](https://forums.swift.org/t/se-0260-library-evolution-for-stable-abis/24260))
-
-<!--
-*During the review process, add the following fields as needed:*
-
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/), [Additional Commentary](https://lists.swift.org/pipermail/swift-evolution/)
-* Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM)
-* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
-* Previous Proposal: [SE-XXXX](XXXX-filename.md)
--->
+* Review: ([review](https://forums.swift.org/t/se-0260-library-evolution-for-stable-abis/24260)) ([acceptance](https://forums.swift.org/t/accepted-se-0260-library-evolution-for-stable-abis/24845))
 
 ## Introduction
 
