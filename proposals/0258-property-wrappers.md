@@ -603,7 +603,7 @@ In this case, the type checker prevents the second ordering, because `DelayedMut
 ### Property wrapper types
 
 A *property wrapper type* is a type that can be used as a property
-wrapper. There are three basic requirements for a property wrapper
+wrapper. There are two basic requirements for a property wrapper
 type:
 
 1. The property wrapper type must be defined with the attribute
