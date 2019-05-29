@@ -4,7 +4,7 @@
 * Authors: [Doug Gregor](https://github.com/DougGregor), [Joe Groff](https://github.com/jckarter)
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Returned for revision**
-* Implementation: Available as a "hidden" feature in [master snapshots](https://swift.org/download/#releases) with the attribute name `@_propertyDelegate` and using `delegateValue` in lieu of `wrapperValue`.
+* Implementation: Available as a "hidden" feature in [master snapshots](https://swift.org/download/#snapshots) with the attribute name `@_propertyDelegate` and using `delegateValue` in lieu of `wrapperValue`.
 * Review: ([review #1](https://forums.swift.org/t/se-0258-property-delegates/23139)) ([revision announcement #1](https://forums.swift.org/t/returned-for-revision-se-0258-property-delegates/24080))
 * Previous versions: [Revision #1](https://github.com/apple/swift-evolution/commit/8c3499ec5bc22713b150e2234516af3cb8b16a0b)
 
