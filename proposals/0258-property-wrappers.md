@@ -917,6 +917,36 @@ let world = $someValue.move()   // take value directly from the storage
 $someValue.initialize(to: "New value")
 ```
 
+There could then be other kinds of storage (e.g., some arena-based storage) described as property wrappers that *also* vend their wrapper types as `UnsafeMutablePointer`:
+
+```swift
+@propertyWrapper
+struct ArenaStorage<Value> {
+  let pointer: UnsafeMutablePointer<Value>
+
+  init(arena: StorageArena, initialValue: Value) {
+    pointer = arena.allocate(Value.self)
+    pointer.initialize(to: initialValue)
+  }
+
+  var value: Value {
+    get { return pointer.pointee }
+    set { pointer.pointee = newValue }
+  }
+
+  var wrapperValue: UnsafeMutablePointer<Value> {
+    return pointer
+  }
+}
+```
+
+The `someValue` variable from the previous example could be switched over to use arena-based storage without changing any of the clients of `someValue` or its wrapper property `$someValue`:
+
+```swift
+@ArenaStorage(arena: currentConnectionArena, initialValue: "Hello")
+var someValue: String
+```
+
 ### Restrictions on the use of property wrappers
 
 There are a number of restrictions on the use of property wrappers when defining a property:
