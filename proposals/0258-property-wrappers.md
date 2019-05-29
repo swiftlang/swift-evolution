@@ -285,7 +285,7 @@ class Foo {
 Many Cocoa classes implement value-like objects that require explicit copying.
 Swift currently provides an `@NSCopying` attribute for properties to give
 them behavior like Objective-C's `@property(copy)`, invoking the `copy` method
-on new objects when the property is set. We can turn this into a wrappe:
+on new objects when the property is set. We can turn this into a wrapper:
 
 ```swift
 @propertyWrapper
@@ -662,9 +662,9 @@ in one of three ways:
     var someInt: Int { /* access via $someInt.value */ }
     ```
 
-  When there are multiple, composed property wrappers, only the first  (outermost) wrapper may have initializer arguments.
+  When there are multiple, composed property wrappers, only the first (outermost) wrapper may have initializer arguments.
   
-3. Implicitly, when no initializer is provided and the property wrapper type provides no-parameter initializer (`init()`). In such cases, the wrapper type's `init()` will be invoked to initialize the stored property.
+3. Implicitly, when no initializer is provided and the property wrapper type provides a no-parameter initializer (`init()`). In such cases, the wrapper type's `init()` will be invoked to initialize the stored property.
 
    ```swift
    @DelayedMutable var x: Int
