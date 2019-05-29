@@ -856,7 +856,7 @@ struct Foo {
 ### Codable, Hashable, and Equatable synthesis
 
 Synthesis for `Encodable`, `Decodable`, `Hashable`, and `Equatable`
-use the backing storage property. This allows property wrapper types to determine their own serialization and equality behavior.
+use the backing storage property. This allows property wrapper types to determine their own serialization and equality behavior. For `Encodable` and `Decodable`, the name used for keyed archiving is that of the original property declaration (without the `$`).
 
 ### $ identifiers
 
