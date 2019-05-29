@@ -192,7 +192,7 @@ enum GlobalSettings {
 }
 ```
 
-Property wrappers can be applied to properties at global, local, or type scope.
+Property wrappers can be applied to properties at global, local, or type scope. Those properties can have observing accessors (`willSet`/`didSet`), but not explicitly-written getters or setters.
 
 ## Examples
 
