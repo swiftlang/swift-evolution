@@ -811,20 +811,6 @@ x2 = 17   // okay, treated as $x2 = .init(initialValue: 17)
 x2 = 42   // okay, treated as x2 = 42 (calls the Lazy.value setter)
 ```
 
-### Access to the storage property
-
-By default, the synthesized storage property will have `internal` access or the access of the original property, whichever is more restrictive. However, one can adjust the access of the backing storage property (the "wrapper") to make it more or less accessible using a syntax similar to that of `private(set)`:
-
-```swift
-// both foo and $foo are publicly visible
-@Lazy
-public public(wrapper) var foo: Int = 1738
-
-// bar is publicly visible, $bar is privately visible
-@Atomic
-public private(wrapper) var bar: Int = 1738
-```
-
 ### Memberwise initializers
 
 Structs implicitly declare memberwise initializers based on the stored
@@ -1094,6 +1080,31 @@ the prior proposal are:
 
 ## Future Directions
 
+### Access to the storage property
+
+By default, the synthesized storage property will have `private` access. However, there are various circumstances where it would be beneficial to expose the synthesized storage property. This could be performed "per-property", e.g., by introducing a syntax akin to `private(set)`:
+
+```swift
+// both foo and $foo are publicly visible
+@Atomic
+public public(wrapper) var foo: Int = 1738
+```
+
+One could also consider having the property wrapper types themselves declare that the synthesized storage properties for properties using those wrappers should have the same access as the original property. For example:
+
+```swift
+@propertyWrapper(wrapperIsAccessible: true)
+struct Atomic<T> {
+  var value: T { ... }
+}
+
+// both bar and $bar are publicly visible
+@Atomic
+public var bar: Int = 1738
+```
+
+The two features could also be combined, allowing property wrapper types to provide the default behavior and the `access-level(wrapper)` syntax to change the default. The current proposal's `private`-by-default is meant to be a conservative first step to allow a separate exploration into expanding the visibility of the backing storage.
+
 ### Referencing the enclosing 'self' in a wrapper type
 
 Manually-written getters and setters for properties declared in a type often refer to the `self` of their enclosing type. For example, this can be used to notify clients of a change to a property's value:
@@ -1192,7 +1203,7 @@ public class MyClass: Superclass {
   @Observable public var myVar: Int = 17
   
   // desugars to...
-  internal var $myVar: Observable<Int> = Observable(initialValue: 17)
+  private var $myVar: Observable<Int> = Observable(initialValue: 17)
   public var myVar: Int {
     get { return $myVar[instanceSelf: self] }
     set { $myVar[instanceSelf: self] = newValue }
@@ -1213,7 +1224,7 @@ public struct MyStruct {
   @Observable public var myVar: Int = 17
   
   // desugars to...
-  internal var $myVar: Observable<Int> = Observable(initialValue: 17)
+  private var $myVar: Observable<Int> = Observable(initialValue: 17)
   public var myVar: Int {
     get { return $myVar[instanceSelf: self] }
     set { $myVar[instanceSelf: &self] = newValue }
@@ -1242,7 +1253,7 @@ One could express this either by naming the property directly (as above) or, for
 * When a property wrapper type has a no-parameter `init()`, properties that use that wrapper type will be implicitly initialized via `init()`.
 * Support for property wrapper composition has been added, using a "nesting" model.
 * A property with a wrapper can no longer have an explicit `get` or `set` declared, to match with the behavior of existing, similar features (`lazy`, `@NSCopying`).
-* Added support for adjusting the accessibility of the backing storage property via, e.g., `private(wrapper)` or `public(wrapper)`. This was part of "future directions."
+* Reduced the visibility of the synthesized storage property to `private`, and expanded upon potential future directions to making it more visible.
 * Removed the restriction banning property wrappers from having names that match the regular expression `_*[a-z].*`.
 * `Codable`, `Hashable`, and `Equatable` synthesis are now based on the backing storage properties, which is a simpler model that gives more control to the authors of property wrapper types.
 
