@@ -589,6 +589,15 @@ var path: UIBezierPath {
 }  
 ```
 
+Note that this design means that property wrapper composition is not commutative, because the order of the attributes affects how the nesting is performed:
+
+```swift
+@DelayedMutable @Copying var path1: UIBezierPath   // $path1 has type DelayedMutable<Copying<UIBezierPath>>
+@Copying @DelayedMutable var path2: UIBezierPath   // error: $path2 has ill-formed type Copying<DelayedMutable<UIBezierPath>>
+```
+
+In this case, the type checker prevents the second ordering, because `DelayedMutable` does not conform to the `NSCopying` protocol. This won't always be the case: some semantically-bad compositions won't necessarily by caught by the type system. Alternatives to this approach to composition are presented in "Alternatives considered." 
+
 ## Detailed design
 
 ### Property wrapper types
@@ -957,6 +966,52 @@ feature.
 The property wrappers language feature as proposed has no impact on the ABI or runtime. Binaries that use property wrappers can be backward-deployed to the Swift 5.0 runtime.
 
 ## Alternatives considered
+
+### Composition
+
+Composition was left out of the [first revision](https://github.com/apple/swift-evolution/commit/8c3499ec5bc22713b150e2234516af3cb8b16a0b) of this proposal, because one can manually compose property wrapper types. For example, the composition `@A @B` could be implemented as an `AB` wrapper:
+
+```swift
+@propertyWrapper
+struct AB<Value> {
+  private var storage: A<B<Value>>
+  
+  var value: Value {
+    get { storage.value.value }
+    set { storage.value.value = newValue }
+  }
+}
+```
+
+The main benefit of this approach is its predictability: the author of `AB` decides how to best achieve the composition of `A` and `B`, names it appropriately, and provides the right API and documentation of its semantics. On the other hand, having to manually write out each of the compositions is a lot of boilerplate, particularly for a feature whose main selling point is the elimination of boilerplate. It is also unfortunate to have to invent names for each composition---when I try the compose `A` and `B` via `@A @B`, how do I know to go look for the manually-composed property wrapper type `AB`? Or maybe that should be `BA`?
+
+### Composition via nested type lookup
+One proposed approach to composition addresses only the last issue above directly, treating the attribute-composition syntax `@A @B` as  a lookup of the nested type `B` inside `A` to find the wrapper type:
+
+```swift
+@propertyWrapper
+struct A<Value> {
+  var value: Value { ... }
+}
+
+extension A {
+  typealias B = AB<Value>
+}
+```
+
+This allows the natural composition syntax `@A @B` to work, redirecting to manually-written property wrappers that implement the proper semantics and API. Additionally, this scheme allows one to control which compositions are valid: if there is no nested type `B` in `A`, the composition is invalid. If both `A.B` and `B.A` exist, we have a choice: either enforce commutative semantics as part of the language (`B.A` and `A.B` must refer to the same type or the composition `@A @B` is ill-formed), or allow them to differ (effectively matching the semantics of this proposal).
+
+This approach addresses the syntax for composition while maintaining control over the precise semantics of composition via manually-written wrapper types. However, it does not address the boilerplate problem.
+  
+### Composition without nesting
+
+There has been a desire to effect composition of property wrappers without having to wrap one property wrapper type in the other. For example, to have `@A @B` apply the policies of both `A` and `B` without producing a nested type like `A<B<Int>>`. This would make potentially make composition more commutative, at least from the type system perspective. However, this approach does not fit with the "wrapper" approach taken by property wrappers. In a declaration
+
+```swift
+@A @B var x: Int
+```
+
+the `Int` value is conceptually wrapped by a property wrapper type, and the property wrapper type's `value` property guards access to that (conceptual) `Int` value. That `Int` value cannot be wrapped both by instances of both `A` and `B` without either duplicating data (both `A` and `B` have a copy of the `Int`) or nesting one of the wrappers inside the other. With the copying approach, one must maintain consistency between the copies (which is particularly hard when value types are involved) and there will still be non-commutative compositions. Nesting fits better with the "wrapper" model of property wrappers.
 
 ### Using a formal protocol instead of `@propertyWrapper`
 
