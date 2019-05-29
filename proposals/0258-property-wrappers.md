@@ -924,8 +924,7 @@ There are a number of restrictions on the use of property wrappers when defining
 * A property with a wrapper may not declared inside a protocol.
 * An instance property with a wrapper may not declared inside an extension.
 * An instance property may not be declared in an `enum`.
-* A property with a wrapper that is declared within a class must be
-`final` and cannot override another property. 
+* A property with a wrapper that is declared within a class cannot override another property. 
 * A property with a wrapper cannot be `lazy`, `@NSCopying`, `@NSManaged`, `weak`, or `unowned`.
 * A property with a wrapper must be the only property declared within its enclosing declaration (e.g., `@Lazy var (x, y) = /* ... */` is ill-formed).
 * A property with a wrapper shall not define a getter or setter.
@@ -1253,6 +1252,7 @@ One could express this either by naming the property directly (as above) or, for
 * When a property wrapper type has a no-parameter `init()`, properties that use that wrapper type will be implicitly initialized via `init()`.
 * Support for property wrapper composition has been added, using a "nesting" model.
 * A property with a wrapper can no longer have an explicit `get` or `set` declared, to match with the behavior of existing, similar features (`lazy`, `@NSCopying`).
+* A property with a wrapper does not need to be `final`.
 * Reduced the visibility of the synthesized storage property to `private`, and expanded upon potential future directions to making it more visible.
 * Removed the restriction banning property wrappers from having names that match the regular expression `_*[a-z].*`.
 * `Codable`, `Hashable`, and `Equatable` synthesis are now based on the backing storage properties, which is a simpler model that gives more control to the authors of property wrapper types.
