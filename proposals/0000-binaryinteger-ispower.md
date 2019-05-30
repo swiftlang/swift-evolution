@@ -9,7 +9,7 @@
 
 ## Introduction
 
-Checking some mathematical properties of integers (e.g. parity, divisibility, etc.) is widely used in scientific and engineering applications.  Swift brings a lot of convenience when performing such checks, owing to the relevant methods (e.g. `isMultiple(of:)`) provided by the standard library.  However there are still some other cases not yet supported.  One of those useful checks that are currently missing is to tell if an integer is power of another, of which the implementation is non-trivial.  Apart from inconvenience, user-implemented code can bring inefficiency, poor readability, and even incorrectness.  To address this problem, this proposal would like to add a public API `isPower(of:)`, as an extension method, to the `BinaryInteger` protocol.
+Checking some mathematical properties of integers (e.g. parity, divisibility, etc.) is widely used in scientific and engineering applications.  Swift brings a lot of convenience when performing such checks, thanks to the relevant methods (e.g. `isMultiple(of:)`) provided by the standard library.  However there are still some other cases not yet supported.  One of those useful checks that are currently missing is to tell if an integer is power of another, of which the implementation is non-trivial.  Apart from inconvenience, user-implemented code can bring inefficiency, poor readability, and even incorrectness.  To address this problem, this proposal would like to add a public API `isPower(of:)`, as an extension method, to the `BinaryInteger` protocol.
 
 Swift-evolution thread: [Pitch](https://forums.swift.org/t/adding-ispowerof2-to-binaryinteger/24087)
 
@@ -33,7 +33,9 @@ internal struct _HashTable {
     internal init(words: UnsafeMutablePointer<Word>, bucketCount: Int) {
         _internalInvariant(bucketCount > 0 && bucketCount & (bucketCount - 1) == 0,
           "bucketCount must be a power of two")
+
 //      _internalInvariant(bucketCount.isPower(of: 2)) --- proposed solution
+
         ...
     }
 }
@@ -41,7 +43,7 @@ internal struct _HashTable {
 
 ### Efficiency
 
-The user-implemented code may be less performant (e.g. [converting to floating point type and then performing logarithm](https://github.com/OpsLabJPL/MarsImagesIOS/blob/f2109f38b31bf1ad2e7b5aae6916da07d2d7d08e/MarsImagesIOS/Math.swift#L17)),  since some developers are not aware of the classic approach as described above.
+The user-implemented code may be less performant (e.g. [#1](https://github.com/OpsLabJPL/MarsImagesIOS/blob/f2109f38b31bf1ad2e7b5aae6916da07d2d7d08e/MarsImagesIOS/Math.swift#L17), [#2](https://github.com/eaheckert/Tournament/blob/c09c6b3634da9b2666b8b1f8990ff62bdc4fd625/Tournament/Tournament/ViewControllers/TCreateTournamentVC.swift#L215)),  since some developers are not aware of the classic approach as described above.
 
 The example below shows a controversial approach, which employs the `llvm.ctpop` intrinsic to count the number of 1 bits. It can be expensive when the hardware does not have relevant `popcount` instruction support.
 ```swift
@@ -65,6 +67,7 @@ The following example presents very similar implementation individually for `UIn
 func _isPowerOf2(_ x: UInt) -> Bool {
     // implementation
 }
+
 func _isPowerOf2(_ x: Int) -> Bool {
     // implementation very similar to above
 }
@@ -120,11 +123,11 @@ extension BinaryInteger {
   @usableFromInline internal func _slowIsPower(of base: Self) ->  Bool { /* generic implementation */ }
 }
 ```
-The public API `isPower(of: commonBaseK)` is expected to be as performant as the optimized version `_isPowerOfCommonBaseK`, if `commonBaseK` is a constant and the type `Self` is obvious enough (e.g. built-in integers) to the compiler to apply **constant-folding** to the `base == commonBaseK` expression, followed by a **simplify-cfg** transformation.
+Calling the public API `isPower(of: commonBaseK)` is expected to be as performant as directly calling the optimized version `_isPowerOfCommonBaseK`, if argument `commonBaseK` is a constant and the type `Self` is obvious enough (e.g. built-in integers) to the compiler to apply **constant-folding** to the `base == commonBaseK` expression, followed by a **simplify-cfg** transformation.
 
 ### Fast path when base is two
 
-As for this fast path, It is **not** recommended to directly apply the classic approach to any type that conforms to `BinaryInteger` like this:
+As for this fast path, it is **not** recommended to directly apply the classic approach to any type that conforms to `BinaryInteger` like this:
 ```swift
 extension BinaryInteger {
   @inlinable internal var _isPowerOfTwo: Bool {
@@ -165,7 +168,7 @@ extension BinaryInteger {
 
 ### Fast path when base itself is a power of two
 
-As long as we have `_isPowerOfTwo` ready, it becomes easy to implement such fast path when the base itself is power of two.  It takes advantages of the existing APIs `isMultiple(of:)` and `trailingZeroBitCount`. The code can be written as below.
+As long as we have `_isPowerOfTwo` available, it becomes easy to implement such fast path when the base itself is power of two.  It takes advantages of the existing APIs `isMultiple(of:)` and `trailingZeroBitCount`. The code can be written as below.
 
 ```swift
 extension BinaryInteger {
@@ -184,7 +187,7 @@ Unfortunately, there isn't any known super efficient algorithm to test if an int
 
 ### Slow path
 
-The slow path is generic for any input base, and the algorithm is standard. It initially handles some corner cases when `base.magnitude <= 1`; then it repeatedly multiplies `base`  to see if it can be equal to `self` at some point.  Attentions are required to avoid overflow of the multiplications.
+The slow path is generic for any input base, and the algorithm is standard. It handles some corner cases when `base.magnitude <= 1` in the first place; and then it repeatedly multiplies `base` to see if it can be equal to `self` at some point.  Attentions are required to avoid overflow of the multiplications.
 
 ```swift
 extension BinaryInteger {
@@ -222,13 +225,13 @@ The proposed solution is an additive change.
 
 ## Alternatives considered
 
-### Making `isPower(of:)` as a protocol requirement
+### `isPower(of:)` as a protocol requirement
 
 Making the public API as a protocol requirement instead of an extension methods reserves future flexibility.  It can give users a chance to provide their own optimization on some custom types where the default implementation is inefficient.  However, it would increase the interface complexity of the heavily-used `BinaryInteger` protocol, so it may not be worthy.
 
 ###  `isPowerOfTwo` instead of `isPower(of:)`
 
-In fact, [the pitch](https://forums.swift.org/t/adding-ispowerof2-to-binaryinteger/24087) originally intended to add an API to check if an integer is power of two only.  However, the more generic API `isPower(of:)` is favored by the community.  This case is similar to [SE-0225](https://github.com/apple/swift-evolution/blob/master/proposals/0225-binaryinteger-iseven-isodd-ismultiple.md), which initially proposed `isEven` and `isOdd` as well, but ended up with `isMultiple(of:)` accepted only.
+In fact, [the pitch](https://forums.swift.org/t/adding-ispowerof2-to-binaryinteger/24087) originally intended to add an API to check if an integer is power of two only.  However, the more generic form `isPower(of:)` is favored by the community.  This case is similar to [SE-0225](https://github.com/apple/swift-evolution/blob/master/proposals/0225-binaryinteger-iseven-isodd-ismultiple.md), which initially proposed `isEven` and `isOdd` as well, but ended up with `isMultiple(of:)` accepted only.
 
 ### Choices for fast paths
 
@@ -244,6 +247,7 @@ extension FixedWidthInteger {
     return self > 0 && self.nonzeroBitCount == 1
   }
 }
+
 extension BinaryInteger {
   internal var _isPowerOfTwo_cttz: Bool {
     return (self > 0) && (self == (1 as Self) << self.trailingZeroBitCount)
@@ -259,7 +263,7 @@ This proposal has been greatly improved by the community. Below are some cases o
 - Steve Canon followed the pitch all the way through and provided a lot of valuable comments to keep the work on the right track.
 - Jens Persson showed some inspiration in [an earlier thread](https://forums.swift.org/t/even-and-odd-integers/11774/117), and discussed some use cases as well as its extendability to floating point types.
 - Nevin Brackett-Rozinsky gave many details to optimize the implementation, and discovered [SR-10657](https://bugs.swift.org/browse/SR-10657) during the discussion.
-- Michel Fortin provided an efficient solution for checking if an integer is power of 10, together with thorough explanation.
-- Jordan Rose gave prompt and continued comments on the PR, and advised the API should better be an extension rather than a protocol requirement.
-- Erik Strottmann suggested a better naming `_isPowerOfTwo` instead of `_isPowerOf2`.
+- Michel Fortin provided an efficient solution to the fast path for base 10 (i.e. checking if an integer is power of ten), together with thorough explanation.
+- Jordan Rose gave prompt and continued comments on the PR, and advised the API should better be an extension method rather than a protocol requirement.
+- Erik Strottmann suggested a more appropriate naming `_isPowerOfTwo` instead of `_isPowerOf2`.
 
