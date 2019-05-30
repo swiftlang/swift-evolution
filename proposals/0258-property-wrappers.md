@@ -678,19 +678,31 @@ in one of three ways:
 
 ### Type inference with wrappers
 
-Type inference for properties with wrappers involves both the type
+Type inference for properties with wrappers involves the type
 annotation of the original property (if present), the wrapper
-type, and the initial value (if present). The complete wrapper type is inferred, and it's `value` property is used to provide the type for the original property. For example, providing an initial value to the original property uses the `initialValue` initializer to infer the wrapper type:
+type, and the initial value (if present). In this process, the complete wrapper type is inferred (potentially determining generic arguments for the wrapper type), as is the type of the original property (either determining generic arguments that were omitted or even providing the complete property type). At the end of the process, the type of the original property must match the wrapper type's `value` property type.
+
+When an initial value is present, it will be used to form the inference. For example, providing an initial value to the original property uses the `initialValue` initializer to infer the wrapper type:
 
 ```swift
 @Lazy var foo = 17
 // type inference as in...
 var $foo: Lazy = Lazy(initialValue: 17)
 // infers the type of '$foo' to be 'Lazy<Int>', then
-// assigns the type of `foo` to `Int`
+// assigns the type of 'foo' to 'Lazy<Int>.value', i.e., 'Int'
 ```
 
-The same applies when directly initializing the wrapper instance, e.g.,
+When multiple properties are composed, inference is based on the nested `init(initialValue:)` calls (as discussed in the previous section), and the resulting inferred type is based on the appropriate number of `.value` references, e.g.,
+
+```swift
+@A @B var bar = 42
+// type inference as in ...
+var $bar = A(initialValue: B(initialValue: 42))
+// infers the type of '$bar' to be 'A<B<Int>', then
+// assigns the type of 'var' to 'A<B<Int>.value.value, i.e., 'Int'
+```
+
+Type inference also applies when directly initializing the wrapper instance, but is only valid when there is a single property wrapper applied to the original property:
 
 ```swift
 @UnsafeMutablePointer(mutating: addressOfInt)
@@ -701,7 +713,7 @@ var $someInt: UnsafeMutablePointer = UnsafeMutablePointer.init(mutating: address
 // assigns the type of 'someInt' to be 'Int'
 ```
 
-If there is no initial value, type inference compares the type of the wrapper type's `value` property against the type annotation of the original property (if present). This can infer generic arguments of the wrapper type (if any).
+If there is no initial value, type inference compares the type of the wrapper type's `value` property (multiple `.value` indirections when property wrappers are composed) against the type annotation of the original property (if present). This can infer generic arguments of the wrapper type (if any).
 
 ```swift
 @propertyWrapper
@@ -712,7 +724,7 @@ struct Function<T, U> {
 @Function var f: (Int) -> Float?   // infers T=Int, U=Float 
 ```
 
-It can also "fill in" generic arguments omitted from the original property's type annotation:
+It can also "fill in" generic arguments omitted from the original property's type annotation or an omitted type:
 
 ```swift
 @propertyWrapper
@@ -721,9 +733,11 @@ struct StringDictionary {
 }
 
 @StringDictionary var d: Dictionary // infers <String, String>
+@StringDictionary var d2 // infers Dictionary<String, String>
 ```
 
-The type of the `value` property of the property wrapper type must always concide with the type of the original property, regardless of whether inference was used to determine those types. Some examples:
+
+As previously noted, the type of the `value` property of the property wrapper type must always concide with the type of the original property, regardless of whether inference was used to determine those types. Some examples:
 
 ```swift
 @Lazy<Int> var foo: Int  // okay
