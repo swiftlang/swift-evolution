@@ -679,15 +679,15 @@ in one of three ways:
 ### Type inference with wrappers
 
 Type inference for properties with wrappers involves both the type
-annotation of the original property (if present) and the wrapper
-type, using the initialization of the synthesized stored property. For
-example:
+annotation of the original property (if present), the wrapper
+type, and the initial value (if present). The complete wrapper type is inferred, and it's `value` property is used to provide the type for the original property. For example, providing an initial value to the original property uses the `initialValue` initializer to infer the wrapper type:
 
 ```swift
 @Lazy var foo = 17
 // type inference as in...
 var $foo: Lazy = Lazy(initialValue: 17)
-// infers the type of 'foo' to be 'Int'
+// infers the type of '$foo' to be 'Lazy<Int>', then
+// assigns the type of `foo` to `Int`
 ```
 
 The same applies when directly initializing the wrapper instance, e.g.,
@@ -697,20 +697,37 @@ The same applies when directly initializing the wrapper instance, e.g.,
 var someInt
 // type inference as in...
 var $someInt: UnsafeMutablePointer = UnsafeMutablePointer.init(mutating: addressOfInt)
-// infers the type of 'someInt' to be 'Int'
+// infers the type of `$someInt` to be `UnsafeMutablePointer<Int>`, then
+// assigns the type of 'someInt' to be 'Int'
 ```
 
-The type of the `value` property of the property wrapper type must coincide with that of the original property using that wrapper type. Some examples:
+If there is no initial value, type inference compares the type of the wrapper type's `value` property against the type annotation of the original property (if present). This can infer generic arguments of the wrapper type (if any).
+
+```swift
+@propertyWrapper
+struct Function<T, U> {
+  var value: (T) -> U? { ... }
+}
+
+@Function var f: (Int) -> Float?   // infers T=Int, U=Float 
+```
+
+It can also "fill in" generic arguments omitted from the original property's type annotation:
+
+```swift
+@propertyWrapper
+struct StringDictionary {
+  var value: [String: String]
+}
+
+@StringDictionary var d: Dictionary // infers <String, String>
+```
+
+The type of the `value` property of the property wrapper type must always concide with the type of the original property, regardless of whether inference was used to determine those types. Some examples:
 
 ```swift
 @Lazy<Int> var foo: Int  // okay
 @Lazy<Int> var bar: Double  // error: Lazy<Int>.value is of type Int, not Double
-```
-
-If there is no initializer for the wrapper instance, and the property wrapper type takes a single generic parameter, the corresponding generic argument can be omitted:
-
-```swift
-@Lazy var foo: Int    // okay: equivalent to @Lazy<Int> var foo: Int
 ```
 
 ### Custom attributes
@@ -1286,6 +1303,7 @@ One could express this either by naming the property directly (as above) or, for
 * Reduced the visibility of the synthesized storage property to `private`, and expanded upon potential future directions to making it more visible.
 * Removed the restriction banning property wrappers from having names that match the regular expression `_*[a-z].*`.
 * `Codable`, `Hashable`, and `Equatable` synthesis are now based on the backing storage properties, which is a simpler model that gives more control to the authors of property wrapper types.
+* Improved type inference for property wrapper types and clarified that the type of the `value` property is used as part of this inference. See the "Type inference" section.
 
 ## Acknowledgments
 
