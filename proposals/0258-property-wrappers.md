@@ -973,7 +973,7 @@ var someValue: String
 ```
 
 Each of the property wrapper types could have different implementations with
-different data, but all of them present the same interface through `$someValue` and `someValue`.
+different data, but all of them present the same interface through `$someValue` and `someValue`. Note also that the `$someValue` is not writable, because `wrapperValue` is a get-only property.
 
 ### Restrictions on the use of property wrappers
 
