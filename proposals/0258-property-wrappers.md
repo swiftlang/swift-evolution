@@ -734,8 +734,8 @@ struct StringDictionary {
   var value: [String: String]
 }
 
-@StringDictionary var d: Dictionary // infers <String, String>
-@StringDictionary var d2 // infers Dictionary<String, String>
+@StringDictionary var d1.            // infers Dictionary<String, String>
+@StringDictionary var d2: Dictionary // infers <String, String>
 ```
 
 ### Custom attributes
