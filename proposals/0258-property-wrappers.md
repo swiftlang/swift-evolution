@@ -972,6 +972,9 @@ The `someValue` variable from the previous example could be switched over to use
 var someValue: String
 ```
 
+Each of the property wrapper types could have different implementations with
+different data, but all of them present the same interface through `$someValue` and `someValue`.
+
 ### Restrictions on the use of property wrappers
 
 There are a number of restrictions on the use of property wrappers when defining a property:
