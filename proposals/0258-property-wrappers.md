@@ -676,55 +676,57 @@ in one of three ways:
 
   When there are multiple, composed property wrappers, only the first (outermost) wrapper needs to have an `init()`.
 
-### Type inference with wrappers
+### Type inference with property wrappers
 
-Type inference for properties with wrappers involves the type
-annotation of the original property (if present), the wrapper
-type, and the initial value (if present). In this process, the complete wrapper type is inferred (potentially determining generic arguments for the wrapper type), as is the type of the original property (either determining generic arguments that were omitted or even providing the complete property type). At the end of the process, the type of the original property must match the wrapper type's `value` property type.
+If the first property wrapper type is generic, its generic arguments must either be given explicitly in the attribute or Swift must be able to deduce them from the variable declaration. That deduction proceeds as follows:
 
-When an initial value is present, it will be used to form the inference. For example, providing an initial value to the original property uses the `initialValue` initializer to infer the wrapper type:
+* If the variable has an initial value expression `E`, then the first wrapper type is constrained to equal the type resulting from a call to `A(initialValue: E)`, where `A` is the written type of the attribute. For example:
+
+  ```swift
+  @Lazy var foo = 17
+  // type inference as in...
+  var $foo: Lazy = Lazy(initialValue: 17)
+  // infers the type of '$foo' to be 'Lazy<Int>'
+  ```
+
+  If there are multiple wrapper attributes, the argument to this call will instead be a nested call to `B(initialValue: E)` for the written type of the next attribute, and so on recursively. For example:
+  
+  ```swift
+  @A @B var bar = 42
+  // type inference as in ...
+  var $bar = A(initialValue: B(initialValue: 42))
+  // infers the type of '$bar' to be 'A<B<Int>'
+  ```
+
+* Otherwise, if the first wrapper attribute has direct initialization arguments `E...`, the outermost wrapper type is constrained to equal the type resulting from `A(E...)`, where `A` is the written type of the first attribute. Wrapper attributes after the first may not have direct initializers. For example:
+
+  ```swift
+  @UnsafeMutablePointer(mutating: addressOfInt)
+  var someInt
+  // type inference as in...
+  var $someInt: UnsafeMutablePointer = UnsafeMutablePointer.init(mutating: addressOfInt)
+  // infers the type of `$someInt` to be `UnsafeMutablePointer<Int>`
+  ```
+
+* Otherwise, if there is no initialization, and the original property has a type annotation, the type of the `value` property in the last wrapper type is constrained to equal the type annotation of the original property. For example:
+
+  ```swift
+  @propertyWrapper
+  struct Function<T, U> {
+    var value: (T) -> U? { ... }
+  }
+
+  @Function var f: (Int) -> Float?   // infers T=Int, U=Float 
+  ```
+
+In any case, the first wrapper type is constrained to be a specialization of the first attribute's written type. Furthermore, for any secondary wrapper attributes, the type of the value property of the previous wrapper type is constrained to be a specialization of the attribute's written type. Finally, if a type annotation is given, the type of the value property of the last wrapper type is constrained to equal the type annotation. If these rules fail to deduce all the type arguments for the first wrapper type, or if they are inconsistent with each other, the variable is ill-formed. For example:
 
 ```swift
-@Lazy var foo = 17
-// type inference as in...
-var $foo: Lazy = Lazy(initialValue: 17)
-// infers the type of '$foo' to be 'Lazy<Int>', then
-// assigns the type of 'foo' to 'Lazy<Int>.value', i.e., 'Int'
+@Lazy<Int> var foo: Int  // okay
+@Lazy<Int> var bar: Double  // error: Lazy<Int>.value is of type Int, not Double
 ```
 
-When multiple properties are composed, inference is based on the nested `init(initialValue:)` calls (as discussed in the previous section), and the resulting inferred type is based on the appropriate number of `.value` references, e.g.,
-
-```swift
-@A @B var bar = 42
-// type inference as in ...
-var $bar = A(initialValue: B(initialValue: 42))
-// infers the type of '$bar' to be 'A<B<Int>', then
-// assigns the type of 'var' to 'A<B<Int>.value.value, i.e., 'Int'
-```
-
-Type inference also applies when directly initializing the wrapper instance, but is only valid when there is a single property wrapper applied to the original property:
-
-```swift
-@UnsafeMutablePointer(mutating: addressOfInt)
-var someInt
-// type inference as in...
-var $someInt: UnsafeMutablePointer = UnsafeMutablePointer.init(mutating: addressOfInt)
-// infers the type of `$someInt` to be `UnsafeMutablePointer<Int>`, then
-// assigns the type of 'someInt' to be 'Int'
-```
-
-If there is no initial value, type inference compares the type of the wrapper type's `value` property (multiple `.value` indirections when property wrappers are composed) against the type annotation of the original property (if present). This can infer generic arguments of the wrapper type (if any).
-
-```swift
-@propertyWrapper
-struct Function<T, U> {
-  var value: (T) -> U? { ... }
-}
-
-@Function var f: (Int) -> Float?   // infers T=Int, U=Float 
-```
-
-It can also "fill in" generic arguments omitted from the original property's type annotation or an omitted type:
+The deduction can also provide a type for the original property (if a type annotation was omitted) or deduce generic arguments that have omitted from the type annotation. For example:
 
 ```swift
 @propertyWrapper
@@ -734,14 +736,6 @@ struct StringDictionary {
 
 @StringDictionary var d: Dictionary // infers <String, String>
 @StringDictionary var d2 // infers Dictionary<String, String>
-```
-
-
-As previously noted, the type of the `value` property of the property wrapper type must always concide with the type of the original property, regardless of whether inference was used to determine those types. Some examples:
-
-```swift
-@Lazy<Int> var foo: Int  // okay
-@Lazy<Int> var bar: Double  // error: Lazy<Int>.value is of type Int, not Double
 ```
 
 ### Custom attributes
