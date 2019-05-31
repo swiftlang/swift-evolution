@@ -976,8 +976,8 @@ var someValue: String
 
 There are a number of restrictions on the use of property wrappers when defining a property:
 
-* A property with a wrapper may not declared inside a protocol.
-* An instance property with a wrapper may not declared inside an extension.
+* A property with a wrapper may not be declared inside a protocol.
+* An instance property with a wrapper may not be declared inside an extension.
 * An instance property may not be declared in an `enum`.
 * A property with a wrapper that is declared within a class cannot override another property. 
 * A property with a wrapper cannot be `lazy`, `@NSCopying`, `@NSManaged`, `weak`, or `unowned`.
