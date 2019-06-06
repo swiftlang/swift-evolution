@@ -258,7 +258,7 @@ body {
 }
 ```
 
-The DSL has to be embedded into the ordinary language somehow, which means that at least the outermost layer must obey something like ordinary language rules.  Under ordinary language rules, this is a function call to `body `passing a trailing closure.  It makes sense, then, that what we're doing is taking the body of the anonymous function and apply some sort of transformation to it.  This raises a series of separate questions:
+The DSL has to be embedded into the ordinary language somehow, which means that at least the outermost layer must obey something like ordinary language rules.  Under ordinary language rules, this is a function call to `body` passing a trailing closure.  It makes sense, then, that what we're doing is taking the body of the anonymous function and apply some sort of transformation to it.  This raises a series of separate questions:
 
 1. What it is about this source code that triggers the transformation?  We have chosen not to require an explicit annotation on every closure that needs transformation; see Alternatives Considered for a discussion.  So somehow this must get picked up from the fact that we're passing the closure to `body`.
 
@@ -290,7 +290,7 @@ A function builder type can be used as an attribute in two different syntactic p
 
 A function builder type can also be used as an attribute on a parameter of function type, including on parameters of protocol requirements. A function builder attribute used in this way causes the function builder transform to be applied to the body of any explicit closures that are passed as the corresponding argument, unless the closure contains a `return` statement.  This is considered part of the interface of the function and can affect source compatibility, although it does not affect its ABI.
 
-### Function-building methodS
+### Function-building methods
 
 To be useful as a function builder, the function builder type must provide a sufficient subset of the function-building methods.  The protocol between the compiler's generated code and the function builder type is intended to be *ad hoc* and arbitrarily extensible in the future.
 
@@ -652,7 +652,7 @@ Because some decisions with function builders are implementation-defined, e.g. t
 
 Function builders are based on compile-time code generation and do not require support from the language runtime or standard library.
 
-Because function builders are essentially a kind of macro system, where the details of expansion are basically an aspect of  the current implementation rather than necessarily a stable interface, library authors are encouraged to make as much as possible inlinable and, if possible, non-ABI.
+Because function builders are essentially a kind of macro system, where the details of expansion are basically an aspect of the current implementation rather than necessarily a stable interface, library authors are encouraged to make as much as possible inlinable and, if possible, non-ABI.
 
 ## Future Directions
 
@@ -675,7 +675,7 @@ Certain statements which are currently banned in transformed functions could be 
 * `defer` could be allowed to produce results.
 
 
-More kinds of expressions could be recognized as not producing a result.  In particular, expressions which produce V`oid` should probably be implicitly ignored.  Currently they must be explicitly ignored, e.g. `_ = assert(...)`.
+More kinds of expressions could be recognized as not producing a result. In particular, expressions which produce V`oid` should probably be implicitly ignored.  Currently they must be explicitly ignored, e.g. `_ = assert(...)`.
 
 Function builders have no ability to interact with local bindings and are therefore substantially less general than what you can do with, say, monads in Haskell.  Some specific monad-like use cases could be supported by allowing function builders to carry local state, making function-builder methods into instance calls on a value initialized (somehow) at the start of the function.  Others are harder to imagine how they could be integrated into the model.
 
