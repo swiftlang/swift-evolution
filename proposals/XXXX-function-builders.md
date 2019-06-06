@@ -683,10 +683,14 @@ Function builders have no ability to interact with local bindings and are theref
 
 It is common for DSLs to want to introduce shorthands which might not be unreasonable to introduce into the global scope.  For example, `p` might be a reasonable name in the context of our `HTMLBuilder` DSL, but actually introducing a global function named `p` just for DSL use is quite unfortunate.  Contextual lookups like `.p` will generally not work at the top level in DSLs because they will be interpreted as continuations of the previous statement.  It would be good if there was some way for the DSL to affect lexical lookup within transformed functions (although this might be unfortunate for features like code-completion and diagnostics).
 
+It might be a good idea to allow attributes directly on closures so that the builder transform can be specifically requested (or suppressed, if there's a well-known no-op transform).
+
 
 ## Alternatives considered
 
 There are a number of ways that a similar “structured data” DSL could be embedded in Swift that would work today.  Some of these have been discussed above in part.
+
+### Children as arguments
 
 First, children could be written out in as arguments:
 
@@ -714,6 +718,8 @@ This has some substantial disadvantages, many of which are shared with other alt
 
 * If the call arguments are part of the call forming the parent, and there are other arguments to this call, it may be difficult to visually distinguish those arguments from the children.  If the call arguments are part of a separate call forming the parent, the API must be designed to deal with the possibility that the code never actually makes a call providing any children (or makes it twice).
 
+### Children as subsript operands
+
 Second, children could be written in subscripts, as a sort of “trailing array literal”:
 
 ```swift
@@ -726,6 +732,8 @@ div [
 
 This has essentially the same disadvantages as call arguments.  The subscript arguments will always be a separate “call” from any arguments forming the parent, so the API must be designed to deal with the possibility that the code never actually makes a call providing any children.
 
+### Children as tuple elements
+
 Third, children could be written in tuple literals that are passed as arguments to calls or subscripts:
 
 ```swift
@@ -737,6 +745,8 @@ div(
 ```
 
 This has essentially the same disadvantages as call arguments, except that parameterization is more natural: an API that could take one of these tuples could just as well be written to be passed a function that returns one of them.
+
+### Children as array literals
 
 Fourth, children could be written in array literals that are passed as arguments to calls or subscripts:
 
@@ -756,6 +766,46 @@ This has essentially the same disadvantages as call arguments, except:
 
 * The syntax feels more heavyweight.
 
+It would be possible to augment array literals to have some of the structural expressive power of blocks: for example, `if` and `else` could be allowed within the literal to conditionally exclude elements from the built array:
+
+```swift
+let numbers = [
+  2,
+  3,
+  if composites {
+    4
+  },
+  5,
+  if composites {
+    6
+  },
+  7,
+  if composites {
+    8,
+    9,
+    10
+  },
+  11
+]
+```
+
+This is an interesting idea that might be worth considering on its own as a way to simplify the creation of certain arrays and dictionaries.  However, it would be problematic to use this as a basis for a more general DSL feature:
+
+- Many DSLs wouldn't read well as an array literal.
+
+- Array literals naturally expect elements to have uniform type, which may be inappropriate, limiting, or awkward for many DSLs.
+
+- The inability to inject code at various points in the list significantly restricts the kinds of DSL that can be written.
+
+- This treatment of `if` is challenging to extend to other structures:
+
+  - `switch` would collide with the possible future introduction of `switch` expressions, since the case bodies of the `switch` would be element lists and not expressions;
+
+  - the scope of a `let` would not naturally extend over later elements; and
+
+  - `for` would be somewhat strange to read in an array literal and would introduce some significant implementation hurdles.
+
+### Children provided separately
 
 Instead of being provided a list of children, the parent could be given all the children separately:
 
@@ -768,6 +818,8 @@ div()
 
 This has some but not all of the disadvantages of call arguments (no parameterization (at least across children), no local variables, no way to omit children without breaking into multiple expressions or adding conditional-child methods, no way to know when the children are complete).  It's admirably clear about intent, but it is significantly more heavyweight.
 
+### Advantages of adapting function bodies
+
 That's pretty much it for alternatives that don't extend Swift in some way.  Among true extensions, closure/function syntax is the most natural vehicle given:
 
 * the already-common use of braces in Swift and its ancestor languages for grouping,
@@ -777,6 +829,7 @@ That's pretty much it for alternatives that don't extend Swift in some way.  Amo
 * the existing ability of functions to have local declarations, and
 * the existing ability of functions to have local conditional / iterative structure via `if`/ `switch` / `for`.
 
+### Marking the use of a DSL at use sites
 
 If we take as given that the feature should adapt function-body syntax, it is reasonable to ask whether the use of a DSL should be explicitly identified on all affected function bodies. The chief tensions here are that:
 
@@ -786,4 +839,14 @@ If we take as given that the feature should adapt function-body syntax, it is re
 
 Therefore, we are proposing a model where the need for a function builder transformation can be inferred from type context, which is somewhat more “magical” than Swift generally prefers but also allows very lightweight-feeling DSLs, with the hope that the guidelines we've laid out in this proposal will help to limit abuse.
 
+### Specific function-building methods
+
 The function-building methods in this proposal have been deliberately chosen to cover the different situations in which results can be produced rather than to try to closely match the different source structures that can give rise to these situations.  For example, there is a `buildOptional` that works with an optional result, which might be optional for many different reasons, rather than a `buildIf` that takes a condition and the result of applying the transformation to the controlled block of the `if`.  The latter would more closely resemble the rules of an arbitrary term rewriter, but it is not be possible to come up with a finite set of such rules that could be soundly applied to an arbitrary function in Swift.  For example, there would be no way to to apply that `buildIf` to an `if let` condition: for one, the condition isn't just a boolean expression, but more importantly, the controlled block cannot be evaluated before the condition has been (uniquely and successfully) evaluated to bind the `let` variable.  We could perhaps add a `buildIfLet`  to handle this, but the same idea could never be extended to allow a  `buildIfCase` or `buildReturn`.  Such things require a true term-rewriting system, which may be desirable but is far beyond the scope of this proposal.
+
+### `if` and `switch` expressions vs. `buildEither`
+
+If Swift had the ability to treat `if` and `switch` as expressions, then those statements could be transformed into their corresponding expressions, using their internal results as the expression result.  Some community members have suggested that this would eliminate the need for the complexity around their transformation, e.g. `buildEither`.  However:
+
+- While an `if` expression would always require an `else`, `if` statements do not, and so some special treatment like `buildOptional` would still be required.
+
+- The ordinary type-checking rule for `if` and `switch` expressions would be that all the cases must produce the same type.  This rule works for DSLs where `Component` is a specific type, but it does not work if `Component` is merely a *family* of types.  For example, in our `HTMLBuilder` example, we discussed the possibility of making `Component` be *any* `Collection` of `HTML`, not just `[HTML]`; this would not be possible under this simplified transformation because an `if` expression in which the cases produced different collection types would not type-check.  Similarly, the SwiftUI DSL encodes the structure of child `View`s in the type of a composite `View`; different cases will generally have different structure and therefore different types.  One goal of the `buildEither` transformation is to permit a DSL to gracefully handle this sort of type difference.
