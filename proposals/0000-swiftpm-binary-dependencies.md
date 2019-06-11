@@ -1,4 +1,4 @@
-# Package Manager Feature name
+# Binary dependencies
 
 * Proposal: [SE-NNNN](NNNN-filename.md)
 * Authors: [Braden Scothern](https://github.com/bscothern), [Daniel Dunbar](https://github.com/ddunbar), [Franz Busch](https://github.com/FranzBusch)
