@@ -41,9 +41,9 @@ Here is a specific sketch of a deprecation policy:
 
     Introduce the new syntax support into Swift 5.1.
 
-    Swift 5.1 mode would start producing deprecation warnings (with a fixit to change double quotes to single quotes.)
+    Swift 5.2 mode would start producing deprecation warnings (with a fixit to change double quotes to single quotes.)
 
-    The Swift 5 to 5.1 migrator would change the syntax (by virtue of applying the deprecation fixits.)
+    The Swift 5 to 5.2 migrator would change the syntax (by virtue of applying the deprecation fixits.)
 
     Swift 6 would not accept the old syntax.
 
