@@ -33,8 +33,6 @@ This is a change that is internal to the Swift compiler and does not affect how 
 
 While the inheritance relationship of the ABI-locked `ExpressibleBy` protocols technically entails that `Character` and `Unicode.Scalar` literals can be implicitly promoted to `String` literals, it is possible for the compiler to statically reject such cases at the type checking stage, without affecting ABI, in the interest of untangling the various textual literal forms. As literal delimiters are a purely compile-time construct, and all double-quoted literals currently default to `String`, this will have zero impact on all existing Swift code.
 
-The inheritance relationship of the `ExpressibleBy` protocols locked into the Swift ABI is such that these single quoted literal will be able to be used where you require a `String` but double quoted literals will no longer be able to specify `Character` or `UnicodeScalar` literals. This behaviour is viewed as a feature as you will be able to construct a string from a combination of characters i.e. `"ab" == 'a' + 'b'`
-
 ## Source compatibility
 
 There are few functions in the standard library that take `Character` or `Unicode.Scalar` arguments and it is only in these places that it will be necessary to use the new syntax. The compiler can easily detect these situations and provide a fixit and automated code migration.
