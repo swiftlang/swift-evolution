@@ -4,7 +4,7 @@
 * Authors: [Doug Gregor](https://github.com/DougGregor), [Joe Groff](https://github.com/jckarter)
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Active Review (June 14th...24th, 2019)**
-* Implementation: Available in [master snapshots](https://swift.org/download/#snapshots).
+* Implementation: [Linux toolchain](https://ci.swift.org/job/swift-PR-toolchain-Linux/243//artifact/branch-master/swift-PR-25464-243-ubuntu16.04.tar.gz), [macOS toolchain](https://ci.swift.org/job/swift-PR-toolchain-osx/317//artifact/branch-master/swift-PR-25464-317-osx.tar.gz), and [master or 5.1 snapshots](https://swift.org/download/#snapshots) after June 14, 2019.
 * Review: ([review #1](https://forums.swift.org/t/se-0258-property-delegates/23139)) ([revision announcement #1](https://forums.swift.org/t/returned-for-revision-se-0258-property-delegates/24080)) ([review #2](https://forums.swift.org/t/se-0258-property-wrappers-second-review/25843))
 * Previous versions: [Revision #1](https://github.com/apple/swift-evolution/commit/8c3499ec5bc22713b150e2234516af3cb8b16a0b)
 
@@ -478,8 +478,8 @@ struct Ref<Value> {
 
   subscript<U>(dynamicMember keyPath: WritableKeyPath<Value, U>) -> Ref<U> {
     return Ref<U>(
-        read: { self.value[keyPath: keyPath] },
-        write: { self.value[keyPath: keyPath] = $0 })
+        read: { self.wrappedValue[keyPath: keyPath] },
+        write: { self.wrappedValue[keyPath: keyPath] = $0 })
   }
 }
 ```
@@ -507,11 +507,11 @@ class Box<Value> {
   var wrappedValue: Value
 
   init(initialValue: Value) {
-    self.value = initialValue
+    self.wrappedValue = initialValue
   }
 
   var wrapperValue: Ref<Value> {
-    return Ref<Value>(read: { self.value }, write: { self.value = $0 })
+    return Ref<Value>(read: { self.wrappedValue }, write: { self.wrappedValue = $0 })
   }
 }
 ```
