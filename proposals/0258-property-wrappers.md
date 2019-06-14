@@ -109,7 +109,7 @@ enum Lazy<Value> {
     self = .uninitialized(initialValue)
   }
 
-  var value: Value {
+  var wrappedValue: Value {
     mutating get {
       switch self {
       case .uninitialized(let initializer):
@@ -128,7 +128,7 @@ enum Lazy<Value> {
 ```
 
 A property wrapper type provides the storage for a property that
-uses it as a wrapper. The `value` property of the wrapper type
+uses it as a wrapper. The `wrappedValue` property of the wrapper type
 provides the actual
 implementation of the wrapper, while the (optional)
 `init(initialValue:)` enables initialization of the storage from a
@@ -173,7 +173,7 @@ struct UserDefault<T> {
   let key: String
   let defaultValue: T
   
-  var value: T {
+  var wrappedValue: T {
     get {
       return UserDefaults.standard.object(forKey: key) as? T ?? defaultValue
     }
@@ -213,7 +213,7 @@ implement both a mutable variant, which allows for reassignment like a
 struct DelayedMutable<Value> {
   private var _value: Value? = nil
 
-  var value: Value {
+  var wrappedValue: Value {
     get {
       guard let value = _value else {
         fatalError("property accessed before being initialized")
@@ -240,7 +240,7 @@ a `let`:
 struct DelayedImmutable<Value> {
   private var _value: Value? = nil
 
-  var value: Value {
+  var wrappedValue: Value {
     get {
       guard let value = _value else {
         fatalError("property accessed before being initialized")
@@ -297,7 +297,7 @@ struct Copying<Value: NSCopying> {
     self._value = value.copy() as! Value
   }
 
-  var value: Value {
+  var wrappedValue: Value {
     get { return _value }
     set {
       // Copy the value on reassignment.
@@ -324,7 +324,7 @@ struct Atomic<Value> {
     self._value = initialValue
   }
 
-  var value: Value {
+  var wrappedValue: Value {
     get { return load() }
     set { store(newValue: newValue) }
   }
@@ -406,7 +406,7 @@ final class ThreadSpecific<T> {
     }
   }
 
-  var value: T {
+  var wrappedValue: T {
     get { return box.pointee as! T }
     set (v) {
       box.withMemoryRebound(to: T.self, capacity: 1) { $0.pointee = v }
@@ -427,20 +427,20 @@ protocol Copyable: AnyObject {
 @propertyWrapper
 struct CopyOnWrite<Value: Copyable> {
   init(initialValue: Value) {
-    value = initialValue
+    wrappedValue = initialValue
   }
   
-  private(set) var value: Value
+  private(set) var wrappedValue: Value
   
   var wrapperValue: Value {
     mutating get {
-      if !isKnownUniquelyReferenced(&value) {
-        value = value.copy()
+      if !isKnownUniquelyReferenced(&wrappedValue) {
+        wrappedValue = value.copy()
       }
-      return value
+      return wrappedValue
     }
     set {
-      value = newValue
+      wrappedValue = newValue
     }
   }
 }
@@ -470,7 +470,7 @@ struct Ref<Value> {
   let read: () -> Value
   let write: (Value) -> Void
 
-  var value: Value {
+  var wrappedValue: Value {
     get { return read() }
     nonmutating set { write(newValue) }
   }
@@ -503,7 +503,7 @@ write out the getters and setters, and it's fairly common to have a `Box` type t
 ```swift
 @propertyWrapper
 class Box<Value> {
-  var value: Value
+  var wrappedValue: Value
 
   init(initialValue: Value) {
     self.value = initialValue
@@ -537,7 +537,7 @@ There are a number of existing types that already provide the basic structure of
 struct UnsafeMutablePointer<Pointee> {
   var pointee: Pointee { ... }
   
-  var value: Pointee {
+  var wrappedValue: Pointee {
     get { return pointee }
     set { pointee = newValue }
   }
@@ -556,7 +556,7 @@ print(someInt)
 $someInt.deallocate()
 ```
 
-RxCocoa's [`BehaviorRelay`](https://github.com/ReactiveX/RxSwift/blob/master/RxCocoa/Traits/BehaviorRelay.swift) replays the most recent value provided to it for each of the subscribed observers. It is created with an initial value, has `value` property to access the current value, as well as API to `subscribe` a new observer: (Thanks to Adrian Zubarev for pointing this out)
+RxCocoa's [`BehaviorRelay`](https://github.com/ReactiveX/RxSwift/blob/master/RxCocoa/Traits/BehaviorRelay.swift) replays the most recent value provided to it for each of the subscribed observers. It is created with an initial value, has `wrappedValue` property to access the current value, as well as API to `subscribe` a new observer: (Thanks to Adrian Zubarev for pointing this out)
 
 ```swift
 @BehaviorRelay
@@ -579,7 +579,7 @@ the wrappers are composed together to get both effects. For example, consider th
 
 Here, we have a property for which we can delay initialization until later. When we do set a value, it will be copied via `NSCopying`'s `copy` method.
 
-Composition is implemented by nesting later wrapper types inside earlier wrapper types, where the innermost nested type is the original property's type. For the example above, the backing storage will be of type `DelayedMutable<Copying<UIBezierPath>>`, and the synthesized getter/setter for `path` will look through both levels of `.value`:
+Composition is implemented by nesting later wrapper types inside earlier wrapper types, where the innermost nested type is the original property's type. For the example above, the backing storage will be of type `DelayedMutable<Copying<UIBezierPath>>`, and the synthesized getter/setter for `path` will look through both levels of `.wrappedValue`:
 
 ```swift
 var $path: DelayedMutable<Copying<UIBezierPath>> = .init()
@@ -610,7 +610,7 @@ type:
 `@propertyWrapper`. The attribute indicates that the type is meant to
 be used as a property wrapper type, and provides a point at which the
 compiler can verify any other consistency rules.
-2. The property wrapper type must have a property named `value`, whose
+2. The property wrapper type must have a property named `wrappedValue`, whose
 access level is the same as that of the type itself. This is the
 property used by the compiler to access the underlying value on the
 wrapper instance.
@@ -625,7 +625,7 @@ in one of three ways:
 1. Via a value of the original property's type (e.g., `Int` in `@Lazy var
     foo: Int`, using the the property wrapper type's
     `init(initialValue:)` initializer. That initializer must have a single
-    parameter of the same type as the `value` property (or
+    parameter of the same type as the `wrappedValue` property (or
     be an `@autoclosure` thereof) and have the same access level as the 
     property wrapper type itself. When `init(initialValue:)` is present,
     is is always used for the initial value provided on the property
@@ -708,22 +708,22 @@ If the first property wrapper type is generic, its generic arguments must either
   // infers the type of `$someInt` to be `UnsafeMutablePointer<Int>`
   ```
 
-* Otherwise, if there is no initialization, and the original property has a type annotation, the type of the `value` property in the last wrapper type is constrained to equal the type annotation of the original property. For example:
+* Otherwise, if there is no initialization, and the original property has a type annotation, the type of the `wrappedValue` property in the last wrapper type is constrained to equal the type annotation of the original property. For example:
 
   ```swift
   @propertyWrapper
   struct Function<T, U> {
-    var value: (T) -> U? { ... }
+    var wrappedValue: (T) -> U? { ... }
   }
 
   @Function var f: (Int) -> Float?   // infers T=Int, U=Float 
   ```
 
-In any case, the first wrapper type is constrained to be a specialization of the first attribute's written type. Furthermore, for any secondary wrapper attributes, the type of the value property of the previous wrapper type is constrained to be a specialization of the attribute's written type. Finally, if a type annotation is given, the type of the value property of the last wrapper type is constrained to equal the type annotation. If these rules fail to deduce all the type arguments for the first wrapper type, or if they are inconsistent with each other, the variable is ill-formed. For example:
+In any case, the first wrapper type is constrained to be a specialization of the first attribute's written type. Furthermore, for any secondary wrapper attributes, the type of the wrappedValue property of the previous wrapper type is constrained to be a specialization of the attribute's written type. Finally, if a type annotation is given, the type of the wrappedValue property of the last wrapper type is constrained to equal the type annotation. If these rules fail to deduce all the type arguments for the first wrapper type, or if they are inconsistent with each other, the variable is ill-formed. For example:
 
 ```swift
 @Lazy<Int> var foo: Int  // okay
-@Lazy<Int> var bar: Double  // error: Lazy<Int>.value is of type Int, not Double
+@Lazy<Int> var bar: Double  // error: Lazy<Int>.wrappedValue is of type Int, not Double
 ```
 
 The deduction can also provide a type for the original property (if a type annotation was omitted) or deduce generic arguments that have omitted from the type annotation. For example:
@@ -731,7 +731,7 @@ The deduction can also provide a type for the original property (if a type annot
 ```swift
 @propertyWrapper
 struct StringDictionary {
-  var value: [String: String]
+  var wrappedValue: [String: String]
 }
 
 @StringDictionary var d1.            // infers Dictionary<String, String>
@@ -759,14 +759,14 @@ This formulation of custom attributes fits in with a [larger proposal for custom
 
 ### Mutability of properties with wrappers
 
-Generally, a property that has a property wrapper will have both a getter and a setter. However, the setter may be missing if the `value` property of the property wrapper type lacks a setter, or its setter is inaccessible.
+Generally, a property that has a property wrapper will have both a getter and a setter. However, the setter may be missing if the `wrappedValue` property of the property wrapper type lacks a setter, or its setter is inaccessible.
 
-The synthesized getter will be `mutating` if the property wrapper type's `value` property is `mutating` and the property is part of a `struct`. Similarly, the synthesized setter will be `nonmutating` if either the property wrapper type's `value` property has a `nonmutating` setter or the property wrapper type is a `class`. For example:
+The synthesized getter will be `mutating` if the property wrapper type's `wrappedValue` property is `mutating` and the property is part of a `struct`. Similarly, the synthesized setter will be `nonmutating` if either the property wrapper type's `wrappedValue` property has a `nonmutating` setter or the property wrapper type is a `class`. For example:
 
 ```swift
 @propertyWrapper
 struct MutatingGetterWrapper<Value> {
-  var value: Value {
+  var wrappedValue: Value {
     mutating get { ... }
     set { ... }
   }
@@ -774,7 +774,7 @@ struct MutatingGetterWrapper<Value> {
 
 @propertyWrapper
 struct NonmutatingSetterWrapper<Value> {
-  var value: Value {
+  var wrappedValue: Value {
     get { ... }
     nonmutating set { ... }
   }
@@ -782,7 +782,7 @@ struct NonmutatingSetterWrapper<Value> {
 
 @propertyWrapper
 class ReferenceWrapper<Value> {
-  var value: Value
+  var wrappedValue: Value
 }
 
 struct Usewrappers {
@@ -897,7 +897,7 @@ let $y = 17   // error: cannot declare entity with $-prefixed name '$y'
 
 ### Delegating access to the storage property
 
-A property wrapper type can choose to hide its instance entirely by providing a property named `wrapperValue`. As with the `value` property and`init(initialValue:)`, the `wrapperValue` property must have the
+A property wrapper type can choose to hide its instance entirely by providing a property named `wrapperValue`. As with the `wrappedValue` property and`init(initialValue:)`, the `wrapperValue` property must have the
 same access level as its property wrapper type. When present, the synthesized storage property is hidden completely and the property `$foo` becomes a computed property accessing the storage property's `wrapperValue`. For example:
 
 ```swift
@@ -914,7 +914,7 @@ struct LongTermStorage<Value> {
     pointer.initialize(to: initialValue)
   }
 
-  var value: Value {
+  var wrappedValue: Value {
     get { return pointer.pointee }
     set { pointer.pointee = newValue }
   }
@@ -954,7 +954,7 @@ struct ArenaStorage<Value> {
     pointer.initialize(to: initialValue)
   }
 
-  var value: Value {
+  var wrappedValue: Value {
     get { return pointer.pointee }
     set { pointer.pointee = newValue }
   }
@@ -986,7 +986,7 @@ There are a number of restrictions on the use of property wrappers when defining
 * A property with a wrapper cannot be `lazy`, `@NSCopying`, `@NSManaged`, `weak`, or `unowned`.
 * A property with a wrapper must be the only property declared within its enclosing declaration (e.g., `@Lazy var (x, y) = /* ... */` is ill-formed).
 * A property with a wrapper shall not define a getter or setter.
-* The `value` property and (if present) `init(initialValue:)` of a property wrapper type shall have the same access as the property wrapper type.
+* The `wrappedValue` property and (if present) `init(initialValue:)` of a property wrapper type shall have the same access as the property wrapper type.
 * The `wrapperValue` property, if present, shall have the same access as the property wrapper type.
 * The `init()` initializer, if present, shall have the same access as the property wrapper type.
 
@@ -1019,7 +1019,7 @@ Composition was left out of the [first revision](https://github.com/apple/swift-
 struct AB<Value> {
   private var storage: A<B<Value>>
   
-  var value: Value {
+  var wrappedValue: Value {
     get { storage.value.value }
     set { storage.value.value = newValue }
   }
@@ -1034,7 +1034,7 @@ One proposed approach to composition addresses only the last issue above directl
 ```swift
 @propertyWrapper
 struct A<Value> {
-  var value: Value { ... }
+  var wrappedValue: Value { ... }
 }
 
 extension A {
@@ -1054,7 +1054,7 @@ There has been a desire to effect composition of property wrappers without havin
 @A @B var x: Int
 ```
 
-the `Int` value is conceptually wrapped by a property wrapper type, and the property wrapper type's `value` property guards access to that (conceptual) `Int` value. That `Int` value cannot be wrapped both by instances of both `A` and `B` without either duplicating data (both `A` and `B` have a copy of the `Int`) or nesting one of the wrappers inside the other. With the copying approach, one must maintain consistency between the copies (which is particularly hard when value types are involved) and there will still be non-commutative compositions. Nesting fits better with the "wrapper" model of property wrappers.
+the `Int` value is conceptually wrapped by a property wrapper type, and the property wrapper type's `wrappedValue` property guards access to that (conceptual) `Int` value. That `Int` value cannot be wrapped both by instances of both `A` and `B` without either duplicating data (both `A` and `B` have a copy of the `Int`) or nesting one of the wrappers inside the other. With the copying approach, one must maintain consistency between the copies (which is particularly hard when value types are involved) and there will still be non-commutative compositions. Nesting fits better with the "wrapper" model of property wrappers.
 
 ### Using a formal protocol instead of `@propertyWrapper`
 
@@ -1065,12 +1065,12 @@ types. It might look like this:
 ```swift
 protocol PropertyWrapper {
   associatedtype Value
-  var value: Value { get }
+  var wrappedValue: Value { get }
 }
 ```
 
 There are a few issues here. First, a single protocol
-`PropertyWrapper` cannot handle all of the variants of `value` that
+`PropertyWrapper` cannot handle all of the variants of `wrappedValue` that
 are implied by the section on mutability of properties with wrappers,
 because we'd need to cope with `mutating get` as well as `set` and
 `nonmutating set`. Moreover, protocols don't support optional
@@ -1152,7 +1152,7 @@ One could also consider having the property wrapper types themselves declare tha
 ```swift
 @propertyWrapper(wrapperIsAccessible: true)
 struct Atomic<T> {
-  var value: T { ... }
+  var wrappedValue: T { ... }
 }
 
 // both bar and $bar are publicly visible
@@ -1201,7 +1201,7 @@ public struct Observable<Value> {
     self.observed = observed
   }
   
-  public var value: Value {
+  public var wrappedValue: Value {
     get { return stored }
     set {
       if newValue != stored {
@@ -1229,7 +1229,7 @@ public class MyClass: Superclass {
 
 This isn't as automatic as we would like, and it requires us to have a separate reference to the `self` that is stored within `Observable`.
 
-Instead, we could extend the ad hoc protocol used to access the storage property of a `@propertyWrapper` type a bit further. Instead of (or in addition to) a `value` property, a property wrapper type could provide a `subscript(instanceSelf:)` and/or `subscript(typeSelf:)` that receive `self` as a parameter. For example:
+Instead, we could extend the ad hoc protocol used to access the storage property of a `@propertyWrapper` type a bit further. Instead of (or in addition to) a `wrappedValue` property, a property wrapper type could provide a `subscript(instanceSelf:)` and/or `subscript(typeSelf:)` that receive `self` as a parameter. For example:
 
 
 ```swift
@@ -1272,7 +1272,7 @@ This change is backward-compatible with the rest of the proposal. Property wrapp
 
 * For instance properties, `subscript(instanceSelf:)` as shown above.
 * For static or class properties, `subscript(typeSelf:)`, similar to the above but accepting a metatype parameter.
-* For global/local properties, or when the appropriate `subscript` mentioned above isn't provided by the wrapper type, the `value` property would be used.
+* For global/local properties, or when the appropriate `subscript` mentioned above isn't provided by the wrapper type, the `wrappedValue` property would be used.
 
 The main challenge with this design is that it doesn't directly work when the enclosing type is a value type and the property is settable. In such cases, the parameter to the subscript would get a copy of the entire enclosing value, which would not allow mutation, On the other hand, one could try to pass `self` as `inout`, e.g.,
 
@@ -1314,7 +1314,8 @@ One could express this either by naming the property directly (as above) or, for
 * Reduced the visibility of the synthesized storage property to `private`, and expanded upon potential future directions to making it more visible.
 * Removed the restriction banning property wrappers from having names that match the regular expression `_*[a-z].*`.
 * `Codable`, `Hashable`, and `Equatable` synthesis are now based on the backing storage properties, which is a simpler model that gives more control to the authors of property wrapper types.
-* Improved type inference for property wrapper types and clarified that the type of the `value` property is used as part of this inference. See the "Type inference" section.
+* Improved type inference for property wrapper types and clarified that the type of the `wrappedValue` property is used as part of this inference. See the "Type inference" section.
+* Renamed the `value` property to `wrappedValue` to avoid conflicts.
 
 ## Acknowledgments
 
