@@ -529,6 +529,64 @@ let topLeft2 = $rectangle.topLeft   // through wrapperValue, produces a Ref<Poin
 
 The use of `wrapperValue` hides the box from the client, providing direct access to the value in the box (the common case) as well as access to the box contents via Ref.
 
+### "Clamping" a value within bounds
+
+A property wrapper could limit the stored value to be within particular bounds. For example, the `Clamping` property wrapper provides min/max bounds within which values will be clamped:
+
+```swift
+@propertyWrapper
+struct Clamping<V: Comparable> {
+  var value: V
+  let min: V
+  let max: V
+
+  init(initialValue: V, min: V, max: V) {
+    value = initialValue
+    self.min = min
+    self.max = max
+    assert(value >= min && value <= max)
+  }
+
+  var wrappedValue: V {
+    get { return value }
+    set {
+      if newValue < min {
+        value = min
+      } else if newValue > max {
+        value = max
+      } else {
+        value = newValue
+      }
+    }
+  }
+}
+```
+
+Most interesting in this example is how `@Clamping` properties can be
+initialized given both an initial value and initializer arguments. In such cases, the `initialValue:` argument is placed first. For example, this means we can define a `Color` type that clamps all values in the range [0, 255]:
+
+```swift
+struct Color {
+  @Clamping(min: 0, max: 255) var red: Int = 127
+  @Clamping(min: 0, max: 255) var green: Int = 127
+  @Clamping(min: 0, max: 255) var blue: Int = 127
+  @Clamping(min: 0, max: 255) var alpha: Int = 255
+}
+```
+
+The synthesized memberwise initializer demonstrates how the initialization itself is formed:
+
+```swift
+init(red: Int = 127, green: Int = 127, blue: Int = 127, alpha: Int = 255) {
+  $red = Clamping(initialValue: red, min: 0, max: 255)
+  $green = Clamping(initialValue: green, min: 0, max: 255)
+  $blue = Clamping(initialValue: blue, min: 0, max: 255)
+  $alpha = Clamping(initialValue: alpha, min: 0, max: 255)
+}
+```
+
+(Example [courtesy of Avi](https://forums.swift.org/t/pitch-3-property-wrappers-formerly-known-as-property-delegates/24961/65))
+
 ### Property wrapper types in the wild
 
 There are a number of existing types that already provide the basic structure of a property wrapper type. One fun case is `Unsafe(Mutable)Pointer`, which we could augment to allow easy access to the pointed-to value:
@@ -681,7 +739,7 @@ in one of three ways:
 
 If the first property wrapper type is generic, its generic arguments must either be given explicitly in the attribute or Swift must be able to deduce them from the variable declaration. That deduction proceeds as follows:
 
-* If the variable has an initial value expression `E`, then the first wrapper type is constrained to equal the type resulting from a call to `A(initialValue: E)`, where `A` is the written type of the attribute. For example:
+* If the variable has an initial value expression `E`, then the first wrapper type is constrained to equal the type resulting from a call to `A(initialValue: E, argsA...)`, where `A` is the written type of the attribute and `argsA` are the arguments provided to that attribute. For example:
 
   ```swift
   @Lazy var foo = 17
@@ -690,12 +748,12 @@ If the first property wrapper type is generic, its generic arguments must either
   // infers the type of '$foo' to be 'Lazy<Int>'
   ```
 
-  If there are multiple wrapper attributes, the argument to this call will instead be a nested call to `B(initialValue: E)` for the written type of the next attribute, and so on recursively. For example:
+  If there are multiple wrapper attributes, the argument to this call will instead be a nested call to `B(initialValue: E, argsB...)` for the written type of the next attribute, and so on recursively. For example:
   
   ```swift
-  @A @B var bar = 42
+  @A @B(name: "Hello") var bar = 42
   // type inference as in ...
-  var $bar = A(initialValue: B(initialValue: 42))
+  var $bar = A(initialValue: B(initialValue: 42, name: "Hello"))
   // infers the type of '$bar' to be 'A<B<Int>'
   ```
 
@@ -1317,6 +1375,7 @@ One could express this either by naming the property directly (as above) or, for
 * `Codable`, `Hashable`, and `Equatable` synthesis are now based on the backing storage properties, which is a simpler model that gives more control to the authors of property wrapper types.
 * Improved type inference for property wrapper types and clarified that the type of the `wrappedValue` property is used as part of this inference. See the "Type inference" section.
 * Renamed the `value` property to `wrappedValue` to avoid conflicts.
+* Initial values and explicitly-specified initializer arguments can both be used together; see the `@Clamping` example.
 
 ## Acknowledgments
 
