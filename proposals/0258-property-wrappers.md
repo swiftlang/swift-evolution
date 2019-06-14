@@ -527,7 +527,7 @@ let rect2 = $rectangle   // through wrapperValue, produces a Ref<Rectangle>
 let topLeft2 = $rectangle.topLeft   // through wrapperValue, produces a Ref<Point>
 ```
 
-The use of `wrapperValue` hides the box from the client, providing direct access to the value in the box (the common case) as well as access to the box contents via Ref.
+The use of `wrapperValue` hides the box from the client (the storage variable is renamed to `$$rectangle` and remains private), providing direct access to the value in the box (the common case) as well as access to the box contents via Ref (referenced as `$rectangle`).
 
 ### "Clamping" a value within bounds
 
@@ -957,7 +957,7 @@ let $y = 17   // error: cannot declare entity with $-prefixed name '$y'
 ### Delegating access to the storage property
 
 A property wrapper type can choose to hide its instance entirely by providing a property named `wrapperValue`. As with the `wrappedValue` property and`init(initialValue:)`, the `wrapperValue` property must have the
-same access level as its property wrapper type. When present, the synthesized storage property is hidden completely and the property `$foo` becomes a computed property accessing the storage property's `wrapperValue`. For example:
+same access level as its property wrapper type. When present, the synthesized storage property is hidden further (the private variable is named, e.g., `$$foo`) and the property `$foo` becomes a computed property accessing the storage property's `wrapperValue`. For example:
 
 ```swift
 class StorageManager {
@@ -999,6 +999,29 @@ someValue = "World"  // update the value in storage to "World"
 // is an UnsafeMutablePointer<String>
 let world = $someValue.move()   // take value directly from the storage
 $someValue.initialize(to: "New value")
+```
+
+The `$` variable's access level will be the more restrictive of either `internal` or the access level of the original property. For example:
+
+```swift
+@LongTermStorage(manager: manager, initialValue: "Hello")
+public var someValue: String
+```
+
+is translated into:
+
+```swift
+private var $$someValue: LongTermStorage<String> = LongTermStorage(manager: manager, initialValue: "Hello")
+
+internal var $someValue: UnsafeMutablePointer<String> {
+  get { return $$someValue.wrapperValue }
+  set { $$someValue.wrapperValue = newValue }
+}
+
+public var someValue: String {
+  get { return $$someValue.wrappedValue }
+  set { $$someValue.wrappedValue = newValue }
+}
 ```
 
 There could then be other kinds of storage (e.g., some arena-based storage) described as property wrappers that *also* vend their wrapper types as `UnsafeMutablePointer`:
@@ -1370,7 +1393,8 @@ One could express this either by naming the property directly (as above) or, for
 * Support for property wrapper composition has been added, using a "nesting" model.
 * A property with a wrapper can no longer have an explicit `get` or `set` declared, to match with the behavior of existing, similar features (`lazy`, `@NSCopying`).
 * A property with a wrapper does not need to be `final`.
-* Reduced the visibility of the synthesized storage property to `private`, and expanded upon potential future directions to making it more visible.
+* Reduced the visibility of the synthesized storage property to `private`.
+* When a wrapper type provides `wrapperValue`, the (computed) `$` variable is `internal` (at most) and the backing storage variable gets the prefix `$$` (and remains private).
 * Removed the restriction banning property wrappers from having names that match the regular expression `_*[a-z].*`.
 * `Codable`, `Hashable`, and `Equatable` synthesis are now based on the backing storage properties, which is a simpler model that gives more control to the authors of property wrapper types.
 * Improved type inference for property wrapper types and clarified that the type of the `wrappedValue` property is used as part of this inference. See the "Type inference" section.
