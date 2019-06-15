@@ -1,4 +1,4 @@
-# Feature name
+# Single Quoted Character Literals
 
 * Proposal: [SE-0243a](0243a-single-quoted-character-literals.md)
 * Authors: [Kelvin Ma (“Taylor Swift”)](https://github.com/kelvin13), [John Holdsworth](https://github.com/johnno1962)
@@ -26,6 +26,20 @@ This proposal is a subset of a previous Swift evolution pitch [SE-0243](0243-cod
 We propose to adopt the `'x'` syntax for all textual literal types up to and including `ExtendedGraphemeClusterLiteral`, but not including `StringLiteral`. These literals will be used to express `Character`, `Unicode.Scalar`, and types like `UTF16.CodeUnit` in the standard library. These literals would have a default type of `Character`, as `Character` is the preferred element type of `String`. 
 
 Use of single quotes for character/scalar literals is precedented in other languages, including C, Objective-C, C++, Java, Elm, and Rust, although different languages have slightly differing ideas about what a “character” is. We choose to use the single quote syntax specifically because it reinforces the notion that strings and character values are different: the former is a sequence, the later is an element. Character types also don’t support string literal interpolation, which is another reason to move away from double quotes.
+
+### Single quotes in Swift, a historical perspective
+
+In Swift 1.0, single quotes were reserved for some yet-to-be determined syntactical purpose. Since then, pretty much all of the things that might have used single quotes have already found homes in other parts of the Swift syntactical space:
+
+- syntax for [multi-line string literals](https://github.com/apple/swift-evolution/blob/master/proposals/0168-multi-line-string-literals.md) uses triple quotes (`"""`)
+
+- string interpolation syntax uses standard double quote syntax. 
+
+- raw-mode string literals settled into the `#""#` syntax. 
+
+- In current discussions around [regex literals](https://forums.swift.org/t/string-update/7398/6), most people seem to prefer slashes (`/`).
+
+Given that, and the desire for lightweight syntax for single chararcter syntax, and the precedent in other languages for characters, it is natural to use single quotes for this purpose.
 
 ## Detailed design
 
