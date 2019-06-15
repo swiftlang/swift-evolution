@@ -315,8 +315,8 @@ create a bit of a mess.
 ### Future expansion
 The following functions recommended by IEEE 754 are not provided at this point
 (because implementations are not widely available), but are planned for future expansion,
-possibly with implementation directly in Swift: `cospi`, `sinpi`, `tanpi`, `acospi`, `asinpi,
-atanpi`, `exp2m1`, `exp10m1`, `log2p1`, `log10p1`, `compound` (these are the names
+possibly with implementation directly in Swift: `cospi`, `sinpi`, `tanpi`, `acospi`, `asinpi`,
+`atanpi`, `exp2m1`, `exp10m1`, `log2p1`, `log10p1`, `compound` (these are the names
 used by IEEE 754; Swift can use different names if we like).
 
 ### Functions not defined on ElementaryFunctions
