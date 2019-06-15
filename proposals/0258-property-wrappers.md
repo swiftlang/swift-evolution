@@ -144,8 +144,8 @@ translates to:
 ```swift
 var $foo: Lazy<Int> = Lazy<Int>(initialValue: 1738)
 var foo: Int {
-  get { return $foo.value }
-  set { $foo.value = newValue }
+  get { return $foo.wrappedValue }
+  set { $foo.wrappedValue = newValue }
 }
 ```
 
@@ -643,8 +643,8 @@ Composition is implemented by nesting later wrapper types inside earlier wrapper
 ```swift
 var $path: DelayedMutable<Copying<UIBezierPath>> = .init()
 var path: UIBezierPath {
-  get { return $path.value.value }
-  set { $path.value.value = newValue }
+  get { return $path.wrappedValue.wrappedValue }
+  set { $path.wrappedValue.wrappedValue = newValue }
 }  
 ```
 
@@ -695,7 +695,7 @@ in one of three ways:
     
     // ... implemented as
     var $foo: Lazy = Lazy(initialValue: 17)
-    var foo: Int { /* access via $foo.value as described above */ }
+    var foo: Int { /* access via $foo.wrappedValue as described above */ }
     ```
   When there are multiple, composed property wrappers, all of them must provide an `init(initialValue:)`, and the resulting initialization will wrap each level of call:
   
@@ -704,7 +704,7 @@ in one of three ways:
   
   // ... implemented as
   var $path: Lazy<Copying<UIBezierPath>> = .init(initialValue: .init(initialValue: UIBezierPath()))
-  var path: UIBezierPath { /* access via $path.value.value as described above */ }
+  var path: UIBezierPath { /* access via $path.wrappedValue.wrappedValue as described above */ }
   ```
 
 2. Via a value of the property wrapper type, by placing the initializer
@@ -718,7 +718,7 @@ in one of three ways:
     
     // ... implemented as
     var $someInt: UnsafeMutablePointer<Int> = UnsafeMutablePointer(mutating: addressOfInt)
-    var someInt: Int { /* access via $someInt.value */ }
+    var someInt: Int { /* access via $someInt.wrappedValue */ }
     ```
 
   When there are multiple, composed property wrappers, only the first (outermost) wrapper may have initializer arguments.
@@ -730,7 +730,7 @@ in one of three ways:
 
    // ... implemented as
    var $x: DelayedMutable<Int> = DelayedMutable<Int>()
-   var x: Int { /* access via $x.value */ }
+   var x: Int { /* access via $x.wrappedValue */ }
    ```
 
   When there are multiple, composed property wrappers, only the first (outermost) wrapper needs to have an `init()`.
@@ -892,7 +892,7 @@ apply to properties that have wrappers. Let's expand the example of
 // ...
 x2 = 17   // okay, treated as $x2 = .init(initialValue: 17)
 // ...
-x2 = 42   // okay, treated as x2 = 42 (calls the Lazy.value setter)
+x2 = 42   // okay, treated as x2 = 42 (calls the Lazy.wrappedValue setter)
 ```
 
 ### Memberwise initializers
@@ -1102,8 +1102,8 @@ struct AB<Value> {
   private var storage: A<B<Value>>
   
   var wrappedValue: Value {
-    get { storage.value.value }
-    set { storage.value.value = newValue }
+    get { storage.wrappedValue.wrappedValue }
+    set { storage.wrappedValue.wrappedValue = newValue }
   }
 }
 ```
