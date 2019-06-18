@@ -140,6 +140,9 @@ public struct CollectionDifference<ChangeElement> {
     
     /// The `.remove` changes contained by this difference, from lowest offset to highest
     public var removals: [Change] { get }
+
+    /// Produces a difference that is the functional inverse of `self`
+    public func inverse() -> CollectionDifference<ChangeElement>
 }
 
 /// A CollectionDifference is itself a Collection.
@@ -289,26 +292,6 @@ The name `CollectionDifference` gives us the opportunity to build a family of re
 ### Further adoption
 
 This API allows for more interesting functionality that is not included in this proposal.
-
-For example, this propsal could have included a `inverted()` function on the difference type that would return a new difference that would undo the application of the original.
-
-The lack of additional conveniences and functionality is intentional; the goal of this proposal is to lay the groundwork that such extensions would be built upon.
-
-In the case of `inverted()`, clients of the API in this proposal can use `Collection.map()` to invert the case of each `Change` and feed the result into `CollectionDifference.init(_:)`:
-
-``` swift
-let diff: CollectionDifference<Int> = /* ... */
-let inverted = CollectionDifference<Int>(
-    diff.map({(change) -> CollectionDifference<Int>.Change in
-        switch change {
-        case .insert(offset: let o, element: let e, associatedWith: let a):
-            return .remove(offset: o, element: e, associatedWith: a)
-        case .remove(offset: let o, element: let e, associatedWith: let a):
-            return .insert(offset: o, element: e, associatedWith: a)
-        }
-    })
-)!
-```
 
 ### `mutating apply(_:)`
 
