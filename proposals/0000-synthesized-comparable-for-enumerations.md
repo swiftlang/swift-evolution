@@ -16,16 +16,16 @@ Oftentimes, you want to define an `enum` where the cases have an obvious semanti
 ```swift
 enum Membership
 {
-    case premium    \\ <
-    case preferred  \\ <
+    case premium    // <
+    case preferred  // <
     case general
 }
 ```
 ```swift
 enum Brightness
 {
-   case low         \\ <
-   case medium      \\ <
+   case low         // <
+   case medium      // <
    case high
 }
 ```
