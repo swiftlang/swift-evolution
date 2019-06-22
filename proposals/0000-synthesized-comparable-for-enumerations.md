@@ -3,7 +3,8 @@
 * Proposal: **SE-0000**
 * Authors: **Kelvin Ma** (*[taylorswift](https://forums.swift.org/u/taylorswift/summary)*)
 * Review manager:
-* Status: **awaiting implementation**
+* Implementation: [kelvin13:comparable-enums](https://github.com/kelvin13/swift/tree/comparable-enums)
+* Status: **awaiting review**
 
 ## introduction
 
