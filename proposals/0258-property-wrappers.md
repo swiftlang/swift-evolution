@@ -375,7 +375,7 @@ class Foo {
 
 Many Cocoa classes implement value-like objects that require explicit copying.
 Swift currently provides an `@NSCopying` attribute for properties to give
-them behave like Objective-C's `@property(copy)`, invoking the `copy` method
+them behavior like Objective-C's `@property(copy)`, invoking the `copy` method
 on new objects when the property is set. We can turn this into a wrapper:
 
 ```swift
@@ -403,7 +403,7 @@ This implementation would address the problem detailed in
 
 ### `Atomic`
 
-Support for atomic operations (load, store, increment/decementer, compare-and-exchange) is a commonly-requested Swift feature. While the implementation details for such a feature would involve compiler and standard library magic, the interface itself can be nicely expressed as a property wrapper type:
+Support for atomic operations (load, store, increment/decrement, compare-and-exchange) is a commonly-requested Swift feature. While the implementation details for such a feature would involve compiler and standard library magic, the interface itself can be nicely expressed as a property wrapper type:
 
 
 ```swift
