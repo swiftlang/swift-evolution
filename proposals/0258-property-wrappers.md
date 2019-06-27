@@ -240,7 +240,7 @@ public struct Person: DatabaseModel {
 }
 ```
 
-`Field` itself has API that is important to users of `Person`: it lets us flush existing values, fetch new values, and retrieve the name of the corresponding field in the database. However, the underscored variables for each of the properties of our model (`_firstName`, `_lastName`, and `_birthdate`) are `private`, so our clients cannot manipulation them directly.
+`Field` itself has API that is important to users of `Person`: it lets us flush existing values, fetch new values, and retrieve the name of the corresponding field in the database. However, the underscored variables for each of the properties of our model (`_firstName`, `_lastName`, and `_birthdate`) are `private`, so our clients cannot manipulate them directly.
 
 To vend API, the property wrapper type `Field` can provide a *projection* that allows us to manipulate the relationship of the field to the database. Projection properties are prefixed with a `$`, so the projection of the `firstName` property is called `$firstName` and is visible wherever `firstName` is visible. Property wrapper types opt into provided a projection by defining a `projectedValue` property:
 
