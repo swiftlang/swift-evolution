@@ -127,31 +127,69 @@ Secondly to use such a binary dependency in another package we have to explicitl
      )
 ```
 
+Packages are allowed to contain a mix of binary and source targets. This is
+useful when, for example, providing a pre-built or closed source C library
+alongside an open source set of Swift bindings for the library.
+
+To be built, a package which has binary targets *must* be either the root
+package, or must be included via a `.package` declaration that includes the
+`allowsBinary: true` attribute. Similarly, any package *must* follow the same
+requirements to itself use the `allowsBinary: true`. This ensures that any areas
+in a packages transitive graph which might add a dependency on a binary package
+are explicitly declared. This is intended to prevent binary artifacts from being
+transparently introduced without explicit consenst up the entire dependency
+chain.
+
+When a package is built that depends upon any product with a binary target, the
+package manager will search the `artifacts` declaration list to find an artifact
+which matches the current build target (platform, architecture, etc.). This list
+will be searched in order, and the first matching artifact will be used. It is
+the job of the package author/published to provide an appropriate set of
+artifacts for the use cases the package wishes to support.
+
 ## Detailed design
 
-Describe the design of the solution in detail. If it involves adding or
-modifying functionality in the package manager, explain how the package manager
-behaves in different scenarios and with existing features. If it's a new API in
-the `Package.swift` manifest, show the full API and its documentation comments
-detailing what it does.  The detail in this section should be sufficient for
-someone who is *not* one of the authors of the proposal to be able to reasonably
-implement the feature.
+The design consists of the following key points:
+* New `PackageDescription` API for defining a binary target.
+* New `PackageDescription` conditional APIs (as used in `BuildSettingCondition`)
+  for describing a specific artifact with an appropriate level of granularity.
+* New parameter on a package dependency declaration to allow use of binary artifacts.
+* A new convention-based platform-specific layout for a binary target artifact.
+* New requirements for the `Package.resolved` file when using binary packages.
+* A new mechanism for downloading binary target artifacts.
 
-### Metadata
-Convention based (always expect XCFrameworks e.g.)
-Non-mac: bin, lib, include
+Terminology:
 
-Products vs Target
+* Technically, a *target* is binary or not. However, we anticipate that often a
+  single package will consist of either exclusively source or binary targets. We
+  will use the term *binary package* to refer to any package which contains at
+  least one binary product. Similarly, a *binary product* is one which contains
+  at least one binary target.
 
-Target to have source and binary dependencies
-Allow recursive dependencies?
+Our design attempts to optimize for the following goals:
 
-Example, FirebaseMessaging having FirebaseCor
-Optimizely, Adjust
+* Ease of use for clients
+* Easy of implementation in existing SwiftPM
+* Ease of maintenance in the face of an evolving SwiftPM
+* Understandable composition with current and upcoming SwiftPM features
+* Support existing well-known occurences of binary artifacts in the existing
+  (often iOS focused) target developer market.
 
-Force to specify type (static, dynamic)
+while keeping the following as non-goals:
 
-### Artifact Format
+* Ease of production of binary packages
+* Simplicity of binary artifact distribution mechanism
+* Widespread use of binary packages
+
+* FIXME: Fill out detailed design.
+
+## New `PackageDescription` API
+
+* FIXME: `binaryTarget`
+* FIXME: `BuildSettingCondition`
+* FIXME: package declaration
+
+## Binary Target Artifact Format
 
 |                 	| Dynamic                                                                                                                                                        	| Static              	| Executables 	|   	|
 |-----------------	|----------------------------------------------------------------------------------------------------------------------------------------------------------------	|---------------------	|-------------	|---	|
@@ -161,25 +199,13 @@ Force to specify type (static, dynamic)
 | "POSIX" (C)     	| lib/libTargetName.so headers                                                                                                                                   	| lib/libTargetName.a 	| bin         	|   	|
 |                 	|                                                                                                                                                                	|                     	|             	|   	|
 
+## New `Package.resolved` Behavior
+
+* FIXME
+
 ### Resolution
 
 Package resolution and dependency expression will not be impacted by this change (except where explicitly noted).
-
-### How to fetch binary dependencies
-Potential storage places:
-
-- Github releases
-- Github packages?
-- Gitlab?
-- Bitbucket?
-- git
-- git-lfs
-- URLs (Http and local)
-- Artifactory, Nexus etc. 
-
-System credentials store to put authentication for artifact stores
-
-Initial implementation urls, github
 
 ## Security
 
@@ -289,7 +315,45 @@ We considered adding signature checks during the checkout of binary dependencies
 
 * FIXME: Add information on integration with any resources proposal
 * FIXME: Add information on dSYMs
-* FIXME: Security
+* FIXME: More on security
 * FIXME: Goals (easy for consumers)
 * FIXME: Transitive behavior
+* FIXME: Discuss concern with explosion of artifacts (consequence of putting at
+  the target level).
 
+
+Old stuff, unclear if it has been completely integrated:
+
+### Metadata
+
+Convention based (always expect XCFrameworks e.g.)
+Non-mac: bin, lib, include
+
+Products vs Target
+
+Target to have source and binary dependencies
+Allow recursive dependencies?
+
+Example, FirebaseMessaging having FirebaseCor
+Optimizely, Adjust
+
+Force to specify type (static, dynamic)
+
+### How to fetch binary dependencies
+
+*DWD*: I think this potentially just moves to alternatives considered, as in we just went with URLs.
+
+Potential storage places:
+
+- Github releases
+- Github packages?
+- Gitlab?
+- Bitbucket?
+- git
+- git-lfs
+- URLs (Http and local)
+- Artifactory, Nexus etc. 
+
+System credentials store to put authentication for artifact stores
+
+Initial implementation urls, github
