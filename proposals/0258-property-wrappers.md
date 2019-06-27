@@ -1296,8 +1296,8 @@ structures that seem to be implemented in terms of only
 
 ### Kotlin-like `by` syntax
 
-A previous iteration of this proposal (and its [implementation](https://github.com/apple/swift/pull/23440)) used `by` syntax similar to that of [Kotlin's wrapperd
-properties](https://kotlinlang.org/docs/reference/wrapperd-properties.html), where the `by` followed the variable declaration. For example:
+A previous iteration of this proposal (and its [implementation](https://github.com/apple/swift/pull/23440)) used `by` syntax similar to that of [Kotlin's delegated
+properties](https://kotlinlang.org/docs/reference/delegated-properties.html), where the `by` followed the variable declaration. For example:
 
 ```swift
 var foo by Lazy = 1738
