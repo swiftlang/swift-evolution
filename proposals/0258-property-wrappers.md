@@ -1387,7 +1387,7 @@ public class MyClass: Superclass {
     get { return backingMyVar }
     set {
       if newValue != backingMyVar {
-        self.broadcastValueChanged(oldValue: backingMyVar, newValue: newValue)
+        self.broadcastValueWillChange(newValue: newValue)
       }
       backingMyVar = newValue
     }
@@ -1399,7 +1399,7 @@ This "broadcast a notification that the value has changed" implementation cannot
 
 ```swift
 protocol Observed {
-  func broadcastValueChanged<T>(oldValue: T, newValue: T)
+  func broadcastValueWillChange<T>(newValue: T)
 }
 
 @propertyWrapper
@@ -1419,7 +1419,7 @@ public struct Observable<Value> {
     get { return stored }
     set {
       if newValue != stored {
-        observed?.broadcastValueChanged(oldValue: stored, newValue: newValue)
+        observed?.broadcastValueWillChange(newValue: newValue)
       }
       stored = newValue
     }
@@ -1441,27 +1441,34 @@ public class MyClass: Superclass {
 }
 ```
 
-This isn't as automatic as we would like, and it requires us to have a separate reference to the `self` that is stored within `Observable`.
+This isn't as automatic as we would like, and it requires us to have a separate reference to the `self` that is stored within `Observable`. Moreover, it is hiding a semantic problem: the observer code that runs in the `broadcastValueWillChange(newValue:)` must not access the synthesized storage property in any way (e.g., to read the old value through `myVal` or subscribe/unsubscribe an observer via `$myVal`), because doing so will trigger a [memory exclusivity](https://swift.org/blog/swift-5-exclusivity/) violation (because we are calling `broadcastValueWillChange(newValue:)` from within the a setter for the same synthesized storage property).
 
-Instead, we could extend the ad hoc protocol used to access the storage property of a `@propertyWrapper` type a bit further. Instead of (or in addition to) a `wrappedValue` property, a property wrapper type could provide a `subscript(instanceSelf:)` and/or `subscript(typeSelf:)` that receive `self` as a parameter. For example:
+To address these issues, we could extend the ad hoc protocol used to access the storage property of a `@propertyWrapper` type a bit further. Instead of a `wrappedValue` property, a property wrapper type could provide a static `subscript(instanceSelf:wrapped:storage:)`that receives `self` as a parameter, along with key paths referencing the original wrapped property and the backing storage property. For example:
 
 
 ```swift
 @propertyWrapper
 public struct Observable<Value> {
-  public var stored: Value
+  privatew var stored: Value
   
   public init(initialValue: Value) {
     self.stored = initialValue
   }
   
-  public subscript<OuterSelf: Observed>(instanceSelf observed: OuterSelf) -> Value {
-    get { return stored }
+  public static subscript<OuterSelf: Observed>(
+      instanceSelf observed: OuterSelf,
+      wrapped wrappedKeyPath: ReferenceWritableKeyPath<OuterSelf, Value>,
+      storage storageKeyPath: ReferenceWritableKeyPath<OuterSelf, Self>
+    ) -> Value {
+    get {
+      observed[keyPath: storageKeyPath].stored
+    }
     set {
-      if newValue != stored {
-        observed.broadcastValueChanged(oldValue: stored, newValue: newValue)
+      let oldValue = observed[keyPath: storageKeyPath].stored
+      if newValue != oldValue {
+        observed.broadcastValueWillChange(newValue: newValue)
       }
-      stored = newValue
+      observed[keyPath: storageKeyPath].stored = newValue
     }
   }
 }
@@ -1474,39 +1481,35 @@ public class MyClass: Superclass {
   @Observable public var myVar: Int = 17
   
   // desugars to...
-  private var $myVar: Observable<Int> = Observable(initialValue: 17)
+  private var _myVar: Observable<Int> = Observable(initialValue: 17)
   public var myVar: Int {
-    get { return $myVar[instanceSelf: self] }
-    set { $myVar[instanceSelf: self] = newValue }
+    get { Observable<Int>[instanceSelf: self, wrapped: \MyClass.myVar, storage: \MyClass._myVar] }
+    set { Observable<Int>[instanceSelf: self, wrapped: \MyClass.myVar, storage: \MyClass._myVar] = newValue }
   }
 }
 ```
 
-This change is backward-compatible with the rest of the proposal. Property wrapper types could provide any (non-empty) subset of the three ways to access the underlying value:
+The design uses a `static` subscript and provides key paths to both the original property declaration (`wrapped`) and the synthesized storage property (`storage`). A call to the static subscript's getter or setter does not itself constitute an access to the synthesized storage property, allowing us to address the memory exclusivity violation from the early implementation. The subscript's implementation is given the means to access the synthesized storage property (via the enclosing `self` instance and `storage` key path). In our `Observable` property wrapper, the static subscript setter performs two distinct accesses to the synthesized storage property via `observed[keyPath: storageKeyPath]`:
 
-* For instance properties, `subscript(instanceSelf:)` as shown above.
-* For static or class properties, `subscript(typeSelf:)`, similar to the above but accepting a metatype parameter.
-* For global/local properties, or when the appropriate `subscript` mentioned above isn't provided by the wrapper type, the `wrappedValue` property would be used.
+1. The read of the old value
+2. A write of the new value
 
-The main challenge with this design is that it doesn't directly work when the enclosing type is a value type and the property is settable. In such cases, the parameter to the subscript would get a copy of the entire enclosing value, which would not allow mutation, On the other hand, one could try to pass `self` as `inout`, e.g.,
+In between these operations is the broadcast operation to any observers. Those observers are permitted to read the old value, unsubscribe themselves from observation, etc., because at the time of the `broadcastValueWillChange(newValue:)` call there is no existing access to the synthesized storage property.
+
+There is a secondary benefit to providing the key paths, because it allows the property wrapper type to reason about its different instances based on the identity of the `wrapped` key path.
+
+This extension is backward-compatible with the rest of the proposal. Property wrapper types could opt in to this behavior by providing a `static subscript(instanceSelf:wrapped:storage:)`, which would be used in cases where the property wrapper is being applied to an instance property of a class. If such a property wrapper type is applied to a property that is not an instance property of a class, or for any property wrapper types that don't have such a static subscript, the existing `wrappedValue` could be used. One could even allow `wrappedValue` to be specified to be unavailable within property wrapper types that have the static subscript, ensuring that such property wrapper types could only be applied to instance properties of a class:
 
 ```swift
-public struct MyStruct {
-  @Observable public var myVar: Int = 17
-  
-  // desugars to...
-  private var $myVar: Observable<Int> = Observable(initialValue: 17)
-  public var myVar: Int {
-    get { return $myVar[instanceSelf: self] }
-    set { $myVar[instanceSelf: &self] = newValue }
-  }
+@availability(*, unavailable) 
+var wrappedValue: Value {
+  get { fatalError("only works on instance properties of classes") }
+  set { fatalError("only works on instance properties of classes") }
 }
 ```
 
-There are a few issues here: first, subscripts don't allow `inout` parameters in the first place, so we would have to figure out how to implement support for such a feature. Second, passing `self` as `inout` while performing access to the property `self.myVar` violates Swift's exclusivity rules ([generalized accessors](https://github.com/apple/swift/blob/master/docs/OwnershipManifesto.md#generalized-accessors) might help address this). Third, property wrapper types that want to support `subscript(instanceSelf:)` for both value and reference types would have to overload on `inout` or would have to have a different subscript name (e.g., `subscript(mutatingInstanceSelf:)`).
-
-So, while we feel that support for accessing the enclosing type's `self` is useful and as future direction, and this proposal could be extended to accommodate it, the open design questions are significant enough that we do not want to tackle them all in a single proposal.
-
+The same model could be extended to static properties of types (passing the metatype instance for the enclosing `self`) as well as global and local properties (no enclsoing `self`), although we would also need to extend key path support to static, global, and local properties to do so.
+ 
 ### Delegating to an existing property
 
 When specifying a wrapper for a property, the synthesized storage property is implicitly created. However, it is possible that there already exists a property that can provide the storage. One could provide a form of property delegation that creates the getter/setter to forward to an existing property, e.g.:
