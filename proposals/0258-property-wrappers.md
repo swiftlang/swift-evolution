@@ -375,7 +375,7 @@ class Foo {
 
 Many Cocoa classes implement value-like objects that require explicit copying.
 Swift currently provides an `@NSCopying` attribute for properties to give
-them behavior like Objective-C's `@property(copy)`, invoking the `copy` method
+them behave like Objective-C's `@property(copy)`, invoking the `copy` method
 on new objects when the property is set. We can turn this into a wrapper:
 
 ```swift
@@ -1395,7 +1395,7 @@ public class MyClass: Superclass {
 }
 ```
 
-This "broadcast a notification that the value has changed" implementation cannot be cleanly factored into a property behavior type, because it needs access to both the underlying storage value (here, `backingMyVar`) and the `self` of the enclosing type. We could require a separate call to register the `self` instance with the wrapper type, e.g.,
+This "broadcast a notification that the value has changed" implementation cannot be cleanly factored into a property wrapper type, because it needs access to both the underlying storage value (here, `backingMyVar`) and the `self` of the enclosing type. We could require a separate call to register the `self` instance with the wrapper type, e.g.,
 
 ```swift
 protocol Observed {
