@@ -731,7 +731,7 @@ From a user perspective, this allows us to set up the unsafe mutable pointer's a
 @UnsafeMutablePointer(mutating: addressOfAnInt)
 var someInt: Int
 
-someInt = 17 // equivalent to someInt.pointee = 17
+someInt = 17 // equivalent to _someInt.pointee = 17
 print(someInt)
 
 _someInt.deallocate()
@@ -1434,14 +1434,14 @@ public class MyClass: Superclass {
   @Observable public var myVar: Int = 17
   
   init() {
-    // self.$myVar gets initialized with Observable(initialValue: 17) here
+    // self._myVar gets initialized with Observable(initialValue: 17) here
     super.init()
-    self.$myVar.register(self)    // register as an Observable
+    self._myVar.register(self)    // register as an Observable
   }
 }
 ```
 
-This isn't as automatic as we would like, and it requires us to have a separate reference to the `self` that is stored within `Observable`. Moreover, it is hiding a semantic problem: the observer code that runs in the `broadcastValueWillChange(newValue:)` must not access the synthesized storage property in any way (e.g., to read the old value through `myVal` or subscribe/unsubscribe an observer via `$myVal`), because doing so will trigger a [memory exclusivity](https://swift.org/blog/swift-5-exclusivity/) violation (because we are calling `broadcastValueWillChange(newValue:)` from within the a setter for the same synthesized storage property).
+This isn't as automatic as we would like, and it requires us to have a separate reference to the `self` that is stored within `Observable`. Moreover, it is hiding a semantic problem: the observer code that runs in the `broadcastValueWillChange(newValue:)` must not access the synthesized storage property in any way (e.g., to read the old value through `myVal` or subscribe/unsubscribe an observer via `_myVal`), because doing so will trigger a [memory exclusivity](https://swift.org/blog/swift-5-exclusivity/) violation (because we are calling `broadcastValueWillChange(newValue:)` from within the a setter for the same synthesized storage property).
 
 To address these issues, we could extend the ad hoc protocol used to access the storage property of a `@propertyWrapper` type a bit further. Instead of a `wrappedValue` property, a property wrapper type could provide a static `subscript(instanceSelf:wrapped:storage:)`that receives `self` as a parameter, along with key paths referencing the original wrapped property and the backing storage property. For example:
 
@@ -1449,7 +1449,7 @@ To address these issues, we could extend the ad hoc protocol used to access the 
 ```swift
 @propertyWrapper
 public struct Observable<Value> {
-  privatew var stored: Value
+  private var stored: Value
   
   public init(initialValue: Value) {
     self.stored = initialValue
