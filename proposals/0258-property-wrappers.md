@@ -3,15 +3,15 @@
 * Proposal: [SE-0258](0258-property-wrappers.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor), [Joe Groff](https://github.com/jckarter)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active Review (June 14th...24th, 2019)**
-* Implementation: [Linux toolchain](https://ci.swift.org/job/swift-PR-toolchain-Linux/243//artifact/branch-master/swift-PR-25464-243-ubuntu16.04.tar.gz), [macOS toolchain](https://ci.swift.org/job/swift-PR-toolchain-osx/317//artifact/branch-master/swift-PR-25464-317-osx.tar.gz), and [master or 5.1 snapshots](https://swift.org/download/#snapshots) after June 14, 2019.
+* Status: **Awaiting Review**
+* Implementation: [Linux toolchain](https://ci.swift.org/job/swift-PR-toolchain-Linux/251//artifact/branch-master/swift-PR-25781-251-ubuntu16.04.tar.gz), [macOS toolchain](https://ci.swift.org/job/swift-PR-toolchain-osx/327//artifact/branch-master/swift-PR-25781-327-osx.tar.gz)
 * Review: ([review #1](https://forums.swift.org/t/se-0258-property-delegates/23139)) ([revision announcement #1](https://forums.swift.org/t/returned-for-revision-se-0258-property-delegates/24080)) ([review #2](https://forums.swift.org/t/se-0258-property-wrappers-second-review/25843))
-* Previous versions: [Revision #1](https://github.com/apple/swift-evolution/commit/8c3499ec5bc22713b150e2234516af3cb8b16a0b)
+* Previous versions: [Revision #2](https://github.com/apple/swift-evolution/blob/bb8709c2ddca25c21a3c1e0298ce9457911dbfba/proposals/0258-property-wrappers.md), [Revision #1](https://github.com/apple/swift-evolution/commit/8c3499ec5bc22713b150e2234516af3cb8b16a0b)
 
 ## Introduction
 
 There are property implementation patterns that come up repeatedly.
-Rather than hardcode a fixed set of patterns into the compiler,
+Rather than hardcode a fixed set of patterns into the compiler (as we have done for `lazy` and `@NSCopying`),
 we should provide a general "property wrapper" mechanism to allow
 these patterns to be defined as libraries.
 
@@ -142,17 +142,18 @@ value of the property's type. The property declaration
 translates to:
 
 ```swift
-var $foo: Lazy<Int> = Lazy<Int>(initialValue: 1738)
+private var _foo: Lazy<Int> = Lazy<Int>(initialValue: 1738)
 var foo: Int {
-  get { return $foo.wrappedValue }
-  set { $foo.wrappedValue = newValue }
+  get { return _foo.wrappedValue }
+  set { _foo.wrappedValue = newValue }
 }
 ```
 
-The use of the prefix `$` for the synthesized storage property name is
-deliberate: it provides a predictable name for the backing storage,
-so that wrapper types can provide API. For example, we could provide
-a `reset(_:)` operation on `Lazy` to set it back to a new value:
+The use of the prefix `_` for the synthesized storage property name is
+deliberate: it provides a predictable name for the synthesized storage property that
+fits established conventions for `private` stored properties. For example,
+we could provide a `reset(_:)` operation on `Lazy` to set it back to a new
+value:
 
 ```swift
 extension Lazy {
@@ -163,37 +164,126 @@ extension Lazy {
   }
 }
 
-$foo.reset(42)
+_foo.reset(42)
 ```
 
-The property wrapper instance can be initialized directly by providing the initializer arguments in parentheses after the name. This could be used, for example, when a particular property wrapper requires more setup to provide access to a value (example courtesy of Harlan Haskins):
+The backing storage property can also be explicitly initialized. For example:
 
 ```swift
-@propertyWrapper
-struct UserDefault<T> {
-  let key: String
-  let defaultValue: T
-  
-  var wrappedValue: T {
-    get {
-      return UserDefaults.standard.object(forKey: key) as? T ?? defaultValue
-    }
-    set {
-      UserDefaults.standard.set(newValue, forKey: key)
-    }
+extension Lazy {
+  init(body: @escaping () -> Value) {
+    self = .uninitialized(body)
   }
 }
 
-enum GlobalSettings {
-  @UserDefault(key: "FOO_FEATURE_ENABLED", defaultValue: false)
-  static var isFooFeatureEnabled: Bool
-  
-  @UserDefault(key: "BAR_FEATURE_ENABLED", defaultValue: false)
-  static var isBarFeatureEnabled: Bool
-}
+func createAString() -> String { ... }
+
+@Lazy var bar: String  // not initialized yet
+_bar = Lazy(body: createAString)
+```
+
+The property wrapper instance can be initialized directly by providing the initializer arguments in parentheses after the name. The above code can be written equivalently in a single declaration as:
+
+```swift
+@Lazy(body: createAString) var bar: String
 ```
 
 Property wrappers can be applied to properties at global, local, or type scope. Those properties can have observing accessors (`willSet`/`didSet`), but not explicitly-written getters or setters.
+
+The `Lazy` property wrapper has little or no interesting API outside of its initializers, so it is not important to export it to clients. However, property wrappers can also describe rich relationships that themselves have interesting API. For example, we might have a notion of a property wrapper that references a database field established by name (example inspired by [Tanner](https://forums.swift.org/t/se-0258-property-wrappers-second-review/25843/14)):
+
+```swift
+@propertyWrapper
+public struct Field<Value: DatabaseValue> {
+  public let name: String
+  private var record: DatabaseRecord?
+  private var cachedValue: Value?
+  
+  public init(name: String) {
+    self.name = name
+  }
+
+  public func configure(record: DatabaseRecord) {
+    self.record = record
+  }
+  
+  public var wrappedValue: Value {
+    mutating get {
+      if cachedValue == nil { fetch() }
+      return cachedValue!
+    }
+    
+    set {
+      cachedValue = newValue
+    }
+  }
+  
+  public func flush() {
+    if let value = cachedValue {
+      record!.flush(fieldName: name, value)
+    }
+  }
+  
+  public mutating func fetch() {
+    cachedValue = record!.fetch(fieldName: name, type: Value.self)
+  }
+}
+```
+
+We could define our model based on the `Field` property wrapper:
+
+```swift
+public struct Person: DatabaseModel {
+  @Field(name: "first_name") public var firstName: String
+  @Field(name: "last_name") public var lastName: String
+  @Field(name: "date_of_birth") public var birthdate: Date
+}
+```
+
+`Field` itself has API that is important to users of `Person`: it lets us flush existing values, fetch new values, and retrieve the name of the corresponding field in the database. However, the underscored variables for each of the properties of our model (`_firstName`, `_lastName`, and `_birthdate`) are `private`, so our clients cannot manipulate them directly.
+
+To vend API, the property wrapper type `Field` can provide a *projection* that allows us to manipulate the relationship of the field to the database. Projection properties are prefixed with a `$`, so the projection of the `firstName` property is called `$firstName` and is visible wherever `firstName` is visible. Property wrapper types opt into provided a projection by defining a `projectedValue` property:
+
+```swift
+@propertyWrapper
+public struct Field<Value: DatabaseValue> {
+  // ... API as before ...
+  
+  public var projectedValue: Self {
+    get { self }
+    set { self = newValue }
+  }
+}
+```
+
+When `projectedValue` is present, the projection variable is created as a wrapper around `projectedValue`. For example, the following property:
+
+```swift
+@Field(name: "first_name") public var firstName: String
+```
+
+expands to:
+
+```swift
+private var _firstName: Field<String> = Field(name: "first_name")
+
+public var firstName: String {
+  get { _firstName.wrappedValue }
+  set { _firstName.wrappedValue = newValue }
+}
+
+public var $firstName: Field<String> {
+  get { _firstName.projectedValue }
+  set { _firstName.projectedValue = newValue }
+}
+```
+
+This allows clients to manipulate both the property and its projection, e.g.,
+
+```swift
+somePerson.firstName = "Taylor"
+$somePerson.flush()
+```
 
 ## Examples
 
@@ -313,7 +403,7 @@ This implementation would address the problem detailed in
 
 ### `Atomic`
 
-Support for atomic operations (load, store, increment/decementer, compare-and-exchange) is a commonly-requested Swift feature. While the implementation details for such a feature would involve compiler and standard library magic, the interface itself can be nicely expressed as a property wrapper type:
+Support for atomic operations (load, store, increment/decrement, compare-and-exchange) is a commonly-requested Swift feature. While the implementation details for such a feature would involve compiler and standard library magic, the interface itself can be nicely expressed as a property wrapper type:
 
 
 ```swift
@@ -354,14 +444,14 @@ to weave lower-level atomic operations (`increment`, `load`, `compareAndExchange
 @Atomic var counter: Int
 
 if thingHappened {
-  $counter.increment()
+  _counter.increment()
 }
 print(counter)
 
 @Atomic var initializedOnce: Int?
 if initializedOnce == nil {
   let newValue: Int = /*computeNewValue*/
-  if !$initializedOnce.compareAndExchange(oldValue: nil, newValue: newValue) {
+  if !_initializedOnce.compareAndExchange(oldValue: nil, newValue: newValue) {
     // okay, someone else initialized it. clean up if needed
   }
 }
@@ -416,6 +506,39 @@ final class ThreadSpecific<T> {
 }
 ```
 
+
+### User defaults
+
+Property wrappers can be used to provide typed properties into for
+string-keyed data, such as [user defaults](https://developer.apple.com/documentation/foundation/userdefaults) (example courtesy of Harlan Haskins),
+encapsulating the mechanism for extracting that data in the wrapper type.
+For example:
+
+```swift
+@propertyWrapper
+struct UserDefault<T> {
+  let key: String
+  let defaultValue: T
+  
+  var wrappedValue: T {
+    get {
+      return UserDefaults.standard.object(forKey: key) as? T ?? defaultValue
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: key)
+    }
+  }
+}
+
+enum GlobalSettings {
+  @UserDefault(key: "FOO_FEATURE_ENABLED", defaultValue: false)
+  static var isFooFeatureEnabled: Bool
+  
+  @UserDefault(key: "BAR_FEATURE_ENABLED", defaultValue: false)
+  static var isBarFeatureEnabled: Bool
+}
+```
+
 ### Copy-on-write
 
 With some work, property wrappers can provide copy-on-write wrappers (original example courtesy of Brent Royal-Gordon):
@@ -433,7 +556,7 @@ struct CopyOnWrite<Value: Copyable> {
   
   private(set) var wrappedValue: Value
   
-  var wrapperValue: Value {
+  var projectedValue: Value {
     mutating get {
       if !isKnownUniquelyReferenced(&wrappedValue) {
         wrappedValue = value.copy()
@@ -447,7 +570,7 @@ struct CopyOnWrite<Value: Copyable> {
 }
 ```
 
-`wrapperValue` provides delegation for the synthesized storage property, allowing the copy-on-write wrapper to be used directly:
+`projectedValue` provides delegation for the synthesized storage property, allowing the copy-on-write wrapper to be used directly:
 
 ```swift
 @CopyOnWrite var storage: MyStorageBuffer
@@ -455,15 +578,14 @@ struct CopyOnWrite<Value: Copyable> {
 // Non-modifying access:
 let index = storage.index(of: …)
 
-// For modification, access $storage, which goes through `wrapperValue`:
+// For modification, access $storage, which goes through `projectedValue`:
 $storage.append(…)
 ```
 
 ### `Ref` / `Box`
 
 We can define a property wrapper type `Ref` that is an abstracted reference
-to some value that can be get/set, which is effectively a programmatic computed
-property:
+to some value that can be get/set, which is effectively a programmatic computed property:
 
 ```swift
 @propertyWrapper
@@ -510,7 +632,7 @@ class Box<Value> {
     self.wrappedValue = initialValue
   }
 
-  var wrapperValue: Ref<Value> {
+  var projectedValue: Ref<Value> {
     return Ref<Value>(read: { self.wrappedValue }, write: { self.wrappedValue = $0 })
   }
 }
@@ -523,11 +645,11 @@ Now, we can define a new `Box` directly:
 
 print(rectangle)  // access the rectangle
 print(rectangle.topLeft) // access the top left coordinate of the rectangle
-let rect2 = $rectangle   // through wrapperValue, produces a Ref<Rectangle>
-let topLeft2 = $rectangle.topLeft   // through wrapperValue, produces a Ref<Point>
+let rect2 = $rectangle   // through projectedValue, produces a Ref<Rectangle>
+let topLeft2 = $rectangle.topLeft   // through projectedValue, produces a Ref<Point>
 ```
 
-The use of `wrapperValue` hides the box from the client (the storage variable is renamed to `$$rectangle` and remains private), providing direct access to the value in the box (the common case) as well as access to the box contents via Ref (referenced as `$rectangle`).
+The use of `projectedValue` hides the box from the client (`_rectangle` remains private), providing direct access to the value in the box (the common case) as well as access to the box contents via `Ref` (referenced as `$rectangle`).
 
 ### "Clamping" a value within bounds
 
@@ -578,10 +700,10 @@ The synthesized memberwise initializer demonstrates how the initialization itsel
 
 ```swift
 init(red: Int = 127, green: Int = 127, blue: Int = 127, alpha: Int = 255) {
-  $red = Clamping(initialValue: red, min: 0, max: 255)
-  $green = Clamping(initialValue: green, min: 0, max: 255)
-  $blue = Clamping(initialValue: blue, min: 0, max: 255)
-  $alpha = Clamping(initialValue: alpha, min: 0, max: 255)
+  _red = Clamping(initialValue: red, min: 0, max: 255)
+  _green = Clamping(initialValue: green, min: 0, max: 255)
+  _blue = Clamping(initialValue: blue, min: 0, max: 255)
+  _alpha = Clamping(initialValue: alpha, min: 0, max: 255)
 }
 ```
 
@@ -612,10 +734,10 @@ var someInt: Int
 someInt = 17 // equivalent to someInt.pointee = 17
 print(someInt)
 
-$someInt.deallocate()
+_someInt.deallocate()
 ```
 
-RxCocoa's [`BehaviorRelay`](https://github.com/ReactiveX/RxSwift/blob/master/RxCocoa/Traits/BehaviorRelay.swift) replays the most recent value provided to it for each of the subscribed observers. It is created with an initial value, has `wrappedValue` property to access the current value, as well as API to `subscribe` a new observer: (Thanks to Adrian Zubarev for pointing this out)
+RxCocoa's [`BehaviorRelay`](https://github.com/ReactiveX/RxSwift/blob/master/RxCocoa/Traits/BehaviorRelay.swift) replays the most recent value provided to it for each of the subscribed observers. It is created with an initial value, has `wrappedValue` property to access the current value and a `projectedValue` to expose a projection providing API to `subscribe` a new observer: (Thanks to Adrian Zubarev for pointing this out)
 
 ```swift
 @BehaviorRelay
@@ -626,6 +748,11 @@ $myValue.accept(42)  // set a new value via the synthesized storage property
 
 print(myValue)   // print the most recent value
 ```
+
+[Combine's `Published`](https://developer.apple.com/documentation/combine/published) property wrapper is similar in spirit, allowing clients to subscribe to `@Published` properties (via the `$` projection) to receive updates when the value changes.
+
+[SwiftUI](https://developer.apple.com/xcode/swiftui/) makes extensive use of
+property wrappers to declare local state (`@State`) and express data dependencies on other state that can effect the UI (`@EnvironmentObject`, `@Environment`, `@ObjectBinding`). It makes extensive use of projections to the [`Binding`](https://developer.apple.com/documentation/swiftui/binding) property wrapper to allow controlled mutation of the state that affects UI.
 
 ## Composition of property wrappers
 
@@ -641,18 +768,18 @@ Here, we have a property for which we can delay initialization until later. When
 Composition is implemented by nesting later wrapper types inside earlier wrapper types, where the innermost nested type is the original property's type. For the example above, the backing storage will be of type `DelayedMutable<Copying<UIBezierPath>>`, and the synthesized getter/setter for `path` will look through both levels of `.wrappedValue`:
 
 ```swift
-var $path: DelayedMutable<Copying<UIBezierPath>> = .init()
+private var _path: DelayedMutable<Copying<UIBezierPath>> = .init()
 var path: UIBezierPath {
-  get { return $path.wrappedValue.wrappedValue }
-  set { $path.wrappedValue.wrappedValue = newValue }
+  get { return _path.wrappedValue.wrappedValue }
+  set { _path.wrappedValue.wrappedValue = newValue }
 }  
 ```
 
 Note that this design means that property wrapper composition is not commutative, because the order of the attributes affects how the nesting is performed:
 
 ```swift
-@DelayedMutable @Copying var path1: UIBezierPath   // $path1 has type DelayedMutable<Copying<UIBezierPath>>
-@Copying @DelayedMutable var path2: UIBezierPath   // error: $path2 has ill-formed type Copying<DelayedMutable<UIBezierPath>>
+@DelayedMutable @Copying var path1: UIBezierPath   // _path1 has type DelayedMutable<Copying<UIBezierPath>>
+@Copying @DelayedMutable var path2: UIBezierPath   // error: _path2 has ill-formed type Copying<DelayedMutable<UIBezierPath>>
 ```
 
 In this case, the type checker prevents the second ordering, because `DelayedMutable` does not conform to the `NSCopying` protocol. This won't always be the case: some semantically-bad compositions won't necessarily by caught by the type system. Alternatives to this approach to composition are presented in "Alternatives considered." 
@@ -694,8 +821,8 @@ in one of three ways:
     @Lazy var foo = 17
     
     // ... implemented as
-    var $foo: Lazy = Lazy(initialValue: 17)
-    var foo: Int { /* access via $foo.wrappedValue as described above */ }
+    private var _foo: Lazy = Lazy(initialValue: 17)
+    var foo: Int { /* access via _foo.wrappedValue as described above */ }
     ```
   When there are multiple, composed property wrappers, all of them must provide an `init(initialValue:)`, and the resulting initialization will wrap each level of call:
   
@@ -703,8 +830,8 @@ in one of three ways:
   @Lazy @Copying var path = UIBezierPath()
   
   // ... implemented as
-  var $path: Lazy<Copying<UIBezierPath>> = .init(initialValue: .init(initialValue: UIBezierPath()))
-  var path: UIBezierPath { /* access via $path.wrappedValue.wrappedValue as described above */ }
+  private var _path: Lazy<Copying<UIBezierPath>> = .init(initialValue: .init(initialValue: UIBezierPath()))
+  var path: UIBezierPath { /* access via _path.wrappedValue.wrappedValue as described above */ }
   ```
 
 2. Via a value of the property wrapper type, by placing the initializer
@@ -717,8 +844,8 @@ in one of three ways:
     var someInt: Int
     
     // ... implemented as
-    var $someInt: UnsafeMutablePointer<Int> = UnsafeMutablePointer(mutating: addressOfInt)
-    var someInt: Int { /* access via $someInt.wrappedValue */ }
+    private var _someInt: UnsafeMutablePointer<Int> = UnsafeMutablePointer(mutating: addressOfInt)
+    var someInt: Int { /* access via _someInt.wrappedValue */ }
     ```
 
   When there are multiple, composed property wrappers, only the first (outermost) wrapper may have initializer arguments.
@@ -729,8 +856,8 @@ in one of three ways:
    @DelayedMutable var x: Int
 
    // ... implemented as
-   var $x: DelayedMutable<Int> = DelayedMutable<Int>()
-   var x: Int { /* access via $x.wrappedValue */ }
+   private var _x: DelayedMutable<Int> = DelayedMutable<Int>()
+   var x: Int { /* access via _x.wrappedValue */ }
    ```
 
   When there are multiple, composed property wrappers, only the first (outermost) wrapper needs to have an `init()`.
@@ -744,8 +871,8 @@ If the first property wrapper type is generic, its generic arguments must either
   ```swift
   @Lazy var foo = 17
   // type inference as in...
-  var $foo: Lazy = Lazy(initialValue: 17)
-  // infers the type of '$foo' to be 'Lazy<Int>'
+  private var _foo: Lazy = Lazy(initialValue: 17)
+  // infers the type of '_foo' to be 'Lazy<Int>'
   ```
 
   If there are multiple wrapper attributes, the argument to this call will instead be a nested call to `B(initialValue: E, argsB...)` for the written type of the next attribute, and so on recursively. For example:
@@ -753,8 +880,8 @@ If the first property wrapper type is generic, its generic arguments must either
   ```swift
   @A @B(name: "Hello") var bar = 42
   // type inference as in ...
-  var $bar = A(initialValue: B(initialValue: 42, name: "Hello"))
-  // infers the type of '$bar' to be 'A<B<Int>'
+  private var _bar = A(initialValue: B(initialValue: 42, name: "Hello"))
+  // infers the type of '_bar' to be 'A<B<Int>'
   ```
 
 * Otherwise, if the first wrapper attribute has direct initialization arguments `E...`, the outermost wrapper type is constrained to equal the type resulting from `A(E...)`, where `A` is the written type of the first attribute. Wrapper attributes after the first may not have direct initializers. For example:
@@ -763,8 +890,8 @@ If the first property wrapper type is generic, its generic arguments must either
   @UnsafeMutablePointer(mutating: addressOfInt)
   var someInt
   // type inference as in...
-  var $someInt: UnsafeMutablePointer = UnsafeMutablePointer.init(mutating: addressOfInt)
-  // infers the type of `$someInt` to be `UnsafeMutablePointer<Int>`
+  private var _someInt: UnsafeMutablePointer = UnsafeMutablePointer.init(mutating: addressOfInt)
+  // infers the type of `_someInt` to be `UnsafeMutablePointer<Int>`
   ```
 
 * Otherwise, if there is no initialization, and the original property has a type annotation, the type of the `wrappedValue` property in the last wrapper type is constrained to equal the type annotation of the original property. For example:
@@ -870,7 +997,7 @@ example:
 ```swift
 @Lazy var x: Int
 // ...
-x = 17   // okay, treated as $x = .init(initialValue: 17)
+x = 17   // okay, treated as _x = .init(initialValue: 17)
 ```
 
 The synthesized storage property can also be initialized directly,
@@ -879,7 +1006,7 @@ e.g.,
 ```swift
 @UnsafeMutable var y: Int
 // ...
-$y = UnsafeMutable<Int>(pointer: addressOfInt) // okay
+_y = UnsafeMutable<Int>(pointer: addressOfInt) // okay
 ```
 
 Note that the rules of [definite
@@ -890,7 +1017,7 @@ apply to properties that have wrappers. Let's expand the example of
 ```swift
 @Lazy var x2: Int
 // ...
-x2 = 17   // okay, treated as $x2 = .init(initialValue: 17)
+x2 = 17   // okay, treated as _x2 = .init(initialValue: 17)
 // ...
 x2 = 42   // okay, treated as x2 = 42 (calls the Lazy.wrappedValue setter)
 ```
@@ -929,10 +1056,10 @@ struct Foo {
        y: Int = 17,
        z: Lazy<Bool> = Lazy(closure: { getBool() }),
        w: Image) {
-    self.$x = x
-    self.$y = Lazy(initialValue: y)
-    self.$z = z
-    self.$w = CopyOnWrite(initialValue: w)
+    self._x = x
+    self._y = Lazy(initialValue: y)
+    self._z = z
+    self._w = CopyOnWrite(initialValue: w)
   }
 }
 ```
@@ -940,24 +1067,25 @@ struct Foo {
 ### Codable, Hashable, and Equatable synthesis
 
 Synthesis for `Encodable`, `Decodable`, `Hashable`, and `Equatable`
-use the backing storage property. This allows property wrapper types to determine their own serialization and equality behavior. For `Encodable` and `Decodable`, the name used for keyed archiving is that of the original property declaration (without the `$`).
+use the backing storage property. This allows property wrapper types to determine their own serialization and equality behavior. For `Encodable` and `Decodable`, the name used for keyed archiving is that of the original property declaration (without the `_`).
 
 ### $ identifiers
 
 Currently, identifiers starting with a `$` are not permitted in Swift programs. Today, such identifiers are only used in LLDB, where they can be used to name persistent values within a debugging session.
 
-This proposal loosens these rules slightly: the Swift compiler will introduce identifiers that start with `$` (for the synthesized storage property), and Swift code can reference those properties. However, Swift code cannot declare any new entities with an identifier that begins with `$`. For example:
+This proposal loosens these rules slightly: the Swift compiler will introduce identifiers that start with `$` (for the projection property), and Swift code can reference those properties. However, Swift code cannot declare any new entities with an identifier that begins with `$`. For example:
 
 ```swift
-@Lazy var x = 17
-print($x)     // okay to refer to compiler-defined $x
-let $y = 17   // error: cannot declare entity with $-prefixed name '$y'
+@CopyOnWrite var x = UIBezierPath()
+print($x)                 // okay to refer to compiler-defined $x
+let $y = UIBezierPath()   // error: cannot declare entity with $-prefixed name '$y'
 ```
 
-### Delegating access to the storage property
+### Projections
 
-A property wrapper type can choose to hide its instance entirely by providing a property named `wrapperValue`. As with the `wrappedValue` property and`init(initialValue:)`, the `wrapperValue` property must have the
-same access level as its property wrapper type. When present, the synthesized storage property is hidden further (the private variable is named, e.g., `$$foo`) and the property `$foo` becomes a computed property accessing the storage property's `wrapperValue`. For example:
+A property wrapper type can choose to provide a projection property (e.g., `$foo`) to expose more API for each wrapped property by defining a `projectedValue` property.  
+As with the `wrappedValue` property and `init(initialValue:)`, the `projectedValue` property must have the
+same access level as its property wrapper type. For example:
 
 ```swift
 class StorageManager {
@@ -978,7 +1106,7 @@ struct LongTermStorage<Value> {
     set { pointer.pointee = newValue }
   }
 
-  var wrapperValue: UnsafeMutablePointer<Value> {
+  var projectedValue: UnsafeMutablePointer<Value> {
     return pointer
   }
 }
@@ -995,14 +1123,13 @@ var someValue: String
 print(someValue)     // prints "Hello"
 someValue = "World"  // update the value in storage to "World"
 
-// $someValue accesses the wrapperValue property of the wrapper instance, which
+// $someValue accesses the projectedValue property of the wrapper instance, which
 // is an UnsafeMutablePointer<String>
 let world = $someValue.move()   // take value directly from the storage
 $someValue.initialize(to: "New value")
 ```
 
-The `$` variable's access level will be the more restrictive of either `internal` or the access level of the original property. For example:
-
+The projection property has the same access level as the original property:
 ```swift
 @LongTermStorage(manager: manager, initialValue: "Hello")
 public var someValue: String
@@ -1011,16 +1138,16 @@ public var someValue: String
 is translated into:
 
 ```swift
-private var $$someValue: LongTermStorage<String> = LongTermStorage(manager: manager, initialValue: "Hello")
+private var _someValue: LongTermStorage<String> = LongTermStorage(manager: manager, initialValue: "Hello")
 
-internal var $someValue: UnsafeMutablePointer<String> {
-  get { return $$someValue.wrapperValue }
-  set { $$someValue.wrapperValue = newValue }
+public var $someValue: UnsafeMutablePointer<String> {
+  get { return _someValue.projectedValue }
+  set { _someValue.projectedValue = newValue }
 }
 
 public var someValue: String {
-  get { return $$someValue.wrappedValue }
-  set { $$someValue.wrappedValue = newValue }
+  get { return _someValue.wrappedValue }
+  set { _someValue.wrappedValue = newValue }
 }
 ```
 
@@ -1041,13 +1168,13 @@ struct ArenaStorage<Value> {
     set { pointer.pointee = newValue }
   }
 
-  var wrapperValue: UnsafeMutablePointer<Value> {
+  var projectedValue: UnsafeMutablePointer<Value> {
     return pointer
   }
 }
 ```
 
-The `someValue` variable from the previous example could be switched over to use arena-based storage without changing any of the clients of `someValue` or its wrapper property `$someValue`:
+The `someValue` variable from the previous example could be switched over to use arena-based storage without changing any of the clients of `someValue` or its projection property `$someValue`:
 
 ```swift
 @ArenaStorage(arena: currentConnectionArena, initialValue: "Hello")
@@ -1055,7 +1182,7 @@ var someValue: String
 ```
 
 Each of the property wrapper types could have different implementations with
-different data, but all of them present the same interface through `$someValue` and `someValue`. Note also that the `$someValue` is not writable, because `wrapperValue` is a get-only property.
+different data, but all of them present the same interface through `$someValue` and `someValue`. Note also that the `$someValue` is not writable, because `projectedValue` is a get-only property.
 
 ### Restrictions on the use of property wrappers
 
@@ -1069,7 +1196,7 @@ There are a number of restrictions on the use of property wrappers when defining
 * A property with a wrapper must be the only property declared within its enclosing declaration (e.g., `@Lazy var (x, y) = /* ... */` is ill-formed).
 * A property with a wrapper shall not define a getter or setter.
 * The `wrappedValue` property and (if present) `init(initialValue:)` of a property wrapper type shall have the same access as the property wrapper type.
-* The `wrapperValue` property, if present, shall have the same access as the property wrapper type.
+* The `projectedValue` property, if present, shall have the same access as the property wrapper type.
 * The `init()` initializer, if present, shall have the same access as the property wrapper type.
 
 ## Impact on existing code
@@ -1169,8 +1296,8 @@ structures that seem to be implemented in terms of only
 
 ### Kotlin-like `by` syntax
 
-A previous iteration of this proposal (and its [implementation](https://github.com/apple/swift/pull/23440)) used `by` syntax similar to that of [Kotlin's wrapperd
-properties](https://kotlinlang.org/docs/reference/wrapperd-properties.html), where the `by` followed the variable declaration. For example:
+A previous iteration of this proposal (and its [implementation](https://github.com/apple/swift/pull/23440)) used `by` syntax similar to that of [Kotlin's delegated
+properties](https://kotlinlang.org/docs/reference/delegated-properties.html), where the `by` followed the variable declaration. For example:
 
 ```swift
 var foo by Lazy = 1738
@@ -1184,6 +1311,11 @@ There are some small advantages to this syntax over the attribute formulation:
 * The `by wrapperType` formulation leaves syntactic space for add-on features like specifying the access level of the wrapper instance (`by private wrapperType`) or delegating to an existing property (`by someInstanceProperty`).
 
 The main problem with `by` is its novelty: there isn't anything else in Swift quite like the `by` keyword above, and it is unlikely that the syntax would be re-used for any other feature. As a keyword, `by` is quite meaningless, and brainstorming  during the [initial pitch](https://forums.swift.org/t/pitch-property-delegates/21895) didn't find any clearly good names for this functionality. 
+
+### Alternative spellings for the `$` projection property
+
+The prefix `$` spelling for the projection property has been the source of
+much debate. A number of alternatives have been proposed, including longer `#`-based spellings (e.g., `#storage(of: foo)`) and postfix `$` (e.g., `foo$`). The postfix `$` had the most discussion, based on the idea that it opens up more extension points in the future (e.g., `foo$storage` could refer to the backing storage, `foo$databaseHandle` could refer to a specific "database handle" projection for certain property wrappers, etc.). However, doing so introduces yet another new namespace of names to the language ("things that follow `$`) and isn't motivated by enough strong use cases.
 
 ### The 2015-2016 property behaviors design
 
@@ -1219,30 +1351,30 @@ the prior proposal are:
 
 ## Future Directions
 
-### Access to the storage property
+### Finer-grained access control
 
-By default, the synthesized storage property will have `private` access. However, there are various circumstances where it would be beneficial to expose the synthesized storage property. This could be performed "per-property", e.g., by introducing a syntax akin to `private(set)`:
+By default, the synthesized storage property will have `private` access, and the projection property (when available) will have the same access as the original wrapped property. However, there are various circumstances where it would be beneficial to expose the synthesized storage property. This could be performed "per-property", e.g., by introducing a syntax akin to `private(set)`:
 
 ```swift
-// both foo and $foo are publicly visible
-@Atomic
-public public(wrapper) var foo: Int = 1738
+// both foo and _foo are publicly visible, $foo remains private
+@SomeWrapper
+public public(storage) private(projection) var foo: Int = 1738
 ```
 
 One could also consider having the property wrapper types themselves declare that the synthesized storage properties for properties using those wrappers should have the same access as the original property. For example:
 
 ```swift
-@propertyWrapper(wrapperIsAccessible: true)
-struct Atomic<T> {
+@propertyWrapper(storageIsAccessible: true)
+struct SomeWrapper<T> {
   var wrappedValue: T { ... }
 }
 
-// both bar and $bar are publicly visible
-@Atomic
+// both bar and _bar are publicly visible
+@SomeWrapper
 public var bar: Int = 1738
 ```
 
-The two features could also be combined, allowing property wrapper types to provide the default behavior and the `access-level(wrapper)` syntax to change the default. The current proposal's `private`-by-default is meant to be a conservative first step to allow a separate exploration into expanding the visibility of the backing storage.
+The two features could also be combined, allowing property wrapper types to provide the default behavior and the `access-level(...)` syntax to change the default. The current proposal's rules are meant to provide the right defaults while allowing for a separate exploration into expanding the visibility of the synthesized properties.
 
 ### Referencing the enclosing 'self' in a wrapper type
 
@@ -1255,7 +1387,7 @@ public class MyClass: Superclass {
     get { return backingMyVar }
     set {
       if newValue != backingMyVar {
-        self.broadcastValueChanged(oldValue: backingMyVar, newValue: newValue)
+        self.broadcastValueWillChange(newValue: newValue)
       }
       backingMyVar = newValue
     }
@@ -1263,11 +1395,11 @@ public class MyClass: Superclass {
 }
 ```
 
-This "broadcast a notification that the value has changed" implementation cannot be cleanly factored into a property behavior type, because it needs access to both the underlying storage value (here, `backingMyVar`) and the `self` of the enclosing type. We could require a separate call to register the `self` instance with the wrapper type, e.g.,
+This "broadcast a notification that the value has changed" implementation cannot be cleanly factored into a property wrapper type, because it needs access to both the underlying storage value (here, `backingMyVar`) and the `self` of the enclosing type. We could require a separate call to register the `self` instance with the wrapper type, e.g.,
 
 ```swift
 protocol Observed {
-  func broadcastValueChanged<T>(oldValue: T, newValue: T)
+  func broadcastValueWillChange<T>(newValue: T)
 }
 
 @propertyWrapper
@@ -1287,7 +1419,7 @@ public struct Observable<Value> {
     get { return stored }
     set {
       if newValue != stored {
-        observed?.broadcastValueChanged(oldValue: stored, newValue: newValue)
+        observed?.broadcastValueWillChange(newValue: newValue)
       }
       stored = newValue
     }
@@ -1309,27 +1441,34 @@ public class MyClass: Superclass {
 }
 ```
 
-This isn't as automatic as we would like, and it requires us to have a separate reference to the `self` that is stored within `Observable`.
+This isn't as automatic as we would like, and it requires us to have a separate reference to the `self` that is stored within `Observable`. Moreover, it is hiding a semantic problem: the observer code that runs in the `broadcastValueWillChange(newValue:)` must not access the synthesized storage property in any way (e.g., to read the old value through `myVal` or subscribe/unsubscribe an observer via `$myVal`), because doing so will trigger a [memory exclusivity](https://swift.org/blog/swift-5-exclusivity/) violation (because we are calling `broadcastValueWillChange(newValue:)` from within the a setter for the same synthesized storage property).
 
-Instead, we could extend the ad hoc protocol used to access the storage property of a `@propertyWrapper` type a bit further. Instead of (or in addition to) a `wrappedValue` property, a property wrapper type could provide a `subscript(instanceSelf:)` and/or `subscript(typeSelf:)` that receive `self` as a parameter. For example:
+To address these issues, we could extend the ad hoc protocol used to access the storage property of a `@propertyWrapper` type a bit further. Instead of a `wrappedValue` property, a property wrapper type could provide a static `subscript(instanceSelf:wrapped:storage:)`that receives `self` as a parameter, along with key paths referencing the original wrapped property and the backing storage property. For example:
 
 
 ```swift
 @propertyWrapper
 public struct Observable<Value> {
-  public var stored: Value
+  privatew var stored: Value
   
   public init(initialValue: Value) {
     self.stored = initialValue
   }
   
-  public subscript<OuterSelf: Observed>(instanceSelf observed: OuterSelf) -> Value {
-    get { return stored }
+  public static subscript<OuterSelf: Observed>(
+      instanceSelf observed: OuterSelf,
+      wrapped wrappedKeyPath: ReferenceWritableKeyPath<OuterSelf, Value>,
+      storage storageKeyPath: ReferenceWritableKeyPath<OuterSelf, Self>
+    ) -> Value {
+    get {
+      observed[keyPath: storageKeyPath].stored
+    }
     set {
-      if newValue != stored {
-        observed.broadcastValueChanged(oldValue: stored, newValue: newValue)
+      let oldValue = observed[keyPath: storageKeyPath].stored
+      if newValue != oldValue {
+        observed.broadcastValueWillChange(newValue: newValue)
       }
-      stored = newValue
+      observed[keyPath: storageKeyPath].stored = newValue
     }
   }
 }
@@ -1342,39 +1481,35 @@ public class MyClass: Superclass {
   @Observable public var myVar: Int = 17
   
   // desugars to...
-  private var $myVar: Observable<Int> = Observable(initialValue: 17)
+  private var _myVar: Observable<Int> = Observable(initialValue: 17)
   public var myVar: Int {
-    get { return $myVar[instanceSelf: self] }
-    set { $myVar[instanceSelf: self] = newValue }
+    get { Observable<Int>[instanceSelf: self, wrapped: \MyClass.myVar, storage: \MyClass._myVar] }
+    set { Observable<Int>[instanceSelf: self, wrapped: \MyClass.myVar, storage: \MyClass._myVar] = newValue }
   }
 }
 ```
 
-This change is backward-compatible with the rest of the proposal. Property wrapper types could provide any (non-empty) subset of the three ways to access the underlying value:
+The design uses a `static` subscript and provides key paths to both the original property declaration (`wrapped`) and the synthesized storage property (`storage`). A call to the static subscript's getter or setter does not itself constitute an access to the synthesized storage property, allowing us to address the memory exclusivity violation from the early implementation. The subscript's implementation is given the means to access the synthesized storage property (via the enclosing `self` instance and `storage` key path). In our `Observable` property wrapper, the static subscript setter performs two distinct accesses to the synthesized storage property via `observed[keyPath: storageKeyPath]`:
 
-* For instance properties, `subscript(instanceSelf:)` as shown above.
-* For static or class properties, `subscript(typeSelf:)`, similar to the above but accepting a metatype parameter.
-* For global/local properties, or when the appropriate `subscript` mentioned above isn't provided by the wrapper type, the `wrappedValue` property would be used.
+1. The read of the old value
+2. A write of the new value
 
-The main challenge with this design is that it doesn't directly work when the enclosing type is a value type and the property is settable. In such cases, the parameter to the subscript would get a copy of the entire enclosing value, which would not allow mutation, On the other hand, one could try to pass `self` as `inout`, e.g.,
+In between these operations is the broadcast operation to any observers. Those observers are permitted to read the old value, unsubscribe themselves from observation, etc., because at the time of the `broadcastValueWillChange(newValue:)` call there is no existing access to the synthesized storage property.
+
+There is a secondary benefit to providing the key paths, because it allows the property wrapper type to reason about its different instances based on the identity of the `wrapped` key path.
+
+This extension is backward-compatible with the rest of the proposal. Property wrapper types could opt in to this behavior by providing a `static subscript(instanceSelf:wrapped:storage:)`, which would be used in cases where the property wrapper is being applied to an instance property of a class. If such a property wrapper type is applied to a property that is not an instance property of a class, or for any property wrapper types that don't have such a static subscript, the existing `wrappedValue` could be used. One could even allow `wrappedValue` to be specified to be unavailable within property wrapper types that have the static subscript, ensuring that such property wrapper types could only be applied to instance properties of a class:
 
 ```swift
-public struct MyStruct {
-  @Observable public var myVar: Int = 17
-  
-  // desugars to...
-  private var $myVar: Observable<Int> = Observable(initialValue: 17)
-  public var myVar: Int {
-    get { return $myVar[instanceSelf: self] }
-    set { $myVar[instanceSelf: &self] = newValue }
-  }
+@availability(*, unavailable) 
+var wrappedValue: Value {
+  get { fatalError("only works on instance properties of classes") }
+  set { fatalError("only works on instance properties of classes") }
 }
 ```
 
-There are a few issues here: first, subscripts don't allow `inout` parameters in the first place, so we would have to figure out how to implement support for such a feature. Second, passing `self` as `inout` while performing access to the property `self.myVar` violates Swift's exclusivity rules ([generalized accessors](https://github.com/apple/swift/blob/master/docs/OwnershipManifesto.md#generalized-accessors) might help address this). Third, property wrapper types that want to support `subscript(instanceSelf:)` for both value and reference types would have to overload on `inout` or would have to have a different subscript name (e.g., `subscript(mutatingInstanceSelf:)`).
-
-So, while we feel that support for accessing the enclosing type's `self` is useful and as future direction, and this proposal could be extended to accommodate it, the open design questions are significant enough that we do not want to tackle them all in a single proposal.
-
+The same model could be extended to static properties of types (passing the metatype instance for the enclosing `self`) as well as global and local properties (no enclsoing `self`), although we would also need to extend key path support to static, global, and local properties to do so.
+ 
 ### Delegating to an existing property
 
 When specifying a wrapper for a property, the synthesized storage property is implicitly created. However, it is possible that there already exists a property that can provide the storage. One could provide a form of property delegation that creates the getter/setter to forward to an existing property, e.g.:
@@ -1386,7 +1521,15 @@ lazy var fooBacking: SomeWrapper<Int>
 
 One could express this either by naming the property directly (as above) or, for an even more general solution, by providing a keypath such as `\.someProperty.someOtherProperty`.
 
-## Changes from the first reviewed version
+## Revisions
+
+### Changes from the second reviewed version
+
+* The synthesized storage property is always named with a leading `_` and is always `private`.
+* The `wrapperValue` property has been renamed to `projectedValue` to make it sufficiently different from `wrappedValue`. This also gives us the "projection" terminology to talk about the `$` property.
+* The projected property (e.g., `$foo`) always has the same access as the original wrapped property, rather than being artificially limited to `internal`. This reflects the idea that, for property wrapper types that have a projection, the projection is equal in importance to the wrapped value.
+
+### Changes from the first reviewed version
 
 * The name of the feature has been changed from "property delegates" to "property wrappers" to better communicate how they work and avoid the existing uses of the term "delegate" in the Apple developer community
 * When a property wrapper type has a no-parameter `init()`, properties that use that wrapper type will be implicitly initialized via `init()`.
