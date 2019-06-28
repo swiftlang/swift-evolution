@@ -731,7 +731,7 @@ From a user perspective, this allows us to set up the unsafe mutable pointer's a
 @UnsafeMutablePointer(mutating: addressOfAnInt)
 var someInt: Int
 
-someInt = 17 // equivalent to someInt.pointee = 17
+someInt = 17 // equivalent to _someInt.pointee = 17
 print(someInt)
 
 _someInt.deallocate()
