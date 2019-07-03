@@ -3,7 +3,7 @@
 * Proposal: [SE-0260](0260-library-evolution.md)
 * Authors: [Jordan Rose](https://github.com/jrose-apple), [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.1)**
 * Implementation: Implemented in Swift 5 for standard library use. PR with renamed attributes [here](https://github.com/apple/swift/pull/24185).
 * Pre-review discussion: [Forum thread](https://forums.swift.org/t/pitch-library-evolution-for-stable-abis/)
 * Review: ([review](https://forums.swift.org/t/se-0260-library-evolution-for-stable-abis/24260)) ([acceptance](https://forums.swift.org/t/accepted-se-0260-library-evolution-for-stable-abis/24845))
