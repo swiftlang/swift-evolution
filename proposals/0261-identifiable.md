@@ -1,9 +1,9 @@
 # Identifiable
 
-* Proposal: [SE-NNNN](NNNN-identifiable.md)
+* Proposal: [SE-0261](0261-identifiable.md)
 * Authors: [Matthew Johnson](https://github.com/anandabits), [Kyle Macomber](https://github.com/kylemacomber)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
+* Status: **Active Review (July 3rd...July 12th)**
 
 ## Introduction
 
