@@ -7,7 +7,7 @@
 
 ## Introduction
 
-SwiftUI introduces an `Identifiable` protocol. This concept is broadly useful—
+This proposal introduces an `Identifiable` protocol, a general concept that is broadly useful—
 for diff algorithms, user interface libraries, and other generic code—to
 correlate snapshots of the state of an entity in order to identify changes. It
 is a fundamental notion that deserves representation in the standard library.
@@ -94,9 +94,11 @@ case computing the diff in the UI layer is redundant.
 
 Model layer code that performs these computations often has no dependencies
 outside the standard library itself. It is unlikely to accept a dependency on
-SwiftUI. If `Identifiable` doesn't move to the standard library Swift programmers 
+a UI framework that defines its own `Identifiable` protocol. If `Identifiable`
+doesn't move to the standard library Swift programmers 
 will need to continue using their own variation of this protocol and will need
-to ensure it is able co-exist with SwiftUI. Unfortunately none these variations 
+to ensure it is able co-exist with other similar definitions found in other frameworks higher 
+up the dependency stack. Unfortunately none these variations 
 are likey to be compatible with one another.
 
 ## Proposed solution
