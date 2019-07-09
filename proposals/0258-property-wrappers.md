@@ -856,47 +856,48 @@ type is the wrapper type. That stored property can be initialized
 in one of three ways:
 
 1. Via a value of the original property's type (e.g., `Int` in `@Lazy var
-    foo: Int`, using the the property wrapper type's
-    `init(initialValue:)` initializer. That initializer must have a single
-    parameter of the same type as the `wrappedValue` property (or
-    be an `@autoclosure` thereof) and have the same access level as the 
-    property wrapper type itself. When `init(initialValue:)` is present,
-    is is always used for the initial value provided on the property
-    declaration. For example:
-    
-    ```swift
-    @Lazy var foo = 17
-    
-    // ... implemented as
-    private var _foo: Lazy = Lazy(initialValue: 17)
-    var foo: Int { /* access via _foo.wrappedValue as described above */ }
-    ```
-  When there are multiple, composed property wrappers, all of them must provide an `init(initialValue:)`, and the resulting initialization will wrap each level of call:
-  
-  ```swift
-  @Lazy @Copying var path = UIBezierPath()
-  
-  // ... implemented as
-  private var _path: Lazy<Copying<UIBezierPath>> = .init(initialValue: .init(initialValue: UIBezierPath()))
-  var path: UIBezierPath { /* access via _path.wrappedValue.wrappedValue as described above */ }
-  ```
+   foo: Int`, using the the property wrapper type's
+   `init(initialValue:)` initializer. That initializer must have a single
+   parameter of the same type as the `wrappedValue` property (or
+   be an `@autoclosure` thereof) and have the same access level as the 
+   property wrapper type itself. When `init(initialValue:)` is present,
+   is is always used for the initial value provided on the property
+   declaration. For example:
+
+   ```swift
+   @Lazy var foo = 17
+
+   // ... implemented as
+   private var _foo: Lazy = Lazy(initialValue: 17)
+   var foo: Int { /* access via _foo.wrappedValue as described above */ }
+   ```
+
+   When there are multiple, composed property wrappers, all of them must provide an `init(initialValue:)`, and the resulting initialization will wrap each level of call:
+
+   ```swift
+   @Lazy @Copying var path = UIBezierPath()
+
+   // ... implemented as
+   private var _path: Lazy<Copying<UIBezierPath>> = .init(initialValue: .init(initialValue: UIBezierPath()))
+   var path: UIBezierPath { /* access via _path.wrappedValue.wrappedValue as described above */ }
+   ```
 
 2. Via a value of the property wrapper type, by placing the initializer
    arguments after the property wrapper type:
-    
-    ```swift
-    var addressOfInt: UnsafePointer<Int> = ...
-    
-    @UnsafeMutablePointer(mutating: addressOfInt) 
-    var someInt: Int
-    
-    // ... implemented as
-    private var _someInt: UnsafeMutablePointer<Int> = UnsafeMutablePointer(mutating: addressOfInt)
-    var someInt: Int { /* access via _someInt.wrappedValue */ }
-    ```
 
-  When there are multiple, composed property wrappers, only the first (outermost) wrapper may have initializer arguments.
-  
+   ```swift
+   var addressOfInt: UnsafePointer<Int> = ...
+
+   @UnsafeMutablePointer(mutating: addressOfInt) 
+   var someInt: Int
+
+   // ... implemented as
+   private var _someInt: UnsafeMutablePointer<Int> = UnsafeMutablePointer(mutating: addressOfInt)
+   var someInt: Int { /* access via _someInt.wrappedValue */ }
+   ```
+
+   When there are multiple, composed property wrappers, only the first (outermost) wrapper may have initializer arguments.
+
 3. Implicitly, when no initializer is provided and the property wrapper type provides a no-parameter initializer (`init()`). In such cases, the wrapper type's `init()` will be invoked to initialize the stored property.
 
    ```swift
@@ -907,7 +908,7 @@ in one of three ways:
    var x: Int { /* access via _x.wrappedValue */ }
    ```
 
-  When there are multiple, composed property wrappers, only the first (outermost) wrapper needs to have an `init()`.
+   When there are multiple, composed property wrappers, only the first (outermost) wrapper needs to have an `init()`.
 
 ### Type inference with property wrappers
 
