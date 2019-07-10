@@ -6,7 +6,7 @@
 * Status: **Active Review (June 27th...July 3rd, 2019)**
 * Implementation: [Linux toolchain](https://ci.swift.org/job/swift-PR-toolchain-Linux/251//artifact/branch-master/swift-PR-25781-251-ubuntu16.04.tar.gz), [macOS toolchain](https://ci.swift.org/job/swift-PR-toolchain-osx/327//artifact/branch-master/swift-PR-25781-327-osx.tar.gz)
 * Review: ([review #1](https://forums.swift.org/t/se-0258-property-delegates/23139)) ([revision announcement #1](https://forums.swift.org/t/returned-for-revision-se-0258-property-delegates/24080)) ([review #2](https://forums.swift.org/t/se-0258-property-wrappers-second-review/25843)) ([review #3](https://forums.swift.org/t/se-0258-property-wrappers-third-review/26399))
-* Previous versions: [Revision #2](https://github.com/apple/swift-evolution/blob/bb8709c2ddca25c21a3c1e0298ce9457911dbfba/proposals/0258-property-wrappers.md), [Revision #1](https://github.com/apple/swift-evolution/commit/8c3499ec5bc22713b150e2234516af3cb8b16a0b)
+* Previous versions: [Revision #3](https://github.com/apple/swift-evolution/blob/e99ae69370f56ae84256b78902ab377cb8249cdd/proposals/0258-property-wrappers.md), [Revision #2](https://github.com/apple/swift-evolution/blob/bb8709c2ddca25c21a3c1e0298ce9457911dbfba/proposals/0258-property-wrappers.md), [Revision #1](https://github.com/apple/swift-evolution/commit/8c3499ec5bc22713b150e2234516af3cb8b16a0b)
 
 ## Contents
 
@@ -153,8 +153,8 @@ enum Lazy<Value> {
   case uninitialized(() -> Value)
   case initialized(Value)
 
-  init(initialValue: @autoclosure @escaping () -> Value) {
-    self = .uninitialized(initialValue)
+  init(wrappedValue: @autoclosure @escaping () -> Value) {
+    self = .uninitialized(wrappedValue)
   }
 
   var wrappedValue: Value {
@@ -179,7 +179,7 @@ A property wrapper type provides the storage for a property that
 uses it as a wrapper. The `wrappedValue` property of the wrapper type
 provides the actual
 implementation of the wrapper, while the (optional)
-`init(initialValue:)` enables initialization of the storage from a
+`init(wrappedValue:)` enables initialization of the storage from a
 value of the property's type. The property declaration
 
 ```swift
@@ -189,7 +189,7 @@ value of the property's type. The property declaration
 translates to:
 
 ```swift
-private var _foo: Lazy<Int> = Lazy<Int>(initialValue: 1738)
+private var _foo: Lazy<Int> = Lazy<Int>(wrappedValue: 1738)
 var foo: Int {
   get { return _foo.wrappedValue }
   set { _foo.wrappedValue = newValue }
@@ -430,7 +430,7 @@ on new objects when the property is set. We can turn this into a wrapper:
 struct Copying<Value: NSCopying> {
   private var _value: Value
   
-  init(initialValue value: Value) {
+  init(wrappedValue value: Value) {
     // Copy the value on initialization.
     self._value = value.copy() as! Value
   }
@@ -446,7 +446,7 @@ struct Copying<Value: NSCopying> {
 ```
 
 This implementation would address the problem detailed in
-[SE-0153](https://github.com/apple/swift-evolution/blob/master/proposals/0153-compensate-for-the-inconsistency-of-nscopyings-behaviour.md). Leaving the `copy()` out of `init(initialValue:)` implements the pre-SE-0153 semantics.
+[SE-0153](https://github.com/apple/swift-evolution/blob/master/proposals/0153-compensate-for-the-inconsistency-of-nscopyings-behaviour.md). Leaving the `copy()` out of `init(wrappedValue:)` implements the pre-SE-0153 semantics.
 
 ### `Atomic`
 
@@ -458,8 +458,8 @@ Support for atomic operations (load, store, increment/decrement, compare-and-exc
 struct Atomic<Value> {
   private var _value: Value
   
-  init(initialValue: Value) {
-    self._value = initialValue
+  init(wrappedValue: Value) {
+    self._value = wrappedValue
   }
 
   var wrappedValue: Value {
@@ -515,13 +515,13 @@ final class ThreadSpecific<T> {
   private var key = pthread_key_t()
   private let initialValue: T
 
-  init(key: pthread_key_t, initialValue: T) {
+  init(key: pthread_key_t, wrappedValue: T) {
     self.key = key
-    self.initialValue = initialValue
+    self.initialValue = wrappedValue
   }
 
-  init(initialValue: T) {
-    self.initialValue = initialValue
+  init(wrappedValue: T) {
+    self.initialValue = wrappedValue
     pthread_key_create(&key) {
       // 'Any' erasure due to inability to capture 'self' or <T>
       $0.assumingMemoryBound(to: Any.self).deinitialize(count: 1)
@@ -597,8 +597,8 @@ protocol Copyable: AnyObject {
 
 @propertyWrapper
 struct CopyOnWrite<Value: Copyable> {
-  init(initialValue: Value) {
-    wrappedValue = initialValue
+  init(wrappedValue: Value) {
+    self.wrappedValue = wrappedValue
   }
   
   private(set) var wrappedValue: Value
@@ -617,7 +617,7 @@ struct CopyOnWrite<Value: Copyable> {
 }
 ```
 
-`projectedValue` provides delegation for the synthesized storage property, allowing the copy-on-write wrapper to be used directly:
+`projectedValue` provides projection for the synthesized storage property, allowing the copy-on-write wrapper to be used directly:
 
 ```swift
 @CopyOnWrite var storage: MyStorageBuffer
@@ -675,8 +675,8 @@ write out the getters and setters, and it's fairly common to have a `Box` type t
 class Box<Value> {
   var wrappedValue: Value
 
-  init(initialValue: Value) {
-    self.wrappedValue = initialValue
+  init(wrappedValue: Value) {
+    self.wrappedValue = wrappedValue
   }
 
   var projectedValue: Ref<Value> {
@@ -709,8 +709,8 @@ struct Clamping<V: Comparable> {
   let min: V
   let max: V
 
-  init(initialValue: V, min: V, max: V) {
-    value = initialValue
+  init(wrappedValue: V, min: V, max: V) {
+    value = wrappedValue
     self.min = min
     self.max = max
     assert(value >= min && value <= max)
@@ -732,7 +732,7 @@ struct Clamping<V: Comparable> {
 ```
 
 Most interesting in this example is how `@Clamping` properties can be
-initialized given both an initial value and initializer arguments. In such cases, the `initialValue:` argument is placed first. For example, this means we can define a `Color` type that clamps all values in the range [0, 255]:
+initialized given both an initial value and initializer arguments. In such cases, the `wrappedValue:` argument is placed first. For example, this means we can define a `Color` type that clamps all values in the range [0, 255]:
 
 ```swift
 struct Color {
@@ -747,10 +747,10 @@ The synthesized memberwise initializer demonstrates how the initialization itsel
 
 ```swift
 init(red: Int = 127, green: Int = 127, blue: Int = 127, alpha: Int = 255) {
-  _red = Clamping(initialValue: red, min: 0, max: 255)
-  _green = Clamping(initialValue: green, min: 0, max: 255)
-  _blue = Clamping(initialValue: blue, min: 0, max: 255)
-  _alpha = Clamping(initialValue: alpha, min: 0, max: 255)
+  _red = Clamping(wrappedValue: red, min: 0, max: 255)
+  _green = Clamping(wrappedValue: green, min: 0, max: 255)
+  _blue = Clamping(wrappedValue: blue, min: 0, max: 255)
+  _alpha = Clamping(wrappedValue: alpha, min: 0, max: 255)
 }
 ```
 
@@ -857,10 +857,10 @@ in one of three ways:
 
 1. Via a value of the original property's type (e.g., `Int` in `@Lazy var
    foo: Int`, using the the property wrapper type's
-   `init(initialValue:)` initializer. That initializer must have a single
+   `init(wrappedValue:)` initializer. That initializer must have a single
    parameter of the same type as the `wrappedValue` property (or
    be an `@autoclosure` thereof) and have the same access level as the 
-   property wrapper type itself. When `init(initialValue:)` is present,
+   property wrapper type itself. When `init(wrappedValue:)` is present,
    is is always used for the initial value provided on the property
    declaration. For example:
 
@@ -868,17 +868,17 @@ in one of three ways:
    @Lazy var foo = 17
 
    // ... implemented as
-   private var _foo: Lazy = Lazy(initialValue: 17)
+   private var _foo: Lazy = Lazy(wrappedValue: 17)
    var foo: Int { /* access via _foo.wrappedValue as described above */ }
    ```
 
-   When there are multiple, composed property wrappers, all of them must provide an `init(initialValue:)`, and the resulting initialization will wrap each level of call:
+   When there are multiple, composed property wrappers, all of them must provide an `init(wrappedValue:)`, and the resulting initialization will wrap each level of call:
 
    ```swift
    @Lazy @Copying var path = UIBezierPath()
 
    // ... implemented as
-   private var _path: Lazy<Copying<UIBezierPath>> = .init(initialValue: .init(initialValue: UIBezierPath()))
+   private var _path: Lazy<Copying<UIBezierPath>> = .init(wrappedValue: .init(wrappedValue: UIBezierPath()))
    var path: UIBezierPath { /* access via _path.wrappedValue.wrappedValue as described above */ }
    ```
 
@@ -914,21 +914,21 @@ in one of three ways:
 
 If the first property wrapper type is generic, its generic arguments must either be given explicitly in the attribute or Swift must be able to deduce them from the variable declaration. That deduction proceeds as follows:
 
-* If the variable has an initial value expression `E`, then the first wrapper type is constrained to equal the type resulting from a call to `A(initialValue: E, argsA...)`, where `A` is the written type of the attribute and `argsA` are the arguments provided to that attribute. For example:
+* If the variable has an initial value expression `E`, then the first wrapper type is constrained to equal the type resulting from a call to `A(wrappedValue: E, argsA...)`, where `A` is the written type of the attribute and `argsA` are the arguments provided to that attribute. For example:
 
   ```swift
   @Lazy var foo = 17
   // type inference as in...
-  private var _foo: Lazy = Lazy(initialValue: 17)
+  private var _foo: Lazy = Lazy(wrappedValue: 17)
   // infers the type of '_foo' to be 'Lazy<Int>'
   ```
 
-  If there are multiple wrapper attributes, the argument to this call will instead be a nested call to `B(initialValue: E, argsB...)` for the written type of the next attribute, and so on recursively. For example:
+  If there are multiple wrapper attributes, the argument to this call will instead be a nested call to `B(wrappedValue: E, argsB...)` for the written type of the next attribute, and so on recursively. For example:
   
   ```swift
   @A @B(name: "Hello") var bar = 42
   // type inference as in ...
-  private var _bar = A(initialValue: B(initialValue: 42, name: "Hello"))
+  private var _bar = A(wrappedValue: B(wrappedValue: 42, name: "Hello"))
   // infers the type of '_bar' to be 'A<B<Int>'
   ```
 
@@ -1038,14 +1038,14 @@ struct Usewrappers {
 
 A property that has a wrapper can be initialized after it is defined,
 either via the property itself (if the wrapper type has an
-`init(initialValue:)`) or via the synthesized storage property. For
+`init(wrappedValue:)`) or via the synthesized storage property. For
 example:
 
 
 ```swift
 @Lazy var x: Int
 // ...
-x = 17   // okay, treated as _x = .init(initialValue: 17)
+x = 17   // okay, treated as _x = .init(wrappedValue: 17)
 ```
 
 The synthesized storage property can also be initialized directly,
@@ -1065,7 +1065,7 @@ apply to properties that have wrappers. Let's expand the example of
 ```swift
 @Lazy var x2: Int
 // ...
-x2 = 17   // okay, treated as _x2 = .init(initialValue: 17)
+x2 = 17   // okay, treated as _x2 = .init(wrappedValue: 17)
 // ...
 x2 = 42   // okay, treated as x2 = 42 (calls the Lazy.wrappedValue setter)
 ```
@@ -1086,7 +1086,7 @@ property type if either of the following is true:
 * The corresponding property has an initial value specified with the
 `=` syntax, e.g., `@Lazy var i = 17`, or
 - The corresponding property has no initial value, but the property
-wrapper type has an `init(initialValue:)`.
+wrapper type has an `init(wrappedValue:)`.
 
 Otherwise, the memberwise initializer parameter will have the same
 type as the wrapper. For example:
@@ -1105,9 +1105,9 @@ struct Foo {
        z: Lazy<Bool> = Lazy(closure: { getBool() }),
        w: Image) {
     self._x = x
-    self._y = Lazy(initialValue: y)
+    self._y = Lazy(wrappedValue: y)
     self._z = z
-    self._w = CopyOnWrite(initialValue: w)
+    self._w = CopyOnWrite(wrappedValue: w)
   }
 }
 ```
@@ -1132,7 +1132,7 @@ let $y = UIBezierPath()   // error: cannot declare entity with $-prefixed name '
 ### Projections
 
 A property wrapper type can choose to provide a projection property (e.g., `$foo`) to expose more API for each wrapped property by defining a `projectedValue` property.  
-As with the `wrappedValue` property and `init(initialValue:)`, the `projectedValue` property must have the
+As with the `wrappedValue` property and `init(wrappedValue:)`, the `projectedValue` property must have the
 same access level as its property wrapper type. For example:
 
 ```swift
@@ -1190,7 +1190,6 @@ private var _someValue: LongTermStorage<String> = LongTermStorage(manager: manag
 
 public var $someValue: UnsafeMutablePointer<String> {
   get { return _someValue.projectedValue }
-  set { _someValue.projectedValue = newValue }
 }
 
 public var someValue: String {
@@ -1199,38 +1198,9 @@ public var someValue: String {
 }
 ```
 
-There could then be other kinds of storage (e.g., some arena-based storage) described as property wrappers that *also* vend their wrapper types as `UnsafeMutablePointer`:
+Note that, in this example, `$someValue` is not writable, because `projectedValue` is a get-only property. 
 
-```swift
-@propertyWrapper
-struct ArenaStorage<Value> {
-  let pointer: UnsafeMutablePointer<Value>
-
-  init(arena: StorageArena, initialValue: Value) {
-    pointer = arena.allocate(Value.self)
-    pointer.initialize(to: initialValue)
-  }
-
-  var wrappedValue: Value {
-    get { return pointer.pointee }
-    set { pointer.pointee = newValue }
-  }
-
-  var projectedValue: UnsafeMutablePointer<Value> {
-    return pointer
-  }
-}
-```
-
-The `someValue` variable from the previous example could be switched over to use arena-based storage without changing any of the clients of `someValue` or its projection property `$someValue`:
-
-```swift
-@ArenaStorage(arena: currentConnectionArena, initialValue: "Hello")
-var someValue: String
-```
-
-Each of the property wrapper types could have different implementations with
-different data, but all of them present the same interface through `$someValue` and `someValue`. Note also that the `$someValue` is not writable, because `projectedValue` is a get-only property.
+When multiple property wrappers are applied to a given property, only the outermost property wrapper's `projectedValue` will be considered.
 
 ### Restrictions on the use of property wrappers
 
@@ -1243,7 +1213,7 @@ There are a number of restrictions on the use of property wrappers when defining
 * A property with a wrapper cannot be `lazy`, `@NSCopying`, `@NSManaged`, `weak`, or `unowned`.
 * A property with a wrapper must be the only property declared within its enclosing declaration (e.g., `@Lazy var (x, y) = /* ... */` is ill-formed).
 * A property with a wrapper shall not define a getter or setter.
-* The `wrappedValue` property and (if present) `init(initialValue:)` of a property wrapper type shall have the same access as the property wrapper type.
+* The `wrappedValue` property and (if present) `init(wrappedValue:)` of a property wrapper type shall have the same access as the property wrapper type.
 * The `projectedValue` property, if present, shall have the same access as the property wrapper type.
 * The `init()` initializer, if present, shall have the same access as the property wrapper type.
 
@@ -1331,7 +1301,7 @@ There are a few issues here. First, a single protocol
 are implied by the section on mutability of properties with wrappers,
 because we'd need to cope with `mutating get` as well as `set` and
 `nonmutating set`. Moreover, protocols don't support optional
-requirements, like `init(initialValue:)` (which also has two
+requirements, like `init(wrappedValue:)` (which also has two
 forms: one accepting a `Value` and one accepting an `@autoclosure ()
 -> Value`) and `init()`. To cover all of these cases, we would need a
 several related-but-subtly-different protocols.
@@ -1455,8 +1425,8 @@ public struct Observable<Value> {
   public var stored: Value
   var observed: Observed?
   
-  public init(initialValue: Value) {
-    self.stored = initialValue
+  public init(wrappedValue: Value) {
+    self.stored = wrappedValue
   }
   
   public func register(_ observed: Observable) {
@@ -1482,7 +1452,7 @@ public class MyClass: Superclass {
   @Observable public var myVar: Int = 17
   
   init() {
-    // self._myVar gets initialized with Observable(initialValue: 17) here
+    // self._myVar gets initialized with Observable(wrappedValue: 17) here
     super.init()
     self._myVar.register(self)    // register as an Observable
   }
@@ -1499,8 +1469,8 @@ To address these issues, we could extend the ad hoc protocol used to access the 
 public struct Observable<Value> {
   private var stored: Value
   
-  public init(initialValue: Value) {
-    self.stored = initialValue
+  public init(wrappedValue: Value) {
+    self.stored = wrappedValue
   }
   
   public static subscript<OuterSelf: Observed>(
@@ -1529,7 +1499,7 @@ public class MyClass: Superclass {
   @Observable public var myVar: Int = 17
   
   // desugars to...
-  private var _myVar: Observable<Int> = Observable(initialValue: 17)
+  private var _myVar: Observable<Int> = Observable(wrappedValue: 17)
   public var myVar: Int {
     get { Observable<Int>[instanceSelf: self, wrapped: \MyClass.myVar, storage: \MyClass._myVar] }
     set { Observable<Int>[instanceSelf: self, wrapped: \MyClass.myVar, storage: \MyClass._myVar] = newValue }
@@ -1570,6 +1540,10 @@ lazy var fooBacking: SomeWrapper<Int>
 One could express this either by naming the property directly (as above) or, for an even more general solution, by providing a keypath such as `\.someProperty.someOtherProperty`.
 
 ## Revisions
+
+### Changes from the second reviewed version
+
+* `init(initialValue:)` has been renamed to `init(wrappedValue:)` to match the name of the property.
 
 ### Changes from the second reviewed version
 
