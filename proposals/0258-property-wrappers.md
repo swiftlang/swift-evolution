@@ -617,7 +617,7 @@ struct CopyOnWrite<Value: Copyable> {
 }
 ```
 
-`projectedValue` provides delegation for the synthesized storage property, allowing the copy-on-write wrapper to be used directly:
+`projectedValue` provides projection for the synthesized storage property, allowing the copy-on-write wrapper to be used directly:
 
 ```swift
 @CopyOnWrite var storage: MyStorageBuffer
@@ -1190,7 +1190,6 @@ private var _someValue: LongTermStorage<String> = LongTermStorage(manager: manag
 
 public var $someValue: UnsafeMutablePointer<String> {
   get { return _someValue.projectedValue }
-  set { _someValue.projectedValue = newValue }
 }
 
 public var someValue: String {
@@ -1199,38 +1198,9 @@ public var someValue: String {
 }
 ```
 
-There could then be other kinds of storage (e.g., some arena-based storage) described as property wrappers that *also* vend their wrapper types as `UnsafeMutablePointer`:
+Note that, in this example, `$someValue` is not writable, because `projectedValue` is a get-only property. 
 
-```swift
-@propertyWrapper
-struct ArenaStorage<Value> {
-  let pointer: UnsafeMutablePointer<Value>
-
-  init(arena: StorageArena, initialValue: Value) {
-    pointer = arena.allocate(Value.self)
-    pointer.initialize(to: initialValue)
-  }
-
-  var wrappedValue: Value {
-    get { return pointer.pointee }
-    set { pointer.pointee = newValue }
-  }
-
-  var projectedValue: UnsafeMutablePointer<Value> {
-    return pointer
-  }
-}
-```
-
-The `someValue` variable from the previous example could be switched over to use arena-based storage without changing any of the clients of `someValue` or its projection property `$someValue`:
-
-```swift
-@ArenaStorage(arena: currentConnectionArena, initialValue: "Hello")
-var someValue: String
-```
-
-Each of the property wrapper types could have different implementations with
-different data, but all of them present the same interface through `$someValue` and `someValue`. Note also that the `$someValue` is not writable, because `projectedValue` is a get-only property.
+When multiple property wrappers are applied to a given property, only the outermost property wrapper's `projectedValue` will be considered.
 
 ### Restrictions on the use of property wrappers
 
