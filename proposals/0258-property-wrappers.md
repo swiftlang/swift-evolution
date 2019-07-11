@@ -51,6 +51,7 @@
   - [Referencing the enclosing 'self' in a wrapper type](#referencing-the-enclosing-self-in-a-wrapper-type)
   - [Delegating to an existing property](#delegating-to-an-existing-property)
 + [Revisions](#revisions)
+  - [Changes from the third reviewed version](#changes-from-the-third-reviewed-version)
   - [Changes from the second reviewed version](#changes-from-the-second-reviewed-version)
   - [Changes from the first reviewed version](#changes-from-the-first-reviewed-version)
 + [Acknowledgments](#acknowledgments)
@@ -1541,7 +1542,7 @@ One could express this either by naming the property directly (as above) or, for
 
 ## Revisions
 
-### Changes from the second reviewed version
+### Changes from the third reviewed version
 
 * `init(initialValue:)` has been renamed to `init(wrappedValue:)` to match the name of the property.
 
