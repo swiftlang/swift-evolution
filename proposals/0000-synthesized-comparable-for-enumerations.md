@@ -6,11 +6,11 @@
 * Implementation: [`kelvin13:comparable-enums`](https://github.com/kelvin13/swift/tree/comparable-enums)
 * Status: **awaiting review**
 
-## introduction
+## Introduction
 
 [SE-185](https://forums.swift.org/u/taylorswift/summary) introduced synthesized, opt-in `Equatable` and `Hashable` conformances for eligible types. Their sister protocol `Comparable` was left out at the time, since it was less obvious what types ought to be eligible for a synthesized `Comparable` conformance and where a comparison order might be derived from. This proposal seeks to allow users to opt-in to synthesized `Comparable` conformances for simple `enum` types (`enum`s without raw or associated values), a class of types which I believe make excellent candidates for this feature. The synthesized comparison order would be based on the declaration order of the `enum` cases.
 
-## motivation
+## Motivation
 
 Oftentimes, you want to define an `enum` where the cases have an obvious semantic ordering:
 
@@ -111,7 +111,7 @@ enum Membership:Comparable
 }
 ```
 
-## proposed solution
+## Proposed solution
 
 Enumeration types which opt-in to a synthesized `Comparable` conformance would compare according to case declaration order, with later cases comparing greater than earlier cases. Only pure `enum` types, without raw or associated values, would be eligible for synthesized conformances.
 
@@ -119,7 +119,7 @@ While basing behavior off of declaration order is unusual for Swift, as we gener
 
 Later cases will compare greater than earlier cases, as Swift generally views sort orders to be “ascending” by default. It also harmonizes with the traditional C/C++ paradigm where a sequence of enumeration cases is merely a sequence of incremented integer values.
 
-## detailed design
+## Detailed design
 
 Synthesized `Comparable` conformances will work exactly the same as synthesized `Equatable`, `Hashable`, and `Codable` conformances today. A conformance will not be synthesized if a type already provides an explicit `<` implementation.
 
@@ -135,7 +135,7 @@ enum Membership:Comparable
 // [Membership.premium, Membership.preferred, Membership.general]
 ```
 
-## source compatibility
+## Source compatibility
 
 This feature is strictly additive.
 
@@ -147,7 +147,7 @@ This feature does not affect the ABI.
 
 This feature does not affect the standard library.
 
-## alternatives considered
+## Alternatives considered
 
 * Basing comparison order off of raw values or `RawRepresentable`. This alternative is inapplicable, as enumerations with “raw” representations don’t always have an obvious sort order anyway. Raw `String` backings are also commonly (ab)used for debugging and logging purposes making them a poor source of intent for a comparison-order definition.
 
