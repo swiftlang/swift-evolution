@@ -8,7 +8,7 @@
 
 ## Introduction
 
-[SE-185](https://forums.swift.org/u/taylorswift/summary) introduced synthesized, opt-in `Equatable` and `Hashable` conformances for eligible types. Their sister protocol `Comparable` was left out at the time, since it was less obvious what types ought to be eligible for a synthesized `Comparable` conformance and where a comparison order might be derived from. This proposal seeks to allow users to opt-in to synthesized `Comparable` conformances for simple `enum` types (`enum`s without raw or associated values), a class of types which I believe make excellent candidates for this feature. The synthesized comparison order would be based on the declaration order of the `enum` cases.
+[SE-185](https://forums.swift.org/u/taylorswift/summary) introduced synthesized, opt-in `Equatable` and `Hashable` conformances for eligible types. Their sibling protocol `Comparable` was left out at the time, since it was less obvious what types ought to be eligible for a synthesized `Comparable` conformance and where a comparison order might be derived from. This proposal seeks to allow users to opt-in to synthesized `Comparable` conformances for simple `enum` types (`enum`s without raw or associated values), a class of types which I believe make excellent candidates for this feature. The synthesized comparison order would be based on the declaration order of the `enum` cases.
 
 ## Motivation
 
