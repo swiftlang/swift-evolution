@@ -105,7 +105,7 @@ Later cases will compare greater than earlier cases, as Swift generally views so
 
 ## Detailed design
 
-Synthesized `Comparable` conformances will work exactly the same as synthesized `Equatable`, `Hashable`, and `Codable` conformances today. A conformance will not be synthesized if a type already provides an explicit `<` implementation.
+Synthesized `Comparable` conformances for eligible types will work exactly the same as synthesized `Equatable`, `Hashable`, and `Codable` conformances today. A conformance will not be synthesized if a type is ineligible (is not a pure `enum`) or already provides an explicit `<` implementation.
 
 ```swift
 enum Membership : Comparable {
