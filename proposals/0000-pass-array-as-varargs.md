@@ -110,7 +110,7 @@ A number of new diagnostics will be introduced to improve the experience of work
 
 ### Alternate Spellings
 
-The main alternative to the proposed `as T...` syntax is to use a pound-prefixed keyword when passing array elements as varargs. Some of the potential spellings include `#splat`, `#variadic`, `#passVarargs`, `#asVarargs`, and `#arraySplat`.
+The main alternative to the proposed `as T...` syntax is to use a pound-prefixed keyword when passing array elements as varargs. Some of the potential spellings include `#splat`, `#variadic`, `#passVarargs`, `#asVarargs`, `#explode`, and `#arraySplat`.
 
 ## Source compatibility
 
@@ -118,7 +118,7 @@ This proposal is purely additive and has no impact on source compatibility.
 
 ## Effect on ABI stability
 
-This proposal does not change the ABI of any existing language features. Variadic arguments are already passed as `Array`s in SIL, so no change is necessary to support the new `as T...` syntax.
+This proposal does not change the ABI of any existing language features. Variadic arguments are already passed as `Array`s in SIL, so no ABI change is necessary to support the new `as T...` syntax.
 
 ## Effect on API resilience
 
@@ -139,9 +139,9 @@ In this case, it's ambiguous whether `f(x:)` will receive a single variadic argu
 
 It's also unclear how implicit conversions would affect overload ranking, another likely cause of source compatibility breakage.
 
-### Use a leading/trailing `...` or `*` instead of `as T...`
+### Use a leading or trailing `...` instead of `as T...`
 
-Many past conversations around passing arrays as variadic arguments have pitched using `*` or `...` as 'splat' operators instead of a heavier-weight expression like `as T...`. These operators read clearly at the call site, but they conflict with existing operators in the language. `as T...` has the advantage of avoiding these conflicts, and it's expected that this feature will not be used pervasively throughout a codebase, which helps justify a more verbose spelling.
+Many past conversations around passing arrays as variadic arguments have pitched using a leading or trailing `...` as a 'splat' operator instead of a heavier-weight expression like `as T...`. These operators read clearly at the call site, but they conflict with the existing partial range from/through operators in the language. `as T...` has the advantage of avoiding these conflicts, and it's expected that this feature will not be used pervasively throughout a codebase, which helps justify a more verbose spelling.
 
 ### Make T... its own type
 
