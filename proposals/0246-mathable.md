@@ -96,7 +96,7 @@ type would also conform. `SIMD` types do not conform themselves, but the operati
 are defined on them when their scalar type conforms to the protocol.
 
 The second piece of the proposal is the protocol `Real`:
-```
+```swift
 public protocol Real: FloatingPoint, ElementaryFunctions {
 
   /// `atan(y/x)` with quadrant fixup.
