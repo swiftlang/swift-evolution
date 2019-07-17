@@ -127,6 +127,12 @@ This proposal does not introduce any new features which could become part of a p
 ## Alternatives considered
 
 A number of alternatives to this proposal's approach have been pitched over the years:
+### Use a leading or trailing `...` instead of `as T...`
+
+Many past conversations around passing arrays as variadic arguments have pitched using a leading or trailing `...` as a 'splat' operator instead of a heavier-weight expression like `as T...`. These operators read clearly at the call site and mirror the existing syntax for variadics nicely, but they are already used today to construct partial ranges. Because `Array` does not currently conform to `Comparable`, it would probably be feasible to introduce array splatting as an unambiguous  overload of `...` internal to the compiler. However, this would introduce a second, distinct meaning for the operator, which might be confusing in some contexts. If used to construct a range, the operator would be calling a standard library function, whereas if used with an `Array` it would effectively be 'compiler magic'. If it's decided that the proposed `as T...` syntax is too unwieldy, this option might be worth reconsidering.
+
+This option would break retroactive conformances of `Array` to `Comparable`, and user-defined operators like `postfix func ...<T>(value: [T]) -> Any`. However, Swift does not generally provide source compatibility guarantees for such code.
+
 ### Implicitly convert `Array`s when passed to variadic arguments
 
 One possibility which has been brought up in the past is abandoning an explicit 'splat' operator in favor of implicitly converting arrays to variadic arguments where possible. It is unclear how this could be implemented without breaking source compatibility. Consider the following example:
@@ -138,10 +144,6 @@ f(x: [1, 2, 3]) // Ambiguous!
 In this case, it's ambiguous whether `f(x:)` will receive a single variadic argument of type `[Int]`, or three variadic arguments of type `Int`. This ambiguity arises anytime both the element type `T` and `Array` itself are both convertible to the variadic argument type. It might be possible to introduce default behavior to resolve this ambiguity. However, it would come at the cost of additional complexity, as implicit conversions can be very difficult to reason about. Swift has previously removed similar implicit conversions which could have confusing behavior. It's also worth noting that the standard library's `print` function accepts an `Any...` argument, so this ambiguity would arise fairly often in practice.
 
 It's also unclear how implicit conversions would affect overload ranking, another likely cause of source compatibility breakage.
-
-### Use a leading or trailing `...` instead of `as T...`
-
-Many past conversations around passing arrays as variadic arguments have pitched using a leading or trailing `...` as a 'splat' operator instead of a heavier-weight expression like `as T...`. These operators read clearly at the call site, but they conflict with the existing partial range from/through operators in the language. `as T...` has the advantage of avoiding these conflicts, and it's expected that this feature will not be used pervasively throughout a codebase, which helps justify a more verbose spelling.
 
 ### Make T... its own type
 
