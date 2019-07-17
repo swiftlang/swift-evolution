@@ -1,9 +1,9 @@
 # Demangle Function
 
-* Proposal: [SE-NNNN](NNNN-demangle.md)
+* Proposal: [SE-0262](0262-demangle.md)
 * Author: [Alejandro Alonso](https://github.com/Azoy)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Joe Groff](https://github.com/jckarter)
+* Status: **Scheduled for review (July 22...July 29, 2019)**
 * Implementation: [apple/swift#25314](https://github.com/apple/swift/pull/25314)
 
 ## Introduction
