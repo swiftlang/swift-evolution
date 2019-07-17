@@ -12,7 +12,7 @@ This proposal introduces a `compiler` directive that is syntactically equivalent
 
 ## Motivation
 
-The `#if swift` check allows conditionally compiling code depending on the version of the language. Prior to Swift 4, the version of the compiler and the language were one and the same. But since Swift 4, the compiler can run in a compatibility mode for previous Swift versions, introducing an new version dimension. To support code across multiple compiler versions and compatibility modes, extra language versions are regularly introduced to represent old language versions running under compatibility mode.
+The `#if swift` check allows conditionally compiling code depending on the version of the language. Prior to Swift 4, the version of the compiler and the language were one and the same. But since Swift 4, the compiler can run in a compatibility mode for previous Swift versions, introducing a new version dimension. To support code across multiple compiler versions and compatibility modes, extra language versions are regularly introduced to represent old language versions running under compatibility mode.
 
 For example, the release of Swift 4 introduced a Swift 3.2 language version representing the Swift 4 compiler in version 3 compatibility mode. Here is the current language matrix, as well as guesses as to what those versions will be for Swift 5.0 and 5.1.
 
