@@ -27,7 +27,7 @@ struct Lens<T> {
     get {
       return getter()
     }
-    set {
+    nonmutating set {
       setter(newValue)
     }
   }
@@ -80,7 +80,7 @@ struct Lens<T> {
     get {
       return getter()
     }
-    set {
+    nonmutating set {
       setter(newValue)
     }
   }
