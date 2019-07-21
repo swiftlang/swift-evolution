@@ -45,6 +45,10 @@ execute {
 }
 ```
 
+It also results in a lot of unnecessary repetition. The motivation for requiring explicit usage of `self` is to force the user to make the intent to capture `self` explicit, but that goal is accomplished after the first explicit usage of `self` and is not furthered by any of the subsequent usages.
+
+In codebases that make heavy use of asynchronous code, such as clients of [PromiseKit](https://github.com/mxcl/PromiseKit), or even Apple's new [Combine](https://developer.apple.com/documentation/combine) and [SwiftUI](https://developer.apple.com/documentation/swiftui) libraries, maintainers must either choose to adopt style guides which require the use of explicit `self` in all cases, or else resign to the reality that explicit usage of `self` will appear inconsistently throughout the code. Given that Apple's preferred/recommended style is to omit `self` where possible (as evidenced by examples throughout [The Swift Programming Language](https://docs.swift.org/swift-book/) and the [SwiftUI Tutorials](https://developer.apple.com/tutorials/swiftui)), having any asynchronous code littered with `self.` is a suboptimal state of affairs.
+
 ## Proposed solution
 
 Allow the use of implicit `self` when it appears in the closure's capture list. The above code could then be written as:
@@ -63,7 +67,7 @@ This change still forces code which captures `self` to be explicit about its int
 The compiler would also offer an additional fix-it when implicit `self` is used:
 
 ```swift
-execute { // <- Fix it: insert '[self] in ' to capture `self` explicitly
+execute { // <- Capture 'self' explicitly to enable implicit 'self' in this closure. Fix-it: insert '[self] in'
     let foo = doFirstThing()
     performWork(with: bar)
     doSecondThing(with: foo)
@@ -73,16 +77,7 @@ execute { // <- Fix it: insert '[self] in ' to capture `self` explicitly
 
 This will require different versions depending on whether there is a capture list already present ("insert '`self, `'"), whether there are explicit parameters ("insert '`[self]`'"), and whether the user the user has already captured a variable with the name `self` (in which case the fix-it would not be offered). Since empty capture lists are allowed (`{ [] in ... }`), the fix-it will cover this case too.
 
-This new rule would only apply when `self` is captured directly, and with the name `self`. This includes captures of the form `[self = self]` but would still not permit implicit `self` if the capture were `[y = self]` or if the user wrote something like:
-
-```
-func method() {
-    let y = self
-    execute { [self = y]
-        x += 1 // error: 
-    }
-}
-```
+This new rule would only apply when `self` is captured directly, and with the name `self`. This includes captures of the form `[self = self]` but would still not permit implicit `self` if the capture were `[y = self]`.
 
 ## Detailed design
 
