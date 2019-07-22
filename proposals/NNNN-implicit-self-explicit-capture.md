@@ -1,4 +1,4 @@
-# Feature name
+# Allow implicit `self` in `@escaping` closures when `self` is explicitly captured
 
 * Proposal: [SE-NNNN](NNNN-implicit-self-explicit-capture.md)
 * Authors: [Frederick Kellison-Linn](https://github.com/jumhyn)
@@ -75,19 +75,37 @@ execute { // <- Capture 'self' explicitly to enable implicit 'self' in this clos
 }
 ```
 
-This will require different versions depending on whether there is a capture list already present ("insert '`self, `'"), whether there are explicit parameters ("insert '`[self]`'"), and whether the user the user has already captured a variable with the name `self` (in which case the fix-it would not be offered). Since empty capture lists are allowed (`{ [] in ... }`), the fix-it will cover this case too.
-
-This new rule would only apply when `self` is captured directly, and with the name `self`. This includes captures of the form `[self = self]` but would still not permit implicit `self` if the capture were `[y = self]`.
-
 ## Detailed design
 
-The bulk of the work is done in `UnqualifiedLookupFactory::lookupNamesIntroducedByClosure`, where we check if the closure captures `self` explicitly, and if so, look through the capture into the type context of `self`. In order to do this, we need to be able to access any potential capture list from the `ClosureExpr`, so we add a backedge from `ClosureExpr` to `CaptureListExpr`.
+Whenever `self` is declared explicitly in an escaping closure's capture list, any code inside that closure can use names which resolve to members of the enclosing type, without specifying `self.` explicitly. In nested closures, the *innermost* escaping closure must capture `self`, so the following code would be invalid:
 
-The other significant portion of the implementation is the diagnostic logic in `diagnoseImplicitSelfUseInClosure`. This ends up being fairly complex because of the many different cases that we have to handle when inserting `self` into a (possibly non-existent) capture list. In order to support this diagnostic, some additional metadata (`getBracketRange`) is added to `ClosureExpr`.
+```swift
+execute { [self] in
+    execute { // Fix-it: capture 'self' explicitly to enable implicit 'self' in this closure.
+        x += 1 // Error: reference to property 'x' in closure requires explicit use of 'self' to make capture semantics explicit. Fix-it: reference 'self.' explicitly.
+    }
+}
+```
+
+This new behavior will be unavailable when `self` is captured weakly (due to the optional type of `self` requiring special handling), but for closures with  `unowned(safe)` and `unowned(unsafe)` captures of `self` the programmer has clearly declared their intent to capture `self`, and so implicit `self` will be enabled in these contexts (as for strong captures).
+
+The existing errors and fix-its have their language updated accoringly to indicate that there are now multiple ways to resolve the error. In addition to the changes noted above, we will also have:
+
+```
+Error: call to method <method name> in closure requires explicit use of 'self' to make capture semantics explicit.
+```
+
+The new fix-it for explicitly capturing `self` will take slightly different forms depending on whether there is a capture list already present ("insert '`self, `'"), whether there are explicit parameters ("insert '`[self]`'"), and whether the user the user has already captured a variable with the name `self` (in which case the fix-it would not be offered). Since empty capture lists are allowed (`{ [] in ... }`), the fix-it will cover this case too.
+
+This new rule would only apply when `self` is captured directly, and with the name `self`. This includes captures of the form `[self = self]` but would still not permit implicit `self` if the capture were `[y = self]`. In the unusual event that the user has captured another variable with the name `self` (e.g. `[self = "hello"]`), we will offer a warning that this does not enable use of implicit `self`:
+
+```swift
+Warning: use of implicit 'self' will only be enabled by direct captures of 'self'.
+```
 
 ## Source compatibility
 
-This proposal makes previously illegal syntax legal, and has no effect on source compatibility.
+This proposal makes previously illegal syntax legal, and has no effect on source compatibility. If codebases have existing sites where they have captured some other object than the `self` parameter under the name `self`, they will recieve a new warning.
 
 ## Effect on ABI stability
 
