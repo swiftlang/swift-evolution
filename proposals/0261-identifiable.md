@@ -3,7 +3,9 @@
 * Proposal: [SE-0261](0261-identifiable.md)
 * Authors: [Matthew Johnson](https://github.com/anandabits), [Kyle Macomber](https://github.com/kylemacomber)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active Review (July 3rd...July 12th)**
+* Status: **Implemented (Swift 5.1)**
+* Implementation: [apple/swift#26022](https://github.com/apple/swift/pull/26022)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0261-identifiable-protocol/27358)
 
 ## Introduction
 
