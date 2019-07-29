@@ -291,6 +291,37 @@ SwiftPM supports various platforms and for each of them we need to find a format
 | "POSIX" (C)     	| lib/libTargetName.so headers                                                                                                                                   	| lib/libTargetName.a 	| bin         	|   	|
 |                 	|                                                                                                                                                                	|                     	|             	|   	|
 
+=======
+
+* Ease of production of binary packages
+* Simplicity of binary artifact distribution mechanism
+* Widespread use of binary packages
+
+* FIXME: Fill out detailed design.
+
+## New `PackageDescription` API
+
+* FIXME: `binaryTarget`
+* FIXME: `BuildSettingCondition`
+* FIXME: package declaration
+
+## Binary Target Artifact Format
+
+|                 	| Dynamic                                                                                                                                                        	| Static              	| Executables 	|   	|
+|-----------------	|----------------------------------------------------------------------------------------------------------------------------------------------------------------	|---------------------	|-------------	|---	|
+| Apple (Swift)   	| XCFramework                                                                                                                                                    	| XCFramework?        	| bin         	|   	|
+| Apple (C)       	| XCFramework                                                                                                                                                    	| XCFramework         	| bin         	|   	|
+| "POSIX" (Swift) 	| module.swiftmodule/architecture.swiftmodule module.swiftmodule/architecture.swiftinterface module.swiftmodule/architecture.swiftinterface lib/libTargetName.so 	| lib/libTargetName.a 	| bin         	|   	|
+| "POSIX" (C)     	| lib/libTargetName.so headers                                                                                                                                   	| lib/libTargetName.a 	| bin         	|   	|
+|                 	|                                                                                                                                                                	|                     	|             	|   	|
+
+## New `Package.resolved` Behavior
+
+* FIXME
+
+### Resolution
+
+Package resolution and dependency expression will not be impacted by this change (except where explicitly noted).
 
 ## Security
 
