@@ -1,9 +1,9 @@
 # Add a String Initializer with Access to Uninitialized Storage
 
-* Proposal: [SE-0257](0257-string-uninitialized-initializer.md)
+* Proposal: [SE-0263](0263-string-uninitialized-initializer.md)
 * Author: [David Smith](https://github.com/Catfish-Man)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Ted Kremenek](https://github.com/tkremenek)
+* Status:  **Active Review (July 29...August 9, 2019)**
 * Implementation: [apple/swift#23409](https://github.com/apple/swift/pull/23409)
 * Bug: [SR-10288](https://bugs.swift.org/browse/SR-10288)
 
