@@ -181,6 +181,122 @@ while keeping the following as non-goals:
 * Simplicity of binary artifact distribution mechanism
 * Widespread use of binary packages
 
+## New `PackageDescription` API
+
+### BinaryTarget
+Since, a binary target is different compared to a source only target, we propose to introduce a new struct `Artifact`. This struct defines a targets associated artifacts.
+
+```swift
+public struct Artifact {
+    public enum Source {
+        case url(String)
+    }
+
+    public let source: Source
+    public let condition: ArtifactCondition
+}
+```
+
+Furthermore, we propose to add a new `artifacts: [Artifacts]?` property to the `Target`, as well as extend the initlizer with this paramter and create a new static method called `.binaryTarget()`. Lastly, we propose to exten the `TargetType` enum with a new case called `binary`.
+
+
+
+### ArtifactCondition
+To describe for what platform and architecture any given artifact is, we propose to create a new `ArtifactCondition`, similar to the `BuildSettingCondition`.
+
+```swift
+/// Represents an architecture that usually corresponds to a processor architecture such as
+/// x86 or ARM.
+public struct Architecture {
+
+    /// The name of the platform.
+    fileprivate let name: String
+
+    private init(name: String) {
+        self.name = name
+    }
+
+    public static let x86: Platform = Platform(name: "x86")
+    public static let arm: Platform = Platform(name: "ARM")
+
+}
+
+public struct ArtifactCondition: Encodable {
+
+    private let platforms: [Platform]
+    private let architectures: [Architecture]?
+
+    private init(platforms: [Platform], architecture: [Architecture]?) {
+        self.platforms = platforms
+        self.architectures = architectures
+    }
+
+    /// Create an artifact condition.
+    ///
+    /// - Parameters:
+    ///   - platforms: The platforms for which this condition will be applied.
+    ///   - architectures: The architectures for which this condition will be applied.
+    public static func when(
+        platforms: [Platform],
+        architectures: [Architecture]? = nil
+        ) -> ArtifactCondition {
+        return ArtifactCondition(platforms: platforms, architecture: architectures)
+    }
+}
+```
+
+### PackageDescription
+To include binary packages it is required to opt-in. For this we propose to modify the `Dependency` struct and add a new property `allowsBinary`.
+
+```swift
+      public class Dependency: Encodable {
+        public enum Requirement {
+            ...
+        }
+
+        /// The url of the dependency.
+        public let url: String
+
+        /// The dependency requirement.
+        public let requirement: Requirement
+
+        public let allowsBinary: Bool
+
+        /// Create a dependency.
+        init(url: String, requirement: Requirement, allowsBinary: Bool = false) {
+            self.url = url
+            self.requirement = requirement
+            self.allowsBinary = allowsBinary
+        }
+    }
+```
+
+## New `Package.resolved` Behavior
+
+* FIXME
+
+### Resolution
+
+Package resolution and dependency expression will not be impacted by this change (except where explicitly noted).
+
+## Binary Target Artifact Format
+
+SwiftPM supports various platforms and for each of them we need to find a format for the artifacts. Below is a list with a convention for the artifiacts that we expect for each platform. 
+
+|                 	| Dynamic                                                                                                                                                        	| Static              	| Executables 	|   	|
+|-----------------	|----------------------------------------------------------------------------------------------------------------------------------------------------------------	|---------------------	|-------------	|---	|
+| Apple (Swift)   	| XCFramework                                                                                                                                                    	| XCFramework        	| bin         	|   	|
+| Apple (C)       	| XCFramework                                                                                                                                                    	| XCFramework         	| bin         	|   	|
+| "POSIX" (Swift) 	| module.swiftmodule/architecture.swiftmodule module.swiftmodule/architecture.swiftinterface module.swiftmodule/architecture.swiftinterface lib/libTargetName.so 	| lib/libTargetName.a 	| bin         	|   	|
+| "POSIX" (C)     	| lib/libTargetName.so headers                                                                                                                                   	| lib/libTargetName.a 	| bin         	|   	|
+|                 	|                                                                                                                                                                	|                     	|             	|   	|
+
+=======
+
+* Ease of production of binary packages
+* Simplicity of binary artifact distribution mechanism
+* Widespread use of binary packages
+
 * FIXME: Fill out detailed design.
 
 ## New `PackageDescription` API
@@ -311,49 +427,23 @@ We considered adding signature checks during the checkout of binary dependencies
      )
 ```
 
+### Support for various artifact stores
+Initially, we considered the various artifact stores on the market and how we can integrate with them. We decided to support a URL based artifact definition for the first implementation since the various providers require each their own method of authentication. However, we wanted to keep the possiblity for future additions of providers open; therefore, we made the source of an artifiact an enum which can be extended.
+
+Possible artifact stores we considered:
+- Github releases
+- Github packages
+- Gitlab
+- Bitbucket
+- Artifactory, Nexus etc.
+
+
 ## TODO
 
-* FIXME: Add information on integration with any resources proposal
-* FIXME: Add information on dSYMs
+* FIXME: Add information on integration with any resources proposal (XFrameworks support them right, how about linux though?)
+* FIXME: Add information on dSYMs (XCFrameworks support them out of the box right?)
 * FIXME: More on security
 * FIXME: Goals (easy for consumers)
 * FIXME: Transitive behavior
 * FIXME: Discuss concern with explosion of artifacts (consequence of putting at
   the target level).
-
-
-Old stuff, unclear if it has been completely integrated:
-
-### Metadata
-
-Convention based (always expect XCFrameworks e.g.)
-Non-mac: bin, lib, include
-
-Products vs Target
-
-Target to have source and binary dependencies
-Allow recursive dependencies?
-
-Example, FirebaseMessaging having FirebaseCor
-Optimizely, Adjust
-
-Force to specify type (static, dynamic)
-
-### How to fetch binary dependencies
-
-*DWD*: I think this potentially just moves to alternatives considered, as in we just went with URLs.
-
-Potential storage places:
-
-- Github releases
-- Github packages?
-- Gitlab?
-- Bitbucket?
-- git
-- git-lfs
-- URLs (Http and local)
-- Artifactory, Nexus etc. 
-
-System credentials store to put authentication for artifact stores
-
-Initial implementation urls, github
