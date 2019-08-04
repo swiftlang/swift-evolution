@@ -97,10 +97,16 @@ Error: call to method <method name> in closure requires explicit use of 'self' t
 
 The new fix-it for explicitly capturing `self` will take slightly different forms depending on whether there is a capture list already present ("insert '`self, `'"), whether there are explicit parameters ("insert '`[self]`'"), and whether the user the user has already captured a variable with the name `self` (in which case the fix-it would not be offered). Since empty capture lists are allowed (`{ [] in ... }`), the fix-it will cover this case too.
 
-This new rule would only apply when `self` is captured directly, and with the name `self`. This includes captures of the form `[self = self]` but would still not permit implicit `self` if the capture were `[y = self]`. In the unusual event that the user has captured another variable with the name `self` (e.g. `[self = "hello"]`), we will offer a warning that this does not enable use of implicit `self`:
+This new rule would only apply when `self` is captured directly, and with the name `self`. This includes captures of the form `[self = self]` but would still not permit implicit `self` if the capture were `[y = self]`. In the unusual event that the user has captured another variable with the name `self` (e.g. `[self = "hello"]`), we will offer a note that this does not enable use of implicit `self` (in addition to the existing error attached to the attempted use of implicit `self`):
 
 ```swift
-Warning: use of implicit 'self' will only be enabled by direct captures of 'self'.
+Note: variable other than 'self' captured here under the name 'self' does not enable implicit 'self'.
+```
+
+If the user has a capture of `weak self` already, we offer a special diagnostic note indicating that `weak` captures of `self` do not enable implicit `self`:
+
+```swift
+Note: weak capture of 'self' here does not enable implicit 'self'.
 ```
 
 ## Source compatibility
