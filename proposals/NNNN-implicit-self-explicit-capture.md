@@ -109,6 +109,8 @@ If the user has a capture of `weak self` already, we offer a special diagnostic 
 Note: weak capture of 'self' here does not enable implicit 'self'.
 ```
 
+If either of the two above notes are present, we will not offer the usual fix-its for resolving this error, since the code inserted would be erroneous.
+
 ## Source compatibility
 
 This proposal makes previously illegal syntax legal, and has no effect on source compatibility.
