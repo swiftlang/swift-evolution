@@ -169,10 +169,10 @@ Terminology:
 Our design attempts to optimize for the following goals:
 
 * Ease of use for clients
-* Easy of implementation in existing SwiftPM
+* Ease of implementation in existing SwiftPM
 * Ease of maintenance in the face of an evolving SwiftPM
 * Understandable composition with current and upcoming SwiftPM features
-* Support existing well-known occurences of binary artifacts in the existing
+* Support existing well-known occurrences of binary artifacts in the existing
   (often iOS focused) target developer market.
 
 while keeping the following as non-goals:
@@ -198,7 +198,6 @@ public struct Artifact {
 ```
 
 Furthermore, we propose to add a new `artifacts: [Artifacts]?` property to the `Target`, as well as extend the initlizer with this paramter and create a new static method called `.binaryTarget()`. Lastly, we propose to exten the `TargetType` enum with a new case called `binary`.
-
 
 
 ### ArtifactCondition
@@ -291,38 +290,6 @@ SwiftPM supports various platforms and for each of them we need to find a format
 | "POSIX" (C)     	| lib/libTargetName.so headers                                                                                                                                   	| lib/libTargetName.a 	| bin         	|   	|
 |                 	|                                                                                                                                                                	|                     	|             	|   	|
 
-=======
-
-* Ease of production of binary packages
-* Simplicity of binary artifact distribution mechanism
-* Widespread use of binary packages
-
-* FIXME: Fill out detailed design.
-
-## New `PackageDescription` API
-
-* FIXME: `binaryTarget`
-* FIXME: `BuildSettingCondition`
-* FIXME: package declaration
-
-## Binary Target Artifact Format
-
-|                 	| Dynamic                                                                                                                                                        	| Static              	| Executables 	|   	|
-|-----------------	|----------------------------------------------------------------------------------------------------------------------------------------------------------------	|---------------------	|-------------	|---	|
-| Apple (Swift)   	| XCFramework                                                                                                                                                    	| XCFramework?        	| bin         	|   	|
-| Apple (C)       	| XCFramework                                                                                                                                                    	| XCFramework         	| bin         	|   	|
-| "POSIX" (Swift) 	| module.swiftmodule/architecture.swiftmodule module.swiftmodule/architecture.swiftinterface module.swiftmodule/architecture.swiftinterface lib/libTargetName.so 	| lib/libTargetName.a 	| bin         	|   	|
-| "POSIX" (C)     	| lib/libTargetName.so headers                                                                                                                                   	| lib/libTargetName.a 	| bin         	|   	|
-|                 	|                                                                                                                                                                	|                     	|             	|   	|
-
-## New `Package.resolved` Behavior
-
-* FIXME
-
-### Resolution
-
-Package resolution and dependency expression will not be impacted by this change (except where explicitly noted).
-
 ## Security
 
 Since binary only dependencies are not inspectable and one has to extend a certain trust to the third party it should be an opt-in feature. This means when declaring a dependency one has to explicitly allow the usage of binary frameworks. Furthermore, the hash of the binary should also be stored in the package resolved to avoid that the vendor changes the artifact behind a version without anyone noticing.
@@ -395,7 +362,7 @@ proposal, we chose not to go that route, for the following reasons:
   could reasonably support.
 
 * The choice to support both source and binary packages in the same mechanism
-  imposes certain requirements on the design which make it more complex than the
+  imposes certain requirements on the design, which makes it more complex than the
   existing proposal. In particular, it means that the metadata about how the
   source and artifacts are mapped must be kept somewhere adjacent to but
   distinct from the package description (since a source package needs to define
