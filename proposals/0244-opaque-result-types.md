@@ -3,7 +3,7 @@
 * Proposal: [SE-0244](0244-opaque-result-types.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor), [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.1)**
 * Implementation: [apple/swift#22072](https://github.com/apple/swift/pull/22072)
 * Toolchain: https://github.com/apple/swift/pull/22072#issuecomment-483495849
 * Previous revisions: ([1](https://github.com/apple/swift-evolution/commit/e60bac23bf0d6f345ddb48fbf64ea8324fce79a9))
@@ -170,7 +170,8 @@ Like a generic argument, the static type system does not consider the opaque typ
 ```swift
 func foo() -> some BinaryInteger { return 219 }
 var x = foo()
-x = 912 // error: Int is not known to be the same as the return type as foo()
+let i = 912
+x = i // error: Int is not known to be the same as the return type as foo()
 ```
 
 However, one can inspect an opaque type's underlying type at runtime using dynamic casting:

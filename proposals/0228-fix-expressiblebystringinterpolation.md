@@ -277,7 +277,7 @@ The standard library uses `make()` to extract the final value; `CustomStringConv
 ///         fileprivate mutating func appendInterpolation(
 ///                  escaped value: String, asASCII forceASCII: Bool = false) {
 ///             for char in value.unicodeScalars {
-///                 appendInterpolation(char.escaped(asASCII: forceASCII)
+///                 appendInterpolation(char.escaped(asASCII: forceASCII))
 ///             }
 ///         }
 ///     }
