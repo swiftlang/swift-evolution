@@ -440,7 +440,7 @@ struct Copying<Value: NSCopying> {
     get { return _value }
     set {
       // Copy the value on reassignment.
-      _value = newValue().copy() as! Value
+      _value = newValue.copy() as! Value
     }
   }
 }
