@@ -8,24 +8,18 @@
 
 ## Introduction
 
-This proposal simply aims to make parentheses optional when defining a function that takes no arguments and to make computed properties with a return type of `Void` a compile time error.
+This proposal simply aims to make parentheses optional when defining a function that takes no arguments.
+This would make Swift's syntax a little more fluid I believe. 
 
 [Swift-evolution thread](https://forums.swift.org/t/pitch-allow-function-definitions-to-omit-parentheses-if-no-parameters/)
 
 ## Motivation
 
-Function definitions in swift allow omitting `-> Void` as the return type for functions that return nothing.
-`()` is also Void as well but why not extend the logic and convenience of not having to write a `Void` return type for a function that returns nothing to not having to write an empty parameter list for a function that takes nothing, no arguments.
+The empty parameter list seems a bit pointless when defining a function and being able to omit it and just write: `func funcName {}` instead of `func funcName() {}` would make the language's syntax a little more fluid and would remove the need to write `()` which just adds noise to the code when there are no parameters defined.
 
-I believe that this would make the language more consistent and if
-this change was paired with making it illegal to define computed properties with a `Void` return type it would make the Swift language more consistent.
-
-Computed properties should try not to stray away from running any complex logic greater than `O(1)`.
-
+I personally think this would improve readability. 
 
 ## Proposed solution
-
-### `func` definitions
 
 Allow functions that take no arguments to be defined as follows with no parentheses:
 
@@ -35,22 +29,9 @@ Allow functions that take no arguments to be defined as follows with no parenthe
     }
 ```
 
-### `Void` computed properties
+but the callsite would still use the fucntion call operator as before:
 
-Currently it is legal to write this:
-
-```swift
-class Foo {
-    var myProperty: Void {
-        print("Why do I exist?")
-    }
-}
-
-```
-
-This should not be allowed by the compiler, it serves little to no purpose.
-Computed properties should be `O(1)` complexity and return something,
-anything else belongs in a function.
+`foo()`
 
 ## Detailed design
 
@@ -58,15 +39,16 @@ TBA
 
 ## Source compatibility
 
-Making computed properties with a type `Void` illegal would break any existing code that does that but in my honest opinion common sense would dictate that code written like that is illformed anyways.
+This change would not break any existing code.
+
 
 ## Effect on ABI stability
 
-I don't think there is any practical effect on ABI stability.
+None.
 
 ## Effect on API resilience
 
-TBA
+None.
 
 ## Alternatives considered
 
