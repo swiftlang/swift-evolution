@@ -75,10 +75,6 @@ func foo throws -> Int {
 func foo() -> Int {
     ...
 }
-
-func foo throws -> Int {
-    ...
-}
 ```
 
 
