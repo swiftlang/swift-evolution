@@ -16,7 +16,7 @@ This would make Swift's syntax a little more fluid.
 ## Motivation
 
 Swift already has parts of the language that allow omission of syntax for the sake of clarity.
-One example is omitting writing `return` when it is clearly implied.
+One example is omitting writing `return` when it is clearly implied in computed proerties. 
 
 Instead of writing:
 ```swift
@@ -33,8 +33,9 @@ var defaultHeight: Int {
 }
 ```
 
-Another example could be functions that return nothing.
-It is legal to write: 
+Another example could be functions that return nothing do not need to explicitly state the `-> Void` return type.
+
+It is legal (and cleaner) to write: 
 
 ```swift
 func bar() {
