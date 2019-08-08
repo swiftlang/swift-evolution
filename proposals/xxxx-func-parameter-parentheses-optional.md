@@ -9,7 +9,7 @@
 ## Introduction
 
 This proposal simply aims to make parentheses optional when defining a function that takes no arguments.
-This would make Swift's syntax a little more fluid I believe. 
+This would make Swift's syntax a little more fluid. 
 
 [Swift-evolution thread](https://forums.swift.org/t/pitch-allow-function-definitions-to-omit-parentheses-if-no-parameters/)
 
@@ -32,9 +32,25 @@ var defaultHeight: Int {
     100
 }
 ```
-The empty parameter list seems a bit pointless when defining a function, the presence of `func` already signals that it is a function and being able to omit `()` and just write: `func funcName {}` instead of `func funcName() {}` would make the language's syntax a little more fluid and would remove the need to write `()` which just adds noise to the code when there are no parameters defined.
 
-I personally think this would improve readability and help promote the notion of no unnecessary syntax.
+Another example could be functions that return nothing.
+It is legal to write: 
+
+```swift
+func bar() {
+    ...
+}
+```
+
+Omitting `-> Void` instead of writing the void return type explicitly:
+
+```swift
+func bar() -> Void {
+    ...
+}
+```
+
+The empty parameter list seems a bit pointless when defining a function, the presence of `func` already signals that it is a function definition and being able to omit `()` and just write: `func funcName {}` instead of `func funcName() {}` would make the language's syntax a little more fluid.
 
 ## Proposed solution
 
@@ -50,10 +66,10 @@ but the callsite would still use the fucntion call operator as before:
 
 `foo()`
 
-This proposal **DOES NOT** affect rules around return type syntax or `throws` or anything other than the case of an empty parameter list during function definitions.
+This proposal **DOES NOT** affect rules around return type syntax or `throws` or anything other than the case of an empty parameter list during function definition.
 
 
-The following is a list of examples that would all be valid under the new syntax:
+The following is a list of examples that would all be valid under the proposed new syntax:
 
 ```swift
 func foo {
@@ -68,11 +84,11 @@ func foo throws {
     ...
 }
 
-func foo throws -> Int {
+func foo() -> Int {
     ...
 }
 
-func foo() -> Int {
+func foo throws -> Int {
     ...
 }
 
@@ -88,12 +104,11 @@ TBA
 
 ## Source compatibility
 
-This change would not break any existing code.
-
+This change would not break any existing code because the alternative notation of `func foo() { ... }` is still completely valid.
 
 ## Effect on ABI stability
 
-None.
+This should have no effect in ABI stability.
 
 ## Effect on API resilience
 
