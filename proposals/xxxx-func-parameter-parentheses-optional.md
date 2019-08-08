@@ -50,8 +50,36 @@ but the callsite would still use the fucntion call operator as before:
 
 `foo()`
 
-This proposal **DOES NOT** affect rules around return type syntax or `throws` or anything other than the parameter list.
+This proposal **DOES NOT** affect rules around return type syntax or `throws` or anything other than the case of an empty parameter list during function definitions.
+
+
 The following is a list of examples that would all be valid under the new syntax:
+
+```swift
+func foo {
+    ...
+}
+
+func foo() {
+    ...
+}
+
+func foo throws {
+    ...
+}
+
+func foo throws -> Int {
+    ...
+}
+
+func foo() -> Int {
+    ...
+}
+
+func foo throws -> Int {
+    ...
+}
+```
 
 
 ## Detailed design
