@@ -27,7 +27,7 @@ For the purposes of this document, we will refer to the proposed standard librar
 
 ### Facilitating Rapid Adoption and Feedback
 
-It is common for a feature proposed and accepted through Swift Evolution and added to the Standard Library to wait for months before it gets any real life usage. Take [SE-0199](https://github.com/apple/swift-evolution/blob/master/proposals/0199-bool-toggle.md) (the introduction of `toggle`) for example. It was [accepted](https://github.com/apple/swift-evolution/blob/master/proposals/0199-bool-toggle.md) almost 6 month before Swift 5 was released.
+It is common for a feature proposed and accepted through Swift Evolution and added to the Standard Library to wait for months before it gets any real life usage. Take [SE-0199](https://github.com/apple/swift-evolution/blob/master/proposals/0199-bool-toggle.md) (the introduction of `toggle`) for example. It was [accepted](https://forums.swift.org/t/accepted-se-199-add-toggle-to-bool/10681) almost 6 months before Swift 4.2 was released.
 
 Even though all additions go through a thorough review, there is no substitute for feedback from real-world usage in production. Sometimes we discover that the API is not quite as good as it might have been.
 
@@ -137,7 +137,7 @@ The fundamental goals of the preview package are somewhat at odds with the usual
 As such, the preview package will remain at major version `0` **permanently**. Minor version bumps will be able to include source-breaking changes. Patch updates should not break source and will just be used for bug fixes.
 
 The use of a `0` major version at all times will act as a signifier that adopters need to be comfortable with the requirement to continuously update
-to the latest version of the package. It should not be taken as an indication that the package shouldn't be used for real-world code: the code should be considered production-worthy. But it is a preview, and not source stable. Where practical, deprecated shims could be used to preserve source compatability between versions, but this may not always be practical.
+to the latest version of the package. It should not be taken as an indication that the package shouldn't be used for real-world code: the code should be considered production-worthy. But it is a preview, and not source stable. Where practical, deprecated shims could be used to preserve source compatibility between versions, but this may not always be practical.
 
 The decision when to tag minor versions, and potentially to coalesce multiple changes into a single version bump, will be made by the release manager for the standard library as chosen by the Swift project lead.
 
@@ -157,7 +157,7 @@ Because we do not have cross-module optimization, package implementations should
 
 An alternative to a single monolithic preview package would be multiple packages. For example, each accepted evolution proposal could have its own package.
 
-This would trade convenience for flexibility. In particular, multiple packages would avoid the source-breaking nature of proposal revisions (and the lesser problem of any additions being technically source breaking). But it would mean that adopters of the different previews would need to look up and add individual proposals rather then get them all in one go, and would rarely "discover" new features also in the package they're already importing.
+This would trade convenience for flexibility. In particular, multiple packages would avoid the source-breaking nature of proposal revisions (and the lesser problem of any additions being technically source breaking). But it would mean that adopters of the different previews would need to look up and add individual proposals rather than get them all in one go, and would rarely "discover" new features also in the package they're already importing.
 
 ### Simultaneous Preview and Library Addition
 
