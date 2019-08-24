@@ -1,10 +1,10 @@
 
 # Standard Library Preview Package
 
-Proposal: SE-NNNN
+Proposal: [SE-0264](0264-stdlib-preview-package.md)
 Authors: [Ben Cohen](https://github.com/airspeedswift), [Max Moiseev](https://github.com/moiseev)
-Review Manager: TBD
-Status: Awaiting review
+Review Manager: [Dave Abrahams](https://github.com/dabrahams)
+Status: **Scheduled for review (Sept 2...Sept 9, 2019)**
 
 ## Introduction
 
