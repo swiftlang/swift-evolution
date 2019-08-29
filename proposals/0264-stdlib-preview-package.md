@@ -4,6 +4,7 @@
 * Authors: [Ben Cohen](https://github.com/airspeedswift), [Max Moiseev](https://github.com/moiseev), [Nate Cook](https://github.com/natecook1000)
 * Review Manager: [Dave Abrahams](https://github.com/dabrahams)
 * Status: **Scheduled for review (September 2...September 9, 2019)**
+* Pitch Discussion: [Pitch: Standard Library Preview Package](https://forums.swift.org/t/pitch-standard-library-preview-package/27202)
 
 ## Introduction
 
@@ -116,7 +117,7 @@ Since types cannot be emitted into client code, these combination function/type 
 
 #### Retirement from the Package
 
-In order to keep the package size and maintainability manageable, implementations will be removed from the package in a version update **1 year** after migration to the standard library. This is a necessary balance between maintainability and convenience. Since the package is open-source, it should be possible to copy source for a specific feature if a user badly needs to keep it while also wanting to upgrade to a newer major version _and_ not upgrade to the latest compiler.
+In order to keep the package size and maintainability manageable, implementations will be removed from the package in a version update **1 year** after migration to the standard library. This is a necessary balance between maintainability and convenience. Since the package is open-source, it should be possible to copy source for a specific feature if a user badly needs to keep it while also wanting to upgrade to the latest version of the package _without_ upgrading to the latest compiler.
 
 ### Testing
 
@@ -132,7 +133,7 @@ There will be no use of [gyb](https://github.com/apple/swift/blob/master/utils/g
 
 ### Versioning
 
-The fundamental goals of the preview package are somewhat at odds with the usual goals of semantic versioning. Source-breaking changes, including retirements after migrating into the standard library, or source-breaking changes resulting from evolution proposals prior to migration, will be common. Unlike many packages, the preview package will not converge over time, reducing the frequency of its version bumps.
+The fundamental goals of the preview package are somewhat at odds with the usual goals of semantic versioning. Source-breaking changes, including retirements after promoting into the standard library, or source-breaking changes resulting from evolution proposals prior to promotion, will be common. Unlike many packages, the preview package will not converge over time, which normally reduces the frequency of a package's version bumps.
 
 As such, the preview package will remain at major version `0` **permanently**. Minor version bumps will be able to include source-breaking changes. Patch updates should not break source and will just be used for bug fixes.
 
