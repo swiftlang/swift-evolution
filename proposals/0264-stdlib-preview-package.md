@@ -1,13 +1,14 @@
 # Standard Library Preview Package
 
 * Proposal: [SE-0264](0264-stdlib-preview-package.md)
-* Authors: [Ben Cohen](https://github.com/airspeedswift), [Max Moiseev](https://github.com/moiseev)
+* Authors: [Ben Cohen](https://github.com/airspeedswift), [Max Moiseev](https://github.com/moiseev), [Nate Cook](https://github.com/natecook1000)
 * Review Manager: [Dave Abrahams](https://github.com/dabrahams)
 * Status: **Scheduled for review (September 2...September 9, 2019)**
+* Pitch Discussion: [Pitch: Standard Library Preview Package](https://forums.swift.org/t/pitch-standard-library-preview-package/27202)
 
 ## Introduction
 
-We propose the addition of a new package, `SwiftPreview`, which will form the initial landing spot for certain additions to the Swift Standard Library.
+We propose the addition of a new package, `SwiftPreview`, which will form the initial landing spot for certain additions to the Swift standard library.
 
 Adding this package serves the goal of allowing for rapid adoption of new standard library features, enabling sooner real-world feedback, and allowing for an initial period of time where that feedback can lead to source- and ABI-breaking changes if needed.
 
@@ -27,17 +28,17 @@ For the purposes of this document, we will refer to the proposed standard librar
 
 ### Facilitating Rapid Adoption and Feedback
 
-It is common for a feature proposed and accepted through Swift Evolution and added to the Standard Library to wait for months before it gets any real life usage. Take [SE-0199](https://github.com/apple/swift-evolution/blob/master/proposals/0199-bool-toggle.md) (the introduction of `toggle`) for example. It was [accepted](https://forums.swift.org/t/accepted-se-199-add-toggle-to-bool/10681) almost 6 months before Swift 4.2 was released.
+It is common for a feature proposed and accepted through Swift Evolution and added to the standard library to wait for months before it gets any real life usage. Take [SE-0199](https://github.com/apple/swift-evolution/blob/master/proposals/0199-bool-toggle.md) (the introduction of `toggle`) for example. It was [accepted](https://forums.swift.org/t/accepted-se-199-add-toggle-to-bool/10681) almost 6 months before Swift 4.2 was released.
 
 Even though all additions go through a thorough review, there is no substitute for feedback from real-world usage in production. Sometimes we discover that the API is not quite as good as it might have been.
 
-While the toolchains downloadable from swift.org are useful for experimentation, they cannot be used to ship applications, so are rarely used for much more than "kicking the tires" on a feature. The beta period for Xcode provides slightly more real usage, but is still relatively short, with feedback often coming too late to be applied, needing, as it should, a further review on Swift evolution as well as time to integrate into the converging release. And the nature of standard library additions are such that you do not always have an immediate need early in the beta to try out a feature such as partial sort or a min heap.
+While the toolchains downloadable from swift.org are useful for experimentation, they cannot be used to ship applications, so are rarely used for much more than "kicking the tires" on a feature. The beta period for Xcode provides slightly more real usage, but is still relatively short, with feedback often coming too late to be applied, given that any changes would require a further review on Swift evolution as well as time to integrate into the converging release. And the nature of standard library additions are such that you do not always have an immediate need early in the beta to try out a feature such as partial sort or a min heap.
 
 Once a feature ships as part of a Swift release, any future changes resulting from feedback from real usage must clear the very high bar of source and ABI stability. Even if the change is merited and a source break is justified, the absolute need for ABI stability can rule out certain changes entirely on technical grounds. Furthermore, for performance reasons, standard library types that rely on specialization need to expose some of their internal implementation as part of their ABI, closing off future optimizations or performance fixes that are only discovered through subsequent usage and feedback.
 
 ### Technical Challenges for Contributors
 
-The requirements for contributing to the standard library can be prohibitive. Not everybody has the time and resources to build a whole stack including LLVM, Clang, and the Swift compiler itself just to change a part of the Standard Library. Additionally, Xcode and XCTest cannot easily be used to maintain and test standard library code.
+The requirements for contributing to the standard library can be prohibitive. Not everybody has the time and resources to build a whole stack including LLVM, Clang, and the Swift compiler itself just to change a part of the standard library. Additionally, Xcode and XCTest cannot easily be used to maintain and test standard library code.
 
 Integrating changes into the standard library requires knowledge of non-public features and idioms relating to ABI-stability. In particular, implementing a performant, specializable, ABI-stable collection type while preserving partial future flexibility is _significantly_ harder than writing one that is only source-stable. Harder still is knowing what internal implementation details can be changed after such a partially-transparent type has been published as ABI.
 
@@ -55,7 +56,7 @@ Additions to the package will **continue to use the Swift Evolution process.** A
 
 However, requirements around source stability of the package will not be the same as those of the Swift standard library. Follow-up proposals and proposal amendments will be able to make source-breaking changes. Unlike the very high bar for source-breaking changes, and the absolute rules around ABI stability, the bar for changes to API currently only in the package will be that of any other evolution proposal of a new API.
 
-Starting life in the package will not be mandatory. Proposals can opt instead to go straight into the standard library, especially if they do not meet the criteria for suitable package additions (see detailed design section). Functionality that are already available elsewhere, and have been proven in real-life use in that way, and is being "sunk" down into the standard library, would also be good candidates to skip the preview stage.
+Starting life in the package will not be mandatory. Proposals can opt instead to go straight into the standard library, especially if they do not meet the criteria for suitable package additions (see detailed design section). Functionality that is already available elsewhere, and has been proven in real-life use in that way, and is being "sunk" down into the standard library, would also be a good candidate to skip the preview stage.
 
 Since the package will not be ABI-stable, it will not ship as a binary on any platform, or be a dependency of any ABI-stable package. This allows for changes to the internal implementation of any type, and the change/removal of any function, as part of implementation changes, follow-on proposal amendments, or subsequent proposals.
 
@@ -77,6 +78,16 @@ The following are examples of changes that would _not_ go into the package:
 - Changes that can't be done via a package, like adding customization points to protocols
 
 Some of these cases will require a judgement call. For example, making an extension method a customization point may bring a minor performance optimization — and so not prevent initial deployment in the package — or it may be a major part of the implementation, making the difference between an `O(1)` and `O(n)` implementation. Whether a proposal should go into the preview package should be part of the evolution pitch and review discussions.
+
+### Evolution
+
+The introduction of the `SwiftPreview` package does not change much in the process of Swift Evolution. Changes to the standard library API surface should go through a well-developed pitch - discussion - implementation - proposal - decision life-cycle.
+
+The main difference from the existing process is that the final result will not land straight into the standard library. Instead, the new functionality will become available for general use immediately in a new version of the preview package. As users have real-world experience with the accepted functionality, any proposed amendments to the proposal should go through the same evolution process as an original proposal.
+
+At a later point, with a timeline set at proposal acceptance, a new kind of review will be run — one to promote parts of the package to the library. This promotion review should be done via an amendment to the proposal, and should not include any changes to the promoted API. The duration of time spent in the package should reflect the complexity of the proposal, and thus the amount of "bake time" it might need.
+
+No proposal should be accepted into the package on a provisional basis: Reviewers should assume that every proposal will be migrated as-is unless feedback while in the package stage reveals that it was a clear misadventure. The review manager of the promotion amendment will be responsible for ensuring that the review discussion focuses on feedback from real-world use, and not relitigation of previously settled decisions made during the original review.
 
 ### Migration
 
@@ -106,15 +117,7 @@ Since types cannot be emitted into client code, these combination function/type 
 
 #### Retirement from the Package
 
-In order to keep the package size and maintainability manageable, implementations will be removed from the package in a version update **1 year** after migration to the standard library. This is a necessary balance between maintainability and convenience. Since the package is open-source, it should be possible to copy source for a specific feature if a user badly needs to keep it while also wanting to upgrade to a newer major version _and_ not upgrade to the latest compiler.
-
-### Evolution
-
-Introduction of the package does not change much in the process of Swift Evolution. Changes to the Standard Library API surface should go through a well developed pitch - discussion - implementation - proposal - decision life-cycle.
-
-The main difference is that the final result will not land straight into the standard library. Instead, at a later point, a new kind of review will have to be run — one to promote parts of the package to the library. This should be done via an amendment to the proposal, and should be kept lightweight. A timeline for this secondary review should be set at proposal acceptance. The duration of time spent in the package should reflect the complexity of the proposal, and thus the amount of "bake time" it might need.
-
-No proposal should be accepted into the package on a provisional basis: it should be assumed that every proposal will be migrated as-is unless feedback while in the package stage reveals that it was a clear misadventure. The review manager of the migration amendment will be responsible for ensuring that the review discussion focuses on new feedback from real-world use, and not purely relitigation of previously settled decisions made during the original review. 
+In order to keep the package size and maintainability manageable, implementations will be removed from the package in a version update **1 year** after migration to the standard library. This is a necessary balance between maintainability and convenience. Since the package is open-source, it should be possible to copy source for a specific feature if a user badly needs to keep it while also wanting to upgrade to the latest version of the package _without_ upgrading to the latest compiler.
 
 ### Testing
 
@@ -126,18 +129,15 @@ Certain features of `StdlibUnittest` – in particular crashLater and `StdlibCol
 
 ### GYB
 
-There will be no use of [gyb](https://github.com/apple/swift/blob/master/utils/gyb.py) in the package. Gyb is a powerful and useful tool, but it can cause code that is difficult to read and write, and does not interact well with Xcode, so runs counter one of the goals of this package: to simplify contribution.
-
-The need for gyb has been gradually reducing over time as language features like conditional conformance and improved optimization eliminated the need for it. Generally speaking, most uses of gyb indicate missing language or library features, and so implementations of proposals should probably start by proposing those features instead. For example, it is unlikely we would accept further proposals to splat out multiple operators for different sizes of tuple like we do with `==`. Instead, protocol conformance for non-nominal types and variadic generics should solve this problem more generally.
+There will be no use of [gyb](https://github.com/apple/swift/blob/master/utils/gyb.py) in the package. The need for gyb has been gradually reducing over time as language features like conditional conformance and improved optimization eliminated the need for it. Gyb is a powerful and useful tool, but it can cause code that is difficult to read and write, and does not interact well with Xcode, so runs counter one of the goals of this package: to simplify contribution.
 
 ### Versioning
 
-The fundamental goals of the preview package are somewhat at odds with the usual goals of semantic versioning. Source-breaking changes, including retirements after migrating into the standard library, or source-breaking changes resulting from evolution proposals prior to migration, will be common. Unlike many packages, the preview package will not converge over time, reducing the frequency of its version bumps.
+The fundamental goals of the preview package are somewhat at odds with the usual goals of semantic versioning. Source-breaking changes, including retirements after promoting into the standard library, or source-breaking changes resulting from evolution proposals prior to promotion, will be common. Unlike many packages, the preview package will not converge over time, which normally reduces the frequency of a package's version bumps.
 
 As such, the preview package will remain at major version `0` **permanently**. Minor version bumps will be able to include source-breaking changes. Patch updates should not break source and will just be used for bug fixes.
 
-The use of a `0` major version at all times will act as a signifier that adopters need to be comfortable with the requirement to continuously update
-to the latest version of the package. It should not be taken as an indication that the package shouldn't be used for real-world code: the code should be considered production-worthy. But it is a preview, and not source stable. Where practical, deprecated shims could be used to preserve source compatibility between versions, but this may not always be practical.
+The use of a `0` major version at all times will act as a signifier that adopters need to be comfortable with the requirement to continuously update to the latest version of the package. It should not be taken as an indication that the package shouldn't be used for real-world code: the code should be considered production-worthy. But it is a preview, and not source stable. Where practical, deprecated shims could be used to preserve source compatibility between versions, but this may not always be practical.
 
 The decision when to tag minor versions, and potentially to coalesce multiple changes into a single version bump, will be made by the release manager for the standard library as chosen by the Swift project lead.
 
