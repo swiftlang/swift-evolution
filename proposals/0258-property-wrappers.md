@@ -3,7 +3,7 @@
 * Proposal: [SE-0258](0258-property-wrappers.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor), [Joe Groff](https://github.com/jckarter)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.1)**
 * Implementation: [Linux toolchain](https://ci.swift.org/job/swift-PR-toolchain-Linux/251//artifact/branch-master/swift-PR-25781-251-ubuntu16.04.tar.gz), [macOS toolchain](https://ci.swift.org/job/swift-PR-toolchain-osx/327//artifact/branch-master/swift-PR-25781-327-osx.tar.gz)
 * Review: ([review #1](https://forums.swift.org/t/se-0258-property-delegates/23139)) ([revision announcement #1](https://forums.swift.org/t/returned-for-revision-se-0258-property-delegates/24080)) ([review #2](https://forums.swift.org/t/se-0258-property-wrappers-second-review/25843)) ([review #3](https://forums.swift.org/t/se-0258-property-wrappers-third-review/26399)) ([acceptance](https://forums.swift.org/t/accepted-with-modification-se-0258-property-wrappers/26828))
 * Previous versions: [Revision #3](https://github.com/apple/swift-evolution/blob/e99ae69370f56ae84256b78902ab377cb8249cdd/proposals/0258-property-wrappers.md), [Revision #2](https://github.com/apple/swift-evolution/blob/bb8709c2ddca25c21a3c1e0298ce9457911dbfba/proposals/0258-property-wrappers.md), [Revision #1](https://github.com/apple/swift-evolution/commit/8c3499ec5bc22713b150e2234516af3cb8b16a0b)
