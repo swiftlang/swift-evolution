@@ -46,17 +46,15 @@ It would be of great benefit to the community to allow proposals and contributio
 
 ## Proposed solution
 
-We propose the introduction of a "Standard Library Preview" SwiftPM package.
+We propose the introduction of a `SwiftPreview` SwiftPM package. The package will be a standalone project hosted on GitHub under the Apple organization, and will be part of the overall Swift project.
 
-It will be a standalone project hosted on Github under the Apple organization, and will be part of the overall Swift project.
+Whenever possible, proposals for additions to the standard library will land first in the package before migrating to the standard library. A PR against the preview package will be sufficient to fulfill the implementation requirement for an evolution proposal. Proposals that are accepted will land in the package immediately, and then be integrated into the standard library.
 
-Proposals for additions to the standard library will have the option of first landing in the package for a period before migrating to the library. A PR against the preview package will be sufficient to fulfill the implementation requirement for an evolution proposal.
+All additions to the standard library will **continue to use the Swift Evolution process**, no matter whether they first land in the package or not. All additions to the package should be made with the understanding that they will migrate to the ABI-stable standard library module that ships as part of the Swift toolchain.
 
-Additions to the package will **continue to use the Swift Evolution process.** All additions to the package should be made on the assumption that they will in time migrate to the ABI-stable standard library module that ships as part of the Swift toolchain. Proposals first landing in the package should be given the same level of scrutiny currently applied to standard library additions today.
+If usage after acceptance of a proposal reveals unanticipated problems, a follow-up proposal amendments will be able to make source-breaking changes. Unlike the very high bar for source-breaking changes, and the absolute rules around ABI stability, the bar for changes to API that haven't shipped as part of a Swift release will be that of any other evolution proposal of a new API.
 
-However, requirements around source stability of the package will not be the same as those of the Swift standard library. Follow-up proposals and proposal amendments will be able to make source-breaking changes. Unlike the very high bar for source-breaking changes, and the absolute rules around ABI stability, the bar for changes to API currently only in the package will be that of any other evolution proposal of a new API.
-
-Starting life in the package will not be mandatory. Proposals can opt instead to go straight into the standard library, especially if they do not meet the criteria for suitable package additions (see detailed design section). Functionality that is already available elsewhere, and has been proven in real-life use in that way, and is being "sunk" down into the standard library, would also be a good candidate to skip the preview stage.
+Starting life in the package will not be mandatory. Proposed additions can instead go straight into the standard library, if they do not meet the criteria for suitable package additions. See the detailed design section for an expanded discussion of these criteria.
 
 Since the package will not be ABI-stable, it will not ship as a binary on any platform, or be a dependency of any ABI-stable package. This allows for changes to the internal implementation of any type, and the change/removal of any function, as part of implementation changes, follow-on proposal amendments, or subsequent proposals.
 
@@ -83,15 +81,15 @@ Some of these cases will require a judgement call. For example, making an extens
 
 The introduction of the `SwiftPreview` package does not change much in the process of Swift Evolution. Changes to the standard library API surface should go through a well-developed pitch - discussion - implementation - proposal - decision life-cycle.
 
-The main difference from the existing process is that the final result will not land straight into the standard library. Instead, the new functionality will become available for general use immediately in a new version of the preview package. As users have real-world experience with the accepted functionality, any proposed amendments to the proposal should go through the same evolution process as an original proposal.
+The main difference from the existing process is that the final result will become available for general use immediately in a new version of the preview package. As users have real-world experience with the accepted functionality, any proposed amendments to the proposal must go through the same evolution process as an original proposal.
 
-At a later point, with a timeline set at proposal acceptance, a new kind of review will be run — one to promote parts of the package to the library. This promotion review should be done via an amendment to the proposal, and should not include any changes to the promoted API. The duration of time spent in the package should reflect the complexity of the proposal, and thus the amount of "bake time" it might need.
+To provide time for feedback from real-world use of new additions, the Swift Evoluton process should favor landing new features in a window immediately after branching for a major release. This doesn’t mean that important and valuable proposals can’t be added at different times, but they’ll be subject to increased scrutiny.
 
-No proposal should be accepted into the package on a provisional basis: Reviewers should assume that every proposal will be migrated as-is unless feedback while in the package stage reveals that it was a clear misadventure. The review manager of the promotion amendment will be responsible for ensuring that the review discussion focuses on feedback from real-world use, and not relitigation of previously settled decisions made during the original review.
+No proposal should be accepted into the package on a provisional basis: Reviewers should assume that every proposal will be migrated as-is unless feedback reveals that it was a clear misadventure. The review manager for any revising proposals will be responsible for ensuring that the review discussion focuses on feedback from real-world use, and not relitigation of previously settled decisions made during the original review.
 
 ### Migration
 
-An important aspect of the design is the experience of users of the package when features migrate from the package to the library. This is handled differently for functions and types.
+An important aspect of the design is the experience of users of the package when features that have been available from the package become available in the standard library in a new Swift or platform release. This is handled differently for functions and types.
 
 #### Types
 
@@ -139,13 +137,13 @@ As such, the preview package will remain at major version `0` **permanently**. M
 
 The use of a `0` major version at all times will act as a signifier that adopters need to be comfortable with the requirement to continuously update to the latest version of the package. It should not be taken as an indication that the package shouldn't be used for real-world code: the code should be considered production-worthy. But it is a preview, and not source stable. Where practical, deprecated shims could be used to preserve source compatibility between versions, but this may not always be practical.
 
-The decision when to tag minor versions, and potentially to coalesce multiple changes into a single version bump, will be made by the release manager for the standard library as chosen by the Swift project lead.
+The decision when to tag minor versions will be made by the release manager for the standard library as chosen by the Swift project lead.
 
 ### Source compatibility
 
 None on Swift itself. The intention of the package is to facilitate long-term source stability by detecting issues with APIs prior to their integration into the library.
 
-# Effect on ABI stability
+## Effect on ABI stability
 
 None. The package will not be declared ABI stable. ABI stability will only happen when proposals are migrated to the standard library. This means that the preview package may not be used within binary frameworks.
 
@@ -153,19 +151,12 @@ Because we do not have cross-module optimization, package implementations should
 
 ## Alternatives considered
 
-### Single versus Multiple Packages
+### Additional Review Before Library Integration
 
-An alternative to a single monolithic preview package would be multiple packages. For example, each accepted evolution proposal could have its own package.
+A previous version of this proposal prescribed a window of time before promoting accepted features into the standard library, to provide additional bake time and an additional review pointfor the feature. However, this approach delays some important feedback that can only be gained from integration into the standard library, where overload resolution and performance can have different outcomes than the same APIs shipped in a package.
 
-This would trade convenience for flexibility. In particular, multiple packages would avoid the source-breaking nature of proposal revisions (and the lesser problem of any additions being technically source breaking). But it would mean that adopters of the different previews would need to look up and add individual proposals rather than get them all in one go, and would rarely "discover" new features also in the package they're already importing.
+### No Semantic Versioning
 
-### Simultaneous Preview and Library Addition
+An alternative to keeping the semver major version at `0` is to not version the package at all. With this approach, the package could only be included by packages by specifying a branch-based dependendcy. However, this would be too restricting at this time, as a branch-based dependency can only be imported by other branch-based dependencies. This would effectively limit use of the `SwiftPreview` package to top-level applications only.
 
-If the goal was to facilitate rapid release only, but not a longer feedback period, then the additional review step would not be necessary. Instead, new features would be integrated directly into the package and library simultaneously.
-
-However, experience has shown that proposals are not always perfect. Recently, significant if manageable issues were discovered with the API of both [SE-180](https://github.com/apple/swift-evolution/blob/master/proposals/0180-string-index-overhaul.md) and [SE-202](https://github.com/apple/swift-evolution/blob/master/proposals/0202-random-unification.md), and in a near-miss [SE-220](https://github.com/apple/swift-evolution/blob/master/proposals/0220-count-where.md) had to be reverted late during 5.0 convergence due to typechecker performance impact. These issues would likely have been caught by a more prolonged exposure in a package.
-
-### Is a Second Review Necessary?
-
-Whether or not a proposal accepted and integrated into the package actually needs a second review is also worth considering. An alternative would be to set a timer, and then to automatically migrate the proposal into the library when the timer expires, without need for a second review. Changes could still be initiated to the preview package, but a new proposal would be required to interrupt the otherwise automatic migration timetable.
 
