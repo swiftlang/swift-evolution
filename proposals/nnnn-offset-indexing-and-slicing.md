@@ -1,17 +1,16 @@
-# Offset Indexing and Slicing
+# Offset-Based Access to Indices, Elements, and Slices
 
 * Proposal: SE-NNNN
 * Author: [Michael Ilseman](https://github.com/milseman)
 * Review Manager: TBD
 * Status: **Awaiting review**
 * Implementation: [apple/swift#24296](https://github.com/apple/swift/pull/24296)
- 
+
 ## Introduction
-This pitch introduces `OffsetBound`, which can represent a position in a collection specified as an offset from either the start or end of the collection (i.e. the collection’s “bounds”). This covers an expressivity gap in collection APIs by providing easy and safe means to fetch an index or element from such an offset as well as convenient slicing.
 
-If you would like to try it out, you can just copy-paste from [this gist](https://gist.github.com/milseman/1461e4f3e195974a5d1ad76cefdd6961), which includes the functionality as well as test cases and examples. This work is the culmination of prior discussion from an [earlier thread](https://forums.swift.org/t/pitch-offsetting-indices-and-relative-ranges/23837),  the [thread before that](https://forums.swift.org/t/call-for-users-and-authors-offset-indexing-pitch/21444), and [@Letan](https://forums.swift.org/u/letan) ’s  [original thread](https://forums.swift.org/t/shorthand-for-offsetting-startindex-and-endindex/9397). The latest pitch thread can be found [TBD](h).
+This proposal introduces `OffsetBound`, which can represent a position in a collection specified as an offset from either the beginning or end of the collection (i.e. the collection’s “bounds”). Corresponding APIs provide a more convenient abstraction over indices. The goal is to alleviate an expressivity gap in collection APIs by providing easy and safe means to access elements, indices, and slices from such offsets.
 
-Swift-evolution thread: [TBD](TBD)
+If you would like to try it out, you can just copy-paste from [this gist](https://gist.github.com/milseman/1461e4f3e195974a5d1ad76cefdd6961), which includes the functionality as well as test cases and examples. This work is the culmination of prior discussion from an [earlier thread](https://forums.swift.org/t/pitch-offsetting-indices-and-relative-ranges/23837),  the [thread before that](https://forums.swift.org/t/call-for-users-and-authors-offset-indexing-pitch/21444), and [@Letan](https://forums.swift.org/u/letan) ’s  [original thread](https://forums.swift.org/t/shorthand-for-offsetting-startindex-and-endindex/9397). The latest pitch thread can be found [here](https://forums.swift.org/t/offset-indexing-and-slicing/28333).
 
 
 ## Motivation
@@ -36,7 +35,9 @@ func parseRequirements(_ s: String) -> [(finish: Character, before: Character)] 
 }
 ```
 
-By taking a detour through forming SubSequences, we could alternatively express this as:
+Advancing indices by hand through `line.index(line.startIndex, offsetBy: 5)` is fairly obnoxious and distracts from the intent of the code.
+
+Alternatively, we could take a detour through forming `SubSequence`s:
 
 ```swift
 func parseRequirements(_ s: String) -> [(finish: Character, before: Character)] {
@@ -45,6 +46,8 @@ func parseRequirements(_ s: String) -> [(finish: Character, before: Character)] 
   }
 }
 ```
+
+This results in less boilerplate code, but the detour through slicing APIs increases the cognitive load. Anyone reading the code has to jump through mental hoops, and the code author has more details to reason through (when we first wrote this example, we had an off-by-one error).
 
 Instead, this proposal provides a way to directly extract elements from known offsets.
 
@@ -107,7 +110,7 @@ print(everyOther[startIdx + 1]) // 2, but everyOther doesn't even contain 2!
 print(everyOther[everyOther.index(after: startIdx)]) // 3
 ```
 
-This proposal provides a way to perform offset-based indexing for such collections, with similar expressivity but with explicit start/end bounds for clarity.
+This proposal provides a way to have offset-based element access for such collections, with similar expressivity but with explicit bounds for clarity.
 
 
 ## Proposed solution
@@ -116,17 +119,17 @@ We propose convenient subscripts for slicing, single-element retrieval, and fetc
 
 ```swift
 let str = "abcdefghijklmnopqrstuvwxyz"
-print(str[.start + 3 ..< .start + 6]) // "def"
-print(str[.start + 3 ..< .end - 3]) // "defghijklmnopqrstuvw"
-print(str[.start + 3 ..< .end - 23]) // "",
+print(str[.first + 3 ..< .first + 6]) // "def"
+print(str[.first + 3 ..< .last - 2]) // "defghijklmnopqrstuvw"
+print(str[.first + 3 ..< .last - 22]) // "",
 print(str[.last]) // Optional("z")
 print(str[.last - 1]) // Optional("y")
-print(str[.start + 26]) // nil
+print(str[.first + 26]) // nil
 print(str[(.last - 3)...]) // "wxyz"
 
 print(str.index(at: .last - 1)) // Optional(... index of "y")
-print(str.index(at: .end - 26)) // Optional(... index of "a")
-print(str.index(at: .end - 27)) // nil
+print(str.index(at: .last - 25)) // Optional(... index of "a")
+print(str.index(at: .last - 26)) // nil
 ```
 
 The `parseRequirements` example from above can be written as:
@@ -139,24 +142,24 @@ func parseRequirements(_ s: String) -> [(finish: Character, before: Character)] 
 }
 ```
 
-This is available on all Collections, allowing a more general solution. The Advent of Code exercise only requires the extraction (and later comparison) of the elements at the corresponding positions:
+These APIs are available on all Collections, allowing a more general solution. The Advent of Code exercise only requires the extraction and comparison of the elements at the corresponding positions, so we can generalize to:
 
 ```swift
 func parseRequirements<C: Collection>(
   _ c: C, lineSeparator: C.Element
-) -> [(finish: C.Element, before: C.Element)] {
+) -> [(finish: C.Element, before: C.Element)] where C.Element: Comparable {
   c.split(separator: lineSeparator).map { line in
     (line[.first + 5]!, line[.last - 11]!)
   }
 }
 ```
 
-Here, the `line[.last - 11]` will run in constant-time if the passed collection conforms to `BidirectionalCollection`, or in linear-time if it does not (since we have to count from the front). This algorithmic guarantee is part of this proposal, and without this generalization cannot be done.
+Here, the `line[.last - 11]` will run in constant-time if `c` conforms to `BidirectionalCollection`, or in linear-time if it does not (since we have to count from the front). This algorithmic guarantee is added as part of this proposal, without which this generalization cannot be done.
 
 These also address the expressivity issues and assumptions with Int-indexed Collections above:
 
 ```swift
-print((3..<10)[(.start + 5)...]) // 8..<10
+print((3..<10)[(.first + 5)...]) // 8..<10
 
 func fifth<C: Collection>(_ c: C) -> C.Element? { return c[.first + 4] }
 
@@ -170,8 +173,9 @@ data = data.dropFirst(2)
 print(fifth(data)!) // 7
 
 let everyOther = EveryOther(storage: [1,2,3,4,5,6,7,8])
-print(everyOther[.start + 1]!) // 3
+print(everyOther[.first + 1]!) // 3
 ```
+
 
 
 ## Detailed design
@@ -179,8 +183,8 @@ print(everyOther[.start + 1]!) // 3
 This proposal adds an `OffsetBound` struct, representing a position at an offset from the start or end of a collection.
 
 ```swift
-/// A position in a collection specified as an offset from either the start
-/// or the end of the collection (i.e. the collection's bounds).
+/// A position in a collection specified as an offset from either the first
+/// or last element of the collection (i.e. the collection's bounds).
 ///
 /// You can use an `OffsetBound` to access an index or element of a collection
 /// as well as extract a slice. For example:
@@ -188,9 +192,9 @@ This proposal adds an `OffsetBound` struct, representing a position at an offset
 ///       let str = "abcdefghijklmnopqrstuvwxyz"
 ///       print(str[.last]) // Optional("z")
 ///       print(str[.last - 2]) // Optional("x")
-///       print(str[.start + 26]) // nil
-///       print(str[.start + 3 ..< .start + 6]) // "def"
-///       print(str[.start + 3 ..< .end - 3]) // "defghijklmnopqrstuvw"
+///       print(str[.first + 26]) // nil
+///       print(str[.first + 3 ..< .first + 6]) // "def"
+///       print(str[.first + 3 ..< .last - 2]) // "defghijklmnopqrstuvw"
 ///
 /// `OffsetBound`s also provide a convenient way of working with slice types
 /// over collections whose index type is `Int`. Slice types share indices with
@@ -199,25 +203,17 @@ This proposal adds an `OffsetBound` struct, representing a position at an offset
 ///
 ///     let array = [1,2,3,4,5,6]
 ///     print(array[2...][3) // 4
-///     print(array[2...][.start + 3]!) // 6
+///     print(array[2...][.first + 3]!) // 6
 ///
 public struct OffsetBound {
   /* internally stores an enum, not ABI/API */
 
-  /// The position corresponding to `startIndex` and the first element of a
-  /// nonempty collection.
-  public static var start: OffsetBound
-
-  /// The position corresponding to `endIndex`, which is "past the end"---that
-  /// is, the position one greater than the last valid subscript argument.
-  public static var end: OffsetBound
-
-  /// The position corresponding to `startIndex` and the first element of a
-  /// nonempty collection. This is equivalent to `start`.
+  /// The position of the first element of a nonempty collection, corresponding
+  /// to `startIndex`.
   public static var first: OffsetBound
 
-  /// The position corresponding to the last element of an nonempty
-  /// collection. This is equivalent to `.end - 1`.
+  /// The position of the last element of a nonempty collection, corresponding
+  /// to `index(before: endIndex)`.
   public static var last: OffsetBound
 
   /// Returns a bound that offsets the given bound by the specified distance.
@@ -225,7 +221,7 @@ public struct OffsetBound {
   /// For example:
   ///
   ///     .first + 2  // The position of the 3rd element
-  ///     .last + 1   // One past the last element, equivalent to `.end`
+  ///     .last + 1   // One past the last element, corresponding to `endIndex`
   ///
   public static func +(_ lhs: OffsetBound, _ rhs: Int) -> OffsetBound
 
@@ -235,11 +231,11 @@ public struct OffsetBound {
   /// For example:
   ///
   ///     .last - 2 // Two positions before the last element's position
-  ///     .end - 1  // The position before the (open) upper-bound, i.e. `.last`
   ///
   public static func -(_ lhs: OffsetBound, _ rhs: Int) -> OffsetBound
 }
 ```
+
 
 `OffsetBound` is `Comparable`, and as such can be used as a bound type for `RangeExpression`s.
 
@@ -247,14 +243,14 @@ public struct OffsetBound {
 extension OffsetBound: Comparable {
   /// Compare the positions represented by two `OffsetBound`s.
   ///
-  /// Offsets relative to `.start` are always less than those relative to
-  /// `.end`, as there are arbitrarily many offsets between the two extremities.
-  /// Offsets from the same bound are ordered by their corresponding positions.
-  /// For example:
+  /// Offsets relative to `.first` are always less than those relative to
+  /// `.last`, as there are arbitrarily many offsets between the two
+  /// extremities. Offsets from the same bound are ordered by their
+  /// corresponding positions. For example:
   ///
-  ///     .start + n < .end - m    // true for all values of n and m
-  ///     .start + n < .start + m  // equivalent to n < m
-  ///     .end - n < .end - m      // equivalent to n > m
+  ///     .first + n < .last - m    // true for all values of n and m
+  ///     .first + n < .first + m  // equivalent to n < m
+  ///     .last - n < .last - m      // equivalent to n > m
   ///
   public static func < (_ lhs: OffsetBound, _ rhs: OffsetBound) -> Bool
 
@@ -263,13 +259,13 @@ extension OffsetBound: Comparable {
   /// This is only true if both offset the same bound by the same amount. For
   /// example:
   ///
-  ///     .last == .end - 1         // true
-  ///     .start + n == .end - m    // false for all values of n and m
-  ///     .start + n == .start + m  // equivalent to n == m
+  ///     .first + n == .last - m    // false for all values of n and m
+  ///     .first + n == .first + m  // equivalent to n == m
   ///
   public static func == (_ lhs: OffsetBound, _ rhs: OffsetBound) -> Bool
 }
 ```
+
 
 `Collection` gets an API to retrieve an index from an `OffsetBound` if it exists, a subscript to retrieve an element from an `OffsetBound` if it exists, and a slicing subscript to extract a range.
 
@@ -282,54 +278,248 @@ extension Collection {
   ///   - O(1) if the collection conforms to `RandomAccessCollection`.
   ///   - O(*k*) where *k* is equal to the offset if the collection conforms to
   ///     `BidirectionalCollection`.
-  ///   - O(*k*) if the offset is positive or zero.
+  ///   - O(*k*) if `position` is `.first + n` for any n, or `.last + 1`.
   ///   - Otherwise, O(*n*) where *n* is the length of the collection.
-  ///   Note that `.last` represents `.end - 1`, therefore it has a negative
-  ///   offset
-  public func index(at bound: OffsetBound) -> Index?
+  public func index(at position: OffsetBound) -> Index?
 
   /// Returns the corresponding element for the provided offset, if it exists,
   /// else returns nil.
   ///
   /// Example:
   ///
-  ///       let str = "abcdefghijklmnopqrstuvwxyz"
-  ///       print(str[.last]) // Optional("z")
-  ///       print(str[.last - 2]) // Optional("x")
-  ///       print(str[.start + 26]) // nil
+  ///       let abcs = "abcdefg"
+  ///       print(abcs[.last]) // Optional("g")
+  ///       print(abcs[.last - 2]) // Optional("e")
+  ///       print(abcs[.first + 8]) // nil
   ///
   /// - Complexity:
   ///   - O(1) if the collection conforms to `RandomAccessCollection`.
   ///   - O(*k*) where *k* is equal to the offset if the collection conforms to
   ///     `BidirectionalCollection`.
-  ///   - O(*k*) if the offset is positive or zero.
+  ///   - O(*k*) if `position` is `.first + n` for any n, or `.last + 1`.
   ///   - Otherwise, O(*n*) where *n* is the length of the collection.
-  ///   Note that `.last` represents `.end - 1`, therefore it has a negative
-  ///   offset
-  public subscript(bound: OffsetBound) -> Element?
+  public subscript(position: OffsetBound) -> Element?
 
   /// Returns the contiguous subrange of elements corresponding to the provided
   /// offsets.
   ///
   /// Example:
   ///
-  ///       let str = "abcdefghijklmnopqrstuvwxyz"
-  ///       print(str[.start + 3 ..< .start + 6]) // "def"
-  ///       print(str[.start + 3 ..< .end - 3]) // "defghijklmnopqrstuvw"
+  ///       let abcs = "abcdefg"
+  ///       print(abcs[.first + 1 ..< .first + 6]) // "bcdef"
+  ///       print(abcs[.first + 1 ..< .last - 1]) // "bcde"
   ///
   /// - Complexity:
   ///   - O(1) if the collection conforms to `RandomAccessCollection`.
   ///   - O(*k*) where *k* is equal to the larger offset if the collection
   ///     conforms to `BidirectionalCollection`.
-  ///   - O(*k*) if both offsets are positive or zero.
+  ///   - O(*k*) if the offsets are `.first + n` for any n or `.last + 1`.
   ///   - Otherwise, O(*n*) where *n* is the length of the collection.
-  ///   Note that `.last` represents `.end - 1`, therefore it has a negative
-  ///   offset
   public subscript<ORE: RangeExpression>(
     range: ORE
   ) -> SubSequence where ORE.Bound == OffsetBound
 }
 ```
+
+
+RangeReplaceableCollection gets corresponding APIs in terms of OffsetBound, as well as subscript setters.
+
+```swift
+extension RangeReplaceableCollection {
+  /// Replaces the specified subrange of elements with the given collection.
+  ///
+  /// This method has the effect of removing the specified range of elements
+  /// from the collection and inserting the new elements at the same location.
+  /// The number of new elements need not match the number of elements being
+  /// removed.
+  ///
+  /// In this example, two characters in the middle of a string are
+  /// replaced by the three elements of a `Repeated<Character>` instance.
+  ///
+  ///      var animals = "🐕🐈🐱🐩"
+  ///      let dogFaces = repeatElement("🐶" as Character, count: 3)
+  ///      animals.replaceSubrange(.first + 1 ... .last - 1, with: dogFaces)
+  ///      print(animals)
+  ///      // Prints "🐕🐶🐶🐶🐩"
+  ///
+  /// If you pass a zero-length range as the `subrange` parameter, this method
+  /// inserts the elements of `newElements` at `subrange.startIndex`. Calling
+  /// the `insert(contentsOf:at:)` method instead is preferred.
+  ///
+  /// Likewise, if you pass a zero-length collection as the `newElements`
+  /// parameter, this method removes the elements in the given subrange
+  /// without replacement. Calling the `removeSubrange(_:)` method instead is
+  /// preferred.
+  ///
+  /// Calling this method may invalidate any existing indices for use with this
+  /// collection.
+  ///
+  /// - Parameters:
+  ///   - subrange: The subrange of the collection to replace, specified as
+  ///   offsets from the collection's bounds.
+  ///   - newElements: The new elements to add to the collection.
+  ///
+  /// - Complexity: O(*n* + *m*), where *n* is length of this collection and
+  ///   *m* is the length of `newElements`. If the call to this method simply
+  ///   appends the contents of `newElements` to the collection, the complexity
+  ///   is O(*m*).
+  public mutating func replaceSubrange<C: Collection, R: RangeExpression>(
+    _ subrange: R, with newElements: __owned C
+  ) where C.Element == Element, R.Bound == OffsetBound
+
+  /// Inserts a new element into the collection at the specified position.
+  ///
+  /// The new element is inserted before the element currently at the specified
+  /// offset. If you pass `.last + 1` as the `position` parameter, corresponding
+  /// to the collection's `endIndex`, the new element is appended to the
+  /// collection.
+  ///
+  ///     var numbers = "12345"
+  ///     numbers.insert("Ⅸ", at: .first + 1)
+  ///     numbers.insert("𐄕", at: .last + 1)
+  ///
+  ///     print(numbers)
+  ///     // Prints "1Ⅸ2345𐄕"
+  ///
+  /// Calling this method may invalidate any existing indices for use with this
+  /// collection.
+  ///
+  /// - Parameter newElement: The new element to insert into the collection.
+  /// - Parameter `position`: The position at which to insert the new element,
+  ///   specified as offsets from the collection's bounds
+  ///
+  /// - Complexity: O(*n*), where *n* is the length of the collection. If
+  ///   `position == .last + 1`, this method is equivalent to `append(_:)`.
+  public mutating func insert(
+    _ newElement: __owned Element, at position: OffsetBound
+  )
+
+  /// Inserts the elements of a sequence into the collection at the specified
+  /// position.
+  ///
+  /// The new elements are inserted before the element currently at the
+  /// specified offset. If you pass `.last + 1` as the `position` parameter,
+  /// corresponding to the collection's `endIndex`, the new elements are
+  /// appended to the collection.
+  ///
+  /// Here's an example of inserting vulgar fractions in a string of numbers.
+  ///
+  ///     var numbers = "12345"
+  ///     numbers.insert(contentsOf: "↉⅖⅑", at: .first + 2)
+  ///     print(numbers)
+  ///     // Prints "12↉⅖⅑345"
+  ///
+  /// Calling this method may invalidate any existing indices for use with this
+  /// collection.
+  ///
+  /// - Parameter newElements: The new elements to insert into the collection.
+  /// - Parameter `position`: The position at which to insert the new elements,
+  ///   specified as offsets from the collection's bounds
+  ///
+  /// - Complexity: O(*n* + *m*), where *n* is length of this collection and
+  ///   *m* is the length of `newElements`. If `position == .last + 1`, this
+  ///   method is equivalent to `append(contentsOf:)`.
+  public mutating func insert<S: Collection>(
+    contentsOf newElements: __owned S, at position: OffsetBound
+  ) where S.Element == Element
+
+  /// Removes and returns the element at the specified position, if it exists,
+  /// else returns nil.
+  ///
+  /// All the elements following the specified position are moved to close the
+  /// gap.
+  ///
+  /// Example:
+  ///     var measurements = [1.2, 1.5, 2.9, 1.2, 1.6]
+  ///     let removed = measurements.remove(at: .last - 2)
+  ///     print(measurements)
+  ///     // Prints "[1.2, 1.5, 1.2, 1.6]"
+  ///     print(measurements.remove(at: .first + 4))
+  ///     // Prints nil
+  ///
+  /// Calling this method may invalidate any existing indices for use with this
+  /// collection.
+  ///
+  /// - Parameter position: The position of the element to remove, specified as
+  ///   an offset from the collection's bounds.
+  /// - Returns: The removed element if it exists, else nil
+  ///
+  /// - Complexity: O(*n*), where *n* is the length of the collection.
+  public mutating func remove(at position: OffsetBound) -> Element?
+
+  /// Removes the elements in the specified subrange from the collection.
+  ///
+  /// All the elements following the specified position are moved to close the
+  /// gap. This example removes two elements from the middle of a string of
+  /// rulers.
+  ///
+  ///     var rulers = "📏🤴👑📐"
+  ///     rulers.removeSubrange(.first + 1 ... .last - 1)
+  ///     print(rulers)
+  ///     // Prints "📏📐"
+  ///
+  /// Calling this method may invalidate any existing indices for use with this
+  /// collection.
+  ///
+  /// - Parameter range: The range of the collection to be removed, specified
+  ///   as offsets from the collection's bounds.
+  ///
+  /// - Complexity: O(*n*), where *n* is the length of the collection.
+  public mutating func removeSubrange<R: RangeExpression>(
+    _ range: R
+  ) where R.Bound == OffsetBound
+
+  /// Accesses the element corresponding to the provided offset. If no element
+  /// exists, `nil` is returned from the getter. Similarly, setting an element
+  /// to `nil` will remove the element at that offset.
+  ///
+  /// Example:
+  ///
+  ///       let abcs = "abcdefg"
+  ///       print(abcs[.last]) // Optional("g")
+  ///       print(abcs[.last - 2]) // Optional("e")
+  ///       print(abcs[.first + 8]) // nil
+  ///       abcs[.first + 2] = "©"
+  ///       print(abcs) // "ab©defg"
+  ///       abcs[.last - 1] = nil
+  ///       print(abcs) // "ab©deg"
+  ///
+  /// - Complexity (get):
+  ///   - O(1) if the collection conforms to `RandomAccessCollection`.
+  ///   - O(*k*) where *k* is equal to the offset if the collection conforms to
+  ///     `BidirectionalCollection`.
+  ///   - O(*k*) if `position` is `.first + n` for any n, or `.last + 1`.
+  ///   - Otherwise, O(*n*) where *n* is the length of the collection.
+  ///
+  /// - Complexity (set):
+  ///   - O(*n*) where *n* is the length of the collection.
+  public subscript(position: OffsetBound) -> Element? { get set }
+
+  /// Accesses the contiguous subrange of elements corresponding to the provided
+  /// offsets.
+  ///
+  /// Example:
+  ///
+  ///       var abcs = "abcdefg"
+  ///       print(abcs[.first + 1 ..< .first + 6]) // "bcdef"
+  ///       print(abcs[.first + 1 ..< .last - 1]) // "bcde"
+  ///       abcs[.first ... .first + 3] = "🔡"
+  ///       print(abcs) // "🔡efg"
+  ///
+  /// - Complexity (get):
+  ///   - O(1) if the collection conforms to `RandomAccessCollection`.
+  ///   - O(*k*) where *k* is equal to the larger offset if the collection
+  ///     conforms to `BidirectionalCollection`.
+  ///   - O(*k*) if the offsets are `.first + n` for any n or `.last + 1`.
+  ///   - Otherwise, O(*n*) where *n* is the length of the collection.
+  ///
+  /// - Complexity (set):
+  ///   - O(*n*) where *n* is the length of the collection.
+  public subscript<ORE: RangeExpression>(
+    range: ORE
+  ) -> SubSequence where ORE.Bound == OffsetBound { get set }
+```
+
 
 This proposal adds a new “internal” (i.e. underscored) customization hook to `Collection` to apply a reverse offset to a given index. Unlike `index(_:offsetBy:limitedBy:)` which will trap if the collection is not bidirectional, this will instead advance `startIndex`.
 
@@ -367,6 +557,7 @@ extension BidirectionalCollection {
   public func _reverseOffsetIndex(_ i: Index, by distance: Int) -> Index?
 }
 ```
+
 
 Change `Collection.suffix()` and `Collection.dropLast()` to use this hook, which will improve algorithmic complexity in generic code when the collection happens to be bidirectional.
  
@@ -432,7 +623,6 @@ extension Collection {
 
 Finally, `BidirectionalCollection`’s overloads are obsoleted in new versions as they are fully redundant with `Collection`’s.
 
-
 ## Source compatibility
 
 This change preserves source compatibility.
@@ -447,10 +637,12 @@ All additions are versioned. The `_reverseOffsetIndex` customization hook is `@i
 
 ## Alternatives considered
 
+### Add a `.start` and `.end`
 
-### Drop `.last` and `.first`
+The previous version of this pitch also had a `.start` and `.end`, where `.start == .first && .end == .last + 1`. Having `.end` made it easier to refer to an open upper bound corresponding to the collection’s `endIndex`, which mostly manifests in documentation. However, in actual usage, `.first` and `.last` are almost always clearer.
 
-This proposal adds the static members `.start`, `.end`, `.first`, and `.last` to `OffsetBound`.  The last two can be derived from the first two, but they can lend clarity to code. For example, sometimes “one before last” is easier to comprehend than “two from the end”, i.e. `.last - 1` and `.end - 2` respectively. `OffsetBound.first` is included for symmetry with `OffsetBound.last`, as well as symmetry with `Collection.first` and `Collection.last`, for which single-element subscript is an equivalent expression.
+We chose to eschew `.start` and `.end` members, simplifying the programming model and further distinguishing `OffsetBound` as an element-position abstraction more akin to working with `Collection.first/last` than `Collection.startIndex/endIndex`.
+
 
 ### Don’t add the customization hook
 
@@ -461,25 +653,25 @@ This proposal adapts Collection’s `suffix` and `dropLast` to use the new hook,
 
 ### Offset Arbitrary Indices
 
-More general than offsetting from the start or end of a Collection is offsetting from a given index. Relative indices, that is indices with offsets applied to them, could be expressed in a `RelativeBound<Bound>` struct, where `Bound` is the index type of the collection it will be applied to (phantom-typed for pure-offset forms). The prior pitch proposed this feature alongside the `++`/`--` operators, but doing this presents problems in `RangeExpression` conformance as well as type-checker issues with generic operator overloading.
+More general than offsetting from the beginning or end of a Collection is offsetting from a given index. Relative indices, that is indices with offsets applied to them, could be expressed in a `RelativeBound<Bound>` struct, where `Bound` is the index type of the collection it will be applied to (phantom-typed for pure-offset forms). The prior pitch proposed this feature alongside the `++`/`--` operators, but doing this presents problems in `RangeExpression` conformance as well as type-checker issues with generic operator overloading.
 
 These issues can be worked around (as shown below), but each workaround comes with its own drawbacks. All in all, offsetting from an arbitrary index isn’t worth the tradeoffs and can be mimicked with slicing (albeit with more code).
-
-#### The Trouble with RangeExpression
-
-`RangeExpression` requires the ability to answer whether a range contains a bound, where `Bound` is constrained to be `Comparable`. Pure-offset ranges can answer this similarly to other partial ranges by putting the partial space between `.start` and `.end`.
-
-Unlike pure-offset ranges, containment cannot be consistently answered for a range of relative indices without access to the original collection. Similarly, `RelativeBound<Bound>` cannot be comparable.
-
-A workaround could be to introduce a new protocol `IndexRangeExpression` without these requirements and add new overloads for it. Some day in the future when the compiler supports it, `RangeExpression` can conform to it and the existing `RangeExpression` overloads would be deprecated.
-
-This would also require a new `RelativeRange` type and new generic overloads for range operators `..<` and `...` producing it. This is a hefty amount of additional machinery and would complicate type checking of all ranges, as explained next.
 
 #### The Trouble with Generic Operator Overloading
 
 Overloading an operator for a type with a generic parameter complicates type checking for that operator. The type checker has to open a type variable and associated constraints for that parameter, preventing the constraint system from being split. This increases the complexity of type checking *all* expressions involving that operator, not just those using the overload.
 
 This increased complexity may be tolerable for a brand new operator, such as the previously pitched `++` and `--`, but it is a downside of overloading an existing-but-narrowly-extended operator such as `..<` and `...`. It is a total non-starter for operators such as `+` and `-`, which already have complex resolution spaces.
+
+#### The Trouble with RangeExpression
+
+`RangeExpression` requires the ability to answer whether a range contains a bound, where `Bound` is constrained to be `Comparable`. Pure-offset ranges can answer this similarly to other partial ranges by putting the partial space between `.first` and `.last`.
+
+Unlike pure-offset ranges, containment cannot be consistently answered for a range of relative indices without access to the original collection. Similarly, `RelativeBound<Bound>` cannot be comparable.
+
+A workaround could be to introduce a new protocol `IndexRangeExpression` without these requirements and add new overloads for it. Some day in the future when the compiler supports it, `RangeExpression` can conform to it and the existing `RangeExpression` overloads would be deprecated.
+
+This would also require a new `RelativeRange` type and new generic overloads for range operators `..<` and `...` producing it. This is a hefty amount of additional machinery and would complicate type checking of all ranges, as explained next.
 
 
 ### Other Syntax
@@ -494,7 +686,7 @@ An alternative syntax (prototyped in [this gist](https://gist.github.com/milsema
 
 ```swift
 // Proposed
-"abc"[.start + 1 ..< .end - 1] // "b"
+"abc"[.first + 1 ..< .last] // "b"
 
 // Offset label
 "abc"[offset: 1..<(-1)] // "b"
@@ -502,7 +694,7 @@ An alternative syntax (prototyped in [this gist](https://gist.github.com/milsema
 
 Negative values meaning from-the-end is only a convention on top of literals, i.e. this would *not* provide wrap-around semantics for a value that happens to be negative. 
 
-In the end, we believe that the proposed syntax is more readable. There is less cognitive load in reading `.end - 1` than mentally mapping the literal convention of `-1`, and that literal convention would be inconsistent with run-time values.
+In the end, we believe that the proposed syntax is more readable. There is less cognitive load in reading `.last` than mentally mapping the literal convention of `-1`, and that literal convention would be inconsistent with run-time values.
 
 
 #### No Syntax
@@ -511,7 +703,7 @@ Alternative approaches include avoiding any syntax such as `+` or the use of the
 
 ```swift
 // Proposed
-collection[.start + 5 ..< .end - 2]
+collection[.first + 5 ..< .last - 1]
 
 // No ranges
 collection[fromStart: 5, upToEndOffsetBy: -2]
@@ -560,7 +752,7 @@ for i in 0..<collection.count {
 
 // Quadratic, arguably too convenient
 for i in 0..<collection.count {
-  let element = collection[.start + i]!
+  let element = collection[.first + i]!
   ...
 }
 ```
@@ -615,7 +807,7 @@ extension Collection {
       // Either of the below formulations sum to a total of O(n) index
       // advancement operations across all loop iterations if non-RAC.
       let idx = slice.index(slice.startIndex, offsetBy: middle)
-      // let idx = slice.index(at: .start + middle)!
+      // let idx = slice.index(at: .first + middle)!
       // let idx = slice.index(
       //   slice.startIndex, offsetBy: middle, limitedBy: slice.endIndex)!
 
@@ -635,3 +827,5 @@ extension Collection {
 ```
 
 The alternatives that use an explicit `!` are not wrong to do so, as they are validly bounded by the nature of a binary search. But, using `index(_:offsetBy:)` is a more efficient alternative.
+
+
