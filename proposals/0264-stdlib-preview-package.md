@@ -83,7 +83,7 @@ The introduction of the `SwiftPreview` package does not change much in the proce
 
 The main difference from the existing process is that the final result will become available for general use immediately in a new version of the preview package. As users have real-world experience with the accepted functionality, any proposed amendments to the proposal must go through the same evolution process as an original proposal.
 
-To provide time for feedback from real-world use of new additions, the Swift Evoluton process should favor landing new features in a window immediately after branching for a major release. This doesn’t mean that important and valuable proposals can’t be added at different times, but they’ll be subject to increased scrutiny.
+To provide time for feedback from real-world use of new additions, the Swift Evolution process should favor landing new features in a window immediately after branching for a major release. This doesn’t mean that important and valuable proposals can’t be added at different times, but they’ll be subject to increased scrutiny.
 
 No proposal should be accepted into the package on a provisional basis: Reviewers should assume that every proposal will be migrated as-is unless feedback reveals that it was a clear misadventure. The review manager for any revising proposals will be responsible for ensuring that the review discussion focuses on feedback from real-world use, and not relitigation of previously settled decisions made during the original review.
 
