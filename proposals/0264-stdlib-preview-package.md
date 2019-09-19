@@ -153,7 +153,7 @@ Because we do not have cross-module optimization, package implementations should
 
 ### Additional Review Before Library Integration
 
-A previous version of this proposal prescribed a window of time before promoting accepted features into the standard library, to provide additional bake time and an additional review pointfor the feature. However, this approach delays some important feedback that can only be gained from integration into the standard library, where overload resolution and performance can have different outcomes than the same APIs shipped in a package.
+A previous version of this proposal prescribed a window of time before promoting accepted features into the standard library, to provide additional bake time and an additional review point for the feature. However, this approach delays some important feedback that can only be gained from integration into the standard library, where overload resolution and performance can have different outcomes than the same APIs shipped in a package.
 
 ### No Semantic Versioning
 
