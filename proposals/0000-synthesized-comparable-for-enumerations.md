@@ -8,7 +8,7 @@
 
 ## Introduction
 
-[SE-185](https://forums.swift.org/u/taylorswift/summary) introduced synthesized, opt-in `Equatable` and `Hashable` conformances for eligible types. Their sibling protocol `Comparable` was left out at the time, since it was less obvious what types ought to be eligible for a synthesized `Comparable` conformance and where a comparison order might be derived from. This proposal seeks to allow users to opt-in to synthesized `Comparable` conformances for simple `enum` types (`enum`s without raw or associated values), a class of types which I believe make excellent candidates for this feature. The synthesized comparison order would be based on the declaration order of the `enum` cases.
+[SE-185](https://forums.swift.org/u/taylorswift/summary) introduced synthesized, opt-in `Equatable` and `Hashable` conformances for eligible types. Their sibling protocol `Comparable` was left out at the time, since it was less obvious what types ought to be eligible for a synthesized `Comparable` conformance and where a comparison order might be derived from. This proposal seeks to allow users to opt-in to synthesized `Comparable` conformances for `enum` types without raw values or associated values not themselves conforming to `Comparable`, a class of types which I believe make excellent candidates for this feature. The synthesized comparison order would be based on the declaration order of the `enum` cases, and then the lexicographic comparison order of the associated values for an `enum` case tie.
 
 ## Motivation
 
@@ -97,7 +97,7 @@ enum Membership : Comparable {
 
 ## Proposed solution
 
-Enumeration types which opt-in to a synthesized `Comparable` conformance would compare according to case declaration order, with later cases comparing greater than earlier cases. Only pure `enum` types, without raw or associated values, would be eligible for synthesized conformances.
+Enumeration types which opt-in to a synthesized `Comparable` conformance would compare according to case declaration order, with later cases comparing greater than earlier cases. Only `enum` types with no associated values and `enum` types with only `Comparable` associated values would be eligible for synthesized conformances. No `enum` types with raw values would qualify.
 
 While basing behavior off of declaration order is unusual for Swift, as we generally hew to the “all fields are reorderable by the compiler” principle, it is not a foreign concept to `enums`. For example, reordering cases in a numeric-backed raw `enum` already changes its runtime behavior, since the case declaration order is taken to be meaningful in that context. I also believe that `enum` cases and `struct`/`class` fields are sufficiently distinct concepts that making enumeration case order meaningful would not make the language incoherent.
 
@@ -105,17 +105,17 @@ Later cases will compare greater than earlier cases, as Swift generally views so
 
 ## Detailed design
 
-Synthesized `Comparable` conformances for eligible types will work exactly the same as synthesized `Equatable`, `Hashable`, and `Codable` conformances today. A conformance will not be synthesized if a type is ineligible (is not a pure `enum`) or already provides an explicit `<` implementation.
+Synthesized `Comparable` conformances for eligible types will work exactly the same as synthesized `Equatable`, `Hashable`, and `Codable` conformances today. A conformance will not be synthesized if a type is ineligible (has raw values or non recursively-conforming associated values) or already provides an explicit `<` implementation.
 
 ```swift
 enum Membership : Comparable {
-    case premium
+    case premium(Int)
     case preferred
     case general
 }
 
-([.preferred, .general, .premium] as [Membership]).sorted()
-// [Membership.premium, Membership.preferred, Membership.general]
+([.preferred, .premium(1), .general, .premium(0)] as [Membership]).sorted()
+// [Membership.premium(0), Membership.premium(1), Membership.preferred, Membership.general]
 ```
 
 ## Source compatibility
