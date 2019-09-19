@@ -157,6 +157,6 @@ A previous version of this proposal prescribed a window of time before promoting
 
 ### No Semantic Versioning
 
-An alternative to keeping the semver major version at `0` is to not version the package at all. With this approach, the package could only be included by packages by specifying a branch-based dependendcy. However, this would be too restricting at this time, as a branch-based dependency can only be imported by other branch-based dependencies. This would effectively limit use of the `SwiftPreview` package to top-level applications only.
+An alternative to keeping the semver major version at `0` is to not version the package at all. With this approach, the package could only be included by packages by specifying a branch-based dependency. However, this would be too restricting at this time, as a branch-based dependency can only be imported by other branch-based dependencies. This would effectively limit use of the `SwiftPreview` package to top-level applications only.
 
 
