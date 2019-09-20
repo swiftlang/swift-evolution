@@ -4,7 +4,7 @@
 * Authors: [Scott Perry](https://github.com/numist), [Kyle Macomber](https://github.com/kylemacomber)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor), [Ben Cohen](https://github.com/AirspeedSwift)
 * Status: **Implemented (Swift 5.1)**
-* Amendment status: **Active Review (June 19 - 25 2019)** 
+* Amendment status: **Implemented (Swift 5.1)** 
 * Implementation: [apple/swift#21845](https://github.com/apple/swift/pull/21845)
 * Decision notes: [Rationale](https://forums.swift.org/t/accepted-with-modifications-se-0240-ordered-collection-diffing/20008)
 

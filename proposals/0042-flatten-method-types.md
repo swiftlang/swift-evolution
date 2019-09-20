@@ -3,8 +3,9 @@
 * Proposal: [SE-0042](0042-flatten-method-types.md)
 * Author: [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Accepted**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160321/013251.html)
+* Status: **Rejected**
+* Decision Notes: [Original acceptance](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160321/013251.html). The proposal was not implemented in time for Swift 3, and is now source-breaking.
+  
 * Bug: [SR-1051](https://bugs.swift.org/browse/SR-1051)
 
 ## Introduction

@@ -3,8 +3,9 @@
 * Proposal: [SE-0262](0262-demangle.md)
 * Author: [Alejandro Alonso](https://github.com/Azoy)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Active Review (July 22...July 29, 2019)**
+* Status: **Returned for revision**
 * Implementation: [apple/swift#25314](https://github.com/apple/swift/pull/25314)
+* Decision Notes: [Returned for revision](https://forums.swift.org/t/returned-for-revision-se-0262-demangle-function/28186)
 
 ## Introduction
 
