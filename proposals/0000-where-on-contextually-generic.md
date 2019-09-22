@@ -8,8 +8,8 @@
 
 ## Introduction
 
-The objective of this proposal is to lift the restriction on attaching `where` clauses to declarations that themselves
-do not introduce type variables explicitly, but inherit the surrounding generic environment. Simply put, this means you no longer have to worry about the `'where' clause cannot be attached` error within generic contexts.
+The objective of the proposal is to lift the restriction on attaching `where` clauses to declarations that themselves
+do not introduce new generic parameters, but inherit the surrounding generic environment. Simply put, this means you no longer have to worry about the `'where' clause cannot be attached` error inside a generic context.
 
 ```swift
 struct Box<Wrapped> {
@@ -18,9 +18,9 @@ struct Box<Wrapped> {
 
 ```
 
-> Only declarations that can already be generic and support being constrained via a conditional
-> extension are covered by the described enhancement. Properties and new constraint kinds are out
-> of scope for this document. For example, the following remains an error:
+> Only declarations that already support genericity and being constrained via a conditional
+> extension fall under this enhancement. Properties and hitherto unsupported constraint kinds are out
+> of scope for the proposal. For instance, the following remains an error:
 > ```swift
 > protocol P {
 >     // error: Instance method requirement 'foo(arg:)' cannot add constraint 'Self: Equatable' on 'Self'
@@ -32,14 +32,11 @@ Swift-evolution thread: [Discussion thread topic for that proposal](https://foru
 
 ## Motivation
 
-Today, `where` clauses on contextually generic declarations can only be expressed indirectly by placing them on conditional
-extensions. Unless the constraints are identical, every such declaration requires a separate extension. This apparent
-dependence on extensions is an obstacle to stacking up constraints or grouping semantically related APIs and usually
-becomes a pain point in heavily generic code that unnecessarily complicates the structure of a program for the developer
-and the compiler.
+Today, `where` clauses on contextually generic declarations are expressed indirectly by placing them inside conditional extensions. Unless constraints are identical, every such declaration requires a separate extension.
+This dependence on extensions can be an obstacle to grouping semantically related APIs, stacking up constraints and,
+sometimes, the legibility of heavily generic interfaces. 
 
-Leaving ergonomic shortcomings behind, it is only natural for a `where` clause to work anywhere a constraint can be
-meaningfully imposed, meaning both of these layout variants should be possible:
+It is reasonable to expect a `where` clause to work anywhere a constraint can be meaningfully imposed, meaning both of these should be possible:
 
 ```swift
 struct Foo<T> // 'Foo' can be any kind of nominal type declaration. For a protocol, 'T' would be an associatedtype. 
@@ -62,7 +59,7 @@ extension Foo where T: Sequence, T.Element: Equatable {
     func specialCaseFoo() where T.Element == Character { ... }
 }
 ```
-A move towards «untying» generic parameter lists and `where` clauses is an obvious and farsighted improvement to the generics
+A step towards "untying" generic parameter lists and `where` clauses is an obvious and farsighted improvement to the generics
 system with numerous future applications, including [opaque types](https://github.com/apple/swift-evolution/blob/master/proposals/0244-opaque-result-types.md), [generalized
 existentials](https://github.com/apple/swift/blob/master/docs/GenericsManifesto.md#generalized-existentials) and constrained protocol requirements. 
 
