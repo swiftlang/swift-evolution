@@ -36,7 +36,7 @@ Today, `where` clauses on contextually generic declarations are expressed indire
 This dependence on extensions can be an obstacle to grouping semantically related APIs, stacking up constraints and,
 sometimes, the legibility of heavily generic interfaces. 
 
-It is reasonable to expect a `where` clause to work anywhere a constraint can be meaningfully imposed, meaning both of these should be possible:
+It is reasonable to expect a `where` clause to work anywhere a constraint can be meaningfully imposed, meaning both of these structuring styles should be available to the user:
 
 ```swift
 struct Foo<T> // 'Foo' can be any kind of nominal type declaration. For a protocol, 'T' would be an associatedtype. 
