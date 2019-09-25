@@ -3,7 +3,7 @@
 * Proposal: [SE-0265](0265-offset-indexing-and-slicing.md)
 * Author: [Michael Ilseman](https://github.com/milseman)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Awaiting review (October 7th – 21st, 2019)**
+* Status: **Scheduled for review (October 7th – 21st, 2019)**
 * Implementation: [apple/swift#24296](https://github.com/apple/swift/pull/24296)
 
 ## Introduction
