@@ -90,7 +90,7 @@ let package = Package(
             artifacts: [
                 .artifact(
                     source: .url("https://github.com/some/package/releases/download/1.0.0/SomePackage-1.0.0.zip"),
-                    .when(llvmTriiplets: [.init(archType: .x86_64, vendor: .apple, osType: .macOSX)])
+                    .when(llvmTriplets: [.init(archType: .x86_64, vendor: .apple, osType: .macOSX)])
                 ),
             ]
         )
