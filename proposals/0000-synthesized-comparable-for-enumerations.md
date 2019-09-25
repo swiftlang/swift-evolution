@@ -1,14 +1,14 @@
 # Synthesized `Comparable` conformance for simple `enum` types
 
-* Proposal: **SE-0000**
+* Proposal: **SE-0265**
 * Authors: **Kelvin Ma** (*[taylorswift](https://forums.swift.org/u/taylorswift/summary)*)
-* Review manager:
+* Review manager: [Ben Cohen](https://github.com/airspeedswift/)
 * Implementation: [`kelvin13:comparable-enums`](https://github.com/kelvin13/swift/tree/comparable-enums)
-* Status: **awaiting review**
+* Status: **Awaiting Review** (Sept 30 – Oct 9)
 
 ## Introduction
 
-[SE-185](https://forums.swift.org/u/taylorswift/summary) introduced synthesized, opt-in `Equatable` and `Hashable` conformances for eligible types. Their sibling protocol `Comparable` was left out at the time, since it was less obvious what types ought to be eligible for a synthesized `Comparable` conformance and where a comparison order might be derived from. This proposal seeks to allow users to opt-in to synthesized `Comparable` conformances for `enum` types without raw values or associated values not themselves conforming to `Comparable`, a class of types which I believe make excellent candidates for this feature. The synthesized comparison order would be based on the declaration order of the `enum` cases, and then the lexicographic comparison order of the associated values for an `enum` case tie.
+[SE-185](https://github.com/apple/swift-evolution/blob/master/proposals/0185-synthesize-equatable-hashable.md) introduced synthesized, opt-in `Equatable` and `Hashable` conformances for eligible types. Their sibling protocol `Comparable` was left out at the time, since it was less obvious what types ought to be eligible for a synthesized `Comparable` conformance and where a comparison order might be derived from. This proposal seeks to allow users to opt-in to synthesized `Comparable` conformances for `enum` types without raw values or associated values not themselves conforming to `Comparable`, a class of types which I believe make excellent candidates for this feature. The synthesized comparison order would be based on the declaration order of the `enum` cases, and then the lexicographic comparison order of the associated values for an `enum` case tie.
 
 ## Motivation
 
@@ -34,7 +34,7 @@ However, implementing it requires a lot of boilerplate code which is error-prone
 * Declaring a raw `enum`, with an `Int` backing, and implementing the comparison using `self.rawValue`. This has the downside of associating and exposing a meaningless numeric value on your `enum` API, as well as requiring a copy-and-paste `<` implementation. Such an `enum` would also receive the built-in `init(rawValue:)` initializer, which may be unwanted.
 
 ```swift
-enum Membership : Int, Comparable {
+enum Membership: Int, Comparable {
     case premium
     case preferred
     case general
@@ -48,7 +48,7 @@ enum Membership : Int, Comparable {
 * Manually implementing the `<` operator with a private `minimum(_:_:)` helper function. This is the “proper” implementation, but is fairly verbose and error-prone to write, and does not scale well with more enumeration cases.
 
 ```swift
-enum Brightness : Comparable {
+enum Brightness: Comparable {
     case low
     case medium
     case high
@@ -73,7 +73,7 @@ enum Brightness : Comparable {
 As the second workaround is non-obvious to many, users also often attempt to implement “private” integer values for enumeration cases by manually numbering them. Needless to say, this approach scales very poorly, and incurs a high code maintenance cost as simple tasks like adding a new enumeration case require manually re-numbering all the other cases. Workarounds for the workaround, such as numbering by tens (to “make room” for future cases) or using `Double` as the key type (to allow [numbering “on halves”](https://youtu.be/KWcxgrg4eQI?t=113)) reflect poorly on the language.
 
 ```swift
-enum Membership : Comparable {
+enum Membership: Comparable {
     case premium
     case preferred
     case general
@@ -108,7 +108,7 @@ Later cases will compare greater than earlier cases, as Swift generally views so
 Synthesized `Comparable` conformances for eligible types will work exactly the same as synthesized `Equatable`, `Hashable`, and `Codable` conformances today. A conformance will not be synthesized if a type is ineligible (has raw values or non recursively-conforming associated values) or already provides an explicit `<` implementation.
 
 ```swift
-enum Membership : Comparable {
+enum Membership: Comparable {
     case premium(Int)
     case preferred
     case general
@@ -135,7 +135,7 @@ This feature does not affect the standard library.
 * Basing comparison order off of raw values or `RawRepresentable`. This alternative is inapplicable, as enumerations with “raw” representations don’t always have an obvious sort order anyway. Raw `String` backings are also commonly (ab)used for debugging and logging purposes making them a poor source of intent for a comparison-order definition.
 
 ```swift
-enum Month : String, Comparable {
+enum Month: String, Comparable {
     case january
     case february
     case march
