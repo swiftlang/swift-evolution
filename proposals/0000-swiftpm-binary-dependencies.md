@@ -85,23 +85,13 @@ let package = Package(
         .library(name: "SomePackage", targets: ["SomePackageLib"])
     ],
     targets: [
-        .target(
-            name: "SomePackageLib",
-            dependencies: [
-                "Firebase"
-            ]
-        ),
         .binaryTarget(
-            name: "Firebase",
+            name: "SomePackageLib",
             artifacts: [
                 .artifact(
-                    source: .url("https://github.com/firebase/firebase-ios-sdk/releases/download/6.2.0/Firebase-6.2.0.zip"),
-                    .when(platforms: [.macOS, .iOS])
+                    source: .url("https://github.com/some/package/releases/download/1.0.0/SomePackage-1.0.0.zip"),
+                    .when(llvmTriiplets: [.init(archType: .x86_64, vendor: .apple, osType: .macOSX)])
                 ),
-                .artifact(
-                    source: .url("https://github.com/firebase/firebase-ios-sdk/releases/download/6.2.0/Firebase-6.2.0.zip")
-                    .when(platforms: [.linux], architectures: [.x86])
-                )
             ]
         )
      ]
