@@ -1,10 +1,10 @@
 # Synthesized `Comparable` conformance for simple `enum` types
 
-* Proposal: **SE-0265**
-* Authors: **Kelvin Ma** (*[taylorswift](https://forums.swift.org/u/taylorswift/summary)*)
-* Review manager: [Ben Cohen](https://github.com/airspeedswift/)
-* Implementation: [`kelvin13:comparable-enums`](https://github.com/kelvin13/swift/tree/comparable-enums)
-* Status: **Awaiting Review** (Sept 30 – Oct 9)
+* Proposal: [SE-0266](0266-synthesized-comparable-for-enumerations.md)
+* Author: [Kelvin Ma](https://forums.swift.org/u/taylorswift)
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
+* Status: **Scheduled for review (September 30...October 9)**
+* Implementation: [apple/swift#25696](https://github.com/apple/swift/pull/25696)
 
 ## Introduction
 
