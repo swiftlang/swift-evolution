@@ -3,7 +3,7 @@
 * Proposal: [SE-0263](0263-string-uninitialized-initializer.md)
 * Author: [David Smith](https://github.com/Catfish-Man)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
-* Status:  [Returned for revision](https://forums.swift.org/t/se-0263-add-a-string-initializer-with-access-to-uninitialized-storage/27417/32)
+* Status: **Scheduled for Review (October 8...October 11)**
 * Implementation: [apple/swift#23409](https://github.com/apple/swift/pull/23409)
 * Bug: [SR-10288](https://bugs.swift.org/browse/SR-10288)
 
