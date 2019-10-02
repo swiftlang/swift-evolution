@@ -1,4 +1,4 @@
-# Synthesized `Comparable` conformance for simple `enum` types
+# Synthesized `Comparable` conformance for `enum` types
 
 * Proposal: [SE-0266](0266-synthesized-comparable-for-enumerations.md)
 * Author: [Kelvin Ma (taylorswift)](https://forums.swift.org/u/taylorswift)
