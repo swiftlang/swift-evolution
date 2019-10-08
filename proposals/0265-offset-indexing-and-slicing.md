@@ -3,8 +3,9 @@
 * Proposal: [SE-0265](0265-offset-indexing-and-slicing.md)
 * Author: [Michael Ilseman](https://github.com/milseman)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Scheduled for review (October 7th – 21st, 2019)**
+* Status: **Active review (October 7th – 21st, 2019)**
 * Implementation: [apple/swift#24296](https://github.com/apple/swift/pull/24296)
+* Review: ([review](https://forums.swift.org/t/se-0265-offset-based-access-to-indices-elements-and-slices/29596))
 
 ## Introduction
 
