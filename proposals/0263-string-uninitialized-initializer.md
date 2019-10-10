@@ -21,9 +21,8 @@ Add a new `String` initializer that lets a program work with an uninitialized
 buffer.
 
 The new initializer takes a closure that operates on an
-`UnsafeMutableBufferPointer` and an `inout` count of initialized elements. This
-closure has access to the uninitialized contents of the newly created String's
-storage, and returns the number of initialized buffer elements, or 0.
+`UnsafeMutableBufferPointer` referencing the uninitialized contents of the newly created 
+String's storage, and returns a count of initialized elements or 0.
 
 ```swift
 let myCocoaString = NSString("The quick brown fox jumps over the lazy dog") as CFString
