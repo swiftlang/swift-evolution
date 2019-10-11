@@ -1,7 +1,7 @@
 # `where` clauses on contextually generic declarations
 
-* Proposal: [SE-0267](0267-filename.md)
-* Authors: [Anthony Latsis](https://github.com/AnthonyLatsis)
+* Proposal: [SE-0267](0267-where-on-contextually-generic.md)
+* Author: [Anthony Latsis](https://github.com/AnthonyLatsis)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
 * Status: **Scheduled for review (October 21...October 31)**
 * Implementation: [apple/swift#23489](https://github.com/apple/swift/pull/23489)
