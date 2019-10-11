@@ -8,8 +8,7 @@
 
 ## Introduction
 
-This proposal aims to lift the mostly artificial restriction on attaching `where` clauses to declarations that themselves
-do not introduce new generic parameters, but inherit the surrounding generic environment. Simply put, this means you no longer have to worry about the `'where' clause cannot be attached` error inside most generic contexts.
+This proposal aims to lift the mostly artificial restriction on attaching `where` clauses to declarations that reference only outer generic parameters. Simply put, this means you no longer have to worry about the `'where' clause cannot be attached` error inside most generic contexts.
 
 ```swift
 struct Box<Wrapped> {
@@ -59,7 +58,7 @@ extension Foo where T: Sequence, T.Element: Equatable {
     func specialCaseFoo() where T.Element == Character { ... }
 }
 ```
-A step towards "untying" generic parameter lists and `where` clauses is an obvious and farsighted improvement to the generics
+A step towards generalizing `where` clause usage is an obvious and farsighted improvement to the generics
 system with numerous future applications, including [opaque types](https://github.com/apple/swift-evolution/blob/master/proposals/0244-opaque-result-types.md), [generalized
 existentials](https://github.com/apple/swift/blob/master/docs/GenericsManifesto.md#generalized-existentials) and constrained protocol requirements. 
 
