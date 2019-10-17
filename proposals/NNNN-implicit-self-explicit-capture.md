@@ -69,7 +69,7 @@ The error is also overly conservative—it will prevent the usage of implicit `s
 
 ## Proposed solution
 
-Allow the use of implicit `self` when it appears in the closure's capture list. The above code could then be written as:
+First, allow the use of implicit `self` when it appears in the closure's capture list. The above code could then be written as:
 
 ```swift
 execute { [self] in
