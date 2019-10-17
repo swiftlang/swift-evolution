@@ -10,7 +10,7 @@
 
 ## Introduction
 
-Modify the rule that all uses of `self` in escaping closures must be explicit by allowing for implicit uses of `self` in situations where the user has already made their intent explicit, or where strong reference cycles are otherwise unlikely to occur. There are two situations covered by this proposal. The first is when the user has explicitly captured `self` in the closures capture list, so that the following would compile without error:
+Modify the rule that all uses of `self` in escaping closures must be explicit by allowing for implicit uses of `self` in situations where the user has already made their intent explicit, or where strong reference cycles are otherwise unlikely to occur. There are two situations covered by this proposal. The first is when the user has explicitly captured `self` in the closure's capture list, so that the following would compile without error:
 
 ```swift
 class Test {
