@@ -1,4 +1,4 @@
-# Allow implicit `self` in `@escaping` closures when `self` is explicitly captured
+# Increase availability of implicit `self` in `@escaping` closures when reference cycles are unlikely to occur
 
 * Proposal: [SE-NNNN](NNNN-implicit-self-explicit-capture.md)
 * Authors: [Frederick Kellison-Linn](https://github.com/jumhyn)
@@ -10,7 +10,7 @@
 
 ## Introduction
 
-Modify the rule that all uses of `self` in escaping closures must be explicit by allowing for implicit uses of `self` as long as `self` is explicitly declared in the capture list for the closure. This would allow the following to compile without error:
+Modify the rule that all uses of `self` in escaping closures must be explicit by allowing for implicit uses of `self` in situations where the user has already made their intent explicit, or where strong reference cycles are otherwise unlikely to occur. There are two situations covered by this proposal. The first is when the user has explicitly captured `self` in the closures capture list, so that the following would compile without error:
 
 ```swift
 class Test {
@@ -20,6 +20,22 @@ class Test {
     }
     func method() {
         execute { [self] in
+            x += 1
+        }
+    }
+}
+```
+
+Secondly, this proposal would make implicit `self` available in escaping closures when `self` is a value type, so that the following would become valid:
+
+```swift
+struct Test {
+    var x = 0
+    func execute(_ work: @escaping () -> Void) {
+        work()
+    }
+    func method() {
+        execute { 
             x += 1
         }
     }
@@ -49,6 +65,8 @@ It also results in a lot of unnecessary repetition. The motivation for requiring
 
 In codebases that make heavy use of asynchronous code, such as clients of [PromiseKit](https://github.com/mxcl/PromiseKit), or even Apple's new [Combine](https://developer.apple.com/documentation/combine) and [SwiftUI](https://developer.apple.com/documentation/swiftui) libraries, maintainers must either choose to adopt style guides which require the use of explicit `self` in all cases, or else resign to the reality that explicit usage of `self` will appear inconsistently throughout the code. Given that Apple's preferred/recommended style is to omit `self` where possible (as evidenced by examples throughout [The Swift Programming Language](https://docs.swift.org/swift-book/) and the [SwiftUI Tutorials](https://developer.apple.com/tutorials/swiftui)), having any asynchronous code littered with `self.` is a suboptimal state of affairs.
 
+The error is also overly conservative—it will prevent the usage of implicit `self` even when it is very unlikely that the capture of `self` will somehow cause a reference cycle. With function builders in SwiftUI, the automatic resolution to the "make capture semantics explicit" error (and indeed, the fix-it that is currently supplied to the programmer) is just to slap a `self.` on wherever the compiler tells you to. While this likely fine when `self` has value semantics, building this habit could cause users to ignore the error and apply the fix-it in cases where it is not in fact appropriate.
+
 ## Proposed solution
 
 Allow the use of implicit `self` when it appears in the closure's capture list. The above code could then be written as:
@@ -75,9 +93,20 @@ execute { // <- Capture 'self' explicitly to enable implicit 'self' in this clos
 }
 ```
 
+Furthermore, if the type of `self` has value semanics, we will not require any explicit usage of `self` (at the call/use site or in the capture list), so that if `self` were a `struct` or `enum` then the above could be written as simply:
+
+```swift
+execute {
+    let foo = doFirstThing()
+    performWork(with: bar)
+    doSecondThing(with: foo)
+    cleanup()
+}
+```
+
 ## Detailed design
 
-Whenever `self` is declared explicitly in an escaping closure's capture list, any code inside that closure can use names which resolve to members of the enclosing type, without specifying `self.` explicitly. In nested closures, the *innermost* escaping closure must capture `self`, so the following code would be invalid:
+Whenever `self` is declared explicitly in an escaping closure's capture list, or when `self` is of a type with value semantics, any code inside that closure can use names which resolve to members of the enclosing type, without specifying `self.` explicitly. In nested closures, the *innermost* escaping closure must capture `self`, so the following code would be invalid:
 
 ```swift
 execute { [self] in
@@ -120,6 +149,30 @@ This is an entirely frontend change and has no effect on ABI stability.
 ## Effect on API resilience
 
 This is not an API-level change, and has no effect on API resilience.
+
+## Future Directions
+
+### Bound method references
+
+While this proposal opens up implicit `self` in situations where we can be reasonably sure that we will not cause a reference cycle, there are other cases where implicit `self` is currently allowed that we may want to disallow in the future. One of these is allowing bound method references to be passed into escaping contexts without making it clear that such a reference captures `self`. For example:
+
+```swift
+class Test {
+    var x = 0
+    func execute(_ work: @escaping () -> Void) {
+        work()
+    }
+    func method() {
+        execute(inc) // self is captured, but no error!
+        execute { inc() } // error
+    }
+    func inc() {
+        x += 1
+    }
+}
+```
+
+This would help reduce the false negatives of the "make capture semantics explicit" error, making it more useful and hopefully catching reference cycles that the programmer was previously unaware of.
 
 ## Alternatives considered
 
