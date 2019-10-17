@@ -67,6 +67,8 @@ In codebases that make heavy use of asynchronous code, such as clients of [Promi
 
 The error is also overly conservative—it will prevent the usage of implicit `self` even when it is very unlikely that the capture of `self` will somehow cause a reference cycle. With function builders in SwiftUI, the automatic resolution to the "make capture semantics explicit" error (and indeed, the fix-it that is currently supplied to the programmer) is just to slap a `self.` on wherever the compiler tells you to. While this likely fine when `self` is a value type, building this habit could cause users to ignore the error and apply the fix-it in cases where it is not in fact appropriate.
 
+There are also cases that are just as (if not more) likely to cause reference cycles that the tool currently misses. Once such instance is discussed in **Future Directions** below. These false negatives are not addressed in this proposal, but improving the precision of this diagnostic will make the tool more powerful and less likely to be dismissed if (or when) new diagnostic cases are introduced.
+
 ## Proposed solution
 
 First, allow the use of implicit `self` when it appears in the closure's capture list. The above code could then be written as:
@@ -116,7 +118,7 @@ execute { [self] in
 }
 ```
 
-This new behavior will be unavailable when `self` is captured weakly (due to the optional type of `self` requiring special handling), but for closures with  `unowned(safe)` and `unowned(unsafe)` captures of `self` the programmer has clearly declared their intent to capture `self`, and so implicit `self` will be enabled in these contexts (as for strong captures).
+This new behavior will also be available for closures with  `unowned(safe)` and `unowned(unsafe)` captures of `self` since the programmer has clearly declared their intent to capture `self` (as for strong captures). For `weak` captures of `self`, it's not immediately clear what bare reference to an instance property even *means* when the local `self` is bound weakly—should it be treated as though the programmer had written `self?.`? Should there be a special syntax available in this context, such as `?.x`? Should we offer a diagnostic offering to insert `self?.`? Or should we instead suggest that the programmer re-bind `self` strongly via a `guard` statement? There are enough open questions here that have not been sufficiently discussed, so this proposal leaves the handling of `weak self` captures as a future direction worthy of further consideration.
 
 The existing errors and fix-its have their language updated accordingly to indicate that there are now multiple ways to resolve the error. In addition to the changes noted above, we will also have:
 
@@ -175,6 +177,10 @@ class Test {
 ```
 
 This would help reduce the false negatives of the "make capture semantics explicit" error, making it more useful and hopefully catching reference cycles that the programmer was previously unaware of.
+
+### Weak captures of `self`
+
+It might be desirable to add improved diagnostic information (or similarly do away with the error) in the case where the programmer has explicitly captured `self`, but only as a weak reference. For the reasons noted in this proposal, this was not pursued, but answering the lingering questions and issuing a follow-up proposal would fit nicely with this direction.
 
 ## Alternatives considered
 
