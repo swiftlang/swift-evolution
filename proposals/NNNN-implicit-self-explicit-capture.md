@@ -93,7 +93,7 @@ execute { // <- Fix-it: capture 'self' explicitly to enable implicit 'self' in t
 }
 ```
 
-Furthermore, if the type of `self` has value semanics, we will not require any explicit usage of `self` (at the call/use site or in the capture list), so that if `self` were a `struct` or `enum` then the above could be written as simply:
+Second, if `self` is a value type, we will not require any explicit usage of `self` (at the call/use site or in the capture list), so that if `self` were a `struct` or `enum` then the above could be written as simply:
 
 ```swift
 execute {
