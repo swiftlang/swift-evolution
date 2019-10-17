@@ -106,7 +106,7 @@ execute {
 
 ## Detailed design
 
-Whenever `self` is declared explicitly in an escaping closure's capture list, or when `self` is of a type with value semantics, any code inside that closure can use names which resolve to members of the enclosing type, without specifying `self.` explicitly. In nested closures, the *innermost* escaping closure must capture `self`, so the following code would be invalid:
+Whenever `self` is declared explicitly in an escaping closure's capture list, or its type is a value type, any code inside that closure can use names which resolve to members of the enclosing type, without specifying `self.` explicitly. In nested closures, the *innermost* escaping closure must capture `self`, so the following code would be invalid:
 
 ```swift
 execute { [self] in
