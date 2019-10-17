@@ -85,7 +85,7 @@ This change still forces code which captures `self` to be explicit about its int
 The compiler would also offer an additional fix-it when implicit `self` is used:
 
 ```swift
-execute { // <- Capture 'self' explicitly to enable implicit 'self' in this closure. Fix-it: insert '[self] in'
+execute { // <- Fix-it: capture 'self' explicitly to enable implicit 'self' in this closure. Fix-it: insert '[self] in'
     let foo = doFirstThing()
     performWork(with: bar)
     doSecondThing(with: foo)
@@ -138,9 +138,11 @@ If the user has a capture of `weak self` already, we offer a special diagnostic 
 Note: weak capture of 'self' here does not enable implicit 'self'.
 ```
 
+If either of the two above notes are present, we will not offer the usual fix-its for resolving this error, since the code inserted would be erroneous.
+
 ## Source compatibility
 
-This proposal makes previously illegal syntax legal, and has no effect on source compatibility. If codebases have existing sites where they have captured some other object than the `self` parameter under the name `self`, they will recieve a new warning.
+This proposal makes previously illegal syntax legal, and has no effect on source compatibility.
 
 ## Effect on ABI stability
 
