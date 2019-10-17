@@ -118,7 +118,7 @@ execute { [self] in
 
 This new behavior will be unavailable when `self` is captured weakly (due to the optional type of `self` requiring special handling), but for closures with  `unowned(safe)` and `unowned(unsafe)` captures of `self` the programmer has clearly declared their intent to capture `self`, and so implicit `self` will be enabled in these contexts (as for strong captures).
 
-The existing errors and fix-its have their language updated accoringly to indicate that there are now multiple ways to resolve the error. In addition to the changes noted above, we will also have:
+The existing errors and fix-its have their language updated accordingly to indicate that there are now multiple ways to resolve the error. In addition to the changes noted above, we will also have:
 
 ```
 Error: call to method <method name> in closure requires explicit use of 'self' to make capture semantics explicit.
