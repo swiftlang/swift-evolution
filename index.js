@@ -189,7 +189,7 @@ function html (elementType, attributes, children) {
   return element
 }
 
-function determineNumberOfProposals(proposals) {
+function determineNumberOfProposals (proposals) {
   proposals.forEach(function (proposal) {
     states[proposal.status.state].count += 1
   });
