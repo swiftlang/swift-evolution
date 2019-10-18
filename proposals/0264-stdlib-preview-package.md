@@ -3,8 +3,9 @@
 * Proposal: [SE-0264](0264-stdlib-preview-package.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift), [Max Moiseev](https://github.com/moiseev), [Nate Cook](https://github.com/natecook1000)
 * Review Manager: [Dave Abrahams](https://github.com/dabrahams)
-* Status: **[Returned for Revision](https://forums.swift.org/t/returned-for-revision-se-0264-standard-library-preview-package/29865)**
+* Status: **Returned for Revision**
 * Pitch Discussion: [Pitch: Standard Library Preview Package](https://forums.swift.org/t/pitch-standard-library-preview-package/27202)
+* Decision Notes: [Returned for Revision](https://forums.swift.org/t/returned-for-revision-se-0264-standard-library-preview-package/29865)
 
 ## Introduction
 
