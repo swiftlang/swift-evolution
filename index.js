@@ -797,7 +797,7 @@ function _applyFilter (matchingProposals) {
     filteredElements.forEach(function (element) { element.classList.add('hidden') })
   })
 
-  updateProposalsCount(matchingProposals.length)  
+  updateProposalsCount(matchingProposals.length)
 }
 
 /**
