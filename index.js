@@ -232,7 +232,7 @@ function renderNav () {
     return html('li', null, [
       html('input', { type: 'checkbox', className: 'filtered-by-status', id: 'filter-by-' + className, value: className }),
       html('label', { className: className, tabindex: '0', role: 'button', 'for': 'filter-by-' + className, 'data-state-key': state }, [
-        states[state].name + ' (' + states[state].count + ')'
+        addNumberToState(states[state].name, states[state].count)        
       ])
     ])
   })
@@ -1016,9 +1016,7 @@ function updateFilterDescription (selectedStateNames) {
   } else if (selectedStateNames.length === 0) {
     container.innerText = 'All Statuses'
   } else {
-    selectedStateNames = selectedStateNames.map(function (selectedStateName) {
-      return cleanNumberFromState(selectedStateName)
-    })
+    selectedStateNames = selectedStateNames.map(cleanNumberFromState)
     container.innerText = selectedStateNames.join(' or ')
   }
 }
@@ -1032,10 +1030,16 @@ function updateProposalsCount (count) {
 function updatedFilterStatus () {
   var labels = [].concat.apply([], document.querySelector('#filter-options').querySelectorAll('label'))
   labels.forEach(function (label) {
-    label.innerText = cleanNumberFromState(label.innerText) + ' (' + states[label.getAttribute('data-state-key')].count + ')'
+    var count = states[label.getAttribute('data-state-key')].count
+    var cleanedLabel = cleanNumberFromState(label.innerText)
+    label.innerText = addNumberToState(cleanedLabel, count)
   })
 }
 
 function cleanNumberFromState (state) {
   return state.replace(/ *\([^)]*\) */g, '')
+}
+
+function addNumberToState (state, count) {
+  return state + ' (' + count + ')'
 }
