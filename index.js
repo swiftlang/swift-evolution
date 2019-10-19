@@ -1017,7 +1017,7 @@ function updateFilterDescription (selectedStateNames) {
     container.innerText = 'All Statuses'
   } else {
     selectedStateNames = selectedStateNames.map(function (selectedStateName) {
-      return selectedStateName.replace(/ *\([^)]*\) */g, '')
+      return cleanNumberFromState(selectedStateName)
     })
     container.innerText = selectedStateNames.join(' or ')
   }
@@ -1032,6 +1032,10 @@ function updateProposalsCount (count) {
 function updatedFilterStatus () {
   var labels = [].concat.apply([], document.querySelector('#filter-options').querySelectorAll('label'))
   labels.forEach(function (label) {
-    label.innerText = label.innerText.replace(/ *\([^)]*\) */g, '') + ' (' + states[label.getAttribute('data-state-key')].count + ')'
+    label.innerText = cleanNumberFromState(label.innerText) + ' (' + states[label.getAttribute('data-state-key')].count + ')'
   })
+}
+
+function cleanNumberFromState (state) {
+  return state.replace(/ *\([^)]*\) */g, '')
 }
