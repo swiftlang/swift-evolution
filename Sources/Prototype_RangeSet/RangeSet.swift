@@ -203,12 +203,7 @@ extension RangeSet {
     public struct Ranges: RandomAccessCollection {
         var _ranges: [Range<Bound>]
     
-        public typealias Iterator = IndexingIterator<Self>
-        public typealias Element = Range<Bound>
-        public typealias Indices = Range<Int>
-        
         public var startIndex: Int { _ranges.startIndex }
-        
         public var endIndex: Int { _ranges.endIndex }
         
         public subscript(i: Int) -> Range<Bound> {
@@ -225,7 +220,8 @@ extension RangeSet {
 // MARK: - Collection APIs
 
 extension RangeSet {
-    /// Creates a new range set with the specified index.
+    /// Creates a new range set with the specified index in the given
+    /// collection.
     ///
     /// - Parameters:
     ///   - index: The index to include in the range set. `index` must be a
@@ -286,7 +282,7 @@ extension RangeSet {
         remove(index ..< collection.index(after: index))
     }
     
-    /// Removes the specified range expression into the range set.
+    /// Removes the specified range expression from the range set.
     ///
     /// - Parameters:
     ///   - range: The range expression to remove from the range set.
@@ -336,9 +332,7 @@ extension RangeSet {
 
 extension RangeSet where Bound: Strideable, Bound.Stride: SignedInteger {
     /// A collection of individual elements represented by a range set.
-    public struct Elements: Sequence, Collection, BidirectionalCollection {
-        public typealias Iterator = IndexingIterator<RangeSet.Elements>
-        public typealias Element = Bound
+    public struct Elements: BidirectionalCollection {
         public typealias Index = FlattenSequence<Ranges>.Index
 
         internal var _set: RangeSet

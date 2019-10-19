@@ -145,8 +145,8 @@ Adding or removing individual index values or range expressions requires passing
 
 ```swift
 extension RangeSet {
-    /// Creates a new range set with the specified index in the given collection.
-    /// Creates a new range set with the specified index.
+    /// Creates a new range set with the specified index in the given 
+    /// collection.
     ///
     /// - Parameters:
     ///   - index: The index to include in the range set. `index` must be a
@@ -189,7 +189,7 @@ extension RangeSet {
     public mutating func remove<C>(_ index: Bound, within collection: C)
         where C: Collection, C.Index == Bound
     
-    /// Removes the specified range expression into the range set.
+    /// Removes the specified range expression from the range set.
     ///
     /// - Parameters:
     ///   - range: The range expression to remove from the range set.
@@ -239,7 +239,7 @@ extension RangeSet {
 }
 
 extension RangeSet where Bound: Strideable, Bound.Stride: SignedInteger {
-    public struct Elements: Sequence, Collection, BidirectionalCollection {
+    public struct Elements: BidirectionalCollection {
         public typealias Index = FlattenSequence<Ranges>.Index
     
         public var startIndex: Index { get }
@@ -298,7 +298,8 @@ extension Collection where Element: Equatable {
     ///     // str[allTheEs].count == 7
     ///
     /// - Parameter element: An element to look for in the collection.
-    /// - Returns: A set of ranges of the elements that are equal to `element`.
+    /// - Returns: A set of the indices of the elements that are equal to 
+    ///   `element`.
     ///
     /// - Complexity: O(*n*), where *n* is the length of the collection.
     public func indices(of element: Element) -> RangeSet<Index>
@@ -649,7 +650,7 @@ extension MutableCollection {
     /// to a section at the end of the array.
     ///
     ///     var numbers = Array(-5...5)
-    ///     let startOfNegatives = numbers.halfStablePartition(by: { $0 < 0 })
+    ///     let startOfNegatives = numbers.stablePartition(by: { $0 < 0 })
     ///     // numbers == [0, 1, 2, 3, 4, 5, -5, -4, -3, -2, -1]
     ///
     /// The partitioning operation maintains the initial relative order of the
@@ -694,10 +695,11 @@ extension Collection {
     /// - Parameter belongsInSecondPartition: A predicate used to partition the
     ///   collection. All elements satisfying this predicate are ordered after
     ///   all elements not satisfying it.
-    /// - Returns: The index of the first element in the reordered collection
-    ///   that matches `belongsInSecondPartition`. If no elements in the
-    ///   collection match `belongsInSecondPartition`, the returned index is
-    ///   equal to the collection's `endIndex`.
+    /// - Returns: A tuple containing a new array that is partitioned by the 
+    ///   `belongsInSecondPartition` predicate and the index of the first 
+    ///   element in the array that matches the predicate. If no elements in
+    ///   the array match the predicate, the returned index is equal to the 
+    ///   array's `endIndex`.
     ///
     /// - Complexity: O(*n*) where *n* is the number of elements.
     public func stablyPartitioned(

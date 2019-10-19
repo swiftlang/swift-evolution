@@ -356,7 +356,8 @@ extension Collection where Element: Equatable {
     ///     // str[allTheEs].count == 7
     ///
     /// - Parameter element: An element to look for in the collection.
-    /// - Returns: A set of ranges of the elements that are equal to `element`.
+    /// - Returns: A set of the indices of the elements that are equal to
+    ///   `element`.
     ///
     /// - Complexity: O(*n*), where *n* is the length of the collection.
     public func indices(of element: Element) -> RangeSet<Index> {

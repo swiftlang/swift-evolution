@@ -189,10 +189,11 @@ extension Collection {
     /// - Parameter belongsInSecondPartition: A predicate used to partition the
     ///   collection. All elements satisfying this predicate are ordered after
     ///   all elements not satisfying it.
-    /// - Returns: The index of the first element in the reordered collection
-    ///   that matches `belongsInSecondPartition`. If no elements in the
-    ///   collection match `belongsInSecondPartition`, the returned index is
-    ///   equal to the collection's `endIndex`.
+    /// - Returns: A tuple containing a new array that is partitioned by the
+    ///   `belongsInSecondPartition` predicate and the index of the first
+    ///   element in the array that matches the predicate. If no elements in
+    ///   the array match the predicate, the returned index is equal to the
+    ///   array's `endIndex`.
     ///
     /// - Complexity: O(*n*) where *n* is the number of elements.
     public func stablyPartitioned(
@@ -238,7 +239,7 @@ extension MutableCollection {
     /// to a section at the end of the array.
     ///
     ///     var numbers = Array(-5...5)
-    ///     let startOfNegatives = numbers.halfStablePartition(by: { $0 < 0 })
+    ///     let startOfNegatives = numbers.stablePartition(by: { $0 < 0 })
     ///     // numbers == [0, 1, 2, 3, 4, 5, -5, -4, -3, -2, -1]
     ///
     /// The partitioning operation maintains the initial relative order of the
