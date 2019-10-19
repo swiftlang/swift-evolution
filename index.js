@@ -194,7 +194,7 @@ function determineNumberOfProposals (proposals) {
 
   proposals.forEach(function (proposal) {
     states[proposal.status.state].count += 1
-  });
+  })
 
   // .acceptedWithRevisions proposals are combined in the filtering UI
   // with .accepted proposals.
@@ -674,7 +674,7 @@ function filterProposals () {
   _updateURIFragment()
 
   determineNumberOfProposals(intersection)
-  updatedFilterStatus();
+  updatedFilterStatus()
 }
 
 /**
