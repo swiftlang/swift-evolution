@@ -190,6 +190,11 @@ function html (elementType, attributes, children) {
 }
 
 function determineNumberOfProposals (proposals) {
+  // reset count
+  Object.keys(states).forEach(function (state){
+    states[state].count = 0
+  })
+
   proposals.forEach(function (proposal) {
     states[proposal.status.state].count += 1
   });
@@ -226,7 +231,7 @@ function renderNav () {
 
     return html('li', null, [
       html('input', { type: 'checkbox', className: 'filtered-by-status', id: 'filter-by-' + className, value: className }),
-      html('label', { className: className, tabindex: '0', role: 'button', 'for': 'filter-by-' + className }, [
+      html('label', { className: className, tabindex: '0', role: 'button', 'for': 'filter-by-' + className, 'data-state-key': state }, [
         states[state].name + ' (' + states[state].count + ')'
       ])
     ])
@@ -234,7 +239,7 @@ function renderNav () {
 
   var expandableArea = html('div', { className: 'filter-options expandable' }, [
     html('h5', { id: 'filter-options-label' }, 'Status'),
-    html('ul', { className: 'filter-by-status' })
+    html('ul', { id: 'filter-options', className: 'filter-by-status' })
   ])
 
   nav.querySelector('.nav-contents').appendChild(expandableArea)
@@ -670,6 +675,9 @@ function filterProposals () {
 
   _applyFilter(intersection)
   _updateURIFragment()
+
+  determineNumberOfProposals(intersection)
+  updatedFilterStatus();
 }
 
 /**
@@ -789,7 +797,7 @@ function _applyFilter (matchingProposals) {
     filteredElements.forEach(function (element) { element.classList.add('hidden') })
   })
 
-  updateProposalsCount(matchingProposals.length)
+  updateProposalsCount(matchingProposals.length)  
 }
 
 /**
@@ -1019,4 +1027,11 @@ function updateFilterDescription (selectedStateNames) {
 function updateProposalsCount (count) {
   var numberField = document.querySelector('#proposals-count-number')
   numberField.innerText = (count.toString() + ' proposal' + (count !== 1 ? 's' : ''))
+}
+
+function updatedFilterStatus () {
+  var labels = [].concat.apply([], document.querySelector('#filter-options').querySelectorAll('label'))
+  labels.forEach(function (label) {
+    label.innerText = label.innerText.replace(/ *\([^)]*\) */g, '') + ' (' + states[label.getAttribute('data-state-key')].count + ')'
+  })
 }
