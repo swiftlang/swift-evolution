@@ -1,9 +1,9 @@
 # didSet Semantics
 
-* Proposal: [SE-NNNN](NNNN-didset-semantics.md)
+* Proposal: [SE-0268](0268-didset-semantics.md)
 * Author: [Suyash Srijan](https://www.github.com/theblixguy) 
-* Review Manager: TBD
-* Status: **Awaiting Review**
+* Review Manager: [Ben Cohen](https://www.github.com/airspeedswift)
+* Status: **Active Review (21-31 October 2019)**
 * Implementation: [apple/swift#26632](https://github.com/apple/swift/pull/26632) 
 
 ## Introduction
