@@ -1,4 +1,4 @@
-# didSet Semantics
+# Redfine `didSet` Semantics
 
 * Proposal: [SE-0268](0268-didset-semantics.md)
 * Author: [Suyash Srijan](https://www.github.com/theblixguy) 
