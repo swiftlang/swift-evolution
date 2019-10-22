@@ -17,8 +17,8 @@ struct Box<Wrapped> {
 
 ```
 
-> Only declarations that already support genericity and being constrained via a conditional
-> extension fall under this enhancement. Properties and hitherto unsupported constraint kinds are out
+> Only declarations that already support a generic parameter list and being constrained via a conditional
+> extension fall under this enhancement. Properties and hitherto unsupported constraint *kinds* are out
 > of scope for the proposal. For instance, the following remains an error:
 > ```swift
 > protocol P {
@@ -26,19 +26,27 @@ struct Box<Wrapped> {
 >     func foo() where Self: Equatable  
 > }
 > ```
+> Whereas placing a constraint on an extension member rather than the extension itself becomes possible:
+> ```swift
+> extension P {
+>     func bar() where Self: Equatable { }
+> }
+> ```
 
 Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/t/where-clauses-on-contextually-generic-declaractions/22449)
 
 ## Motivation
 
-Today, `where` clauses on contextually generic declarations are expressed indirectly by placing them inside conditional extensions. Unless constraints are identical, every such declaration requires a separate extension.
+Today, `where` clauses on contextually generic declarations, including protocol extension members, are expressed indirectly by placing them inside conditional extensions. Unless constraints are identical, every such declaration requires a separate extension.
 This dependence on extensions can be an obstacle to grouping semantically related APIs, stacking up constraints and,
 sometimes, the legibility of heavily generic interfaces. 
 
 It is reasonable to expect a `where` clause to work anywhere a constraint can be meaningfully imposed, meaning both of these structuring styles should be available to the user:
 
 ```swift
-struct Foo<T> // 'Foo' can be any kind of nominal type declaration. For a protocol, 'T' would be an associatedtype. 
+// 'Foo' can be any kind of nominal type declaration.
+// For a protocol, 'T' would be Self or an associatedtype.
+struct Foo<T>  
 
 extension Foo where T: Sequence, T.Element: Equatable {
     func slowFoo() { ... }
@@ -68,5 +76,4 @@ This is an additive change with no impact on the ABI and existing code.
 
 ## Effect on API resilience
 
-For public declarations in resilient libraries, switching between a constrained extension and a «direct» `where` clause
-will not be a source-breaking change, but it most likely will break the ABI due to subtle mangling differences.
+For public declarations in resilient libraries, moving a constraint from an extension to a member and vice versa will not be a source-breaking change, but will break the ABI due to subtle mangling differences.
