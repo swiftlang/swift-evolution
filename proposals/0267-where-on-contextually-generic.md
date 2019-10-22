@@ -45,7 +45,7 @@ It is reasonable to expect a `where` clause to work anywhere a constraint can be
 
 ```swift
 // 'Foo' can be any kind of nominal type declaration.
-// For a protocol, 'T' would be an associatedtype.
+// For a protocol, 'T' would be Self or an associatedtype.
 struct Foo<T>  
 
 extension Foo where T: Sequence, T.Element: Equatable {
