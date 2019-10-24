@@ -17,9 +17,9 @@ struct Box<Wrapped> {
 
 ```
 
-> Only declarations that already support a generic parameter list and being constrained via a conditional
-> extension fall under this enhancement. Properties and hitherto unsupported constraint *kinds* are out
-> of scope for the proposal. For instance, the following remains an error:
+> Only declarations that already support a generic parameter list will be allowed to carry a `where` clause inside a generic 
+> context. Generic properties and constraints on protocol requirements are out of scope for the current proposal.
+> For instance, the following remains an error:
 > ```swift
 > protocol P {
 >     // error: Instance method requirement 'foo(arg:)' cannot add constraint 'Self: Equatable' on 'Self'
@@ -38,10 +38,9 @@ Swift-evolution thread: [Discussion thread topic for that proposal](https://foru
 ## Motivation
 
 Today, `where` clauses on contextually generic declarations, including protocol extension members, are expressed indirectly by placing them inside conditional extensions. Unless constraints are identical, every such declaration requires a separate extension.
-This dependence on extensions can be an obstacle to grouping semantically related APIs, stacking up constraints and,
-sometimes, the legibility of heavily generic interfaces. 
+This dependence on extensions can be an obstacle to grouping semantically related APIs, stacking up constraints, and sometimes the legibility of heavily generic interfaces. 
 
-It is reasonable to expect a `where` clause to work anywhere a constraint can be meaningfully imposed, meaning both of these structuring styles should be available to the user:
+It is reasonable to expect a `where` clause to work anywhere a constraint can be meaningfully imposed, that is, both of these structuring styles should be available to the user:
 
 ```swift
 // 'Foo' can be any kind of nominal type declaration.
@@ -67,7 +66,7 @@ extension Foo where T: Sequence, T.Element: Equatable {
 }
 ```
 A step towards generalizing `where` clause usage is an obvious and farsighted improvement to the generics
-system with numerous future applications, including [opaque types](https://github.com/apple/swift-evolution/blob/master/proposals/0244-opaque-result-types.md), [generalized
+system with numerous future applications, including generic properties, [opaque types](https://github.com/apple/swift-evolution/blob/master/proposals/0244-opaque-result-types.md), [generalized
 existentials](https://github.com/apple/swift/blob/master/docs/GenericsManifesto.md#generalized-existentials) and constrained protocol requirements. 
 
 ## Source compatibility and ABI stability
@@ -76,4 +75,4 @@ This is an additive change with no impact on the ABI and existing code.
 
 ## Effect on API resilience
 
-For public declarations in resilient libraries, moving a constraint from an extension to a member and vice versa will not be a source-breaking change, but will break the ABI due to subtle mangling differences.
+For public declarations in resilient libraries such as the Standard Library, moving a constraint from an extension to a member and vice versa will break the ABI due to subtle mangling differences as of the current implementation.
