@@ -14,8 +14,8 @@ let indicesOfThree = numbers.indices(where: { $0.isMultiple(of: 3) })
 let sumOfThrees = numbers[indicesOfThree].reduce(0, +)
 // sumOfThrees == 45
 
-// You can move the multiples of 3 to the beginning
-let rangeOfThree = numbers.move(from: indicesOfThree, to: 0)
+// You can gather the multiples of 3 at the beginning
+let rangeOfThree = numbers.gather(indicesOfThree, justBefore: 0)
 // numbers[rangeOfThree] == [3, 6, 9, 12, 15]
 // numbers == [3, 6, 9, 12, 15, 1, 2, 4, 5, 7, 8, 10, 11, 13, 14]
 

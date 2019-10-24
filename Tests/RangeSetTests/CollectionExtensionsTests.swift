@@ -50,7 +50,7 @@ final class CollectionExtensionsTests: XCTestCase {
     func testMoveRangeSet() {
         // Move before
         var numbers = Array(1...20)
-        let range1 = numbers.move(from: [10..<15, 18..<20], insertingAt: 4)
+        let range1 = numbers.gather([10..<15, 18..<20], justBefore: 4)
         XCTAssertEqual(range1, 4..<11)
         XCTAssertEqual(numbers, [
             1, 2, 3, 4,
@@ -60,7 +60,7 @@ final class CollectionExtensionsTests: XCTestCase {
         
         // Move to start
         numbers = Array(1...20)
-        let range2 = numbers.move(from: [10..<15, 18..<20], insertingAt: 0)
+        let range2 = numbers.gather([10..<15, 18..<20], justBefore: 0)
         XCTAssertEqual(range2, 0..<7)
         XCTAssertEqual(numbers, [
             11, 12, 13, 14, 15,
@@ -69,7 +69,7 @@ final class CollectionExtensionsTests: XCTestCase {
         
         // Move to end
         numbers = Array(1...20)
-        let range3 = numbers.move(from: [10..<15, 18..<20], insertingAt: 20)
+        let range3 = numbers.gather([10..<15, 18..<20], justBefore: 20)
         XCTAssertEqual(range3, 13..<20)
         XCTAssertEqual(numbers, [
             1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 16, 17, 18,
@@ -79,7 +79,7 @@ final class CollectionExtensionsTests: XCTestCase {
         
         // Move to middle of selected elements
         numbers = Array(1...20)
-        let range4 = numbers.move(from: [10..<15, 18..<20], insertingAt: 14)
+        let range4 = numbers.gather([10..<15, 18..<20], justBefore: 14)
         XCTAssertEqual(range4, 10..<17)
         XCTAssertEqual(numbers, [
             1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
@@ -89,7 +89,7 @@ final class CollectionExtensionsTests: XCTestCase {
 
         // Move none
         numbers = Array(1...20)
-        let range5 = numbers.move(from: [], insertingAt: 10)
+        let range5 = numbers.gather([], justBefore: 10)
         XCTAssertEqual(range5, 10..<10)
         XCTAssertEqual(numbers, Array(1...20))
     }
@@ -101,12 +101,12 @@ final class CollectionExtensionsTests: XCTestCase {
                 for destination in a.indices {
                     var b = a
                     let source = lowerBound..<upperBound
-                    let result = b.move(from: source, insertingAt: destination)
+                    let result = b.shift(from: source, toJustBefore: destination)
                     XCTAssertEqual(b[result], a[source])
 
                     // Compare result with RangeSet-based move
                     var c = a
-                    _ = c.move(from: RangeSet(source), insertingAt: destination)
+                    _ = c.gather(RangeSet(source), justBefore: destination)
                     XCTAssertEqual(b, c)
                     
                     // Manual comparison
@@ -137,7 +137,7 @@ final class CollectionExtensionsTests: XCTestCase {
 
         // closed range
         var b = a
-        XCTAssertEqual(b.move(from: 2...3, insertingAt: 1), 1..<3)
+        XCTAssertEqual(b.shift(from: 2...3, toJustBefore: 1), 1..<3)
         XCTAssertEqual(b, ["A", "C", "D", "B", "E", "F"])
     }
     
@@ -148,28 +148,28 @@ final class CollectionExtensionsTests: XCTestCase {
                 var b = a
                 var c = a
                 let rs = RangeSet(source, within: a)
-                let resultingIndex = b.move(from: source, insertingAt: dest)
-                c.move(from: rs, insertingAt: dest)
+                let resultingIndex = b.shift(from: source, toJustBefore: dest)
+                c.gather(rs, justBefore: dest)
                 XCTAssertEqual(a[source], b[resultingIndex])
                 XCTAssertEqual(b, c)
             }
         }
     }
     
-    func testMoveToDestinationIndividual() {
-        let a = ["A", "B", "C", "D", "E", "F"]
-        for source in a.indices {
-            for dest in a.startIndex..<a.endIndex {
-                var b = a
-                b.move(from: source, to: dest)
-                XCTAssertEqual(a[source], b[dest])
-                XCTAssertEqual(
-                    a[..<source] + a[(source + 1)...],
-                    b[..<dest] + b[(dest + 1)...])
-            }
-        }
-    }
-    
+//    func testMoveToDestinationIndividual() {
+//        let a = ["A", "B", "C", "D", "E", "F"]
+//        for source in a.indices {
+//            for dest in a.startIndex..<a.endIndex {
+//                var b = a
+//                b.move(from: source, to: dest)
+//                XCTAssertEqual(a[source], b[dest])
+//                XCTAssertEqual(
+//                    a[..<source] + a[(source + 1)...],
+//                    b[..<dest] + b[(dest + 1)...])
+//            }
+//        }
+//    }
+//    
     func testMovePredicate() {
         for length in 0..<11 {
             let initial = Array(0..<length)
@@ -180,14 +180,14 @@ final class CollectionExtensionsTests: XCTestCase {
                     let notf = { !f($0) }
                     
                     var array = initial
-                    var range = array.move(insertingAt: destination, where: f)
+                    var range = array.gather(justBefore: destination, where: f)
                     XCTAssertEqual(array[range], initial.filter(f))
                     XCTAssertEqual(
                         array[..<range.lowerBound] + array[range.upperBound...],
                         initial.filter(notf))
 
                     array = initial
-                    range = array.move(insertingAt: destination, where: notf)
+                    range = array.gather(justBefore: destination, where: notf)
                     XCTAssertEqual(array[range], initial.filter(notf))
                     XCTAssertEqual(
                         array[..<range.lowerBound] + array[range.upperBound...],
@@ -201,7 +201,7 @@ final class CollectionExtensionsTests: XCTestCase {
         var numbers = COWLoggingArray(1...20)
         let copyCount = COWLoggingArray_CopyCount
         
-        _ = numbers.move(from: [10..<15, 18..<20], insertingAt: 4)
+        _ = numbers.gather([10..<15, 18..<20], justBefore: 4)
         XCTAssertEqual(copyCount, COWLoggingArray_CopyCount)
 
         numbers.removeAll(at: [2..<5, 10..<15, 18..<20])

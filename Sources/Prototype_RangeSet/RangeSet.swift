@@ -326,6 +326,19 @@ extension RangeSet {
         result.insert(low..<collection.endIndex)
         return result
     }
+    
+    /// Returns a collection of all the indices represented by this range set
+    /// within the given collection.
+    ///
+    /// - Parameter collection: The collection that the range set is relative
+    ///   to.
+    /// - Returns: A collection of the indices within `collection` that are
+    ///   represented by this range set.
+    public func elements<C>(within collection: C) -> IndexingCollection<C.Indices>
+        where C: Collection, C.Index == Bound
+    {
+        collection.indices[self]
+    }
 }
 
 // MARK: - Elements Collection

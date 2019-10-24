@@ -22,8 +22,9 @@ final class RangeSetTests: XCTestCase {
     func testCollectionConformance() {
         let elements = source.elements
         XCTAssertEqual(elements.count, 10)
-        XCTAssertEqual(Array(elements), [1, 2, 3, 4, 8, 9, 20, 21, 27, 28])
+        XCTAssertEqual(elements, [1, 2, 3, 4, 8, 9, 20, 21, 27, 28])
         XCTAssertEqual(elements.reversed(), [28, 27, 21, 20, 9, 8, 4, 3, 2, 1])
+        XCTAssertEqual(source.elements(within: 0..<100), elements)
 
         let count = elements.distance(from: elements.startIndex, to: elements.endIndex)
         XCTAssertEqual(count, 10)

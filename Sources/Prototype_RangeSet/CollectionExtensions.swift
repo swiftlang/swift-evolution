@@ -40,44 +40,19 @@ extension MutableCollection {
 // MARK: - move(from:to:) / move(to:where:)
 
 extension MutableCollection {
-    /// Moves the elements at the given indices to the specified insertion
-    /// point.
-    ///
-    /// - Parameters:
-    ///   - indices: The indices of the elements to move.
-    ///   - insertionPoint: The index to use as the destination of the elements.
-    /// - Returns: The new bounds of the moved elements.
-    ///
-    /// - Complexity: O(*n* log *n*) where *n* is the length of the collection.
-    @discardableResult
-    public mutating func move(
-        from indices: RangeSet<Index>, insertingAt insertionPoint: Index
-    ) -> Range<Index> {
-        let lowerCount = distance(from: startIndex, to: insertionPoint)
-        let upperCount = distance(from: insertionPoint, to: endIndex)
-        let start = _indexedStablePartition(
-            count: lowerCount,
-            range: startIndex..<insertionPoint,
-            by: { indices.contains($0) })
-        let end = _indexedStablePartition(
-            count: upperCount,
-            range: insertionPoint..<endIndex,
-            by: { !indices.contains($0) })
-        return start..<end
-    }
-
-    /// Moves the elements in the given range to the specified insertion point.
+    /// Shifts the elements in the given range to the specified insertion point.
     ///
     /// - Parameters:
     ///   - range: The range of the elements to move.
-    ///   - insertionPoint: The index to use as the destination of the elements.
+    ///   - insertionPoint: The index to use as the insertion point for the
+    ///     elements. `insertionPoint` must be a valid index of the collection.
     /// - Returns: The new bounds of the moved elements.
     ///
     /// - Returns: The new bounds of the moved elements.
     /// - Complexity: O(*n*) where *n* is the length of the collection.
     @discardableResult
-    public mutating func move(
-        from range: Range<Index>, insertingAt insertionPoint: Index
+    public mutating func shift(
+        from range: Range<Index>, toJustBefore insertionPoint: Index
     ) -> Range<Index> {
         if insertionPoint < range.lowerBound {
             let endIndex = _rotate(
@@ -96,42 +71,43 @@ extension MutableCollection {
         return range
     }
 
-    /// Moves the elements in the given range expression to the specified
+    /// Shifts the elements in the given range expression to the specified
     /// insertion point.
     ///
     /// - Parameters:
     ///   - range: The range of the elements to move.
-    ///   - insertionPoint: The index to use as the destination of the elements.
+    ///   - insertionPoint: The index to use as the insertion point for the
+    ///     elements. `insertionPoint` must be a valid index of the collection.
     /// - Returns: The new bounds of the moved elements.
     ///
     /// - Complexity: O(*n*) where *n* is the length of the collection.
     @discardableResult
-    public mutating func move<R : RangeExpression>(
-        from range: R, insertingAt insertionPoint: Index
+    public mutating func shift<R : RangeExpression>(
+        from range: R, toJustBefore insertionPoint: Index
     ) -> Range<Index> where R.Bound == Index {
-        return move(from: range.relative(to: self), insertingAt: insertionPoint)
+        return shift(from: range.relative(to: self), toJustBefore: insertionPoint)
     }
 
-    /// Moves the element at the given index, inserting at the specified
-    /// position.
+    /// Moves the element at the given index to just before the specified
+    /// insertion point.
     ///
     /// This method moves the element at position `i` to immediately before
     /// `insertionPoint`. This example shows moving elements forward and
     /// backward in an array of integers.
     ///
     ///     var numbers = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    ///     let newIndexOfNine = numbers.move(from: 9, insertingAt: 7)
+    ///     let newIndexOfNine = numbers.shift(from: 9, toJustBefore: 7)
     ///     // numbers == [0, 1, 2, 3, 4, 5, 6, 9, 7, 8, 10]
     ///     // newIndexOfNine == 7
     ///
-    ///     let newIndexOfOne = numbers.move(from: 1, insertingAt: 4)
+    ///     let newIndexOfOne = numbers.shift(from: 1, toJustBefore: 4)
     ///     // numbers == [0, 2, 3, 1, 4, 5, 6, 9, 7, 8, 10]
     ///     // newIndexOfOne == 3
     ///
     /// To move an element to the end of a collection, pass the collection's
     /// `endIndex` as `insertionPoint`.
     ///
-    ///     numbers.move(from: 0, insertingAt: numbers.endIndex)
+    ///     numbers.shift(from: 0, toJustBefore: numbers.endIndex)
     ///     // numbers == [2, 3, 1, 4, 5, 6, 9, 7, 8, 10, 0]
     ///
     /// - Parameters:
@@ -143,8 +119,8 @@ extension MutableCollection {
     ///
     /// - Complexity: O(*n*) where *n* is the length of the collection.
     @discardableResult
-    public mutating func move(
-        from source: Index, insertingAt insertionPoint: Index
+    public mutating func shift(
+        from source: Index, toJustBefore insertionPoint: Index
     ) -> Index {
         _failEarlyRangeCheck(source, bounds: startIndex..<endIndex)
         _failEarlyRangeCheck(insertionPoint, bounds: startIndex..<endIndex)
@@ -165,20 +141,19 @@ extension MutableCollection {
     /// backward in an array of numbers.
     ///
     ///     var numbers = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    ///     let newIndexOfNine = numbers.move(from: 9, to: 7)
+    ///     numbers.move(from: 9, to: 7)
     ///     // numbers == [0, 1, 2, 3, 4, 5, 6, 9, 7, 8, 10]
-    ///     // newIndexOfNine == 7
-    ///     // numbers[newIndexOfNine] == 9
+    ///     // numbers[7] == 9
     ///
-    ///     let newIndexOfOne = numbers.move(from: 1, to: 4)
-    ///     // newIndexOfOne == 4
+    ///     numbers.move(from: 1, to: 4)
     ///     // numbers == [0, 2, 3, 4, 1, 5, 6, 9, 7, 8, 10]
+    ///     // numbers[4] == 1
     ///
     /// To move an element to the end of a collection, pass the collection's
-    /// `endIndex` as the second parameter to the `move(from:insertingAt:)`
+    /// `endIndex` as the second parameter to the `shift(from:toJustBefore:)`
     /// method.
     ///
-    /// - Parameters:
+    /// Parameters:
     ///   - source: The index of the element to move. `source` must be a valid
     ///     index of the collection that isn't `endIndex`.
     ///   - destination: The index to use as the destination of the element.
@@ -186,7 +161,7 @@ extension MutableCollection {
     ///     `endIndex`.
     ///
     /// - Complexity: O(*n*) where *n* is the length of the collection.
-    public mutating func move(from source: Index, to destination: Index) {
+    internal mutating func move(from source: Index, to destination: Index) {
         _failEarlyRangeCheck(source, bounds: startIndex..<endIndex)
         _failEarlyRangeCheck(destination, bounds: startIndex..<endIndex)
         precondition(destination != endIndex, "Can't move an element to endIndex")
@@ -198,9 +173,52 @@ extension MutableCollection {
             _rotate(in: destination..<index(after: source), shiftingToStart: source)
         }
     }
-    
-    /// Moves the elements that satisfy the given predicate to the specified
-    /// insertion point.
+
+    /// Collects the elements at the given indices just before the specified
+    /// index.
+    ///
+    /// This example finds all the uppercase letters in the array and then
+    /// gathers them between `"i"` and `"j"`.
+    ///
+    ///     var letters = Array("ABCdeFGhijkLMNOp")
+    ///     let uppercase = letters.indices(where: { $0.isUppercase })
+    ///     let rangeOfUppercase = letters.gather(uppercase, justBefore: 10)
+    ///     // String(letters) == "dehiABCFGLMNOjkp"
+    ///     // rangeOfUppercase == 4..<13
+    ///
+    /// - Parameters:
+    ///   - indices: The indices of the elements to move.
+    ///   - insertionPoint: The index to use as the destination of the elements.
+    /// - Returns: The new bounds of the moved elements.
+    ///
+    /// - Complexity: O(*n* log *n*) where *n* is the length of the collection.
+    @discardableResult
+    public mutating func gather(
+        _ indices: RangeSet<Index>, justBefore insertionPoint: Index
+    ) -> Range<Index> {
+        let lowerCount = distance(from: startIndex, to: insertionPoint)
+        let upperCount = distance(from: insertionPoint, to: endIndex)
+        let start = _indexedStablePartition(
+            count: lowerCount,
+            range: startIndex..<insertionPoint,
+            by: { indices.contains($0) })
+        let end = _indexedStablePartition(
+            count: upperCount,
+            range: insertionPoint..<endIndex,
+            by: { !indices.contains($0) })
+        return start..<end
+    }
+
+    /// Collects the elements that satisfy the given predicate just before the
+    /// specified index.
+    ///
+    /// This example gathers all the uppercase letters in the array between
+    /// `"i"` and `"j"`.
+    ///
+    ///     var letters = Array("ABCdeFGhijkLMNOp")
+    ///     let rangeOfUppercase = letters.gather(justBefore: 10) { $0.isUppercase }
+    ///     // String(letters) == "dehiABCFGLMNOjkp"
+    ///     // rangeOfUppercase == 4..<13
     ///
     /// - Parameters:
     ///   - predicate: A closure that returns `true` for elements that should
@@ -210,8 +228,8 @@ extension MutableCollection {
     ///
     /// - Complexity: O(*n* log *n*) where *n* is the length of the collection.
     @discardableResult
-    public mutating func move(
-        insertingAt insertionPoint: Index, where predicate: (Element) -> Bool
+    public mutating func gather(
+        justBefore insertionPoint: Index, where predicate: (Element) -> Bool
     ) -> Range<Index> {
         let lowerCount = distance(from: startIndex, to: insertionPoint)
         let upperCount = distance(from: insertionPoint, to: endIndex)

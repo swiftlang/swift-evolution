@@ -15,7 +15,7 @@ print(sumOfThrees)
 // sumOfThrees == 45
 
 // Move the multiples of 3 to the beginning
-let rangeOfThree = numbers.move(from: indicesOfThree, insertingAt: 0)
+let rangeOfThree = numbers.gather(indicesOfThree, justBefore: 0)
 print(numbers[rangeOfThree])
 print(numbers)
 // numbers[rangeOfThree] == [3, 6, 9, 12, 15]
@@ -92,9 +92,9 @@ var streetsWithoutSon = streets
 streetsWithoutSon.removeAll(at: indicesEndingInSon)
 print(streetsWithoutSon)
 
-// Move/gather all elements in range set to new index
+// Gather all elements in range set to new index
 let indicesOfShortStreets = streets.indices(where: { $0.count <= 7 })
-let rangeOfShortStreets = streets.move(from: indicesOfShortStreets, insertingAt: 3)
+let rangeOfShortStreets = streets.gather(indicesOfShortStreets, justBefore: 3)
 
 print(streets[..<rangeOfShortStreets.lowerBound])
 print(streets[rangeOfShortStreets])
