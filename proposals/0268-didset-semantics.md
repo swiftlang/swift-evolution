@@ -81,7 +81,7 @@ struct Delayed<Value> {
     }
   }
   
-  private var value: Value?
+  var value: Value?
 }
 
 class Foo {
@@ -118,6 +118,8 @@ foo.bar = 1
 foo.baz = 2
 ```
 
+This applies to a `didSet` on an overridden property as well - the call to the superclass getter will be skipped if the `oldValue` is not referenced in the body of the overridden property's `didSet`.
+
 This also resolves some pending bugs such as [SR-11297](https://bugs.swift.org/browse/SR-11297), [SR-11280](https://bugs.swift.org/browse/SR-11280) and [SR-5982](https://bugs.swift.org/browse/SR-5982).
 
 As a bonus, if the property has a "simple" `didSet` and no `willSet`, then we could allow for modifications to happen in-place. For example:
@@ -149,6 +151,25 @@ This will provide a nice performance boost in some cases (for example, in the ea
 
 This does not break source compatibility, _unless_ someone is explicitly relying on the current buggy behavior (i.e. the property's getter being called even if the `oldValue` isn't referenced). However, I think the possibility of that is very small.
 
+However, it is possible to preserve the old behavior by either:
+
+1. Explicitly providing the `oldValue` argument to `didSet`: 
+```swift
+didSet(oldValue) {
+  // The getter is called to fetch
+  // the oldValue, even if it's not
+  // used in this body.
+}
+```
+2. Forcing the getter to be called by simply ignoring its value in the body of the `didSet`: 
+```swift
+didSet {
+  // Calls the getter, but the value
+  // is ignored.
+  _ = oldValue
+}
+```
+
 ## Effect on ABI stability
 
 This does not affect the ABI as observers are not a part of it.
@@ -159,7 +180,9 @@ This does not affect API resilience - library authors can freely switch between 
 
 ## Alternatives considered
 
-Leave the existing behavior as is.
+- Explicitly require an `oldValue` parameter to use it, such as `didSet(oldValue) { ... }`, otherwise it is an error to use `oldValue` in the `didSet` body. This will be a big source breaking change. It will also cause a regression in usability and create an inconsistency with other accessors, such as `willSet` or `set`, which can be declared with or without an explicit parameter. The source compatibility problem can be mitigated by deprecating the use of implicit `oldValue` and then making it an error in the next language version, however the usability regression would remain.
+- Introduce a new `didSet()` syntax that will surpress the read of the `oldValue` (and it will be an error to use `oldValue` in the `didSet` body). This will prevent any breakage since it's an additive change, but will reduce the positive performance gain (of not calling the getter when `oldValue` is not used) to zero unless people opt-in to the new syntax. Similar to the previous solution, it will create an inconsistency in the language, since it will be the only accessor that can be declared with an empty parameter list and will become yet another thing to explain to a newcomer.
+- Leave the existing behavior as is.
 
 ## Future Directions
 
