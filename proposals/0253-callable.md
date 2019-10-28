@@ -3,7 +3,7 @@
 * Proposal: [SE-0253](0253-callable.md)
 * Authors: [Richard Wei](https://github.com/rxwei), [Dan Zheng](https://github.com/dan-zheng)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Accepted with Revision**
+* Status: **Implemented (Swift 5.2)**
 * Implementation: [apple/swift#24299](https://github.com/apple/swift/pull/24299)
 * Previous Revisions:
   [[1]](https://github.com/apple/swift-evolution/blob/36ea8be09508db9380949954d0c7a101fdb15226/proposals/0253-callable.md),

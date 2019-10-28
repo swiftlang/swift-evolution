@@ -3,7 +3,7 @@
 * Proposal: [SE-0263](0263-string-uninitialized-initializer.md)
 * Author: [David Smith](https://github.com/Catfish-Man)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
-* Status:  [Returned for revision](https://forums.swift.org/t/se-0263-add-a-string-initializer-with-access-to-uninitialized-storage/27417/32)
+* Status: **Accepted**
 * Implementation: [apple/swift#23409](https://github.com/apple/swift/pull/23409)
 * Bug: [SR-10288](https://bugs.swift.org/browse/SR-10288)
 
@@ -21,13 +21,12 @@ Add a new `String` initializer that lets a program work with an uninitialized
 buffer.
 
 The new initializer takes a closure that operates on an
-`UnsafeMutableBufferPointer` and an `inout` count of initialized elements. This
-closure has access to the uninitialized contents of the newly created String's
-storage, and returns the number of initialized buffer elements, or 0.
+`UnsafeMutableBufferPointer` referencing the uninitialized contents of the newly created 
+String's storage, and returns a count of initialized elements or 0.
 
 ```swift
 let myCocoaString = NSString("The quick brown fox jumps over the lazy dog") as CFString
-var myString = String(uninitializedCapacity: CFStringGetMaximumSizeForEncoding(myCocoaString, …)) { buffer in
+var myString = String(unsafeUninitializedCapacity: CFStringGetMaximumSizeForEncoding(myCocoaString, …)) { buffer in
     var initializedCount = 0
     CFStringGetBytes(
     	myCocoaString,
@@ -62,7 +61,7 @@ Without this initializer we would have had to heap allocate an `UnsafeMutableBuf
   /// sequences and the second with an ill-formed sequence at the end.
   ///
   ///     let validUTF8: [UInt8] = [67, 97, 102, -61, -87, 0]
-  ///     let s = String(uninitializedCapacity: validUTF8.count,
+  ///     let s = String(unsafeUninitializedCapacity: validUTF8.count,
   ///                    initializingUTF8With: { ptr in
   ///         ptr.initializeFrom(validUTF8)
   ///         return validUTF8.count
@@ -70,14 +69,14 @@ Without this initializer we would have had to heap allocate an `UnsafeMutableBuf
   ///     // Prints "Café"
   ///
   ///     let invalidUTF8: [UInt8] = [67, 97, 102, -61, 0]
-  ///     let s = String(uninitializedCapacity: invalidUTF8.count,
+  ///     let s = String(unsafeUninitializedCapacity: invalidUTF8.count,
   ///                    initializingUTF8With: { ptr in
   ///         ptr.initializeFrom(invalidUTF8)
   ///         return invalidUTF8.count
   ///     })
   ///     // Prints "Caf�"
   ///
-  ///     let s = String(uninitializedCapacity: invalidUTF8.count,
+  ///     let s = String(unsafeUninitializedCapacity: invalidUTF8.count,
   ///                    initializingUTF8With: { ptr in
   ///         ptr.initializeFrom(invalidUTF8)
   ///         return 0
@@ -93,7 +92,7 @@ Without this initializer we would have had to heap allocate an `UnsafeMutableBuf
   ///       - buffer: A buffer covering uninitialized memory with room for the
   ///           specified number of UTF-8 code units.
   public init(
-    uninitializedCapacity capacity: Int,
+    unsafeUninitializedCapacity capacity: Int,
     initializingUTF8With initializer: (
       _ buffer: UnsafeMutableBufferPointer<UInt8>,
     ) throws -> Int
@@ -117,7 +116,7 @@ so there is no effect on source compatibility.
 
 ## Effect on ABI stability
 
-The new initializer will be part of the ABI, and will result in calls to a new @usableFromInline symbol being inlined into client code. Use of the new initializer is gated by @availability though, so there's no back-deployment concern.
+The new initializer will be part of the ABI, and may result in calls to a new @usableFromInline symbol being inlined into client code. Use of the new initializer is gated by @availability though, so there's no back-deployment concern.
 
 ## Effect on API resilience
 
