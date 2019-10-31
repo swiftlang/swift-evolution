@@ -59,7 +59,7 @@ public struct RangeSet<Bound: Comparable> {
     /// - Complexity: O(log *n*), where *n* is the number of ranges in the
     ///   range set.
     public func contains(_ element: Bound) -> Bool {
-        let i = _ranges.partitioningIndex(where: { $0.upperBound > element })
+        let i = _ranges._partitioningIndex(where: { $0.upperBound > element })
         return i == _ranges.endIndex
             ? false
             : _ranges[i].lowerBound <= element
@@ -84,7 +84,7 @@ public struct RangeSet<Bound: Comparable> {
         // with an upper bound larger than `range`'s lower bound. The range
         // at this position may or may not overlap `range`.
         let beginningIndex = _ranges
-            .partitioningIndex(where: { $0.upperBound >= range.lowerBound })
+            ._partitioningIndex(where: { $0.upperBound >= range.lowerBound })
         
         // The ending index for `range` is the first range with a lower bound
         // greater than `range`'s upper bound. If this is the same as
@@ -93,7 +93,7 @@ public struct RangeSet<Bound: Comparable> {
         // rest of the ranges. Otherwise, `range` overlaps one or
         // more ranges in the set.
         let endingIndex = _ranges[beginningIndex...]
-            .partitioningIndex(where: { $0.lowerBound > range.upperBound })
+            ._partitioningIndex(where: { $0.lowerBound > range.upperBound })
 
         return beginningIndex ..< endingIndex
     }
@@ -234,6 +234,21 @@ extension RangeSet {
         self.init(range)
     }
     
+    /// Creates a new range set with the specified indices in the given
+    /// collection.
+    ///
+    /// - Parameters:
+    ///   - index: The index to include in the range set. `index` must be a
+    ///     valid index of `collection` that isn't the collection's `endIndex`.
+    ///   - collection: The collection that contains `index`.
+    public init<S, C>(_ indices: S, within collection: C)
+        where S: Sequence, C: Collection, S.Element == C.Index, C.Index == Bound
+    {
+        for i in indices {
+            self.insert(i, within: collection)
+        }
+    }
+    
     /// Creates a new range set with the specified range expression.
     ///
     /// - Parameters:
@@ -330,73 +345,17 @@ extension RangeSet {
     /// Returns a collection of all the indices represented by this range set
     /// within the given collection.
     ///
+    /// The indices in the returned collection are unique and are stored in
+    /// ascending order.
+    ///
     /// - Parameter collection: The collection that the range set is relative
     ///   to.
     /// - Returns: A collection of the indices within `collection` that are
     ///   represented by this range set.
-    public func elements<C>(within collection: C) -> IndexingCollection<C.Indices>
+    public func individualIndices<C>(within collection: C) -> IndexingCollection<C.Indices>
         where C: Collection, C.Index == Bound
     {
         collection.indices[self]
-    }
-}
-
-// MARK: - Elements Collection
-
-extension RangeSet where Bound: Strideable, Bound.Stride: SignedInteger {
-    /// A collection of individual elements represented by a range set.
-    public struct Elements: BidirectionalCollection {
-        public typealias Index = FlattenSequence<Ranges>.Index
-
-        internal var _set: RangeSet
-    
-        public var startIndex: Index {
-            _set.ranges.joined().startIndex
-        }
-        
-        public var endIndex: Index {
-            _set.ranges.joined().endIndex
-        }
-        
-        public func _customContainsEquatableElement(_ element: Bound) -> Bool? {
-            _set.contains(element)
-        }
-        
-        // TODO: Add _customIndexOfEquatableElement once this has access to the
-        // Index initializer in the standard library
-        // public func _customIndexOfEquatableElement(_ element: Bound) -> Index??
-        
-        public func index(after i: Index) -> Index {
-            _set.ranges.joined().index(after: i)
-        }
-        
-        public func index(before i: Index) -> Index {
-            _set.ranges.joined().index(before: i)
-        }
-        
-        public func distance(from start: Index, to end: Index) -> Int {
-            let joined = _set.ranges.joined()
-            return joined.distance(from: start, to: end)
-        }
-        
-        public func index(_ i: Index, offsetBy distance: Int) -> Index {
-            _set.ranges.joined().index(i, offsetBy: distance)
-        }
-        
-        public subscript(i: Index) -> Bound {
-            _set.ranges.joined()[i]
-        }
-    }
-    
-    /// A collection of the individual indices represented by the range set.
-    ///
-    /// This collection is available when the range set's `Bound` type is a
-    /// type that is strideable by integers, such as `Int`. To get a collection
-    /// of all the indices represented by a range set of a non strideable index
-    /// set, use the range set as a subscript parameter on the collection's
-    /// `indices` property.
-    public var elements: Elements {
-        Elements(_set: self)
     }
 }
 
@@ -515,44 +474,6 @@ extension RangeSet {
     
     public func isStrictSuperset(of other: RangeSet<Bound>) -> Bool {
         other.isStrictSubset(of: self)
-    }
-}
-
-extension RangeSet: SetAlgebra where Bound: Strideable, Bound.Stride: SignedInteger {
-    public init<S: Sequence>(_ sequence: S) where S.Element == Bound {
-        for element in sequence {
-            insert(element)
-        }
-    }
-
-    @discardableResult
-    public mutating func insert(_ newMember: __owned Bound)
-        -> (inserted: Bool, memberAfterInsert: Bound)
-    {
-        if contains(newMember) {
-            return (false, newMember)
-        } else {
-            insert(newMember ..< newMember.advanced(by: 1))
-            return (true, newMember)
-        }
-    }
-
-    @discardableResult
-    public mutating func remove(_ member: Bound) -> Bound? {
-        if contains(member) {
-            remove(member ..< member.advanced(by: 1))
-            return member
-        } else {
-            return nil
-        }
-    }
-
-    public mutating func update(with newMember: __owned Bound) -> Bound? {
-        // Note: SetAlgebra requires us to return the "existing" member if
-        // `newMember` already exists in the set, but since we don't
-        // actually store individual elements this is the best we can do.
-        let (inserted, member) = insert(newMember)
-        return inserted ? nil : member
     }
 }
 

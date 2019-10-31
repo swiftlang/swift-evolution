@@ -1,19 +1,6 @@
-// MARK: rotate(shiftingToStart:)
+// MARK: _rotate(in:shiftingToStart:)
 
 extension MutableCollection {
-    /// Rotates the elements of the collection so that the element at the
-    /// specified index ends up first.
-    ///
-    /// - Parameter middle: The index of the element to rotate to the front of
-    ///   the collection.
-    /// - Returns: The new index of the element that was first pre-rotation.
-    ///
-    /// - Complexity: O(*n*)
-    @discardableResult
-    public mutating func rotate(shiftingToStart middle: Index) -> Index {
-        _rotate(in: startIndex..<endIndex, shiftingToStart: middle)
-    }
-
     /// Rotates the elements of the collection so that the element at `middle`
     /// ends up first.
     ///
@@ -21,7 +8,7 @@ extension MutableCollection {
     ///
     /// - Complexity: O(*n*)
     @discardableResult
-    mutating func _rotate(in subrange: Range<Index>, shiftingToStart middle: Index) -> Index {
+    internal mutating func _rotate(in subrange: Range<Index>, shiftingToStart middle: Index) -> Index {
         var m = middle, s = subrange.lowerBound
         let e = subrange.upperBound
 
@@ -114,159 +101,11 @@ extension MutableCollection {
         while p != lhs.upperBound && q != rhs.upperBound
         return (p, q)
     }
-
 }
 
-// MARK: - halfStablePartition(by:)
+// MARK: - _stablePartition(count:range:by:)
 
 extension MutableCollection {
-    /// Moves all elements satisfying `belongsInSecondPartition` into a suffix
-    /// of the collection, preserving the relative order of the prefix, and
-    /// returns the start of the resulting suffix.
-    ///
-    /// This code example moves all the negative values in the `numbers` array
-    /// to a section at the end of the array.
-    ///
-    ///     var numbers = Array(-5...5)
-    ///     let startOfNegatives = numbers.halfStablePartition(by: { $0 < 0 })
-    ///     // numbers == [0, 1, 2, 3, 4, 5, -4, -3, -2, -1, -5]
-    ///
-    /// Note that while the operation maintains the order of the beginning
-    /// section of the array, the elements in the ending section have been
-    /// rearranged.
-    ///
-    ///     // numbers[..<startOfNegatives] == [0, 1, 2, 3, 4, 5]
-    ///     // numbers[startOfNegatives...] == [-4, -3, -2, -1, -5]
-    ///
-    /// - Parameter belongsInSecondPartition: A predicate used to partition the
-    ///   collection. All elements satisfying this predicate are ordered after
-    ///   all elements not satisfying it.
-    /// - Returns: The index of the first element in the reordered collection
-    ///   that matches `belongsInSecondPartition`. If no elements in the
-    ///   collection match `belongsInSecondPartition`, the returned index is
-    ///   equal to the collection's `endIndex`.
-    ///
-    /// - Complexity: O(*n*) where *n* is the number of elements.
-    @discardableResult
-    public mutating func halfStablePartition(
-        by belongsInSecondPartition: (Element) throws -> Bool
-    ) rethrows -> Index {
-        guard var i = try firstIndex(where: belongsInSecondPartition)
-            else { return endIndex }
-        
-        var j = index(after: i)
-        while j != endIndex {
-            if try !belongsInSecondPartition(self[j]) {
-                swapAt(i, j)
-                formIndex(after: &i)
-            }
-            formIndex(after: &j)
-        }
-        return i
-    }
-}
-
-// MARK: - stablePartition(by:) / stablyPartitioned(by:)
-
-extension Collection {
-    /// Returns an array of the elements in this collection, partitioned by the
-    /// given predicate, and the index of the start of the second region.
-    ///
-    /// This code example moves all the negative values in the `numbers` array
-    /// to a section at the end of the array.
-    ///
-    ///     let numbers = Array(-5...5)
-    ///     let (partitioned, startOfNegatives) =
-    ///         numbers.stablyPartitioned(by: { $0 < 0 })
-    ///     // partitioned == [0, 1, 2, 3, 4, 5, -5, -4, -3, -2, -1]
-    ///
-    /// The partitioning operation maintains the initial relative order of the
-    /// elements in each section of the array.
-    ///
-    ///     // partitioned[..<startOfNegatives] == [0, 1, 2, 3, 4, 5]
-    ///     // partitioned[startOfNegatives...] == [-5, -4, -3, -2, -1]
-    ///
-    /// - Parameter belongsInSecondPartition: A predicate used to partition the
-    ///   collection. All elements satisfying this predicate are ordered after
-    ///   all elements not satisfying it.
-    /// - Returns: A tuple containing a new array that is partitioned by the
-    ///   `belongsInSecondPartition` predicate and the index of the first
-    ///   element in the array that matches the predicate. If no elements in
-    ///   the array match the predicate, the returned index is equal to the
-    ///   array's `endIndex`.
-    ///
-    /// - Complexity: O(*n*) where *n* is the number of elements.
-    public func stablyPartitioned(
-        by belongsInSecondPartition: (Element) throws -> Bool
-    ) rethrows -> (partitioned: [Element], partitioningIndex: Int) {
-        var partitionPoint = 0
-        let result = try Array<Element>(unsafeUninitializedCapacity: count) {
-            buffer, initializedCount in
-            var low = buffer.baseAddress!
-            var high = low + buffer.count
-            do {
-                for element in self {
-                    if try belongsInSecondPartition(element) {
-                        high -= 1
-                        high.initialize(to: element)
-                    } else {
-                        low.initialize(to: element)
-                        low += 1
-                    }
-                }
-                
-                partitionPoint = high - buffer.baseAddress!
-                buffer[partitionPoint...].reverse()
-                initializedCount = buffer.count
-            } catch {
-                let lowCount = low - buffer.baseAddress!
-                let highCount = (buffer.baseAddress! + buffer.count) - high
-                buffer.baseAddress!.deinitialize(count: lowCount)
-                high.deinitialize(count: highCount)
-                throw error
-            }
-        }
-        return (result, partitionPoint)
-    }
-}
-
-extension MutableCollection {
-    /// Moves all elements satisfying `belongsInSecondPartition` into a suffix
-    /// of the collection, preserving their relative order, and returns the
-    /// start of the resulting suffix.
-    ///
-    /// This code example moves all the negative values in the `numbers` array
-    /// to a section at the end of the array.
-    ///
-    ///     var numbers = Array(-5...5)
-    ///     let startOfNegatives = numbers.stablePartition(by: { $0 < 0 })
-    ///     // numbers == [0, 1, 2, 3, 4, 5, -5, -4, -3, -2, -1]
-    ///
-    /// The partitioning operation maintains the initial relative order of the
-    /// elements in each section of the array.
-    ///
-    ///     // numbers[..<startOfNegatives] == [0, 1, 2, 3, 4, 5]
-    ///     // numbers[startOfNegatives...] == [-5, -4, -3, -2, -1]
-    ///
-    /// - Parameter belongsInSecondPartition: A predicate used to partition the
-    ///   collection. All elements satisfying this predicate are ordered after
-    ///   all elements not satisfying it.
-    /// - Returns: The index of the first element in the reordered collection
-    ///   that matches `belongsInSecondPartition`. If no elements in the
-    ///   collection match `belongsInSecondPartition`, the returned index is
-    ///   equal to the collection's `endIndex`.
-    ///
-    /// - Complexity: O(*n* log *n*) where *n* is the number of elements.
-    @discardableResult
-    public mutating func stablePartition(
-        by belongsInSecondPartition: (Element) throws -> Bool
-    ) rethrows -> Index {
-        return try _stablePartition(
-            count: count,
-            range: startIndex..<endIndex,
-            by: belongsInSecondPartition)
-    }
-    
     /// Moves all elements satisfying `belongsInSecondPartition` into a suffix
     /// of the collection, preserving their relative order, and returns the
     /// start of the resulting suffix.
@@ -274,7 +113,7 @@ extension MutableCollection {
     /// - Complexity: O(*n* log *n*) where *n* is the number of elements.
     /// - Precondition:
     ///   `n == distance(from: range.lowerBound, to: range.upperBound)`
-    mutating func _stablePartition(
+    internal mutating func _stablePartition(
         count n: Int,
         range: Range<Index>,
         by belongsInSecondPartition: (Element) throws-> Bool
@@ -304,7 +143,7 @@ extension MutableCollection {
     /// - Complexity: O(*n* log *n*) where *n* is the number of elements.
     /// - Precondition:
     ///   `n == distance(from: range.lowerBound, to: range.upperBound)`
-    mutating func _indexedStablePartition(
+    internal mutating func _indexedStablePartition(
         count n: Int,
         range: Range<Index>,
         by belongsInSecondPartition: (Index) throws-> Bool
@@ -345,7 +184,7 @@ extension Collection {
     ///
     /// - Complexity: O(log *n*), where *n* is the length of this collection if
     ///   the collection conforms to `RandomAccessCollection`, otherwise O(*n*).
-    internal func partitioningIndex(
+    internal func _partitioningIndex(
         where predicate: (Element) throws -> Bool
     ) rethrows -> Index {
         var n = count

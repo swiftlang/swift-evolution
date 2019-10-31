@@ -8,10 +8,11 @@
 ### Changelog
 
 * _October 24, 2019:_ Renamed the `move(...)` methods to `gather(...)` for multiple-range moves and `shift(from:toJustBefore:)` for single-range and single-element moves to better reflect their behavior, and removed the `move(from:to:)` method. Added `elements(within:)` method for getting the individual index values in a `RangeSet` when the `Bound` type isn't integer-strideable.
+* _October 31, 2019:_ Removed `SetAlgebra` conformance and the `Elements` collection view, as `RangeSet` can't guarantee correct semantics for individual index operations without the parent collection. Renamed `elements(within:)` to `individualIndices(within:)`. Deferred the rotating and partitioning methods to a future pitch.
 
 ## Introduction
 
-We can use a range to address a single range of consecutive elements in a collection, but the standard library doesn't currently provide a way to access discontiguous elements. This proposes the addition of a `RangeSet` type that can store the location of any number of collections indices, along with collection operations that let us use a range set to access or modify the collection. In addition, because these operations depend on mutable collection algorithms that we've long wanted in the standard library, this proposal includes those too.
+We can use a range to address a single range of consecutive elements in a collection, but the standard library doesn't currently provide a way to access discontiguous elements. This proposes the addition of a `RangeSet` type that can store the location of any number of collections indices, along with collection operations that let us use a range set to access or modify the collection.
 
 ## Motivation
 
@@ -57,7 +58,7 @@ The remainder of the `RangeSet` and collection operations, like inverting a rang
 
 ## Detailed design
 
-The `RangeSet` type is generic over any `Comparable` type, with different functionality 
+The `RangeSet` type is generic over any `Comparable` type, and supports fast containment checks for individual values, as well as adding and removing ranges of that type. 
 
 ```swift
 /// A set of ranges of any comparable value.
@@ -103,11 +104,9 @@ public struct RangeSet<Bound: Comparable> {
 
 `RangeSet` conforms to `Equatable`, `CustomStringConvertible`, and `Hashable` when its `Bound` type conforms to `Hashable`. `RangeSet` also has `ExpressibleByArrayLiteral` conformance, using arrays of ranges as its literal type.
 
-#### `SetAlgebra` conformance
+#### `SetAlgebra`-like methods
 
-`RangeSet` has `SetAlgebra` conformance when its bound type conforms to `Stridable` with an integer stride, but has most of the `SetAlgebra` API no matter what the bound type.
-
-In the following listing, the unconstrained extension includes set algebra operations like finding the union or intersection of range sets. The element-based methods and initializer of `SetAlgebra` are the only pieces that are constrained.
+`RangeSet` implements the methods of the `SetAlgebra` protocol that don't traffic in individual indices. Without access to a collection that can provide the index after an individual value, `RangeSet` can't reliably maintain the semantic guarantees of working with collection indices.
 
 ```swift
 extension RangeSet {
@@ -128,19 +127,6 @@ extension RangeSet {
     public func isStrictSubset(of other: RangeSet<Bound>) -> Bool
     public func isStrictSuperset(of other: RangeSet<Bound>) -> Bool
 }
-
-extension RangeSet: SetAlgebra where Bound: Strideable, Bound.Stride: SignedInteger {
-    public init<S: Sequence>(_ sequence: S) where S.Element == Bound
-
-    @discardableResult
-    public mutating func insert(_ newMember: Bound)
-        -> (inserted: Bool, memberAfterInsert: Bound)
-
-    @discardableResult
-    public mutating func remove(_ member: Bound) -> Bound?
-
-    public mutating func update(with newMember: Bound) -> Bound?
-}
 ```
 
 #### Collection APIs
@@ -158,6 +144,16 @@ extension RangeSet {
     ///   - collection: The collection that contains `index`.
     public init<C>(_ index: Bound, within collection: C)
         where C: Collection, C.Index == Bound
+    
+    /// Creates a new range set with the specified indices in the given
+    /// collection.
+    ///
+    /// - Parameters:
+    ///   - index: The index to include in the range set. `index` must be a
+    ///     valid index of `collection` that isn't the collection's `endIndex`.
+    ///   - collection: The collection that contains `index`.
+    public init<S, C>(_ indices: S, within collection: C)
+        where S: Sequence, C: Collection, S.Element == C.Index, C.Index == Bound
     
     /// Creates a new range set with the specified range expression.
     ///
@@ -226,9 +222,9 @@ extension RangeSet {
 }
 ```
 
-#### `Ranges` and `Elements` sub-collections
+#### Accessing Ranges and Individual Indices
 
-`RangeSet` provides access to its ranges and, when possible, individual indices through three collection views. The ranges that comprise a range set are available in a random-access collection via the `ranges` property. Individual indices are available as a bidirectional collection via the `elements` property, when a range set's `Bound` type is `Strideable` with an integer range, or for any range set through the `elements(within:)` method.
+`RangeSet` provides access to its ranges as a random-access collection via the `ranges` property. The individual indices in a collection that are represented by a range set are available as a bidirectional collection through the `individualIndices(within:)` method (see below for more about this method's return type).
 
 ```swift
 extension RangeSet {
@@ -239,43 +235,36 @@ extension RangeSet {
     }
     
     /// A collection of the ranges that make up the range set.
+    ///
+    /// The ranges in this collection never overlap or adjoin, are never empty,
+    /// and are always in ascending order.
     public var ranges: Ranges { get }
-}
-
-extension RangeSet where Bound: Strideable, Bound.Stride: SignedInteger {
-    public struct Elements: BidirectionalCollection {
-        public typealias Index = FlattenSequence<Ranges>.Index
-    
-        public var startIndex: Index { get }
-        public var endIndex: Index { get }                
-        public subscript(i: Index) -> Bound { get }
-    }
-    
-    /// A collection of the individual indices represented by the range set.
-    public var elements: Elements { get }
 }
 
 extension RangeSet {
     /// Returns a collection of all the indices represented by this range set
     /// within the given collection.
     ///
+    /// The indices in the returned collection are unique and are stored in 
+    /// ascending order. 
+    ///
     /// - Parameter collection: The collection that the range set is relative
     ///   to.
     /// - Returns: A collection of the indices within `collection` that are
     ///   represented by this range set.
-    public func elements<C>(within collection: C) -> IndexingCollection<C.Indices>
+    public func individualIndices<C>(within collection: C) -> IndexingCollection<C.Indices>
         where C: Collection, C.Index == Bound
 }
 ```
 
 #### Storage
 
-`RangeSet` will store its ranges in a custom type that will optimize the storage for known, simple `Bound` types. This custom type will avoid allocating extra storage for the common cases of empty or single-range range sets.
+`RangeSet` will store its ranges in a custom type that will optimize the storage for known, simple `Bound` types. This custom type will avoid allocating extra storage for common cases of empty or single-range range sets.
 
 
 ### New `Collection` APIs
 
-#### Find multiple elements
+#### Finding multiple elements
 
 Akin to the `firstIndex(...)` and `lastIndex(...)` methods, this proposal introduces `indices(where:)` and `indices(of:)` methods that return a range set with the indices of all matching elements in a collection.
 
@@ -322,7 +311,7 @@ extension Collection where Element: Equatable {
 }
 ```
 
-#### Access elements via `RangeSet`
+#### Accessing elements via `RangeSet`
 
 When you have a `RangeSet` describing a group of indices for a collection, you can access those elements via a new subscript. This new subscript returns a new `IndexingCollection` type, which couples the collection and range set to provide access.
 
@@ -376,11 +365,11 @@ public struct IndexingCollection<Base: Collection>: Collection {
 
 `IndexingCollection` will conform to `Collection`, and conditionally conform to `BidirectionalCollection` and `MutableCollection` if its base collection conforms.
 
-#### Move elements
+#### Moving elements
 
-Within a mutable collection, you can gather the elements represented by a range set, inserting them before a specific index. This proposal also adds a method for gather all the elements matched by a predicate, and methods for shifting a single range, a range expression, or a single element to a specific insertion point.
+Within a mutable collection, you can gather the elements represented by a range set, inserting them before a specific index. This proposal also adds a method for gathering all the elements matched by a predicate, and methods for shifting a single range, a range expression, or a single element to a specific insertion point.
 
-Whether you're working with a range set, a single range, or a single index, moving elements around in a collection can shift the relative position of the expected destination point. For that reason, these gathering and shifting methods return the new range or index of the elements that have been moved. To visualize this operation, you can divide the collection into two parts, before and after the insertion point. The elements to move are collected in order in that gap, and the resulting range (or index, for single element moves) is returned.
+Whether you're working with a range set, a single range, or a single index, moving elements around in a collection can shift the relative position of the expected destination point. For that reason, these gathering and shifting methods return the new range or index of the elements that have been moved. To visualize this operation, divide the collection into two parts, before and after the insertion point. The elements to move are collected in order in that gap, and the resulting range (or index, for single element moves) is returned.
 
 As an example, consider a shift from a range at the beginning of an array of letters to a position further along in the array:
 
@@ -550,7 +539,7 @@ extension MutableCollection {
 }
 ```
 
-#### Remove elements
+#### Removing elements
 
 Within a range-replaceable collection, you can remove the elements represented by a range set. The implementation provides an additional, in-place overload for range-replaceable collections that also conform to `MutableCollection`.
 
@@ -573,120 +562,26 @@ extension RangeReplaceableCollection {
     /// - Complexity: O(*n*), where *n* is the length of the collection.
     public mutating func removeAll(at indices: RangeSet<Index>)
 }
-```
-
-#### Rotate and Partition
-
-Finally, the proposal adds `MutableCollection` methods for rotation and half- and fully-stable partition. The partitioning methods use similar naming to the standard library's existing `partition(by:)` method.
-
-```swift
-extension MutableCollection {
-    /// Rotates the elements of the collection so that the element at the
-    /// specified index ends up first.
-    ///
-    /// - Parameter middle: The index of the element to rotate to the front of
-    ///   the collection.
-    /// - Returns: The new index of the element that was first pre-rotation.
-    ///
-    /// - Complexity: O(*n*)
-    @discardableResult
-    public mutating func rotate(shiftingToStart middle: Index) -> Index
-    
-    /// Moves all elements satisfying `belongsInSecondPartition` into a suffix
-    /// of the collection, preserving the relative order of the prefix, and
-    /// returns the start of the resulting suffix.
-    ///
-    /// This code example moves all the negative values in the `numbers` array
-    /// to a section at the end of the array.
-    ///
-    ///     var numbers = Array(-5...5)
-    ///     let startOfNegatives = numbers.halfStablePartition(by: { $0 < 0 })
-    ///     // numbers == [0, 1, 2, 3, 4, 5, -4, -3, -2, -1, -5]
-    ///
-    /// Note that while the operation maintains the order of the beginning
-    /// section of the array, the elements in the ending section have been
-    /// rearranged.
-    ///
-    ///     // numbers[..<startOfNegatives] == [0, 1, 2, 3, 4, 5]
-    ///     // numbers[startOfNegatives...] == [-4, -3, -2, -1, -5]
-    ///
-    /// - Parameter belongsInSecondPartition: A predicate used to partition the
-    ///   collection. All elements satisfying this predicate are ordered after
-    ///   all elements not satisfying it.
-    /// - Returns: The index of the first element in the reordered collection
-    ///   that matches `belongsInSecondPartition`. If no elements in the
-    ///   collection match `belongsInSecondPartition`, the returned index is
-    ///   equal to the collection's `endIndex`.
-    ///
-    /// - Complexity: O(*n*) where *n* is the number of elements.
-    @discardableResult
-    public mutating func halfStablePartition(
-        by belongsInSecondPartition: (Element) throws -> Bool
-    ) rethrows -> Index
-        
-    /// Moves all elements satisfying `belongsInSecondPartition` into a suffix
-    /// of the collection, preserving their relative order, and returns the
-    /// start of the resulting suffix.
-    ///
-    /// This code example moves all the negative values in the `numbers` array
-    /// to a section at the end of the array.
-    ///
-    ///     var numbers = Array(-5...5)
-    ///     let startOfNegatives = numbers.stablePartition(by: { $0 < 0 })
-    ///     // numbers == [0, 1, 2, 3, 4, 5, -5, -4, -3, -2, -1]
-    ///
-    /// The partitioning operation maintains the initial relative order of the
-    /// elements in each section of the array.
-    ///
-    ///     // numbers[..<startOfNegatives] == [0, 1, 2, 3, 4, 5]
-    ///     // numbers[startOfNegatives...] == [-5, -4, -3, -2, -1]
-    ///
-    /// - Parameter belongsInSecondPartition: A predicate used to partition the
-    ///   collection. All elements satisfying this predicate are ordered after
-    ///   all elements not satisfying it.
-    /// - Returns: The index of the first element in the reordered collection
-    ///   that matches `belongsInSecondPartition`. If no elements in the
-    ///   collection match `belongsInSecondPartition`, the returned index is
-    ///   equal to the collection's `endIndex`.
-    ///
-    /// - Complexity: O(*n* log *n*) where *n* is the number of elements.
-    @discardableResult
-    public mutating func stablePartition(
-        by belongsInSecondPartition: (Element) throws -> Bool
-    ) rethrows -> Index
-}
 
 extension Collection {
-    /// Returns an array of the elements in this collection, partitioned by the
-    /// given predicate, and the index of the start of the second region.
+    /// Returns a collection of the elements in this collection that are not
+    /// represented by the given range set.
     ///
-    /// This code example moves all the negative values in the `numbers` array
-    /// to a section at the end of the array.
+    /// For example, this code sample finds the indices of all the vowel
+    /// characters in the string, and then retrieves a collection that omits
+    /// those characters.
     ///
-    ///     let numbers = Array(-5...5)
-    ///     let (partitioned, startOfNegatives) =
-    ///         numbers.stablyPartitioned(by: { $0 < 0 })
-    ///     // partitioned == [0, 1, 2, 3, 4, 5, -5, -4, -3, -2, -1]
+    ///     let str = "The rain in Spain stays mainly in the plain."
+    ///     let vowels: Set<Character> = ["a", "e", "i", "o", "u"]
+    ///     let vowelIndices = str.indices(where: { vowels.contains($0) })
     ///
-    /// The partitioning operation maintains the initial relative order of the
-    /// elements in each section of the array.
+    ///     let disemvoweled = str.removingAll(at: vowelIndices)
+    ///     print(String(disemvoweled))
+    ///     // Prints "Th rn n Spn stys mnly n th pln."
     ///
-    ///     // partitioned[..<startOfNegatives] == [0, 1, 2, 3, 4, 5]
-    ///     // partitioned[startOfNegatives...] == [-5, -4, -3, -2, -1]
-    ///
-    /// - Parameter belongsInSecondPartition: A predicate used to partition the
-    ///   collection. All elements satisfying this predicate are ordered after
-    ///   all elements not satisfying it.
-    /// - Returns: A tuple containing a new array that is partitioned by the 
-    ///   `belongsInSecondPartition` predicate and the index of the first 
-    ///   element in the array that matches the predicate. If no elements in
-    ///   the array match the predicate, the returned index is equal to the 
-    ///   array's `endIndex`.
-    ///
-    /// - Complexity: O(*n*) where *n* is the number of elements.
-    public func stablyPartitioned(
-        by belongsInSecondPartition: (Element) throws -> Bool
-    ) rethrows -> (partitioned: [Element], partitioningIndex: Int)
+    /// - Parameter indices: A range set representing the elements to remove.
+    /// - Returns: A collection of the elements that are not in `indices`.
+    public func removingAll(at indices: RangeSet<Index>) -> IndexingCollection<Self>
 }
 ```
 

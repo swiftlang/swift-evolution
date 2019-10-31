@@ -74,8 +74,8 @@ func resetStreets() { streets.sort() }
 let indicesEndingInSon = streets.indices(where: { $0.suffix(3) == "son" })
 print(indicesEndingInSon)
 
-// Iterate over RangeSet of strideable value
-for i in indicesEndingInSon.elements {
+// Iterate over a RangeSet by providing the initial collection
+for i in indicesEndingInSon.individualIndices(within: streets) {
     print(streets[i])
 }
 
@@ -99,24 +99,3 @@ let rangeOfShortStreets = streets.gather(indicesOfShortStreets, justBefore: 3)
 print(streets[..<rangeOfShortStreets.lowerBound])
 print(streets[rangeOfShortStreets])
 print(streets[rangeOfShortStreets.upperBound...])
-
-//===----------------------------------------------------------------------===//
-// Low-ish-level API
-//===----------------------------------------------------------------------===//
-
-// Existing partition by length
-resetStreets()
-_ = streets.partition(by: { $0.count <= 7})
-print(streets)
-
-// Stable partition by length
-resetStreets()
-_ = streets.stablePartition(by: { $0.count <= 7})
-print(streets)
-
-// Rotation
-resetStreets()
-let jeniferIndex = streets.firstIndex(of: "Jenifer")!
-streets.rotate(shiftingToStart: jeniferIndex)
-print(streets)
-
