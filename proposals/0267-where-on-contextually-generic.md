@@ -3,7 +3,7 @@
 * Proposal: [SE-0267](0267-where-on-contextually-generic.md)
 * Author: [Anthony Latsis](https://github.com/AnthonyLatsis)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Active review (October 21...October 31)**
+* Status: **Accepted**
 * Implementation: [apple/swift#23489](https://github.com/apple/swift/pull/23489)
 
 ## Introduction
@@ -18,11 +18,16 @@ struct Box<Wrapped> {
 ```
 
 > Only declarations that already support a generic parameter list will be allowed to carry a `where` clause inside a generic 
-> context. Generic properties and constraints on protocol requirements are out of scope for the current proposal.
+> context. Generic properties and constraints on protocol requirements or nonfinal class methods are out of scope for the current proposal.
 > For instance, the following remains an error:
 > ```swift
 > protocol P {
 >     // error: Instance method requirement 'foo(arg:)' cannot add constraint 'Self: Equatable' on 'Self'
+>     func foo() where Self: Equatable  
+> }
+>
+> class C {
+>     // error: Nonfinal method 'foo(arg:)' cannot add constraint 'Self: Equatable' on 'Self'
 >     func foo() where Self: Equatable  
 > }
 > ```
