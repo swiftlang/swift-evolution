@@ -216,7 +216,7 @@ Lastly, the hash of the binary is stored in the package resolved to avoid that t
 
 ## Impact on existing packages
 
-No current package should be affected by this change since this is only an additive in enabling SwiftPM to use binary dependencies.
+No current package should be affected by this change since this is only an additive change in enabling SwiftPM to use binary dependencies.
 
 ## Future directions
 
