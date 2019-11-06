@@ -18,7 +18,7 @@ struct Box<Wrapped> {
 ```
 
 > Only declarations that already support a generic parameter list will be allowed to carry a `where` clause inside a generic 
-> context. Generic properties and constraints on protocol requirements or nonfinal class methods are out of scope for the current proposal.
+> context. Generic properties, conditional protocol requirements and `Self` constraints on class methods are out of scope for the current proposal.
 > For instance, the following remains an error:
 > ```swift
 > protocol P {
@@ -27,7 +27,7 @@ struct Box<Wrapped> {
 > }
 >
 > class C {
->     // error: Nonfinal method 'foo(arg:)' cannot add constraint 'Self: Equatable' on 'Self'
+>     // error: type 'Self' in conformance requirement does not refer to a generic parameter or associated type
 >     func foo() where Self: Equatable  
 > }
 > ```
@@ -38,7 +38,7 @@ struct Box<Wrapped> {
 > }
 > ```
 
-Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/t/where-clauses-on-contextually-generic-declaractions/22449)
+[Swift-evolution thread](https://forums.swift.org/t/where-clauses-on-contextually-generic-declaractions/22449)
 
 ## Motivation
 
@@ -73,6 +73,22 @@ extension Foo where T: Sequence, T.Element: Equatable {
 A step towards generalizing `where` clause usage is an obvious and farsighted improvement to the generics
 system with numerous future applications, including generic properties, [opaque types](https://github.com/apple/swift-evolution/blob/master/proposals/0244-opaque-result-types.md), [generalized
 existentials](https://github.com/apple/swift/blob/master/docs/GenericsManifesto.md#generalized-existentials) and constrained protocol requirements. 
+
+## Detailed design
+### Overrides
+
+Like their generic analogues, contextually generic methods can be overriden as long as Liskov substitutability is respected, which is to say the generic signature of the override must be *at least* as general as that of the overriden method. 
+
+```swift 
+class Base<T> {
+    func foo() where T: Comparable { ... }
+}
+
+class Derived<T>: Base<T> {
+    // OK, the possible substitutions for <T: Equatable> are a superset of those for <T: Comparable>
+    override func foo() where T: Equatable { ... } 
+}
+```
 
 ## Source compatibility and ABI stability
 
