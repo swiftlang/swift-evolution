@@ -85,7 +85,7 @@ class Base<T> {
 }
 
 class Derived<T>: Base<T> {
-    // OK, the substitutions for <T: Equatable> are a superset of those for <T: Comparable>
+    // OK, the possible substitutions for <T: Equatable> are a superset of those for <T: Comparable>
     override func foo() where T: Equatable { ... } 
 }
 ```
