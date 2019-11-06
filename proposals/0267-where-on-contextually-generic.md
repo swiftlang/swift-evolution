@@ -18,7 +18,7 @@ struct Box<Wrapped> {
 ```
 
 > Only declarations that already support a generic parameter list will be allowed to carry a `where` clause inside a generic 
-> context. Generic properties, conditional protocol requirements and `Self` constraints on class methods are out of scope for the proposed changes the current proposal.
+> context. Generic properties, conditional protocol requirements and `Self` constraints on class methods are out of scope for the current proposal.
 > For instance, the following remains an error:
 > ```swift
 > protocol P {
