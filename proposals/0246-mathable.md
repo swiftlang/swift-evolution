@@ -8,7 +8,13 @@
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/b5bbc5ae1f53189641951acfd50870f5b886859e/proposals/0246-mathable.md) [2](https://github.com/apple/swift-evolution/blob/3afc4c68a4062ff045415f5eafb9d4956b30551b/proposals/0246-mathable.md)
 * Review: ([review](https://forums.swift.org/t/se-0246-generic-math-s-functions/21479)) ([acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0246-generic-math-functions/22244))
 
-**This proposal was accepted with modifications which have not yet been applied to this document.  Please see the acceptance post for further details.**
+**This proposal is accepted, but currently not implemented in Swift due to source breaking consequences relating
+to typechecker performance and shadowing rules. These are expected to be resolved in a future release
+of Swift, at which point this proposal can be implemented.**
+
+In the mean-time, users can make use of the [Swift Numerics](https://github.com/apple/swift-numerics) package, 
+which also provides this functionality.
+
 
 ## Introduction
 
@@ -128,22 +134,18 @@ adopt a clearer naming scheme for the protocol that most users see, while
 also giving `ElementaryFunctions` a more precise name, suitable for
 sophisticated uses.
 
-The third piece of the proposal is the `Math` module. This module sits next
-to the standard library, and provides generic free function implementations
-of math operations. Unlike the previous two additions, the availability of
-these functions is gated on Swift 5.1.
+The third piece of the proposal is the introduction of generic free function 
+implementations of math operations:
+
 ```swift
-(swift) import Math
 (swift) exp(1.0)
 // r0 : Float = 2.7182817
 ```
 
 Finally, we will update the platform imports to obsolete existing functions
-covered by the new free functions in the `Math` module, and also remove the
+covered by the new free functions, and also remove the
 imports of the suffixed <math.h> functions (which were actually never
-intended to be available in Swift). The Platform module will re-export the
-Math module, which allows most source code to migrate without any changes
-necessary. Updates will only be necessary with functions like `atan2(y: x:)`
+intended to be available in Swift). Updates will only be necessary with functions like `atan2(y: x:)`
 where we are adding argument labels or `logGamma( )` where we have new
 function names. In these cases we will deprecate the old functions instead 
 of obsoleting them to allow users time to migrate.
@@ -329,8 +331,7 @@ The following functions are exported by <math.h>, but will not be defined on Ele
 Most of these are not defined on ElementaryFunctions because they are inherently bound to the
 semantics of `FloatingPoint` or `BinaryFloatingPoint`, and so cannot be defined for
 types such as Complex or Decimal. Equivalents to many of them are already defined on
-`[Binary]FloatingPoint` anyway--in those cases free functions are defined by
-the Math module, but will be generic over `FloatingPoint` or `BinaryFloatingPoint`:
+`[Binary]FloatingPoint` anyway--in those cases free functions are defined as generic over `FloatingPoint` or `BinaryFloatingPoint`:
 ```swift
 @available(swift, introduced: 5.1)
 @_alwaysEmitIntoClient
@@ -436,13 +437,12 @@ syntactically) with an obvious name for logging facilities. However, depending o
 As an assistance, we will add `ln` in the `Math` module but mark it unavailable, referring
 users to `log`.
 
-5. We could put the free functions into the standard library instead of a separate module.
+5. We could put the free functions into a separate module instead of the standard library.
 Having them in a separate module helps avoid adding stuff to the global namespace
 unless you're actually using it, which is generally nice, and the precedent from other
-languages is pretty strong here: `#include <cmath>`, `import math`, etc. Having the 
-implementation hooks defined in the standard library makes them available in modules that
-only need them in a few places or want to use them in inlinable functions but don't want
-to have them in the global namespace or re-export them.
+languages is pretty strong here: `#include <cmath>`, `import math`, etc. However, 
+the general utility of having these functions available in the global namespace is felt
+to outweigh this.
 
 6. We could define an operator like `^` or `**` for one or both definitions of `pow`. I
 have opted to keep new operators out of this proposal, in the interests of focusing on
