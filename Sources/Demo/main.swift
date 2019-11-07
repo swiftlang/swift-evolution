@@ -6,34 +6,34 @@ import Prototype_RangeSet
 
 var numbers = Array(1...15)
 
-// Find the indices of all the multiples of three
-let indicesOfThree = numbers.indices(where: { $0.isMultiple(of: 3) })
+// Find the indices of all the even numbers
+let indicesOfEvens = numbers.indices(where: { $0.isMultiple(of: 2) })
 
-// Perform an operation with just those multiples
-let sumOfThrees = numbers[indicesOfThree].reduce(0, +)
-print(sumOfThrees)
-// sumOfThrees == 45
+// Perform an operation with just the even numbers
+let sumOfEvens = numbers[indicesOfEvens].reduce(0, +)
+print(sumOfEvens)
+// sumOfEvens == 56
 
-// Move the multiples of 3 to the beginning
-let rangeOfThree = numbers.gather(indicesOfThree, justBefore: 0)
-print(numbers[rangeOfThree])
+// You can gather the even numbers at the beginning
+let rangeOfEvens = numbers.gather(indicesOfEvens, at: numbers.startIndex)
+print(numbers[rangeOfEvens])
+// numbers[rangeOfEvens] == [2, 4, 6, 8, 10, 12, 14]
 print(numbers)
-// numbers[rangeOfThree] == [3, 6, 9, 12, 15]
-// numbers == [3, 6, 9, 12, 15, 18, 1, 2, 4, 5, 7, 8, 10, 11, 13, 14]
+// numbers == [2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15]
 
 // Reset `numbers`
 numbers = Array(1...15)
 
 // You can also build range sets by hand using array literals...
-let myRangeSet: RangeSet = [0..<5, 10..<15]
-print(Array(numbers[myRangeSet]))
+let notTheMiddle: RangeSet = [0..<5, 10..<15]
+print(Array(numbers[notTheMiddle]))
 // Prints [1, 2, 3, 4, 5, 11, 12, 13, 14, 15]
 
 // ...or by using set operations
-let evenThrees = indicesOfThree.intersection(
-    numbers.indices(where: { $0.isMultiple(of: 2) }))
-print(Array(numbers[evenThrees]))
-// Prints [6, 12]
+let smallEvens = indicesOfEvens.intersection(
+    numbers.indices(where: { $0 < 10 }))
+print(Array(numbers[smallEvens]))
+// Prints [2, 4, 6, 8]
 
 
 
@@ -75,7 +75,7 @@ let indicesEndingInSon = streets.indices(where: { $0.suffix(3) == "son" })
 print(indicesEndingInSon)
 
 // Iterate over a RangeSet by providing the initial collection
-for i in indicesEndingInSon.individualIndices(within: streets) {
+for i in streets.indices[indicesEndingInSon] {
     print(streets[i])
 }
 
@@ -94,7 +94,7 @@ print(streetsWithoutSon)
 
 // Gather all elements in range set to new index
 let indicesOfShortStreets = streets.indices(where: { $0.count <= 7 })
-let rangeOfShortStreets = streets.gather(indicesOfShortStreets, justBefore: 3)
+let rangeOfShortStreets = streets.gather(indicesOfShortStreets, at: 3)
 
 print(streets[..<rangeOfShortStreets.lowerBound])
 print(streets[rangeOfShortStreets])

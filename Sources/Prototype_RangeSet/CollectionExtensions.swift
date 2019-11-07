@@ -9,8 +9,8 @@ extension Collection {
     /// - Returns: A collection of the elements at the positions in `indices`.
     ///
     /// - Complexity: O(1)
-    public subscript(indices: RangeSet<Index>) -> IndexingCollection<Self> {
-        IndexingCollection(base: self, ranges: indices)
+    public subscript(indices: RangeSet<Index>) -> DiscontiguousSlice<Self> {
+        DiscontiguousSlice(base: self, ranges: indices)
     }
 }
 
@@ -25,9 +25,9 @@ extension MutableCollection {
     /// - Complexity: O(1) to access the elements, O(*m*) to mutate the
     ///   elements at the positions in `indices`, where *m* is the number of
     ///   elements indicated by `indices`.
-    public subscript(indices: RangeSet<Index>) -> IndexingCollection<Self> {
+    public subscript(indices: RangeSet<Index>) -> DiscontiguousSlice<Self> {
         get {
-            IndexingCollection(base: self, ranges: indices)
+            DiscontiguousSlice(base: self, ranges: indices)
         }
         set {
             for i in newValue.indices {
@@ -40,7 +40,8 @@ extension MutableCollection {
 // MARK: - move(from:to:) / move(to:where:)
 
 extension MutableCollection {
-    /// Shifts the elements in the given range to the specified insertion point.
+    /// Shifts the elements in the given range to just before the element at
+    /// the specified index.
     ///
     /// - Parameters:
     ///   - range: The range of the elements to move.
@@ -48,11 +49,10 @@ extension MutableCollection {
     ///     elements. `insertionPoint` must be a valid index of the collection.
     /// - Returns: The new bounds of the moved elements.
     ///
-    /// - Returns: The new bounds of the moved elements.
     /// - Complexity: O(*n*) where *n* is the length of the collection.
     @discardableResult
     public mutating func shift(
-        from range: Range<Index>, toJustBefore insertionPoint: Index
+        from range: Range<Index>, to insertionPoint: Index
     ) -> Range<Index> {
         if insertionPoint < range.lowerBound {
             let endIndex = _rotate(
@@ -71,8 +71,8 @@ extension MutableCollection {
         return range
     }
 
-    /// Shifts the elements in the given range expression to the specified
-    /// insertion point.
+    /// Shifts the elements in the given range expression to just before the
+    /// element at the specified index.
     ///
     /// - Parameters:
     ///   - range: The range of the elements to move.
@@ -83,13 +83,13 @@ extension MutableCollection {
     /// - Complexity: O(*n*) where *n* is the length of the collection.
     @discardableResult
     public mutating func shift<R : RangeExpression>(
-        from range: R, toJustBefore insertionPoint: Index
+        from range: R, to insertionPoint: Index
     ) -> Range<Index> where R.Bound == Index {
-        return shift(from: range.relative(to: self), toJustBefore: insertionPoint)
+        return shift(from: range.relative(to: self), to: insertionPoint)
     }
 
-    /// Moves the element at the given index to just before the specified
-    /// insertion point.
+    /// Moves the element at the given index to just before the element at the
+    /// specified index.
     ///
     /// This method moves the element at position `i` to immediately before
     /// `insertionPoint`. This example shows moving elements forward and
@@ -120,7 +120,7 @@ extension MutableCollection {
     /// - Complexity: O(*n*) where *n* is the length of the collection.
     @discardableResult
     public mutating func shift(
-        from source: Index, toJustBefore insertionPoint: Index
+        from source: Index, to insertionPoint: Index
     ) -> Index {
         _failEarlyRangeCheck(source, bounds: startIndex..<endIndex)
         _failEarlyRangeCheck(insertionPoint, bounds: startIndex..<endIndex)
@@ -133,49 +133,9 @@ extension MutableCollection {
             return insertionPoint
         }
     }
-    
-    /// Moves the element at the given index to the specified destination.
-    ///
-    /// This method moves the element at position `source` to the position given
-    /// as `destination`. This example shows moving elements forward and
-    /// backward in an array of numbers.
-    ///
-    ///     var numbers = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    ///     numbers.move(from: 9, to: 7)
-    ///     // numbers == [0, 1, 2, 3, 4, 5, 6, 9, 7, 8, 10]
-    ///     // numbers[7] == 9
-    ///
-    ///     numbers.move(from: 1, to: 4)
-    ///     // numbers == [0, 2, 3, 4, 1, 5, 6, 9, 7, 8, 10]
-    ///     // numbers[4] == 1
-    ///
-    /// To move an element to the end of a collection, pass the collection's
-    /// `endIndex` as the second parameter to the `shift(from:toJustBefore:)`
-    /// method.
-    ///
-    /// Parameters:
-    ///   - source: The index of the element to move. `source` must be a valid
-    ///     index of the collection that isn't `endIndex`.
-    ///   - destination: The index to use as the destination of the element.
-    ///     `destination` must be a valid index of the collection that isn't
-    ///     `endIndex`.
-    ///
-    /// - Complexity: O(*n*) where *n* is the length of the collection.
-    internal mutating func move(from source: Index, to destination: Index) {
-        _failEarlyRangeCheck(source, bounds: startIndex..<endIndex)
-        _failEarlyRangeCheck(destination, bounds: startIndex..<endIndex)
-        precondition(destination != endIndex, "Can't move an element to endIndex")
-        if source == destination {
-            return
-        } else if source < destination {
-            _rotate(in: source..<index(after: destination), shiftingToStart: index(after: source))
-        } else {
-            _rotate(in: destination..<index(after: source), shiftingToStart: source)
-        }
-    }
 
-    /// Collects the elements at the given indices just before the specified
-    /// index.
+    /// Collects the elements at the given indices just before the element at
+    /// the specified index.
     ///
     /// This example finds all the uppercase letters in the array and then
     /// gathers them between `"i"` and `"j"`.
@@ -194,7 +154,7 @@ extension MutableCollection {
     /// - Complexity: O(*n* log *n*) where *n* is the length of the collection.
     @discardableResult
     public mutating func gather(
-        _ indices: RangeSet<Index>, justBefore insertionPoint: Index
+        _ indices: RangeSet<Index>, at insertionPoint: Index
     ) -> Range<Index> {
         let lowerCount = distance(from: startIndex, to: insertionPoint)
         let upperCount = distance(from: insertionPoint, to: endIndex)
@@ -210,7 +170,7 @@ extension MutableCollection {
     }
 
     /// Collects the elements that satisfy the given predicate just before the
-    /// specified index.
+    /// element at the specified index.
     ///
     /// This example gathers all the uppercase letters in the array between
     /// `"i"` and `"j"`.
@@ -221,15 +181,15 @@ extension MutableCollection {
     ///     // rangeOfUppercase == 4..<13
     ///
     /// - Parameters:
+    ///   - insertionPoint: The index to use as the destination of the elements.
     ///   - predicate: A closure that returns `true` for elements that should
     ///     move to `destination`.
-    ///   - insertionPoint: The index to use as the destination of the elements.
     /// - Returns: The new bounds of the moved elements.
     ///
     /// - Complexity: O(*n* log *n*) where *n* is the length of the collection.
     @discardableResult
     public mutating func gather(
-        justBefore insertionPoint: Index, where predicate: (Element) -> Bool
+        at insertionPoint: Index, where predicate: (Element) -> Bool
     ) -> Range<Index> {
         let lowerCount = distance(from: startIndex, to: insertionPoint)
         let upperCount = distance(from: insertionPoint, to: endIndex)
@@ -354,7 +314,9 @@ extension Collection {
     ///
     /// - Parameter indices: A range set representing the elements to remove.
     /// - Returns: A collection of the elements that are not in `indices`.
-    public func removingAll(at indices: RangeSet<Index>) -> IndexingCollection<Self> {
+    ///
+    /// - Complexity: O(*n*), where *n* is the length of the collection.
+    public func removingAll(at indices: RangeSet<Index>) -> DiscontiguousSlice<Self> {
         let inversion = indices.inverted(within: self)
         return self[inversion]
     }

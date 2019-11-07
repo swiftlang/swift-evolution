@@ -1,6 +1,6 @@
 /// A collection wrapper that provides access to the elements of a collection,
 /// indexed by a set of indices.
-public struct IndexingCollection<Base: Collection> {
+public struct DiscontiguousSlice<Base: Collection> {
     /// The collection that the indexed collection wraps.
     public var base: Base
 
@@ -9,7 +9,7 @@ public struct IndexingCollection<Base: Collection> {
     public var ranges: RangeSet<Base.Index>
 }
 
-extension IndexingCollection {
+extension DiscontiguousSlice {
     /// A position in an `IndexingCollection`.
     public struct Index: Comparable {
         /// The index of the range that contains `base`.
@@ -24,9 +24,11 @@ extension IndexingCollection {
     }
 }
 
-extension IndexingCollection.Index: Hashable where Base.Index: Hashable {}
+extension DiscontiguousSlice.Index: Hashable where Base.Index: Hashable {}
 
-extension IndexingCollection: Collection {
+extension DiscontiguousSlice: Collection {
+    public typealias SubSequence = Self
+    
     public var startIndex: Index {
         ranges.isEmpty
             ? endIndex
@@ -56,9 +58,15 @@ extension IndexingCollection: Collection {
     public subscript(i: Index) -> Base.Element {
         base[i.base]
     }
+    
+    public subscript(bounds: Range<Index>) -> DiscontiguousSlice<Base> {
+        let baseBounds = bounds.lowerBound.base ..< bounds.upperBound.base
+        let subset = ranges.intersection(RangeSet(baseBounds))
+        return DiscontiguousSlice<Base>(base: base, ranges: subset)
+    }
 }
 
-extension IndexingCollection {
+extension DiscontiguousSlice {
     public var count: Int {
         var c = 0
         for range in ranges._ranges {
@@ -76,7 +84,7 @@ extension IndexingCollection {
     }
 }
 
-extension IndexingCollection: BidirectionalCollection where Base: BidirectionalCollection {
+extension DiscontiguousSlice: BidirectionalCollection where Base: BidirectionalCollection {
     public func index(before i: Index) -> Index {
         precondition(i != startIndex, "Can't move index before startIndex")
         
@@ -93,7 +101,7 @@ extension IndexingCollection: BidirectionalCollection where Base: BidirectionalC
     }
 }
 
-extension IndexingCollection: MutableCollection where Base: MutableCollection {
+extension DiscontiguousSlice: MutableCollection where Base: MutableCollection {
     public subscript(i: Index) -> Base.Element {
         get {
             base[i.base]

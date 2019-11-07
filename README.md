@@ -7,31 +7,31 @@ This library includes the `RangeSet` type and a variety of related collection op
 ```swift
 var numbers = Array(1...15)
 
-// Find the indices of all the multiples of three
-let indicesOfThree = numbers.indices(where: { $0.isMultiple(of: 3) })
+// Find the indices of all the even numbers
+let indicesOfEvens = numbers.indices(where: { $0.isMultiple(of: 2) })
 
-// Perform an operation with just those multiples
-let sumOfThrees = numbers[indicesOfThree].reduce(0, +)
-// sumOfThrees == 45
+// Perform an operation with just the even numbers
+let sumOfEvens = numbers[indicesOfEvens].reduce(0, +)
+// sumOfEvens == 56
 
-// You can gather the multiples of 3 at the beginning
-let rangeOfThree = numbers.gather(indicesOfThree, justBefore: 0)
-// numbers[rangeOfThree] == [3, 6, 9, 12, 15]
-// numbers == [3, 6, 9, 12, 15, 1, 2, 4, 5, 7, 8, 10, 11, 13, 14]
+// You can gather the even numbers at the beginning
+let rangeOfEvens = numbers.gather(indicesOfEvens, justBefore: numbers.startIndex)
+// numbers[rangeOfEvens] == [2, 4, 6, 8, 10, 12]
+// numbers == [2, 4, 6, 8, 10, 12, 1, 3, 5, 7, 9, 11, 13, 15]
 
 // Reset `numbers`
 numbers = Array(1...15)
 
 // You can also build range sets by hand using array literals...
-let myRangeSet: RangeSet = [0..<5, 10..<15]
-print(Array(numbers[myRangeSet]))
+let notTheMiddle: RangeSet = [0..<5, 10..<15]
+print(Array(numbers[notTheMiddle]))
 // Prints [1, 2, 3, 4, 5, 11, 12, 13, 14, 15]
 
 // ...or by using set operations
-let evenThrees = indicesOfThree.intersection(
-    numbers.indices(where: { $0.isMultiple(of: 2) }))
-print(Array(numbers[evenThrees]))
-// Prints [6, 12]
+let smallEvens = indicesOfEvens.intersection(
+    numbers.indices(where: { $0 < 10 }))
+print(Array(numbers[smallEvens]))
+// Prints [2, 4, 6, 8]
 ```
 
 ## Usage

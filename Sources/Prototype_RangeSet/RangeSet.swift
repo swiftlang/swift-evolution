@@ -49,20 +49,36 @@ public struct RangeSet<Bound: Comparable> {
         _ranges.isEmpty
     }
     
-    /// Returns a Boolean value indicating whether the given element is
+    /// Returns a Boolean value indicating whether the given value is
+    /// contained by the ranges in the range set.
+    ///
+    /// - Parameter value: The value to look for in the range set.
+    /// - Return: `true` if `value` is contained by a range in the range set;
+    ///   otherwise, `false`.
+    ///
+    /// - Complexity: O(log *n*), where *n* is the number of ranges in the
+    ///   range set.
+    public func contains(_ value: Bound) -> Bool {
+        let i = _ranges._partitioningIndex(where: { $0.upperBound > value })
+        return i == _ranges.endIndex
+            ? false
+            : _ranges[i].lowerBound <= value
+    }
+    
+    /// Returns a Boolean value indicating whether the given range is
     /// contained in the range set.
     ///
-    /// - Parameter element: The element to look for in the range set.
+    /// - Parameter range: The range to look for in the range set.
     /// - Return: `true` if `element` is contained in the range set; otherwise,
     ///   `false`.
     ///
     /// - Complexity: O(log *n*), where *n* is the number of ranges in the
     ///   range set.
-    public func contains(_ element: Bound) -> Bool {
-        let i = _ranges._partitioningIndex(where: { $0.upperBound > element })
+    public func contains(_ range: Range<Bound>) -> Bool {
+        let i = _ranges._partitioningIndex(where: { $0.upperBound >= range.upperBound })
         return i == _ranges.endIndex
             ? false
-            : _ranges[i].lowerBound <= element
+            : _ranges[i].lowerBound <= range.lowerBound
     }
     
     /// Returns a range indicating the existing ranges that `range` overlaps
@@ -118,6 +134,9 @@ public struct RangeSet<Bound: Comparable> {
     /// Inserts the given range into the range set.
     ///
     /// - Parameter range: The range to insert into the set.
+    ///
+    /// - Complexity: O(*n*), where *n* is the number of ranges in the range
+    ///   set.
     public mutating func insert(_ range: Range<Bound>) {
         // Shortcuts for the (literal) edge cases
         if range.isEmpty { return }
@@ -153,6 +172,9 @@ public struct RangeSet<Bound: Comparable> {
     /// Removes the given range from the range set.
     ///
     /// - Parameter range: The range to remove from the set.
+    ///
+    /// - Complexity: O(*n*), where *n* is the number of ranges in the range
+    ///   set.
     public mutating func remove(_ range: Range<Bound>) {
         // Shortcuts for the (literal) edge cases
         if range.isEmpty
@@ -267,6 +289,9 @@ extension RangeSet {
     ///   - index: The index to insert into the range set. `index` must be a
     ///     valid index of `collection` that isn't the collection's `endIndex`.
     ///   - collection: The collection that contains `index`.
+    ///
+    /// - Complexity: O(*n*), where *n* is the number of ranges in the range
+    ///   set.
     public mutating func insert<C>(_ index: Bound, within collection: C)
         where C: Collection, C.Index == Bound
     {
@@ -278,6 +303,9 @@ extension RangeSet {
     /// - Parameters:
     ///   - range: The range expression to insert into the range set.
     ///   - collection: The collection that `range` is relative to.
+    ///
+    /// - Complexity: O(*n*), where *n* is the number of ranges in the range
+    ///   set.
     public mutating func insert<R, C>(_ range: R, within collection: C)
         where C: Collection, C.Index == Bound, R: RangeExpression, R.Bound == Bound
     {
@@ -291,6 +319,9 @@ extension RangeSet {
     ///   - index: The index to remove from the range set. `index` must be a
     ///     valid index of `collection` that isn't the collection's `endIndex`.
     ///   - collection: The collection that contains `index`.
+    ///
+    /// - Complexity: O(*n*), where *n* is the number of ranges in the range
+    ///   set.
     public mutating func remove<C>(_ index: Bound, within collection: C)
         where C: Collection, C.Index == Bound
     {
@@ -302,6 +333,9 @@ extension RangeSet {
     /// - Parameters:
     ///   - range: The range expression to remove from the range set.
     ///   - collection: The collection that `range` is relative to.
+    ///
+    /// - Complexity: O(*n*), where *n* is the number of ranges in the range
+    ///   set.
     public mutating func remove<R, C>(_ range: R, within collection: C)
         where C: Collection, C.Index == Bound, R: RangeExpression, R.Bound == Bound
     {
@@ -329,6 +363,9 @@ extension RangeSet {
     ///   to.
     /// - Returns: A new range set that represents the elements in `collection`
     ///   that aren't represented by this range set.
+    ///
+    /// - Complexity: O(*n*), where *n* is the number of ranges in the range
+    ///   set.
     public func inverted<C>(within collection: C) -> RangeSet
         where C: Collection, C.Index == Bound
     {
@@ -340,22 +377,6 @@ extension RangeSet {
         }
         result.insert(low..<collection.endIndex)
         return result
-    }
-    
-    /// Returns a collection of all the indices represented by this range set
-    /// within the given collection.
-    ///
-    /// The indices in the returned collection are unique and are stored in
-    /// ascending order.
-    ///
-    /// - Parameter collection: The collection that the range set is relative
-    ///   to.
-    /// - Returns: A collection of the indices within `collection` that are
-    ///   represented by this range set.
-    public func individualIndices<C>(within collection: C) -> IndexingCollection<C.Indices>
-        where C: Collection, C.Index == Bound
-    {
-        collection.indices[self]
     }
 }
 

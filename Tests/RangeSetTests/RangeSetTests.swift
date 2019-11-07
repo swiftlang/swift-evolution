@@ -20,6 +20,34 @@ func buildRandomRangeSet(iterations: Int = 100) -> RangeSet<Int> {
 }
 
 final class RangeSetTests: XCTestCase {
+    func testContains() {
+        XCTAssertFalse(source.contains(0))
+        XCTAssertTrue(source.contains(1))
+        XCTAssertTrue(source.contains(4))
+        XCTAssertFalse(source.contains(5))
+        XCTAssertTrue(source.contains(28))
+        XCTAssertFalse(source.contains(29))
+
+        for _ in 0..<1000 {
+            let set = buildRandomRangeSet()
+            for i in parent.indices[set] {
+                XCTAssertTrue(set.contains(i))
+            }
+            
+            let inverted = set.inverted(within: parent)
+            for i in parent.indices[inverted] {
+                XCTAssertFalse(set.contains(i))
+            }
+        }
+        
+        XCTAssertTrue(source.contains(1..<5))
+        XCTAssertTrue(source.contains(1..<4))
+        XCTAssertTrue(source.contains(2..<5))
+        XCTAssertFalse(source.contains(2..<6))
+        XCTAssertFalse(source.contains(0..<5))
+        XCTAssertFalse(source.contains(2..<9))
+    }
+    
     func testInsertions() {
         do {
             // Overlap from middle to middle
@@ -110,8 +138,8 @@ final class RangeSetTests: XCTestCase {
     
     func testIntersection() {
         func intersectionViaSet(_ s1: RangeSet<Int>, _ s2: RangeSet<Int>) -> RangeSet<Int> {
-            let set1 = Set(s1.individualIndices(within: parent))
-            let set2 = Set(s2.individualIndices(within: parent))
+            let set1 = Set(parent.indices[s1])
+            let set2 = Set(parent.indices[s2])
             return RangeSet(set1.intersection(set2), within: parent)
         }
         
@@ -145,8 +173,8 @@ final class RangeSetTests: XCTestCase {
     
     func testSymmetricDifference() {
         func symmetricDifferenceViaSet(_ s1: RangeSet<Int>, _ s2: RangeSet<Int>) -> RangeSet<Int> {
-            let set1 = Set(s1.individualIndices(within: parent))
-            let set2 = Set(s2.individualIndices(within: parent))
+            let set1 = Set(parent.indices[s1])
+            let set2 = Set(parent.indices[s2])
             return RangeSet(set1.symmetricDifference(set2), within: parent)
         }
         

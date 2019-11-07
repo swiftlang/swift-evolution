@@ -6,6 +6,14 @@ let letterString = "ABCdefGHIjklMNOpqrStUvWxyz"
 let lowercaseLetters = letterString.filter { $0.isLowercase }
 let uppercaseLetters = letterString.filter { $0.isUppercase }
 
+extension Collection {
+    func every(_ n: Int) -> [Element] {
+        sequence(first: startIndex) { i in
+            self.index(i, offsetBy: n, limitedBy: self.endIndex)
+        }.map { self[$0] }
+    }
+}
+
 final class CollectionExtensionsTests: XCTestCase {
     func testIndicesWhere() {
         let a = [1, 2, 3, 4, 3, 3, 4, 5, 3, 4, 3, 3, 3]
@@ -47,10 +55,10 @@ final class CollectionExtensionsTests: XCTestCase {
         XCTAssertEqual(str, uppercaseLetters)
     }
     
-    func testMoveRangeSet() {
+    func testGatherRangeSet() {
         // Move before
         var numbers = Array(1...20)
-        let range1 = numbers.gather([10..<15, 18..<20], justBefore: 4)
+        let range1 = numbers.gather([10..<15, 18..<20], at: 4)
         XCTAssertEqual(range1, 4..<11)
         XCTAssertEqual(numbers, [
             1, 2, 3, 4,
@@ -60,7 +68,7 @@ final class CollectionExtensionsTests: XCTestCase {
         
         // Move to start
         numbers = Array(1...20)
-        let range2 = numbers.gather([10..<15, 18..<20], justBefore: 0)
+        let range2 = numbers.gather([10..<15, 18..<20], at: 0)
         XCTAssertEqual(range2, 0..<7)
         XCTAssertEqual(numbers, [
             11, 12, 13, 14, 15,
@@ -69,7 +77,7 @@ final class CollectionExtensionsTests: XCTestCase {
         
         // Move to end
         numbers = Array(1...20)
-        let range3 = numbers.gather([10..<15, 18..<20], justBefore: 20)
+        let range3 = numbers.gather([10..<15, 18..<20], at: 20)
         XCTAssertEqual(range3, 13..<20)
         XCTAssertEqual(numbers, [
             1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 16, 17, 18,
@@ -79,7 +87,7 @@ final class CollectionExtensionsTests: XCTestCase {
         
         // Move to middle of selected elements
         numbers = Array(1...20)
-        let range4 = numbers.gather([10..<15, 18..<20], justBefore: 14)
+        let range4 = numbers.gather([10..<15, 18..<20], at: 14)
         XCTAssertEqual(range4, 10..<17)
         XCTAssertEqual(numbers, [
             1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
@@ -89,24 +97,24 @@ final class CollectionExtensionsTests: XCTestCase {
 
         // Move none
         numbers = Array(1...20)
-        let range5 = numbers.gather([], justBefore: 10)
+        let range5 = numbers.gather([], at: 10)
         XCTAssertEqual(range5, 10..<10)
         XCTAssertEqual(numbers, Array(1...20))
     }
     
-    func testMoveRange() {
+    func testShiftRange() {
         let a = ["A", "B", "C", "D", "E", "F"]
         for lowerBound in a.indices {
             for upperBound in lowerBound..<a.endIndex {
                 for destination in a.indices {
                     var b = a
                     let source = lowerBound..<upperBound
-                    let result = b.shift(from: source, toJustBefore: destination)
+                    let result = b.shift(from: source, to: destination)
                     XCTAssertEqual(b[result], a[source])
 
                     // Compare result with RangeSet-based move
                     var c = a
-                    _ = c.gather(RangeSet(source), justBefore: destination)
+                    _ = c.gather(RangeSet(source), at: destination)
                     XCTAssertEqual(b, c)
                     
                     // Manual comparison
@@ -137,40 +145,26 @@ final class CollectionExtensionsTests: XCTestCase {
 
         // closed range
         var b = a
-        XCTAssertEqual(b.shift(from: 2...3, toJustBefore: 1), 1..<3)
+        XCTAssertEqual(b.shift(from: 2...3, to: 1), 1..<3)
         XCTAssertEqual(b, ["A", "C", "D", "B", "E", "F"])
     }
     
-    func testMoveIndividual() {
+    func testShiftIndividual() {
         let a = ["A", "B", "C", "D", "E", "F"]
         for source in a.indices {
             for dest in a.startIndex...a.endIndex {
                 var b = a
                 var c = a
                 let rs = RangeSet(source, within: a)
-                let resultingIndex = b.shift(from: source, toJustBefore: dest)
-                c.gather(rs, justBefore: dest)
+                let resultingIndex = b.shift(from: source, to: dest)
+                c.gather(rs, at: dest)
                 XCTAssertEqual(a[source], b[resultingIndex])
                 XCTAssertEqual(b, c)
             }
         }
     }
     
-//    func testMoveToDestinationIndividual() {
-//        let a = ["A", "B", "C", "D", "E", "F"]
-//        for source in a.indices {
-//            for dest in a.startIndex..<a.endIndex {
-//                var b = a
-//                b.move(from: source, to: dest)
-//                XCTAssertEqual(a[source], b[dest])
-//                XCTAssertEqual(
-//                    a[..<source] + a[(source + 1)...],
-//                    b[..<dest] + b[(dest + 1)...])
-//            }
-//        }
-//    }
-//    
-    func testMovePredicate() {
+    func testGatherPredicate() {
         for length in 0..<11 {
             let initial = Array(0..<length)
             
@@ -180,14 +174,14 @@ final class CollectionExtensionsTests: XCTestCase {
                     let notf = { !f($0) }
                     
                     var array = initial
-                    var range = array.gather(justBefore: destination, where: f)
+                    var range = array.gather(at: destination, where: f)
                     XCTAssertEqual(array[range], initial.filter(f))
                     XCTAssertEqual(
                         array[..<range.lowerBound] + array[range.upperBound...],
                         initial.filter(notf))
 
                     array = initial
-                    range = array.gather(justBefore: destination, where: notf)
+                    range = array.gather(at: destination, where: notf)
                     XCTAssertEqual(array[range], initial.filter(notf))
                     XCTAssertEqual(
                         array[..<range.lowerBound] + array[range.upperBound...],
@@ -196,12 +190,44 @@ final class CollectionExtensionsTests: XCTestCase {
             }
         }
     }
-   
+    
+    func testDiscontiguousSliceSlicing() {
+        let initial = 1...100
+        
+        // Build an array of ranges that include alternating groups of 5 elements
+        // e.g. 1...5, 11...15, etc
+        let rangeStarts = initial.indices.every(10)
+        let rangeEnds = rangeStarts.compactMap {
+            initial.index($0, offsetBy: 5, limitedBy: initial.endIndex)
+        }
+        let ranges = zip(rangeStarts, rangeEnds).map(Range.init)
+        
+        // Create a collection of the elements represented by `ranges` without
+        // using `RangeSet`
+        let chosenElements = ranges.map { initial[$0] }.joined()
+        
+        let set = RangeSet(ranges)
+        let discontiguousSlice = initial[set]
+        XCTAssertEqual(discontiguousSlice, chosenElements)
+        
+        for (chosenIdx, disIdx) in zip(chosenElements.indices, discontiguousSlice.indices) {
+            XCTAssertEqual(chosenElements[chosenIdx...], discontiguousSlice[disIdx...])
+            XCTAssertEqual(chosenElements[..<chosenIdx], discontiguousSlice[..<disIdx])
+            for (chosenUpper, disUpper) in
+                zip(chosenElements.indices[chosenIdx...], discontiguousSlice.indices[disIdx...])
+            {
+                XCTAssertEqual(
+                    chosenElements[chosenIdx..<chosenUpper],
+                    discontiguousSlice[disIdx..<disUpper])
+            }
+        }
+    }
+    
     func testNoCopyOnWrite() {
         var numbers = COWLoggingArray(1...20)
         let copyCount = COWLoggingArray_CopyCount
         
-        _ = numbers.gather([10..<15, 18..<20], justBefore: 4)
+        _ = numbers.gather([10..<15, 18..<20], at: 4)
         XCTAssertEqual(copyCount, COWLoggingArray_CopyCount)
 
         numbers.removeAll(at: [2..<5, 10..<15, 18..<20])
