@@ -674,7 +674,7 @@ function filterProposals () {
   _updateURIFragment()
 
   determineNumberOfProposals(intersection)
-  updatedFilterStatus()
+  updateFilterStatus()
 }
 
 /**
@@ -1024,7 +1024,7 @@ function updateProposalsCount (count) {
   numberField.innerText = (count.toString() + ' proposal' + (count !== 1 ? 's' : ''))
 }
 
-function updatedFilterStatus () {
+function updateFilterStatus () {
   var labels = [].concat.apply([], document.querySelectorAll('#filter-options label'))
   labels.forEach(function (label) {
     var count = states[label.getAttribute('data-state-key')].count
