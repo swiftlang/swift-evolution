@@ -16,8 +16,8 @@ let sumOfEvens = numbers[indicesOfEvens].reduce(0, +)
 
 // You can gather the even numbers at the beginning
 let rangeOfEvens = numbers.gather(indicesOfEvens, justBefore: numbers.startIndex)
-// numbers[rangeOfEvens] == [2, 4, 6, 8, 10, 12]
-// numbers == [2, 4, 6, 8, 10, 12, 1, 3, 5, 7, 9, 11, 13, 15]
+// numbers == [2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15]
+// numbers[rangeOfEvens] == [2, 4, 6, 8, 10, 12, 14]
 
 // Reset `numbers`
 numbers = Array(1...15)
