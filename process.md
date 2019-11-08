@@ -56,14 +56,20 @@ for the upcoming Swift release will not be brought up for review. If you can't r
 * **Request a review**: initiate a pull request to the [swift-evolution repository][swift-evolution-repo] to indicate to the core team that you would like the proposal to be reviewed. When the proposal is sufficiently detailed and clear, and addresses feedback from earlier discussions of the idea, the pull request will be accepted. The proposal will be assigned a proposal number as well as a core team member to manage the review.
 * **Address feedback**: in general, and especially [during the review period][proposal-status], be responsive to questions and feedback about the proposal.
 
+## Preparing an implementation
+
+When you are ready to request a review, a pull request with an implementation is required in addition to your proposal. Proposals that can ship as part of the Swift Preview package should be paired with a pull request against the [swift-evolution-staging repository][swift-evolution-staging]. All other proposals should be paired with an implementation pull request against the [main Swift repository](https://github.com/apple/swift).
+
+The Swift Preview package can accept new types, protocols, and extensions to existing types and protocols that can be implemented without access to standard library internals or other non-public features. 
+
 ## Review process
 
 The review process for a particular proposal begins when a member of
 the core team accepts a pull request of a new or updated proposal into
 the [swift-evolution repository][swift-evolution-repo]. That core team
 member becomes the *review manager* for the proposal. The proposal
-is assigned a proposal number (if it is a new proposal), then enters
-the review queue.
+is assigned a proposal number (if it is a new proposal), and then enters
+the review queue. If your proposal's accompanying implementation takes the form of a package, the review manager will merge your pull request into a new branch in the [swift-evolution-staging repository][swift-evolution-staging].
 
 The review manager will work with the proposal authors to schedule the
 review. Reviews usually last a single week, but can run longer for
@@ -113,6 +119,7 @@ A given proposal can be in one of several states:
   write the version number for which the implementation will be complete.
 
 [swift-evolution-repo]: https://github.com/apple/swift-evolution  "Swift evolution repository"
+[swift-evolution-staging]: https://github.com/apple/swift-evolution-staging  "Swift evolution staging repository"
 [proposal-reviews]: https://forums.swift.org/c/evolution/proposal-reviews "'Proposal reviews' category of the Swift forums"
 [proposal-status]: https://apple.github.io/swift-evolution/
 
