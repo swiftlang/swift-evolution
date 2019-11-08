@@ -5,14 +5,14 @@ public struct RangeSet<Bound: Comparable> {
     /// Creates an empty range set.
     public init() {}
 
-    /// Creates a range set with the given range.
+    /// Creates a range set containing the given range.
     ///
     /// - Parameter range: The range to use for the new range set.
     public init(_ range: Range<Bound>) {
         self._ranges = [range]
     }
     
-    /// Creates a range set with the given ranges.
+    /// Creates a range set containing the given ranges.
     ///
     /// - Parameter ranges: The ranges to use for the new range set.
     public init<S: Sequence>(_ ranges: S) where S.Element == Range<Bound> {
@@ -59,7 +59,7 @@ public struct RangeSet<Bound: Comparable> {
     /// - Complexity: O(log *n*), where *n* is the number of ranges in the
     ///   range set.
     public func contains(_ value: Bound) -> Bool {
-        let i = _ranges._partitioningIndex(where: { $0.upperBound > value })
+        let i = _ranges._partitioningIndex { $0.upperBound > value }
         return i == _ranges.endIndex
             ? false
             : _ranges[i].lowerBound <= value
@@ -75,7 +75,7 @@ public struct RangeSet<Bound: Comparable> {
     /// - Complexity: O(log *n*), where *n* is the number of ranges in the
     ///   range set.
     public func contains(_ range: Range<Bound>) -> Bool {
-        let i = _ranges._partitioningIndex(where: { $0.upperBound >= range.upperBound })
+        let i = _ranges._partitioningIndex { $0.upperBound >= range.upperBound }
         return i == _ranges.endIndex
             ? false
             : _ranges[i].lowerBound <= range.lowerBound
@@ -100,7 +100,7 @@ public struct RangeSet<Bound: Comparable> {
         // with an upper bound larger than `range`'s lower bound. The range
         // at this position may or may not overlap `range`.
         let beginningIndex = _ranges
-            ._partitioningIndex(where: { $0.upperBound >= range.lowerBound })
+            ._partitioningIndex { $0.upperBound >= range.lowerBound }
         
         // The ending index for `range` is the first range with a lower bound
         // greater than `range`'s upper bound. If this is the same as
@@ -109,7 +109,7 @@ public struct RangeSet<Bound: Comparable> {
         // rest of the ranges. Otherwise, `range` overlaps one or
         // more ranges in the set.
         let endingIndex = _ranges[beginningIndex...]
-            ._partitioningIndex(where: { $0.lowerBound > range.upperBound })
+            ._partitioningIndex { $0.lowerBound > range.upperBound }
 
         return beginningIndex ..< endingIndex
     }
@@ -162,8 +162,12 @@ public struct RangeSet<Bound: Comparable> {
         }
         
         // Find the lower and upper bounds of the overlapping ranges.
-        let newLowerBound = Swift.min(_ranges[indices.lowerBound].lowerBound, range.lowerBound)
-        let newUpperBound = Swift.max(_ranges[indices.upperBound - 1].upperBound, range.upperBound)
+        let newLowerBound = Swift.min(
+            _ranges[indices.lowerBound].lowerBound,
+            range.lowerBound)
+        let newUpperBound = Swift.max(
+            _ranges[indices.upperBound - 1].upperBound,
+            range.upperBound)
         _ranges.replaceSubrange(
             indices,
             with: CollectionOfOne(newLowerBound..<newUpperBound))
@@ -188,17 +192,21 @@ public struct RangeSet<Bound: Comparable> {
         // No actual overlap, nothing to remove.
         if indices.isEmpty { return }
         
-        let overlapsLowerBound = range.lowerBound > _ranges[indices.lowerBound].lowerBound
-        let overlapsUpperBound = range.upperBound < _ranges[indices.upperBound - 1].upperBound
+        let overlapsLowerBound =
+          range.lowerBound > _ranges[indices.lowerBound].lowerBound
+        let overlapsUpperBound =
+          range.upperBound < _ranges[indices.upperBound - 1].upperBound
         
         switch (overlapsLowerBound, overlapsUpperBound) {
         case (false, false):
             _ranges.removeSubrange(indices)
         case (false, true):
-            let newRange = range.upperBound..<_ranges[indices.upperBound - 1].upperBound
+            let newRange =
+              range.upperBound..<_ranges[indices.upperBound - 1].upperBound
             _ranges.replaceSubrange(indices, with: CollectionOfOne(newRange))
         case (true, false):
-            let newRange = _ranges[indices.lowerBound].lowerBound..<range.lowerBound
+            let newRange =
+              _ranges[indices.lowerBound].lowerBound..<range.lowerBound
             _ranges.replaceSubrange(indices, with: CollectionOfOne(newRange))
         case (true, true):
             _ranges.replaceSubrange(indices, with: Pair(
@@ -242,8 +250,8 @@ extension RangeSet {
 // MARK: - Collection APIs
 
 extension RangeSet {
-    /// Creates a new range set with the specified index in the given
-    /// collection.
+    /// Creates a new range set containing a range that contains only the
+    /// specified index in the given collection.
     ///
     /// - Parameters:
     ///   - index: The index to include in the range set. `index` must be a
@@ -256,8 +264,8 @@ extension RangeSet {
         self.init(range)
     }
     
-    /// Creates a new range set with the specified indices in the given
-    /// collection.
+    /// Creates a new range set containing ranges that contain only the
+    /// specified indices in the given collection.
     ///
     /// - Parameters:
     ///   - index: The index to include in the range set. `index` must be a
@@ -271,7 +279,8 @@ extension RangeSet {
         }
     }
     
-    /// Creates a new range set with the specified range expression.
+    /// Creates a new range set containing the range represented by the
+    /// specified range expression.
     ///
     /// - Parameters:
     ///   - range: The range expression to use as the set's initial range.
@@ -283,7 +292,8 @@ extension RangeSet {
         self.init(concreteRange)
     }
     
-    /// Inserts the specified index into the range set.
+    /// Inserts a range that contains only the specified index into the range
+    /// set.
     ///
     /// - Parameters:
     ///   - index: The index to insert into the range set. `index` must be a
@@ -298,7 +308,8 @@ extension RangeSet {
         insert(index ..< collection.index(after: index))
     }
     
-    /// Inserts the specified range expression into the range set.
+    /// Inserts the range represented by the specified range expression into
+    /// the range set.
     ///
     /// - Parameters:
     ///   - range: The range expression to insert into the range set.
@@ -313,7 +324,8 @@ extension RangeSet {
         insert(concreteRange)
     }
     
-    /// Removes the specified index from the range set.
+    /// Removes the range that contains only the specified index from the range
+    /// set.
     ///
     /// - Parameters:
     ///   - index: The index to remove from the range set. `index` must be a
@@ -328,7 +340,8 @@ extension RangeSet {
         remove(index ..< collection.index(after: index))
     }
     
-    /// Removes the specified range expression from the range set.
+    /// Removes the range represented by the specified range expression from
+    /// the range set.
     ///
     /// - Parameters:
     ///   - range: The range expression to remove from the range set.

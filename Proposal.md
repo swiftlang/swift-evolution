@@ -70,7 +70,7 @@ public struct RangeSet<Bound: Comparable> {
     /// Creates a range set containing the given range.
     public init(_ range: Range<Bound>)
     
-    /// Creates a range set with the given ranges.
+    /// Creates a range set containing the given ranges.
     public init<S: Sequence>(_ ranges: S) where S.Element == Range<Bound>
     
     /// A Boolean value indicating whether the range set is empty.
@@ -160,17 +160,18 @@ The initializers and methods are listed below:
 
 ```swift
 extension RangeSet {
-    /// Creates a new range set with a range that contains only the specified 
-    /// index in the given collection.
+    /// Creates a new range set containing a range that contains only the 
+    /// specified index in the given collection.
     public init<C>(_ index: Bound, within collection: C)
         where C: Collection, C.Index == Bound
     
-    /// Creates a new range set with ranges that contain only the specified
-    /// indices in the given collection.
+    /// Creates a new range set containing ranges that contain only the
+    /// specified indices in the given collection.
     public init<S, C>(_ indices: S, within collection: C)
         where S: Sequence, C: Collection, S.Element == C.Index, C.Index == Bound
     
-    /// Creates a new range set with the specified range expression.
+    /// Creates a new range set containing the range represented by the 
+    /// specified range expression.
     public init<R, C>(_ range: R, within collection: C)
         where C: Collection, C.Index == Bound, R: RangeExpression, R.Bound == Bound
     
@@ -179,7 +180,8 @@ extension RangeSet {
     public mutating func insert<C>(_ index: Bound, within collection: C)
         where C: Collection, C.Index == Bound
     
-    /// Inserts the specified range expression into the range set.
+    /// Inserts the range represented by the specified range expression into 
+    /// the range set.
     public mutating func insert<R, C>(_ range: R, within collection: C)
         where C: Collection, C.Index == Bound, R: RangeExpression, R.Bound == Bound
     
@@ -188,7 +190,8 @@ extension RangeSet {
     public mutating func remove<C>(_ index: Bound, within collection: C)
         where C: Collection, C.Index == Bound
     
-    /// Removes the specified range expression from the range set.
+    /// Removes the range represented by the specified range expression from 
+    /// the range set.
     public mutating func remove<R, C>(_ range: R, within collection: C)
         where C: Collection, C.Index == Bound, R: RangeExpression, R.Bound == Bound
 
@@ -517,7 +520,7 @@ extension MutableCollection {
 
 #### Removing elements
 
-Within a range-replaceable collection, you can remove the elements represented by a range set. The implementation provides an additional, in-place overload for range-replaceable collections that also conform to `MutableCollection`.
+Within a range-replaceable collection, you can remove the elements represented by a range set. `removeAll(at:)` is a new `RangeReplaceableCollection` requirement with a default implementation, along with additional overload for collections that also conform to `MutableCollection`.
 
 ```swift
 extension RangeReplaceableCollection {
@@ -573,8 +576,45 @@ This proposal only makes additive changes to the existing ABI.
 
 ### Effect on API resilience
 
-TBD…
+All the proposed additions are versioned.
 
 ## Alternatives considered
 
-TBD…
+### `SetAlgebra` Conformance
+
+An earlier version of this proposal included `SetAlgebra` conformance when the `Bound` type was `Stridable` with an integer `Stride`. The idea behind this constraint was that with an integer-strideable bound, `RangeSet` could translate an individual value into a `Range` which contained just that value. This translation enabled the implementation of `SetAlgebra` methods like insertion and removal of individual elements.
+
+However, when working with collection indices, there is no guarantee that the correct stride distance is the same for all integer-stridable types. For example, when working with a collection `C` that uses even integers as its indices, removing a single integer from a `RangeSet<C.Index>` could leave an odd number as the start of one of the constitutive ranges:
+
+```swift
+let numbers = (0..<20).lazy.filter { $0.isMultiple(of: 2) }
+var set = RangeSet(0..<10)
+set.remove(4)
+// set.ranges == [0..<4, 5..<10]
+```
+
+Since `5` is not a valid index of `numbers`, it's an error to use it when subscripting the collection.
+
+One way of avoiding this issue would be to change the internal representation of `RangeSet` to store an enum of single values, ranges, and fully open ranges:
+
+```swift
+enum _RangeSetValue {
+    case single(Bound)
+    case halfOpen(Range<Bound>)
+    case fullyOpen(lower: Bound, upper: Bound)
+}
+```
+
+This implementation would allow correct `SetAlgebra` conformance, but lose the ability to always have a maximally efficient representation of ranges and a single canonical empty state. Through additions and removals, you could end up with a series of a fully-open ranges, none of which actually contain any values in the `Bound` type.
+
+```swift
+var set: RangeSet = [1..<4]
+set.remove(2)
+set.remove(3)
+set.remove(4)
+// set.ranges == [.fullyOpen(1, 2), .fullyOpen(2, 3), .fullyOpen(3, 4)]
+```
+
+### `Elements` View
+
+In an earlier version of the proposal, `RangeSet` included a collection view of the indices, conditionally available when the `Bound` type was strideable with an integer stride. This collection view was removed for the same reasons as covered in the section above. Users can access these indices by using a `RangeSet` as a subscript for the source collection's `indices` property.

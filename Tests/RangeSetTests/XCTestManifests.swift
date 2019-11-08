@@ -6,13 +6,14 @@ extension CollectionExtensionsTests {
     //   `swift test --generate-linuxmain`
     // to regenerate.
     static let __allTests__CollectionExtensionsTests = [
+        ("testDiscontiguousSliceSlicing", testDiscontiguousSliceSlicing),
+        ("testGatherPredicate", testGatherPredicate),
+        ("testGatherRangeSet", testGatherRangeSet),
         ("testIndicesWhere", testIndicesWhere),
-        ("testMoveIndividual", testMoveIndividual),
-        ("testMovePredicate", testMovePredicate),
-        ("testMoveRange", testMoveRange),
-        ("testMoveRangeSet", testMoveRangeSet),
         ("testNoCopyOnWrite", testNoCopyOnWrite),
         ("testRemoveAllRangeSet", testRemoveAllRangeSet),
+        ("testShiftIndividual", testShiftIndividual),
+        ("testShiftRange", testShiftRange),
     ]
 }
 
@@ -21,6 +22,7 @@ extension RangeSetTests {
     //   `swift test --generate-linuxmain`
     // to regenerate.
     static let __allTests__RangeSetTests = [
+        ("testContains", testContains),
         ("testInsertions", testInsertions),
         ("testIntersection", testIntersection),
         ("testInvariant", testInvariant),
