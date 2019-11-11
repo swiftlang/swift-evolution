@@ -1,13 +1,16 @@
 # Standard Library Preview Package
 
-* Proposal: [SE-NNNN](NNNN-stdlib-preview-package.md)
+* Proposal: [SE-0264](0264-stdlib-preview-package.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift), [Max Moiseev](https://github.com/moiseev), [Nate Cook](https://github.com/natecook1000)
 * Review Manager: [Dave Abrahams](https://github.com/dabrahams)
 * Status: **Awaiting Review**
-
+* Implementation:
+    1. [apple/swift-evolution#1089](https://github.com/apple/swift-evolution/pull/1089)
+    2. [apple/swift-evolution#1090](https://github.com/apple/swift-evolution/pull/1090)
+    3. [apple/swift-evolution#1091](https://github.com/apple/swift-evolution/pull/1091)
 * Pitch Discussion: [Pitch: Standard Library Preview Package](https://forums.swift.org/t/pitch-standard-library-preview-package/27202)
 * Previous Review: [SE-0264 — Standard Library Preview Package](https://forums.swift.org/t/se-0264-standard-library-preview-package/29068)
-* Decision: [Returned for Revision](https://forums.swift.org/t/returned-for-revision-se-0264-standard-library-preview-package/29865)
+* Previous Decision: [Returned for Revision](https://forums.swift.org/t/returned-for-revision-se-0264-standard-library-preview-package/29865)
 
 ## Introduction
 
