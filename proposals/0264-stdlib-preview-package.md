@@ -171,5 +171,4 @@ An alternative to keeping the semver major version at `0` is to not version the 
 
 ### A Monolithic `SwiftPreview` Package
 
-An alternative to keeping the semver major version at `0` is to not version the package at all. With this approach, the package could only be included by packages by specifying a branch-based dependency. However, this would be too restricting at this time, as a branch-based dependency can only be imported by other branch-based dependencies. This would effectively limit use of the `SwiftPreview` package to top-level applications only.
-
+A previous version of this proposal described a single preview package that included all of the approved proposal implementations. A monolithic package like that one poses a challenge to adopters attempting to reason about the size and scope of their dependencies. This is particularly an issue for packages like `SwiftPreview`, which is expected to break source compatibility as proposals are added and removed. Providing individual, versioned packages for each approved proposal, in addition to the umbrella `SwiftPreview` package, provides more control to adopters of preview functionality.
