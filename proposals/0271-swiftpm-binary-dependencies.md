@@ -1,9 +1,23 @@
-# Binary dependencies
+# Package Manager Binary Dependencies
 
-* Proposal: [SE-271](0271-swiftpm-binary-dependencies.md)
+* Proposal: [SE-0271](0271-swiftpm-binary-dependencies.md)
 * Authors: [Braden Scothern](https://github.com/bscothern), [Boris Bügling](https://github.com/neonichu), [Daniel Dunbar](https://github.com/ddunbar), [Franz Busch](https://github.com/FranzBusch)
 * Review Manager: [Boris Bügling](https://github.com/neonichu)
 * Status: **Active review (November 13...November 20)**
+
+## Contents
+
++ [Introduction](#introduction)
++ [Motivation](#motivation)
++ [Proposed solution](#proposed-solution)
++ [Detailed design](#detailed-design)
++ [New `PackageDescription` API](#new-packagedescription-api)
++ [New `Package.resolved` Behavior](#new-packageresolved-behavior)
++ [Binary Target Artifact Format](#binary-target-artifact-format)
++ [Security](#security)
++ [Impact on existing packages](#impact-on-existing-packages)
++ [Future directions](#future-directions)
++ [Alternatives considered](#alternatives-considered)
 
 ## Introduction
 
@@ -18,7 +32,7 @@ and to some extent "simple", it limits their use in several important cases:
 
 For example, consider these use cases:
 
- * Someone want's to create a Swift package for
+ * Someone wants to create a Swift package for
    generating [LLVM](https://llvm.org) code. However, LLVM's build process is
    far more complex than can be currently fit into SwiftPM's build model. This
    makes building an *easy to use* package difficult.
@@ -31,15 +45,13 @@ For example, consider these use cases:
    the source code.
 
 This proposal defines a new SwiftPM feature to allow SwiftPM to accept some
-forms of "binary packages". This proposal is intentionally written to be a
+forms of "binary packages". This proposal is intentionally written to
 address the above use cases *explicitly*, it **does not** define a general
 purpose "binary artifact" mechanism intended to address other use cases (such as
 accelerating build performance). The motivations for this are discussed in more
 detail below.
 
-Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/)
-
-Pitch Thread: https://forums.swift.org/t/spm-support-for-binaries-distribution/25549/24
+Swift-evolution thread: [\[PITCH\] Support for binary dependencies](https://forums.swift.org/t/pitch-support-for-binary-dependencies/27620)
                         
 ## Motivation
 
@@ -52,7 +64,7 @@ communities.
 
 Prior to Swift 5.1, the Swift compiler itself did not expose all of the features
 (like ABI compatibility) required to build a workable solution. Now that those
-features are present, it makes sense to reevaluate the role of binary packages.
+features are present, it makes sense to re-evaluate the role of binary packages.
 
 The goal of this proposal is to make *consumption* of binary packages as
 described above *easy*, *intuitive*, *safe*, and *consistent*. This proposal
@@ -84,7 +96,8 @@ let package = Package(
             name: "SomePackageLib",
             artifacts: [
                 .artifact(
-                    source: .url("https://github.com/some/package/releases/download/1.0.0/SomePackage-1.0.0.zip", checksum: "839F9F30DC13C30795666DD8F6FB77DD0E097B83D06954073E34FE5154481F7A")),
+                    source: .url("https://github.com/some/package/releases/download/1.0.0/SomePackage-1.0.0.zip",
+                    checksum: "839F9F30DC13C30795666DD8F6FB77DD0E097B83D06954073E34FE5154481F7A")),
             ]
         )
      ]
@@ -115,7 +128,7 @@ When a package is built that depends upon any product with a binary target, the
 package manager will search the `artifacts` declaration list to find an artifact
 which matches the current build conditions. This list
 will be searched in order, and the first matching artifact will be used. It is
-the job of the package author/published to provide an appropriate set of
+the job of the package author/publisher to provide an appropriate set of
 artifacts for the use cases the package wishes to support. This use case will be limited to Apple platforms in the beginning. In the future, we can add support for other platforms. A potential approach is outlined in the future directions section.
 
 ## Detailed design
@@ -137,7 +150,7 @@ Terminology:
 Our design attempts to optimize for the following goals:
 
 * Ease of use for clients
-* Easy of implementation in existing SwiftPM
+* Ease of implementation in existing SwiftPM
 * Ease of maintenance in the face of an evolving SwiftPM
 * Understandable composition with current and upcoming SwiftPM features
 * Support existing well-known occurrences of binary artifacts in the existing
@@ -152,7 +165,7 @@ while keeping the following as non-goals:
 ## New `PackageDescription` API
 
 ### BinaryTarget
-Since, a binary target is different compared to a source only target, we propose to introduce a new struct `Artifact`. This struct defines a targets associated artifacts.
+Since a binary target is different compared to a source only target, we propose to introduce a new struct `Artifact`. This struct defines a target's associated artifacts.
 
 We propose to support local and remote artifacts from the beginning. In the alternatives considered section is larger collection of potential artifact stores. However we opted to simplify the initial implementation by just supporting a url and a path based definition. Later, we can implement different types of providers with different authentication methods.
 
@@ -194,7 +207,7 @@ During resolution SwiftPM will check that all references to an artifact in a dep
 
 ## Binary Target Artifact Format
 
-SwiftPM currently supports multiple platforms; however, this proposal only proposes to add support for binary targets on Apple platforms. The reason for this is that Apple platform provide ABI guarantees and an already existing format we can leverage to make simplify the initial implementation. For Apple platforms we propose to use the `XCFramework` format for artifacts. This format already supports dynamic and static linking. Furthermore, it can contain products for every individual Apple platform at once.
+SwiftPM currently supports multiple platforms; however, this proposal only adds support for binary targets on Apple platforms. The reason for this is that Apple platforms provide ABI guarantees and an already existing format we can leverage to simplify the initial implementation. For Apple platforms we propose to use the `XCFramework` format for artifacts. This format already supports dynamic and static linking. Furthermore, it can contain products for every individual Apple platform at once.
 
 ## Security
 
@@ -215,7 +228,7 @@ No current package should be affected by this change since this is only an addit
 ### Support for non-Apple platforms
 Non-Apple platforms provide non-trivial challenges since they are not always giving guarantees of the ABI of the platform. Additionally, further conditions such as the corelibs-foundation ABI or if the hardware supports floating points need to be taken into consideration when declaring a package for non-Apple platforms. Various other communities tried to solve this, e.g. Python's [manylinux](https://www.python.org/dev/peps/pep-0600/).
 
-In the future, we could add a `ArtificatCondition` to SwiftPM which provides the possibility to declare under which conditions a certain artifact can be used. Below is a potential `ArtifactCondition` struct which does **not** include a complete set of conditions that need to be taken into consideration.
+In the future, we could add an `ArtifactCondition ` to SwiftPM which provides the possibility to declare under which conditions a certain artifact can be used. Below is a potential `ArtifactCondition` struct which does **not** include a complete set of conditions that need to be taken into consideration.
 
 ```swift
 public struct ArtifactCondition: Encodable {
@@ -336,7 +349,7 @@ proposal, we chose not to go that route, for the following reasons:
 
 * When used as a workflow improvement (e.g. to reduce the scope of searches),
   our position is that the user would ultimately have a better user experience
-  by explicitly enumarting and designing features (either in SwiftPM, or in
+  by explicitly enumerating and designing features (either in SwiftPM, or in
   related tools) to address these use cases. When analyzed, it may become clear
   that there is more nuance to the solution than an artifact caching scheme
   could reasonably support.
@@ -375,7 +388,7 @@ We considered adding signature checks during the checkout of binary dependencies
 ```
 
 ### Binary target vs. binary product
-During the discussion, it was brought up wether a binary dependency should be declared as a target or a product. Below is a list of what we took into consideration when deciding between target and product. In the end, a target seems like a better choice for a binary dependency.
+During the discussion, it was brought up whether a binary dependency should be declared as a target or a product. Below is a list of what we took into consideration when deciding between target and product. In the end, a target seems like a better choice for a binary dependency.
 
 - Targets allow configuring linker/compiler flags; this ability might be necessary for static libraries
 - There are already `systemLibraryTargets` which are essentially dependencies on pre-existing binaries on the host system
@@ -384,13 +397,13 @@ During the discussion, it was brought up wether a binary dependency should be de
 - Analogy with what currently is being produced by source packages (dylibs => product)
 
 ### .o file format
-During the discussion of the proposal, the idea of using `.o` files was brought up. This would follow what SwiftPM creates for source-based dependencies right now; therefor, making the integration potentially easier. The main benefit of using `.o` files would be that the product linking the binary artifact can decide wether to link it dynamically or statically. However, further discussion needs to happen here how this would work. For now XCFrameworks are the initial format. XCFrameworks will allow current framework authors to package their existing XCFrameworks and distribute them via SwiftPM.
+During the discussion of the proposal, the idea of using `.o` files was brought up. This would follow what SwiftPM creates for source-based dependencies right now; therefore, making the integration potentially easier. The main benefit of using `.o` files would be that the product linking the binary artifact can decide whether to link it dynamically or statically. However, further discussion needs to happen here how this would work. For now XCFrameworks are the initial format. XCFrameworks will allow current framework authors to package their existing XCFrameworks and distribute them via SwiftPM.
 
 ### Avoiding duplicate symbols with static libraries/frameworks
 When multiple products depend on a static library or framework it will result in duplicated symbols. SwiftPM could be smart enough to figure this out from the manifest and provide an error. This is a potential future improvement, but would require SwiftPM to know the linkage type of the artifact.
 
 ### Opt-in to allow binaries
-In the beginning, we considered to make binary support a opt-in feature so that only when somebody explicitly allows it then SwiftPM tried to use them. However, after discussion in the Swift forum we came to the conclusion that the trust one has to extend to a dependency is no different between a source-based and binary-based one; therefor, we made removed the opt-in behavior but added a opt-out behavior.
+In the beginning, we considered making binary support an opt-in feature so that only when somebody explicitly allows it then SwiftPM tried to use them. However, after discussion in the Swift forum we came to the conclusion that the trust one has to extend to a dependency is no different between a source-based and binary-based one; therefore, we removed the opt-in behavior but added an opt-out behavior.
 
 Using an opt-in mechanism for binary dependencies would also mean that any package that adds a binary dependencies would need to do a major version bump, because it will require any client to change something in their manifests.
 
@@ -398,7 +411,7 @@ Using an opt-in mechanism for binary dependencies would also mean that any packa
 During the discussion of this proposal another solution to the `allowsBinary` flag was brought up. That is to create a whitelist for URLs that are allowed origins for binary artifacts. This way one can still control from where binary dependencies come but it doesn't require to allow them for a complete dependency tree; therefore, giving more fine-grained control. However, we propose an opt-out mechanism instead. 
 
 ### Opt-out configuration in separate file
-During the discussion of this proposal it was decided that an opt-out mechanism was good to give package users and vendors an escape hatch. However, it was discussed wether this configuration should live inside the manifest or a separate configuration file. In this proposal, we opted to keep the configuration inside the manifest file.
+During the discussion of this proposal it was decided that an opt-out mechanism was good to give package users and vendors an escape hatch. However, it was discussed whether this configuration should live inside the manifest or a separate configuration file. In this proposal, we opted to keep the configuration inside the manifest file.
 
 ### Support for various artifact stores
 Initially, we considered the various artifact stores on the market and how we can integrate with them. We decided to support a URL based artifact definition for the first implementation since the various providers require each their own method of authentication. However, we wanted to keep the possibility for future additions of providers open; therefore, we made the source of an artifact an enum which can be extended.
@@ -409,9 +422,6 @@ Possible artifact stores we considered:
 - Gitlab
 - Bitbucket
 - Artifactory, Nexus etc.
-
-### Resources
-The intial version of the proposal used `XCFrameworks` as the format for artifacts on Apple platforms. As a side effect that would have allowed for resources to be included via these frameworks. However, we changed the format for artifacts to `.o` files to follow current standards in SwiftPM. After all, SwiftPM itself does not support resources yet; therefore, we consider not supporting them via binary targets is fine. Once SwiftPM supports resources, binary targets should gain support for them as well.
 
 ### Conditional Linkage
 During the discussion of this proposal it was brought up to support conditional linkage of binary targets. This is in itself a very useful feature; however, it applies to binary and source based targets. In the end, conditional linkage is an orthogonal feature which can be pitched separately.
