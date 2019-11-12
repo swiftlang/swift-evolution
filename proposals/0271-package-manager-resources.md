@@ -3,7 +3,7 @@
 * Proposal: [SE-0271](0271-package-manager-resources.md)
 * Authors: [Anders Bertelrud](https://github.com/abertelrud), [Ankit Aggarwal](https://github.com/aciidb0mb3r)
 * Review Manager: [Boris Buegling](https://github.com/neonichu)
-* Status: **Active review (11 12...11 19)**
+* Status: **Active review (November 12...November 19)**
 
 ## Introduction
 
