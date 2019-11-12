@@ -1,17 +1,9 @@
 # Binary dependencies
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-271](0271-swiftpm-binary-dependencies.md)
 * Authors: [Braden Scothern](https://github.com/bscothern), [Boris Bügling](https://github.com/neonichu), [Daniel Dunbar](https://github.com/ddunbar), [Franz Busch](https://github.com/FranzBusch)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
-
-*During the review process, add the following fields as needed:*
-
-* Implementation: [apple/swift-package-manager#NNNNN](https://github.com/apple/swift-package-manager/pull/NNNNN)
-* Decision Notes: [Rationale](https://forums.swift.org/), [Additional Commentary](https://forums.swift.org/)
-* Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM)
-* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
-* Previous Proposal: [SE-XXXX](XXXX-filename.md)
+* Review Manager: [Boris Bügling](https://github.com/neonichu)
+* Status: **Active review (November 13...November 20)**
 
 ## Introduction
 
@@ -191,7 +183,7 @@ public final class Package {
 
 ## New `Package.resolved` Behavior
 
-TODO: This still needs to be investigated.
+For binary targets we store the checksum of the artifact in the `Package.resolved`. This lets us check for errors during resolution where a package's version did not change but the checksum did. In this case we will throw an error alerting the user about this.
 
 ### Resolution
 
@@ -221,7 +213,7 @@ No current package should be affected by this change since this is only an addit
 ## Future directions
 
 ### Support for non-Apple platforms
-Non-Apple platform provide a non-trivial challenges since they are not always giving guarantees of the ABI of the platform. Additionally, further conditions such as the corelibs-foundation ABI or if the hardware supports floating points need to be taken into consideration when declaring a package for non-Apple platforms. Various other communities tried to solve this, e.g. Python's [manylinux](https://www.python.org/dev/peps/pep-0600/).
+Non-Apple platforms provide non-trivial challenges since they are not always giving guarantees of the ABI of the platform. Additionally, further conditions such as the corelibs-foundation ABI or if the hardware supports floating points need to be taken into consideration when declaring a package for non-Apple platforms. Various other communities tried to solve this, e.g. Python's [manylinux](https://www.python.org/dev/peps/pep-0600/).
 
 In the future, we could add a `ArtificatCondition` to SwiftPM which provides the possibility to declare under which conditions a certain artifact can be used. Below is a potential `ArtifactCondition` struct which does **not** include a complete set of conditions that need to be taken into consideration.
 
