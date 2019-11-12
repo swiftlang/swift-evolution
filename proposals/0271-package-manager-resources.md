@@ -1,9 +1,9 @@
-# Package Resources
+# Package Manager Resources
 
-* Proposal: [SE-NNNN](NNNN-package-manager-resources.md)
+* Proposal: [SE-0271](0271-package-manager-resources.md)
 * Authors: [Anders Bertelrud](https://github.com/abertelrud), [Ankit Aggarwal](https://github.com/aciidb0mb3r)
-* Review Manager: TBD
-* Status: **Pitch**
+* Review Manager: [Boris Buegling](https://github.com/neonichu)
+* Status: **Active review (11 12...11 19)**
 
 ## Introduction
 
