@@ -1,7 +1,7 @@
 # Package Manager Binary Dependencies
 
-* Proposal: [SE-0271](0271-swiftpm-binary-dependencies.md)
-* Authors: [Braden Scothern](https://github.com/bscothern), [Boris Bügling](https://github.com/neonichu), [Daniel Dunbar](https://github.com/ddunbar), [Franz Busch](https://github.com/FranzBusch)
+* Proposal: [SE-0272](0272-swiftpm-binary-dependencies.md)
+* Authors: [Braden Scothern](https://github.com/bscothern), [Daniel Dunbar](https://github.com/ddunbar), [Franz Busch](https://github.com/FranzBusch)
 * Review Manager: [Boris Bügling](https://github.com/neonichu)
 * Status: **Active review (November 13...November 20)**
 
