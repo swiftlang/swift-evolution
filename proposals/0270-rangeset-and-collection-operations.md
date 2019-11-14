@@ -33,7 +33,7 @@ let sumOfEvens = numbers[indicesOfEvens].reduce(0, +)
 // sumOfEvens == 56
 
 // You can gather the even numbers at the beginning
-let rangeOfEvens = numbers.gather(indicesOfEvens, justBefore: numbers.startIndex)
+let rangeOfEvens = numbers.gather(indicesOfEvens, at: numbers.startIndex)
 // numbers == [2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15]
 // numbers[rangeOfEvens] == [2, 4, 6, 8, 10, 12, 14]
 
@@ -408,7 +408,7 @@ extension MutableCollection {
     ///
     ///     var letters = Array("ABCdeFGhijkLMNOp")
     ///     let uppercase = letters.indices(where: { $0.isUppercase })
-    ///     let rangeOfUppercase = letters.gather(uppercase, justBefore: 10)
+    ///     let rangeOfUppercase = letters.gather(uppercase, at: 10)
     ///     // String(letters) == "dehiABCFGLMNOjkp"
     ///     // rangeOfUppercase == 4..<13
     ///
@@ -430,7 +430,7 @@ extension MutableCollection {
     /// `"i"` and `"j"`.
     ///
     ///     var letters = Array("ABCdeFGhijkLMNOp")
-    ///     let rangeOfUppercase = letters.gather(justBefore: 10) { $0.isUppercase }
+    ///     let rangeOfUppercase = letters.gather(at: 10) { $0.isUppercase }
     ///     // String(letters) == "dehiABCFGLMNOjkp"
     ///     // rangeOfUppercase == 4..<13
     ///
@@ -485,18 +485,18 @@ extension MutableCollection {
     /// backward in an array of integers.
     ///
     ///     var numbers = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    ///     let newIndexOfNine = numbers.shift(from: 9, toJustBefore: 7)
+    ///     let newIndexOfNine = numbers.shift(from: 9, to: 7)
     ///     // numbers == [0, 1, 2, 3, 4, 5, 6, 9, 7, 8, 10]
     ///     // newIndexOfNine == 7
     ///
-    ///     let newIndexOfOne = numbers.shift(from: 1, toJustBefore: 4)
+    ///     let newIndexOfOne = numbers.shift(from: 1, to: 4)
     ///     // numbers == [0, 2, 3, 1, 4, 5, 6, 9, 7, 8, 10]
     ///     // newIndexOfOne == 3
     ///
     /// To move an element to the end of a collection, pass the collection's
     /// `endIndex` as `insertionPoint`.
     ///
-    ///     numbers.shift(from: 0, toJustBefore: numbers.endIndex)
+    ///     numbers.shift(from: 0, to: numbers.endIndex)
     ///     // numbers == [2, 3, 1, 4, 5, 6, 9, 7, 8, 10, 0]
     ///
     /// - Parameters:
