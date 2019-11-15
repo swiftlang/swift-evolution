@@ -127,8 +127,8 @@ func makeIndex() -> Int {
   return nextIndex
 }
 
-let getFirst = \Array<Int>.[makeIndex()]     // Calls makeIndex(), gets 0, forms \Array<Int>.[0]
-let getSecond = \Array<Int>.[makeIndex()]    // Calls makeIndex(), gets 1, forms \Array<Int>.[1]
+let getFirst: ([Int]) -> Int = \Array<Int>.[makeIndex()]     // Calls makeIndex(), gets 0, forms \Array<Int>.[0]
+let getSecond: ([Int]) -> Int = \Array<Int>.[makeIndex()]    // Calls makeIndex(), gets 1, forms \Array<Int>.[1]
 
 assert(getFirst([1, 2, 3]) == 1)             // No matter how many times
 assert(getFirst([1, 2, 3]) == 1)             // you call getFirst(),
