@@ -1430,7 +1430,7 @@ public struct Observable<Value> {
     self.stored = wrappedValue
   }
   
-  public func register(_ observed: Observable) {
+  public func register(_ observed: Observed) {
     self.observed = observed
   }
   
