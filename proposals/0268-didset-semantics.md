@@ -5,6 +5,7 @@
 * Review Manager: [Ben Cohen](https://www.github.com/airspeedswift)
 * Status: **Active Review (21-31 October 2019)**
 * Implementation: [apple/swift#26632](https://github.com/apple/swift/pull/26632) 
+* Bug: [SR-5982](https://bugs.swift.org/browse/SR-5982)
 
 ## Introduction
 
@@ -120,7 +121,32 @@ foo.baz = 2
 
 This applies to a `didSet` on an overridden property as well - the call to the superclass getter will be skipped if the `oldValue` is not referenced in the body of the overridden property's `didSet`.
 
-This also resolves some pending bugs such as [SR-11297](https://bugs.swift.org/browse/SR-11297), [SR-11280](https://bugs.swift.org/browse/SR-11280) and [SR-5982](https://bugs.swift.org/browse/SR-5982).
+This also resolves some pending bugs such as [SR-11297](https://bugs.swift.org/browse/SR-11297) and [SR-11280](https://bugs.swift.org/browse/SR-11280).
+
+In order to avoid confusion as to when the getter is called or not, the implicit `oldValue` is now deprecated. If we do refer to the `oldValue` in the `didSet` body, then the compiler will generate a warning along with a fix-it to insert `oldValue` in parenthesis i.e. `didSet(oldValue) { ... }`. For example:
+
+```swift
+class Foo {
+  var bar = 0 { // Before
+    didSet {
+      guard oldValue != bar else { return } // This will now trigger a compiler warning to 
+                                            // remind the user that implicit oldValue is
+                                            // now deprecated, along with a fix-it to
+                                            // insert 'oldValue' in parenthesis on the
+                                            // `didSet`.
+      tableView.reloadData()
+    }
+  }
+
+  var bar = 0 { // After
+    didSet(oldValue) {
+      guard oldValue != bar else { return } // Okay
+      tableView.reloadData()
+    }
+  }
+}
+```
+
 
 As a bonus, if the property has a "simple" `didSet` and no `willSet`, then we could allow for modifications to happen in-place. For example:
 
@@ -151,7 +177,7 @@ This will provide a nice performance boost in some cases (for example, in the ea
 
 This does not break source compatibility, _unless_ someone is explicitly relying on the current buggy behavior (i.e. the property's getter being called even if the `oldValue` isn't referenced). However, I think the possibility of that is very small.
 
-However, it is possible to preserve the old behavior by either:
+It would still be possible to preserve the old behavior by either:
 
 1. Explicitly providing the `oldValue` argument to `didSet`: 
 ```swift
@@ -187,5 +213,3 @@ This does not affect API resilience - library authors can freely switch between 
 ## Future Directions
 
 We can apply the same treatment to `willSet` i.e. not pass the `newValue` if it does not refer to it in its body, although it wouldn't provide any real benefit as not passing `newValue` to `willSet` does not avoid anything, where as not passing `oldValue` to `didSet` avoids loading it.
-
-We can also deprecate the implicit `oldValue` and request users to explicitly provide `oldValue` in parenthesis (`didSet(oldValue) { ... }`) if they want to use it in the body of the observer. This will make the new behavior more obvious and self-documenting.
