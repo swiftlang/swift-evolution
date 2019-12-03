@@ -15,13 +15,13 @@ To use the umbrella library in a Swift Package Manager project,
 add the following to your `Package.swift` file's dependencies:
 
 ```swift
-.package(url: "https://github.com/apple/swift-preview.git", from: "0.0.0"),
+.package(url: "https://github.com/apple/SwiftPreview.git", from: "0.0.0"),
 ```
 
 > **Important:** The Swift Preview package is under continuous development, 
   and maintains a major version of `0` to indicate that it is not intended to be source stable.
   If you require source stability in your project, 
-  add the individual submodules instead of the `swift-preview` package.
+  add the individual submodules instead of the `SwiftPreview` package.
 
 ## Contributing
 

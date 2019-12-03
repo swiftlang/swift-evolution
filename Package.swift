@@ -14,7 +14,7 @@
 import PackageDescription
 
 let package = Package(
-  name: "swift-preview",
+  name: "SwiftPreview",
   products: [
     .library(
       name: "SwiftPreview",
