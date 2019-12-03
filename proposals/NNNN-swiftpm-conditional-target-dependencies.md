@@ -8,7 +8,7 @@
 
 ## Introduction
 
-This proposal introduces the ability for Swift package authors to conditionalize target dependencies on platform and configuration with a similar syntax to the one introduced in [SE-0248](0238-package-manager-build-settings.md) for build settings. This gives developers more flexibility to describe complex target dependencies to support multiple platforms or different configuration environments.
+This proposal introduces the ability for Swift package authors to conditionalize target dependencies on platform and configuration with a similar syntax to the one introduced in [SE-0238](0238-package-manager-build-settings.md) for build settings. This gives developers more flexibility to describe complex target dependencies to support multiple platforms or different configuration environments.
 
 ## Motivation
 
@@ -61,7 +61,10 @@ extension Target.Dependency {
     ///   - name: The name of the target.
     ///   - condition: The condition under which the dependency is exercised.
     @available(_PackageDescription, introduced: 5.3)
-    public static func target(name: String, condition: BuildSettingCondition? = nil) -> Target.Dependency {
+    public static func target(
+        name: String,
+        condition: BuildSettingCondition? = nil
+    ) -> Target.Dependency {
         // ...
     }
 
@@ -87,7 +90,10 @@ extension Target.Dependency {
     ///   - name: The name of the dependency, either a target or a product.
     ///   - condition: The condition under which the dependency is exercised.
     @available(_PackageDescription, introduced: 5.3)
-    public static func byName(name: String, condition: BuildSettingCondition? = nil) -> Target.Dependency {
+    public static func byName(
+        name: String,
+        condition: BuildSettingCondition? = nil
+    ) -> Target.Dependency {
         // ...
     }
 }
