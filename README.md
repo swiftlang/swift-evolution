@@ -63,7 +63,7 @@ add the following to your `Package.swift` file's dependencies:
 ```swift
 .package(
     url: "https://github.com/apple/swift-evolution-staging.git",
-    branch: "se-NNNN-package-name"),
+    branch: "SE_NNNN_PackageName"),
 ```
 
 

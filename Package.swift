@@ -14,7 +14,7 @@
 import PackageDescription
 
 let package = Package(
-  name: "se-NNNN-package-name",
+  name: "SE_NNNN_PackageName",
   products: [
     .library(
       name: "SE_NNNN_PackageName",
