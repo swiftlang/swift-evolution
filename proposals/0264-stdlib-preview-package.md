@@ -9,6 +9,7 @@
     2. [apple/swift-evolution#1090](https://github.com/apple/swift-evolution/pull/1090)
     3. [apple/swift-evolution#1091](https://github.com/apple/swift-evolution/pull/1091)
 * Pitch Discussion: [Pitch: Standard Library Preview Package](https://forums.swift.org/t/pitch-standard-library-preview-package/27202)
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/1547e503376bca2c64c57c96b1f87d5e01a094c3/proposals/0264-stdlib-preview-package.md)
 * Previous Review: [SE-0264 — Standard Library Preview Package](https://forums.swift.org/t/se-0264-standard-library-preview-package/29068)
 * Previous Decision: [Returned for Revision](https://forums.swift.org/t/returned-for-revision-se-0264-standard-library-preview-package/29865)
 
