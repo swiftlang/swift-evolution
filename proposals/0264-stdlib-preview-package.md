@@ -124,7 +124,7 @@ Since types cannot be emitted into client code, these combination function/type 
 
 #### Retirement from the `SwiftPreview` Package
 
-In order to keep the size of the `SwiftPreview` package manageable, re-exported proposal packages will be removed from the bundling package in a version update **1 year** after migration to the standard library. This is a necessary balance between maintainability and convenience. Since the proposal packages will still be available, it should be possible for users of the `SwiftPreview` package to import an individual pacakge if they need to keep it while also wanting to upgrade to the latest version of the `SwiftPreview` package _without_ upgrading to the latest compiler.
+In order to keep the size of the `SwiftPreview` package manageable, re-exported proposal packages will be removed from the bundling package in a version update **1 year** after migration to the standard library. This is a necessary balance between maintainability and convenience. Since the proposal packages will still be available, it should be possible for users of the `SwiftPreview` package to import an individual package if they need to keep it while also wanting to upgrade to the latest version of the `SwiftPreview` package _without_ upgrading to the latest compiler.
 
 ### Testing
 
