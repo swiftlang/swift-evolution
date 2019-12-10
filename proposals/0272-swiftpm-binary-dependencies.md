@@ -171,7 +171,7 @@ We propose to add a new command to SwiftPM `swift package compute-checksum <file
 
 ## New `Package.resolved` Behavior
 
-For binary targets we store the checksum of the artifact in the `Package.resolved`. This lets us check for errors during resolution where a package's version did not change but the checksum did. In this case we will throw an error alerting the user about this.
+For binary targets we will validate the commit hashes from the resolved file for any dependencies from now on to ensure the checksums of binaries cannot be changed for a specific version. This lets us check for errors during resolution where a package's version did not change but the checksum did. In this case we will throw an error alerting the user about this.
 
 ### Resolution
 
