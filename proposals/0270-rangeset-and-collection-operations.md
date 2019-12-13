@@ -2,16 +2,16 @@
 
 * Proposal: [SE-0270](0270-rangeset-and-collection-operations.md)
 * Author: [Nate Cook](https://github.com/natecook1000)
-* Review Manager: [Dave Abrahams](https://github.com/dabrahams)
-* Status: **Returned for revision**
+* Review Manager: [John McCall](https://github.com/rjmccall)
+* Status: **Active review (December 13th...19th, 2019)**
 * Implementation: [apple/swift#28161](https://github.com/apple/swift/pull/28161)
-* Decision Notes: [Rationale](https://forums.swift.org/t/returned-for-revision-se-0270-add-collection-operations-on-noncontiguous-elements/31484)
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/9b5957c00e7483ab8664afe921f989ed1394a666/proposals/0270-rangeset-and-collection-operations.md)
+* Previous Review: [SE-0270: Add Collection Operations on Noncontiguous Elements](https://forums.swift.org/t/se-0270-add-collection-operations-on-noncontiguous-elements/30691)
+* Previous Decision:: [Returned for revision](https://forums.swift.org/t/returned-for-revision-se-0270-add-collection-operations-on-noncontiguous-elements/31484)
 
 ## Introduction
 
 We can use a `Range<Index>` to refer to a group of consecutive positions in a collection, but the standard library doesn't currently provide a way to refer to discontiguous positions in an arbitrary collection. I propose the addition of a `RangeSet` type that can store any number of positions, along with collection algorithms that operate on those positions.
-
-Swift forums discussion: https://forums.swift.org/t/pitch-add-rangeset-and-related-collection-operations/29961
 
 ## Motivation
 
@@ -27,7 +27,7 @@ This proposal adds a `RangeSet` type for representing multiple, noncontiguous ra
 var numbers = Array(1...15)
 
 // Find the indices of all the even numbers
-let indicesOfEvens = numbers.indices(where: { $0.isMultiple(of: 2) })
+let indicesOfEvens = numbers.ranges(where: { $0.isMultiple(of: 2) })
 
 // Perform an operation with just the even numbers
 let sumOfEvens = numbers[indicesOfEvens].reduce(0, +)
@@ -41,182 +41,62 @@ let rangeOfEvens = numbers.gather(indicesOfEvens, at: numbers.startIndex)
 // Reset `numbers`
 numbers = Array(1...15)
 
-// You can also build range sets by hand using array literals...
-let notTheMiddle: RangeSet = [0..<5, 10..<15]
+// You can also build range sets by hand...
+let notTheMiddle = RangeSet([0..<5, 10..<15])
 print(Array(numbers[notTheMiddle]))
 // Prints [1, 2, 3, 4, 5, 11, 12, 13, 14, 15]
 
 // ...or by using set operations
 let smallEvens = indicesOfEvens.intersection(
-    numbers.indices(where: { $0 < 10 }))
+    numbers.ranges(where: { $0 < 10 }))
 print(Array(numbers[smallEvens]))
 // Prints [2, 4, 6, 8]
 ```
 
-These are just a few examples; the complete proposal includes operations like inverting a range set and inserting and removing ranges, which are covered in the next section.
+These are just a few examples; the complete proposal includes operations like inverting a range set and adding and removing ranges, which are covered in the next section.
 
 ## Detailed design
 
 `RangeSet` is generic over any `Comparable` type, and supports fast containment checks for ranges and individual values, as well as adding and removing ranges of that type. 
 
 ```swift
-/// A set of ranges of any comparable value.
+/// A set of values of any comparable value, represented by ranges.
 public struct RangeSet<Bound: Comparable> {
     /// Creates an empty range set.
     public init() {}
 
-    /// Creates a range set containing the given range.
+    /// Creates a range set containing the values in the given range.
     public init(_ range: Range<Bound>)
     
-    /// Creates a range set containing the given ranges.
+    /// Creates a range set containing the values in the given ranges.
     public init<S: Sequence>(_ ranges: S) where S.Element == Range<Bound>
     
     /// A Boolean value indicating whether the range set is empty.
     public var isEmpty: Bool { get }
     
     /// Returns a Boolean value indicating whether the given value is
-    /// contained by the ranges in the range set.
+    /// contained by the range set.
     ///
     /// - Complexity: O(log *n*), where *n* is the number of ranges in the
     ///   range set.
     public func contains(_ value: Bound) -> Bool
         
-    /// Returns a Boolean value indicating whether the given range is
-    /// contained by the ranges in the range set.
+    /// Adds the values represented by the given range to the range set.
     ///
-    /// This method returns `true` if and only if one of the ranges that 
-    /// comprises the range set fully contains `range`. This example shows
-    /// ranges that are and are not contained by a range set:
-    /// 
-    ///     let set: RangeSet = [0..<5, 10..<15]
-    ///     print(set.contains(1..<4))
-    ///     // Prints "true"
-    ///     print(set.contains(4..<7))
-    ///     // Prints "false"
-    ///     print(set.contains(4..<12))
-    ///     // Prints "false"
-    ///
-    /// - Complexity: O(log *n*), where *n* is the number of ranges in the
-    ///   range set.
-    public func contains(_ range: Range<Bound>) -> Bool
-    
-    /// Inserts the given range into the range set.
-    public mutating func insert(_ range: Range<Bound>)
+    /// If `range` overlaps or adjoins any existing ranges in the set, the
+    /// ranges are merged together. Empty ranges are ignored.
+    public mutating func insert(contentsOf range: Range<Bound>)
         
-    /// Removes the given range from the range set.
-    public mutating func remove(_ range: Range<Bound>)
+    /// Removes the given range of values from the range set.
+    ///
+    /// The values represented by `range` are removed from this set. This may
+    /// result in one or more ranges being truncated or removed, depending on
+    /// the overlap between `range` and the set's existing ranges.
+    public mutating func remove(contentsOf range: Range<Bound>)
 }
 ```
 
 `RangeSet` conforms to `Equatable`, to `CustomStringConvertible`, and, when its `Bound` type conforms to `Hashable`, to `Hashable`. `RangeSet` also has `ExpressibleByArrayLiteral` conformance, using arrays of ranges as its literal type.
-
-#### `SetAlgebra`-like methods
-
-`RangeSet` implements a subset of the `SetAlgebra` protocol. Because of its efficient representation for contiguous ranges, there is no way to insert a single element into a `RangeSet` .
-
-```swift
-extension RangeSet {
-    public func union(_ other: RangeSet<Bound>) -> RangeSet<Bound>
-    public mutating func formUnion(_ other: RangeSet<Bound>)
-
-    public func intersection(_ other: RangeSet<Bound>) -> RangeSet<Bound>
-    public mutating func formIntersection(_ other: RangeSet<Bound>)
-
-    public func symmetricDifference(_ other: RangeSet<Bound>) -> RangeSet<Bound>
-    public mutating func formSymmetricDifference(_ other: RangeSet<Bound>)
-    
-    public func subtracting(_ other: RangeSet<Bound>) -> RangeSet<Bound>
-    public mutating func subtract(_ other: RangeSet<Bound>)
-    
-    public func isSubset(of other: RangeSet<Bound>) -> Bool
-    public func isSuperset(of other: RangeSet<Bound>) -> Bool
-    public func isStrictSubset(of other: RangeSet<Bound>) -> Bool
-    public func isStrictSuperset(of other: RangeSet<Bound>) -> Bool
-}
-```
-
-#### Collection APIs
-
-Working with collection indices is a primary use case for `RangeSet`. To support this, `RangeSet` includes initializers and insertion and removal methods for working with individual indices and range expressions, as well as a way to "invert" a range set with respect to a collection.
-
-Calling one of these methods with an individual index is equivalent to calling the related `RangeSet` method with a range that contains only that index. In this example, the two ways of inserting a range containing `indexOfI` into the range set are equivalent:
-
-```swift
-let str = "Fresh cheese in a breeze"
-var set = str.indices(where: { $0 == "e" })
-let indexOfI = str.firstIndex(of: "i")!
-
-// (1) Creating a range, then inserting it into 'set'
-let rangeOfI = indexOfI ..< str.index(after: indexOfI)
-set.insert(rangeOfI)
-
-// (2) Inserting the index with the convenience method
-set.insert(indexOfI, within: str)
-```
-
-The initializers and methods are listed below: 
-
-```swift
-extension RangeSet {
-    /// Creates a new range set containing a range that contains only the 
-    /// specified index in the given collection.
-    public init<C>(_ index: Bound, within collection: C)
-        where C: Collection, C.Index == Bound
-    
-    /// Creates a new range set containing ranges that contain only the
-    /// specified indices in the given collection.
-    public init<S, C>(_ indices: S, within collection: C)
-        where S: Sequence, C: Collection, S.Element == C.Index, C.Index == Bound
-    
-    /// Creates a new range set containing the range represented by the 
-    /// specified range expression.
-    public init<R, C>(_ range: R, within collection: C)
-        where C: Collection, C.Index == Bound, R: RangeExpression, R.Bound == Bound
-    
-    /// Inserts a range that contains only the specified index into the range 
-    /// set.
-    public mutating func insert<C>(_ index: Bound, within collection: C)
-        where C: Collection, C.Index == Bound
-    
-    /// Inserts the range represented by the specified range expression into 
-    /// the range set.
-    public mutating func insert<R, C>(_ range: R, within collection: C)
-        where C: Collection, C.Index == Bound, R: RangeExpression, R.Bound == Bound
-    
-    /// Removes a range that contains only the specified index from the range 
-    /// set.
-    public mutating func remove<C>(_ index: Bound, within collection: C)
-        where C: Collection, C.Index == Bound
-    
-    /// Removes the range represented by the specified range expression from 
-    /// the range set.
-    public mutating func remove<R, C>(_ range: R, within collection: C)
-        where C: Collection, C.Index == Bound, R: RangeExpression, R.Bound == Bound
-
-    /// Returns a range set that represents all the elements in the given
-    /// collection that aren't represented by this range set.
-    ///
-    /// The following example finds the indices of the vowels in a string, and
-    /// then inverts the range set to find the non-vowels parts of the string.
-    ///
-    ///     let str = "The rain in Spain stays mainly in the plain."
-    ///     let vowels = "aeiou"
-    ///     let vowelIndices = str.indices(where: { vowels.contains($0) })
-    ///     print(String(str[vowelIndices]))
-    ///     // Prints "eaiiaiaaiieai"
-    ///
-    ///     let nonVowelIndices = vowelIndices.inverted(within: str)
-    ///     print(String(str[nonVowelIndices]))
-    ///     // Prints "Th rn n Spn stys mnly n th pln."
-    ///
-    /// - Parameter collection: The collection that the range set is relative
-    ///   to.
-    /// - Returns: A new range set that represents the elements in `collection`
-    ///   that aren't represented by this range set.
-    public func inverted<C>(within collection: C) -> RangeSet
-        where C: Collection, C.Index == Bound
-}
-```
 
 #### Accessing Underlying Ranges and Individual Indices
 
@@ -239,27 +119,52 @@ extension RangeSet {
 The ranges that are exposed through this collection are always in ascending order, are never empty, and never overlap or adjoin. For this reason, inserting an empty range or a range that is subsumed by the ranges already in the set has no effect on the range set. Inserting a range that adjoins an existing range simply extends that range.
 
 ```swift
-var set: RangeSet = [0..<5, 10..<15]
-set.insert(7..<7)
-set.insert(11.<14)
+var set = RangeSet([0..<5, 10..<15])
+set.insert(contentsOf: 7..<7)
+set.insert(contentsOf: 11.<14)
 // Array(set.ranges) == [0..<5, 10..<15] 
 
-set.insert(5..<7)
+set.insert(contentsOf: 5..<7)
 // Array(set.ranges) == [0..<7, 10..<15]
 
-set.insert(7..<10)
+set.insert(contentsOf: 7..<10)
 // Array(set.ranges) == [0..<15]
+```
+
+#### `SetAlgebra`-like methods
+
+`RangeSet` implements a subset of the `SetAlgebra` protocol.
+
+```swift
+extension RangeSet {
+    public func union(_ other: RangeSet<Bound>) -> RangeSet<Bound>
+    public mutating func formUnion(_ other: RangeSet<Bound>)
+
+    public func intersection(_ other: RangeSet<Bound>) -> RangeSet<Bound>
+    public mutating func formIntersection(_ other: RangeSet<Bound>)
+
+    public func symmetricDifference(_ other: RangeSet<Bound>) -> RangeSet<Bound>
+    public mutating func formSymmetricDifference(_ other: RangeSet<Bound>)
+    
+    public func subtracting(_ other: RangeSet<Bound>) -> RangeSet<Bound>
+    public mutating func subtract(_ other: RangeSet<Bound>)
+    
+    public func isSubset(of other: RangeSet<Bound>) -> Bool
+    public func isSuperset(of other: RangeSet<Bound>) -> Bool
+    public func isStrictSubset(of other: RangeSet<Bound>) -> Bool
+    public func isStrictSuperset(of other: RangeSet<Bound>) -> Bool
+}
 ```
 
 #### Storage
 
-`RangeSet` will store its ranges in a custom type that will optimize the storage for known, simple `Bound` types. This custom type will avoid allocating extra storage for common cases of empty or single-range range sets.
+`RangeSet` stores its ranges in a custom type that will optimize the storage for known, simple `Bound` types. This custom type will avoid allocating extra storage for common cases of empty or single-range range sets.
 
 ### New `Collection` APIs
 
 #### Finding multiple elements
 
-Akin to the `firstIndex(...)` and `lastIndex(...)` methods, this proposal introduces `indices(where:)` and `indices(of:)` methods that return a range set with the indices of all matching elements in a collection.
+Akin to the `firstIndex(...)` and `lastIndex(...)` methods, this proposal introduces `ranges(where:)` and `ranges(of:)` methods that return a range set with the indices of all matching elements in a collection.
 
 ```swift
 extension Collection {
@@ -270,11 +175,11 @@ extension Collection {
     ///
     ///     let str = "Fresh cheese in a breeze"
     ///     let vowels: Set<Character> = ["a", "e", "i", "o", "u"]
-    ///     let allTheVowels = str.indices(where: { vowels.contains($0) })
+    ///     let allTheVowels = str.ranges(where: { vowels.contains($0) })
     ///     // str[allTheVowels].count == 9
     ///
     /// - Complexity: O(*n*), where *n* is the length of the collection.
-    public func indices(where predicate: (Element) throws -> Bool) rethrows
+    public func ranges(where predicate: (Element) throws -> Bool) rethrows
         -> RangeSet<Index>
 }
 
@@ -286,11 +191,11 @@ extension Collection where Element: Equatable {
     /// particular letter occurs in a string.
     ///
     ///     let str = "Fresh cheese in a breeze"
-    ///     let allTheEs = str.indices(of: "e")
+    ///     let allTheEs = str.ranges(of: "e")
     ///     // str[allTheEs].count == 7
     ///
     /// - Complexity: O(*n*), where *n* is the length of the collection.
-    public func indices(of element: Element) -> RangeSet<Index>
+    public func ranges(of element: Element) -> RangeSet<Index>
 }
 ```
 
@@ -323,7 +228,8 @@ public struct DiscontiguousSlice<Base: Collection>: Collection {
     /// The collection that the indexed collection wraps.
     public var base: Base { get set }
 
-    /// The set of index ranges that are available through this collection.
+    /// The set of index ranges that are available through this indexing
+    /// collection.
     public var ranges: RangeSet<Base.Index> { get set }
     
     /// A position in an `DiscontiguousSlice`.
@@ -340,64 +246,9 @@ public struct DiscontiguousSlice<Base: Collection>: Collection {
 
 `DiscontiguousSlice` conforms to `Collection`, and conditionally conforms to `BidirectionalCollection` and `MutableCollection` if its base collection conforms.  
 
-#### Moving elements
+#### Gathering elements
 
-Within a mutable collection, you can gather the elements represented by a range set, inserting them in a contiguous range before the element at a specific index, and otherwise preserving element order. This proposal also adds a method for gathering all the elements matched by a predicate, and methods for shifting a contiguous region of elements, denoted by a single index, range, or range expression, to a specific insertion point.
-
-The elements that you shift or gather don't necessarily end up at exactly the specified insertion point, because other elements slide over to fill gaps left by the elements that move. For that reason, these gathering and shifting methods return the new range or index of the elements that are moved.
-
-To visualize these operations, divide a collection into two parts, before and after the insertion point. The elements to gather or shift are collected in order in that gap, and the resulting range (or index, for single element moves) is returned. As an example, consider a shift from a range at the beginning of an array of letters to a position further along in the array:
-
-```swift
-var array = ["a", "b", "c", "d", "e", "f", "g"]
-let newSubrange = array.shift(from: 0..<3, to: 5)
-// array == ["d", "e", "a", "b", "c", "f", "g"]
-// newSubrange = 2..<5
-
-//     ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┐
-//     │  a  │  b  │  c  │  d  │  e  │  f  │  g  │
-//     └─────┴─────┴─────┴─────┴─────┴─────┴─────┘
-//      ^^^^^^^^^^^^^^^^^               ^
-//            source                insertion
-//                                    point
-//
-//    ┌─────┬─────┬─────┐┌─────┬─────┐┌─────┬─────┐
-//    │  a  │  b  │  c  ││  d  │  e  ││  f  │  g  │
-//    └─────┴─────┴─────┘└─────┴─────┘└─────┴─────┘
-//     ^^^^^^^^^^^^^^^^^              ^
-//           source               insertion
-//                                  point
-//
-//    ┌─────┬─────┐┌─────┬─────┬─────┐┌─────┬─────┐
-//    │  d  │  e  ││  a  │  b  │  c  ││  f  │  g  │
-//    └─────┴─────┘└─────┴─────┴─────┘└─────┴─────┘
-//                  ^^^^^^^^^^^^^^^^^
-//                 newSubrange == 2..<5
-```
-
-When shifting a single element, this can mean that the element ends up at the insertion point (when moving backward), or ends up at a position one before the insertion point (when moving forward, because the elements in between move forward to make room).
-
-```swift
-var array = ["a", "b", "c", "d", "e", "f", "g"]
-let newPosition = array.shift(from: 1, to: 5)
-// array == ["a", "c", "d", "e", "b", "f", "g"]
-// newPosition == 4
-
-//    ┌─────┬─────┬─────┬─────┬─────┐┌─────┬─────┐
-//    │  a  │  b  │  c  │  d  │  e  ││  f  │  g  │
-//    └─────┴─────┴─────┴─────┴─────┘└─────┴─────┘
-//             ^                     ^
-//           source              insertion
-//                                 point
-//
-//    ┌─────┬─────┬─────┬─────┐┌─────┐┌─────┬─────┐
-//    │  a  │  c  │  d  │  e  ││  b  ││  f  │  g  │
-//    └─────┴─────┴─────┴─────┘└─────┘└─────┴─────┘
-//                                ^
-//                        newPosition == 4
-```
-
-The new gathering and shifting methods are listed below.
+Within a mutable collection, you can gather the elements represented by a range set, moving them to be in a contiguous range before the element at a specific index, and otherwise preserving element order. This proposal also adds a method for gathering all the elements matched by a predicate. When gathering elements, other elements slide over to fill gaps left by the elements that move. For that reason, these gathering methods return the new range of the elements that are moved.
 
 ```swift
 extension MutableCollection {
@@ -408,7 +259,7 @@ extension MutableCollection {
     /// them between `"i"` and `"j"`.
     ///
     ///     var letters = Array("ABCdeFGhijkLMNOp")
-    ///     let uppercase = letters.indices(where: { $0.isUppercase })
+    ///     let uppercase = letters.ranges(where: { $0.isUppercase })
     ///     let rangeOfUppercase = letters.gather(uppercase, at: 10)
     ///     // String(letters) == "dehiABCFGLMNOjkp"
     ///     // rangeOfUppercase == 4..<13
@@ -446,78 +297,12 @@ extension MutableCollection {
     public mutating func gather(
         at insertionPoint: Index, where predicate: (Element) -> Bool
     ) -> Range<Index>
-    
-    /// Shifts the elements in the given range to just before the element at 
-    /// the specified index.
-    ///
-    /// - Parameters:
-    ///   - range: The range of the elements to move.
-    ///   - insertionPoint: The index to use as the insertion point for the 
-    ///     elements. `insertionPoint` must be a valid index of the collection.
-    /// - Returns: The new bounds of the moved elements.
-    ///
-    /// - Returns: The new bounds of the moved elements.
-    /// - Complexity: O(*n*) where *n* is the length of the collection.
-    @discardableResult
-    public mutating func shift(
-        from range: Range<Index>, to insertionPoint: Index
-    ) -> Range<Index>
-
-    /// Shifts the elements in the given range expression to just before the 
-    /// element at the specified index.
-    ///
-    /// - Parameters:
-    ///   - range: The range of the elements to move.
-    ///   - insertionPoint: The index to use as the insertion point for the 
-    ///     elements. `insertionPoint` must be a valid index of the collection.
-    /// - Returns: The new bounds of the moved elements.
-    ///
-    /// - Complexity: O(*n*) where *n* is the length of the collection.
-    @discardableResult
-    public mutating func shift<R : RangeExpression>(
-        from range: R, to insertionPoint: Index
-    ) -> Range<Index> where R.Bound == Index
-
-    /// Moves the element at the given index to just before the element at the
-    /// specified index.
-    ///
-    /// This method moves the element at position `i` to immediately before
-    /// `insertionPoint`. This example shows moving elements forward and
-    /// backward in an array of integers.
-    ///
-    ///     var numbers = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    ///     let newIndexOfNine = numbers.shift(from: 9, to: 7)
-    ///     // numbers == [0, 1, 2, 3, 4, 5, 6, 9, 7, 8, 10]
-    ///     // newIndexOfNine == 7
-    ///
-    ///     let newIndexOfOne = numbers.shift(from: 1, to: 4)
-    ///     // numbers == [0, 2, 3, 1, 4, 5, 6, 9, 7, 8, 10]
-    ///     // newIndexOfOne == 3
-    ///
-    /// To move an element to the end of a collection, pass the collection's
-    /// `endIndex` as `insertionPoint`.
-    ///
-    ///     numbers.shift(from: 0, to: numbers.endIndex)
-    ///     // numbers == [2, 3, 1, 4, 5, 6, 9, 7, 8, 10, 0]
-    ///
-    /// - Parameters:
-    ///   - source: The index of the element to move. `source` must be a valid
-    ///     index of the collection that isn't `endIndex`.
-    ///   - insertionPoint: The index to use as the destination of the element.
-    ///     `insertionPoint` must be a valid index of the collection.
-    /// - Returns: The resulting index of the element that began at `source`.
-    ///
-    /// - Complexity: O(*n*) where *n* is the length of the collection.
-    @discardableResult
-    public mutating func shift(
-        from source: Index, to insertionPoint: Index
-    ) -> Index
 }
 ```
 
 #### Removing elements
 
-Within a range-replaceable collection, you can remove the elements represented by a range set. `removeAll(at:)` is a new `RangeReplaceableCollection` requirement with a default implementation, along with additional overload for collections that also conform to `MutableCollection`.
+Within a range-replaceable collection, you can remove the elements represented by a range set. `removeAll(at:)` is a new `RangeReplaceableCollection` requirement with a default implementation, along with an overload for collections that also conform to `MutableCollection`.
 
 ```swift
 extension RangeReplaceableCollection {
@@ -528,7 +313,7 @@ extension RangeReplaceableCollection {
     ///
     ///     var str = "The rain in Spain stays mainly in the plain."
     ///     let vowels: Set<Character> = ["a", "e", "i", "o", "u"]
-    ///     let vowelIndices = str.indices(where: { vowels.contains($0) })
+    ///     let vowelIndices = str.ranges(where: { vowels.contains($0) })
     ///
     ///     str.removeAll(at: vowelIndices)
     ///     // str == "Th rn n Spn stys mnly n th pln."
@@ -549,7 +334,7 @@ extension Collection {
     ///
     ///     let str = "The rain in Spain stays mainly in the plain."
     ///     let vowels: Set<Character> = ["a", "e", "i", "o", "u"]
-    ///     let vowelIndices = str.indices(where: { vowels.contains($0) })
+    ///     let vowelIndices = str.ranges(where: { vowels.contains($0) })
     ///
     ///     let disemvoweled = str.removingAll(at: vowelIndices)
     ///     print(String(disemvoweled))
@@ -558,6 +343,20 @@ extension Collection {
     /// - Parameter indices: A range set representing the elements to remove.
     /// - Returns: A collection of the elements that are not in `indices`.
     public func removingAll(at indices: RangeSet<Index>) -> DiscontiguousSlice<Self>
+}
+```
+
+#### `range(at:)` helper method
+
+The proposal also adds an individual `Collection` method to get the range for an individual index. This streamlines adding individual indices to or removing them from a `RangeSet`.
+
+```swift
+extension Collection {
+    /// Returns a range that contains the single given index with respect to
+    /// this collection.
+    public func range(at position: Index) -> Range<Index> {
+        position..<index(after: position)
+    }
 }
 ```
 
@@ -615,3 +414,7 @@ set.remove(4)
 ### `Elements` View
 
 In an earlier version of the proposal, `RangeSet` included a collection view of the indices, conditionally available when the `Bound` type was strideable with an integer stride. This collection view was removed for the same reasons as covered in the section above. Users can access these indices by using a `RangeSet` as a subscript for the source collection's `indices` property.
+
+### Helpers for working with individual `Collection` indices
+
+In an earlier version of this proposal, `RangeSet` included several methods that accepted an individual index or a range expression as a parameter, along with the matching collection, so that the `RangeSet` could convert the index or range expression into a concrete range. These methods have been removed; instead, use the regular `Range`-based operations for creating sets or adding and removing ranges of values.
