@@ -2,7 +2,8 @@
 
 * Proposal: [SE-0270](0270-rangeset-and-collection-operations.md)
 * Author: [Nate Cook](https://github.com/natecook1000)
-* Status: **Awaiting review**
+* Review Manager: [John McCall](https://github.com/rjmccall)
+* Status: **Active review (December 13th...19th, 2019)**
 * Implementation: [apple/swift#28161](https://github.com/apple/swift/pull/28161)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/9b5957c00e7483ab8664afe921f989ed1394a666/proposals/0270-rangeset-and-collection-operations.md)
 * Previous Review: [SE-0270: Add Collection Operations on Noncontiguous Elements](https://forums.swift.org/t/se-0270-add-collection-operations-on-noncontiguous-elements/30691)
