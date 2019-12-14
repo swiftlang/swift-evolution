@@ -3,7 +3,7 @@
 * Proposal: [SE-0272](0272-swiftpm-binary-dependencies.md)
 * Authors: [Braden Scothern](https://github.com/bscothern), [Daniel Dunbar](https://github.com/ddunbar), [Franz Busch](https://github.com/FranzBusch)
 * Review Manager: [Boris Bügling](https://github.com/neonichu)
-* Status: **Returned for revision**
+* Status: **Active review (12 13...12 20)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/returned-for-revision-se-0272-package-manager-binary-dependencies/30994)
 
 ## Contents
@@ -95,29 +95,14 @@ let package = Package(
     targets: [
         .binaryTarget(
             name: "SomePackageLib",
-            artifacts: [
-                .artifact(
-                    source: .url("https://github.com/some/package/releases/download/1.0.0/SomePackage-1.0.0.zip",
-                    checksum: "839F9F30DC13C30795666DD8F6FB77DD0E097B83D06954073E34FE5154481F7A")),
-            ]
+            url: "https://github.com/some/package/releases/download/1.0.0/SomePackage-1.0.0.zip",
+            checksum: "839F9F30DC13C30795666DD8F6FB77DD0E097B83D06954073E34FE5154481F7A"
+        ),
+        .binaryTarget(
+            name: "SomeLibOnDisk",
+            path: "artifacts/SomeLibOnDisk.zip"
         )
-     ]
-)
-```
-
-
-Secondly we propose to add a new configuration point to the package description that allows packages to opt-out of binary dependencies. This will enforce that nothing in its transitive dependencies brings a binary dependency with it.
-
-```swift
-let package = Package(
-    name: "SomeOtherPackage",
-    disallowsBinaryDependencies: true,
-    products: [
-        .library(name: "SomeOtherPackage", targets: ["SomeOtherPackageLib"])
-    ],
-    targets: [
-        .target(name: "SomeOtherPackageLib")
-     ]
+    ]
 )
 ```
 
@@ -125,20 +110,16 @@ Packages are allowed to contain a mix of binary and source targets. This is
 useful when, for example, providing a pre-built or closed source C library
 alongside an open source set of Swift bindings for the library.
 
-When a package is built that depends upon any product with a binary target, the
-package manager will search the `artifacts` declaration list to find an artifact
-which matches the current build conditions. This list
-will be searched in order, and the first matching artifact will be used. It is
-the job of the package author/publisher to provide an appropriate set of
-artifacts for the use cases the package wishes to support. This use case will be limited to Apple platforms in the beginning. In the future, we can add support for other platforms. A potential approach is outlined in the future directions section.
+The use case will be limited to Apple platforms in the beginning. In the future, we can add support for other platforms. A potential approach is outlined in the future directions section.
 
 ## Detailed design
 
 The design consists of the following key points:
 * New `PackageDescription` API for defining a binary target.
-* New parameter on a package declaration level to opt-out of binary dependencies.
 * New requirements for the `Package.resolved` file when using binary packages.
+* A new command to compute a checksum for a file.
 * A new mechanism for downloading binary target artifacts.
+* Support for artifact mirroring.
 
 Terminology:
 
@@ -166,59 +147,85 @@ while keeping the following as non-goals:
 ## New `PackageDescription` API
 
 ### BinaryTarget
-Since a binary target is different compared to a source only target, we propose to introduce a new struct `Artifact`. This struct defines a target's associated artifacts.
-
-We propose to support local and remote artifacts from the beginning. In the alternatives considered section is larger collection of potential artifact stores. However we opted to simplify the initial implementation by just supporting a url and a path based definition. Later, we can implement different types of providers with different authentication methods.
+Since a binary target is different compared to a source only target, we propose to introduce two new static method on `Target` to declare a binary target. We propose to support local and remote artifacts from the beginning. In the alternatives considered section is a larger collection of potential artifact stores. However we opted to simplify the initial implementation by just supporting a url and a path based definition. Later, we can implement different types of providers with different authentication methods.
 
 ```swift
-public struct Artifact {
-    public enum Source {
-        case url(String, checksum: String)
-        case path
-    }
+extension Target {
+    /// Declare a binary target with the given url.
+    public static func binaryTarget(
+        name: String,
+        url: String,
+        checksum: String
+    ) -> Target
 
-    public let source: Source
+    /// Declare a binary target with the given path on disk.
+    public static func binaryTarget(
+        name: String,
+        path: String
+    ) -> Target
 }
 ```
 
-Furthermore, we propose to add a new `artifacts: [Artifacts]?` property to the `Target`, as well as extend the initializer with this parameter and create a new static method called `.binaryTarget()`. Lastly, we propose to extend the `TargetType` enum with a new case called `binary`.
-
-### PackageDescription
-To opt out of binary packages we propose a new configuration point inside the package description.
-
-```swift
-public final class Package {
-    ...
-    /// This disallows any binary dependency or any transitive binary dependency.
-    public var disallowsBinaryDependencies: Bool
-    ...
-}
-```
+## Checksum computation
+We propose to add a new command to SwiftPM `swift package compute-checksum <file>` which is going to be used to compute the checksum of individual files. This implementation can then evolve in the future and is tied to the tools version of the package to avoid breaking compatibility with older tools.
 
 ## New `Package.resolved` Behavior
 
-For binary targets we store the checksum of the artifact in the `Package.resolved`. This lets us check for errors during resolution where a package's version did not change but the checksum did. In this case we will throw an error alerting the user about this.
+For binary targets we will validate the commit hashes from the resolved file for any dependencies from now on to ensure the checksums of binaries cannot be changed for a specific version. This lets us check for errors during resolution where a package's version did not change but the checksum did. In this case we will throw an error alerting the user about this.
 
 ### Resolution
 
 Package resolution and dependency expression will not be impacted by this change (except where explicitly noted).
 
-#### Multiple references to same artifact
-During resolution SwiftPM will check that all references to an artifact in a dependency graph have the same checksum.
+#### Exported product with binary dependency that specifies a type
+SwiftPM will emit an error during resolution when a product that directly exports a binary dependency declares a type, e.g.: `.product(name: "MyBinaryLib", type: .static, targets: ["MyBinaryLib"])`.
+
+#### Resolution on non-Apple platforms
+When resolving a package that contains a binary dependency on non-Apple platforms, SwiftPM will throw an error and explicitly state that this dependency is not valid for the current platform. During the review it was brought up that we could ignore these dependencies but that would make the behavior of SwiftPM very unexpected. In the future, when properly supporting other platforms this can be solved easily with a proper condition mechanism.
 
 ## Binary Target Artifact Format
 
 SwiftPM currently supports multiple platforms; however, this proposal only adds support for binary targets on Apple platforms. The reason for this is that Apple platforms provide ABI guarantees and an already existing format we can leverage to simplify the initial implementation. For Apple platforms we propose to use the `XCFramework` format for artifacts. This format already supports dynamic and static linking. Furthermore, it can contain products for every individual Apple platform at once.
 
+SwiftPM expects url-based artifacts to be packaged inside a `.zip` file where the artifact is lying at the root of the archive. Furthermore, the artifact needs to have the same module name as the target name provided inside the manifest file. 
+
+For path-based artifact SwiftPM supports artifacts as a `.zip` and as a raw `XCFramework`.
+
+During resolution SwiftPM won't do any verification of the format of the artifact. This is up to the vendor to provide correct and valid artifact. In the future, this can be extended and further validation, such as checking that the module name matches, can be implemented.
+
 ## Security
 
 When adding new external dependencies, it is always important to consider the security implication that it will bring with it. Comparing the trust level of a source-based to a binary-based dependency the first thought is that the trust level of the source-based dependency is higher since on can inspect its source code. However, there is no difference between a binary and source dependency since source-based dependencies can have security issues as well. One should have better reasons to trust a dependency than source being inspectable.
 
-There is still a significant difference between having a dependency with zero vs. any binary dependency. For example, the portability of a library with binary dependencies is far worse than the one with only source-based dependencies. For this reason, we propose to add an additional configuration point in the manifest that allows package authors to opt-out of binary dependencies.
+There is still a significant difference between having a dependency with zero vs. any binary dependency. For example, the portability of a library with binary dependencies is far worse than the one with only source-based dependencies.
 
 However, there are still some security related aspects when it comes to binary artifacts that we should mitigate. For example, when declaring a `binaryTarget` the hash of the artifact is required similar to Homebrew. By doing this an attacker needs to compromise both the server which provides the artifact as well as the git repository which provides the package manifest. A secondary reason is that the server providing the binary might be out of the package author's control and this way we can ensure that the expected binary is used.
 
 Lastly, the hash of the binary is stored in the package resolved to avoid that the vendor changes the artifact behind a version without anyone noticing.
+
+## Mirroring support
+Binary artifacts can also be mirrored. We propose to deprecate the existing `--package-url` option and to replace it with a `--original-url` option which will work for both package URLs as well as artifact URLs:
+
+```
+$ swift package config set-mirror \
+    --original-url <original URL> \
+    --mirror-url <mirror URL>
+
+# Example:
+
+$ swift package config set-mirror \
+    --original-url https://github.com/Core/core/releases/download/1.0.0/core.zip \
+    --mirror-url https://mygithub.com/myOrg/core/releases/download/1.0.0/core.zip
+```
+
+Additionally, we propose to add a command to unset a mirror URL for an artifact:
+
+```
+$ swift package config unset-mirror \
+    --original-url https://github.com/Core/core/releases/download/1.0.0/core.zip
+```
+
+The other unset command options `--mirror-url` and `--all` will be working the same for artifacts as they do for packages. 
 
 ## Impact on existing packages
 
@@ -229,9 +236,18 @@ No current package should be affected by this change since this is only an addit
 ### Support for non-Apple platforms
 Non-Apple platforms provide non-trivial challenges since they are not always giving guarantees of the ABI of the platform. Additionally, further conditions such as the corelibs-foundation ABI or if the hardware supports floating points need to be taken into consideration when declaring a package for non-Apple platforms. Various other communities tried to solve this, e.g. Python's [manylinux](https://www.python.org/dev/peps/pep-0600/).
 
-In the future, we could add an `ArtifactCondition ` to SwiftPM which provides the possibility to declare under which conditions a certain artifact can be used. Below is a potential `ArtifactCondition` struct which does **not** include a complete set of conditions that need to be taken into consideration.
+In the future, we could add an `Artifact` struct and `ArtifactCondition`s to SwiftPM which provides the possibility to declare under which conditions a certain artifact can be used. Below is a potential `Artifact` and `ArtifactCondition` struct which does **not** include a complete set of conditions that need to be taken into consideration.
 
 ```swift
+public struct Artifact {
+    public enum Source {
+        case url(String, checksum: String)
+        case path
+    }
+
+    public let source: Source
+}
+
 public struct ArtifactCondition: Encodable {
     public struct LLVMTriplet: Encodable {
         // Should be only the subset that Swift supports
@@ -413,6 +429,31 @@ During the discussion of this proposal another solution to the `allowsBinary` fl
 
 ### Opt-out configuration in separate file
 During the discussion of this proposal it was decided that an opt-out mechanism was good to give package users and vendors an escape hatch. However, it was discussed whether this configuration should live inside the manifest or a separate configuration file. In this proposal, we opted to keep the configuration inside the manifest file.
+
+### Opt-out in package manifest
+In the first round, we proposed to add a configuration flag in the manifest to opt-out of binary dependencies; however, during the review it became apparent that this flag doesn't provide as much value and can make some dependencies actually more restricted when they add this flag. Therefor, we opted to not include such a configuration flag and let workflow tooling provide this functionality if needed.
+
+```swift
+public final class Package {
+    ...
+    /// This disallows any binary dependency or any transitive binary dependency.
+    public var disallowsBinaryDependencies: Bool
+    ...
+}
+```
+
+```swift
+let package = Package(
+    name: "SomeOtherPackage",
+    disallowsBinaryDependencies: true,
+    products: [
+        .library(name: "SomeOtherPackage", targets: ["SomeOtherPackageLib"])
+    ],
+    targets: [
+        .target(name: "SomeOtherPackageLib")
+     ]
+)
+```
 
 ### Support for various artifact stores
 Initially, we considered the various artifact stores on the market and how we can integrate with them. We decided to support a URL based artifact definition for the first implementation since the various providers require each their own method of authentication. However, we wanted to keep the possibility for future additions of providers open; therefore, we made the source of an artifact an enum which can be extended.
