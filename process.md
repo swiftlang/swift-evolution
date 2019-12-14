@@ -89,10 +89,10 @@ A given proposal can be in one of several states:
 * **Awaiting review**: The proposal is awaiting review. Once known, the dates
   for the actual review will be placed in the proposal document. When the review
   period begins, the review manager will update the state to *Active review*.
-* **Scheduled for review (MONTH DAY...MONTH DAY)**: The public review of the proposal
+* **Scheduled for review (FULL_MONTH_NAME DAY...FULL_MONTH_NAME DAY)**: The public review of the proposal
   in the [Swift forums][proposal-reviews]
   has been scheduled for the specified date range.
-* **Active review (MONTH DAY...MONTH DAY)**: The proposal is undergoing public review
+* **Active review (FULL_MONTH_NAME DAY...FULL_MONTH_NAME DAY)**: The proposal is undergoing public review
   in the [Swift forums][proposal-reviews].
   The review will continue through the specified date range.
 * **Returned for revision**: The proposal has been returned from review
