@@ -1,9 +1,9 @@
 # Package Manager Conditional Target Dependencies
 
-* Proposal: [SE-NNNN](NNNN-swiftpm-conditional-target-dependencies.md)
+* Proposal: [SE-0273](0273-swiftpm-conditional-target-dependencies.md)
 * Authors: [David Hart](https://github.com/hartbit)
-* Review Manager: TBD
-* Status: **Pitch**
+* Review Manager: [Boris Buegling](https://github.com/neonichu)
+* Status: **Active review (12 13...12 20)**
 * Implementation: [apple/swift-package-manager#2428](https://github.com/apple/swift-package-manager/pull/2428)
 
 ## Introduction
