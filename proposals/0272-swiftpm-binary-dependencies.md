@@ -3,7 +3,7 @@
 * Proposal: [SE-0272](0272-swiftpm-binary-dependencies.md)
 * Authors: [Braden Scothern](https://github.com/bscothern), [Daniel Dunbar](https://github.com/ddunbar), [Franz Busch](https://github.com/FranzBusch)
 * Review Manager: [Boris Bügling](https://github.com/neonichu)
-* Status: **Active review (12 13...12 20)**
+* Status: **Active review (December 13...December 20)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/returned-for-revision-se-0272-package-manager-binary-dependencies/30994)
 
 ## Contents
