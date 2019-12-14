@@ -3,7 +3,7 @@
 * Proposal: [SE-0272](0272-swiftpm-binary-dependencies.md)
 * Authors: [Braden Scothern](https://github.com/bscothern), [Daniel Dunbar](https://github.com/ddunbar), [Franz Busch](https://github.com/FranzBusch)
 * Review Manager: [Boris Bügling](https://github.com/neonichu)
-* Status: **Returned for revision**
+* Status: **Active review (12 13...12 20)**
 * Decision Notes: [Rationale](https://forums.swift.org/t/returned-for-revision-se-0272-package-manager-binary-dependencies/30994)
 
 ## Contents
@@ -177,10 +177,6 @@ For binary targets we will validate the commit hashes from the resolved file for
 
 Package resolution and dependency expression will not be impacted by this change (except where explicitly noted).
 
-#### Multiple references to same artifact
-During resolution SwiftPM will check that all references to an artifact in a dependency graph have the same checksum.
-
-
 #### Exported product with binary dependency that specifies a type
 SwiftPM will emit an error during resolution when a product that directly exports a binary dependency declares a type, e.g.: `.product(name: "MyBinaryLib", type: .static, targets: ["MyBinaryLib"])`.
 
@@ -191,7 +187,7 @@ When resolving a package that contains a binary dependency on non-Apple platform
 
 SwiftPM currently supports multiple platforms; however, this proposal only adds support for binary targets on Apple platforms. The reason for this is that Apple platforms provide ABI guarantees and an already existing format we can leverage to simplify the initial implementation. For Apple platforms we propose to use the `XCFramework` format for artifacts. This format already supports dynamic and static linking. Furthermore, it can contain products for every individual Apple platform at once.
 
-SwiftPM expects url-based artifacts to be packaged inside a `.zip` file where the artifact is lying at the root of the archive. Furthermore, the artifact needs to have the same name as the name provided inside the manifest file for SwiftPM to locate it. 
+SwiftPM expects url-based artifacts to be packaged inside a `.zip` file where the artifact is lying at the root of the archive. Furthermore, the artifact needs to have the same module name as the target name provided inside the manifest file. 
 
 For path-based artifact SwiftPM supports artifacts as a `.zip` and as a raw `XCFramework`.
 
@@ -201,24 +197,24 @@ During resolution SwiftPM won't do any verification of the format of the artifac
 
 When adding new external dependencies, it is always important to consider the security implication that it will bring with it. Comparing the trust level of a source-based to a binary-based dependency the first thought is that the trust level of the source-based dependency is higher since on can inspect its source code. However, there is no difference between a binary and source dependency since source-based dependencies can have security issues as well. One should have better reasons to trust a dependency than source being inspectable.
 
-There is still a significant difference between having a dependency with zero vs. any binary dependency. For example, the portability of a library with binary dependencies is far worse than the one with only source-based dependencies. For this reason, we propose to add an additional configuration point in the manifest that allows package authors to opt-out of binary dependencies.
+There is still a significant difference between having a dependency with zero vs. any binary dependency. For example, the portability of a library with binary dependencies is far worse than the one with only source-based dependencies.
 
 However, there are still some security related aspects when it comes to binary artifacts that we should mitigate. For example, when declaring a `binaryTarget` the hash of the artifact is required similar to Homebrew. By doing this an attacker needs to compromise both the server which provides the artifact as well as the git repository which provides the package manifest. A secondary reason is that the server providing the binary might be out of the package author's control and this way we can ensure that the expected binary is used.
 
 Lastly, the hash of the binary is stored in the package resolved to avoid that the vendor changes the artifact behind a version without anyone noticing.
 
 ## Mirroring support
-Binary artifacts can also be mirrored. We propose to extend the current mirroring API by one new command:
+Binary artifacts can also be mirrored. We propose to deprecate the existing `--package-url` option and to replace it with a `--original-url` option which will work for both package URLs as well as artifact URLs:
 
 ```
 $ swift package config set-mirror \
-    --artifact-url <original URL> \
+    --original-url <original URL> \
     --mirror-url <mirror URL>
 
 # Example:
 
 $ swift package config set-mirror \
-    --artifact-url https://github.com/Core/core/releases/download/1.0.0/core.zip \
+    --original-url https://github.com/Core/core/releases/download/1.0.0/core.zip \
     --mirror-url https://mygithub.com/myOrg/core/releases/download/1.0.0/core.zip
 ```
 
@@ -226,7 +222,7 @@ Additionally, we propose to add a command to unset a mirror URL for an artifact:
 
 ```
 $ swift package config unset-mirror \
-    --artifact-url https://github.com/Core/core/releases/download/1.0.0/core.zip
+    --original-url https://github.com/Core/core/releases/download/1.0.0/core.zip
 ```
 
 The other unset command options `--mirror-url` and `--all` will be working the same for artifacts as they do for packages. 
