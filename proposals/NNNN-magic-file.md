@@ -16,7 +16,7 @@ Swift-evolution thread: [Concise Magic File Names](https://forums.swift.org/t/co
 
 In Swift today, the magic identifier `#file` evaluates to a string literal containing the full path (that is, the path passed to `swiftc`) to the current file. It's a nice way to trace the location of logic occurring in a Swift process, but its use of a full path has a lot of drawbacks:
 
-* It can inadvently reveal private or sensitive information. The full path to a source file may contain a developer's username, hints about the configuration of a build farm, proprietary versions or identifiers, or the Sailor Scout you named an external disk after. Developers probably don't know that this information is embedded in their binaries and may not want it to be there. And most uses of `#file` are in default arguments, which makes this information capture invisible at the use site. The information leaks here are quite serious; if other languages hadn't already normalized this, I doubt we would think that `#file` was an accceptable design.
+* It can inadvertently reveal private or sensitive information. The full path to a source file may contain a developer's username, hints about the configuration of a build farm, proprietary versions or identifiers, or the Sailor Scout you named an external disk after. Developers probably don't know that this information is embedded in their binaries and may not want it to be there. And most uses of `#file` are in default arguments, which makes this information capture invisible at the use site. The information leaks here are quite serious; if other languages hadn't already normalized this, I doubt we would think that `#file` was an acceptable design.
 
 * It bloats binaries produced by the Swift compiler. In testing with the Swift benchmark suite, a shorter `#file` string reduced code size by up to 5%. The large code also impacts runtime performance—in the same tests, a couple dozen benchmarks ran noticeably faster, with several taking 22% less time. While we didn't benchmark app launch times, it's likely that they are also adversely affected by lengthy `#file` strings.
 
@@ -67,7 +67,7 @@ We also identified two patterns that we conservatively assume represent eventual
 
 1. `String = #file`, no `#line` nearby: We assume this will be passed to an API like `URL.init(fileURLWithPath:)` which will then be used to further manipulate the path or perform I/O.
 
-2. `#file` used in a parethensized list, but not an interpolation: We assume this is being passed to an API like `URL.init(fileURLWithPath:)`.
+2. `#file` used in a parenthesized list, but not an interpolation: We assume this is being passed to an API like `URL.init(fileURLWithPath:)`.
 
 When we matched these patterns against the source compatibility suite, we got the following results:
 
