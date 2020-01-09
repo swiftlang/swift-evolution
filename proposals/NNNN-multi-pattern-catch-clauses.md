@@ -1,16 +1,15 @@
-# Multi-Pattern and Conditionally Compiled Catch Clauses
+# Multi-Pattern Catch Clauses
 
-* Proposal: [SE-NNNN](NNNN-multi-pattern-and-conditionally-compiled-catches.md)
+* Proposal: [SE-NNNN](NNNN-multi-pattern-catch-clauses.md)
 * Authors: [Owen Voorhees](https://github.com/owenv)
 * Review Manager: TBD
 * Status: **Awaiting review**
 * Implementation:
-    - [apple/swift#27776](https://github.com/apple/swift/pull/27776) (multi-pattern catch clauses)
-    - [apple/swift#27905](https://github.com/apple/swift/pull/27905) (conditionally compiled catch clauses)
+    - [apple/swift#27776](https://github.com/apple/swift/pull/27776)
 
 ## Introduction
 
-Currently, each catch clause in a do-catch statement may only contain a single pattern and where clause, and may not be conditionally compiled using a `#if` directive. This is inconsistent with the behavior of cases in switch statements which provide similar functionality. It also makes some error handling patterns awkward to express. This proposal extends the grammar of catch clauses to support `#if` and a comma-separated list of patterns (with optional where clauses), resolving this inconsistency.
+Currently, each catch clause in a do-catch statement may only contain a single pattern and where clause. This is inconsistent with the behavior of cases in switch statements, which provide similar functionality. It also makes some error handling patterns awkward to express. This proposal extends the grammar of catch clauses to support a comma-separated list of patterns (with optional where clauses), resolving this inconsistency.
 
 Swift-evolution thread: [Thread](https://forums.swift.org/t/multi-pattern-and-conditionally-compiled-catch-clauses/30246)
 
@@ -41,50 +40,32 @@ do {
   case TaskError.someFailure(let msg),
        TaskError.anotherFailure(let msg):
     showMessage(msg)
+  default:
+    break
   }
 }
 ```
 
 Nesting the switch inside of the catch clause is awkward and defeats the purpose of supporting pattern matching in catch clauses. Splitting the code up into multiple catch clauses requires duplicating the body, which is also undesirable. Supporting a multi-pattern catch clause would allow for code which is both clearer and more concise.
 
-The following use of `#if` is also not allowed today and frequently leads to nesting of switch statements inside catch clauses:
-
-```swift
-do {
-  try performTask()
-}
-#if os(macOS)
-catch TaskError.macOSOnlyError {
-  macOSRecovery()
-}
-#endif
-catch { 
-  crossPlatformRecovery()
-}
-``` 
-
 ## Proposed solution
 
 Catch clauses should allow the user to specify a comma-separated list of patterns. If an error thrown at runtime in a do block matches any of the patterns in a corresponding catch clause, that catch clause's body should be executed. Similar to switch cases, a user should be able to bind a variable in all patterns of a catch clause and then use it in the body.
 
-Additionally, conditional compilation directives should be permitted to appear surrounding catch clauses.
-
-When used together, these additions allow writing code like the following:
+With this change, the code snippet from the motivation section is now valid:
 
 ```swift
 do {
   try performTask()
-} 
-#if os(macOS)
-catch TaskError.macOSOnlyError {            // A conditionally compiled catch clause
-  macOSRecovery()
-}
-#endif
-catch TaskError.someOtherFailure(let msg),  // Multiple patterns in a single catch clause
-      TaskError.anotherFailure(let msg) {
+} catch TaskError.someRecoverableError {    // OK
+  recover()
+} catch TaskError.someFailure(let msg),
+        TaskError.anotherFailure(let msg) { // Also Allowed
   showMessage(msg)
 }
 ```
+
+Now, if `performTask` throws either `TaskError.someFailure("message")` or `TaskError.anotherFailure("message")`, the body of the second catch clause will be executed and `showMessage` will be called.
 
 ## Detailed design
 
@@ -95,33 +76,20 @@ The revised catch clause grammar is as follows:
 ```
 catch-clauses -> catch-clause catch-clauses?
 
-catch-clause -> 'catch' catch-item-list? code-block |
-                conditional-catch-clause
+catch-clause -> 'catch' catch-item-list? code-block
 
 catch-item-list -> catch-item |
                    catch-item ',' catch-item-list
 
 catch-item -> pattern where-clause? |
               where-clause
-
-conditional-catch-clause -> catch-if-directive-clause catch-elseif-directive-clauses? catch-else-directive-clause? endif-directive
-
-catch-if-directive-clause -> if-directive compilation-condition catch-clauses?
-
-catch-elseif-directive-clauses -> catch-elseif-directive-clause catch-elseif-directive-clauses?
-
-catch-elseif-directive-clause -> elseif-directive compilation-condition catch-clauses?
-
-catch-else-directive-clause -> else-directive catch-clauses?
 ```
 
-Note: Where clause expressions with trailing closures are not allowed in any of a catch clause's patterns. This differs from the behavior of switch cases.
+Note: Expressions with trailing closures are not allowed in any of a catch clause's items to avoid parsing ambiguity. This differs from the behavior of switch cases.
 
 ### Semantics
 
 If a catch clause has multiple patterns, then its body will be executed if a thrown error matches any one of those patterns, and has not already matched a pattern from a preceding catch clause. Similar to switch cases, catch clauses with multiple patterns may still contain value bindings. However, those bindings must have the same name and type in each pattern.
-
-Catch clauses within conditional compilation blocks work just like any other supported construct. The clause must parse whether or not the provided condition evaluates to true, so long as it does not include a compiler version condition. If the condition does not evaluate to true, the compiler will not consider it beyond the parsing stage.
 
 ## Source compatibility
 
@@ -139,7 +107,7 @@ This proposal does not introduce any new features which could become part of a p
 
 ### Do nothing
 
-These features are relatively minor additions to the language, and arguably would see rather limited usage. However, in the cases where they are needed, they help the user avoid hard-to-maintain error handling code which either duplicates functionality or nests control flow statements in a confusing manner. This proposal also simplifies Swift's pattern matching and conditional compilation models by unifying some of the semantics of switch and do-catch statements.
+This is a relatively minor addition to the language, and arguably would see rather limited usage. However, in the cases where it's needed, it helps the user avoid hard-to-maintain error handling code which either duplicates functionality or nests control flow statements in a confusing manner. This proposal also simplifies Swift's pattern matching model by unifying some of the semantics of switch and do-catch statements.
 
 ## Future Directions
 
@@ -154,3 +122,7 @@ This change was not included in this proposal because it is source-breaking and 
 ### `fallthrough` support in catch clauses
 
 Allowing `fallthrough` statements in catch clauses would further unify the semantics of switch cases and catches. However, it is currently undesirable for a number of reasons. First, it would be a source-breaking change for existing do-catch statements which trigger `fallthrough`s in an enclosing switch. Also, there is no historical precedent from other languages for supporting `fallthrough`s in catch statements, unlike switches. Finally, there have not yet been any identified examples of code which would benefit from this functionality.
+
+### Conditional compilation blocks around catch clauses
+
+An earlier draft of this proposal also added support for wrapping catch clauses in conditional compilation blocks, similar to the existing support for switch cases. This was removed in favor of keeping this proposal focused on a single topic, and leaving room for a more comprehensive redesign of conditional compilation in the future, as described in [https://forums.swift.org/t/allow-conditional-inclusion-of-elements-in-array-dictionary-literals/16171](https://forums.swift.org/t/allow-conditional-inclusion-of-elements-in-array-dictionary-literals/16171/29).
