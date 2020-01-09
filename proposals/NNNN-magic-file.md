@@ -38,7 +38,7 @@ While `#file` is primarily intended for developer-facing errors, in practice it 
 
   [SE-0271]: https://github.com/apple/swift-evolution/blob/master/proposals/0271-package-manager-resources.md
   
-It's worth reiterating that these uses are inherently fragile and unreliable. Not only do they rely on the build system choosing to pass absolute paths, they also rely on a full checkout of the project being present on disk at the same path as when the binary was built. That means these tests will probably fail when run anywhere but on the machine they were built on, including on attached iOS/tvOS/watchOS devices. 
+It's worth reiterating that these uses are inherently fragile and unreliable. Not only do they rely on the build system choosing to pass absolute paths, they also rely on a full checkout of the project being present on disk at the same path as when the binary was built. That means these tests will probably fail when run anywhere but on the machine they were built on, including on attached iOS/tvOS/watchOS devices.
 
 Nevertheless, we know that some projects in the wild *do* use `#file` this way; the question is how common these uses are. We attempted to answer this question by analyzing the Swift Source Compatibility Suite in three ways:
 
@@ -121,27 +121,13 @@ Fatal error: Something bad happened!: file NNNN-magic-file.swift (MagicFile), li
 
 This string is currently sufficient to uniquely identify the file's `fileprivate` scope because the Swift compiler does not allow identically-named files in different directories to be included in the same module.[2]
 
-This implementation is actually already in master and swift-5.2-branch behind a compiler flag; use the `-enable-experimental-concise-pound-file` flag to try them out.
+This implementation is actually already in master and swift-5.2-branch behind a compiler flag; use the `-enable-experimental-concise-pound-file` flag to try it out.
 
 > [2] This limitation ensures that identically-named `private` and `fileprivate` declarations in different files will have unique mangled names. A future version of the Swift compiler could lift this limitation. If this happens, not fully specifying the format of the `#file` string preserves flexibility for that version to adjust its `#file` strings to include additional information, such as selected parent directory names, sufficient to distinguish the two files.
 
-### Supporting migration for libraries
-
-Once they migrate to the new behavior, libraries which require `#filePath`'s semantics in default arguments may have trouble supporting compilers from before this proposal was implemented. The problem is that there isn't a good way to use `#file` on old compilers and `#filePath` on new ones. Uses can't be abstracted by a function, and `#if swift(...)` will need to be wrapped around the entire function, not just the default argument. (This issue will affect both source-distributed libraries and swiftinterface files in binary-distributed libraries.)
-
-To mitigate this issue, it would make sense to support `#filePath` in Swift 5.2, but delay the behavior change in `#file` until a future version of Swift. This would mean that libraries could adopt `#filePath` after `#file`'s behavior changed while preserving at least one version of backwards compatibility. Since `-enable-experimental-concise-pound-file` is already in swift-5.2-branch, adding just `#filePath` to Swift 5.2 should be as simple as deleting the code that diagnoses an error when you use `#filePath` without that flag. 
-
-We do not recommend that developers switch to `#filePath` proactively—you will be limiting your backwards compatibility for no benefit and, if `#file` works fine for you, possibly for no reason at all. Wait until `#file`'s behavior changes and see if your uses of it break. 
-
-### Disabling `#filePath`
-
-Although it is not technically part of this proposal, we are considering adding a new compiler flag which privacy- or security-conscious developers can use to disable `#filePath` in some fashion.
-
 ## Source compatibility
 
-All existing source code will continue to compile with this change, and `#file`'s documentation never specified precisely what its contents were; in one of the pitch threads, [Ben Cohen](https://forums.swift.org/t/concise-magic-file-names/31297/19) said that this is sufficient to satisfy Swift's source compatibility requirements.
-
-However, the proposal *will* cause behavior to change in existing code, and in some cases it will change in ways that cause existing code to behave incorrectly when run. Code that is adversely affected by this change can access the previous behavior by using `#filePath` instead of `#file`.
+All existing source code will continue to compile with this change, and `#file`'s documentation never specified precisely what its contents were; in one of the pitch threads, [Ben Cohen](https://forums.swift.org/t/concise-magic-file-names/31297/19) said that this is sufficient to satisfy Swift's source compatibility requirements. However, the proposal *will* cause behavior to change in existing code, and in some cases it will change in ways that cause existing code to behave incorrectly when run. Code that is adversely affected by this change can access the previous behavior by using `#filePath` instead of `#file`.
 
 ## Effect on ABI stability
 
@@ -149,7 +135,7 @@ None. `#file` is a compile-time feature; existing binaries will continue to work
 
 ## Effect on API resilience
 
-None, other than the swiftinterface issue discussed in "supporting migration for libraries" above.
+As with any addition to Swift's syntax, older compilers won't be able to use module interface files that have `#filePath` in default arguments or inlinable code. Otherwise, none.
 
 ## Alternatives considered
 
@@ -168,7 +154,7 @@ This is a more conservative approach that would avoid breaking any existing uses
 
 3. This alternative gives users no guidance on which feature developers ought to use. We feel that giving `#file` a shorter name gives them a soft push towards using it when they can, while resorting to `#filePath` only when necessary.
 
-4. Since all uses of `#file`—not just ones that require a full path—would change, all uses of `#file` in libraries' default arguments—not just ones that require a full path—would become stumbling blocks for backwards compatibility. This includes uses in the swiftinterface files for the standard library and XCTest.
+4. Since all uses of `#file`—not just ones that require a full path—would change, all uses of `#file` in module interfaces—not just ones that require a full path—would become stumbling blocks for backwards compatibility. This includes uses in the swiftinterface files for the standard library and XCTest.
 
 However, if the core team feels that changing `#file`'s behavior will cause unacceptable behavior changes, this ready-made alternative would accomplish most of the goals of this proposal.
 
@@ -193,7 +179,7 @@ Ultimately, we think changing to an absolute path is severable from this proposa
 
 ### Other alternatives
 
-We considered making `#file`'s behavior change conditional on enabling a new language version mode. We don't think the breakage from this change will be severe enough to justify delaying this proposal's implementation beyond the version after Swift 5.2, but if we decide to introduce a new language mode in that version, we think it would be reasonable to tie this behavior change to that language mode too. 
+We considered making `#file`'s behavior change conditional on enabling a new language version mode. While we're not opposed to that in principle, we don't think the breakage from this change will be severe enough to justify delaying this proposal's implementation until the next release with a language version mode.
 
 We considered introducing a new alternative to `#file` (e.g. `#fileName`) while preserving the existing meaning of `#file`. However, a great deal of code already uses `#file` and would in practice probably never be converted to `#fileName`. The vast majority of this code would benefit from the new behavior, so we think it would be better to automatically adopt it. (Note that clang supports a `__FILE_NAME__` alternative, but most code still uses `__FILE__` anyway.)
 
