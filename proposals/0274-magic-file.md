@@ -1,9 +1,9 @@
 # Concise magic file names
 
-* Proposal: [SE-NNNN](NNNN-magic-file.md)
+* Proposal: [SE-0274](0274-magic-file.md)
 * Authors: [Brent Royal-Gordon](https://github.com/brentdax), [Dave DeLong](https://github.com/davedelong)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift/)
+* Status: **Active Review (8-16 January 2020)**
 * Implementation: [apple/swift#25656](https://github.com/apple/swift/pull/25656); merged behind `-enable-experimental-concise-pound-file`
 
 ## Introduction
@@ -103,7 +103,7 @@ For those rare cases where developers actually need a full path, we propose addi
 
 ## Detailed design
 
-We do not specify the exact string produced by `#file` because it is not intended to be machine-parseable and we want to preserve flexibility as the compiler's capabilities change. In the current implementation of this proposal, however, a file at `/Users/brent/Desktop/NNNN-magic-file.swift` in a module named `MagicFile` with this content:
+We do not specify the exact string produced by `#file` because it is not intended to be machine-parseable and we want to preserve flexibility as the compiler's capabilities change. In the current implementation of this proposal, however, a file at `/Users/brent/Desktop/0274-magic-file.swift` in a module named `MagicFile` with this content:
 
 ```swift
 print(#file)
@@ -114,9 +114,9 @@ fatalError("Something bad happened!")
 Would produce this output:
 
 ```
-NNNN-magic-file.swift (MagicFile)
-/Users/brent/Desktop/NNNN-magic-file.swift
-Fatal error: Something bad happened!: file NNNN-magic-file.swift (MagicFile), line 3
+0274-magic-file.swift (MagicFile)
+/Users/brent/Desktop/0274-magic-file.swift
+Fatal error: Something bad happened!: file 0274-magic-file.swift (MagicFile), line 3
 ```
 
 This string is currently sufficient to uniquely identify the file's `fileprivate` scope because the Swift compiler does not allow identically-named files in different directories to be included in the same module.[2]
