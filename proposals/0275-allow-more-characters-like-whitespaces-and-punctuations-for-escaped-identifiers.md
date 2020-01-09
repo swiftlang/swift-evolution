@@ -1,12 +1,12 @@
 # Allow more characters (like whitespaces and punctuations) for escaped identifiers
 
-* Proposal: [SE-XXXX]
+* Proposal: [SE-0275]
 
 * Authors: [Alfredo Delli Bovi](https://github.com/adellibovi)
 
-* Review Manager: TBD
+* Review Manager: [Joe Groff](https://github.com/jckarter)
 
-* Status: **Awaiting review**
+* Status: **Scheduled for review (January 13...January 20, 2020)**
 
 * Implementation: [apple/swift#28966](https://github.com/apple/swift/pull/28966)
 
