@@ -1,10 +1,10 @@
 # Refine `didSet` Semantics
 
 * Proposal: [SE-0268](0268-didset-semantics.md)
-* Author: [Suyash Srijan](https://www.github.com/theblixguy) 
-* Review Manager: [Ben Cohen](https://www.github.com/airspeedswift)
+* Author: [Suyash Srijan](https://github.com/theblixguy)
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Accepted**
-* Implementation: [apple/swift#26632](https://github.com/apple/swift/pull/26632) 
+* Implementation: [apple/swift#26632](https://github.com/apple/swift/pull/26632)
 * Bug: [SR-5982](https://bugs.swift.org/browse/SR-5982)
 
 ## Introduction
