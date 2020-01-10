@@ -40,8 +40,6 @@ do {
   case TaskError.someFailure(let msg),
        TaskError.anotherFailure(let msg):
     showMessage(msg)
-  default:
-    break
   }
 }
 ```
