@@ -33,7 +33,7 @@ Because the above snippet is not valid today, developers frequently end up dupli
 ```swift
 do {
   try performTask()
-} catch {
+} catch let error as TaskError {
   switch error {
   case TaskError.someRecoverableError:
     recover()
