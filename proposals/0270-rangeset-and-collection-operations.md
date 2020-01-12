@@ -7,7 +7,7 @@
 * Implementation: [apple/swift#28161](https://github.com/apple/swift/pull/28161)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/9b5957c00e7483ab8664afe921f989ed1394a666/proposals/0270-rangeset-and-collection-operations.md)
 * Previous Review: [SE-0270: Add Collection Operations on Noncontiguous Elements](https://forums.swift.org/t/se-0270-add-collection-operations-on-noncontiguous-elements/30691)
-* Previous Decision:: [Returned for revision](https://forums.swift.org/t/returned-for-revision-se-0270-add-collection-operations-on-noncontiguous-elements/31484)
+* Previous Decision: [Returned for revision](https://forums.swift.org/t/returned-for-revision-se-0270-add-collection-operations-on-noncontiguous-elements/31484)
 
 ## Introduction
 
