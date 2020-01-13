@@ -6,7 +6,7 @@
 
 * Review Manager: [Joe Groff](https://github.com/jckarter)
 
-* Status: **Scheduled for review (January 13...January 20, 2020)**
+* Status: **Active Review (January 13...January 20, 2020)**
 
 * Implementation: [apple/swift#28966](https://github.com/apple/swift/pull/28966)
 
