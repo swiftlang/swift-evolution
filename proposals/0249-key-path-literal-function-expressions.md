@@ -4,7 +4,7 @@
 * Authors: [Stephen Celis](https://github.com/stephencelis), [Greg Titus](https://github.com/gregomni)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Implemented (Swift 5.2)**
-* Implementation: [apple/swift#19448](https://github.com/apple/swift/pull/19448)
+* Implementation: [apple/swift#26054](https://github.com/apple/swift/pull/26054)
 
 ## Introduction
 
