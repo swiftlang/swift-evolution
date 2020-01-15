@@ -1,9 +1,9 @@
 # Multi-Pattern Catch Clauses
 
-* Proposal: [SE-NNNN](NNNN-multi-pattern-catch-clauses.md)
+* Proposal: [SE-0276](0276-multi-pattern-catch-clauses.md)
 * Authors: [Owen Voorhees](https://github.com/owenv)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Active Review (January 15...January 22, 2020)**
 * Implementation:
     - [apple/swift#27776](https://github.com/apple/swift/pull/27776)
 
