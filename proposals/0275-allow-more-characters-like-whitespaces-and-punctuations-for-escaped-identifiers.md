@@ -16,7 +16,7 @@ As part of that, escaped identifiers are adopted to allow usage of reserved keyw
 This proposal wants to extend the character allowance for escaped identifiers with more Unicode scalars, like whitespace and punctuation.
 It will enable to have method names (or other identifiers) with a more readable and natural language like the following:
 ```swift
-func `test validation should succeed when input is less then ten`()
+func `test validation should succeed when input is less than ten`()
 ```
 ## Motivation
 Naming could be hard and having descriptive methods, like in tests, may result in declarations that are hard to read because of its lack of whitespace and punctuations or other symbols. Enabling natural language would improve readability.
@@ -30,13 +30,13 @@ This proposal wants to extend the current grammar for every escaped identifier (
 
 A declaration to an escaped identifier will follow the existing back-ticked syntax.
 ```swift
-func `test validation should succeed when input is less then ten`()
+func `test validation should succeed when input is less than ten`()
 var `some var` = 0
 ```
 
 As per referencing.
 ```swift
-`test validation should succeed when input is less then ten`()
+`test validation should succeed when input is less than ten`()
 foo.`property with space`
 ```
 In fact, by allowing a larger set of characters, we will remove current limitations and, as an example, we will enable us to reference an operator, which currently produces an error.
