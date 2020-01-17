@@ -22,7 +22,9 @@ Naming could be hard and having descriptive methods, like in tests, may result i
 ```swift
 func `test validation should succeed when input is less than ten`() // currently not possible
 // vs
-func `testValidationShouldSucceedWhenInputIsLessThanTen`()
+func testValidationShouldSucceedWhenInputIsLessThanTen() // camelCase
+func test_Validation_Should_Succeed_When_Input_Is_Less_Than_Ten() // camel_Case_Mixed_Snake_Case
+func test_validationShouldSucceed_whenInputIs_lessThanTen() //camelCase_Mixed_SnakeCase_Grouped
 ```
 
 Maintainers of different projects under the [Swift Source Compatibility](https://swift.org/source-compatibility/#current-list-of-projects) uses, instead of Swift's method declaration, testing frameworks, like [Quick](https://github.com/Quick/Quick), because (among other reasons) how they can elegantly express tests descriptions.
@@ -83,7 +85,7 @@ identifier → ` identifier-head identifier-characters opt `
 with:
 ```
 identifier → ` escaped-identifier `
-escaped-identifier -> Any Unicode scalar value except U+000A, U+000B, U+000C, U+000D, U+0085, U+2028, U+2029 or U+0060 (back-tick)
+escaped-identifier -> Any Unicode scalar value except U+000A (line feed), U+000B (vertical tab), U+000C (form feed), U+000D (carriage return), U+0085 (next line), U+2028 (line separator), U+2029 (paragraph separator) or U+0060 (back-tick)
 ```
 
 ### Objective-C Interoperability
@@ -121,7 +123,7 @@ let ​ = 3 // Currently valid, zero-width character identifier
 let space​Here = 3 // Currently valid, with zero-width character between `space` and `Here`
 let spaceHere = 3 // Currently valid, does not from the above because not using zero width character
 let à = 3 // U+00E0 // Currently valid
-let à = 3 // U+0061 U+0300 // Currently valid, does not from the above because represented differently
+let à = 3 // U+0061 U+0300 // Currently valid, does not from the above because represented differently
 ```
 While this issue can be related to escaped identifiers too, we believe it should be addressed separately as it is an existing issue that is affecting non-escaping identifiers and other grammars tokens.
 
