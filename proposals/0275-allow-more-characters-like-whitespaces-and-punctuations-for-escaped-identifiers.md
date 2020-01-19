@@ -121,9 +121,9 @@ Swift currently treats Unicode values individually, this means that a character 
 ```swift
 let ​ = 3 // Currently valid, zero-width character identifier
 let space​Here = 3 // Currently valid, with zero-width character between `space` and `Here`
-let spaceHere = 3 // Currently valid, does not from the above because not using zero width character
+let spaceHere = 3 // Currently valid, does not conflict from the above because represented differently, no zero width character
 let à = 3 // U+00E0 // Currently valid
-let à = 3 // U+0061 U+0300 // Currently valid, does not from the above because represented differently
+let à = 3 // U+0061 U+0300 // Currently valid, does not conflict from the above because represented differently
 ```
 While this issue can be related to escaped identifiers too, we believe it should be addressed separately as it is an existing issue that is affecting non-escaping identifiers and other grammars tokens.
 
