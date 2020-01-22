@@ -5,13 +5,13 @@
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Pending Core Team feedback**
 * Implementation: [apple/swift#28161](https://github.com/apple/swift/pull/28161)
-* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/9b5957c00e7483ab8664afe921f989ed1394a666/proposals/0270-rangeset-and-collection-operations.md)
-* Previous Review: [SE-0270: Add Collection Operations on Noncontiguous Elements](https://forums.swift.org/t/se-0270-add-collection-operations-on-noncontiguous-elements/30691)
-* Previous Decision: [Returned for revision](https://forums.swift.org/t/returned-for-revision-se-0270-add-collection-operations-on-noncontiguous-elements/31484)
+* Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/9b5957c00e7483ab8664afe921f989ed1394a666/proposals/0270-rangeset-and-collection-operations.md), [2](https://github.com/apple/swift-evolution/blob/b17d85fcaf38598fd2ea19641d0e9c26c96747ec/proposals/0270-rangeset-and-collection-operations.md)
+* Previous Reviews: [1](https://forums.swift.org/t/se-0270-add-collection-operations-on-noncontiguous-elements/30691), [2](https://forums.swift.org/t/se-0270-review-2-add-collection-operations-on-noncontiguous-elements/31653)
+* Previous Decision: [1](https://forums.swift.org/t/returned-for-revision-se-0270-add-collection-operations-on-noncontiguous-elements/31484)
 
 ## Introduction
 
-We can use a `Range<Index>` to refer to a group of consecutive positions in a collection, but the standard library doesn't currently provide a way to refer to discontiguous positions in an arbitrary collection. I propose the addition of a `RangeSet` type that can store any number of positions, along with collection algorithms that operate on those positions.
+We can use a `Range<Index>` to refer to a group of consecutive positions in a collection, but the standard library doesn't currently provide a way to refer to discontiguous positions in an arbitrary collection. I propose the addition of a `RangeSet` type that can represent any number of positions, along with collection algorithms that operate on those positions.
 
 ## Motivation
 
@@ -27,33 +27,18 @@ This proposal adds a `RangeSet` type for representing multiple, noncontiguous ra
 var numbers = Array(1...15)
 
 // Find the indices of all the even numbers
-let indicesOfEvens = numbers.ranges(where: { $0.isMultiple(of: 2) })
+let indicesOfEvens = numbers.subranges(where: { $0.isMultiple(of: 2) })
 
 // Perform an operation with just the even numbers
 let sumOfEvens = numbers[indicesOfEvens].reduce(0, +)
 // sumOfEvens == 56
 
 // You can gather the even numbers at the beginning
-let rangeOfEvens = numbers.gather(indicesOfEvens, at: numbers.startIndex)
+let rangeOfEvens = numbers.moveSubranges(indicesOfEvens, to: numbers.startIndex)
 // numbers == [2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15]
 // numbers[rangeOfEvens] == [2, 4, 6, 8, 10, 12, 14]
-
-// Reset `numbers`
-numbers = Array(1...15)
-
-// You can also build range sets by hand...
-let notTheMiddle = RangeSet([0..<5, 10..<15])
-print(Array(numbers[notTheMiddle]))
-// Prints [1, 2, 3, 4, 5, 11, 12, 13, 14, 15]
-
-// ...or by using set operations
-let smallEvens = indicesOfEvens.intersection(
-    numbers.ranges(where: { $0 < 10 }))
-print(Array(numbers[smallEvens]))
-// Prints [2, 4, 6, 8]
 ```
 
-These are just a few examples; the complete proposal includes operations like inverting a range set and adding and removing ranges, which are covered in the next section.
 
 ## Detailed design
 
@@ -96,9 +81,54 @@ public struct RangeSet<Bound: Comparable> {
 }
 ```
 
-`RangeSet` conforms to `Equatable`, to `CustomStringConvertible`, and, when its `Bound` type conforms to `Hashable`, to `Hashable`. `RangeSet` also has `ExpressibleByArrayLiteral` conformance, using arrays of ranges as its literal type.
+`RangeSet` conforms to `Equatable`, to `CustomStringConvertible`, and, when its `Bound` type conforms to `Hashable`, to `Hashable`. 
 
-#### Accessing Underlying Ranges and Individual Indices
+#### Conveniences for working with collection indices
+
+Although a range set can represent a set of values of any `Comparable` type, the primary intended use case is to maintain a set of indices into a collection. To streamline this workflow, `RangeSet` includes an additional initializer and methods for inserting and removing individual indices.
+
+```swift
+extension RangeSet {
+    /// Creates a new range set containing ranges that contain only the
+    /// specified indices in the given collection.
+    ///
+    /// - Parameters:
+    ///   - index: The index to include in the range set. `index` must be a
+    ///     valid index of `collection` that isn't the collection's `endIndex`.
+    ///   - collection: The collection that contains `index`.
+    public init<S, C>(_ indices: S, within collection: C)
+        where S: Sequence, C: Collection, S.Element == C.Index, C.Index == Bound
+      
+    /// Inserts a range that contains only the specified index into the range
+    /// set.
+    ///
+    /// - Parameters:
+    ///   - index: The index to insert into the range set. `index` must be a
+    ///     valid index of `collection` that isn't the collection's `endIndex`.
+    ///   - collection: The collection that contains `index`.
+    ///
+    /// - Complexity: O(*n*), where *n* is the number of ranges in the range
+    ///   set.
+    public mutating func insert<C>(_ index: Bound, within collection: C)
+        where C: Collection, C.Index == Bound
+    
+    /// Removes the range that contains only the specified index from the range
+    /// set.
+    ///
+    /// - Parameters:
+    ///   - index: The index to remove from the range set. `index` must be a
+    ///     valid index of `collection` that isn't the collection's `endIndex`.
+    ///   - collection: The collection that contains `index`.
+    ///
+    /// - Complexity: O(*n*), where *n* is the number of ranges in the range
+    ///   set.
+    public mutating func remove<C>(_ index: Bound, within collection: C)
+        where C: Collection, C.Index == Bound
+}
+```
+
+
+#### Accessing underlying ranges
 
 `RangeSet` provides access to its ranges as a random-access collection via the `ranges` property. 
 You can access the individual indices represented by the range set by using it as a subscript parameter to a collection's `indices` property.
@@ -133,7 +163,8 @@ set.insert(contentsOf: 7..<10)
 
 #### `SetAlgebra`-like methods
 
-`RangeSet` implements a subset of the `SetAlgebra` protocol.
+`RangeSet` implements a subset of the `SetAlgebra` protocol,
+for working with more than one `RangeSet`.
 
 ```swift
 extension RangeSet {
@@ -158,13 +189,13 @@ extension RangeSet {
 
 #### Storage
 
-`RangeSet` stores its ranges in a custom type that will optimize the storage for known, simple `Bound` types. This custom type will avoid allocating extra storage for common cases of empty or single-range range sets.
+`RangeSet` stores its ranges in a custom type that optimizes the storage for known, simple `Bound` types. This custom type will avoid allocating extra storage for the common cases of empty and single-range sets.
 
 ### New `Collection` APIs
 
 #### Finding multiple elements
 
-Akin to the `firstIndex(...)` and `lastIndex(...)` methods, this proposal introduces `ranges(where:)` and `ranges(of:)` methods that return a range set with the indices of all matching elements in a collection.
+Akin to the `firstIndex(...)` and `lastIndex(...)` methods, this proposal introduces `subranges(where:)` and `subranges(of:)` methods that return a range set with the indices of all matching elements in a collection.
 
 ```swift
 extension Collection {
@@ -175,11 +206,11 @@ extension Collection {
     ///
     ///     let str = "Fresh cheese in a breeze"
     ///     let vowels: Set<Character> = ["a", "e", "i", "o", "u"]
-    ///     let allTheVowels = str.ranges(where: { vowels.contains($0) })
+    ///     let allTheVowels = str.subranges(where: { vowels.contains($0) })
     ///     // str[allTheVowels].count == 9
     ///
     /// - Complexity: O(*n*), where *n* is the length of the collection.
-    public func ranges(where predicate: (Element) throws -> Bool) rethrows
+    public func subranges(where predicate: (Element) throws -> Bool) rethrows
         -> RangeSet<Index>
 }
 
@@ -191,17 +222,17 @@ extension Collection where Element: Equatable {
     /// particular letter occurs in a string.
     ///
     ///     let str = "Fresh cheese in a breeze"
-    ///     let allTheEs = str.ranges(of: "e")
+    ///     let allTheEs = str.subranges(of: "e")
     ///     // str[allTheEs].count == 7
     ///
     /// - Complexity: O(*n*), where *n* is the length of the collection.
-    public func ranges(of element: Element) -> RangeSet<Index>
+    public func subranges(of element: Element) -> RangeSet<Index>
 }
 ```
 
 #### Accessing elements via `RangeSet`
 
-When you have a `RangeSet` describing a group of indices for a collection, you can access those elements via a new subscript. This new subscript returns a new `DiscontiguousSlice` type, which couples the collection and range set to provide access.
+When you have a `RangeSet` describing a group of indices for a collection, you can access those elements via subscript. This subscript returns a new `DiscontiguousSlice` type, which couples the collection and range set to provide access.
 
 ```swift
 extension Collection {
@@ -209,7 +240,7 @@ extension Collection {
     /// indices.
     ///
     /// - Complexity: O(1)
-    public subscript(indices: RangeSet<Index>) -> DiscontiguousSlice<Self> { get }
+    public subscript(subranges: RangeSet<Index>) -> DiscontiguousSlice<Self> { get }
 }
 
 extension MutableCollection {
@@ -217,9 +248,9 @@ extension MutableCollection {
     /// given indices.
     ///
     /// - Complexity: O(1) to access the elements, O(*m*) to mutate the
-    ///   elements at the positions in `indices`, where *m* is the number of
-    ///   elements indicated by `indices`.
-    public subscript(indices: RangeSet<Index>) -> DiscontiguousSlice<Self> { get set }
+    ///   elements at the positions in `subranges`, where *m* is the number of
+    ///   elements indicated by `subranges`.
+    public subscript(subranges: RangeSet<Index>) -> DiscontiguousSlice<Self> { get set }
 }
 
 /// A collection wrapper that provides access to the elements of a collection,
@@ -230,7 +261,7 @@ public struct DiscontiguousSlice<Base: Collection>: Collection {
 
     /// The set of index ranges that are available through this indexing
     /// collection.
-    public var ranges: RangeSet<Base.Index> { get set }
+    public var subranges: RangeSet<Base.Index> { get set }
     
     /// A position in an `DiscontiguousSlice`.
     struct Index: Comparable {
@@ -246,9 +277,9 @@ public struct DiscontiguousSlice<Base: Collection>: Collection {
 
 `DiscontiguousSlice` conforms to `Collection`, and conditionally conforms to `BidirectionalCollection` and `MutableCollection` if its base collection conforms.  
 
-#### Gathering elements
+#### Moving elements
 
-Within a mutable collection, you can gather the elements represented by a range set, moving them to be in a contiguous range before the element at a specific index, and otherwise preserving element order. This proposal also adds a method for gathering all the elements matched by a predicate. When gathering elements, other elements slide over to fill gaps left by the elements that move. For that reason, these gathering methods return the new range of the elements that are moved.
+Within a mutable collection, you can move the elements represented by a range set to be in a contiguous range before the element at a specific index, while otherwise preserving element order. When moving elements, other elements slide over to fill gaps left by the elements that move. For that reason, this method returns the new range of the elements that are moved.
 
 ```swift
 extension MutableCollection {
@@ -259,50 +290,27 @@ extension MutableCollection {
     /// them between `"i"` and `"j"`.
     ///
     ///     var letters = Array("ABCdeFGhijkLMNOp")
-    ///     let uppercase = letters.ranges(where: { $0.isUppercase })
-    ///     let rangeOfUppercase = letters.gather(uppercase, at: 10)
+    ///     let uppercaseRanges = letters.subranges(where: { $0.isUppercase })
+    ///     let rangeOfUppercase = letters.moveSubranges(uppercaseRanges, to: 10)
     ///     // String(letters) == "dehiABCFGLMNOjkp"
     ///     // rangeOfUppercase == 4..<13
     ///
     /// - Parameters:
-    ///   - indices: The indices of the elements to move.
+    ///   - subranges: The indices of the elements to move.
     ///   - insertionPoint: The index to use as the destination of the elements.
     /// - Returns: The new bounds of the moved elements.
     ///
     /// - Complexity: O(*n* log *n*) where *n* is the length of the collection.
     @discardableResult
-    public mutating func gather(
-        _ indices: RangeSet<Index>, at insertionPoint: Index
-    ) -> Range<Index>
-
-    /// Collects the elements that satisfy the given predicate just before the
-    /// element at the specified index.
-    ///
-    /// This example gathers all the uppercase letters in the array between
-    /// `"i"` and `"j"`.
-    ///
-    ///     var letters = Array("ABCdeFGhijkLMNOp")
-    ///     let rangeOfUppercase = letters.gather(at: 10) { $0.isUppercase }
-    ///     // String(letters) == "dehiABCFGLMNOjkp"
-    ///     // rangeOfUppercase == 4..<13
-    ///
-    /// - Parameters:
-    ///   - predicate: A closure that returns `true` for elements that should
-    ///     move to `destination`.
-    ///   - insertionPoint: The index to use as the destination of the elements.
-    /// - Returns: The new bounds of the moved elements.
-    ///
-    /// - Complexity: O(*n* log *n*) where *n* is the length of the collection.
-    @discardableResult
-    public mutating func gather(
-        at insertionPoint: Index, where predicate: (Element) -> Bool
+    public mutating func moveSubranges(
+        _ subranges: RangeSet<Index>, to insertionPoint: Index
     ) -> Range<Index>
 }
 ```
 
 #### Removing elements
 
-Within a range-replaceable collection, you can remove the elements represented by a range set. `removeAll(at:)` is a new `RangeReplaceableCollection` requirement with a default implementation, along with an overload for collections that also conform to `MutableCollection`.
+Within a range-replaceable collection, you can remove the elements represented by a range set. `removeSubranges(_:)` is a new `RangeReplaceableCollection` requirement with a default implementation, along with an overload for collections that also conform to `MutableCollection`.
 
 ```swift
 extension RangeReplaceableCollection {
@@ -313,15 +321,15 @@ extension RangeReplaceableCollection {
     ///
     ///     var str = "The rain in Spain stays mainly in the plain."
     ///     let vowels: Set<Character> = ["a", "e", "i", "o", "u"]
-    ///     let vowelIndices = str.ranges(where: { vowels.contains($0) })
+    ///     let vowelIndices = str.subranges(where: { vowels.contains($0) })
     ///
-    ///     str.removeAll(at: vowelIndices)
+    ///     str.removeSubranges(vowelIndices)
     ///     // str == "Th rn n Spn stys mnly n th pln."
     ///
-    /// - Parameter indices: The indices of the elements to remove.
+    /// - Parameter subranges: A range set representing the elements to remove.
     ///
     /// - Complexity: O(*n*), where *n* is the length of the collection.
-    public mutating func removeAll(at indices: RangeSet<Index>)
+    public mutating func removeSubranges(_ subranges: RangeSet<Index>)
 }
 
 extension Collection {
@@ -334,29 +342,15 @@ extension Collection {
     ///
     ///     let str = "The rain in Spain stays mainly in the plain."
     ///     let vowels: Set<Character> = ["a", "e", "i", "o", "u"]
-    ///     let vowelIndices = str.ranges(where: { vowels.contains($0) })
+    ///     let vowelIndices = str.subranges(where: { vowels.contains($0) })
     ///
-    ///     let disemvoweled = str.removingAll(at: vowelIndices)
+    ///     let disemvoweled = str.removingSubranges(vowelIndices)
     ///     print(String(disemvoweled))
     ///     // Prints "Th rn n Spn stys mnly n th pln."
     ///
-    /// - Parameter indices: A range set representing the elements to remove.
+    /// - Parameter subranges: A range set representing the elements to remove.
     /// - Returns: A collection of the elements that are not in `indices`.
-    public func removingAll(at indices: RangeSet<Index>) -> DiscontiguousSlice<Self>
-}
-```
-
-#### `range(at:)` helper method
-
-The proposal also adds an individual `Collection` method to get the range for an individual index. This streamlines adding individual indices to or removing them from a `RangeSet`.
-
-```swift
-extension Collection {
-    /// Returns a range that contains the single given index with respect to
-    /// this collection.
-    public func range(at position: Index) -> Range<Index> {
-        position..<index(after: position)
-    }
+    public func removingSubranges(_ subranges: RangeSet<Index>) -> DiscontiguousSlice<Self>
 }
 ```
 
@@ -411,10 +405,32 @@ set.remove(4)
 // set.ranges == [.fullyOpen(1, 2), .fullyOpen(2, 3), .fullyOpen(3, 4)]
 ```
 
-### `Elements` View
+### `Elements` view
 
 In an earlier version of the proposal, `RangeSet` included a collection view of the indices, conditionally available when the `Bound` type was strideable with an integer stride. This collection view was removed for the same reasons as covered in the section above. Users can access these indices by using a `RangeSet` as a subscript for the source collection's `indices` property.
 
-### Helpers for working with individual `Collection` indices
 
-In an earlier version of this proposal, `RangeSet` included several methods that accepted an individual index or a range expression as a parameter, along with the matching collection, so that the `RangeSet` could convert the index or range expression into a concrete range. These methods have been removed; instead, use the regular `Range`-based operations for creating sets or adding and removing ranges of values.
+### More helpers for working with individual `Collection` indices
+
+In an earlier version of this proposal, `RangeSet` included several methods that accepted range expressions as a parameter, along with the matching collection, so that the `RangeSet` could convert the range expression into a concrete range. These methods have been removed; instead, convert range expressions to concrete ranges before using `RangeSet` methods.
+
+There has been some concern that any APIs that take both an index and a collection represent a violation of concerns. However, these kinds of methods are already well-represented in the standard library (such as `RangeExpression.relative(to:)`), and are necessary for building readable interfaces that work with the design of Swift's collections and indices.
+
+
+### A predicate-based `gather`
+
+This proposal originally included a predicate-based `gather` method (at a time when `moveSubranges(_:to:)` was named `gather(in:at:)`). This predicate-based method has been removed to allow design work to continue on the larger issue of predicate-based mutating collection methods.
+
+In particular, the issue with this method stems from the fact that a collection user may sometimes want to use a predicate that operates on collection elements (e.g. to check for even elements), and may sometimes want to use a predicate that operates on collection indices (e.g. to test for indices that are part of a known group). For non-mutating methods, this poses no problem, as one can call the predicate-based method on the collection's `indices` property instead. However, with mutating methods, this kind of access poses issues with copy-on-write and exclusivity.
+
+One potential solution is to offer an `(Index, Element) -> Bool` predicate for mutating methods instead of the currently standard `(Element) -> Bool` predicate. This kind of change should be considered for existing mutating methods, like `removeAll(where:)` and `partition(by:)`, as well as any future additions.
+
+
+### Other bikeshedding
+
+The review garnered several alternative names for the `RangeSet` type. Some were too tied to the index use case (such as `IndexRangeSet`, `DiscontiguousIndices`, `SomeIndices`), while others didn't represent enough of an obvious improvement to supplant the proposed name (such as `SparseRange`, `DiscontiguousRange`, or `RangeBasedSet`).
+
+There were also a suggestion that the methods for inserting and removing ranges of values should be aligned with the `SetAlgebra` methods `formUnion` and `subtract`. Instead, to keep the `RangeSet` API aligned with user expectations, these operations will keep the names `insert(contentsOf:)` and `remove(contentsOf:)`.
+
+As a result of other feedback, some of the collection operations have been renamed. Instead of `removeAll(in:)` to match `removeAll(where:)`, removing the elements represented by a `RangeSet` is now `removeSubranges(_:)`, as a partner to `removeSubrange(_:)`. Similarly, the `gather(in:at:)` method has been renamed to `moveSubranges(_:to:)`. These names do better at continuing the naming scheme set up by `RangeReplaceableCollection`.
+
