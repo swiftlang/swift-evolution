@@ -6,9 +6,8 @@
 * Status: **Active review (January 21st...28th, 2020)**
 * Implementation: [apple/swift#28161](https://github.com/apple/swift/pull/28161)
 * Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/9b5957c00e7483ab8664afe921f989ed1394a666/proposals/0270-rangeset-and-collection-operations.md), [2](https://github.com/apple/swift-evolution/blob/b17d85fcaf38598fd2ea19641d0e9c26c96747ec/proposals/0270-rangeset-and-collection-operations.md)
-* Review: [current](https://forums.swift.org/t/se-0270-review-3-add-collection-operations-on-noncontiguous-elements/32839)
-* Previous Reviews: [1](https://forums.swift.org/t/se-0270-add-collection-operations-on-noncontiguous-elements/30691), [2](https://forums.swift.org/t/se-0270-review-2-add-collection-operations-on-noncontiguous-elements/31653)
-* Previous Decision: [1](https://forums.swift.org/t/returned-for-revision-se-0270-add-collection-operations-on-noncontiguous-elements/31484)
+* Reviews: [1](https://forums.swift.org/t/se-0270-add-collection-operations-on-noncontiguous-elements/30691), [2](https://forums.swift.org/t/se-0270-review-2-add-collection-operations-on-noncontiguous-elements/31653), [3](https://forums.swift.org/t/se-0270-review-3-add-collection-operations-on-noncontiguous-elements/32839)
+* Decision Notes: [1](https://forums.swift.org/t/returned-for-revision-se-0270-add-collection-operations-on-noncontiguous-elements/31484), [2](https://forums.swift.org/t/revised-se-0270-add-collection-operations-on-noncontiguous-elements/32840)
 
 ## Introduction
 
