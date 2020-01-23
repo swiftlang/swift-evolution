@@ -13,7 +13,7 @@ This proposal builds on top of the [Package Manager Resources](0271-package-mana
 
 The recently accepted [Package Manager Resources](0271-package-manager-resources.md) proposal allows SwiftPM users to define resources (images, data file, etc...) in their manifests and have them packaged inside a bundle to be accessible at runtime using the Foundation `Bundle` APIs. Bundles support storing different versions of resources for different locales and can retrieve the version which makes most sense depending on the runtime environment, but SwiftPM currently offers no way to define those localized variants.
 
-While it is technically possible to benefit from localization today by setting up a resource directory structure that the `Bundle` API expects and specifying it with a `.copy` rule in the manifest (to have SwiftPM retain the structure), this comes at a cost: it bypasses any platform-custom processing that comes with `.process`, and doesn't allow SwiftPM to provide diagnostics when localized resources have been mis-configured.
+While it is technically possible to benefit from localization today by setting up a resource directory structure that the `Bundle` API expects and specifying it with a `.copy` rule in the manifest (to have SwiftPM retain the structure), this comes at a cost: it bypasses any platform-custom processing that comes with `.process`, and doesn't allow SwiftPM to provide diagnostics when localized resources are mis-configured.
 
 Without a way to defined localized resources, package authors are missing out on powerful Foundation APIs to have their applications, libraries and tools adapt to different regions and languages.
 
@@ -147,7 +147,9 @@ BestPackage
 
 will emit the following diagnostic:
 
-<pre><code><font color="yellow">error:</font> directory `Resources/Processed/invalid.lproj` in target `BestTarget` doesn't reference a valid locale identifier; all available identifiers are available on Foundation's `Locale.availableIdentifiers`</code></pre>
+```
+error: directory `Resources/Processed/invalid.lproj` in target `BestTarget` doesn't reference a valid locale identifier; all available identifiers are available on Foundation's `Locale.availableIdentifiers`
+```
 
 #### Sub-directory in Localization Directory
 
@@ -172,7 +174,9 @@ BestPackage
 
 will emit the following diagnostic:
 
-<pre><code><font color="yellow">error:</font> localization directory `Resources/Processed/en.lproj` in target `BestTarget` contains sub-directories, which is forbidden</code></pre>
+```
+error: localization directory `Resources/Processed/en.lproj` in target `BestTarget` contains sub-directories, which is forbidden
+```
 
 #### Missing Development Region Localized Variant
 
@@ -195,7 +199,10 @@ BestPackage
 
 will emit the following diagnostic:
 
-<pre><code><font color="yellow">warning:</font> resource `Image.png` in target `BestTarget` is missing a localization for the development region 'en'; the development region is used as a fallback when no other localization matches</code></pre>
+
+```
+warning: resource `Image.png` in target `BestTarget` is missing a localization for the development region 'en'; the development region is used as a fallback when no other localization matches
+```
 
 #### Un-localized and Localized Variants
 
@@ -220,7 +227,9 @@ BestPackage
 
 will emit the following diagnostic:
 
-<pre><code><font color="yellow">warning:</font> resource 'Image.png' in target 'BestTarget' has both localized and un-localized variants; the localized variant will never be chosen</code></pre>
+```
+warning: resource 'Image.png' in target 'BestTarget' has both localized and un-localized variants; the localized variant will never be chosen
+```
 
 #### Unexpected Base Localized Resource
 
