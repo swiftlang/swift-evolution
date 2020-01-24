@@ -148,7 +148,7 @@ BestPackage
 will emit the following diagnostic:
 
 ```
-error: directory `Resources/Processed/invalid.lproj` in target `BestTarget` doesn't reference a valid locale identifier; all available identifiers are available on Foundation's `Locale.availableIdentifiers`
+error: directory `Resources/Processed/invalid.lproj` in target `BestTarget` doesn't reference a valid localization identifier; all available identifiers are available on Foundation's `Locale.availableIdentifiers`
 ```
 
 #### Sub-directory in Localization Directory
