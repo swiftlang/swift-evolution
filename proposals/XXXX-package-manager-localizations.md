@@ -1,6 +1,6 @@
 # Package Manager Localized Resources
 
-* Proposal: [SE-XXXX](XXXX-package-manager-localization-resources.md)
+* Proposal: [SE-XXXX](XXXX-package-manager-localized-resources.md)
 * Authors: [David Hart](https://github.com/hartbit)
 * Review Manager: **TBD**
 * Status: **Pitch**
