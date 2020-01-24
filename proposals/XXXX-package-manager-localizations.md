@@ -35,7 +35,7 @@ The proposed solution for supporting localized resources in Swift packages is to
 
 * Detect files in a resource `.process` path located in directories named after the `Locale.identifier` they represent followed by an `.lproj` suffix, or in a special `Base.lproj` directory to open up future support for [Base Internationalization](https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPInternational/InternationalizingYourUserInterface/InternationalizingYourUserInterface.html#//apple_ref/doc/uid/10000171i-CH3-SW2) on Apple platforms.
 
-* Add an optional `localization` parameter to the `Resource.process` factory function to allow declaring files outside of `.proj` directories as localized for the development region or for base localization.
+* Add an optional `localization` parameter to the `Resource.process` factory function to allow declaring files outside of `.lproj` directories as localized for the development region or for base localization.
 
 * Have SwiftPM diagnose incoherent resource configurations. For example, if a resource has both an un-localized and a localized variant, the localized variant can never be selected by `Foundation` (see the documentation on [The Bundle Search Pattern](https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/AccessingaBundlesContents/AccessingaBundlesContents.html#//apple_ref/doc/uid/10000123i-CH104-SW7)).
 
