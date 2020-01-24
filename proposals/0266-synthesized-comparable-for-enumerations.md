@@ -97,7 +97,7 @@ enum Membership: Comparable {
 
 ## Proposed solution
 
-Enumeration types which opt-in to a synthesized `Comparable` conformance would compare according to case declaration order, with later cases comparing greater than earlier cases. Only `enum` types with no associated values and `enum` types with only `Comparable` associated values would be eligible for synthesized conformances. No `enum` types with raw values would qualify.
+Enumeration types which opt-in to a synthesized `Comparable` conformance would compare according to case declaration order, with later cases comparing greater than earlier cases. Only `enum` types with no associated values and `enum` types with only `Comparable` associated values would be eligible for synthesized conformances. The latter kind of `enum`s will compare by case declaration order first, and then lexicographically by payload values. No `enum` types with raw values would qualify.
 
 While basing behavior off of declaration order is unusual for Swift, as we generally hew to the “all fields are reorderable by the compiler” principle, it is not a foreign concept to `enums`. For example, reordering cases in a numeric-backed raw `enum` already changes its runtime behavior, since the case declaration order is taken to be meaningful in that context. I also believe that `enum` cases and `struct`/`class` fields are sufficiently distinct concepts that making enumeration case order meaningful would not make the language incoherent.
 
