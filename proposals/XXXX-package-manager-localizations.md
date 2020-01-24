@@ -1,4 +1,4 @@
-# Package Manager Localization Resources
+# Package Manager Localized Resources
 
 * Proposal: [SE-XXXX](XXXX-package-manager-localization-resources.md)
 * Authors: [David Hart](https://github.com/hartbit)
