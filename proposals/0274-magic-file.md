@@ -14,7 +14,7 @@ Swift-evolution thread: [Concise Magic File Names](https://forums.swift.org/t/co
 
 ## Changes since the first review
 
-* We now specify that the `#file` string will have the format ``<module-name>/<file-name>` (with a second form for future expansion) and discuss how to parse it. The previous revision left this format as a compiler implementation detail that tools should always treat as opaque.
+* We now specify that the `#file` string will have the format `<module-name>/<file-name>` (with a second form for future expansion) and discuss how to parse it. The previous revision left this format as a compiler implementation detail that tools should always treat as opaque.
 
 * We now discuss the behavior of `#sourceLocation`'s `file` parameter and provide for a warning when it creates conflicts. The previous revision did not discuss these topics.
 
