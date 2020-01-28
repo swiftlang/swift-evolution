@@ -1,14 +1,11 @@
 # Allow more characters (like whitespaces and punctuations) for escaped identifiers
 
 * Proposal: [SE-0275](0275-allow-more-characters-like-whitespaces-and-punctuations-for-escaped-identifiers.md)
-
-* Authors: [Alfredo Delli Bovi](https://github.com/adellibovi)
-
+* Author: [Alfredo Delli Bovi](https://github.com/adellibovi)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-
-* Status: **Active Review (January 13...January 20, 2020)**
-
+* Status: **Rejected**
 * Implementation: [apple/swift#28966](https://github.com/apple/swift/pull/28966)
+* Decision Notes: [Rationale](https://forums.swift.org/t/se-0275-allow-more-characters-like-whitespaces-and-punctuations-for-escaped-identifiers/32538/46)
 
 ## Introduction
 Swift has a beautiful concise yet expressive syntax.
