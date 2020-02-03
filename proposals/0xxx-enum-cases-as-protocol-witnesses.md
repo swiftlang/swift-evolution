@@ -1,7 +1,7 @@
 # Enum cases as protocol witnesses
 
 * Proposal: [SE-XXXX](xxxx-enum-cases-as-protocol-witnesses.md)
-* Author: [Suyash Srijan](https://www.github.com/theblixguy)
+* Author: [Suyash Srijan](https://github.com/theblixguy)
 * Review Manager: **TBD**
 * Status: **Awaiting Review**
 * Implementation: [apple/swift#28916](https://github.com/apple/swift/pull/28916)
@@ -12,7 +12,7 @@
 
 The aim of this proposal is to lift an existing restriction, which is that enum cases cannot participate in protocol witness matching.
 
-Swift-evolution thread: [Enum cases as protocol witnesses](https://forums.swift.org/t/enum-cases-as-protocol-witnesses/)
+Swift-evolution thread: [Enum cases as protocol witnesses](https://forums.swift.org/t/enum-cases-as-protocol-witnesses/32753)
 
 ## Motivation
 
@@ -103,7 +103,7 @@ This leads to some rather unfortunate consequences:
 
 In almost every corner of the language, enum cases and static properties/functions are indistinguishable from each other, *except* when it comes to matching protocol requirements, which is very inconsistent, so it is not unreasonable to think of a enum case without associated values as a `static`, get-only property that returns `Self` or an enum case with associated values as a `static` function (with arguments) that returns `Self`.
 
-Doing so can also lead to other improvements, for example, one can conform `DispatchTimeInterval` direcly to Combine's `SchedulerTypeIntervalConvertible` instead of having to go through a much more complicated type like `DispatchQueue.SchedulerTimeType.Stride`:
+Lifting this restriction can also lead to other improvements, for example, one can conform `DispatchTimeInterval` directly to Combine's `SchedulerTypeIntervalConvertible` instead of having to go through a much more complicated type like `DispatchQueue.SchedulerTimeType.Stride`:
 
 ```swift
 extension DispatchTimeInterval: SchedulerTimeIntervalConvertible {
@@ -162,7 +162,7 @@ enum FooEnum: Foo {
 }
 ```
 
-The last one is intentional - there is no way to declare a `case eight()` today (and even when you could in the past, it actually had a different type). In this case, the requirement `static func eight()` can infact be better expressed as a `static var eight`. In the future, this limitation may be lifted when other kinds of witness matching is considered.
+The last one is intentional - there is no way to declare a `case eight()` today (and even when you could in the past, it actually had a different type). In this case, the requirement `static func eight()` can in fact be better expressed as a `static var eight`. In the future, this limitation may be lifted when other kinds of witness matching is considered.
 
 ## Source compatibility
 
@@ -196,13 +196,13 @@ func takesFoo<T: Foo>(value: T) { ... }
 let direct = FooEnum.bar // #1
 let asProperty = FooEnum.bar // #2
 
-takesFoo(value: direct) // This one recieves .bar
-takesFoo(value: asProperty) // This one recieves ._bar
+takesFoo(value: direct) // This one receives .bar
+takesFoo(value: asProperty) // This one receives ._bar
 ```
 
 ## Alternatives considered
 
-- Allow protocol requirements to be declared as `case` instead of `static var` or `static func` - the obvious downside of doing this would be that only enums would be able to adopt such a protocol, which would be unreasonably restrictive beacuse other types like classes and structs having satisfying witnesses would no longer be able to adopt such a protocol.
+- Allow protocol requirements to be declared as `case` instead of `static var` or `static func` - the obvious downside of doing this would be that only enums would be able to adopt such a protocol, which would be unreasonably restrictive because other types like classes and structs having satisfying witnesses would no longer be able to adopt such a protocol.
 - Only allow enum cases without associated values to participate out of the box. Ones with associated values will be disallowed unless explicitly marked with a specific annotation to allow them to be used as "factories". It seems unnecessarily restrictive to impose another syntactic barrier, one which does not exist in other types. The semantics of a protocol requirement is up to the author to document and for clients to read and verify before implementing, so adding another annotation does not provide any language improvements.
 - Leave the existing behaviour as-is.
 
