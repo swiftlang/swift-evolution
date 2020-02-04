@@ -3,7 +3,8 @@
 * Proposal: [SE-0264](0264-stdlib-preview-package.md)
 * Authors: [Ben Cohen](https://github.com/airspeedswift), [Max Moiseev](https://github.com/moiseev), [Nate Cook](https://github.com/natecook1000)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
-* Status:  **Active review (December 2...December 10)**
+* Status:  **Accepted**
+* Decision Notes: [Rationale](https://forums.swift.org/t/se-0264-review-2-standard-library-preview-package/31288/16)
 * Implementation:
     1. [apple/swift-evolution#1089](https://github.com/apple/swift-evolution/pull/1089)
     2. [apple/swift-evolution#1090](https://github.com/apple/swift-evolution/pull/1090)
