@@ -35,62 +35,75 @@ var REPO_PROPOSALS_BASE_URL = GITHUB_BASE_URL + 'apple/swift-evolution/blob/mast
  *
  * `className`: Mapping of states in the proposals JSON to the CSS class names used
  * to manipulate and display proposals based on their status.
+ * 
+ * `count`: Number of proposals that determine after all proposals is loaded
  */
 var states = {
   '.awaitingReview': {
     name: 'Awaiting Review',
     shortName: 'Awaiting Review',
-    className: 'awaiting-review'
+    className: 'awaiting-review',
+    count: 0
   },
   '.scheduledForReview': {
     name: 'Scheduled for Review',
     shortName: 'Scheduled',
-    className: 'scheduled-for-review'
+    className: 'scheduled-for-review',
+    count: 0
   },
   '.activeReview': {
     name: 'Active Review',
     shortName: 'Active Review',
-    className: 'active-review'
+    className: 'active-review',
+    count: 0
   },
   '.returnedForRevision': {
     name: 'Returned for Revision',
     shortName: 'Returned',
-    className: 'returned-for-revision'
+    className: 'returned-for-revision',
+    count: 0
   },
   '.withdrawn': {
     name: 'Withdrawn',
     shortName: 'Withdrawn',
-    className: 'withdrawn'
+    className: 'withdrawn',
+    count: 0
   },
   '.deferred': {
     name: 'Deferred',
     shortName: 'Deferred',
-    className: 'deferred'
+    className: 'deferred',
+    count: 0
   },
   '.accepted': {
     name: 'Accepted',
     shortName: 'Accepted',
-    className: 'accepted'
+    className: 'accepted',
+    count: 0
   },
   '.acceptedWithRevisions': {
     name: 'Accepted with revisions',
     shortName: 'Accepted',
-    className: 'accepted-with-revisions'
+    className: 'accepted-with-revisions',
+    count: 0
   },
   '.rejected': {
     name: 'Rejected',
     shortName: 'Rejected',
-    className: 'rejected'
+    className: 'rejected',
+    count: 0
   },
   '.implemented': {
     name: 'Implemented',
     shortName: 'Implemented',
-    className: 'implemented'
+    className: 'implemented',
+    count: 0
   },
   '.error': {
     name: 'Error',
     shortName: 'Error',
-    className: 'error'
+    className: 'error',
+    count: 0
   }
 }
 
@@ -173,6 +186,21 @@ function html (elementType, attributes, children) {
   return element
 }
 
+function determineNumberOfProposals (proposals) {
+  // reset count
+  Object.keys(states).forEach(function (state){
+    states[state].count = 0
+  })
+
+  proposals.forEach(function (proposal) {
+    states[proposal.status.state].count += 1
+  })
+
+  // .acceptedWithRevisions proposals are combined in the filtering UI
+  // with .accepted proposals.
+  states['.accepted'].count += states['.acceptedWithRevisions'].count
+}
+
 /**
  * Adds the dynamic portions of the page to the DOM, primarily the list
  * of proposals and list of statuses used for filtering.
@@ -200,15 +228,15 @@ function renderNav () {
 
     return html('li', null, [
       html('input', { type: 'checkbox', className: 'filtered-by-status', id: 'filter-by-' + className, value: className }),
-      html('label', { className: className, tabindex: '0', role: 'button', 'for': 'filter-by-' + className }, [
-        states[state].name
+      html('label', { className: className, tabindex: '0', role: 'button', 'for': 'filter-by-' + className, 'data-state-key': state }, [
+        addNumberToState(states[state].name, states[state].count)        
       ])
     ])
   })
 
   var expandableArea = html('div', { className: 'filter-options expandable' }, [
     html('h5', { id: 'filter-options-label' }, 'Status'),
-    html('ul', { className: 'filter-by-status' })
+    html('ul', { id: 'filter-options', className: 'filter-by-status' })
   ])
 
   nav.querySelector('.nav-contents').appendChild(expandableArea)
@@ -644,6 +672,9 @@ function filterProposals () {
 
   _applyFilter(intersection)
   _updateURIFragment()
+
+  determineNumberOfProposals(intersection)
+  updateFilterStatus()
 }
 
 /**
@@ -982,6 +1013,7 @@ function updateFilterDescription (selectedStateNames) {
   } else if (selectedStateNames.length === 0) {
     container.innerText = 'All Statuses'
   } else {
+    selectedStateNames = selectedStateNames.map(cleanNumberFromState)
     container.innerText = selectedStateNames.join(' or ')
   }
 }
@@ -990,4 +1022,21 @@ function updateFilterDescription (selectedStateNames) {
 function updateProposalsCount (count) {
   var numberField = document.querySelector('#proposals-count-number')
   numberField.innerText = (count.toString() + ' proposal' + (count !== 1 ? 's' : ''))
+}
+
+function updateFilterStatus () {
+  var labels = [].concat.apply([], document.querySelectorAll('#filter-options label'))
+  labels.forEach(function (label) {
+    var count = states[label.getAttribute('data-state-key')].count
+    var cleanedLabel = cleanNumberFromState(label.innerText)
+    label.innerText = addNumberToState(cleanedLabel, count)
+  })
+}
+
+function cleanNumberFromState (state) {
+  return state.replace(/ *\([^)]*\) */g, '')
+}
+
+function addNumberToState (state, count) {
+  return state + ' (' + count + ')'
 }

@@ -3,8 +3,8 @@
 * Proposal: [SE-0249](0249-key-path-literal-function-expressions.md)
 * Authors: [Stephen Celis](https://github.com/stephencelis), [Greg Titus](https://github.com/gregomni)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Accepted**
-* Implementation: [apple/swift#19448](https://github.com/apple/swift/pull/19448)
+* Status: **Implemented (Swift 5.2)**
+* Implementation: [apple/swift#26054](https://github.com/apple/swift/pull/26054)
 
 ## Introduction
 
@@ -127,8 +127,8 @@ func makeIndex() -> Int {
   return nextIndex
 }
 
-let getFirst = \Array<Int>.[makeIndex()]     // Calls makeIndex(), gets 0, forms \Array<Int>.[0]
-let getSecond = \Array<Int>.[makeIndex()]    // Calls makeIndex(), gets 1, forms \Array<Int>.[1]
+let getFirst: ([Int]) -> Int = \Array<Int>.[makeIndex()]     // Calls makeIndex(), gets 0, forms \Array<Int>.[0]
+let getSecond: ([Int]) -> Int = \Array<Int>.[makeIndex()]    // Calls makeIndex(), gets 1, forms \Array<Int>.[1]
 
 assert(getFirst([1, 2, 3]) == 1)             // No matter how many times
 assert(getFirst([1, 2, 3]) == 1)             // you call getFirst(),
