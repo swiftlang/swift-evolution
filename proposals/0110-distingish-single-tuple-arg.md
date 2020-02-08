@@ -3,9 +3,10 @@
 * Proposal: [SE-0110](0110-distingish-single-tuple-arg.md)
 * Authors: Vladimir S., [Austin Zheng](https://github.com/austinzheng)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Accepted**
+* Status: **Implemented**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000215.html), [Additional Commentary](https://lists.swift.org/pipermail/swift-evolution-announce/2017-June/000386.html)
 * Bug: [SR-2008](https://bugs.swift.org/browse/SR-2008)
+* Previous Revision: [Originally Accepted Proposal](https://github.com/apple/swift-evolution/blob/9e44932452e1daead98f2bc2e58711eb489e9751/proposals/0110-distingish-single-tuple-arg.md)
 
 ## Introduction
 
@@ -47,6 +48,15 @@ We propose that this behavior should be fixed in the following ways:
 
 	We understand that this may be a departure from the current convention that a set of parentheses enclosing a single object are considered semantically meaningless, but it is the most natural way to differentiate between the two situations described above and would be a clearly-delineated one-time-only exception.
 
+Existing Swift code widely takes advantage of the ability to pass a multi-parameter closure or function value to a higher-order function that operates on tuples, particularly with collection operations:
+
+```
+zip([1, 2, 3], [3, 2, 1]).filter(<) // => [(1, 3)]
+zip([1, 2, 3], [3, 2, 1]).map(+) // => [4, 4, 4]
+```
+
+Without the implicit conversion, this requires invasive changes to explicitly destructure the tuple argument. In order to gain most of the type system benefits of distinguishing single-tuple-argument functions from multiple-argument functions, while maintaining the fluidity of functional code like the above, arguments of type `(T, U, ...) -> V` in call expressions are allowed to be converted to parameters of the corresponding single-tuple parameter type `((T, U, ...)) -> V`, so the two examples above will continue to be accepted.
+
 ## Impact on existing code
 
 Minor changes to user code may be required if this proposal is accepted.
@@ -54,3 +64,7 @@ Minor changes to user code may be required if this proposal is accepted.
 ## Alternatives considered
 
 Don't make this change.
+
+## Revision history
+
+The [original proposal as reviewed](https://github.com/apple/swift-evolution/blob/9e44932452e1daead98f2bc2e58711eb489e9751/proposals/0110-distingish-single-tuple-arg.md) did not include the special-case conversion from `(T, U, ...) -> V` to `((T, U, ...)) -> V` for function arguments. In response to community feedback, [this conversion was added](https://lists.swift.org/pipermail/swift-evolution-announce/2017-June/000386.html) as part of the Core Team's acceptance of the proposal.
