@@ -3,7 +3,7 @@
 * Proposal: [SE-0226](0226-package-manager-target-based-dep-resolution.md)
 * Authors: [Ankit Aggarwal](https://github.com/aciidb0mb3r)
 * Review Manager: [Boris Bügling](https://github.com/neonichu)
-* Status: **Accepted**
+* Status: **Partially implemented (Swift 5.2):** Implemented the manifest API to disregard targets not concerned by any dependency products, which avoids building dependency test targets.
 * Bug: [SR-8658](https://bugs.swift.org/browse/SR-8658)
 
 ## Introduction
