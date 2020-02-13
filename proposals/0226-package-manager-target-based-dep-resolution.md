@@ -3,7 +3,7 @@
 * Proposal: [SE-0226](0226-package-manager-target-based-dep-resolution.md)
 * Authors: [Ankit Aggarwal](https://github.com/aciidb0mb3r)
 * Review Manager: [Boris Bügling](https://github.com/neonichu)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.2)**
 * Bug: [SR-8658](https://bugs.swift.org/browse/SR-8658)
 
 ## Introduction
