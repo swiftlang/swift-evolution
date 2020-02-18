@@ -58,9 +58,9 @@ for the upcoming Swift release will not be brought up for review. If you can't r
 
 ## Preparing an implementation
 
-When you are ready to request a review, a pull request with an implementation is required in addition to your proposal. Proposals that can ship as part of the Swift Preview package should be paired with a pull request against the [swift-evolution-staging repository][swift-evolution-staging]. All other proposals should be paired with an implementation pull request against the [main Swift repository](https://github.com/apple/swift).
+When you are ready to request a review, a pull request with an implementation is required in addition to your proposal. Proposals that can ship as part of the [Standard Library Preview package] should be paired with a pull request against the [swift-evolution-staging repository][swift-evolution-staging]. All other proposals should be paired with an implementation pull request against the [main Swift repository](https://github.com/apple/swift).
 
-The Swift Preview package can accept new types, protocols, and extensions to existing types and protocols that can be implemented without access to standard library internals or other non-public features. 
+The preview package can accept new types, new protocols, and extensions to existing types and protocols that can be implemented without access to standard library internals or other non-public features. For more information about the kinds of changes that can be implemented in the preview package, see [SE-0264](https://github.com/apple/swift-evolution/blob/master/proposals/0264-stdlib-preview-package.md).
 
 ## Review process
 
