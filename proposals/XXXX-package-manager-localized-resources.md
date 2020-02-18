@@ -32,26 +32,26 @@ The goals of this proposal builds on those of the [Package Manager Resources](02
 
 The proposed solution for supporting localized resources in Swift packages is to:
 
-* Add a new optional `developmentRegion` parameter to the `Package` initializer to define the default language and region for the resource bundle. SwiftPM will require that parameter be set if the package contains localized resources.
+* Add a new optional `defaultLocalization` parameter to the `Package` initializer to define the default localization for the resource bundle. The default localization will be used as a fallback when no other localization for a resource fits the runtime environment. SwiftPM will require that parameter be set if the package contains localized resources.
 
-* Require localized resources to be placed in directories named after the [IETF Language Tag](https://en.wikipedia.org/wiki/IETF_language_tag) they represent followed by an `.lproj` suffix, or in a special `Base.lproj` directory to open up future support for [Base Internationalization](https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPInternational/InternationalizingYourUserInterface/InternationalizingYourUserInterface.html#//apple_ref/doc/uid/10000171i-CH3-SW2) on Apple platforms.
+* Require localized resources to be placed in directories named after the [IETF Language Tag](https://en.wikipedia.org/wiki/IETF_language_tag) they represent followed by an `.lproj` suffix, or in a special `Base.lproj` directory to open up future support for [Base Internationalization](https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPInternational/InternationalizingYourUserInterface/InternationalizingYourUserInterface.html#//apple_ref/doc/uid/10000171i-CH3-SW2) on Apple platforms. While Foundation supports several localization directories which are not valid IETF Language Tags, like `English` or `en_US`, it is recommended to use `en-US` style tags with a two-letter ISO 639-1 or three-letter ISO 639-2 language code, followed by optional region and/or dialect codes separated by a hyphen (see the [CFBundleDevelopmentRegion documentation](https://developer.apple.com/documentation/bundleresources/information_property_list/cfbundledevelopmentregion#)).
 
-* Add an optional `localization` parameter to the `Resource.process` factory function to allow declaring files outside of `.lproj` directories as localized for the development region or for base localization.
+* Add an optional `localization` parameter to the `Resource.process` factory function to allow declaring files outside of `.lproj` directories as localized for the default or base localization.
 
 * Have SwiftPM diagnose incoherent resource configurations. For example, if a resource has both an un-localized and a localized variant, the localized variant can never be selected by `Foundation` (see the documentation on [The Bundle Search Pattern](https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/AccessingaBundlesContents/AccessingaBundlesContents.html#//apple_ref/doc/uid/10000123i-CH104-SW7)).
 
-* Have SwiftPM copy the localized resource to the resource bundle in the right locations for the `Foundation` APIs to find and use them, and generate a `Info.plist` for the resources bundle containing the `CFBundleDevelopmentRegion` key.
+* Have SwiftPM copy the localized resource to the resource bundle in the right locations for the `Foundation` APIs to find and use them, and generate a `Info.plist` for the resources bundle containing the `CFBundleDevelopmentRegion` key set to the `defaultLocalization`.
 
 ## Detailed Design
 
 ### Declaring Localized Resources
 
-The `Package` initializer in the `PackageDescription` API gains a new optional `developmentRegion` parameter with type `LanguageTag` and a default value of `nil`:
+The `Package` initializer in the `PackageDescription` API gains a new optional `defaultLocalization` parameter with type `LocalizationTag` and a default value of `nil`:
 
 ```swift
 public init(
     name: String,
-    developmentRegion: LanguageTag = nil, // New developmentRegion parameter.
+    defaultLocalization: LocalizationTag = nil, // New defaultLocalization parameter.
     pkgConfig: String? = nil,
     providers: [SystemPackageProvider]? = nil,
     products: [Product] = [],
@@ -62,32 +62,32 @@ public init(
     cxxLanguageStandard: CXXLanguageStandard? = nil
 )
 ```
-`LanguageTag` is a wrapper around a [IETF Language Tag](https://en.wikipedia.org/wiki/IETF_language_tag), with a `String` initializer and conforming to `Hashable`, `RawRepresentable`, `CustomStringConvertible` and `ExpressibleByStringLiteral`. While a `String` would suffice for now, the type allows for future expansion.
+`LocalizationTag` is a wrapper around a [IETF Language Tag](https://en.wikipedia.org/wiki/IETF_language_tag), with a `String` initializer and conforming to `Hashable`, `RawRepresentable`, `CustomStringConvertible` and `ExpressibleByStringLiteral`. While a `String` would suffice for now, the type allows for future expansion.
 
 ```swift
 /// A wrapper around a [IETF Language Tag](https://en.wikipedia.org/wiki/IETF_language_tag).
-public struct LanguageTag: Hashable {
+public struct LocalizationTag: Hashable {
 
     /// A IETF language tag.
     public let tag: String
 
-    /// Creates a `LanguageTag` from its IETF string representation.
+    /// Creates a `LocalizationTag` from its IETF string representation.
     public init(_ tag: String) {
         self.tag = tag
     }
 }
 
-extension LanguageTag: RawRepresentable, ExpressibleByStringLiteral, CustomStringConvertible {
+extension LocalizationTag: RawRepresentable, ExpressibleByStringLiteral, CustomStringConvertible {
     // Implementation.
 }
 ```
 
-To allow marking files outside of `.lproj` directories as localized, the `Resource.process` factory function gets a new optional `localization` parameter typed as an optional `LocalizationType`, an enum with two cases: `.developmentRegion` for declaring a development region localized variant, and `.base` for declaring a base-localized resource:
+To allow marking files outside of `.lproj` directories as localized, the `Resource.process` factory function gets a new optional `localization` parameter typed as an optional `LocalizationType`, an enum with two cases: `.default` for declaring a default localized variant, and `.base` for declaring a base-localized resource:
 
 ```swift
 public struct Resource {
     public enum LocalizationType {
-        case developmentRegion
+        case `default`
         case base
     }
 
@@ -104,7 +104,7 @@ Files in those special directories represent localized variants of a "virtual" r
 ```swift
 let package = Package(
     name: "BestPackage",
-    developmentRegion: "en",
+    defaultLocalization: "en",
     targets: [
         .target(name: "BestTarget", resources: [
             .process("Resources/Icon.png"),
@@ -119,12 +119,12 @@ In addition to localized resources detected by scanning `.lproj` directories, Sw
 
 ### Validating Localized Resources
 
-SwiftPM can help package authors by diagnosing mis-configurations of localized resources and other inconsistencies that may otherwise only show up at runtime. To illustrate the diagnostics described below, we define a `Package.swift` manifest with a development region of `.en`, and both a resource path with the `.process` rule an one with the `.copy` rule:
+SwiftPM can help package authors by diagnosing mis-configurations of localized resources and other inconsistencies that may otherwise only show up at runtime. To illustrate the diagnostics described below, we define a `Package.swift` manifest with a default localization of `"en"`, and two resource paths with the `.process` rule an one with the `.copy` rule:
 
 ```swift
 let package = Package(
     name: "BestPackage",
-    developmentRegion: "en",
+    defaultLocalization: "en",
     targets: [
         .target(name: "BestTarget", resources: [
             .process("Resources/Processed"),
@@ -160,9 +160,9 @@ will emit the following diagnostic:
 error: localization directory `Resources/Processed/en.lproj` in target `BestTarget` contains sub-directories, which is forbidden
 ```
 
-#### Missing Development Region Localized Variant
+#### Missing Default Localized Variant
 
-When a localized resource is missing a variant for the development region, `Foundation` may not be able to find the resource depending on the run environment. SwiftPM will emit a warning to warn against it. For example, the following directory structure:
+When a localized resource is missing a variant for the default localization, `Foundation` may not be able to find the resource depending on the run environment. SwiftPM will emit a warning to warn against it. For example, the following directory structure:
 
 ```
 BestPackage
@@ -183,7 +183,7 @@ will emit the following diagnostic:
 
 
 ```
-warning: resource 'Image.png' in target 'BestTarget' is missing a localization for the development region 'en'; the development region is used as a fallback when no other localization matches
+warning: resource 'Image.png' in target 'BestTarget' is missing a localization for the default localization 'en'; the default localization is used as a fallback when no other localization matches
 ```
 
 #### Un-localized and Localized Variants
@@ -213,47 +213,9 @@ will emit the following diagnostic:
 warning: resource 'Image.png' in target 'BestTarget' has both localized and un-localized variants; the localized variants will never be chosen
 ```
 
-#### Invalid Localization Name
+### Missing Default Localization
 
-To help avoid typos, SwiftPM will generate an error when an `.lproj` directory in a `.process` rule does not follow the [IETF language tag syntax](https://en.wikipedia.org/wiki/IETF_language_tag#Syntax_of_language_tags): only latin letters, digits and hyphens are authorized. For example, in the following directory structure:
-
-```
-BestPackage
-|-- Sources
-|   `-- BestTarget
-|       |-- Resources
-|       |   |-- Processed
-|       |   |   |-- en_US.lproj
-|       |   |   |   `-- Image.png
-|       |   |   `-- Image.png
-|       |   `-- Copied
-|       |       |-- en_US.lproj
-|       |       |   `-- Image.png
-|       |       `-- Image.png
-|       `-- main.swift
-`-- Package.swift
-```
-
-will emit the following diagnostic:
-
-```
-error: invalid name for localization directory 'BestTarget/Resources/Processed/en_US.lproj'; the pattern for a localization directory name is groups of latin characters and digits separated by hyphens and ending with the '.lproj' extension
-```
-
-Similarly, SwiftPM will emit an error when loading a manifest containing a `LanguageTag` initialized with an invalid language tag, like in the following example:
-
-```swift
-let package = Package(
-    name: "BestPackage",
-    developmentRegion: "fr_CH",
-    targets: [
-        .target(name: "BestTarget")
-    ]
-```
-
-### Missing Development Region
-
-The `developmentRegion` property is optional and has a default value of `nil`, but its required to provide a valid `LanguageTag` in the presence of localized resources. SwiftPM with emit an error if that is not the case. For example, the following directory structure:
+The `defaultLocalization` property is optional and has a default value of `nil`, but its required to provide a valid `LocalizationTag` in the presence of localized resources. SwiftPM with emit an error if that is not the case. For example, the following directory structure:
 
 ```
 BestPackage
@@ -281,7 +243,7 @@ let package = Package(
 will emit the following diagnostic:
 
 ```
-error: missing manifest property 'developmentRegion'; it is required in the presence of localized resources
+error: missing manifest property 'defaultLocalization'; it is required in the presence of localized resources
 ```
 
 #### Explicit Localization Resource in Localization Directory
@@ -304,7 +266,7 @@ with the following manifest:
 ```swift
 let package = Package(
     name: "BestPackage",
-    developmentRegion: "en",
+    defaultLocalization: "en",
     targets: [
         .target(name: "BestTarget", resources: [
             .process("Resources", localization: .base),
