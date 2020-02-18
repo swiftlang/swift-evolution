@@ -51,7 +51,7 @@ It is important to note that this proposal has no effect on dependency resolutio
 
 ### New `PackageDescription` API
 
-All the cases of the `Target.Dependency` enum will gain a new optional `BuildSettingCondition` argument. The current static factory functions for initializing those enums will be obsoleted in the version of the tools this proposal will appear in, and new functions will take their place, introducing a new optional argument:
+All the cases of the `Target.Dependency` enum will gain a new optional `TargetDependencyCondition` argument, a type with the same API as `BuildSettingCondition`. Creating a new type allows the APIs to evolve independently, if ever they have to, to support different condition types. The current static factory functions for initializing those enums will be obsoleted in the version of the tools this proposal will appear in, and new functions will take their place, introducing a new optional argument:
 
 ```swift
 extension Target.Dependency {
@@ -63,7 +63,7 @@ extension Target.Dependency {
     @available(_PackageDescription, introduced: 5.3)
     public static func target(
         name: String,
-        condition: BuildSettingCondition? = nil
+        condition: TargetDependencyCondition? = nil
     ) -> Target.Dependency {
         // ...
     }
@@ -78,7 +78,7 @@ extension Target.Dependency {
     public static func product(
         name: String,
         package: String? = nil,
-        condition: BuildSettingCondition? = nil
+        condition: TargetDependencyCondition? = nil
     ) -> Target.Dependency {
         // ...
     }
@@ -92,7 +92,7 @@ extension Target.Dependency {
     @available(_PackageDescription, introduced: 5.3)
     public static func byName(
         name: String,
-        condition: BuildSettingCondition? = nil
+        condition: TargetDependencyCondition? = nil
     ) -> Target.Dependency {
         // ...
     }
