@@ -235,7 +235,8 @@ case .buffalo(_, _): // Favors `buffalo(buffalo:buffalo:)`
 
 
 If multiple enum cases agree in arity but have different argument labels, then
-an unlabeled pattern favors matching an unlabeled associated value:
+an unlabeled pattern favors matching an unlabeled associated value. Specifying
+labels in the pattern can be used to favor declarations matching those label:
 
 ```
 enum Buffalo {
@@ -245,7 +246,9 @@ enum Buffalo {
 
 switch buffalo {
 case .buffalo(_, _): // Favors `buffalo(_:_:)`
-case .buffalo(_, _): // Favors `buffalo(buffalo:buffalo:)`
+case .buffalo(buffalo: _, buffalo: _): // Favors `buffalo(buffalo:buffalo:)`
+case .buffalo(_, buffalo: _): // Favors `buffalo(buffalo:buffalo:)`
+case .buffalo(buffalo: _, _): // Favors `buffalo(buffalo:buffalo:)`
 }
 ```
 
