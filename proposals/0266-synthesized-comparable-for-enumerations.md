@@ -3,8 +3,9 @@
 * Proposal: [SE-0266](0266-synthesized-comparable-for-enumerations.md)
 * Author: [Kelvin Ma (taylorswift)](https://forums.swift.org/u/taylorswift)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.3)**
 * Implementation: [apple/swift#25696](https://github.com/apple/swift/pull/25696)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0266-synthesized-comparable-conformance-for-enum-types/29854)
 
 ## Introduction
 
