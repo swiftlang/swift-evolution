@@ -3,7 +3,7 @@
 * Proposal: [SE-0278](0278-package-manager-localized-resources.md)
 * Author: [David Hart](https://github.com/hartbit)
 * Review Manager: [Boris Buegling](https://github.com/neonichu)
-* Status: **Active review (February 19...February 26)**
+* Status: **Accepted**
 * Implementation: [apple/swift-package-manager#2535](https://github.com/apple/swift-package-manager/pull/2535)
 
 ## Introduction
