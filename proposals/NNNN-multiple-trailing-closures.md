@@ -171,19 +171,19 @@ closures:
 func toggle() {
   UIView.animate(withDuration: 1) {
     animations: {
-	   self.myView.backgroundColor = UIColor.green
-	   self.myView.frame.size.width += 50
-	   self.myView.frame.size.height += 20
-	   self.myView.center.x += 20
-	 }
-	 completion: { _ in
+      self.myView.backgroundColor = UIColor.green
+      self.myView.frame.size.width += 50
+      self.myView.frame.size.height += 20
+      self.myView.center.x += 20
+    }
+    completion: { _ in
       UIView.animate(withDuration: 1, delay: 0.25, options: [.autoreverse, .repeat]) {
         animations: {
           self.myView.frame.origin.y -= 20
-        }
-      }
-    }
-  }
+         }
+       }
+     }
+   }
 }
 ```
 
