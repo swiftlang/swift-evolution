@@ -5,6 +5,8 @@
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-April/000097.html)
+* Previous Revision: [Originally Accepted Proposal](https://github.com/apple/swift-evolution/blob/3abbed3edd12dd21061181993df7952665d660dd/proposals/0057-importing-objc-generics.md)
+
 
 ## Introduction
 
@@ -51,13 +53,15 @@ requirements on the generic type parameters in Swift:
 
 The following Objective-C code:
 
-    @interface MySet<T : id<NSCopying>> : NSObject
-    -(MySet<T> *)unionWithSet:(MySet<T> *)otherSet;
-    @end
+```
+@interface MySet<T : id<NSCopying>> : NSObject
+-(MySet<T> *)unionWithSet:(MySet<T> *)otherSet;
+@end
 
-    @interface MySomething : NSObject
-    - (MySet<NSValue *> *)valueSet;
-    @end
+@interface MySomething : NSObject
+- (MySet<NSValue *> *)valueSet;
+@end
+```
 
 will be imported as:
 
@@ -72,6 +76,7 @@ class MySomething : NSObject {
 ```
 
 ### Importing unspecialized types
+
 When importing an unspecialized Objective-C type into Swift, we
 will substitute the bounds for the type arguments. For example:
 
@@ -131,143 +136,11 @@ share a metaclass). This leads to several restrictions:
   }
   ```
   
-### Opting in to type argument discovery
-
-Some Objective-C parameterized classes do carry information about
-their type arguments. When this is the case, it is possible to lift
-some of the restrictions described in the above section. There are two
-distinct cases:
-
-* *Abstract parameterized classes whose concrete subclasses are not
-   parameterized*:
-   [`NSLayoutAnchor`](https://developer.apple.com/library/mac/documentation/AppKit/Reference/NSLayoutAnchor_ClassReference/index.html#//apple_ref/occ/cl/NSLayoutAnchor)
-   is one such example: it is parameterized on the anchor type, but
-   there is a fixed set of such anchor types that are represented by
-   subclasses: `NSLayoutXAxisAnchor` subclasses
-   `NSLayoutAnchor<NSLayoutXAxisAnchor *>`, `NSLayoutDimension`
-   subclasses `NSLayoutAnchor<NSLayoutDimension *>`, etc. Therefore,
-   the type arguments can be recovered by looking at the actual
-   metaclass.
-
-* *Parameterized classes that store their type arguments in
-   instances*:
-   [`GKComponentSystem`](https://developer.apple.com/library/ios/documentation/GameplayKit/Reference/GKComponentSystem_Class/)
-   is one such example: it is parameterized on the component type it
-   stores, but it's initializer (`-initWithComponentClass:`) requires
-   one to pass the component type's metaclass. Therefore, every
-   *instance* of `GKComponentSystem` knows its type arguments.
-
-A parameterized Objective-C class can opt in to providing information
-about its type argument by implementing a method
-`classForGenericArgumentAtIndex:` either as a class method (for the first case
-described above) or as an instance method (for the second case
-described above). The method returns the metaclass for the type
-argument at the given, zero-based index.
-
-For example, `NSLayoutAnchor` would provide a class method
-`classForGenericArgumentAtIndex:` that must be implemented by each of its
-subclasses:
-
-    @interface NSLayoutAnchor<AnchorType> (SwiftSupport)
-    /// Note: must be implemented by each subclass
-    +(nonnull Class)classForGenericArgumentAtIndex:(NSUInteger)index;
-    @end
-
-    @implementation NSLayoutAnchor
-    +(nonnull Class)classForGenericArgumentAtIndex:(NSUInteger)index {
-      NSAssert(false, @"subclass must override +classForGenericArgumentAtIndex:");
-    }
-    @end
-
-    @implementation NSLayoutXAxisAnchor (SwiftSupport)
-    +(nonnull Class)classForGenericArgumentAtIndex:(NSUInteger)index {
-      return [NSLayoutXAxisAnchor class];
-    }
-    @end
-
-    @implementation NSLayoutYAxisAnchor (SwiftSupport)
-    +(nonnull Class)classForGenericArgumentAtIndex:(NSUInteger)index {
-      return [NSLayoutYAxisAnchor class];
-    }
-    @end
-
-    @implementation NSLayoutDimension (SwiftSupport)
-    +(nonnull Class)classForGenericArgumentAtIndex:(NSUInteger)index {
-      return [NSLayoutDimension class];
-    }
-    @end
-
-On the other hand, `GKComponentSystem` would implement an instance
-method `classForGenericArgumentAtIndex:`:
-
-    @interface GKComponentSystem<ComponentType : GKComponent *> (SwiftSupport)
-    - (nonnull Class)classForGenericArgumentAtIndex:(NSUInteger)index;
-    @end
-
-    @implementation GKComponentSystem (SwiftSupport)
-    - (nonnull Class)classForGenericArgumentAtIndex:(NSUInteger)index {
-      return self.componentClass;
-    }
-    @end
-
-Note that many parameterized Objective-C classes cannot provide either
-of these methods, because they don't carry enough information in their
-instances. For example, an `NSMutableArray` has no record of what the
-element type of the array is intended to be.
-
-However, when a parameterized class does provide this information, we
-can lift some of the restrictions from the previous section:
-
-* If the parameterized class provides an instance method
-  `classForGenericArgumentAtIndex:`, the extension can use the type arguments
-  in its instance methods, including accessors for instance properties
-  and subscripts. For example:
-
-  ```swift
-  extension GKComponentSystem {
-    var reversedComponents: [ComponentType] {
-      return components.reversed()
-    }
-
-    static func notifyComponents(components: [ComponentType]) {
-      // error: cannot use `ComponentType` in a static method
-    }
-  }
-  ```
-
-* If the parametized class provides a class method
-  `classForGenericArgumentAtIndex:`, the extension can use type arguments
-  anywhere.
- 
-  ```swift
-  extension NSLayoutAnchor {
-    func doSomething(x: AnchorType) { ... }
-    class func doSomethingClassy(x: AnchorType) { ... }
-  }
-  ```
-
 ### Subclassing parameterized Objective-C classes from Swift
 
 When subclassing a parameterized Objective-C class from Swift, the
-Swift compiler will define `+classForGenericArgumentAtIndex:` and
-`-classForGenericArgumentAtIndex:`. The Swift compiler has the
-complete type metadata required, because it is stored in the (Swift)
-type metadata, so these definitions will be correct. For example:
-
-```swift
-class Employee : NSObject { ... }
-
-class EmployeeArray : NSMutableArray<Employee> {
-  // +[EmployeeArray classForGenericArgumentAtIndex:] always returns
-  // ObjC type metadata for Employee
-}
-
-class MyMutableArray<T : AnyObject> : NSMutableArray<T> {
-  // +[MyMutableArray classForGenericArgumentAtIndex:] returns the
-  // ObjC type metadata for T, extracted from the Swift metatype for
-  // `self`.
-}
-```
+Swift compiler has the complete type metadata required, because it is
+stored in the (Swift) type metadata.
 
 ## Impact on existing code
 
@@ -314,3 +187,19 @@ conceptual burden as well as a high implementation cost. The proposed
 solution implies less implementation cost and puts the limitations on
 what one can express when working with parameterized Objective-C
 classes without fundamentally changing the Swift model.
+
+## Revision history
+
+The [originally accepted proposal](https://github.com/apple/swift-evolution/blob/3abbed3edd12dd21061181993df7952665d660dd/proposals/0057-importing-objc-generics.md)
+included a mechanism by which Objective-C generic classes could implement
+an informal protocol to provide reified generic arguments to Swift clients:
+
+> A parameterized Objective-C class can opt in to providing information
+> about its type argument by implementing a method
+> `classForGenericArgumentAtIndex:` either as a class method (for the first case
+> described above) or as an instance method (for the second case
+> described above). The method returns the metaclass for the type
+> argument at the given, zero-based index.
+
+As of Swift 5, this feature has not been implemented, so it has been withdrawn
+from the proposal.
