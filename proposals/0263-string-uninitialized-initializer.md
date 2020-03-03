@@ -3,8 +3,9 @@
 * Proposal: [SE-0263](0263-string-uninitialized-initializer.md)
 * Author: [David Smith](https://github.com/Catfish-Man)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
-* Status: **Accepted**
-* Implementation: [apple/swift#23409](https://github.com/apple/swift/pull/23409)
+* Status: **Implemented (Swift 5.3)**
+* Implementation: [apple/swift#26007](https://github.com/apple/swift/pull/26007),
+                  [apple/swift#30106](https://github.com/apple/swift/pull/30106)
 * Bug: [SR-10288](https://bugs.swift.org/browse/SR-10288)
 
 ## Introduction
