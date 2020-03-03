@@ -72,9 +72,9 @@ with a trailing closure:
 
 ```swift
 UIView.animate(withDuration: 0.7, delay: 1.0, options: .curveEaseOut, animations: {
-    self.view.layoutIfNeeded()
-  }) { finished in
-    print("Basket doors opened!")
+  self.view.layoutIfNeeded()
+}) { finished in
+  print("Basket doors opened!")
 }
 ```
 
@@ -87,11 +87,10 @@ where this code came from, avoids using trailing closures entirely:
 
 ```swift
 UIView.animate(withDuration: 0.7, delay: 1.0, options: .curveEaseOut, animations: {
-    self.view.layoutIfNeeded()
-  }, completion: { finished in
-    print("Basket doors opened!")
-  })
-}
+  self.view.layoutIfNeeded()
+}, completion: { finished in
+  print("Basket doors opened!")
+})
 ```
 
 This problem affects many APIs, because having multiple parameters of function type is fairly common.
@@ -106,7 +105,7 @@ struct Button<Label> where Label : View {
 }
 ```
 
-Whether using a trailing closures or avoiding them, this API becomes awkward because of the two
+Whether using trailing closures or avoiding them, this API becomes awkward because of the two
 different closure parameters. Neither
 
 ```swift
@@ -180,10 +179,10 @@ func toggle() {
       UIView.animate(withDuration: 1, delay: 0.25, options: [.autoreverse, .repeat]) {
         animations: {
           self.myView.frame.origin.y -= 20
-         }
-       }
-     }
-   }
+        }
+      }
+    }
+  }
 }
 ```
 
@@ -208,14 +207,14 @@ and our `when(then:else:)` control-flow construct:
 
 ```swift
 when(2 < 3) {
-   then: {
-     ...
-     ...
-   }
-   else: {
-     ...
-     ...
-   }
+  then: {
+    ...
+    ...
+  }
+  else: {
+    ...
+    ...
+  }
 }
 ```
 
@@ -232,8 +231,8 @@ For type checker perspective this means that calls with new syntax would just be
 
 ```swift
 when(2 < 3) {
-   then: { ... }
-   else: { ... }
+  then: { ... }
+  else: { ... }
 }
 ```
 
@@ -241,12 +240,12 @@ Would be transformed into:
 
 ```swift
 when(2 < 3,
-    then: { ... },
-    else: { ... }
+  then: { ... },
+  else: { ... }
 )
 ```
 
-Since all of the essential source information is preserved (locations of all labels and closure blocks) it would be possible for type-checker to produce diagnostics for invalid code without any changes.
+Since all of the essential source information is preserved (locations of all labels and closure blocks) it would be possible for the type-checker to produce diagnostics for invalid code without any changes.
 
 ## Source compatibility
 
