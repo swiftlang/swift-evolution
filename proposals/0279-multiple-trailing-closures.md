@@ -1,9 +1,9 @@
 # Multiple Trailing Closures
 
-* Proposal: [SE-NNNN](NNNN-multiple-trailing-closures.md)
-* Authors: [Pavel Yaskevich](https://github.com/xedin)
-* Review Manager: TBD
-* Status: **Awaiting Review**
+* Proposal: [SE-0279](0279-multiple-trailing-closures.md)
+* Authors: [Pavel Yaskevich](https://github.com/xedin), [Doug Gregor](https://github.com/douggregor)
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
+* Status: **Active Review (March 2–11)**
 * Implementation: [apple/swift#29745](https://github.com/apple/swift/pull/29745)
 
 ## Introduction
