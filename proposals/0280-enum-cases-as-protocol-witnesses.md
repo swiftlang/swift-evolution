@@ -175,31 +175,8 @@ This does not affect the ABI and does not require new runtime support.
 
 ## Effect on API resilience
 
-Library authors can freely switch between having the enum case satisfy the requirement or implementing the requirement directly (and returning a different case). However, while the return _type_ will stay the same, the return _value_ will be different in both cases and so it can break code that is relying on the exact returned value.
+Switching between enum cases and static properties/methods is not a resilient change due to differences in ABI and mangling. Doing so will break binary compatibility, or source compatibility if clients are pattern matching on the cases for example.
 
-For example:
-
-```swift
-protocol Foo {
-  static var bar: Self { get }
-}
-
-enum FooEnum: Foo { // #1
-  case bar
-}
-
-enum FooEnum: Foo { // #2
-  case _bar
-  static var bar: Self { return ._bar }
-}
-
-func takesFoo<T: Foo>(value: T) { ... }
-let direct = FooEnum.bar // #1
-let asProperty = FooEnum.bar // #2
-
-takesFoo(value: direct) // This one receives .bar
-takesFoo(value: asProperty) // This one receives ._bar
-```
 
 ## Alternatives considered
 
