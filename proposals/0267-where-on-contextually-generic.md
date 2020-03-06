@@ -3,8 +3,9 @@
 * Proposal: [SE-0267](0267-where-on-contextually-generic.md)
 * Author: [Anthony Latsis](https://github.com/AnthonyLatsis)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.3)**
 * Implementation: [apple/swift#23489](https://github.com/apple/swift/pull/23489)
+* Decision Notes: [Review](https://forums.swift.org/t/se-0267-where-clauses-on-contextually-generic-declarations/30051/49), [Announcement](https://forums.swift.org/t/accepted-se-0267-where-clauses-on-contextually-generic-declarations/30474)
 
 ## Introduction
 
