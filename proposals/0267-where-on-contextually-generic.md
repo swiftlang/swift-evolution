@@ -9,18 +9,17 @@
 
 ## Introduction
 
-This proposal aims to lift the mostly artificial restriction on attaching `where` clauses to declarations that reference only outer generic parameters. Simply put, this means you no longer have to worry about the `'where' clause cannot be attached` error inside most generic contexts.
+This proposal aims to lift the restriction on attaching `where` clauses to member declarations that can reference only outer generic parameters. Simply put, this means the `'where' clause cannot be attached` error will be relaxed for most declarations nested inside generic contexts:
 
 ```swift
 struct Box<Wrapped> {
-    func sequence() -> [Box<Wrapped.Element>] where Wrapped: Sequence { ... }
+    func boxes() -> [Box<Wrapped.Element>] where Wrapped: Sequence { ... }
 }
 
 ```
 
-> Only declarations that already support a generic parameter list will be allowed to carry a `where` clause inside a generic 
-> context. Generic properties, conditional protocol requirements and `Self` constraints on class methods are out of scope for the current proposal.
-> For instance, the following remains an error:
+> The current proposal only covers member declarations that already support a generic parameter list, that is, properties and unsupported constraints on protocol requirements are out of scope.
+> To illustrate, the following remains invalid:
 > ```swift
 > protocol P {
 >     // error: Instance method requirement 'foo(arg:)' cannot add constraint 'Self: Equatable' on 'Self'
@@ -32,10 +31,10 @@ struct Box<Wrapped> {
 >     func foo() where Self: Equatable  
 > }
 > ```
-> Whereas placing a constraint on an extension member rather than the extension itself becomes possible:
+> Whereas placing constraints on an extension member rather than the extension itself becomes possible:
 > ```swift
 > extension P {
->     func bar() where Self: Equatable { }
+>     func bar() where Self: Equatable { ... }
 > }
 > ```
 
@@ -43,10 +42,10 @@ struct Box<Wrapped> {
 
 ## Motivation
 
-Today, `where` clauses on contextually generic declarations, including protocol extension members, are expressed indirectly by placing them inside conditional extensions. Unless constraints are identical, every such declaration requires a separate extension.
-This dependence on extensions can be an obstacle to grouping semantically related APIs, stacking up constraints, and sometimes the legibility of heavily generic interfaces. 
+Today, a contextual where clause on a member declaration can only be expressed indirectly by placing the member inside a dedicated constrained extension. Unless constraints are identical, every such member requires a separate extension.
+This lack of flexibility is a potential obstacle to grouping semantically related APIs, stacking up constraints, and the legibility of heavily generic interfaces.
 
-It is reasonable to expect a `where` clause to work anywhere a constraint can be meaningfully imposed, that is, both of these structuring styles should be available to the user:
+It is reasonable to expect a `where` clause to "work" anywhere a constraint is meaningful, which is to say both of these structuring styles should be available to the user:
 
 ```swift
 // 'Foo' can be any kind of nominal type declaration.
@@ -71,22 +70,22 @@ extension Foo where T: Sequence, T.Element: Equatable {
     func specialCaseFoo() where T.Element == Character { ... }
 }
 ```
-A step towards generalizing `where` clause usage is an obvious and farsighted improvement to the generics
+A step towards generalizing `where` clause use is an obvious and farsighted improvement to the generics
 system with numerous future applications, including generic properties, [opaque types](https://github.com/apple/swift-evolution/blob/master/proposals/0244-opaque-result-types.md), [generalized
 existentials](https://github.com/apple/swift/blob/master/docs/GenericsManifesto.md#generalized-existentials) and constrained protocol requirements. 
 
 ## Detailed design
 ### Overrides
 
-Like their generic analogues, contextually generic methods can be overriden as long as Liskov substitutability is respected, which is to say the generic signature of the override must be *at least* as general as that of the overriden method. 
+Because contextual `where` clauses are effectively visibility constraints, overrides adopting this feature must be at least as visible as the overridden method:
 
 ```swift 
 class Base<T> {
-    func foo() where T: Comparable { ... }
+    func foo() where T == Int { ... }
 }
 
 class Derived<T>: Base<T> {
-    // OK, the possible substitutions for <T: Equatable> are a superset of those for <T: Comparable>
+    // OK, the substitutions for <T: Equatable> are a superset of those for <T == Int>
     override func foo() where T: Equatable { ... } 
 }
 ```
