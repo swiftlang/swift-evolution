@@ -145,7 +145,9 @@ As before, there is no good mix for providing both the `then` and `else` closure
 
 This proposal introduces syntactic sugar for providing multiple, labeled trailing closures, extending the
 syntax to cover all of the use cases that are awkward in the language today. A set of curly braces delimits
-the block of trailing closures, with each trailing closure indicated by an argument label inside.
+the block of trailing closures, with each trailing closure indicated by an argument label or an empty label
+placeholder `_:` inside.
+
 For example, Ehab's example becomes:
 
 ```swift
@@ -244,6 +246,49 @@ when(2 < 3,
   else: { ... }
 )
 ```
+
+Note that the new syntax also allows specifying closures for unnamed parameters by using an “empty” label placeholder `_:` for each, e.g.,
+
+```swift
+func foo(_ fn1: () -> Void, _ fn2: () -> Void) {}
+
+foo {
+  _: { ... }
+  _: { ... }
+}
+```
+
+Is equivalent to:
+
+```swift
+foo({ ... }, { ... })
+```
+
+The same applies even when using the proposed syntax for a single trailing closure, which provides a trailing syntax for specifying 
+the argument label of a function that accepts a single closure parameter:
+
+```swift
+func foo(fn: () -> Void) {
+}
+
+foo {
+  _: { ... }
+}
+
+foo {
+  fn: { ... }
+}
+```
+
+Would be transformed into:
+
+```swift
+foo({ ... })
+
+foo(fn: { ... })
+```
+
+First call is treated as if being a single trailing closure `foo { ... }`, second call uses new syntax to preserve a label, both calls are accepted.
 
 Since all of the essential source information is preserved (locations of all labels and closure blocks) it would be possible for the type-checker to produce diagnostics for invalid code without any changes.
 
