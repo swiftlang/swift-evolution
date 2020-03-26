@@ -113,7 +113,7 @@ public struct KeyPathDecodingContainer<K> where K: CodingKeyPath {
 ### New Standard Library methods
 
 This proposal doesn't add any new requirements on the `Encoder` and `Decoder` protocols, so all existing implementations (`JSONEncoder`, `PlistDecoder`, etc.) will receive this behavior automatically.
- - `KeyPathEncodingContainer` and `KeyPathDecodingContainer` simply wrap the existing `KeyedEncodingContainer` and `KeyedDecodingContainer` types, so they don't require any additional support.
+ - `KeyPathEncodingContainer` and `KeyPathDecodingContainer` simply wrap the existing `KeyedEncodingContainer` and `KeyedEncodingContainer` types, so they don't require any additional support.
  
 ```swift
 public extension Encoder {
@@ -211,11 +211,19 @@ This design could potentially support advanced operations like indexing into arr
     - For example, you would be able to index into the first element of an array (`[0]`) but not the last element of the array.
     - Additionally, `UnkeyedEncodingContainer` and `UnkeyedDecodingContainer` only support sequential access (no performant support for random access).
 
+### Name the type `CodingPath` instead of `CodingKeyPath`
+
+In the pitch thread for this proposal, it [was brought up](https://forums.swift.org/t/codingkeypath-add-support-for-encoding-and-decoding-nested-objects-with-dot-notation/34710/14?u=cal) that the name `CodingKeyPath` could potentially cause confusion with the existing `KeyPath` type. We could potentially choose a different name for this type, like `CodingPath`. 
+
+We would also need to rename the other types and methods added in this proposal:
+- `encoder.keyPathContainer(keyedBy: CodingKeyPaths.self)` would become `encoder.pathContainer(keyedBy: CodingPaths.self)`
+- `KeyPathEncodingContainer` would become `PathEncodingContainer`
+
 ### Make this the default behavior for `CodingKeys`
 
 Valid JSON keys may contain dots:
 
-```
+```json
 {
     "id": "SE-0274",
     "title": "Concise magic file names",
@@ -234,7 +242,7 @@ It's practically guaranteed that there are existing `Codable` models that rely o
 
 A [previous version](https://forums.swift.org/t/add-support-for-encoding-and-decoding-nested-json-keys/34039) of this proposal added `NestedKeyEncodingStrategy` and `NestedKeyDecodingStrategy` configuration flags to `Foundation.JSONEncoder` and `Foundation.JSONDecoder`:
 
-```
+```swift
 let decoder = JSONDecoder()
 decoder.nestedKeyDecodingStrategy = .useDotNotation
 try decoder.decode(EvolutionProposal.self, from: Data(originalJsonPayload.utf8))
@@ -250,3 +258,125 @@ This `CodingKeyPaths` approach described in this proposal is:
  1. Configured on a per-type basis
  2. Compatible "for free" with all existing `Encoder` and `Decoder` implementations.
 
+### Enable this behavior by setting a static flag on the `CodingKeys` type
+
+We could potentially allow authors to opt-in to this behavior by configuring a static flag on their `CodingKeys` type:
+
+```swift
+// In the Standard Library:
+
+public protocol CodingKey {
+  // A new protocol requirement:
+  static var options: CodingKeyOptions { get }
+}
+
+public struct CodingKeyOptions {
+  var dotNotationRepresentsNestedPath: Bool
+}
+
+// Default configuration to preserve source compatability and existing behavior:
+public extension CodingKey {
+  static var options: CodingKeyOptions {
+    CodingKeyOptions(dotNotationRepresentsNestedPath: false)
+  }
+}
+```
+
+```swift
+// EvolutionProposal.swift
+struct EvolutionProposal: Codable { 
+  enum CodingKeys: String, CodingKey {
+    case id
+    case title
+    case reviewStartDate = "metadata.review_start_date"
+    case reviewEndDate = "metadata.review_end_date"
+
+    static var options: CodingKeyOptions { 
+      CodingKeyOptions(dotNotationRepresentsNestedPath: true) 
+    }
+  }
+}
+```
+
+This approach seems appealing on the surface:
+ - We would only need to introduce one new type to the Standard Library (`CodingKeyOptions`)
+ - `CodingKeyOptions` could be extended in the future to provide other customization points. 
+     - For example, we could add a key-transformation option similar to `Foundation.JSONEncoder.KeyEncodingStrategy.convertToSnakeCase`.
+     
+The unfortunate downside is that it's not possible to introduce new behavior on the existing `CodingKeys` type without breaking backward compatability with existing `Encoder` and `Decoder` implementations. 
+
+ - We could update Foundation's encoders and decoders (`JSONEncoder`, `PlistEncoder`, etc.) to respect these new options, but existing third-party implementations would also need to be updated. 
+ - We shouldn't introduce options that aren't guaranteed to be respected in the concrete `Encoder` or `Decoder` implementation being used.
+    
+The only way to add new behavior to all existing `Encoder` and `Decoder` implementations is to introduce a new enhanced version of `CodingKey`, along with corresponding enchanced `KeyedEncodingContainer` and `KeyedDecodingContainer` wrappers:
+
+```swift
+/// Like a `CodingKey`, but with additional configuration options. ("CodingKey 2.0")
+public protocol ConfigurableCodingKey {
+  var stringValue: String { get }
+  var intValue: Int? { get }
+  static var options: CodingKeyOptions { get }
+}
+
+public struct CodingKeyOptions {
+  var dotNotationRepresentsNestedPath: Bool
+}
+
+public extension Encoder {
+  func container<ConfigurableKey: ConfigurableCodingKey>(keyedBy: ConfigurableKey) -> ConfiguredKeyedEncodingContainer<ConfigurableKey>
+}
+
+/// This `ConfigurableKeyedEncodingContainer` would wrap existing `KeyedEncodingContainer` implementations,
+/// which would allows the Standard Library to apply additional transformations.
+/// All existing `Encoder` implementations would get this support "for free".
+public struct ConfigurableKeyedEncodingContainer<ConfigurableKey: ConfigurableCodingKey> {
+
+  private let underlyingKeyedEncodingContainer: KeyedEncodingContainer<_>
+
+  public func encode<T: Encodable>(_ value: T, atKey key: ConfigurableKey) {
+    // Apply transformations to the key as specified by the `CodingKeyOptions`
+    // The Standard Library can add arbitrary complex key transformations here
+    // and it would apply to all existing `Encoder` implementations.
+  }
+   
+}
+
+// along with a corresponding `ConfigurableKeyedDecodingContainer` implementation.
+```
+
+ - The [`CodingKeyPath` implementation](https://github.com/calda/CodingKeyPath/blob/e6ae6005d9731bad8f96ad6d6bfd98c9cbc9f18f/CodingKeyPath/CodingKeyPath.swift#L32) in this proposal uses this exact approach to add additional behavior on top of the existing `KeyedEncodingContainer` and `KeyedDecodingContainer` APIs.
+ 
+ - This would be an improvement over the existing `CodingKeys` type, but it has worse ergonomics than `CodingKeys` and the proposed `CodingKeyPaths`.
+ 
+    - The author belives there aren't enough additional use cases for a `static` `CodingKeyOptions` customization point for it to pull its syntactic weight.
+ 
+    - Static type-level configuration is less useful than per-property configuration, which cannot be done ergonomically using the existing `CodingKeys` design.
+ 
+ - A "key" and a "path" have fundamentally different encoding and decoding semantics. It seems more appropriate to treat a `CodingKeyPath` as a distinct type rather than a flag or option on some `CodingKey` type.
+ 
+### Introduce an annotation-based alternative to CodingKeys
+
+Instead of building upon the design of `CodingKeys`, we could design an entirely new system using property-wrapper-like annotations.
+
+```swift
+struct EvolutionProposal: Codable {
+
+  // @Key("id")  (compiler-synthesized)
+  var id: String
+  
+  // @Key("title")  (compiler-synthesized)
+  var title: String
+  
+  @Path("metadata.review_start_date")
+  var reviewStartDate: Date
+  
+  @Path("metadata.review_end_date")
+  var reviewEndDate: Date
+  
+}
+```
+
+The author believes it's more appropriate to extend and built upon the existing `CodingKeys`-based system:
+
+ - `CodingKeys` cannot be removed or replaced, since that would be massively source-breaking.
+ - The language should not include two separate / competing `Codable` systems.
