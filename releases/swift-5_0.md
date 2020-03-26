@@ -1,8 +1,6 @@
-## Development major version:  Swift 5.0
+# Swift 5.0 - Released on March 25, 2019
 
-Released on March 25, 2019
-
-### Primary Focus: ABI Stability
+## Primary Focus: ABI Stability
 
 The Swift 5 release **will** provide [ABI stability](https://github.com/apple/swift/blob/master/docs/ABIStabilityManifesto.md#what-is-abi-stability) for the Swift Standard Library.  ABI stability enables OS vendors to embed a Swift Standard Library and runtime in the OS that is compatible with applications built with Swift 5 or later.  Progress towards achieving ABI stability will be tracked at a high level on the [ABI Dashboard](https://swift.org/abi-stability/).
 
@@ -16,7 +14,7 @@ The need to achieve ABI stability in Swift 5 will guide most of the priorities f
 
 - **Memory ownership model**. An (opt-in) Cyclone/Rust-inspired memory [ownership model](https://github.com/apple/swift/blob/master/docs/OwnershipManifesto.md) is strongly desirable for systems programming and for other high-performance applications that require predictable and deterministic performance.  Part of this model was introduced in Swift 4 when we began to [ enforce exclusive access to memory](https://github.com/apple/swift-evolution/blob/master/proposals/0176-enforce-exclusive-access-to-memory.md).  In Swift 5 our goal is to tackle the [pieces of the ownership model that are key to ABI stability](https://github.com/apple/swift/blob/master/docs/OwnershipManifesto.md#priorities-for-abi-stability).
 
-### Other Improvements
+## Other Improvements
 
 Beyond ABI stability (which focuses mostly on getting a bunch of low-level implementation details of the language finalized), in Swift 5 the evolution process welcomes additions that improve the overall usability of the language and standard library, including but not restricted to:
 
@@ -30,9 +28,9 @@ Beyond ABI stability (which focuses mostly on getting a bunch of low-level imple
 
 - **Laying groundwork for a new concurrency model**. We will lay groundwork for a new concurrency model, especially as needed for ABI stability.  Finalizing such a model, however, is a *non-goal* for Swift 5.  A key focus area will be on designing language affordances for creating and using asynchronous APIs and dealing with the problems created by callback-heavy code.
 
-### Source Stability
+## Source Stability
 
-Similar to [Swift 4](releases/swift-4_0.md) , the Swift 5 compiler will provide a source compatibility mode to allow source code written using some previous versions of Swift to compile with the Swift 5 compiler.  The Swift 5 compiler will at least support code written in Swift 4, but may also extend back to supporting code written in Swift 3.  The final decision on the latter will be made in early 2018.
+Similar to [Swift 4](swift-4_0.md) , the Swift 5 compiler will provide a source compatibility mode to allow source code written using some previous versions of Swift to compile with the Swift 5 compiler.  The Swift 5 compiler will at least support code written in Swift 4, but may also extend back to supporting code written in Swift 3.  The final decision on the latter will be made in early 2018.
 
 Source-breaking changes in Swift 5 will have an even higher bar than in Swift 4, following these guidelines:
 
@@ -40,9 +38,9 @@ Source-breaking changes in Swift 5 will have an even higher bar than in Swift 4,
 * The new syntax/API must be clearly better and must not conflict with existing Swift syntax.
 * There must be a reasonably automated migration path for existing code.
 
-### Evolution Process for Swift 5
+## Evolution Process for Swift 5
 
-Unlike [Swift 4](releases/swift-4_0.md), there will be no "stage 1" and "stage 2" for the evolution process.  Proposals that fit within the general focus of the release are welcome until **March 1, 2018**.  Proposals will still be considered after that, but the bar will be increasingly high to accept changes for Swift 5.
+Unlike [Swift 4](swift-4_0.md), there will be no "stage 1" and "stage 2" for the evolution process.  Proposals that fit within the general focus of the release are welcome until **March 1, 2018**.  Proposals will still be considered after that, but the bar will be increasingly high to accept changes for Swift 5.
 
 The broader range of proposals for Swift 5 compared to Swift 4 incurs the risk of diluting the focus on ABI stability.
 To mitigate that risk, **every evolution proposal will need a working implementation, with test cases, in order to be considered for review**.  An idea can be pitched and a proposal written prior to providing an implementation, but a pull request for a proposal will not be accepted for review until an implementation is available.
