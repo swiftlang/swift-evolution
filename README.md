@@ -1,31 +1,28 @@
 # Swift Programming Language Evolution
-[![Swift](https://img.shields.io/badge/Swift%205-Open%20to%20requests-brightgreen.svg)](#swift_stage)
 
-
-**Before you initiate a pull request**, please read the process document. Ideas should be thoroughly discussed on the [swift-evolution forums](https://swift.org/community/#swift-evolution) first.
+**Before you initiate a pull request**, please read the [process](process.md) document.
+Ideas should be thoroughly discussed on the [swift-evolution forums](https://swift.org/community/#swift-evolution) first.
 
 This repository tracks the ongoing evolution of Swift. It contains:
 
-* Goals for upcoming Swift releases (this document).
-* The [Swift evolution review status][proposal-status] tracking proposals to change Swift.
-* The [Swift evolution process](process.md) that governs the evolution of Swift.
+* The [status page](https://apple.github.io/swift-evolution/), tracking proposals to change Swift.
+* The [process](process.md) document that governs the evolution of Swift.
 * [Commonly Rejected Changes](commonly_proposed.md), proposals that have been denied in the past.
 
-This document describes goals for the Swift language on a per-release
-basis. These releases include minor releases that add to the currently shipping
-version plus one major release out.  Each release will have many
-smaller features or changes independent of these larger goals, and not
-all goals will be reached for each release.
+## Goals and Release Notes
 
-For historical purposes, the bottom of the document includes goals for past versions. These goals do not necessarily indicate which
-features actually shipped for a given version. Those are documented in each version’s release notes.
+* [On the road to Swift 6](https://forums.swift.org/t/on-the-road-to-swift-6/32862)
+* [CHANGELOG](https://github.com/apple/swift/blob/master/CHANGELOG.md)
 
-<a name="swift_stage"></a>
-
-## Previous releases
-
-* [Swift 4.0](releases/swift-4_0.md) - Released on September 19, 2017
-* [Swift 3.0](releases/swift-3_0.md) - Released on September 13, 2016
-* [Swift 2.2](releases/swift-2_2.md) - Released on March 21, 2016
-
-[proposal-status]: https://apple.github.io/swift-evolution/
+| Version   | Announced                                                       | Released                                                 |
+| :-------- | :-------------------------------------------------------------- | :------------------------------------------------------- |
+| Swift 5.3 | [2020-03-25](https://swift.org/blog/5-3-release-process/)       |
+| Swift 5.2 | [2019-09-24](https://swift.org/blog/5-2-release-process/)       | [2020-03-24](https://swift.org/blog/swift-5-2-released/) |
+| Swift 5.1 | [2019-02-18](https://swift.org/blog/5-1-release-process/)       | [2019-09-20](https://swift.org/blog/swift-5-1-released/) |
+| Swift 5.0 | [2018-09-25](https://swift.org/blog/5-0-release-process/)       | [2019-03-25](https://swift.org/blog/swift-5-released/)   |
+| Swift 4.2 | [2018-02-28](https://swift.org/blog/4-2-release-process/)       | [2018-09-17](https://swift.org/blog/swift-4-2-released/) |
+| Swift 4.1 | [2017-10-17](https://swift.org/blog/swift-4-1-release-process/) | [2018-03-29](https://swift.org/blog/swift-4-1-released/) |
+| Swift 4.0 | [2017-02-16](https://swift.org/blog/swift-4-0-release-process/) | [2017-09-19](https://swift.org/blog/swift-4-0-released/) |
+| Swift 3.1 | [2016-12-09](https://swift.org/blog/swift-3-1-release-process/) | [2017-03-27](https://swift.org/blog/swift-3-1-released/) |
+| Swift 3.0 | [2016-05-06](https://swift.org/blog/swift-3-0-release-process/) | [2016-09-13](https://swift.org/blog/swift-3-0-released/) |
+| Swift 2.2 | [2016-01-05](https://swift.org/blog/swift-2-2-release-process/) | [2016-03-21](https://swift.org/blog/swift-2-2-released/) |
