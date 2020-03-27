@@ -25,8 +25,21 @@ Create an extension of swiftpm, to handle services, including the defintion of m
 
 ## Detailed design
 
-I'll leave this part for Apple folks / swift community to decide once it is approved.
+Let's say developer Ahmed published a service called Service1, which depends on Service2. I, Amr, would like to consume Service1, while writing my own implementation of Service2, called AmrService2. Then I can define it in my project manifest as:
+
+```
+serviceDependencies = ["http://github.com/ahmed/services/Service1", "services/AmrService2"]
+```
+
+Now Eric, like also to use Ahmed Service1, while also overriding his Service2 with mine (AmrService2), then he can define that in his project manifest file as:
+
+```
+serviceDependencies = ["http://github.com/ahmed/services/Service1", "http://github.com/amr/services/AmrService2"]
+```
+
+In this case, the order matter, because the swift builder should know to override Service2 (which is the dependent of Service1), with AmrService2, as it came later in the list of dependency services.
 
 ## Alternatives considered
 
 No alternatives were considered for now.
+
