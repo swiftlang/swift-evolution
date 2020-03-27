@@ -1,6 +1,6 @@
 # Service Manager Extension
 
-* Proposal: [swiftpm-service-manager-extension](swiftpm-service-manager-extension.md)
+* Proposal: [Swiftpm Service Manager Extension](swiftpm-service-manager-extension.md)
 * Authors: [Amr Aboelela](https://github.com/amraboelela)
 * Review Manager:
 * Status:
