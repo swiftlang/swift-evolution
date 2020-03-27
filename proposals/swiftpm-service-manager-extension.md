@@ -25,19 +25,28 @@ Create an extension of swiftpm, to handle services, including the defintion of m
 
 ## Detailed design
 
-Let's say developer Ahmed published a service called Service1, which depends on Service2. I, Amr, would like to consume Service1, while writing my own implementation of Service2, called AmrService2. Then I can define it in my Package.swift file as:
+Similar to Package.swift configuration file, we will have Service.swift configuration file for each service. While in the Package.swift, we will add the serviceDependencies to the current package.
+
+Let's say developer Ahmed published a service called Service1, which depends on Service2. He would define that in his Service.swift file as:
 
 ```
-serviceDependencies = ["http://github.com/ahmed/services/Service1", "services/AmrService2"]
+Service(name: "Service1", dependencies: ["http://github.com/anotherguy/services/AnotherService", "services/Service2"], ...)
+```
+
+
+I, Amr, would like to consume Service1, while writing my own implementation of Service2, called AmrService2. Then I can define it in my Package.swift file as:
+
+```
+Package(..., serviceDependencies: ["http://github.com/ahmed/services/Service1", "services/AmrService2"], ...)
 ```
 
 Now Eric, like also to use Ahmed Service1, while also overriding his Service2 with mine (AmrService2), then he can define that in his Package.swift file as:
 
 ```
-serviceDependencies = ["http://github.com/ahmed/services/Service1", "http://github.com/amr/services/AmrService2"]
+Package(..., serviceDependencies = ["http://github.com/ahmed/services/Service1", "http://github.com/amr/services/AmrService2"], ...)
 ```
 
-In this case, the order matter, because the swift builder should know to override Service2 (which is the dependent of Service1), with AmrService2, as it came later in the list of dependency services.
+In this case, the order matter, because the swift builder should know to override Service2 (which is the dependent of Service1), with AmrService2, as it came later in the list of dependent services.
 
 ## Alternatives considered
 
