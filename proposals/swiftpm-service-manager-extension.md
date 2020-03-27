@@ -48,7 +48,7 @@ Package(..., serviceDependencies = ["http://github.com/ahmed/services/Service1",
 
 In this case, the order matter, because the swift builder should know to override Service2 (which is the dependent of Service1), with AmrService2, as it came later in the list of dependent services.
 
-There is only one service implementation class allowed for each service protocol in each project target, if the compiler/builder find more than one, it should give an error. Also the ServiceProvider (suggested built-in class), should be able to provide me with a singleton instance of a service implementation that I request, given the service protocol name in run time. For example to get Service2 implementation:
+There is only one service implementation class allowed for each service protocol in each project target, if the builder find more than one, it should give an error. Also the ServiceProvider (suggested built-in class), should be able to provide me with a singleton instance of a service implementation that I request, given the service protocol name in run time. For example to get Service2 implementation:
 
 ```
 let service2 = ServiceProvider.service(with: Service2) // Service2 is the protocol name
