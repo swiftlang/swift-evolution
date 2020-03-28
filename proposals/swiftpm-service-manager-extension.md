@@ -8,7 +8,7 @@
 
 ## Introduction
 
-This proposal suggests to create swift service manager extension of swiftpm, in which developers can publish services which depend of each other. Each service has a protocol and an implementation. the consumers of thoses services can import them into their project target as is, or they can replace one or more service implementations down the line. Swift Foundation framework should provide a ServiceProvider class to provide the current implementation of any required service in the runtime. This can be decided during the build process.
+This proposal suggests to create swift service manager extension of swiftpm, in which developers can publish services which depend of each other. Each service has a protocol and an implementation. the consumers of thoses services can import them into their project target as is, or they can replace one or more service implementations down the line. Swift Foundation framework should provide a ServiceProducer class to provide the current implementation of any required service in the runtime. This can be decided during the build process.
 
 ## Motivation
 
@@ -48,10 +48,10 @@ Package(..., serviceDependencies = ["http://github.com/ahmed/services/Service1",
 
 In this case, the order matter, because the swift builder should know to override Service2Implementation (which is the dependent of Service1), with AmrService2, as it came later in the list of dependent services.
 
-There is only one service implementation class allowed for each service protocol in each project target, if the builder find more than one implemented in the same project going to the same target, it should give an error. Also the Foundation ServiceProvider (suggested built-in class), should be able to provide me with a singleton instance of a service implementation that I request, given the service protocol name in run time. For example to get Service2 implementation:
+There is only one service implementation class allowed for each service protocol in each project target, if the builder find more than one implemented in the same project going to the same target, it should give an error. Also the Foundation ServiceProducer (suggested built-in class), should be able to provide me with a singleton instance of a service implementation that I request, given the service protocol name in run time. For example to get Service2 implementation:
 
 ```
-let service2 = ServiceProvider.service(with: Service2) // Service2 is the protocol name
+let service2 = ServiceProducer.service(with: Service2) // Service2 is the protocol name
 ```
 
 In case of Ahmed project, it should return a singleton instance of Service2Implementation, which is his default implementation class; in case of Amr project mentioned above, it should return AmrService2.
