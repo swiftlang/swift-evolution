@@ -1,9 +1,9 @@
 # `@main`: Type-Based Program Entry Points
 
-* Proposal: [SE-NNNN](NNNN-main-attribute.md)
+* Proposal: [SE-0281](NNNN-main-attribute.md)
 * Authors: [Nate Cook](https://github.com/natecook1000), [Nate Chandler](https://github.com/nate-chandler), [Matt Ricketson](https://github.com/ricketson)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Tom Doron](https://github.com/tomerd)
+* Status: **Active Review** (March 30 - April 8)
 * Implementation: [apple/swift#30693](https://github.com/apple/swift/pull/30693)
 
 ## Introduction
