@@ -1,6 +1,6 @@
 # `@main`: Type-Based Program Entry Points
 
-* Proposal: [SE-0281](NNNN-main-attribute.md)
+* Proposal: [SE-0281](0281-main-attribute.md)
 * Authors: [Nate Cook](https://github.com/natecook1000), [Nate Chandler](https://github.com/nate-chandler), [Matt Ricketson](https://github.com/ricketson)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
 * Status: **Active Review** (March 30 - April 8)
