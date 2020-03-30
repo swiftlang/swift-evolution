@@ -145,6 +145,10 @@ The standard library includes several protocols that the compiler imbues with sp
 
 One or more protocols could be attributed with `@main` to make any type that conforms an automatic entry point, with the compiler ensuring that only one such type exists in an application. As noted above, however, this uniqueness requirement is non-standard for protocols. In addition, this would make the entry point less explicit from the perspective of the program's author and maintainers, since the entry-point conforming type would look the same as any other. Likewise, this would prevent using _manual_ execution if a programmer still wanted to have custom logic in a `main.swift` file.
 
+### Use a `@propertyWrapper`-style type instead of an attribute
+
+Instead of a dedicated `@main` attribute, the compiler could let libraries declare a type that could act as an attribute used to denote a program's entry point. This approach is largely isomorphic to the proposed `@main` attribute, but loses the consistency of having a single way to spell the entry point, no matter which library you're using.
+
 ### Use an instance instead of static method
 
 Instead of requiring a static `main()` method, the compiler could instead require `main()` as an instance method and a default initializer. This, however, would increase the implicit requirements of the `@main` attribute and split the entry point into two separate calls. 
@@ -163,7 +167,7 @@ C programs define a function with the signature `int main(int argc, char *argv[]
 
 To eliminate any overhead in accessing arguments via `CommandLine` and to provide a way to handle platform-specific entry points, a future proposal could expand the ways that types can satisfy the `@main` requirement. For example, a type could supply either `main()` or `main(Int, [String]) -> Int`.
 
-Some platforms, such as Windows, base an executable's launch behavior on the specific entry point that the executable provides. A future direction could be to allow `@main` designated types to supply other specifc entry points, such as `wWindowsMain(Int, UnsafeMutablePointer<UnsafeMutablePointer<WCHAR>>) -> Int`, and to allow additional arguments to be given with the `@main` attribute:
+Some platforms, such as Windows, base an executable's launch behavior on the specific entry point that the executable provides. A future direction could be to allow `@main` designated types to supply other specific entry points, such as `wWindowsMain(Int, UnsafeMutablePointer<UnsafeMutablePointer<WCHAR>>) -> Int`, and to allow additional arguments to be given with the `@main` attribute:
 
 ```swift
 // In a framework:
