@@ -3,7 +3,7 @@
 * Proposal: [SE-0276](0276-multi-pattern-catch-clauses.md)
 * Author: [Owen Voorhees](https://github.com/owenv)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.3)**
 * Implementation: [apple/swift#27776](https://github.com/apple/swift/pull/27776)
 * Decision Notes: [Review](https://forums.swift.org/t/accepted-se-0276-multi-pattern-catch-clauses/33220)
 
