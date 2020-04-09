@@ -3,7 +3,11 @@
 * Proposal: [SE-0271](0271-package-manager-resources.md)
 * Authors: [Anders Bertelrud](https://github.com/abertelrud), [Ankit Aggarwal](https://github.com/aciidb0mb3r)
 * Review Manager: [Boris Buegling](https://github.com/neonichu)
-* Status: **Accepted with revisions**
+* Status: **Implemented (Swift 5.3)**
+* Implementation: [apple/swift-package-manager#2381](https://github.com/apple/swift-package-manager/pull/2381),
+                  [apple/swift-package-manager#2510](https://github.com/apple/swift-package-manager/pull/2510),
+                  [apple/swift-package-manager#2520](https://github.com/apple/swift-package-manager/pull/2520),
+                  [apple/swift-package-manager#2607](https://github.com/apple/swift-package-manager/pull/2607)
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-modifications-se-0271-package-manager-resources/31021)
 
 ## Introduction
