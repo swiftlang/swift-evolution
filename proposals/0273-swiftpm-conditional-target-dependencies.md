@@ -3,8 +3,9 @@
 * Proposal: [SE-0273](0273-swiftpm-conditional-target-dependencies.md)
 * Authors: [David Hart](https://github.com/hartbit)
 * Review Manager: [Boris Buegling](https://github.com/neonichu)
-* Status: **Accepted**
-* Implementation: [apple/swift-package-manager#2428](https://github.com/apple/swift-package-manager/pull/2428)
+* Status: **Implemented (Swift 5.3)**
+* Implementation: [apple/swift-package-manager#2428](https://github.com/apple/swift-package-manager/pull/2428),
+                  [apple/swift-package-manager#2598](https://github.com/apple/swift-package-manager/pull/2598)
 
 ## Introduction
 
