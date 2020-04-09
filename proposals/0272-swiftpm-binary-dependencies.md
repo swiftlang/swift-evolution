@@ -3,7 +3,11 @@
 * Proposal: [SE-0272](0272-swiftpm-binary-dependencies.md)
 * Authors: [Braden Scothern](https://github.com/bscothern), [Daniel Dunbar](https://github.com/ddunbar), [Franz Busch](https://github.com/FranzBusch)
 * Review Manager: [Boris Bügling](https://github.com/neonichu)
-* Status: **Accepted with revisions**
+* Status: **Implemented (Swift 5.3)**
+* Implementation: [apple/swift-package-manager#2509](https://github.com/apple/swift-package-manager/pull/2509),
+                  [apple/swift-package-manager#2511](https://github.com/apple/swift-package-manager/pull/2511),
+                  [apple/swift-package-manager#2514](https://github.com/apple/swift-package-manager/pull/2514),
+                  [apple/swift-package-manager#2588](https://github.com/apple/swift-package-manager/pull/2588)
 * Decision Notes: [First Review](https://forums.swift.org/t/returned-for-revision-se-0272-package-manager-binary-dependencies/30994), [Second Review](https://forums.swift.org/t/accepted-with-modifications-se-0272-package-manager-binary-dependencies/31926)
 
 ## Contents
