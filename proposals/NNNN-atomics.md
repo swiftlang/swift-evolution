@@ -397,7 +397,7 @@ extension UnsafeAtomic where Value == Int {
   func wrappingIncrement(
     by operand: Int,
     ordering: AtomicUpdateOrdering
-  ) -> Int {
+  ) {
     var done = false
     var current = load(ordering: .relaxed)
     while !done {
@@ -999,9 +999,9 @@ public func atomicMemoryFence(ordering: AtomicUpdateOrdering)
 
 @frozen
 public struct AtomicLoadOrdering: Equatable, Hashable, CustomStringConvertible {
-  public static var relaxed: AtomicLoadOrdering { get }
-  public static var acquiring: AtomicLoadOrdering { get }
-  public static var sequentiallyConsistent: AtomicLoadOrdering { get }
+  public static var relaxed: Self { get }
+  public static var acquiring: Self { get }
+  public static var sequentiallyConsistent: Self { get }
 
   public static func ==(left: Self, right: Self) -> Bool
   public func hash(into hasher: inout Hasher)
@@ -1010,9 +1010,9 @@ public struct AtomicLoadOrdering: Equatable, Hashable, CustomStringConvertible {
 
 @frozen
 public struct AtomicStoreOrdering: Equatable, Hashable, CustomStringConvertible {
-  public static var relaxed: AtomicStoreOrdering { get }
-  public static var releasing: AtomicStoreOrdering { get }
-  public static var sequentiallyConsistent: AtomicStoreOrdering { get }
+  public static var relaxed: Self { get }
+  public static var releasing: Self { get }
+  public static var sequentiallyConsistent: Self { get }
 
   public static func ==(left: Self, right: Self) -> Bool
   public func hash(into hasher: inout Hasher)
@@ -1021,11 +1021,11 @@ public struct AtomicStoreOrdering: Equatable, Hashable, CustomStringConvertible 
 
 @frozen
 public struct AtomicUpdateOrdering: Equatable, Hashable, CustomStringConvertible {
-  public static var relaxed: AtomicUpdateOrdering { get }
-  public static var acquiring: AtomicUpdateOrdering { get }
-  public static var releasing: AtomicUpdateOrdering { get }
-  public static var acquiringAndReleasing: AtomicUpdateOrdering { get }
-  public static var sequentiallyConsistent: AtomicUpdateOrdering { get }
+  public static var relaxed: Self { get }
+  public static var acquiring: Self { get }
+  public static var releasing: Self { get }
+  public static var acquiringAndReleasing: Self { get }
+  public static var sequentiallyConsistent: Self { get }
 
   public static func ==(left: Self, right: Self) -> Bool
   public func hash(into hasher: inout Hasher)
@@ -1396,7 +1396,7 @@ We defer these for future proposals.
 
 ### Default Orderings
 
-We considered providing defaulting all atomic operations throughout the `Atomics` module to sequentially consistent ordering. While we concede that doing so would make atomics slightly more approachable, implicit ordering values tend to interfere with highly performance-sensitive use cases of atomics (which is *most* use cases of atomics). Sequential consistency tends to be relatively rarely used in these contexts, and implicitly defaulting to it would allow accidental use to easily slip through code review.
+We considered defaulting all atomic operations throughout the `Atomics` module to sequentially consistent ordering. While we concede that doing so would make atomics slightly more approachable, implicit ordering values tend to interfere with highly performance-sensitive use cases of atomics (which is *most* use cases of atomics). Sequential consistency tends to be relatively rarely used in these contexts, and implicitly defaulting to it would allow accidental use to easily slip through code review.
 
 Users who wish for default orderings are welcome to define their own overloads for atomic operations:
 
@@ -1414,15 +1414,21 @@ extension UnsafeAtomic {
     exchange(desired, ordering: .sequentiallyConsistent)
   }
   
-  func compareExchange(expected: Value, desired: Value) -> Value {
+  func compareExchange(
+    expected: Value,
+    desired: Value
+  ) -> (exchanged: Bool, original: Value) {
     compareExchange(
       expected: expected, 
       desired: desired, 
       ordering: .sequentiallyConsistent)
   }
 
-  func compareExchangeWeak(expected: Value, desired: Value) -> Value {
-    compareExchangeWeak(
+  func weakCompareExchange(
+    expected: Value,
+    desired: Value
+  ) -> (exchanged: Bool, original: Value) {
+    weakCompareExchange(
       expected: expected, 
       desired: desired, 
       successOrdering: .sequentiallyConsistent,
@@ -1458,7 +1464,7 @@ struct UnsafeDemo {
     // Initialize a new storage instance by converting the given value.
     // The conversion may involve side effects such as unbalanced retain/release
     // operations; to ensure correct results, the resulting storage instance
-    // must be used to initialize exactly once to initialize a memory location.
+    // must be used to initialize exactly one memory location.
     init(_ initialValue: __owned Value)
     
     // Dispose of this storage instance, and return the last stored value.
@@ -1480,9 +1486,8 @@ struct UnsafeDemo {
   init(at address: UnsafeMutablePointer<Storage>)
   
   // Return a new instance by allocating and initializing a dynamic variable
-  // dedicated to holding its storage. Must be paired with a call to `destroy()`
-  // when 
-  static func create(initialValue: Value) -> UnsafeDemo
+  // dedicated to holding its storage. Must be paired with a call to `destroy()`.
+  static func create(initialValue: Value) -> Self
   
   // Destroy an instance previously created by `Self.create(initialValue:)`,
   // deinitializing and deallocating the dynamic variable that backs it,
