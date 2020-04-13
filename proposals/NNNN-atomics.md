@@ -52,7 +52,6 @@ counter.destroy()
 
 ## Table of Contents
 
-  * [Table of Contents](#table-of-contents)
   * [Motivation](#motivation)
   * [Proposed Solution](#proposed-solution)
     * [The Atomics Module](#the-atomics-module)
