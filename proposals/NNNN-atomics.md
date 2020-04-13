@@ -218,7 +218,7 @@ Most of these initial atomic types are built around "single-width" atomic operat
 
 Atomic operations for the pointer and reference types above could be implemented as mere convenience wrappers around atomic `Int` operations. In theory, we could therefore omit them without loss of performance or generality. However, in practice, we expect users will need to build abstractions for atomic pointers anyway, and it makes sense to standardize APIs to unify terminology, eliminate boilerplate and to prevent confusion across projects. By providing implementations for these directly in the Standard Library, we are able to add custom `AtomicProtocol` conformances to integrate them directly into `UnsafeAtomic`. We are adding support for custom atomic-representable types for the same reason.
 
-Notably, none of these atomic types support composite values -- they provide no direct support for storing additional information (such as a version stamp) alongside the primary value. See the section on [*Double-Wide Atomics*](#double-wide-atomics) for some important constructs that we may want to add later. Our expectation is that the experience we'll gain with this initial batch will inform the design of those potential future additions.
+Notably, none of these atomic types support composite values -- they provide no direct support for storing additional information (such as a version stamp) alongside the primary value. See the section on [*Double-Wide Atomics*](#double-wide-atomics-and-the-aba-problem) for some important constructs that we may want to add later. Our expectation is that the experience we'll gain with this initial batch will inform the design of those potential future additions.
 
 The `Atomics` module also defines three enum-like structs representing the three flavors of memory orderings, and a standalone top-level function for issuing memory barriers. We'll describe these in [*Atomic Memory Orderings*](#atomic-memory-orderings).
 
@@ -269,7 +269,7 @@ func atomicDemo<Value: AtomicProtocol>(initialValue: Value) {
 
   // Destroy it
   _ = ptr.pointee.dispose()
-  ptr.deinitialize(count: 0)
+  ptr.deinitialize(count: 1)
   ptr.deallocate()
 }
 ```
@@ -433,7 +433,7 @@ These specialized integer operations generally come in two variants, based on wh
 
 The `wrappingIncrement` and `wrappingDecrement` operations are provided as a convenience for incrementing/decrementing values in the common case when a return value is not required.
 
-While we require all atomic operations to be free of locks, we don't require wait-freedom. Therefore, on architectures that don't provide direct hardware support some or all of these operations, we still require them to be implemented using `compareExchange` loops like the one for `wrappingIncrement` above.
+While we require all atomic operations to be free of locks, we don't require wait-freedom. Therefore, on architectures that don't provide direct hardware support for some or all of these operations, we still require them to be implemented using `compareExchange` loops like the one for `wrappingIncrement` above.
 
 `UnsafeAtomic<Value>` exposes these operations when `Value` conforms to the `AtomicInteger` protocol, which all standard fixed-width integer types do.
 
@@ -485,9 +485,9 @@ old.release() // RACE CONDITION
 
 If thread B happens to release the same object that thread A is in the process of loading, then thread A's `takeUnretainedValue` may attempt to retain a deallocated object.
 
-Such problems make `AtomicUnmanaged` exceedingly difficult to use in all but the simplest situations. The section on [*Atomic Strong References*](#atomic-strong-references-and-the-problem-of-memory-reclamation) below describes some new constructs we may introduce in future proposals to assist with this issue.
+Such problems make `UnsafeAtomic<Unmanaged<T>>` exceedingly difficult to use in all but the simplest situations. The section on [*Atomic Strong References*](#atomic-strong-references-and-the-problem-of-memory-reclamation) below describes some new constructs we may introduce in future proposals to assist with this issue.
 
-For now, we provide the standalone type `UnsafeAtomicLazyReference`; this is an example of a useful construct that could be built on top of `UnsafeAtomic<Unmanaged>` operations. Of all the various atomic constructs introduced in this proposal, only `UnsafeAtomicLazyReference` represents a regular strong reference to a class instance -- the other pointer/reference types leave memory management entirely up to the user.)
+For now, we provide the standalone type `UnsafeAtomicLazyReference`; this is an example of a useful construct that could be built on top of `UnsafeAtomic<Unmanaged>` operations. (Of all the various atomic constructs introduced in this proposal, only `UnsafeAtomicLazyReference` represents a regular strong reference to a class instance -- the other pointer/reference types leave memory management entirely up to the user.)
 
 An `UnsafeAtomicLazyReference` holds an optional reference that is initially set to `nil`. The value can be set exactly once, but it can be read an arbitrary number of times. Attempts to change the value after the first `storeIfNilThenLoad` call are ignored, and return the current value instead.
 
@@ -569,25 +569,25 @@ Atomic orderings are grouped into three frozen structs based on the kind of oper
 ```swift
 @frozen
 struct AtomicLoadOrdering {
-  static var relaxed: AtomicLoadOrdering { get }
-  static var acquiring: AtomicLoadOrdering { get }
-  static var sequentiallyConsistent: AtomicLoadOrdering { get }
+  static var relaxed: Self { get }
+  static var acquiring: Self { get }
+  static var sequentiallyConsistent: Self { get }
 }
 
 @frozen
 struct AtomicStoreOrdering {
-  static var relaxed: AtomicStoreOrdering { get }
-  static var releasing: AtomicStoreOrdering { get }
-  static var sequentiallyConsistent: AtomicStoreOrdering { get }
+  static var relaxed: Self { get }
+  static var releasing: Self { get }
+  static var sequentiallyConsistent: Self { get }
 }
 
 @frozen
 struct AtomicUpdateOrdering {
-  static var relaxed: AtomicUpdateOrdering { get }
-  static var acquiring: AtomicUpdateOrdering { get }
-  static var releasing: AtomicUpdateOrdering { get }
-  static var acquiringAndReleasing: AtomicUpdateOrdering { get }
-  static var sequentiallyConsistent: AtomicUpdateOrdering { get }
+  static var relaxed: Self { get }
+  static var acquiring: Self { get }
+  static var releasing: Self { get }
+  static var acquiringAndReleasing: Self { get }
+  static var sequentiallyConsistent: Self { get }
 }
 ```
 
@@ -837,7 +837,7 @@ extension UnsafeAtomic where Value == Int {
 counter.checkedIncrement(by: 1, ordering: .relaxed)
 ```
 
-If for whatever reason the Swift compiler isn't able (or willing) to inline the `checkedIncrement` call, then the value of `ordering` won't be known at compile time to the body of the function, so even though `compileExchange` will still get inlined, its switch statement won't be eliminated. This leads to a potentially significant performance regression that could interfere with the scalability of the operation.
+If for whatever reason the Swift compiler isn't able (or willing) to inline the `checkedIncrement` call, then the value of `ordering` won't be known at compile time to the body of the function, so even though `compareExchange` will still get inlined, its switch statement won't be eliminated. This leads to a potentially significant performance regression that could interfere with the scalability of the operation.
 
 To prevent these issues, we are adding a special type checking phase that artificially constrains the memory ordering arguments of all atomic operations to compile-time constants. Any attempt to pass a dynamic ordering value (such as in the `compareExchange` call above) will result in a compile-time error.
 
@@ -981,7 +981,7 @@ a pointer that outlives the call to 'init(at:)'
 
 This is implemented using a preexisting diagnostic based on a compiler heuristic. Ideally this warning would be promoted to a compile-time error.
 
-> **Note:** For an idea on how to add proper language support for taking the address of certain kinds of variables, see the discussion on the hypothetical `@raw` attribute in [Memory\-Safe Atomic Constructs](#memory-safe-atomic-constructs).
+> **Note:** For an idea on how to add proper language support for taking the address of certain kinds of variables, see the discussion on the hypothetical `@addressable` attribute in [Memory\-Safe Atomic Constructs](#memory-safe-atomic-constructs).
 
 
 ## Detailed Design
