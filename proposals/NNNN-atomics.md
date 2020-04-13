@@ -353,14 +353,14 @@ extension UnsafeAtomic {
   public func compareExchange(
     expected: Value,
     desired: __owned Value,
-    ordering: AtomicUpdateOrdering,
+    successOrdering: AtomicUpdateOrdering,
     failureOrdering: AtomicLoadOrdering
   ) -> (exchanged: Bool, original: Value)
 
   public func weakCompareExchange(
     expected: Value,
     desired: __owned Value,
-    ordering: AtomicUpdateOrdering,
+    successOrdering: AtomicUpdateOrdering,
     failureOrdering: AtomicLoadOrdering
   ) -> (exchanged: Bool, original: Value)
 }
@@ -916,9 +916,9 @@ Even though `NSLock` does guarantee that the `self += 1` line is always serializ
 
 Note that this restriction wasn't introduced by our new low-level atomic primitives -- it is a preexisting property of the language.
 
-This is one of the reasons why `NaïveFuture` was declared as a class above. Class instance methods are allowed to mutate their stored properties without declaring themselves `mutating`, and thus they are outside the scope of the Law of Exclusivity. (Of course, their implementation must still guarantee that the Law is upheld for any variables they access.)
+This is one of the reasons why `AtomicCounter` and `LockFreeSingleConsumerStack` were declared as classes above. Class instance methods are allowed to mutate their stored properties without declaring themselves `mutating`, and thus they are outside the scope of the Law of Exclusivity. (Of course, their implementation must still guarantee that the Law is upheld for any variables they access.)
 
-> **Note:** A more fundamental reason why `NaïveFuture` is a class is that synchronization constructs are difficult to model with value types -- their instances tend to have an inherent identity that prevents copies from working like the original, they often need to be backed by a stable memory location, etc. The [Ownership Manifesto]'s non-copiable types may eventually provide a more efficient and safer model for such constructs, but in today's Swift, we need to represent them with some reference type instead: typically, either a class (like `NaïveFuture`) or some unsafe pointer type (like `UnsafeAtomic`).
+> **Note:** A more fundamental reason why these constructs are classes is that synchronization constructs are difficult to model with value types -- their instances tend to have an inherent identity that prevents copies from working like the original, they often need to be backed by a stable memory location, etc. The [Ownership Manifesto]'s non-copiable types may eventually provide a more efficient and safer model for such constructs, but in today's Swift, we need to represent them with some reference type instead: typically, either a class (like `AtomicCounter`) or some unsafe pointer type (like `UnsafeAtomic`).
 
 ### Interaction with Implicit Pointer Conversions
 
@@ -1156,14 +1156,14 @@ public struct UnsafeAtomic<Value: AtomicProtocol> {
   public func compareExchange(
     expected: Value,
     desired: __owned Value,
-    ordering: AtomicUpdateOrdering,
+    successOrdering: AtomicUpdateOrdering,
     failureOrdering: AtomicLoadOrdering
   ) -> (exchanged: Bool, original: Value)
 
   public func weakCompareExchange(
     expected: Value,
     desired: __owned Value,
-    ordering: AtomicUpdateOrdering,
+    successOrdering: AtomicUpdateOrdering,
     failureOrdering: AtomicLoadOrdering
   ) -> (exchanged: Bool, original: Value)
 }
@@ -1383,7 +1383,7 @@ There are a variety of approaches to tackle this problem, some of which may be g
 
 To enable usecases that require even more fine-grained control over atomic operations, it may be useful to introduce additional low-level atomics features:
 
-* support for additonal kinds of atomic values (such as double-wide atomics or floating-point atomics [[P0020]]),
+* support for additional kinds of atomic values (such as double-wide atomics or floating-point atomics [[P0020]]),
 * new memory orderings, such as a consuming load ordering [[P0750]] or tearable atomics [[P0690]],
 * "volatile" atomics that prevent certain compiler optimizations
 * memory fences that only affect the compiler (to prevent single-threaded race conditions such as with signal handlers)
@@ -1425,7 +1425,7 @@ extension UnsafeAtomic {
     compareExchangeWeak(
       expected: expected, 
       desired: desired, 
-      ordering: .sequentiallyConsistent,
+      successOrdering: .sequentiallyConsistent,
       failureOrdering: .sequentiallyConsistent)
   }
 }
