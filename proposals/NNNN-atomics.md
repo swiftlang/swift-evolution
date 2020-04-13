@@ -7,7 +7,7 @@
 * Implementation: 
     - [apple/swift#30553][implementation] (Atomic operations)
     - [apple/swift#26969][constantPR] (Constant-constrained ordering arguments)
-* Version: 2020-04-10 
+* Version: 2020-04-13
 * Status: **Awaiting review**
 
 <!--
@@ -48,7 +48,7 @@ counter.destroy()
 
 ## Revision History
 
-- 2020-04-10: Initial proposal version.
+- 2020-04-13: Initial proposal version.
 
 ## Table of Contents
 
