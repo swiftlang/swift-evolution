@@ -1,14 +1,14 @@
 # Low-Level Atomic Operations ⚛︎
 
-* Proposal: [SE-NNNN](NNNN-atomics.md)
+* Proposal: [SE-0282](0282-atomics.md)
 * Author: [Karoy Lorentey](https://github.com/lorentey)
-* Review Manager: TBD
+* Review Manager: [Joe Groff](https://github.com/jckarter)
 * Bug: [SR-9144](https://bugs.swift.org/browse/SR-9144)
 * Implementation: 
     - [apple/swift#30553][implementation] (Atomic operations)
     - [apple/swift#26969][constantPR] (Constant-constrained ordering arguments)
 * Version: 2020-04-13
-* Status: **Awaiting review**
+* Status: **Active Review (April 14...April 24, 2020)**
 
 <!--
 *During the review process, add the following fields as needed:*
