@@ -258,8 +258,8 @@ Code that uses these unsafe atomic types must manually manage the lifecycle of t
 This is typically done by allocating a dynamic variable dedicated to holding storage for the atomic value:
 
 ```swift
-// Create an initialized unsafe atomic value
 func atomicDemo<Value: AtomicProtocol>(initialValue: Value) {
+  // Create an initialized unsafe atomic value
   typealias Storage = UnsafeAtomic<Value>.Storage
   let ptr = UnsafeMutablePointer<Storage>.allocate(capacity: 1)
   ptr.initialize(to: Storage(initialValue))
