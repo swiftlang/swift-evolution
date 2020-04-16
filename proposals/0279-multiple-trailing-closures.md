@@ -277,7 +277,7 @@ foo {
 }
 ```
 
-Since new type-checking rule dictates a backwards scan starting for the last (labeled) trailing closure before attempting to match an unlabeled argument, this call is equivalent to a following "old" syntax:
+Since the new type-checking rule dictates a backwards scan starting for the last (labeled) trailing closure before attempting to match an unlabeled argument, this call is equivalent to a following "old" syntax:
 
 ```swift
 foo(b: { 42 }, c: { ... })
