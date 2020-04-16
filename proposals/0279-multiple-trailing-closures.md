@@ -343,7 +343,6 @@ UIView.animate(withDuration: 0.3) {
 } completion: { _ in
   self.view.removeFromSuperview()
 }
-`
 ```
 
 ### Optionally Labeled First Trailing Closure
