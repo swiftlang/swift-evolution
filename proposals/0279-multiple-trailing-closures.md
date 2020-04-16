@@ -288,10 +288,14 @@ This shows that unlabeled trailing closure matching behaves exactly the same way
 There are reasonable arguments against the backwards-scan design for type-checking trailing closures.  Perhaps the strongest argument is that this interaction with default arguments is unintuitive and limiting.  For example, it is natural to want to take a primary, required closure, followed by some optional closures:
 
 ```swift
-func resolve(id: UUID,
-             action: (Object) -> (),
-             completion: (() -> ())? = nil,
-             onError: ((Error) -> ())? = nil)
+func resolve(
+  id: UUID,
+  action: (Object) -> Void,
+  completion: (() -> Void)? = nil,
+  onError: ((Error) -> Void)? = nil
+) {
+  ...
+}
 ```
 
 Under the proposed type-checking rule, code like the following will not type-check as expected:
