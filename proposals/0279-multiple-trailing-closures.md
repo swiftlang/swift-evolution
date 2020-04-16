@@ -210,8 +210,12 @@ func pointFromClosures(
 }
 pointFromClosures { 10 } _: { 20 }  // Ok
 
-func performAsync(action: @escaping () -> (),
-                  completionOnMainThread: @escaping () -> ()) { ... }
+func performAsync(
+  action: @escaping () -> Void,
+  completionOnMainThread: @escaping () -> Void
+) {
+  ...
+}
 performAsync {
   // some action
 } _: {               // Not okay: must use completionOnMainThread:
