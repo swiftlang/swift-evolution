@@ -240,8 +240,8 @@ when(2 < 3) {
 
 is equivalent to:
 
-```
-`when(2 < 3, then: { print("then") }, else: { print("else") })`
+```swift
+when(2 < 3, then: { print("then") }, else: { print("else") })
 ```
 
 It's important to note that the handling of default arguments in relation to trailing closures is maintained as-is.  For example:
