@@ -202,7 +202,12 @@ The existing trailing-closure feature requires special treatment of the trailing
 Note that labeled trailing closures are required to match labels with a parameter.  A labeled trailing closure can use the special label `_` to indicate that it matches an unlabeled parameter, but this *only* matches an unlabeled parameter; it does not have the special label-omission powers of the initial unlabeled trailing closure.  For example:
 
 ```swift
-func pointFromClosures(x: () -> Int, _ y: () -> Int) -> (Int, Int) { (x,y) }
+func pointFromClosures(
+  x: () -> Int,
+  _ y: () -> Int
+) -> (Int, Int) {
+  (x(), y())
+}
 pointFromClosures { 10 } _: { 20 }  // Ok
 
 func performAsync(action: @escaping () -> (),
