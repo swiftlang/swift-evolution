@@ -43,7 +43,7 @@ UIView.animate(withDuration: 0.3, animations: {
   self.view.alpha = 0
 }) { _ in
   self.view.removeFromSuperview()
-}`
+}
 ```
 
 In this case, the trailing closure syntax is *harder to read*: the role of the trailing closure is unclear, the first closure remains nested, and something about the asymmetry is unsettling.
