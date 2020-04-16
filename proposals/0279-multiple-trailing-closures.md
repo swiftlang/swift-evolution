@@ -230,10 +230,12 @@ The current type-checking rule for trailing closures performs a limited backward
 For example, given this function:
 
 ```swift
-func when<T>(_ condition: @autoclosure () -> Bool,
-             then: () -> T,
-             `else`: () -> T) -> T {
-  ...
+func when<T>(
+  _ condition: @autoclosure () -> Bool,
+  then: () -> T,
+  `else`: () -> T
+) -> T {
+  condition() ? then() : `else`()
 }
 ```
 
