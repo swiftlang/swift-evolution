@@ -349,7 +349,7 @@ UIView.animate(withDuration: 0.3) {
 
 The proposed syntax could be extended to allow users to optionally label the first trailing closure:
 
-```
+```swift
 ipAddressPublisher
   .sink receiveCompletion: { completion in
     // handle error
