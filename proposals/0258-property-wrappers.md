@@ -663,8 +663,8 @@ var rect: Rectangle
 print(rect)          // accesses the Rectangle
 print(rect.topLeft)  // accesses the topLeft component of the rectangle
 
-let rect2 = $rect    // get the Ref<Rectangle>
-let topLeft2 = $rect.topLeft // get a Ref<Point> referring to the Rectangle's topLeft
+let rect2 = _rect    // get the Ref<Rectangle>
+let topLeft2 = _rect.topLeft // get a Ref<Point> referring to the Rectangle's topLeft
 ```
 
 The `Ref` type encapsulates read/write, and making it a property wrapper lets
