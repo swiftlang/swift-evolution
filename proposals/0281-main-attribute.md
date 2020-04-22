@@ -3,8 +3,10 @@
 * Proposal: [SE-0281](0281-main-attribute.md)
 * Authors: [Nate Cook](https://github.com/natecook1000), [Nate Chandler](https://github.com/nate-chandler), [Matt Ricketson](https://github.com/ricketson)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
-* Status: **Active review (March 30...April 8)**
+* Status: **Accepted**
 * Implementation: [apple/swift#30693](https://github.com/apple/swift/pull/30693)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-modifications-se-0281-main-type-based-program-entry-points/35400)
+
 
 ## Introduction
 
@@ -119,7 +121,15 @@ A `main.swift` file is always considered to be an entry point, even if it has no
 
 `@main` can be applied to either a type declaration or to an extension of an existing type. The `@main`-designated type can be declared in the application target or in an imported module. `@main` can be applied to the base type of a class hierarchy, but is not inherited — only the specific annotated type is treated as the entry point.
 
-The rules for satisfying the `static func main()` requirement are the same as for satisfying a protocol with the same requirement. The method can be provided by the type itself, inherited from a superclass, or declared in an extension to a protocol the type conforms to.
+The rules for satisfying the `main()` requirement are the same as for satisfying a hypothetical protocol with a single requirement:
+
+```swift
+protocol ProvidesMain {
+    static func main() throws
+}
+```
+
+The `main()` method can be provided by the type itself, inherited from a superclass, or declared in an extension to a protocol the type conforms to. The `main()` method can either be declared as `throws` or not; errors thrown from a `main()` method will have the same behavior as errors thrown from top-level code.
 
 ## Other considerations
 
