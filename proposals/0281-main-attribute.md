@@ -3,7 +3,7 @@
 * Proposal: [SE-0281](0281-main-attribute.md)
 * Authors: [Nate Cook](https://github.com/natecook1000), [Nate Chandler](https://github.com/nate-chandler), [Matt Ricketson](https://github.com/ricketson)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.3)**
 * Implementation: [apple/swift#30693](https://github.com/apple/swift/pull/30693)
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-modifications-se-0281-main-type-based-program-entry-points/35400)
 
