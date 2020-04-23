@@ -1258,7 +1258,7 @@ public struct UnsafeAtomicLazyReference<Instance: AnyObject> {
 
   // Atomic operations:
 
-  public func storeIfNil(_ desired: __owned Instance) -> Instance
+  public func storeIfNilThenLoad(_ desired: __owned Instance) -> Instance
   public func load() -> Instance?
 }
 ```
