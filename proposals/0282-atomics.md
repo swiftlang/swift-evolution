@@ -322,7 +322,7 @@ class AtomicCounter {
 }
 ```
 
-While `create`/`destroy` are convenient, the ability to manually control the storage location is critical for usecases where a separate allocation for every atomic value would be wasteful. (For example, these usecases can use `ManagedBuffer` APIs to create atomic storage directly within a class instance.)
+While `create`/`destroy` are convenient, the ability to manually control the storage location is critical for use cases where a separate allocation for every atomic value would be wasteful. (For example, these use cases can use `ManagedBuffer` APIs to create atomic storage directly within a class instance.)
 
 Now that we know how to create and destroy atomic values, it's time to introduce some actual atomic operations.
 
@@ -1381,7 +1381,7 @@ There are a variety of approaches to tackle this problem, some of which may be g
 
 ### Additional Low-Level Atomic Features
 
-To enable usecases that require even more fine-grained control over atomic operations, it may be useful to introduce additional low-level atomics features:
+To enable use cases that require even more fine-grained control over atomic operations, it may be useful to introduce additional low-level atomics features:
 
 * support for additional kinds of atomic values (such as double-wide atomics or floating-point atomics [[P0020]]),
 * new memory orderings, such as a consuming load ordering [[P0750]] or tearable atomics [[P0690]],
