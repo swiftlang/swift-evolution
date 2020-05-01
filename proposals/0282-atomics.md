@@ -8,7 +8,8 @@
     - [apple/swift#30553][implementation] (Atomic operations)
     - [apple/swift#26969][constantPR] (Constant-constrained ordering arguments)
 * Version: 2020-04-13
-* Status: **Active Review (April 14...April 24, 2020)**
+* Status: **Returned for revision**
+* Decision Notes: [Returned for revision](https://forums.swift.org/t/se-0282-low-level-atomic-operations/35382/69)
 
 <!--
 *During the review process, add the following fields as needed:*
