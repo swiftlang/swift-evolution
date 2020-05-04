@@ -1,9 +1,9 @@
 # Tuples Conform to `Equatable`, `Comparable`, and `Hashable`
 
-* Proposal: [SE-NNNN](NNNN-tuples-are-equatable-comparable-hashable.md)
+* Proposal: [SE-0283](0283-tuples-are-equatable-comparable-hashable.md)
 * Author: [Alejandro Alonso](https://github.com/Azoy)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Saleem Abdulrasool](https://github.com/compnerd)
+* Status: **Active Review (May 4...May 14, 2020)**
 * Implementation Equatable: [apple/swift#28833](https://github.com/apple/swift/pull/28833)
 * Implementation Comparable: *Coming Soon*
 * Implementation Hashable: *Coming Soon*
