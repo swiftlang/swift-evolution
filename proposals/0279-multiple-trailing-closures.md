@@ -3,9 +3,11 @@
 * Proposal: [SE-0279](0279-multiple-trailing-closures.md)
 * Authors: [Kyle Macomber](https://github.com/kylemacomber), [Pavel Yaskevich](https://github.com/xedin), [Doug Gregor](https://github.com/douggregor), [John McCall](https://github.com/rjmccall)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Accepted**
-* Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/d923209a05c3c38c8b735510cf1525d27ed4bd14/proposals/0279-multiple-trailing-closures.md)
-* Reviews: [1](https://forums.swift.org/t/se-0279-multiple-trailing-closures/34255)
+* Status: **Implemented (Swift 5.3)**
+* Previous Revisions: [1st](https://github.com/apple/swift-evolution/blob/d923209a05c3c38c8b735510cf1525d27ed4bd14/proposals/0279-multiple-trailing-closures.md)
+* Reviews: [1st](https://forums.swift.org/t/se-0279-multiple-trailing-closures/34255),
+           [2nd](https://forums.swift.org/t/se-0279-multiple-trailing-closures-amended/35435),
+           [3rd](https://forums.swift.org/t/accepted-se-0279-multiple-trailing-closures/36141)
 * Implementation: [apple/swift#31052](https://github.com/apple/swift/pull/31052)
 
 ## Motivation
