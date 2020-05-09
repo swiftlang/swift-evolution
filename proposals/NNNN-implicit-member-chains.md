@@ -142,7 +142,7 @@ If those two conditions are met, then a constraint is introduced requiring the r
 
 Members of the chain are allowed to participate in generic parameter inference as well. Thus, the following code is valid:
 
-```
+```swift
 struct Foo<T> {
     static var foo: Foo<T> { Foo<T>() }
     var anotherFoo: Foo<T> { Foo<T>() }
@@ -178,7 +178,7 @@ implicit(.foo.getAnotherFooInt())
 implicit(.foo.getAnotherFoo().getAnotherFooInt())
 // Members types along the chain can have different generic arguments
 implicit(.foo.anotherFooIntString.anotherFooStringInt)
-
+```
 
 If `T` is the contextually inferred type but `memberN` has non-convertible type `R` , a diagnostic of the form:
 
