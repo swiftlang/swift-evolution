@@ -4,7 +4,7 @@
 * Authors: [Frederick Kellison-Linn](https://github.com/jumhyn)
 * Review Manager: TBD
 * Status: **Awaiting review**
-* Implementation: [apple/swift#NNNNN](https://github.com/apple/swift/pull/NNNNN)
+* Implementation: [apple/swift#31679](https://github.com/apple/swift/pull/31679)
 
 ## Introduction
 
