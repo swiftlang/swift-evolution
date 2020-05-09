@@ -202,7 +202,7 @@ This is not an API-level change and would not impact resilience.
 
 ## Alternatives considered
 
-# Require homogeneously-typed chains
+### Require homogeneously-typed chains
 
 While overall discussion around this feature was very positive, one point of minor disagreement was whether chains should be required to have the same typealong the length of the chain. Such a rule would prohibit constructs like this:
 
