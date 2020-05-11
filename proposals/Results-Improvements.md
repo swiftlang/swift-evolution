@@ -1,63 +1,111 @@
 # Feature name
 
 * Proposal: [SE-NNNN](NNNN-Results-Improvements.md)
-* Authors: [hfhbd](https://github.com/hfhbd), [Author 2](https://github.com/swiftdev)
+* Authors: [hfhbd](https://github.com/hfhbd), [bojanstef](https://github.com/bojanstef)?, [tcldr](https://github.com/tcldr)?
 * Review Manager: TBD
-* Status: Implementation: [apple/swift#NNNNN](https://github.com/apple/swift/pull/27908)
+* Status: Implementation: [apple/swift#NNNNN](https://github.com/apple/swift/pull/27908), [apple/swift#NNNN](https://github.com/apple/swift/pull/26471)
 
 ## Introduction
 In [SE-0235](https://github.com/apple/swift-evolution/blob/master/proposals/0235-add-result.md) the `Result` type was introduced.
 This type should be improved by several functions and shortcuts.
 
-Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/)
+Swift-evolution thread: [Never-failing Result Type](https://forums.swift.org/t/never-failing-result-type/30249/5), [Convenience member on Result when when Success is Void](https://forums.swift.org/t/convenience-member-on-result-when-when-success-is-void/36134)
 
 ## Motivation
+The `Result` type is often used as state-ful return type, unified all across an API.
 
-Describe the problems that this proposal seeks to address. If the
-problem is that some common pattern is currently hard to express, show
-how one can currently get a similar effect and describe its
-drawbacks. If it's completely new functionality that cannot be
-emulated, motivate why this new functionality would help Swift
-developers create better Swift code.
+```
+struct API {
+    enum APIError: Error {
+        case .network
+        case .invalid(request: String, response: String)
+    }
+
+    func getPhoto(of user: String, result: Result<User, APIError>) { ... }
+    
+    func update(photo: Data, of user: String, result: Result<Void, APIError>) { 
+        let response: Response = ...
+        if ((200..<300).contains(response.status) ) {
+            return .success(()) // 1. 
+        }
+        ...
+    }
+}
+
+// Usage
+let maybePhoto = getPhoto(of: "John Appleseed") //.failure(.network)
+let networkFallback: Data = ...
+let storageFallback: Data = ...
+let johnsPhoto = maybePhoto.replaceFailure { err in // 2.
+         switch(err) {
+         case .network: return networkFallback
+         case .storage: return storageFallback
+         }
+     }.map {
+         UIImage(data: $0)
+     }
+     .get()
+```
+
+This sample API always returns a `Result` type, even the function `update(user:result:)`. To create a success case of a `Result<Void, Error>`, the call `Result<Void, Error>.success(())` is necessary.
+
+Sometimes an API call results into a failure, but the error should be discarded and replaced to an empty valid value, eg. a default value or `nil`. 
+
+This proposal adds this two additions: 
+1. shorter creation of the success case
+2. function to replace the failure, if present
 
 ## Proposed solution
 
-Describe your solution to the problem. Provide examples and describe
-how they work. Show how your solution is better than current
-workarounds: is it cleaner, safer, or more efficient?
-
+To satisfy this requirements, this proposal is split into two parts:
+1. Shortcut for `Result<Void, Error>.success(())`:
+   - A helper static var is added to the `Result` type, if the Success value is `Void`.
+1. Replace Failure:
+   - Add `replaceFailure(transform:)` to `Result`
+   - Overload `get() throws` with `get()`
+   
 ## Detailed design
 
-Describe the design of the solution in detail. If it involves new
-syntax in the language, show the additions and changes to the Swift
-grammar. If it's a new API, show the full API and its documentation
-comments detailing what it does. The detail in this section should be
-sufficient for someone who is *not* one of the authors to be able to
-reasonably implement the feature.
+### Success Shortcut
+```
+extension Result where Success == Void {
+   public static var success: Result<Success, Failure> {
+     return .success(())
+   }
+}
+
+// Usage
+let r: Result<Void, Error> = .success
+```
+
+### ReplaceFailure
+```
+extension Result {
+    public func replaceFailure(_ transform: (Failure) -> Success) -> Result<Success, Never> {
+         switch self {
+         case let .success(success):
+             return .success(success)
+         case let .failure(failure):
+             return .success(transform(failure))
+         }
+     }
+}
+
+extension Result where Failure == Never {
+     public func get() -> Success {
+         switch self {
+         case let .success(success):
+             return success
+         }
+     }
+ }
+ ```
 
 ## Source compatibility
-
+This is a purely additive change.
 
 ## Effect on ABI stability
-
-Does the proposal change the ABI of existing language features? The
-ABI comprises all aspects of the code generation model and interaction
-with the Swift runtime, including such things as calling conventions,
-the layout of data types, and the behavior of dynamic features in the
-language (reflection, dynamic dispatch, dynamic casting via `as?`,
-etc.). Purely syntactic changes rarely change existing ABI. Additive
-features may extend the ABI but, unless they extend some fundamental
-runtime behavior (such as the aforementioned dynamic features), they
-won't change the existing ABI.
-
-Features that don't change the existing ABI are considered out of
-scope for [Swift 4 stage 1](README.md). However, additive features
-that would reshape the standard library in a way that changes its ABI,
-such as [where clauses for associated
-types](https://github.com/apple/swift-evolution/blob/master/proposals/0142-associated-types-constraints.md),
-can be in scope. If this proposal could be used to improve the
-standard library in ways that would affect its ABI, describe them
-here.
+This is a purely additive change.
 
 ## Effect on API resilience
 
