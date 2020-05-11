@@ -51,7 +51,7 @@ try {
 
 This sample API always returns a `Result` type, even the function `update(user:result:)`. To create a success case of a `Result<Void, Error>`, the call `Result<Void, Error>.success(())` is necessary.
 
-Sometimes an API call results into a failure, but the error should be discarded and replaced to an empty valid value, eg. a default value or `nil`. 
+Sometimes an API call results into a failure, but the typed error should be discarded and replaced to an empty valid value, eg. a default value or `nil`. 
 
 This proposal adds this two additions: 
 1. shorter creation of the success case
@@ -98,8 +98,8 @@ To satisfy this requirements, this proposal is split into two parts:
 1. Shortcut for `Result<Void, Error>.success(())`:
    - A helper static var is added to the `Result` type, if the Success value is `Void`.
 1. Replace Failure:
-   - Add `replaceFailure(transform:)` to `Result`
-   - Overload `get() throws` with `get()`
+   - Add `replaceFailure(transform:)` to `Result` to allow a typed error handling
+   - Overload `get() throws` with `get()` when `Failure` is `Never`
    
 ## Detailed design
 
