@@ -21,7 +21,7 @@ struct API {
         case .invalid(request: String, response: String)
     }
 
-    func getPhoto(of user: String, result: Result<User, APIError>) { ... }
+    func getPhoto(of user: String, result: Result<Data, APIError>) { ... }
     
     func update(photo: Data, of user: String, result: Result<Void, APIError>) { 
         let response: Response = ...
@@ -33,18 +33,20 @@ struct API {
 }
 
 // Usage
-let maybePhoto = getPhoto(of: "John Appleseed") //.failure(.network)
 let networkFallback: Data = ...
 let storageFallback: Data = ...
-let johnsPhoto = maybePhoto.replaceFailure { err in // 2.
-         switch(err) {
-         case .network: return networkFallback
-         case .storage: return storageFallback
-         }
-     }.map {
-         UIImage(data: $0)
-     }
-     .get()
+let genericFallback: Data = ...
+
+let maybePhoto = getPhoto(of: "John Appleseed") //.failure(.network)
+let johnsPhoto: UIImage
+try { 
+    johnsPhoto = UIImage(data: maybePhoto.get()) 
+} catch { error in // 2. err is Error, not APIError
+    guard let error = error as? APIError else { return UIImage(data: genericFallback) } 
+    switch(error) {     
+    case .network: return UIImage(data: networkFallback)
+    case .storage: return UIImage(data: storageFallback)
+}
 ```
 
 This sample API always returns a `Result` type, even the function `update(user:result:)`. To create a success case of a `Result<Void, Error>`, the call `Result<Void, Error>.success(())` is necessary.
@@ -56,6 +58,41 @@ This proposal adds this two additions:
 2. function to replace the failure, if present
 
 ## Proposed solution
+
+```
+struct API {
+    enum APIError: Error {
+        case .network
+        case .invalid(request: String, response: String)
+    }
+
+    func getPhoto(of user: String, result: Result<Data, APIError>) { ... }
+    func getPhoto(of user: String, result: Result<User, APIError>) { ... }
+    
+    func update(photo: Data, of user: String, result: Result<Void, APIError>) { 
+        let response: Response = ...
+        if ((200..<300).contains(response.status) ) {
+            return .success // 1. 
+        }
+        ...
+    }
+}
+
+// Usage
+let networkFallback: Data = ...
+let storageFallback: Data = ...
+
+let maybePhoto = getPhoto(of: "John Appleseed") //.failure(.network)
+let johnsPhoto = maybePhoto.replaceFailure { err in // 2.
+         switch(err) {
+         case .network: return networkFallback
+         case .storage: return storageFallback
+         }
+     }.map {
+         UIImage(data: $0)
+     }
+     .get()
+```
 
 To satisfy this requirements, this proposal is split into two parts:
 1. Shortcut for `Result<Void, Error>.success(())`:
