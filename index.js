@@ -99,6 +99,12 @@ var states = {
     className: 'implemented',
     count: 0
   },
+  '.previewing': {
+    name: 'Previewing',
+    shortName: 'Previewing',
+    className: 'previewing',
+    count: 0
+  },
   '.error': {
     name: 'Error',
     shortName: 'Error',
@@ -222,7 +228,7 @@ function renderNav () {
   // with .accepted proposals.
   var checkboxes = [
     '.awaitingReview', '.scheduledForReview', '.activeReview', '.accepted',
-    '.implemented', '.returnedForRevision', '.deferred', '.rejected', '.withdrawn'
+    '.previewing', '.implemented', '.returnedForRevision', '.deferred', '.rejected', '.withdrawn'
   ].map(function (state) {
     var className = states[state].className
 
@@ -289,8 +295,8 @@ function renderBody () {
   var proposalAttachPoint = article.querySelector('.proposals-list')
 
   var proposalPresentationOrder = [
-    '.awaitingReview', '.scheduledForReview', '.activeReview', '.accepted',
-    '.acceptedWithRevisions', '.implemented', '.returnedForRevision', '.deferred', '.rejected', '.withdrawn'
+    '.awaitingReview', '.scheduledForReview', '.activeReview', '.accepted', '.acceptedWithRevisions',
+    '.previewing', '.implemented', '.returnedForRevision', '.deferred', '.rejected', '.withdrawn'
   ]
     
   proposalPresentationOrder.map(function (state) {
@@ -325,6 +331,7 @@ function renderBody () {
       if (proposal.reviewManager.name) detailNodes.push(renderReviewManager(proposal.reviewManager))
       if (proposal.trackingBugs) detailNodes.push(renderTrackingBugs(proposal.trackingBugs))
       if (state === '.implemented') detailNodes.push(renderVersion(proposal.status.version))
+      if (state === '.previewing') detailNodes.push(renderPreview())
       if (proposal.implementation) detailNodes.push(renderImplementation(proposal.implementation))
       if (state === '.acceptedWithRevisions') detailNodes.push(renderStatus(proposal.status))
 
@@ -428,6 +435,20 @@ function renderImplementation (implementations) {
     html('div', { className: 'implementation-list proposal-detail-value' },
       implNodes
     )
+  ])
+}
+
+/** For `.previewing` proposals, link to the stdlib preview package. */
+function renderPreview () {
+  return html('div', { className: 'proposal-detail' }, [
+    html('div', { className: 'proposal-detail-label' }, [
+      'Preview: '
+    ]),
+    html('div', { className: 'proposal-detail-value' }, [
+      html('a', { href: 'https://github.com/apple/swift-standard-library-preview', target: '_blank' }, 
+        'Standard Library Preview'
+      )
+    ])
   ])
 }
 
