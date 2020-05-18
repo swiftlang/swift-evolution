@@ -607,6 +607,10 @@ section ul, section li {
     color: rgb(255, 59, 48);
     border-color: rgb(255, 59, 48);
 }
+.color-previewing {
+    color: rgb(0, 190, 180);
+    border-color: rgb(0, 190, 180);
+}
 .color-implemented {
     color: rgb(0, 122, 255);
     border-color: rgb(0, 122, 255);
