@@ -108,6 +108,8 @@ A given proposal can be in one of several states:
   because it does not meet the [goals of the upcoming major Swift
   release](README.md). Deferred proposals will be reconsidered when
   scoping the next major Swift release.
+* **Previewing**: The proposal has been accepted and is available for preview
+  in the [Standard Library Preview package][preview-package].
 * **Accepted**: The proposal has been accepted and is either awaiting
   implementation or is actively being implemented.
 * **Accepted with revisions**: The proposal has been accepted,
@@ -122,6 +124,7 @@ A given proposal can be in one of several states:
 [swift-evolution-staging]: https://github.com/apple/swift-evolution-staging  "Swift evolution staging repository"
 [proposal-reviews]: https://forums.swift.org/c/evolution/proposal-reviews "'Proposal reviews' category of the Swift forums"
 [proposal-status]: https://apple.github.io/swift-evolution/
+[preview-package]: https://github.com/apple/swift-standard-library-preview/
 
 ## Review announcement
 
