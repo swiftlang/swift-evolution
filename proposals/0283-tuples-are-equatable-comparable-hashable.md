@@ -16,7 +16,7 @@ Swift-evolution thread: [Tuples Conform to Equatable, Comparable, and Hashable](
 
 ## Motivation
 
-Tuples in Swift currently lack the ability to conform to protocols. This has led many users to stop using tuples altogether in favor of structures that they can them conform protocols to. The shift from tuples to structures have made tuples almost feel like a second class type in the language because of them not being able to do simple operations that should *just* work.
+Tuples in Swift currently lack the ability to conform to protocols. This has led many users to stop using tuples altogether in favor of structures that can conform to protocols. The shift from tuples to structures have made tuples almost feel like a second class type in the language because of them not being able to do simple operations that should *just* work.
 
 Consider the following snippet of code that naively tries to use tuples for simple operations, but instead is faced with ugly errors.
 
