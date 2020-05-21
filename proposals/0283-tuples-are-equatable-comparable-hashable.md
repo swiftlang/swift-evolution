@@ -7,6 +7,7 @@
 * Implementation Equatable: [apple/swift#28833](https://github.com/apple/swift/pull/28833)
 * Implementation Comparable: [apple/swift#30142](https://github.com/apple/swift/pull/30142)
 * Implementation Hashable: [apple/swift#30150](https://github.com/apple/swift/pull/30150)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0283-tuples-conform-to-equatable-comparable-and-hashable/36658)
 
 ## Introduction
 
@@ -16,7 +17,7 @@ Swift-evolution thread: [Tuples Conform to Equatable, Comparable, and Hashable](
 
 ## Motivation
 
-Tuples in Swift currently lack the ability to conform to protocols. This has led many users to stop using tuples altogether in favor of structures that can conform to protocols. The shift from tuples to structures have made tuples almost feel like a second class type in the language because of them not being able to do simple operations that should *just* work.
+Tuples in Swift currently lack the ability to conform to protocols. This has led many users to stop using tuples altogether in favor of structures that can conform to protocols. The shift — from tuples to structures — has made tuples almost feel like a second-class type in the language, because of them not being able to do simple operations that should *just* work.
 
 Consider the following snippet of code that naively tries to use tuples for simple operations, but instead is faced with ugly errors.
 
@@ -60,7 +61,7 @@ After all the errors, one decides to give in and create a structure to mimic the
 
 ## Proposed solution
 
-Introduce `Equatable`, `Comparable`, and `Hashable` conformance for all tuples whose elements themselves conform to said protocols. While this isn't a general purpose conform any tuple to any protocol proposal, `Equatable`, `Comparable`, and `Hashable` are crucial protocols to conform to because it allows for all of the snippets above in Motivation to compile and run as expected along with many other standard library operations to work nicely with tuples.
+Introduce `Equatable`, `Comparable`, and `Hashable` conformance for all tuples whose elements themselves conform to said protocols. While this isn't a general-purpose "conform any tuple to any protocol" proposal, `Equatable`, `Comparable`, and `Hashable` are crucial protocols to conform to, because it allows for all of the snippets above in Motivation to compile and run as expected, along with many other standard library operations to work nicely with tuples.
 
 ### Equatable
 
@@ -127,7 +128,7 @@ for point in uniquePoints {
 }
 ```
 
-Once again, `Hashable` doesn't take tuple element labels into consideration when evaluating the hash value of a tuple. Because of this, one is able to index into a set or dictionary with an unlabled tuple and retrieve elements whose keys were labeled tuples:
+Once again, `Hashable` doesn't take tuple element labels into consideration when evaluating the hash value of a tuple. Because of this, one is able to index into a set or dictionary with an unlabeled tuple and retrieve elements whose keys were labeled tuples:
 
 ```swift
 // We don't take into account the labels for hash value.
@@ -140,7 +141,7 @@ print(grid[(100, 200)]) // Entity(name: "Pam")
 
 ## Source compatibility
 
-These are completely new conformances to tuples, thus source compatibilty is unaffected as they were previously not able to conform to protocols.
+These are completely new conformances to tuples, thus source compatibility is unaffected as they were previously not able to conform to protocols.
 
 ## Effect on ABI stability
 
