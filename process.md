@@ -108,13 +108,13 @@ A given proposal can be in one of several states:
   because it does not meet the [goals of the upcoming major Swift
   release](README.md). Deferred proposals will be reconsidered when
   scoping the next major Swift release.
-* **Previewing**: The proposal has been accepted and is available for preview
-  in the [Standard Library Preview package][preview-package].
 * **Accepted**: The proposal has been accepted and is either awaiting
   implementation or is actively being implemented.
 * **Accepted with revisions**: The proposal has been accepted,
   contingent upon the inclusion of one or more revisions.
 * **Rejected**: The proposal has been considered and rejected.
+* **Previewing**: The proposal has been accepted and is available for preview
+  in the [Standard Library Preview package][preview-package].
 * **Implemented (Swift VERSION)**: The proposal has been implemented.
   Append the version number in parentheses—for example: Implemented (Swift 2.2).
   If the proposal's implementation spans multiple version numbers,
