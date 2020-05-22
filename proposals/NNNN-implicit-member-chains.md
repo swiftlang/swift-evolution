@@ -68,7 +68,7 @@ let milky: UIColor = .white.withAlphaComponent(0.5) // error
 
 ## Proposed solution
 
-Improve in order to be able to handle multiple chained member accesses. The type of the resulting expression would be constrained to match the contextual type. Under this proposal, all of the following would successfully typecheck:
+Improve implicit member expression syntax to handle multiple chained member accesses. The base type of the implicit member expression would be constrained to match the contextual/resultant type of the whole chain. Under this proposal, all of the following would successfully typecheck:
 
 ```swift
 let milky: UIColor = .white.withAlphaComponent(0.5)
@@ -81,10 +81,10 @@ struct Foo {
     var anotherFoo: Foo { Foo() }
     func getFoo() -> Foo { Foo() }
     var optionalFoo: Foo? { Foo() }
-    var fooFunc: () -> Foo { Foo() }
+    var fooFunc: () -> Foo { { Foo() } }
     var optionalFooFunc: () -> Foo? { { Foo() } }
     var fooFuncOptional: (() -> Foo)? { { Foo() } }
-    subscript(arg: Void) -> Foo() { Foo() }
+    subscript() -> Foo { Foo() }
 }
 
 let _: Foo = .foo.anotherFoo
@@ -94,10 +94,10 @@ let _: Foo = .foo.optionalFoo!.getFoo()
 let _: Foo = .foo.fooFunc()
 let _: Foo = .foo.optionalFooFunc()!
 let _: Foo = .foo.fooFuncOptional!()
-let _: Foo = .foo.optionalFoo
-let _: Foo = .foo[()]
-let _: Foo = .foo.anotherFoo[()]
-let _: Foo = .foo.fooFuncOptional!()[()]
+let _: Foo = .foo.optionalFoo!
+let _: Foo = .foo[]
+let _: Foo = .foo.anotherFoo[]
+let _: Foo = .foo.fooFuncOptional!()[]
 
 struct Bar {
     var anotherFoo = Foo()
@@ -129,7 +129,7 @@ T.member1.member2.(...).memberN
 Members of this "implicit member chain" can be any of the following:
 - Property references
 - Method calls
-- Force unwraping expressions
+- Forced unwrapping expressions
 - Optional-chaining question marks
 - Subscripts
 
@@ -204,7 +204,7 @@ This is not an API-level change and would not impact resilience.
 
 ### Require homogeneously-typed chains
 
-While overall discussion around this feature was very positive, one point of minor disagreement was whether chains should be required to have the same typealong the length of the chain. Such a rule would prohibit constructs like this:
+While overall discussion around this feature was very positive, one point of minor disagreement was whether chains should be required to have the same type along the length of the chain. Such a rule would prohibit constructs like this:
 
 ```swift
 struct S {
@@ -247,4 +247,3 @@ struct T {
 let _: KeyPath<S, S> = \.foo.bar
 let _: S = .foo.bar // error?
 ```
-
