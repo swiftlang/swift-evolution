@@ -153,6 +153,6 @@ Besides not doing this entirely, the only alternative here is whether or not we 
 
 ## Future Directions
 
-With this change, other conformances such as `Codable` might make sense for tuples as well. It also makes sense to implement other conformances for other structural types in the language such as metatypes being `Hashable`, existentials being `Equatable` and `Hashable`, etc.
+With this change, other conformances such as `Codable` might make sense for tuples as well. It also makes sense to implement other conformances for other structural types in the language such as metatypes being `Hashable`, existentials being `Equatable` and `Hashable`, etc. `ExpressibleByTupleLiteral` would also be very magical.
 
 In the future when we have proper tuple extensions along with variadic generics and such, implementing these conformances for tuples will be trivial and I imagine the standard library will come with these conformances for tuples. When that happens all future usage of those conformances will use the standard library's implementation, but older clients that have been compiled with this implementation will continue using it as normal.
