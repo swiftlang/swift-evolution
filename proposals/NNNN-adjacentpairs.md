@@ -3,7 +3,7 @@
 * Proposal: [SE-NNNN](NNNN-adjacentpairs.md)
 * Author: [Michael Pangburn](https://github.com/mpangburn)
 * Review Manager: TBD
-* Status: [Implemented](https://github.com/mpangburn/swift-sennnn-adjacent-pairs)
+* Status: [Implemented](https://github.com/apple/swift-evolution-staging/pull/2)
 
 ## Introduction
 
@@ -13,9 +13,9 @@ SE Discussion: https://forums.swift.org/t/add-an-adjacentpairs-algorithm-to-sequ
 
 ## Motivation
 
-This proposal addresses the need to perform an operation on adjacent pairs of elements in a sequence. The intention is to transform the common pattern demonstrated below into a concise, readable, generic, less error-prone operation.
+This proposal addresses the need to perform an operation on adjacent pairs of elements in a sequence. Its intention is to transform the common pattern demonstrated below into a concise, readable, generic, less error-prone operation.
 
-For developers with backgrounds in the C-family, indexing may seem intuitive. Consider computing the distances between successive points in an array:
+For developers with backgrounds in the C-family, indexing may seem intuitive in implementing this pattern. Consider computing the distances between successive points in an array:
 
 ```swift 
 let points: [Point] = /* ... */
@@ -102,9 +102,10 @@ extension Sequence {
     /// Creates a sequence of adjacent pairs of elements from this sequence.
     ///
     /// In the `AdjacentPairs` instance returned by this method, the elements of
-    /// the *i*th pair are the *i*th and *(i+1)*th elements of the underlying sequence.
-    /// The following example uses the `adjacentPairs()` method to iterate over adjacent
-    /// pairs of integers:
+    /// the *i*th pair are the *i*th and *(i+1)*th elements of the underlying
+    /// sequence.
+    /// The following example uses the `adjacentPairs()` method to iterate over
+    /// adjacent pairs of integers:
     ///
     ///    for pair in (1...5).adjacentPairs() {
     ///        print(pair)
@@ -119,17 +120,19 @@ extension Sequence {
 
 /// A sequence of adjacent pairs of elements built from an underlying sequence.
 ///
-/// In an `AdjacentPairs` sequence, the elements of the *i*th pair are the *i*th 
-/// and *(i+1)*th elements of the underlying sequence. The following example 
-/// uses the `adjacentPairs()` method to iterate over adjacent pairs of integers:
-///
-///    for pair in (1...5).adjacentPairs() {
-///        print(pair)
-///    }
-///    // Prints "(1, 2)"
-///    // Prints "(2, 3)"
-///    // Prints "(3, 4)"
-///    // Prints "(4, 5)"
+/// In an `AdjacentPairs` sequence, the elements of the *i*th pair are the *i*th
+/// and *(i+1)*th elements of the underlying sequence. The following example
+/// uses the `adjacentPairs()` method to iterate over adjacent pairs of
+/// integers:
+/// ```
+/// for pair in (1...5).adjacentPairs() {
+///     print(pair)
+/// }
+/// // Prints "(1, 2)"
+/// // Prints "(2, 3)"
+/// // Prints "(3, 4)"
+/// // Prints "(4, 5)"
+/// ```
 public struct AdjacentPairs<Base: Sequence>: Sequence {
     public struct Iterator: IteratorProtocol {
         public mutating func next() -> (Base.Element, Base.Element)?
@@ -145,8 +148,11 @@ extension AdjacentPairs: Collection where Base: Collection {
     
     public var startIndex: Index { get }
     public var endIndex: Index { get }
-    public func index(after i: Index) -> Index
     public subscript(position: Index) -> (Base.Element, Base.Element) { get }
+    public func index(after i: Index) -> Index
+    public func index(_ i: Index, offsetBy distance: Int) -> Index
+    public func distance(from start: Index, to end: Index) -> Int
+    public var count: Int
 }
 
 extension AdjacentPairs: BidirectionalCollection where Base: BidirectionalCollection {
@@ -170,6 +176,8 @@ This change is purely additive and thus has no API resilience consequences.
 
 ## Alternatives considered
 
+### Offer both eager and lazy APIs
+
 Some methods on `Sequence`, such as `map` and `filter`, take two forms:
 
 - An eager version returning an `Array`.
@@ -178,3 +186,7 @@ Some methods on `Sequence`, such as `map` and `filter`, take two forms:
 However, adjacent pairs of elements are primarily useful as a transitory step in computing another value. For this reason, `adjacentPairs` follows in the footsteps of `joined` and `zip` in that it utilizes only a lazy wrapper type in its API.
 
 In the pitch phase, a version of the API producing a pair containing the last and first elements of the underlying sequence was discussed, but use cases were not compelling.
+
+### Offer an n-grams API
+
+An [n-grams](https://en.wikipedia.org/wiki/N-gram) API returning a sequence which iterates over tuples of a size determined by an integer argument is an appealing concept. However, such an API requires a return type dependent upon its argument, a type-level feature not supported by Swift.
