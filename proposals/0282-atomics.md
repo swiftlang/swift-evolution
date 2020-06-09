@@ -6,7 +6,7 @@
 * Bug: [SR-9144](https://bugs.swift.org/browse/SR-9144)
 * Implementation: Proof of concept [swift-atomics package][package]
 * Previous Revision: [v1][SE-0282v1] ([Returned for revision](https://forums.swift.org/t/se-0282-low-level-atomic-operations/35382/69))
-* Status: **Awaiting review**
+* Status: **Active review (June 8...June 16, 2020)**
 
 [SE-0282v1]: https://github.com/apple/swift-evolution/blob/3a358a07e878a58bec256639d2beb48461fc3177/proposals/0282-atomics.md
 [package]: https://github.com/apple/swift-se-0282-experimental
