@@ -81,11 +81,11 @@ The PR above makes changes in three principal areas internal to the compiler.
 
 3) While the above takes place, a registry of extended conformances is kept in the compiler. This is used to emit the ad-hoc witness tables used by extended conformances in a manner that is compatible across modules.
 
-In terms of what is surfaced to the language, extending conformances of a protocol is fully functional including across modules. A limitation of the current implementation however is that you cannot extend a protocol that a nominal already conforms to in another module though it might be possible remove this limitation at a later date.
+In terms of what is surfaced to the language, extending conformances of a protocol is fully functional including across modules.
 
 ## Source compatibility
 
-This is an additive feature that has a syntax which while it follows of the norms of extensions in the Swift language is currently not permitted. Therefore, there is no effect on source compatibility.
+This is an additive feature that has a syntax which while it follows of the norms of extensions in the Swift language it is currently not permitted. Therefore, there is no effect on source compatibility.
 
 ## Effect on ABI stability
 
