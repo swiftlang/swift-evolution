@@ -218,7 +218,7 @@ access modifier is `public` for all APIs unless specified.
 * Remove implicit target dependency rule for test targets.
 
     There is an implicit test target dependency rule: a test target "FooTests"
-    implicity depends on a target "Foo", if "Foo" exists and "FooTests" doesn't
+    implicitly depends on a target "Foo", if "Foo" exists and "FooTests" doesn't
     explicitly declare any dependency. We propose to remove this rule because:
 
     1. It is a non obvious "magic" rule that has to be learned.

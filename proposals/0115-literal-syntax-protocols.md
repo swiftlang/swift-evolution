@@ -79,7 +79,7 @@ All code that references any of the `*LiteralConvertible` protocols will need to
 
 Discussion of the pros and cons of the proposed and alternative naming schemes is encouraged.  The core team should feel free to choose names they deem best suited for Swift after community discussion and review if they decide to accept this proposal.
 
-The discussion thread for this proposal includes abundant bike shedding on the names.  This section includes selected examples to highlight different directions that have been discussed.  Reviewers are encouraged to read the discussion thread if they wish to see all of the alternatives.  The thread includes abundant discusison of the pros and cons of many naming ideas.
+The discussion thread for this proposal includes abundant bike shedding on the names.  This section includes selected examples to highlight different directions that have been discussed.  Reviewers are encouraged to read the discussion thread if they wish to see all of the alternatives.  The thread includes abundant discussion of the pros and cons of many naming ideas.
 
 Some of the names that have been suggested have been inaccurate due to a misunderstanding of what the protocols do.  Dave Abrahams explained during the discussion:
 

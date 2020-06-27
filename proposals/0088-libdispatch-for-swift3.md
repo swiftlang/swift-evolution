@@ -144,7 +144,7 @@ queue.setSpecific(key: akey, value: 42)
 
 #### Work Items
 
-The existing ```dispatch_block_*``` API group exposes functionality that produces ```dispatch_block_t``` blocks that are wrapped with additional metadata. That behaviour in C has multiple cases where this API group can be accidentally misused because the C types are ambiguously overloaded. This proposal will introduce a new explict class to cover this functionality, ```DispatchWorkItem``` that provides more explicit, safer typing.
+The existing ```dispatch_block_*``` API group exposes functionality that produces ```dispatch_block_t``` blocks that are wrapped with additional metadata. That behaviour in C has multiple cases where this API group can be accidentally misused because the C types are ambiguously overloaded. This proposal will introduce a new explicit class to cover this functionality, ```DispatchWorkItem``` that provides more explicit, safer typing.
 
 ```swift
 class DispatchWorkItem {

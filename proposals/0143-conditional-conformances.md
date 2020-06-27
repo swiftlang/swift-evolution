@@ -396,7 +396,7 @@ There is a variation on that type,
 ReversedRandomAccessCollection<Base: RandomAccessCollection>: RandomAccessCollection
 ```
 
- that additionaly conforms to `RandomAccessCollection` when its base does.
+ that additionally conforms to `RandomAccessCollection` when its base does.
 Users create these types via the `reversed()` extension method on
 `BidirectionalCollection` and `RandomAccessCollection` respectively.
 

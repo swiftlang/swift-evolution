@@ -208,7 +208,7 @@ update` behavior described above).
 
 If a package author does check the file into source control, the effect will be
 that anyone developing directly on this package will end up sharing the same
-dependency versions (and modifications will be commited as part of the SCM
+dependency versions (and modifications will be committed as part of the SCM
 history).
 
 The automatic pinning behavior is an extension of the behaviors above, and works

@@ -38,7 +38,7 @@ class RESTClient {
     var timeout = 3000
     
     var url : String {
-        assert(false,"Must be overriden")
+        assert(false,"Must be overridden")
         return ""
     }
     

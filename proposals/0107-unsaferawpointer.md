@@ -1771,7 +1771,7 @@ to build the standard library with the changes:
 - The type system handles implicit conversions to UnsafeRawPointer.
 
 - `UnsafeRawPointer` replaces both `UnsafePointer<Void>` and
-  `UnsafeMutablePointer<Void>` (Recent feedback suggestes that
+  `UnsafeMutablePointer<Void>` (Recent feedback suggests that
   `UnsafeMutablePointer` should also be introduced).
 
 - The standard library was relying on inferred `UnsafePointer`
