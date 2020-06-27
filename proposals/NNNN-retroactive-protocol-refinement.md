@@ -69,7 +69,7 @@ The PR above strives to demonstrate that it may be possible to avoid these pitfa
 
 ## Proposed solution
 
-Allow conformances to be added to protocol extensions with all that implies in terms of all nominals conforming to the protocol being extended acquiring the added conformances. It would be useful if this also worked for synthesised conformances (and indeed it does).
+Allow conformances to be added to protocol extensions with all that implies in terms of all nominals conforming to the protocol being extended acquiring the added conformances. It would be useful if this also worked for synthesized conformances (and indeed it does).
 
 ## Detailed design
 
