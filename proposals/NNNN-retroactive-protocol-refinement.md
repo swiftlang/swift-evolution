@@ -77,7 +77,7 @@ The PR above makes changes in three principal areas internal to the compiler.
 
 1)  The ConformanceLookupTable — a cache of the protocols a nominal conforms to has been adapted to traverse the inherited conformances of protocol extensions.
 
-2) The "Generic Signature" builder and module deserialising code has been adapted to traverse these extended sources of conformances.
+2) The "Generic Signature" builder and module deserializing code has been adapted to traverse these extended sources of conformances.
 
 3) While the above takes place, a registry of extended conformances is kept in the compiler. This is used to emit the ad-hoc witness tables used by extended conformances in a manner that is compatible across modules.
 
