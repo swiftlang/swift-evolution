@@ -638,7 +638,7 @@ function toggleFiltering () {
 }
 
 /**
- * Expands or constracts the filter panel, which contains buttons that
+ * Expands or contracts the filter panel, which contains buttons that
  * let users filter proposals based on their current stage in the
  * Swift Evolution process.
  */
