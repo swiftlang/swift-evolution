@@ -85,7 +85,7 @@ In terms of what is surfaced to the language, extending conformances of a protoc
 
 ## Source compatibility
 
-This is an additive feature that has a syntax which while it follows of the norms of extensions in the Swift language it is currently not permitted. Therefore, there is no effect on source compatibility.
+This is an additive feature that has a syntax which while it follows the norms of extensions in the Swift language it is currently not permitted. Therefore, there is no effect on source compatibility.
 
 ## Effect on ABI stability
 
