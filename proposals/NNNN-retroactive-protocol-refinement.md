@@ -10,7 +10,7 @@
 
 ## Introduction
 
-Protocol extensions are a powerful feature of the Swift language but it is not currently possible to specify that an extension provides a conformance to a particular protocol. This is mentioned as "Retroactive protocol refinement" in the [Generics Manifesto](https://github.com/apple/swift/blob/master/docs/GenericsManifesto.md#retroactive-protocol-refinement). The PR mentioned above explores as a proof of concept how difficult it would be to implement this feature and whether it could perhaps be considered as an additive change to the Swift Language.
+Protocol extensions are a powerful feature of the Swift language but it is not currently possible to specify that an extension provides conformance to a particular protocol. This is mentioned as "Retroactive protocol refinement" in the [Generics Manifesto](https://github.com/apple/swift/blob/master/docs/GenericsManifesto.md#retroactive-protocol-refinement). The PR mentioned above explores as a proof of concept how difficult it would be to implement this feature and whether it could perhaps be considered as an additive change to the Swift Language.
 
 Swift-evolution thread: [Protocol extensions inheriting protocols](https://forums.swift.org/t/protocol-extensions-inheriting-protocols/25491/8)
 
