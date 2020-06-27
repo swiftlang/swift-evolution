@@ -92,7 +92,7 @@ This proposal includes a trivial `(String) -> String?` version of the function, 
 
 ```swift
 // Swift.Int requires 10 bytes = 9 characters + 1 null terminator
-// Give this 9 to excercise truncation
+// Give this 9 to exercise truncation
 let buffer = UnsafeMutableBufferPointer<Int8>.allocate(capacity: 9)
 defer { buffer.deallocate() }
 

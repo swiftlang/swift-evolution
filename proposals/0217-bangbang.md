@@ -180,7 +180,7 @@ In one [real-world case](http://ericasadun.com/2017/01/23/safe-programming-optio
 
 > Since IOKit just gives you back dictionaries, a missing key, is well… not there, and nil. you know how well Swift likes nils… 
 
-Applications normally can’t plan for, anticipate, or provide workarounds for code running on unofficial platforms. There are too many unforeseen factors that cannot be incorporated into realistic code that ships. Adopting a universal "unwrap or die" style with explanations enables you to "guide the landing" on these unforseen ["Black Swan"](https://en.wikipedia.org/wiki/Black_swan_theory) failures:
+Applications normally can’t plan for, anticipate, or provide workarounds for code running on unofficial platforms. There are too many unforeseen factors that cannot be incorporated into realistic code that ships. Adopting a universal "unwrap or die" style with explanations enables you to "guide the landing" on these unforeseen ["Black Swan"](https://en.wikipedia.org/wiki/Black_swan_theory) failures:
 
 ```
 guard let value = dict[guaranteedKey] 

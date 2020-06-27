@@ -113,7 +113,7 @@ struct Outer {
 
 In Swift 3 compatibility mode, the compiler will continue to treat `private` as before. In Swift 4 mode, the compiler will modify the semantics of `private` to follow the rules of this proposal. No migration will be necessary as this proposal merely broadens the visibility of `private`.
 
-Cases where a type had `private` declarations with the same signature in the same type/extension but in different scopes will produce a compiler error in Swift 4. For example, the following piece of code compiles in Swift 3 compatibilty mode but generates a `Invalid redeclaration of 'bar()'` error in Swift 4 mode:
+Cases where a type had `private` declarations with the same signature in the same type/extension but in different scopes will produce a compiler error in Swift 4. For example, the following piece of code compiles in Swift 3 compatibility mode but generates a `Invalid redeclaration of 'bar()'` error in Swift 4 mode:
 
 ```swift
 struct Foo {
