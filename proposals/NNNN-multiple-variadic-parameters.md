@@ -144,7 +144,7 @@ Under this proposal, the above code also becomes a compile-time error. Note that
 
 As noted above, this proposal is source-breaking for any program which has a subscript declaration or closure having an unlabeled parameter following a variadic parameter. With the exception of very specific subscript declarations making use of default parameters, this only affects parameter lists which are syntactically impossible to fulfill. As a result, the break should have no impact on the vast majority of existing codebases. It does not cause any failures in the source compatibility suite.
 
-If this source-breaking change is considered unacceptable, there are two alternatives. One would be to make the error a warning instead for subscripts and closures. The other would be to preserve the buggy behavior and emit no diagnostics. In both cases, multiple variadic parameters would continue to be supported by subscripts, but users would retain the ability to write parameter lists which can't be fulfilled in some contexts.
+If this source-breaking change is considered unacceptable, there are two alternatives. One would be to change the error to a warning when applied to subscripts and closures. The other would be to preserve the buggy behavior and emit no diagnostics. In both cases, multiple variadic parameters would continue to be supported by subscripts, but users would retain the ability to write parameter lists which can't be fulfilled in some contexts.
 
 ## Effect on ABI stability
 
