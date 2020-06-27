@@ -16,7 +16,7 @@ Swift-evolution thread: [Protocol extensions inheriting protocols](https://forum
 
 ## Motivation
 
-Extensions to classes or structs (nominals) are able to specify conformances that they implement. When one extends a protocol however, it seems reasonable that specifying a conformance would add that functionality to that an entire class of nominals i.e. those that already adopt the protocol being extended or protocols that adopt that protocol etc. One example that was discussed was something that should be a simple case, where one wants to make all fixed width integers expressible by a UnicodeScalarLiteral (i.e. Strings). On the face of it one might assume the following would be possible:
+Extensions to classes or structs (nominals) are able to specify conformances that they implement. When one extends a protocol however, it seems reasonable that specifying conformance would add that functionality to that an entire class of nominals i.e. those that already adopt the protocol being extended or protocols that adopt that protocol, etc. One example that was discussed was something that should be a simple case, where one wants to make all fixed width integers expressible by a UnicodeScalarLiteral (i.e. Strings). On the face of it one might assume the following would be possible:
 
 ```Swift
 extension FixedWidthInteger: ExpressibleByUnicodeScalarLiteral {
