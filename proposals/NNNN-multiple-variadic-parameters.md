@@ -71,7 +71,7 @@ Lift the arbitrary restriction on variadic parameter count and allow a function/
 
 ## Detailed design
 
-A variadic parameter can already appear anywhere in a parameter list, so the behavior of multiple variadic parameters in functions and intializers is fully specified by the existing language rules.
+A variadic parameter can already appear anywhere in a parameter list, so the behavior of multiple variadic parameters in functions and initializers is fully specified by the existing language rules.
 
 ```swift
 // Note the label on the second parameter is required because it follows a variadic parameter.
@@ -148,7 +148,7 @@ If this source-breaking change is considered unacceptable, there are two alterna
 
 ## Effect on ABI stability
 
-This proposal does not require any changes to the ABI. The current ABI representation of variadic parameters already supports more than one per function/subscript/intializer.
+This proposal does not require any changes to the ABI. The current ABI representation of variadic parameters already supports more than one per function/subscript/initializer.
 
 ## Effect on API resilience
 
@@ -162,4 +162,3 @@ Two alternative labeling rules were considered.
 2. If a parameter list has more than one variadic parameter, every variadic parameter except for the first must have a label.
 
 Both alternatives are more restrictive in terms of the declarations they allow. This increases complexity and makes the parameter labeling rules harder to reason about. However, they might make it more difficult to write confusing APIs which mix variadic, defaulted, and required parameters. Overall, it seems better to trust programmers with greater flexibility, while also minimizing the number of rules they need to learn.
-
