@@ -37,7 +37,7 @@ these are not really flags modifying a build, and should be full commands in the
 
 The intent of this proposal is to establish a forward-looking syntax for supporting
 the full range of future package manager functionality in a clean, expressive, and
-clear manner, without using command-line flags (which should be modifiers on a commmand)
+clear manner, without using command-line flags (which should be modifiers on a command)
 to express commands.
 
 ## Proposed solution

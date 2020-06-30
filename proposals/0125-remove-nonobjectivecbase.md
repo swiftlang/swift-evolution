@@ -15,7 +15,7 @@ Remove `NonObjectiveCBase` and
 `isUniquelyReferencedNonObjC<T: AnyObject>(_ object: T)`. This
 replacement is as performant as the call to `isUniquelyReferenced` in cases
 where the compiler has static knowledge that the type of `object` is a native
-Swift class and dyamically has the same semantics for native swift classes.
+Swift class and dynamically has the same semantics for native swift classes.
 This change will remove surface API.
 Rename `isUniquelyReferencedNonObjC` to `isKnownUniquelyReferenced` and no
 longer promise to return false for `@objc` class instances.

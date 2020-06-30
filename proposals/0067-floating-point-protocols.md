@@ -19,7 +19,7 @@ for generic programming with the most commonly used types.
 Revision 2 reintroduces some of the details of the `Arithmetic` protocol from
 earlier drafts of this proposal, but as methods in the `FloatingPoint` API,
 with the goal of reducing the number of overloads for basic operations.  This
-change was requested by some members of the core langauge team.
+change was requested by some members of the core language team.
 
 Revision 2 also incorporates a number of suggestions from the review list and
 corrects some typos; thanks especially to Xiaodi Wu for thoughtful feedback.

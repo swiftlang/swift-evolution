@@ -326,7 +326,7 @@ the double-optional problem.
 
 However, this change would not resolve cases of `try?` with optional chaining
 (e.g. `try? foo?.bar?.baz()`), nor cases where an optional result is returned
-directly from a funtion (e.g. `try? cachedValue(for: key)`). 
+directly from a function (e.g. `try? cachedValue(for: key)`). 
 
 Altering the binding precedence of `try?` would also be *far* more 
 source-breaking than this proposal.

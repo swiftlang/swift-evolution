@@ -78,7 +78,7 @@ Without the `inout` parameter, we'd first have to make a `var` copy of the exist
 
 ## Source compatibility
 
-This is purely additive, we don't propose removing the existing `reduce`. Additionaly, because the first argument will have a label `into`, it doesn't add any extra burden to the type checker.
+This is purely additive, we don't propose removing the existing `reduce`. Additionally, because the first argument will have a label `into`, it doesn't add any extra burden to the type checker.
 
 ## Effect on ABI stability
 

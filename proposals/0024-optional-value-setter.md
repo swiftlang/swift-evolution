@@ -15,7 +15,7 @@ Swift-evolution thread: [link to the discussion thread for that proposal](https:
 
 ## Motivation
 
-In certain cases the `??` operation doesn't help with lengthly variable names, i.e., `really.long.lvalue[expression] = really.long.lvalue[expression] ?? ""`. In addtition to this other languages such as Ruby contain a pipe operator `really.long.lvalue[expression] ||= ""` which works the same way and which is very popular. This lowers the barrier of entry for programmers from that language.
+In certain cases the `??` operation doesn't help with lengthy variable names, i.e., `really.long.lvalue[expression] = really.long.lvalue[expression] ?? ""`. In addtition to this other languages such as Ruby contain a pipe operator `really.long.lvalue[expression] ||= ""` which works the same way and which is very popular. This lowers the barrier of entry for programmers from that language.
 
 In the interest in conciseness and clarity I feel this would be a great addition to swift and would bring the length of that previous statement from
 

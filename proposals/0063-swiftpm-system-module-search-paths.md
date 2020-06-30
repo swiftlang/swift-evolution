@@ -133,7 +133,7 @@ parameters, they can be added on a per enum basis.
 
 #### Install-names are not standard
 
-`apt` is used across multiple distirbutions and the install-names for
+`apt` is used across multiple distributions and the install-names for
 tools vary. Even for the same distribution install-names may vary
 across releases (eg. from Ubuntu 15.04 to Ubuntu 15.10) or even on
 occasion at finer granularity.

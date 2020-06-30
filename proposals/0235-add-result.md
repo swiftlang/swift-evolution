@@ -270,7 +270,7 @@ extension Result: Hashable where Success: Hashable, Failure: Hashable { }
 
 ## Adding `Swift.Error` self-conformance
 
-As part of the prepatory work for this proposal, self-conformance was added for `Error` (and only `Error`). This is also generally useful for working with errors in a generic context.
+As part of the preparatory work for this proposal, self-conformance was added for `Error` (and only `Error`). This is also generally useful for working with errors in a generic context.
 
 This self-conformance does not extend to protocol compositions including the `Error` protocol, only the exact type `Error`. It will be possible to add such compositions in the future, but that is out of scope for Swift 5.
 

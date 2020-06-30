@@ -352,7 +352,7 @@ That is, a `public` class could be used as a compositional superclass,
 useful for adding new storage to an existing identity but not for
 messing with its invariants.  This would prevent the creation of
 sealed hierarchies and is inconsistent with the general principle
-that restrictons on future evolution should be opt-in.  Authors would
+that restrictions on future evolution should be opt-in.  Authors would
 have no ability to reserve the right to decide later whether to
 allow subclasses; declaring something `final` is irrevocable.  This
 could be added in a future extension, but it is not the right rule
@@ -396,7 +396,7 @@ We may want to reconsider the need for `final` in the light of this change.
 ## Impact on existing code
 
 This would be a backwards-breaking change for all classes and methods that are
-public and non-final, which code outside of their module has overriden.
+public and non-final, which code outside of their module has overridden.
 Those classes/methods would fail to compile. Their superclass would need to be
 changed to `open`.
 

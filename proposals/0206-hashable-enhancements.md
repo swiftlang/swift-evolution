@@ -162,7 +162,7 @@ properties:
     the input data; the hash values it produces tend to form long
     chains of sequential integer clusters. While these aren't as bad
     as hash collisions, some hash table operations can slow down
-    drasticaly when such clusters are present. (In Swift 4.1, `Set`
+    drastically when such clusters are present. (In Swift 4.1, `Set`
     and `Dictionary` use open addressing with linear probing, and they
     have to do some clever postprocessing of hash values to get rid of
     such patterns.)
@@ -194,7 +194,7 @@ regardless of their expected distributions.
 
 [SE-0185]: https://github.com/apple/swift-evolution/blob/master/proposals/0185-synthesize-equatable-hashable.md
 
-Luckily, this problem has occured in other contexts before, and there
+Luckily, this problem has occurred in other contexts before, and there
 is an extensive list of hash functions that have been designed for
 exactly such cases: [Foller-Noll-Vo][FNV-1a], [MurmurHash],
 [CityHash], [SipHash], and [HighwayHash] are just a small selection of

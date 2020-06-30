@@ -28,7 +28,7 @@ let firstChar = \String.[string.startIndex]
 
 ## Proposed solution
 
-This proposal would add `Hashable` conformance to all the index types in the standard library. With that done, `[Int]`, `String`, and all other standard libary collections would have the same behavior when using subscripts in key paths.
+This proposal would add `Hashable` conformance to all the index types in the standard library. With that done, `[Int]`, `String`, and all other standard library collections would have the same behavior when using subscripts in key paths.
 
 ## Detailed design
 

@@ -154,7 +154,7 @@ were deferred pending further use cases. This proposal is motivated by such
 cases.
 
 As mentioned in the motivation, there are some alternatives available in the
-absense of this protocol:
+absence of this protocol:
 
 - Libraries can add their own version of the protocol, and retroactively
   conform standard library types to it. This is a workable solution, but has some downsides:

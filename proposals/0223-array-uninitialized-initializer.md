@@ -150,7 +150,7 @@ public init(
 ///     elements or initialize new elements.
 ///     - Parameters:
 ///       - buffer: An unsafe mutable buffer of the array's storage, covering
-///         memory for the number of elements specifed by the `capacity`
+///         memory for the number of elements specified by the `capacity`
 ///         parameter. The elements in `buffer[0..<initializedCount]` are
 ///         initialized, the memory in `buffer[initializedCount..<capacity]`
 ///         is uninitialized.

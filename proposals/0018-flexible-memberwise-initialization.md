@@ -230,7 +230,7 @@ The changes described in this proposal are *almost* entirely additive.  The only
 
 1. If the implicitly synthesized memberwise initializer was only used *within* the same source file no change is necessary.  An implicit `private` memberwise initializer will still be synthesized by the compiler.
 2. A mechanical migration could generate the explicit code necessary to declare the previously implicit initializer.  This would be an `internal` memberwise initializer with *explicit* parameters used to manually initialize the stored properties with `private` setters.
-3. If the "Access control for init" enhancement were accepted the `private` members could have their access control modified to `private internal(init)` which would allow the implict memberwise intializer to continue to have `internal` visibility as all stored properties would be eligible for parameter synthesis by an `internal` memberwise initializer.
+3. If the "Access control for init" enhancement were accepted the `private` members could have their access control modified to `private internal(init)` which would allow the implicit memberwise intializer to continue to have `internal` visibility as all stored properties would be eligible for parameter synthesis by an `internal` memberwise initializer.
 
 The only other impact on existing code is that memberwise parameters corresponding to `var` properties with initial values will now have default values.  This will be a change in the behavior of the implicit memberwise initializer but will not break any code.  The change will simply allow new code to use that initializer without providing an argument for such parameters.
 
@@ -325,7 +325,7 @@ struct S {
 
 ### Access control for init
 
-In some cases it may be desirable to be able to specify distinct access control for memberwise initialization when using the *automatic* model, for example if that model *almost* has the desired behavior, but the initialization visibiltiy of one property must be adjusted to produce the necessary result.
+In some cases it may be desirable to be able to specify distinct access control for memberwise initialization when using the *automatic* model, for example if that model *almost* has the desired behavior, but the initialization visibility of one property must be adjusted to produce the necessary result.
 
 The syntax used would be identical to that used for specifying distinct access control for a setter.  This feature would likely have its greatest utility in allowing more-private members to participate in more-public memberwise initializers.  It may also be used to inhibit memberwise initialization for some members, although that use would usually be discouraged if the `@nomemberwise` proposal were also accepted.
 

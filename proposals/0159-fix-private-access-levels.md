@@ -28,7 +28,7 @@ In Swift 3 compatibility mode, the compiler will continue to treat `private` and
 
 In Swift 4 mode, the compiler will deprecate the `fileprivate` keyword and revert the semantics of the `private` access level to be file based. The migrator will rename all uses of `fileprivate` to `private`.
 
-Cases where a type had `private` declarations with the same signature in different scopes will produce a compiler error. For example, the following piece of code compiles in Swift 3 compatibilty mode but generates a `Invalid redeclaration of 'bar()'` error in Swift 4 mode.
+Cases where a type had `private` declarations with the same signature in different scopes will produce a compiler error. For example, the following piece of code compiles in Swift 3 compatibility mode but generates a `Invalid redeclaration of 'bar()'` error in Swift 4 mode.
 
 ```swift
 struct Foo {
