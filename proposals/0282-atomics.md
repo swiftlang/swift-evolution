@@ -84,18 +84,18 @@ To resolve this problem, we propose to introduce the concept of *atomic access*,
 We define *atomic access* as a call to one of the following functions in the C atomic operation library:
 
 ```text
-atomic_flag_test_and_set         atomic_flag_test_and_set_explicit
-atomic_flag_clear                atomic_flag_clear_explicit
-atomic_store                     atomic_store_explicit
-atomic_load                      atomic_load_explicit
-atomic_exchange                  atomic_exchange_explicit
-atomic_compare_exchange_strong   atomic_compare_exchange_strong_explicit
-atomic_compare_exchange_weak     atomic_compare_exchange_weak_explicit
-atomic_fetch_add                 atomic_fetch_add_explicit
-atomic_fetch_sub                 atomic_fetch_sub_explicit
-atomic_fetch_or                  atomic_fetch_or_explicit
-atomic_fetch_xor                 atomic_fetch_xor_explicit
-atomic_fetch_and                 atomic_fetch_and_explicit
+    atomic_flag_test_and_set         atomic_flag_test_and_set_explicit
+    atomic_flag_clear                atomic_flag_clear_explicit
+    atomic_store                     atomic_store_explicit
+    atomic_load                      atomic_load_explicit
+    atomic_exchange                  atomic_exchange_explicit
+    atomic_compare_exchange_strong   atomic_compare_exchange_strong_explicit
+    atomic_compare_exchange_weak     atomic_compare_exchange_weak_explicit
+    atomic_fetch_add                 atomic_fetch_add_explicit
+    atomic_fetch_sub                 atomic_fetch_sub_explicit
+    atomic_fetch_or                  atomic_fetch_or_explicit
+    atomic_fetch_xor                 atomic_fetch_xor_explicit
+    atomic_fetch_and                 atomic_fetch_and_explicit
 ```
 
 We consider two of these operations to *access the same variable* if they operate on the same memory location. (Future proposals may introduce additional ways to perform atomic access, including native support for atomic operations in the Swift Standard Library.)
