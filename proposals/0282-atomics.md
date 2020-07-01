@@ -1,4 +1,4 @@
-# Interoperability with the C Atomic Operations Library ⚛︎
+# Clarify the Swift memory consistency model ⚛︎
 
 * Proposal: [SE-0282](0282-atomics.md)
 * Author: [Karoy Lorentey](https://github.com/lorentey)
@@ -6,7 +6,8 @@
 * Bug: [SR-9144](https://bugs.swift.org/browse/SR-9144)
 * Implementation: Proof of concept [swift-atomics package][package]
 * Previous Revision: [v1][SE-0282v1] ([Returned for revision](https://forums.swift.org/t/se-0282-low-level-atomic-operations/35382/69))
-* Status: **Active review (June 8...June 25, 2020)**
+* Status: **Implemented (Swift 5.3)**
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0282-interoperability-with-the-c-atomic-operations-library/38050)
 
 [SE-0282v1]: https://github.com/apple/swift-evolution/blob/3a358a07e878a58bec256639d2beb48461fc3177/proposals/0282-atomics.md
 [package]: https://github.com/apple/swift-se-0282-experimental
@@ -64,6 +65,9 @@ This document does not define a formal concurrency memory model in Swift, althou
 When applied carefully, atomic operations and memory ordering constraints can be used to implement higher-level synchronization algorithms that guarantee well-defined behavior for arbitrary variable accesses across multiple threads, by strictly confining their effects into some sequential timeline.
 
 For now, we will be heavily relying on the Law of Exclusivity as defined in [[SE-0176]] and the [[Ownership Manifesto]], and we'll explain to what extent C's memory orderings apply to Swift's variable accesses. The intention is that Swift's memory model will be fully interoperable with its C/C++ counterparts.
+
+This proposal does not specify whether/how dependency chains arising from the C/C++ `memory_order_consume` memory ordering work in Swift. The consume ordering as specified in the C/C++ standards is not implemented in any C/C++ compiler, and we join the current version of the C++ standard in encouraging Swift programmers not to use it. We expect to tackle the problem of efficient traversal of concurrent data structures in future proposals. Meanwhile, Swift programmers can start building useful concurrency constructs using relaxed, acquire/release, and sequentially consistent memory orderings imported from C.
+
 
 ### Amendment to The Law of Exclusivity
 
