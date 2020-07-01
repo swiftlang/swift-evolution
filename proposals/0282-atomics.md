@@ -1,4 +1,4 @@
-# Interoperability with the C Atomic Operations Library ⚛︎
+# Clarify the Swift memory consistency model ⚛︎
 
 * Proposal: [SE-0282](0282-atomics.md)
 * Author: [Karoy Lorentey](https://github.com/lorentey)
@@ -6,7 +6,8 @@
 * Bug: [SR-9144](https://bugs.swift.org/browse/SR-9144)
 * Implementation: Proof of concept [swift-atomics package][package]
 * Previous Revision: [v1][SE-0282v1] ([Returned for revision](https://forums.swift.org/t/se-0282-low-level-atomic-operations/35382/69))
-* Status: **Active review (June 8...June 25, 2020)**
+* Status: **Implemented (Swift 5.3)**
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0282-interoperability-with-the-c-atomic-operations-library/38050)
 
 [SE-0282v1]: https://github.com/apple/swift-evolution/blob/3a358a07e878a58bec256639d2beb48461fc3177/proposals/0282-atomics.md
 [package]: https://github.com/apple/swift-se-0282-experimental
@@ -65,6 +66,9 @@ When applied carefully, atomic operations and memory ordering constraints can be
 
 For now, we will be heavily relying on the Law of Exclusivity as defined in [[SE-0176]] and the [[Ownership Manifesto]], and we'll explain to what extent C's memory orderings apply to Swift's variable accesses. The intention is that Swift's memory model will be fully interoperable with its C/C++ counterparts.
 
+This proposal does not specify whether/how dependency chains arising from the C/C++ `memory_order_consume` memory ordering work in Swift. The consume ordering as specified in the C/C++ standards is not implemented in any C/C++ compiler, and we join the current version of the C++ standard in encouraging Swift programmers not to use it. We expect to tackle the problem of efficient traversal of concurrent data structures in future proposals. Meanwhile, Swift programmers can start building useful concurrency constructs using relaxed, acquire/release, and sequentially consistent memory orderings imported from C.
+
+
 ### Amendment to The Law of Exclusivity
 
 While the declarations in C's `stdatomic.h` header don't directly import into Swift, it is still possible to access these constructs from Swift code by [wrapping them into plain structs and functions][package] that can be imported. This way, `_Atomic` values can end up being stored within a Swift variable. 
@@ -80,18 +84,18 @@ To resolve this problem, we propose to introduce the concept of *atomic access*,
 We define *atomic access* as a call to one of the following functions in the C atomic operation library:
 
 ```text
-atomic_flag_test_and_set         atomic_flag_test_and_set_explicit
-atomic_flag_clear                atomic_flag_clear_explicit
-atomic_store                     atomic_store_explicit
-atomic_load                      atomic_load_explicit
-atomic_exchange                  atomic_exchange_explicit
-atomic_compare_exchange_strong   atomic_compare_exchange_strong_explicit
-atomic_compare_exchange_weak     atomic_compare_exchange_weak_explicit
-atomic_fetch_add                 atomic_fetch_add_explicit
-atomic_fetch_sub                 atomic_fetch_sub_explicit
-atomic_fetch_or                  atomic_fetch_or_explicit
-atomic_fetch_xor                 atomic_fetch_xor_explicit
-atomic_fetch_and                 atomic_fetch_and_explicit
+    atomic_flag_test_and_set         atomic_flag_test_and_set_explicit
+    atomic_flag_clear                atomic_flag_clear_explicit
+    atomic_store                     atomic_store_explicit
+    atomic_load                      atomic_load_explicit
+    atomic_exchange                  atomic_exchange_explicit
+    atomic_compare_exchange_strong   atomic_compare_exchange_strong_explicit
+    atomic_compare_exchange_weak     atomic_compare_exchange_weak_explicit
+    atomic_fetch_add                 atomic_fetch_add_explicit
+    atomic_fetch_sub                 atomic_fetch_sub_explicit
+    atomic_fetch_or                  atomic_fetch_or_explicit
+    atomic_fetch_xor                 atomic_fetch_xor_explicit
+    atomic_fetch_and                 atomic_fetch_and_explicit
 ```
 
 We consider two of these operations to *access the same variable* if they operate on the same memory location. (Future proposals may introduce additional ways to perform atomic access, including native support for atomic operations in the Swift Standard Library.)
