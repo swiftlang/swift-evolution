@@ -157,6 +157,6 @@ In future language version modes, we could deprecate `#file` instead of `#fileID
 
 Similarly, we could simply introduce `#fileID` and change the standard library to use it, without adding `#filePath` or changing `#file`'s behavior. But since we think the `#fileID` string is the right default, this would leave us with a design that encouraged the wrong defaults.
 
-We could remove the `#fileID` syntax from this proposal, probably retaining it underscored form as an implementation detail used to transition the standard library asssertions to the new strings in Swift 5 mode. This would give us a cleaner "Swift 6 mode" without a deprecated `#fileID` hanging around, but we don't want to keep potential adopters outside the standard library from gaining the advantages of the new strings if they want them.
+We could remove the `#fileID` syntax from this proposal, probably retaining it in underscored form as an implementation detail used to transition the standard library assertions to the new strings in Swift 5 mode. This would give us a cleaner "Swift 6 mode" without a deprecated `#fileID` hanging around, but we don't want to keep potential adopters outside the standard library from gaining the advantages of the new strings if they want them.
 
 There are many colors other than `#fileID` that we could use to paint this bikeshed; we like this spelling because it's shorter than `#filePath` and suitably vague about the exact format of the string it produces.
