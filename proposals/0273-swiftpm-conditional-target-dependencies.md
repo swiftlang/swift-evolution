@@ -3,7 +3,7 @@
 * Proposal: [SE-0273](0273-swiftpm-conditional-target-dependencies.md)
 * Authors: [David Hart](https://github.com/hartbit)
 * Review Manager: [Boris Buegling](https://github.com/neonichu)
-* Status: **Implemented (Swift 5.3)**
+* Status: **Partially implemented (Swift 5.3 supports platform conditionals, but not configuration conditionals)**
 * Implementation: [apple/swift-package-manager#2428](https://github.com/apple/swift-package-manager/pull/2428),
                   [apple/swift-package-manager#2598](https://github.com/apple/swift-package-manager/pull/2598)
 
