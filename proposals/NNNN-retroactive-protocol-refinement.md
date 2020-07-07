@@ -93,7 +93,18 @@ This is a compiler level addition to the language that does not require any chan
 
 ## Effect on API resilience
 
-This proposal does not make additions to the public API but is rather is a change to the capabilities of the compiler.
+This proposal does not affect API resilience as it does not modify an API 
+but it's more appropriate here to talk about how api resilience affects
+this proposal. In order that Swift nominals in the standard library can be
+evolved in future, some are declared "resilient" which introduces extra
+indirection so that implementations are not dependent on a particular
+memory layout at run-time. This applies to protocols in that the final
+layout of their witness tables is not known at compile time so as not to be
+depended on at run time. This prevents emitting the ad-hoc witness tables
+used by this proposal for newly conforming types and the prototype has
+disabled the assertion which would normally fire in the compiler. This
+erodes the utility of the proposal as often the protocols one is looking
+to extend are those defined in the standard library.
 
 ## Alternatives considered
 
