@@ -133,6 +133,18 @@ Additionally, Swift 5 mode and earlier will not warn when:
 
 In Swift 5 mode, substituting `#file` for `#fileID` *will* actually result in different behavior, so ideally we would warn about this. However, doing that would cause new warnings in existing functions which wrap functions that adopt `#fileID`. In practice, most `#fileID` adopters will work fine when they're passed `#file`—they'll just generate unnecessarily large file strings. 
 
+### Swift API Design Guidelines amendment
+
+This guideline will be added to [the "Parameters" section][api-params] of the Swift API Design Guidelines:
+
+> * **If your API will run in production, prefer `#fileID`** over alternatives.
+>   `#fileID` saves space and protects developers’ privacy. Use `#filePath` in
+>   APIs that are never run by end users (such as test helpers and scripts) if
+>   the full path will simplify development workflows or be used for file I/O.
+>   Use `#file` to preserve source compatibility with Swift 5.2 or earlier.
+
+  [api-params]: https://swift.org/documentation/api-design-guidelines/#parameter-names
+
 ### Schedule
 
 Ideally, these changes will be included in Swift 5.3, with the "future language mode" parts tied to a frontend flag for testing, rather than a language version mode.
