@@ -4,7 +4,7 @@
 * Authors: [Brent Royal-Gordon](https://github.com/brentdax)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
 * Implementation: [apple/swift#32700](https://github.com/apple/swift/pull/32700)
-* Status: **Active Review (July 6...July 16, 2020)**
+* Status: **Accepted**
 
 ## Introduction
 
