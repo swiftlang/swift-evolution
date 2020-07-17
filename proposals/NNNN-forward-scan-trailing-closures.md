@@ -16,7 +16,7 @@ However, the backward-scan matching rule makes it hard to write good API that us
 
 ## Motivation
 
-Several folks noted the downsides of the "backward" matching rule. The rule itself is described in the [detailed design](https://github.com/apple/swift-evolution/blob/master/proposals/0279-multiple-trailing-closures.md#detailed-design) section of SE-0279 (search for "backward"). To understand the problem with the backward rule, let's try to declare the UIView [`animate(withDuration:animation:completion:)`](https://developer.apple.com/documentation/uikit/uiview/1622515-animate) method in the obvious way to make use of SE-0279:
+Several folks noted the downsides of the "backward" matching rule. The rule itself is described in the [detailed design](https://github.com/apple/swift-evolution/blob/master/proposals/0279-multiple-trailing-closures.md#detailed-design) section of SE-0279 (search for "backward"). To understand the problem with the backward rule, let's try to declare the UIView [`animate(withDuration:animations:completion:)`](https://developer.apple.com/documentation/uikit/uiview/1622515-animate) method in the obvious way to make use of SE-0279:
  
 ```swift
 class func animate(
@@ -50,10 +50,10 @@ Now, the backward rule matches the unnamed trailing closure to `completion:`. Th
 
 ```
 error: missing argument for parameter 'animations' in call
-  animate(withDuration: 3.1415) {
+  animate(withDuration: 0.3) {
 ```
 
-Note that the "real" UIView API actually has two different methods---`animate(withDuration:animation:completion:)` and `animate(withDuration:animation:)`---where the latter looks like this:
+Note that the "real" UIView API actually has two different methods---`animate(withDuration:animations:completion:)` and `animate(withDuration:animations:)`---where the latter looks like this:
 
 ```swift
 class func animate(
@@ -66,7 +66,7 @@ This second overload only has a closure argument, so the backward-matching rule 
 
 ## Proposed solution
 
-The idea of the forward-scan matching rule is to match trailing closure arguments to parameters in the same forward, left-to-right manner that other arguments are matched to parameters. The unlabeled trailing closure will be matched to the next parameter that is either unlabeled or has a declared type that structurally resembles a function type (defined below). For example above, this means the following:
+The idea of the forward-scan matching rule is to match trailing closure arguments to parameters in the same forward, left-to-right manner that other arguments are matched to parameters. The unlabeled trailing closure will be matched to the next parameter that is either unlabeled or has a declared type that structurally resembles a function type (defined below). For the example above, this means the following:
 
 ```swift
 UIView.animate(withDuration: 0.3) {
@@ -88,10 +88,10 @@ UIView.animate(withDuration: 0.3) {
 }
 // equivalent to
 UIView.animate(withDuration: 0.3, animation: {
-    self.view.alpha = 0
-  }, completion: { _ in
+  self.view.alpha = 0
+}, completion: { _ in
   self.view.removeFromSuperview()
-  })
+})
 ```
 
 Note that the unlabeled trailing closure matches `animations:` in both cases; specifying additional trailing closures fills out later parameters but cannot shift the unlabeled trailing closure to an earlier parameter.
@@ -103,7 +103,7 @@ UIView.animate(withDuration: 0.3, animations: self.doAnimation) { _ in
   self.view.removeFromSuperview()
 }
 // equivalent to
-UIView.animate(withDuration: 0.3, animations: self.doAnimation, completion: _ in
+UIView.animate(withDuration: 0.3, animations: self.doAnimation, completion: { _ in
   self.view.removeFromSuperview()
 })
 ```
@@ -159,8 +159,12 @@ Following this rule, the `withDuration` parameter (a `TimeInterval`) does not re
 
 The forward-scanning rule, as described above, is source-breaking. A run over Swift's [source compatibility suite](https://swift.org/source-compatibility/) with this change enabled in all language modes turned up source compatibility breaks in three projects. The first problem occurs with a SwiftUI API [`View.sheet(isPresented:onDismiss:content:)`](https://developer.apple.com/documentation/swiftui/view/sheet(ispresented:ondismiss:content:)):
 
-```
-func sheet(isPresented: Binding<Bool>, onDismiss: (() -> Void)? = nil, content: @escaping () -> Content) -> some View
+```swift
+func sheet(
+  isPresented: Binding<Bool>,
+  onDismiss: (() -> Void)? = nil,
+  content: @escaping () -> Content
+) -> some View
 ```
 
 Note that `onDismiss` and `content` both structurally resemble a function type. This API fits well with the backward-matching rule, because the unlabeled trailing closure in the following example is always ascribed to `content:`. The `onDismiss:` argument gets the default argument `nil`:
@@ -169,12 +173,12 @@ Note that `onDismiss` and `content` both structurally resemble a function type. 
 sheet(isPresented: $isPresented) { Text("Hello") }
 ```
 
-With the forward-scanning rule, the unlabeled trailing closure matches the `onDismiss:` parameter, and there is no suitable argument for `content:`. Therefore, the well-formed code above would be rejected by the riule as proposed above.
+With the forward-scanning rule, the unlabeled trailing closure matches the `onDismiss:` parameter, and there is no suitable argument for `content:`. Therefore, the well-formed code above would be rejected by the rule as proposed above.
 
 However, it is clear from the function signature that (1) `onDismiss:` could have used the default argument, and (2) `content:` therefore won't have an argument if it is not paired with the unlabeled trailing closure. We can turn this into an heuristic to accept more existing code, reducing the source breaking impact of the proposal. Specifically, if
 
 * the parameter that would match the unlabeled trailing closure
-argument does not requirement an argument (because it is variadic or has a default argument), and
+argument does not require an argument (because it is variadic or has a default argument), and
 * there are parameters  *after*  that parameter that require an argument, up until the first parameter whose label matches that of the *next* trailing closure (if any)
 
 then do not match the unlabeled trailing closure to that parameter. Instead, skip it and examine the next parameter to see if that should be matched against the unlabeled trailing closure. For the `View.sheet(isPresented:onDismiss:content:)` API, this means that `onDismiss`, which has a default argument, will be skipped in the forward match so that the unlabeled trailing closure will match `content:`, allowing this code to continue to compile correctly.
@@ -183,10 +187,14 @@ This heuristic is remarkably effective: in addition to fixing 2 of the 3 failure
 
 ## Source compatibility
 
-Even with the heuristic, the forward-scan matching rule will still fail to compile some existing and can change the meaning of some code, when there are multiple, defaulted parameters of closure type. As an example, the remaining source compatibility failure in the Swift source compatibility suite, a project called [ModelAssistant](https://github.com/ssamadgh/ModelAssistant), is due to [this API](https://github.com/ssamadgh/ModelAssistant/blob/c96335280a3aba5f8e14955ecaf38dc25a0872b6/Source/Libraries/AOperation/Observers/BlockObserver.swift#L22-L26):
+Even with the heuristic, the forward-scan matching rule will still fail to compile some existing code, and can change the meaning of some code, when there are multiple, defaulted parameters of closure type. As an example, the remaining source compatibility failure in the Swift source compatibility suite, a project called [ModelAssistant](https://github.com/ssamadgh/ModelAssistant), is due to [this API](https://github.com/ssamadgh/ModelAssistant/blob/c96335280a3aba5f8e14955ecaf38dc25a0872b6/Source/Libraries/AOperation/Observers/BlockObserver.swift#L22-L26):
 
 ```swift
-init(startHandler: ((AOperation) -> Void)? = nil, produceHandler: ((AOperation, Foundation.Operation) -> Void)? = nil, finishHandler: ((AOperation, [NSError]) -> Void)? = nil) {
+init(
+    startHandler: ((AOperation) -> Void)? = nil,
+    produceHandler: ((AOperation, Foundation.Operation) -> Void)? = nil,
+    finishHandler: ((AOperation, [NSError]) -> Void)? = nil
+) {
     self.startHandler = startHandler
     self.produceHandler = produceHandler
     self.finishHandler = finishHandler
@@ -260,7 +268,11 @@ The forward-scan matching rule provides more predictable results, making it easi
 APIs like the above that will be broken by the forward scan can be "fixed" by removing the default arguments, then adding additional overloads to create the same effect. For example, drop the default argument of `finishHandler` so that the heuristic will kick in to fix calls with a single unlabeled trailing closure:
 
 ```swift
-init(startHandler: ((AOperation) -> Void)? = nil, produceHandler: ((AOperation, Foundation.Operation) -> Void)? = nil, finishHandler: ((AOperation, [NSError]) -> Void)) {
+init(
+    startHandler: ((AOperation) -> Void)? = nil,
+    produceHandler: ((AOperation, Foundation.Operation) -> Void)? = nil,
+    finishHandler: ((AOperation, [NSError]) -> Void)?
+) {
     self.startHandler = startHandler
     self.produceHandler = produceHandler
     self.finishHandler = finishHandler
@@ -271,15 +283,20 @@ One can then add overloads to handle other cases, e.g., the zero-argument case:
 
 ```swift
 init() {
-  self.init(startHandler: nil, produceHandler: nil, finishHandler:nil)
+  self.init(startHandler: nil, produceHandler: nil, finishHandler: nil)
 }
 ```
 
-An investation into APIs with multiple trailing closures uncovered one SwiftUI API that will break in this manner, because both closure parameters have defaults:
+An investigation into APIs with multiple trailing closures uncovered one SwiftUI API that will break in this manner, because both closure parameters have defaults:
 
 ```swift
-extension TextField where Label == SwiftUI.Text {
-  public init(_ titleKey: SwiftUI.LocalizedStringKey, text: SwiftUI.Binding<Swift.String>, onEditingChanged: @escaping (Swift.Bool) -> Swift.Void = { _ in }, onCommit: @escaping () -> Swift.Void = {})
+extension TextField where Label == Text {
+  public init(
+    _ titleKey: LocalizedStringKey,
+    text: Binding<String>,
+    onEditingChanged: @escaping (Bool) -> Void = { _ in },
+    onCommit: @escaping () -> Void = {}
+  )
 }
 ```
 
@@ -292,4 +309,3 @@ The heuristic that skips matching the unnamed trailing closure argument to a par
 * Allowing an argument label on the first trailing closure to let the caller select which parameter to match explicitly.
 
 This proposal leaves open all of these possibilities, and makes their changes less drastic because each of the ideas involves moving to a forward-scan matching rule. As such, this proposal makes SE-0279's multiple trailing closures immediately useful with minimal source breakage, paving the way for more significant changes if we so choose in the future.
-
