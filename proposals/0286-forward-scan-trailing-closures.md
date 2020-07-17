@@ -6,7 +6,8 @@
 * Status: **Active Review (July 17th...July 27th, 2020)**
 * Implementation: [apple/swift#32891](https://github.com/apple/swift/pull/32891)
 * Toolchains: [Linux](https://ci.swift.org/job/swift-PR-toolchain-Linux/389//artifact/branch-master/swift-PR-32891-389-ubuntu16.04.tar.gz), [macOS](https://ci.swift.org/job/swift-PR-toolchain-osx/558//artifact/branch-master/swift-PR-32891-558-osx.tar.gz)
-* Discussion: [Pitch #2](https://forums.swift.org/t/pitch-2-forward-scan-matching-for-trailing-closures/38491), [Pitch #1](https://forums.swift.org/t/pitch-1-forward-scan-matching-for-trailing-closures-source-breaking/38162)
+* Discussion: ([Pitch #1](https://forums.swift.org/t/pitch-1-forward-scan-matching-for-trailing-closures-source-breaking/38162)), ([Pitch #2](https://forums.swift.org/t/pitch-2-forward-scan-matching-for-trailing-closures/38491))
+* Review: ([Review](https://forums.swift.org/t/se-0286-forward-scan-for-trailing-closures/38529))
 
 ## Introduction
 
