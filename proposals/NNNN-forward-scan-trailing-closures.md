@@ -87,7 +87,7 @@ UIView.animate(withDuration: 0.3) {
   self.view.removeFromSuperview()
 }
 // equivalent to
-UIView.animate(withDuration: 0.3, animation: {
+UIView.animate(withDuration: 0.3, animations: {
   self.view.alpha = 0
 }, completion: { _ in
   self.view.removeFromSuperview()
