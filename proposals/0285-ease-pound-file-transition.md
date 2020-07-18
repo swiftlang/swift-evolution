@@ -1,10 +1,11 @@
 # Ease the transition to concise magic file strings
 
 * Proposal: [SE-0285](0285-ease-pound-file-transition.md)
-* Authors: [Brent Royal-Gordon](https://github.com/brentdax)
+* Author: [Brent Royal-Gordon](https://github.com/brentdax)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
 * Implementation: [apple/swift#32700](https://github.com/apple/swift/pull/32700)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.3)**
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0285-ease-the-transition-to-concise-magic-file-strings/38516)
 
 ## Introduction
 
