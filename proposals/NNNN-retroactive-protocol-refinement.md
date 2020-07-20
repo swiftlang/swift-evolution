@@ -1,4 +1,4 @@
-# Feature name
+# Retroactive Protocol Refinement
 
 * Proposal: [SE-NNNN](0000-retroactive-protocol-refinement.md)
 * Authors: [John Holdsworth](https://github.com/johnno1962)
