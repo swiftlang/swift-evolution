@@ -21,9 +21,9 @@ struct API {
         case .invalid(request: String, response: String)
     }
 
-    func getPhoto(of user: String, result: Result<Data, APIError>) { ... }
+    func getPhoto(of user: String) -> Result<Data, APIError> { ... }
     
-    func update(photo: Data, of user: String, result: Result<Void, APIError>) { 
+    func update(photo: Data, of user: String) -> Result<Void, APIError> { 
         let response: Response = ...
         if ((200..<300).contains(response.status) ) {
             return .success(()) // 1. 
@@ -49,7 +49,7 @@ try {
 }
 ```
 
-This sample API always returns a callback with a `Result` type, even the function `update(user:result:)`.
+This sample API always a `Result` type. Technical for network APIs, a callback would be better, but for simplify this is ignored.
 1. To create a success case of a `Result<Void, Error>`, the call `Result<Void, Error>.success(())` is necessary.
 
 Sometimes an API call results into a failure, but the typed error should be discarded and replaced to an empty valid value, eg. a default value or `nil`. 
@@ -69,10 +69,9 @@ struct API {
         case .invalid(request: String, response: String)
     }
 
-    func getPhoto(of user: String, result: Result<Data, APIError>) { ... }
-    func getPhoto(of user: String, result: Result<User, APIError>) { ... }
+    func getPhoto(of user: String) -> Result<Data, APIError> { ... }
     
-    func update(photo: Data, of user: String, result: Result<Void, APIError>) { 
+    func update(photo: Data, of user: String) -> Result<Void, APIError> { 
         let response: Response = ...
         if ((200..<300).contains(response.status) ) {
             return .success // 1. 
