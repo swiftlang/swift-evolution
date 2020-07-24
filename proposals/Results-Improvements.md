@@ -159,6 +159,16 @@ document](https://github.com/apple/swift/blob/master/docs/LibraryEvolution.rst)
 in the Swift repository.
 
 ## Alternatives considered
-
-Describe alternative approaches to addressing the same problem, and
-why you chose this approach instead.
+Instead of wrapping the output of `replaceFailure(:)` to `Result<Success, Never>`, `Success` will be directly returned. 
+```
+extension Result {
+    public func replaceFailure(_ transform: (Failure) -> Success) -> Success {
+         switch self {
+         case let .success(success):
+             return success
+         case let .failure(failure):
+             return transform(failure)
+         }
+     }
+}
+```
