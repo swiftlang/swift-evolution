@@ -49,13 +49,15 @@ try {
 }
 ```
 
-This sample API always returns a `Result` type, even the function `update(user:result:)`. To create a success case of a `Result<Void, Error>`, the call `Result<Void, Error>.success(())` is necessary.
+This sample API always returns a callback with a `Result` type, even the function `update(user:result:)`.
+1. To create a success case of a `Result<Void, Error>`, the call `Result<Void, Error>.success(())` is necessary.
 
 Sometimes an API call results into a failure, but the typed error should be discarded and replaced to an empty valid value, eg. a default value or `nil`. 
+2. With the current `try { result.get() } catch { error }` `error` is always `Error`, but not typed.
 
 This proposal adds this two additions: 
 1. shorter creation of the success case
-2. function to replace the failure, if present
+2. function to replace the failure, if present, to allow typed error handling
 
 ## Proposed solution
 
@@ -83,7 +85,7 @@ let networkFallback: Data = ...
 let storageFallback: Data = ...
 
 let maybePhoto = getPhoto(of: "John Appleseed") //.failure(.network)
-let johnsPhoto = maybePhoto.replaceFailure { err in // 2.
+let johnsPhoto = maybePhoto.replaceFailure { err in // 2. err is now APIError
          switch(err) {
          case .network: return networkFallback
          case .storage: return storageFallback
@@ -91,7 +93,7 @@ let johnsPhoto = maybePhoto.replaceFailure { err in // 2.
      }.map {
          UIImage(data: $0)
      }
-     .get()
+     .get() // no try catch neccessary
 ```
 
 To satisfy this requirements, this proposal is split into two parts:
