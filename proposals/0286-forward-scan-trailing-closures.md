@@ -327,7 +327,7 @@ init() {
 
 ## Future directions
 
-The proposal specifies that the "backward" scan be removed in Swift 6, which introducing a small source break that is staged in over time. However, the heuristic that  skips matching the unnamed trailing closure argument to a parameter that doesn't require an argument when the unnamed trailing closure is needed to match a later parameter retained. However, some future language version (Swift 6 or even later) might accept more source breakage by removing this heuristic---leaving only the forward scan in place---and find a better way to express APIs such as `View.sheet(isPresented:onDismiss:content:)` in the language. Possibilities include (but are not limited to):
+The proposal specifies that the "backward" scan be removed in Swift 6, which introduces a small source break that is staged in over time. However, the heuristic (that skips matching the unnamed trailing closure argument to a parameter that doesn't require an argument when the unnamed trailing closure is needed to match a later parameter) is retained. However, some future language version (Swift 6 or even later) might accept more source breakage by removing this heuristic---leaving only the forward scan in place---and find a better way to express APIs such as `View.sheet(isPresented:onDismiss:content:)` in the language. Possibilities include (but are not limited to):
 
 * A parameter attribute `@noTrailingClosure` that prevents the use of trailing closure syntax for a given parameter entirely.
 * Eliminating the allowance for matching the first (unlabeled) trailing closure to a parameter that has an argument label, so normal argument matching rules would apply.
