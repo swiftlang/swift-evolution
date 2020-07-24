@@ -53,7 +53,8 @@ This sample API always returns a callback with a `Result` type, even the functio
 1. To create a success case of a `Result<Void, Error>`, the call `Result<Void, Error>.success(())` is necessary.
 
 Sometimes an API call results into a failure, but the typed error should be discarded and replaced to an empty valid value, eg. a default value or `nil`. 
-2. With the current `try { result.get() } catch { error }` `error` is always `Error`, but not typed.
+
+2. With the current `try { result.get() } catch { error }` `error` is always `Error`, but not the type `APIError`.
 
 This proposal adds this two additions: 
 1. shorter creation of the success case
