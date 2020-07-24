@@ -4,16 +4,17 @@
 * Authors: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Active Review (July 17th...July 27th, 2020)**
-* Implementation: [apple/swift#32891](https://github.com/apple/swift/pull/32891)
-* Toolchains: [Linux](https://ci.swift.org/job/swift-PR-toolchain-Linux/397//artifact/branch-master/swift-PR-32891-397-ubuntu16.04.tar.gz), [macOS](https://ci.swift.org/job/swift-PR-toolchain-osx/572//artifact/branch-master/swift-PR-32891-572-osx.tar.gz)
+* Implementation: [apple/swift#33092](https://github.com/apple/swift/pull/33092)
+* Toolchains: [Linux](https://ci.swift.org/job/swift-PR-toolchain-Linux/404//artifact/branch-master/swift-PR-33092-404-ubuntu16.04.tar.gz), [macOS](https://ci.swift.org/job/swift-PR-toolchain-osx/579//artifact/branch-master/swift-PR-33092-579-osx.tar.gz)
 * Discussion: ([Pitch #1](https://forums.swift.org/t/pitch-1-forward-scan-matching-for-trailing-closures-source-breaking/38162)), ([Pitch #2](https://forums.swift.org/t/pitch-2-forward-scan-matching-for-trailing-closures/38491))
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/07bcb908125e1795a08d47391b5d866eb782639e/proposals/0286-forward-scan-trailing-closures.md)
 * Review: ([Review](https://forums.swift.org/t/se-0286-forward-scan-for-trailing-closures/38529))
 
 ## Introduction
 
 [SE-0279 "Multiple Trailing Closures"](https://github.com/apple/swift-evolution/blob/master/proposals/0279-multiple-trailing-closures.md) threaded the needle between getting the syntax we wanted for multiple trailing closures without breaking source compatibility. One aspect of that compromise was to extend (rather than replace) the existing rule for matching a trailing closure to a parameter by scanning *backward* from the end of the parameter list.
 
-However, the backward-scan matching rule makes it hard to write good API that uses trailing closures, especially multiple trailing closures. This proposal replaces the backward scan with a forward scan, which is simpler, more in line with normal argument matching in a call, and works better for APIs that support trailing closures (whether single or multiple) and default arguments. This change introduces a *minor source break* for code involving multiple, defaulted closure parameters, but the practical impacts of this source break are low, and in its current state SE-0279 multiple trailing closures aren't very useful.
+However, the backward-scan matching rule makes it hard to write good API that uses trailing closures, especially multiple trailing closures. This proposal replaces the backward scan with a forward scan wherever possible, which is simpler, more in line with normal argument matching in a call, and works better for APIs that support trailing closures (whether single or multiple) and default arguments. This change introduces a *minor source break* for code involving multiple, defaulted closure parameters, but that source break is staged over multiple Swift versions.
 
 ## Motivation
 
@@ -156,7 +157,7 @@ The adjusted type of the parameter is the parameter's type as declared in the fu
 
 Following this rule, the `withDuration` parameter (a `TimeInterval`) does not resemble a function type. However, `@escaping () -> Void` does, so the unlabeled trailing closure matches `animations`. `@autoclosure () -> ((Int) -> Int)` and `((Int) -> Int)?` would also resemble a function type.
 
-### Mitigating the source compatibility impact
+### Mitigating the source compatibility impact (all language versions)
 
 The forward-scanning rule, as described above, is source-breaking. A run over Swift's [source compatibility suite](https://swift.org/source-compatibility/) with this change enabled in all language modes turned up source compatibility breaks in three projects. The first problem occurs with a SwiftUI API [`View.sheet(isPresented:onDismiss:content:)`](https://developer.apple.com/documentation/swiftui/view/sheet(ispresented:ondismiss:content:)):
 
@@ -184,9 +185,11 @@ argument does not require an argument (because it is variadic or has a default a
 
 then do not match the unlabeled trailing closure to that parameter. Instead, skip it and examine the next parameter to see if that should be matched against the unlabeled trailing closure. For the `View.sheet(isPresented:onDismiss:content:)` API, this means that `onDismiss`, which has a default argument, will be skipped in the forward match so that the unlabeled trailing closure will match `content:`, allowing this code to continue to compile correctly.
 
-This heuristic is remarkably effective: in addition to fixing 2 of the 3 failures from the Swift source compatibility suite (the remaining failure will be discussed below), it resolved 17 of the 19 failures we observed in a separate (larger) testsuite comprising a couple of million lines of Swift.
+This heuristic is remarkably effective: in addition to fixing 2 of the 3 failures from the Swift source compatibility suite (the remaining failure will be discussed below), it resolved most of the failures we observed in a separate (larger) testsuite comprising a couple of million lines of Swift.
 
-## Source compatibility
+One practical effect of this heuristic is that it makes the forward scan as proposed here produce the same results as the existing backward scan in many, many more cases.
+
+### Mitigating the source compatibility impact (Swift < 6)
 
 Even with the heuristic, the forward-scan matching rule will still fail to compile some existing code, and can change the meaning of some code, when there are multiple, defaulted parameters of closure type. As an example, the remaining source compatibility failure in the Swift source compatibility suite, a project called [ModelAssistant](https://github.com/ssamadgh/ModelAssistant), is due to [this API](https://github.com/ssamadgh/ModelAssistant/blob/c96335280a3aba5f8e14955ecaf38dc25a0872b6/Source/Libraries/AOperation/Observers/BlockObserver.swift#L22-L26):
 
@@ -262,11 +265,45 @@ BlockObserver { aOperation in
 }
 ```
 
-The forward-scan matching rule provides more predictable results, making it easier to understand how to use this API properly. 
+The forward-scan matching rule provides more predictable results, making it easier to understand how to use this API properly. However, maintaing backward compatibility requires that the backward scan be considered in places where it differs from the forward scan.
+
+To address this remaining source compatibility problem, Swift minor versions (prior to Swift 6) shall implement an additional rule for calls that involve a single (unlabeled) trailing closure. If the forward and backward-scan rules produce *different* assignments of arguments to parameters, then the Swift compiler will attempt both: if only one succeeds, use it. If both succeed, prefer the backward-scanning rule (for source compatibility reasons) and produce a warning about the use of the backward scan. For example:
+
+```swift
+BlockObserver { (operation, errors) in
+  print("finishHandler!")
+}
+```
+
+Here, the forward scan fails to type-check, because the closure accepts two parameters whereas `startHandler` accepts a single parameter. Therefore, the backward scan is selected, maintaining source compatibility, and produces a warning with a Fix-It to make the trailing closure a regular argument:
+
+```
+warning: backward matching of the unlabeled trailing closure is deprecated; label the argument with 'finishHandler' to suppress this warning
+BlockObserver { (operation, errors) in
+              ^
+             (finishHandler:
+```
+
+If there truly is an ambiguity, where both the forward scan and backward scan type-check but would do so differently, we prefer the backward scan to maintain source compatibility:
+
+```swift
+func trailingClosureBothDirections(
+  f: (Int, Int) -> Int = { $0 + $1 }, g: (Int, Int) -> Int = { $0 - $1 }
+) { }
+trailingClosureBothDirections { $0 * $1 }
+```
+
+Here, the forward scan would bind the trailing closure to `f:` (for Swift 6 and newer) while the backward scan would bind the trailing closure to `g:` (for Swift < 6). The same warning will apply when the backward scan result is chosen, with a Fix-It to rewrite the code to:
+
+```swift
+trailingClosureBothDirections(g: { $0 * $1 })
+```
+
+This suppresses the warning and eliminates the ambiguity, so the code behaves the same across all overload sets.
 
 ### Workaround via overload sets
 
-APIs like the above that will be broken by the forward scan can be "fixed" by removing the default arguments, then adding additional overloads to create the same effect. For example, drop the default argument of `finishHandler` so that the heuristic will kick in to fix calls with a single unlabeled trailing closure:
+APIs like the above that depend on the backward scan can be reworked to provide the same client API. The basic technique involves removing the default arguments, then adding additional overloads to create the same effect. For example, drop the default argument of `finishHandler` so that the heuristic will kick in to fix calls with a single unlabeled trailing closure:
 
 ```swift
 init(
@@ -288,25 +325,16 @@ init() {
 }
 ```
 
-An investigation into APIs with multiple trailing closures uncovered one SwiftUI API that will break in this manner, because both closure parameters have defaults:
-
-```swift
-extension TextField where Label == Text {
-  public init(
-    _ titleKey: LocalizedStringKey,
-    text: Binding<String>,
-    onEditingChanged: @escaping (Bool) -> Void = { _ in },
-    onCommit: @escaping () -> Void = {}
-  )
-}
-```
-
 ## Future directions
 
-The heuristic that skips matching the unnamed trailing closure argument to a parameter that doesn't require an argument when the unnamed trailing closure is needed to match a later parameter is an accommodation for source compatibility, not a principled design. For a future language version that can accept more source breakage, we could remove this heuristic---leaving the forward scan in place---and find a better way to express APIs such as `View.sheet(isPresented:onDismiss:content:)` in the language. Possibilities include (but are not limited to):
+The proposal specifies that the "backward" scan be removed in Swift 6, which introducing a small source break that is staged in over time. However, the heuristic that  skips matching the unnamed trailing closure argument to a parameter that doesn't require an argument when the unnamed trailing closure is needed to match a later parameter retained. However, some future language version (Swift 6 or even later) might accept more source breakage by removing this heuristic---leaving only the forward scan in place---and find a better way to express APIs such as `View.sheet(isPresented:onDismiss:content:)` in the language. Possibilities include (but are not limited to):
 
 * A parameter attribute `@noTrailingClosure` that prevents the use of trailing closure syntax for a given parameter entirely.
 * Eliminating the allowance for matching the first (unlabeled) trailing closure to a parameter that has an argument label, so normal argument matching rules would apply.
 * Allowing an argument label on the first trailing closure to let the caller select which parameter to match explicitly.
 
-This proposal leaves open all of these possibilities, and makes their changes less drastic because each of the ideas involves moving to a forward-scan matching rule. As such, this proposal makes SE-0279's multiple trailing closures immediately useful with minimal source breakage, paving the way for more significant changes if we so choose in the future.
+This proposal leaves open all of these possibilities, and makes their changes less drastic because each of the ideas involves moving to a forward-scan matching rule. As such, this proposal makes SE-0279's multiple trailing closures immediately useful with minimal (or no) source breakage, paving the way for more significant changes if we so choose in the future.
+
+## Revision history
+
+* **Version 2**: Improved source compatibility by performing both the forward and backward scans in Swift < 6 mode ([originally suggested](https://forums.swift.org/t/se-0286-forward-scan-for-trailing-closures/38529/9) by Pavel Yaskevich) and adopting the [specific proposal](https://forums.swift.org/t/se-0286-forward-scan-for-trailing-closures/38529/30) from Xiaodi Wu to prefer the backward scan result in Swift < 6 when the two scans differ.
