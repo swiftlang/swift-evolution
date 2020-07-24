@@ -265,7 +265,7 @@ BlockObserver { aOperation in
 }
 ```
 
-The forward-scan matching rule provides more predictable results, making it easier to understand how to use this API properly. However, maintaing backward compatibility requires that the backward scan be considered in places where it differs from the forward scan.
+The forward-scan matching rule provides more predictable results, making it easier to understand how to use this API properly. However, maintaining backward compatibility requires that the backward scan be considered in places where it differs from the forward scan.
 
 To address this remaining source compatibility problem, Swift minor versions (prior to Swift 6) shall implement an additional rule for calls that involve a single (unlabeled) trailing closure. If the forward and backward-scan rules produce *different* assignments of arguments to parameters, then the Swift compiler will attempt both: if only one succeeds, use it. If both succeed, prefer the backward-scanning rule (for source compatibility reasons) and produce a warning about the use of the backward scan. For example:
 
