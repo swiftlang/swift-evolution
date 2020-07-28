@@ -3,12 +3,12 @@
 * Proposal: [SE-0286](0286-forward-scan-trailing-closures.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active Review (July 17th...July 27th, 2020)**
+* Status: **Accepted**
 * Implementation: [apple/swift#33092](https://github.com/apple/swift/pull/33092)
 * Toolchains: [Linux](https://ci.swift.org/job/swift-PR-toolchain-Linux/404//artifact/branch-master/swift-PR-33092-404-ubuntu16.04.tar.gz), [macOS](https://ci.swift.org/job/swift-PR-toolchain-osx/579//artifact/branch-master/swift-PR-33092-579-osx.tar.gz)
 * Discussion: ([Pitch #1](https://forums.swift.org/t/pitch-1-forward-scan-matching-for-trailing-closures-source-breaking/38162)), ([Pitch #2](https://forums.swift.org/t/pitch-2-forward-scan-matching-for-trailing-closures/38491))
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/07bcb908125e1795a08d47391b5d866eb782639e/proposals/0286-forward-scan-trailing-closures.md)
-* Review: ([Review](https://forums.swift.org/t/se-0286-forward-scan-for-trailing-closures/38529))
+* Review: ([Review](https://forums.swift.org/t/se-0286-forward-scan-for-trailing-closures/38529)), ([Acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0286-forward-scan-for-trailing-closures/38836))
 
 ## Introduction
 
