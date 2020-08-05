@@ -4,9 +4,7 @@
 * Author: [Alejandro Alonso](https://github.com/Azoy)
 * Review Manager: [Saleem Abdulrasool](https://github.com/compnerd)
 * Status: **Accepted**
-* Implementation Equatable: [apple/swift#28833](https://github.com/apple/swift/pull/28833)
-* Implementation Comparable: [apple/swift#30142](https://github.com/apple/swift/pull/30142)
-* Implementation Hashable: [apple/swift#30150](https://github.com/apple/swift/pull/30150)
+* Implementation: [apple/swift#28833](https://github.com/apple/swift/pull/28833)
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0283-tuples-conform-to-equatable-comparable-and-hashable/36658)
 
 ## Introduction
