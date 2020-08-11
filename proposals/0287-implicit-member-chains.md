@@ -1,9 +1,9 @@
 # Extend implicit member syntax to cover chains of member references
 
-* Proposal: [SE-NNNN](NNNN-implicit-member-chains.md)
+* Proposal: [SE-0287](0287-implicit-member-chains.md)
 * Authors: [Frederick Kellison-Linn](https://github.com/jumhyn)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Upcoming Review (August 13th...August 24th, 2020)**
 * Implementation: [apple/swift#31679](https://github.com/apple/swift/pull/31679)
 
 ## Introduction
