@@ -3,7 +3,7 @@
 * Proposal: [SE-0287](0287-implicit-member-chains.md)
 * Authors: [Frederick Kellison-Linn](https://github.com/jumhyn)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Upcoming Review (August 13th...August 24th, 2020)**
+* Status: **Active Review (August 13th...August 24th, 2020)**
 * Implementation: [apple/swift#31679](https://github.com/apple/swift/pull/31679)
 
 ## Introduction
