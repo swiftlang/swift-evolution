@@ -126,6 +126,8 @@ Will behave as if the user had written:
 T.member1.member2.(...).memberN
 ```
 
+Note: if `T` is an optional type `R?` for some type `R`, we maintain the existing rule that lookup of `member1` in an implicit base will proceed in both `R?` and `R` (which allows the `milkyChance` example above to compile).
+
 Members of this "implicit member chain" can be any of the following:
 - Property references
 - Method calls
