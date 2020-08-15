@@ -9,7 +9,7 @@
 
 Protocols are a powerful feature of Swift. They are so diverse that they can be divided into two categories: regular protocols and
 [Protocols with Associated Requirements](https://docs.swift.org/swift-book/LanguageGuide/Generics.html#ID189) (PATs).
-PATs are special because they reference ‘Self’ or have ‘associatedtypes’ - hence the name. As a result PATs can not 
+PATs are special because they reference `Self` or have associated types - hence the name. As a result PATs can not 
 [act as Types](https://docs.swift.org/swift-book/LanguageGuide/Protocols.html#ID275) contrary to their regular counterparts. This is a sensible constraint,
 however it can sometimes prove unjustifiably inconvenient in cases where the aforementioned associated types are specified. This proposal aims to ease that
 constraint allowing PAT conforming protocols to behave as regular protocols when all associated types are specified.
@@ -102,8 +102,8 @@ protocol PAT: Equatable where Self == String { ... }
 ```swift
 protocol Foo: PAT where A == Foo { ... }
 ```
-> **_NOTE:_** Although this might seem confusing at first, disallowing this seems unintuitive. Protocols already allow properties typed with the protocol itself,
-therefore we deem this restriction unnecessary. Read more at [Alternatives Considered](#alternatives-considered)
+> **_NOTE:_** Although this might seem confusing at first, allowing this behavior seems more intuitive. Protocols already allow properties typed with 
+the protocol itself, therefore we deem this restriction unnecessary. Read more at [Alternatives Considered](#alternatives-considered)
 
 
 ### Syntax 
@@ -122,11 +122,11 @@ Now, a protocol is considered a PAT if it:
 ## Source compatibility
 
 There is no source compatibility impact. As previously mentioned this change is purely semantic. In other words, some protocols will lose PAT 
-qualification ([because of rule 2](#rules-for-pat-qualification)), which in turn allows for more flexibility from a user perspective. Even in cases like these:
+qualification ([because of rule 2](#rules-for-pat-qualification)), which in turn allows for more flexibility from a user's perspective. Even in cases like these:
 ```swift
 func foo<A: ToBeNonPAT>(a: A) { ... }
 ```
-there won't be any source breakage, since the above is allowed for regular protocols. 
+there won't be any source breakage, since the above is currently allowed for regular protocols. 
 
 
 ## Effect on ABI stability
@@ -135,17 +135,14 @@ TBA
 
 ## Effect on API resilience
 
-With this proposal Library Authors should be more considerate of adding more associated types to their publicly exposed protocols. This is because any PAT can
-now be inherited by other regular protocols which specify its associated types. Adding another associated type to `Identifiable`, for example, could qualify a
-hypothetical standard library protocol, which is now a regular protocol, as a PAT. If this protocol, though, were used as a type outside of the Standard 
-Library, source breakage could occur. Moreover, this scenario could happen with a protocol outside the Standard Library and still have the same effects. To
-reflect these new guidelines the 7th 'allowed' change of the [protocol section](https://github.com/apple/swift/blob/master/docs/LibraryEvolution.rst#protocols) in the 
+With this proposal Library Authors should be more considerate when adding more associated types to their publicly exposed protocols. This is because any PAT can
+now be inherited by other regular protocols which specify its associated types. With this proposal, adding another associated type (even with a default type) to 
+`Identifiable`, for example, could qualify a hypothetical Standard Library protocol, which after this proposal would be a regular protocol, as a PAT. If 
+this protocol, though, were used as a type outside of the Standard Library, source breakage could occur. Moreover, this scenario could happen with a protocol 
+outside the Standard Library and still have the same effects. To reflect these new guidelines the 7th 'allowed' change of the 
+[protocol section](https://github.com/apple/swift/blob/master/docs/LibraryEvolution.rst#protocols) in the 
 [library evolution document](https://github.com/apple/swift/blob/master/docs/LibraryEvolution.rst) will be moved to the 'disallowed' changes.
 
-
-[library evolution
-document](https://github.com/apple/swift/blob/master/docs/LibraryEvolution.rst)
-in the Swift repository.
 
 ## Alternatives considered
 
