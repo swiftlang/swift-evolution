@@ -128,6 +128,7 @@ For instance, if we added another associated type to `Identifiable`, a _hypothet
 
 To reflect these new guidelines the 7th rule for 'allowed' changes ([protocol section](https://github.com/apple/swift/blob/master/docs/LibraryEvolution.rst#protocols)) will be removed. The rule to be changed, states that: 
 > A new associatedtype requirement may be added (with the appropriate availability), as long as it has a default implementation.
+
 This rule will be replaced by the following rule and be moved into the 'forbidden' section:
 > Adding `associatedtype` requirements (even if they have a default implementation) 
 
