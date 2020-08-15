@@ -90,7 +90,7 @@ protocol PAT: Equatable where Self == String { ... }
 ```swift
 protocol Foo: PAT where A == Foo, B == Int { ... }
 ```
-> **_NOTE:_** Although this might seem confusing at first, allowing this behavior seems more intuitive. Read more in the [Alternatives Considered](#alternatives-considered) section.
+> **_NOTE:_** Although this might seem confusing at first, allowing this behavior seems more intuitive. Read more in the [Alternatives Considered](#disallow-constraining-an-associated-type-with-the-protocol-itself) section.
 
 
 ### Syntax 
