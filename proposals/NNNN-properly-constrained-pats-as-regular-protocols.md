@@ -7,17 +7,11 @@
 
 ## Introduction
 
-Protocols are a powerful feature of Swift. They are so diverse that they can be divided into two categories: regular protocols and
-[Protocols with Associated Requirements](https://docs.swift.org/swift-book/LanguageGuide/Generics.html#ID189) (PATs).
-PATs are special because they reference `Self` or have associated types - hence the name. As a result PATs can not 
-[act as Types](https://docs.swift.org/swift-book/LanguageGuide/Protocols.html#ID275) contrary to their regular counterparts. This is a sensible constraint,
-however it can sometimes prove unjustifiably inconvenient in cases where the aforementioned associated types are specified. This proposal aims to ease that
-constraint allowing PAT conforming protocols to behave as regular protocols when all associated types are specified.
+Protocols are a powerful feature of Swift. They are so diverse that they can be divided into two categories: regular protocols and [Protocols with Associated Requirements](https://docs.swift.org/swift-book/LanguageGuide/Generics.html#ID189) (PATs). PATs are special because they reference `Self` or have associated types - hence the name. As a result PATs can not [act as Types](https://docs.swift.org/swift-book/LanguageGuide/Protocols.html#ID275) contrary to their regular counterparts. This is a sensible constraint, however it can sometimes prove unjustifiably inconvenient in cases where the aforementioned associated types are specified. This proposal aims to ease that constraint allowing PAT conforming protocols to behave as regular protocols when all associated types are specified.
 
 ## Motivation
 
-Currently any protocol conforming to a PAT becomes one itself as it inherits it’s associated types. However, some protocols specify these associated types,
-making this a frustrating limitations. The following example illustrates this problem:
+Currently any protocol conforming to a PAT becomes one itself as it inherits its associated types. However, some protocols specify these associated types, making this a frustrating limitations. The following example illustrates this problem:
 
 ```swift
 protocol User: Identifiable where ID == String {
@@ -30,14 +24,13 @@ extension User {
 }
 ```
 
-Many would rightfully assume that `User` could be used as a type, since we specify that the `ID` asscoated type inherited from 
-[`Identifiable`](https://github.com/apple/swift-evolution/blob/master/proposals/0261-identifiable.md) is `String`. 
+Many would rightfully assume that `User` could be used as a type, since we specify that the `ID` asscoated type inherited from [`Identifiable`](https://github.com/apple/swift-evolution/blob/master/proposals/0261-identifiable.md) is `String`. 
 
 ```swift
 let myUser: User = ... // ❌ User is a Protocol with Associated Requirements
 ```
 
-This is a great inconvenience with not so elegant  workarounds:
+This is a great inconvenience with not so elegant workarounds:
 
 ```swift
 protocol AnyUser { ... } // No Identifiable conformance
@@ -50,21 +43,16 @@ protocol User: AnyUser, Identifiable where ID == String { ... }
 let myOtherUser: User = ... // ❌ Still an error as expected
 ```
 
-These workarounds, besides producing boilerplate and confusing code, also produce confusing API designs leaving clients to wonder which of the two protocols
-should be used. In other cases, API authors may decide that adding `Identifiable` isn’t worth the added complexity and leave the `User` protocol with no
-such conformance whatsoever. 
+These workarounds, besides producing boilerplate and confusing code, also produce confusing API designs leaving clients to wonder which of the two protocols should be used. In other cases, API authors may decide that adding `Identifiable` isn’t worth the added complexity and leave the `User` protocol with no such conformance whatsoever. 
 
-As a result, a straightforward conformance to simple protocols such as `Identifiable` and others becomes a hassle to implement.
+As a result, a straightforward conformance to simple - yet quite useful - protocols such as `Identifiable` and others becomes a hassle to implement.
 
 
 ## Proposed solution
 
-We propose to simply stop consider User-like protocols PATs and instead treat them as regular protocols. By extension, this will allow them to be used as Types.
-Thus, making more natural code possible - which [fits a goal of Swift of creating "expressive and elegant APIs"](https://forums.swift.org/t/on-the-road-to-swift-6/32862). 
-Furthermore, library authors could start adding useful protocol conformances to their protocols that currently prohibitively complex.
+We propose to simply stop consider User-like protocols PATs and instead treat them as regular protocols. By extension, this will allow them to be used as Types. Thus, making more natural code possible - which fits a goal of Swift of building ["expressive and elegant APIs"](https://forums.swift.org/t/on-the-road-to-swift-6/32862). Furthermore, library authors could start adding useful protocol conformances to their protocols - a task that's currently prohibitively complex.
 
 ## Detailed design
-
 
 ### What would be a Regular Protocol?
 
@@ -100,15 +88,14 @@ protocol PAT: Equatable where Self == String { ... }
 
 5. ✅ Same-Type Constraint 
 ```swift
-protocol Foo: PAT where A == Foo { ... }
+protocol Foo: PAT where A == Foo, B == Int { ... }
 ```
-> **_NOTE:_** Although this might seem confusing at first, allowing this behavior seems more intuitive. Protocols already allow properties typed with 
-the protocol itself, therefore we deem this restriction unnecessary. Read more at [Alternatives Considered](#alternatives-considered)
+> **_NOTE:_** Although this might seem confusing at first, allowing this behavior seems more intuitive. Read more in the [Alternatives Considered](#alternatives-considered) section.
 
 
 ### Syntax 
 
-There’s no syntax change. This change is rather semantic easing existing restrictions regarding the use of protocols as Types.
+There’s no syntax change. This change is rather semantic, easing existing restrictions regarding the use of protocols as Types.
 
 
 ### Rules for PAT qualification 
@@ -122,7 +109,7 @@ Now, a protocol is considered a PAT if it:
 ## Source compatibility
 
 There is no source compatibility impact. As previously mentioned this change is purely semantic. In other words, some protocols will lose PAT 
-qualification ([because of rule 2](#rules-for-pat-qualification)), which in turn allows for more flexibility from a user's perspective. Even in cases like these:
+qualification ([because of rule 2](#rules-for-pat-qualification)), which in turn allows for more flexibility for the user. Even in cases like these:
 ```swift
 func foo<A: ToBeNonPAT>(a: A) { ... }
 ```
@@ -135,16 +122,33 @@ TBA
 
 ## Effect on API resilience
 
-With this proposal Library Authors should be more considerate when adding more associated types to their publicly exposed protocols. This is because any PAT can
-now be inherited by other regular protocols which specify its associated types. With this proposal, adding another associated type (even with a default type) to 
-`Identifiable`, for example, could qualify a hypothetical Standard Library protocol, which after this proposal would be a regular protocol, as a PAT. If 
-this protocol, though, were used as a type outside of the Standard Library, source breakage could occur. Moreover, this scenario could happen with a protocol 
-outside the Standard Library and still have the same effects. To reflect these new guidelines the 7th 'allowed' change of the 
-[protocol section](https://github.com/apple/swift/blob/master/docs/LibraryEvolution.rst#protocols) in the 
-[library evolution document](https://github.com/apple/swift/blob/master/docs/LibraryEvolution.rst) will be moved to the 'disallowed' changes.
+With this proposal, Library Authors should be more considerate when adding more associated types to their publicly exposed protocols. That's because PAT inheriting protocols would - under this proposal - gain the ability to become regular ones - [under the right circumstances](#rules-for-pat-qualification)).
+
+For instance, if we added another associated type to `Identifiable`, a _hypothetical_ `User` protocol in the Standard Library would become a PAT, causing source breakage for clients and potentially inside the module itself. Moreover, protocols inheriting `Identifiable` outside of the Standard Library would also be burdened by the PAT restrictions aggrevating the problem as a result.
+
+To reflect these new guidelines the 7th rule for 'allowed' changes ([protocol section](https://github.com/apple/swift/blob/master/docs/LibraryEvolution.rst#protocols)) will be removed. The rule to be changed, states that: 
+> A new associatedtype requirement may be added (with the appropriate availability), as long as it has a default implementation.
+This rule will be replaced by the following rule and be moved into the 'forbidden' section:
+> Adding `associatedtype` requirements (even if they have a default implementation) 
 
 
 ## Alternatives considered
 
-Describe alternative approaches to addressing the same problem, and
-why you chose this approach instead.
+### Do Nothing
+
+The current design is quite problematic - as mentioned in the [Motivation](#motivation) section. Not to mention, it seems like an abnormality in the generics and exitentials system. There has, also, been post after post asking why this feature isn’t yet implemented - or outright proposing it. Fixing this ‘issue’ will strengthen the foundation of the generics systems to allow for [more and exciting future additions](https://forums.swift.org/t/improving-the-ui-of-generics/22814)
+
+
+### Disallow Constraining an Associated Type with the Protocol Itself
+
+As mentioned in the [What would be a Regular Protocol](#what-would-be-a-regular-protocol?) section, the fifth example demonstrates how a pretty odd case would be handled. If you think about it, though, it’s not that different from constraining an associated type to the protocol containing it - such as [SwiftUI’s ‘View’](https://developer.apple.com/documentation/swiftui/view). Furthermore, protocols such as the following one are currently allowed: 
+
+protocol Foo {
+    var foo: Foo { get }
+}
+
+All in all, we don’t think it’s for the compiler to warn us when a protocol is _likely_ to fail, but rather when failure is _certain_.
+
+## Future Directions
+
+TBA
