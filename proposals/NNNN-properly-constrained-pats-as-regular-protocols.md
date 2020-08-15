@@ -86,7 +86,7 @@ protocol PAT: Equatable where Self == String { ... }
 ```
 > **_NOTE:_** An `Equatable` conforming protocol will still be PAT, because if `Self` is to be constrained then the protocol loses its generic meaning.
 
-5. ✅ Same-Type Constraint 
+5. ✅ Constraining with the Protocol Itself
 ```swift
 protocol Foo: PAT where A == Foo, B == Int { ... }
 ```
@@ -137,18 +137,18 @@ This rule will be replaced by the following rule and be moved into the 'forbidde
 
 ### Do Nothing
 
-The current design is quite problematic - as mentioned in the [Motivation](#motivation) section. Not to mention, it seems like an abnormality in the generics and exitentials system. There has, also, been post after post asking why this feature isn’t yet implemented - or outright proposing it. Fixing this ‘issue’ will strengthen the foundation of the generics systems to allow for [more and exciting future additions](https://forums.swift.org/t/improving-the-ui-of-generics/22814)
+The current design is quite problematic - as discussed in the [Motivation](#motivation) section. Not to mention, it seems like an abnormality in the generics and exitentials system. There has, also, been post after post asking why this feature isn’t yet implemented - or outright proposing it. Fixing this ‘issue’ will strengthen the foundation of the generics systems to allow for [more and exciting future additions](https://forums.swift.org/t/improving-the-ui-of-generics/22814)
 
 
 ### Disallow Constraining an Associated Type with the Protocol Itself
 
-As mentioned in the [What would be a Regular Protocol](#what-would-be-a-regular-protocol?) section, the fifth example demonstrates how a pretty odd case would be handled. If you think about it, though, it’s not that different from constraining an associated type to the protocol containing it - such as [SwiftUI’s ‘View’](https://developer.apple.com/documentation/swiftui/view). Furthermore, protocols such as the following one are currently allowed: 
+As mentioned in the [What would be a Regular Protocol](#what-would-be-a-regular-protocol?) section, the fifth example demonstrates how a pretty odd case would be handled. If you think about it, though, it’s not that different from constraining an associated type to its enclosing protocol - such as [SwiftUI’s ‘View’](https://developer.apple.com/documentation/swiftui/view). Furthermore, protocols such as the following one are currently allowed: 
 ```swift
 protocol Foo {
     var foo: Foo { get }
 }
 ```
-All in all, we don’t think it’s for the compiler to warn us when a protocol is _likely_ to fail, but rather when failure is _certain_.
+All in all, we don’t think it’s for the compiler to warn us when a protocol is _likely_ to fail, but rather when failure is _certain_, due to protocols' abstract nature.
 
 ## Future Directions
 
