@@ -1,4 +1,4 @@
-# Properly Constrained PATs as Regular Protocols
+# Existentials for Properly Constrained PAT-Inheriting Protocols  
 
 * Proposal: [SE-NNNN](NNNN-properly-constrained-pats-as-regular-protocols.md)
 * Authors: [Filip Sakel](https://github.com/filip-sakel), [Anthony Latsis](https://github.com/AnthonyLatsis)
