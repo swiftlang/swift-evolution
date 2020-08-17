@@ -139,7 +139,7 @@ TBA
 
 With this proposal, Library Authors should be more considerate when adding more associated types to their publicly exposed protocols. That's because PUT inheriting protocols would - under this proposal - gain the ability to become regular ones - [under the right circumstances](#rules-for-put-qualification)).
 
-For instance, if we added another associated type to `Identifiable`, a _hypothetical_ `User` protocol in the Standard Library would become a PUT, causing source breakage for clients and potentially inside the module itself. Moreover, protocols inheriting `Identifiable` outside of the Standard Library would also be burdened by the PUT restrictions aggrevating the problem as a result.
+For instance, if we added another associated type to `Identifiable`, a _hypothetical_ `User` protocol in the Standard Library would become a PUT, causing source breakage for clients and potentially inside the module itself. Moreover, protocols inheriting `Identifiable` outside of the Standard Library would also be burdened by the PUT restrictions aggravating the problem as a result.
 
 To reflect these new guidelines the 7th rule for 'allowed' changes ([protocol section](https://github.com/apple/swift/blob/master/docs/LibraryEvolution.rst#protocols)) will be removed. The rule to be changed, states that: 
 > A new associatedtype requirement may be added (with the appropriate availability), as long as it has a default implementation.
@@ -157,7 +157,7 @@ The current design is quite problematic - as discussed in the [Motivation](#moti
 
 ### Disallow Constraining an Associated Type to the Protocol's Existential
 
-As mentioned in the [What would be a Regular Protocol](#what-would-be-a-regular-protocol?) section, the fifth example demonstrates how a pretty odd case would be handled. If you think about it, though, it’s not that different from constraining an associated type to its enclosing protocol - such as [SwiftUI’s `View`](https://developer.apple.com/documentation/swiftui/view). Furthermore, protocols such as the following one are currently allowed: 
+As mentioned in the [What would be a Regular Protocol](#what-would-be-a-regular-protocol?) section, the fifth example demonstrates how a pretty odd case would be handled. If you think about it, though, it’s not that different from constraining an associated type to its enclosing protocol - such as SwiftUI’s [`View`](https://developer.apple.com/documentation/swiftui/view). Furthermore, protocols such as the following one are currently allowed: 
 ```swift
 protocol Foo {
     var foo: Foo { get }
@@ -171,7 +171,7 @@ All in all, we don’t think it’s for the compiler to warn us when a protocol 
 
 ### Generalized Existentials 
 
-What this means is that Existentials will be available not only for regular protocols, but for PUTs as well. This way, the distinction between regular protocols and PUTs would be rendered useless, further unifying the language. As a result, a lot of confusion surrounding PUTs and Existentials would be alleviated. However, if Existentials keep using the same name as their ‘origin’ protocol the important distinction between Protocols and Existential Types would be utterly lost. To combat this problem the [fairly recent post from the Core Team](https://forums.swift.org/t/improving-the-ui-of-generics/22814) proposes using the “any” modifier to signify the use of Existentials - rather than the protocol itself. Future syntax might look like this:
+What this means is that Existentials will be available not only for regular protocols, but for PUTs as well. This way, the distinction between regular protocols and PUTs would be rendered useless, further unifying the language. As a result, a lot of confusion surrounding PUTs and Existentials would be alleviated. However, if Existentials keep using the same name as their ‘origin’ protocol the important distinction between Protocols and Existential Types would be utterly lost. To combat this problem the [fairly recent post from the Core Team](https://forums.swift.org/t/improving-the-ui-of-generics/22814) proposes using the `any` modifier to signify the use of Existentials - rather than the protocol itself. Future syntax might look like this:
 ```swift
 var a: any PUT<.A == Int > 
 // ✅
