@@ -16,6 +16,7 @@ Currently any protocol conforming to a PUT becomes one itself as it inherits its
 ```swift
 protocol User: Identifiable 
     where ID == String {
+    
     var username: String { get }
     var displayName: String { get }
 }
