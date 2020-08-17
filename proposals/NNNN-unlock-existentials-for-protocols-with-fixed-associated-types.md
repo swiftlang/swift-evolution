@@ -32,14 +32,14 @@ Many would rightfully assume that `User` could be used as a Type, since we speci
 
 ```swift
 var myUser: User
-// ❌ User is a PUT
+// ❌ `User` is a PUT
 ```
 
 This is a great inconvenience with not so elegant workarounds:
 
 ```swift
 protocol AnyUser { ... } 
-// No Identifiable conformance
+// No `Identifiable` conformance
 
 var myUser: AnyUser
 // ✅
@@ -82,7 +82,7 @@ protocol PUT {
 
 protocol AlsoPUT: PUT
     where A == String { ... } 
-// B is unknown; therefore it’s a PUT
+// `B` is unknown; therefore it’s a PUT
 ```
 
 3. ✅ Multiple Associated Types; All Specified
@@ -95,7 +95,7 @@ protocol UsableAsAType: PUT
 ```swift
 protocol PUT: Equatable
     where Self == String { ... }
-❌ This requirement makes Self non-generic
+❌ This requirement makes `Self` non-generic
 ```
 > **_NOTE:_** An `Equatable` conforming protocol will still be PUT, because if `Self` is to be constrained then the protocol loses its generic meaning.
 
@@ -174,11 +174,11 @@ All in all, we don’t think it’s for the compiler to warn us when a protocol 
 What this means is that Existentials will be available not only for regular protocols, but for PUTs as well. This way, the distinction between regular protocols and PUTs would be rendered useless, further unifying the language. As a result, a lot of confusion surrounding PUTs and Existentials would be alleviated. However, if Existentials keep using the same name as their ‘origin’ protocol the important distinction between Protocols and Existential Types would be utterly lost. To combat this problem the [fairly recent post from the Core Team](https://forums.swift.org/t/improving-the-ui-of-generics/22814) proposes using the `any` modifier to signify the use of Existentials - rather than the protocol itself. Future syntax might look like this:
 ```swift
 var a: any PUT<.A == Int > 
-// ✅
-// B is not specified but that’s OK;
-// the constraints of this Existential are
-// that (1) the values is accepts conform to
-// 'PUT' and (2) that ‘A’ be ‘Int’
+// ✅ `B` is not specified but that
+// is OK; the constraints of this
+// Existential are that (1) the
+// values is accepts conform to
+// `PUT` and (2) that `A` be `Int`
 ```
 
 There are a lot of concerns about Existentials that are thoroughly discussed in the post. To sum up, generalizing Existentials would be quite useful in many cases as - even in the Standard Library - there are manually-written custom ones, such as `AnyHashable` and `AnyView`. 
@@ -213,14 +213,14 @@ These Existentials, though, avoid this problem altogether since the associated t
 ```swift
 let identifiables = [
     Any<Identifiable where ID == String>
-    // We know the ID is String
+    // We know the `ID` is `String`
 ]()
 
 identifiables.append(IDWrapper(id: "a"))
 identifiables.append(IDWrapper(id: "a"))
 
 identifiables[0] == identifiables[1]
-// ✅ We know the result will be true
+// ✅ We know the result will be `true`
 ```
 
 Taking everything into account, this feature seems like a good first step towards a future with more advanced Generics and Existentials Systems. Addtionally, real-world use of this rather simple feature would provide useful insight allowing for better design of more advanced features to come.
