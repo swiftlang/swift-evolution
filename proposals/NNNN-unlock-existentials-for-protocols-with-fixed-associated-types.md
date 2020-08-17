@@ -41,7 +41,8 @@ This is a great inconvenience with not so elegant workarounds:
 protocol AnyUser { ... } 
 // No Identifiable conformance
 
-let myUser: AnyUser = ... // ✅
+var myUser: AnyUser
+// ✅
 
 
 protocol User: AnyUser, Identifiable 
@@ -171,11 +172,13 @@ All in all, we don’t think it’s for the compiler to warn us when a protocol 
 ### Generalized Existentials 
 
 What this means is that Existentials will be available not only for regular protocols, but for PATs as well. This way, the distinction between regular protocols and PUTs would be rendered useless, further unifying the language. As a result, a lot of confusion surrounding PUTs and Existentials would be alleviated. However, if Existentials keep using the same name as their ‘origin’ protocol the important distinction between Protocols and Existential Types would be utterly lost. To combat this problem the [fairly recent post from the Core Team](https://forums.swift.org/t/improving-the-ui-of-generics/22814) proposes using the “any” modifier to signify the use of Existentials - rather than the protocol itself. Future syntax might look like this:
-
-var a: any PUT<.A == Int > // ✅
-    // B is not specified but that’s OK;
-    // the constraints of this Existential are
-    // that (1) the values is accepts conform to
-    // 'PUT' and (2) that ‘A’ be ‘Int’
+```swift
+var a: any PUT<.A == Int > 
+// ✅
+// B is not specified but that’s OK;
+// the constraints of this Existential are
+// that (1) the values is accepts conform to
+// 'PUT' and (2) that ‘A’ be ‘Int’
+```
 
 There are a lot of concerns about Existentials that are thoroughly discussed in the post. To sum up, generalizing Existentials would be quite useful in many cases as - even in the Standard Library - there are manually-written custom ones, such as 'AnyHashable' and 'AnyView'. 
