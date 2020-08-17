@@ -27,20 +27,24 @@ extension User {
 Many would rightfully assume that `User` could be used as a Type, since we specify that the `ID` asscoated type inherited from [`Identifiable`](https://github.com/apple/swift-evolution/blob/master/proposals/0261-identifiable.md) is `String`. 
 
 ```swift
-let myUser: User = ... // ❌ User is a PUT
+var myUser: User
+// ❌ User is a PUT
 ```
 
 This is a great inconvenience with not so elegant workarounds:
 
 ```swift
-protocol AnyUser { ... } // No Identifiable conformance
+protocol AnyUser { ... } 
+// No Identifiable conformance
 
 let myUser: AnyUser = ... // ✅
 
 
-protocol User: AnyUser, Identifiable where ID == String { ... }
+protocol User: AnyUser, Identifiable 
+    where ID == String { ... }
 
-let myOtherUser: User = ... // ❌ Still an error as expected
+var myOtherUser: User 
+// ❌ Still an error as expected
 ```
 
 These workarounds, besides producing boilerplate and confusing code, also produce confusing API designs leaving clients to wonder which of the two protocols should be used. In other cases, API authors may decide that adding `Identifiable` isn’t worth the added complexity and leave the `User` protocol with no such conformance whatsoever. 
@@ -60,7 +64,8 @@ What would protocols would be able to be used as types (✅) and what wouldn’t
 
 1. ✅ Simple Case (like with `User`)
 ```swift
-protocol User: Identifiable where ID == String { ... }
+protocol User: Identifiable
+    where ID == String { ... }
 ```
 
 2. ❌ Multiple Associated Types; only Some Specified 
@@ -70,25 +75,29 @@ protocol PUT {
     associatedtype B
 }
 
-protocol AlsoPUT: PUT where A == String { ... } 
+protocol AlsoPUT: PUT
+    where A == String { ... } 
 // B is unknown; therefore it’s a PUT
 ```
 
 3. ✅ Multiple Associated Types; All Specified
 ```swift
-protocol UsableAsAType: PUT where A == String, B == Int { ... }
+protocol UsableAsAType: PUT
+    where A == String, B == Int { ... }
 ```
 
 4. ❌ Protocols Referencing `Self` (currently erroneous)
 ```swift
-protocol PUT: Equatable where Self == String { ... }
+protocol PUT: Equatable
+    where Self == String { ... }
 ❌ This requirement makes Self non-generic
 ```
 > **_NOTE:_** An `Equatable` conforming protocol will still be PUT, because if `Self` is to be constrained then the protocol loses its generic meaning.
 
 5. ✅ Constraining with the Protocol Existential Itself
 ```swift
-protocol Foo: PUT where A == Foo, B == Int { ... }
+protocol Foo: PUT 
+    where A == Foo, B == Int { ... }
 ```
 > **_NOTE:_** Although this might seem confusing at first, allowing this behavior seems more intuitive. Read more in the [Alternatives Considered](#disallow-constraining-an-associated-type-to-the-protocols-existential) section.
 
@@ -110,7 +119,9 @@ Now, a protocol is considered a PUT if it:
 There is no source compatibility impact. As previously mentioned this change is purely semantic. In other words, some protocols will lose PUT 
 qualification ([because of rule 2](#rules-for-put-qualification)), which in turn allows for more flexibility for the user. Even in cases like these:
 ```swift
-func foo<A: ProtocolUsableAsAType>(a: A) { ... }
+func foo<A: ProtocolUsableAsAType>(
+    a: A
+) { ... }
 ```
 there won't be any source breakage, since the above is currently allowed for regular protocols. 
 
