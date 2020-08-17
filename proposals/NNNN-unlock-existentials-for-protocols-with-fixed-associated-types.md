@@ -157,13 +157,13 @@ The current design is quite problematic - as discussed in the [Motivation](#moti
 
 ### Disallow Constraining an Associated Type to the Protocol's Existential
 
-As mentioned in the [What would be a Regular Protocol](#what-would-be-a-regular-protocol?) section, the fifth example demonstrates how a pretty odd case would be handled. If you think about it, though, it’s not that different from constraining an associated type to its enclosing protocol - such as [SwiftUI’s ‘View’](https://developer.apple.com/documentation/swiftui/view). Furthermore, protocols such as the following one are currently allowed: 
+As mentioned in the [What would be a Regular Protocol](#what-would-be-a-regular-protocol?) section, the fifth example demonstrates how a pretty odd case would be handled. If you think about it, though, it’s not that different from constraining an associated type to its enclosing protocol - such as [SwiftUI’s `View`](https://developer.apple.com/documentation/swiftui/view). Furthermore, protocols such as the following one are currently allowed: 
 ```swift
 protocol Foo {
     var foo: Foo { get }
 }
 ```
-Moreover, we are not actually constraining `Foo`'s `A` to `Foo` itself but rather its _Existential_. Not to mention, that in the future all protocols might be allowed to have Existentials (read more in the [Generilized Existentials](#generilized-existentials) section).
+Moreover, we are not actually constraining `Foo`'s `A` to `Foo` itself but rather its _Existential_. Not to mention, that in the future all protocols might be allowed to have Existentials (read more in the [Generalized Existentials](#generalized-existentials) section).
 
 All in all, we don’t think it’s for the compiler to warn us when a protocol is _likely_ to fail, but rather when failure is _certain_, due to protocols' abstract nature.
 
