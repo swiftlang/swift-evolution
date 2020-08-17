@@ -90,8 +90,7 @@ protocol PUT: Equatable where Self == String { ... }
 ```swift
 protocol Foo: PUT where A == Foo, B == Int { ... }
 ```
-> **_NOTE:_** Although this might seem confusing at first, allowing this behavior seems more intuitive. Read more in the [Alternatives Considered](#disallow-constraining-an-associated-type-with-the-protocol's-existential) section.
-
+> **_NOTE:_** Although this might seem confusing at first, allowing this behavior seems more intuitive. Read more in the [Alternatives Considered](#disallow-constraining-an-associated-type-to-the-protocol's-existential) section.
 
 ### Syntax 
 
@@ -140,7 +139,7 @@ This rule will be replaced by the following rule and be moved into the 'forbidde
 The current design is quite problematic - as discussed in the [Motivation](#motivation) section. Not to mention, it seems like an abnormality in the generics and exitentials system. There has, also, been [post](https://forums.swift.org/t/making-a-protocols-associated-type-concrete-via-inheritance/6557) after [post](https://forums.swift.org/t/constrained-associated-type-on-protocol/38770) asking why this feature isn’t yet implemented - or outright proposing it. Fixing this ‘issue’ will strengthen the foundation of the generics systems to allow for [more and exciting future additions](https://forums.swift.org/t/improving-the-ui-of-generics/22814)
 
 
-### Disallow Constraining an Associated Type with the Protocol's Existential
+### Disallow Constraining an Associated Type to the Protocol's Existential
 
 As mentioned in the [What would be a Regular Protocol](#what-would-be-a-regular-protocol?) section, the fifth example demonstrates how a pretty odd case would be handled. If you think about it, though, it’s not that different from constraining an associated type to its enclosing protocol - such as [SwiftUI’s ‘View’](https://developer.apple.com/documentation/swiftui/view). Furthermore, protocols such as the following one are currently allowed: 
 ```swift
