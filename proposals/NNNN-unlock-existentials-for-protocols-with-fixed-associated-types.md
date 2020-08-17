@@ -147,7 +147,7 @@ protocol Foo {
     var foo: Foo { get }
 }
 ```
-Moreover, we are not actually constraining 'Foo''s 'A' to it 'Foo' itself but rather its _Existential_ Type. Not to mention, that in the future all protocols might be allowed to have Existentials (read more in the [Future Directions](#generilized-existentials) section).
+Moreover, we are not actually constraining 'Foo''s 'A' to 'Foo' itself but rather its _Existential_. Not to mention, that in the future all protocols might be allowed to have Existentials (read more in the [Generilized Existentials](#generilized-existentials) section).
 
 All in all, we don’t think it’s for the compiler to warn us when a protocol is _likely_ to fail, but rather when failure is _certain_, due to protocols' abstract nature.
 
@@ -158,7 +158,7 @@ All in all, we don’t think it’s for the compiler to warn us when a protocol 
 What this means is that Existentials will be available not only for regular protocols, but for PATs as well. This way, the distinction between regular protocols and PUTs would be rendered useless, further unifying the language. As a result, a lot of confusion surrounding PUTs and Existentials would be alleviated. However, if Existentials keep using the same name as their ‘origin’ protocol the important distinction between Protocols and Existential Types would be utterly lost. To combat this problem the [fairly recent post from the Core Team](https://forums.swift.org/t/improving-the-ui-of-generics/22814) proposes using the “any” modifier to signify the use of Existentials - rather than the protocol itself. Future syntax might look like this:
 
 var a: any PUT<.A == Int > // ✅
-    // B is not specified but that’s ok;
+    // B is not specified but that’s OK;
     // the constraints of this Existential are
     // that (1) the values is accepts conform to
     // 'PUT' and (2) that ‘A’ be ‘Int’
