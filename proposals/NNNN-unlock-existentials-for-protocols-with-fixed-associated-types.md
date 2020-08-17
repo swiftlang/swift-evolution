@@ -163,7 +163,7 @@ protocol Foo {
     var foo: Foo { get }
 }
 ```
-Moreover, we are not actually constraining 'Foo''s 'A' to 'Foo' itself but rather its _Existential_. Not to mention, that in the future all protocols might be allowed to have Existentials (read more in the [Generilized Existentials](#generilized-existentials) section).
+Moreover, we are not actually constraining `Foo`'s `A` to `Foo` itself but rather its _Existential_. Not to mention, that in the future all protocols might be allowed to have Existentials (read more in the [Generilized Existentials](#generilized-existentials) section).
 
 All in all, we don’t think it’s for the compiler to warn us when a protocol is _likely_ to fail, but rather when failure is _certain_, due to protocols' abstract nature.
 
@@ -181,10 +181,10 @@ var a: any PUT<.A == Int >
 // 'PUT' and (2) that ‘A’ be ‘Int’
 ```
 
-There are a lot of concerns about Existentials that are thoroughly discussed in the post. To sum up, generalizing Existentials would be quite useful in many cases as - even in the Standard Library - there are manually-written custom ones, such as 'AnyHashable' and 'AnyView'. 
+There are a lot of concerns about Existentials that are thoroughly discussed in the post. To sum up, generalizing Existentials would be quite useful in many cases as - even in the Standard Library - there are manually-written custom ones, such as `AnyHashable` and `AnyView`. 
 
 
-### Existentials for Fully Specified Associated Types
+### Existentials for Prorocols with Fully-Specified Associated Types
 
 Before going straight to [Generalized Existentials](#generalized-existentials) we could first introduce Existentials for protocols with fully specified associated types. That is, instead of creating a new protocol that constraints its parent's associated types, there would be the option of doing so in a more directly manner:
 ```swift
@@ -193,7 +193,7 @@ typealias IdentifiableByString =
 
 var identifiables: [IdentifiableByString]
 ```
-Of course, many syntaxes where proposed including using the "any" modifier: 'any Foo' and parameterizing 'Any': 'Any<Foo>'. As for the constraints syntax, there is the angle brackets one: 'Any<Identifiable<.ID == String>>' and the 'where' clause one: 'Any<Identifiable where .ID == String> - among others.
+Of course, many syntaxes where proposed including using the `any` modifier: `any Foo` and parameterizing `Any`: `Any<Foo>`. As for the constraints syntax, there is the angle brackets one: `Any<Identifiable<.ID == String>>` and the 'where' clause one: `Any<Identifiable where .ID == String>` - among others.
     
 Generalized Existentials, have a lot of practical problems like the issue of operations not always working:
 ```swift
