@@ -90,14 +90,14 @@ protocol PUT: Equatable where Self == String { ... }
 ```swift
 protocol Foo: PUT where A == Foo, B == Int { ... }
 ```
-> **_NOTE:_** Although this might seem confusing at first, allowing this behavior seems more intuitive. Read more in the [Alternatives Considered](#disallow-constraining-an-associated-type-to-the-protocol's-existential) section.
+> **_NOTE:_** Although this might seem confusing at first, allowing this behavior seems more intuitive. Read more in the [Alternatives Considered](#disallow-constraining-an-associated-type-to-the-protocols-existential) section.
 
 ### Syntax 
 
 There’s no syntax change. This change is rather semantic, easing existing restrictions regarding the use of protocols as Types.
 
 
-### Rules for PAT qualification 
+### Rules for PUT qualification 
 
 Now, a protocol is considered a PUT if it:
 
@@ -108,7 +108,7 @@ Now, a protocol is considered a PUT if it:
 ## Source compatibility
 
 There is no source compatibility impact. As previously mentioned this change is purely semantic. In other words, some protocols will lose PUT 
-qualification ([because of rule 2](#rules-for-pat-qualification)), which in turn allows for more flexibility for the user. Even in cases like these:
+qualification ([because of rule 2](#rules-for-put-qualification)), which in turn allows for more flexibility for the user. Even in cases like these:
 ```swift
 func foo<A: ProtocolUsableAsAType>(a: A) { ... }
 ```
