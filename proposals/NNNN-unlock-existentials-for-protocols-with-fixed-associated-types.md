@@ -124,7 +124,7 @@ TBA
 
 With this proposal, Library Authors should be more considerate when adding more associated types to their publicly exposed protocols. That's because PUT inheriting protocols would - under this proposal - gain the ability to become regular ones - [under the right circumstances](#rules-for-put-qualification)).
 
-For instance, if we added another associated type to `Identifiable`, a _hypothetical_ `User` protocol in the Standard Library would become a PUT, causing source breakage for clients and potentially inside the module itself. Moreover, protocols inheriting `Identifiable` outside of the Standard Library would also be burdened by the PAT restrictions aggrevating the problem as a result.
+For instance, if we added another associated type to `Identifiable`, a _hypothetical_ `User` protocol in the Standard Library would become a PUT, causing source breakage for clients and potentially inside the module itself. Moreover, protocols inheriting `Identifiable` outside of the Standard Library would also be burdened by the PUT restrictions aggrevating the problem as a result.
 
 To reflect these new guidelines the 7th rule for 'allowed' changes ([protocol section](https://github.com/apple/swift/blob/master/docs/LibraryEvolution.rst#protocols)) will be removed. The rule to be changed, states that: 
 > A new associatedtype requirement may be added (with the appropriate availability), as long as it has a default implementation.
@@ -137,7 +137,7 @@ This rule will be replaced by the following rule and be moved into the 'forbidde
 
 ### Do Nothing
 
-The current design is quite problematic - as discussed in the [Motivation](#motivation) section. Not to mention, it seems like an abnormality in the generics and exitentials system. There has, also, been post after post asking why this feature isn’t yet implemented - or outright proposing it. Fixing this ‘issue’ will strengthen the foundation of the generics systems to allow for [more and exciting future additions](https://forums.swift.org/t/improving-the-ui-of-generics/22814)
+The current design is quite problematic - as discussed in the [Motivation](#motivation) section. Not to mention, it seems like an abnormality in the generics and exitentials system. There has, also, been [post](https://forums.swift.org/t/making-a-protocols-associated-type-concrete-via-inheritance/6557) after [post](https://forums.swift.org/t/constrained-associated-type-on-protocol/38770) asking why this feature isn’t yet implemented - or outright proposing it. Fixing this ‘issue’ will strengthen the foundation of the generics systems to allow for [more and exciting future additions](https://forums.swift.org/t/improving-the-ui-of-generics/22814)
 
 
 ### Disallow Constraining an Associated Type with the Protocol's Existential
@@ -148,7 +148,9 @@ protocol Foo {
     var foo: Foo { get }
 }
 ```
-Moreover, we are not actually constraining 'Foo''s 'A' to it 'Foo' itself but rather its _Existential_ Type. Not to mention, that in the future all protocols might be allowed to have Existentials (read more in the [Future Directions](#generilized-existentials) section). All in all, we don’t think it’s for the compiler to warn us when a protocol is _likely_ to fail, but rather when failure is _certain_, due to protocols' abstract nature.
+Moreover, we are not actually constraining 'Foo''s 'A' to it 'Foo' itself but rather its _Existential_ Type. Not to mention, that in the future all protocols might be allowed to have Existentials (read more in the [Future Directions](#generilized-existentials) section).
+
+All in all, we don’t think it’s for the compiler to warn us when a protocol is _likely_ to fail, but rather when failure is _certain_, due to protocols' abstract nature.
 
 ## Future Directions
 
@@ -156,10 +158,10 @@ Moreover, we are not actually constraining 'Foo''s 'A' to it 'Foo' itself but ra
 
 What this means is that Existentials will be available not only for regular protocols, but for PATs as well. This way, the distinction between regular protocols and PUTs would be rendered useless, further unifying the language. As a result, a lot of confusion surrounding PUTs and Existentials would be alleviated. However, if Existentials keep using the same name as their ‘origin’ protocol the important distinction between Protocols and Existential Types would be utterly lost. To combat this problem the [fairly recent post from the Core Team](https://forums.swift.org/t/improving-the-ui-of-generics/22814) proposes using the “any” modifier to signify the use of Existentials - rather than the protocol itself. Future syntax might look like this:
 
-var a: any PAT<.A == Int > // ✅
+var a: any PUT<.A == Int > // ✅
     // B is not specified but that’s ok;
     // the constraints of this Existential are
     // that (1) the values is accepts conform to
-    // PAT and (2) that ‘A’ be ‘Int’
+    // 'PUT' and (2) that ‘A’ be ‘Int’
 
-There are a lot of concerns about Existentials that are thoroughly discussed in the post - which I urge you to read. All in all, generalizing Existentials would be quite useful in many cases as - even in the Standard Library - there are manually-written custom ones, such as AnyHashable and AnyView. 
+There are a lot of concerns about Existentials that are thoroughly discussed in the post - which I urge you to read. All in all, generalizing Existentials would be quite useful in many cases as - even in the Standard Library - there are manually-written custom ones, such as 'AnyHashable' and 'AnyView'. 
