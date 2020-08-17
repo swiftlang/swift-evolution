@@ -14,13 +14,16 @@ Protocols are a powerful feature of Swift. They are so diverse that they can be 
 Currently any protocol conforming to a PUT becomes one itself as it inherits its associated types. However, some protocols specify these associated types, making this a frustrating limitations. The following example illustrates this problem:
 
 ```swift
-protocol User: Identifiable where ID == String {
+protocol User: Identifiable 
+    where ID == String {
     var username: String { get }
     var displayName: String { get }
 }
 
 extension User {
-    var id: String { username }
+    var id: String {
+        username
+    }
 }
 ```
 
