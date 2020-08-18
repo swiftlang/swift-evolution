@@ -1,6 +1,6 @@
-# Unlock Existentials for Protocols with Fixed Associated Types
+# Unlock Existentials with Fixed Associated Types
 
-* Proposal: [SE-NNNN](NNNN-unlock-existentials-for-protocols-with-fixed-associated-types.md)
+* Proposal: [SE-NNNN](NNNN-unlock-existentials-with-fixed-associated-types.md)
 * Authors: [Filip Sakel](https://github.com/filip-sakel), [Anthony Latsis](https://github.com/AnthonyLatsis)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
