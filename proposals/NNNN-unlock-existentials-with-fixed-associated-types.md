@@ -176,59 +176,69 @@ All in all, we don’t think it’s for the compiler to warn us when a protocol 
 
 ### Generalized Existentials 
 
-#### The Dstination
+#### What are They Exactly? 
 
-What this means is that Existentials will be available not only for regular protocols, but for PUTs as well. This way, the distinction between regular protocols and PUTs would be rendered useless, further unifying the language. As a result, a lot of confusion surrounding PUTs and Existentials would be alleviated. However, if Existentials keep using the same name as their ‘origin’ protocol the important distinction between Protocols and Existential Types would be utterly lost. To combat this problem the [fairly recent post from the Core Team](https://forums.swift.org/t/improving-the-ui-of-generics/22814) proposes using the `any` modifier to signify the use of Existentials - rather than the protocol itself. Future syntax might look like this:
+An Existential of a Protocol is a type - separate from the protocol itself - that can contain any value of a type that conforms to a given set of constraints - which include conforming to that protocol. Such types are currently provided for regular protocols under the same name, as seen in this example:
+
 ```swift
-let a: any PUT<.A == Int > 
-// ✅ `B` is not specified but that
-// is OK; the constraints of this
-// Existential are that (1) the
-// values is accepts conform to
-// `PUT` and (2) that `A` be `Int`
+let foo: Foo 
+// `Foo` in this case is
+// referring to the protocol’s 
+// Existential, which despite
+// having the same name
+// is actually different.
 ```
 
-There are a lot of concerns about Existentials that are thoroughly discussed in the post. To sum up, generalizing Existentials would be quite useful in many cases as - even in the Standard Library - there are manually-written custom ones, such as `AnyHashable` and `AnyView`. 
+#### Differentiation from Protocols
 
+To alleviate confusion between Existentials and Protocols it has been proposed that when referring to the former some different way be used. [Some advocate](https://forums.swift.org/t/improving-the-ui-of-generics/22814) for the modifier `any` to serve that purpose: `any Foo`, while [others propose](https://github.com/apple/swift/blob/master/docs/GenericsManifesto.md#generalized-existentials) parameterizing `Any`: `Any<Foo>`. Whatever the way of achieving this is, differentiation between the two would be useful as it would - among other reasons - prevent beginners from unknowingly using Existentials, which can adversely affect performance. 
 
-#### A First Step
+#### Existentials for Every Protocol
 
-Before going straight to [Generalized Existentials](#generalized-existentials) we could first introduce Existentials for protocols with fully specified associated types. That is, instead of creating a new protocol that constraints its parent's associated types, there would be the option of doing so in a more directly manner:
+Currently, Existentials are offered only for certain protocols that _don’t_ contain references to `Self` or associated type requirements - hence the differentiation between regular protocols and PUTs. However, that doesn’t need to be the case. What are currently - or even after this proposal - considered PUTs could also support Existentials, further unifying Swift:
+
 ```swift
-typealias IdentifiableByString = 
-    any Identifiable<.ID == String>
-
-let identifiables: [IdentifiableByString]
+let anyIdentifiable: Any<Identifiable>
 ```
-Of course, many syntaxes where proposed including using the `any` modifier: `any Foo` and parameterizing `Any`: `Any<Foo>`. As for the constraints syntax, there is the angle brackets one: `Any<Identifiable<.ID == String>>` and the 'where' clause one: `Any<Identifiable where .ID == String>` - among others.
+
+#### Constraining Existentials
+
+After introducing Existentials for all protocols, constraining them seems like the next logical step. Constraining refers to constraining a protocol’s associated types which will, therefore, only be available to protocols that have unspecified associated types. These constraints would probably be the same-type constraint: `where A == B` and the conformance constraint: `where A: B`:
+
+```swift
+typealias Foo = Any<
+    Identifiable where .ID == String
+>
+
+typealias Bar = Any<
+    Identifiable where .ID: Comparable 
+>
+```
     
-Generalized Existentials, have a lot of practical problems like the issue of operations not always working:
-```swift
-let equatables: [Any<Equatable>] = [
-   "String",
-   11111111
-]
+#### Opening Existentials 
 
-equatables[0] == equatables[1]
-// ❗️The dynamic types are 
-// not the same!
-```
-
-These Existentials, though, avoid this problem altogether since the associated types of the PUTs are known:
+With all the above changes, Existentials would still lack an important feature: operations between Existentials, such as `Equatable`’s `==(_:_:)`:
 
 ```swift
-typealias Identifiables = [
-    Any<Identifiable where ID == String>
-]
+let equatableA = 
+    “abc” as Any<Equatable>
 
-let identifiables: Identifiables = [
-    IDWrapper(id: "a")
-    IDWrapper(id: "a")
-    // We know the `ID` is `String`
-]()
+let equatableB = 
+    12345 as Any<Equatable>
 
-identifiables[0] == identifiables[1]
-// ✅ We know the result will be `true`
+equatableA == equatableB
+// ❌ These values can have
+// different dynamic types
 ```
 
-Taking everything into account, this feature seems like a good first step towards a future with more advanced Generics and Existentials Systems. Addtionally, real-world use of this rather simple feature would provide useful insight allowing for better design of more advanced features to come.
+To solve this problem, [some have proposed](https://forums.swift.org/t/improving-the-ui-of-generics/22814) “opening” Existentials: 
+
+```swift
+let <E: Equatable> a  = equatableA
+// The type of `a` is `E`
+
+if let b = equatableB as? E {
+    let result = a == b 
+    // ✅ Both are bound to `E`
+}
+```
