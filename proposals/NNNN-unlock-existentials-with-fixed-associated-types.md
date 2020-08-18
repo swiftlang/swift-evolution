@@ -176,6 +176,8 @@ All in all, we don’t think it’s for the compiler to warn us when a protocol 
 
 ### Generalized Existentials 
 
+#### The Dstination
+
 What this means is that Existentials will be available not only for regular protocols, but for PUTs as well. This way, the distinction between regular protocols and PUTs would be rendered useless, further unifying the language. As a result, a lot of confusion surrounding PUTs and Existentials would be alleviated. However, if Existentials keep using the same name as their ‘origin’ protocol the important distinction between Protocols and Existential Types would be utterly lost. To combat this problem the [fairly recent post from the Core Team](https://forums.swift.org/t/improving-the-ui-of-generics/22814) proposes using the `any` modifier to signify the use of Existentials - rather than the protocol itself. Future syntax might look like this:
 ```swift
 var a: any PUT<.A == Int > 
@@ -189,7 +191,7 @@ var a: any PUT<.A == Int >
 There are a lot of concerns about Existentials that are thoroughly discussed in the post. To sum up, generalizing Existentials would be quite useful in many cases as - even in the Standard Library - there are manually-written custom ones, such as `AnyHashable` and `AnyView`. 
 
 
-### Existentials for Prorocols with Fully-Specified Associated Types
+#### A First Step
 
 Before going straight to [Generalized Existentials](#generalized-existentials) we could first introduce Existentials for protocols with fully specified associated types. That is, instead of creating a new protocol that constraints its parent's associated types, there would be the option of doing so in a more directly manner:
 ```swift
