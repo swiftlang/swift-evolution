@@ -31,7 +31,7 @@ extension User {
 Many would rightfully assume that `User` could be used as a Type, since we specify that the `ID` asscoated type inherited from [`Identifiable`](https://github.com/apple/swift-evolution/blob/master/proposals/0261-identifiable.md) is `String`. 
 
 ```swift
-var myUser: User
+let myUser: User
 // ❌ `User` is a PUT
 ```
 
@@ -41,7 +41,7 @@ This is a great inconvenience with not so elegant workarounds:
 protocol AnyUser { ... } 
 // No `Identifiable` conformance
 
-var myUser: AnyUser
+let myUser: AnyUser
 // ✅
 
 
@@ -53,7 +53,7 @@ protocol User: AnyUser, Identifiable
     }
 }
 
-var myOtherUser: User 
+let myOtherUser: User 
 // ❌ Still an error as expected
 ```
 
@@ -180,7 +180,7 @@ All in all, we don’t think it’s for the compiler to warn us when a protocol 
 
 What this means is that Existentials will be available not only for regular protocols, but for PUTs as well. This way, the distinction between regular protocols and PUTs would be rendered useless, further unifying the language. As a result, a lot of confusion surrounding PUTs and Existentials would be alleviated. However, if Existentials keep using the same name as their ‘origin’ protocol the important distinction between Protocols and Existential Types would be utterly lost. To combat this problem the [fairly recent post from the Core Team](https://forums.swift.org/t/improving-the-ui-of-generics/22814) proposes using the `any` modifier to signify the use of Existentials - rather than the protocol itself. Future syntax might look like this:
 ```swift
-var a: any PUT<.A == Int > 
+let a: any PUT<.A == Int > 
 // ✅ `B` is not specified but that
 // is OK; the constraints of this
 // Existential are that (1) the
@@ -198,33 +198,34 @@ Before going straight to [Generalized Existentials](#generalized-existentials) w
 typealias IdentifiableByString = 
     any Identifiable<.ID == String>
 
-var identifiables: [IdentifiableByString]
+let identifiables: [IdentifiableByString]
 ```
 Of course, many syntaxes where proposed including using the `any` modifier: `any Foo` and parameterizing `Any`: `Any<Foo>`. As for the constraints syntax, there is the angle brackets one: `Any<Identifiable<.ID == String>>` and the 'where' clause one: `Any<Identifiable where .ID == String>` - among others.
     
 Generalized Existentials, have a lot of practical problems like the issue of operations not always working:
 ```swift
-let equatables = [
-    Any<Equatable>
-]()
-
-equatables.append("String")
-equatables.append(11111111)
+let equatables: [Any<Equatable>] = [
+   "String",
+   11111111
+]
 
 equatables[0] == equatables[1]
-// ❗ What should happen here? 
+// ❗️The dynamic types are 
+// not the same!
 ```
 
 These Existentials, though, avoid this problem altogether since the associated types of the PUTs are known:
 
 ```swift
-let identifiables = [
+typealias Identifiables = [
     Any<Identifiable where ID == String>
+]
+
+let identifiables: Identifiables = [
+    IDWrapper(id: "a")
+    IDWrapper(id: "a")
     // We know the `ID` is `String`
 ]()
-
-identifiables.append(IDWrapper(id: "a"))
-identifiables.append(IDWrapper(id: "a"))
 
 identifiables[0] == identifiables[1]
 // ✅ We know the result will be `true`
