@@ -46,7 +46,12 @@ var myUser: AnyUser
 
 
 protocol User: AnyUser, Identifiable 
-    where ID == String { ... }
+    where ID == String { 
+    
+    var id: String {
+        username
+    }
+}
 
 var myOtherUser: User 
 // ❌ Still an error as expected
