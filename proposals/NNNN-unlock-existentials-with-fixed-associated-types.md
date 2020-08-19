@@ -96,7 +96,12 @@ protocol UsableAsAType: PUT
     where A == String, B == Int { ... }
 ```
 
-4. ❌ Protocols Referencing `Self` (currently erroneous)
+4. ✅ Composite Type 
+```swift
+typealias Bar = UsableAsAType & User
+```
+
+5. ❌ Protocols Referencing `Self` (currently erroneous)
 ```swift
 protocol PUT: Equatable
     where Self == String { ... }
@@ -104,7 +109,7 @@ protocol PUT: Equatable
 ```
 > **_NOTE:_** An `Equatable` conforming protocol will still be PUT, because if `Self` is to be constrained then the protocol loses its generic meaning.
 
-5. ✅ Constraining with the Protocol Existential Itself
+6. ✅ Constraining with the Protocol Existential Itself
 ```swift
 protocol Foo: PUT 
     where A == Foo, B == Int { ... }
@@ -162,7 +167,7 @@ The current design is quite problematic - as discussed in the [Motivation](#moti
 
 ### Disallow Constraining an Associated Type to the Protocol's Existential
 
-As mentioned in the [What would be a Regular Protocol](#what-would-be-a-regular-protocol?) section, the fifth example demonstrates how a pretty odd case would be handled. If you think about it, though, it’s not that different from constraining an associated type to its enclosing protocol - such as SwiftUI’s [`View`](https://developer.apple.com/documentation/swiftui/view). Furthermore, protocols such as the following one are currently allowed: 
+As mentioned in the [What would be a Regular Protocol](#what-would-be-a-regular-protocol?) section, the sixth example demonstrates how a pretty odd case would be handled. If you think about it, though, it’s not that different from constraining an associated type to its enclosing protocol - such as SwiftUI’s [`View`](https://developer.apple.com/documentation/swiftui/view). Furthermore, protocols such as the following one are currently allowed: 
 ```swift
 protocol Foo {
     var foo: Foo { get }
