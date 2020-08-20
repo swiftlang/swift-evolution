@@ -7,11 +7,11 @@
 
 ## Introduction
 
-Protocols are a powerful feature of Swift. They are so diverse that they can be divided into two categories: regular protocols that can be used as types and [Protocols that are Unusable as Types](https://docs.swift.org/swift-book/LanguageGuide/Generics.html#ID189) (PUTs). PUTs are special because they reference 'Self' or contain associated type requirements making the fact they cannot be used as Types a sensible contraint. However, in some cases where a protocol inherits a PUT but also specifies all its associated types this constraint seems unintuitive. This proposal aims to relax this needless contraint allowing such protocols to be used as Types.
+Today, Swift protocols are divided into two categories: those that _can_ and those that _can't_ be used as Types. The latter can only be used as generic constraints and _not_ as Types - because they have 'Self' or associated type requirements. However, in some cases where a protocol inherits and fixes the associated types of another protocol - that doesn't have `Self` requirements, this constraint seems rather unintuitive. This proposal aims to relax this needless contraint allowing such protocols to be used as Types.
 
 ## Motivation
 
-Currently any protocol conforming to a PUT becomes one itself as it inherits its associated types. However, some protocols specify these associated types, making this a frustrating limitations. The following example illustrates this problem:
+Currently any protocol conforming to a protocol with `Self` or associated type requirements becomes one itself as it inherits its associated types. However, some protocols specify these associated types, making this a frustrating limitations. The following example illustrates this problem:
 
 ```swift
 protocol User: Identifiable 
@@ -32,7 +32,8 @@ Many would rightfully assume that `User` could be used as a Type, since we speci
 
 ```swift
 let myUser: User
-// ❌ `User` is a PUT
+// ❌ `User` is not
+// usable as a Type
 ```
 
 This is a great inconvenience with not so elegant workarounds:
@@ -56,6 +57,7 @@ protocol User: AnyUser, Identifiable
 let myOtherUser: User 
 // ❌ Still an error as expected
 ```
+> **_NOTE:_** Note that `myOtherUser` could be bound to `some User`, however that would _not_ be an Existential. Instead, it just "erases" type information. As a result, if it was bound to `some User`, it would have to be initialized at the declaration and then mutation - even if it were a variable - would not be allowed.
 
 These workarounds, besides producing boilerplate and confusing code, also produce confusing API designs leaving clients to wonder which of the two protocols should be used. In other cases, API authors may decide that adding `Identifiable` isn’t worth the added complexity and leave the `User` protocol with no such conformance whatsoever. 
 
@@ -64,81 +66,87 @@ As a result, a straightforward conformance to simple - yet quite useful - protoc
 
 ## Proposed solution
 
-We propose to simply stop consider User-like protocols PUTs and instead treat them as regular protocols, enabling use as Types. Thus, making more natural code possible - which fits a goal of Swift of building ["expressive and elegant APIs"](https://forums.swift.org/t/on-the-road-to-swift-6/32862). Furthermore, library authors could start adding useful protocol conformances to their protocols - a task that's currently prohibitively complex.
+We propose to simply allow User-like protocols to be used as Types. Thus, making more natural code possible - which fits a goal of Swift of building ["expressive and elegant APIs"](https://forums.swift.org/t/on-the-road-to-swift-6/32862). Furthermore, library authors could start adding useful protocol conformances to their protocols - a task that's currently prohibitively complex.
 
 ## Detailed design
 
-### What would be a Regular Protocol?
+### Protocols that would be Usable as Types
 
-What would protocols would be able to be used as types (✅) and what wouldn’t (❌)?
-
-1. ✅ Simple Case (like with `User`)
+1. Fixed Associated Types
 ```swift
-protocol User: Identifiable
-    where ID == String { ... }
-```
-
-2. ❌ Multiple Associated Types; only Some Specified 
-```swift
-protocol PUT { 
+protocol AB { 
     associatedtype A
     associatedtype B
 }
 
-protocol AlsoPUT: PUT
-    where A == String { ... } 
-// `B` is unknown; therefore it’s a PUT
+protocol FixedAB: AB
+    where A == String, B == String {}
+    
+let foo: FixedAB 
+// ✅ 
 ```
 
-3. ✅ Multiple Associated Types; All Specified
+2. Fixed Associated Types in Composition
 ```swift
-protocol UsableAsAType: PUT
-    where A == String, B == Int { ... }
+protocol C { 
+    associatedtype C
+}
+
+protocol FixedC: C
+    where C == String {}
+
+typealias FixedABC = FixedAB & FixedC
+
+let foo: FixedABC 
+// ✅ 
+```
+### Protocols that would NOT be Usable as Types
+
+1. Fixed Associated Types with `Self` Requirement
+```swift
+protocol ABAndSelf {
+    associatedtype A
+    associatedtype B
+    
+    func foo(a: Self)
+}
+
+protocol FixedABAndSelf: ABAndSelf
+    where A == String, B == String {} 
+    
+let foo: FixedABAndSelf 
+// ❌ Explanation: `Self` cannot 
+// be specified; therefore it
+// cannot be used as a Type.
 ```
 
-4. ✅ Composite Type 
+2. Partially Fixed Associated Types
 ```swift
-typealias Bar = UsableAsAType & User
+protocol FixedA: AB
+    where A == String{} 
+    
+let foo: FixedA 
+// ❌ Explanation: `B` is
+// not fixed in `FixedA`.
 ```
 
-5. ❌ Protocols Referencing `Self` (currently erroneous)
-```swift
-protocol PUT: Equatable
-    where Self == String { ... }
-❌ This requirement makes `Self` non-generic
-```
-> **_NOTE:_** An `Equatable` conforming protocol will still be PUT, because if `Self` is to be constrained then the protocol loses its generic meaning.
-
-6. ✅ Constraining with the Protocol Existential Itself
-```swift
-protocol Foo: PUT 
-    where A == Foo, B == Int { ... }
-```
-> **_NOTE:_** Although this might seem confusing at first, allowing this behavior seems more intuitive. Read more in the [Alternatives Considered](#disallow-constraining-an-associated-type-to-the-protocols-existential) section.
 
 ### Syntax 
 
 There’s no syntax change. This change is rather semantic, easing existing restrictions regarding the use of protocols as Types.
 
 
-### Rules for PUT qualification 
+### Which Protocols would NOT be Usable as Types 
 
-Now, a protocol is considered a PUT if it:
+Now, a protocol is considered unusable as a Type:
 
-1. Includes at least one associated type or a reference to `Self` - which may have been inherited - and
-2. if at least one inherited associated type - if there is any - is _not_ specified.
+1. Includes at least one associated type or `Self` requirement - which may have been inherited - and
+2. if at least one inherited associated type requirement - if there is any - is _not_ specified.
 
 
 ## Source compatibility
 
-There is no source compatibility impact. As previously mentioned this change is purely semantic. In other words, some protocols will lose PUT 
-qualification ([because of rule 2](#rules-for-put-qualification)), which in turn allows for more flexibility for the user. Even in cases like these:
-```swift
-func foo<A: ProtocolUsableAsAType>(
-    a: A
-) { ... }
-```
-there won't be any source breakage, since the above is currently allowed for regular protocols. 
+This is an additive change with no impact on source compatibility.
 
 
 ## Effect on ABI stability
@@ -147,9 +155,9 @@ TBA
 
 ## Effect on API resilience
 
-With this proposal, Library Authors should be more considerate when adding more associated types to their publicly exposed protocols. That's because PUT inheriting protocols would - under this proposal - gain the ability to become regular ones - [under the right circumstances](#rules-for-put-qualification)).
+With this proposal, Library Authors should be more considerate when adding more associated types to their publicly exposed protocols. That's because protocols that inherit associated type or `Self` requirements would - under this proposal - gain the ability to be used as Types - [under the right circumstances](#which-protocols-would-not-be-usable-as-types)).
 
-For instance, if we added another associated type to `Identifiable`, a _hypothetical_ `User` protocol in the Standard Library would become a PUT, causing source breakage for clients and potentially inside the module itself. Moreover, protocols inheriting `Identifiable` outside of the Standard Library would also be burdened by the PUT restrictions aggravating the problem as a result.
+For instance, if we added another associated type to `Identifiable`, a _hypothetical_ `User` protocol in the Standard Library would become a unusable as a Type, causing source breakage for clients and potentially inside the module itself. Moreover, protocols inheriting `Identifiable` outside of the Standard Library would also be unable to be used as Types aggravating the problem as a result.
 
 To reflect these new guidelines the 7th rule for 'allowed' changes ([protocol section](https://github.com/apple/swift/blob/master/docs/LibraryEvolution.rst#protocols)) will be removed. The rule to be changed, states that: 
 > A new associatedtype requirement may be added (with the appropriate availability), as long as it has a default implementation.
@@ -165,25 +173,13 @@ This rule will be replaced by the following rule and be moved into the 'forbidde
 The current design is quite problematic - as discussed in the [Motivation](#motivation) section. Not to mention, it seems like an abnormality in the generics and exitentials system. There has, also, been [post](https://forums.swift.org/t/making-a-protocols-associated-type-concrete-via-inheritance/6557) after [post](https://forums.swift.org/t/constrained-associated-type-on-protocol/38770) asking why this feature isn’t yet implemented. Fixing this ‘issue’ will strengthen the foundation of the existentials systems to allow for [more and exciting future additions](https://forums.swift.org/t/improving-the-ui-of-generics/22814)
 
 
-### Disallow Constraining an Associated Type to the Protocol's Existential
-
-As mentioned in the [What would be a Regular Protocol](#what-would-be-a-regular-protocol?) section, the sixth example demonstrates how a pretty odd case would be handled. If you think about it, though, it’s not that different from constraining an associated type to its enclosing protocol - such as SwiftUI’s [`View`](https://developer.apple.com/documentation/swiftui/view). Furthermore, protocols such as the following one are currently allowed: 
-```swift
-protocol Foo {
-    var foo: Foo { get }
-}
-```
-Moreover, we are not actually constraining `Foo`'s `A` to `Foo` itself but rather its _Existential_. Not to mention, that in the future all protocols might be allowed to have Existentials (read more in the [Generalized Existentials](#generalized-existentials) section).
-
-All in all, we don’t think it’s for the compiler to warn us when a protocol is _likely_ to fail, but rather when failure is _certain_, due to protocols' abstract nature.
-
 ## Future Directions
 
 ### Generalized Existentials 
 
 #### What are They Exactly? 
 
-An Existential of a Protocol is a type - separate from the protocol itself - that can contain any value of a type that conforms to a given set of constraints - which include conforming to that protocol. Such types are currently provided for regular protocols under the same name, as seen in this example:
+An Existential of a Protocol is a type - separate from the protocol itself - that can contain any value of a type that conforms to a given set of constraints - which include conforming to that protocol. Such types are currently provided for protocols _without_ `Self` or associated type requirements under the same name, as seen in this example:
 
 ```swift
 let foo: Foo 
@@ -200,7 +196,7 @@ To alleviate confusion between Existentials and Protocols it has been proposed t
 
 #### Existentials for Every Protocol
 
-Currently, Existentials are offered only for certain protocols that _don’t_ contain references to `Self` or associated type requirements - hence the differentiation between regular protocols and PUTs. However, that doesn’t need to be the case. What are currently - or even after this proposal - considered PUTs could also support Existentials, further unifying Swift:
+Currently, Existentials are offered only for certain protocols that _don’t_ contain references to `Self` or associated type requirements - hence the differentiation between protocols that are able or unable to be used as Types. However, that doesn’t need to be the case. What are currently - or even after this proposal - considered as protocols that are unusable as Types could also support Existentials, further unifying Swift:
 
 ```swift
 let anyIdentifiable: Any<Identifiable>
@@ -233,7 +229,7 @@ let equatableB =
 
 equatableA == equatableB
 // ❌ These values can have
-// different dynamic types
+// different dynamic types.
 ```
 
 To solve this problem, [some have proposed](https://forums.swift.org/t/improving-the-ui-of-generics/22814) “opening” Existentials: 
@@ -244,6 +240,6 @@ let <E: Equatable> a  = equatableA
 
 if let b = equatableB as? E {
     let result = a == b 
-    // ✅ Both are bound to `E`
+    // ✅ Both are bound to `E`.
 }
 ```
