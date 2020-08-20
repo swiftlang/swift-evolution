@@ -35,6 +35,7 @@ let myUser: User
 // ❌ `User` is not
 // usable as a Type
 ```
+> **_NOTE:_** Note that `myUser` could be bound to `some User`, however that would _not_ be an Existential. Instead, the compiler would just "hide" type information from the user. As a result, if `myUser` was bound to `some User`, it would have to be initialized at the declaration and then mutation - even if it were a variable - would not be allowed.
 
 This is a great inconvenience with not so elegant workarounds:
 
@@ -57,7 +58,6 @@ protocol User: AnyUser, Identifiable
 let myOtherUser: User 
 // ❌ Still an error as expected
 ```
-> **_NOTE:_** Note that `myOtherUser` could be bound to `some User`, however that would _not_ be an Existential. Instead, it just "erases" type information. As a result, if it was bound to `some User`, it would have to be initialized at the declaration and then mutation - even if it were a variable - would not be allowed.
 
 These workarounds, besides producing boilerplate and confusing code, also produce confusing API designs leaving clients to wonder which of the two protocols should be used. In other cases, API authors may decide that adding `Identifiable` isn’t worth the added complexity and leave the `User` protocol with no such conformance whatsoever. 
 
@@ -138,7 +138,7 @@ There’s no syntax change. This change is rather semantic, easing existing rest
 
 ### Which Protocols would NOT be Usable as Types 
 
-Now, a protocol is considered unusable as a Type:
+Now, a protocol is considered unusable as a Type when it:
 
 1. Includes at least one associated type or `Self` requirement - which may have been inherited - and
 2. if at least one inherited associated type requirement - if there is any - is _not_ specified.
@@ -157,7 +157,7 @@ TBA
 
 With this proposal, Library Authors should be more considerate when adding more associated types to their publicly exposed protocols. That's because protocols that inherit associated type or `Self` requirements would - under this proposal - gain the ability to be used as Types - [under the right circumstances](#which-protocols-would-not-be-usable-as-types)).
 
-For instance, if we added another associated type to `Identifiable`, a _hypothetical_ `User` protocol in the Standard Library would become a unusable as a Type, causing source breakage for clients and potentially inside the module itself. Moreover, protocols inheriting `Identifiable` outside of the Standard Library would also be unable to be used as Types aggravating the problem as a result.
+For instance, if we added another associated type to `Identifiable`, a _hypothetical_ `User` protocol in the Standard Library would become unusable as a Type, causing source breakage for clients and potentially inside the module itself. Moreover, protocols inheriting `Identifiable` outside of the Standard Library would also be unable to be used as Types aggravating the problem as a result.
 
 To reflect these new guidelines the 7th rule for 'allowed' changes ([protocol section](https://github.com/apple/swift/blob/master/docs/LibraryEvolution.rst#protocols)) will be removed. The rule to be changed, states that: 
 > A new associatedtype requirement may be added (with the appropriate availability), as long as it has a default implementation.
