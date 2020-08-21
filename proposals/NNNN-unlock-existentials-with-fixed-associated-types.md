@@ -85,6 +85,7 @@ protocol FixedAB: AB
 let foo: FixedAB 
 // ✅ 
 ```
+> **_NOTE:_** Note that both `A` and `B` were fixed in order for `FixedAB` to be usable as a Type.
 
 2. Fixed Associated Types in Composition
 ```swift
@@ -100,6 +101,17 @@ typealias FixedABC = FixedAB & FixedC
 let foo: FixedABC 
 // ✅ 
 ```
+
+3. Fixed Associated Types in Composition with a Class
+```swift
+class Class {}
+
+typealias FixedABAndClass = FixedAB & Class
+
+let foo: FixedABAndClass 
+// ✅ 
+```
+
 ### Protocols that would NOT be Usable as Types
 
 1. Fixed Associated Types with `Self` Requirement
@@ -118,16 +130,6 @@ let foo: FixedABAndSelf
 // ❌ Explanation: `Self` cannot 
 // be specified; therefore it
 // cannot be used as a Type.
-```
-
-2. Partially Fixed Associated Types
-```swift
-protocol FixedA: AB
-    where A == String{} 
-    
-let foo: FixedA 
-// ❌ Explanation: `B` is
-// not fixed in `FixedA`.
 ```
 
 
@@ -177,18 +179,7 @@ The current design is quite problematic - as discussed in the [Motivation](#moti
 
 ### Generalized Existentials 
 
-#### What are They Exactly? 
-
-An Existential of a Protocol is a type - separate from the protocol itself - that can contain any value of a type that conforms to a given set of constraints - which include conforming to that protocol. Such types are currently provided for protocols _without_ `Self` or associated type requirements under the same name, as seen in this example:
-
-```swift
-let foo: Foo 
-// `Foo` in this case is
-// referring to the protocol’s 
-// Existential, which despite
-// having the same name
-// is actually different.
-```
+In this section there are a lot of terms (like 'Existential') and ideas (that are discussed below) borrowed from [a recent post by the Core Team](https://forums.swift.org/t/improving-the-ui-of-generics/22814). This post is a useful resource that may help alleviate some confusion from what is to be discussed.
 
 #### Differentiation from Protocols
 
