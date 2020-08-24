@@ -1,7 +1,7 @@
 # Feature name
 
 * Proposal: [SE-NNNN](NNNN-Results-Improvements.md)
-* Authors: [hfhbd](https://github.com/hfhbd), [bojanstef](https://github.com/bojanstef)?, [tcldr](https://github.com/tcldr)?
+* Authors: [hfhbd](https://github.com/hfhbd), [bojanstef](https://github.com/bojanstef)
 * Review Manager: TBD
 * Status: Implementation: [apple/swift#NNNNN](https://github.com/apple/swift/pull/27908), [apple/swift#NNNN](https://github.com/apple/swift/pull/26471)
 
