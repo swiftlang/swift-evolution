@@ -6,101 +6,110 @@
 * Status: Implementation: [apple/swift#NNNNN](https://github.com/apple/swift/pull/27908), [apple/swift#NNNN](https://github.com/apple/swift/pull/26471)
 
 ## Introduction
-In [SE-0235](https://github.com/apple/swift-evolution/blob/master/proposals/0235-add-result.md) the `Result` type was introduced.
-This type should be improved by several functions and shortcuts.
+In [SE-0235](https://github.com/apple/swift-evolution/blob/master/proposals/0235-add-result.md) the `Result` type was introduced.  
+This type should be improved by a shortcut for `.success` and `recoverFailure`.
 
 Swift-evolution thread: [Never-failing Result Type](https://forums.swift.org/t/never-failing-result-type/30249/5), [Convenience member on Result when when Success is Void](https://forums.swift.org/t/convenience-member-on-result-when-when-success-is-void/36134)
 
 ## Motivation
 The `Result` type is often used as state-ful return type, unified all across an API.
+This sample API always returns a `Result` type. Technical for network APIs, a callback would be better, but for simplicity this is ignored.
 
 ```
 struct API {
     enum APIError: Error {
-        case .network
-        case .invalid(request: String, response: String)
+        case network
+        case malformedData
     }
 
-    func getPhoto(of user: String) -> Result<Data, APIError> { ... }
+    func getPhoto(of user: String) -> Result<Data, APIError> { 
+        // ...
+        .failure(.network) 
+    }
     
-    func update(photo: Data, of user: String) -> Result<Void, APIError> { 
-        let response: Response = ...
-        if ((200..<300).contains(response.status) ) {
-            return .success(()) // 1. 
-        }
-        ...
+    func update(photo: Data, of user: String) -> Result<Void, APIError> {
+        // ...
+        .success(())
     }
 }
 
 // Usage
-let networkFallback: Data = ...
-let storageFallback: Data = ...
-let genericFallback: Data = ...
+func fetchJohnsPhoto() -> NSImage {
+    let networkFallback: Data = Data()
+    let dataFallback: Data = Data()
+    let genericFallback: Data = Data()
 
-let maybePhoto = getPhoto(of: "John Appleseed") //.failure(.network)
-let johnsPhoto: UIImage
-try { 
-    johnsPhoto = UIImage(data: maybePhoto.get()) 
-} catch { error in // 2. err is Error, not APIError
-    guard let error = error as? APIError else { return UIImage(data: genericFallback) } 
-    switch(error) {     
-    case .network: return UIImage(data: networkFallback)
-    case .storage: return UIImage(data: storageFallback)
+    let maybePhoto: Result<Data, API.APIError> = API().getPhoto(of: "John Appleseed") //.failure(.network)
+    func photoData(_ maybePhoto: Result<Data, API.APIError>) -> Data {
+        do {
+            return try maybePhoto.get()
+        } catch { // 2. error is Error, not APIError
+            guard let error = error as? API.APIError else { return genericFallback }
+            switch(error) {
+            case .network: return networkFallback
+            case .malformedData: return dataFallback
+            }
+        }
+    }
+    let johnsPhoto = NSImage(data: photoData(maybePhoto))
+    return johnsPhoto
 }
 ```
 
-This sample API always a `Result` type. Technical for network APIs, a callback would be better, but for simplify this is ignored.
-1. To create a success case of a `Result<Void, Error>`, the call `Result<Void, Error>.success(())` is necessary.
+1. To create a success case of a `Result<Void, Error>`, the call `Result<Void, Error>.success(())` is necessary. `Result<Void, Error>.success` would be much cleaner.
 
 Sometimes an API call results into a failure, but the typed error should be discarded and replaced to an empty valid value, eg. a default value or `nil`. 
 
-2. With the current `try { result.get() } catch { error }` `error` is always `Error`, but not the type `APIError`.
+2. With the current `do { try result.get() } catch { error }` `error` is always `Error`, but not the type `APIError`.
 
 This proposal adds this two additions: 
 1. shorter creation of the success case
-2. function to replace the failure, if present, to allow typed error handling
+2. function to recover the failure, if present, to allow typed error handling
 
 ## Proposed solution
 
 ```
 struct API {
     enum APIError: Error {
-        case .network
-        case .invalid(request: String, response: String)
+        case network
+        case malformedData
     }
 
-    func getPhoto(of user: String) -> Result<Data, APIError> { ... }
+    func getPhoto(of user: String) -> Result<Data, APIError> { 
+        // ...
+        return .failure(.network) 
+    }
     
-    func update(photo: Data, of user: String) -> Result<Void, APIError> { 
-        let response: Response = ...
-        if ((200..<300).contains(response.status) ) {
-            return .success // 1. 
-        }
-        ...
+    func update(photo: Data, of user: String) -> Result<Void, APIError> {
+        // ...
+        return .success // 1.
     }
 }
 
 // Usage
-let networkFallback: Data = ...
-let storageFallback: Data = ...
+func fetchJohnsPhoto() -> NSImage {
+    let networkFallback: Data = Data()
+    let dataFallback: Data = Data()
 
-let maybePhoto = getPhoto(of: "John Appleseed") //.failure(.network)
-let johnsPhoto = maybePhoto.replaceFailure { err in // 2. err is now APIError
-         switch(err) {
-         case .network: return networkFallback
-         case .storage: return storageFallback
-         }
-     }.map {
-         UIImage(data: $0)
-     }
-     .get() // no try catch neccessary
+    let maybePhoto = API().getPhoto(of: "John Appleseed") //.failure(.network)
+    let johnsPhoto = maybePhoto.recoverFailure { error in // 2. error is now APIError
+            switch(error) {
+            case .network: return networkFallback
+            case .malformedData: return dataFallback
+            }
+        }.map {
+            NSImage(data: $0)
+        }
+        .get() // no try catch neccessary
+    return johnsPhoto
+}
 ```
 
 To satisfy this requirements, this proposal is split into two parts:
 1. Shortcut for `Result<Void, Error>.success(())`:
    - A helper static var is added to the `Result` type, if the Success value is `Void`.
 1. Replace Failure:
-   - Add `replaceFailure(transform:)` to `Result` to allow a typed error handling
+   - Add `recoverFailure(transform:)` to `Result` to allow a typed error handling
    - Overload `get() throws` with `get()` when `Failure` is `Never`
    
 ## Detailed design
@@ -117,10 +126,10 @@ extension Result where Success == Void {
 let r: Result<Void, Error> = .success
 ```
 
-### ReplaceFailure
+### RecoverFailure
 ```
 extension Result {
-    public func replaceFailure(_ transform: (Failure) -> Success) -> Result<Success, Never> {
+    public func recoverFailure(_ transform: (Failure) -> Success) -> Result<Success, Never> {
          switch self {
          case let .success(success):
              return .success(success)
@@ -147,6 +156,7 @@ This is a purely additive change.
 This is a purely additive change.
 
 ## Effect on API resilience
+This proposal adds 2 public functions and 1 static variable via extensions to the frozen enum `Result`.
 
 API resilience describes the changes one can make to a public API
 without breaking its ABI. Does this proposal introduce features that
@@ -158,10 +168,10 @@ document](https://github.com/apple/swift/blob/master/docs/LibraryEvolution.rst)
 in the Swift repository.
 
 ## Alternatives considered
-Instead of wrapping the output of `replaceFailure(:)` to `Result<Success, Never>`, `Success` will be directly returned. 
+Instead of wrapping the output of `recoverFailure(:)` to `Result<Success, Never>`, `Success` will be directly returned. 
 ```
 extension Result {
-    public func replaceFailure(_ transform: (Failure) -> Success) -> Success {
+    public func recoverFailure(_ transform: (Failure) -> Success) -> Success {
          switch self {
          case let .success(success):
              return success
