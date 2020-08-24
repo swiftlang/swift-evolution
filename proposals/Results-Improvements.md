@@ -15,7 +15,7 @@ Swift-evolution threads: [Never-failing Result Type](https://forums.swift.org/t/
 The `Result` type is often used as state-ful return type, unified all across an API.
 This sample API always returns a `Result` type. Technical for network APIs, a callback would be better, but for simplicity this is ignored.
 
-```
+```swift
 struct API {
     enum APIError: Error {
         case network
@@ -68,7 +68,7 @@ This proposal adds this two additions:
 
 ## Proposed solution
 
-```
+```swift
 struct API {
     enum APIError: Error {
         case network
@@ -115,7 +115,7 @@ To satisfy this requirements, this proposal is split into two parts:
 ## Detailed design
 
 ### Success Shortcut
-```
+```swift
 extension Result where Success == Void {
    public static var success: Result<Success, Failure> {
      return .success(())
@@ -127,7 +127,7 @@ let r: Result<Void, Error> = .success
 ```
 
 ### RecoverFailure
-```
+```swift
 extension Result {
     public func recoverFailure(_ transform: (Failure) -> Success) -> Result<Success, Never> {
          switch self {
@@ -169,7 +169,7 @@ in the Swift repository.
 
 ## Alternatives considered
 Instead of wrapping the output of `recoverFailure(:)` to `Result<Success, Never>`, `Success` will be directly returned. 
-```
+```swift
 extension Result {
     public func recoverFailure(_ transform: (Failure) -> Success) -> Success {
          switch self {
