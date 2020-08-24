@@ -7,9 +7,9 @@
 
 ## Introduction
 In [SE-0235](https://github.com/apple/swift-evolution/blob/master/proposals/0235-add-result.md) the `Result` type was introduced.  
-This type should be improved by a shortcut for `.success` and `recoverFailure`.
+This type should be improved by a shortcut for `.success` and a function to recover the `Failure`.
 
-Swift-evolution thread: [Never-failing Result Type](https://forums.swift.org/t/never-failing-result-type/30249/5), [Convenience member on Result when when Success is Void](https://forums.swift.org/t/convenience-member-on-result-when-when-success-is-void/36134)
+Swift-evolution threads: [Never-failing Result Type](https://forums.swift.org/t/never-failing-result-type/30249/5), [Convenience member on Result when when Success is Void](https://forums.swift.org/t/convenience-member-on-result-when-when-success-is-void/36134)
 
 ## Motivation
 The `Result` type is often used as state-ful return type, unified all across an API.
