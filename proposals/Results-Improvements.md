@@ -29,7 +29,7 @@ struct API {
     
     func update(photo: Data, of user: String) -> Result<Void, APIError> {
         // ...
-        .success(())
+        .success(()) // 1. .success would be syntactic sugar
     }
 }
 
@@ -39,7 +39,7 @@ func fetchJohnsPhoto() -> NSImage {
     let dataFallback: Data = Data()
     let genericFallback: Data = Data()
 
-    let maybePhoto: Result<Data, API.APIError> = API().getPhoto(of: "John Appleseed") //.failure(.network)
+    let maybePhoto: Result<Data, API.APIError> = API().getPhoto(of: "John Appleseed")
     func photoData(_ maybePhoto: Result<Data, API.APIError>) -> Data {
         do {
             return try maybePhoto.get()
@@ -91,7 +91,7 @@ func fetchJohnsPhoto() -> NSImage {
     let networkFallback: Data = Data()
     let dataFallback: Data = Data()
 
-    let maybePhoto = API().getPhoto(of: "John Appleseed") //.failure(.network)
+    let maybePhoto = API().getPhoto(of: "John Appleseed")
     let johnsPhoto = maybePhoto.recoverFailure { error in // 2. error is now APIError
             switch(error) {
             case .network: return networkFallback
@@ -108,7 +108,7 @@ func fetchJohnsPhoto() -> NSImage {
 To satisfy this requirements, this proposal is split into two parts:
 1. Shortcut for `Result<Void, Error>.success(())`:
    - A helper static var is added to the `Result` type, if the Success value is `Void`.
-1. Replace Failure:
+1. Recover Failure:
    - Add `recoverFailure(transform:)` to `Result` to allow a typed error handling
    - Overload `get() throws` with `get()` when `Failure` is `Never`
    
