@@ -7,11 +7,11 @@
 
 ## Introduction
 
-Today, Swift protocols are divided into two categories: those that _can_ and those that _can't_ be used as Types. The latter can only be used as generic constraints and _not_ as Types - because they have 'Self' or associated type requirements. However, in some cases where a protocol inherits and fixes the associated types of another protocol - that doesn't have `Self` requirements, this constraint seems rather unintuitive. This proposal aims to relax this needless contraint allowing such protocols to be used as Types.
+Today, Swift protocols are divided into two categories: those that _can_ be used as fully-fledged types, and those that can only be used as generic constraints because they have `Self` or associated type requirements. However, in some cases where a protocol inherits and fixes the associated types of another protocol - that doesn't have `Self` requirements, this constraint seems rather unintuitive. This proposal aims to relax this needless contraint allowing such protocols to be used as Types.
 
 ## Motivation
 
-Currently any protocol conforming to a protocol with `Self` or associated type requirements becomes one itself as it inherits its associated types. However, some protocols specify these associated types, making this a frustrating limitations. The following example illustrates this problem:
+Currently, any protocol that has associated type requirements is not allowed to be used as a Type. That's a sensible constraint; however, considering that the associated types of some protocols are known, this restriction can become quite frustrating: 
 
 ```swift
 protocol User: Identifiable 
@@ -35,7 +35,7 @@ let myUser: User
 // ❌ `User` is not
 // usable as a Type
 ```
-> **_NOTE:_** Note that `myUser` could be bound to `some User`, however that would _not_ be an Existential. Instead, the compiler would just "hide" type information from the user. As a result, if `myUser` was bound to `some User`, it would have to be initialized at the declaration and then mutation - even if it were a variable - would not be allowed.
+> **_NOTE:_** One may point out that `myUser` could be bound to `some User`, which would have a similar effects. However, [opaque result types](https://github.com/apple/swift-evolution/blob/master/proposals/0244-opaque-result-types.md) are not Existentials. That is, the former allows for hiding type information from the user while the compiler internally retains the underlying type. On the contrary, the latter properly erases type information allowing storage of different types - that conform to a given protocol. What that means, is that should `myUser` be bound to `some User` then initialization would have to be performed at the declaration-site and mutation would be prohibited.
 
 This is a great inconvenience with not so elegant workarounds:
 
@@ -68,8 +68,8 @@ As a result, a straightforward conformance to simple - yet quite useful - protoc
 
 We propose to simply allow User-like protocols to be used as Types. Thus, making more natural code possible - which fits a goal of Swift of building ["expressive and elegant APIs"](https://forums.swift.org/t/on-the-road-to-swift-6/32862). Furthermore, library authors could start adding useful protocol conformances to their protocols - a task that's currently prohibitively complex.
 
-## Detailed design
 
+## Detailed design
 
 ### Which Protocols would NOT be Usable as Types 
 
@@ -180,7 +180,7 @@ The current design is quite problematic - as discussed in the [Motivation](#moti
 
 ### Generalized Existentials 
 
-In this section there are a lot of terms (like 'Existential') and ideas (that are discussed below) borrowed from [a recent post by the Core Team](https://forums.swift.org/t/improving-the-ui-of-generics/22814). This post is a useful resource that may help alleviate some confusion from what is to be discussed.
+This proposal is a minor change that takes Swift a step closure to the end-goal of generalizing Existentials. As a result, describing some concepts and terms (such as 'Existential') entails `Extistential`-related terminology, which is borrowed from [a recent post by the Core Team](https://forums.swift.org/t/improving-the-ui-of-generics/22814). 
 
 #### Differentiation from Protocols
 
