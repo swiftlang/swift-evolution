@@ -180,7 +180,7 @@ The current design is quite problematic - as discussed in the [Motivation](#moti
 
 ### Generalized Existentials 
 
-This proposal is a minor change that takes Swift a step closure to the end-goal of generalizing Existentials. As a result, describing some concepts and terms (such as 'Existential') entails `Extistential`-related terminology, which is borrowed from [a recent post by the Core Team](https://forums.swift.org/t/improving-the-ui-of-generics/22814). 
+This proposal is an incremental change that takes Swift a step closure to the end-goal of generalizing Existentials. As a result, describing some concepts and terms (such as 'Existential') entails the use `Extistential`-related terminology, which is borrowed from [a recent post by the Core Team](https://forums.swift.org/t/improving-the-ui-of-generics/22814). 
 
 #### Differentiation from Protocols
 
