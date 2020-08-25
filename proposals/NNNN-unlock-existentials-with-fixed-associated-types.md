@@ -70,6 +70,15 @@ We propose to simply allow User-like protocols to be used as Types. Thus, making
 
 ## Detailed design
 
+
+### Which Protocols would NOT be Usable as Types 
+
+Now, a protocol is considered unusable as a Type when it:
+
+1. Includes at least one associated type or `Self` requirement - which may have been inherited - and
+2. if at least one inherited associated type requirement - if there is any - is _not_ specified.
+
+
 ### Protocols that would be Usable as Types
 
 1. Fixed Associated Types
@@ -136,14 +145,6 @@ let foo: FixedABAndSelf
 ### Syntax 
 
 There’s no syntax change. This change is rather semantic, easing existing restrictions regarding the use of protocols as Types.
-
-
-### Which Protocols would NOT be Usable as Types 
-
-Now, a protocol is considered unusable as a Type when it:
-
-1. Includes at least one associated type or `Self` requirement - which may have been inherited - and
-2. if at least one inherited associated type requirement - if there is any - is _not_ specified.
 
 
 ## Source compatibility
