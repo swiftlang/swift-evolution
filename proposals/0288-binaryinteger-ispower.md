@@ -1,7 +1,7 @@
 # Adding `isPower(of:)` to `BinaryInteger`
 
-* Proposal: [SE-0288](0288-filename.md)
-* Authors: [Ding Ye](https://github.com/dingobye)
+* Proposal: [SE-0288](0288-binaryinteger-ispower.md)
+* Author: [Ding Ye](https://github.com/dingobye)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
 * Implementation: [apple/swift#24766](https://github.com/apple/swift/pull/24766)
 * Status: **Active review (August 26th...September 4th, 2020)**
