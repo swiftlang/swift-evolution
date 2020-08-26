@@ -34,14 +34,34 @@ extension User {
 
 let myUser: User
 // ❌ `User` is not
-// usable as a Type
+// usable as a Type.
 ```
 
 Many would rightfully assume that `User` could be used as a Type, since the only associated type (`ID`) is known to be `String` via a same-type constraint on the `User` protocol.
 
-> **_NOTE:_** One may point out that `myUser` could be bound to `some User`, which would have a similar effects. However, [opaque result types](https://github.com/apple/swift-evolution/blob/master/proposals/0244-opaque-result-types.md) are not Existentials. That is, the former allows for hiding type information from the user while the compiler internally retains the underlying type. On the contrary, the latter properly erases type information allowing storage of different types - that conform to a given protocol. What that means, is that should `myUser` be bound to `some User` then initialization would have to be performed at the declaration-site and mutation would be prohibited.
+One may point out, though, that `myUser` could be bound to `some User`, which would have a similar effects. However, [opaque result types](https://github.com/apple/swift-evolution/blob/master/proposals/0244-opaque-result-types.md) are not Existentials. That is, the former allows for hiding type information from the user while the compiler internally retains the underlying type. On the contrary, the latter properly erases type information allowing storage of different types - that conform to a given protocol. What that means, is that should `myUser` be bound to `some User` then initialization would have to be performed at the declaration-site and mutation would be prohibited.
 
-This is a great inconvenience with not so elegant workarounds:
+Moreover, we often need to pass around values bound to such protocols through functions and closures. Of course, generics are extremely useful in the case of functions. However, when it comes to closures the user doesn't have many options due to the lack of support for generic arguments:
+
+```swift
+let userProvider: 
+    () -> User
+// ❌ That's invalid.
+    
+
+let userModifier: 
+    <SomeUser: User>(SomeUser) -> SomeUser
+// ❌ Generics are not
+// supported here.
+
+let otherUserProvider: 
+    () -> some User
+// ❌ Neither opaque results 
+// types, which are a form of 
+// Generics, work here.
+```
+
+Evidently, this is a great inconvenience with not so elegant workarounds:
 
 ```swift
 protocol AnyUser { ... } 
@@ -65,9 +85,9 @@ let myOtherUser: User
 // expected
 ```
 
-These workarounds, besides producing boilerplate and confusing code, also produce confusing API designs leaving clients to wonder which of the two protocols should be used. In other cases, API authors may decide that adding `Identifiable` isn’t worth the added complexity and leave the `User` protocol with no such conformance whatsoever. 
+These workarounds, besides producing boilerplate and confusing code, also produce confusing API designs leaving clients to wonder which of the two protocols should be used. In other cases, API authors may decide that inheriting `Identifiable` isn’t worth the added complexity and leave the `User` protocol with no such inheritance whatsoever. 
 
-As a result, a straightforward conformance to simple - yet quite useful - protocols such as `Identifiable` and others becomes a hassle to implement.
+As a result, a straightforward refinement of simple - yet quite useful - protocols such as `Identifiable` and others becomes a hassle to implement.
 
 
 ## Proposed solution
