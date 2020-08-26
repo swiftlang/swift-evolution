@@ -14,11 +14,16 @@ Today, Swift protocols are divided into two categories: those that _can_ be used
 Currently, any protocol that has associated type requirements is not allowed to be used as a Type. That's a sensible constraint; however, considering that the associated types of some protocols are known, this restriction can become quite frustrating: 
 
 ```swift
+protocol Identifiable {
+    associatedtype ID: Hashable
+    
+    var id: ID { get }
+}
+
 protocol User: Identifiable 
     where ID == String {
     
     var username: String { get }
-    var displayName: String { get }
 }
 
 extension User {
@@ -26,22 +31,22 @@ extension User {
         username
     }
 }
-```
 
-Many would rightfully assume that `User` could be used as a Type, since we specify that the `ID` asscoated type inherited from [`Identifiable`](https://github.com/apple/swift-evolution/blob/master/proposals/0261-identifiable.md) is `String`. 
-
-```swift
 let myUser: User
 // ❌ `User` is not
 // usable as a Type
 ```
+
+Many would rightfully assume that `User` could be used as a Type, since the only associated type (`ID`) is known to be `String` via a same-type constraint on the `User` protocol.
+
 > **_NOTE:_** One may point out that `myUser` could be bound to `some User`, which would have a similar effects. However, [opaque result types](https://github.com/apple/swift-evolution/blob/master/proposals/0244-opaque-result-types.md) are not Existentials. That is, the former allows for hiding type information from the user while the compiler internally retains the underlying type. On the contrary, the latter properly erases type information allowing storage of different types - that conform to a given protocol. What that means, is that should `myUser` be bound to `some User` then initialization would have to be performed at the declaration-site and mutation would be prohibited.
 
 This is a great inconvenience with not so elegant workarounds:
 
 ```swift
 protocol AnyUser { ... } 
-// No `Identifiable` conformance
+// Same as `User` above but
+// without `Identifiable` conformance
 
 let myUser: AnyUser
 // ✅
@@ -56,7 +61,8 @@ protocol User: AnyUser, Identifiable
 }
 
 let myOtherUser: User 
-// ❌ Still an error as expected
+// ❌ Still an error as 
+// expected
 ```
 
 These workarounds, besides producing boilerplate and confusing code, also produce confusing API designs leaving clients to wonder which of the two protocols should be used. In other cases, API authors may decide that adding `Identifiable` isn’t worth the added complexity and leave the `User` protocol with no such conformance whatsoever. 
@@ -71,17 +77,16 @@ We propose to simply allow User-like protocols to be used as Types. Thus, making
 
 ## Detailed design
 
-### Which Protocols would NOT be Usable as Types 
+### Which Protocols would be Able to be Used as Fully-Fledged Types?
 
-Now, a protocol is considered unusable as a Type when it:
+Now, a protocol is usable as a Type when it:
 
-1. Includes at least one associated type or `Self` requirement - which may have been inherited - and
-2. if at least one inherited associated type requirement - if there is any - is _not_ specified.
+1. Does _not_ include `Self` requirements - and
+2. if it has no associated type requirements _or_ if all its associated types are fixed.
 
+#### Examples:
 
-### Protocols that would be Usable as Types
-
-1. Fixed Associated Types
+1. Protocol
 ```swift
 protocol AB { 
     associatedtype A
@@ -96,7 +101,7 @@ let foo: FixedAB
 ```
 > **_NOTE:_** Note that both `A` and `B` were fixed in order for `FixedAB` to be usable as a Type.
 
-2. Fixed Associated Types in Composition
+2. Protocol Composition
 ```swift
 protocol C { 
     associatedtype C
@@ -111,7 +116,7 @@ let foo: FixedABC
 // ✅ 
 ```
 
-3. Fixed Associated Types in Composition with a Class
+3. Protocol and Class Composition
 ```swift
 class Class {}
 
@@ -123,7 +128,10 @@ let foo: FixedABAndClass
 
 ### Protocols that would NOT be Usable as Types
 
-1. Fixed Associated Types with `Self` Requirement
+Every protocol that is not covered by the [above definition](#which-protocols-would-be-able-to-be-used-as-fully-fledged-types) is, therefore, considered unusable as a type.
+
+#### Example:
+
 ```swift
 protocol ABAndSelf {
     associatedtype A
@@ -140,11 +148,6 @@ let foo: FixedABAndSelf
 // be specified; therefore it
 // cannot be used as a Type.
 ```
-
-
-### Syntax 
-
-There’s no syntax change. This change is rather semantic, easing existing restrictions regarding the use of protocols as Types.
 
 
 ## Source compatibility
