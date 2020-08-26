@@ -92,7 +92,7 @@ As a result, a straightforward refinement of simple - yet quite useful - protoco
 
 ## Proposed solution
 
-We propose to simply allow User-like protocols to be used as Types. Thus, making more natural code possible - which fits a goal of Swift of building ["expressive and elegant APIs"](https://forums.swift.org/t/on-the-road-to-swift-6/32862). Furthermore, library authors could start adding useful protocol conformances to their protocols - a task that's currently prohibitively complex.
+We propose to simply allow `User`-like protocols to be used as Types. Thus, making more natural code possible - which fits a goal of Swift of building ["expressive and elegant APIs"](https://forums.swift.org/t/on-the-road-to-swift-6/32862). Furthermore, library authors could start adding useful protocol conformances to their protocols - a task that's currently prohibitively complex.
 
 
 ## Detailed design
@@ -196,7 +196,7 @@ This rule will be replaced by the following rule and be moved into the 'forbidde
 
 ### Do Nothing
 
-The current design is quite problematic - as discussed in the [Motivation](#motivation) section. Not to mention, it seems like an abnormality in the generics and exitentials system. There has, also, been [post](https://forums.swift.org/t/making-a-protocols-associated-type-concrete-via-inheritance/6557) after [post](https://forums.swift.org/t/constrained-associated-type-on-protocol/38770) asking why this feature isn’t yet implemented. Fixing this ‘issue’ will strengthen the foundation of the existentials systems to allow for [more and exciting future additions](https://forums.swift.org/t/improving-the-ui-of-generics/22814)
+The current design is quite problematic - as discussed in the [Motivation](#motivation) section. Not to mention, it seems like an abnormality in the generics and exitentials systems. There has, also, been [post](https://forums.swift.org/t/making-a-protocols-associated-type-concrete-via-inheritance/6557) after [post](https://forums.swift.org/t/constrained-associated-type-on-protocol/38770) asking why this feature isn’t yet implemented. Fixing this ‘issue’ will strengthen the foundation of the existentials systems to allow for [more and exciting future additions](https://forums.swift.org/t/improving-the-ui-of-generics/22814)
 
 
 ## Future Directions
@@ -247,7 +247,7 @@ equatableA == equatableB
 // different dynamic types.
 ```
 
-To solve this problem, [some have proposed](https://forums.swift.org/t/improving-the-ui-of-generics/22814) “opening” Existentials: 
+To solve this problem, [it has been proposed](https://forums.swift.org/t/improving-the-ui-of-generics/22814) that Existentials gain the ability to be “opened”: 
 
 ```swift
 let <E: Equatable> a  = equatableA
