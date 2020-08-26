@@ -1,11 +1,10 @@
-
 # Adding `isPower(of:)` to `BinaryInteger`
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0288](0288-filename.md)
 * Authors: [Ding Ye](https://github.com/dingobye)
-* Review Manager: TBD
-* Status: [apple/swift#24766](https://github.com/apple/swift/pull/24766)
-
+* Review Manager: [Joe Groff](https://github.com/jckarter)
+* Implementation: [apple/swift#24766](https://github.com/apple/swift/pull/24766)
+* Status: **Active review (August 26th...September 4th, 2020)**
 
 ## Introduction
 
