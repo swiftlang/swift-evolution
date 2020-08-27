@@ -102,7 +102,7 @@ We propose to simply allow `User`-like protocols to be used as Types. Thus, maki
 Now, a protocol is usable as a Type when it:
 
 1. Does _not_ include `Self` requirements - and
-2. if it has no associated type requirements _or_ if all its associated types are fixed.
+2. if it has no associated type requirements _or_ if all its associated types are known.
 
 #### Examples:
 
