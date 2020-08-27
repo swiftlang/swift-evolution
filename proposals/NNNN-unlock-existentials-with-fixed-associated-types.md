@@ -177,19 +177,12 @@ This is an additive change with no impact on source compatibility.
 
 ## Effect on ABI stability
 
-TBA
+This is an additive change with no impact on ABI stability.
+
 
 ## Effect on API resilience
 
-With this proposal, Library Authors should be more considerate when adding more associated types to their publicly exposed protocols. That's because protocols that inherit associated type or `Self` requirements would - under this proposal - gain the ability to be used as Types - [under the right circumstances](#which-protocols-would-not-be-usable-as-types)).
-
-For instance, if we added another associated type to `Identifiable`, a _hypothetical_ `User` protocol in the Standard Library would become unusable as a Type, causing source breakage for clients and potentially inside the module itself. Moreover, protocols inheriting `Identifiable` outside of the Standard Library would also be unable to be used as Types aggravating the problem as a result.
-
-To reflect these new guidelines the 7th rule for 'allowed' changes ([protocol section](https://github.com/apple/swift/blob/master/docs/LibraryEvolution.rst#protocols)) will be removed. The rule to be changed, states that: 
-> A new associatedtype requirement may be added (with the appropriate availability), as long as it has a default implementation.
-
-This rule will be replaced by the following rule and be moved into the 'forbidden' section:
-> Adding `associatedtype` requirements (even if they have a default implementation) 
+This is an additive change with no impact on API resilience.
 
 
 ## Alternatives considered
