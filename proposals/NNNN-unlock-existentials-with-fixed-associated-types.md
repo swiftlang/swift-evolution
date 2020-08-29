@@ -57,8 +57,8 @@ let userModifier:
 let otherUserProvider: 
     () -> some User
 // ❌ Neither opaque results 
-// types, which are a form of 
-// Generics, work here.
+// types work here, which  
+// are a form of Generics.
 ```
 
 Evidently, this is a great inconvenience with not so elegant workarounds:
