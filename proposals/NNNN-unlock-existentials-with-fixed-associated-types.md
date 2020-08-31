@@ -37,7 +37,7 @@ let myUser: User
 // usable as a Type.
 ```
 
-Many would rightfully assume that `User` could be used as a Type, since the only associated type (`ID`) is known to be `String` via a same-type constraint on the `User` protocol.
+Many would rightfully assume that `User` can be used as a Type, since the only associated type (`ID`) is known to be `String` via a same-type constraint on the `User` protocol.
 
 One may point out, though, that `myUser` could be bound to `some User`, which would have a similar effects. However, [opaque result types](https://github.com/apple/swift-evolution/blob/master/proposals/0244-opaque-result-types.md) are not Existentials. That is, the former allows for hiding type information from the user while the compiler internally retains the underlying type. On the contrary, the latter properly erases type information allowing storage of different types - that conform to a given protocol. What that means, is that should `myUser` be bound to `some User` then initialization would have to be performed at the declaration-site and mutation would be prohibited.
 
@@ -65,22 +65,20 @@ let myOtherUser: User
 // expected
 ```
 
-These workarounds, besides producing boilerplate and confusing code, also produce confusing API designs leaving clients to wonder which of the two protocols should be used. In other cases, API authors may decide that inheriting `Identifiable` isn’t worth the added complexity and leave the `User` protocol with no such inheritance whatsoever. 
+These workarounds, besides producing boilerplate code, also result in confusing API design leaving clients to wonder which of the two protocols should be used. In other cases, API authors may decide that inheriting `Identifiable` isn’t worth the added complexity and leave the `User` protocol with no such feature whatsoever. As a result, a straightforward refinement of simple - yet quite useful - protocols such as `Identifiable` becomes a hassle to implement.
 
-As a result, a straightforward refinement of simple - yet quite useful - protocols such as `Identifiable` and others becomes a hassle to implement.
-
+All in all, this behavior seems like an abnormality in the exitentials system. There has, also, been [post](https://forums.swift.org/t/making-a-protocols-associated-type-concrete-via-inheritance/6557) after [post](https://forums.swift.org/t/constrained-associated-type-on-protocol/38770) asking why this feature isn’t yet implemented. Tackling this ‘issue’ will strengthen the foundation of existentials allowing for [exciting future additions](https://forums.swift.org/t/improving-the-ui-of-generics/22814).
 
 ## Proposed solution
 
-We propose to simply allow `User`-like protocols to be used as Types. Thus, making more natural code possible - which fits a goal of Swift of building ["expressive and elegant APIs"](https://forums.swift.org/t/on-the-road-to-swift-6/32862). Furthermore, library authors could start adding useful protocol conformances to their protocols - a task that's currently prohibitively complex.
+We propose to simply allow `User`-like protocols to be used as Types. Thus, making more natural code possible - which fits a goal of Swift of building ["expressive and elegant APIs"](https://forums.swift.org/t/on-the-road-to-swift-6/32862). Furthermore, library authors will be able to start inheriting useful protocols in their protocols - a task that's currently prohibitively complex.
 
 
 ## Detailed design
 
-Now, a protocol is usable as a Type when it:
-
-1. Does _not_ include `Self` requirements - and
-2. if it has no associated type requirements _or_ if all its associated types are known.
+Now, a protocol _can_ be used as a type when:
+1. the implementations of its associated type requirements — _if_ there are any such requirements — are _fixed_, and when
+2. there are _no_ `Self` references in requirements.
 
 #### Examples:
 
@@ -97,7 +95,6 @@ protocol FixedAB: AB
 let foo: FixedAB 
 // ✅ 
 ```
-> **_NOTE:_** Note that both `A` and `B` were fixed in order for `FixedAB` to be usable as a Type.
 
 2. Protocol Composition
 ```swift
@@ -124,7 +121,7 @@ let foo: FixedABAndClass
 // ✅ 
 ```
 
-Every protocol that is not covered by the [above definition](#which-protocols-would-be-able-to-be-used-as-fully-fledged-types) is, therefore, considered unusable as a type.
+Every protocol that is not covered by the [above definition](#which-protocols-would-be-able-to-be-used-as-fully-fledged-types) is, therefore, considered unable to be used as a type.
 
 #### Example:
 
@@ -161,18 +158,11 @@ This is an additive change with _no_ impact on **ABI stability**.
 This is an additive change with _no_ impact on **API resilience**.
 
 
-## Alternatives considered
-
-### Do Nothing
-
-The current design is quite problematic - as discussed in the [Motivation](#motivation) section. Not to mention, it seems like an abnormality in the generics and exitentials systems. There has, also, been [post](https://forums.swift.org/t/making-a-protocols-associated-type-concrete-via-inheritance/6557) after [post](https://forums.swift.org/t/constrained-associated-type-on-protocol/38770) asking why this feature isn’t yet implemented. Fixing this ‘issue’ will strengthen the foundation of the existentials systems to allow for [more and exciting future additions](https://forums.swift.org/t/improving-the-ui-of-generics/22814)
-
-
 ## Future Directions
 
 ### Generalized Existentials 
 
-This proposal is an incremental change that takes Swift a step closure to the end-goal of generalizing Existentials. As a result, describing some concepts and terms (such as 'Existential') entails the use `Extistential`-related terminology, which is borrowed from [a recent post by the Core Team](https://forums.swift.org/t/improving-the-ui-of-generics/22814). 
+This proposal is an incremental change that takes Swift a step closure to the end-goal of generalizing Existentials. As a result, describing some concepts and terms (such as 'Existential') entails the use relevant terminology, which is borrowed from [a recent post by the Core Team](https://forums.swift.org/t/improving-the-ui-of-generics/22814). 
 
 #### Differentiation from Protocols
 
