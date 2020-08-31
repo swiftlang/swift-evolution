@@ -7,11 +7,11 @@
 
 ## Introduction
 
-Today, Swift protocols are divided into two categories: those that _can_ be used as fully-fledged types, and those that `can only be used as generic constraints because they have 'Self' or associated type requirements`. However, in some cases where a protocol inherits and fixes the associated types of another protocol - that doesn't have `Self` requirements, this constraint seems rather unintuitive. This proposal aims to relax this needless constraint allowing such protocols to be used as Types.
+Today, Swift protocols are divided into two categories: those that _can_ be used as fully-fledged types, and those that `can only be used as generic constraints because they have 'Self' or associated type requirements`. However, in some cases where a protocol inherits and fixes the associated types of another protocol - that doesn't have `Self` requirements, this constraint seems rather unintuitive. This proposal aims to relax this needless constraint allowing such protocols to be used as types.
 
 ## Motivation
 
-Currently, any protocol that has associated type requirements is not allowed to be used as a Type. That's a sensible constraint; however, considering that the associated types of some protocols are known, this restriction can become quite frustrating: 
+Currently, any protocol that has associated type requirements is not allowed to be used as a type. That's a sensible constraint; however, considering that the associated types of some protocols are known, this restriction can become quite frustrating: 
 
 ```swift
 protocol Identifiable {
@@ -34,12 +34,12 @@ extension User {
 
 let myUser: User
 // ❌ `User` is not
-// usable as a Type.
+// usable as a type.
 ```
 
-Many would rightfully assume that `User` can be used as a Type, since the only associated type (`ID`) is known to be `String` via a same-type constraint on the `User` protocol.
+Many would rightfully assume that `User` can be used as a type, since the only associated type (`ID`) is known to be `String` via a same-type constraint on the `User` protocol.
 
-One may point out, though, that `myUser` could be bound to `some User`, which would have a similar effects. However, [opaque result types](https://github.com/apple/swift-evolution/blob/master/proposals/0244-opaque-result-types.md) are not Existentials. That is, the former allows for hiding type information from the user while the compiler internally retains the underlying type. On the contrary, the latter properly erases type information allowing storage of different types - that conform to a given protocol. What that means, is that should `myUser` be bound to `some User` then initialization would have to be performed at the declaration-site and mutation would be prohibited.
+One may point out, though, that `myUser` could be bound to `some User`, which would have a similar effects. However, [opaque result types](https://github.com/apple/swift-evolution/blob/master/proposals/0244-opaque-result-types.md) are not existentials. That is, the former allows for hiding type information from the user while the compiler internally retains the underlying type. On the contrary, the latter properly erases type information allowing storage of different types - that conform to a given protocol. What that means, is that should `myUser` be bound to `some User` then initialization would have to be performed at the declaration-site and mutation would be prohibited.
 
 Evidently, this is a great inconvenience with not so elegant workarounds:
 
@@ -71,7 +71,7 @@ All in all, this behavior seems like an abnormality in the exitentials system. T
 
 ## Proposed solution
 
-We propose to simply allow `User`-like protocols to be used as Types. Thus, making more natural code possible - which fits a goal of Swift of building ["expressive and elegant APIs"](https://forums.swift.org/t/on-the-road-to-swift-6/32862). Furthermore, library authors will be able to start inheriting useful protocols in their protocols - a task that's currently prohibitively complex.
+We propose to simply allow `User`-like protocols to be used as types. Thus, making more natural code possible - which fits a goal of Swift of building ["expressive and elegant APIs"](https://forums.swift.org/t/on-the-road-to-swift-6/32862). Furthermore, library authors will be able to start inheriting useful protocols in their protocols - a task that's currently prohibitively complex.
 
 
 ## Detailed design
@@ -139,7 +139,7 @@ protocol FixedABAndSelf: ABAndSelf
 let foo: FixedABAndSelf 
 // ❌ Explanation: `Self` cannot 
 // be specified; therefore it
-// cannot be used as a Type.
+// cannot be used as a type.
 ```
 
 
@@ -162,15 +162,15 @@ This is an additive change with _no_ impact on **API resilience**.
 
 ### Generalized Existentials 
 
-This proposal is an incremental change that takes Swift a step closure to the end-goal of generalizing Existentials. As a result, describing some concepts and terms (such as 'Existential') entails the use relevant terminology, which is borrowed from [a recent post by the Core Team](https://forums.swift.org/t/improving-the-ui-of-generics/22814). 
+This proposal is an incremental change that takes Swift a step closure to the end-goal of generalizing existentials. As a result, describing some concepts and terms (such as 'existential') entails the use relevant terminology, which is borrowed from [a recent post by the Core Team](https://forums.swift.org/t/improving-the-ui-of-generics/22814). 
 
 #### Differentiation from Protocols
 
-To alleviate confusion between Existentials and Protocols it has been proposed that when referring to the former some different way be used. [Some advocate](https://forums.swift.org/t/improving-the-ui-of-generics/22814) for the modifier `any` to serve that purpose: `any Foo`, while [others propose](https://github.com/apple/swift/blob/master/docs/GenericsManifesto.md#generalized-existentials) parameterizing `Any`: `Any<Foo>`. Whatever the way of achieving this is, differentiation between the two would be useful as it would - among other reasons - prevent beginners from unknowingly using Existentials, which can adversely affect performance. 
+To alleviate confusion between existentials and protocols it has been proposed that when referring to the former some different way be used. [Some advocate](https://forums.swift.org/t/improving-the-ui-of-generics/22814) for the modifier `any` to serve that purpose: `any Foo`, while [others propose](https://github.com/apple/swift/blob/master/docs/GenericsManifesto.md#generalized-existentials) parameterizing `Any`: `Any<Foo>`. Whatever the way of achieving this is, differentiation between the two would be useful as it would - among other reasons - prevent beginners from unknowingly using existentials, which can adversely affect performance. 
 
 #### Existentials for Every Protocol
 
-Currently, Existentials are offered only for certain protocols that _don’t_ contain references to `Self` or associated type requirements - hence the differentiation between protocols that are able or unable to be used as Types. However, that doesn’t need to be the case. What are currently - or even after this proposal - considered as protocols that are unusable as Types could also support Existentials, further unifying Swift:
+Currently, existentials are offered only for certain protocols that _don’t_ contain references to `Self` or associated type requirements - hence the differentiation between protocols that are able or unable to be used as types. However, that doesn’t need to be the case. What are currently - or even after this proposal - considered as protocols that are not able to be used as types could also support existentials, further unifying Swift:
 
 ```swift
 let anyIdentifiable: Any<Identifiable>
@@ -178,7 +178,7 @@ let anyIdentifiable: Any<Identifiable>
 
 #### Constraining Existentials
 
-After introducing Existentials for all protocols, constraining them seems like the next logical step. Constraining refers to constraining a protocol’s associated types which will, therefore, only be available to protocols that have unspecified associated types. These constraints would probably be the same-type constraint: `where A == B` and the conformance constraint: `where A: B`:
+After introducing existentials for all protocols, constraining them seems like the next logical step. Constraining refers to constraining a protocol’s associated types which will, therefore, only be available to protocols that have unspecified associated types. These constraints would probably be the same-type constraint: `where A == B` and the conformance constraint: `where A: B`:
 
 ```swift
 typealias Foo = Any<
@@ -192,7 +192,7 @@ typealias Bar = Any<
     
 #### Opening Existentials 
 
-With all the above changes, Existentials would still lack an important feature: operations between Existentials, such as `Equatable`’s `==(_:_:)`:
+With all the above changes, existentials would still lack an important feature: operations between existentials, such as using `Equatable`’s `==(_:_:)` between its existential types:
 
 ```swift
 let equatableA = 
@@ -206,7 +206,7 @@ equatableA == equatableB
 // different dynamic types.
 ```
 
-To solve this problem, [it has been proposed](https://forums.swift.org/t/improving-the-ui-of-generics/22814) that Existentials gain the ability to be “opened”: 
+To solve this problem, [it has been proposed](https://forums.swift.org/t/improving-the-ui-of-generics/22814) that existentials gain the ability to be “opened”: 
 
 ```swift
 let <E: Equatable> a  = equatableA
