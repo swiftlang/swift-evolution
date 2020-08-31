@@ -7,7 +7,7 @@
 
 ## Introduction
 
-Today, Swift protocols are divided into two categories: those that _can_ be used as fully-fledged types, and those that `can only be used as generic constraints because they have 'Self' or associated type requirements`. However, in some cases where a protocol inherits and fixes the associated types of another protocol - that doesn't have `Self` requirements, this constraint seems rather unintuitive. This proposal aims to relax this needless contraint allowing such protocols to be used as Types.
+Today, Swift protocols are divided into two categories: those that _can_ be used as fully-fledged types, and those that `can only be used as generic constraints because they have 'Self' or associated type requirements`. However, in some cases where a protocol inherits and fixes the associated types of another protocol - that doesn't have `Self` requirements, this constraint seems rather unintuitive. This proposal aims to relax this needless constraint allowing such protocols to be used as Types.
 
 ## Motivation
 
