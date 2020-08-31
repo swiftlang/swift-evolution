@@ -7,7 +7,7 @@
 
 ## Introduction
 
-Today, Swift protocols are divided into two categories: those that _can_ be used as fully-fledged types, and those that can only be used as generic constraints because they have `Self` or associated type requirements. However, in some cases where a protocol inherits and fixes the associated types of another protocol - that doesn't have `Self` requirements, this constraint seems rather unintuitive. This proposal aims to relax this needless contraint allowing such protocols to be used as Types.
+Today, Swift protocols are divided into two categories: those that _can_ be used as fully-fledged types, and those that `can only be used as generic constraints because they have 'Self' or associated type requirements`. However, in some cases where a protocol inherits and fixes the associated types of another protocol - that doesn't have `Self` requirements, this constraint seems rather unintuitive. This proposal aims to relax this needless contraint allowing such protocols to be used as Types.
 
 ## Motivation
 
@@ -40,26 +40,6 @@ let myUser: User
 Many would rightfully assume that `User` could be used as a Type, since the only associated type (`ID`) is known to be `String` via a same-type constraint on the `User` protocol.
 
 One may point out, though, that `myUser` could be bound to `some User`, which would have a similar effects. However, [opaque result types](https://github.com/apple/swift-evolution/blob/master/proposals/0244-opaque-result-types.md) are not Existentials. That is, the former allows for hiding type information from the user while the compiler internally retains the underlying type. On the contrary, the latter properly erases type information allowing storage of different types - that conform to a given protocol. What that means, is that should `myUser` be bound to `some User` then initialization would have to be performed at the declaration-site and mutation would be prohibited.
-
-Moreover, we often need to pass around values bound to such protocols through functions and closures. Of course, generics are extremely useful in the case of functions. However, when it comes to closures the user doesn't have many options due to the lack of support for generic arguments:
-
-```swift
-let userProvider: 
-    () -> User
-// ❌ That's invalid.
-    
-
-let userModifier: 
-    <SomeUser: User>(SomeUser) -> SomeUser
-// ❌ Generics are not
-// supported here.
-
-let otherUserProvider: 
-    () -> some User
-// ❌ Neither opaque results 
-// types work here, which  
-// are a form of Generics.
-```
 
 Evidently, this is a great inconvenience with not so elegant workarounds:
 
@@ -96,8 +76,6 @@ We propose to simply allow `User`-like protocols to be used as Types. Thus, maki
 
 
 ## Detailed design
-
-### Which Protocols would be Able to be Used as Fully-Fledged Types?
 
 Now, a protocol is usable as a Type when it:
 
@@ -146,8 +124,6 @@ let foo: FixedABAndClass
 // ✅ 
 ```
 
-### Protocols that would NOT be Usable as Types
-
 Every protocol that is not covered by the [above definition](#which-protocols-would-be-able-to-be-used-as-fully-fledged-types) is, therefore, considered unusable as a type.
 
 #### Example:
@@ -172,17 +148,17 @@ let foo: FixedABAndSelf
 
 ## Source compatibility
 
-This is an additive change with no impact on source compatibility.
+This is an additive change with _no_ impact on **source compatibility**.
 
 
 ## Effect on ABI stability
 
-This is an additive change with no impact on ABI stability.
+This is an additive change with _no_ impact on **ABI stability**.
 
 
 ## Effect on API resilience
 
-This is an additive change with no impact on API resilience.
+This is an additive change with _no_ impact on **API resilience**.
 
 
 ## Alternatives considered
