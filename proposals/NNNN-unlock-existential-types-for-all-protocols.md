@@ -213,9 +213,9 @@ Currently, accessing associated types through a protocol's existential type is i
 
 ```swift
 protocol Identifiable {
-	assciatedtype ID: Hashable
+    assciatedtype ID: Hashable
 
-	var id: ID { get }
+    var id: ID { get }
 }
 
 
@@ -230,7 +230,7 @@ Today, no protocol’s existential type can conform to the protocol itself (exce
 
 ```swift
 extension Any<Hashable>: Hashable {
-	…
+    …
 }
 ```
 Other protocols that _do_ meet these criteria would have existential types that automatically gain conformance to their corresponding protocol. In other words, a type such as `Error` would automatically gain support for conformance to the `Error` protocol.
