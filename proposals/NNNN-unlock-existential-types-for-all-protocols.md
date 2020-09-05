@@ -43,12 +43,12 @@ All in all, supporting existential types for all protocols is useful for many si
 
 ### Proposed Solution
 
-We propose that the constraint prohibiting the use of some protocols as types be lifted. As a result, boilerplate code in many projects - especially libraries and frameworks - will be significantly reduced.
+The constraint prohibiting the use of some protocols as types will be lifted. As a result, boilerplate code in many projects - especially libraries and frameworks - will be significantly reduced.
 
 
 ### Detailed Design 
 
-Should this proposal be accepted, the compiler would no longer differentiate between protocols that don’t have `Self` or associated type requirements and those that do. However, some restrictions would apply to the use of requirements referencing associated types as seen in the below examples.
+The compiler will no longer differentiate between protocols that don’t have `Self` or associated type requirements and those that do. However, some restrictions will apply to the use of requirements referencing associated types as seen in the below examples.
 
 #### Examples:
 
