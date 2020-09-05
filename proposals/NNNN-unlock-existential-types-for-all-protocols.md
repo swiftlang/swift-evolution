@@ -4,6 +4,7 @@
 * Authors: [Anthony Latsis](https://github.com/AnthonyLatsis), [Filip Sakel](https://github.com/filip-sakel), [Suyash Srijan](https://github.com/theblixguy)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
+* Implementation: [apple/swift#33767](https://github.com/apple/swift/pull/33767)
 
 
 ### Introduction
@@ -73,8 +74,7 @@ extension Foo {
     }
 }
 
-let baz: some Foo =
-    foo.baz ✅
+let baz: some Foo = foo.baz ✅
     
 let opaqueSelf: some Foo =
     foo.opaqueSelf ✅
