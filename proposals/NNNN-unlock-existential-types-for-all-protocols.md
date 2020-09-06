@@ -52,35 +52,7 @@ The compiler will no longer differentiate between protocols that don’t have `S
 
 #### Examples:
 
-1. Regular Protocol
-
-```swift
-protocol Foo {
-    var bar: Int { get }
-}
-
-let foo: Foo = ... ✅
-
-let bar: Int = foo.bar ✅
-
-
-extension Foo {
-    var baz: Self { 
-        self
-    }
-
-    var opaqueSelf: some Foo {
-        self
-    }
-}
-
-let baz: some Foo = foo.baz ✅
-    
-let opaqueSelf: some Foo =
-    foo.opaqueSelf ✅
-```
-
- 2. Protocol with `Self` and Associated Type Requirements 
+ 1. Protocol with `Self` and Associated Type Requirements 
 
 ```swift
 protocol Foo {
@@ -115,7 +87,7 @@ let opaqueBar: some Any =
 // is not allowed.
 ```
 
-3. Protocol with Known Associated Types
+2. Protocol with Known Associated Types
 
 ```swift
 protocol Foo {
@@ -135,7 +107,7 @@ let intBar: Int = foo.bar ✅
 // type `Bar` of `RefinedFoo` is `Int`.
 ```
 
-4. Protocol Composition 
+3. Protocol Composition 
 
 ```swift
 protocol A {
