@@ -619,3 +619,48 @@ section ul, section li {
     color: rgb(255, 59, 48);
     border-color: rgb(255, 59, 48);
 }
+
+@media (prefers-color-scheme: dark) {
+    body {
+        background-color: #222;
+        color: #bebebe;
+    }
+
+    a:link { color: #eee }
+    a:visited { color: #eee }
+    a:active { color: #eee }
+    a:hover { color: #eee; }
+
+    #title a:link { color: #eee; }
+    #title a:active { color: #eee; }
+    #title a:visited { color: #eee; }
+
+    #proposals-count { color: #eee; }
+
+    .proposal-id { color: #eee; }
+
+    .proposal-detail-value { color: #eee; }
+
+    .proposal-title a:link,
+    .proposal-title a:visited,
+    .proposal-title a:active,
+    .proposal-detail-value a:link,
+    .proposal-detail-value a:visited,
+    .proposal-detail-value a:active { color: #eee; }
+
+    nav {
+        background-color: #343a40;
+        border-color: #404040;
+    }
+
+    input.filter {
+        color: #bebebe;
+        background-color: #171717;
+        border: #404040 solid 1px;
+    }
+
+    header {
+        background: #333;
+        border-color: #404040;
+    }
+}
