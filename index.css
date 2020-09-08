@@ -28,14 +28,16 @@
 
 @media (prefers-color-scheme: dark) {
     :root {
-        --background: #222;
-        --text: #bebebe;
-        --link: #eee;
-        --proposal-link: #eee;
-        --header-background: #333;
-        --nav-background: #343a40;
-        --border: #404040;
-        --filter-background: #171717;
+        --background: #000000ff;
+        --text: #ffffffff;
+        --link: #0984ffff;
+        --proposal-link: #ebebf599;
+        --footer-background: #1c1c1eff;
+        --footer-text: #ffffffff;
+        --header-background: #2c2c2eff;
+        --nav-background: #1c1c1eff;
+        --border: #54545899;
+        --filter-background: #7878805b;
     }
 }
 
