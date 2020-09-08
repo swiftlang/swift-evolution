@@ -21,7 +21,7 @@
     --footer-background: #333;
     --footer-text: #ccc;
     --header-background: rgba(248, 248, 248, 0.7);
-    --nav-background: rgb(248, 248, 248);
+    --nav-background: rgba(248, 248, 248, 0.7);
     --border: rgb(230, 230, 230);
     --filter-link: #0088cc;
 }
@@ -34,8 +34,8 @@
         --proposal-link: #ebebf599;
         --footer-background: #1c1c1eff;
         --footer-text: #ffffffff;
-        --header-background: #2c2c2eff;
-        --nav-background: #1c1c1eff;
+        --header-background: rgba(44, 44, 46, 0.7);
+        --nav-background: rgba(28, 28, 30, 0.7);
         --border: #54545899;
         --filter-background: #7878805b;
     }
@@ -147,6 +147,8 @@ header {
 nav {
     top: 0px;
     background: var(--nav-background);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
     
     border-bottom: 1px solid var(--border);
     min-width: 100%;
@@ -156,13 +158,6 @@ nav {
     nav {
         position: -webkit-sticky;
         position: sticky;
-    }
-}
-
-@supports (-webkit-backdrop-filter: blur(10px)) {
-    nav {
-        background: var(--header-background);
-        -webkit-backdrop-filter: blur(10px);
     }
 }
 
