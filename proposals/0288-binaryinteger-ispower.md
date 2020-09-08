@@ -81,7 +81,7 @@ IDEs can aid discoverability by suggesting `isPower(of:)` as part of autocomplet
 
 ## Proposed solution
 
-Our solution is to introduce a public API `isPower(of:)`, as an extension method, to the `BinaryInteger` protocol.  It provides a standard implementation, which can be adopted by any type that conforms to this protocol.
+Our solution is to introduce a public API `isPower(of:)`, as an extension method, to the `BinaryInteger` protocol.  It provides a standard implementation, which can be adopted by any type that conforms to this protocol.  With regard to semantics, it returns `true` iff `self` is a power of the input `base`.  To be more specific, it holds when (1) `self` is one (i.e., any base to the zero power), or (2) `self` equals the product of one or more `base`s.  Note that this API sits at the `BinaryInteger` protocol level, and it is expected to properly handle negative integers when the type `Self` is signed.
 
 ```swift
 // In the standard library
@@ -92,8 +92,11 @@ extension BinaryInteger {
 }
 
 // In user code
-let x: Int = ...
-x.isPower(of: 2)
+let x: Int = Int.random(in: 0000..<0288)
+1.isPower(of: x)      // 'true' since x^0 == 1
+1000.isPower(of: 10)  // 'true' since 10^3 == 1000
+(-1).isPower(of: 1)   // 'false'
+(-32).isPower(of: -2) // 'true' since (-2)^5 == -32
 ```
 
 
@@ -193,7 +196,7 @@ The slow path is generic for any input base, and the algorithm is standard. It h
 ```swift
 extension BinaryInteger {
   @usableFromInline internal func _slowIsPower(of base: Self) -> Bool {
-    // If self is 1, return true.
+    // If self is 1 (i.e. any base to the zero power), return true.
     if self == 1 { return true }
 
     // Here if base is 0, 1 or -1, return true iff self equals base.
