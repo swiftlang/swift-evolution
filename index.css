@@ -342,6 +342,12 @@ section ul, section li {
     Filtering
 */
 
+#search-filter {
+    background-color: var(--filter-background);
+    border-color: var(--border);
+    color: var(--text);
+}
+
 .filter-by-status {
     padding-bottom: 0.75em;
     padding-top: 7px;
