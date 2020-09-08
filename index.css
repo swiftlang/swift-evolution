@@ -37,7 +37,6 @@
         --header-background: rgba(44, 44, 46, 0.7);
         --nav-background: rgba(28, 28, 30, 0.7);
         --border: #54545899;
-        --filter-background: #7878805b;
     }
 }
 
@@ -338,7 +337,7 @@ section ul, section li {
 */
 
 #search-filter {
-    background-color: var(--filter-background);
+    background-color: var(--background);
     border: 1px solid var(--border);
     color: var(--text);
 }
