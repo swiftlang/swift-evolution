@@ -23,20 +23,20 @@
     --header-background: rgba(248, 248, 248, 0.7);
     --nav-background: rgba(248, 248, 248, 0.7);
     --border: rgb(230, 230, 230);
-    --filter-link: #0088cc;
+    --filter-link: rgb(0, 136, 204);
 }
 
 @media (prefers-color-scheme: dark) {
     :root {
-        --background: #000000ff;
-        --text: #ffffffff;
-        --link: #0984ffff;
-        --proposal-link: #ebebf599;
-        --footer-background: #1c1c1eff;
-        --footer-text: #ffffffff;
+        --background: black;
+        --text: white;
+        --link: rgb(9, 132, 255);
+        --proposal-link: rgba(235, 235, 245, 0.6);
+        --footer-background: rgb(28, 28, 30);
+        --footer-text: rgb(255, 255, 255);
         --header-background: rgba(44, 44, 46, 0.7);
         --nav-background: rgba(28, 28, 30, 0.7);
-        --border: #54545899;
+        --border: rgba(84, 84, 88, 0.6);
     }
 }
 
