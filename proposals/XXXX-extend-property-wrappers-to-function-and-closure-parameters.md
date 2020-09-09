@@ -1,6 +1,6 @@
-# Extend Property Wrappers to Functions and Closures
+# Extend Property Wrappers to Function and Closure Parameters
 
-* Proposal: [SE-NNNN](NNNN-extend-property-wrappers-to-functions-and-closures.md)
+* Proposal: [SE-NNNN](NNNN-extend-property-wrappers-to-function-and-closure-parameters.md)
 * Authors: [Holly Borla](https://github.com/hborla), [Filip Sakel](https://github.com/filip-sakel)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
@@ -8,7 +8,7 @@
 
 ## Introduction
 
-Property Wrappers were [introcuded in Swift 5.1](https://github.com/apple/swift-evolution/blob/master/proposals/0258-property-wrappers.md), and have since become a popular feature abstracting away common accessor patterns for properties. Currently, applying a property wrapper is solely permitted on properties inside of a type context. However, with increasing adoption demand for extending _where_ property wrappers can be applied has emerged.
+Property Wrappers were [introduced in Swift 5.1](https://github.com/apple/swift-evolution/blob/master/proposals/0258-property-wrappers.md), and have since become a popular feature abstracting away common accessor patterns for properties. Currently, applying a property wrapper is solely permitted on properties inside of a type context. However, with increasing adoption demand for extending _where_ property wrappers can be applied has emerged.
 
 
 ## Motivation
@@ -111,7 +111,7 @@ The transformation that will take place is as follows:
 1. The parameter name will be prefixed with an underscore.
 2. A synthesized computed property representing  `wrappedValue` will be created and named per the original (non-prefixed) parameter name. The accessors will mirror the `wrappedValue`'s ones.
 3. A synthesized computed property representing  `projectedValue` will be created and named per the original parameter name prefixed with a dollar sign (`$`). The accessors will mirror the `projectedValue`'s ones - except if a mutating setter is defined and the parameter isn't `inout`.
-4. If a parameter's wrapper-type defines an initializer with a first parameter labeled "wrappedValue", then the parameter's label will be prefixed with an underscore and the parameter will be bound to the wrapper type. Also, if that condition applies, an overload will be created with the orginal parameter label and the `wrappedValue`'s type.
+4. If a parameter's wrapper-type defines an initializer with a first parameter labeled "wrappedValue", then the parameter's label will be prefixed with an underscore and the parameter will be bound to the wrapper type.
 5. If 4 does not apply, then the parameter's label is retained as is and the parameter is bound to the type of `wrappedValue`.
 
 #### Transformation Examples: 
@@ -171,6 +171,9 @@ struct Wrapper<Value> {
 }
 
 func b(@Wrapper foo: inout Int) { ... }
+
+var myInt = 0
+b(foo: &myInt)
 ```
 
     Becomes:
@@ -220,12 +223,6 @@ func c(_foo: WrapperObject<Int>) {
     var foo: Int { 
         _foo.wrappedValue 
     }
-}
-
-// with the overload:
-
-func c(foo: Int) {
-    c(_foo: Wrapper(wrappedValue: foo))
 }
 ```
 
@@ -385,7 +382,6 @@ This is an additive change with _no_ impact on **API resilience**.
 
 ## Future Directions
 
-### Property Wrappers Applied to Local Declarations
+### Add Wrapper Types in the Standard Library 
 
-Should this be included? Property wrappers seem to require more structure than is provided in local variable declarations. My concern is that local property wrappers could be misused taking property wrappers' simplicity away.
-
+TBD
