@@ -389,6 +389,25 @@ TBD
 
 ## Future Directions
 
-### Add Wrapper Types in the Standard Library 
+### Support property wrapper initialization from a projected value
+
+Today, a property wrapper can be initialized from an instance of its `wrappedValue` type if the wrapper provides a suitable `init(wrappedValue:)`. The same initialization strategy is used in this proposal for property wrapper parameters to allow users to pass a wrapped value as a property wrapper argument. We could extend this model to support initializing a property wrapper from an instance of its `projectedValue` type by allowing property wrappers to define an `init(projectedValue:)` that follows the same rules as `init(wrappedValue:)`. This could allow users to additionally pass a projected value as a property wrapper argument, like so:
+
+```swift
+@propertyWrapper
+struct Wrapper<T> {
+  var wrappedValue: T
+  var projectedValue: ProjectionType
+
+  init(projectedValue: ProjectionType) { ... }
+}
+
+func fn(@Wrapper value: Int) { ... }
+
+fn($value: ProjectionType())
+```
+
+
+### Add Wrapper Types in the Standard Library
 
 TBD
