@@ -377,7 +377,14 @@ This is an additive change with _no_ impact on **API resilience**.
 
 ## Alternatives Considered
 
-**TBD**
+### Infer Property Wrappers in Closure Parameters 
+
+TBD
+
+
+### Support `@autoclosure` and `@escaping` in Function Parameters
+
+TBD
 
 
 ## Future Directions
