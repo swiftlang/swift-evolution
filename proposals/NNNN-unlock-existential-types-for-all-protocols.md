@@ -3,7 +3,7 @@
 * Proposal: [SE-NNNN](NNNN-unlock-existential-types-for-all-protocols.md)
 * Authors: [Anthony Latsis](https://github.com/AnthonyLatsis), [Filip Sakel](https://github.com/filip-sakel), [Suyash Srijan](https://github.com/theblixguy)
 * Review Manager: TBD
-* Status: **Awaiting implementation**
+* Status: **Awaiting Review**
 * Implementation: [apple/swift#33767](https://github.com/apple/swift/pull/33767)
 
 
@@ -52,7 +52,7 @@ The compiler will no longer differentiate between protocols that don’t have `S
 
 #### Examples:
 
- 1. Protocol with `Self` and Associated Type Requirements 
+##### Protocol with `Self` and Associated Type Requirements 
 
 ```swift
 protocol Foo {
@@ -87,7 +87,7 @@ let opaqueBar: some Any =
 // is not allowed.
 ```
 
-2. Protocol with Known Associated Types
+##### Protocol with Known Associated Types
 
 ```swift
 protocol Foo {
@@ -107,7 +107,7 @@ let intBar: Int = foo.bar ✅
 // type `Bar` of `RefinedFoo` is `Int`.
 ```
 
-3. Protocol Composition 
+##### Protocol Composition 
 
 ```swift
 protocol A {
