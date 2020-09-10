@@ -103,14 +103,13 @@ Property wrappers are essentially sugar wrapping a given property with compiler 
 Function parameters marked with a property wrapper type must conform to a set of rules:
 
 1. For a default value to be included, the wrapper type must define an initializer with a first parameter labeled "wrappedValue".
-2. Marking a property-wrapping paramter `inout` is required and only allowed when the wrapper type's `wrappedValue` property defines a mutating setter.
-3. If any of the transformed functions share their signature with another function, the compiler will consider one of the two a redeclaration of the other.
+2. If any of the transformed functions share their signature with another function, the compiler will consider one of the two a redeclaration of the other.
 
 The transformation that will take place is as follows:
 
 1. The parameter name will be prefixed with an underscore.
-2. A synthesized computed property representing  `wrappedValue` will be created and named per the original (non-prefixed) parameter name. The accessors will mirror the `wrappedValue`'s ones.
-3. A synthesized computed property representing  `projectedValue` will be created and named per the original parameter name prefixed with a dollar sign (`$`). The accessors will mirror the `projectedValue`'s ones - except if a mutating setter is defined and the parameter isn't `inout`.
+2. A synthesized computed property representing  `wrappedValue` will be created and named per the original (non-prefixed) parameter name. The accessors will mirror the `wrappedValue`'s ones, except for mutating ones.
+3. A synthesized computed property representing  `projectedValue` will be created and named per the original parameter name prefixed with a dollar sign (`$`). The accessors will mirror the `projectedValue`'s ones, except for the mutating ones.
 4. If a parameter's wrapper-type defines an initializer with a first parameter labeled "wrappedValue", then the parameter's label will be prefixed with an underscore and the parameter will be bound to the wrapper type.
 5. If 4 does not apply, then the parameter's label is retained as is and the parameter is bound to the type of `wrappedValue`.
 
@@ -170,60 +169,23 @@ struct Wrapper<Value> {
     }
 }
 
-func b(@Wrapper foo: inout Int) { ... }
+func b(@Wrapper foo: Int = 0) { ... }
 
-var myInt = 0
-b(foo: &myInt)
+b(foo: 5)
 ```
 
     Becomes:
 
 ```swift
-func b(_foo: inout Wrapper<Int>) {
-    var foo: Int { ... }
-}
-
-// with the overload:
-
-func b(foo: inout Int) {
-    var _foo: Wrapper<Int> {
-        get {
-            Wrapper(wrappedValue: foo)
-        }
-        set {
-            foo = newValue.wrappedValue
-        }
-    }
-
-    c(_foo: _foo)
-}
-```
-
-3. Reference Semantics Wrapper with Special Initializer
-
-```swift 
-@propertyWrapper
-class WrapperObject<Value> {
-    init(wrappedValue: Value) 
-    
-    var wrappedValue: Value {
-        get 
-        set 
-        // Not actually mutating
-        // because `WrapperObject` is
-        // a class.
-    }
-}
-```
-
-    Becomes:
-
-```swift
-func c(_foo: WrapperObject<Int>) {
+func b(_foo: Wrapper<Int> = Wrapper(wrappedValue: 0) {
     var foo: Int { 
-        _foo.wrappedValue 
+        _foo.wrappedValue
     }
+    // Notice that there's no setter,
+    // since `wrappedValue` is mutating.
 }
+
+b(_foo: Wrapper(wrappedValue: 5))
 ```
 
 
@@ -296,7 +258,7 @@ struct Wrapper<Value> {
     }
 }
 
-typealias B = (Wrapper<Int>) -> Void
+typealias B = (inout Wrapper<Int>) -> Void
 
 let b: B = { @Wrapper foo in
     ...
@@ -308,11 +270,15 @@ let b: B = { @Wrapper foo in
 ```swift
 let b: B = { _foo in
     var foo: Int {
-        _foo.wrappedValue 
+        get { 
+            _foo.wrappedValue 
+        }
+        set { 
+            _foo.wrappedValue = newValue
+        }
+        // Since the paramter is marked `inout`
+        // we are allowed to have a mutating setter.
     }
-    // No setter is allowed,
-    // since foo isn't inout.
-
     ...
 }
 ```
@@ -406,6 +372,11 @@ func fn(@Wrapper value: Int) { ... }
 
 fn($value: ProjectionType())
 ```
+
+
+### Add Support for `inout` Wrapped Parameters is Functions
+
+This proposal doesn't currently support marking function parameters to which wrapper types have been applied `inout`. We deemed that this functionality would be better tackled by another proposal due to its implementation complexity. However, such a feature would be really useful for wrapper types with value semantics.
 
 
 ### Add Wrapper Types in the Standard Library
