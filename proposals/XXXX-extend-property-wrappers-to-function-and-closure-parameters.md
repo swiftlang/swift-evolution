@@ -18,24 +18,24 @@ Property wrappers have undoubtably been very successful. For one, applying a pro
 ```swift
 @propertyWrapper
 struct Wrapper<Value> {
-    var wrappedValue: Value
+  var wrappedValue: Value
 }
 
 struct Foo {
-    @Wrapper
-    var count = 0
+  @Wrapper
+  var count = 0
      
-    func increase() {
-        count += 1
-        // Great!
-    }
+  func increase() {
+    count += 1
+    // Great!
+  }
 }
 
 func foo(count: Wrapper<Int>) {
-    count.wrappedValue = ...
-    //   ^~~~~~~~~~~~ 
-    // Unfortunately, we can't
-    // use `@Wrapper` here.
+  count.wrappedValue = ...
+  //   ^~~~~~~~~~~~ 
+  // Unfortunately, we can't
+  // use `@Wrapper` here.
 }
 ```
 
@@ -43,15 +43,15 @@ As seen in the above example, it quite akward and unintuitive that property wrap
 
 ```swift
 func fooInClosure(
-    _ block: (Wrapper<Int>) -> Void
+  _ block: (Wrapper<Int>) -> Void
 ) { ... }
 
 fooInClosure { count in 
-    count.wrappedValue = 2
-    //    ^~~~~~~~~~~~ 
-    // Again, we have to 
-    // access count through
-    // `wrappedValue`.
+  count.wrappedValue = 2
+  //    ^~~~~~~~~~~~ 
+  // Again, we have to 
+  // access count through
+  // `wrappedValue`.
 }
 ```
 
@@ -64,32 +64,32 @@ We propose to extend the contexts were application of property-wrapper types is 
 ```swift
 @propertyWrapper
 struct Wrapper<Value> {
-    var wrappedValue: Value
+  var wrappedValue: Value
     
-    var projectedValue: Self {
-        self
-    }
+  var projectedValue: Self {
+    self
+  }
 }
 
 func foo(@Wrapper count: Int = 0) {
-    ...
+  ...
 }
 
 func fooInClosure(
-    _ block: (Wrapper<Int>) -> Int
+  _ block: (Wrapper<Int>) -> Int
 ) { ... }
 
 struct Foo {
-    @Wrapper
-    var count = 0
+  @Wrapper
+  var count = 0
     
-    func bar() {
-        foo(count: $count)
+  func bar() {
+    foo(count: $count)
         
-        fooInClosure { @Wrapper count in
-            ...
-        }
+    fooInClosure { @Wrapper count in
+      ...
     }
+  }
 }
 ```
 
@@ -119,16 +119,16 @@ The transformation that will take place is as follows:
 ```swift
 @propertyWrapper
 struct Reference<Value> {
-    init(getter: () -> Value, setter: (Value) -> Void) 
+  init(getter: () -> Value, setter: (Value) -> Void) 
     
-    var wrappedValue: Value {
-        get 
-        nonmutating set
-    }
+  var wrappedValue: Value {
+    get 
+    nonmutating set
+  }
     
-    var projectedValue: Self {
-        self
-    }
+  var projectedValue: Self {
+    self
+  }
 }
 
 func a(@Reference foo: Int) { ... }
@@ -138,22 +138,22 @@ func a(@Reference foo: Int) { ... }
 
 ```swift
 func a(foo _foo: Reference<Int>) {
-    var foo: Int {
-        get { 
-            _foo.wrappedValue 
-        }
-        set { 
-            _foo.wrappedValue = newValue
-        }
+  var foo: Int {
+    get { 
+      _foo.wrappedValue 
     }
-    
-    var $foo: Int {
-        get { 
-            _foo.projectedValue 
-        }
+    set { 
+      _foo.wrappedValue = newValue
     }
+  }
     
-    ...
+  var $foo: Int {
+    get { 
+      _foo.projectedValue 
+    }
+  }
+    
+  ...
 }
 ```
 
@@ -161,12 +161,12 @@ func a(foo _foo: Reference<Int>) {
 ```swift
 @propertyWrapper
 struct Wrapper<Value> {
-    init(wrappedValue: Value) 
+  init(wrappedValue: Value) 
     
-    var wrappedValue: Value {
-        get 
-        set
-    }
+  var wrappedValue: Value {
+    get 
+    set
+  }
 }
 
 func b(@Wrapper foo: Int = 0) { ... }
@@ -178,11 +178,11 @@ b(foo: 5)
 
 ```swift
 func b(_foo: Wrapper<Int> = Wrapper(wrappedValue: 0) {
-    var foo: Int { 
-        _foo.wrappedValue
-    }
-    // Notice that there's no setter,
-    // since `wrappedValue` is mutating.
+  var foo: Int { 
+    _foo.wrappedValue
+  }
+  // Notice that there's no setter,
+  // since `wrappedValue` is mutating.
 }
 
 b(_foo: Wrapper(wrappedValue: 5))
@@ -203,22 +203,22 @@ Applying wrapper types to closure parameters in the declaration is not allowed. 
 ```swift
 @propertyWrapper
 struct Reference<Value> {
-    init(getter: () -> Value, setter: (Value) -> Void) 
+  init(getter: () -> Value, setter: (Value) -> Void) 
     
-    var wrappedValue: Value {
-        get 
-        nonmutating set
-    }
+  var wrappedValue: Value {
+    get 
+    nonmutating set
+  }
     
-    var projectedValue: Self {
-        self
-    }
+  var projectedValue: Self {
+    self
+  }
 }
 
 typealias A = (Reference<Int>) -> Void
 
 let a: A = { @Reference foo in
-    ...
+  ...
 }
 ```
 
@@ -226,22 +226,22 @@ let a: A = { @Reference foo in
 
 ```swift
 let a: A = { _foo in
-    var foo: Int {
-        get { 
-            _foo.wrappedValue 
-        }
-        set { 
-            _foo.wrappedValue = newValue
-        }
+  var foo: Int {
+    get { 
+      _foo.wrappedValue 
     }
+    set { 
+      _foo.wrappedValue = newValue
+    }
+  }
 
-    var $foo: Int {
-        get { 
-            _foo.projectedValue 
-        }
+  var $foo: Int {
+    get { 
+      _foo.projectedValue 
     }
+  }
     
-    ...
+  ...
 }
 ```
 
@@ -250,18 +250,18 @@ let a: A = { _foo in
 ```swift
 @propertyWrapper
 struct Wrapper<Value> {
-    init(wrappedValue: Value) 
+  init(wrappedValue: Value) 
     
-    var wrappedValue: Value {
-        get 
-        set
-    }
+  var wrappedValue: Value {
+    get 
+    set
+  }
 }
 
 typealias B = (inout Wrapper<Int>) -> Void
 
 let b: B = { @Wrapper foo in
-    ...
+  ...
 }
 ```
 
@@ -269,17 +269,18 @@ let b: B = { @Wrapper foo in
 
 ```swift
 let b: B = { _foo in
-    var foo: Int {
-        get { 
-            _foo.wrappedValue 
-        }
-        set { 
-            _foo.wrappedValue = newValue
-        }
-        // Since the paramter is marked `inout`
-        // we are allowed to have a mutating setter.
+  var foo: Int {
+    get { 
+      _foo.wrappedValue 
     }
-    ...
+    set { 
+      _foo.wrappedValue = newValue
+    }
+    // Since the paramter is marked `inout`
+    // we are allowed to have a mutating setter.
+  }
+  
+  ...
 }
 ```
 
@@ -288,21 +289,21 @@ let b: B = { _foo in
 ```swift
 @propertyWrapper
 class WrapperObject<Value> {
-    init(wrappedValue: Value) 
+  init(wrappedValue: Value) 
     
-    var wrappedValue: Value {
-        get 
-        set 
-        // Not actually mutating
-        // because `WrapperObject` is
-        // a class.
-    }
+  var wrappedValue: Value {
+    get 
+    set 
+    // Not actually mutating
+    // because `WrapperObject` is
+    // a class.
+  }
 }
 
 typealias C = (WrapperObject<Int>) -> Void
 
 let c: C = { @WrapperObject foo in
-    ...
+  ...
 }
 ```
 
@@ -310,18 +311,18 @@ let c: C = { @WrapperObject foo in
 
 ```swift
 let c: C = { _foo in
-    var foo: Int {
-        get { 
-            _foo.wrappedValue 
-        }
-        set { 
-            _foo.wrappedValue = newValue
-        }
-        // Since `WrapperObject` has reference
-        // semantics we can include a setter.
+  var foo: Int {
+    get { 
+      _foo.wrappedValue 
     }
+    set { 
+      _foo.wrappedValue = newValue
+    }
+    // Since `WrapperObject` has reference
+    // semantics we can include a setter.
+  }
 
-    ...
+  ...
 }
 ```
 
@@ -376,7 +377,7 @@ fn($value: ProjectionType())
 
 ### Add Support for `inout` Wrapped Parameters is Functions
 
-This proposal doesn't currently support marking function parameters to which wrapper types have been applied `inout`. We deemed that this functionality would be better tackled by another proposal due to its implementation complexity. However, such a feature would be really useful for wrapper types with value semantics.
+This proposal doesn't currently support marking function parameters to which wrapper types have been applied `inout`. We deemed that this functionality would be better tackled by another proposal due to its implementation complexity. However, such a feature would be really useful for wrapper types with value semantics and it would simplify the mental model. Furthermore, it could alleviate some confusion for users that don't understand the difference between a setter with value semantics and one with reference semantics.
 
 
 ### Add Wrapper Types in the Standard Library
