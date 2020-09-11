@@ -22,21 +22,21 @@ One such case is heterogenous collections, which require value-level abstraction
 
 ```swift
 protocol Identifiable {
-    associatedtype ID: Hashable 
+  associatedtype ID: Hashable 
     
-    var id: ID { get }
+  var id: ID { get }
 }
 
 let naiveIdentifiables: [Identifiable] ❌
 // The compiler doesn't currently allow that.
 // So, we work around that by creating a
-// custom existential type: `AnyIdentifiable`.
+// custom existential type: 'AnyIdentifiable'.
 
 
 struct AnyIdentifiable { 
-    typealias ID = AnyHashable
+  typealias ID = AnyHashable
     
-    var id: ID { ... }
+  var id: ID { ... }
 }
 
 let myIdentifiables: [AnyIdentifiable] ✅
@@ -62,29 +62,28 @@ The compiler will no longer differentiate between protocols that don’t have `S
 
 ```swift
 protocol Foo {
-    associatedtype Bar
+  associatedtype Bar
     
-    var bar: Bar { get }
+  var bar: Bar { get }
 }
 
 let foo: Foo = ... ✅ 
 
 
 let bar: Any = foo.bar ❌
-// We don’t know what type `Bar` is
-// on the existential type of `Foo`.
+// We don’t know what type 'Bar' is
+// on the existential type of 'Foo'.
 
 
 extension Foo {
-    var opaqueBar: some Any {
-        bar 
-    }
-    // Note that it references 
-    // the associated type `Bar`.
+  var opaqueBar: some Any {
+    bar 
+  }
+  // Note that it references 
+  // the associated type 'Bar'.
 }
 
-let opaqueBar: some Any = 
-    foo.opaqueBar ❌
+let opaqueBar: some Any = foo.opaqueBar ❌
 // Opaque result type don't 
 // type-erase; they just conceal
 // the underlying value from the
@@ -96,38 +95,38 @@ let opaqueBar: some Any =
 
 ```swift
 protocol Foo {
-    associatedtype Bar
+  associatedtype Bar
 
-    var bar: Bar { get }
+  var bar: Bar { get }
 }
 
 protocol RefinedFoo: Foo
-    where Bar == Int {}
+  where Bar == Int {}
 
 
 let foo: RefinedFoo = … ✅
 
 let intBar: Int = foo.bar ✅
 // Here we know that the associated
-// type `Bar` of `RefinedFoo` is `Int`.
+// type 'Bar' of 'RefinedFoo' is 'Int'.
 ```
 
 ##### Protocol Composition 
 
 ```swift
 protocol A {
-    associatedtype A
+  associatedtype A
 
-    var a: A { get }
+  var a: A { get }
 }
 
 protocol RefinedA: A
-    where A == Int {}
+  where A == Int {}
 
 protocol B {
-    associatedtype B
+  associatedtype B
 
-    var b: B { get }
+  var b: B { get }
 }
 
 
@@ -137,9 +136,8 @@ let ab: RefinedA & B = ... ✅
 let a: Int = ab.a ✅
 
 let b: some Any = ab.b ❌
-// We don’t know what type 
-// `B` is on the type-erased 
-// value `ab`.
+// We don’t know what type 'B' is
+// on the type-erased value 'ab'.
 ```
 
 
@@ -176,11 +174,11 @@ After introducing existential types for all protocols, constraining them seems l
 
 ```swift
 typealias Foo = Any<
-    Identifiable where .ID == String
+  Identifiable where .ID == String
 >
 
 typealias Bar = Any<
-    Identifiable where .ID: Comparable 
+  Identifiable where .ID: Comparable 
 >
 ```
 
@@ -207,7 +205,7 @@ Today, no protocol’s existential type can conform to the protocol itself (exce
 
 ```swift
 extension Any<Hashable>: Hashable {
-    …
+  …
 }
 ```
 Other protocols that _do_ meet these criteria would have existential types that automatically gain conformance to their corresponding protocol. In other words, a type such as `Error` would automatically gain support for conformance to the `Error` protocol.
