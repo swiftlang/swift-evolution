@@ -28,8 +28,8 @@ protocol Identifiable {
 }
 
 let naiveIdentifiables: [Identifiable] ❌
-// The compiler doesn't currently allow that;
-// so we work around that by creating a
+// The compiler doesn't currently allow that.
+// So, we work around that by creating a
 // custom existential type: `AnyIdentifiable`.
 
 
