@@ -44,12 +44,26 @@ let myIdentifiables: [AnyIdentifiable] ✅
 
 Furthermore, dynamic environments are also known to lack type information. Therefore value-level abstraction can be exploited in cases such as previewing an application, where the application's components are dynamically replaced, in the file system where a file representing an unknown type might be stored, and in server environments, where various types could be exchanged between different computers.
 
-All in all, supporting existential types for all protocols is useful for many situations that involve dynamicity. Moreover, there are many questions by language users asking about this behavior. Taking everything into consideration, we are confident that addressing this abnormality in the language will build a stronger foundation for [future additions](https://forums.swift.org/t/improving-the-ui-of-generics/22814) .
+Morover, the availability of an existential types for a given protocol is sometimes quite unintuitive. That is, today, a protocol qualifies for an existential type provided that it lacks any `Self` or associated type requirements; however, the associated types of a protocol can be fixed via the same-type constraint. As a result, [post](https://forums.swift.org/t/making-a-protocols-associated-type-concrete-via-inheritance/6557) after [post](https://forums.swift.org/t/constrained-associated-type-on-protocol/38770) has been created asking for this restriction's removal:
+
+```swift
+protocol User: Identifiable
+  where ID == UUID {
+  
+  var username: Strng { get }
+}
+  
+let myUsers: [User] ❌
+// This is forbidden today
+// for no apparent reason.
+```
+
+All in all, supporting existential types for all protocols is useful for many situations that involve dynamicity. Not to mention that there are many questions by language users asking about this behavior. Taking everything into consideration, we are confident that addressing this abnormality in the language will build a stronger foundation for [future additions](https://forums.swift.org/t/improving-the-ui-of-generics/22814).
 
 
 ### Proposed Solution
 
-The constraint prohibiting the use of some protocols as types will be lifted. As a result, boilerplate code in many projects - especially libraries and frameworks - will be significantly reduced.
+The constraint prohibiting the use of some protocols as types will be lifted. Consequently, boilerplate code in many projects - especially libraries and frameworks - will be significantly reduced.
 
 
 ### Detailed Design 
@@ -67,7 +81,11 @@ protocol Foo {
   var bar: Bar { get }
 }
 
-let foo: Foo = ... ✅ 
+struct S: Foo { 
+  let bar: Int = 5
+}
+
+let foo: Foo = S() ✅ 
 
 
 let bar: Any = foo.bar ❌
@@ -103,8 +121,11 @@ protocol Foo {
 protocol RefinedFoo: Foo
   where Bar == Int {}
 
+struct S: RefinedFoo { 
+  let bar: Int = 5
+}
 
-let foo: RefinedFoo = … ✅
+let foo: RefinedFoo = S() ✅
 
 let intBar: Int = foo.bar ✅
 // Here we know that the associated
@@ -129,8 +150,13 @@ protocol B {
   var b: B { get }
 }
 
+struct S: RefinedA & B { 
+  let a: Int = 5
+  let b: Int = 5
+}
 
-let ab: RefinedA & B = ... ✅
+
+let ab: RefinedA & B = S() ✅
 
 
 let a: Int = ab.a ✅
@@ -193,8 +219,11 @@ protocol Identifiable {
     var id: ID { get }
 }
 
+struct S: Identifiable {
+  let id: Int = 5
+}
 
-let foo: Identifiable = …
+let foo: Identifiable = S()
 
 let id: Any<Hashable> = foo.id ✅
 ```
