@@ -216,7 +216,7 @@ Unfortunately, this code has undefined behavior. `&counter` counts as a write ac
 Given that the concurrency in this example is neatly isolated to a single section of code, we could wrap it in a `withUnsafeMutablePointer(to:)` invocation that generates a single (but still temporary) pointer. This resolves the problem:
 
 ```swift
-var counter - AtomicIntStorage() // zero init
+var counter = AtomicIntStorage() // zero init
 withUnsafeMutablePointer(to: counter) { pointer in
   DispatchQueue.concurrentPerform(iterations: 10) { _ in
     for _ in 0 ..< 1_000_000 {
