@@ -71,9 +71,8 @@ let foo: Foo = ... ✅
 
 
 let bar: Any = foo.bar ❌
-// We don’t know what type 
-// `Bar` is on the existential
-// type of `Foo`.
+// We don’t know what type `Bar` is
+// on the existential type of `Foo`.
 
 
 extension Foo {
