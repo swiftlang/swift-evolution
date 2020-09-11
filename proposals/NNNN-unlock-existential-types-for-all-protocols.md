@@ -27,13 +27,19 @@ protocol Identifiable {
     var id: ID { get }
 }
 
+let naiveIdentifiables: [Identifiable] ❌
+// The compiler doesn't currently allow that;
+// so we work around that by creating a
+// custom existential type: `AnyIdentifiable`.
+
+
 struct AnyIdentifiable { 
     typealias ID = AnyHashable
     
     var id: ID { ... }
 }
 
-let myIdentifiables: [AnyIdentifiable]
+let myIdentifiables: [AnyIdentifiable] ✅
 ```
 
 Furthermore, dynamic environments are also known to lack type information. Therefore value-level abstraction can be exploited in cases such as previewing an application, where the application's components are dynamically replaced, in the file system where a file representing an unknown type might be stored, and in server environments, where various types could be exchanged between different computers.
