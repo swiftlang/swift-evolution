@@ -27,7 +27,7 @@ protocol Identifiable {
   var id: ID { get }
 }
 
-let naiveIdentifiables: [Identifiable] ❌
+let invalidIdentifiables: [Identifiable] ❌
 // The compiler doesn't currently allow that.
 // So, we work around that by creating a
 // custom existential type: 'AnyIdentifiable'.
@@ -75,33 +75,33 @@ The compiler will no longer differentiate between protocols that don’t have `S
 ##### Protocol with `Self` and Associated Type Requirements 
 
 ```swift
-protocol Foo {
-  associatedtype Bar
+protocol A {
+  associatedtype A
     
-  var bar: Bar { get }
+  var a: A { get }
 }
 
-struct S: Foo { 
-  let bar: Int = 5
+struct S: A { 
+  let a: Int = 5
 }
 
-let foo: Foo = S() ✅ 
+let myA: A = S() ✅ 
 
 
-let bar: Any = foo.bar ❌
-// We don’t know what type 'Bar' is
-// on the existential type of 'Foo'.
+let a: Any = myA.a ❌
+// We don’t know what associated type 
+// 'A' is on the existential type of 'A'.
 
 
-extension Foo {
-  var opaqueBar: some Any {
-    bar 
+extension A {
+  var opaqueA: some Any {
+    a 
   }
   // Note that it references 
-  // the associated type 'Bar'.
+  // the associated type 'A'.
 }
 
-let opaqueBar: some Any = foo.opaqueBar ❌
+let opaqueA: some Any = myA.opaqueA ❌
 // Opaque result type don't 
 // type-erase; they just conceal
 // the underlying value from the
@@ -112,24 +112,24 @@ let opaqueBar: some Any = foo.opaqueBar ❌
 ##### Protocol with Known Associated Types
 
 ```swift
-protocol Foo {
-  associatedtype Bar
+protocol A {
+  associatedtype A
 
-  var bar: Bar { get }
+  var a: A { get }
 }
 
-protocol RefinedFoo: Foo
-  where Bar == Int {}
+protocol RefinedA: A
+  where A == Int {}
 
-struct S: RefinedFoo { 
-  let bar: Int = 5
+struct S: RefinedA { 
+  let a: Int = 5
 }
 
-let foo: RefinedFoo = S() ✅
+let myRefinedA: RefinedA = S() ✅
 
-let intBar: Int = foo.bar ✅
+let intA: Int = myRefinedA.a ✅
 // Here we know that the associated
-// type 'Bar' of 'RefinedFoo' is 'Int'.
+// type 'A' of 'RefinedA' is 'Int'.
 ```
 
 ##### Protocol Composition 
@@ -156,14 +156,14 @@ struct S: RefinedA & B {
 }
 
 
-let ab: RefinedA & B = S() ✅
+let myRefinedAB: RefinedA & B = S() ✅
 
 
-let a: Int = ab.a ✅
+let a: Int = myRefinedAB.a ✅
 
-let b: some Any = ab.b ❌
+let b: some Any = myRefinedAB.b ❌
 // We don’t know what type 'B' is
-// on the type-erased value 'ab'.
+// on the type-erased value 'myRefinedAB'.
 ```
 
 
@@ -199,11 +199,11 @@ To alleviate confusion between existential types and protocols it has been propo
 After introducing existential types for all protocols, constraining them seems like the next logical step. Constraining refers to constraining a protocol’s associated types which will, therefore, only be available to protocols that have unspecified associated types. These constraints would probably be the same-type constraint: `where A == B` and the conformance constraint: `where A: B`:
 
 ```swift
-typealias Foo = Any<
+typealias A = Any<
   Identifiable where .ID == String
 >
 
-typealias Bar = Any<
+typealias B = Any<
   Identifiable where .ID: Comparable 
 >
 ```
@@ -223,9 +223,9 @@ struct S: Identifiable {
   let id: Int = 5
 }
 
-let foo: Identifiable = S()
+let myIdentifiable: Identifiable = S()
 
-let id: Any<Hashable> = foo.id ✅
+let id: Any<Hashable> = myIdentifiable.id ✅
 ```
 
 #### Make Existential Types Extensible
