@@ -17,45 +17,103 @@ Property wrappers have undoubtably been very successful. For one, applying a pro
 
 ```swift
 @propertyWrapper
-struct Wrapper<Value> {
-  var wrappedValue: Value
+struct Clamped<Value: Comparable> {
+  init(
+    wrappedValue: Value,
+    to range: Range<Value>
+  ) { ... }
+  
+  var wrappedValue: Value { 
+    get { ... }
+    set { ... }
+  }
 }
 
-struct Foo {
-  @Wrapper
-  var count = 0
+struct Percentage {
+  @Clamped(to: 0 ... 100)
+  var percent = 100
      
-  func increase() {
-    count += 1
+  func increment() {
+    percent += 1
     // Great!
   }
 }
 
-func foo(count: Wrapper<Int>) {
-  count.wrappedValue = ...
+func increment(percent: Clamped<Int>) {
+  percent.wrappedValue = ...
   //   ^~~~~~~~~~~~ 
   // Unfortunately, we can't
-  // use `@Wrapper` here.
+  // use `@Clamped` here.
 }
 ```
 
 As seen in the above example, it quite akward and unintuitive that property wrappers cannot be applied to function parameters. This is only emphasized by the fact that property wrappers originally sought out to abstract away such accessor patterns.  As a result, elegant APIs are undermined by this limitation. Not only, is this limiting users by forcing them to rigidly follow API guidelines, which may not cover a specific use case, but it also limits API authors in what they can create. That is, API authors can't use property-wrapper types in closure parameters nor can code be seperated into functions that accept property wrapper syntax:
 
 ```swift
-func fooInClosure(
-  _ block: (Wrapper<Int>) -> Void
-) { ... }
 
-fooInClosure { count in 
-  count.wrappedValue = 2
-  //    ^~~~~~~~~~~~ 
-  // Again, we have to 
-  // access count through
-  // `wrappedValue`.
+extension Percentage {
+  func modify(
+    inSeconds seconds: Int,
+    block: @escaping (Clamped<Int>) -> Void
+  ) { ... }
+}
+
+let myPercentage = Percentage(percent: 50)
+
+myPercentage
+  .modify(inSeconds: 3) { percent in
+    percent.wrappedValue = 100
+    //    ^~~~~~~~~~~~ 
+    // Again, we have to 
+    // access count through
+    // `wrappedValue`.
+  }
+```
+
+In fact, establishing custom behavior on closure parameters is really powerful. For example, if such a feature were supported, it could be used in conjunction with [Function Builders](https://github.com/apple/swift-evolution/blob/master/proposals/0289-function-builders.md) to expose data managed by a 'component' type. For instance, in SwiftUI [`ForEach`](https://developer.apple.com/documentation/swiftui/foreach) could exploit this feature to expose the mutable state of its data source to its 'content' closure. Thus, instead of manually mutating the data source, as is done here:
+
+```swift
+struct MyView: View {
+  // A simple Shopping Item that includes
+  // a 'quantity' and a 'name' property.
+  @State 
+  private var shoppingItems: [Item]
+
+  var body: some View {
+    ForEach(0 ..< shoppingItems.count) { index in
+    
+      Text(shoppingItems[index].name)
+        .onTapGesture {
+          // We increase the item's quantity 
+          // when the user taps the item. 
+          shoppingItems[index].quanity += 1
+        }
+      
+    }
+  }
 }
 ```
 
-In fact, establishing custom behavior on closure parameters is really powerful. For example, if such a feature were supported, it could be used in conjunction with [Function Builders](https://github.com/apple/swift-evolution/blob/master/proposals/0289-function-builders.md) to expose data managed by a 'component' type. Moreover, property wrappers in escaping closures could be used to expose data available at the time the closure is executed in a simple and intuitive manner.
+with an appropriate initializer we would be able to simplify the above code, therefore reducing boilerplate:
+
+```swift
+struct MyView: View {
+  @State 
+  private var shoppingItems: [Item]
+
+  var body: some View {
+    ForEach($shoppingItems) { @Binding shoppingItem in
+    
+      Text(shoppingItem.name)
+        .onTapGesture {
+          shoppingItem.quanity += 1
+        }
+      
+    }
+  }
+}
+```
+
 
 ## Proposed solution
 
@@ -63,34 +121,27 @@ We propose to extend the contexts were application of property-wrapper types is 
 
 ```swift
 @propertyWrapper
-struct Wrapper<Value> {
-  var wrappedValue: Value
+struct Clamped<Value: Comparable> {
+  init(
+    wrappedValue: Value,
+    to range: Range<Value>
+  ) { ... }
+    
+  var wrappedValue: Value { ... }
     
   var projectedValue: Self {
     self
   }
 }
 
-func foo(@Wrapper count: Int = 0) {
-  ...
-}
-
-func fooInClosure(
-  _ block: (Wrapper<Int>) -> Int
+func increment(
+  @Clamped(to: 0 ... 100) percent: Int = 100
 ) { ... }
 
-struct Foo {
-  @Wrapper
-  var count = 0
-    
-  func bar() {
-    foo(count: $count)
-        
-    fooInClosure { @Wrapper count in
-      ...
-    }
+myPercentage
+  .modify(inSeconds: 3) { @Clamped percent in
+    percent = 100 
   }
-}
 ```
 
 
