@@ -508,6 +508,32 @@ This means that the type of the `ScrollView` will refer to `LazyVStack`, even on
 static func buildLimitedAvailability<Content: View>(_ content: Content) -> AnyView { .init(content) }
 ```
 
+Consider a cut-down example focusing on the `if #available`:
+
+```swift
+if #available(macOS 11.0, iOS 14.0, *) {
+    LazyVStack { }
+} else {
+    VStack { }
+}
+```
+
+This will be transformed as:
+
+```swift
+let vMerged: *inferred type*
+if #available(macOS 11.0, iOS 14.0, *) {
+    let v0 = LazyVStack { }
+    let v1 = ViewBuilder.buildBlock(v0)
+    let v2 = ViewBuilder.buildLimitedAvailability(v1)
+    vMerged = ViewBuilder.build(first: v2)
+} else {
+    let v3 = VStack { }
+    let v4 = ViewBuilder.buildBlock(v3)
+    vMerged = ViewBuilder.build(second: v4)
+}
+```
+
 ### **Example**
 
 Let's return to our earlier example and work out how to define a function-builder DSL for it.  First, we need to define a basic function builder type:
