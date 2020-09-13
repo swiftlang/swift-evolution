@@ -344,7 +344,7 @@ static func buildExpression(_: ()) -> Component { ... }
 
 #### Selection statements
 
-`if`/`else` chains and `switch` statements produce values conditionally depending on their cases. There are two basic transformation patterns which can be used, depending on the selection statement itself; we'll show examples of each, then explain the details of the transformation.
+`if`/`else` and `switch` statements produce values conditionally depending on their cases. There are two basic transformation patterns which can be used, depending on the selection statement itself; we'll show examples of each, then explain the details of the transformation.
 
 Consider a simple "if" statement without an "else" block:
 
@@ -364,7 +364,7 @@ if i == 0 {
 let v0 = BuilderType.buildOptional(vCase0)
 ```
 
-The second transformation pattern produces a balanced binary tree of injections into a single partial result in the enclosing block. It can support general selection statements such as `if`-`else` and `switch`. Consider the following DSL code:
+The second transformation pattern produces a balanced binary tree of injections into a single partial result in the enclosing block. It supports `if`-`else` and `switch`. Consider the following code:
 
 ```swift
 if i == 0 {
@@ -391,7 +391,7 @@ if i == 0 {
 }
 ```
 
-The detailed transformation of selection statements proceeds as follows. The child blocks of the statement are first analyzed to determine the number *N* of cases that can produce results and whether there are any cases that don't. The implementation is permitted to analyze multiple nesting levels of statements at once; e.g. if a `case` consists solely of an `if` chain, the cases of the `if` can be treated recursively as cases of the `switch` at the implementation's discretion. A missing `else` is a separate case for the purposes of this analysis.
+The detailed transformation of selection statements proceeds as follows. The child blocks of the statement are first analyzed to determine the number *N* of cases that can produce results and whether there are any cases that don't. The implementation is permitted to analyze multiple nesting levels of statements at once; e.g. if a `case` consists solely of an `if` chain, the cases of the `if` can be treated recursively as cases of the `switch` at the implementation's discretion. A missing `else` is a separate case for the purposes of this analysis, and will be handled by `buildOptional(_:)`.
 
 If *N* = 0, the statement is ignored by the transformation. Otherwise, an injection strategy is chosen:
 
@@ -426,7 +426,7 @@ The transformation then proceeds as follows:
 
     Note that all of the assignments to `vMerged` will be type-checked together, which should allow any free generic arguments in the result types of the injections to be unified.
 
-* After the statement, if the statement is not using an injection tree or if there are any non-result-producing cases, then for each of the variables `v` declared above, a new unique variable `v2` is initialized by calling the function-building method `buildOptional(_:)` with `v` as the argument, and `v2` is then a partial result of the surrounding block.  Otherwise, there is a unique variable `vMerged`, and `vMerged` is a partial result of the surrounding block.
+* After the statement, if there is an `if` that does not have a corresponding `else`, a new unique variable `v2` is initialized by calling the function-building method `buildOptional(_:)` with `v` as the argument, and `v2` is then a partial result of the surrounding block.  Otherwise, there is a unique variable `vMerged`, and `vMerged` is a partial result of the surrounding block.
 
 #### Imperative control-flow statements
 
