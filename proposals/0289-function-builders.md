@@ -264,19 +264,19 @@ Function-building methods are `static` methods that can be called on the functio
 
 This is a quick reference for the function-builder methods currently proposed.  The typing here is subtle, as it often is in macro-like features.  In the following descriptions, `Expression` stands for any type that is acceptable for an expression-statement to have (that is, a raw partial result), `Component` stands for any type that is acceptable for a partial or combined result to have, and `Return` stands for any type that is acceptable to be ultimately returned by the transformed function.
 
-* `buildExpression(_ expression: Expression) -> Component` is used to lift the results of expression-statements into the `Component` internal currency type.  It is only necessary if the DSL wants to either (1) distinguish `Expression` types from `Component` types or (2) provide contextual type information for statement-expressions. 
+* `buildBlock(_ components: Component...) -> Component` is used to build combined results for statement blocks. It is required to be a static method in every function builder.
 
-* `buildBlock(_ components: Component...) -> Component` is used to build combined results for most statement blocks.
+* `buildOptional(_ component: Component?) -> Component` is used to handle a partial result that may or may not be available in a given execution. When a function builder provides `buildOptional(_:)`, the transformed function can include `if` statements without an `else`.
 
-* `buildFinalResult(_ components: Component) -> Return` is used to finalize the result produced by the outermost `buildBlock` call for top-level function bodies.  It is only necessary if the DSL wants to distinguish `Component` types from `Return` types, e.g. if it wants builders to internally traffic in some type that it doesn't really want to expose to clients.  If it isn't declared, the result of the outermost `buildBlock` will be used instead.
+* `buildEither(first: Component) -> Component` and `buildEither(second: Component) -> Component` are used to build partial results when a selection statement produces a different result from different paths. When a function builder provides these functions, the transformed function can include `if` statements with an `else` statement as well as `switch` statements. 
+ 
+* `buildArray(_ components: [Component]) -> Component` is used to build a partial result given the partial results collected from all of the iterations of a loop. When a function builder provides `buildArray(_:)`, the transformed function can include `for..in` statements.
 
-* `buildOptional(_ component: Component?) -> Component` is used to build a partial result in an enclosing block from the result of an optionally-executed sub-block.  If it isn't declared, optionally-executed sub-blocks are ill-formed.
+* `buildExpression(_ expression: Expression) -> Component` is used to lift the results of expression-statements into the `Component` internal currency type. It is optional, but when provided it allows a function builder to distinguish `Expression` types from `Component` types or to provide contextual type information for statement-expressions.
 
-* `buildEither(first: Component) -> Component` and `buildEither(second: Component) -> Component` are used to build partial results in an enclosing block from the result of either of two (or more, via a tree) optionally-executed sub-blocks.
+* `buildFinalResult(_ component: Component) -> Return` is used to finalize the result produced by the outermost `buildBlock` call for top-level function bodies. It is optional, and allows a function builder to distinguish `Component` types from `Return` types, e.g. if it wants builders to internally traffic in some type that it doesn't really want to expose to clients.
 
-* `buildArray(_ components: [Component]) -> Component` is used to build a partial result given the partial results collected from all of the iterations of a loop.
-
-* `buildLimitedAvailability(_ component: Component) -> Component` is used to transform the partial result produced by `buildBlock` in a limited available context (such as `if #available`) into one suitable for any context. If not present, the partial result produced from a limited availability context will be the result of `buildBlock`.
+* `buildLimitedAvailability(_ component: Component) -> Component` is used to transform the partial result produced by `buildBlock` in a limited-availability context (such as `if #available`) into one suitable for any context. It is optional, and is only needed by function builders that might carry type information from inside an `if #available` outside it.
 
 ### The function builder transform
 
@@ -344,7 +344,7 @@ static func buildExpression(_: ()) -> Component { ... }
 
 #### Selection statements
 
-`if`/`else` chains and `switch` statements produce values conditionally depending on their cases. There are two basic transformation patterns which can be used, depending on the selection statement itself; we'll show examples of each, then explain the details of the transformation.
+`if`/`else` and `switch` statements produce values conditionally depending on their cases. There are two basic transformation patterns which can be used, depending on the selection statement itself; we'll show examples of each, then explain the details of the transformation.
 
 Consider a simple "if" statement without an "else" block:
 
@@ -364,7 +364,7 @@ if i == 0 {
 let v0 = BuilderType.buildOptional(vCase0)
 ```
 
-The second transformation pattern produces a balanced binary tree of injections into a single partial result in the enclosing block. It can support general selection statements such as `if`-`else` and `switch`. Consider the following DSL code:
+The second transformation pattern produces a balanced binary tree of injections into a single partial result in the enclosing block. It supports `if`-`else` and `switch`. Consider the following code:
 
 ```swift
 if i == 0 {
@@ -391,7 +391,7 @@ if i == 0 {
 }
 ```
 
-The detailed transformation of selection statements proceeds as follows. The child blocks of the statement are first analyzed to determine the number *N* of cases that can produce results and whether there are any cases that don't. The implementation is permitted to analyze multiple nesting levels of statements at once; e.g. if a `case` consists solely of an `if` chain, the cases of the `if` can be treated recursively as cases of the `switch` at the implementation's discretion. A missing `else` is a separate case for the purposes of this analysis.
+The detailed transformation of selection statements proceeds as follows. The child blocks of the statement are first analyzed to determine the number *N* of cases that can produce results and whether there are any cases that don't. The implementation is permitted to analyze multiple nesting levels of statements at once; e.g. if a `case` consists solely of an `if` chain, the cases of the `if` can be treated recursively as cases of the `switch` at the implementation's discretion. A missing `else` is a separate case for the purposes of this analysis, and will be handled by `buildOptional(_:)`.
 
 If *N* = 0, the statement is ignored by the transformation. Otherwise, an injection strategy is chosen:
 
@@ -426,7 +426,7 @@ The transformation then proceeds as follows:
 
     Note that all of the assignments to `vMerged` will be type-checked together, which should allow any free generic arguments in the result types of the injections to be unified.
 
-* After the statement, if the statement is not using an injection tree or if there are any non-result-producing cases, then for each of the variables `v` declared above, a new unique variable `v2` is initialized by calling the function-building method `buildOptional(_:)` with `v` as the argument, and `v2` is then a partial result of the surrounding block.  Otherwise, there is a unique variable `vMerged`, and `vMerged` is a partial result of the surrounding block.
+* After the statement, if there is an `if` that does not have a corresponding `else`, a new unique variable `v2` is initialized by calling the function-building method `buildOptional(_:)` with `v` as the argument, and `v2` is then a partial result of the surrounding block.  Otherwise, there is a unique variable `vMerged`, and `vMerged` is a partial result of the surrounding block.
 
 #### Imperative control-flow statements
 
@@ -506,6 +506,32 @@ This means that the type of the `ScrollView` will refer to `LazyVStack`, even on
 
 ```swift
 static func buildLimitedAvailability<Content: View>(_ content: Content) -> AnyView { .init(content) }
+```
+
+Consider a cut-down example focusing on the `if #available`:
+
+```swift
+if #available(macOS 11.0, iOS 14.0, *) {
+    LazyVStack { }
+} else {
+    VStack { }
+}
+```
+
+This will be transformed as:
+
+```swift
+let vMerged: *inferred type*
+if #available(macOS 11.0, iOS 14.0, *) {
+    let v0 = LazyVStack { }
+    let v1 = ViewBuilder.buildBlock(v0)
+    let v2 = ViewBuilder.buildLimitedAvailability(v1)
+    vMerged = ViewBuilder.build(first: v2)
+} else {
+    let v3 = VStack { }
+    let v4 = ViewBuilder.buildBlock(v3)
+    vMerged = ViewBuilder.build(second: v4)
+}
 ```
 
 ### **Example**
