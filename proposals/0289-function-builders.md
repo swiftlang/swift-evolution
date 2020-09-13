@@ -224,9 +224,9 @@ return body {
 }
 ```
 
-The above has to be embedded into the ordinary language somehow, which means that at least the outermost layer must obey something like ordinary language rules.  Under ordinary language rules, this is a function call to `body `passing a trailing closure.  It makes sense, then, that what we're doing is taking the body of the anonymous function and apply some sort of transformation to it.  This raises a series of separate questions:
+The above has to be embedded into the ordinary language somehow, which means that at least the outermost layer must obey something like ordinary language rules.  Under ordinary language rules, this is a function call to `body` passing a trailing closure.  It makes sense, then, that what we're doing is taking the body of the anonymous function and applying some sort of transformation to it.  This raises a series of separate questions:
 
-1. What it is about this source code that triggers the transformation?  We have chosen not to require an explicit annotation on every closure that needs transformation; see Alternatives Considered for a discussion.  So somehow this must get picked up from the fact that we're passing the closure to `body`.
+1. What is it about this source code that triggers the transformation?  We have chosen not to require an explicit annotation on every closure that needs transformation; see Alternatives Considered for a discussion.  So somehow this must get picked up from the fact that we're passing the closure to `body`.
 
 2. Given that the transformation is going to collect a bunch of information, how does that information get back to `body`?  Since the transformation is working on a function body, this one's straightforward: the collected information will just be the return value of the function. There's no requirement to support this transformation simultaneously with ordinary `return`.
 
