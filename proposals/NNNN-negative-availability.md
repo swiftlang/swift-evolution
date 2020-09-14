@@ -8,15 +8,13 @@
 
 ## Introduction
 
-Checking whether a specific platform is **not** available is necessary when an API is *completely* different across versions. The most common example is how building an iOS app's main `UIWindow` changed with the introduction of `SceneDelegates`; While a basic `AppDelegate` app needs to setup its window when the app finishes launching, apps that support `SceneDelegate` should instead do it *later* in the app's lifecycle, more specifically, when the AppDelegate connects the app's main `UIScene`. This extreme difference in behavior cannot be conveyed by a simple if/else statement, instead requiring a *negative* check in the AppDelegate to indicate that you should only build the window if the user is **not** running iOS 13. Currently, this is only achievable through a workaround.
+Swift historically supported the `#availability` keyword to check if a specific symbol **is** available for usage, but not the opposite. In this proposal, we'll present cases where checking for the **unavailability** of something is necessary, the ugly workaround needed to achieve it today and how a new attribute could improve it.
 
 Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/t/support-negative-availability-literals/39946)
 
 ## Motivation
 
-## Readability
-
-Because the `#availability` literal is not parsed as an expression, it cannot be negated through regular means (`!`/`== false`). The current way to achieve a negative availability check is to make use of the the `else` portion of a regular check:
+Checking whether a specific platform/symbol is **not** available is necessary when the changes made to an API are so extreme that you cannot represent it in a simple if/else statement. The most common example is how building an iOS app's main `UIWindow` changed with the introduction of `SceneDelegates`; While a basic iOS 12 `AppDelegate` app sets up its window when the app finishes launching, apps that support `SceneDelegates` should instead do it *later* in the app's lifecycle -- more specifically, when the AppDelegate connects the app's main `UIScene`. Since this happens outside the usual `didFinishLaunching` flow, this extreme difference in behavior cannot be conveyed by a simple if/else statement. Instead, the `AppDelegate` will require a *negative* platform check that makes it sure it's only building the window if the user is **not** running iOS 13.
 
 ```swift
 // if NOT in iOS 13, load the window.
@@ -28,11 +26,13 @@ if #available(iOS 13, *) {
 }
 ```
 
-However, as unavailability checks aren't interested in the *positive* portion of it, your code will end up with an empty block in the positive portion of the check.
+## Readability
 
-With the exception of this very specific case, an empty statement is a sure sign that there's something wrong in the code. Every unavailability check is then likely to include a comment that indicates it was done on purpose due to the compiler's limitations, and it might even be necessary to disable your linters in the check's line as most would assume that this is a mistake and incorrectly attempt to fix it by negating the check, which as mentioned before cannot be done.
+As you might notice, the current way to achieve negative availability checks is by working around the current `#available` keyword. Because the `#availability` literal is not parsed as an expression, it cannot be negated with regular boolean operations (`!`/`== false`). The way instead is to make use of the `else` flow, but as unavailability checks are not interested at all in the positive portion of the check, doing so will leave behind an empty closure statement.
 
-This workaround has a negative impact on the readability of the unavailability check. As shown below, most developers will attempt to hide the problem by putting the positive portion in a single line:
+With the exception of this very specific case, an empty statement is a sure sign that there's something wrong in the developer's code, and it is likely that every unavailability check like this had to include a comment to indicate that it was done on purpose due to the compiler's limitations. In some cases, it might be necessary to add a exclusion rule to the project's linters as most would assume that this is a mistake and incorrectly suggest that it can be fixed by negating the statement.
+
+This workaround has a clear negative impact on the readability of the unavailability check, as no one would expect an empty `if` statement to not be a coding mistake. Most developers will attempt to hide the problem by putting the positive portion in a single line:
 
 ```swift
 // if NOT in iOS 13, load the window.
@@ -52,13 +52,13 @@ guard #available(iOS 13, *) else {
 // no-op
 ```
 
-However, this goes against the code style recommendations involving the usage of `guard`. The guarded part should be the happy path, which can never be the case in this context.
+However, this goes against the code style recommendations involving the usage of `guard`. The guarded part should be the happy path, which is not the case in this context.
 
-As seen, it's currently impossible to write an unavailability check that property fits a developer's expectations and Swift's general style guide.
+As shown, it's currently impossible to write an unavailability check that property fits a developer's expectations and Swift's general style guide.
 
 ## Code Structure
 
-Besides the cases where having an unavailability check is mandatory, supporting them would give developers more options when structuring their code in cases where they are not. By not being forced to consider the availability of something as the happy path, developers would have more choices when considering how to architect and abstract certain pieces of code.
+Besides cases where having an unavailability check is mandatory, supporting them would give developers more options when structuring their code in cases where they are not. By not being forced to consider the availability of something as the happy path, developers would have more choices when considering how to architect and abstract certain pieces of code.
 
 ## Proposed solution
 
