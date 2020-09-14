@@ -772,7 +772,7 @@ protocol View {
 }
 ```
 
-When a `View`-conforming type defines its `body`, the `@ViewBuilder` attribute is inferred from the protocol requirement it satisfies, implicitly applying the function builder transform. This inferred occurs unless:
+When a `View`-conforming type defines its `body`, the `@ViewBuilder` attribute is inferred from the protocol requirement it satisfies, implicitly applying the function builder transform. This inference occurs unless:
 * The function or property already has a function builder attribute explicitly written on it, or
 * The body of the function or property getter contains an explicit `return` statement.
 
