@@ -471,7 +471,7 @@ If no `buildArray` is provided, `for`..`in` loops are not supported in the body.
 
 ### Availability
 
-Statements that introduce limited available contexts, such as `if #available(...)`, allow use of newer APIs while still making the code backward-deployable to older versions of the libraries. A function builder that carries complete type information (such as SwiftUI's [`ViewBuilder`](https://developer.apple.com/documentation/swiftui/viewbuilder)) may need to "erase" type information from a limited availability context using `buildLimitedAvailability`. Here is a SwiftUI example borrowed from [Paul Hudson](https://www.hackingwithswift.com/quick-start/swiftui/how-to-lazy-load-views-using-lazyvstack-and-lazyhstack):
+Statements that introduce limited availability contexts, such as `if #available(...)`, allow the use of newer APIs while still making the code backward-deployable to older versions of the libraries. A function builder that carries complete type information (such as SwiftUI's [`ViewBuilder`](https://developer.apple.com/documentation/swiftui/viewbuilder)) may need to "erase" type information from a limited availability context using `buildLimitedAvailability`. Here is a SwiftUI example borrowed from [Paul Hudson](https://www.hackingwithswift.com/quick-start/swiftui/how-to-lazy-load-views-using-lazyvstack-and-lazyhstack):
 
 ```swift
 @available(macOS 10.15, iOS 13.0)
