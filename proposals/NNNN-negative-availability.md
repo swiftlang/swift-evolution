@@ -130,7 +130,7 @@ As they are separate statements, there's no ambiguity.
 In the case of multiple else flows, the compiler will increase the symbol availability in **all** of them.
 
 ```swift
-if #unavailable(iOS 9.0) {
+if #unavailable(iOS 9.0, *) {
   // Symbol Availability: Default (deployment target)
 } else if a == b {
   // Symbol Availability: iOS 9.0
