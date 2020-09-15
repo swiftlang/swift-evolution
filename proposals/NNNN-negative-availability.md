@@ -94,7 +94,7 @@ The ability to use several availability checks in a single statement allows posi
 
 ```swift
 // User running something between iOS 9 and 12
-if #available(iOS 9.0), #unavailable(iOS 13.0) {
+if #available(iOS 9.0, *), #unavailable(iOS 13.0, *) {
   // Symbol Availability: iOS 9.0
 } else {
   // Symbol Availability: ???
