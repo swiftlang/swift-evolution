@@ -1,4 +1,4 @@
-# Unavailability Checks
+# Unavailability Condition
 
 * Proposal: [SE-NNNN](NNNN-negative-availability.md)
 * Author: [Bruno Rocha](https://github.com/rockbruno)
