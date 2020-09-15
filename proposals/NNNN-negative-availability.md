@@ -54,7 +54,7 @@ guard #available(iOS 13, *) else {
 
 However, this goes against the code style recommendations involving the usage of `guard`. The guarded part should be the happy path, which is not the case when doing unavailability checks.
 
-As shown, it's currently impossible to write an unavailability check that property fits a developer's engineering expectations and Swift's general style guide. Any iOS application that supports UIScenes will have to write this workaround.
+As shown, it's currently impossible to write an unavailability check that properly fits a developer's engineering expectations and Swift's general style guide. Any iOS application that supports UIScenes will have to write this workaround.
 
 ## Code Structure
 
