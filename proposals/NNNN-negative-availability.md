@@ -58,7 +58,7 @@ As shown, it's currently impossible to write an unavailability check that proper
 
 ## Code Structure
 
-Besides cases where having an unavailability check is mandatory, supporting them would give developers more options when structuring their code in cases where they are not. By not being forced to consider the availability of something as the happy path, developers would have more choices when considering how to architect and abstract certain pieces of code.
+Besides cases where having an unavailability check is mandatory, supporting them would give developers more options when structuring their code in cases where they are not mandatory. By not being forced to consider the availability of something as the happy path, developers would have more choices when considering how to architect and abstract certain pieces of code.
 
 ## Proposed solution
 
