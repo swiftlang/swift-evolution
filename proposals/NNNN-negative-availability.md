@@ -62,7 +62,7 @@ Besides cases where having an unavailability check is mandatory, supporting them
 
 ## Proposed solution
 
-Given that Objective-C is capable of negating availability checks, we believe that this not being available in Swift was simply an oversight. We would like to propose this feature back to Swift in the shape of a new `#unavailable` literal: 
+Given that Objective-C is capable of negating availability checks, we believe that this not being supported in Swift was simply an oversight. We would like to propose this feature back to Swift in the shape of a new `#unavailable` condition: 
 
 ```swift
 if #unavailable(iOS 13, *) {
