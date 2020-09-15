@@ -1,6 +1,6 @@
 # Unavailability Checks
 
-* Proposal: [SE-NNNN](NNNN-negative-availability)
+* Proposal: [SE-NNNN](NNNN-negative-availability.md)
 * Author: [Bruno Rocha](https://github.com/rockbruno)
 * Review Manager: TBD
 * Implementation: [apple/swift#33932](https://github.com/apple/swift/pull/33932)
