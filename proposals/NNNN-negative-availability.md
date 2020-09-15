@@ -104,7 +104,7 @@ if #available(iOS 9.0, *), #unavailable(iOS 13.0, *) {
 The availability of the else block cannot be determined because it depends on which of the two conditions is false. To prevent this from happening, the compiler will emit a diagnostic whenever this happens.
 
 ```swift
-if #available(iOS 9.0), #unavailable(iOS 13.0)
+if #available(iOS 9.0, *), #unavailable(iOS 13.0, *)
 // error: #available and #unavailable cannot be in the same statement
 ```
 
