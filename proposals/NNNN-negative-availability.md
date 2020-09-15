@@ -111,9 +111,9 @@ if #available(iOS 9.0, *), #unavailable(iOS 13.0, *)
 Technically we could support this by *not* improving the symbol availability of a scope if it's ambiguous, but as there are currently no legitimate cases where one would have to mix availability with unavailability, the author believes the work necessary to support this and its edge cases is not worth it at the time this proposal was written. However, you can still use them as separate statements.
 
 ```swift
-if #available(iOS 9.0) {
+if #available(iOS 9.0, *) {
   // Symbol Availability: iOS 9.0
-  if #unavailable(iOS 13.0) {
+  if #unavailable(iOS 13.0, *) {
     // Symbol Availability: iOS 9.0
   } else {
     // Symbol Availability: iOS 13.0
