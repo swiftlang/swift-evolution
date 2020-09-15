@@ -5,7 +5,7 @@
 * Review Manager: [John McCall][]
 * Status: **Accepted with revisions**
 * Decision Notes: [Rationale][]
-* Previous Revision: [1][Revision 1], [Originally Accepted Proposal][]
+* Previous Revision: [1][Revision 1], [Originally Accepted Proposal][], [Expired Proposal][]
 * Bugs: [SR-4691](https://bugs.swift.org/browse/SR-4691), [SR-12206](https://bugs.swift.org/browse/SR-12206), [SR-12229](https://bugs.swift.org/browse/SR-12229)
 
 ## Introduction
@@ -181,94 +181,6 @@ enum Tree {
 }
 ```
 
-### Disambiguating pattern matches
-
-Swift's original pattern matching rules for enums treated each associated value
-as a tuple, and as such, allowed for multiple elements of an associated value to
-be pattern matched as a single value, or destructured into individual elements
-and matched independently:
-
-```
-enum Buffalo {
-    case buffalo(buffalo: String, buffalo: String)
-}
-
-switch buffalo {
-case .buffalo(_): // ok
-case .buffalo(_, _): // ok
-}
-```
-
-To maintain source compatibility, this behavior cannot be changed. However, it
-poses an ambiguity when combined with the added functionality above, where
-multiple cases share the same base name, but have different argument labels
-or number of arguments:
-
-```
-enum Buffalo {
-    case buffalo(String)
-    case buffalo(bill: String)
-    case buffalo(buffalo: String)
-    case buffalo(buffalo: String, buffalo: String)
-}
-
-switch buffalo {
-case .buffalo(_): // Ambiguous under the original rules, could refer to any of the above
-}
-```
-
-To resolve the ambiguity, single-element patterns shall favor matching single-
-element associated values over tuples. Explicit destructuring must be used to
-favor a multiple-element associated value:
-
-```
-enum Buffalo {
-    case buffalo(String)
-    case buffalo(buffalo: String, buffalo: String)
-}
-
-switch buffalo {
-case .buffalo(_): // Favors `buffalo(_:)`
-case .buffalo(_, _): // Favors `buffalo(buffalo:buffalo:)`
-}
-```
-
-
-If multiple enum cases agree in arity but have different argument labels, then
-an unlabeled pattern favors matching an unlabeled associated value. Specifying
-labels in the pattern can be used to favor declarations matching those label:
-
-```
-enum Buffalo {
-    case buffalo(String, String)
-    case buffalo(buffalo: String, buffalo: String)
-}
-
-switch buffalo {
-case .buffalo(_, _): // Favors `buffalo(_:_:)`
-case .buffalo(buffalo: _, buffalo: _): // Favors `buffalo(buffalo:buffalo:)`
-case .buffalo(_, buffalo: _): // Favors `buffalo(buffalo:buffalo:)`
-case .buffalo(buffalo: _, _): // Favors `buffalo(buffalo:buffalo:)`
-}
-```
-
-If there are no unlabeled associated values and there are multiple labeled
-associated values with the same arity, then an unlabeled pattern is ambiguous.
-Explicit labels can be used to disambiguate:
-
-```
-enum Buffalo {
-    case buffalo(bill: String)
-    case buffalo(buffalo: String)
-}
-
-switch buffalo {
-case .buffalo(_): // Error, ambiguous
-case .buffalo(bill: _): // Favors `buffalo(bill:)`
-case .buffalo(buffalo: _): // Favors `buffalo(buffalo:)`
-}
-```
-
 ## Source compatibility
 
 Despite a few additions, case declaration remain mostly source-compatible with
@@ -345,8 +257,8 @@ func switchFoo(x: Foo) {
 ```
 
 However, it was decided in review that this was still too restrictive and
-source-breaking, and so the core team [accepted the proposal][Rationale] with the modification that pattern matches only had to match the case declaration in arity, and case labels could be either provided or elided in their entirety, unless there was an ambiguity. Even then, as of Swift 5.2, this part of the proposal has not been implemented, and it would be a source breaking change to do so. Therefore, the "Pattern Consistency" section of the original proposal has been removed, and replaced with the "Disambiguating pattern matches" section above, which provides a minimal disambiguation rule for pattern matching cases that share a
-base name. Pattern matching otherwise still follows the vintage Swift 2 rules, where the payload can be matched either as a single tuple, or as individual tuple elements.
+source-breaking, and so the core team [accepted the proposal][Rationale] with the modification that pattern matches only had to match the case declaration in arity, and case labels could be either provided or elided in their entirety, unless there was an ambiguity. Even then, as of Swift 5.2, this part of the proposal has not been implemented, and it would be a source breaking change to do so. Therefore, the "Pattern Consistency" section of the original proposal has been removed, and replaced with a ["Disambiguating pattern matches" section](https://github.com/apple/swift-evolution/blob/aecced4919ab297f343dafd7235d392d8b859839/proposals/0155-normalize-enum-case-representation.md), which provided a minimal disambiguation rule for pattern matching cases that share a
+base name. This new design still had not been implemented at the time the [core time adopted a new expiration policy for unimplemented proposals](https://forums.swift.org/t/addressing-unimplemented-evolution-proposals/40322), so it has expired.
 
 [SE-0155]: 0155-normalize-enum-case-representation.md
 [SE-0111]: 0111-remove-arg-label-type-significance.md
@@ -357,4 +269,5 @@ base name. Pattern matching otherwise still follows the vintage Swift 2 rules, w
 [Revision 1]: https://github.com/apple/swift-evolution/blob/43ca098355762014f53e1b54e02d2f6a01253385/proposals/0155-normalize-enum-case-representation.md
 [Normalize Enum Case Representation (rev. 2)]: https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170306/033626.html
 [Originally Accepted Proposal]: https://github.com/apple/swift-evolution/blob/4cbb1f1fa836496d4bfba95c4b78a9754690956d/proposals/0155-normalize-enum-case-representation.md
+[Expired Proposal]: https://github.com/apple/swift-evolution/blob/aecced4919ab297f343dafd7235d392d8b859839/proposals/0155-normalize-enum-case-representation.md
 [Rationale]: https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170417/035972.html
