@@ -16,7 +16,7 @@ This repository tracks the ongoing evolution of Swift. It contains:
 
 | Version   | Announced                                                       | Released                                                 |
 | :-------- | :-------------------------------------------------------------- | :------------------------------------------------------- |
-| Swift 5.3 | [2020-03-25](https://swift.org/blog/5-3-release-process/)       |
+| Swift 5.3 | [2020-03-25](https://swift.org/blog/5-3-release-process/)       | [2020-09-16](https://swift.org/blog/swift-5-3-released/) |
 | Swift 5.2 | [2019-09-24](https://swift.org/blog/5-2-release-process/)       | [2020-03-24](https://swift.org/blog/swift-5-2-released/) |
 | Swift 5.1 | [2019-02-18](https://swift.org/blog/5-1-release-process/)       | [2019-09-20](https://swift.org/blog/swift-5-1-released/) |
 | Swift 5.0 | [2018-09-25](https://swift.org/blog/5-0-release-process/)       | [2019-03-25](https://swift.org/blog/swift-5-released/)   |
