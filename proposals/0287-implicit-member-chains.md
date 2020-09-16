@@ -1,9 +1,9 @@
 # Extend implicit member syntax to cover chains of member references
 
 * Proposal: [SE-0287](0287-implicit-member-chains.md)
-* Authors: [Frederick Kellison-Linn](https://github.com/jumhyn)
+* Author: [Frederick Kellison-Linn](https://github.com/jumhyn)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted**
+* Status: **Implemented (Swift Next)**
 * Implementation: [apple/swift#31679](https://github.com/apple/swift/pull/31679)
 * Review: [Review](https://forums.swift.org/t/se-0287-extend-implicit-member-syntax-to-cover-chains-of-member-references/39398), [Acceptance](https://forums.swift.org/t/accepted-se-0287-extend-implicit-member-syntax-to-cover-chains-of-member-references/39714)
 
