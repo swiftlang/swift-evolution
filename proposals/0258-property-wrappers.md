@@ -607,7 +607,7 @@ struct CopyOnWrite<Value: Copyable> {
   var projectedValue: Value {
     mutating get {
       if !isKnownUniquelyReferenced(&wrappedValue) {
-        wrappedValue = value.copy()
+        wrappedValue = wrappedValue.copy()
       }
       return wrappedValue
     }
