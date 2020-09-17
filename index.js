@@ -790,6 +790,7 @@ function _applyFilter (matchingProposals) {
         .filter(function (proposal) {
           return selectedStates.some(function (state) {
             if (!(proposal.status.state === '.implemented')) return true // only filter among Implemented (N.N.N)
+            if (state === 'swift-swift-Next' && proposal.status.version === 'Next') return true // special case
 
             var version = state.split(/\D+/).filter(function (s) { return s.length }).join('.')
 
