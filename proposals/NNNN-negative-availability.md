@@ -52,9 +52,27 @@ guard #available(iOS 13, *) else {
 // no-op
 ```
 
-However, this goes against the code style recommendations involving the usage of `guard`. The guarded part should be the happy path, which is not the case when doing unavailability checks.
+However, this goes against the code style recommendations involving the usage of `guard`. The guarded part should be the happy path, which is not the case when doing unavailability checks. As shown, it's currently impossible to write an unavailability check that properly fits a developer's engineering expectations and Swift's general style guide. 
 
-As shown, it's currently impossible to write an unavailability check that properly fits a developer's engineering expectations and Swift's general style guide. Any iOS application that supports UIScenes will have to write this workaround.
+Currently, any iOS application that supports UIScenes will face this issue and have to write this workaround. To describe it in a generic way, this issue will be encountered when dealing with any API addition or change that requires more than one availability condition to be implemented.
+
+## Usage of deprecated APIs
+
+A negative availability condition might also be necessary in cases where an API is marked an unavailable. While newer iOS versions will have migrated to new APIs, it's often the case that old versions must still respect the old requirements.
+
+An example is the deprecation of the [advertisingTrackingEnabled](https://developer.apple.com/documentation/adsupport/asidentifiermanager/1614148-advertisingtrackingenabled?language=objc) property; This property cannot be used in iOS 14 as apps are now required to use the new App Tracking Transparency framework, but it still works when used in previous versions.
+
+```swift
+// If NOT on iOS 14, track this action.
+// Post iOS 14, the new privacy frameworks prevent this.
+if #available(iOS 14.0) {
+
+} else if identifierManager.advertisingTrackingEnabled {
+  // Old iOS 13 tracking logic
+}
+```
+
+In this specific case, a company that wants to adopt the new privacy practices will require unavailability checks to prevent breaking old versions of the app. In general, this will be the case when dealing with any API that is now obsolete.
 
 ## Code Structure
 
