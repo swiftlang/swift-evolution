@@ -58,7 +58,7 @@ Currently, any iOS application that supports UIScenes will face this issue and h
 
 ## Usage of deprecated APIs
 
-A negative availability condition might also be necessary in cases where an API is marked as unavailable. While newer iOS versions will have migrated to new APIs, it's often the case that old versions must still respect the old requirements.
+A negative availability condition might also be necessary in cases where an API is _informally_ obsoleted; i.e. marked as deprecated and documented as non-functional in newer iOS versions.
 
 An example is the deprecation of the [`isAdvertisingTrackingEnabled`](https://developer.apple.com/documentation/adsupport/asidentifiermanager/1614148-isadvertisingtrackingenabled) property. Apps supporting iOS 14 must now use the new App Tracking Transparency framework for user tracking purposes, but the property still works when used in old versions.
 
