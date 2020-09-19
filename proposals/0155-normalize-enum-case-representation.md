@@ -258,7 +258,7 @@ func switchFoo(x: Foo) {
 
 However, it was decided in review that this was still too restrictive and
 source-breaking, and so the core team [accepted the proposal][Rationale] with the modification that pattern matches only had to match the case declaration in arity, and case labels could be either provided or elided in their entirety, unless there was an ambiguity. Even then, as of Swift 5.2, this part of the proposal has not been implemented, and it would be a source breaking change to do so. Therefore, the "Pattern Consistency" section of the original proposal has been removed, and replaced with a ["Disambiguating pattern matches" section](https://github.com/apple/swift-evolution/blob/aecced4919ab297f343dafd7235d392d8b859839/proposals/0155-normalize-enum-case-representation.md), which provided a minimal disambiguation rule for pattern matching cases that share a
-base name. This new design still had not been implemented at the time the [core time adopted a new expiration policy for unimplemented proposals](https://forums.swift.org/t/addressing-unimplemented-evolution-proposals/40322), so it has expired.
+base name. This new design still had not been implemented at the time the [core team adopted a new expiration policy for unimplemented proposals](https://forums.swift.org/t/addressing-unimplemented-evolution-proposals/40322), so it has expired.
 
 [SE-0155]: 0155-normalize-enum-case-representation.md
 [SE-0111]: 0111-remove-arg-label-type-significance.md
