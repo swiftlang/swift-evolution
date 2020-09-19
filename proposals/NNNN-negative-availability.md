@@ -26,7 +26,7 @@ if #available(iOS 13, *) {
 }
 ```
 
-## Readability
+### Readability
 
 As you might notice, the current way to achieve negative availability checks is by working around the current `#available` keyword. Because the availability condition is not parsed as an expression, it cannot be negated with regular boolean operations (`!`/`== false`). The way instead is to make use of the `else` clause, but as unavailability checks are not interested at all in the positive portion of the check, doing so will leave behind an empty `if` branch. For context, this problem does not exist in Objective-C as `if (@available(iOS 13.0, *) == NO)` is a valid expression.
 
