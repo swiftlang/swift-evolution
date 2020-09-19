@@ -60,19 +60,20 @@ Currently, any iOS application that supports UIScenes will face this issue and h
 
 A negative availability condition might also be necessary in cases where an API is _informally_ obsoleted; i.e. marked as deprecated and documented as non-functional in newer iOS versions.
 
-An example is the deprecation of the [`isAdvertisingTrackingEnabled`](https://developer.apple.com/documentation/adsupport/asidentifiermanager/1614148-isadvertisingtrackingenabled) property. Apps supporting iOS 14 must now use the new App Tracking Transparency framework for user tracking purposes, but the property still works when used in old versions.
+An example is the deprecation of the [`isAdvertisingTrackingEnabled`](https://developer.apple.com/documentation/adsupport/asidentifiermanager/1614148-isadvertisingtrackingenabled) property. Apps supporting iOS 14 must now use the new App Tracking Transparency framework for user tracking purposes, which involves displaying a permission alert for the user that explains why they are going to be tracked. A developer might determine that this large change in functionality might warrant a complete refactor of this feature, or simply conclude that the negative UX of displaying a new alert is not worth it and that they should remove this feature entirely. In any case however, the property still works when used with older iOS versions:
 
 ```swift
 // If NOT on iOS 14, track this action.
-// Post iOS 14, the new privacy frameworks prevent this.
+// Post iOS 14, we must ask for permission to do this.
+// The UX impact is not worth it. Let's not do this at all.
 if #available(iOS 14.0) {
 
-} else if identifierManager.advertisingTrackingEnabled {
-  // Old iOS 13 tracking logic
+} else {
+  oldIos13TrackingLogic(isEnabled: ASIdentifierManager.shared().isAdvertisingTrackingEnabled)
 }
 ```
 
-In this specific case, a company that wants to adopt the new privacy practices will require unavailability checks to prevent breaking old versions of the app. In general, this will be the case when dealing with any API that is now _informally_ obsoleted.
+In this specific case, a company that wants to adopt the new privacy practices will require unavailability checks to prevent breaking old versions of the app. In general, this will be the case when dealing with any API that is now deprecated or _informally_ obsoleted.
 
 ## Code Structure
 
