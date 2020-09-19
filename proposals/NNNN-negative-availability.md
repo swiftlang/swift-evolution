@@ -72,7 +72,7 @@ if #available(iOS 14.0) {
 }
 ```
 
-In this specific case, a company that wants to adopt the new privacy practices will require unavailability checks to prevent breaking old versions of the app. In general, this will be the case when dealing with any API that is now obsolete.
+In this specific case, a company that wants to adopt the new privacy practices will require unavailability checks to prevent breaking old versions of the app. In general, this will be the case when dealing with any API that is now _informally_ obsoleted.
 
 ## Code Structure
 
