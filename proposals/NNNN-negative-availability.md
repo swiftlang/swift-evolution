@@ -56,7 +56,7 @@ However, this goes against the code style recommendations involving the usage of
 
 Currently, any iOS application that supports UIScenes will face this issue and have to write this workaround. To describe it in a generic way, this issue will be encountered when dealing with any API addition or change that requires more than one availability condition to be implemented.
 
-## Usage of deprecated APIs
+### Usage of deprecated APIs
 
 A negative availability condition might also be necessary in cases where an API is _informally_ obsoleted; i.e. marked as deprecated and documented as non-functional in newer iOS versions.
 
