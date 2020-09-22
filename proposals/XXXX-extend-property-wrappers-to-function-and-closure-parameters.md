@@ -8,12 +8,12 @@
 
 ## Introduction
 
-Property Wrappers were [introduced in Swift 5.1](https://github.com/apple/swift-evolution/blob/master/proposals/0258-property-wrappers.md), and have since become a popular feature abstracting away common accessor patterns for properties. Currently, applying a property wrapper is solely permitted on properties inside of a type context. However, with increasing adoption demand for extending _where_ property wrappers can be applied has emerged.
+Property Wrappers were [introduced in Swift 5.1](https://github.com/apple/swift-evolution/blob/master/proposals/0258-property-wrappers.md), and have since become a popular feature abstracting away common accessor patterns for properties. Currently, applying a property wrapper is solely permitted on properties inside of a type context. However, with increasing adoption demand for extending _where_ property wrappers can be applied has emerged. This proposal describes extending property wrappers to function and closure parameters.
 
 
 ## Motivation
 
-Property wrappers have undoubtably been very successful. For one, applying a property wrapper to a property is enabled by an incredibly lightweight and expressive syntax. Therefore, library authors can expose complex behavior through easily understandable property-wrapper types in an efficient manner. For instance, frameworks such as [SwiftUI](https://developer.apple.com/documentation/swiftui/) and [Combine](https://developer.apple.com/documentation/combine) introduce property wrappers such as [`State`](https://developer.apple.com/documentation/swiftui/state), [`Binding`](https://developer.apple.com/documentation/swiftui/binding) and [`Published`](https://developer.apple.com/documentation/combine/published) respectively to expose elaborate behavior through a succint interface, helping craft majestic APIs. However, property wrappers are only applicable to type properties, shattering the illusion that they helped realize in the first place:
+Property wrappers have undoubtably been very successful. Applying a property wrapper to a property is enabled by an incredibly lightweight and expressive syntax. Therefore, library authors can expose complex behavior through easily understandable property-wrapper types in an efficient manner. For instance, frameworks such as [SwiftUI](https://developer.apple.com/documentation/swiftui/) and [Combine](https://developer.apple.com/documentation/combine) introduce property wrappers such as [`State`](https://developer.apple.com/documentation/swiftui/state), [`Binding`](https://developer.apple.com/documentation/swiftui/binding) and [`Published`](https://developer.apple.com/documentation/combine/published) respectively to expose elaborate behavior through a succint interface, helping craft expressive yet simple APIs. However, property wrappers are only applicable to type properties, shattering the illusion that they helped realize in the first place:
 
 ```swift
 @propertyWrapper
@@ -31,26 +31,35 @@ struct Clamped<Value: Comparable> {
 
 struct Percentage {
   @Clamped(to: 0 ... 100)
-  var percent = 100
+  var percent = 0
      
   func increment() {
     percent += 1
     // Great!
   }
-}
 
-func increment(percent: Clamped<Int>) {
-  percent.wrappedValue = ...
-  //   ^~~~~~~~~~~~ 
-  // Unfortunately, we can't
-  // use `@Clamped` here.
+  func adding(_ offset: Int) {
+    assert(offset >= 0 && offset <= 100)
+    //     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // Manual assertion instead of relying on Clamped for the invariant.
+    percent += offset
+  }
+
+  func adding(_ offset: Clamped<Int>) {
+    //                  ^~~~~~~~~~~~
+    // Unfortunately, we can't use @Clamped(to: 0 ... 100) here
+    percent += offset.wrappedValue
+    //               ^~~~~~~~~~~~~
+    // We must access wrappedValue manually.
+  }
 }
 ```
 
-As seen in the above example, it quite akward and unintuitive that property wrappers cannot be applied to function parameters. This is only emphasized by the fact that property wrappers originally sought out to abstract away such accessor patterns.  As a result, elegant APIs are undermined by this limitation. Not only, is this limiting users by forcing them to rigidly follow API guidelines, which may not cover a specific use case, but it also limits API authors in what they can create. That is, API authors can't use property-wrapper types in closure parameters nor can code be seperated into functions that accept property wrapper syntax:
+As seen in the above example, it is quite awkward and unintuitive that property wrappers cannot be applied to function parameters. In this case, a property wrapper parameter would be useful for expressing and enforcing invariants about the `offset` argument to the `adding` method on `Percentage`. Disallowing the property wrapper attribute on the `offset` parameter prevents the API from expressing the bounds for the `offset` argument in its signature, and instead relies on callers to do the right thing. Furthermore, callers of the second `adding` overload must first create an instance of `Clamped`, rather than being able to initialize `Clamped` from its wrapped value automatically.
+
+This limitation in expressivity is emphasized by the fact that property wrappers were originally sought out to abstract away such patterns.  As a result, elegant APIs are undermined by this limitation. Not only is this limiting users by forcing them to carefully read documentation, which may not cover a specific use case, to make sure no invariants have been violated, but it also limits API authors in what they can create. That is, API authors can't use property-wrapper types in closure parameters nor can code be seperated into functions that accept property wrapper syntax:
 
 ```swift
-
 extension Percentage {
   func modify(
     inSeconds seconds: Int,
