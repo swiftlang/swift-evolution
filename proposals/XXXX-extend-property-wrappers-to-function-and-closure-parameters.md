@@ -33,19 +33,18 @@ struct Percentage {
   @Clamped(to: 0 ... 100)
   var percent = 0
      
-  func increment() {
+  mutating func increment() {
     percent += 1
     // Great!
   }
 
-  func adding(_ offset: Int) {
-    assert(offset >= 0 && offset <= 100)
-    //     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    // Manual assertion instead of relying on Clamped for the invariant.
-    percent += offset
+  mutating func adding(_ offset: Int) {
+    percent += min(100, max(0, offset))
+    //         ^~~~~~~~~~~~~~~~~~~~~~~~
+    // Manual adjustment instead of using the Clamped abstraction.
   }
 
-  func adding(_ offset: Clamped<Int>) {
+  mutating func adding(_ offset: Clamped<Int>) {
     //                  ^~~~~~~~~~~~
     // Unfortunately, we can't use @Clamped(to: 0 ... 100) here
     percent += offset.wrappedValue
