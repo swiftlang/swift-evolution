@@ -155,20 +155,21 @@ myPercentage
 
 Property wrappers are essentially sugar wrapping a given property with compiler synthesized code. This proposal retains this principle employing the following rules for transformation.
 
-### Rules for Function Parameters
+### Property Wrappers on Function Parameters
 
-Function parameters marked with a property wrapper type must conform to a set of rules:
+Function parameters marked with a property wrapper custom attribute must conform to a set of rules:
 
-1. For a default value to be included, the wrapper type must define an initializer with a first parameter labeled "wrappedValue".
-2. If any of the transformed functions share their signature with another function, the compiler will consider one of the two a redeclaration of the other.
+1. The property wrapper type must have a suitable `init(wrappedValue:)` for initializing the property wrapper from an instance of its `wrappedValue` type.
+2. The `wrappedValue` getter must be `nonmutating`.
+3. Default values must be expressed in terms of the `wrappedValue` type.
 
-The transformation that will take place is as follows:
+The transformation of a property wrapper parameter will take place is as follows:
 
-1. The parameter name will be prefixed with an underscore.
-2. A synthesized computed property representing  `wrappedValue` will be created and named per the original (non-prefixed) parameter name. The accessors will mirror the `wrappedValue`'s ones, except for mutating ones.
-3. A synthesized computed property representing  `projectedValue` will be created and named per the original parameter name prefixed with a dollar sign (`$`). The accessors will mirror the `projectedValue`'s ones, except for the mutating ones.
-4. If a parameter's wrapper-type defines an initializer with a first parameter labeled "wrappedValue", then the parameter's label will be prefixed with an underscore and the parameter will be bound to the wrapper type.
-5. If 4 does not apply, then the parameter's label is retained as is and the parameter is bound to the type of `wrappedValue`.
+1. The external parameter name will remain unchanged.
+2. The internal parameter name will be prefixed with an underscore, and the type of this parameter is the backing property wrapper type.
+2. A local computed property representing  `wrappedValue` will be synthesized by the compiler and named per the original (non-prefixed) parameter name. The accessors will mirror the `wrappedValue` accessors. A setter will only be synthesized for the local property if the `wrappedValue` setter is `nonmutating`, or if the wrapper is a reference type.
+3. If the property wrapper defines a `projectedValue`, a local computed property representing  `projectedValue` will be synthesized by the compiler and named per the original parameter name prefixed with a dollar sign (`$`). The same accessor rules for `wrappedValue` apply to `projectedValue`.
+4. When passing an argument to a property wrapper parameter, the compiler will wrap the argument in the appropriate `init(wrappedValue:)` call.
 
 #### Transformation Examples: 
 
