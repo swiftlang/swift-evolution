@@ -43,6 +43,7 @@ Table of Contents
       * [Alternatives considered](#alternatives-considered)
          * [Additional control-flow statements](#additional-control-flow-statements)
          * [Builder-scoped name lookup](#builder-scoped-name-lookup)
+         * [Dropping Void/Never values](#dropping-void-never-values)
 
 ## Introduction
 
@@ -1176,3 +1177,64 @@ extension HTMLDocument {
   static func h1(_ text: String) -> HTMLNode { ... }
 }
 ```
+
+### Dropping Void/Never values
+
+During the first review, it was [suggested](https://forums.swift.org/t/se-0289-function-builders/39889/33) that a `Void` or `Never`-returning `buildExpression` function should cause the corresponding value to be dropped from the result builder itself. For example, the following result builder collects string values and puts them into a comma-separated string:
+
+```swift
+@resultBuilder
+struct StringConcatenator {
+  static func buildExpression(_ string: String) -> String { string }
+
+  static func buildBlock(_ strings: String...) -> String { 
+    strings.joined(separator: ", ")
+  }
+}
+```
+
+However, it will reject any statements that don't produce a `String`. What if the builder wanted to allow other statements, but without collecting the values? One could re-work the builder like this:
+
+```swift
+@resultBuilder
+struct StringConcatenator {
+  static func buildExpression(_ string: String) -> String? { string }
+  static func buildExpression<T>(_: T) -> String? { nil }
+
+  static func buildBlock(_ strings: String?...) -> String { 
+    strings.flatMap({$0}).joined(separator: ", ")
+  }
+}
+```
+
+However, it's a non-obvious change to the result builder. The suggestion is to allow the original builder to be extended with a `Void`-producing `buildExpression`, e.g.,
+
+```swift
+static func buildExpression<T>(_: T) { }
+```
+
+and have any `Void`-producing partial results be dropped. For example, applying
+the result builder to this closure:
+
+```swift
+func applyStringConcatenator(@StringConcatenator _: () -> String) { ... }
+
+applyStringConcatenator { 
+  "hello"
+  3.14159
+  "world"
+}
+```
+
+would produce "hello, world". While this is perhaps easier for the the author of the result builder, it makes the translation of the closure much less predictable. The basic translation of that closure would be to:
+
+```swift
+applyStringConcatenator {
+  let a = StringConcatenator.buildExpression("hello")
+  let b = StringConcatenator.buildExpression(3.14159)
+  let c = StringConcatenator.buildExpression("world")
+  return StringConcatenator.buildBlock(a, b, c)
+}
+```
+
+With this proposal, the formation of the `buildBlock` call would depend on the type inference for the partial result variables `a`, `b`, and `c`. In other words, because `b` will be inferred to type `Void`, the actual `buildBlock` call would end up being `StringConcatenator.buildBlock(a, c)`. This complication to the mental model outweighs the benefits to authors of result builders, because this feature isn't adding any expressive power--it's a shortcut to make it more convenient to address this case.
