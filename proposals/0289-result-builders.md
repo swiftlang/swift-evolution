@@ -10,6 +10,7 @@
 Table of Contents
 =================
    * [Result builders](#result-builders)
+      * [Changes from the first revision](#changes-from-the-first-revision)
       * [Introduction](#introduction)
       * [Motivation](#motivation)
       * [Detailed design](#detailed-design)
@@ -45,6 +46,13 @@ Table of Contents
          * [Builder-scoped name lookup](#builder-scoped-name-lookup)
          * [Dropping Void/Never values](#dropping-void-never-values)
 
+## Changes from the first revision
+
+* The feature is now called *result builders* (rather than "function builders"). James Dempsey provided some [exploration and rationale](https://forums.swift.org/t/se-0289-function-builders/39889/75) for naming that led to this choice.
+* Although not part of the proposal itself, the [implementation quality has been improved](https://github.com/apple/swift/pull/33972) to help guide users in writing their result builders, with code completions and Fix-Its to help define the builder functions.
+* Added a section on [dropping `Void`/`Never` values](#dropping-void-never-values)  to the list of alternatives considered.
+* Clarified the role of each of the builder functions, and provided declarations for each that are easier to understand and copy/paste.
+ 
 ## Introduction
 
 This proposal describes *result builders*, a new feature which allows certain functions (specially-annotated, often via context) to implicitly build up a result value from a sequence of components.
