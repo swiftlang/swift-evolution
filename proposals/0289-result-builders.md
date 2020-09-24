@@ -1,7 +1,7 @@
 # Result builders
 
 * Proposal: [SE-0289](0289-result-builders.md)
-* Authors: [John McCall](https://github.com/rjmccall), [Doug Gregor](http://github.com/DougGregor)
+* Authors: [John McCall](https://github.com/rjmccall), [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Saleem Abdulrasool](https://github.com/compnerd)
 * Status: **Active Review (September 24...October 1, 2020)**
 * Implementation: Available in [development snapshots](https://swift.org/download/#snapshots) behind the underscored attribute `@_functionBuilder`.
@@ -16,7 +16,7 @@ Table of Contents
       * [Detailed design](#detailed-design)
          * [Result builder types](#result-builder-types)
          * [Result builder attributes](#result-builder-attributes)
-         * [Function-building methods](#function-building-methods)
+         * [Result-building methods](#result-building-methods)
          * [The result builder transform](#the-result-builder-transform)
             * [Statement blocks](#statement-blocks)
             * [Declaration statements](#declaration-statements)
@@ -51,7 +51,7 @@ Table of Contents
 * The feature is now called *result builders* (rather than "function builders"). James Dempsey provided some [exploration and rationale](https://forums.swift.org/t/se-0289-function-builders/39889/75) for naming that led to this choice.
 * Although not part of the proposal itself, the [implementation quality has been improved](https://github.com/apple/swift/pull/33972) to help guide users in writing their result builders, with code completions and Fix-Its to help define the builder methods.
 * Added a section on [dropping `Void`/`Never` values](#dropping-voidnever-values)  to the list of alternatives considered.
-* Clarified the role of each of the builder functions, and provided declarations for each that are easier to understand and copy/paste.
+* Clarified the role of each of the [result-building methods](#result-building-methods), and provided declarations for each that are easier to understand and copy/paste.
  
 ## Introduction
 
@@ -266,13 +266,13 @@ A result builder type can be used as an attribute in two different syntactic pos
 
 A result builder type can also be used as an attribute on a parameter of function type, including on parameters of protocol requirements. A result builder attribute used in this way causes the result builder transform to be applied to the body of any explicit closures that are passed as the corresponding argument, unless the closure contains a `return` statement.  This is considered part of the interface of the function and can affect source compatibility, although it does not affect its ABI.
 
-### Function-building methods
+### Result-building methods
 
-To be useful as a result builder, the result builder type must provide a sufficient subset of the function-building methods.  The protocol between the compiler's generated code and the result builder type is intended to be *ad hoc* and arbitrarily extensible in the future.
+To be useful as a result builder, the result builder type must provide a sufficient subset of the result-building methods.  The protocol between the compiler's generated code and the result builder type is intended to be *ad hoc* and arbitrarily extensible in the future.
 
-Function-building methods are `static` methods that can be called on the result builder type.  Calls to function-building methods are type-checked as if a programmer had written `BuilderType.<methodName>(<arguments>)`, where the arguments (including labels) are as described below; therefore, all the ordinary overload resolution rules apply.  However, in some cases the result builder transform changes its behavior based on whether a result builder type declares a certain method at all; it is important to note that this is a weaker check, and it may be satisfied by a method that cannot in fact ever be successfully called on the given builder type.
+Result-building methods are `static` methods that can be called on the result builder type.  Calls to result-building methods are type-checked as if a programmer had written `BuilderType.<methodName>(<arguments>)`, where the arguments (including labels) are as described below; therefore, all the ordinary overload resolution rules apply.  However, in some cases the result builder transform changes its behavior based on whether a result builder type declares a certain method at all; it is important to note that this is a weaker check, and it may be satisfied by a method that cannot in fact ever be successfully called on the given builder type.
 
-This is a quick reference for the function-builder methods currently proposed.  The typing here is subtle, as it often is in macro-like features.  In the following descriptions, `Expression` stands for any type that is acceptable for an expression-statement to have (that is, a raw partial result), `Component` stands for any type that is acceptable for a partial or combined result to have, and `Return` stands for any type that is acceptable to be ultimately returned by the transformed function.
+This is a quick reference for the function-builder methods currently proposed.  The typing here is subtle, as it often is in macro-like features.  In the following descriptions, `Expression` stands for any type that is acceptable for an expression-statement to have (that is, a raw partial result), `Component` stands for any type that is acceptable for a partial or combined result to have, and `FinalResult` stands for any type that is acceptable to be ultimately returned by the transformed function.
 
 * `buildBlock(_ components: Component...) -> Component` is used to build combined results for statement blocks. It is required to be a static method in every result builder.
 
@@ -284,7 +284,7 @@ This is a quick reference for the function-builder methods currently proposed.  
 
 * `buildExpression(_ expression: Expression) -> Component` is used to lift the results of expression-statements into the `Component` internal currency type. It is optional, but when provided it allows a result builder to distinguish `Expression` types from `Component` types or to provide contextual type information for statement-expressions.
 
-* `buildFinalResult(_ component: Component) -> Return` is used to finalize the result produced by the outermost `buildBlock` call for top-level function bodies. It is optional, and allows a result builder to distinguish `Component` types from `Return` types, e.g. if it wants builders to internally traffic in some type that it doesn't really want to expose to clients.
+* `buildFinalResult(_ component: Component) -> FinalResult` is used to finalize the result produced by the outermost `buildBlock` call for top-level function bodies. It is optional, and allows a result builder to distinguish `Component` types from `FinalResult` types, e.g. if it wants builders to internally traffic in some type that it doesn't really want to expose to clients.
 
 * `buildLimitedAvailability(_ component: Component) -> Component` is used to transform the partial result produced by `buildBlock` in a limited-availability context (such as `if #available`) into one suitable for any context. It is optional, and is only needed by result builders that might carry type information from inside an `if #available` outside it.
 
@@ -359,7 +359,7 @@ Local declarations are left alone by the transformation. This allows developers 
 
 An expression statement which does not perform an assignment is transformed as follows:
 
-* If the result builder type declares the `buildExpression` function-building method, the transformation calls it, passing the expression-statement as a single unlabeled argument.  This call expression is hereafter used as the expression statement.  This call is type-checked together with the statement-expression and may influence its type.
+* If the result builder type declares the `buildExpression` result-building method, the transformation calls it, passing the expression-statement as a single unlabeled argument.  This call expression is hereafter used as the expression statement.  This call is type-checked together with the statement-expression and may influence its type.
 
 *  The statement-expression is used to initialize a unique variable of the statement-expression's result type, as if by `let v = <expression>`. This variable is treated as a partial result of the containing block. References to this variable are type-checked independently from it so that they do not affect the type of the expression.
 
@@ -456,7 +456,7 @@ The detailed transformation of selection statements proceeds as follows. The chi
 
 If *N* = 0, the statement is ignored by the transformation. Otherwise, an injection strategy is chosen:
 
-* If the result builder type declares the `buildEither(first:)` and `buildEither(second:)` function-building methods, a full binary tree with *N* leaves (the *injection tree*) is chosen, and each result-producing case is uniquely assigned a leaf in it; these decisions are implementation-defined.  A unique variable `vMerged` of fresh type is declared before the statement.
+* If the result builder type declares the `buildEither(first:)` and `buildEither(second:)` result-building methods, a full binary tree with *N* leaves (the *injection tree*) is chosen, and each result-producing case is uniquely assigned a leaf in it; these decisions are implementation-defined.  A unique variable `vMerged` of fresh type is declared before the statement.
 
 * Otherwise, unique variables `vCase` are declared before the statement for each result-producing case.
 
@@ -470,7 +470,7 @@ The transformation then proceeds as follows:
 
     * For an empty path, the original combined result from the case.
 
-    * For a left branch through the tree, a call to the function-building method `buildEither(first:)` with the argument being the injection expression for the remainder of the path.
+    * For a left branch through the tree, a call to the result-building method `buildEither(first:)` with the argument being the injection expression for the remainder of the path.
 
     * For a right branch through the tree, the same but with `buildEither(second:)`.
 
@@ -487,7 +487,7 @@ The transformation then proceeds as follows:
 
     Note that all of the assignments to `vMerged` will be type-checked together, which should allow any free generic arguments in the result types of the injections to be unified.
 
-* After the statement, if there is an `if` that does not have a corresponding `else`, a new unique variable `v2` is initialized by calling the function-building method `buildOptional(_:)` with `v` as the argument, and `v2` is then a partial result of the surrounding block.  Otherwise, there is a unique variable `vMerged`, and `vMerged` is a partial result of the surrounding block.
+* After the statement, if there is an `if` that does not have a corresponding `else`, a new unique variable `v2` is initialized by calling the result-building method `buildOptional(_:)` with `v` as the argument, and `v2` is then a partial result of the surrounding block.  Otherwise, there is a unique variable `vMerged`, and `vMerged` is a partial result of the surrounding block.
 
 #### Imperative control-flow statements
 
@@ -930,33 +930,33 @@ enum Either<T,U> {
   case second(U)
 }
 
-indirect enum FunctionBuilderTerm<Expression> {
+indirect enum ResultBuilderTerm<Expression> {
     case expression(Expression)
-    case block([FunctionBuilderTerm])
-    case either(Either<FunctionBuilderTerm, FunctionBuilderTerm>)
-    case optional(FunctionBuilderTerm?)
+    case block([ResultBuilderTerm])
+    case either(Either<ResultBuilderTerm, ResultBuilderTerm>)
+    case optional(ResultBuilderTerm?)
 }
 ```
 
-and then define a `FunctionBuilder` protocol with only a single requirement, `buildFinalResult`, to take all of the values and form the final result:
+and then define a `ResultBuilder` protocol with only a single requirement, `buildFinalResult`, to take all of the values and form the final result:
 
 ```swift
-protocol FunctionBuilder {
+protocol ResultBuilder {
     associatedtype Expression
-    typealias Component = FunctionBuilderTerm<Expression>
-    associatedtype Return
+    typealias Component = ResultBuilderTerm<Expression>
+    associatedtype FinalResult
 
-    static func buildFinalResult(_ components: Component) -> Return
+    static func buildFinalResult(_ component: Component) -> FinalResult
 }
 ```
 
-All of the other `build` functions---to enable `if`, `switch`, and so on---are implemented in an extension of `FunctionBuilder`:
+All of the other `build` methods---to enable `if`, `switch`, and so on---are implemented in an extension of `ResultBuilder`:
 
 ```swift
-extension FunctionBuilder {
+extension ResultBuilder {
     static func buildExpression(_ expression: Expression) -> Component { .expression(expression) }
     static func buildBlock(_ components: Component...) -> Component { .block(components) }
-    static func buildOptional(_ optional: Component?) -> Component { .optional(optional) }
+    static func buildOptional(_ component: Component?) -> Component { .optional(component) }
     static func buildArray(_ components: [Component]) -> Component { .block(components) }
     static func buildLimitedAvailability(_ component: Component) -> Component { component }
 }
@@ -965,12 +965,12 @@ extension FunctionBuilder {
 It then becomes possible to define new version builders with only a small amount of code, e.g., here is a builder that flattens the result term into an array:
 
 ```swift
-@_functionBuilder
-enum ArrayBuilder<E>: FunctionBuilder {
+@resultBuilder
+enum ArrayBuilder<E>: ResultBuilder {
     typealias Expression = E
-    typealias Return = [E]
+    typealias FinalResult = [E]
 
-    static func buildFinalResult(_ components: Component) -> Return {
+    static func buildFinalResult(_ component: Component) -> FinalResult {
         switch components {
         case .expression(let e): return [e]
         case .block(let children): return children.flatMap(buildFinalResult)
@@ -1076,9 +1076,9 @@ static func buildExpression(_ value: @autoclosure @escaping () -> Any) -> Delaye
 }
 ```
 
-Here, the partial results provided to other build functions (e.g., `buildBlock`) will be functions that produce the value. The DSL is free to call those functions whenever it wants to produce the values.
+Here, the partial results provided to other build methods (e.g., `buildBlock`) will be functions that produce the value. The DSL is free to call those functions whenever it wants to produce the values.
 
-However, virtualizing any kind of control flow would require a new kind of build function that describes more of the structure of the AST. For example, consider a `for..in` loop:
+However, virtualizing any kind of control flow would require a new kind of build method that describes more of the structure of the AST. For example, consider a `for..in` loop:
 
 ```swift
 for person in employees {
