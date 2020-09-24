@@ -14,10 +14,10 @@ Table of Contents
       * [Introduction](#introduction)
       * [Motivation](#motivation)
       * [Detailed design](#detailed-design)
-         * [Result builder types](#function-builder-types)
-         * [Result builder attributes](#function-builder-attributes)
+         * [Result builder types](#result-builder-types)
+         * [Result builder attributes](#result-builder-attributes)
          * [Function-building methods](#function-building-methods)
-         * [The result builder transform](#the-function-builder-transform)
+         * [The result builder transform](#the-result-builder-transform)
             * [Statement blocks](#statement-blocks)
             * [Declaration statements](#declaration-statements)
             * [Expression statements](#expression-statements)
@@ -31,26 +31,26 @@ Table of Contents
          * [Availability](#availability)
          * [<strong>Example</strong>](#example)
       * [Type inference](#type-inference)
-         * [Result builder bodies](#function-builder-bodies)
+         * [Result builder bodies](#result-builder-bodies)
          * [Inferring result builders from protocol requirements](#inferring-result-builders-from-protocol-requirements)
          * [Implicit memberwise initializer](#implicit-memberwise-initializer)
       * [Source compatibility](#source-compatibility)
       * [Effect on ABI stability and API resilience](#effect-on-abi-stability-and-api-resilience)
       * [Future Directions](#future-directions)
-         * ["Simple" result builder protocol](#simple-function-builder-protocol)
+         * ["Simple" result builder protocol](#simple-result-builder-protocol)
          * [Stateful result builders](#stateful-result-builders)
          * [Transforming declarations](#transforming-declarations)
          * [Virtualized Abstract Syntax Trees (ASTs)](#virtualized-abstract-syntax-trees-asts)
       * [Alternatives considered](#alternatives-considered)
          * [Additional control-flow statements](#additional-control-flow-statements)
          * [Builder-scoped name lookup](#builder-scoped-name-lookup)
-         * [Dropping Void/Never values](#dropping-void-never-values)
+         * [Dropping Void/Never values](#dropping-voidnever-values)
 
 ## Changes from the first revision
 
 * The feature is now called *result builders* (rather than "function builders"). James Dempsey provided some [exploration and rationale](https://forums.swift.org/t/se-0289-function-builders/39889/75) for naming that led to this choice.
-* Although not part of the proposal itself, the [implementation quality has been improved](https://github.com/apple/swift/pull/33972) to help guide users in writing their result builders, with code completions and Fix-Its to help define the builder functions.
-* Added a section on [dropping `Void`/`Never` values](#dropping-void-never-values)  to the list of alternatives considered.
+* Although not part of the proposal itself, the [implementation quality has been improved](https://github.com/apple/swift/pull/33972) to help guide users in writing their result builders, with code completions and Fix-Its to help define the builder methods.
+* Added a section on [dropping `Void`/`Never` values](#dropping-voidnever-values)  to the list of alternatives considered.
 * Clarified the role of each of the builder functions, and provided declarations for each that are easier to understand and copy/paste.
  
 ## Introduction
@@ -82,7 +82,7 @@ In this example, all the statements are expressions and so produce a single valu
 In effect, this proposal allows the creation of a new class of embedded domain-specific languages in Swift by applying *builder transformations* to the statements of a function.  The power of these builder transformations is intentionally limited so that the result preserves the dynamic semantics of the original code: the original statements of the function are still executed as normal, it's just that values which would be ignored under normal semantics are in fact collected into the result.  The use of an *ad hoc* protocol for the builder transformation leaves room for a wide variety of future extension, whether to support new kinds of statements or to customize the details of the transformation. A similar builder pattern was used successfully for string interpolation in [SE-0228](https://github.com/apple/swift-evolution/blob/master/proposals/0228-fix-expressiblebystringinterpolation.md). 
 
 Result builders have been a "hidden" feature since Swift 5.1, under the name "function builder", and the implementation (and its capabilities) have evolved since then. They are used most famously by [SwiftUI](https://developer.apple.com/xcode/swiftui/) to declaratively describe user interfaces, but others have also experimented with [building Swift syntax trees](https://swiftpack.co/package/akkyie/SyntaxBuilder), [testing](https://www.dotconferences.com/2020/02/kaya-thomas-swift-techniques-for-testing),
-[a Shortcuts DSL](https://github.com/a2/swift-shortcuts), [a CSS SDL](https://github.com/carson-katri/swift-css/blob/master/Sources/CSS/CSSBuilder.swift), and [an alternative SwiftPM manifest format](https://forums.swift.org/t/declarative-package-description-for-swiftpm-using-result-builders/28699). There's a GitHub repository dedicated to [awesome function builders](https://github.com/carson-katri/awesome-function-builders) with more applications.
+[a Shortcuts DSL](https://github.com/a2/swift-shortcuts), [a CSS SDL](https://github.com/carson-katri/swift-css/blob/master/Sources/CSS/CSSBuilder.swift), and [an alternative SwiftPM manifest format](https://forums.swift.org/t/declarative-package-description-for-swiftpm-using-function-builders/28699). There's a GitHub repository dedicated to [awesome function builders](https://github.com/carson-katri/awesome-function-builders) with more applications.
 
 ## Motivation
 
@@ -278,7 +278,7 @@ This is a quick reference for the function-builder methods currently proposed.  
 
 * `buildOptional(_ component: Component?) -> Component` is used to handle a partial result that may or may not be available in a given execution. When a result builder provides `buildOptional(_:)`, the transformed function can include `if` statements without an `else`.
 
-* `buildEither(first: Component) -> Component` and `buildEither(second: Component) -> Component` are used to build partial results when a selection statement produces a different result from different paths. When a result builder provides these functions, the transformed function can include `if` statements with an `else` statement as well as `switch` statements. 
+* `buildEither(first: Component) -> Component` and `buildEither(second: Component) -> Component` are used to build partial results when a selection statement produces a different result from different paths. When a result builder provides these methods, the transformed function can include `if` statements with an `else` statement as well as `switch` statements. 
  
 * `buildArray(_ components: [Component]) -> Component` is used to build a partial result given the partial results collected from all of the iterations of a loop. When a result builder provides `buildArray(_:)`, the transformed function can include `for..in` statements.
 
@@ -298,14 +298,14 @@ struct ExampleResultBuilder {
   typealias Expression = ...
 
   /// The type of a partial result, which will be carried through all of the
-  /// build functions.
+  /// build methods.
   typealias Component = ...
 
   /// The type of the final returned result, which defaults to Component if
   /// buildFinalResult() is not provided.
-  typealias Result = ...
+  typealias FinalResult = ...
 
-  /// Required by every function builder to build combined results from
+  /// Required by every result builder to build combined results from
   /// statement blocks.
   static func buildBlock(_ components: Component...) -> Component { ... }
 
@@ -324,7 +324,7 @@ struct ExampleResultBuilder {
   /// statements by folding conditional results into a single result.
   static func buildEither(second component: Component) -> Component { ... }
 
-  /// Enables support for..in loops in a result builder by combining the
+  /// Enables support for 'for..in' loops by combining the
   /// results of all iterations into a single result.
   static func buildArray(_ components: [Component]) -> Component { ... }
 
@@ -335,7 +335,7 @@ struct ExampleResultBuilder {
 
   /// If declared, this will be called on the partial result from the outermost
   /// block statement to produce the final returned result.
-  static func buildFinalResult(_ component: Component) -> Result { ... }
+  static func buildFinalResult(_ component: Component) -> FinalResult { ... }
 }
 ```
 
@@ -597,7 +597,7 @@ if #available(macOS 11.0, iOS 14.0, *) {
 
 ### **Example**
 
-Let's return to our earlier example and work out how to define a function-builder DSL for it.  First, we need to define a basic result builder type:
+Let's return to our earlier example and work out how to define a result-builder DSL for it.  First, we need to define a basic result builder type:
 
 ```swift
 @resultBuilder
@@ -879,7 +879,7 @@ struct CustomVStack<Content: View>: View {
 
 implicitly produces the memberwise initializer shown above.
 
-A result builder attribute can also be placed on a stored property whose type does not [structurally resemble function type](https://github.com/apple/swift-evolution/blob/master/proposals/0286-forward-scan-trailing-closures.md#structural-resemblance-to-a-function-type). In this case, the implicit memberwise initializer will have a corresponding function parameter that is a function-builder-attributed  closure returning the property's type, and the body of the initializer will call the function. For example, given:
+A result builder attribute can also be placed on a stored property whose type does not [structurally resemble function type](https://github.com/apple/swift-evolution/blob/master/proposals/0286-forward-scan-trailing-closures.md#structural-resemblance-to-a-function-type). In this case, the implicit memberwise initializer will have a corresponding function parameter that is a result-builder-attributed closure returning the property's type, and the body of the initializer will call the function. For example, given:
 
 ```swift
 struct CustomHStack<Content: View>: View {
@@ -922,7 +922,7 @@ There are a number of future directions that could be layered on top of this pro
 
 ### "Simple" result builder protocol
 
-On the Swift forums, @anreitersimon [demonstrated](https://forums.swift.org/t/pitch-2-result-builders/39410/6) the ability to use protocols to make it easier to define new functions builders that support all of the syntax, and for which all expressions have the same type. Their example (slightly tuned) follows. The basic idea is to form a tree describing the result:
+On the Swift forums, @anreitersimon [demonstrated](https://forums.swift.org/t/pitch-2-function-builders/39410/6) the ability to use protocols to make it easier to define new result builders that support all of the syntax, and for which all expressions have the same type. Their example (slightly tuned) follows. The basic idea is to form a tree describing the result:
 
 ```swift
 enum Either<T,U> {
@@ -986,7 +986,7 @@ enum ArrayBuilder<E>: FunctionBuilder {
 With some more experience, a facility like this could become part of the standard library.
 
 ### Stateful result builders
-All of the `build*` functions for a result builder type are defined to be `static`, and no instances of the result builder type are created by the result builder transform. However, the transform could create an instance of the result builder type at the beginning of the transformed function, then call `build*` instance methods on it. For example, this code adapted from [Constantino Tsarouhas](https://forums.swift.org/t/pitch-2-result-builders/39410/67)):
+All of the `build*` methods for a result builder type are defined to be `static`, and no instances of the result builder type are created by the result builder transform. However, the transform could create an instance of the result builder type at the beginning of the transformed function, then call `build*` instance methods on it. For example, this code adapted from [Constantino Tsarouhas](https://forums.swift.org/t/pitch-2-function-builders/39410/67)):
 
 ```swift
 struct Heading<Content : Element> : Element {
@@ -1015,7 +1015,7 @@ The introduction of stateful result builders would be a pure extension. However,
 
 ### Transforming declarations
 
-Result builders leave all declaration statements unmodified. However, some DSLs might want to incorporate declarations, notifying the builder of such declarations so it can incorporate them. Here's an abstracted example based on one [provided by Konrad Malawski](https://forums.swift.org/t/result-builders-and-including-let-declarations-in-built-result/37184):
+Result builders leave all declaration statements unmodified. However, some DSLs might want to incorporate declarations, notifying the builder of such declarations so it can incorporate them. Here's an abstracted example based on one [provided by Konrad Malawski](https://forums.swift.org/t/function-builders-and-including-let-declarations-in-built-result/37184):
 
 ```swift
 Definition {
@@ -1101,9 +1101,9 @@ The builder's `buildVirtualFor` would have a signature such as:
 static func buildVirtualFor<S: Sequence, T>(_ sequence: S, @escaping (S.Element) -> T) -> ForEach<S, T> { ... }
 ```
 
-Such a facility could be used to map the language's `for..in` syntax to a lazily-evaluated construct like SwiftUI's [`ForEach`](https://developer.apple.com/documentation/swiftui/foreach). Similar builder functions would need to be developed for each supported syntax, e.g., `if` statements where the condition and then/else blocks are provided via closures.
+Such a facility could be used to map the language's `for..in` syntax to a lazily-evaluated construct like SwiftUI's [`ForEach`](https://developer.apple.com/documentation/swiftui/foreach). Similar builder methods would need to be developed for each supported syntax, e.g., `if` statements where the condition and then/else blocks are provided via closures.
 
-Virtualized ASTs would be a powerful extension to result builders. However, they will require an additional set of builder functions that match more closely with the syntax of the function being transformed.
+Virtualized ASTs would be a powerful extension to result builders. However, they will require an additional set of builder methods that match more closely with the syntax of the function being transformed.
 
 ## Alternatives considered
 
@@ -1188,7 +1188,7 @@ extension HTMLDocument {
 
 ### Dropping Void/Never values
 
-During the first review, it was [suggested](https://forums.swift.org/t/se-0289-function-builders/39889/33) that a `Void` or `Never`-returning `buildExpression` function should cause the corresponding value to be dropped from the result builder itself. For example, the following result builder collects string values and puts them into a comma-separated string:
+During the first review, it was [suggested](https://forums.swift.org/t/se-0289-function-builders/39889/33) that a `Void` or `Never`-returning `buildExpression` method should cause the corresponding value to be dropped from the result builder itself. For example, the following result builder collects string values and puts them into a comma-separated string:
 
 ```swift
 @resultBuilder
@@ -1210,7 +1210,7 @@ struct StringConcatenator {
   static func buildExpression<T>(_: T) -> String? { nil }
 
   static func buildBlock(_ strings: String?...) -> String { 
-    strings.flatMap({$0}).joined(separator: ", ")
+    strings.compactMap({$0}).joined(separator: ", ")
   }
 }
 ```
