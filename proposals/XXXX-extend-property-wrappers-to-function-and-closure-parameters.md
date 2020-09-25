@@ -287,9 +287,19 @@ This is an additive change with _no_ impact on **API resilience**.
 
 ## Alternatives Considered
 
-### Infer Property Wrappers in Closure Parameters 
+### Allow Property Wrapper Attributes as Type Attributes
 
-TBD
+One approach for marking closure parameters as property wrappers is to allow property wrapper custom attributes to be applied to types, such as:
+
+```swift
+func useReference(_ closure: (@Reference ref: Int) -> Void)
+
+useReference { ref in
+  ...
+}
+```
+
+This approach enables inference of the wrapper attribute on the closure parameter from context. However, this breaks the property wrapper declaration model, and it would force callers into the property wrapper syntax. This approach also raises questions about anonymous closure parameters that have an inferred property wrapper custom attribute. If an anonymous closure parameter `$0` has the `wrappedValue` type, accessing the backing wrapper and projected value would naturally use `_$0` and `$$0`, which are far from readable. If `$0` has the backing wrapper type, this would mean that naming the parameter would cause the value to change types, which is very unexpected for the user. Finally, the property wrapper syntax is purely implementation detail for the closure body, which does not belong in the API signature.
 
 
 ### Support `@autoclosure` and `@escaping` in Function Parameters
