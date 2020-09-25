@@ -161,7 +161,7 @@ Function parameters marked with a set of property wrapper custom attributes must
 
 1. Each property wrapper type must have a suitable `init(wrappedValue:)` for initializing the property wrapper from an instance of its `wrappedValue` type.
 2. Each `wrappedValue` getter must be `nonmutating`.
-3. Default values must be expressed in terms of the outermost `wrappedValue` type.
+3. Default values must be expressed in terms of the innermost `wrappedValue` type.
 
 The transformation of a property wrapper parameter will take place is as follows:
 
@@ -206,23 +206,29 @@ func reportProgress(at _progress: Percentage) {
 reportProgress(at: Percentage(wrappedValue: 50))
 ```
 
+### Property Wrappers on Closure Parameters
 
+Since a property wrapper custom attribute is applied directly to the declaration that will be wrapped, applying a property wrapper to a closure parameter is only allowed within a closure expression. This means that for a function that accepts a closure argument, a parameter to that closure cannot have a property wrapper attribute applied in the function signature. Rather, the application of a wrapper type will be up to the caller of the function which supplies the closure argument to opt into the property wrapper syntax.
 
-### Rules for Closure Parameters
+Closure parameters marked with a set of property wrapper custom attributes must conform to the following rules:
 
-Applying wrapper types to closure parameters in the declaration is not allowed. Instead when the compiler sees a closure that takes a wrapper type it will autocomplete with the wrapper type applied. Thus, the application of a wrapper type will be up to the user of the closure. As for the transformation, these are the rules:
+1. Each wrapper attribute must not specify any arguments.
+2. Each `wrappedValue` getter must be `nonmutating`.
+3. Any contextual type for the parameter must match the outermost backing wrapper type.
 
-1. The parameter name will be prefixed with an underscore.
-2. A synthesized computed property representing  `wrappedValue` will be created and named per the original (non-prefixed) parameter name. The accessors will mirror the `wrappedValue`'s ones - except for a mutating setter which requires that the parameter be marked `inout`.
-3. A synthesized computed property representing  `projectedValue` will be created and named per the original parameter name prefixed with a dollar sign (`$`). The accessors will mirror the `projectedValue`'s ones - except for a mutating setter which requires that the parameter be marked `inout`.
+The transformation of a property wrapper closure parameter will take place as follows:
 
-#### Transformation Examples: 
+1. The parameter name will be prefixed with an underscore, and the type of this parameter is the backing property wrapper type.
+2. A local computed property representing  `wrappedValue` will be synthesized by the compiler and named per the original (non-prefixed) parameter name. The accessors will mirror the `wrappedValue` accessors. A setter will only be synthesized for the local property if the `wrappedValue` setter is `nonmutating`, or if the wrapper is a reference type.
+3. If the property wrapper defines a `projectedValue`, a local computed property representing  `projectedValue` will be synthesized by the compiler and named per the original parameter name prefixed with a dollar sign (`$`). The same accessor rules for `wrappedValue` apply to `projectedValue`.
 
-1. Reference Semantics Wrapper
+#### Transformation Example:
+
 ```swift
 @propertyWrapper
 struct Reference<Value> {
-  init(getter: () -> Value, setter: (Value) -> Void) 
+  init(getter: @escaping () -> Value,
+       setter: @escaping (Value) -> Void) { ... }
     
   var wrappedValue: Value {
     get 
@@ -236,115 +242,33 @@ struct Reference<Value> {
 
 typealias A = (Reference<Int>) -> Void
 
-let a: A = { @Reference foo in
+let a: A = { @Reference ref in
   ...
 }
 ```
 
-    Becomes:
+In the above example, the closure `a` is equivalent to:
 
 ```swift
-let a: A = { _foo in
-  var foo: Int {
+let a: A = { (_ref: Reference<Int>) in
+  var ref: Int {
     get { 
-      _foo.wrappedValue 
+      _ref.wrappedValue
     }
     set { 
-      _foo.wrappedValue = newValue
+      _ref.wrappedValue = newValue
     }
   }
 
-  var $foo: Int {
+  var $ref: Int {
     get { 
-      _foo.projectedValue 
+      _ref.projectedValue
     }
   }
     
   ...
 }
 ```
-
-2. Value Semantics Wrapper
-
-```swift
-@propertyWrapper
-struct Wrapper<Value> {
-  init(wrappedValue: Value) 
-    
-  var wrappedValue: Value {
-    get 
-    set
-  }
-}
-
-typealias B = (inout Wrapper<Int>) -> Void
-
-let b: B = { @Wrapper foo in
-  ...
-}
-```
-
-    Becomes:
-
-```swift
-let b: B = { _foo in
-  var foo: Int {
-    get { 
-      _foo.wrappedValue 
-    }
-    set { 
-      _foo.wrappedValue = newValue
-    }
-    // Since the paramter is marked `inout`
-    // we are allowed to have a mutating setter.
-  }
-  
-  ...
-}
-```
-
-3. Value Semantics Wrapper with Special Initializer
-
-```swift
-@propertyWrapper
-class WrapperObject<Value> {
-  init(wrappedValue: Value) 
-    
-  var wrappedValue: Value {
-    get 
-    set 
-    // Not actually mutating
-    // because `WrapperObject` is
-    // a class.
-  }
-}
-
-typealias C = (WrapperObject<Int>) -> Void
-
-let c: C = { @WrapperObject foo in
-  ...
-}
-```
-
-    Becomes:
-
-```swift
-let c: C = { _foo in
-  var foo: Int {
-    get { 
-      _foo.wrappedValue 
-    }
-    set { 
-      _foo.wrappedValue = newValue
-    }
-    // Since `WrapperObject` has reference
-    // semantics we can include a setter.
-  }
-
-  ...
-}
-```
-
 
 ## Source compatibility
 
