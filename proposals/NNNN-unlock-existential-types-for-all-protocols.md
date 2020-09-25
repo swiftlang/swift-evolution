@@ -63,7 +63,7 @@ All in all, supporting existential types for all protocols is useful for many si
 
 ### Proposed Solution
 
-The constraint prohibiting the use of some protocols as types will be lifted. Consequently, boilerplate code in many projects - especially libraries and frameworks - will be significantly reduced.
+The constraint prohibiting the use of some protocols as types will be lifted. Consequently, boilerplate code in many projects — especially libraries and frameworks — will be significantly reduced.
 
 
 ### Detailed Design 
@@ -166,6 +166,25 @@ let b: some Any = myRefinedAB.b ❌
 // on the type-erased value 'myRefinedAB'.
 ```
 
+> **Note on conflicting associated types**: Consider the following sample:
+
+  ```swift
+  ...
+
+  protocol AFixedToInt: A 
+    where A == Int {}
+
+  protocol AFixedToBool: A 
+    where A == Bool {}
+
+  let composition: AFixedToInt & AFixedToBool ⚠️
+  // The associated type 'A' has conflicting 
+  // implementations as both 'Int' and 'Bool'
+  // in this composition type. 
+
+  ```
+  > The above composition type emits a warning, as providing a value bound to the associated type '`A`' is not possible. It was also disussed to outright emit an error in this case; however, due to source compatibility constraints, the fact that the two protocols' associated types '`A`' are formally distinct and potential for protocol member disambiguation in the future, warnings were chosen.
+
 
 ## Source compatibility
 
@@ -184,14 +203,14 @@ This is an additive change with _no_ impact on **API resilience**.
 
 ### Alternatives Considered
 
-We could leave Swift as is. That, however - as discussed in the Motivation section - produces boilerplate code and a lot of confusion for language users.
+We could leave Swift as is. That, however — as discussed in the Motivation section — produces boilerplate code and a lot of confusion for language users.
 
 
 ### Future Directions
 
 #### Separate Existential Types from Protocols
 
-To alleviate confusion between existential types and protocols it has been proposed that when referring to the former some different way be used. Some advocate for the modifier 'any' to serve that purpose: `any Foo`, while others propose parameterizing 'Any': `Any<Foo>`. Whatever the way of achieving this is, differentiation between the two would be useful as it would - among other reasons - prevent beginners from unknowingly using existential types, which can adversely affect performance.
+To alleviate confusion between existential types and protocols it has been proposed that when referring to the former some different way be used. Some advocate for the modifier 'any' to serve that purpose: `any Foo`, while others propose parameterizing 'Any': `Any<Foo>`. Whatever the way of achieving this is, differentiation between the two would be useful as it would — among other reasons — prevent beginners from unknowingly using existential types, which can adversely affect performance.
 
 
 #### Introduce Constraints for Existential Types
@@ -230,7 +249,7 @@ let id: Any<Hashable> = myIdentifiable.id ✅
 
 #### Make Existential Types Extensible
 
-Today, no protocol’s existential type can conform to the protocol itself (except for [`@objc` protocols](https://docs.swift.org/swift-book/LanguageGuide/Protocols.html#ID284)). This is quite unintuitive - as is evident by countless questions asking about it. Such a feature could automatically apply to protocols that lack initializers, static requirements and functions with parameters bound to `Self` (as discussed in [related post](https://forums.swift.org/t/allowing-self-conformance-for-protocols/39841)). To handle the cases that do not meet the aforementioned criteria for implicit conformance, the following syntax [has been proposed](https://forums.swift.org/t/improving-the-ui-of-generics/22814):
+Today, no protocol’s existential type can conform to the protocol itself (except for [`@objc` protocols](https://docs.swift.org/swift-book/LanguageGuide/Protocols.html#ID284)). This is quite unintuitive — as is evident by countless questions asking about it. Such a feature could automatically apply to protocols that lack initializers, static requirements and functions with parameters bound to `Self` (as discussed in [related post](https://forums.swift.org/t/allowing-self-conformance-for-protocols/39841)). To handle the cases that do not meet the aforementioned criteria for implicit conformance, the following syntax [has been proposed](https://forums.swift.org/t/improving-the-ui-of-generics/22814):
 
 ```swift
 extension Any<Hashable>: Hashable {
