@@ -45,7 +45,7 @@ struct Percentage {
   }
 
   mutating func adding(_ offset: Clamped<Int>) {
-    //                  ^~~~~~~~~~~~
+    //                   ^~~~~~~~~~~~~~~~~~~~
     // Unfortunately, we can't use @Clamped(to: 0 ... 100) here
     percent += offset.wrappedValue
     //               ^~~~~~~~~~~~~
@@ -54,7 +54,7 @@ struct Percentage {
 }
 ```
 
-As seen in the above example, it is quite awkward and unintuitive that property wrappers cannot be applied to function parameters. In this case, a property wrapper parameter would be useful for expressing and enforcing invariants about the `offset` argument to the `adding` method on `Percentage`. Disallowing the property wrapper attribute on the `offset` parameter prevents the API from expressing the bounds for the `offset` argument in its signature, and instead relies on callers to do the right thing. Furthermore, callers of the second `adding` overload must first create an instance of `Clamped`, rather than being able to initialize `Clamped` from its wrapped value automatically.
+As seen in the above example, it is quite awkward and unintuitive that property wrappers cannot be applied to function parameters. In this case, a property wrapper parameter would be useful for expressing and enforcing invariants about the `offset` argument to the `adding` method on `Percentage`. Disallowing the property wrapper attribute on the `offset` parameter causes the API author to choose between making invariant checking implementation detail, or forcing the invariant checking on every caller of the API.
 
 This limitation in expressivity is emphasized by the fact that property wrappers were originally sought out to abstract away such patterns.  As a result, elegant APIs are undermined by this limitation. Not only is this limiting users by forcing them to carefully read documentation, which may not cover a specific use case, to make sure no invariants have been violated, but it also limits API authors in what they can create. That is, API authors can't use property-wrapper types in closure parameters nor can code be seperated into functions that accept property wrapper syntax:
 
@@ -78,7 +78,7 @@ myPercentage
   }
 ```
 
-In fact, establishing custom behavior on closure parameters is really powerful. For example, if such a feature were supported, it could be used in conjunction with [Function Builders](https://github.com/apple/swift-evolution/blob/master/proposals/0289-function-builders.md) to expose data managed by a 'component' type. For instance, in SwiftUI [`ForEach`](https://developer.apple.com/documentation/swiftui/foreach) could exploit this feature to expose the mutable state of its data source to its 'content' closure. Thus, instead of manually mutating the data source, as is done here:
+In fact, establishing custom behavior on closure parameters is really powerful. For example, if such a feature were supported, it could be used in conjunction with [Function Builders](https://github.com/apple/swift-evolution/blob/master/proposals/0289-function-builders.md) to expose data managed by a 'component' type. For instance, in SwiftUI [`ForEach`](https://developer.apple.com/documentation/swiftui/foreach) could utilize this feature to expose the mutable state of its data source to its 'content' closure. Thus, instead of manually mutating the data source, as is done here:
 
 ```swift
 struct MyView: View {
@@ -105,7 +105,7 @@ struct MyView: View {
 }
 ```
 
-with an appropriate initializer we would be able to simplify the above code, therefore reducing boilerplate:
+With an appropriate initializer we would be able to simplify the above code, therefore reducing boilerplate:
 
 ```swift
 struct MyView: View {
