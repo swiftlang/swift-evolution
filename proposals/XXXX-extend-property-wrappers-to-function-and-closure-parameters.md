@@ -157,19 +157,19 @@ Property wrappers are essentially sugar wrapping a given property with compiler 
 
 ### Property Wrappers on Function Parameters
 
-Function parameters marked with a property wrapper custom attribute must conform to a set of rules:
+Function parameters marked with a set of property wrapper custom attributes must conform to the following rules:
 
-1. The property wrapper type must have a suitable `init(wrappedValue:)` for initializing the property wrapper from an instance of its `wrappedValue` type.
-2. The `wrappedValue` getter must be `nonmutating`.
-3. Default values must be expressed in terms of the `wrappedValue` type.
+1. Each property wrapper type must have a suitable `init(wrappedValue:)` for initializing the property wrapper from an instance of its `wrappedValue` type.
+2. Each `wrappedValue` getter must be `nonmutating`.
+3. Default values must be expressed in terms of the outermost `wrappedValue` type.
 
 The transformation of a property wrapper parameter will take place is as follows:
 
 1. The external parameter name will remain unchanged.
 2. The internal parameter name will be prefixed with an underscore, and the type of this parameter is the backing property wrapper type.
-2. A local computed property representing  `wrappedValue` will be synthesized by the compiler and named per the original (non-prefixed) parameter name. The accessors will mirror the `wrappedValue` accessors. A setter will only be synthesized for the local property if the `wrappedValue` setter is `nonmutating`, or if the wrapper is a reference type.
-3. If the property wrapper defines a `projectedValue`, a local computed property representing  `projectedValue` will be synthesized by the compiler and named per the original parameter name prefixed with a dollar sign (`$`). The same accessor rules for `wrappedValue` apply to `projectedValue`.
-4. When passing an argument to a property wrapper parameter, the compiler will wrap the argument in the appropriate `init(wrappedValue:)` call.
+3. A local computed property representing  `wrappedValue` will be synthesized by the compiler and named per the original (non-prefixed) parameter name. The accessors will mirror the `wrappedValue` accessors. A setter will only be synthesized for the local property if the `wrappedValue` setter is `nonmutating`, or if the wrapper is a reference type.
+4. If the property wrapper defines a `projectedValue`, a local computed property representing  `projectedValue` will be synthesized by the compiler and named per the original parameter name prefixed with a dollar sign (`$`). The same accessor rules for `wrappedValue` apply to `projectedValue`.
+5. When passing an argument to a property wrapper parameter, the compiler will wrap the argument in the appropriate `init(wrappedValue:)` call.
 
 #### Transformation Examples: 
 
