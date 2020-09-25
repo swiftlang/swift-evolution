@@ -32,6 +32,7 @@ struct Clamped<Value: Comparable> {
   
 }
 
+
 struct Percentage {
 
   @Clamped(to: 0 ... 100)
@@ -46,8 +47,9 @@ struct Percentage {
   mutating func adding(_ offset: Int) {
     percent += min(100, max(0, offset))
     //         ^~~~~~~~~~~~~~~~~~~~~~~~
-    // Manual adjustment instead of using
-    // the 'Clamped' abstraction.
+    // We are forced to manually adjust 'percent' 
+    // instead of utilizing the abstraction 
+    // property wrappers offer.
   }
 
   mutating func adding(_ offset: Clamped<Int>) {
@@ -84,9 +86,8 @@ myPercentage
   .modify(inSeconds: 3) { percent in
     percent.wrappedValue = 100
     //    ^~~~~~~~~~~~ 
-    // Again, we have to 
-    // access count through
-    // `wrappedValue`.
+    // Again, we have to access
+    // count through 'wrappedValue'.
   }
 ```
 
@@ -209,22 +210,23 @@ struct Percentage {
 }
 
 func reportProgress(
-  @Percentage at progress: Int
+  @Percentage of progress: Int
 ) { ... }
 
-reportProgress(at: 50)
+
+reportProgress(of: 50)
 ```
 
-In the above code, the `reportProgress(at:)` function and its caller are equivalent to:
+In the above code, the `reportProgress(of:)` function and its caller are equivalent to:
 
 ```swift
-func reportProgress(at _progress: Percentage) {
+func reportProgress(of _progress: Percentage) {
 
   var progress: Int {
     get { _progress.wrappedValue }
     // The setter accessor is not synthesized
-    // because Percentage.wrappedValue.setter is
-    // mutating
+    // because the setter of Percentage's  
+    // 'wrappedValue' is mutating.
   }
 
 
@@ -232,7 +234,8 @@ func reportProgress(at _progress: Percentage) {
   
 }
 
-reportProgress(at: Percentage(wrappedValue: 50))
+
+reportProgress(of: Percentage(wrappedValue: 50))
 ```
 
 ### Property Wrappers on Closure Parameters
@@ -333,6 +336,7 @@ func useReference(
   _ closure: (@Reference reference: Int) -> Void
 ) { ... }
 
+
 useReference { reference in
   ...
 }
@@ -367,6 +371,7 @@ func distanceFromUpperBound(
   @Clamped clamped: Int
 ) { ... }
 
+
 distanceFromUpperBound(
   $clamped: Clamped(to: 0 ... 100, wrappedValue: 30)
 ) // returns: 70
@@ -394,6 +399,7 @@ struct Mirror<EnclosingSelf, Value, Path>
   
 }
 
+
 struct Point {
 
   private var _vector: SIMD2<Double>
@@ -410,8 +416,8 @@ struct Point {
   @Mirror(of: \._vector.y)
   var y
   
-}
-// ❌ In the above use, we'd access the enclosing
+} ❌
+// In the above use, we'd access the enclosing
 // type's '_vector' property through the provided
 // keyPath. However, today that's invalid.
 ```
