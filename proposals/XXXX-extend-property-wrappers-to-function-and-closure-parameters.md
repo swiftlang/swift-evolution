@@ -171,80 +171,41 @@ The transformation of a property wrapper parameter will take place is as follows
 4. If the property wrapper defines a `projectedValue`, a local computed property representing  `projectedValue` will be synthesized by the compiler and named per the original parameter name prefixed with a dollar sign (`$`). The same accessor rules for `wrappedValue` apply to `projectedValue`.
 5. When passing an argument to a property wrapper parameter, the compiler will wrap the argument in the appropriate `init(wrappedValue:)` call.
 
-#### Transformation Examples: 
+#### Transformation Example:
 
-1. Reference Semantics Wrapper
 ```swift
 @propertyWrapper
-struct Reference<Value> {
-  init(getter: () -> Value, setter: (Value) -> Void) 
+struct Percentage {
+  init(wrappedValue: Int) { ... }
     
-  var wrappedValue: Value {
-    get 
-    nonmutating set
-  }
-    
-  var projectedValue: Self {
-    self
+  var wrappedValue: Int {
+    get { ... }
+    set { ... }
   }
 }
 
-func a(@Reference foo: Int) { ... }
+func reportProgress(@Percentage at progress: Int) { ... }
+
+reportProgress(at: 50)
 ```
 
-    Becomes:
+In the above code, the `reportProgress(at:)` function and its caller are equivalent to:
 
 ```swift
-func a(foo _foo: Reference<Int>) {
-  var foo: Int {
-    get { 
-      _foo.wrappedValue 
-    }
-    set { 
-      _foo.wrappedValue = newValue
-    }
+func reportProgress(at _progress: Percentage) {
+  var progress: Int {
+    get { _progress.wrappedValue }
+    // set is not synthesized because
+    // Percentage.wrappedValue.setter is
+    // mutating
   }
-    
-  var $foo: Int {
-    get { 
-      _foo.projectedValue 
-    }
-  }
-    
+
   ...
 }
+
+reportProgress(at: Percentage(wrappedValue: 50))
 ```
 
-2. Value Semantics Wrapper
-```swift
-@propertyWrapper
-struct Wrapper<Value> {
-  init(wrappedValue: Value) 
-    
-  var wrappedValue: Value {
-    get 
-    set
-  }
-}
-
-func b(@Wrapper foo: Int = 0) { ... }
-
-b(foo: 5)
-```
-
-    Becomes:
-
-```swift
-func b(_foo: Wrapper<Int> = Wrapper(wrappedValue: 0) {
-  var foo: Int { 
-    _foo.wrappedValue
-  }
-  // Notice that there's no setter,
-  // since `wrappedValue` is mutating.
-}
-
-b(_foo: Wrapper(wrappedValue: 5))
-```
 
 
 ### Rules for Closure Parameters
