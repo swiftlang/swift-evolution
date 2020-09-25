@@ -18,20 +18,25 @@ Property wrappers have undoubtably been very successful. Applying a property wra
 ```swift
 @propertyWrapper
 struct Clamped<Value: Comparable> {
+
   init(
     wrappedValue: Value,
     to range: Range<Value>
   ) { ... }
   
+  
   var wrappedValue: Value { 
     get { ... }
     set { ... }
   }
+  
 }
 
 struct Percentage {
+
   @Clamped(to: 0 ... 100)
   var percent = 0
+     
      
   mutating func increment() {
     percent += 1
@@ -41,16 +46,20 @@ struct Percentage {
   mutating func adding(_ offset: Int) {
     percent += min(100, max(0, offset))
     //         ^~~~~~~~~~~~~~~~~~~~~~~~
-    // Manual adjustment instead of using the Clamped abstraction.
+    // Manual adjustment instead of using
+    // the 'Clamped' abstraction.
   }
 
   mutating func adding(_ offset: Clamped<Int>) {
     //                   ^~~~~~~~~~~~~~~~~~~~
-    // Unfortunately, we can't use @Clamped(to: 0 ... 100) here
+    // Unfortunately, we can't use 
+    // '@Clamped(to: 0 ... 100)' here.
+    
     percent += offset.wrappedValue
     //               ^~~~~~~~~~~~~
-    // We must access wrappedValue manually.
+    // We must access 'wrappedValue' manually.
   }
+  
 }
 ```
 
@@ -133,11 +142,14 @@ We propose to extend the contexts were application of property-wrapper types is 
 ```swift
 @propertyWrapper
 struct Clamped<Value: Comparable> {
+
   ...
+    
     
   var projectedValue: Self {
     self
   }
+  
 }
 
 func increment(
@@ -176,15 +188,20 @@ The transformation of a property wrapper parameter will take place is as follows
 ```swift
 @propertyWrapper
 struct Percentage {
+
   init(wrappedValue: Int) { ... }
+    
     
   var wrappedValue: Int {
     get { ... }
     set { ... }
   }
+  
 }
 
-func reportProgress(@Percentage at progress: Int) { ... }
+func reportProgress(
+  @Percentage at progress: Int
+) { ... }
 
 reportProgress(at: 50)
 ```
@@ -193,14 +210,17 @@ In the above code, the `reportProgress(at:)` function and its caller are equival
 
 ```swift
 func reportProgress(at _progress: Percentage) {
+
   var progress: Int {
     get { _progress.wrappedValue }
-    // set is not synthesized because
-    // Percentage.wrappedValue.setter is
+    // The setter accessor is not synthesized
+    // because Percentage.wrappedValue.setter is
     // mutating
   }
 
+
   ...
+  
 }
 
 reportProgress(at: Percentage(wrappedValue: 50))
@@ -227,8 +247,12 @@ The transformation of a property wrapper closure parameter will take place as fo
 ```swift
 @propertyWrapper
 struct Reference<Value> {
-  init(getter: @escaping () -> Value,
-       setter: @escaping (Value) -> Void) { ... }
+
+  init(
+    getter: @escaping () -> Value,
+    setter: @escaping (Value) -> Void
+  ) { ... }
+    
     
   var wrappedValue: Value {
     get 
@@ -238,11 +262,12 @@ struct Reference<Value> {
   var projectedValue: Self {
     self
   }
+  
 }
 
 typealias A = (Reference<Int>) -> Void
 
-let a: A = { @Reference ref in
+let a: A = { @Reference reference in
   ...
 }
 ```
@@ -250,23 +275,26 @@ let a: A = { @Reference ref in
 In the above example, the closure `a` is equivalent to:
 
 ```swift
-let a: A = { (_ref: Reference<Int>) in
-  var ref: Int {
+let a: A = { (_reference: Reference<Int>) in
+
+  var reference: Int {
     get { 
-      _ref.wrappedValue
+      _reference.wrappedValue
     }
     set { 
-      _ref.wrappedValue = newValue
+      _reference.wrappedValue = newValue
     }
   }
 
-  var $ref: Int {
+  var $reference: Int {
     get { 
-      _ref.projectedValue
+      _reference.projectedValue
     }
   }
     
+    
   ...
+  
 }
 ```
 
@@ -292,9 +320,11 @@ This is an additive change with _no_ impact on **API resilience**.
 One approach for marking closure parameters as property wrappers is to allow property wrapper custom attributes to be applied to types, such as:
 
 ```swift
-func useReference(_ closure: (@Reference ref: Int) -> Void)
+func useReference(
+  _ closure: (@Reference reference: Int) -> Void
+) { ... }
 
-useReference { ref in
+useReference { reference in
   ...
 }
 ```
@@ -316,9 +346,12 @@ Today, a property wrapper can be initialized from an instance of its `wrappedVal
 ```swift
 @propertyWrapper
 struct Clamped<Value: Comparable> {
+
   ...
+  
 
   init(projectedValue: Self) { ... }
+  
 }
 
 func distanceFromUpperBound(
@@ -342,28 +375,32 @@ There's currently no public feature that allows a wrapper to access its enclosin
 
 ```
 @propertyWrapper
-struct Mirror<
-  EnclosingSelf, 
-  Value, 
-  Path: KeyPath<EnclosingSelf, Value>
-> { 
+struct Mirror<EnclosingSelf, Value, Path>
+  where Path: : KeyPath<EnclosingSelf, Value> { 
+  
   let keyPath: Path 
 
+
   init(of keyPath: Path) { ... }
+  
 }
 
 struct Point {
+
   private var _vector: SIMD2<Double>
+  
   
   init(x: Double, y: Double) {
     self._vector = SIMD2(x: x, y: y)
   }
+  
   
   @Mirror(of: \._vector.x)
   var x
   
   @Mirror(of: \._vector.y)
   var y
+  
 }
 // ❌ In the above use, we'd access the enclosing
 // type's '_vector' property through the provided
