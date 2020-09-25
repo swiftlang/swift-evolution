@@ -69,11 +69,14 @@ This limitation in expressivity is emphasized by the fact that property wrappers
 
 ```swift
 extension Percentage {
+
   func modify(
     inSeconds seconds: Int,
     block: @escaping (Clamped<Int>) -> Void
   ) { ... }
+  
 }
+
 
 let myPercentage = Percentage(percent: 50)
 
@@ -91,10 +94,12 @@ In fact, establishing custom behavior on closure parameters is really powerful. 
 
 ```swift
 struct MyView: View {
+
   // A simple Shopping Item that includes
   // a 'quantity' and a 'name' property.
   @State 
   private var shoppingItems: [Item]
+
 
   var body: some View {
     ForEach(0 ..< shoppingItems.count) { index in
@@ -111,6 +116,7 @@ struct MyView: View {
       
     }
   }
+  
 }
 ```
 
@@ -118,8 +124,10 @@ With an appropriate initializer we would be able to simplify the above code, the
 
 ```swift
 struct MyView: View {
+
   @State 
   private var shoppingItems: [Item]
+
 
   var body: some View {
     ForEach($shoppingItems) { @Binding shoppingItem in
@@ -131,6 +139,7 @@ struct MyView: View {
       
     }
   }
+  
 }
 ```
 
