@@ -387,10 +387,10 @@ This proposal doesn't currently support marking function parameters to which wra
 
 There's currently no public feature that allows a wrapper to access its enclosing `Self` type:
 
-```
+```swift
 @propertyWrapper
 struct Mirror<EnclosingSelf, Value, Path>
-  where Path: : KeyPath<EnclosingSelf, Value> { 
+  where Path : KeyPath<EnclosingSelf, Value> { 
   
   let keyPath: Path 
 
@@ -424,7 +424,7 @@ struct Point {
 
 Furthermore, extending this feature's availability to function and closure parameters be really powerful:
 
-```
+```swift
 func valueAndIdPair<Value>(
   @Mirror of property: Value
 ) -> (value: Value, id: Int) {
