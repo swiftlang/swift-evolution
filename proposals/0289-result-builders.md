@@ -82,7 +82,7 @@ In this example, all the statements are expressions and so produce a single valu
 In effect, this proposal allows the creation of a new class of embedded domain-specific languages in Swift by applying *builder transformations* to the statements of a function.  The power of these builder transformations is intentionally limited so that the result preserves the dynamic semantics of the original code: the original statements of the function are still executed as normal, it's just that values which would be ignored under normal semantics are in fact collected into the result.  The use of an *ad hoc* protocol for the builder transformation leaves room for a wide variety of future extension, whether to support new kinds of statements or to customize the details of the transformation. A similar builder pattern was used successfully for string interpolation in [SE-0228](https://github.com/apple/swift-evolution/blob/master/proposals/0228-fix-expressiblebystringinterpolation.md). 
 
 Result builders have been a "hidden" feature since Swift 5.1, under the name "function builder", and the implementation (and its capabilities) have evolved since then. They are used most famously by [SwiftUI](https://developer.apple.com/xcode/swiftui/) to declaratively describe user interfaces, but others have also experimented with [building Swift syntax trees](https://swiftpack.co/package/akkyie/SyntaxBuilder), [testing](https://www.dotconferences.com/2020/02/kaya-thomas-swift-techniques-for-testing),
-[a Shortcuts DSL](https://github.com/a2/swift-shortcuts), [a CSS SDL](https://github.com/carson-katri/swift-css/blob/master/Sources/CSS/CSSBuilder.swift), and [an alternative SwiftPM manifest format](https://forums.swift.org/t/declarative-package-description-for-swiftpm-using-function-builders/28699). There's a GitHub repository dedicated to [awesome function builders](https://github.com/carson-katri/awesome-function-builders) with more applications.
+[a Shortcuts DSL](https://github.com/a2/swift-shortcuts), [a CSS DSL](https://github.com/carson-katri/swift-css/blob/master/Sources/CSS/CSSBuilder.swift), and [an alternative SwiftPM manifest format](https://forums.swift.org/t/declarative-package-description-for-swiftpm-using-function-builders/28699). There's a GitHub repository dedicated to [awesome function builders](https://github.com/carson-katri/awesome-function-builders) with more applications.
 
 ## Motivation
 
@@ -180,7 +180,7 @@ header1(chapter + "1. Loomings.")
 header1(chapter + "2. The Carpet-Bag.")
 ```
 
-Most programmers would advise declaring this variable in as narrow a scope as possible and as close as possible to where it's going to be used.  But because the entire hierarchy is an expression, and there's no easy to declare variables within expressions, every variable like this has to be declared above the entire hierarchy.  (Now, it's true that there's a trick for declaring locals within expressions: you can start a closure, which gives you a local scope that you can use to declare whatever you want, and then immediately call it. But this is awkward in its own way and significantly adds to the punctuation problem.)
+Most programmers would advise declaring this variable in as narrow a scope as possible, and as close as possible to where it's going to be used.  But because the entire hierarchy is an expression, and there's no easy way to declare variables within expressions, every variable like this has to be declared above the entire hierarchy.  (Now, it's true that there's a trick for declaring locals within expressions: you can start a closure, which gives you a local scope that you can use to declare whatever you want, and then immediately call it. But this is awkward in its own way and significantly adds to the punctuation problem.)
 
 Some of these problems would be solved, at least in part, if the hierarchy was built up by separate statements:
 
@@ -254,11 +254,13 @@ These last two points (and some other considerations) strongly suggest that the 
 
 A *result builder type* is a type that can be used as a result builder, which is to say, as an embedded DSL for collecting partial results from the expression-statements of a function and combining them into a return value.
 
-A result builder type must satisfy one basic requirement:
+A result builder type must satisfy two basic requirements:
 
 * It must be annotated with the `@resultBuilder` attribute, which indicates that it is intended to be used as a result builder type and allows it to be used as a custom attribute.
 
-In addition, to be practically useful, it must supply a sufficient set of function-builder methods to translate the kinds of functions which the DSL desires to translate.
+* It must supply at least one static `buildBlock` result-building method.
+
+In addition, it may supply a sufficient set of other result-building methods to translate the kinds of functions which the DSL desires to translate.
 
 ### Result builder attributes
 
@@ -272,7 +274,7 @@ To be useful as a result builder, the result builder type must provide a suffici
 
 Result-building methods are `static` methods that can be called on the result builder type.  Calls to result-building methods are type-checked as if a programmer had written `BuilderType.<methodName>(<arguments>)`, where the arguments (including labels) are as described below; therefore, all the ordinary overload resolution rules apply.  However, in some cases the result builder transform changes its behavior based on whether a result builder type declares a certain method at all; it is important to note that this is a weaker check, and it may be satisfied by a method that cannot in fact ever be successfully called on the given builder type.
 
-This is a quick reference for the function-builder methods currently proposed.  The typing here is subtle, as it often is in macro-like features.  In the following descriptions, `Expression` stands for any type that is acceptable for an expression-statement to have (that is, a raw partial result), `Component` stands for any type that is acceptable for a partial or combined result to have, and `FinalResult` stands for any type that is acceptable to be ultimately returned by the transformed function.
+This is a quick reference for the result-building methods currently proposed.  The typing here is subtle, as it often is in macro-like features.  In the following descriptions, `Expression` stands for any type that is acceptable for an expression-statement to have (that is, a raw partial result), `Component` stands for any type that is acceptable for a partial or combined result to have, and `FinalResult` stands for any type that is acceptable to be ultimately returned by the transformed function.
 
 * `buildBlock(_ components: Component...) -> Component` is used to build combined results for statement blocks. It is required to be a static method in every result builder.
 
@@ -535,7 +537,7 @@ If no `buildArray` is provided, `for`..`in` loops are not supported in the body.
 Statements that introduce limited availability contexts, such as `if #available(...)`, allow the use of newer APIs while still making the code backward-deployable to older versions of the libraries. A result builder that carries complete type information (such as SwiftUI's [`ViewBuilder`](https://developer.apple.com/documentation/swiftui/viewbuilder)) may need to "erase" type information from a limited availability context using `buildLimitedAvailability`. Here is a SwiftUI example borrowed from [Paul Hudson](https://www.hackingwithswift.com/quick-start/swiftui/how-to-lazy-load-views-using-lazyvstack-and-lazyhstack):
 
 ```swift
-@available(macOS 10.15, iOS 13.0)
+@available(macOS 10.15, iOS 13.0, *)
 struct ContentView: View {
     var body: some View {
         ScrollView {
@@ -587,11 +589,11 @@ if #available(macOS 11.0, iOS 14.0, *) {
     let v0 = LazyVStack { }
     let v1 = ViewBuilder.buildBlock(v0)
     let v2 = ViewBuilder.buildLimitedAvailability(v1)
-    vMerged = ViewBuilder.build(first: v2)
+    vMerged = ViewBuilder.buildEither(first: v2)
 } else {
     let v3 = VStack { }
     let v4 = ViewBuilder.buildBlock(v3)
-    vMerged = ViewBuilder.build(second: v4)
+    vMerged = ViewBuilder.buildEither(second: v4)
 }
 ```
 
@@ -971,7 +973,7 @@ enum ArrayBuilder<E>: ResultBuilder {
     typealias FinalResult = [E]
 
     static func buildFinalResult(_ component: Component) -> FinalResult {
-        switch components {
+        switch component {
         case .expression(let e): return [e]
         case .block(let children): return children.flatMap(buildFinalResult)
         case .either(.first(let child)): return buildFinalResult(child)
@@ -1033,6 +1035,7 @@ Definition {
     filter {
       equals(people.age, 42)
     }
+  }
 }
 ```
 
@@ -1049,7 +1052,7 @@ let v3 = <result of transalation filter expression>
 let v4 = ThingBuilder.buildBlock(v0, v1, v2, v3)
 ```
 
-Such DSLs would not be change the way declarations are type checked, but would have the option to produce partial results for them, which could further eliminate boilerplate. On the other hand, without this feature one can freely use `let` to pull out subexpressions and partial computations without changing the code. For example, today one expects to be able to refactor
+Such DSLs would not change the way declarations are type checked, but would have the option to produce partial results for them, which could further eliminate boilerplate. On the other hand, without this feature one can freely use `let` to pull out subexpressions and partial computations without changing the code. For example, today one expects to be able to refactor
 
 ```swift
 a.doSomething().doSomethingElse()
@@ -1118,7 +1121,7 @@ Support for additional control-flow statements would weaken the declarative feel
 It has been suggested that there could be two "forms" of result builders, one that matches the design in this proposal and a second, "simpler" one that handles the full breadth of the statement grammar (including all loops, `break`, `continue`, and so on) but sees only the partial results (e.g., via `buildExpression`) and not the structure (`buildBlock`, `buildEither(first:)`, etc. would not get called). The "simple result builder protocol" described above illustrates how one can get the second part of this--defining a simple result builder that receives all of the values without the structure--by building on top of this proposal. However, we should not have two forms of result builders in the language itself, with different capabilities, because it leads to confusion. If result builders gain support for additional control-flow statements (as a general feature), that should be reflected in the "simple result builder protocol" to extend the feature set for result builders that don't want the structure.
 
 ### Builder-scoped name lookup
-It is common for DSLs to want to introduce shorthands which might not be unreasonable to introduce into the global scope.  For example, `p` might be a reasonable name in the context of our `HTMLBuilder` DSL (rather than `paragraph`), but actually introducing a global function named `p` just for DSL use is quite unfortunate.  Contextual lookups like `.p` will generally not work at the top level in DSLs because they will be interpreted as continuations of the previous statement. One could imagine having some way for the DSL to affect lexical lookup within transformed functions so that, e.g., within the transformed function one could use short names like `p`, `div`, and `h1`:
+It is common for DSLs to want to introduce shorthands which might be unreasonable to introduce into the global scope.  For example, `p` might be a reasonable name in the context of our `HTMLBuilder` DSL (rather than `paragraph`), but actually introducing a global function named `p` just for DSL use is quite unfortunate.  Contextual lookups like `.p` will generally not work at the top level in DSLs because they will be interpreted as continuations of the previous statement. One could imagine having some way for the DSL to affect lexical lookup within transformed functions so that, e.g., within the transformed function one could use short names like `p`, `div`, and `h1`:
 
 ```swift
 return body {
@@ -1141,9 +1144,9 @@ which are defined in the result builder type itself, e.g.,
 
 ```swift
 extension HTMLBuilder {
-  static func body(_ children: [HTML]) -> HTMLNode { ... }
-  static func div(_ children: [HTML]) -> HTMLNode { ... }
-  static func p(_ children: [HTML]) -> HTMLNode { ... }
+  static func body(@HTMLBuilder _ children: () -> [HTML]) -> HTMLNode { ... }
+  static func div(@HTMLBuilder _ children: () -> [HTML]) -> HTMLNode { ... }
+  static func p(@HTMLBuilder _ children: () -> [HTML]) -> HTMLNode { ... }
   static func h1(_ text: String) -> HTMLNode { ... }
 }
 ```
@@ -1179,9 +1182,9 @@ Here, one can put the shorthand names (or, indeed, everything defined for the DS
 
 ```swift
 extension HTMLDocument {
-  static func body(_ children: [HTML]) -> HTMLNode { ... }
-  static func div(_ children: [HTML]) -> HTMLNode { ... }
-  static func p(_ children: [HTML]) -> HTMLNode { ... }
+  static func body(@HTMLBuilder _ children: () -> [HTML]) -> HTMLNode { ... }
+  static func div(@HTMLBuilder _ children: () -> [HTML]) -> HTMLNode { ... }
+  static func p(@HTMLBuilder _ children: () -> [HTML]) -> HTMLNode { ... }
   static func h1(_ text: String) -> HTMLNode { ... }
 }
 ```
