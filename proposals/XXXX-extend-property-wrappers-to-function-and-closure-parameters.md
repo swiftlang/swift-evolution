@@ -8,7 +8,7 @@
 
 ## Introduction
 
-Property Wrappers were [introduced in Swift 5.1](https://github.com/apple/swift-evolution/blob/master/proposals/0258-property-wrappers.md), and have since become a popular feature abstracting away common accessor patterns for properties. Currently, applying a property wrapper is solely permitted on properties inside of a type context. However, with increasing adoption demand for extending _where_ property wrappers can be applied has emerged. This proposal describes extending property wrappers to function and closure parameters.
+Property Wrappers were [introduced in Swift 5.1](https://github.com/apple/swift-evolution/blob/master/proposals/0258-property-wrappers.md), and have since become a popular feature abstracting away common accessor patterns for properties. Currently, applying a property wrapper is solely permitted on properties inside of a type context. However, with increasing adoption demand for extending _where_ property wrappers can be applied has emerged. This proposal aims to extend property wrappers to function and closure parameters.
 
 
 ## Motivation
@@ -65,7 +65,7 @@ struct Percentage {
 }
 ```
 
-As seen in the above example, it is quite awkward and unintuitive that property wrappers cannot be applied to function parameters. In this case, a property wrapper parameter would be useful for expressing and enforcing invariants about the `offset` argument to the `adding` method on `Percentage`. Disallowing the property wrapper attribute on the `offset` parameter causes the API author to choose between making invariant checking implementation detail, or forcing the invariant checking on every caller of the API.
+As seen in the above example, it is quite awkward and unintuitive that property wrappers cannot be applied to function parameters. In this case, a property wrapper parameter would be useful for expressing and enforcing invariants about the `offset` argument to the `adding` method on `Percentage`. Inability to allow the property wrapper attribute on the `offset` parameter causes the API author to choose between making invariant checking an implementation detail, or forcing the invariant checking on every caller of the API.
 
 This limitation in expressivity is emphasized by the fact that property wrappers were originally sought out to abstract away such patterns.  As a result, elegant APIs are undermined by this limitation. Not only is this limiting users by forcing them to carefully read documentation, which may not cover a specific use case, to make sure no invariants have been violated, but it also limits API authors in what they can create. That is, API authors can't use property-wrapper types in closure parameters nor can code be seperated into functions that accept property wrapper syntax:
 
@@ -91,7 +91,7 @@ myPercentage
   }
 ```
 
-In fact, establishing custom behavior on closure parameters is really powerful. For example, if such a feature were supported, it could be used in conjunction with [Function Builders](https://github.com/apple/swift-evolution/blob/master/proposals/0289-function-builders.md) to expose data managed by a 'component' type. For instance, in SwiftUI [`ForEach`](https://developer.apple.com/documentation/swiftui/foreach) could utilize this feature to expose the mutable state of its data source to its 'content' closure. Thus, instead of manually mutating the data source, as is done here:
+In fact, establishing custom behavior on closure parameters is really powerful. For example, if such a feature were supported, it could be used in conjunction with [Function Builders](https://github.com/apple/swift-evolution/blob/master/proposals/0289-function-builders.md) to expose data managed by a 'component' type. For instance, in SwiftUI [`ForEach`](https://developer.apple.com/documentation/swiftui/foreach) could leverage this feature to expose the mutable state of its data source to its 'content' closure. Thus, instead of manually mutating the data source, as is done here:
 
 ```swift
 struct MyView: View {
@@ -121,7 +121,7 @@ struct MyView: View {
 }
 ```
 
-With an appropriate initializer we would be able to simplify the above code, therefore reducing boilerplate:
+we would – with an appropriate initializer – be able to simplify the above code, reducing boilerplate as a result:
 
 ```swift
 struct MyView: View {
@@ -147,7 +147,7 @@ struct MyView: View {
 
 ## Proposed solution
 
-We propose to extend the contexts were application of property-wrapper types is allowed. Namely, application of such types will be allowed on function and closure parameters:
+We propose to extend the contexts were application of property-wrapper types is permitted. Namely, application of such types will be allowed on function and closure parameters:
 
 ```swift
 @propertyWrapper
@@ -179,19 +179,20 @@ Property wrappers are essentially sugar wrapping a given property with compiler 
 
 ### Property Wrappers on Function Parameters
 
-Function parameters marked with a set of property wrapper custom attributes must conform to the following rules:
+Function parameters marked with compatible property-wrapper custom attributes must conform to the following rules:
 
-1. Each property wrapper type must have a suitable `init(wrappedValue:)` for initializing the property wrapper from an instance of its `wrappedValue` type.
-2. Each `wrappedValue` getter must be `nonmutating`.
-3. Default values must be expressed in terms of the innermost `wrappedValue` type.
+1. For initalization through `wrappedValue` type, the property wrapper type must provide a suitable `init(wrappedValue:)`.
+2. Each `wrappedValue` getter shall be `nonmutating`.
+3. Default values for such parameters must be expressed in terms of the innermost `wrappedValue` type.
 
-The transformation of a property wrapper parameter will take place is as follows:
+Transformation of property-wrapper parameters will be performed as such:
 
 1. The external parameter name will remain unchanged.
-2. The internal parameter name will be prefixed with an underscore, and the type of this parameter is the backing property wrapper type.
-3. A local computed property representing  `wrappedValue` will be synthesized by the compiler and named per the original (non-prefixed) parameter name. The accessors will mirror the `wrappedValue` accessors. A setter will only be synthesized for the local property if the `wrappedValue` setter is `nonmutating`, or if the wrapper is a reference type.
-4. If the property wrapper defines a `projectedValue`, a local computed property representing  `projectedValue` will be synthesized by the compiler and named per the original parameter name prefixed with a dollar sign (`$`). The same accessor rules for `wrappedValue` apply to `projectedValue`.
-5. When passing an argument to a property wrapper parameter, the compiler will wrap the argument in the appropriate `init(wrappedValue:)` call.
+2. The internal parameter name will be prefixed with an underscore.
+3. The parameter will be bound to the backing property wrapper type.
+4. A local computed property representing  `wrappedValue` will be synthesized by the compiler and named per the original (non-prefixed) parameter name. The accessors will mirror the `wrappedValue` accessors. A setter will only be synthesized for the local property if the `wrappedValue` setter is `nonmutating`, or if the wrapper is a reference type.
+5. If the property wrapper defines a `projectedValue`, a local computed property representing  `projectedValue` will be synthesized by the compiler and named per the original parameter name prefixed with a dollar sign (`$`). The same accessor rules for `wrappedValue` apply to `projectedValue`.
+6. When passing an argument to a property wrapper parameter, the compiler will wrap the argument in the appropriate `init(wrappedValue:)` call – should one be provided.
 
 #### Transformation Example:
 
@@ -240,19 +241,20 @@ reportProgress(of: Percentage(wrappedValue: 50))
 
 ### Property Wrappers on Closure Parameters
 
-Since a property wrapper custom attribute is applied directly to the declaration that will be wrapped, applying a property wrapper to a closure parameter is only allowed within a closure expression. This means that for a function that accepts a closure argument, a parameter to that closure cannot have a property wrapper attribute applied in the function signature. Rather, the application of a wrapper type will be up to the caller of the function which supplies the closure argument to opt into the property wrapper syntax.
+Since a property wrapper custom attribute is applied directly to the declaration that will be wrapped, application of a property wrapper type is only available within a closure expression. That is, the signature of a function that contains a closure cannot include the property wrapper attibute. Instead the application of the attrbute will be up to the caller of the function, which supplies the closure argument.
 
 Closure parameters marked with a set of property wrapper custom attributes must conform to the following rules:
 
 1. Each wrapper attribute must not specify any arguments.
-2. Each `wrappedValue` getter must be `nonmutating`.
+2. Each `wrappedValue` getter shall be `nonmutating`.
 3. Any contextual type for the parameter must match the outermost backing wrapper type.
 
 The transformation of a property wrapper closure parameter will take place as follows:
 
-1. The parameter name will be prefixed with an underscore, and the type of this parameter is the backing property wrapper type.
-2. A local computed property representing  `wrappedValue` will be synthesized by the compiler and named per the original (non-prefixed) parameter name. The accessors will mirror the `wrappedValue` accessors. A setter will only be synthesized for the local property if the `wrappedValue` setter is `nonmutating`, or if the wrapper is a reference type.
-3. If the property wrapper defines a `projectedValue`, a local computed property representing  `projectedValue` will be synthesized by the compiler and named per the original parameter name prefixed with a dollar sign (`$`). The same accessor rules for `wrappedValue` apply to `projectedValue`.
+1. The parameter name will be prefixed with an underscore.
+2. The parameter will be bound to the backing property wrapper type.
+3. A local computed property representing  `wrappedValue` will be synthesized by the compiler and named per the original (non-prefixed) parameter name. The accessors will mirror the `wrappedValue` accessors. A setter will only be synthesized for the local property if the `wrappedValue` setter is `nonmutating`, or if the wrapper is a reference type.
+4. If the property wrapper defines a `projectedValue`, a local computed property representing  `projectedValue` will be synthesized by the compiler and named per the original parameter name prefixed with a dollar sign (`$`). The same accessor rules for `wrappedValue` apply to `projectedValue`.
 
 #### Transformation Example:
 
