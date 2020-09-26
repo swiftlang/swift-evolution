@@ -443,4 +443,31 @@ It's important to note that allowing use of such a feature in function parameter
 
 ### Add Wrapper Types in the Standard Library
 
-TBD
+The has been some discussion of adding wrapper types to the Standard Library, such as an `@Atomic` wrapper, so as to facilitate certain APIs. For example, `@UnsafePointer` could be a very useful one, due to the way one accesses the `pointee` property of an `UnsafePointer` type:
+
+```swift
+let myPointer: UnsafePointer<UInt8> = ...
+
+myPointer.pointee 
+//        ^~~~~~~ 
+// This is the accessor pattern property 
+// wrappers were devised to tackle.
+```
+
+Instead of writing the above, in the future one might be able to write this:
+
+```swift
+let myInt = 0
+
+withUnsafePointer(to: ...) { @UnsafePointer value in
+
+  print(value) // 0
+  
+  $value.withMemoryRebound(to: UInt64.self {
+    ... 
+  }
+  
+}
+```
+
+As a result, unsafe code is not dominated by visually displeasing accesses to `pointee`; rather, more natural and clear code is enabled.
