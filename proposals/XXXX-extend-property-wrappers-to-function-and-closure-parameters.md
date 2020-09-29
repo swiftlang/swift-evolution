@@ -105,15 +105,7 @@ struct MyView: View {
   var body: some View {
     ForEach(0 ..< shoppingItems.count) { index in
   
-      Text(shoppingItems[index].name)
-        .onTapGesture {
-          // We increase the item's quantity 
-          // when the user taps the item. 
-          // Unfortunately, to mutate the item
-          // we have to manually index our
-          // data source.
-          shoppingItems[index].quanity += 1
-        }
+      TextField("Enter the item's name...", $shoppingItems[index].name)
       
     }
   }
@@ -133,10 +125,7 @@ struct MyView: View {
   var body: some View {
     ForEach($shoppingItems) { @Binding shoppingItem in
     
-      Text(shoppingItem.name)
-        .onTapGesture {
-          shoppingItem.quanity += 1
-        }
+      TextField("Enter the item's name...", $shoppingItem.name)
       
     }
   }
