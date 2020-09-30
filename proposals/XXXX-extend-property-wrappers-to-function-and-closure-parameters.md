@@ -74,7 +74,7 @@ extension Percentage {
 
   func modify(
     inSeconds seconds: Int,
-    block: @escaping (Clamped<Int>) -> Void
+    block: @escaping (inout Clamped<Int>) -> Void
   ) { ... }
   
 }
@@ -91,7 +91,7 @@ myPercentage
   }
 ```
 
-In fact, establishing custom behavior on closure parameters is really powerful. For example, if such a feature were supported, it could be used in conjunction with [Function Builders](https://github.com/apple/swift-evolution/blob/master/proposals/0289-function-builders.md) to expose data managed by a 'component' type. For instance, in SwiftUI [`ForEach`](https://developer.apple.com/documentation/swiftui/foreach) could leverage this feature to expose the mutable state of its data source to its 'content' closure. Thus, instead of manually mutating the data source, as is done here:
+In fact, establishing custom behavior on closure parameters is really powerful. For example, if such a feature were supported, it could be used in conjunction with [Function Builders](https://github.com/apple/swift-evolution/blob/master/proposals/0289-function-builders.md) to expose data managed by a 'component' type. For instance, in SwiftUI [`ForEach`](https://developer.apple.com/documentation/swiftui/foreach) could leverage this feature to expose the mutable state of its data source to its 'content' closure. This would enable users to more easily work with the data source itself inside the closure instead of accessing the original property, which is particularly painful when working with collections, as shown in this example:
 
 ```swift
 struct MyView: View {
