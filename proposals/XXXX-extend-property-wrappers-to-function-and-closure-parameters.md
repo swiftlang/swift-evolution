@@ -228,6 +228,32 @@ func reportProgress(of _progress: Percentage) {
 reportProgress(of: Percentage(wrappedValue: 50))
 ```
 
+#### Restrictions on Property Wrapper Function Parameters
+
+##### `@autoclosure`
+
+Function parameters with a property wrapper custom attribute cannot have an `@autoclosure` type. `@autoclosure` is unnecessary for the wrapped value itself because the wrapped value argument at the call-site will always be wrapped in a call to `init(wrappedValue:)`, which already can support `@autoclosure` arguments. Using `@autoclosure` for the backing wrapper type would be misleading, because the type spelled out for the parameter would not be the true autoclosure type. Consider the `reportProgress` example from above with an `@autoclosure` parameter:
+
+```swift
+func reportProgress(
+  @Percentage progress: @autoclosure () -> Int
+) { ... }
+
+
+reportProgress(of: 50)
+```
+The above code would be transformed to:
+```swift
+func reportProgress(
+  progress _progress: @autoclosure () -> Percentage<Int>
+) { ... }
+
+
+reportProgress(of: Percentage(wrappedValue: 50))
+```
+The changing type of the `@autoclosure` is incredibly misleading, as it's not obvious that `@autoclosure` applies to the backing wrapper rather than the wrapped value. Therefore, using `@autoclosure` for a property wrapper function parameter will be a compiler error.
+
+
 ### Property Wrappers on Closure Parameters
 
 Since a property wrapper custom attribute is applied directly to the declaration that will be wrapped, application of a property wrapper type is only available within a closure expression. That is, the signature of a function that contains a closure cannot include the property wrapper attibute. Instead the application of the attrbute will be up to the caller of the function, which supplies the closure argument.
@@ -336,16 +362,7 @@ useReference { reference in
 This approach enables inference of the wrapper attribute on the closure parameter from context. However, this breaks the property wrapper declaration model, and it would force callers into the property wrapper syntax. This approach also raises questions about anonymous closure parameters that have an inferred property wrapper custom attribute. If an anonymous closure parameter `$0` has the `wrappedValue` type, accessing the backing wrapper and projected value would naturally use `_$0` and `$$0`, which are far from readable. If `$0` has the backing wrapper type, this would mean that naming the parameter would cause the value to change types, which is very unexpected for the user. Finally, the property wrapper syntax is purely implementation detail for the closure body, which does not belong in the API signature.
 
 
-### Support `@autoclosure` and `@escaping` in Function Parameters
-
-TBD
-
-
 ## Future Directions
-
-### Allow Arguments in Parameter Wrapper Attributes using Shared Wrapper Context
-
-TODO (Holly)
 
 ### Support Property Wrapper Initialization from a Projected Value
 
