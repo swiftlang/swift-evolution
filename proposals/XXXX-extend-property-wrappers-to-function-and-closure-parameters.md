@@ -138,29 +138,6 @@ struct MyView: View {
 
 We propose to extend the contexts were application of property-wrapper types is permitted. Namely, application of such types will be allowed on function and closure parameters:
 
-```swift
-@propertyWrapper
-struct Clamped<Value: Comparable> {
-
-  ...
-    
-    
-  var projectedValue: Self {
-    self
-  }
-  
-}
-
-func increment(
-  @Clamped(to: 0 ... 100) percent: Int = 100
-) { ... }
-
-myPercentage
-  .modify(inSeconds: 3) { @Clamped percent in
-    percent = 100 
-  }
-```
-
 
 ## Detailed design
 
