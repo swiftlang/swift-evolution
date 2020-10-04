@@ -426,7 +426,7 @@ It's important to note that allowing use of such a feature in function parameter
 
 ### Add Wrapper Types in the Standard Library
 
-The has been some discussion of adding wrapper types to the Standard Library, such as an `@Atomic` wrapper, so as to facilitate certain APIs. For example, `@UnsafePointer` could be a very useful one, due to the way one accesses the `pointee` property of an `UnsafePointer` type:
+Adding wrapper types to the Standard Library has been discussed for types [such as `@Atomic`] and [`@Weak`](https://forums.swift.org/t/should-weak-be-a-type/34032), which would facilitate certain APIs. Another interesting Standard Library wrapper type could be `@UnsafePointer`, which would be quite useful, as access of the `pointee` property is quite common:
 
 ```swift
 let myPointer: UnsafePointer<UInt8> = ...
@@ -453,4 +453,62 @@ withUnsafePointer(to: ...) { @UnsafePointer value in
 }
 ```
 
-As a result, unsafe code is not dominated by visually displeasing accesses to `pointee`; rather, more natural and clear code is enabled.
+As a result, unsafe code is not dominated by visually displeasing accesses to `pointee` members; rather, more natural and clear code is enabled. 
+
+What's more, a `@Lazy` type could be added so as to alleviate the need for custom behavior built into the compiler. Instead, `@Lazy` would act as more comprehensible, easy to maintain type, that would also allow for a more streamlined way of resetting its storage:
+
+```
+struct Size {
+    
+    private mutating func _reset() {
+        $__lazy_storage_$_area = nil
+    }
+    
+    var width: Double {
+        didSet {
+            _reset()
+        }
+    }
+  
+    var height: Double {
+        didSet {
+            _reset()
+        }
+    }
+  
+  
+    // Mutation of 'width' and 'height' are rare;
+    // therefore, it is sensible that the commonly
+    // accessed 'area' property be lazy.
+    lazy var area = width * height
+  
+}
+```
+
+The above code shows how one would currently implement a `Size` type with such semantics. With `@Lazy`, though, it would be simplified to:
+
+```
+struct Size {
+    
+  @Lazy {
+    width * height
+  }
+  var area: Double
+
+
+  var width: Double {
+    didSet {
+      $area.reset()
+    }
+  }
+
+  var height: Double {
+    didSet {
+      $area.reset()
+    }
+  }
+  
+}
+```
+
+Here, resetting of `area`'s underlying storage is very clear and easily accessible through `@Lazy`'s projected value.  
