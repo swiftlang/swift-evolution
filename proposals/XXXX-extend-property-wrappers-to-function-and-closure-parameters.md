@@ -145,9 +145,9 @@ Property wrappers are essentially sugar wrapping a given property with compiler 
 
 ### Property Wrappers on Function Parameters
 
-Function parameters marked with compatible property-wrapper custom attributes must conform to the following rules:
+Function parameters marked with a set of compatible property-wrapper custom attributes must conform to the following rules:
 
-1. For initalization through `wrappedValue` type, the property wrapper type must provide a suitable `init(wrappedValue:)`.
+1. For initalization through `wrappedValue`'s type, all property-wrapper types must provide a suitable `init(wrappedValue:)`.
 2. Each `wrappedValue` getter shall be `nonmutating`.
 3. Default values for such parameters must be expressed in terms of the innermost `wrappedValue` type.
 
