@@ -421,8 +421,7 @@ func valueAndIdPair<Value>(
 }
 ```
 
-It's important to note that allowing use of such a feature in function parameters would entail some limitations. For example, a parameter makred with a wrapper type referencing enclosing `Self` would not be initializable with the sugared function call that utilizes `init(wrappedValue: ...)`. That's because it would require access to the enclosing `Self`; however, in the case of calling a function this would be undefined.
-
+It's important to note that allowing use of such a feature in function parameters would entail some limitations. For example, a parameter marked with a wrapper type referencing enclosing `self` would be an error for a non-instance method, as the accessors for the `wrappedValue` and `projectedValue` need an enclosing `self` instance.
 
 ### Add Wrapper Types in the Standard Library
 
