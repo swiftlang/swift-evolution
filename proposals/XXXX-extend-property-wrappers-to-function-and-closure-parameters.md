@@ -425,7 +425,7 @@ It's important to note that allowing use of such a feature in function parameter
 
 ### Add Wrapper Types in the Standard Library
 
-Adding wrapper types to the Standard Library has been discussed for types [such as `@Atomic`] and [`@Weak`](https://forums.swift.org/t/should-weak-be-a-type/34032), which would facilitate certain APIs. Another interesting Standard Library wrapper type could be `@UnsafePointer`, which would be quite useful, as access of the `pointee` property is quite common:
+Adding wrapper types to the Standard Library has been discussed for types [such as `@Atomic`](https://forums.swift.org/t/atomic-property-wrapper-for-standard-library/30468) and [`@Weak`](https://forums.swift.org/t/should-weak-be-a-type/34032), which would facilitate certain APIs. Another interesting Standard Library wrapper type could be `@UnsafePointer`, which would be quite useful, as access of the `pointee` property is quite common:
 
 ```swift
 let myPointer: UnsafePointer<UInt8> = ...
