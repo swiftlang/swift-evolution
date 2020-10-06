@@ -445,7 +445,7 @@ withUnsafePointer(to: ...) { @UnsafePointer value in
 
   print(value) // 0
   
-  $value.withMemoryRebound(to: UInt64.self {
+  $value.withMemoryRebound(to: UInt64.self) {
     ... 
   }
   
