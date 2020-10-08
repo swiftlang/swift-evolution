@@ -181,7 +181,7 @@ However, despite the superficial similarity, the `&` here isn't an address-of op
 
 ```swift
 withUnsafePointer(to: &value) { pointer in
-  test(&pointer)
+  test(pointer)
 }
 ```
 
