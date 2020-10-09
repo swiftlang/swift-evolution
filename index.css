@@ -700,10 +700,6 @@ section ul, section li {
         color: black;
     }
     
-    .filter-toggle a {
-        color: #0088cc;
-    }
-    
     .filter-description {
         color: #777;
     }
