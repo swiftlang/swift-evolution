@@ -658,26 +658,18 @@ section ul, section li {
         }
     }
     
-    #proposals-count {
-        color: #ccc;
-    }
-    
     /*
         Individual proposals
     */
     
-    .proposal-id {
+    .proposal-id,
+    .proposal-detail-label
+    {
         color: #777;
     }
-    
-    .proposal-detail-label {
-        color: #777;
-    }
-    
-    .proposal-detail-value {
-        color: #ccc;
-    }
-    
+
+    #proposals-count,
+    .proposal-detail-value,
     .proposal-title a:link,
     .proposal-title a:visited,
     .proposal-title a:active,
