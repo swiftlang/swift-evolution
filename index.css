@@ -620,6 +620,10 @@ section ul, section li {
     border-color: rgb(255, 59, 48);
 }
 
+/*
+    Dark Mode
+*/
+
 @media screen and (prefers-color-scheme: dark) {
     body {
         background-color: #000;
