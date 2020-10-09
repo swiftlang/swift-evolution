@@ -638,7 +638,9 @@ section ul, section li {
         color: #999;
     }
     
-    header {
+    header,
+    nav
+    {
         background: rgba(7, 7, 7, 0.7);
         border-bottom: 1px solid rgb(25, 25, 25);
     }
@@ -648,11 +650,6 @@ section ul, section li {
     #title a:visited
     {
         color: #ccc;
-    }
-    
-    nav {
-        background: rgb(7, 7, 7);    
-        border-bottom: 1px solid rgb(25, 25, 25);
     }
     
     @supports (-webkit-backdrop-filter: blur(10px)) {
