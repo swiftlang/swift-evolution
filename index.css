@@ -633,22 +633,19 @@ section ul, section li {
     a:link,
     a:visited,
     a:active,
-    a:hover
-    {
+    a:hover {
         color: #999;
     }
     
     header,
-    nav
-    {
+    nav {
         background: rgba(7, 7, 7, 0.7);
         border-bottom: 1px solid rgb(25, 25, 25);
     }
     
     #title a:link,
     #title a:active,
-    #title a:visited
-    {
+    #title a:visited {
         color: #ccc;
     }
     
@@ -663,8 +660,7 @@ section ul, section li {
     */
     
     .proposal-id,
-    .proposal-detail-label
-    {
+    .proposal-detail-label {
         color: #777;
     }
 
