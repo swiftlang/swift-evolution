@@ -36,7 +36,7 @@ h4 {
 }
 
 a:link {
-    color: #666;
+    color: #666;      
     text-decoration: none;
 }
 
@@ -618,4 +618,101 @@ section ul, section li {
 .color-withdrawn {
     color: rgb(255, 59, 48);
     border-color: rgb(255, 59, 48);
+}
+
+@media screen and (prefers-color-scheme: dark) {
+    body {
+        background-color: #000;
+        color: #ccc;
+    }
+    
+    a:link,
+    a:visited,
+    a:active,
+    a:hover
+    {
+        color: #999;
+    }
+    
+    header {
+        background: rgba(7, 7, 7, 0.7);
+        border-bottom: 1px solid rgb(25, 25, 25);
+    }
+    
+    #title a:link { color: #ccc; }
+    #title a:active { color: #ccc; }
+    #title a:visited { color: #ccc; }
+    
+    nav {
+        background: rgb(7, 7, 7);    
+        border-bottom: 1px solid rgb(25, 25, 25);
+    }
+    
+    @supports (-webkit-backdrop-filter: blur(10px)) {
+        nav {
+            background: rgba(7, 7, 7, 0.7);
+        }
+    }
+    
+    #proposals-count {
+        color: #ccc;
+    }
+    
+    /*
+        Individual proposals
+    */
+    
+    .proposal-id {
+        color: #777;
+    }
+    
+    .proposal-detail-label {
+        color: #777;
+    }
+    
+    .proposal-detail-value {
+        color: #ccc;
+    }
+    
+    .proposal-title a:link,
+    .proposal-title a:visited,
+    .proposal-title a:active,
+    .proposal-detail-value a:link,
+    .proposal-detail-value a:visited,
+    .proposal-detail-value a:active {
+        color: #ccc;
+    }
+    
+    /*
+        Filtering
+    */
+    
+    .filter-by-status label {
+        border: 1px solid #777;
+    }
+    
+    .filter-by-status input[type=checkbox] + label {
+        color: #777;
+    }
+    
+    .filter-by-status input[type=checkbox]:checked + label {
+        background: #777;
+        color: black;
+    }
+    
+    .filter-toggle a {
+        color: #0088cc;
+    }
+    
+    .filter-description {
+        color: #777;
+    }
+    
+    .active .icon-line {
+        stroke: black;
+    }
+    
+    .active .icon-circle {
+        fill: #777;
+    }
 }
