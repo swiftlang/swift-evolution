@@ -643,9 +643,12 @@ section ul, section li {
         border-bottom: 1px solid rgb(25, 25, 25);
     }
     
-    #title a:link { color: #ccc; }
-    #title a:active { color: #ccc; }
-    #title a:visited { color: #ccc; }
+    #title a:link,
+    #title a:active,
+    #title a:visited
+    {
+        color: #ccc;
+    }
     
     nav {
         background: rgb(7, 7, 7);    
