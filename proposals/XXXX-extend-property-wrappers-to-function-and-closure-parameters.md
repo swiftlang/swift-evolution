@@ -8,24 +8,24 @@
 
 ## Introduction
 
-Property Wrappers were [introduced in Swift 5.1](https://github.com/apple/swift-evolution/blob/master/proposals/0258-property-wrappers.md), and have since become a popular feature abstracting away common accessor patterns for properties. Currently, applying a property wrapper is solely permitted on properties inside of a type context. However, with increasing adoption demand for extending _where_ property wrappers can be applied has emerged. This proposal aims to extend property wrappers to function and closure parameters.
+Property Wrappers were [introduced in Swift 5.1](https://github.com/apple/swift-evolution/blob/main/proposals/0258-property-wrappers.md), and have since become a popular feature abstracting away common accessor patterns for properties. Currently, applying a property wrapper is solely permitted at local and type context. However, with increasing adoption demand for extending _where_ property wrappers can be applied has emerged. This proposal aims to extend property wrappers to function and closure parameters.
 
 
 ## Motivation
 
-Property wrappers have undoubtably been very successful. Applying a property wrapper to a property is enabled by an incredibly lightweight and expressive syntax. Therefore, library authors can expose complex behavior through easily understandable property-wrapper types in an efficient manner. For instance, frameworks such as [SwiftUI](https://developer.apple.com/documentation/swiftui/) and [Combine](https://developer.apple.com/documentation/combine) introduce property wrappers such as [`State`](https://developer.apple.com/documentation/swiftui/state), [`Binding`](https://developer.apple.com/documentation/swiftui/binding) and [`Published`](https://developer.apple.com/documentation/combine/published) respectively to expose elaborate behavior through a succint interface, helping craft expressive yet simple APIs. However, property wrappers are only applicable to type properties, shattering the illusion that they helped realize in the first place:
+Property wrappers have undoubtably been very successful. Applying a property wrapper to a property is enabled by an incredibly lightweight and expressive syntax. Therefore, library authors can expose complex behavior through easily understandable property-wrapper types in an efficient manner. For instance, frameworks such as [SwiftUI](https://developer.apple.com/documentation/swiftui/) and [Combine](https://developer.apple.com/documentation/combine) introduce property wrappers such as [`State`](https://developer.apple.com/documentation/swiftui/state), [`Binding`](https://developer.apple.com/documentation/swiftui/binding) and [`Published`](https://developer.apple.com/documentation/combine/published) respectively, to expose elaborate behavior through a succinct interface, helping craft expressive yet simple APIs. However, property wrappers are only applicable to local and type properties, shattering the illusion that they helped realize in the first place:
 
 ```swift
 @propertyWrapper
-struct Clamped<Value: Comparable> {
+struct Clamped<Bound: Comparable> {
 
   init(
-    wrappedValue: Value,
-    to range: Range<Value>
+    wrappedValue: Bound,
+    to range: ClosedRange<Bound>
   ) { ... }
   
   
-  var wrappedValue: Value { 
+  var wrappedValue: Bound { 
     get { ... }
     set { ... }
   }
@@ -47,7 +47,7 @@ struct Percentage {
   mutating func adding(_ offset: Int) {
     percent += min(100, max(0, offset))
     //         ^~~~~~~~~~~~~~~~~~~~~~~~
-    // We are forced to manually adjust 'percent' 
+    // We are forced to manually clamp 'offset' 
     // instead of utilizing the abstraction 
     // property wrappers offer.
   }
@@ -65,9 +65,9 @@ struct Percentage {
 }
 ```
 
-As seen in the above example, it is quite awkward and unintuitive that property wrappers cannot be applied to function parameters. In this case, a property wrapper parameter would be useful for expressing and enforcing invariants about the `offset` argument to the `adding` method on `Percentage`. Inability to allow the property wrapper attribute on the `offset` parameter causes the API author to choose between making invariant checking an implementation detail, or forcing the invariant checking on every caller of the API.
+As seen in the above example, it is quite awkward and unintuitive that property wrappers cannot be applied to function parameters. In this case, a property wrapper parameter would be useful for expressing and enforcing invariants about the `offset` argument to the `adding` method on `Percentage`. Inability to allow the `@Clamped` attribute on the `offset` parameter causes the API author to choose between making invariant checking an implementation detail, or forcing the invariant checking on every caller of the API.
 
-This limitation in expressivity is emphasized by the fact that property wrappers were originally sought out to abstract away such patterns.  As a result, elegant APIs are undermined by this limitation. Not only is this limiting users by forcing them to carefully read documentation, which may not cover a specific use case, to make sure no invariants have been violated, but it also limits API authors in what they can create. That is, API authors can't use property-wrapper types in closure parameters nor can code be seperated into functions that accept property wrapper syntax:
+This limitation in expressivity is emphasized by the fact that property wrappers were originally sought out to abstract away such patterns.  As a result, elegant APIs are undermined by this limitation. Not only is this limiting users by forcing them to carefully read documentation, which may not cover a specific use case, to make sure no invariants have been violated, but it also limits API authors in what they can create. That is, API authors can't use property-wrapper types in closure parameters nor can code be separated into functions that accept property wrapper syntax:
 
 ```swift
 extension Percentage {
@@ -91,7 +91,7 @@ myPercentage
   }
 ```
 
-In fact, establishing custom behavior on closure parameters is really powerful. For example, if such a feature were supported, it could be used in conjunction with [Function Builders](https://github.com/apple/swift-evolution/blob/master/proposals/0289-function-builders.md) to expose data managed by a 'component' type. For instance, in SwiftUI [`ForEach`](https://developer.apple.com/documentation/swiftui/foreach) could leverage this feature to expose the mutable state of its data source to its 'content' closure. This would enable users to more easily work with the data source itself inside the closure instead of accessing the original property, which is particularly painful when working with collections, as shown in this example:
+In fact, establishing custom behavior on closure parameters is really powerful. For example, if such a feature were supported, it could be used in conjunction with [Result Builders](https://github.com/apple/swift-evolution/blob/main/proposals/0289-result-builders.md) to expose data managed by a 'component' type. For instance, in SwiftUI [`ForEach`](https://developer.apple.com/documentation/swiftui/foreach) could leverage this feature to expose the mutable state of its data source to its 'content' closure. This would enable users to more easily work with the data source itself inside the closure instead of accessing the original property, which is particularly painful when working with collections, as shown in this example:
 
 ```swift
 struct MyView: View {
@@ -113,7 +113,7 @@ struct MyView: View {
 }
 ```
 
-we would – with an appropriate initializer – be able to simplify the above code, reducing boilerplate as a result:
+we would — with an appropriate initializer — be able to simplify the above code, reducing boilerplate as a result:
 
 ```swift
 struct MyView: View {
@@ -136,7 +136,7 @@ struct MyView: View {
 
 ## Proposed solution
 
-We propose to extend the contexts were application of property-wrapper types is permitted. Namely, application of such types will be allowed on function and closure parameters:
+We propose to extend the contexts where application of property-wrapper types is permitted. Namely, application of such types will be allowed on function and closure parameters:
 
 
 ## Detailed design
@@ -153,8 +153,8 @@ Function parameters marked with a set of compatible property-wrapper custom attr
 
 Transformation of property-wrapper parameters will be performed as such:
 
-1. The external parameter name will remain unchanged.
-2. The internal parameter name will be prefixed with an underscore.
+1. The argument label will remain unchanged.
+2. The parameter name will be prefixed with an underscore.
 3. The parameter will be bound to the backing property wrapper type.
 4. A local computed property representing  `wrappedValue` will be synthesized by the compiler and named per the original (non-prefixed) parameter name. The accessors will mirror the `wrappedValue` accessors. A setter will only be synthesized for the local property if the `wrappedValue` setter is `nonmutating`, or if the wrapper is a reference type.
 5. If the property wrapper defines a `projectedValue`, a local computed property representing  `projectedValue` will be synthesized by the compiler and named per the original parameter name prefixed with a dollar sign (`$`). The same accessor rules for `wrappedValue` apply to `projectedValue`.
@@ -233,7 +233,7 @@ The changing type of the `@autoclosure` is incredibly misleading, as it's not ob
 
 ### Property Wrappers on Closure Parameters
 
-Since a property wrapper custom attribute is applied directly to the declaration that will be wrapped, application of a property wrapper type is only available within a closure expression. That is, the signature of a function that contains a closure cannot include the property wrapper attibute. Instead the application of the attrbute will be up to the caller of the function, which supplies the closure argument.
+Since a property wrapper custom attribute is applied directly to the declaration that will be wrapped, application of a property wrapper type is only available within a closure expression. That is, the signature of a function that contains a closure cannot include the property wrapper attribute. Instead the application of the attribute will be up to the caller of the function, which supplies the closure argument.
 
 Closure parameters marked with a set of property wrapper custom attributes must conform to the following rules:
 
