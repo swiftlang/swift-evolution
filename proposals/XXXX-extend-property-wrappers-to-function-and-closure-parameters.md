@@ -4,6 +4,7 @@
 * Authors: [Holly Borla](https://github.com/hborla), [Filip Sakel](https://github.com/filip-sakel)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
+* Implementation: [apple/swift#34272](https://github.com/apple/swift/pull/34272)
 
 
 ## Introduction
