@@ -222,7 +222,7 @@ reportProgress(of: 50)
 The above code would be transformed to:
 ```swift
 func reportProgress(
-  progress _progress: @autoclosure () -> Percentage<Int>
+  progress _progress: @autoclosure () -> Percentage
 ) { ... }
 
 
