@@ -314,7 +314,7 @@ This is an additive change with no impact on the existing ABI.
 
 ## Effect on API resilience
 
-This proposal introduces the need for property wrapper custom attributes to become part of public API, because a property wrapper applied to a function parameter changes the way that function callers are compiled. Thus, adding or removing a property wrapper on a public function parameter is an ABI-breaking change.
+This proposal introduces the need for property wrapper custom attributes to become part of public API. A property wrapper applied to a function parameter changes the type of that parameter in the ABI, and it changes the way that function callers are compiled to pass an argument of that type. Thus, adding or removing a property wrapper on a public function parameter is an ABI-breaking change.
 
 ## Alternatives Considered
 
