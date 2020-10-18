@@ -22,7 +22,7 @@ One such case is heterogenous collections, which require value-level abstraction
 
 ```swift
 protocol Identifiable {
-  associatedtype ID: Hashable 
+  associatedtype ID : Hashable 
     
   var id: ID { get }
 }
@@ -47,7 +47,7 @@ Furthermore, dynamic environments are also known to lack type information. There
 Morover, the availability of an existential type for a given protocol is sometimes quite unintuitive. That is, today, a protocol qualifies for an existential type provided that it lacks any associated type or non-covariant `Self` requirements; however, the associated types of a protocol can be fixed via the same-type constraint. As a result, [post](https://forums.swift.org/t/making-a-protocols-associated-type-concrete-via-inheritance/6557) after [post](https://forums.swift.org/t/constrained-associated-type-on-protocol/38770) has been created asking for this restriction's removal:
 
 ```swift
-protocol User: Identifiable
+protocol User : Identifiable
   where ID == UUID {
   
   var username: Strng { get }
@@ -81,7 +81,7 @@ protocol A {
   var a: A { get }
 }
 
-struct S: A { 
+struct S : A { 
   let a: Int = 5
 }
 
@@ -118,10 +118,10 @@ protocol A {
   var a: A { get }
 }
 
-protocol RefinedA: A
+protocol RefinedA : A
   where A == Int {}
 
-struct S: RefinedA { 
+struct S : RefinedA { 
   let a: Int = 5
 }
 
@@ -141,7 +141,7 @@ protocol A {
   var a: A { get }
 }
 
-protocol RefinedA: A
+protocol RefinedA : A
   where A == Int {}
 
 protocol B {
@@ -150,7 +150,7 @@ protocol B {
   var b: B { get }
 }
 
-struct S: RefinedA & B { 
+struct S : RefinedA & B { 
   let a: Int = 5
   let b: Int = 5
 }
@@ -171,10 +171,10 @@ let b: some Any = myRefinedAB.b ❌
   ```swift
   ...
 
-  protocol AFixedToInt: A 
+  protocol AFixedToInt : A 
     where A == Int {}
 
-  protocol AFixedToBool: A 
+  protocol AFixedToBool : A 
     where A == Bool {}
 
   let composition: AFixedToInt & AFixedToBool ⚠️
@@ -215,16 +215,12 @@ To alleviate confusion between existential types and protocols it has been propo
 
 #### Introduce Constraints for Existential Types
 
-After introducing existential types for all protocols, constraining them seems like the next logical step. Constraining refers to constraining a protocol’s associated types which will, therefore, only be available to protocols that have unspecified associated types. These constraints would probably be the same-type constraint: `where A == B` and the conformance constraint: `where A: B`:
+After introducing existential types for all protocols, constraining them seems like the next logical step. Constraining refers to constraining a protocol’s associated types which will, therefore, only be available to protocols that have unspecified associated types. These constraints would probably be the same-type constraint: `where A == B` and the conformance constraint: `where A : B`:
 
 ```swift
-typealias A = Any<
-  Identifiable where .ID == String
->
+typealias A = Identifiable where .ID == String
 
-typealias B = Any<
-  Identifiable where .ID: Comparable 
->
+typealias B = Identifiable where .ID : Comparable 
 ```
 
 #### Allow Accessing Associated Types
@@ -233,18 +229,18 @@ Currently, accessing associated types through a protocol's existential type is i
 
 ```swift
 protocol Identifiable {
-    assciatedtype ID: Hashable
+    assciatedtype ID : Hashable
 
     var id: ID { get }
 }
 
-struct S: Identifiable {
+struct S : Identifiable {
   let id: Int = 5
 }
 
 let myIdentifiable: Identifiable = S()
 
-let id: Any<Hashable> = myIdentifiable.id ✅
+let id: Hashable = myIdentifiable.id ✅
 ```
 
 #### Make Existential Types Extensible
@@ -252,7 +248,7 @@ let id: Any<Hashable> = myIdentifiable.id ✅
 Today, no protocol’s existential type can conform to the protocol itself (except for [`@objc` protocols](https://docs.swift.org/swift-book/LanguageGuide/Protocols.html#ID284)). This is quite unintuitive — as is evident by countless questions asking about it. Such a feature could automatically apply to protocols that lack initializers, static requirements and functions with parameters bound to `Self` (as discussed in [related post](https://forums.swift.org/t/allowing-self-conformance-for-protocols/39841)). To handle the cases that do not meet the aforementioned criteria for implicit conformance, the following syntax [has been proposed](https://forums.swift.org/t/improving-the-ui-of-generics/22814):
 
 ```swift
-extension Any<Hashable>: Hashable {
+extension Hashable : Hashable {
   …
 }
 ```
