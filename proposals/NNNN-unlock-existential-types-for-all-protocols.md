@@ -42,7 +42,7 @@ struct AnyIdentifiable {
 let myIdentifiables: [AnyIdentifiable] ✅
 ```
 
-Furthermore, dynamic environments are also known to lack type information. Therefore value-level abstraction can be exploited in cases such as previewing an application, where the application's components are dynamically replaced, in the file system where a file representing an unknown type might be stored, and in server environments, where various types could be exchanged between different computers.
+Furthermore, dynamic environments are also known to lack type information. Therefore, value-level abstraction can be exploited in cases such as previewing an application, where the application's components are dynamically replaced, in the file system where a file representing an unknown type might be stored, and in server environments, where various types could be exchanged between different computers.
 
 Morover, the availability of an existential type for a given protocol is sometimes quite unintuitive. That is, today, a protocol qualifies for an existential type provided that it lacks any associated type or non-covariant `Self` requirements; however, the associated types of a protocol can be fixed via the same-type constraint. As a result, [post](https://forums.swift.org/t/making-a-protocols-associated-type-concrete-via-inheritance/6557) after [post](https://forums.swift.org/t/constrained-associated-type-on-protocol/38770) has been created asking for this restriction's removal:
 
@@ -253,3 +253,8 @@ extension Hashable : Hashable {
 }
 ```
 Other protocols that _do_ meet these criteria would have existential types that automatically gain conformance to their corresponding protocol. In other words, a type such as `Error` would automatically gain support for conformance to the `Error` protocol.
+
+
+#### Existential Types in the Standard Library
+
+Currently, there are existential types in the standard library, such as `AnyHashable` and `AnyCollection`; with this new feature their implementations could be vastly simplified. To achieve type erasure in the standard library, `Hashable` needs a type-erased protocol (`_AnyHashableBox`), a generic container that acts as a bridge between that type-erased protocol and the concrete `Hashable`-conforming type (`_ConcreteHashableBox`) and, lastly, the `AnyHashable` type itself. This is hard to maintain and difficult to understand boilerplate code. To avoid that, `Hashable` could just provide its default existential type, which is enabled by this proposal, with conformance to `Hashable` added as a special case – as is done with `Error` today. Similarly, `AnyCollection` could follow. As for source compatability, the current manually-written existential types will likely be required to be retained in the standard library under the same name.
