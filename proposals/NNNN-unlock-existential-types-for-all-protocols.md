@@ -14,32 +14,37 @@ Swift currently offers the ability for protocols that meet certain criteria to b
 
 ### Motivation
 
-Currently, any protocol that has [non-covariant](https://en.wikipedia.org/wiki/Covariance_and_contravariance_(computer_science)) `Self` references or associated type requirements is not allowed to be used as a type. Initially, this restriction reflected technical limitations (as Joe states [here](https://forums.swift.org/t/lifting-the-self-or-associated-type-constraint-on-existentials/18025)); however, such limitations have now been alleviated. As a result, users are left unable to utilize a powerful feature for certain protocols. That’s evident in a plethora of projects. For instance, the Standard Library has existential types such as [`AnyHashable`](https://developer.apple.com/documentation/swift/anyhashable) and [`AnyCollection`](https://developer.apple.com/documentation/swift/anycollection) and SwiftUI has [`AnyView`](https://developer.apple.com/documentation/swiftui/anyview). 
+Currently, any protocol that has [non-covariant](https://en.wikipedia.org/wiki/Covariance_and_contravariance_(computer_science)) `Self` references or associated type requirements is not allowed to be used as a type. Initially, this restriction reflected technical limitations (as Joe states [here](https://forums.swift.org/t/lifting-the-self-or-associated-type-constraint-on-existentials/18025)); however, such limitations have now been alleviated. As a result, users are left unable to utilize a powerful feature for certain protocols. That’s evident in a plethora of projects. For instance, the standard library has existential types such as [`AnyHashable`](https://developer.apple.com/documentation/swift/anyhashable) and [`AnyCollection`](https://developer.apple.com/documentation/swift/anycollection) and SwiftUI has [`AnyView`](https://developer.apple.com/documentation/swiftui/anyview). 
 
 Generics are most often the best mechanism for type-level abstraction, which relies on the compiler knowing type information during compilation. However, type information is not always a gurantee, which is why the value-level abstraction of existential types is extremely useful in some cases.
 
 One such case is heterogenous collections, which require value-level abstraction to store their elements of various types:
 
 ```swift
-protocol Identifiable {
-  associatedtype ID : Hashable 
-    
-  var id: ID { get }
-}
+protocol IntegerStrideable : Strideable 
+  where Stride : ExpressibleByIntegerLiteral {}
 
-let invalidIdentifiables: [Identifiable] ❌
+let strideables: [IntegerStrideable] = ... ❌
 // The compiler doesn't currently allow that.
 // So, we work around that by creating a
-// custom existential type: 'AnyIdentifiable'.
+// custom existential type: 'AnyIntegerStrideable'.
+
+strideables.map { $0.advanced(by: 1) }
 
 
-struct AnyIdentifiable { 
-  typealias ID = AnyHashable
-    
-  var id: ID { ... }
+struct AnyIntegerStrideable { 
+  typealias Stride = ...
+
+  func advanced(by n: Self) -> Stride {
+    ... 
+  }
+  
+  func distance(to other: Self) -> Stride {
+    ... 
+  }
 }
 
-let myIdentifiables: [AnyIdentifiable] ✅
+let strideables: [AnyIntegerStrideable] ✅
 ```
 
 Furthermore, dynamic environments are also known to lack type information. Therefore, value-level abstraction can be exploited in cases such as previewing an application, where the application's components are dynamically replaced, in the file system where a file representing an unknown type might be stored, and in server environments, where various types could be exchanged between different computers.
@@ -47,6 +52,12 @@ Furthermore, dynamic environments are also known to lack type information. There
 Morover, the availability of an existential type for a given protocol is sometimes quite unintuitive. That is, today, a protocol qualifies for an existential type provided that it lacks any associated type or non-covariant `Self` requirements; however, the associated types of a protocol can be fixed via the same-type constraint. As a result, [post](https://forums.swift.org/t/making-a-protocols-associated-type-concrete-via-inheritance/6557) after [post](https://forums.swift.org/t/constrained-associated-type-on-protocol/38770) has been created asking for this restriction's removal:
 
 ```swift
+protocol Identifiable {
+  associatedtype ID : Hashable
+  
+  var id: ID { get }
+}
+
 protocol User : Identifiable
   where ID == UUID {
   
@@ -257,4 +268,4 @@ Other protocols that _do_ meet these criteria would have existential types that 
 
 #### Existential Types in the Standard Library
 
-Currently, there are existential types in the standard library, such as `AnyHashable` and `AnyCollection`; with this new feature their implementations could be vastly simplified. To achieve type erasure in the standard library, `Hashable` needs a type-erased protocol (`_AnyHashableBox`), a generic container that acts as a bridge between that type-erased protocol and the concrete `Hashable`-conforming type (`_ConcreteHashableBox`) and, lastly, the `AnyHashable` type itself. This is hard to maintain and difficult to understand boilerplate code. To avoid that, `Hashable` could just provide its default existential type, which is enabled by this proposal, with conformance to `Hashable` added as a special case – as is done with `Error` today. Similarly, `AnyCollection` could follow. As for source compatability, the current manually-written existential types will likely be required to be retained in the standard library under the same name.
+Currently, there are existential types in the standard library, such as `AnyHashable` and `AnyCollection`; with this new feature their implementations could be vastly simplified. To achieve type erasure, `Hashable` needs a type-erased protocol (`_AnyHashableBox`), a generic container that acts as a bridge between that type-erased protocol and the concrete `Hashable`-conforming type (`_ConcreteHashableBox`) and, lastly, the `AnyHashable` type itself. This is hard to maintain and difficult to understand boilerplate code. To avoid that, `Hashable` could just provide its default existential type, which is enabled by this proposal, with conformance to `Hashable` added as a special case – as is done with `Error` today. Similarly, `AnyCollection` could follow. As for source compatability, the existing manually-written existential types will likely be required to be retained under the same name.
