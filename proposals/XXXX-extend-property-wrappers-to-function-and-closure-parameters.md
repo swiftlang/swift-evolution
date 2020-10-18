@@ -165,36 +165,36 @@ Transformation of property-wrapper parameters will be performed as such:
 
 ```swift
 @propertyWrapper
-struct Percentage {
+struct Lowercased {
 
-  init(wrappedValue: Int) { ... }
+  init(wrappedValue: String) { ... }
     
     
-  var wrappedValue: Int {
+  var wrappedValue: String {
     get { ... }
     set { ... }
   }
   
 }
 
-func reportProgress(
-  @Percentage of progress: Int
+func postUrl(
+  @Lowercased urlString: String
 ) { ... }
 
 
-reportProgress(of: 50)
+postUrl(urlString: "mySite.xyz/myUnformattedUsErNAme")
 ```
 
-In the above code, the `reportProgress(of:)` function and its caller are equivalent to:
+In the above code, the `postUrl(urlString:)` function and its caller are equivalent to:
 
 ```swift
-func reportProgress(of _progress: Percentage) {
+func postUrl(urlString _urlString: Lowercased) {
 
-  var progress: Int {
-    get { _progress.wrappedValue }
+  var urlString: String {
+    get { _ urlString.wrappedValue }
     // The setter accessor is not synthesized
-    // because the setter of Percentage's  
-    // 'wrappedValue' is mutating.
+    // because the setter of the 'wrappedValue' 
+    // property of 'Lowercased' is mutating.
   }
 
 
@@ -203,7 +203,7 @@ func reportProgress(of _progress: Percentage) {
 }
 
 
-reportProgress(of: Percentage(wrappedValue: 50))
+postUrl(of: Lowercased(wrappedValue: "mySite.xyz/myUnformattedUsErNAme"))
 ```
 
 #### Restrictions on Property Wrapper Function Parameters
@@ -213,21 +213,21 @@ reportProgress(of: Percentage(wrappedValue: 50))
 Function parameters with a property wrapper custom attribute cannot have an `@autoclosure` type. `@autoclosure` is unnecessary for the wrapped value itself because the wrapped value argument at the call-site will always be wrapped in a call to `init(wrappedValue:)`, which already can support `@autoclosure` arguments. Using `@autoclosure` for the backing wrapper type would be misleading, because the type spelled out for the parameter would not be the true autoclosure type. Consider the `reportProgress` example from above with an `@autoclosure` parameter:
 
 ```swift
-func reportProgress(
-  @Percentage progress: @autoclosure () -> Int
+func postUrl(
+  @Lowercased urlString: @autoclosure () -> String
 ) { ... }
 
 
-reportProgress(of: 50)
+postUrl(of: "mySite.xyz/myUnformattedUsErNAme")
 ```
 The above code would be transformed to:
 ```swift
-func reportProgress(
-  progress _progress: @autoclosure () -> Percentage
+func postUrl(
+  urlString _urlString: @autoclosure () -> Lowercased
 ) { ... }
 
 
-reportProgress(of: Percentage(wrappedValue: 50))
+postUrl(urlString: Lowercased(wrappedValue: "mySite.xyz/myUnformattedUsErNAme"))
 ```
 The changing type of the `@autoclosure` is incredibly misleading, as it's not obvious that `@autoclosure` applies to the backing wrapper rather than the wrapped value. Therefore, using `@autoclosure` for a property wrapper function parameter will be a compiler error.
 
