@@ -203,7 +203,7 @@ func postUrl(urlString _urlString: Lowercased) {
 }
 
 
-postUrl(of: Lowercased(wrappedValue: "mySite.xyz/myUnformattedUsErNAme"))
+postUrl(urlString: Lowercased(wrappedValue: "mySite.xyz/myUnformattedUsErNAme"))
 ```
 
 #### Restrictions on Property Wrapper Function Parameters
@@ -218,7 +218,7 @@ func postUrl(
 ) { ... }
 
 
-postUrl(of: "mySite.xyz/myUnformattedUsErNAme")
+postUrl(urlString: "mySite.xyz/myUnformattedUsErNAme")
 ```
 The above code would be transformed to:
 ```swift
