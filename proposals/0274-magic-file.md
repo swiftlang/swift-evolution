@@ -4,8 +4,8 @@
 * Authors: [Brent Royal-Gordon](https://github.com/brentdax), [Dave DeLong](https://github.com/davedelong)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift/)
 * Original review: [Returned for revision](https://forums.swift.org/t/se-0274-concise-magic-file-names/32373/50) 
-* Status: **Accepted**
-* Implementation: Prototype in master behind `-Xfrontend -enable-experimental-concise-pound-file`; revisions in [apple/swift#29412](https://github.com/apple/swift/pull/29412)
+* Status: Implemented (Swift 5.3)
+* Implementation: [apple/swift#29412](https://github.com/apple/swift/pull/29412), [apple/swift#30268](https://github.com/apple/swift/pull/30268), [apple/swift#30395](https://github.com/apple/swift/pull/30395)
 
 ## Introduction
 
