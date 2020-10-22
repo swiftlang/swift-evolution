@@ -3,7 +3,7 @@
 * Proposal: [SE-0289](0289-result-builders.md)
 * Authors: [John McCall](https://github.com/rjmccall), [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Saleem Abdulrasool](https://github.com/compnerd)
-* Status: **Active Review (September 24...October 1, 2020)**
+* Status: **Accepted**
 * Implementation: Available in [development snapshots](https://swift.org/download/#snapshots) behind the underscored attribute `@_functionBuilder`.
 * Previous Revisions: [1st](https://github.com/apple/swift-evolution/blob/51c99447562e749b23f82184c99c0ddfb07a71df/proposals/0289-function-builders.md)
 
