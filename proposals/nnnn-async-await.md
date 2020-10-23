@@ -528,3 +528,11 @@ Asynchronous functions and function types are additive to the ABI, so there is n
 ## Effect on API resilience
 
 The ABI for an `async` function is completely different from the ABI for a synchronous function (e.g., they have incompatible calling conventions), so the addition or removal of `async` from a function or type is not a resilient change.
+
+## Related proposals
+
+In addition to this proposal, there are a number of related proposals covering different aspects of the Swift Concurrency model:
+
+* [Concurrency Interoperability with Objective-C](https://github.com/DougGregor/swift-evolution/blob/concurrency-objc/proposals/NNNN-concurrency-objc.md): Describes the interaction with Objective-C, especially the relationship between asynchronous Objective-C methods that accept completion handlers and `@objc async` Swift methods.
+* Actors: Describes the actor model, which provides state isolation for concurrent programs
+* Task management: Describes task-management APIs to for detached tasks, task "nursuries" for dynamically creating child tasks, cancellation, prioritization, and so on.
