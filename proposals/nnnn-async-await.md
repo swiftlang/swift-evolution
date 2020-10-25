@@ -219,8 +219,6 @@ Because suspension points are only associated with explicit operations, and thos
 
 Asynchronous functions should avoid calling functions that can actually block the thread, especially if they can block it waiting for work that’s not guaranteed to be currently running.  For example, acquiring a mutex can only block until some currently-running thread gives up the mutex; this is sometimes acceptable but must be used carefully to avoid introducing deadlocks or artificial scalability problems.  In contrast, waiting on a condition variable can block until some arbitrary other work gets scheduled that signals the variable; this is always strongly recommended against.  It will require ongoing library work to provide abstractions that allow programs to avoid these pitfalls.
 
-Between suspension points, asynchronous functions can rely on the thread not being interrupted.  Carefully-written code could even rely on thread-local storage.
-
 This design currently provides no way to block the current context from interleaving code while an asynchronous function is waiting for an operation in a different context.  This is intentional: if this were possible, it would be inherently prone to deadlock.
 
 ### Tasks
@@ -297,7 +295,7 @@ Calls to an `async` function look and act mostly like calls to a synchronous fun
 * If the callee’s executor is different from the caller’s executor, a suspension point is reached and a partial task to resume the task is enqueued on the caller’s executor.
 * The caller resumes executing on its executor.  If the callee returned normally, the result of the expression is the value returned by the function; otherwise, the expression throws the error that was thrown from the callee.
 
-That is, calls to `async` functions run synchronously from the perspective of their caller, like an ordinary call.  However, they may execute on a different executor, requiring the task to be briefly suspended. Note also that the duration of `inout` accesses is potentially much longer due to the suspension over the call, so `inout` references to shared mutable state that is not sufficiently isolated are more likely to produce a dynamic exclusivity violation.
+From the caller's perspective, `async` calls behave similarly to synchronous calls, except that they may execute on a different executor, requiring the task to be briefly suspended. Note also that the duration of `inout` accesses is potentially much longer due to the suspension over the call, so `inout` references to shared mutable state that is not sufficiently isolated are more likely to produce a dynamic exclusivity violation.
 
 ### Cancellation
 
@@ -370,7 +368,7 @@ One can manually create an `async` closure that calls synchronous functions, so 
 
 ### Child tasks with `async let`
 
-Asynchronous calls ordinarily run synchronously from the perspective from the caller.  `async` functions may conveniently request work to be run in a child task, permitting it to run concurrently:
+Asynchronous calls do not by themselves introduce concurrent execution. However, `async` functions may conveniently request work to be run in a child task, permitting it to run concurrently, with an `async let`:
 
 ```swift
 async let result = try fetchHTTPContent(of: url)
@@ -419,7 +417,9 @@ The `await` has no additional semantics; like `try`, it merely marks that an asy
 
 > **Rationale**: It is important that asynchronous calls be clearly identifiable within the function because they introduce suspension points, which break the atomicity of the operation.  The suspension points may be inherent to the call (because the asynchronous call must execute on a different executor) or simply be part of the implementation of the callee, but in either case it is semantically important and the programmer needs to acknowledge it. `await` expressions are also an indicator of asynchronous code, which interacts with inference in closures; see the section on "Closures" for more information.
 
-A suspension point must not occur within an autoclosure that is not of `async` function type. A suspension point must not occur within a `defer` block.
+A suspension point must not occur within an autoclosure that is not of `async` function type.
+
+A suspension point must not occur within a `defer` block.
 
 ### Closures
 
