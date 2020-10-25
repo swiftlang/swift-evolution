@@ -10,7 +10,7 @@
 
 Modern Swift development involves a lot of asynchronous programming using closures and completion handlers, but these APIs are hard to use.  This gets particularly problematic when many asynchronous operations are used, error handling is required, or control flow between asynchronous calls gets complicated.  This proposal describes a language extension to make this a lot more natural and less error prone.
 
-This design introduces a [coroutine model](https://en.wikipedia.org/wiki/Coroutine) to Swift. Functions can opt into to being `async`, allowing the programmer to compose complex logic involving asynchronous operations, providing [structured concurrency](https://en.wikipedia.org/wiki/Structured_concurrency) so that normal control-flow mechanisms (calls, error handling, etc.) work as expect. The compiler is responsible for translating an asychronous function into the appropriate set of closures and state machines.
+This design introduces a [coroutine model](https://en.wikipedia.org/wiki/Coroutine) to Swift. Functions can opt into to being `async`, allowing the programmer to compose complex logic involving asynchronous operations, providing [structured concurrency](https://en.wikipedia.org/wiki/Structured_concurrency) so that normal control-flow mechanisms (calls, error handling, etc.) work as expected. The compiler is responsible for translating an asynchronous functions into the appropriate set of closures and state machines.
 
 This proposal defines the semantics of asynchronous functions as well as related concepts such as the task structure, cancellation of tasks, and so on. However, the specific details of the APIs for triggering these operations, such as launching a new (detached) asynchronous task, cancelling a task, or setting the priority for a given task, will be left to separate proposals. 
 
@@ -25,7 +25,7 @@ To provide motivation for why it is important to do something here, lets look at
 
 #### Problem 1: Pyramid of doom
 
-A sequence of simple asynchroncous operations often involves deeply-nested closures. Here is a made up example showing this:
+A sequence of simple asynchronous operations often involves deeply-nested closures. Here is a made up example showing this:
 
 ```swift
 func processImageData1(completionBlock: (result: Image) -> Void) {
@@ -112,9 +112,9 @@ func processImageData2(completionBlock: (Result<Image>) -> Void) {
 
 processImageData2 { result in
     switch result {
-    case .success(image):
+    case .success(let image):
         display(image)
-    case .failure(error):
+    case .failure(let error):
         error("No image today")
     }
 }
@@ -197,7 +197,7 @@ func processImageData2() async -> Image {
 }
 ```
 
-Many descriptions of async/await discuss its common implementation mechanism: a compiler pass which divides a function into multiple components.  This is important at a low level of abstraction in order to understand how the machine is operating, but at a high level we’d like to encourage you to ignore it.  Instead, think of an asynchronous function as an ordinary function that has the special power to give up its thread.  Asynchronous functions don’t typically use this power directly; instead, they make calls, and sometimes these calls will require them to give up their thread and wait for something to happen.  When that thing is complete, the function will pick up executing again.
+Many descriptions of async/await discuss its common implementation mechanism: a compiler pass which divides a function into multiple components.  This is important at a low level of abstraction in order to understand how the machine is operating, but at a high level we’d like to encourage you to ignore it.  Instead, think of an asynchronous function as an ordinary function that has the special power to give up its thread.  Asynchronous functions don’t typically use this power directly; instead, they make calls, and sometimes these calls will require them to give up their thread and wait for something to happen.  When that thing is complete, the function will resume executing again.
 
 The analogy with synchronous functions is very strong.  A synchronous function can make a call; when it does this, it immediately waits for the call to complete; when the call completes, control returns to the function and it picks up where it was.  The same thing is true with an asynchronous function: it can make calls; when it does this, it (normally) immediately waits for the call to complete; when the call completes, control returns to the function and it picks up where it was.  The only difference is that synchronous functions get to take full advantage of (part of) their thread and its stack, whereas asynchronous functions have to be able to completely give up that stack and use their own, separate storage.  This has some implementation cost, but we can reduce that quite a bit by designing holistically around it.
 
@@ -544,7 +544,7 @@ static func withUnsafeContinuation<T>(operation: (UnsafeContinuation<T>) -> Void
 static func withUnsafeThrowingContinuation<T>(operation: (UnsafeThrowingContinuation<T, Error>) -> Void) async throws -> T
 ```
 
-The `withUnsafe(Throwing)Continuation` function can only occur within an asynchronous context (e.g., an `async` function). The operation passed to `withUnsafe(Throwing)Continuation` must call one of the `resume` operations on the provided continuation exactly once along all paths. That `resume` call provides the result for the `withUnsafe(Throwing)Continuation` call itself (for `resume(returning:)`) or throws an error from the call (for `resume(throwing:)`).
+The `withUnsafe(Throwing)Continuation` function can only occur within an asynchronous context (e.g., an `async` function). The operation passed to `withUnsafe(Throwing)Continuation` must call one of the `resume` functions on the provided continuation *exactly once* along all paths. That `resume` call provides the result for the `withUnsafe(Throwing)Continuation` call itself (for `resume(returning:)`) or throws an error from the call (for `resume(throwing:)`).
 
 The `resume` call acts as an immediate `return` from the function. Any `defer` blocks will be still be executed, as they would for a `return`.
 
@@ -554,7 +554,7 @@ The continuation instance is only valid within the call to the operation.
 
 This proposal is generally additive: existing code does not use any of the new features (e.g., does not create `async` functions or closures) will not be impacted. However, it introduces two new contextual keywords, `async` and `await`.
 
-The position of the new uses of `async` within the grammer (function declarations, function types, and as a prefix for `let`) allow us to treat `async` as a contextual keyword without breaking source compatibility. A user-defined `async` can not occur in those grammatical positions in well-formed code.
+The position of the new uses of `async` within the grammar (function declarations, function types, and as a prefix for `let`) allow us to treat `async` as a contextual keyword without breaking source compatibility. A user-defined `async` can not occur in those grammatical positions in well-formed code.
 
 The 'await' contextual keyword is more problematic, because it occurs within an expression. For example, one could define a function `await` in Swift today:
 
@@ -580,4 +580,4 @@ In addition to this proposal, there are a number of related proposals covering d
 
 * [Concurrency Interoperability with Objective-C](https://github.com/DougGregor/swift-evolution/blob/concurrency-objc/proposals/NNNN-concurrency-objc.md): Describes the interaction with Objective-C, especially the relationship between asynchronous Objective-C methods that accept completion handlers and `@objc async` Swift methods.
 * Actors: Describes the actor model, which provides state isolation for concurrent programs
-* Task management: Describes task-management APIs to for detached tasks, task "nursuries" for dynamically creating child tasks, cancellation, prioritization, and so on.
+* Task management: Describes task-management APIs to for detached tasks, task "nurseries" for dynamically creating child tasks, cancellation, prioritization, and so on.
