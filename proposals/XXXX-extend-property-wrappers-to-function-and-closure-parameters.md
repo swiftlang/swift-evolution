@@ -95,7 +95,7 @@ myPercentage
 In fact, establishing custom behavior on closure parameters is really powerful. For example, if such a feature were supported, it could be used in conjunction with [Result Builders](https://github.com/apple/swift-evolution/blob/main/proposals/0289-result-builders.md) to expose data managed by a 'component' type. For instance, in SwiftUI [`ForEach`](https://developer.apple.com/documentation/swiftui/foreach) could leverage this feature to expose the mutable state of its data source to its 'content' closure. This would enable users to more easily work with the data source itself inside the closure instead of accessing the original property, which is particularly painful when working with collections, as shown in this example:
 
 ```swift
-struct MyView: View {
+struct MyView : View {
 
   // A simple Shopping Item that includes
   // a 'quantity' and a 'name' property.
