@@ -10,7 +10,7 @@
 
 The [actor model](https://en.wikipedia.org/wiki/Actor_model) involves entities called actors. Each *actor* can perform local computation based on its own state, send messages to other actors, and act on messages received from other actors. Actors run independently, and cannot access the state of other actors, making it a powerful abstraction for managing concurrency in language applications. The actor model has been implemented in a number of programming languages, such as Erlang and Pony, as well as various libraries like Akka (on the JVM) and Orleans (on the .NET CLR).
 
-This proposal introduces a design for _actors_ in Swift, providing a model for building concurrent programs that are simple to reason about and are safe from data races. 
+This proposal introduces a design for *actors* in Swift, providing a model for building concurrent programs that are simple to reason about and are safe from data races. 
 
 Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/)
 
@@ -177,18 +177,137 @@ extension BankAccount {
 }  
 ```
 
-The third rule is a provided to allow interoperability between actors and existing Swift code. Actor code (which by definition is all new code) can call into existing Swift code with unknown actor isolation. However, code with unknown actor isolation cannot call back into (non-`async`) actor-isolated code, because doing so would violate the isolation guarantees of that actor. 
+The third rule is provided to allow interoperability between actors and existing Swift code. Actor code (which by definition is all new code) can call into existing Swift code with unknown actor isolation. However, code with unknown actor isolation cannot call back into (non-`async`) actor-isolated code, because doing so would violate the isolation guarantees of that actor. 
 
 This allows incremental adoption of actors into existing code bases, isolating the new actor code while allowing them to interoperate with the rest of the code.
 
 ## Detailed design
 
-Describe the design of the solution in detail. If it involves new
-syntax in the language, show the additions and changes to the Swift
-grammar. If it's a new API, show the full API and its documentation
-comments detailing what it does. The detail in this section should be
-sufficient for someone who is *not* one of the authors to be able to
-reasonably implement the feature.
+### Actor classes
+
+A class can be declared as an actor class using the `actor` modifier:
+
+```
+/// Declares a new type BankAccount
+actor class BankAccount {
+  // ...
+}
+```
+
+Each instance of the actor type represents a unique actor.
+
+An actor class may only inherit from another actor class. A non-actor class may not inherit from an actor class.
+
+> **Rationale**: Actor classes enforce state isolation, but non-actor classes do not. If an actor class inherits from a non-actor class (or vice-versa), part of the actor's state would not be covered by the actor-isolation rules, introducing the potential for data races on that state.
+
+As a special exception described in the complementary proposal [Concurrency Interoperability with Objective-C](https://github.com/DougGregor/swift-evolution/blob/concurrency-objc/proposals/NNNN-concurrency-objc.md), an actor class may inherit from `NSObject`.
+
+By default, the instance methods, properties, and subscripts of an actor type are actor-isolated to the actor instance. This is true even for methods added retroactively on an actor type via an extension, like any other Swift type.
+
+```
+extension BankAccount {
+  func acceptTransfer(amount: Double) async { // actor-isolated
+    balance += amount
+  }
+}  
+```
+
+An instance method, computed property, or subscript of an actor class may be annotated with `@actorIndependent` or a global actor attribute.  If so, it (or its accessors) are no longer actor-isolated to the `self` instance of the actor.
+
+By default, the mutable stored properties (declared with `var`) of an actor class actor-isolated to the actor instance. A stored property may be annotated with `@actorIndependent(unsafe)` to remove this restriction. 
+
+### Actor protocol
+
+All actor classes conform to a protocol `Actor`:
+
+```swift
+protocol Actor: AnyObject {
+  func enqueue(partialTask: PartialAsyncTask)
+}
+```
+
+The `enqueue(partialTask:)` operation is a low-level operation used to queue work for the actor to execute. `PartialAsyncTask` represents a unit of work to execute. It effectively has a single synchronous function, `run()`, which should be called synchronously within the actor's context. Only the compiler can produce new `PartialAsyncTasks`. To explicitly enqueue work on an actor, use the `run` method:
+
+```swift
+extension Actor {
+  // Run the given async function on this actor.
+  //
+  // Precondition: the function is not constrained to a different actor;
+  //   if it is not constrained to any actor at all, it will still run on
+  //   behalf of `self`
+  func run<T>(operation: () async throws -> T) async rethrows -> T
+}
+```
+
+The `enqueue(partialTask:)` requirement is special in that it can only be provided in the primary actor class declaration (not an extension), and cannot be `final`. If `enqueue(partialTask:)` is not explicitly provided, the Swift compiler will provide a default implementation for the actor, with its own (hidden) queue.
+
+> **Rationale**: This design strikes a balance between efficiency for the default actor implementation and extensibility to allow alternative actor implementations.   By forcing the method to be part of the main actor class, the compiler can ensure a common low-level implementation for actor classes that permits them to be passed as a single pointer and treated uniformly by the runtime.
+
+Non-`actor` classes can conform to the `Actor` protocol, and are not subject to the restrictions above. This allows existing classes to work with some `Actor`-specific APIs, but does not bring any of the advantages of actor classes (e.g., actor isolation) to them.
+
+### Global actors
+
+A global actor can be declared by creating a new custom attribute type with `@globalActor`:
+
+```swift
+@globalActor
+struct UIActor {
+  static let shared = SomeActorInstance()
+}
+```
+
+The type must provide a static `shared` property that provides the singleton actor instance, on which any work associated with the global actor will be enqueued. There are otherwise no requirements placed on the type itself.
+
+The custom attribute type may be generic.  The custom attribute is called a global actor attribute.  A global actor attribute is never parameterized.  Two global actor attributes identify the same global actor if they identify the same type.
+
+Global actor attributes apply to declarations as follows:
+
+* A declaration cannot have multiple have global actor attributes.  The rules below say that, in some cases, a global actor attribute is propagated from one declaration to another.  If the rules say that an attribute “propagates by default”, then no propagation is performed if the destination declaration has an explicit global actor attribute.  If the rules say that attribute “propagates mandatorily”, then it is an error if the destination declaration has an explicit global actor attribute that does not identify the same actor.  Regardless, it is an error if global actor attributes that do not identify the same actor are propagated to the same declaration.
+
+* A function, property, subscript, or initializer declared with a global actor attribute becomes actor-isolated to the given global actor.
+
+ ```swift
+ @UIActor func drawAHouse(graphics: CGGraphics) {
+     // ...
+ }
+ ```
+
+* Local variables and constants cannot be marked with a global actor attribute. 
+
+* A type declared with a global actor attribute propagates the attribute to all methods, properties, subscripts, and extensions of the type by default.
+
+* An extension declared with a global actor attribute propagates the attribute to all the members of the extension by default.
+
+* A protocol declared with a global actor attribute propagates the attribute to its conforming types by default.
+
+* A protocol requirement declared with a global actor attribute propagates the attribute to its witnesses mandatorily if they are declared in the same module as the conformance. 
+
+* A class declared with a global actor attribute propagates the attribute to its subclasses mandatorily.
+
+* An overridden declaration propagates its global actor attribute (if any) to its overrides mandatorily.  Other forms of propagation do not apply to overrides.  It is an error if a declaration with a global actor attribute overrides a declaration without an attribute.
+
+* An actor class cannot have a global actor attribute.  Stored instance properties of actor classes cannot have global actor attributes.  Other members of an actor class can have global actor attributes; such members are actor-isolated to the global actor, not the actor instance.
+
+* A deinit cannot have a global actor attribute and is never a target for propagation.
+
+The effect of these rules is to make it easy for a few classes and protocols to be annotated as being part of a global actor (e.g., the `@UIActor`), and for code that interoperates with those (subclassing the classes, conforming to the protocols) to not need explicit annotations.
+
+### Actor-independent declarations
+
+A declaration may be declared to be actor-independent:
+
+```
+@actorIndependent
+var count: Int { constantCount + 1 }
+```
+
+When used on a declaration, it indicates that the declaration is not actor-isolated to any actor, which allows it to be accessed from anywhere. Moreover, it interrupts the implicit propagation of actor isolation from context, e.g., it can be used on an instance declaration in an actor class to make the declaration actor-independent rather than isolated to the actor.
+
+When used on a class, the attribute applies by default to members of the class and extensions thereof.  It also interrupts the ordinary implicit propagation of actor-isolation attributes from the superclass, except as required for overrides.
+
+The attribute is ill-formed when applied to any other declaration.  It is ill-formed if combined with an explicit global actor attribute.
+
+The `@actorIndependent` attribute has an optional "unsafe" argument.  `@actorIndependent(unsafe)` differs from `@actorIndependent` only in the implementation of the declaration. Specifically, it allows the implementation to refer to actor-isolated state, which would be ill-formed under `@actorIndependent`.
 
 ## Source compatibility
 
