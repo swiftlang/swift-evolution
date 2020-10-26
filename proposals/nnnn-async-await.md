@@ -1,7 +1,7 @@
 # Async/await
 
 * Proposal: [SE-NNNN](NNNN-async-await.md)
-* Authors: [John McCall](https://github.com/rjmccall), [Doug Gregor](https://github.com/jckarter)
+* Authors: [John McCall](https://github.com/rjmccall), [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
 * Implementation: Available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
@@ -21,7 +21,7 @@ Swift-evolution thread: [Discussion thread topic for that proposal](https://foru
 
 ## Motivation: Completion handlers are suboptimal
 
-To provide motivation for why it is important to do something here, lets look at some of the problems caused by implementing asynchronous code with completion handlers.
+Async programming with explicit callbacks has many problems, which we’ll explore below.  We propose to address these by introducing async functions into the language.  Async functions allow asynchronous code to be written as straightline code.  They also allow the implementation to directly reason about the execution pattern of the code, allowing callbacks to run far more efficiently.
 
 #### Problem 1: Pyramid of doom
 
@@ -249,7 +249,7 @@ An asynchronous function can create a child task.  Child tasks inherit some of t
 
 Of course, a function’s task may itself be a child of another task, and its parent may have other children; a function cannot reason locally about these.  But the features of this design that apply to an entire task tree, such as cancellation, only apply “downwards” and don’t automatically propagate upwards in the task hierarchy, and so the child tree still can be statically reasoned about.  If child tasks did not have bounded duration and so could arbitrarily outlast their parents, the behavior of tasks under these features would not be easily comprehensible. 
 
-Child tasks can most easily be created with the `async let` construct, which creates a child task whose result can be accessed by reading the declared variable(s). For example:
+Child tasks can most easily be created with the `async let` construct, which creates a child task whose result can be accessed by reading the declared variable(s) in an `await` expression. For example:
 
 ```swift
 func makeDinner() async throws -> Meal {
@@ -257,7 +257,7 @@ func makeDinner() async throws -> Meal {
   async let meat = marinateMeat()
   async let oven = try preheatOven(temperature: 350)
 
-  let dish = Dish(ingredients: [await veggies, await meat])
+  let dish = Dish(ingredients: await [veggies, meat])
   return await try oven.cook(dish, duration: .hours(3))
 }
 ``` 
@@ -445,6 +445,7 @@ let closure2 = { () -> Int {     // implicitly async
 let closure3 = { () -> Int {     // implicitly async
   async let x = getInt()
   print("here")
+  _ = await x
   return 0
 }
 ```
@@ -554,7 +555,7 @@ The continuation instance is only valid within the call to the operation.
 
 This proposal is generally additive: existing code does not use any of the new features (e.g., does not create `async` functions or closures) will not be impacted. However, it introduces two new contextual keywords, `async` and `await`.
 
-The position of the new uses of `async` within the grammar (function declarations, function types, and as a prefix for `let`) allow us to treat `async` as a contextual keyword without breaking source compatibility. A user-defined `async` can not occur in those grammatical positions in well-formed code.
+The position of the new uses of `async` within the grammar (function declarations, function types, and as a prefix for `let`) allow us to treat `async` as a contextual keyword without breaking source compatibility. A user-defined `async` cannot occur in those grammatical positions in well-formed code.
 
 The 'await' contextual keyword is more problematic, because it occurs within an expression. For example, one could define a function `await` in Swift today:
 
