@@ -8,9 +8,9 @@
 
 ## Introduction
 
-The [actor model](https://en.wikipedia.org/wiki/Actor_model) involves entities called actors. Each *actor* can perform local computation based on its own state, send messages to other actors, and act on messages received from other actors. Actors run independently, and cannot access the state of other actors, making it a powerful abstraction for managing concurrency in language applications. The actor model has been implemented in a number of programming languages, such as Erlang and Pony, as well as various libraries like Akka (in Scala) and Orleans (in C#).
+The [actor model](https://en.wikipedia.org/wiki/Actor_model) involves entities called actors. Each *actor* can perform local computation based on its own state, send messages to other actors, and act on messages received from other actors. Actors run independently, and cannot access the state of other actors, making it a powerful abstraction for managing concurrency in language applications. The actor model has been implemented in a number of programming languages, such as Erlang and Pony, as well as various libraries like Akka (on the JVM) and Orleans (on the .NET CLR).
 
-This proposal introduces a design for actors in Swift, providing a model for building concurrent programs that are easy to reason about and are safe from data races. 
+This proposal introduces a design for _actors_ in Swift, providing a model for building concurrent programs that are simple to reason about and are safe from data races. 
 
 Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/)
 
@@ -19,11 +19,13 @@ Swift-evolution thread: [Discussion thread topic for that proposal](https://foru
 One of the more difficult problems in developing concurrent programs is dealing with [data races](https://en.wikipedia.org/wiki/Race_condition#Data_race). A data race occurs when the same data in memory is accessed by two concurrently-executing threads, at least one of which is writing to that memory. When this happens, the program may behave erratically, including spurious crashes or program errors due to corrupted internal state. 
 
 Data races are notoriously hard to reproduce and debug, because they often depend on two threads getting scheduled in a particular way. 
-Tools such as [ThreadSanitizer](https://clang.llvm.org/docs/ThreadSanitizer.html) help, but they are necessary reactive--they help find existing bugs, but cannot help prevent them.
+Tools such as [ThreadSanitizer](https://clang.llvm.org/docs/ThreadSanitizer.html) help, but they are necessarily reactive (as opposed to proactive--they help find existing bugs, but cannot help prevent them.
 
-Actors provide a model for building concurrent programs that are free of data races. They do so through *data isolation*: each actor protects is own instance data, ensuring that only a single thread will access that data at a given time.
+Actors provide a model for building concurrent programs that are free of data races. They do so through *data isolation*: each actor protects is own instance data, ensuring that only a single thread will access that data at a given time. Actors shift the way of thinking about concurrency from raw threading to actors and put focus on actors "owning" their local state.
 
 ## Proposed solution
+
+### Actor classes
 
 This proposal introduces *actor classes* into Swift. An actor class is a form of class that protects access to its mutable state. For the most part, an actor class is the same as a class:
 
@@ -34,7 +36,7 @@ actor class BankAccount {
 }
 ```
 
-Actor classes protect their mutable state, only allowing it to be accessed directly on `self`. For example, here is an method that tries to transfer money from one account to another:
+Actor classes protect their mutable state, only allowing it to be accessed directly on `self`. For example, here is a method that attempts to transfer money from one account to another:
 
 ```swift
 extension BankAccount {
@@ -57,11 +59,17 @@ extension BankAccount {
 
 If `BankAccount` were a normal class, the `transfer(amount:to:)` method would be well-formed, but would be subject to data races in concurrent code without an external locking mechanism. With actor classes, the attempt to reference `other.balance` triggers a compiler error, because `balance` may only be referenced on `self`.
 
-As noted in the error message, `balance` is *actor-isolated*, meaning that it can only be accessed from within the specific actor it is tied to. In this case, it's the instance of `BankAccount` referenced by `self`. Stored properties, computed properties, subscripts, and synchronous instance methods (like `transfer(amount:to:)`) in an actor class are all actor-isolated by default.
+As noted in the error message, `balance` is *actor-isolated*, meaning that it can only be accessed from within the specific actor it is tied to or "isolated by". In this case, it's the instance of `BankAccount` referenced by `self`. Stored properties, computed properties, subscripts, and synchronous instance methods (like `transfer(amount:to:)`) in an actor class are all actor-isolated by default.
 
 On the other hand, the reference to `other.ownerName` is allowed, because `ownerName` is immutable (defined by `let`). Once initialized, it is never written, so there can be no data races in accessing it. `ownerName` is called *actor-independent*, because it can be freely used from any actor. Constants introduced with `let` are actor-independent by default; there is also an attribute `@actorIndependent` (described in a later section) to specify that a particular declaration is actor-independent.
 
-Actor-isolation checking, as shown above, ensures that code outside the actor does not interfere with the actor's mutable state. Each actor instance also has its own internal *queue* (like a [`DispatchQueue`](https://developer.apple.com/documentation/dispatch/dispatchqueue)) that ensures that only a single thread is executing on a given actor at any point. Therefore, even calling a method on an actor instance requires synchronization through the queue. For example, if we wanted to call a method `accumulateInterest(rate: Double, time: Double)` on a given bank account `account`, that call would need to be placed on the queue to be executed when no other code is executing on `account`.
+> NOTE: The careful reader may here be alerted, that one may store a mutable reference type based object in a `let` property in which case mutating it would be unsafe, under the rules discussed so far. We will discuss in a future section how we will resolve these situations.
+
+Compile-time actor-isolation checking, as shown above, ensures that code outside of the actor does not interfere with the actor's mutable state. 
+
+Asynchronous function invocations are turned into enqueues of partial tasks representing those invocations to the actor's *queue*. This queue--along with an exclusive task `Executor` bound to the actor--functions as a synchronization boundary between the actor and any of its external callers.  
+
+For example, if we wanted to call a method `accumulateInterest(rate: Double, time: Double)` on a given bank account `account`, that call would need to be placed on the queue to be executed by the executor which ensures that tasks are pulled from the queue one-by-one, ensuring an actor never is concurrency running on multiple threads.
 
 Synchronous functions in Swift are not amenable to being placed on a queue to be executed later. Therefore, synchronous instance methods of actor classes are actor-isolated and, therefore, not available from outside the actor instance. For example:
 
@@ -76,12 +84,14 @@ extension BankAccount {
 
 func accumulateMonthlyInterest(accounts: [BankAccount]) {
   for account in accounts {
-    account.accumulateInterestSynchronously(rate: 0.005, time: 1.0/12.0) // error: actor-isolated instance method 'accumulateInterestSynchronously(rate:time:)' can only be referenced inside the actor
+    account.accumulateInterestSynchronously(rate: 0.005, time: 1.0 / 12.0) // error: actor-isolated instance method 'accumulateInterestSynchronously(rate:time:)' can only be referenced inside the actor
   }
 }
 ```
 
-The [async/await proposal](https://github.com/DougGregor/swift-evolution/blob/async-await/proposals/nnnn-async-await.md) provides a mechanism for describing work that can be efficiently enqueued for later execution: `async` functions. We can make the `accumulateInterest(rate:time:)` instance method `async`:
+It should be noted that actor isolation adds a new dimension, separate from access-control, to the decision making process whether or not one is allowed to invoke a specific function on an actor. Specifically, synchronous functions may only be invoked by the specific actor instance itself, and not even by any other instance of the same actor class. 
+
+All interactions with an actor (other than the special cased access to constants) must be performed asynchronously (semantically one may think about this as the actor model's messaging to and from the actor). Thankfully, Swift provides a mechanism perfectly suitable for describing such operations: asynchronous functions which are explained in depth in the [async/await proposal](https://github.com/DougGregor/swift-evolution/blob/async-await/proposals/nnnn-async-await.md). We can make the `accumulateInterest(rate:time:)` instance method `async`, and thereby make it accessible to other actors (as well as non-actor code):
 
 ```swift
 extension BankAccount {
@@ -96,7 +106,7 @@ extension BankAccount {
 Now, the call to this method (which now must be adorned with [`await`](https://github.com/DougGregor/swift-evolution/blob/async-await/proposals/nnnn-async-await.md#await-expressions)) is well-formed:
 
 ```swift
-await account.accumulateInterest(rate: 0.005, time: 1.0/12.0)
+await account.accumulateInterest(rate: 0.005, time: 1.0 / 12.0)
 ```
 
 Semantically, the call to `accumulateInterest` is placed on the queue for the actor `account`, so that it will execute on that actor. If that actor is busy executing a task, then the caller will be suspended until the actor is available, so that other work can continue. See the section on [asynchronous calls](https://github.com/DougGregor/swift-evolution/blob/async-await/proposals/nnnn-async-await.md#asynchronous-calls) in the async/await proposal for more detail on the calling sequence.
@@ -105,9 +115,9 @@ Semantically, the call to `accumulateInterest` is placed on the queue for the ac
 
 ### Global actors
 
-Actor classes provide a way to encapsulate state completely, ensuring that code outside the class (including other instances of the same actor class!) cannot access its mutable state. However, sometimes the code and mutable state isn't limited to a single class, for example, because it can only be accessed from the main thread or a UI thread.
+Actor classes provide a way to encapsulate state completely, ensuring that code outside the class cannot access its mutable state. However, sometimes the code and mutable state isn't limited to a single class. For example, in order to express the important concepts of "Main Thread" or "UI Thread" in this new Actor focused world we must be able to express and extend state and functions able to run on these specific actors even though they are not really all located in the same class. 
 
-*Global actors* address this case by providing a way to annotate arbitrary declarations (properties, subscripts, functions, etc.) as being part of a singleton actor. A global actor is described by a type that has been annotated with the `@globalActor` attribute:
+*Global actors* address this by providing a way to annotate arbitrary declarations (properties, subscripts, functions, etc.) as being part of a process-wide singleton actor. A global actor is described by a type that has been annotated with the `@globalActor` attribute:
 
 ```swift
 @globalActor
@@ -120,21 +130,28 @@ Such types can then be used to annotate particular declarations that are isolate
 
 ```swift
 @UIActor
-func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) async {
   // ...
 }
 ```
 
-A declaration with an attribute indicating a global actor type is actor-isolated to that global actor. The global actor type has its own queue to protect access to the mutable state that is also actor-isolated with that same global actor type.
+A declaration with an attribute indicating a global actor type is actor-isolated to that global actor. The global actor type has its own queue that is used to perform any access to mutable state that is also actor-isolated with that same global actor.
+
+> Global actors are implicitly singletons, i.e. there is always _one_ instance of a global actor in a given process.
+> This is in contrast to `actor classes` which can have none, one or many specific instances exist at any given time. 
 
 ### Actor isolation
 
 Any given declaration in a program can be classified into one of four actor isolation categories:
 
-* Actor-isolated for a particular instance of an actor class. This includes the stored instance properties of an actor class as well as computed instance properties, instance methods, and instance subscripts, as demonstrated with the `BankAccount` example.
-* Actor-isolated to a specific global actor. This includes any property, function, method, subscript, or initializer that has an attribute referencing a global actor, such as the `touchesEnded(_:with:)` method mentioned above.
-* Actor-independent. The declaration is not actor-isolated to any actor. This includes any property, function, method, subscript, or initializer that has the `@actorIndependent` attribute.
-* Unknown. The declaration is not actor-isolated to any actor, nor has it been explicitly determined that it is actor-independent. Such code might depend on shared mutable state that hasn't been modeled by any actor.
+* Actor-isolated to a specific instance of an actor class:
+  - This includes the stored instance properties of an actor class as well as computed instance properties, instance methods, and instance subscripts, as demonstrated with the `BankAccount` example.
+* Actor-isolated to a specific global actor:
+  - This includes any property, function, method, subscript, or initializer that has an attribute referencing a global actor, such as the `touchesEnded(_:with:)` method mentioned above.
+* Actor-independent: 
+  - The declaration is not actor-isolated to any actor. This includes any property, function, method, subscript, or initializer that has the `@actorIndependent` attribute.
+* Unknown: 
+  - The declaration is not actor-isolated to any actor, nor has it been explicitly determined that it is actor-independent. Such code might depend on shared mutable state that hasn't been modeled by any actor.
 
 The actor isolation rules are checked when a given declaration (call it the "source") accesses another declaration (call it the "target"), e.g., by calling a function or accessing a property or subscript. If the target is `async`, there is nothing more to check: the call will be scheduled on the target actor's queue.
 
@@ -161,7 +178,9 @@ extension BankAccount {
 }  
 ```
 
-The third rule is a provided to allow interoperability between actors and existing Swift code. Actor code (which by definition is all new code) can call into existing Swift code with unknown actor isolation. However, code with unknown actor isolation cannot call back into actor-isolated code, because doing so would violate the isolation guarantees of an actor. This allows incremental adoption of actors into existing code bases, isolating the new actor code while allowing them to interoperate with the rest of the code.
+The third rule is a provided to allow interoperability between actors and existing Swift code. Actor code (which by definition is all new code) can call into existing Swift code with unknown actor isolation. However, code with unknown actor isolation cannot call back into (non-`async`) actor-isolated code, because doing so would violate the isolation guarantees of that actor. 
+
+This allows incremental adoption of actors into existing code bases, isolating the new actor code while allowing them to interoperate with the rest of the code.
 
 ## Detailed design
 
