@@ -19,7 +19,7 @@ Swift-evolution thread: [Discussion thread topic for that proposal](https://foru
 One of the more difficult problems in developing concurrent programs is dealing with [data races](https://en.wikipedia.org/wiki/Race_condition#Data_race). A data race occurs when the same data in memory is accessed by two concurrently-executing threads, at least one of which is writing to that memory. When this happens, the program may behave erratically, including spurious crashes or program errors due to corrupted internal state. 
 
 Data races are notoriously hard to reproduce and debug, because they often depend on two threads getting scheduled in a particular way. 
-Tools such as [ThreadSanitizer](https://clang.llvm.org/docs/ThreadSanitizer.html) help, but they are necessarily reactive (as opposed to proactive--they help find existing bugs, but cannot help prevent them.
+Tools such as [ThreadSanitizer](https://clang.llvm.org/docs/ThreadSanitizer.html) help, but they are necessarily reactive (as opposed to proactive)--they help find existing bugs, but cannot help prevent them.
 
 Actors provide a model for building concurrent programs that are free of data races. They do so through *data isolation*: each actor protects is own instance data, ensuring that only a single thread will access that data at a given time. Actors shift the way of thinking about concurrency from raw threading to actors and put focus on actors "owning" their local state.
 
@@ -63,7 +63,7 @@ As noted in the error message, `balance` is *actor-isolated*, meaning that it ca
 
 On the other hand, the reference to `other.ownerName` is allowed, because `ownerName` is immutable (defined by `let`). Once initialized, it is never written, so there can be no data races in accessing it. `ownerName` is called *actor-independent*, because it can be freely used from any actor. Constants introduced with `let` are actor-independent by default; there is also an attribute `@actorIndependent` (described in a later section) to specify that a particular declaration is actor-independent.
 
-> NOTE: The careful reader may here be alerted, that one may store a mutable reference type based object in a `let` property in which case mutating it would be unsafe, under the rules discussed so far. We will discuss in a future section how we will resolve these situations.
+> **Note**: Constants defined by `let` are only truly immutable when the type is a value type or some kind of immutable reference type. A `let` that refers to a mutable reference type (such as a non-actor class type) would be unsafe based on the rules discussed so far. These issues are discussed in a later section on "Reference types".
 
 Compile-time actor-isolation checking, as shown above, ensures that code outside of the actor does not interfere with the actor's mutable state. 
 
@@ -91,7 +91,7 @@ func accumulateMonthlyInterest(accounts: [BankAccount]) {
 
 It should be noted that actor isolation adds a new dimension, separate from access-control, to the decision making process whether or not one is allowed to invoke a specific function on an actor. Specifically, synchronous functions may only be invoked by the specific actor instance itself, and not even by any other instance of the same actor class. 
 
-All interactions with an actor (other than the special cased access to constants) must be performed asynchronously (semantically one may think about this as the actor model's messaging to and from the actor). Thankfully, Swift provides a mechanism perfectly suitable for describing such operations: asynchronous functions which are explained in depth in the [async/await proposal](https://github.com/DougGregor/swift-evolution/blob/async-await/proposals/nnnn-async-await.md). We can make the `accumulateInterest(rate:time:)` instance method `async`, and thereby make it accessible to other actors (as well as non-actor code):
+All interactions with an actor (other than the special cased access to constants) must be performed asynchronously (semantically one may think about this as the actor model's messaging to and from the actor). Asynchronous functions provide a mechanism that is suitable for describing such operations, and are explained in depth in the complementary [async/await proposal](https://github.com/DougGregor/swift-evolution/blob/async-await/proposals/nnnn-async-await.md). We can make the `accumulateInterest(rate:time:)` instance method `async`, and thereby make it accessible to other actors (as well as non-actor code):
 
 ```swift
 extension BankAccount {
@@ -130,15 +130,14 @@ Such types can then be used to annotate particular declarations that are isolate
 
 ```swift
 @UIActor
-func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) async {
+func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
   // ...
 }
 ```
 
 A declaration with an attribute indicating a global actor type is actor-isolated to that global actor. The global actor type has its own queue that is used to perform any access to mutable state that is also actor-isolated with that same global actor.
 
-> Global actors are implicitly singletons, i.e. there is always _one_ instance of a global actor in a given process.
-> This is in contrast to `actor classes` which can have none, one or many specific instances exist at any given time. 
+Global actors are implicitly singletons, i.e. there is always _one_ instance of a global actor in a given process. This is in contrast to `actor classes` which can have none, one or many specific instances exist at any given time.
 
 ### Actor isolation
 
