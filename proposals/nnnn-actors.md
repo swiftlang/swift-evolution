@@ -1,7 +1,7 @@
 # Actors
 
 * Proposal: [SE-NNNN](NNNN-actors.md)
-* Authors: [Author 1](https://github.com/swiftdev), [Author 2](https://github.com/swiftdev)
+* Authors: [John McCall](https://github.com/rjmccall), [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
 * Implementation: Partial available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
@@ -340,7 +340,7 @@ When a given declaration (the "overriding declaration") overrides another declar
 
 In the absence of an explicitly-specified actor-isolation attribute (i.e, a global actor attribute or `@actorIndependent`), the overriding declaration will inherit the actor isolation of the overridden declaration.
 
-### Protocol conformance
+#### Protocol conformance
 
 When a given declaration (the "witness") satisfies a protocol requirement (the "requirement"), the actor isolation of the two declarations is compared. The protocol requirement can be satisfied by the witness if:
 
@@ -373,56 +373,17 @@ In the absence of an explicitly-specified actor-isolation attribute, a witness t
 
 ## Source compatibility
 
-Relative to the Swift 3 evolution process, the source compatibility
-requirements for Swift 4 are *much* more stringent: we should only
-break source compatibility if the Swift 3 constructs were actively
-harmful in some way, the volume of affected Swift 3 code is relatively
-small, and we can provide source compatibility (in Swift 3
-compatibility mode) and migration.
-
-Will existing correct Swift 3 or Swift 4 applications stop compiling
-due to this change? Will applications still compile but produce
-different behavior than they used to? If "yes" to either of these, is
-it possible for the Swift 4 compiler to accept the old syntax in its
-Swift 3 compatibility mode? Is it possible to automatically migrate
-from the old syntax to the new syntax? Can Swift applications be
-written in a common subset that works both with Swift 3 and Swift 4 to
-aid in migration?
+This proposal is additive, and should not break source compatibility. The addition of the `actor` contextual keyword to introduce actor classes is a parser change that does not break existing code, and the other changes are carefully staged so they do not change existing code. Only new code that introduces actor classes or actor-isolation attributes will be affected.
 
 ## Effect on ABI stability
 
-Does the proposal change the ABI of existing language features? The
-ABI comprises all aspects of the code generation model and interaction
-with the Swift runtime, including such things as calling conventions,
-the layout of data types, and the behavior of dynamic features in the
-language (reflection, dynamic dispatch, dynamic casting via `as?`,
-etc.). Purely syntactic changes rarely change existing ABI. Additive
-features may extend the ABI but, unless they extend some fundamental
-runtime behavior (such as the aforementioned dynamic features), they
-won't change the existing ABI.
-
-Features that don't change the existing ABI are considered out of
-scope for [Swift 4 stage 1](README.md). However, additive features
-that would reshape the standard library in a way that changes its ABI,
-such as [where clauses for associated
-types](https://github.com/apple/swift-evolution/blob/master/proposals/0142-associated-types-constraints.md),
-can be in scope. If this proposal could be used to improve the
-standard library in ways that would affect its ABI, describe them
-here.
+This is purely additive to the ABI.
 
 ## Effect on API resilience
 
-API resilience describes the changes one can make to a public API
-without breaking its ABI. Does this proposal introduce features that
-would become part of a public API? If so, what kinds of changes can be
-made without breaking ABI? Can this feature be added/removed without
-breaking ABI? For more information about the resilience model, see the
-[library evolution
-document](https://github.com/apple/swift/blob/master/docs/LibraryEvolution.rst)
-in the Swift repository.
+Nearly all changes in actor isolation are breaking changes, because the actor isolation rules require consistency between a declaration and its users:
 
-## Alternatives considered
+* A class cannot be turned into an actor class or vice versa.
+* The actor isolation of a public declaration cannot be changed except between `@actorIndependent(unsafe)` and `@actorIndependent`.
 
-Describe alternative approaches to addressing the same problem, and
-why you chose this approach instead.
 
