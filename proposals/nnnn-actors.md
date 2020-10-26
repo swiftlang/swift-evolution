@@ -139,48 +139,6 @@ A declaration with an attribute indicating a global actor type is actor-isolated
 
 Global actors are implicitly singletons, i.e. there is always _one_ instance of a global actor in a given process. This is in contrast to `actor classes` which can have none, one or many specific instances exist at any given time.
 
-### Actor isolation
-
-Any given declaration in a program can be classified into one of four actor isolation categories:
-
-* Actor-isolated to a specific instance of an actor class:
-  - This includes the stored instance properties of an actor class as well as computed instance properties, instance methods, and instance subscripts, as demonstrated with the `BankAccount` example.
-* Actor-isolated to a specific global actor:
-  - This includes any property, function, method, subscript, or initializer that has an attribute referencing a global actor, such as the `touchesEnded(_:with:)` method mentioned above.
-* Actor-independent: 
-  - The declaration is not actor-isolated to any actor. This includes any property, function, method, subscript, or initializer that has the `@actorIndependent` attribute.
-* Unknown: 
-  - The declaration is not actor-isolated to any actor, nor has it been explicitly determined that it is actor-independent. Such code might depend on shared mutable state that hasn't been modeled by any actor.
-
-The actor isolation rules are checked when a given declaration (call it the "source") accesses another declaration (call it the "target"), e.g., by calling a function or accessing a property or subscript. If the target is `async`, there is nothing more to check: the call will be scheduled on the target actor's queue.
-
-When the target is not `async`, the actor isolation categories for the source and target must be compatible. A source and target category pair is compatible if:
-* the source and target categories are the same,
-* the target category is actor-independent, or
-* the target category is unknown.
-
-The first rule is the most direct, and the subject of most of the prior discussion: an actor-isolated declaration can access other declarations within its same actor, whether that's an actor instance (on `self`) or global actor (e.g., `@UIActor`).
-
-The second rule introduces the notion of actor-independent declarations, which can be used from anywhere because they aren't tied to a particular actor. Actor classes can provide actor-independent instance methods, but because those functions are not actor-isolated, that cannot read the actor's own mutable state. For example:
-
-```swift
-extension BankAccount {
-  @actorIndependent
-  func greeting() -> String {
-    return "Hello, \(ownerName)!"  // okay: ownerName is immutable
-  }
-  
-  @actorIndependent
-  func steal(amount: Double) {
-    balance -= amount  // error: actor-isolated property 'balance' can not be referenced from an '@actorIndependent' context
-  }
-}  
-```
-
-The third rule is provided to allow interoperability between actors and existing Swift code. Actor code (which by definition is all new code) can call into existing Swift code with unknown actor isolation. However, code with unknown actor isolation cannot call back into (non-`async`) actor-isolated code, because doing so would violate the isolation guarantees of that actor. 
-
-This allows incremental adoption of actors into existing code bases, isolating the new actor code while allowing them to interoperate with the rest of the code.
-
 ## Detailed design
 
 ### Actor classes
@@ -308,6 +266,110 @@ When used on a class, the attribute applies by default to members of the class a
 The attribute is ill-formed when applied to any other declaration.  It is ill-formed if combined with an explicit global actor attribute.
 
 The `@actorIndependent` attribute has an optional "unsafe" argument.  `@actorIndependent(unsafe)` differs from `@actorIndependent` only in the implementation of the declaration. Specifically, it allows the implementation to refer to actor-isolated state, which would be ill-formed under `@actorIndependent`.
+
+### Actor isolation checking
+
+Any given non-local declaration in a program can be classified into one of five actor isolation categories:
+
+* Actor-isolated to a specific instance of an actor class:
+  - This includes the stored instance properties of an actor class as well as computed instance properties, instance methods, and instance subscripts, as demonstrated with the `BankAccount` example.
+* Actor-isolated to a specific global actor:
+  - This includes any property, function, method, subscript, or initializer that has an attribute referencing a global actor, such as the `touchesEnded(_:with:)` method mentioned above.
+* Actor-independent: 
+  - The declaration is not actor-isolated to any actor. This includes any property, function, method, subscript, or initializer that has the `@actorIndependent` attribute.
+* Actor-independent (unsafe): 
+  - The declaration is not actor-isolated to any actor. This includes any property, function, method, subscript, or initializer that has the `@actorIndependent(unsafe)` attribute.
+  - The declaration's definition is not subject to actor isolation checking.
+* Unknown: 
+  - The declaration is not actor-isolated to any actor, nor has it been explicitly determined that it is actor-independent. Such code might depend on shared mutable state that hasn't been modeled by any actor.
+
+The actor isolation rules are checked in a number of places, where two different declarations need to be compared to determine if their usage together maintains actor isolation. There are several such places:
+* When the definition of one declaration (e.g., the body of a function) accesses another declaration in executuable code, e.g., calling a function, accessing a property, or evaluating a subscript.
+* When one declaration overrides another.
+* When one declaration satisfies a protocol requirement.
+
+We'll describe each scenario in detail.
+
+#### Accesses in executable code
+
+A given declaration (call it the "source") can access another declaration (call it the "target") in executable code, e.g., by calling a function or accessing a property or subscript. If the target is `async`, there is nothing more to check: the call will be scheduled on the target actor's queue, so the access is well-formed.
+
+When the target is not `async`, the actor isolation categories for the source and target must be compatible. A source and target category pair is compatible if:
+* the source and target categories are the same,
+* the target category is actor-independent or actor-independent (unsafe),
+* the source category is actor-independent (unsafe), or
+* the target category is unknown.
+
+The first rule is the most direct: an actor-isolated declaration can access other declarations within its same actor, whether that's an actor instance (on `self`) or global actor (e.g., `@UIActor`).
+
+The second rule specifies that actor-independent declarations can be used from anywhere because they aren't tied to a particular actor. Actor classes can provide actor-independent instance methods, but because those functions are not actor-isolated, that cannot read the actor's own mutable state. For example:
+
+```swift
+extension BankAccount {
+  @actorIndependent
+  func greeting() -> String {
+    return "Hello, \(ownerName)!"  // okay: ownerName is immutable
+  }
+  
+  @actorIndependent
+  func steal(amount: Double) {
+    balance -= amount  // error: actor-isolated property 'balance' can not be referenced from an '@actorIndependent' context
+  }
+}  
+```
+
+The third rule is an unsafe opt-out that allows a declaration to be treated as actor-independent by its clients, but can do actor-isolation-unsafe operations internally. It is intended to be used sparingly for interoperability with existing  synchronization mechanisms or low-level performance tuning.
+
+```swift
+extension BankAccount {
+  @actorIndependent(unsafe)
+  func steal(amount: Double) {
+    balance -= amount  // data-racy, but permitted due to (unsafe)
+  }
+}
+```
+
+The fourth rule is provided to allow interoperability between actors and existing Swift code. Actor code (which by definition is all new code) can call into existing Swift code with unknown actor isolation. However, code with unknown actor isolation cannot call back into (non-`async`) actor-isolated code, because doing so would violate the isolation guarantees of that actor. This allows incremental adoption of actors into existing code bases, isolating the new actor code while allowing them to interoperate with the rest of the code.
+
+#### Overrides
+
+When a given declaration (the "overriding declaration") overrides another declaration (the "overridden" declaration), the actor isolation of the two declarations is compared. The override is well-formed if:
+
+* the overriding and overridden declarations have the same actor isolation or
+* the overriding declaration is actor-independent.
+
+In the absence of an explicitly-specified actor-isolation attribute (i.e, a global actor attribute or `@actorIndependent`), the overriding declaration will inherit the actor isolation of the overridden declaration.
+
+### Protocol conformance
+
+When a given declaration (the "witness") satisfies a protocol requirement (the "requirement"), the actor isolation of the two declarations is compared. The protocol requirement can be satisfied by the witness if:
+
+* the witness and requirement have the same actor isolation,
+* the witness and requirement are `async` and the requirement has unknown actor isolation, or
+* the witness is actor-independent and the requirement has unknown actor isolation.
+
+The last case is particularly important to allow actor classes to conform to existing protocols, which will have synchronous requirements. For example, say that we want to make our `BankAccount` actor class conform to `CustomStringConvertible`:
+
+```swift
+extension BankAccount: CustomStringConvertible {
+  var description: String {       // error: actor-isolated property "description" cannot be used to satisfy a protocol requirement
+    "Bank account of \"\(ownerName)\""
+  }
+}
+```
+
+One can use `@actorIndependent` on such declarations to allow them to satisfy synchronous protocol requirements:
+
+```swift
+extension BankAccount: CustomStringConvertible {
+  @actorIndependent
+  var description: String {
+    "Bank account of \"\(ownerName)\""
+  }
+}
+```
+
+In the absence of an explicitly-specified actor-isolation attribute, a witness that is defined in the same type or extension as the conformance for the requirement's protocol will have its actor isolation inferred from the protocol requirement.
 
 ## Source compatibility
 
