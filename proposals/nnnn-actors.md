@@ -91,9 +91,7 @@ func accumulateMonthlyInterest(accounts: [BankAccount]) {
 
 It should be noted that actor isolation adds a new dimension, separate from access-control, to the decision making process whether or not one is allowed to invoke a specific function on an actor. Specifically, synchronous functions may only be invoked by the specific actor instance itself, and not even by any other instance of the same actor class. 
 
-All interactions with an actor must be performed asynchronously, or "via messages" as one would phrase it in the actor model. 
-
-Thankfully, Swift provides a mechanism perfectly suitable for describing such operations: asynchronous functions which are explained in depth in the [async/await proposal](https://github.com/DougGregor/swift-evolution/blob/async-await/proposals/nnnn-async-await.md). We can make the `accumulateInterest(rate:time:)` instance method `async`, and thereby make it accessible to other actors (as well as non-actor code):
+All interactions with an actor (other than the special cased access to constants) must be performed asynchronously (semantically one may think about this as the actor model's messaging to and from the actor). Thankfully, Swift provides a mechanism perfectly suitable for describing such operations: asynchronous functions which are explained in depth in the [async/await proposal](https://github.com/DougGregor/swift-evolution/blob/async-await/proposals/nnnn-async-await.md). We can make the `accumulateInterest(rate:time:)` instance method `async`, and thereby make it accessible to other actors (as well as non-actor code):
 
 ```swift
 extension BankAccount {
