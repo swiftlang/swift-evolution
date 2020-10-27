@@ -398,51 +398,6 @@ func computeArgumentLater<T>(_ fn: @escaping @autoclosure () async -> T) { } // 
 
 > The `await` expression implies that there is a suspension point prior to the call to `computeArgumentLater(_:)`, which is not the case: the suspension point is actually within the (auto)closure, which is of interest mainly in the body of `computeArgumentLater(_:)`. Moreover, the fact that this `await`  appears to be part of the call means that `closure` will be inferred to have `async` function type, which is also incorrect: all of the code in the closure itself is synchronous. The restriction on `async` autoclosure parameters ensures that `async` autoclosure parameters can only be used in asynchronous contexts.
 
-### Unsafe continuations
-
-The `withUnsafeContinuation` function (and its throwing counterpart, `withUnsafeThrowingContinuation`) introduces a suspension point in an `async` context  and provides a continuation that can explicitly perform the resume. It provides a low-level solution for implementing an `async` function in terms of a completion-handler function. For example, the following wraps a completion-handler-based asynchronous operation with an `async` function:
-
-```swift
-func generateImage(
-    completionHandler handler: @escaping (Result<Image, Error>) -> Void
-) { ... }
-
-func generateImage() async throws -> Image {
-  return try withUnsafeThrowingContinuation { continuation in
-    generateImage { (result) in
-      switch result {
-      case success(let image):
-        continuation.resume(returning: image)
-      case failure(let error):
-        continuation.resume(throwing: error)
-      }
-    }
-  }
-}
-```
-
-The `withUnsafe(Throwing)Continuation` operation is defined like a library function but is like implemented by the compiler, similar to [SE-0102's `withoutActuallyEscaping(_:do:)`](https://github.com/apple/swift-evolution/blob/master/proposals/0103-make-noescape-default.md#detailed-design):
-
-```swift
-struct UnsafeContinuation<T> {
-    func resume(returning: T)
-}
-
-struct UnsafeThrowingContinuation<T, E: Error> {
-    func resume(returning: T)
-    func resume(throwing: E)
-}
-
-static func withUnsafeContinuation<T>(operation: (UnsafeContinuation<T>) -> Void) async -> T
-static func withUnsafeThrowingContinuation<T>(operation: (UnsafeThrowingContinuation<T, Error>) -> Void) async throws -> T
-```
-
-The `withUnsafe(Throwing)Continuation` function can only occur within an asynchronous context (e.g., an `async` function). The operation passed to `withUnsafe(Throwing)Continuation` must call one of the `resume` functions on the provided continuation *exactly once* along all paths. That `resume` call provides the result for the `withUnsafe(Throwing)Continuation` call itself (for `resume(returning:)`) or throws an error from the call (for `resume(throwing:)`).
-
-The `resume` call acts as an immediate `return` from the function. Any `defer` blocks will be still be executed, as they would for a `return`.
-
-The continuation instance is only valid within the call to the operation.
-
 ## Source compatibility
 
 This proposal is generally additive: existing code does not use any of the new features (e.g., does not create `async` functions or closures) will not be impacted. However, it introduces two new contextual keywords, `async` and `await`.
