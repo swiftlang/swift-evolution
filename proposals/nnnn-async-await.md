@@ -10,12 +10,12 @@
 
 Modern Swift development involves a lot of asynchronous programming using closures and completion handlers, but these APIs are hard to use.  This gets particularly problematic when many asynchronous operations are used, error handling is required, or control flow between asynchronous calls gets complicated.  This proposal describes a language extension to make this a lot more natural and less error prone.
 
-This design introduces a [coroutine model](https://en.wikipedia.org/wiki/Coroutine) to Swift. Functions can opt into to being `async`, allowing the programmer to compose complex logic involving asynchronous operations, providing [structured concurrency](https://en.wikipedia.org/wiki/Structured_concurrency) so that normal control-flow mechanisms (calls, error handling, etc.) work as expected. The compiler is responsible for translating an asynchronous functions into the appropriate set of closures and state machines.
+This design introduces a [coroutine model](https://en.wikipedia.org/wiki/Coroutine) to Swift. Functions can opt into to being `async`, allowing the programmer to compose complex logic involving asynchronous operations using the normal control-flow mechanisms. The compiler is responsible for translating an asynchronous functions into the appropriate set of closures and state machines.
 
-This proposal defines the semantics of asynchronous functions as well as related concepts such as the task structure, cancellation of tasks, and so on. However, the specific details of the APIs for triggering these operations, such as launching a new (detached) asynchronous task, cancelling a task, or setting the priority for a given task, will be left to separate proposals. 
+This proposal defines the semantics of asynchronous functions. However, it does not provide concurrency: that is covered by a separate proposal to introduce structured concurrency, which associates asynchronous functions with concurrently-executing tasks and provides APIs for creating, querying, and cancelling tasks.
 
 This draws some inspiration (and most of the Motivation section) from an earlier proposal written by 
-[Chris Lattner](https://github.com/lattner) and [Joe Groff](https://github.com/jckarter), available [here](https://gist.github.com/lattner/429b9070918248274f25b714dcfc7619), which itself is derived from a proposal written by [Oleg Andreev](https://github.com/oleganza), available [here](https://gist.github.com/oleganza/7342ed829bddd86f740a). It has been significantly rewritten (again), and many details have changed, but the core ideas of asynchronous functions have remained the same.
+[Chris Lattner](https://github.com/lattner) and [Joe Groff](https://github.com/jckarter), available [here](https://gist.github.com/lattner/429b9070918248274f25b714dcfc7619). That proposal itself is derived from a proposal written by [Oleg Andreev](https://github.com/oleganza), available [here](https://gist.github.com/oleganza/7342ed829bddd86f740a). It has been significantly rewritten (again), and many details have changed, but the core ideas of asynchronous functions have remained the same.
 
 Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/)
 
@@ -207,8 +207,6 @@ In contrast, an asynchronous function can call either synchronous or asynchronou
 
 When control returns to an asynchronous function, it picks up exactly where it was.  That doesn’t necessarily mean that it’ll be running on the exact same thread it was before, because the language doesn’t guarantee that after a suspension.  In this design, threads are mostly an implementation mechanism, not a part of the intended interface to concurrency.  However, many asynchronous functions are not just asynchronous: they’re also associated with specific actors (which are the subject of a separate proposal), and they’re always supposed to run as part of that actor.  Swift does guarantee that such functions will in fact return to their actor to finish executing.  Accordingly, libraries that use threads directly for state isolation — for example, by creating their own threads and scheduling tasks sequentially onto them — should generally model those threads as actors in Swift in order to allow these basic language guarantees to function properly.
 
-## Tasks and asynchronous scheduling
-
 ### Suspension points
 
 A suspension point is a point in the execution of an asynchronous function where it has to give up its thread.  Suspension points are always associated with some deterministic, syntactically explicit event in the function; they’re never hidden or asynchronous from the function’s perspective.  The detailed language design will describe several different operations as suspension points, but the most important one is a call to an asynchronous function associated with a different execution context.
@@ -220,69 +218,6 @@ Because suspension points are only associated with explicit operations, and thos
 Asynchronous functions should avoid calling functions that can actually block the thread, especially if they can block it waiting for work that’s not guaranteed to be currently running.  For example, acquiring a mutex can only block until some currently-running thread gives up the mutex; this is sometimes acceptable but must be used carefully to avoid introducing deadlocks or artificial scalability problems.  In contrast, waiting on a condition variable can block until some arbitrary other work gets scheduled that signals the variable; this is always strongly recommended against.  It will require ongoing library work to provide abstractions that allow programs to avoid these pitfalls.
 
 This design currently provides no way to block the current context from interleaving code while an asynchronous function is waiting for an operation in a different context.  This is intentional: if this were possible, it would be inherently prone to deadlock.
-
-### Tasks
-
-An asynchronous task (just "task" hereafter) is the analogue of a thread for asynchronous functions.  All asynchronous functions run as part of some task.  When an asynchronous function calls another asynchronous function, the callee is still running as part of the same task as the parent.  The task is therefore a persistent identity.  If two asynchronous functions are executing concurrently, they are necessarily running as part of different tasks.  (The tasks may be related; see "Child tasks" below.)
-
-A task always begins at the beginning of some asynchronous function, called its initial function.  A task can be in one of three states:
-
-* A **suspended** task has more work to do but is not currently running.  It may be schedulable, meaning that it’s ready to run and is just waiting for the system to instruct a thread to begin executing it, or it may be waiting on some external event before it can become schedulable.
-* A **running** task is currently running on a thread.  It will run until it either returns from its initial function (and becomes completed) or reaches a suspension point (and becomes suspended).  At a suspension point, it may become immediately schedulable if, say, its execution just needs to change actors.
-* A **completed** task has no more work to do and will never enter any other state.  Code can wait for a task to become completed in various ways described in the detailed language design.
-
-The way we talk about execution for tasks and asynchronous functions is more complicated than it is for synchronous functions.  An asynchronous function is running as part of a task.  If the task is running, it and its current function are also running on a thread.
-
-Note that, when an asynchronous function calls another asynchronous function, we say that the calling function is suspended, but that doesn’t mean the entire task is suspended.  From the perspective of the function, it is suspended, waiting for the call to return.  From the perspective of the task, it may have continued running in the callee, or it may have been suspended in order to, say, change to a different execution context.
-
-Tasks serve three high-level purposes:
-
-* They carry scheduling information, such as the task's priority.
-* They serve as a handle through which the operation can be cancelled.
-* They can carry user-provided task-local data.
-
-At a lower level, the task allows the implementation to optimize the allocation of local memory, such as for asynchronous function contexts.  It also allows dynamic tools, crash reporters, and debuggers to discover how a function is being used.
-
-### Child tasks
-
-An asynchronous function can create a child task.  Child tasks inherit some of the structure of their parent task, including its priority, but can run concurrently with it.  However, this concurrency is bounded: a function that creates a child task must wait for it to end before returning.  This structure means that functions can locally reason about all the work currently being done for the current task, anticipate the effects of cancelling the current task, and so on.  It also makes spawning the child task substantially more efficient.
-
-Of course, a function’s task may itself be a child of another task, and its parent may have other children; a function cannot reason locally about these.  But the features of this design that apply to an entire task tree, such as cancellation, only apply “downwards” and don’t automatically propagate upwards in the task hierarchy, and so the child tree still can be statically reasoned about.  If child tasks did not have bounded duration and so could arbitrarily outlast their parents, the behavior of tasks under these features would not be easily comprehensible. 
-
-Child tasks can most easily be created with the `async let` construct, which creates a child task whose result can be accessed by reading the declared variable(s) in an `await` expression. For example:
-
-```swift
-func makeDinner() async throws -> Meal {
-  async let veggies = chopVegetables()
-  async let meat = marinateMeat()
-  async let oven = try preheatOven(temperature: 350)
-
-  let dish = Dish(ingredients: await [veggies, meat])
-  return await try oven.cook(dish, duration: .hours(3))
-}
-``` 
-
-Each `async let` creates a new child task, and these tasks can execute asynchronously. All of these child tasks must complete (or be cancelled) before the `makeDinner` function returns. If an error is thrown, any child tasks will implicitly be cancelled.
-
-A separate proposal for task management will introduce additional ways to create and manage child tasks. 
-
-If a program wishes to initiate independent concurrent work that can outlast its spawning context, it should create a new detached task rather than a bounded child task. Although the specific API is again left to a separate proposal for task management, it will have a form similar to:
-
-```swift
-let handle = Task.runDetached { await longRunningSeparateTask() }
-```
-
-The `handle` is a reference to that task, and can be used to cancel the task, check the task's priority, etc.
-
-### Partial tasks
-
-The execution of a task can be seen as a succession of periods where the task was running, each of which ends at a suspension point or — finally — at the completion of the task.  These periods are called partial tasks.  Partial tasks are the basic units of schedulable work in the system.  They are also the primitive through which asynchronous functions interact with the underlying synchronous world.  For the most part, programmers should not have to work directly with partial tasks unless they are implementing a custom executor.
-
-### Executors
-
-An executor is a service which accepts the submission of partial tasks and arranges for some thread to run them.  The system assumes that executors are reliable and will never fail to run a partial task.  An asynchronous function that is currently running always knows the executor that it's running on.  This allows the function to avoid unnecessarily suspending when making a call to the same executor, and it allows the function to resume executing on the same executor it started on.
-
-An executor is called exclusive if the partial tasks submitted to it will never be run concurrently.  (Specifically, the partial tasks must be totally ordered by the happens-before relationship: given any two tasks that were submitted and run, the end of one must happen-before the beginning of the other.)  Executors are not required to run partial tasks in the order they were submitted; in fact, they should generally honor task priority over submission order.
 
 ### Asynchronous calls
 
@@ -297,11 +232,6 @@ Calls to an `async` function look and act mostly like calls to a synchronous fun
 
 From the caller's perspective, `async` calls behave similarly to synchronous calls, except that they may execute on a different executor, requiring the task to be briefly suspended. Note also that the duration of `inout` accesses is potentially much longer due to the suspension over the call, so `inout` references to shared mutable state that is not sufficiently isolated are more likely to produce a dynamic exclusivity violation.
 
-### Cancellation
-
-A task can be cancelled asynchronously by any context that has a reference to a task or one of its parent tasks.  However, the effect of cancellation on the task is cooperative and synchronous.  Cancellation sets a flag in the task which marks it as having been cancelled; once this flag is set, it is never cleared.  Executing a suspension point alone does not check cancellation. Operations running synchronously as part of the task can check this flag and are conventionally expected to throw a `CancellationError`. As with thrown errors, `defer` blocks are still executed when a task is cancelled, allowing code to introduce cleanup logic.
-
-No information is passed to the task about why it was cancelled.  A task may be cancelled for many reasons, and additional reasons may accrue after the initial cancellation (for example, if the task fails to immediately exit, it may pass a deadline).  The goal of cancellation is to allow tasks to be cancelled in a lightweight way, not to be a secondary method of inter-task communication.
 
 ## Detailed design
 
@@ -366,38 +296,13 @@ One can manually create an `async` closure that calls synchronous functions, so 
 
 > **Rationale**: We do not propose the implicit conversion from a synchronous function to an asynchronous function because it complicates type checking, particularly in the presence of synchronous and asynchronous overloads of the same function. See the section on "Overloading and overload resolution" for more information.
 
-### Child tasks with `async let`
-
-Asynchronous calls do not by themselves introduce concurrent execution. However, `async` functions may conveniently request work to be run in a child task, permitting it to run concurrently, with an `async let`:
-
-```swift
-async let result = try fetchHTTPContent(of: url)
-```
-
-Any reference to a variable declared within an `async let` is a suspension point, so it must occur within either an `await` expression or the initializer of another `async let`. If the initializer of the `async let` can throw an error, then each reference to a variable declared within that `async let` is considered to throw an error, and therefore must be enclosed in one of `try`/`try!`/`try?`. 
-
-One of the variables for a given `async let` must be awaited at least once along all execution paths (that don't throw an error) before it goes out of scope. For example:
-
-```swift
-{
-  async let result = try fetchHTTPContent(of: url)
-  if condition {
-    let header = await result.header
-    // okay, awaited `result`
-  } else {
-    // error: did not await 'result' along this path. Fix this with, e.g.,
-    //   _ = await result
-  }
-}
-```
-
-If the scope of an `async let` exits with a thrown error, the child task corresponding to the `async let` is implicitly cancelled. If the child task has already completed, its result (or thrown error) is discarded.
-
-> **Rationale**: The requirement to await a variable from each `async let` along all (non-throwing) paths ensures that child tasks aren't being created and implicitly cancelled during the normal course of execution. Such code is likely to be needlessly inefficient and should probably be restructured to avoid creating child tasks that are unnecessary.
- 
 ### Await expressions
 
-Any potential suspension point must occur within an asynchronous context (e.g., an `async` function). Furthermore, it must occur within the operand of an `await` expression or the initializer of an `async let`. There are two kinds of suspension points:
+Any potential suspension point must occur within an asynchronous context (e.g., an `async` function). Furthermore, it must occur within the operand of an `await` expression or the initializer of an `async let`. 
+
+> **Note**: `async let` is introduced in the Structured Concurrency proposal to create concurrent child tasks. It is mentioned here so that the semantics of `await` expressions and closures can be described fully.
+
+There are two kinds of suspension points:
 * A call to a value of `async` function type (including a direct call to an `async` function).
 * A use of a variable introduced by an `async let`.
 
@@ -580,5 +485,5 @@ The ABI for an `async` function is completely different from the ABI for a synch
 In addition to this proposal, there are a number of related proposals covering different aspects of the Swift Concurrency model:
 
 * [Concurrency Interoperability with Objective-C](https://github.com/DougGregor/swift-evolution/blob/concurrency-objc/proposals/NNNN-concurrency-objc.md): Describes the interaction with Objective-C, especially the relationship between asynchronous Objective-C methods that accept completion handlers and `@objc async` Swift methods.
-* Actors: Describes the actor model, which provides state isolation for concurrent programs
-* Task management: Describes task-management APIs to for detached tasks, task "nurseries" for dynamically creating child tasks, cancellation, prioritization, and so on.
+* Structured Concurrency: Describes the task structure used by asynchronous calls, the creation of both child tasks and detached tasks, cancellation, prioritization, and other task-management APIs.
+* [Actors](https://github.com/DougGregor/swift-evolution/blob/actors/proposals/nnnn-actors.md): Describes the actor model, which provides state isolation for concurrent programs
