@@ -39,7 +39,7 @@ Each step in our dinner preparation is an asynchronous operation, so there are n
 
 However, even though our dinner preparation is asynchronous, it is still *sequential*. It waits until the vegetables have been chopped before starting to marinate the meat, then waits again until the meat is ready before preheating the oven. Our hungry patrons will be very hungry indeed by the time dinner is finally done.
 
-To make dinner preparation go faster, we need to perform some of the tasks in *parallel*, but at the same time, we need to do so with some form of structure. Not all tasks can be just launched in parallel, hoping for the best. In order to properly deadl with parallelism, we need structure, and that structure is *concurrency*. The vegetables can be chopped at the same time as the meat is marinating and the oven is preheating. We can be combining the ingredients into the dish while the oven preheats. But we cannot prepare the dish before it's individual parts (the veggies and meat) are prepared. 
+To make dinner preparation go faster, we need to perform some of the tasks in *parallel*, but at the same time, we need to do so with some form of structure. Not all tasks can be just launched in parallel, hoping for the best. In order to properly deal with parallelism, we need structure, and that structure is *concurrency*. The vegetables can be chopped at the same time as the meat is marinating and the oven is preheating. We can be combining the ingredients into the dish while the oven preheats. But we cannot prepare the dish before it's individual parts (the veggies and meat) are prepared. 
 
 This proposal aims to provide the necessary tools to describe such task dependencies and allow for "overlapping" *parallel* execution the steps, we can cook our dinner faster.
 
@@ -232,7 +232,7 @@ Asynchronous calls do not by themselves introduce concurrent execution. However,
 async let result = try fetchHTTPContent(of: url)
 ```
 
-Any reference to a variable declared within an `async let` is a suspension point, equivalent to a call to an asynchronous function, so it must occur within an `await` expression. The initializer of the `async let` is considered to be enclosed by an implicit `await` expression.
+Any reference to a variable that was declared in an `async let` is a suspension point, equivalent to a call to an asynchronous function, so it must occur within an `await` expression. The initializer of the `async let` is considered to be enclosed by an implicit `await` expression.
 
 If the initializer of the `async let` can throw an error, then each reference to a variable declared within that `async let` is considered to throw an error, and therefore must also be enclosed in one of `try`/`try!`/`try?`. 
 
