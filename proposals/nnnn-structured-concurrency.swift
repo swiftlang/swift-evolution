@@ -1,7 +1,7 @@
 # Structured concurrency
 
 * Proposal: [SE-NNNN](NNNN-filename.md)
-* Authors: [John McCall](https://github.com/rjmccall), [Joe Groff](https://github.com/jckarter), [Doug Gregor](https://github.com/DougGregor)
+* Authors: [John McCall](https://github.com/rjmccall), [Joe Groff](https://github.com/jckarter), [Doug Gregor](https://github.com/DougGregor), [Konrad Malawski](https://github.com/ktoso)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
 * Implementation: Available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
@@ -39,7 +39,9 @@ Each step in our dinner preparation is an asynchronous operation, so there are n
 
 However, even though our dinner preparation is asynchronous, it is still *sequential*. It waits until the vegetables have been chopped before starting to marinate the meat, then waits again until the meat is ready before preheating the oven. Our hungry patrons will be very hungry indeed by the time dinner is finally done.
 
-To make dinner preparation go faster, we want to use concurrency. The vegetables can be chopped at the same time as the meat is marinating and the oven is preheating. We can be combining the ingredients into the dish while the oven preheats. By overlapping the steps, we can cook our dinner faster.
+To make dinner preparation go faster, we need to perform some of the tasks in *parallel*, but at the same time, we need to do so with some form of structure. Not all tasks can be just launched in parallel, hoping for the best. In order to properly deadl with parallelism, we need structure, and that structure is *concurrency*. The vegetables can be chopped at the same time as the meat is marinating and the oven is preheating. We can be combining the ingredients into the dish while the oven preheats. But we cannot prepare the dish before it's individual parts (the veggies and meat) are prepared. 
+
+This proposal aims to provide the necessary tools to describe such task dependencies and allow for "overlapping" *parallel* execution the steps, we can cook our dinner faster.
 
 ## Proposed solution
 
@@ -129,7 +131,7 @@ The `runDetached` operation creates a new task. It accepts a closure, which will
 ```swift
 let dinnerHandle = Task.runDetached {
   await makeDinner()
-}  
+}
 ```
 
 The result of `runDetached` is a task handle, which can be used to retrieve the result of the operation when it completes (via `get()`) or cancel the task if the result is no longer desired (via `cancel()`). Unlike child tasks, detached tasks aren't cancelled even if there are no remaining uses of their task handle, so `runDetached` is suitable for operations for which the program does not need to observe completion.
@@ -138,11 +140,15 @@ The result of `runDetached` is a task handle, which can be used to retrieve the 
 
 ### Tasks
 
-A task can be in one of three states:
+A task can be in one of three (**TODO**: four?) states:
 
-* A **suspended** task has more work to do but is not currently running.  It may be schedulable, meaning that it’s ready to run and is just waiting for the system to instruct a thread to begin executing it, or it may be waiting on some external event before it can become schedulable.
-* A **running** task is currently running on a thread.  It will run until it either returns from its initial function (and becomes completed) or reaches a suspension point (and becomes suspended).  At a suspension point, it may become immediately schedulable if, say, its execution just needs to change actors.
-* A **completed** task has no more work to do and will never enter any other state.  Code can wait for a task to become completed in various ways described in the detailed language design.
+* A **suspended** task has more work to do but is not currently running.  
+    - It may be **schedulable**, meaning that it’s ready to run and is just waiting for the system to instruct a thread to begin executing it, 
+    - or it may be **waiting** on some external event before it can become schedulable.
+* A **running** task is currently running on a thread.  
+    - It will run until it either returns from its initial function (and becomes completed) or reaches a suspension point (and becomes suspended).  At a suspension point, it may become immediately schedulable if, say, its execution just needs to change actors.
+* A **completed** task has no more work to do and will never enter any other state.  
+    - Code can wait for a task to become completed in various ways, most notably by [`await`](nnnn-async-await.md)-ing on it.
 
 The way we talk about execution for tasks and asynchronous functions is more complicated than it is for synchronous functions.  An asynchronous function is running as part of a task.  If the task is running, it and its current function are also running on a thread.
 
@@ -168,9 +174,49 @@ The execution of a task can be seen as a succession of periods where the task wa
 
 ### Executors
 
-An executor is a service which accepts the submission of partial tasks and arranges for some thread to run them.  The system assumes that executors are reliable and will never fail to run a partial task.  An asynchronous function that is currently running always knows the executor that it's running on.  This allows the function to avoid unnecessarily suspending when making a call to the same executor, and it allows the function to resume executing on the same executor it started on.
+An executor is a service which accepts the submission of _partial tasks_ and arranges for some thread to run them. The system assumes that executors are reliable and will never fail to run a partial task. 
 
-An executor is called exclusive if the partial tasks submitted to it will never be run concurrently.  (Specifically, the partial tasks must be totally ordered by the happens-before relationship: given any two tasks that were submitted and run, the end of one must happen-before the beginning of the other.)  Executors are not required to run partial tasks in the order they were submitted; in fact, they should generally honor task priority over submission order.
+An asynchronous function that is currently running always knows the executor that it's running on.  This allows the function to avoid unnecessarily suspending when making a call to the same executor, and it allows the function to resume executing on the same executor it started on.
+
+An executor is called _exclusive_ if the partial tasks submitted to it will never be run concurrently.  (Specifically, the partial tasks must be totally ordered by the happens-before relationship: given any two tasks that were submitted and run, the end of one must happen-before the beginning of the other.) Executors are not required to run partial tasks in the order they were submitted; in fact, they should generally honor task priority over submission order.
+
+Swift provides a default executor implementation, but both actor classes and global actors can suppress this and provide their own implementation.
+
+Generally end-users need not interact with executors directly, but rather use them implicitly by invoking actors and functions which happen to use executors to perform the invoked asynchronous functions.
+
+### Task priorities
+Any task is associated with a specific `Task.Priority`.
+
+Task priority may inform decisions an `Executor` makes about how and when to schedule tasks submitted to it. An executor may utilize priority information to attempt running higher priority tasks first, and then continuing to serve lower priority tasks.
+
+The exact semantics of how priority is treated are left up to each platform and specific `Executor` implementation.
+
+Child tasks automatically inherit their parent task's priority. Detached tasks do not inherit priority (or any other information) because they semantically do not have a parent task.
+
+```swift
+extension Task {
+  public static func currentPriority() async -> Priority { ... }
+
+  public struct Priority: Comparable {
+    public static let `default`: Task.Priority
+    /* ... */
+  }
+}
+```
+
+> **TODO**: Define the details of task priority; It is likely to be a concept similar to Darwin Dispatch's QoS; bearing in mind that priority is not as much of a thing on other platforms (i.e. server side Linux systems).
+
+One of the ways to declare a priority level for a task is to pass it to `Task.runDetached(priority:operation:)` when starting a top-level task. All tasks started from within this task will inherit this task's priority since they would be its child tasks. 
+
+This means that, semantically, the "UI Thread" can be represented as a top-level *UI Task* which was started as detached with the `.ui` priority, and all other tasks which need to run on as children of the UI task, will inherit its priority. In practice this will likely be reflected by a global `UIActor` (see [global actors](nnnn-actors.md) in the actors proposal) which is designated to run on an UI thread assigned `Executor` which sets tasks it uses to use the UI priority, thus handling propagation of priority from tasks started from the UI actor itself.
+
+#### Priority Escalation
+In some situations the priority of a task must be elevated (or "escalated", "raised"):
+
+- if a `Task` running on behalf of an actor, and a new higher-priority task is enqueued to the actor, its current task must be temporarily elevated to the priority of the enqueued task, in order to allow the new task to be processed at--effectively-- the priority it was enqueued with.
+    - this DOES NOT affect `Task.currentPriority()`.
+- if a task is created with a `Task.Handle`, and a higher-priority task calls the `await try handle.get()` function the priority of this task must be permanently increased until the task completes.
+    - this DOES affect `Task.currentPriority()`.
 
 ### Cancellation
 
@@ -196,11 +242,11 @@ One of the variables for a given `async let` must be awaited at least once along
 {
   async let result = try fetchHTTPContent(of: url)
   if condition {
-    let header = await result.header
+    let header = await try result.header
     // okay, awaited `result`
   } else {
     // error: did not await 'result' along this path. Fix this with, e.g.,
-    //   _ = await result
+    //   _ = await try result
   }
 }
 ```
@@ -208,6 +254,124 @@ One of the variables for a given `async let` must be awaited at least once along
 If the scope of an `async let` exits with a thrown error, the child task corresponding to the `async let` is implicitly cancelled. If the child task has already completed, its result (or thrown error) is discarded.
 
 > **Rationale**: The requirement to await a variable from each `async let` along all (non-throwing) paths ensures that child tasks aren't being created and implicitly cancelled during the normal course of execution. Such code is likely to be needlessly inefficient and should probably be restructured to avoid creating child tasks that are unnecessary.
+ 
+ 
+### Detached Tasks
+
+Detached tasks are one of the two "escape hatch" APIs offered in this proposal (the other being the `UnsafeContinuation` APIs discussed in the next section), for when structured concurrency rules are too rigid for a specific asynchronous operations.
+
+
+Looking at the previously mentioned example of making dinner in a detached task, but fillin in the missing types and details:
+
+
+```swift
+let dinnerHandle: Task.Handle<Dinner, Never> = Task.runDetached {
+  await makeDinner()
+}
+
+// optionally, someone, somewhere may cancel the task:
+// dinnerHandle.cancel()
+
+let dinner = await try dinnerHandle.get()
+```
+
+The `Task.Handle` returned from the `runDetached` function serves as a reference to an in-flight `Task`, allowing either awaiting or cancelling the task.
+
+It is important that the get() can be not only of the expected `Task.Handle.Failure` type, but also the `CancellationError`, so awaiting on a `handle.get()` is *always* throwing, even if the wrapped operation was not throwing itself.
+
+```swift
+extension Task {
+  public final class Handle<Success, Failure: Error> {
+    public func get() async throws -> Success { ... }
+
+    public func cancel() { ... }
+  }
+}
+```
+
+### Low-level code and integrating with legacy APis with `UnsafeContinuation`
+
+The low-level execution of asynchronous code occasionally requires escaping the high-level abstraction of an async functions and nurseries. Also, it is important to enable APIs to interact with existing non-`async` code yet still be able to present to the users of such API a pleasant to use async function based interface.
+
+For such situations, this proposal introduces the concept of a `Unsafe(Throwing)Continuation`:
+
+```swift
+extension Task {
+  public static func withUnsafeContinuation<T>(
+    operation: (UnsafeContinuation<T>) -> ()
+  ) async -> T { ... }
+
+  public struct UnsafeContinuation<T> {
+    private init(...) { ... }
+    public func resume(returning: T) { ... }
+  }
+
+
+  public static func withUnsafeThrowingContinuation<T, E: Error>(
+    operation: (UnsafeThrowingContinuation<T, E>) -> ()
+  ) async throws -> T { ... }
+  
+  public struct UnsafeThrowingContinuation<T, E: Error> {
+    private init(...) { ... }
+    public func resume(returning: T) { ... }
+    public func resume(throwing: E) { ... }
+  }
+}
+```
+
+Unsafe continuations allow for wrapping existing complex callback-based APIs and presenting them to the caller as if it was a plan async function. 
+
+Rules for dealing with unsafe continuations:
+
+- the `resume` function must only be called *exactly-once* on each execution path the `operation` may take (including any error handling paths),
+- the `resume` function must be called exactly at the _end_ of the `operation` function's execution, otherwise or else it will be impossible to define useful semantics for captures in the operation function, which could otherwise run concurrently with the continuation; unfortunately, this unavoidably introduces some overhead to the use of these continuations.
+
+Using this API one may for example wrap such (purposefully convoluted for the sake of demonstrating the flexibility of the continuation API) function:
+
+```swift
+func buyVegetables(
+  shoppingList: [String],
+  // a) if all veggies were in store, this is invoked *exactly-once*
+  onGotAllVegetables: ([Vegetable]) -> (),
+
+  // b) if not all veggies were in store, invoked one by one *one or more times*
+  onGotVegetable: (Vegetable) -> (),
+  // b) if at least one onGotVegetable was called *exactly-once*
+  //    this is invoked once no more veggies will be emitted
+  onNoMoreVegetables: () -> (),
+  
+  // c) if no veggies _at all_ were available, this is invoked *exactly once*
+  onNoVegetablesInStore: (Error) -> ()
+)
+```
+
+```swift
+// returns 1 or more vegetables or throws an error
+func buyVegetables(shoppingList: [String]) async throws -> [Vegetable] {
+  await try Task.withUnsafeThrowingContinuation { continuation in
+    var veggies: [Vegetable] = []
+
+    buyVegetables(
+      shoppingList: shoppingList,
+      onGotAllVegetables: { veggies in continuation.resume(returning: veggies) },
+      onGotVegetable: { v in veggies.append(v) },
+      onNoMoreVegetables: { continuation.resume(returning: veggies) },
+      onNoVegetablesInStore: { error in continuation.resume(throwing: error) },
+    )
+  }
+}
+
+let veggies = await try buyVegetables(shoppingList: ["onion", "bell pepper"])
+```
+
+Thanks to weaving the right continuation resume calls into the complex callbacks of the `buyVegetables` function, we were able to offer a much nicer overload of this function, allowing our users to rely on the async/await to interact with this function.
+
+> **The challange with diagnostics for Unsafe**: It is theoretically possible to provide compiler diagnostics to help developers avoid *simple* mistakes with resuming the continuation multiple times (or not at all). 
+> 
+> However, since the primary use case of this API is often integrating with complicated callback-style APIs (such as the `buyVegetables` shown above) it is often impossible for the compiler to have enough information about each callback's semantics to meaningfully produce diagnostic guidance about correct use of this unsafe API. 
+> 
+> Developers must carefully place the `resume` calls guarantee the proper resumption semantics of unsafe continuations, lack of consideration for a case where resume should have been called will result in a task hanging forever, justifying the unsafe denotation of this API.
+
  
 ## Source compatibility
 
