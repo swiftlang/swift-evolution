@@ -30,21 +30,115 @@ func makeDinner() async throws -> Meal {
   let meat = await marinateMeat()
   let oven = await try preheatOven(temperature: 350)
 
+  let dish = Dish(ingredients: [veggies, meat])
+  return await try oven.cook(dish, duration: .hours(3))
+}
+``` 
+
+Each step in our dinner preparation is an asynchronous operation, so there are numerous suspension points. While waiting for the vegetables to be chopped, `makeDinner` won't block a thread: it will suspend until the vegetables are available, then resume. Presumably, many dinners could be in various stages of preparation, with most suspended until their current step is completed.
+
+However, even though our dinner preparation is asynchronous, it is still *sequential*. It waits until the vegetables have been chopped before starting to marinate the meat, then waits again until the meat is ready before preheating the oven. Our hungry patrons will be very hungry indeed by the time dinner is finally done.
+
+To make dinner preparation go faster, we want to use concurrency. The vegetables can be chopped at the same time as the meat is marinating and the oven is preheating. We can be combining the ingredients into the dish while the oven preheats. By overlapping the steps, we can cook our dinner faster.
+
+## Proposed solution
+
+Structured concurrency provides an ergonomic way to introduce concurrency into asynchronous functions. Every asynchronous function runs as part of an asynchronous *task*, which is the analogue of a thread. Structured concurrency allows a task to easily create child tasks, which perform some work on behalf of---and concurrently with---the task itself.
+
+### Child tasks
+This proposal introduces an easy way to create child tasks with `async let`:
+
+```swift
+func makeDinner() async throws -> Meal {
+  async let veggies = chopVegetables()
+  async let meat = marinateMeat()
+  async let oven = try preheatOven(temperature: 350)
+
   let dish = Dish(ingredients: await [veggies, meat])
   return await try oven.cook(dish, duration: .hours(3))
 }
 ``` 
 
+`async let` is similar to a `let`, in that it defines a local constant that is initialized by the expression on the right-hand side of the `=`. However, it differs in that the initializer expression is evaluated in a separate, concurrently-executing child task. On completion, the child task will initialize the variables in the `async let` and complete.
 
+Because the main body of the function executes concurrently with its child tasks, it is possible that `makeDinner` will reach the point where it needs the value of an `async let` (say, `veggies`) before that value has been produced. To account for that, reading a variable defined by an `async let` is treated as a suspension point, and therefore must be marked with `await`. The task will suspend until the child task has completed initialization of the variable, and then resume.
 
+One can think of `async let` as introducing a (hidden) future, which is created at the point of declaration of the `async let` and whose value is retrieved at the `await`. In this sense, `async let` is syntactic sugar to futures.
 
-## Proposed solution
+However, child tasks in the proposed structured-concurrency model are (intentionally) more restricted than general-purpose futures. Unlike in a typical futures implementation, a child task does not persist beyond the scope in which is was created. By the time the scope exits, the child task must either have completed, or it will be implicitly cancelled. This structure both makes it easier to reason about the concurrent tasks that are executing within a given scope, and also unlocks numerous optimization opportunities for the compiler and runtime. 
+
+Bringing it back to our example, note that the `preheatOven(temperature:)` function might throw an error if, say, the oven breaks. That thrown error completes the child task for preheating the oven. The error will then be propagated out of the `makeDinner()` function, as expected. On exiting the body of the `makeDinner()` function, any child tasks that have not yet completed (chopping the vegetables or marinating the meat, may be both) will be automatically cancelled.
+
+### Nurseries
+
+The `async let` construct makes it easy to create a set number of child tasks and associate them with variables. However, the construct does not work as well with dynamic workloads, where we don't know the number child tasks we will need to create because (for example) it is dependent on the size of a data structure. For that, we need a more dynamic construct: a task *nursery*.
+
+A nursery defines a scope in which one can create new child tasks programmatically. As with all child tasks, the child tasks within the nursery must complete when the scope exits or they will be implicitly cancelled. Nurseries also provide utilities for working with the child tasks, e.g., by waiting until the next child task completes.
+
+To stretch our example even further, let's consider our `chopVegetables()` operation, which produces an array of `Vegetable` values. With enough cooks, we could chop our vegetables even faster if we divided up the chopping for each kind of vegetable. Let's start with a sequential version of `chopVegetables()`:
+
+```swift
+/// Sequentially chop the vegetables.
+func chopVegetables() async -> [Vegetable] {
+  var veggies: [Vegetable] = gatherRawVeggies()
+  for i in veggies.indices {
+    veggies[i] = await veggies[i].chopped()
+  }
+  return veggies
+}
+```
+
+Introducing `async let` into the loop would not produce any meaningful concurrency, because each `async let` would need to complete before the next iteration of the loop could start. To create child tasks programmatically, we introduce a nursery within a new scope via `withNursery`:
+
+```swift
+/// Sequentially chop the vegetables.
+func chopVegetables() async -> [Vegetable] {
+  // Create a task nursery where each task produces (Int, Vegetable).
+  Task.withNursery(resultType: (Int, Vegetable).self) { nursery in 
+    var veggies: [Vegetable] = gatherRawVeggies()
+    
+    // Create a new child task for each vegetable that needs to be 
+    // chopped.
+    for i in rawVeggies.indices {
+      await nursery.add { 
+        (i, veggies[i].chopped())
+      }
+    }
+
+    // Wait for all of the chopping to complete, slotting each result
+    // into its place in the array as it becomes available.
+    while let (index, choppedVeggie) = await try nursery.next() {
+      veggies[index] = choppedVeggie
+    }
+    
+    return veggies
+  }
+}
+```
+
+The `withNursery(resultType:body:)` function introduces a new scope in which child tasks can be created (using the nursery's `add(_:)` method). The `next()` method waits for the next child task to complete, providing the result value from the child task. In our example above, each child task carries the index where the result should go, along with the chopped vegetable.
+
+As with the child tasks created by `async let`, if the closure passed to `withNursery` exits without having completed all child tasks, any remaining child tasks will automatically be cancelled.
+
+### Detached tasks
+
+Thus far, every task we have created is a child task, whose lifetime is limited by the scope in which is created. This does not allow for new tasks to be created that outlive the current scope.
+
+The `runDetached` operation creates a new task. It accepts a closure, which will be executed as the body of the task. Here, we create a new, detached task to make dinner:
+
+```swift
+let dinnerHandle = Task.runDetached {
+  await makeDinner()
+}  
+```
+
+The result of `runDetached` is a task handle, which can be used to retrieve the result of the operation when it completes (via `get()`) or cancel the task if the result is no longer desired (via `cancel()`). Unlike child tasks, detached tasks aren't cancelled even if there are no remaining uses of their task handle, so `runDetached` is suitable for operations for which the program does not need to observe completion.
+
+## Detailed design
 
 ### Tasks
 
-An asynchronous task (just "task" hereafter) is the analogue of a thread for asynchronous functions.  All asynchronous functions run as part of some task.  When an asynchronous function calls another asynchronous function, the callee is still running as part of the same task as the parent.  The task is therefore a persistent identity.  If two asynchronous functions are executing concurrently, they are necessarily running as part of different tasks.  (The tasks may be related; see "Child tasks" below.)
-
-A task always begins at the beginning of some asynchronous function, called its initial function.  A task can be in one of three states:
+A task can be in one of three states:
 
 * A **suspended** task has more work to do but is not currently running.  It may be schedulable, meaning that it’s ready to run and is just waiting for the system to instruct a thread to begin executing it, or it may be waiting on some external event before it can become schedulable.
 * A **running** task is currently running on a thread.  It will run until it either returns from its initial function (and becomes completed) or reaches a suspension point (and becomes suspended).  At a suspension point, it may become immediately schedulable if, say, its execution just needs to change actors.
@@ -68,31 +162,6 @@ An asynchronous function can create a child task.  Child tasks inherit some of t
 
 Of course, a function’s task may itself be a child of another task, and its parent may have other children; a function cannot reason locally about these.  But the features of this design that apply to an entire task tree, such as cancellation, only apply “downwards” and don’t automatically propagate upwards in the task hierarchy, and so the child tree still can be statically reasoned about.  If child tasks did not have bounded duration and so could arbitrarily outlast their parents, the behavior of tasks under these features would not be easily comprehensible. 
 
-Child tasks can most easily be created with the `async let` construct, which creates a child task whose result can be accessed by reading the declared variable(s) in an `await` expression. For example:
-
-```swift
-func makeDinner() async throws -> Meal {
-  async let veggies = chopVegetables()
-  async let meat = marinateMeat()
-  async let oven = try preheatOven(temperature: 350)
-
-  let dish = Dish(ingredients: await [veggies, meat])
-  return await try oven.cook(dish, duration: .hours(3))
-}
-``` 
-
-Each `async let` creates a new child task, and these tasks can execute asynchronously. All of these child tasks must complete (or be cancelled) before the `makeDinner` function returns. If an error is thrown, any child tasks will implicitly be cancelled.
-
-A separate proposal for task management will introduce additional ways to create and manage child tasks. 
-
-If a program wishes to initiate independent concurrent work that can outlast its spawning context, it should create a new detached task rather than a bounded child task. Although the specific API is again left to a separate proposal for task management, it will have a form similar to:
-
-```swift
-let handle = Task.runDetached { await longRunningSeparateTask() }
-```
-
-The `handle` is a reference to that task, and can be used to cancel the task, check the task's priority, etc.
-
 ### Partial tasks
 
 The execution of a task can be seen as a succession of periods where the task was running, each of which ends at a suspension point or — finally — at the completion of the task.  These periods are called partial tasks.  Partial tasks are the basic units of schedulable work in the system.  They are also the primitive through which asynchronous functions interact with the underlying synchronous world.  For the most part, programmers should not have to work directly with partial tasks unless they are implementing a custom executor.
@@ -109,8 +178,6 @@ A task can be cancelled asynchronously by any context that has a reference to a 
 
 No information is passed to the task about why it was cancelled.  A task may be cancelled for many reasons, and additional reasons may accrue after the initial cancellation (for example, if the task fails to immediately exit, it may pass a deadline).  The goal of cancellation is to allow tasks to be cancelled in a lightweight way, not to be a secondary method of inter-task communication.
 
-## Detailed design
-
 ### Child tasks with `async let`
 
 Asynchronous calls do not by themselves introduce concurrent execution. However, `async` functions may conveniently request work to be run in a child task, permitting it to run concurrently, with an `async let`:
@@ -119,7 +186,9 @@ Asynchronous calls do not by themselves introduce concurrent execution. However,
 async let result = try fetchHTTPContent(of: url)
 ```
 
-Any reference to a variable declared within an `async let` is a suspension point, so it must occur within either an `await` expression or the initializer of another `async let`. If the initializer of the `async let` can throw an error, then each reference to a variable declared within that `async let` is considered to throw an error, and therefore must be enclosed in one of `try`/`try!`/`try?`. 
+Any reference to a variable declared within an `async let` is a suspension point, equivalent to a call to an asynchronous function, so it must occur within an `await` expression. The initializer of the `async let` is considered to be enclosed by an implicit `await` expression.
+
+If the initializer of the `async let` can throw an error, then each reference to a variable declared within that `async let` is considered to throw an error, and therefore must also be enclosed in one of `try`/`try!`/`try?`. 
 
 One of the variables for a given `async let` must be awaited at least once along all execution paths (that don't throw an error) before it goes out of scope. For example:
 
