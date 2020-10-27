@@ -19,14 +19,14 @@ Swift-evolution thread: [Discussion thread topic for that proposal](https://foru
 For a simple example, let's make dinner, asynchronously:
 
 ```swift
-func chopVegetables() async -> [Vegetable] { ... }
+func chopVegetables() async throws -> [Vegetable] { ... }
 func marinateMeat() async -> Meat { ... }
 func preheatOven(temperature: Double) async throws -> Oven { ... }
 
 // ...
 
 func makeDinner() async throws -> Meal {
-  let veggies = await chopVegetables()
+  let veggies = await try chopVegetables()
   let meat = await marinateMeat()
   let oven = await try preheatOven(temperature: 350)
 
@@ -50,7 +50,7 @@ This proposal introduces an easy way to create child tasks with `async let`:
 
 ```swift
 func makeDinner() async throws -> Meal {
-  async let veggies = chopVegetables()
+  async let veggies = try chopVegetables()
   async let meat = marinateMeat()
   async let oven = try preheatOven(temperature: 350)
 
@@ -67,7 +67,7 @@ One can think of `async let` as introducing a (hidden) future, which is created 
 
 However, child tasks in the proposed structured-concurrency model are (intentionally) more restricted than general-purpose futures. Unlike in a typical futures implementation, a child task does not persist beyond the scope in which is was created. By the time the scope exits, the child task must either have completed, or it will be implicitly cancelled. This structure both makes it easier to reason about the concurrent tasks that are executing within a given scope, and also unlocks numerous optimization opportunities for the compiler and runtime. 
 
-Bringing it back to our example, note that the `preheatOven(temperature:)` function might throw an error if, say, the oven breaks. That thrown error completes the child task for preheating the oven. The error will then be propagated out of the `makeDinner()` function, as expected. On exiting the body of the `makeDinner()` function, any child tasks that have not yet completed (chopping the vegetables or marinating the meat, may be both) will be automatically cancelled.
+Bringing it back to our example, note that the `chopVegetables()` function might throw an error if, say, there is an incident with the kitchen knife. That thrown error completes the child task for chopping the vegetables. The error will then be propagated out of the `makeDinner()` function, as expected. On exiting the body of the `makeDinner()` function, any child tasks that have not yet completed (marinating the meat or preheating the oven, maybe both) will be automatically cancelled.
 
 ### Nurseries
 
@@ -79,10 +79,10 @@ To stretch our example even further, let's consider our `chopVegetables()` opera
 
 ```swift
 /// Sequentially chop the vegetables.
-func chopVegetables() async -> [Vegetable] {
+func chopVegetables() async throws -> [Vegetable] {
   var veggies: [Vegetable] = gatherRawVeggies()
   for i in veggies.indices {
-    veggies[i] = await veggies[i].chopped()
+    veggies[i] = await try veggies[i].chopped()
   }
   return veggies
 }
@@ -92,7 +92,7 @@ Introducing `async let` into the loop would not produce any meaningful concurren
 
 ```swift
 /// Sequentially chop the vegetables.
-func chopVegetables() async -> [Vegetable] {
+func chopVegetables() async throws -> [Vegetable] {
   // Create a task nursery where each task produces (Int, Vegetable).
   Task.withNursery(resultType: (Int, Vegetable).self) { nursery in 
     var veggies: [Vegetable] = gatherRawVeggies()
@@ -100,7 +100,7 @@ func chopVegetables() async -> [Vegetable] {
     // Create a new child task for each vegetable that needs to be 
     // chopped.
     for i in rawVeggies.indices {
-      await nursery.add { 
+      await try nursery.add { 
         (i, veggies[i].chopped())
       }
     }
