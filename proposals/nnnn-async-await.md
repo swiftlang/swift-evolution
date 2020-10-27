@@ -298,13 +298,8 @@ One can manually create an `async` closure that calls synchronous functions, so 
 
 ### Await expressions
 
-Any potential suspension point must occur within an asynchronous context (e.g., an `async` function). Furthermore, it must occur within the operand of an `await` expression or the initializer of an `async let`. 
-
-> **Note**: `async let` is introduced in the Structured Concurrency proposal to create concurrent child tasks. It is mentioned here so that the semantics of `await` expressions and closures can be described fully.
-
-There are two kinds of suspension points:
-* A call to a value of `async` function type (including a direct call to an `async` function).
-* A use of a variable introduced by an `async let`.
+A call to a value of `async` function type (including a direct call to an `async` function) introduces a suspension point. 
+Any suspension point must occur within an asynchronous context (e.g., an `async` function). Furthermore, it must occur within the operand of an `await` expression. 
 
 Consider the following example:
 
@@ -312,11 +307,11 @@ Consider the following example:
 // func redirectURL(for url: URL) async -> URL
 // func dataTask(with: URL) async throws -> URLSessionDataTask
 
-async let newURL = server.redirectURL(for: url)
+let newURL = await server.redirectURL(for: url)
 let (data, response) = await try session.dataTask(with: newURL)
 ```
 
-In the code example, there are suspension points in the call to `redirectURL(for:)`, the call to `dataTask(with:)`, and the reference to `newURL`. The call to `redirectURL(for:)` is part of the initializer of the `async let`, so it does not need a separate `await` expression. The `await` is required in the final line due to the call to the `async` functions `dataTask(with:)`, as well as for the reference to the `async let` variable `newURL`. The operand of an `await` expression must contain at least one suspension point, although there may be more than one suspension point (the last line of the example above has two).
+In the code example, there are suspension points in the call to `redirectURL(for:)` and the call to `dataTask(with:)`. The `await` is required on both lines because each contains a suspension point. The operand of an `await` expression must contain at least one suspension point, although there may be more than one suspension point.
 
 The `await` has no additional semantics; like `try`, it merely marks that an asynchronous call is being made.  The type of the `await` expression is the type of its operand, and its result is the result of its operand.
 
@@ -337,7 +332,7 @@ A closure can have `async` function type. Such closures can be explicitly marked
 }
 ```
 
-An anonymous closure is inferred to have `async` function type if it contains an `await` expression or an `async let`.
+An anonymous closure is inferred to have `async` function type if it contains an `await` expression.
 
 ```swift
 let closure = { await getInt() } // implicitly async
@@ -346,13 +341,6 @@ let closure2 = { () -> Int {     // implicitly async
   print("here")
   return await getInt()
 }
-
-let closure3 = { () -> Int {     // implicitly async
-  async let x = getInt()
-  print("here")
-  _ = await x
-  return 0
-}
 ```
 
 Note that inference of `async` ignores nested functions or closures, because those are contexts are (separably) asynchronous or synchronous. For example:
@@ -360,9 +348,8 @@ Note that inference of `async` ignores nested functions or closures, because tho
 ```swift
 let closure5 = { () -> Int {     // not 'async'
   let closure6 = { () -> Int {     // implicitly async
-    async let x = getInt()
     print("there")
-    return await x
+    return await getInt()
   }
   
   print("here")
