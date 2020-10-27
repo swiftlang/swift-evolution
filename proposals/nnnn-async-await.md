@@ -8,24 +8,24 @@
 
 ## Introduction
 
-Modern Swift development involves a lot of asynchronous programming using closures and completion handlers, but these APIs are hard to use.  This gets particularly problematic when many asynchronous operations are used, error handling is required, or control flow between asynchronous calls gets complicated.  This proposal describes a language extension to make this a lot more natural and less error prone.
+Modern Swift development involves a lot of asynchronous (or "async") programming using closures and completion handlers, but these APIs are hard to use.  This gets particularly problematic when many asynchronous operations are used, error handling is required, or control flow between asynchronous calls gets complicated.  This proposal describes a language extension to make this a lot more natural and less error prone.
 
-This design introduces a [coroutine model](https://en.wikipedia.org/wiki/Coroutine) to Swift. Functions can opt into to being `async`, allowing the programmer to compose complex logic involving asynchronous operations using the normal control-flow mechanisms. The compiler is responsible for translating an asynchronous functions into the appropriate set of closures and state machines.
+This design introduces a [coroutine model](https://en.wikipedia.org/wiki/Coroutine) to Swift. Functions can opt into to being `async`, allowing the programmer to compose complex logic involving asynchronous operations using the normal control-flow mechanisms. The compiler is responsible for translating an asynchronous functions into an appropriate set of closures and state machines.
 
 This proposal defines the semantics of asynchronous functions. However, it does not provide concurrency: that is covered by a separate proposal to introduce structured concurrency, which associates asynchronous functions with concurrently-executing tasks and provides APIs for creating, querying, and cancelling tasks.
 
-This draws some inspiration (and most of the Motivation section) from an earlier proposal written by 
+This proposal draws some inspiration (and most of the Motivation section) from an earlier proposal written by 
 [Chris Lattner](https://github.com/lattner) and [Joe Groff](https://github.com/jckarter), available [here](https://gist.github.com/lattner/429b9070918248274f25b714dcfc7619). That proposal itself is derived from a proposal written by [Oleg Andreev](https://github.com/oleganza), available [here](https://gist.github.com/oleganza/7342ed829bddd86f740a). It has been significantly rewritten (again), and many details have changed, but the core ideas of asynchronous functions have remained the same.
 
 Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/)
 
 ## Motivation: Completion handlers are suboptimal
 
-Async programming with explicit callbacks has many problems, which we’ll explore below.  We propose to address these by introducing async functions into the language.  Async functions allow asynchronous code to be written as straightline code.  They also allow the implementation to directly reason about the execution pattern of the code, allowing callbacks to run far more efficiently.
+Async programming with explicit callbacks (also called completion handlers) has many problems, which we’ll explore below.  We propose to address these problems by introducing async functions into the language.  Async functions allow asynchronous code to be written as straight-line code.  They also allow the implementation to directly reason about the execution pattern of the code, allowing callbacks to run far more efficiently.
 
 #### Problem 1: Pyramid of doom
 
-A sequence of simple asynchronous operations often involves deeply-nested closures. Here is a made up example showing this:
+A sequence of simple asynchronous operations often requires deeply-nested closures. Here is a made-up example showing this:
 
 ```swift
 func processImageData1(completionBlock: (result: Image) -> Void) {
@@ -45,11 +45,11 @@ processImageData1 { image in
 }
 ```
 
-This "pyramid of doom" makes it difficult to keep track of code that is running, and the stack of closures leads to many second order effects.
+This "pyramid of doom" makes it difficult to read and keep track of where the code is running. In addition, having to use a stack of closures leads to many second order effects that we will discuss next.
 
 #### Problem 2: Error handling
 
-Handling errors becomes difficult and very verbose. Swift 2 introduced an error handling model for synchronous code, but callback-based interfaces do not derive any benefit from it:
+Callbacks make error handling difficult and very verbose. Swift 2 introduced an error handling model for synchronous code, but callback-based interfaces do not derive any benefit from it:
 
 ```swift
 func processImageData2(completionBlock: (result: Image?, error: Error?) -> Void) {
@@ -89,7 +89,7 @@ processImageData2 { image, error in
 }
 ```
 
-The addition of [`Result`](https://github.com/apple/swift-evolution/blob/main/proposals/0235-add-result.md) to the standard library improved on this for Swift APIs (asynchronous APIs were one of the [main motivators](https://github.com/apple/swift-evolution/blob/main/proposals/0235-add-result.md#asynchronous-apis) for `Result`): 
+The addition of [`Result`](https://github.com/apple/swift-evolution/blob/main/proposals/0235-add-result.md) to the standard library improved on error handling for Swift APIs. Asynchronous APIs were one of the [main motivators](https://github.com/apple/swift-evolution/blob/main/proposals/0235-add-result.md#asynchronous-apis) for `Result`: 
 
 ```swift
 func processImageData2(completionBlock: (Result<Image>) -> Void) {
@@ -120,30 +120,32 @@ processImageData2 { result in
 }
 ```
 
-It's easier to properly thread the error through when using `Result`, and the code is shorter, but the nesting problem remains.
+It's easier to properly thread the error through when using `Result`, making the code shorter. But, the closure-nesting problem remains.
 
 #### Problem 3: Conditional execution is hard and error-prone
 
-Conditionally executing an asynchronous function is a huge pain.  Perhaps the best approach is to write half of the code in a helper "continuation" closure that is conditionally executed, like this:
+Conditionally executing an asynchronous function is a huge pain. For example, suppose we need to "swizzle" an image after obtaining it. But, we sometimes have to make an asynchronous call to decode the image before we can swizzle. Perhaps the best approach to structuring the function is to write the swizzling code in a helper "continuation" closure that is conditionally executed, like this:
 
 ```swift
 func processImageData3(recipient: Person, completionBlock: (result: Image) -> Void) {
-    let continuation: (contents: image) -> Void = {
-      // ... continue and call completionBlock eventually
+    let swizzle: (contents: image) -> Void = {
+      // ... continuation closure that calls completionBlock eventually
     }
     if recipient.hasProfilePicture {
-        continuation(recipient.profilePicture)
+        swizzle(recipient.profilePicture)
     } else {
         decodeImage { image in
-            continuation(image)
+            swizzle(image)
         }
     }
 }
 ```
 
+This pattern inverts the natural top-down organization of the function: the code that will execute in the second half of the function must appear *before* the part that executes in the first half. In addition to restructuring the entire function, we must now think carefully about captures in the continuation closure. The problem worsens as the number of conditionally-executed async functions grows, yielding what is essentially an inverted "pyramid of doom."
+
 #### Problem 4: Many mistakes are easy to make
 
-It's easy to bail out by simply returning without calling the appropriate block. When forgotten, the issue is very hard to debug:
+It's quite easy to bail-out of the asynchronous operation early by simply returning without calling the correct completion-handler block. When forgotten, the issue is very hard to debug:
 
 ```swift
 func processImageData4(completionBlock: (result: Image?, error: Error?) -> Void) {
@@ -161,8 +163,7 @@ func processImageData4(completionBlock: (result: Image?, error: Error?) -> Void)
 }
 ```
 
-When you do not forget to call the block, you can still forget to return after that.
-Thankfully `guard` syntax protects against that to some degree, but it's not always relevant.
+When you do remember to call the block, you can still forget to return after that:
 
 ```swift
 func processImageData5(recipient:Person, completionBlock: (result: Image?, error: Error?) -> Void) {
@@ -175,9 +176,11 @@ func processImageData5(recipient:Person, completionBlock: (result: Image?, error
 }
 ```
 
+Thankfully the `guard` syntax protects against forgetting to return to some degree, but it's not always relevant.
+
 #### Problem 5: Because completion handlers are awkward, too many APIs are defined synchronously
 
-This is hard to quantify, but the authors believe that the awkwardness of defining and using asynchronous APIs (using completion handlers) has led to many APIs being defined with apparently synchronous behavior, even when they can block.  This can lead to problematic performance and responsiveness problems in UI applications - e.g. spinning cursor.  It can also lead to the definition of APIs that cannot be used when asynchrony is critical to achieve scale, e.g. on the server.
+This is hard to quantify, but the authors believe that the awkwardness of defining and using asynchronous APIs (using completion handlers) has led to many APIs being defined with apparently synchronous behavior, even when they can block.  This can lead to problematic performance and responsiveness problems in UI applications, e.g. a spinning cursor.  It can also lead to the definition of APIs that cannot be used when asynchrony is critical to achieve scale, e.g. on the server.
 
 ## Proposed solution: async/await
 
