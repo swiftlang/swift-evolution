@@ -27,7 +27,7 @@ Actors provide a model for building concurrent programs that are free of data ra
 
 ### Actor classes
 
-This proposal introduces *actor classes* into Swift. An actor class is a form of class that protects access to its mutable state. For the most part, an actor class is the same as a class:
+This proposal introduces *actor classes* into Swift. An actor class is a form of class that protects access to its mutable state, and is introduced with "actor class":
 
 ```swift
 actor class BankAccount {
@@ -36,7 +36,13 @@ actor class BankAccount {
 }
 ```
 
-Actor classes protect their mutable state, only allowing it to be accessed directly on `self`. For example, here is a method that attempts to transfer money from one account to another:
+Actor classes behave like classes in most respects: the can inherit (from other actor classes), have methods, properties, and subscripts. They can be extended and conform to protocols, be generic, and be used with generics.
+
+The primary difference is that actor classes protect their state from data races. This is enforced statically by the Swift compiler through a set of limitations on the way in which actors and their members can be used, collectively called *actor isolation*.   
+
+### Actor isolation
+
+Actor isolation is how actor classes protect their mutable state. The primary mechanism for this protection is by only allowing their stored instance properties to be accessed directly on `self`. For example, here is a method that attempts to transfer money from one account to another:
 
 ```swift
 extension BankAccount {
@@ -133,6 +139,43 @@ extension BankAccount {
   }
 }
 ```
+
+#### Closures and local functions
+
+The restrictions on only allowing access to (non-`async`) actor-isolated declarations on `self` only work so long as we can ensure that the code in which `self` is valid is executing non-concurrently on the actor. For methods on the actor class, this is established by the rules described above: `async` function calls are serialized via the actor's queue, and non-`async` calls are only allowed when we know that we are already executing (non-concurrently) on the actor.
+
+However, `self` can also be captured by closures and local functions. Should those closures and local functions have access to actor-isolated state on the captured `self`? Consider an example where we want to close out a bank account and distribute the balance amongst a set of accounts:
+
+```swift
+extension BankAccount {
+  func close(distributingTo accounts: [BankAccount]) async {
+    let transferAmount = balance / accounts.count
+
+    accounts.forEach { account in 
+      balance = balance - transferAmount             // is this safe?
+      await account.deposit(amount: transferAmount)
+    }
+    
+    thief.deposit(amount: balance)
+  }
+}
+```
+
+The closure is accessing (and modifying) `balance`, which is part of the `self` actor's isolated state. Once the closure is formed and passed off to a function (in this case, `Sequence.forEach`), we no longer have control over when and how the closure is executed. On the other hand, we "know" that `forEach` is a synchronous function that invokes the closure on successive elements in the sequence. It is not concurrent, and the code above would be safe.
+
+If, on the other hand, we used a hypothetical parallel for-each, we would have a data race when the closure executes concurrently on different elements:
+
+```swift
+accounts.parallelForEach { account in 
+  balance = balance - transferAmount             // DATA RACE!
+  await account.deposit(amount: transferAmount)
+}
+```
+
+Ideally, we would accept the (non-concurrent) first example but reject the concurrent second 
+
+#### Escaping reference types
+
 
 ### Global actors
 
