@@ -280,9 +280,10 @@ extension Task {
 }
 ```
 
-A nursery can be launched from any asychronous context, eventually returns a single value (the `BodyResult`). Tasks many be added to it dynamically, as we saw in the `chopVegetables` example in the *Proposes solution: Nurseries* section, and the nursery enforces awaiting for all tasks before it returns by asserting that is is empty when returning the final result.
+A nursery can be launched from any asychronous context, eventually returns a single value (the `BodyResult`). Tasks many be added to it dynamically, as we saw in the `chopVegetables` example in the *Proposed solution: Nurseries* section, and the nursery enforces awaiting for all tasks before it returns by asserting that is empty when returning the final result.
 
 ```swift
+extension Task { 
   /* @unmoveable */ 
   public struct Nursery<TaskResult> {
     // No public initializers
@@ -379,8 +380,45 @@ Let us break up the `chopOnionsAndCarrots()` function into multiple steps to ful
 - the chopping of the various vegetables beings asynchronously,
 - eventually an onion will be chopped and `throw`
 
+#### Nurseries: Parent task cancellation
 
-So far we did not yet discuss the cancellation of nurseries. A nursery can be cancelled form the outside, for example like this: 
+So far we did not yet discuss the cancellation of nurseries. A nursery can be cancelled if the task in which it was created is cancelled. Cancelling a nursery cancels all the tasks within it. Attempting to add more tasks into a cancelled nursery will throw a `CancellationError`. The following example illustrates these semantics:
+
+```swift
+struct WorkItem { 
+  func process() async throws {
+    await try Task.checkCancellation() // (4)
+    // ... 
+  } 
+}
+
+let handle = Task.runDetached {
+  await Task.withNursery(resultType: Int.self) { nursery in
+    var processed = 0
+    for w in workItems where await !Task.isCancelled() { // (3)
+      await nursery.add { await w.process() }
+    }
+    
+    while let result = await nursery.next() { 
+      processed += 1
+    }
+    
+    return processed
+  }
+}
+
+handle.cancel() // (1)
+
+try await handle.get() // will throw CancellationError // (2)
+```
+
+There are various ways a task could be cancelled, however for this example let us consider a detached task being cancelled explicitly. This task is the parent task of the nursery, and as such the cancelation will be propagated to it once the parent task's handle `cancel()` is invoked.
+
+Because cancellation remains co-operative, we need to check for it. We can do so either in the nursery itself to avoid even scheduling additional tasks when we know we have been cancelled *(3)*, or as usual in the `process()` task itself *(4)*. The benefit of checking in the nursery is that we can potentially even avoid scheduling the asynchronous child tasks if we know they won't be necessary.
+
+In our example we were able to degrade gracefully by just returning a "best effort" processed value, alternatively one might prefer to use `checkCancellation()` and throw from the nursery when cancelled.
+
+> NOTE: Presently nurseries do not automatically check for cancellation. They _could_ for example check for it when adding new tasks, such that `nursery.add()` would throw if the nursery is cancelled -- so we don't needlessly keep adding more work while our parent task has been cancelled already anyway. This would require add to be async and throwing which makes the API a bit unwieldly.
 
 #### Nurseries: Implicitly awaited tasks
 Sometimes it is not necessary to gather the results of asynchronous functions (e.g. because they may be `Void` returning, "uni-directional"), in this case we can rely on the nursery implicitly awaiting for all tasks started before returning. 
@@ -388,10 +426,10 @@ Sometimes it is not necessary to gather the results of asynchronous functions (e
 In the following example we need to confirm each order that we received, however that confirmation does not return any useful value to us (either it is `Void` or we simply choose to ignore the return values):
 
 ```swift
-func confirmOrders(orders: [Order]) async {
-  await Task.withNursery { nursery in 
+func confirmOrders(orders: [Order]) async throws {
+  await try Task.withNursery { nursery in 
     for order in orders {
-      await order.confirm()
+      await try nursery.add { await order.confirm() } 
     }
   }
 }
