@@ -153,7 +153,9 @@ extension BankAccount {
 
     accounts.forEach { account in 
       balance = balance - transferAmount             // is this safe?
-      await account.deposit(amount: transferAmount)
+      Task.runDetached {
+        await account.deposit(amount: transferAmount)
+      }  
     }
     
     thief.deposit(amount: balance)
@@ -167,12 +169,28 @@ If, on the other hand, we used a hypothetical parallel for-each, we would have a
 
 ```swift
 accounts.parallelForEach { account in 
-  balance = balance - transferAmount             // DATA RACE!
+  self.balance = self.balance - transferAmount    // DATA RACE!
   await account.deposit(amount: transferAmount)
 }
 ```
 
-Ideally, we would accept the (non-concurrent) first example but reject the concurrent second 
+In this proposal, a closure that is non-escaping is considered to be isolated within the actor, while a closure that is escaping is considered to be outside of the actor. This is based on a notion of when closures can be executed concurrently: to execute a particular closure on a different thread, one will have to escape the closure out of its current thread to run it on another thread. The rules that prevent a non-escaping closure from escaping therefore also prevent them from being executed concurrently. 
+
+Based on the above, `parallelForEach` would need its closure parameter will be `@escaping`. The first example (with `forEach`) is well-formed, because the closure is actor-isolated and can access `self.balance`. The second example (with `parallelForEach`) will be rejected with an error:
+
+```
+error: actor-isolated property 'balance' is unsafe to reference in code that may execute concurrently
+```
+
+Note that the same restrictions apply to partial applications of non-`async` actor-isolated functions. Given a function like this:
+
+```swift
+extension BankAccount {
+  func synchronous() { }
+}
+```
+
+The expression `self.synchronous` is well-formed only if it is the direct argument to a function whose corresponding parameter is non-escaping. Otherwise, it is ill-formed because it could escape outside of the actor's context.
 
 #### Escaping reference types
 
