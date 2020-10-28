@@ -75,9 +75,11 @@ Bringing it back to our example, note that the `chopVegetables()` function might
 
 The `async let` construct makes it easy to create a set number of child tasks and associate them with variables. However, the construct does not work as well with dynamic workloads, where we don't know the number child tasks we will need to create because (for example) it is dependent on the size of a data structure. For that, we need a more dynamic construct: a task *nursery*.
 
-A nursery defines a scope in which one can create new child tasks programmatically. As with all child tasks, the child tasks within the nursery must complete when the scope exits or they will be implicitly cancelled. Nurseries also provide utilities for working with the child tasks, e.g., by waiting until the next child task completes.
+A nursery defines a scope in which one can create new child tasks programmatically. As with all child tasks, the child tasks within the nursery must complete when the scope ends or they will be implicitly cancelled. Nurseries also provide utilities for working with the child tasks, e.g., by waiting until the next child task completes.
 
-To stretch our example even further, let's consider our `chopVegetables()` operation, which produces an array of `Vegetable` values. With enough cooks, we could chop our vegetables even faster if we divided up the chopping for each kind of vegetable. Let's start with a sequential version of `chopVegetables()`:
+To stretch our example even further, let's consider our `chopVegetables()` operation, which produces an array of `Vegetable` values. With enough cooks, we could chop our vegetables even faster if we divided up the chopping for each kind of vegetable. 
+
+Let's start with a sequential version of `chopVegetables()`:
 
 ```swift
 /// Sequentially chop the vegetables.
@@ -90,10 +92,10 @@ func chopVegetables() async throws -> [Vegetable] {
 }
 ```
 
-Introducing `async let` into the loop would not produce any meaningful concurrency, because each `async let` would need to complete before the next iteration of the loop could start. To create child tasks programmatically, we introduce a nursery within a new scope via `withNursery`:
+Introducing `async let` into the loop would not produce any meaningful concurrency, because each `async let` would need to complete before the next iteration of the loop could start. To create child tasks programmatically, we introduce a new nursery scope via `withNursery`:
 
 ```swift
-/// Sequentially chop the vegetables.
+/// Concurrently chop the vegetables.
 func chopVegetables() async throws -> [Vegetable] {
   // Create a task nursery where each task produces (Int, Vegetable).
   Task.withNursery(resultType: (Int, Vegetable).self) { nursery in 
@@ -255,6 +257,148 @@ If the scope of an `async let` exits with a thrown error, the child task corresp
 
 > **Rationale**: The requirement to await a variable from each `async let` along all (non-throwing) paths ensures that child tasks aren't being created and implicitly cancelled during the normal course of execution. Such code is likely to be needlessly inefficient and should probably be restructured to avoid creating child tasks that are unnecessary.
  
+### Child Tasks with Nurseries
+
+In addition to `async let` this proposal also introduces an explicit `Nursery` type, which allows for fine grained scoping of tasks within such nursery. 
+
+Tasks may be added dynamically to a nursery, meaning one may add a task for each element of a dynamically sized collection to a nursery and have them all be bound to the nursery lifecycle. This is in contrast to `async let` declarations which only allow for a statically known at compile time number of tasks to be declared.
+
+```swift
+extension Task {
+
+  // Postcondition: if the body returns normally, the nursery is empty.
+  // If it throws, all tasks in the nursery will be automatically cancelled.
+  //
+  // Do we have to add a different nursery type to accomodate throwing
+  // tasks without forcing users to use Result?  I can't think of how that
+  // could be propagated out of the callback body reasonably, unless we
+  // commit to doing multi-statement closure typechecking.
+  public static func withNursery<TaskResult, BodyResult>(
+    resultType: TaskResult.Type,          
+    body: (inout Nursery<TaskResult>) async throws -> BodyResult
+  ) async rethrows -> BodyResult { ... } 
+}
+```
+
+A nursery can be launched from any asychronous context, eventually returns a single value (the `BodyResult`). Tasks many be added to it dynamically, as we saw in the `chopVegetables` example in the *Proposes solution: Nurseries* section, and the nursery enforces awaiting for all tasks before it returns by asserting that is is empty when returning the final result.
+
+```swift
+  /* @unmoveable */ 
+  public struct Nursery<TaskResult> {
+    // No public initializers
+    
+    // Swift will statically prevent this type from being copied or moved.
+    // For now, that implies that it cannot be used with generics.
+
+    /// Add a child task.
+    public mutating func add(
+        overridingPriority: Priority? = nil,
+        operation: () async -> TaskResult
+    ) { ... } 
+
+    /// Add a child task and return a handle that can be used to manage it.
+    public mutating func addWithHandle(
+        overridingPriority: Priority? = nil,
+        operation: () async -> TaskResult
+    ) -> Handle<TaskResult> { ... } 
+
+    /// Wait for a child task to complete and return the result it returned,
+    /// or else return.
+    public mutating func next() async -> TaskResult? { ... } 
+    
+    /// Query whether the nursery has any remaining tasks.
+    /// Nurseries are always empty upon entry to the withNursery body.
+    public var isEmpty: Bool { ... } 
+
+    /// Cancel all the remaining tasks in the nursery.
+    /// Any results, including errors thrown, are discarded.
+    public mutating func cancelAll() { ... } 
+  }
+}
+```
+
+A nursery _guarantees_ that it will `await` for all tasks that were added to it before it returns.
+
+This waiting can be performed either: 
+- by the code within the nursery itself, or
+- by transparently nursery itself when returning from it.
+
+In the `chopVegetables()` example we not only added vegetable chopping tasks to the nursery, but also collected the chopped up results. See below for simplified reminder of the general pattern:
+
+```swift
+func chopVegetables(rawVeggies: [Vegetable]) async throws -> [ChoppedVegetable] {
+  Task.withNursery(resultType: ChoppedVegetable.self) { nursery in    
+    var choppedVeggies: [ChoppedVegetable] = []
+    choppedVeggies.reserveCapacity(veggies.count)
+        
+    // add all chopping tasks and process them concurrently
+    for v in rawVeggies {
+      await try nursery.add { // await the successful adding of the task 
+        await v.chopped() // await the processing result of task
+      }
+    }
+
+    while let choppedVeggie = await try nursery.next() { 
+      choppedVeggies.append(choppedVeggie)
+    }
+    
+    return choppedVeggies
+  }
+}
+```
+
+#### Nurseries: Throwing and cancellation
+
+Worth pointing out here is that adding a task to a nursery could fail because the nursery could have been cancelled when we were about to add more tasks to it. To visualize this, let us consider the following example:
+
+Tasks in a nursery by default handle thrown errors using like the musketeers would, that is: "*One for All, and All for One!*" In other words, if a single task throws an error, which escapes into the nursery, all other tasks will be cancelled and the nursery will re-throw this error.
+
+To visualize this, let us consider chopping vegetables again. One type veggetable that can be quite tricky to chop up is onions, they can make you cry if you don't watch out. If we attempt to chop up those vegetables, the onion will throw an error into the nursery, causing all other tasks to be cancelled automatically:
+
+```swift
+func chopOnionsAndCarrots(rawVeggies: [Vegetable]) async throws -> [Vegetable] {
+  await try Task.withNursery { nursery in // (3) will re-throw the onion chopping error
+    // kick off asynchronous vegetable chopping:
+    for v in rawVeggies {
+      await try nursery.add { 
+        await try v.chopped() // (1) throws
+      }
+    }
+    
+    // collect chopped up results:
+    while let choppedVeggie = await try nursery.next() { // (2) will throw for the onion
+      choppedVeggies.append(choppedVeggie)
+    }
+  }
+}
+```
+
+Let us break up the `chopOnionsAndCarrots()` function into multiple steps to fully understand its semantics:
+
+- first w add vegetable chopping tasks to the nursery
+- the chopping of the various vegetables beings asynchronously,
+- eventually an onion will be chopped and `throw`
+
+
+So far we did not yet discuss the cancellation of nurseries. A nursery can be cancelled form the outside, for example like this: 
+
+#### Nurseries: Implicitly awaited tasks
+Sometimes it is not necessary to gather the results of asynchronous functions (e.g. because they may be `Void` returning, "uni-directional"), in this case we can rely on the nursery implicitly awaiting for all tasks started before returning. 
+
+In the following example we need to confirm each order that we received, however that confirmation does not return any useful value to us (either it is `Void` or we simply choose to ignore the return values):
+
+```swift
+func confirmOrders(orders: [Order]) async {
+  await Task.withNursery { nursery in 
+    for order in orders {
+      await order.confirm()
+    }
+  }
+}
+```
+
+The `confirmOrders()` function will only return once all confirmations have completed, because the nursery will "at the end-edge" of it's scope, await any outstanding tasks.
+
  
 ### Detached Tasks
 
