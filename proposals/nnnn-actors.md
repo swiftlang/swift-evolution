@@ -63,42 +63,38 @@ As noted in the error message, `balance` is *actor-isolated*, meaning that it ca
 
 On the other hand, the reference to `other.ownerName` is allowed, because `ownerName` is immutable (defined by `let`). Once initialized, it is never written, so there can be no data races in accessing it. `ownerName` is called *actor-independent*, because it can be freely used from any actor. Constants introduced with `let` are actor-independent by default; there is also an attribute `@actorIndependent` (described in a later section) to specify that a particular declaration is actor-independent.
 
-> **Note**: Constants defined by `let` are only truly immutable when the type is a value type or some kind of immutable reference type. A `let` that refers to a mutable reference type (such as a non-actor class type) would be unsafe based on the rules discussed so far. These issues are discussed in a later section on "Reference types".
+> **Note**: Constants defined by `let` are only truly immutable when the type is a value type or some kind of immutable reference type. A `let` that refers to a mutable reference type (such as a non-actor class type) would be unsafe based on the rules discussed so far. These issues are discussed in a later section on "Actor isolation".
 
 Compile-time actor-isolation checking, as shown above, ensures that code outside of the actor does not interfere with the actor's mutable state. 
 
-Asynchronous function invocations are turned into enqueues of partial tasks representing those invocations to the actor's *queue*. This queue--along with an exclusive task `Executor` bound to the actor--functions as a synchronization boundary between the actor and any of its external callers.  
-
-For example, if we wanted to call a method `accumulateInterest(rate: Double, time: Double)` on a given bank account `account`, that call would need to be placed on the queue to be executed by the executor which ensures that tasks are pulled from the queue one-by-one, ensuring an actor never is concurrency running on multiple threads.
+Asynchronous function invocations are turned into enqueues of partial tasks representing those invocations to the actor's *queue*. This queue--along with an exclusive task executor bound to the actor--functions as a synchronization boundary between the actor and any of its external callers. For example, if we wanted to make a deposit to a given bank account `account`, we could make a call to a method `deposit(amount:)`, and that call would be placed on the queue. The executor would pull tasks from the queue one-by-one, ensuring an actor never is concurrenty running on multiple threads, and would eventually process the deposit.
 
 Synchronous functions in Swift are not amenable to being placed on a queue to be executed later. Therefore, synchronous instance methods of actor classes are actor-isolated and, therefore, not available from outside the actor instance. For example:
 
 ```swift
 extension BankAccount {
-  func accumulateInterestSynchronously(rate: Double, time: Double) {
-    if balance > 0 {
-      balance = balance * exp(rate * time)
-    }
+  func depositSynchronously(amount: Double) {
+    assert(amount >= 0)
+    balance = balance + amount
   }
 }
 
-func accumulateMonthlyInterest(accounts: [BankAccount]) {
+func printMoney(accounts: [BankAccount], amount: Double) {
   for account in accounts {
-    account.accumulateInterestSynchronously(rate: 0.005, time: 1.0 / 12.0) // error: actor-isolated instance method 'accumulateInterestSynchronously(rate:time:)' can only be referenced inside the actor
+    account.depositSynchronously(amount: amount) // error: actor-isolated instance method 'depositSynchronously(amount:)' can only be referenced inside the actor
   }
 }
 ```
 
-It should be noted that actor isolation adds a new dimension, separate from access-control, to the decision making process whether or not one is allowed to invoke a specific function on an actor. Specifically, synchronous functions may only be invoked by the specific actor instance itself, and not even by any other instance of the same actor class. 
+It should be noted that actor isolation adds a new dimension, separate from access control, to the decision making process whether or not one is allowed to invoke a specific function on an actor. Specifically, synchronous functions may only be invoked by the specific actor instance itself, and not even by any other instance of the same actor class. 
 
-All interactions with an actor (other than the special cased access to constants) must be performed asynchronously (semantically one may think about this as the actor model's messaging to and from the actor). Asynchronous functions provide a mechanism that is suitable for describing such operations, and are explained in depth in the complementary [async/await proposal](https://github.com/DougGregor/swift-evolution/blob/async-await/proposals/nnnn-async-await.md). We can make the `accumulateInterest(rate:time:)` instance method `async`, and thereby make it accessible to other actors (as well as non-actor code):
+All interactions with an actor (other than the special cased access to constants) must be performed asynchronously (semantically one may think about this as the actor model's messaging to and from the actor). Asynchronous functions provide a mechanism that is suitable for describing such operations, and are explained in depth in the complementary [async/await proposal](https://github.com/DougGregor/swift-evolution/blob/async-await/proposals/nnnn-async-await.md). We can make the `deposit(amount:)` instance method `async`, and thereby make it accessible to other actors (as well as non-actor code):
 
 ```swift
 extension BankAccount {
-  func accumulateInterest(rate: Double, time: Double) async {
-    if balance > 0 {
-      balance = balance * exp(rate * time)
-    }
+  func deposit(amount: Double) async {
+    assert(amount >= 0)
+    balance = balance + amount
   }
 }
 ```
@@ -106,12 +102,37 @@ extension BankAccount {
 Now, the call to this method (which now must be adorned with [`await`](https://github.com/DougGregor/swift-evolution/blob/async-await/proposals/nnnn-async-await.md#await-expressions)) is well-formed:
 
 ```swift
-await account.accumulateInterest(rate: 0.005, time: 1.0 / 12.0)
+await account.deposit(amount: amount)
 ```
 
-Semantically, the call to `accumulateInterest` is placed on the queue for the actor `account`, so that it will execute on that actor. If that actor is busy executing a task, then the caller will be suspended until the actor is available, so that other work can continue. See the section on [asynchronous calls](https://github.com/DougGregor/swift-evolution/blob/async-await/proposals/nnnn-async-await.md#asynchronous-calls) in the async/await proposal for more detail on the calling sequence.
+Semantically, the call to `deposit(amount:)` is placed on the queue for the actor `account`, so that it will execute on that actor. If that actor is busy executing a task, then the caller will be suspended until the actor is available, so that other work can continue. See the section on [asynchronous calls](https://github.com/DougGregor/swift-evolution/blob/async-await/proposals/nnnn-async-await.md#asynchronous-calls) in the async/await proposal for more detail on the calling sequence.
 
 > **Rationale**: by only allowing asynchronous instance methods of actor classes to be invoked from outside the actor, we ensure that all synchronous methods are already inside the actor when they are called. This eliminates the need for any queuing or synchronization within the synchronous code, making such code more efficient and simpler to write.
+
+We can now properly implement a transfer of funds from one account to another:
+
+```swift
+extension BankAccount {
+  func transfer(amount: Double, to other: BankAccount) async throws {
+    assert(amount > 0)
+    
+    if amount > balance {
+      throw BankError.insufficientFunds
+    }
+
+    print("Transferring \(amount) from \(ownerName) to \(other.ownerName)")
+
+    // Safe: this operation is the only one that has access to the actor's local
+    // state right now, and there have not been any suspension points between
+    // the place where we checked for sufficient funds and here.
+    balance = balance - amount
+    
+    // Safe: the deposit operation is queued on the `other` actor, at which 
+    // point it will update the other account's balance.    
+    await other.deposit(amount: amount)
+  }
+}
+```
 
 ### Global actors
 
@@ -138,6 +159,7 @@ func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
 A declaration with an attribute indicating a global actor type is actor-isolated to that global actor. The global actor type has its own queue that is used to perform any access to mutable state that is also actor-isolated with that same global actor.
 
 Global actors are implicitly singletons, i.e. there is always _one_ instance of a global actor in a given process. This is in contrast to `actor classes` which can have none, one or many specific instances exist at any given time.
+
 
 ## Detailed design
 
@@ -220,7 +242,7 @@ The custom attribute type may be generic.  The custom attribute is called a glob
 
 Global actor attributes apply to declarations as follows:
 
-* A declaration cannot have multiple have global actor attributes.  The rules below say that, in some cases, a global actor attribute is propagated from one declaration to another.  If the rules say that an attribute “propagates by default”, then no propagation is performed if the destination declaration has an explicit global actor attribute.  If the rules say that attribute “propagates mandatorily”, then it is an error if the destination declaration has an explicit global actor attribute that does not identify the same actor.  Regardless, it is an error if global actor attributes that do not identify the same actor are propagated to the same declaration.
+* A declaration cannot have multiple global actor attributes.  The rules below say that, in some cases, a global actor attribute is propagated from one declaration to another.  If the rules say that an attribute “propagates by default”, then no propagation is performed if the destination declaration has an explicit global actor attribute.  If the rules say that attribute “propagates mandatorily”, then it is an error if the destination declaration has an explicit global actor attribute that does not identify the same actor.  Regardless, it is an error if global actor attributes that do not identify the same actor are propagated to the same declaration.
 
 * A function, property, subscript, or initializer declared with a global actor attribute becomes actor-isolated to the given global actor.
 
