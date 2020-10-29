@@ -42,7 +42,7 @@ The primary difference is that actor classes protect their state from data races
 
 ### Actor isolation
 
-Actor isolation is how actor classes protect their mutable state. The primary mechanism for this protection is by only allowing their stored instance properties to be accessed directly on `self`. For example, here is a method that attempts to transfer money from one account to another:
+Actor isolation is how actors protect their mutable state. For actor classes, the primary mechanism for this protection is by only allowing their stored instance properties to be accessed directly on `self`. For example, here is a method that attempts to transfer money from one account to another:
 
 ```swift
 extension BankAccount {
@@ -234,8 +234,8 @@ The `transactions` stored property is actor-isolated, so it cannot be modified d
 
 ```swift
 extension BankAccount {
-  func mostRecentTransaction() async -> Transaction? {
-    return transactions.min { $0.dateOccurred > $1.dateOccurred }
+  func mostRecentTransaction() async -> Transaction? {   // UNSAFE! Transaction is a reference type
+    return transactions.min { $0.dateOccurred > $1.dateOccurred } 
   }
 }
 ```
@@ -271,13 +271,13 @@ actor class GenericActor<T> {
 
 With this type, `GenericActor<Int>` maintains actor isolation but `GenericActor<Transaction>` does not.
 
-There are solutions to these problems. However, the scope of the solutions is large enough that we do not attempt to tackle them in this proposal. Therefore, **this proposal only provides data race safety with value types**.
+There are solutions to these problems. However, the scope of the solutions is large enough that they deserve their own separate proposals. Therefore, **this proposal only provides data race safety with value types**.
 
 ### Global actors
 
-Actor classes provide a way to encapsulate state, ensuring that code outside the class cannot access its mutable state. However, sometimes the code and mutable state isn't limited to a single class. For example, in order to express the important concepts of "Main Thread" or "UI Thread" in this new Actor focused world we must be able to express and extend state and functions able to run on these specific actors even though they are not really all located in the same class. 
+What we’ve described as actor isolation is one part of a larger problem of data isolation.  It is important that all memory be protected from data races, not just memory directly associated with an instance of an actor class. Global actors allow code and state anywhere to be actor-isolated to a specific singleton actor. This extends the actor isolation rules out to annotated global variables, global functions, and members of any type or extension thereof. For example, global actors allow the important concepts of "Main Thread" or "UI Thread" to be expressed in terms of actors without having to capture everything into a single class. 
 
-*Global actors* address this by providing a way to annotate arbitrary declarations (properties, subscripts, functions, etc.) as being part of a process-wide singleton actor. A global actor is described by a type that has been annotated with the `@globalActor` attribute:
+*Global actors* provide a way to annotate arbitrary declarations (properties, subscripts, functions, etc.) as being part of a process-wide singleton actor. A global actor is described by a type that has been annotated with the `@globalActor` attribute:
 
 ```swift
 @globalActor
