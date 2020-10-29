@@ -447,7 +447,7 @@ Looking at the previously mentioned example of making dinner in a detached task,
 
 
 ```swift
-let dinnerHandle: Task.Handle<Dinner, Never> = Task.runDetached {
+let dinnerHandle: Task.Handle<Dinner> = Task.runDetached {
   await makeDinner()
 }
 
@@ -459,11 +459,11 @@ let dinner = await try dinnerHandle.get()
 
 The `Task.Handle` returned from the `runDetached` function serves as a reference to an in-flight `Task`, allowing either awaiting or cancelling the task.
 
-It is important that the get() can be not only of the expected `Task.Handle.Failure` type, but also the `CancellationError`, so awaiting on a `handle.get()` is *always* throwing, even if the wrapped operation was not throwing itself.
+The `get()` function is always `throwing` (even if the task's code is not) also the `CancellationError`, so awaiting on a `handle.get()` is *always* throwing, even if the wrapped operation was not throwing itself.
 
 ```swift
 extension Task {
-  public final class Handle<Success, Failure: Error> {
+  public final class Handle<Success> {
     public func get() async throws -> Success { ... }
 
     public func cancel() { ... }
