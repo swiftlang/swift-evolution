@@ -222,9 +222,87 @@ In some situations the priority of a task must be elevated (or "escalated", "rai
 
 ### Cancellation
 
-A task can be cancelled asynchronously by any context that has a reference to a task or one of its parent tasks.  However, the effect of cancellation on the task is cooperative and synchronous.  Cancellation sets a flag in the task which marks it as having been cancelled; once this flag is set, it is never cleared.  Executing a suspension point alone does not check cancellation. Operations running synchronously as part of the task can check this flag and are conventionally expected to throw a `CancellationError`. As with thrown errors, `defer` blocks are still executed when a task is cancelled, allowing code to introduce cleanup logic.
+A task can be cancelled asynchronously by any context that has a reference to a task or one of its parent tasks.  This can occur automatically, when a parent task throws yet still has pending `async let`s in flight, or some other task uses a handle to a task to `handle.cancel()` it explicitly.
 
-No information is passed to the task about why it was cancelled.  A task may be cancelled for many reasons, and additional reasons may accrue after the initial cancellation (for example, if the task fails to immediately exit, it may pass a deadline).  The goal of cancellation is to allow tasks to be cancelled in a lightweight way, not to be a secondary method of inter-task communication.
+The effect of cancellation on the task is cooperative and synchronous. Cancellation sets a flag in the task which marks it as having been cancelled; once this flag is set, it is never cleared. Executing a suspension point alone does not check cancellation. Operations running synchronously as part of the task can check this flag and are conventionally expected to throw a `CancellationError`. As with thrown errors, `defer` blocks are still executed when a task is cancelled, allowing code to introduce cleanup logic. 
+
+We can illustrate cancellation with a version of the `chopVegetables()` function we saw previously:
+
+```swift
+func chopVegetables() async throws -> [Vegetable] {
+  let carrot = try chop(Carrot()) // (1) throws UnfortunateAccidentWithKnifeError()!
+  let onion = try chop(Onion()) // (2)
+  
+  return await try [carrot, onion] // (3)
+}
+```
+
+We asynchronously start chopping up carrot and onion. However chopping the carrot immediately thows an error *(1)*, causing the error will be re-thrown on line *(3)*, where the `carrot` is being awaited on. At that point in time, chopping the onion might still be in progress, or it might not even have started yet. As we throw the error on line* (3)* the onion chopping task *(2)* is automatically cancelled!
+
+We now know that the onion chopping task has been cancelled, however not how that task can react to it. As mentioned before in this section, cancellation is synchronous and co-operative, this means that the chop function has to check and act on the cancellation flag. It can do so by inspecting the task's cancelled status:
+
+```
+func chop(_ vegetable: Vegetable) async throws -> Vegetable {
+  await try Task.checkCancellation() // automatically throws `CancellationError`
+  // chop chop chop ...
+  // ... 
+  
+  guard await !Task.isCancelled() else { 
+    print("Canceled mid-way through chopping of \(vegetable)!")
+    throw CancellationError() 
+  } 
+  // chop some more, chop chop chop ...
+}
+```
+
+Usually cancellation aware tasks will preface their code with a call to `Task.checkCancellation()` which automatically throws if the task was already cancelled. Alternatively, an asynchronous function may at any point check the `isCancelled` flag and decide to act on it.
+
+Note also that no information is passed to the task about why it was cancelled.  A task may be cancelled for many reasons, and additional reasons may accrue after the initial cancellation (for example, if the task fails to immediately exit, it may pass a deadline).  The goal of cancellation is to allow tasks to be cancelled in a lightweight way, not to be a secondary method of inter-task communication.
+
+#### Cancelation with Deadlines
+A very common use case for cancellation is cancelling tasks because they are taking too long to complete. This proposal introduces the concept of *deadlines* and enables them to cause a task to consider itself as cancelled if such deadline is exceeded.
+
+We specifically use _deadlines_ ("point in time") as opposed to _timeouts_ ("number of seconds") to convey the information about when a task should be conssidered cancelled due to exceeding it's allocated time, because deadlines compose better and allow us to naturally form task trees where child tasks cannot exceed the deadline of their parent task.
+
+To futher analyze the semantics of deadlines, let's extend our dinner preparation example with setting deadlines.
+
+```swift
+func makeDinnerWithDeadline() async throws -> Meal {
+  await try Task.withDeadline(in: .hours(2)) { // (1)
+    let veggies = await try chopVegetables()
+    async let meat = Task.withDeadline(in: .minutes(30)) {  // (2)
+      marinateMeat()
+    }
+    async let oven = try preheatOven(temperature: 350)
+    
+    let dish = Dish(ingredients: await [veggies, meat])
+    return await try oven.cook(dish, duration: .hours(3))
+  }
+}
+
+func cook(dish: Dish, duration: Duration) async throws -> Meal {
+  await try checkCancellation() // (3)
+  // ...
+}
+```
+
+It is important to keep in mind that while a `Task.Deadline` is a _point in time_ we will usually express our deadline expectation using time intervals from "now." In the example above we set 2 nested deadlines. One, for four hours–for the entire dinner preparation task–and another one for thirty minutes for marinating the meat (otherwise the taste will be too intense!). We also specifically await on the chopped vegetables first before marinating the meat. This is to illustrate the following point: Imagine that chopping up the vegetables for some reason took 1 hour and 40 minutes (!). Now that we get to the meat marination step, we only have 20 minutes left in our outer deadline, yet we attempt to set a deadline in "30 minutes from now." If we had just set a timeout for 30 minutes here, we would be well past the outer deadline, instead–thanks to deadlines–the task automatically notices that the new _inner deadline_ of `now + 30 minutes` is actually greater than the _outer deadline_ and thus ignores it -- the outer deadline prevails and we will never exceed it.
+
+
+Deadlines are also available to interact with programatically. For example the `cook(dish:duration:)` function knows exactly how much time it will take to complete. Just checking for cancellation at the beginning of the `cook()` function only means that the deadline has _not yet_ been exceeded. But since we know this process will take 3 hours, we need to know if we still have 3 more hours left to fit within the expected deadline! 
+
+We can therefore update our cook function to proactively check if it has any chance to complete cooking within the deadline (or not, and we should just order a pizza 🍕):
+
+```swift
+func cook(dish: Dish, duration: Duration) async throws -> Meal {
+  guard await Task.currentDeadline().remaining > duration else { 
+    throw await NotEnoughTimeToPrepareMealError("Not enough time to prepare meal!")
+  }
+  // ...
+}
+```
+
+Thanks to this, functions which have a known execution time, can proactively cancel themselfes before even starting the work which we know would miss the deadline in the end anyway.
 
 ### Child tasks with `async let`
 
