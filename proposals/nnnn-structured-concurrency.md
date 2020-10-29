@@ -75,7 +75,7 @@ Bringing it back to our example, note that the `chopVegetables()` function might
 
 The `async let` construct makes it easy to create a set number of child tasks and associate them with variables. However, the construct does not work as well with dynamic workloads, where we don't know the number child tasks we will need to create because (for example) it is dependent on the size of a data structure. For that, we need a more dynamic construct: a task *nursery*.
 
-A nursery defines a scope in which one can create new child tasks programmatically. As with all child tasks, the child tasks within the nursery must complete when the scope ends or they will be implicitly cancelled. Nurseries also provide utilities for working with the child tasks, e.g., by waiting until the next child task completes.
+A nursery defines a scope in which one can create new child tasks programmatically. As with all child tasks, the child tasks within the nursery must complete when the scope exits or they will be implicitly cancelled. Nurseries also provide utilities for working with the child tasks, e.g., by waiting until the next child task completes.
 
 To stretch our example even further, let's consider our `chopVegetables()` operation, which produces an array of `Vegetable` values. With enough cooks, we could chop our vegetables even faster if we divided up the chopping for each kind of vegetable. 
 
