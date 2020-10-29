@@ -192,8 +192,23 @@ extension BankAccount {
 
 The expression `self.synchronous` is well-formed only if it is the direct argument to a function whose corresponding parameter is non-escaping. Otherwise, it is ill-formed because it could escape outside of the actor's context.
 
-#### Escaping reference types
+#### inout parameters
 
+Actor-isolated stored properties can be passed into synchronous functions via `inout` parameters, but it is ill-formed to pass them to asynchronous functions via `inout` parameters. For example:
+
+```swift
+func modifiesSynchronously(_: inout Double) { }
+func modifiesAsynchronously(_: inout Double) async { }
+
+extension BankAccount {
+  func wildcardBalance() async {
+    modifiesSynchronously(&balance)        // okay
+    await modifiesAsynchronously(&balance) // error: actor-isolated property 'balance' cannot be passed 'inout' to an asynchronous function
+  }
+}  
+```
+
+This restriction prevents exclusivity violations where the modification of the actor-isolated `balance` is initiated by passing it as `inout` to a call that is then suspended, and another task executed on the same actor then fails with an exclusivity violation in trying to access `balance` itself.
 
 ### Global actors
 
