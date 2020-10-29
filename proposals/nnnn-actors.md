@@ -210,9 +210,72 @@ extension BankAccount {
 
 This restriction prevents exclusivity violations where the modification of the actor-isolated `balance` is initiated by passing it as `inout` to a call that is then suspended, and another task executed on the same actor then fails with an exclusivity violation in trying to access `balance` itself.
 
+#### Escaping reference types
+
+The rules concerning actor isolation ensure that accesses to an actor class's stored properties cannot occur concurrently, eliminating data races unless unsafe code has subverted the model. 
+
+However, the actor isolation rules presented in this proposal are only sufficient for *value types*. With a value type, any copy of the value produces a completely independent instance. Modifications to that independent instance cannot affect the original, and vice versa. Therefore, one can pass a copy of an actor-isolated stored property to another actor, or even write it into a global variable, and the actor will maintain its isolation because the copy is distinct.
+
+Reference types break the isolation model, because mutations to a "copy" of a value of reference type can affect the original, and vice versa. Let's introduce another stored property into our bank account to describe recent transactions, and make `Transaction` a reference type (a class):
+
+```swift
+class Transaction { 
+  var amount: Double
+  var dateOccurred: Date
+}
+
+actor class BankAccount {
+  // ...
+  private var transactions: [Transaction]
+}
+```
+
+The `transactions` stored property is actor-isolated, so it cannot be modified directly. Moreover, arrays are themselves value types when they contain value types. But the transactions stored in the array are reference types. The moment one of the instances of `Transaction`  from the `transactions` array *escapes* the actor's context, data isolation is lost. For example, here's a function that retrieves the most recent transaction:
+
+```swift
+extension BankAccount {
+  func mostRecentTransaction() async -> Transaction? {
+    return transactions.min { $0.dateOccurred > $1.dateOccurred }
+  }
+}
+```
+
+A client of this API gets a reference to the transaction inside the given bank account, e.g.,
+
+```swift
+guard let transaction = await account.mostRecentTransaction() else {
+  return
+}
+```
+
+At this point, the client can both modify the actor-isolated state by directly modifying the fields of `transaction`, as well as see any changes that the actor has made to the transaction. These operations may execute concurrently with code running on the actor, causing race conditions. 
+
+Not all examples of "escaping" reference types are quite as straightforward as this one. Reference types can be stored within structs, enums, and in collections such as arrays and dictionaries, so cannot look only at whether the type or its generic arguments are a `class`. The reference type might also be hidden in code not visible to the user, e.g.,
+
+```swift
+public struct LooksLikeAValueType {
+  private var transaction: Transaction  // not semantically a value type
+}
+```
+
+Generics further complicate the matter: some types, like the standard library collections, act like value types when their generic arguments are value types. An actor class might be generic, in which case its ability to maintain isolation depends on its generic argument:
+
+```swift
+actor class GenericActor<T> {
+  private var array: [T]
+  func first() async -> T? { 
+    return array.first
+  }
+}
+```
+
+With this type, `GenericActor<Int>` maintains actor isolation but `GenericActor<Transaction>` does not.
+
+There are solutions to these problems. However, the scope of the solutions is large enough that we do not attempt to tackle them in this proposal. Therefore, **this proposal only provides data race safety with value types**.
+
 ### Global actors
 
-Actor classes provide a way to encapsulate state completely, ensuring that code outside the class cannot access its mutable state. However, sometimes the code and mutable state isn't limited to a single class. For example, in order to express the important concepts of "Main Thread" or "UI Thread" in this new Actor focused world we must be able to express and extend state and functions able to run on these specific actors even though they are not really all located in the same class. 
+Actor classes provide a way to encapsulate state, ensuring that code outside the class cannot access its mutable state. However, sometimes the code and mutable state isn't limited to a single class. For example, in order to express the important concepts of "Main Thread" or "UI Thread" in this new Actor focused world we must be able to express and extend state and functions able to run on these specific actors even though they are not really all located in the same class. 
 
 *Global actors* address this by providing a way to annotate arbitrary declarations (properties, subscripts, functions, etc.) as being part of a process-wide singleton actor. A global actor is described by a type that has been annotated with the `@globalActor` attribute:
 
