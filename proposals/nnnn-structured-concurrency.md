@@ -77,7 +77,9 @@ The `async let` construct makes it easy to create a set number of child tasks an
 
 A nursery defines a scope in which one can create new child tasks programmatically. As with all child tasks, the child tasks within the nursery must complete when the scope exits or they will be implicitly cancelled. Nurseries also provide utilities for working with the child tasks, e.g., by waiting until the next child task completes.
 
-To stretch our example even further, let's consider our `chopVegetables()` operation, which produces an array of `Vegetable` values. With enough cooks, we could chop our vegetables even faster if we divided up the chopping for each kind of vegetable. Let's start with a sequential version of `chopVegetables()`:
+To stretch our example even further, let's consider our `chopVegetables()` operation, which produces an array of `Vegetable` values. With enough cooks, we could chop our vegetables even faster if we divided up the chopping for each kind of vegetable. 
+
+Let's start with a sequential version of `chopVegetables()`:
 
 ```swift
 /// Sequentially chop the vegetables.
@@ -90,10 +92,10 @@ func chopVegetables() async throws -> [Vegetable] {
 }
 ```
 
-Introducing `async let` into the loop would not produce any meaningful concurrency, because each `async let` would need to complete before the next iteration of the loop could start. To create child tasks programmatically, we introduce a nursery within a new scope via `withNursery`:
+Introducing `async let` into the loop would not produce any meaningful concurrency, because each `async let` would need to complete before the next iteration of the loop could start. To create child tasks programmatically, we introduce a new nursery scope via `withNursery`:
 
 ```swift
-/// Sequentially chop the vegetables.
+/// Concurrently chop the vegetables.
 func chopVegetables() async throws -> [Vegetable] {
   // Create a task nursery where each task produces (Int, Vegetable).
   Task.withNursery(resultType: (Int, Vegetable).self) { nursery in 
@@ -220,9 +222,87 @@ In some situations the priority of a task must be elevated (or "escalated", "rai
 
 ### Cancellation
 
-A task can be cancelled asynchronously by any context that has a reference to a task or one of its parent tasks.  However, the effect of cancellation on the task is cooperative and synchronous.  Cancellation sets a flag in the task which marks it as having been cancelled; once this flag is set, it is never cleared.  Executing a suspension point alone does not check cancellation. Operations running synchronously as part of the task can check this flag and are conventionally expected to throw a `CancellationError`. As with thrown errors, `defer` blocks are still executed when a task is cancelled, allowing code to introduce cleanup logic.
+A task can be cancelled asynchronously by any context that has a reference to a task or one of its parent tasks.  This can occur automatically, when a parent task throws yet still has pending `async let`s in flight, or some other task uses a handle to a task to `handle.cancel()` it explicitly.
 
-No information is passed to the task about why it was cancelled.  A task may be cancelled for many reasons, and additional reasons may accrue after the initial cancellation (for example, if the task fails to immediately exit, it may pass a deadline).  The goal of cancellation is to allow tasks to be cancelled in a lightweight way, not to be a secondary method of inter-task communication.
+The effect of cancellation on the task is cooperative and synchronous. Cancellation sets a flag in the task which marks it as having been cancelled; once this flag is set, it is never cleared. Executing a suspension point alone does not check cancellation. Operations running synchronously as part of the task can check this flag and are conventionally expected to throw a `CancellationError`. As with thrown errors, `defer` blocks are still executed when a task is cancelled, allowing code to introduce cleanup logic. 
+
+We can illustrate cancellation with a version of the `chopVegetables()` function we saw previously:
+
+```swift
+func chopVegetables() async throws -> [Vegetable] {
+  let carrot = try chop(Carrot()) // (1) throws UnfortunateAccidentWithKnifeError()!
+  let onion = try chop(Onion()) // (2)
+  
+  return await try [carrot, onion] // (3)
+}
+```
+
+We asynchronously start chopping up carrot and onion. However chopping the carrot immediately thows an error *(1)*, causing the error will be re-thrown on line *(3)*, where the `carrot` is being awaited on. At that point in time, chopping the onion might still be in progress, or it might not even have started yet. As we throw the error on line* (3)* the onion chopping task *(2)* is automatically cancelled!
+
+We now know that the onion chopping task has been cancelled, however not how that task can react to it. As mentioned before in this section, cancellation is synchronous and co-operative, this means that the chop function has to check and act on the cancellation flag. It can do so by inspecting the task's cancelled status:
+
+```
+func chop(_ vegetable: Vegetable) async throws -> Vegetable {
+  await try Task.checkCancellation() // automatically throws `CancellationError`
+  // chop chop chop ...
+  // ... 
+  
+  guard await !Task.isCancelled() else { 
+    print("Canceled mid-way through chopping of \(vegetable)!")
+    throw CancellationError() 
+  } 
+  // chop some more, chop chop chop ...
+}
+```
+
+Usually cancellation aware tasks will preface their code with a call to `Task.checkCancellation()` which automatically throws if the task was already cancelled. Alternatively, an asynchronous function may at any point check the `isCancelled` flag and decide to act on it.
+
+Note also that no information is passed to the task about why it was cancelled.  A task may be cancelled for many reasons, and additional reasons may accrue after the initial cancellation (for example, if the task fails to immediately exit, it may pass a deadline).  The goal of cancellation is to allow tasks to be cancelled in a lightweight way, not to be a secondary method of inter-task communication.
+
+#### Cancelation with Deadlines
+A very common use case for cancellation is cancelling tasks because they are taking too long to complete. This proposal introduces the concept of *deadlines* and enables them to cause a task to consider itself as cancelled if such deadline is exceeded.
+
+We specifically use _deadlines_ ("point in time") as opposed to _timeouts_ ("number of seconds") to convey the information about when a task should be conssidered cancelled due to exceeding it's allocated time, because deadlines compose better and allow us to naturally form task trees where child tasks cannot exceed the deadline of their parent task.
+
+To futher analyze the semantics of deadlines, let's extend our dinner preparation example with setting deadlines.
+
+```swift
+func makeDinnerWithDeadline() async throws -> Meal {
+  await try Task.withDeadline(in: .hours(2)) { // (1)
+    let veggies = await try chopVegetables()
+    async let meat = Task.withDeadline(in: .minutes(30)) {  // (2)
+      marinateMeat()
+    }
+    async let oven = try preheatOven(temperature: 350)
+    
+    let dish = Dish(ingredients: await [veggies, meat])
+    return await try oven.cook(dish, duration: .hours(3))
+  }
+}
+
+func cook(dish: Dish, duration: Duration) async throws -> Meal {
+  await try checkCancellation() // (3)
+  // ...
+}
+```
+
+It is important to keep in mind that while a `Task.Deadline` is a _point in time_ we will usually express our deadline expectation using time intervals from "now." In the example above we set 2 nested deadlines. One, for four hours–for the entire dinner preparation task–and another one for thirty minutes for marinating the meat (otherwise the taste will be too intense!). We also specifically await on the chopped vegetables first before marinating the meat. This is to illustrate the following point: Imagine that chopping up the vegetables for some reason took 1 hour and 40 minutes (!). Now that we get to the meat marination step, we only have 20 minutes left in our outer deadline, yet we attempt to set a deadline in "30 minutes from now." If we had just set a timeout for 30 minutes here, we would be well past the outer deadline, instead–thanks to deadlines–the task automatically notices that the new _inner deadline_ of `now + 30 minutes` is actually greater than the _outer deadline_ and thus ignores it -- the outer deadline prevails and we will never exceed it.
+
+
+Deadlines are also available to interact with programatically. For example the `cook(dish:duration:)` function knows exactly how much time it will take to complete. Just checking for cancellation at the beginning of the `cook()` function only means that the deadline has _not yet_ been exceeded. But since we know this process will take 3 hours, we need to know if we still have 3 more hours left to fit within the expected deadline! 
+
+We can therefore update our cook function to proactively check if it has any chance to complete cooking within the deadline (or not, and we should just order a pizza 🍕):
+
+```swift
+func cook(dish: Dish, duration: Duration) async throws -> Meal {
+  guard await Task.currentDeadline().remaining > duration else { 
+    throw await NotEnoughTimeToPrepareMealError("Not enough time to prepare meal!")
+  }
+  // ...
+}
+```
+
+Thanks to this, functions which have a known execution time, can proactively cancel themselfes before even starting the work which we know would miss the deadline in the end anyway.
 
 ### Child tasks with `async let`
 
@@ -255,6 +335,186 @@ If the scope of an `async let` exits with a thrown error, the child task corresp
 
 > **Rationale**: The requirement to await a variable from each `async let` along all (non-throwing) paths ensures that child tasks aren't being created and implicitly cancelled during the normal course of execution. Such code is likely to be needlessly inefficient and should probably be restructured to avoid creating child tasks that are unnecessary.
  
+### Child Tasks with Nurseries
+
+In addition to `async let` this proposal also introduces an explicit `Nursery` type, which allows for fine grained scoping of tasks within such nursery. 
+
+Tasks may be added dynamically to a nursery, meaning one may add a task for each element of a dynamically sized collection to a nursery and have them all be bound to the nursery lifecycle. This is in contrast to `async let` declarations which only allow for a statically known at compile time number of tasks to be declared.
+
+```swift
+extension Task {
+
+  // Postcondition: if the body returns normally, the nursery is empty.
+  // If it throws, all tasks in the nursery will be automatically cancelled.
+  //
+  // Do we have to add a different nursery type to accomodate throwing
+  // tasks without forcing users to use Result?  I can't think of how that
+  // could be propagated out of the callback body reasonably, unless we
+  // commit to doing multi-statement closure typechecking.
+  public static func withNursery<TaskResult, BodyResult>(
+    resultType: TaskResult.Type,          
+    body: (inout Nursery<TaskResult>) async throws -> BodyResult
+  ) async rethrows -> BodyResult { ... } 
+}
+```
+
+A nursery can be launched from any asychronous context, eventually returns a single value (the `BodyResult`). Tasks many be added to it dynamically, as we saw in the `chopVegetables` example in the *Proposed solution: Nurseries* section, and the nursery enforces awaiting for all tasks before it returns by asserting that is empty when returning the final result.
+
+```swift
+extension Task { 
+  /* @unmoveable */ 
+  public struct Nursery<TaskResult> {
+    // No public initializers
+    
+    // Swift will statically prevent this type from being copied or moved.
+    // For now, that implies that it cannot be used with generics.
+
+    /// Add a child task.
+    public mutating func add(
+        overridingPriority: Priority? = nil,
+        operation: () async -> TaskResult
+    ) { ... } 
+
+    /// Add a child task and return a handle that can be used to manage it.
+    public mutating func addWithHandle(
+        overridingPriority: Priority? = nil,
+        operation: () async -> TaskResult
+    ) -> Handle<TaskResult> { ... } 
+
+    /// Wait for a child task to complete and return the result it returned,
+    /// or else return.
+    public mutating func next() async -> TaskResult? { ... } 
+    
+    /// Query whether the nursery has any remaining tasks.
+    /// Nurseries are always empty upon entry to the withNursery body.
+    public var isEmpty: Bool { ... } 
+
+    /// Cancel all the remaining tasks in the nursery.
+    /// Any results, including errors thrown, are discarded.
+    public mutating func cancelAll() { ... } 
+  }
+}
+```
+
+A nursery _guarantees_ that it will `await` for all tasks that were added to it before it returns.
+
+This waiting can be performed either: 
+- by the code within the nursery itself, or
+- by transparently nursery itself when returning from it.
+
+In the `chopVegetables()` example we not only added vegetable chopping tasks to the nursery, but also collected the chopped up results. See below for simplified reminder of the general pattern:
+
+```swift
+func chopVegetables(rawVeggies: [Vegetable]) async throws -> [ChoppedVegetable] {
+  Task.withNursery(resultType: ChoppedVegetable.self) { nursery in    
+    var choppedVeggies: [ChoppedVegetable] = []
+    choppedVeggies.reserveCapacity(veggies.count)
+        
+    // add all chopping tasks and process them concurrently
+    for v in rawVeggies {
+      await try nursery.add { // await the successful adding of the task 
+        await v.chopped() // await the processing result of task
+      }
+    }
+
+    while let choppedVeggie = await try nursery.next() { 
+      choppedVeggies.append(choppedVeggie)
+    }
+    
+    return choppedVeggies
+  }
+}
+```
+
+#### Nurseries: Throwing and cancellation
+
+Worth pointing out here is that adding a task to a nursery could fail because the nursery could have been cancelled when we were about to add more tasks to it. To visualize this, let us consider the following example:
+
+Tasks in a nursery by default handle thrown errors using like the musketeers would, that is: "*One for All, and All for One!*" In other words, if a single task throws an error, which escapes into the nursery, all other tasks will be cancelled and the nursery will re-throw this error.
+
+To visualize this, let us consider chopping vegetables again. One type veggetable that can be quite tricky to chop up is onions, they can make you cry if you don't watch out. If we attempt to chop up those vegetables, the onion will throw an error into the nursery, causing all other tasks to be cancelled automatically:
+
+```swift
+func chopOnionsAndCarrots(rawVeggies: [Vegetable]) async throws -> [Vegetable] {
+  await try Task.withNursery { nursery in // (3) will re-throw the onion chopping error
+    // kick off asynchronous vegetable chopping:
+    for v in rawVeggies {
+      await try nursery.add { 
+        await try v.chopped() // (1) throws
+      }
+    }
+    
+    // collect chopped up results:
+    while let choppedVeggie = await try nursery.next() { // (2) will throw for the onion
+      choppedVeggies.append(choppedVeggie)
+    }
+  }
+}
+```
+
+Let us break up the `chopOnionsAndCarrots()` function into multiple steps to fully understand its semantics:
+
+- first w add vegetable chopping tasks to the nursery
+- the chopping of the various vegetables beings asynchronously,
+- eventually an onion will be chopped and `throw`
+
+#### Nurseries: Parent task cancellation
+
+So far we did not yet discuss the cancellation of nurseries. A nursery can be cancelled if the task in which it was created is cancelled. Cancelling a nursery cancels all the tasks within it. Attempting to add more tasks into a cancelled nursery will throw a `CancellationError`. The following example illustrates these semantics:
+
+```swift
+struct WorkItem { 
+  func process() async throws {
+    await try Task.checkCancellation() // (4)
+    // ... 
+  } 
+}
+
+let handle = Task.runDetached {
+  await Task.withNursery(resultType: Int.self) { nursery in
+    var processed = 0
+    for w in workItems where await !Task.isCancelled() { // (3)
+      await nursery.add { await w.process() }
+    }
+    
+    while let result = await nursery.next() { 
+      processed += 1
+    }
+    
+    return processed
+  }
+}
+
+handle.cancel() // (1)
+
+try await handle.get() // will throw CancellationError // (2)
+```
+
+There are various ways a task could be cancelled, however for this example let us consider a detached task being cancelled explicitly. This task is the parent task of the nursery, and as such the cancelation will be propagated to it once the parent task's handle `cancel()` is invoked.
+
+Because cancellation remains co-operative, we need to check for it. We can do so either in the nursery itself to avoid even scheduling additional tasks when we know we have been cancelled *(3)*, or as usual in the `process()` task itself *(4)*. The benefit of checking in the nursery is that we can potentially even avoid scheduling the asynchronous child tasks if we know they won't be necessary.
+
+In our example we were able to degrade gracefully by just returning a "best effort" processed value, alternatively one might prefer to use `checkCancellation()` and throw from the nursery when cancelled.
+
+> NOTE: Presently nurseries do not automatically check for cancellation. They _could_ for example check for it when adding new tasks, such that `nursery.add()` would throw if the nursery is cancelled -- so we don't needlessly keep adding more work while our parent task has been cancelled already anyway. This would require add to be async and throwing which makes the API a bit unwieldly.
+
+#### Nurseries: Implicitly awaited tasks
+Sometimes it is not necessary to gather the results of asynchronous functions (e.g. because they may be `Void` returning, "uni-directional"), in this case we can rely on the nursery implicitly awaiting for all tasks started before returning. 
+
+In the following example we need to confirm each order that we received, however that confirmation does not return any useful value to us (either it is `Void` or we simply choose to ignore the return values):
+
+```swift
+func confirmOrders(orders: [Order]) async throws {
+  await try Task.withNursery { nursery in 
+    for order in orders {
+      await try nursery.add { await order.confirm() } 
+    }
+  }
+}
+```
+
+The `confirmOrders()` function will only return once all confirmations have completed, because the nursery will "at the end-edge" of it's scope, await any outstanding tasks.
+
  
 ### Detached Tasks
 
@@ -265,7 +525,7 @@ Looking at the previously mentioned example of making dinner in a detached task,
 
 
 ```swift
-let dinnerHandle: Task.Handle<Dinner, Never> = Task.runDetached {
+let dinnerHandle: Task.Handle<Dinner> = Task.runDetached {
   await makeDinner()
 }
 
@@ -277,11 +537,11 @@ let dinner = await try dinnerHandle.get()
 
 The `Task.Handle` returned from the `runDetached` function serves as a reference to an in-flight `Task`, allowing either awaiting or cancelling the task.
 
-It is important that the get() can be not only of the expected `Task.Handle.Failure` type, but also the `CancellationError`, so awaiting on a `handle.get()` is *always* throwing, even if the wrapped operation was not throwing itself.
+The `get()` function is always `throwing` (even if the task's code is not) also the `CancellationError`, so awaiting on a `handle.get()` is *always* throwing, even if the wrapped operation was not throwing itself.
 
 ```swift
 extension Task {
-  public final class Handle<Success, Failure: Error> {
+  public final class Handle<Success> {
     public func get() async throws -> Success { ... }
 
     public func cancel() { ... }
