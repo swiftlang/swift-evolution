@@ -297,7 +297,7 @@ func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
 
 A declaration with an attribute indicating a global actor type is actor-isolated to that global actor. The global actor type has its own queue that is used to perform any access to mutable state that is also actor-isolated with that same global actor.
 
-Global actors are implicitly singletons, i.e. there is always _one_ instance of a global actor in a given process. This is in contrast to `actor classes`, of which there can be no instances, one insance, or many instances in a given process at any given time.
+Global actors are implicitly singletons, i.e. there is always _one_ instance of a global actor in a given process. This is in contrast to `actor classes`, of which there can be no instances, one instance, or many instances in a given process at any given time.
 
 
 ## Detailed design
