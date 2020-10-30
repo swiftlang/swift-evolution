@@ -124,7 +124,7 @@ It's easier to properly thread the error through when using `Result`, making the
 
 #### Problem 3: Conditional execution is hard and error-prone
 
-Conditionally executing an asynchronous function is a huge pain. For example, suppose we need to "swizzle" an image after obtaining it. But, we sometimes have to make an asynchronous call to decode the image before we can swizzle. Perhaps the best approach to structuring the function is to write the swizzling code in a helper "continuation" closure that is conditionally executed, like this:
+Conditionally executing an asynchronous function is a huge pain. For example, suppose we need to "swizzle" an image after obtaining it. But, we sometimes have to make an asynchronous call to decode the image before we can swizzle. Perhaps the best approach to structuring this function is to write the swizzling code in a helper "continuation" closure that is conditionally captured in a completion handler, like this:
 
 ```swift
 func processImageData3(recipient: Person, completionBlock: (result: Image) -> Void) {
@@ -141,7 +141,7 @@ func processImageData3(recipient: Person, completionBlock: (result: Image) -> Vo
 }
 ```
 
-This pattern inverts the natural top-down organization of the function: the code that will execute in the second half of the function must appear *before* the part that executes in the first half. In addition to restructuring the entire function, we must now think carefully about captures in the continuation closure. The problem worsens as the number of conditionally-executed async functions grows, yielding what is essentially an inverted "pyramid of doom."
+This pattern inverts the natural top-down organization of the function: the code that will execute in the second half of the function must appear *before* the part that executes in the first half. In addition to restructuring the entire function, we must now think carefully about captures in the continuation closure, because the closure is used in a completion handler. The problem worsens as the number of conditionally-executed async functions grows, yielding what is essentially an inverted "pyramid of doom."
 
 #### Problem 4: Many mistakes are easy to make
 
@@ -264,9 +264,9 @@ The type of a reference to a function or initializer declared `async` is an `asy
 
 Special functions like `deinit` and storage accessors cannot be `async`.
 
-> **Rationale**: Properties that only have a getter could potentially be `async`. However, properties that also have an `async` setter imply the ability to pass the property as `inout`, and to drill down in to the properties of that property itself, which depend on the setter effectively being an "instantaneous" (synchronous, non-throwing) operation. Prohibiting `async` properties is a simpler rule than only allowing get-only `async` properties.
+> **Rationale**: Properties that only have a getter could potentially be `async`. However, properties that also have an `async` setter imply the ability to pass the property as `inout` and drill down into the properties of that property itself, which depends on the setter effectively being an "instantaneous" (synchronous, non-throwing) operation. Prohibiting `async` properties is a simpler rule than only allowing get-only `async` properties.
  
-If a function is both `async` and `throws` (or `rethrows`), `async` must precede `throws`. 
+If a function is both `async` and `throws`, then the `async` keyword must precede `throws` in the type declaration. This same rule applies if `async` and `rethrows`.
 
 > **Rationale** : This order restriction is arbitrary, but it's not harmful, and it eliminates the potential for stylistic debates.
 
@@ -297,7 +297,7 @@ struct FunctionTypes {
 
 One can manually create an `async` closure that calls synchronous functions, so the lack of implicit conversion does not affect the expressivity of the model. See the section on "Closures" for the syntax to define an `async` closure.
 
-> **Rationale**: We do not propose the implicit conversion from a synchronous function to an asynchronous function because it complicates type checking, particularly in the presence of synchronous and asynchronous overloads of the same function. See the section on "Overloading and overload resolution" for more information.
+> **Rationale**: We do not propose the implicit conversion from a synchronous function to an asynchronous function because it would complicate type checking, particularly in the presence of synchronous and asynchronous overloads of the same function. See the section on "Overloading and overload resolution" for more information.
 
 ### Await expressions
 
@@ -307,18 +307,22 @@ Any suspension point must occur within an asynchronous context (e.g., an `async`
 Consider the following example:
 
 ```swift
-// func redirectURL(for url: URL) async -> URL
-// func dataTask(with: URL) async throws -> URLSessionDataTask
+// func redirectURL(for url: URL) async -> URL { ... }
+// func dataTask(with: URL) async throws -> URLSessionDataTask { ... }
 
 let newURL = await server.redirectURL(for: url)
 let (data, response) = await try session.dataTask(with: newURL)
 ```
 
-In the code example, there are suspension points in the call to `redirectURL(for:)` and the call to `dataTask(with:)`. The `await` is required on both lines because each contains a suspension point. The operand of an `await` expression must contain at least one suspension point, although there may be more than one suspension point.
+In this code example, a task suspension may happen during the calls to `redirectURL(for:)` and `dataTask(with:)` because they are async functions. Thus, both call expressions must be contained within some `await` expression, because each call contains a suspension point. The operand of an `await` expression must contain at least one suspension point, although more than one suspension point is allowed within an `await`'s operand. For example, we can use one `await` to cover both suspension points from our example by rewriting it as:
+
+```swift
+let (data, response) = await try session.dataTask(with: server.redirectURL(for: url))
+```
 
 The `await` has no additional semantics; like `try`, it merely marks that an asynchronous call is being made.  The type of the `await` expression is the type of its operand, and its result is the result of its operand.
 
-> **Rationale**: It is important that asynchronous calls be clearly identifiable within the function because they introduce suspension points, which break the atomicity of the operation.  The suspension points may be inherent to the call (because the asynchronous call must execute on a different executor) or simply be part of the implementation of the callee, but in either case it is semantically important and the programmer needs to acknowledge it. `await` expressions are also an indicator of asynchronous code, which interacts with inference in closures; see the section on "Closures" for more information.
+> **Rationale**: It is important that asynchronous calls are clearly identifiable within the function because they introduce suspension points, which break the atomicity of the operation.  The suspension points may be inherent to the call (because the asynchronous call must execute on a different executor) or simply be part of the implementation of the callee, but in either case it is semantically important and the programmer needs to acknowledge it. `await` expressions are also an indicator of asynchronous code, which interacts with inference in closures; see the section on "Closures" for more information.
 
 A suspension point must not occur within an autoclosure that is not of `async` function type.
 
@@ -340,19 +344,26 @@ An anonymous closure is inferred to have `async` function type if it contains an
 ```swift
 let closure = { await getInt() } // implicitly async
 
-let closure2 = { () -> Int {     // implicitly async
+let closure2 = { () -> Int in     // implicitly async
   print("here")
   return await getInt()
 }
 ```
 
-Note that inference of `async` ignores nested functions or closures, because those are contexts are (separably) asynchronous or synchronous. For example:
+Note that inference of `async` on a closure does not propagate to its enclosing or nested functions or closures, because those contexts are separably asynchronous or synchronous. For example, only `closure6` is inferred to be `async` in this situation:
 
 ```swift
-let closure5 = { () -> Int {     // not 'async'
-  let closure6 = { () -> Int {     // implicitly async
-    print("there")
-    return await getInt()
+// func getInt() async -> Int { ... }
+
+let closure5 = { () -> Int in       // not 'async'
+  let closure6 = { () -> Int in     // implicitly async
+    if randomBool() {
+      print("there")
+      return await getInt()
+    } else {
+      let closure7 = { () -> Int in 7 }  // not 'async'
+      return 0
+    }
   }
   
   print("here")
@@ -362,14 +373,14 @@ let closure5 = { () -> Int {     // not 'async'
 
 ### Overloading and overload resolution
 
-A Swift program today that includes both synchronous and asynchronous entry points for an operation likely does so by introducing two similarly-named methods:
+Existing Swift programs that include both synchronous and asynchronous entry points for an operation are likely to be designed using two similarly-named methods for each operation:
 
 ```swift
 func doSomething() -> String { ... }
 func doSomething(completionHandler: (String) -> Void) { ... }
 ```
 
-At the call site, it is clear which is being called by the presence of the completion handler (or lack thereof). With the obvious mapping of the second API into an `async` one, however, the signatures are now quite similar:
+At the call site, it is clear which method is being called by the presence of the completion handler (or lack thereof). With the direct mapping of the second method's API into an `async` one, however, the signatures are now quite similar:
 
 ```swift
 func doSomething() -> String { ... }
@@ -380,34 +391,43 @@ doSomething() // synchronous or asynchronous?
 
 If we were to replace `async` with `throws`, declaring the two methods above would produce a compiler error about an "invalid redeclaration." However, we propose to allow `async` functions to overload non-`async` functions, so the above code is well-formed. This allows existing Swift programs to evolve `async` versions of existing synchronous functions without spurious renaming.
 
-The ability to overload `async` and non-`async` functions is paired with an overload-resolution rule to select the appropriate function based on the context of the call. Given a call, overload resolution prefers non-`async` functions within a synchronous context (which cannot call an `async` function anyway) and prefers `async` functions within an asynchronous context (because such contexts should avoid synchronous, blocking APIs when there is an alternative). When overload resolution selects an `async` function, that call is subject to the rule that it must occur within an `await` expression.
+The ability to overload `async` and non-`async` functions is paired with an overload-resolution rule to select the appropriate function based on the context of the call. Given a call, overload resolution prefers non-`async` functions within a synchronous context because such contexts cannot contain a call to an `async` function.  Furthermore, overload resolution prefers `async` functions within an asynchronous context, because such contexts should avoid synchronous, blocking APIs when there is an alternative. When overload resolution selects an `async` function, that call is subject to the rule that it must occur within an `await` expression.
 
 ### Autoclosures
 
-A function may not take an autoclosure parameter of `async` function type unless the function itself is `async`. For example, the following is ill-formed:
+A function may not take an autoclosure parameter of `async` function type unless the function itself is `async`. For example, the following declaration is ill-formed:
 
 ```swift
-func computeArgumentLater<T>(_ fn: @escaping @autoclosure () async -> T) { } // error: async autoclosure in a function that is not itself 'async'
+// error: async autoclosure in a function that is not itself 'async'
+func computeArgumentLater<T>(_ fn: @escaping @autoclosure () async -> T) { } 
 ```
 
-> **Rationale**: This restriction exists for several reasons. Consider the following example:
+This restriction exists for several reasons. Consider the following example:
 
   ```swift
+  // func getIntSlowly() async -> Int { ... }
+
   let closure = {
     computeArgumentLater(await getIntSlowly())
     print("hello")
   }
   ```
 
-> The `await` expression implies that there is a suspension point prior to the call to `computeArgumentLater(_:)`, which is not the case: the suspension point is actually within the (auto)closure, which is of interest mainly in the body of `computeArgumentLater(_:)`. Moreover, the fact that this `await`  appears to be part of the call means that `closure` will be inferred to have `async` function type, which is also incorrect: all of the code in the closure itself is synchronous. The restriction on `async` autoclosure parameters ensures that `async` autoclosure parameters can only be used in asynchronous contexts.
+At first glance, the `await` expression implies to the programmer that there is a suspension point *prior* to the call to `computeArgumentLater(_:)`, which is not actually the case: the suspension point is *within* the (auto)closure that is passed and used within the body of `computeArgumentLater(_:)`. This causes a few problems. First, the fact that `await` appears to be prior to the call means that `closure` would be inferred to have `async` function type, which is also incorrect: all of the code in `closure` is synchronous. Second, because an `await`'s operand only needs to contain a suspension point somewhere within it, an equivalent rewriting of the call should be:
+
+```swift
+await computeArgumentLater(getIntSlowly())
+```
+
+But, because the argument is an autoclosure, this rewriting is no longer semantics-preserving. Thus, the restriction on `async` autoclosure parameters avoids these problems by ensuring that `async` autoclosure parameters can only be used in asynchronous contexts.
 
 ## Source compatibility
 
-This proposal is generally additive: existing code does not use any of the new features (e.g., does not create `async` functions or closures) will not be impacted. However, it introduces two new contextual keywords, `async` and `await`.
+This proposal is generally additive: existing code does not use any of the new features (e.g., does not create `async` functions or closures) and will not be impacted. However, it introduces two new contextual keywords, `async` and `await`.
 
-The position of the new uses of `async` within the grammar (function declarations, function types, and as a prefix for `let`) allow us to treat `async` as a contextual keyword without breaking source compatibility. A user-defined `async` cannot occur in those grammatical positions in well-formed code.
+The positions of the new uses of `async` within the grammar (function declarations, function types, and as a prefix for `let`) allows us to treat `async` as a contextual keyword without breaking source compatibility. A user-defined `async` cannot occur in those grammatical positions in well-formed code.
 
-The 'await' contextual keyword is more problematic, because it occurs within an expression. For example, one could define a function `await` in Swift today:
+The `await` contextual keyword is more problematic, because it occurs within an expression. For example, one could define a function `await` in Swift today:
 
 ```swift
 func await(_ x: Int, _ y: Int) -> Int { x + y }
@@ -415,7 +435,7 @@ func await(_ x: Int, _ y: Int) -> Int { x + y }
 let result = await(1, 2)
 ```
 
-This is well-formed code today, and is a call to the `await` function. With this proposal, this becomes an `await` expression with the subexpression `(1, 2)`. This will manifest as a compile-time error for existing Swift programs, because `await` can only be used within an asynchronous context, and no existing Swift programs have such a context. Such code does not appear to be common, so we believe this to be an acceptable source break as part of the introduction of async/await.
+This is well-formed code today that is a call to the `await` function. With this proposal, this code becomes an `await` expression with the subexpression `(1, 2)`. This will manifest as a compile-time error for existing Swift programs, because `await` can only be used within an asynchronous context, and no existing Swift programs have such a context. Such functions do not appear to be common, so we believe this is an acceptable source break as part of the introduction of async/await.
 
 ## Effect on ABI stability
 
