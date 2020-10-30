@@ -191,7 +191,7 @@ func loadWebResource(_ path: String) async throws -> Resource
 func decodeImage(_ r1: Resource, _ r2: Resource) async throws -> Image
 func dewarpAndCleanupImage(_ i : Image) async throws -> Image
 
-func processImageData2() async -> Image {
+func processImageData2() async throws -> Image {
   let dataResource  = await try loadWebResource("dataprofile.txt")
   let imageResource = await try loadWebResource("imagedata.dat")
   let imageTmp      = await try decodeImage(dataResource, imageResource)
