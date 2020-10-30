@@ -36,7 +36,7 @@ actor class BankAccount {
 }
 ```
 
-Actor classes behave like classes in most respects: the can inherit (from other actor classes), have methods, properties, and subscripts. They can be extended and conform to protocols, be generic, and be used with generics.
+Actor classes behave like classes in most respects: they can inherit (from other actor classes), have methods, properties, and subscripts. They can be extended and conform to protocols, be generic, and be used with generics.
 
 The primary difference is that actor classes protect their state from data races. This is enforced statically by the Swift compiler through a set of limitations on the way in which actors and their members can be used, collectively called *actor isolation*.   
 
@@ -67,13 +67,13 @@ If `BankAccount` were a normal class, the `transfer(amount:to:)` method would be
 
 As noted in the error message, `balance` is *actor-isolated*, meaning that it can only be accessed from within the specific actor it is tied to or "isolated by". In this case, it's the instance of `BankAccount` referenced by `self`. Stored properties, computed properties, subscripts, and synchronous instance methods (like `transfer(amount:to:)`) in an actor class are all actor-isolated by default.
 
-On the other hand, the reference to `other.ownerName` is allowed, because `ownerName` is immutable (defined by `let`). Once initialized, it is never written, so there can be no data races in accessing it. `ownerName` is called *actor-independent*, because it can be freely used from any actor. Constants introduced with `let` are actor-independent by default; there is also an attribute `@actorIndependent` (described in a later section) to specify that a particular declaration is actor-independent.
+On the other hand, the reference to `other.ownerName` is allowed, because `ownerName` is immutable (defined by `let`). Once initialized, it is never written, so there can be no data races in accessing it. `ownerName` is called *actor-independent*, because it can be freely used from any actor. Constants introduced with `let` are actor-independent by default; there is also an attribute `@actorIndependent` (described in [**Actor-independent declarations**](#actor-independent-declarations)) to specify that a particular declaration is actor-independent.
 
-> **Note**: Constants defined by `let` are only truly immutable when the type is a value type or some kind of immutable reference type. A `let` that refers to a mutable reference type (such as a non-actor class type) would be unsafe based on the rules discussed so far. These issues are discussed in a later section on "Actor isolation".
+> **Note**: Constants defined by `let` are only truly immutable when the type is a value type or some kind of immutable reference type. A `let` that refers to a mutable reference type (such as a non-actor class type) would be unsafe based on the rules discussed so far. These issues are discussed later in [**Escaping reference types**](#escaping-reference-types).
 
 Compile-time actor-isolation checking, as shown above, ensures that code outside of the actor does not interfere with the actor's mutable state. 
 
-Asynchronous function invocations are turned into enqueues of partial tasks representing those invocations to the actor's *queue*. This queue--along with an exclusive task executor bound to the actor--functions as a synchronization boundary between the actor and any of its external callers. For example, if we wanted to make a deposit to a given bank account `account`, we could make a call to a method `deposit(amount:)`, and that call would be placed on the queue. The executor would pull tasks from the queue one-by-one, ensuring an actor never is concurrenty running on multiple threads, and would eventually process the deposit.
+Asynchronous function invocations are turned into enqueues of partial tasks representing those invocations to the actor's *queue*. This queue—along with an exclusive task executor bound to the actor—functions as a synchronization boundary between the actor and any of its external callers. For example, if we wanted to make a deposit to a given bank account `account`, we could make a call to a method `deposit(amount:)`, and that call would be placed on the queue. The executor would pull tasks from the queue one-by-one, ensuring an actor never is concurrenty running on multiple threads, and would eventually process the deposit.
 
 Synchronous functions in Swift are not amenable to being placed on a queue to be executed later. Therefore, synchronous instance methods of actor classes are actor-isolated and, therefore, not available from outside the actor instance. For example:
 
@@ -94,7 +94,7 @@ func printMoney(accounts: [BankAccount], amount: Double) {
 
 It should be noted that actor isolation adds a new dimension, separate from access control, to the decision making process whether or not one is allowed to invoke a specific function on an actor. Specifically, synchronous functions may only be invoked by the specific actor instance itself, and not even by any other instance of the same actor class. 
 
-All interactions with an actor (other than the special cased access to constants) must be performed asynchronously (semantically one may think about this as the actor model's messaging to and from the actor). Asynchronous functions provide a mechanism that is suitable for describing such operations, and are explained in depth in the complementary [async/await proposal](https://github.com/DougGregor/swift-evolution/blob/async-await/proposals/nnnn-async-await.md). We can make the `deposit(amount:)` instance method `async`, and thereby make it accessible to other actors (as well as non-actor code):
+All interactions with an actor (other than the special-cased access to constants) must be performed asynchronously (semantically, one may think about this as the actor model's messaging to and from the actor). Asynchronous functions provide a mechanism that is suitable for describing such operations, and are explained in depth in the complementary [async/await proposal](https://github.com/DougGregor/swift-evolution/blob/async-await/proposals/nnnn-async-await.md). We can make the `deposit(amount:)` instance method `async`, and thereby make it accessible to other actors (as well as non-actor code):
 
 ```swift
 extension BankAccount {
@@ -297,7 +297,7 @@ func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
 
 A declaration with an attribute indicating a global actor type is actor-isolated to that global actor. The global actor type has its own queue that is used to perform any access to mutable state that is also actor-isolated with that same global actor.
 
-Global actors are implicitly singletons, i.e. there is always _one_ instance of a global actor in a given process. This is in contrast to `actor classes` which can have none, one or many specific instances exist at any given time.
+Global actors are implicitly singletons, i.e. there is always _one_ instance of a global actor in a given process. This is in contrast to `actor classes`, of which there can be no instances, one insance, or many instances in a given process at any given time.
 
 
 ## Detailed design
@@ -313,15 +313,15 @@ actor class BankAccount {
 }
 ```
 
-Each instance of the actor type represents a unique actor.
+Each instance of the actor class represents a unique actor.
 
-An actor class may only inherit from another actor class. A non-actor class may not inherit from an actor class.
+An actor class may only inherit from another actor class. A non-actor class may only inherit from another non-actor class.
 
-> **Rationale**: Actor classes enforce state isolation, but non-actor classes do not. If an actor class inherits from a non-actor class (or vice-versa), part of the actor's state would not be covered by the actor-isolation rules, introducing the potential for data races on that state.
+> **Rationale**: Actor classes enforce state isolation, but non-actor classes do not. If an actor class inherits from a non-actor class (or vice versa), part of the actor's state would not be covered by the actor-isolation rules, introducing the potential for data races on that state.
 
 As a special exception described in the complementary proposal [Concurrency Interoperability with Objective-C](https://github.com/DougGregor/swift-evolution/blob/concurrency-objc/proposals/NNNN-concurrency-objc.md), an actor class may inherit from `NSObject`.
 
-By default, the instance methods, properties, and subscripts of an actor type are actor-isolated to the actor instance. This is true even for methods added retroactively on an actor type via an extension, like any other Swift type.
+By default, the instance methods, properties, and subscripts of an actor class are actor-isolated to the actor instance. This is true even for methods added retroactively on an actor class via an extension, like any other Swift type.
 
 ```
 extension BankAccount {
@@ -337,7 +337,7 @@ By default, the mutable stored properties (declared with `var`) of an actor clas
 
 ### Actor protocol
 
-All actor classes conform to a protocol `Actor`:
+All actor classes conform to a new protocol `Actor`:
 
 ```swift
 protocol Actor: AnyObject {
