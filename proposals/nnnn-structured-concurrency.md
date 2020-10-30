@@ -313,6 +313,7 @@ To futher analyze the semantics of deadlines, let's extend our dinner preparatio
 ```swift
 func makeDinnerWithDeadline() async throws -> Meal {
   await try Task.withDeadline(in: .hours(2)) {
+    // intentionally wait until the vegetables have been chopped before starting any child tasks
     let veggies = await try chopVegetables()
     async let meat = Task.withDeadline(in: .minutes(30)) {
       marinateMeat()
