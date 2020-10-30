@@ -39,15 +39,16 @@ Each step in our dinner preparation is an asynchronous operation, so there are n
 
 However, even though our dinner preparation is asynchronous, it is still *sequential*. It waits until the vegetables have been chopped before starting to marinate the meat, then waits again until the meat is ready before preheating the oven. Our hungry patrons will be very hungry indeed by the time dinner is finally done.
 
-To make dinner preparation go faster, we need to perform some of the tasks in *parallel*, but at the same time, we need to do so with some form of structure. Not all tasks can be just launched in parallel, hoping for the best. In order to properly deal with parallelism, we need structure, and that structure is *concurrency*. The vegetables can be chopped at the same time as the meat is marinating and the oven is preheating. We can be combining the ingredients into the dish while the oven preheats. But we cannot prepare the dish before it's individual parts (the veggies and meat) are prepared. 
+To make dinner preparation go faster, we need to perform some of these steps *concurrently*. To do so, we can break down our recipe into different tasks that can happen in parallel. The vegetables can be chopped at the same time that the meat is marinating and the oven is preheating. Sometimes there are dependencies between tasks: as soon as the vegetables and meat are ready, we can combine them in a dish, but we can't put that dish into the oven until the oven is hot. All of these tasks are part of the larger task of making dinner. When all of these tasks are complete, dinner is served.
 
-This proposal aims to provide the necessary tools to describe such task dependencies and allow for "overlapping" *parallel* execution the steps, we can cook our dinner faster.
+This proposal aims to provide the necessary tools to carve work up into smaller tasks that can run concurrently, to allow tasks to wait for each other to complete, and to effectively manage the overall progress of a task.
 
 ## Proposed solution
 
-Structured concurrency provides an ergonomic way to introduce concurrency into asynchronous functions. Every asynchronous function runs as part of an asynchronous *task*, which is the analogue of a thread. Structured concurrency allows a task to easily create child tasks, which perform some work on behalf of---and concurrently with---the task itself.
+Our approach follows the principles of *structured concurrency*. All asynchronous functions run as part of an asynchronous *task*. Tasks can conveniently make child tasks that will perform work concurrently. This creates a hierarchy of tasks, and information can conveniently flow up and down the hierarchy, making it convenient to manage the whole thing holistically.
 
 ### Child tasks
+
 This proposal introduces an easy way to create child tasks with `async let`:
 
 ```swift
@@ -95,7 +96,7 @@ func chopVegetables() async throws -> [Vegetable] {
 Introducing `async let` into the loop would not produce any meaningful concurrency, because each `async let` would need to complete before the next iteration of the loop could start. To create child tasks programmatically, we introduce a new nursery scope via `withNursery`:
 
 ```swift
-/// Concurrently chop the vegetables.
+/// Sequentially chop the vegetables.
 func chopVegetables() async throws -> [Vegetable] {
   // Create a task nursery where each task produces (Int, Vegetable).
   Task.withNursery(resultType: (Int, Vegetable).self) { nursery in 
@@ -140,9 +141,44 @@ The result of `runDetached` is a task handle, which can be used to retrieve the 
 
 ## Detailed design
 
+### Structured concurrency
+
+Any concurrency system must offer certain basic tools. There must be some way to create a new thread that will run concurrently with existing threads. There must also be some way to make a thread wait until another thread signals it to continue. These are powerful tools, and you can write very sophisticated systems with them. But they're also very primitive tools: they make very few assumptions, but in return they give you very little support.
+
+Imagine there's a function which does a large amount of work on the CPU. We want to optimize it by splitting the work across two cores; so now the function creates a new thread, does half the work in each thread, and then has its original thread wait for the new thread to finish. (In a more modern system, the function might add a task to a global thread pool, but the basic concept is the same.) There is a relationship between the work done by these two threads, but the system doesn't know about it. That makes it much harder to solve systemic problems.
+
+For example, suppose a high-priority operation needs the function to hurry up and finish. The operation might know to escalate the priority of the first thread, but really it ought to escalate both. At best, it won't escalate the second thread until the first thread starts waiting for it. It's relatively easy to solve this problem narrowly, maybe by letting the function register a second thread that should be escalated. But it'll be an ad hoc solution that might need to be repeated in every function that wants to use concurrency.
+
+Structured concurrency solves this by asking programmers to organize their use of concurrency into high-level tasks and their child component tasks. These tasks become the primary units of concurrency, rather than lower-level concepts like threads. Structuring concurrency this way allows information to naturally flow up and down the hierarchy of tasks which would otherwise require carefully-written support at every level of abstraction and on every thread transition. This in turn permits many different high-level problems to be addressed with relative ease.
+
+For example:
+
+- It's common to want to limit the total time spent on a task. Some APIs support this by allowing a timeout to be passed in, but it takes a lot of work to propagate timeouts down correctly through every level of abstraction. This is especially true because end-programmers typically want to write timeouts as relative durations (e.g. 20ms), but the correctly-composing representation for libraries to pass around internally is an absolute deadline (e.g. now + 20ms). Under structured concurrency, a deadline can be installed on a task and naturally propagate through arbitrary levels of API, including to child tasks.
+
+- Similarly, it's common to want to be able to cancel an active task. Asynchronous interface that support this often do so by synchronously returning a token object that provides some sort of `cancel()` method. This significantly complicates the design of an API and so often isn't provided. Moreover, propagating tokens, or composing them to cancel all of the active work, can create significant engineering challenges for a program. Under structured concurrency, cancellation naturally paropagates through APIs and down to child tasks, and APIs can simply install handlers to respond instantaneously to cancellation.
+
+- Graphical user interfaces often rely on task prioritization to ensure timely refreshes and responses to events.  Under structured concurrency, child tasks naturally inherit the priority of their parent tasks.  Furthermore, when higher-priority tasks wait for lower-priority tasks to complete, the lower-priority task and all of its child tasks can be escalated in priority, and this will reliably persist even if the task is briefly suspended.
+
+- Many systems want to maintain their own contextual information for an operation without having to pass it through every level of abstraction, such as a server that records information for the connection currently being serviced.  Structured concurrency allows this to naturally propagate down through async operations as a sort of "task-local storage" which can be picked up by child tasks.
+
+- Systems that rely on queues are often susceptible to queue-flooding, where the queues accepts a more work than it can actually handle. This is typically solved by introducing "back-pressure": a queue stops accepting new work, and the systems that are trying to enqueue work there respond by themselves stopping accepting new work. Actor systems often subvert this beceause it is difficult at the scheduler level to refuse to add work to an actor's queue, since doing so can permanently destabilize the system by leaking resources or otherwise preventing operations from completing. Structured concurrency offers a limited, cooperative solution by allowing systems to communicate up the task hierarchy that they are coming under distress, potentially allowing parent tasks to stop or slow the creation of presumably-similar new work.
+
+This proposal doesn't propose solutions for all of these, but early investigations show promise.
+
 ### Tasks
 
-A task can be in one of three (**TODO**: four?) states:
+A task is the basic unit of concurrency in the system. It is the analogue of a thread for asynchronous functions. That is:
+
+- All asynchronous functions run as part of some task.
+- A task runs one function at a time; a single task has no concurrency.
+- When a function makes an `async` call, the called function is still running as part of the same task (and the caller waits for it to return).
+- Similarly, when a function returns from an `async` call, the caller resumes running on the same task.
+
+Synchronous functions do not necessarily run as part of a task.
+
+Swift assumes the existence of an underlying thread system. Tasks are scheduled by the system to run on these system threads. Tasks do not require special scheduling support from the underlying thread system, although a good scheduler could take advantage of some of the interesting properties of Swift's task scheduling.
+
+A task can be in one of three states:
 
 * A **suspended** task has more work to do but is not currently running.  
     - It may be **schedulable**, meaning that it’s ready to run and is just waiting for the system to instruct a thread to begin executing it, 
@@ -159,7 +195,7 @@ Note that, when an asynchronous function calls another asynchronous function, we
 Tasks serve three high-level purposes:
 
 * They carry scheduling information, such as the task's priority.
-* They serve as a handle through which the operation can be cancelled.
+* They serve as a handle through which the operation can be cancelled, queried, or manipulated.
 * They can carry user-provided task-local data.
 
 At a lower level, the task allows the implementation to optimize the allocation of local memory, such as for asynchronous function contexts.  It also allows dynamic tools, crash reporters, and debuggers to discover how a function is being used.
@@ -176,20 +212,21 @@ The execution of a task can be seen as a succession of periods where the task wa
 
 ### Executors
 
-An executor is a service which accepts the submission of _partial tasks_ and arranges for some thread to run them. The system assumes that executors are reliable and will never fail to run a partial task. 
+An executor is a service which accepts the submission of partial tasks and arranges for some thread to run them. The system assumes that executors are reliable and will never fail to run a partial task. 
 
 An asynchronous function that is currently running always knows the executor that it's running on.  This allows the function to avoid unnecessarily suspending when making a call to the same executor, and it allows the function to resume executing on the same executor it started on.
 
-An executor is called _exclusive_ if the partial tasks submitted to it will never be run concurrently.  (Specifically, the partial tasks must be totally ordered by the happens-before relationship: given any two tasks that were submitted and run, the end of one must happen-before the beginning of the other.) Executors are not required to run partial tasks in the order they were submitted; in fact, they should generally honor task priority over submission order.
+An executor is called *exclusive* if the partial tasks submitted to it will never be run concurrently.  (Specifically, the partial tasks must be totally ordered by the happens-before relationship: given any two tasks that were submitted and run, the end of one must happen-before the beginning of the other.) Executors are not required to run partial tasks in the order they were submitted; in fact, they should generally honor task priority over submission order.
 
 Swift provides a default executor implementation, but both actor classes and global actors can suppress this and provide their own implementation.
 
 Generally end-users need not interact with executors directly, but rather use them implicitly by invoking actors and functions which happen to use executors to perform the invoked asynchronous functions.
 
 ### Task priorities
-Any task is associated with a specific `Task.Priority`.
 
-Task priority may inform decisions an `Executor` makes about how and when to schedule tasks submitted to it. An executor may utilize priority information to attempt running higher priority tasks first, and then continuing to serve lower priority tasks.
+A task is associated with a specific `Task.Priority`.
+
+Task priority may inform decisions an `Executor` makes about how and when to schedule tasks submitted to it. An executor may utilize priority information to attempt to run higher priority tasks first, and then continuing to serve lower priority tasks. It may also use priority information to affect the platform thread priority.
 
 The exact semantics of how priority is treated are left up to each platform and specific `Executor` implementation.
 
@@ -208,38 +245,46 @@ extension Task {
 
 > **TODO**: Define the details of task priority; It is likely to be a concept similar to Darwin Dispatch's QoS; bearing in mind that priority is not as much of a thing on other platforms (i.e. server side Linux systems).
 
-One of the ways to declare a priority level for a task is to pass it to `Task.runDetached(priority:operation:)` when starting a top-level task. All tasks started from within this task will inherit this task's priority since they would be its child tasks. 
+The priority level for a task is set by passing it to `Task.runDetached(priority:operation:)` when starting a top-level task. The child tasks of the task will inherit this priority.
 
-This means that, semantically, the "UI Thread" can be represented as a top-level *UI Task* which was started as detached with the `.ui` priority, and all other tasks which need to run on as children of the UI task, will inherit its priority. In practice this will likely be reflected by a global `UIActor` (see [global actors](nnnn-actors.md) in the actors proposal) which is designated to run on an UI thread assigned `Executor` which sets tasks it uses to use the UI priority, thus handling propagation of priority from tasks started from the UI actor itself.
+The priority of a task does not necessarily match the priority of its executor. For example, the UI thread on Apple platforms is a high-priority executor; any task submitted to it will be run with high priority for the duration of its time on the thread. This helps to ensure that the UI thread will be available to run higher-priority work if it is submitted later. This does not affect the formal priority of the task.
 
 #### Priority Escalation
-In some situations the priority of a task must be elevated (or "escalated", "raised"):
 
-- if a `Task` running on behalf of an actor, and a new higher-priority task is enqueued to the actor, its current task must be temporarily elevated to the priority of the enqueued task, in order to allow the new task to be processed at--effectively-- the priority it was enqueued with.
-    - this DOES NOT affect `Task.currentPriority()`.
-- if a task is created with a `Task.Handle`, and a higher-priority task calls the `await try handle.get()` function the priority of this task must be permanently increased until the task completes.
-    - this DOES affect `Task.currentPriority()`.
+In some situations the priority of a task must be escalated in order to avoid a priority inversion:
+
+- If a task is running on behalf of an actor, and a higher-priority task is enqueued on the actor, the task may temporarily run at the priority of the higher-priority task. This does not affect child tasks or `Task.currentPriority()`; it is a property of the thread running the task, not the task itself.
+
+- If a task is created with a `Task.Handle`, and a higher-priority task calls `await try handle.get()`, the priority of the task will be permanently increased to match the higher-priority task.  This does affect child tasks and `Task.currentPriority()`.
 
 ### Cancellation
 
-A task can be cancelled asynchronously by any context that has a reference to a task or one of its parent tasks.  This can occur automatically, when a parent task throws yet still has pending `async let`s in flight, or some other task uses a handle to a task to `handle.cancel()` it explicitly.
+A task can be cancelled asynchronously by any context that has a reference to a task or one of its parent tasks. Cancellation can be triggered explicitly by calling `cancel()` on the task. Cancellation can also trigger automatically, for example when a parent task throws an error out of a scope with unawaited child tasks (such as an `async let`).
 
-The effect of cancellation on the task is cooperative and synchronous. Cancellation sets a flag in the task which marks it as having been cancelled; once this flag is set, it is never cleared. Executing a suspension point alone does not check cancellation. Operations running synchronously as part of the task can check this flag and are conventionally expected to throw a `CancellationError`. As with thrown errors, `defer` blocks are still executed when a task is cancelled, allowing code to introduce cleanup logic. 
+The effect of cancellation within the cancelled task is fully cooperative and synchronous. That is, cancellation has no effect at all unless something checks for cancellation. Conventionally, most functions that check for cancellation report it by throwing `CancellationError()`; accordingly, they must be throwing functions, and calls to them must be decorated with some form of `try`. As a result, cancellation introduces no additional control-flow paths within asynchronous functions; you can always look at a function and see the places where cancellation can occur. As with any other thrown error, `defer` blocks can be used to clean up effectively after cancellation.
+
+With that said, the general expectation is that asynchronous functions should attempt to respond to cancellation by promptly throwing or returning. In most functions, it should be sufficient to rely on lower-level functions that can wait for a long time (for example, I/O functions or `Task.Handle.get()`) to check for cancellation and abort early. Functions which perform a large amount of synchronous computation may wish to periodically check for cancellation explicitly.
+
+Cancellation has two effects which trigger immediately with the cancellation:
+
+- A flag is set in the task which marks it as having been cancelled; once this flag is set, it is never cleared. Operations running synchronously as part of the task can check this flag and are conventionally expected to throw a `CancellationError`.
+
+- Any cancellation handlers which have been registered on the task are immediately run. This permits functions which need to respond immediately to do so.
 
 We can illustrate cancellation with a version of the `chopVegetables()` function we saw previously:
 
 ```swift
 func chopVegetables() async throws -> [Vegetable] {
-  let carrot = try chop(Carrot()) // (1) throws UnfortunateAccidentWithKnifeError()!
-  let onion = try chop(Onion()) // (2)
+  async let carrot = try chop(Carrot()) // (1) throws UnfortunateAccidentWithKnifeError()!
+  async let onion = try chop(Onion()) // (2)
   
   return await try [carrot, onion] // (3)
 }
 ```
 
-We asynchronously start chopping up carrot and onion. However chopping the carrot immediately thows an error *(1)*, causing the error will be re-thrown on line *(3)*, where the `carrot` is being awaited on. At that point in time, chopping the onion might still be in progress, or it might not even have started yet. As we throw the error on line* (3)* the onion chopping task *(2)* is automatically cancelled!
+On line *(1)*, we start a new child task to chop a carrot. Suppose that this call to the `chop` function throws an error. Because this is asynchronous, that error is not immediately observed in `chopVegetables`, and we proceed to start a second child task to chop an onion *(2)*. On line *(3)*, we `await` the carrot-chopping task, which causes us to throw the error that was thrown from `chop`. Since we do not handle this error, we exit the scope without having yet awaited the onion-chopping task. This causes that task to be automatically cancelled. Because cancellation is cooperative, and because structured concurrency does not allow child tasks to outlast their parent context, control does not actually return until the onion-chopping task actually completes; any value it returns or throws will be discarded.
 
-We now know that the onion chopping task has been cancelled, however not how that task can react to it. As mentioned before in this section, cancellation is synchronous and co-operative, this means that the chop function has to check and act on the cancellation flag. It can do so by inspecting the task's cancelled status:
+As we mentioned before, the effect of cancellation on a task is synchronous and cooperative. Functions which do a lot of synchronous computation may wish to check explicitly for cancellation. They can do so by inspecting the task's cancelled status:
 
 ```
 func chop(_ vegetable: Vegetable) async throws -> Vegetable {
@@ -255,22 +300,21 @@ func chop(_ vegetable: Vegetable) async throws -> Vegetable {
 }
 ```
 
-Usually cancellation aware tasks will preface their code with a call to `Task.checkCancellation()` which automatically throws if the task was already cancelled. Alternatively, an asynchronous function may at any point check the `isCancelled` flag and decide to act on it.
+Note also that no information is passed to the task about why it was cancelled.  A task may be cancelled for many reasons, and additional reasons may accrue after the initial cancellation (for example, if the task fails to immediately exit, it may pass a deadline). The goal of cancellation is to allow tasks to be cancelled in a lightweight way, not to be a secondary method of inter-task communication.
 
-Note also that no information is passed to the task about why it was cancelled.  A task may be cancelled for many reasons, and additional reasons may accrue after the initial cancellation (for example, if the task fails to immediately exit, it may pass a deadline).  The goal of cancellation is to allow tasks to be cancelled in a lightweight way, not to be a secondary method of inter-task communication.
+#### Cancellation with Deadlines
 
-#### Cancelation with Deadlines
 A very common use case for cancellation is cancelling tasks because they are taking too long to complete. This proposal introduces the concept of *deadlines* and enables them to cause a task to consider itself as cancelled if such deadline is exceeded.
 
-We specifically use _deadlines_ ("point in time") as opposed to _timeouts_ ("number of seconds") to convey the information about when a task should be conssidered cancelled due to exceeding it's allocated time, because deadlines compose better and allow us to naturally form task trees where child tasks cannot exceed the deadline of their parent task.
+We intentionally use _deadlines_ ("points in time") as opposed to _timeouts_ ("durations of time"). This is because deadlines compose correctly: working with timeouts is prone to errors where the deadline is accidentally extended because a full timeout is reused rather than being adjusted for the time already passed. For convenience, we allow code to use a relative timeout when setting the deadline up; this will be immediately translated to an absolute deadlinie.
 
-To futher analyze the semantics of deadlines, let's extend our dinner preparation example with setting deadlines.
+To futher analyze the semantics of deadlines, let's extend our dinner preparation example with deadlines.
 
 ```swift
 func makeDinnerWithDeadline() async throws -> Meal {
-  await try Task.withDeadline(in: .hours(2)) { // (1)
+  await try Task.withDeadline(in: .hours(2)) {
     let veggies = await try chopVegetables()
-    async let meat = Task.withDeadline(in: .minutes(30)) {  // (2)
+    async let meat = Task.withDeadline(in: .minutes(30)) {
       marinateMeat()
     }
     async let oven = try preheatOven(temperature: 350)
@@ -281,17 +325,16 @@ func makeDinnerWithDeadline() async throws -> Meal {
 }
 
 func cook(dish: Dish, duration: Duration) async throws -> Meal {
-  await try checkCancellation() // (3)
+  await try checkCancellation()
   // ...
 }
 ```
 
-It is important to keep in mind that while a `Task.Deadline` is a _point in time_ we will usually express our deadline expectation using time intervals from "now." In the example above we set 2 nested deadlines. One, for four hours–for the entire dinner preparation task–and another one for thirty minutes for marinating the meat (otherwise the taste will be too intense!). We also specifically await on the chopped vegetables first before marinating the meat. This is to illustrate the following point: Imagine that chopping up the vegetables for some reason took 1 hour and 40 minutes (!). Now that we get to the meat marination step, we only have 20 minutes left in our outer deadline, yet we attempt to set a deadline in "30 minutes from now." If we had just set a timeout for 30 minutes here, we would be well past the outer deadline, instead–thanks to deadlines–the task automatically notices that the new _inner deadline_ of `now + 30 minutes` is actually greater than the _outer deadline_ and thus ignores it -- the outer deadline prevails and we will never exceed it.
+In the example above, we set two deadlines. The first deadline is for two hours from the start and applies to the entire dinner preparation task. The second deadline is for 30 minutes from the time we start the marinade, and it applies only to that portion of the task.
 
+Note that we await the chopped vegetables before beginning the marinade. This is to illustrate the following point: imagine, somehow, that chopping up the vegetables for some reason took 1 hour and 40 minutes. Now that we get to the meat marination step, we only have 20 minutes left in our outer deadline, yet we attempt to set a deadline in "30 minutes from now." If we had just set a timeout for 30 minutes here, we would be well past the outer deadline. Instead, the task automatically notices that the new deadline of `now + 30 minutes` is actually greater than the current deadline, and thus it is ignored; the task will be cancelled appropriately at the two-hour mark.
 
-Deadlines are also available to interact with programatically. For example the `cook(dish:duration:)` function knows exactly how much time it will take to complete. Just checking for cancellation at the beginning of the `cook()` function only means that the deadline has _not yet_ been exceeded. But since we know this process will take 3 hours, we need to know if we still have 3 more hours left to fit within the expected deadline! 
-
-We can therefore update our cook function to proactively check if it has any chance to complete cooking within the deadline (or not, and we should just order a pizza 🍕):
+Deadlines are also available to interact with programatically. For example, the `cook` function knows exactly how much time it will take to complete. Just checking for cancellation at the beginning of the `cook()` function only means that the deadline hasn't yet been exceeded, but we can do better than that: we can check whether we actually have three hours left. If not, we can throw immediately to tell the user that we aren't going to meet the deadline:
 
 ```swift
 func cook(dish: Dish, duration: Duration) async throws -> Meal {
@@ -302,7 +345,7 @@ func cook(dish: Dish, duration: Duration) async throws -> Meal {
 }
 ```
 
-Thanks to this, functions which have a known execution time, can proactively cancel themselfes before even starting the work which we know would miss the deadline in the end anyway.
+Thanks to this, functions which have a known execution time can proactively cancel themselfes before even starting the work which we know would miss the deadline in the end anyway.
 
 ### Child tasks with `async let`
 
