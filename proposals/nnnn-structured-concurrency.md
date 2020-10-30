@@ -306,7 +306,7 @@ Note also that no information is passed to the task about why it was cancelled. 
 
 A very common use case for cancellation is cancelling tasks because they are taking too long to complete. This proposal introduces the concept of *deadlines* and enables them to cause a task to consider itself as cancelled if such deadline is exceeded.
 
-We intentionally use _deadlines_ ("points in time") as opposed to _timeouts_ ("durations of time"). This is because deadlines compose correctly: working with timeouts is prone to errors where the deadline is accidentally extended because a full timeout is reused rather than being adjusted for the time already passed. For convenience, we allow code to use a relative timeout when setting the deadline up; this will be immediately translated to an absolute deadlinie.
+We intentionally use _deadlines_ ("points in time") as opposed to _timeouts_ ("durations of time"). This is because deadlines compose correctly: working with timeouts is prone to errors where the deadline is accidentally extended because a full timeout is reused rather than being adjusted for the time already passed. For convenience, we allow code to use a relative timeout when setting the deadline up; this will be immediately translated to an absolute deadline.
 
 To futher analyze the semantics of deadlines, let's extend our dinner preparation example with deadlines.
 
