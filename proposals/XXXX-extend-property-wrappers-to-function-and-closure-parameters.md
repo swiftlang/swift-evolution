@@ -317,15 +317,27 @@ This is an additive change with no impact on the existing ABI.
 
 This proposal introduces the need for property wrapper custom attributes to become part of public API. A property wrapper applied to a function parameter changes the type of that parameter in the ABI, and it changes the way that function callers are compiled to pass an argument of that type. Thus, adding or removing a property wrapper on a public function parameter is an ABI-breaking change.
 
-## Alternatives Considered
+## Alternatives considered
 
-### Allow Property Wrapper Attributes as Type Attributes
+### Callee-side property wrapper application
+
+Instead of initializing the backing property wrapper using the argument at the call-site of a function that accepts a wrapped parameter, another approach is to initialize the backing property wrapper using the parameter in the function body. One benefit of this approach is that annotating a parameter with a property wrapper attribute would not change the type of the function, and therefore adding/removing a wrapper attribute would be a resilient change.
+
+Under these semantics, using a property wrapper parameter is effectively the same as using a local property wrapper that is initialized from a parameter. This implies that:
+
+1. A property wrapper parameter cannot be used to opt into property wrapper syntax in the body of a closure that has a parameter with a property wrapper type.
+2. The type of the argument provided at the call-site cannot affect the overload resolution of `init(wrappedValue:)`.
+3. This feature cannot be extended to allow the call-site to initialize the backing wrapper using a mechanism other than `init(wrappedValue:)`, which is discussed later as a future direction. This further implies that property wrapper parameters can only be used with property wrappers that support `init(wrappedValue:)`.
+
+One of the main use cases for property wrapper parameters is opting into property wrapper syntax in the body of a closure, which makes this approach unviable.
+
+### Property wrapper attributes as type attributes
 
 One approach for marking closure parameters as property wrappers is to allow property wrapper custom attributes to be applied to types, such as:
 
 ```swift
 func useReference(
-  _ closure: (@Reference reference: Int) -> Void
+  _ closure: (@Reference Int) -> Void
 ) { ... }
 
 
