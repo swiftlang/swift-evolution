@@ -10,7 +10,7 @@
 
 The [actor model](https://en.wikipedia.org/wiki/Actor_model) involves entities called actors. Each *actor* can perform local computation based on its own state, send messages to other actors, and act on messages received from other actors. Actors run independently, and cannot access the state of other actors, making it a powerful abstraction for managing concurrency in language applications. The actor model has been implemented in a number of programming languages, such as Erlang and Pony, as well as various libraries like Akka (on the JVM) and Orleans (on the .NET CLR).
 
-This proposal introduces a design for *actors* in Swift, providing a model for building concurrent programs that are simple to reason about and are safe from data races. 
+This proposal introduces a design for *actors* in Swift, providing a model for building concurrent programs that are simple to reason about and are safer from data races.
 
 Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/)
 
@@ -21,7 +21,7 @@ One of the more difficult problems in developing concurrent programs is dealing 
 Data races are notoriously hard to reproduce and debug, because they often depend on two threads getting scheduled in a particular way. 
 Tools such as [ThreadSanitizer](https://clang.llvm.org/docs/ThreadSanitizer.html) help, but they are necessarily reactive (as opposed to proactive)--they help find existing bugs, but cannot help prevent them.
 
-Actors provide a model for building concurrent programs that are free of data races. They do so through *data isolation*: each actor protects is own instance data, ensuring that only a single thread will access that data at a given time. Actors shift the way of thinking about concurrency from raw threading to actors and put focus on actors "owning" their local state.
+Actors provide a model for building concurrent programs that are free of data races. They do so through *data isolation*: each actor protects is own instance data, ensuring that only a single thread will access that data at a given time. Actors shift the way of thinking about concurrency from raw threading to actors and put focus on actors "owning" their local state. This proposal provides a basic isolation model that protects the value-type state of an actor from data races. A full actor isolation model, which protects other state (such as reference types) is left as future work.
 
 ## Proposed solution
 
@@ -271,7 +271,7 @@ actor class GenericActor<T> {
 
 With this type, `GenericActor<Int>` maintains actor isolation but `GenericActor<Transaction>` does not.
 
-There are solutions to these problems. However, the scope of the solutions is large enough that they deserve their own separate proposals. Therefore, **this proposal only provides data race safety with value types**.
+There are solutions to these problems. However, the scope of the solutions is large enough that they deserve their own separate proposals. Therefore, **this proposal only provides basic actor isolation for data race safety with value types**.
 
 ### Global actors
 
@@ -426,7 +426,7 @@ When used on a class, the attribute applies by default to members of the class a
 
 The attribute is ill-formed when applied to any other declaration.  It is ill-formed if combined with an explicit global actor attribute.
 
-The `@actorIndependent` attribute has an optional "unsafe" argument.  `@actorIndependent(unsafe)` differs from `@actorIndependent` only in the implementation of the declaration. Specifically, it allows the implementation to refer to actor-isolated state, which would be ill-formed under `@actorIndependent`.
+The `@actorIndependent` attribute has an optional "unsafe" argument.  `@actorIndependent(unsafe)` is treated the same way as `@actorIndependent` from the client's perspective, meaning that it can be used from anywhere. However, the implementation of an `@actorIndependent(unsafe)` entity is allowed to refer to actor-isolated state, which would have been ill-formed under `@actorIndependent`.
 
 ### Actor isolation checking
 
