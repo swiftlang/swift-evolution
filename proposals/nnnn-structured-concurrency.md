@@ -514,13 +514,13 @@ struct WorkItem {
 }
 
 let handle = Task.runDetached {
-  await Task.withNursery(resultType: Int.self) { nursery in
+  try await Task.withNursery(resultType: Int.self) { nursery in
     var processed = 0
-    for w in workItems where await !Task.isCancelled() { // (3)
-      await nursery.add { await w.process() }
+    for w in workItems { // (3)
+      try await nursery.add { await w.process() }
     }
     
-    while let result = await nursery.next() { 
+    while let result = try await nursery.next() { 
       processed += 1
     }
     
@@ -535,11 +535,7 @@ try await handle.get() // will throw CancellationError // (2)
 
 There are various ways a task could be cancelled, however for this example let us consider a detached task being cancelled explicitly. This task is the parent task of the nursery, and as such the cancelation will be propagated to it once the parent task's handle `cancel()` is invoked.
 
-Because cancellation remains co-operative, we need to check for it. We can do so either in the nursery itself to avoid even scheduling additional tasks when we know we have been cancelled *(3)*, or as usual in the `process()` task itself *(4)*. The benefit of checking in the nursery is that we can potentially even avoid scheduling the asynchronous child tasks if we know they won't be necessary.
-
-In our example we were able to degrade gracefully by just returning a "best effort" processed value, alternatively one might prefer to use `checkCancellation()` and throw from the nursery when cancelled.
-
-> NOTE: Presently nurseries do not automatically check for cancellation. They _could_ for example check for it when adding new tasks, such that `nursery.add()` would throw if the nursery is cancelled -- so we don't needlessly keep adding more work while our parent task has been cancelled already anyway. This would require add to be async and throwing which makes the API a bit unwieldly.
+Nurseries automatically check for the cancellation of the parent task when creating a new child task or waiting for a child task for complete. Adding a new task may also suspend if the system is under substantial load, as a form of back-pressure on the "queue" of new tasks being added to the system. These considerations allow the programmer to write straightforward, natural-feeling code that will still usually do the right thing by default.
 
 #### Nurseries: Implicitly awaited tasks
 Sometimes it is not necessary to gather the results of asynchronous functions (e.g. because they may be `Void` returning, "uni-directional"), in this case we can rely on the nursery implicitly awaiting for all tasks started before returning. 
