@@ -99,7 +99,7 @@ Introducing `async let` into the loop would not produce any meaningful concurren
 /// Sequentially chop the vegetables.
 func chopVegetables() async throws -> [Vegetable] {
   // Create a task nursery where each task produces (Int, Vegetable).
-  Task.withNursery(resultType: (Int, Vegetable).self) { nursery in 
+  await try Task.withNursery(resultType: (Int, Vegetable).self) { nursery in 
     var veggies: [Vegetable] = gatherRawVeggies()
     
     // Create a new child task for each vegetable that needs to be 
@@ -449,7 +449,7 @@ In the `chopVegetables()` example we not only added vegetable chopping tasks to 
 
 ```swift
 func chopVegetables(rawVeggies: [Vegetable]) async throws -> [ChoppedVegetable] {
-  Task.withNursery(resultType: ChoppedVegetable.self) { nursery in    
+  await try Task.withNursery(resultType: ChoppedVegetable.self) { nursery in    
     var choppedVeggies: [ChoppedVegetable] = []
     choppedVeggies.reserveCapacity(veggies.count)
         
@@ -514,7 +514,7 @@ struct WorkItem {
 }
 
 let handle = Task.runDetached {
-  try await Task.withNursery(resultType: Int.self) { nursery in
+  await try Task.withNursery(resultType: Int.self) { nursery in
     var processed = 0
     for w in workItems { // (3)
       try await nursery.add { await w.process() }
