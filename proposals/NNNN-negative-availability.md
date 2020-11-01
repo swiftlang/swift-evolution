@@ -172,8 +172,8 @@ This change is purely additive.
 
 ### `!#available(...)` and `#available(...) == false`
 
-While allowing the original condition to be reversed seems to be the obvious choice, supporting it in practice would require hardcoding all of this behavior as `#available` cannot be used as an expression. While `== false` is trivial to include, `!` would require a few workarounds. The author would rather not add tech debt to the compiler.
+While allowing the original condition to be reversed seems to be the obvious choice, supporting it in practice would require hardcoding all of this behavior as `#available` cannot be used as an expression. The author would rather not add tech debt to the compiler.
 
 Refactoring `#available` to be usable as an expression would likely require refactoring the entire symbol availability system and has an extensive amount of implications and edge cases. The work to support it would be considerably beyond what is proposed here.
 
-Supporting it with workarounds is possible though, and could be implemented if the core team is willing and has a plan to eliminate the resulting tech debt in the future.
+Supporting it by hardcoding this behavior is possible though, and could be implemented if the core team is willing and has a plan to eliminate the resulting tech debt in the future.
