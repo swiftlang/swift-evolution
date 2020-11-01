@@ -167,7 +167,7 @@ This proposal doesn't propose solutions for all of these, but early investigatio
 
 ### Tasks
 
-A task is the basic unit of concurrency in the system. It is the analogue of a thread for synchronous functions. That is:
+A task is the basic unit of concurrency in the system. Every asynchronous function is executing in a task. In other words, a _task_ is to _asynchronous functions_, what a _thread_ is to _synchronous functions_. That is:
 
 - All asynchronous functions run as part of some task.
 - A task runs one function at a time; a single task has no concurrency.
