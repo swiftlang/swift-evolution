@@ -6,6 +6,30 @@
 * Status: **Awaiting implementation**
 * Implementation: Available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
 
+## Contents
+
+* [Introduction](#introduction)
+* [Motivation: Completion handlers are suboptimal](#motivation-completion-handlers-are-suboptimal)
+    * [Problem 1: Pyramid of doom](#problem-1-pyramid-of-doom)
+    * [Problem 2: Error handling](#problem-2-error-handling)
+    * [Problem 3: Conditional execution is hard and error-prone](#problem-3-conditional-execution-is-hard-and-error-prone)
+    * [Problem 4: Many mistakes are easy to make](#problem-4-many-mistakes-are-easy-to-make)
+    * [Problem 5: Because completion handlers are awkward, too many APIs are defined synchronously](#problem-5-because-completion-handlers-are-awkward-too-many-apis-are-defined-synchronously)
+* [Proposed solution: async/await](#proposed-solution-asyncawait)
+  * [Suspension points](#suspension-points)
+  * [Asynchronous calls](#asynchronous-calls)
+* [Detailed design](#detailed-design)
+  * [Asynchronous functions](#asynchronous-functions)
+  * [Asynchronous function types](#asynchronous-function-types)
+  * [Await expressions](#await-expressions)
+  * [Closures](#closures)
+  * [Overloading and overload resolution](#overloading-and-overload-resolution)
+  * [Autoclosures](#autoclosures)
+* [Source compatibility](#source-compatibility)
+* [Effect on ABI stability](#effect-on-abi-stability)
+* [Effect on API resilience](#effect-on-api-resilience)
+* [Related proposals](#related-proposals)
+
 ## Introduction
 
 Modern Swift development involves a lot of asynchronous (or "async") programming using closures and completion handlers, but these APIs are hard to use.  This gets particularly problematic when many asynchronous operations are used, error handling is required, or control flow between asynchronous calls gets complicated.  This proposal describes a language extension to make this a lot more natural and less error prone.
@@ -28,7 +52,7 @@ Async programming with explicit callbacks (also called completion handlers) has 
 A sequence of simple asynchronous operations often requires deeply-nested closures. Here is a made-up example showing this:
 
 ```swift
-func processImageData1(completionBlock: (result: Image) -> Void) {
+func processImageData1(completionBlock: (_ result: Image) -> Void) {
     loadWebResource("dataprofile.txt") { dataResource in
         loadWebResource("imagedata.dat") { imageResource in
             decodeImage(dataResource, imageResource) { imageTmp in
@@ -52,7 +76,7 @@ This "pyramid of doom" makes it difficult to read and keep track of where the co
 Callbacks make error handling difficult and very verbose. Swift 2 introduced an error handling model for synchronous code, but callback-based interfaces do not derive any benefit from it:
 
 ```swift
-func processImageData2(completionBlock: (result: Image?, error: Error?) -> Void) {
+func processImageData2(completionBlock: (_ result: Image?, _ error: Error?) -> Void) {
     loadWebResource("dataprofile.txt") { dataResource, error in
         guard let dataResource = dataResource else {
             completionBlock(nil, error)
@@ -82,7 +106,7 @@ func processImageData2(completionBlock: (result: Image?, error: Error?) -> Void)
 
 processImageData2 { image, error in
     guard let image = image else {
-        error("No image today")
+        display("No image today", error)
         return
     }
     display(image)
@@ -92,7 +116,7 @@ processImageData2 { image, error in
 The addition of [`Result`](https://github.com/apple/swift-evolution/blob/main/proposals/0235-add-result.md) to the standard library improved on error handling for Swift APIs. Asynchronous APIs were one of the [main motivators](https://github.com/apple/swift-evolution/blob/main/proposals/0235-add-result.md#asynchronous-apis) for `Result`: 
 
 ```swift
-func processImageData2(completionBlock: (Result<Image>) -> Void) {
+func processImageData2(completionBlock: (Result<Image, Error>) -> Void) {
     loadWebResource("dataprofile.txt") { dataResourceResult in
         dataResourceResult.map { dataResource in
             loadWebResource("imagedata.dat") { imageResourceResult in
@@ -115,7 +139,7 @@ processImageData2 { result in
     case .success(let image):
         display(image)
     case .failure(let error):
-        error("No image today")
+        display("No image today", error)
     }
 }
 ```
@@ -127,8 +151,8 @@ It's easier to properly thread the error through when using `Result`, making the
 Conditionally executing an asynchronous function is a huge pain. For example, suppose we need to "swizzle" an image after obtaining it. But, we sometimes have to make an asynchronous call to decode the image before we can swizzle. Perhaps the best approach to structuring this function is to write the swizzling code in a helper "continuation" closure that is conditionally captured in a completion handler, like this:
 
 ```swift
-func processImageData3(recipient: Person, completionBlock: (result: Image) -> Void) {
-    let swizzle: (contents: image) -> Void = {
+func processImageData3(recipient: Person, completionBlock: (_ result: Image) -> Void) {
+    let swizzle: (_ contents: Image) -> Void = {
       // ... continuation closure that calls completionBlock eventually
     }
     if recipient.hasProfilePicture {
@@ -148,7 +172,7 @@ This pattern inverts the natural top-down organization of the function: the code
 It's quite easy to bail-out of the asynchronous operation early by simply returning without calling the correct completion-handler block. When forgotten, the issue is very hard to debug:
 
 ```swift
-func processImageData4(completionBlock: (result: Image?, error: Error?) -> Void) {
+func processImageData4(completionBlock: (_ result: Image?, _ error: Error?) -> Void) {
     loadWebResource("dataprofile.txt") { dataResource, error in
         guard let dataResource = dataResource else {
             return // <- forgot to call the block
@@ -166,7 +190,7 @@ func processImageData4(completionBlock: (result: Image?, error: Error?) -> Void)
 When you do remember to call the block, you can still forget to return after that:
 
 ```swift
-func processImageData5(recipient:Person, completionBlock: (result: Image?, error: Error?) -> Void) {
+func processImageData5(recipient:Person, completionBlock: (_ result: Image?, _ error: Error?) -> Void) {
     if recipient.hasProfilePicture {
         if let image = recipient.profilePicture {
             completionBlock(image) // <- forgot to return after calling the block
@@ -214,11 +238,11 @@ When control returns to an asynchronous function, it picks up exactly where it w
 
 A suspension point is a point in the execution of an asynchronous function where it has to give up its thread.  Suspension points are always associated with some deterministic, syntactically explicit event in the function; they’re never hidden or asynchronous from the function’s perspective.  The detailed language design will describe several different operations as suspension points, but the most important one is a call to an asynchronous function associated with a different execution context.
 
-It is important that suspension points are only associated with explicit operations.  In fact, it’s so important that this proposal requires that calls that might suspend be enclosed in an `await` expression. This follows Swift's precedent of requiring `try` expressions to cover calls to functions that can throw errors. Marking suspension points is particularly important because *suspensions interrupt atomicity*.  For example, if an asynchronous function is running within a given context that is protected by a serial queue, reaching a suspension point means that other code can be interleaved on that same serial queue.  A classic but somewhat hackneyed example where this atomicity matters is a modeling a bank: if a deposit is credited to one account, but the operation suspends before processing a matched withdrawal, it creates a window where those funds can be double-spent.  A more germane example for many Swift programmers is a UI thread: the suspension points are the points where the UI can be shown to the user, so programs that build part of their UI and then suspend risk presenting a flickering, partially-constructed UI.  (Note that suspension points are also called out explicitly in code using explicit callbacks: the suspension happens between the point where the outer function returns and the callback starts running.)  Requiring that all suspension points are marked allows programmers to safely assume that places without suspension points will behave atomically, as well as to more easily recognize problematic non-atomic patterns.
+It is important that suspension points are only associated with explicit operations.  In fact, it’s so important that this proposal requires that calls that might suspend be enclosed in an `await` expression. This follows Swift's precedent of requiring `try` expressions to cover calls to functions that can throw errors. Marking suspension points is particularly important because *suspensions interrupt atomicity*.  For example, if an asynchronous function is running within a given context that is protected by a serial queue, reaching a suspension point means that other code can be interleaved on that same serial queue.  A classic but somewhat hackneyed example where this atomicity matters is modeling a bank: if a deposit is credited to one account, but the operation suspends before processing a matched withdrawal, it creates a window where those funds can be double-spent.  A more germane example for many Swift programmers is a UI thread: the suspension points are the points where the UI can be shown to the user, so programs that build part of their UI and then suspend risk presenting a flickering, partially-constructed UI.  (Note that suspension points are also called out explicitly in code using explicit callbacks: the suspension happens between the point where the outer function returns and the callback starts running.)  Requiring that all suspension points are marked allows programmers to safely assume that places without suspension points will behave atomically, as well as to more easily recognize problematic non-atomic patterns.
 
 Because suspension points can only appear at points explicitly marked within an asynchronous function, long computations can still block threads.  This might happen when calling a synchronous function that just does a lot of work, or when encountering a particularly intense computational loop written directly in an asynchronous function.  In either case, the thread cannot interleave code while these computations are running, which is usually the right choice for correctness, but can also become a scalability problem.  Asynchronous programs that need to do intense computation should generally run it in a separate context.  When that’s not feasible, there will be library facilities to artificially suspend and allow other operations to be interleaved.
 
-Asynchronous functions should avoid calling functions that can actually block the thread, especially if they can block it waiting for work that’s not guaranteed to be currently running.  For example, acquiring a mutex can only block until some currently-running thread gives up the mutex; this is sometimes acceptable but must be used carefully to avoid introducing deadlocks or artificial scalability problems.  In contrast, waiting on a condition variable can block until some arbitrary other work gets scheduled that signals the variable; this pattern goes strongly against reccomendation.  Ongoing library work to provide abstractions that allow programs to avoid these pitfalls will be required.
+Asynchronous functions should avoid calling functions that can actually block the thread, especially if they can block it waiting for work that’s not guaranteed to be currently running.  For example, acquiring a mutex can only block until some currently-running thread gives up the mutex; this is sometimes acceptable but must be used carefully to avoid introducing deadlocks or artificial scalability problems.  In contrast, waiting on a condition variable can block until some arbitrary other work gets scheduled that signals the variable; this pattern goes strongly against recommendation.  Ongoing library work to provide abstractions that allow programs to avoid these pitfalls will be required.
 
 This design currently provides no way to prevent the current context from interleaving code while an asynchronous function is waiting for an operation in a different context.  This omission is intentional: allowing for the prevention of interleaving is inherently prone to deadlock.
 
@@ -295,9 +319,9 @@ struct FunctionTypes {
 }
 ```
 
-One can manually create an `async` closure that calls synchronous functions, so the lack of implicit conversion does not affect the expressivity of the model. See the section on "Closures" for the syntax to define an `async` closure.
+One can manually create an `async` closure that calls synchronous functions, so the lack of implicit conversion does not affect the expressivity of the model. See the section on [Closures](#closures) for the syntax to define an `async` closure.
 
-> **Rationale**: We do not propose the implicit conversion from a synchronous function to an asynchronous function because it would complicate type checking, particularly in the presence of synchronous and asynchronous overloads of the same function. See the section on "Overloading and overload resolution" for more information.
+> **Rationale**: We do not propose the implicit conversion from a synchronous function to an asynchronous function because it would complicate type checking, particularly in the presence of synchronous and asynchronous overloads of the same function. See the section on [Overloading and overload resolution](#overloading-and-overload-resolution) for more information.
 
 ### Await expressions
 
@@ -322,7 +346,7 @@ let (data, response) = await try session.dataTask(with: server.redirectURL(for: 
 
 The `await` has no additional semantics; like `try`, it merely marks that an asynchronous call is being made.  The type of the `await` expression is the type of its operand, and its result is the result of its operand.
 
-> **Rationale**: It is important that asynchronous calls are clearly identifiable within the function because they introduce suspension points, which break the atomicity of the operation.  The suspension points may be inherent to the call (because the asynchronous call must execute on a different executor) or simply be part of the implementation of the callee, but in either case it is semantically important and the programmer needs to acknowledge it. `await` expressions are also an indicator of asynchronous code, which interacts with inference in closures; see the section on "Closures" for more information.
+> **Rationale**: It is important that asynchronous calls are clearly identifiable within the function because they introduce suspension points, which break the atomicity of the operation.  The suspension points may be inherent to the call (because the asynchronous call must execute on a different executor) or simply be part of the implementation of the callee, but in either case it is semantically important and the programmer needs to acknowledge it. `await` expressions are also an indicator of asynchronous code, which interacts with inference in closures; see the section on [Closures](#closures) for more information.
 
 A suspension point must not occur within an autoclosure that is not of `async` function type.
 
