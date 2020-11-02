@@ -671,6 +671,40 @@ Thanks to weaving the right continuation resume calls into the complex callbacks
 > 
 > Developers must carefully place the `resume` calls guarantee the proper resumption semantics of unsafe continuations, lack of consideration for a case where resume should have been called will result in a task hanging forever, justifying the unsafe denotation of this API.
 
+### Miscellaneous minor Task APIs
+
+#### Voluntary Suspension
+
+For certain tasks of long running operations, say performing many tasks in a thight loop, it might be beneficial for tasks to sometimes check in if they should perhaps suspend and offer a chance for other tasks to proceed (e.g. if all are executing on a shared, limited-concurrency pool). For this use-case `Task` includes a `yield()` operation, which is a way to explicitly suspend and give other tasks a chance to run for a while. 
+
+This is not a perfect cure for task starvation–if the task is the highest-priority task in the system, it might go immediately back to executing–however it can be useful specific patterns of long running tasks.
+
+```swift
+extension Task {
+  public static func yield() async { ... }
+}
+```
+
+A task can also be suspended until an arbitrary `Deadline`. This is similar to what "sleeping the thread" is in synchronous functions, however does not incur the cost of blocking any threads. The `Task.sleep(until:)` function is asynchronous and only suspends the _task_ until the given point in time. 
+
+```swift
+extension Task {
+
+  /// Suspend until a given point in time.
+  ///
+  /// ### Cancellation
+  /// Does not check for cancellation and suspends the current context until the
+  /// given deadline.
+  ///
+  /// - Parameter until: point in time until which to suspend.
+  public static func sleep(until: Deadline) async {
+    fatalError("\(#function) not implemented yet.")
+  }
+}
+```
+
+The function does not check for cancellation automatically, so if one wanted to check for exceeding a deadline this would have be done manually before sleeping the task.
+
  
 ## Source compatibility
 
