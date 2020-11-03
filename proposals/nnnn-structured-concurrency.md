@@ -675,7 +675,7 @@ Thanks to weaving the right continuation resume calls into the complex callbacks
 
 #### Voluntary Suspension
 
-For certain tasks of long running operations, say performing many tasks in a thight loop, it might be beneficial for tasks to sometimes check in if they should perhaps suspend and offer a chance for other tasks to proceed (e.g. if all are executing on a shared, limited-concurrency pool). For this use-case `Task` includes a `yield()` operation, which is a way to explicitly suspend and give other tasks a chance to run for a while. 
+For certain tasks of long running operations, say performing many tasks in a tight loop, it might be beneficial for tasks to sometimes check in if they should perhaps suspend and offer a chance for other tasks to proceed (e.g. if all are executing on a shared, limited-concurrency pool). For this use-case `Task` includes a `yield()` operation, which is a way to explicitly suspend and give other tasks a chance to run for a while. 
 
 This is not a perfect cure for task starvation–if the task is the highest-priority task in the system, it might go immediately back to executing–however it can be useful specific patterns of long running tasks.
 
