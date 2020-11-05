@@ -234,8 +234,6 @@ The changing type of the `@autoclosure` is incredibly misleading, as it's not ob
 
 ### Property Wrappers on Closure Parameters
 
-Since a property wrapper custom attribute is applied directly to the declaration that will be wrapped, application of a property wrapper type is only available within a closure expression. That is, the signature of a function that contains a closure cannot include the property wrapper attribute. Instead the application of the attribute will be up to the caller of the function, which supplies the closure argument.
-
 Closure parameters marked with a set of property wrapper custom attributes must conform to the following rules:
 
 1. Each wrapper attribute must not specify any arguments.
