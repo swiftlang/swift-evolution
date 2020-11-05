@@ -450,5 +450,5 @@ The ABI for an `async` function is completely different from the ABI for a synch
 In addition to this proposal, there are a number of related proposals covering different aspects of the Swift Concurrency model:
 
 * [Concurrency Interoperability with Objective-C](https://github.com/DougGregor/swift-evolution/blob/concurrency-objc/proposals/NNNN-concurrency-objc.md): Describes the interaction with Objective-C, especially the relationship between asynchronous Objective-C methods that accept completion handlers and `@objc async` Swift methods.
-* Structured Concurrency: Describes the task structure used by asynchronous calls, the creation of both child tasks and detached tasks, cancellation, prioritization, and other task-management APIs.
+* [Structured Concurrency](https://github.com/DougGregor/swift-evolution/blob/structured-concurrency/proposals/nnnn-structured-concurrency.md): Describes the task structure used by asynchronous calls, the creation of both child tasks and detached tasks, cancellation, prioritization, and other task-management APIs.
 * [Actors](https://github.com/DougGregor/swift-evolution/blob/actors/proposals/nnnn-actors.md): Describes the actor model, which provides state isolation for concurrent programs
