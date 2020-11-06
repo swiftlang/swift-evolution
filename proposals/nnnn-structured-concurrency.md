@@ -388,16 +388,43 @@ Tasks may be added dynamically to a task group, meaning one may add a task for e
 ```swift
 extension Task {
 
-  // Postcondition: if the body returns normally, the task group is empty.
-  // If it throws, all tasks in the task group will be automatically cancelled.
-  //
-  // Do we have to add a different task group type to accomodate throwing
-  // tasks without forcing users to use Result?  I can't think of how that
-  // could be propagated out of the callback body reasonably, unless we
-  // commit to doing multi-statement closure typechecking.
-  public static func Task.withGroup<TaskResult, BodyResult>(
-    resultType: TaskResult.Type,          
-    body: (inout Nursery<TaskResult>) async throws -> BodyResult
+  /// Starts a new task group which provides a scope in which a dynamic number of
+  /// tasks may be spawned.
+  ///
+  /// Tasks added to the group by `group.add()` will automatically be awaited on
+  /// when the scope exits. If the group exits by throwing, all added tasks will
+  /// be cancelled and their results discarded.
+  ///
+  /// ### Implicit awaiting
+  /// When results of tasks added to the group need to be collected, one can
+  /// gather their results using the following pattern:
+  ///
+  ///     while let result = await group.next() {
+  ///       // some accumulation logic (e.g. sum += result)
+  ///     }
+  ///
+  /// ### Cancellation
+  /// If an error is thrown out of the task group, all of its remaining tasks
+  /// will be cancelled and the `withGroup` call will rethrow that error.
+  ///
+  /// Individual tasks throwing results in their corresponding `try group.next()`
+  /// call throwing, giving a chance to handle individual errors or letting the
+  /// error be rethrown by the group.
+  ///
+  /// Postcondition:
+  /// Once `withGroup` returns it is guaranteed that the `group` is *empty*.
+  ///
+  /// This is achieved in the following way:
+  /// - if the body returns normally:
+  ///   - the group will await any not yet complete tasks,
+  ///     - if any of those tasks throws, the remaining tasks will be cancelled,
+  ///   - once the `withGroup` returns the group is guaranteed to be empty.
+  /// - if the body throws:
+  ///   - all tasks remaining in the group will be automatically cancelled.
+  public static func withGroup<TaskResult, BodyResult>(
+    resultType: TaskResult.Type,
+    returning returnType: BodyResult.Type = BodyResult.self,
+    body: (inout Task.ScopedGroup<TaskResult>) async throws -> BodyResult
   ) async rethrows -> BodyResult { ... } 
 }
 ```
