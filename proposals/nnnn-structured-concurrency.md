@@ -424,7 +424,7 @@ extension Task {
   public static func withGroup<TaskResult, BodyResult>(
     resultType: TaskResult.Type,
     returning returnType: BodyResult.Type = BodyResult.self,
-    body: (inout Task.ScopedGroup<TaskResult>) async throws -> BodyResult
+    body: (inout Task.Group<TaskResult>) async throws -> BodyResult
   ) async rethrows -> BodyResult { ... } 
 }
 ```
