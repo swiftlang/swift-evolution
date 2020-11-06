@@ -72,7 +72,7 @@ However, child tasks in the proposed structured-concurrency model are (intention
 
 Bringing it back to our example, note that the `chopVegetables()` function might throw an error if, say, there is an incident with the kitchen knife. That thrown error completes the child task for chopping the vegetables. The error will then be propagated out of the `makeDinner()` function, as expected. On exiting the body of the `makeDinner()` function, any child tasks that have not yet completed (marinating the meat or preheating the oven, maybe both) will be automatically cancelled.
 
-### Task Groups
+### Child tasks with Task Groups
 
 The `async let` construct makes it easy to create a set number of child tasks and associate them with variables. However, the construct does not work as well with dynamic workloads, where we don't know the number child tasks we will need to create because (for example) it is dependent on the size of a data structure. For that, we need a more dynamic construct: a *task group*.
 
@@ -358,9 +358,37 @@ async let result = try fetchHTTPContent(of: url)
 
 Any reference to a variable that was declared in an `async let` is a suspension point, equivalent to a call to an asynchronous function, so it must occur within an `await` expression. The initializer of the `async let` is considered to be enclosed by an implicit `await` expression.
 
-If the initializer of the `async let` can throw an error, then each reference to a variable declared within that `async let` is considered to throw an error, and therefore must also be enclosed in one of `try`/`try!`/`try?`. 
+If the initializer of the `async let` can throw an error, then each reference to a variable declared within that `async let` clause is considered to throw an error, and therefore must also be enclosed in one of `try`/`try!`/`try?`:
 
-One of the variables for a given `async let` must be awaited at least once along all execution paths (that don't throw an error) before it goes out of scope. For example:
+```swift
+{
+  async let (yay, nay) = ("yay", throw Nay())
+  
+  await try yay // must be marked with `try`; throws Nay()
+  // implicitly guarantees `nay` also be completed at this point
+}
+```
+
+The simplest way to think about it is that anything to the right hand side of the `=` of an `async let` is initiated together (as-if in an asynchronous closure), implying that if any of the values initialized by this closure throws, all other left-hand side to-be-initialized variables must also be considered as it they had thrown that error. 
+
+There is one additional case which may need a short explanation. Multiple clauses in a single `async let` may be written like this:
+
+```swift
+{
+  async
+let 
+    ok = "ok",
+    (yay, nay) = ("yay", throw Nay())
+  
+  await ok
+  await try yay
+  // okay
+}
+```
+
+In the above example one can consider each clause as it's own asynchronously initialized variable, i.e. the `ok`  is initialized on its own, and the `(yay, nay)` are initialized together as was discussed previously. 
+
+At least one of the variables for a given `async let` clause must be awaited at least once along all execution paths (that don't throw an error) before it goes out of scope. For example:
 
 ```swift
 {
@@ -375,7 +403,7 @@ One of the variables for a given `async let` must be awaited at least once along
 }
 ```
 
-If the scope of an `async let` exits with a thrown error, the child task corresponding to the `async let` is implicitly cancelled. If the child task has already completed, its result (or thrown error) is discarded.
+If the scope of an `async let` exits *by throwing an error*, the child task corresponding to the `async let` is implicitly cancelled. If the child task has already completed, its result (or thrown error) is discarded.
 
 > **Rationale**: The requirement to await a variable from each `async let` along all (non-throwing) paths ensures that child tasks aren't being created and implicitly cancelled during the normal course of execution. Such code is likely to be needlessly inefficient and should probably be restructured to avoid creating child tasks that are unnecessary.
  
