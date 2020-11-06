@@ -72,11 +72,11 @@ However, child tasks in the proposed structured-concurrency model are (intention
 
 Bringing it back to our example, note that the `chopVegetables()` function might throw an error if, say, there is an incident with the kitchen knife. That thrown error completes the child task for chopping the vegetables. The error will then be propagated out of the `makeDinner()` function, as expected. On exiting the body of the `makeDinner()` function, any child tasks that have not yet completed (marinating the meat or preheating the oven, maybe both) will be automatically cancelled.
 
-### Nurseries
+### Task Groups
 
-The `async let` construct makes it easy to create a set number of child tasks and associate them with variables. However, the construct does not work as well with dynamic workloads, where we don't know the number child tasks we will need to create because (for example) it is dependent on the size of a data structure. For that, we need a more dynamic construct: a task *nursery*.
+The `async let` construct makes it easy to create a set number of child tasks and associate them with variables. However, the construct does not work as well with dynamic workloads, where we don't know the number child tasks we will need to create because (for example) it is dependent on the size of a data structure. For that, we need a more dynamic construct: a *task group*.
 
-A nursery defines a scope in which one can create new child tasks programmatically. As with all child tasks, the child tasks within the nursery must complete when the scope exits or they will be implicitly cancelled. Nurseries also provide utilities for working with the child tasks, e.g., by waiting until the next child task completes.
+A task group defines a scope in which one can create new child tasks programmatically. As with all child tasks, the child tasks within the task group scope must complete when the scope exits or they will be implicitly awaited on. This is equivalent to a normal function scope enforcing that one awaits on all `async let` variables before exiting the scope, however with dynamically added child tasks the await becomes implicit at the exit of the task group scope. It is likely that various behavior variations for hanling outstanding not-awaited on added tasks will be available for call-site configuration. Task groups also provide utilities for working with the child tasks' results, e.g., by waiting until the next child task completes.
 
 To stretch our example even further, let's consider our `chopVegetables()` operation, which produces an array of `Vegetable` values. With enough cooks, we could chop our vegetables even faster if we divided up the chopping for each kind of vegetable. 
 
@@ -93,26 +93,26 @@ func chopVegetables() async throws -> [Vegetable] {
 }
 ```
 
-Introducing `async let` into the loop would not produce any meaningful concurrency, because each `async let` would need to complete before the next iteration of the loop could start. To create child tasks programmatically, we introduce a new nursery scope via `withNursery`:
+Introducing `async let` into the loop would not produce any meaningful concurrency, because each `async let` would need to complete before the next iteration of the loop could start. To create child tasks programmatically, we introduce a new task group scope via `Task.withGroup`:
 
 ```swift
 /// Sequentially chop the vegetables.
 func chopVegetables() async throws -> [Vegetable] {
-  // Create a task nursery where each task produces (Int, Vegetable).
-  await try Task.withNursery(resultType: (Int, Vegetable).self) { nursery in 
+  // Create a task group where each task produces (Int, Vegetable).
+  await try Task.withGroup(resultType: (Int, Vegetable).self) { group in 
     var veggies: [Vegetable] = gatherRawVeggies()
     
     // Create a new child task for each vegetable that needs to be 
     // chopped.
     for i in rawVeggies.indices {
-      await try nursery.add { 
+      await try group.add { 
         (i, veggies[i].chopped())
       }
     }
 
     // Wait for all of the chopping to complete, slotting each result
     // into its place in the array as it becomes available.
-    while let (index, choppedVeggie) = await try nursery.next() {
+    while let (index, choppedVeggie) = await try group.next() {
       veggies[index] = choppedVeggie
     }
     
@@ -121,9 +121,9 @@ func chopVegetables() async throws -> [Vegetable] {
 }
 ```
 
-The `withNursery(resultType:body:)` function introduces a new scope in which child tasks can be created (using the nursery's `add(_:)` method). The `next()` method waits for the next child task to complete, providing the result value from the child task. In our example above, each child task carries the index where the result should go, along with the chopped vegetable.
+The `Task.withGroup(resultType:body:)` function introduces a new scope in which child tasks can be created (using the task group's `add(_:)` method). The `next()` method waits for the next child task to complete, providing the result value from the child task. In our example above, each child task carries the index where the result should go, along with the chopped vegetable.
 
-As with the child tasks created by `async let`, if the closure passed to `withNursery` exits without having completed all child tasks, any remaining child tasks will automatically be cancelled.
+As with the child tasks created by `async let`, if the closure passed to `Task.withGroup` exits without having completed all child tasks, any remaining child tasks will automatically be cancelled.
 
 ### Detached tasks
 
@@ -381,28 +381,28 @@ If the scope of an `async let` exits with a thrown error, the child task corresp
  
 ### Child Tasks with Nurseries
 
-In addition to `async let` this proposal also introduces an explicit `Nursery` type, which allows for fine grained scoping of tasks within such nursery. 
+In addition to `async let` this proposal also introduces an explicit `Nursery` type, which allows for fine grained scoping of tasks within such task group. 
 
-Tasks may be added dynamically to a nursery, meaning one may add a task for each element of a dynamically sized collection to a nursery and have them all be bound to the nursery lifecycle. This is in contrast to `async let` declarations which only allow for a statically known at compile time number of tasks to be declared.
+Tasks may be added dynamically to a task group, meaning one may add a task for each element of a dynamically sized collection to a task group and have them all be bound to the task group lifecycle. This is in contrast to `async let` declarations which only allow for a statically known at compile time number of tasks to be declared.
 
 ```swift
 extension Task {
 
-  // Postcondition: if the body returns normally, the nursery is empty.
-  // If it throws, all tasks in the nursery will be automatically cancelled.
+  // Postcondition: if the body returns normally, the task group is empty.
+  // If it throws, all tasks in the task group will be automatically cancelled.
   //
-  // Do we have to add a different nursery type to accomodate throwing
+  // Do we have to add a different task group type to accomodate throwing
   // tasks without forcing users to use Result?  I can't think of how that
   // could be propagated out of the callback body reasonably, unless we
   // commit to doing multi-statement closure typechecking.
-  public static func withNursery<TaskResult, BodyResult>(
+  public static func Task.withGroup<TaskResult, BodyResult>(
     resultType: TaskResult.Type,          
     body: (inout Nursery<TaskResult>) async throws -> BodyResult
   ) async rethrows -> BodyResult { ... } 
 }
 ```
 
-A nursery can be launched from any asychronous context, eventually returns a single value (the `BodyResult`). Tasks many be added to it dynamically, as we saw in the `chopVegetables` example in the *Proposed solution: Nurseries* section, and the nursery enforces awaiting for all tasks before it returns by asserting that is empty when returning the final result.
+A task group can be launched from any asychronous context, eventually returns a single value (the `BodyResult`). Tasks many be added to it dynamically, as we saw in the `chopVegetables` example in the *Proposed solution: Nurseries* section, and the task group enforces awaiting for all tasks before it returns by asserting that is empty when returning the final result.
 
 ```swift
 extension Task { 
@@ -429,39 +429,39 @@ extension Task {
     /// or else return.
     public mutating func next() async -> TaskResult? { ... } 
     
-    /// Query whether the nursery has any remaining tasks.
-    /// Nurseries are always empty upon entry to the withNursery body.
+    /// Query whether the task group has any remaining tasks.
+    /// Nurseries are always empty upon entry to the Task.withGroup body.
     public var isEmpty: Bool { ... } 
 
-    /// Cancel all the remaining tasks in the nursery.
+    /// Cancel all the remaining tasks in the task group.
     /// Any results, including errors thrown, are discarded.
     public mutating func cancelAll() { ... } 
   }
 }
 ```
 
-A nursery _guarantees_ that it will `await` for all tasks that were added to it before it returns.
+A task group _guarantees_ that it will `await` for all tasks that were added to it before it returns.
 
 This waiting can be performed either: 
-- by the code within the nursery itself, or
-- by transparently nursery itself when returning from it.
+- by the code within the task group itself, or
+- by transparently task group itself when returning from it.
 
-In the `chopVegetables()` example we not only added vegetable chopping tasks to the nursery, but also collected the chopped up results. See below for simplified reminder of the general pattern:
+In the `chopVegetables()` example we not only added vegetable chopping tasks to the task group, but also collected the chopped up results. See below for simplified reminder of the general pattern:
 
 ```swift
 func chopVegetables(rawVeggies: [Vegetable]) async throws -> [ChoppedVegetable] {
-  await try Task.withNursery(resultType: ChoppedVegetable.self) { nursery in    
+  await try Task.withGroup(resultType: ChoppedVegetable.self) { task group in    
     var choppedVeggies: [ChoppedVegetable] = []
     choppedVeggies.reserveCapacity(veggies.count)
         
     // add all chopping tasks and process them concurrently
     for v in rawVeggies {
-      await try nursery.add { // await the successful adding of the task 
+      await try task group.add { // await the successful adding of the task 
         await v.chopped() // await the processing result of task
       }
     }
 
-    while let choppedVeggie = await try nursery.next() { 
+    while let choppedVeggie = await try task group.next() { 
       choppedVeggies.append(choppedVeggie)
     }
     
@@ -472,24 +472,24 @@ func chopVegetables(rawVeggies: [Vegetable]) async throws -> [ChoppedVegetable] 
 
 #### Nurseries: Throwing and cancellation
 
-Worth pointing out here is that adding a task to a nursery could fail because the nursery could have been cancelled when we were about to add more tasks to it. To visualize this, let us consider the following example:
+Worth pointing out here is that adding a task to a task group could fail because the task group could have been cancelled when we were about to add more tasks to it. To visualize this, let us consider the following example:
 
-Tasks in a nursery by default handle thrown errors using like the musketeers would, that is: "*One for All, and All for One!*" In other words, if a single task throws an error, which escapes into the nursery, all other tasks will be cancelled and the nursery will re-throw this error.
+Tasks in a task group by default handle thrown errors using like the musketeers would, that is: "*One for All, and All for One!*" In other words, if a single task throws an error, which escapes into the task group, all other tasks will be cancelled and the task group will re-throw this error.
 
-To visualize this, let us consider chopping vegetables again. One type veggetable that can be quite tricky to chop up is onions, they can make you cry if you don't watch out. If we attempt to chop up those vegetables, the onion will throw an error into the nursery, causing all other tasks to be cancelled automatically:
+To visualize this, let us consider chopping vegetables again. One type veggetable that can be quite tricky to chop up is onions, they can make you cry if you don't watch out. If we attempt to chop up those vegetables, the onion will throw an error into the task group, causing all other tasks to be cancelled automatically:
 
 ```swift
 func chopOnionsAndCarrots(rawVeggies: [Vegetable]) async throws -> [Vegetable] {
-  await try Task.withNursery { nursery in // (3) will re-throw the onion chopping error
+  await try Task.withGroup { task group in // (3) will re-throw the onion chopping error
     // kick off asynchronous vegetable chopping:
     for v in rawVeggies {
-      await try nursery.add { 
+      await try task group.add { 
         await try v.chopped() // (1) throws
       }
     }
     
     // collect chopped up results:
-    while let choppedVeggie = await try nursery.next() { // (2) will throw for the onion
+    while let choppedVeggie = await try task group.next() { // (2) will throw for the onion
       choppedVeggies.append(choppedVeggie)
     }
   }
@@ -498,13 +498,13 @@ func chopOnionsAndCarrots(rawVeggies: [Vegetable]) async throws -> [Vegetable] {
 
 Let us break up the `chopOnionsAndCarrots()` function into multiple steps to fully understand its semantics:
 
-- first w add vegetable chopping tasks to the nursery
+- first w add vegetable chopping tasks to the task group
 - the chopping of the various vegetables beings asynchronously,
 - eventually an onion will be chopped and `throw`
 
-#### Nurseries: Parent task cancellation
+#### Task Groups: Parent task cancellation
 
-So far we did not yet discuss the cancellation of nurseries. A nursery can be cancelled if the task in which it was created is cancelled. Cancelling a nursery cancels all the tasks within it. Attempting to add more tasks into a cancelled nursery will throw a `CancellationError`. The following example illustrates these semantics:
+So far we did not yet discuss the cancellation of task groups. A task group can be cancelled if the task in which it was created is cancelled. Cancelling a task group cancels all the tasks within it. Attempting to add more tasks into a cancelled task group will throw a `CancellationError`. The following example illustrates these semantics:
 
 ```swift
 struct WorkItem { 
@@ -515,13 +515,13 @@ struct WorkItem {
 }
 
 let handle = Task.runDetached {
-  await try Task.withNursery(resultType: Int.self) { nursery in
+  await try Task.withGroup(resultType: Int.self) { task group in
     var processed = 0
     for w in workItems { // (3)
-      try await nursery.add { await w.process() }
+      try await task group.add { await w.process() }
     }
     
-    while let result = try await nursery.next() { 
+    while let result = try await task group.next() { 
       processed += 1
     }
     
@@ -534,26 +534,26 @@ handle.cancel() // (1)
 try await handle.get() // will throw CancellationError // (2)
 ```
 
-There are various ways a task could be cancelled, however for this example let us consider a detached task being cancelled explicitly. This task is the parent task of the nursery, and as such the cancelation will be propagated to it once the parent task's handle `cancel()` is invoked.
+There are various ways a task could be cancelled, however for this example let us consider a detached task being cancelled explicitly. This task is the parent task of the task group, and as such the cancelation will be propagated to it once the parent task's handle `cancel()` is invoked.
 
-Nurseries automatically check for the cancellation of the parent task when creating a new child task or waiting for a child task for complete. Adding a new task may also suspend if the system is under substantial load, as a form of back-pressure on the "queue" of new tasks being added to the system. These considerations allow the programmer to write straightforward, natural-feeling code that will still usually do the right thing by default.
+Task Groups automatically check for the cancellation of the parent task when creating a new child task or waiting for a child task for complete. Adding a new task may also suspend if the system is under substantial load, as a form of back-pressure on the "queue" of new tasks being added to the system. These considerations allow the programmer to write straightforward, natural-feeling code that will still usually do the right thing by default.
 
-#### Nurseries: Implicitly awaited tasks
-Sometimes it is not necessary to gather the results of asynchronous functions (e.g. because they may be `Void` returning, "uni-directional"), in this case we can rely on the nursery implicitly awaiting for all tasks started before returning. 
+#### Task Groups: Implicitly awaited tasks
+Sometimes it is not necessary to gather the results of asynchronous functions (e.g. because they may be `Void` returning, "uni-directional"), in this case we can rely on the task group implicitly awaiting for all tasks started before returning. 
 
 In the following example we need to confirm each order that we received, however that confirmation does not return any useful value to us (either it is `Void` or we simply choose to ignore the return values):
 
 ```swift
 func confirmOrders(orders: [Order]) async throws {
-  await try Task.withNursery { nursery in 
+  await try Task.withGroup { task group in 
     for order in orders {
-      await try nursery.add { await order.confirm() } 
+      await try task group.add { await order.confirm() } 
     }
   }
 }
 ```
 
-The `confirmOrders()` function will only return once all confirmations have completed, because the nursery will "at the end-edge" of it's scope, await any outstanding tasks.
+The `confirmOrders()` function will only return once all confirmations have completed, because the task group will "at the end-edge" of it's scope, await any outstanding tasks.
 
  
 ### Detached Tasks
@@ -591,7 +591,7 @@ extension Task {
 
 ### Low-level code and integrating with legacy APis with `UnsafeContinuation`
 
-The low-level execution of asynchronous code occasionally requires escaping the high-level abstraction of an async functions and nurseries. Also, it is important to enable APIs to interact with existing non-`async` code yet still be able to present to the users of such API a pleasant to use async function based interface.
+The low-level execution of asynchronous code occasionally requires escaping the high-level abstraction of an async functions and task groups. Also, it is important to enable APIs to interact with existing non-`async` code yet still be able to present to the users of such API a pleasant to use async function based interface.
 
 For such situations, this proposal introduces the concept of a `Unsafe(Throwing)Continuation`:
 
