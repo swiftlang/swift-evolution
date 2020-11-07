@@ -18,7 +18,7 @@ Property wrappers have undoubtably been very successful. Applying a property wra
 
 ```swift
 @propertyWrapper
-struct Clamped<Bound: Comparable> {
+struct Clamped<Bound : Comparable> {
 
   init(
     wrappedValue: Bound,
