@@ -124,7 +124,7 @@ struct MyView: View {
 
 
   var body: some View {
-    ForEach($shoppingItems) { @Binding shoppingItem in
+    ForEach($shoppingItems) { (@Binding shoppingItem) in
     
       TextField("Enter the item's name...", $shoppingItem.name)
       
@@ -144,7 +144,7 @@ We propose to extend the contexts where application of property-wrapper types is
 
 Property wrappers are essentially sugar wrapping a given property with compiler synthesized code. This proposal retains this principle employing the following rules for transformation.
 
-### Property Wrappers on Function Parameters
+### Property wrappers on function parameters
 
 A function parameter marked with property-wrapper custom attributes must conform to the following rules:
 
@@ -161,7 +161,7 @@ Transformation of property-wrapper parameters will be performed as such:
 5. If the property wrapper defines a `projectedValue`, a local computed property representing  `projectedValue` will be synthesized by the compiler and named per the original parameter name prefixed with a dollar sign (`$`). The same accessor rules for `wrappedValue` apply to `projectedValue`.
 6. When passing an argument to a property wrapper parameter, the compiler will wrap the argument in the appropriate `init(wrappedValue:)` call.
 
-#### Transformation Example:
+#### Transformation example:
 
 ```swift
 @propertyWrapper
@@ -206,7 +206,7 @@ func postUrl(urlString _urlString: Lowercased) {
 postUrl(urlString: Lowercased(wrappedValue: "mySite.xyz/myUnformattedUsErNAme"))
 ```
 
-#### Restrictions on Property Wrapper Function Parameters
+#### Restrictions on property wrapper function parameters
 
 ##### `@autoclosure`
 
@@ -232,7 +232,7 @@ postUrl(urlString: Lowercased(wrappedValue: "mySite.xyz/myUnformattedUsErNAme"))
 The changing type of the `@autoclosure` is incredibly misleading, as it's not obvious that `@autoclosure` applies to the backing wrapper rather than the wrapped value. Therefore, using `@autoclosure` for a property wrapper function parameter will be a compiler error.
 
 
-### Property Wrappers on Closure Parameters
+### Property wrappers on closure parameters
 
 Closure parameters marked with a set of property wrapper custom attributes must conform to the following rules:
 
@@ -247,7 +247,7 @@ The transformation of a property wrapper closure parameter will take place as fo
 3. A local computed property representing  `wrappedValue` will be synthesized by the compiler and named per the original (non-prefixed) parameter name. The accessors will mirror the `wrappedValue` accessors. A setter will only be synthesized for the local property if the `wrappedValue` setter is `nonmutating`, or if the wrapper is a reference type.
 4. If the property wrapper defines a `projectedValue`, a local computed property representing  `projectedValue` will be synthesized by the compiler and named per the original parameter name prefixed with a dollar sign (`$`). The same accessor rules for `wrappedValue` apply to `projectedValue`.
 
-#### Transformation Example:
+#### Transformation example:
 
 ```swift
 @propertyWrapper
@@ -272,7 +272,7 @@ struct Reference<Value> {
 
 typealias A = (Reference<Int>) -> Void
 
-let a: A = { @Reference reference in
+let a: A = { (@Reference reference) in
   ...
 }
 ```
@@ -347,9 +347,9 @@ useReference { reference in
 This approach enables inference of the wrapper attribute on the closure parameter from context. However, this breaks the property wrapper declaration model, and it would force callers into the property wrapper syntax. This approach also raises questions about anonymous closure parameters that have an inferred property wrapper custom attribute. If an anonymous closure parameter `$0` has the `wrappedValue` type, accessing the backing wrapper and projected value would naturally use `_$0` and `$$0`, which are far from readable. If `$0` has the backing wrapper type, this would mean that naming the parameter would cause the value to change types, which is very unexpected for the user. Finally, the property wrapper syntax is purely implementation detail for the closure body, which does not belong in the API signature.
 
 
-## Future Directions
+## Future directions
 
-### Support Property Wrapper Initialization from a Projected Value
+### Support property wrapper initialization from a projected value
 
 Today, a property wrapper can be initialized from an instance of its `wrappedValue` type if the wrapper provides a suitable `init(wrappedValue:)`. The same initialization strategy is used in this proposal for property wrapper parameters to allow users to pass a wrapped value as a property wrapper argument. We could extend this model to support initializing a property wrapper from an instance of its `projectedValue` type by allowing property wrappers to define an `init(projectedValue:)` that follows the same rules as `init(wrappedValue:)`. This could allow users to additionally pass a projected value as a property wrapper argument, like so:
 
@@ -375,12 +375,12 @@ distanceFromUpperBound(
 ```
 
 
-### Add Support for `inout` Wrapped Parameters is Functions
+### Add support for `inout` wrapped parameters in functions
 
 This proposal doesn't currently support marking function parameters to which wrapper types have been applied `inout`. We deemed that this functionality would be better tackled by another proposal due to its implementation complexity. However, such a feature would be really useful for wrapper types with value semantics and it would simplify the mental model. Furthermore, it could alleviate some confusion for users that don't understand the difference between a setter with value semantics and one with reference semantics.
 
 
-### Accessing Enclosing Self from Wrapper Types
+### Accessing enclosing `Self` from wrapper types
 
 There's currently no public feature that allows a wrapper to access its enclosing `Self` type:
 
@@ -431,7 +431,7 @@ func valueAndIdPair<Value>(
 
 It's important to note that allowing use of such a feature in function parameters would entail some limitations. For example, a parameter marked with a wrapper type referencing enclosing `self` would be an error for a non-instance method, as the accessors for the `wrappedValue` and `projectedValue` need an enclosing `self` instance.
 
-### Add Wrapper Types in the Standard Library
+### Add wrapper types in the standard library
 
 Adding wrapper types to the Standard Library has been discussed for types [such as `@Atomic`](https://forums.swift.org/t/atomic-property-wrapper-for-standard-library/30468) and [`@Weak`](https://forums.swift.org/t/should-weak-be-a-type/34032), which would facilitate certain APIs. Another interesting Standard Library wrapper type could be `@UnsafePointer`, which would be quite useful, as access of the `pointee` property is quite common:
 
@@ -449,7 +449,7 @@ Instead of writing the above, in the future one might be able to write this:
 ```swift
 let myInt = 0
 
-withUnsafePointer(to: ...) { @UnsafePointer value in
+withUnsafePointer(to: ...) { (@UnsafePointer value) in
 
   print(value) // 0
   
