@@ -146,7 +146,7 @@ Property wrappers are essentially sugar wrapping a given property with compiler 
 
 ### Property wrappers on function parameters
 
-A function parameter marked with property-wrapper custom attributes must conform to the following rules:
+A function parameter marked with property-wrapper custom-attributes must conform to the following rules:
 
 1. Property wrapper function parameters must support initialization through their `wrappedValue` type. Therefore, all property-wrapper types must provide a suitable `init(wrappedValue:)`.
 2. Each `wrappedValue` getter must be `nonmutating`.
@@ -206,11 +206,11 @@ func postUrl(urlString _urlString: Lowercased) {
 postUrl(urlString: Lowercased(wrappedValue: "mySite.xyz/myUnformattedUsErNAme"))
 ```
 
-#### Restrictions on property wrapper function parameters
+#### Restrictions on property-wrapper function-parameters
 
 ##### `@autoclosure`
 
-Function parameters with a property wrapper custom attribute cannot have an `@autoclosure` type. `@autoclosure` is unnecessary for the wrapped value itself because the wrapped value argument at the call-site will always be wrapped in a call to `init(wrappedValue:)`, which already can support `@autoclosure` arguments. Using `@autoclosure` for the backing wrapper type would be misleading, because the type spelled out for the parameter would not be the true autoclosure type. Consider the `reportProgress` example from above with an `@autoclosure` parameter:
+Function parameters with a property-wrapper custom-attribute cannot have an `@autoclosure` type, because `@autoclosure` is _unnecessary_ for the wrapped value itself. That is, the wrapped-value argument at the call-site will _always_ be wrapped in a call to `init(wrappedValue:)`, which can already support `@autoclosure` arguments. Furthermore, using `@autoclosure` for the backing wrapper-type would be misleading, since the type spelled out for the parameter would not be the true autoclosure type; consider the `reportProgress` example from above with an `@autoclosure` parameter:
 
 ```swift
 func postUrl(
@@ -229,12 +229,12 @@ func postUrl(
 
 postUrl(urlString: Lowercased(wrappedValue: "mySite.xyz/myUnformattedUsErNAme"))
 ```
-The changing type of the `@autoclosure` is incredibly misleading, as it's not obvious that `@autoclosure` applies to the backing wrapper rather than the wrapped value. Therefore, using `@autoclosure` for a property wrapper function parameter will be a compiler error.
+As you can see, the changing type of the `@autoclosure` is incredibly misleading, as it's not obvious that `@autoclosure` applies to the backing wrapper rather than the wrapped value. For these reasons, using `@autoclosure` for a property-wrapper function-parameter will be invalid.
 
 
 ### Property wrappers on closure parameters
 
-Closure parameters marked with a set of property wrapper custom attributes must conform to the following rules:
+Closure parameters marked with a set of property-wrapper custom-attributes must conform to the following rules:
 
 1. Each wrapper attribute must not specify any arguments.
 2. Each `wrappedValue` getter must be `nonmutating`.
@@ -313,13 +313,13 @@ This is an additive change with no impact on the existing ABI.
 
 ## Effect on API resilience
 
-This proposal introduces the need for property wrapper custom attributes to become part of public API. A property wrapper applied to a function parameter changes the type of that parameter in the ABI, and it changes the way that function callers are compiled to pass an argument of that type. Thus, adding or removing a property wrapper on a public function parameter is an ABI-breaking change.
+This proposal introduces the need for property-wrapper custom-attributes to become part of public API. Therefore, a property wrapper applied to a function parameter changes the type of that parameter in the ABI, and it changes the way that function callers are compiled to pass an argument of that type. Thus, adding or removing a property wrapper on a public function-parameter is an ABI-breaking change.
 
 ## Alternatives considered
 
 ### Callee-side property wrapper application
 
-Instead of initializing the backing property wrapper using the argument at the call-site of a function that accepts a wrapped parameter, another approach is to initialize the backing property wrapper using the parameter in the function body. One benefit of this approach is that annotating a parameter with a property wrapper attribute would not change the type of the function, and therefore adding/removing a wrapper attribute would be a resilient change.
+Instead of initializing the backing property-wrapper using the argument at the call-site of a function that accepts a wrapped parameter, another approach is to initialize the backing property wrapper using the parameter in the function body. One benefit of this approach is that annotating a parameter with a property wrapper attribute would not change the type of the function, and therefore adding/removing a wrapper attribute would be a resilient change.
 
 Under these semantics, using a property wrapper parameter is effectively the same as using a local property wrapper that is initialized from a parameter. This implies that:
 
