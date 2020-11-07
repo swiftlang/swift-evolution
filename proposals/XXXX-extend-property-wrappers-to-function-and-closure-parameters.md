@@ -355,7 +355,7 @@ Today, a property wrapper can be initialized from an instance of its `wrappedVal
 
 ```swift
 @propertyWrapper
-struct Clamped<Value: Comparable> {
+struct Clamped<Value : Comparable> {
 
   ...
   
