@@ -319,19 +319,19 @@ This proposal introduces the need for property-wrapper custom-attributes to beco
 
 ### Callee-side property wrapper application
 
-Instead of initializing the backing property-wrapper using the argument at the call-site of a function that accepts a wrapped parameter, another approach is to initialize the backing property wrapper using the parameter in the function body. One benefit of this approach is that annotating a parameter with a property wrapper attribute would not change the type of the function, and therefore adding/removing a wrapper attribute would be a resilient change.
+Instead of initializing the backing property-wrapper using the argument at the call-site of a function that accepts a wrapped parameter, another approach is to initialize the backing property-wrapper using the parameter in the function body. One benefit of this approach is that annotating a parameter with a property-wrapper attribute would not change the type of the function, and therefore adding or removing a wrapper attribute would be a resilient change.
 
-Under these semantics, using a property wrapper parameter is effectively the same as using a local property wrapper that is initialized from a parameter. This implies that:
+Under these semantics, using a property-wrapper parameter is effectively the same as using a local property-wrapper that is initialized from a parameter. This implies that:
 
-1. A property wrapper parameter cannot be used to opt into property wrapper syntax in the body of a closure that has a parameter with a property wrapper type.
+1. A property-wrapper parameter cannot be used to opt into property-wrapper syntax in the body of a closure that has a parameter with a property-wrapper type.
 2. The type of the argument provided at the call-site cannot affect the overload resolution of `init(wrappedValue:)`.
-3. This feature cannot be extended to allow the call-site to initialize the backing wrapper using a mechanism other than `init(wrappedValue:)`, which is discussed later as a future direction. This further implies that property wrapper parameters can only be used with property wrappers that support `init(wrappedValue:)`.
+3. This feature cannot be extended to allow the call-site to initialize the backing wrapper using a mechanism other than `init(wrappedValue:)`, which is later discussed as a future direction. This further implies that property-wrapper parameters can only be used with property wrappers that support `init(wrappedValue:)`.
 
-One of the main use cases for property wrapper parameters is opting into property wrapper syntax in the body of a closure, which makes this approach unviable.
+One of the main use cases for property-wrapper parameters is opting into property-wrapper syntax in the body of a closure, which makes this approach unviable.
 
-### Property wrapper attributes as type attributes
+### Property-wrapper attributes as type attributes
 
-One approach for marking closure parameters as property wrappers is to allow property wrapper custom attributes to be applied to types, such as:
+One approach for marking closure parameters as property wrappers is to allow property-wrapper custom-attributes to be applied to types, such as:
 
 ```swift
 func useReference(
@@ -344,12 +344,12 @@ useReference { reference in
 }
 ```
 
-This approach enables inference of the wrapper attribute on the closure parameter from context. However, this breaks the property wrapper declaration model, and it would force callers into the property wrapper syntax. This approach also raises questions about anonymous closure parameters that have an inferred property wrapper custom attribute. If an anonymous closure parameter `$0` has the `wrappedValue` type, accessing the backing wrapper and projected value would naturally use `_$0` and `$$0`, which are far from readable. If `$0` has the backing wrapper type, this would mean that naming the parameter would cause the value to change types, which is very unexpected for the user. Finally, the property wrapper syntax is purely implementation detail for the closure body, which does not belong in the API signature.
+This approach enables inference of the wrapper attribute on the closure parameter from context. However, this breaks the property-wrapper declaration-model, and would force callers to use the property-wrapper syntax. This approach, also, raises questions about anonymous closure-parameters that have an inferred property-wrapper custom-attribute. That is, if an anonymous closure parameter `$0` has the `wrappedValue` type, accessing the backing wrapper and projected value would naturally use `_$0` and `$$0`, which are _far_ from readable. Furthermore, suppose `$0` is bound to the backing wrapper-type; this would mean that naming the parameter would cause the value to change types, which would be very unexpected from a user standpoint. All in all, the property-wrapper syntax is purely an implementation detail for the closure body, which does _not_ belong to the API signature.
 
 
 ## Future directions
 
-### Support property wrapper initialization from a projected value
+### Support property-wrapper initialization from a projected value
 
 Today, a property wrapper can be initialized from an instance of its `wrappedValue` type if the wrapper provides a suitable `init(wrappedValue:)`. The same initialization strategy is used in this proposal for property wrapper parameters to allow users to pass a wrapped value as a property wrapper argument. We could extend this model to support initializing a property wrapper from an instance of its `projectedValue` type by allowing property wrappers to define an `init(projectedValue:)` that follows the same rules as `init(wrappedValue:)`. This could allow users to additionally pass a projected value as a property wrapper argument, like so:
 
