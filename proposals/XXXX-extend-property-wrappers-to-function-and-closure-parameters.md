@@ -156,9 +156,9 @@ Transformation of property-wrapper parameters will be performed as such:
 
 1. The argument label will remain unchanged.
 2. The parameter name will be prefixed with an underscore.
-3. The parameter will be bound to the backing property wrapper type.
-4. A local computed property representing  `wrappedValue` will be synthesized by the compiler and named per the original (non-prefixed) parameter name. The accessors will mirror the `wrappedValue` accessors. A setter will only be synthesized for the local property if the `wrappedValue` setter is `nonmutating`, or if the wrapper is a reference type.
-5. If the property wrapper defines a `projectedValue`, a local computed property representing  `projectedValue` will be synthesized by the compiler and named per the original parameter name prefixed with a dollar sign (`$`). The same accessor rules for `wrappedValue` apply to `projectedValue`.
+3. The parameter will be bound to the backing property-wrapper type.
+4. A local computed property representing  `wrappedValue` will be synthesized by the compiler and named per the original – non-prefixed – parameter name. Moreover, the accessors will mirror the `wrappedValue` accessors. Lastly, a setter will _only_ be synthesized for the local property if the `wrappedValue`'s setter is `nonmutating`, or if the wrapper is a reference type.
+5. If the property wrapper defines a `projectedValue` property, a local computed property representing `projectedValue` will be synthesized by the compiler and named per the original parameter name prefixed with a dollar sign (`$`). The same accessor rules for `wrappedValue` apply to `projectedValue`.
 6. When passing an argument to a property wrapper parameter, the compiler will wrap the argument in the appropriate `init(wrappedValue:)` call.
 
 #### Transformation example:
@@ -238,14 +238,14 @@ Closure parameters marked with a set of property wrapper custom attributes must 
 
 1. Each wrapper attribute must not specify any arguments.
 2. Each `wrappedValue` getter must be `nonmutating`.
-3. Any contextual type for the parameter must match the outermost backing wrapper type.
+3. Any contextual type for the parameter must match the outermost backing-wrapper type.
 
 The transformation of a property wrapper closure parameter will take place as follows:
 
 1. The parameter name will be prefixed with an underscore.
-2. The parameter will be bound to the backing property wrapper type.
-3. A local computed property representing  `wrappedValue` will be synthesized by the compiler and named per the original (non-prefixed) parameter name. The accessors will mirror the `wrappedValue` accessors. A setter will only be synthesized for the local property if the `wrappedValue` setter is `nonmutating`, or if the wrapper is a reference type.
-4. If the property wrapper defines a `projectedValue`, a local computed property representing  `projectedValue` will be synthesized by the compiler and named per the original parameter name prefixed with a dollar sign (`$`). The same accessor rules for `wrappedValue` apply to `projectedValue`.
+2. The parameter will be bound to the backing property-wrapper type.
+3. A local computed property representing  `wrappedValue` will be synthesized by the compiler and named per the original – non-prefixed – parameter name. Furthermore, the accessors will mirror the `wrappedValue` accessors. Lastly, a setter will only be synthesized for the local property if the `wrappedValue` setter is `nonmutating`, or if the wrapper is a reference type.
+4. If the property wrapper defines a `projectedValue` property, a local computed property representing  `projectedValue` will be synthesized by the compiler and named per the original parameter name prefixed with a dollar sign (`$`). The same accessor rules for `wrappedValue` apply to `projectedValue`.
 
 #### Transformation example:
 
@@ -433,7 +433,7 @@ It's important to note that allowing use of such a feature in function parameter
 
 ### Add wrapper types in the standard library
 
-Adding wrapper types to the Standard Library has been discussed for types [such as `@Atomic`](https://forums.swift.org/t/atomic-property-wrapper-for-standard-library/30468) and [`@Weak`](https://forums.swift.org/t/should-weak-be-a-type/34032), which would facilitate certain APIs. Another interesting Standard Library wrapper type could be `@UnsafePointer`, which would be quite useful, as access of the `pointee` property is quite common:
+Adding wrapper types to the standard library has been discussed for types [such as `@Atomic`](https://forums.swift.org/t/atomic-property-wrapper-for-standard-library/30468) and [`@Weak`](https://forums.swift.org/t/should-weak-be-a-type/34032), which would facilitate certain APIs. Another interesting standard library wrapper type could be `@UnsafePointer`, which would be quite useful, as access of the `pointee` property is quite common:
 
 ```swift
 let myPointer: UnsafePointer<UInt8> = ...
