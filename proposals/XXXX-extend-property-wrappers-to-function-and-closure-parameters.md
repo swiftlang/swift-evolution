@@ -14,7 +14,45 @@ Property Wrappers were [introduced in Swift 5.1](https://github.com/apple/swift-
 
 ## Motivation
 
-Property wrappers have undoubtably been very successful. Applying a property wrapper to a property is enabled by an incredibly lightweight and expressive syntax. Therefore, library authors can expose complex behavior through easily understandable property-wrapper types in an efficient manner. For instance, frameworks such as [SwiftUI](https://developer.apple.com/documentation/swiftui/) and [Combine](https://developer.apple.com/documentation/combine) introduce property wrappers such as [`State`](https://developer.apple.com/documentation/swiftui/state), [`Binding`](https://developer.apple.com/documentation/swiftui/binding) and [`Published`](https://developer.apple.com/documentation/combine/published) respectively, to expose elaborate behavior through a succinct interface, helping craft expressive yet simple APIs. However, property wrappers are only applicable to local and type properties, shattering the illusion that they helped realize in the first place:
+Property wrappers have undoubtably been very successful. Applying a property wrapper to a property is enabled by an incredibly lightweight and expressive syntax. Therefore, library authors can expose complex behavior through easily understandable property-wrapper types in an efficient manner. For instance, frameworks such as [SwiftUI](https://developer.apple.com/documentation/swiftui/) and [Combine](https://developer.apple.com/documentation/combine) introduce property wrappers such as [`State`](https://developer.apple.com/documentation/swiftui/state), [`Binding`](https://developer.apple.com/documentation/swiftui/binding) and [`Published`](https://developer.apple.com/documentation/combine/published) respectively, to expose elaborate behavior through a succinct interface, helping craft expressive yet simple APIs. However, property wrappers are only applicable to local variables and type properties, shattering the illusion that they helped realize in the first place when working with parameters.
+
+### Memberwise initialization
+
+Currently, property wrappers on stored struct properties already interact with parameters through the generated memberwise initializer for the struct. However, property wrapper attributes are not supported on parameters, which leads to really complicated and nuanced rules for which type the generated memberwise initializer should accept.
+
+The compiler will choose the wrapped value type to offer a convenience to the call-site when the property wrapper supports initalization through the wrapped value type via `init(wrappedValue:)`:
+
+```swift
+import SwiftUI
+
+struct TextEditor {
+  @State var document: Optional<URL>
+}
+
+func openEditor(with swiftFile: URL) -> TextEditor {
+  TextEditor(document: swiftFile)
+}
+```
+
+However, this can take flexibility away from the call-site if the property wrapper has other `init` overloads, because the call-site can cannot choose a different initializer. Further, if the property wrapper is default initialized in the struct, then the memberwise initializer will choose the backing wrapper type, even if the wrapper supports `init(wrappedValue:)`. This creates unnecessary boilerplate at call-sites that do want to use `init(wrappedValue:)`:
+
+```swift
+import SwiftUI
+
+struct TextEditor {
+  @State() var document: Optional<URL>
+}
+
+func openEditor(with swiftFile: URL) -> TextEditor {
+  TextEditor(document: State(wrappedValue: swiftFile))
+}
+```
+
+If the generated memberwise initializer always accepted the backing wrapper type while still allowing the call-site the convenience of automatically initializing the backing wrapper via a wrapped value type, this would greatly simplify the mental model for property wrapper initialization. This would also provide more control over the backing wrapper initialization at the call-site, which is more consistent with initailization of non-wrapped properties.
+
+### Function parameters with property wrapper type
+
+It is quite awkward and unintuitive that property wrappers cannot be applied to function parameters, as shown in the following example:
 
 ```swift
 @propertyWrapper
@@ -66,33 +104,11 @@ struct Percentage {
 }
 ```
 
-As seen in the above example, it is quite awkward and unintuitive that property wrappers cannot be applied to function parameters. In this case, a property wrapper parameter would be useful for expressing and enforcing invariants about the `offset` argument to the `adding` method on `Percentage`. Inability to allow the `@Clamped` attribute on the `offset` parameter causes the API author to choose between making invariant checking an implementation detail, or forcing the invariant checking on every caller of the API.
+In this case, a property wrapper parameter would be useful for expressing and enforcing invariants about the `offset` argument to the `adding` method on `Percentage`. Inability to allow the `@Clamped` attribute on the `offset` parameter causes the API author to choose between making invariant checking an implementation detail, or forcing the invariant checking on every caller of the API. This limitation in expressivity is emphasized by the fact that property wrappers were originally sought out to abstract away such patterns.
 
-This limitation in expressivity is emphasized by the fact that property wrappers were originally sought out to abstract away such patterns.  As a result, elegant APIs are undermined by this limitation. Not only is this limiting users by forcing them to carefully read documentation, which may not cover a specific use case, to make sure no invariants have been violated, but it also limits API authors in what they can create. That is, API authors can't use property-wrapper types in closure parameters nor can code be separated into functions that accept property wrapper syntax:
+### Closures accepting property wrapper types
 
-```swift
-extension Percentage {
-
-  func modify(
-    inSeconds seconds: Int,
-    block: @escaping (inout Clamped<Int>) -> Void
-  ) { ... }
-  
-}
-
-
-let myPercentage = Percentage(percent: 50)
-
-myPercentage
-  .modify(inSeconds: 3) { percent in
-    percent.wrappedValue = 100
-    //    ^~~~~~~~~~~~ 
-    // Again, we have to access
-    // count through 'wrappedValue'.
-  }
-```
-
-In fact, establishing custom behavior on closure parameters is really powerful. For example, if such a feature were supported, it could be used in conjunction with [Result Builders](https://github.com/apple/swift-evolution/blob/main/proposals/0289-result-builders.md) to expose data managed by a 'component' type. For instance, in SwiftUI [`ForEach`](https://developer.apple.com/documentation/swiftui/foreach) could leverage this feature to expose the mutable state of its data source to its 'content' closure. This would enable users to more easily work with the data source itself inside the closure instead of accessing the original property, which is particularly painful when working with collections, as shown in this example:
+Establishing custom behavior on closure parameters is really powerful. For example, if such a feature were supported, it could be used in conjunction with [Result Builders](https://github.com/apple/swift-evolution/blob/main/proposals/0289-result-builders.md) to expose data managed by a 'component' type. For instance, in SwiftUI [`ForEach`](https://developer.apple.com/documentation/swiftui/foreach) could leverage this feature to expose the mutable state of its data source to its 'content' closure. This would enable users to more easily work with the data source itself inside the closure instead of accessing the original property, which is particularly painful when working with collections, as shown in this example:
 
 ```swift
 struct MyView : View {
