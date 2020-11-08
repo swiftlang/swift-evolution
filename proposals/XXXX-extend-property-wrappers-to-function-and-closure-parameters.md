@@ -52,63 +52,40 @@ If the generated memberwise initializer always accepted the backing wrapper type
 
 ### Function parameters with property wrapper type
 
-It is quite awkward and unintuitive that property wrappers cannot be applied to function parameters, as shown in the following example:
+Using property-wrapper types for function parameters also results in boilerplate code, both in the function body and at the call-site:
 
 ```swift
 @propertyWrapper
-struct Clamped<Bound : Comparable> {
+struct Lowercased {
+  init(wrappedValue: String) { ... }
 
-  init(
-    wrappedValue: Bound,
-    to range: ClosedRange<Bound>
-  ) { ... }
-  
-  
-  var wrappedValue: Bound { 
+  var wrappedValue: String {
     get { ... }
     set { ... }
   }
-  
 }
 
-
-struct Percentage {
-
-  @Clamped(to: 0 ... 100)
-  var percent = 0
-     
-     
-  mutating func increment() {
-    percent += 1
-    // Great!
-  }
-
-  mutating func adding(_ offset: Int) {
-    percent += min(100, max(0, offset))
-    //         ^~~~~~~~~~~~~~~~~~~~~~~~
-    // We are forced to manually clamp 'offset' 
-    // instead of utilizing the abstraction 
-    // property wrappers offer.
-  }
-
-  mutating func adding(_ offset: Clamped<Int>) {
-    //                   ^~~~~~~~~~~~~~~~~~~~
-    // Unfortunately, we can't use 
-    // '@Clamped(to: 0 ... 100)' here.
-    
-    percent += offset.wrappedValue
-    //               ^~~~~~~~~~~~~
+func postUrl(urlString: Lowercased) {
+  guard let url = URL(string: urlString.wrappedValue) else { return }
+    //                                 ^~~~~~~~~~~~~
     // We must access 'wrappedValue' manually.
-  }
-  
+  ...
 }
+
+
+postUrl(urlString: Lowercased(wrappedValue: "mySite.xyz/myUnformattedUsErNAme"))
+//                 ^~~~~~~~~~
+// We must initialize `Lowercased` manually,
+// instead of automatically initializing
+// from its wrapped value type.
 ```
 
-In this case, a property wrapper parameter would be useful for expressing and enforcing invariants about the `offset` argument to the `adding` method on `Percentage`. Inability to allow the `@Clamped` attribute on the `offset` parameter causes the API author to choose between making invariant checking an implementation detail, or forcing the invariant checking on every caller of the API. This limitation in expressivity is emphasized by the fact that property wrappers were originally sought out to abstract away such patterns.
+In the above example, it is quite awkward and unintuitive that property wrappers cannot be applied to function parameters, and it prevents the programmer from removing unnecessary details from the code. The call-site of `postUrl` is forced to initialize an instance of `Lowercased` manually using `init(wrappedValue:)`, even though this initailization is automatic when using `@Lowercased` on a local variable or type property. Further, manually accessing `wrappedValue` in the function body can be distracting when trying to understand the implementation. These limitations in expressivity are emphasized by the fact that property wrappers were originally sought out to abstract away such patterns.
 
 ### Closures accepting property wrapper types
 
-Establishing custom behavior on closure parameters is really powerful. For example, if such a feature were supported, it could be used in conjunction with [Result Builders](https://github.com/apple/swift-evolution/blob/main/proposals/0289-result-builders.md) to expose data managed by a 'component' type. For instance, in SwiftUI [`ForEach`](https://developer.apple.com/documentation/swiftui/foreach) could leverage this feature to expose the mutable state of its data source to its 'content' closure. This would enable users to more easily work with the data source itself inside the closure instead of accessing the original property, which is particularly painful when working with collections, as shown in this example:
+The same boilerplate code in function bodies also applies to closures accepting property-wrapper types.
+ In fact, establishing custom behavior on closure parameters is really powerful. For example, if such a feature were supported, it could be used in conjunction with [Result Builders](https://github.com/apple/swift-evolution/blob/main/proposals/0289-result-builders.md) to expose data managed by a 'component' type. For instance, in SwiftUI [`ForEach`](https://developer.apple.com/documentation/swiftui/foreach) could leverage this feature to expose the mutable state of its data source to its `content` closure. This would enable users to more easily work with the data source itself inside the closure instead of accessing the original property, which is particularly painful when working with collections, as shown in this example:
 
 ```swift
 struct MyView : View {
