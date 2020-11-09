@@ -384,24 +384,6 @@ Under these semantics, using a property-wrapper parameter is effectively the sam
 
 One of the main use-cases for property-wrapper parameters is opting into property-wrapper syntax in the body of a closure, which makes this approach unviable.
 
-### Property-wrapper attributes as type attributes
-
-One approach for marking closure parameters as property wrappers is to allow property-wrapper custom attributes to be applied to types, such as:
-
-```swift
-func useReference(
-  _ closure: (@Reference Int) -> Void
-) { ... }
-
-
-useReference { reference in
-  ...
-}
-```
-
-This approach enables inference of the wrapper attribute on the closure parameter from context. However, this breaks the property-wrapper declaration model, and would force callers to use the property-wrapper syntax. This approach, also, raises questions about anonymous closure parameters that have an inferred property-wrapper custom attribute. That is, if an anonymous closure parameter `$0` has the `wrappedValue` type, accessing the backing wrapper and projected value would naturally use `_$0` and `$$0`, which are _far_ from readable. Furthermore, suppose `$0` is bound to the backing wrapper type; this would mean that naming the parameter would cause the value to be bound to a different type, which would be very unexpected from a user standpoint. All in all, the property-wrapper syntax is purely an implementation detail for the closure body, which does _not_ belong to the API signature.
-
-
 ## Future directions
 
 ### Additional calling syntax using `$`
@@ -412,6 +394,25 @@ In this proposal, a property-wrapper argument is wrapped in a call to `init(wrap
 func postUrl(@Lowercased urlString: String) { ... }
 
 postUrl($urlString: Lowercased(...))
+```
+
+### Property-wrapper attribute inference for closure parameters using `$`
+
+Many closures have a contextual type, which means the backing property-wrapper type can be inferred from context. So, spelling out the backing property-wrapper type in the custom attribute is repeating unnecessary type information. Instead, we could allow the `$` syntax on a closure parameter to infer the wrapper attribute:
+
+```swift
+struct MyView: View {
+
+  @State
+  private var shoppingItems: [Item]
+
+  var body: some View {
+    ForEach($shoppingItems) { $item in
+      TextField(item.name, $item.name)
+    }
+  }
+
+}
 ```
 
 ### Add support for `inout` wrapped parameters in functions
