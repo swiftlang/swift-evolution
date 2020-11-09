@@ -18,7 +18,9 @@ Property wrappers have undoubtably been very successful. Applying a property wra
 
 ### Memberwise initialization
 
-Currently, property-wrapped struct properties interact with function parameters, through the struct's synthesized memberwise initializer. However, property-wrapper attributes are _not_ supported on function parameters. This leads to really complicated and nuanced rules for which type, between the wrapped type and the backing property-wrapper type, the memberwise initializer accepts. Namely, the compiler will choose the wrapped-value type to offer a convenience to the call-site, when the property wrapper supports initalization through the suitable initializer: `init(wrappedValue:)`, as seen here:
+Currently, property-wrapper attributes on struct properties interact with function parameters through the struct's synthesized memberwise initializer. However, property-wrapper attributes are _not_ supported on function parameters. This leads to complicated and nuanced rules for which type, between the wrapped-value type and the backing property-wrapper type, the memberwise initializer accepts.
+
+The compiler will choose the wrapped-value type to offer a convenience to the call-site when the property wrapper has an initializer of the form `init(wrappedValue:)` accepting the wrapped-value type, as seen here:
 
 ```swift
 import SwiftUI
@@ -37,7 +39,7 @@ func openEditor(with swiftFile: URL) -> TextEditor {
 }
 ```
 
-However, this can take flexibility away from the call-site if the property wrapper has other `init` overloads, because the call-site _cannot_ choose a different initializer. Further, if the property wrapper is default-initialized in the struct, then the memberwise initializer will choose the backing-wrapper type, even if the wrapper supports `init(wrappedValue:)`. This results in unnecessary boilerplate at call-sites that _do_ want to use `init(wrappedValue:)`:
+However, this can take flexibility away from the call-site if the property wrapper has other `init` overloads, because the call-site _cannot_ choose a different initializer. Further, if the property wrapper is explicitly initialized via `init()`, then the memberwise initializer will choose the backing-wrapper type, even if the wrapper supports `init(wrappedValue:)`. This results in unnecessary boilerplate at call-sites that _do_ want to use `init(wrappedValue:)`:
 
 ```swift
 import SwiftUI
@@ -57,7 +59,9 @@ func openEditor(with swiftFile: URL) -> TextEditor {
 }
 ```
 
-If the generated memberwise initializer always accepted the backing wrapper type while still allowing the call-site the convenience of automatically initializing the backing wrapper via a wrapped value type, the mental model for property wrapper initialization would be greatly simplified. Moreover, this would also provide more control over the backing-wrapper initialization at the call-site, which is more consistent with initailization of non-wrapped properties.
+Note also that the argument label does not change when the memberwise initializer uses the backing wrapper type instead of the wrapped-value type.
+
+If the generated memberwise initializer always accepted the backing wrapper type while still allowing the call-site the convenience of automatically initializing the backing wrapper via a wrapped-value type, the mental model for property wrapper initialization would be greatly simplified. Moreover, this would provide more control over the backing-wrapper initialization at the call-site.
 
 ### Function parameters with property wrapper type
 
@@ -93,33 +97,53 @@ postUrl(urlString: Lowercased(wrappedValue: "mySite.xyz/myUnformattedUsErNAme"))
 // from its wrapped value type.
 ```
 
-In the above example, it is quite awkward and unintuitive that property wrappers cannot be applied to function parameters, and it prevents the programmer from removing unnecessary details from the code. The call-site of `postUrl` is forced to initialize an instance of `Lowercased` manually using `init(wrappedValue:)`, even though this initailization is automatic when using `@Lowercased` on a local variable or type property. Further, manually accessing `wrappedValue` in the function body can be distracting when trying to understand the implementation. These limitations in expressivity are emphasized by the fact that property wrappers were originally sought out to abstract away such patterns.
+In the above example, the inability to apply property wrappers to function parameters prevents the programmer from removing unnecessary details from the code. The call-site of `postUrl` is forced to initialize an instance of `Lowercased` manually using `init(wrappedValue:)`, even though this initailization is automatic when using `@Lowercased` on a local variable or type property. Further, manually accessing `wrappedValue` in the function body can be distracting when trying to understand the implementation. These limitations are emphasized by the fact that property wrappers were originally sought out to eliminate such boilerplate.
 
-### Closures accepting property wrapper types
+### Closures accepting property-wrapper types
 
-The same boilerplate code in function bodies also applies to closures accepting property-wrapper types.
- In fact, establishing custom behavior on closure parameters is really powerful. For example, in SwiftUI, [`ForEach`](https://developer.apple.com/documentation/swiftui/foreach) could leverage this feature to expose elements from its data source to its `content` closure directly. This would enable users to more easily work with the data source itself inside the closure instead of accessing the original property, which is particularly painful when working with collections, as shown in this example:
+Consider the following SwiftUI code, which uses [`ForEach`](https://developer.apple.com/documentation/swiftui/foreach) over a collection:
 
 ```swift
 struct MyView : View {
 
   // A simple Shopping Item that includes
   // a 'quantity' and a 'name' property.
-  @State 
+  @State
   private var shoppingItems: [Item]
 
   var body: some View {
     ForEach(0 ..< shoppingItems.count) { index in
-      TextField("Enter the item's name...", $shoppingItems[index].name)
+      TextField(shoppingItems[index].name, $shoppingItems[index].name)
     }
   }
-  
+
 }
 ```
 
+Working with `shoppingItems` in the closure body is painful, because the code must manually index into the original wrapped property, rather than working with collection elements directly in the closure. The manual indexing would be alleviated if the closure accepted `Binding`s to collection elements:
+
+```swift
+struct MyView : View {
+
+  // A simple Shopping Item that includes
+  // a 'quantity' and a 'name' property.
+  @State
+  private var shoppingItems: [Item]
+
+  var body: some View {
+    ForEach($shoppingItems) { itemBinding in
+      TextField(itemBinding.wrappedValue.name, itemBinding.name)
+    }
+  }
+
+}
+```
+
+However, now we observe the same boilerplate code in the closure body because the property-wrapper syntax cannot be used with the closure parameter.
+
 ## Proposed solution
 
-We propose to extend the contexts where application of property-wrapper types is permitted. Namely, application of such types will be allowed on function and closure parameters.
+We propose to allow application of property wrappers on function and closure parameters.
 
 Using property-wrapper parameters, the above `postUrl` example becomes:
 
@@ -132,23 +156,22 @@ func postUrl(@Lowercased urlString: String) {
 postUrl(urlString: "mySite.xyz/myUnformattedUsErNAme")
 ```
 
-What's more, if `Binding` conditionally conformed to `RandomAccessCollection`, property-wrapper parameters could be used with `ForEach` to access collection elements directly in the `content` closure; thus enabling property-wrapper syntax in the closure body:
+In the above SwiftUI example, if collection elements could be accessed via `Binding`s in the `ForEach` closure, property-wrapper parameters could be used to enable property-wrapper syntax in the closure body:
 
 ```swift
 struct MyView: View {
 
-  @State 
+  @State
   private var shoppingItems: [Item]
 
   var body: some View {
-    ForEach($shoppingItems) { (@Binding shoppingItem) in
-      TextField("Enter the item's name...", $shoppingItem.name)
+    ForEach($shoppingItems) { (@Binding item) in
+      TextField(item.name, $item.name)
     }
   }
-  
+
 }
 ```
-
 
 ## Detailed design
 
@@ -159,13 +182,9 @@ Property wrappers are essentially sugar wrapping a given property with compiler-
 A function parameter marked with property-wrapper custom attributes must conform to the following rules:
 
 1. Property-wrapper function parameters must support initialization through their `wrappedValue` type. Therefore, all property-wrapper types must provide an `init(wrappedValue:)` that allows the caller to only pass the `wrappedValue` argument.
-2. Each `wrappedValue` getter must be `nonmutating`.
-3. Default arguments must be expressed in terms the `wrappedValue` type of the innermost property wrapper.
+2. Default arguments must be expressed in terms the `wrappedValue` type of the innermost property wrapper.
 
-Closure parameters marked with a set of property-wrapper custom attributes must conform to the following rules:
-
-1. Each `wrappedValue` getter must be `nonmutating`.
-2. Any contextual type for the parameter must match the outermost backing-wrapper type.
+For a closure parameter marked with property-wrapper custom attributes, any contextual type for the parameter must match the outermost backing-wrapper type.
 
 ### Function body transformation
 
@@ -174,14 +193,25 @@ The transformation of function with a property-wrapper parameter will be perform
 1. For regular functions, the argument label will remain unchanged. 
 2. The parameter name will be prefixed with an underscore.
 3. The type of the parameter will be the backing property-wrapper type.
-4. A local computed property representing the `wrappedValue` of the innermost property wrapper will be synthesized by the compiler and named per the original, unprefixed parameter name. Also, if the innermost `wrappedValue` defines a setter, a setter will be synthesized for the local property if the `wrappedValue` setter is `nonmutating`, or if the wrapper is a reference type.
-5. If the outermost property wrapper defines a `projectedValue` property, a local computed property representing the outermost `projectedValue` will be synthesized and named per the original parameter name prefixed with a dollar sign (`$`). Addtionally, if the outermost `projectedValue` defines a setter, a setter for the local computed property will be synthesized if the `projectedValue` setter is `nonmutating`, or if the wrapper is a reference type.
+4. A local computed property representing the `wrappedValue` of the innermost property wrapper will be synthesized with the same name as the original, unprefixed parameter name. If the innermost `wrappedValue` defines a setter, a setter will be synthesized for the local property if the mutability of the setter would be `nonmutating`, or if the wrapper is a reference type. The mutability computation is specified below.
+5. If the outermost property wrapper defines a `projectedValue` property, a local computed property representing the outermost `projectedValue` will be synthesized and named per the original parameter name prefixed with a dollar sign (`$`). If the outermost `projectedValue` defines a setter, a setter for the local computed property will be synthesized if the `projectedValue` setter is `nonmutating`, or if the outermost wrapper is a reference type.
 
-### Call site transformation
+#### Mutability of composed `wrappedValue` accessors
 
-When passing an argument to a function with a property-wrapper parameter using the original argument label with no prefix, the compiler will wrap the argument in a call to `init(wrappedValue:)`. This transformation, though, does _not_ apply to closures, because closures are _not_ called with argument labels.
+The computation for mutability of a wrapped parameter's composed `wrappedValue` accessors will be the same as it is today for wrapped properties. The computation starts with the mutability of the outermost wrapper's `wrappedValue` accessor, and then iterates over the chain of composed property wrappers, "composing" the mutability of each `wrappedValue` accessor along the way using the following rules, which are the same for getters and setters:
 
-Since the property wrapper is initialized at the call site, this means that the argument type can impact overload resolution of `init(wrappedValue:)`. For example, if a property wrapper defines overloads of `init(wrappedValue:)` with different generic constraints and that wrapper is used on a function parameter, e.g.:
+* If the next `wrappedValue` accessor is `nonmutating`, then the mutability of the composed accessor is the same as the previous composed getter.
+* If the next `wrappedValue` accessor is `mutating`, then the composed accessor is `mutating` if the previous composed getter _or_ setter is `mutating`, since both are needed to perform a writeback cycle.
+
+If any of the property wrappers do not define a `wrappedValue` setter, then the wrapped property/parameter does not have a setter.
+
+### Call-site transformation
+
+When passing an argument to a function with a property-wrapper parameter using the original argument label with no prefix, the compiler will wrap the argument in a call to `init(wrappedValue:)`. This transformation does _not_ apply to closures, because closures are not called with argument labels.
+
+#### Overload resolution of `init(wrappedValue)`
+
+Since the property wrapper is initialized at the call-site, this means that the argument type can impact overload resolution of `init(wrappedValue:)`. For example, if a property wrapper defines overloads of `init(wrappedValue:)` with different generic constraints and that wrapper is used on a function parameter, e.g.:
 
 ```swift
 @propertyWrapper
@@ -195,7 +225,6 @@ struct Wrapper<Value> {
 
 
 func generic<T>(@Wrapper arg: T) { ... }
-
 ```
 
 Then, overload resolution will choose which `init(wrappedValue:)` to call based on the static type of the argument at the call site:
@@ -205,6 +234,21 @@ generic(arg: 10) // calls the unconstrained init(wrappedValue:)
 
 generic(arg: [1, 2, 3]) // calls the constrained init(wrappedValue:)
                         // because the argument conforms to Collection.
+```
+
+#### Unapplied references to functions with property-wrapper parameters
+
+Functions that accept property-wrapper parameters are transformed to accept the backing wrapper type. Consider the `postUrl` function from earlier:
+
+```swift
+func postUrl(@Lowercased urlString: String) { ... }
+```
+
+The type of `postUrl` is `(Lowercased) -> Void`. These semantics can be observed when working with an unapplied reference to `postUrl`:
+
+```swift
+let fn: (Lowercased) -> Void = postUrl
+fn(Lowercased(wrappedValue: "mySite.org/termsOfService"))
 ```
 
 ### Transformation examples:
@@ -248,17 +292,11 @@ postUrl(urlString: Lowercased(wrappedValue: "mySite.xyz/myUnformattedUsErNAme"))
 
 A setter for the local computed property `urlString` is _not_ synthesized because the setter of `Lowercased.wrappedValue` is `mutating`.
 
-Consider the following `Reference` property wrapper, which is used on a closure parameter:
+Now, consider the following `Reference` property wrapper, which is composed with `Lowercased` and used on a closure parameter:
 
 ```swift
 @propertyWrapper
 struct Reference<Value> {
-
-  init(
-    getter: @escaping () -> Value,
-    setter: @escaping (Value) -> Void
-  ) { ... }
-    
     
   var wrappedValue: Value {
     get 
@@ -271,23 +309,21 @@ struct Reference<Value> {
   
 }
 
-typealias A = (Reference<Int>) -> Void
-
-let a: A = { (@Reference reference) in
+let useReference = { (@Reference @Lowercased reference: String) in
   ...
 }
 ```
 
-In the above example, the closure `a` is equivalent to:
+In the above example, the closure `useReference` is equivalent to:
 
 ```swift
-let a: A = { (_reference: Reference<Int>) in
-  var reference: Int {
+let useReference = { (_reference: Reference<Lowercased>) in
+  var reference: String {
     get { 
-      _reference.wrappedValue
+      _reference.wrappedValue.wrappedValue
     }
     set { 
-      _reference.wrappedValue = newValue
+      _reference.wrappedValue.wrappedValue = newValue
     }
   }
 
@@ -301,9 +337,13 @@ let a: A = { (_reference: Reference<Int>) in
 }
 ```
 
-A setter is synthesized for the local computed property: `reference`, because the setter of `Reference.wrappedValue` is `nonmutating`. Since `Reference` defines a `projectedValue` property, a local computed property called `$reference` is synthesized in the closure, but it does _not_ have a setter, because `Reference.projectedValue` _only_ defines a getter.
+Since both the getter and setter of `Reference.wrappedValue` are `nonmutating`, a setter can be synthesized for `var reference`, even though `Lowercased.wrappedValue` has a `mutating` setter. `Reference` also defines a `projectedValue` property, so a local computed property called `$reference` is synthesized in the closure, but it does _not_ have a setter, because `Reference.projectedValue` only defines a getter.
 
 ### Restrictions on property-wrapper parameters
+
+The composed mutability of the innermost `wrappedValue` getter must be `nonmutating`.
+
+> **Rationale**: If the composed `wrappedValue` getter is `mutating`, then the local computed property for a property-wrapper parameter must mutate the backing wrapper, which is immutable.
 
 Property-wrapper parameters cannot have an `@autoclosure` type.
 
@@ -313,7 +353,7 @@ Property-wrapper parameters cannot have additional arguments in the wrapper attr
 
 > **Rationale**: Arguments on the wrapper attribute are expected to never be changed by the caller. However, it is not possible to enforce this today; thus, property-wrapper parameters cannot support additional arguments in the attribute until there is a mechanism for for per-declaration shared state for property wrappers.
 
-Non-instance methods _cannot_ use property wrappers that require the enclosing `self` subscript.
+Non-instance methods cannot use property wrappers that require the enclosing `self` subscript.
 
 > **Rationale**: Non-instance methods do _not_ have an enclosing `self` instance, which is required for the local computed property that represents `wrappedValue`.
 
@@ -364,33 +404,15 @@ This approach enables inference of the wrapper attribute on the closure paramete
 
 ## Future directions
 
-### Support property-wrapper initialization from a projected value
+### Additional calling syntax using `$`
 
-Under [the first property-wrapper proposal](https://github.com/apple/swift-evolution/blob/main/proposals/0258-property-wrappers.md), a property wrapper can be initialized from an instance of its wrapped type, if it provides a suitable intializer: `init(wrappedValue:)`. The same initialization strategy is used in this proposal for property-wrapper parameters, in order to allow users to pass a wrapped value as a property-wrapper argument. 
-
-We could extend this model to support initializing a property wrapper from an instance of its `projectedValue` type by enabling a feature whereby defining an `init(projectedValue:)` (that follows the same rules as `init(wrappedValue:)`) would enable special initialization syntax. Namely, it would enable users to pass a projected value as a property-wrapper argument, like so:
+In this proposal, a property-wrapper argument is wrapped in a call to `init(wrappedValue:)` when the call-site uses the original, unprefixed argument label. We could extend this model to support a different initialization mechanism for the backing wrapper, or to pass the backing wrapper directly, by using the original argument label prefixed with `$`, e.g.:
 
 ```swift
-@propertyWrapper
-struct Clamped<Value : Comparable> {
+func postUrl(@Lowercased urlString: String) { ... }
 
-  ...
-  
-
-  init(projectedValue: Self) { ... }
-  
-}
-
-func distanceFromUpperBound(
-  @Clamped clamped: Int
-) { ... }
-
-
-distanceFromUpperBound(
-  $clamped: Clamped(to: 0 ... 100, wrappedValue: 30)
-) // returns: 70
+postUrl($urlString: Lowercased(...))
 ```
-
 
 ### Add support for `inout` wrapped parameters in functions
 
