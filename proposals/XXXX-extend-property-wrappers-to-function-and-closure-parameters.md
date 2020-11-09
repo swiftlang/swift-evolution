@@ -18,9 +18,9 @@ Property wrappers have undoubtably been very successful. Applying a property wra
 
 ### Memberwise initialization
 
-Currently, property wrappers on stored struct properties already interact with parameters through the generated memberwise initializer for the struct. However, property wrapper attributes are not supported on parameters, which leads to really complicated and nuanced rules for which type the generated memberwise initializer should accept.
+Currently, property wrappers applied on struct properties already interact with parameters through the struct's synthesized memberwise initializer. However, property-wrapper attributes are _not_ supported on parameters, which leads to really complicated and nuanced rules for which type the synthesized memberwise initializer should accept.
 
-The compiler will choose the wrapped value type to offer a convenience to the call-site when the property wrapper supports initalization through the wrapped value type via `init(wrappedValue:)`:
+The compiler will choose the wrapped-value type to offer a convenience to the call-site, when the property wrapper supports initalization through the wrapped-value type via `init(wrappedValue:)`:
 
 ```swift
 import SwiftUI
@@ -38,7 +38,7 @@ func openEditor(with swiftFile: URL) -> TextEditor {
 }
 ```
 
-However, this can take flexibility away from the call-site if the property wrapper has other `init` overloads, because the call-site can cannot choose a different initializer. Further, if the property wrapper is default initialized in the struct, then the memberwise initializer will choose the backing wrapper type, even if the wrapper supports `init(wrappedValue:)`. This creates unnecessary boilerplate at call-sites that do want to use `init(wrappedValue:)`:
+However, this can take flexibility away from the call-site if the property wrapper has other `init` overloads, because the call-site can cannot choose a different initializer. Further, if the property wrapper is default-initialized in the struct, then the memberwise initializer will choose the backing-wrapper type, even if the wrapper supports `init(wrappedValue:)`. This creates unnecessary boilerplate at call-sites that _do_ want to use `init(wrappedValue:)`:
 
 ```swift
 import SwiftUI
