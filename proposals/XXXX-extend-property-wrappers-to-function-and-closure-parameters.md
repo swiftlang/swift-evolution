@@ -9,12 +9,12 @@
 
 ## Introduction
 
-Property Wrappers were [introduced in Swift 5.1](https://github.com/apple/swift-evolution/blob/main/proposals/0258-property-wrappers.md), and have since become a popular feature abstracting away common accessor patterns for properties. Currently, applying a property wrapper is solely permitted at local and type context. However, with increasing adoption, demand for extending _where_ property wrappers can be applied has emerged. This proposal aims to extend property wrappers to function and closure parameters.
+Property Wrappers were [introduced in Swift 5.1](https://github.com/apple/swift-evolution/blob/main/proposals/0258-property-wrappers.md), and have since become a popular mechanism for abstracting away common accessor patterns for properties. Currently, applying a property wrapper is solely permitted on local variables and type properties. However, with increasing adoption, demand for extending _where_ property wrappers can be applied has emerged. This proposal aims to extend property wrappers to function and closure parameters.
 
 
 ## Motivation
 
-Property wrappers have undoubtably been very successful. Applying a property wrapper to a property is enabled by an incredibly lightweight and expressive syntax. Therefore, library authors can expose complex behavior through easily understandable property-wrapper types in an efficient manner. For instance, frameworks such as [SwiftUI](https://developer.apple.com/documentation/swiftui/) and [Combine](https://developer.apple.com/documentation/combine) introduce property wrappers such as [`State`](https://developer.apple.com/documentation/swiftui/state), [`Binding`](https://developer.apple.com/documentation/swiftui/binding) and [`Published`](https://developer.apple.com/documentation/combine/published) respectively, to expose elaborate behavior through a succinct interface, helping craft expressive yet simple APIs. However, property wrappers are only applicable to local variables and type properties, shattering the illusion that they helped realize in the first place when working with parameters.
+Property wrappers have undoubtably been very successful. Applying a property wrapper to a property is enabled by an incredibly lightweight and expressive syntax. For instance, frameworks such as [SwiftUI](https://developer.apple.com/documentation/swiftui/) and [Combine](https://developer.apple.com/documentation/combine) introduce property wrappers such as [`State`](https://developer.apple.com/documentation/swiftui/state), [`Binding`](https://developer.apple.com/documentation/swiftui/binding) and [`Published`](https://developer.apple.com/documentation/combine/published) to expose elaborate behavior through a succinct interface, helping craft expressive yet simple APIs. However, property wrappers are only applicable to local variables and type properties, shattering the illusion that they helped realize in the first place when working with parameters.
 
 ### Memberwise initialization
 
@@ -175,7 +175,7 @@ struct MyView: View {
 
 ## Detailed design
 
-Property wrappers are essentially sugar wrapping a given property with compiler-synthesized code. This proposal retains this principle, employing the following rules and transformation.
+Property wrappers are essentially sugar wrapping a given property with compiler-synthesized code. This proposal retains this principle, employing the following transformation.
 
 ### Function body transformation
 
@@ -184,14 +184,14 @@ The transformation of function with a property-wrapper parameter will be perform
 1. For regular functions, the argument label will remain unchanged. 
 2. The parameter name will be prefixed with an underscore.
 3. The type of the parameter will be the backing property-wrapper type.
-4. A local computed property representing the `wrappedValue` of the innermost property wrapper will be synthesized with the same name as the original, unprefixed parameter name. If the innermost `wrappedValue` defines a setter, a setter will be synthesized for the local property if the mutability of the setter would be `nonmutating`, or if the wrapper is a reference type. The mutability computation is specified below.
+4. A local computed property representing the `wrappedValue` of the innermost property wrapper will be synthesized with the same name as the original, unprefixed parameter name. If the innermost `wrappedValue` defines a setter, a setter will be synthesized for the local property if the mutability of the composed setter is `nonmutating`. The mutability computation is specified below.
 5. If the outermost property wrapper defines a `projectedValue` property, a local computed property representing the outermost `projectedValue` will be synthesized and named per the original parameter name prefixed with a dollar sign (`$`). If the outermost `projectedValue` defines a setter, a setter for the local computed property will be synthesized if the `projectedValue` setter is `nonmutating`, or if the outermost wrapper is a reference type.
 
 #### Mutability of composed `wrappedValue` accessors
 
 The computation for mutability of a wrapped parameter's composed `wrappedValue` accessors will be the same as it is today for wrapped properties. The computation starts with the mutability of the outermost wrapper's `wrappedValue` accessor, and then iterates over the chain of composed property wrappers, "composing" the mutability of each `wrappedValue` accessor along the way using the following rules, which are the same for getters and setters:
 
-* If the next `wrappedValue` accessor is `nonmutating`, then the mutability of the composed accessor is the same as the previous composed getter.
+* If the next `wrappedValue` accessor is `nonmutating`, then the mutability of the composed accessor is the same as the previous composed getter. If the wrapper is a reference type, the accessor is considered `nonmutating`.
 * If the next `wrappedValue` accessor is `mutating`, then the composed accessor is `mutating` if the previous composed getter _or_ setter is `mutating`, since both are needed to perform a writeback cycle.
 
 If any of the property wrappers do not define a `wrappedValue` setter, then the wrapped property/parameter does not have a setter.
@@ -218,7 +218,7 @@ struct Wrapper<Value> {
 func generic<T>(@Wrapper arg: T) { ... }
 ```
 
-Then, overload resolution will choose which `init(wrappedValue:)` to call based on the static type of the argument at the call site:
+Then, overload resolution will choose which `init(wrappedValue:)` to call based on the static type of the argument at the call-site:
 
 ```swift
 generic(arg: 10) // calls the unconstrained init(wrappedValue:)
@@ -346,7 +346,7 @@ Property wrappers on function parameters must support `init(wrappedValue:)`.
 
 Property-wrapper parameters cannot have additional arguments in the wrapper attribute.
 
-> **Rationale**: Arguments on the wrapper attribute are expected to never be changed by the caller. However, it is not possible to enforce this today; thus, property-wrapper parameters cannot support additional arguments in the attribute until there is a mechanism for for per-declaration shared state for property wrappers.
+> **Rationale**: Arguments on the wrapper attribute are expected to never be changed by the caller. However, it is not possible to enforce this today; thus, property-wrapper parameters cannot support additional arguments in the attribute until there is a mechanism for per-declaration shared state for property wrappers.
 
 Non-instance methods cannot use property wrappers that require the enclosing `self` subscript.
 
@@ -363,7 +363,7 @@ This is an additive change with no impact on the existing ABI.
 
 ## Effect on API resilience
 
-This proposal introduces the need for property-wrapper custom attributes to become part of public API. Therefore, a property wrapper applied to a function parameter changes the type of that parameter in the ABI, and it changes the way that function callers are compiled to pass an argument of that type. Thus, adding or removing a property wrapper on a public function parameter is an ABI-breaking change.
+This proposal introduces the need for property-wrapper custom attributes to become part of public API. This is because a property wrapper applied to a function parameter changes the type of that parameter in the ABI, and it changes the way that function callers are compiled to pass an argument of that type. Thus, adding or removing a property wrapper on a public function parameter is an ABI-breaking change.
 
 ## Alternatives considered
 
@@ -420,9 +420,30 @@ func createItemRowView($item: Binding<Item>) -> some View {
 createItemRowView($item: binding)
 ```
 
+### Property-wrapper parameters in synthesized memberwise initializers
+
+Synthesized memberwise initializers could use property-wrapper parameters for stored properties with attached property wrappers:
+
+```swift
+struct MyView {
+
+  @State() var document: Optional<URL>
+
+  // Synthesized memberwise init
+  init(@State document: Optional<URL>) { ... }
+
+}
+
+func openEditor(with swiftFile: URL) -> TextEditor {
+  TextEditor(document: swiftFile)
+}
+```
+
+This is left as a future direction because it is a source breaking change.
+
 ### Add support for `inout` wrapped parameters in functions
 
-This proposal doesn't currently support marking property-wrapped function parameters `inout`. We deemed that this functionality would be better tackled by another proposal, due to its implementation complexity. Nonetheless, such a feature would be really useful for wrapper types with value semantics, and it would simplify the mental model. Furthermore, it would alleviate some confusion for users that can't distinguish property wrappers that have a value-semantics setter and ones with a reference-semantics setter.
+This proposal doesn't currently support marking property-wrapped function parameters `inout`. We deemed that this functionality would be better tackled by another proposal, due to its implementation complexity. Nonetheless, such a feature would be useful for mutating a `wrappedValue` argument when the wrapper has a `mutating` setter.
 
 ### Add wrapper types in the standard library
 
