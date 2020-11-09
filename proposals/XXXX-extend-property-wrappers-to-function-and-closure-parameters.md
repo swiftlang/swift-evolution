@@ -18,9 +18,7 @@ Property wrappers have undoubtably been very successful. Applying a property wra
 
 ### Memberwise initialization
 
-Currently, property wrappers applied on struct properties already interact with parameters through the struct's synthesized memberwise initializer. However, property-wrapper attributes are _not_ supported on parameters, which leads to really complicated and nuanced rules for which type the synthesized memberwise initializer should accept.
-
-The compiler will choose the wrapped-value type to offer a convenience to the call-site, when the property wrapper supports initalization through the wrapped-value type via `init(wrappedValue:)`:
+Currently, property-wrapped struct properties interact with function parameters, through the struct's synthesized memberwise initializer. However, property-wrapper attributes are _not_ supported on function parameters. This leads to really complicated and nuanced rules for which type, between the wrapped type and the backing property-wrapper type, the memberwise initializer accepts. Namely, the compiler will choose the wrapped-value type to offer a convenience to the call-site, when the property wrapper supports initalization through the suitable initializer: `init(wrappedValue:)`, as seen here:
 
 ```swift
 import SwiftUI
@@ -34,11 +32,12 @@ struct TextEditor {
 
 
 func openEditor(with swiftFile: URL) -> TextEditor {
-  TextEditor(document: swiftFile)
+  TextEditor(document: swiftFile) 
+  // The wrapped type is accepted here.
 }
 ```
 
-However, this can take flexibility away from the call-site if the property wrapper has other `init` overloads, because the call-site can cannot choose a different initializer. Further, if the property wrapper is default-initialized in the struct, then the memberwise initializer will choose the backing-wrapper type, even if the wrapper supports `init(wrappedValue:)`. This creates unnecessary boilerplate at call-sites that _do_ want to use `init(wrappedValue:)`:
+However, this can take flexibility away from the call-site if the property wrapper has other `init` overloads, because the call-site _cannot_ choose a different initializer. Further, if the property wrapper is default-initialized in the struct, then the memberwise initializer will choose the backing-wrapper type, even if the wrapper supports `init(wrappedValue:)`. This results in unnecessary boilerplate at call-sites that _do_ want to use `init(wrappedValue:)`:
 
 ```swift
 import SwiftUI
@@ -53,10 +52,12 @@ struct TextEditor {
 
 func openEditor(with swiftFile: URL) -> TextEditor {
   TextEditor(document: State(wrappedValue: swiftFile))
+  // The wrapped type isn't accepted here; instead we have 
+  // to use the backing property-wrapper type: 'State'.
 }
 ```
 
-If the generated memberwise initializer always accepted the backing wrapper type while still allowing the call-site the convenience of automatically initializing the backing wrapper via a wrapped value type, this would greatly simplify the mental model for property wrapper initialization. This would also provide more control over the backing wrapper initialization at the call-site, which is more consistent with initailization of non-wrapped properties.
+If the generated memberwise initializer always accepted the backing wrapper type while still allowing the call-site the convenience of automatically initializing the backing wrapper via a wrapped value type, the mental model for property wrapper initialization would be greatly simplified. Moreover, this would also provide more control over the backing-wrapper initialization at the call-site, which is more consistent with initailization of non-wrapped properties.
 
 ### Function parameters with property wrapper type
 
