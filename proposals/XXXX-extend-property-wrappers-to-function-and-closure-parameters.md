@@ -177,15 +177,6 @@ struct MyView: View {
 
 Property wrappers are essentially sugar wrapping a given property with compiler-synthesized code. This proposal retains this principle, employing the following rules and transformation.
 
-### Property-wrapper parameter attribute rules
-
-A function parameter marked with property-wrapper custom attributes must conform to the following rules:
-
-1. Property-wrapper function parameters must support initialization through their `wrappedValue` type. Therefore, all property-wrapper types must provide an `init(wrappedValue:)` that allows the caller to only pass the `wrappedValue` argument.
-2. Default arguments must be expressed in terms the `wrappedValue` type of the innermost property wrapper.
-
-For a closure parameter marked with property-wrapper custom attributes, any contextual type for the parameter must match the outermost backing-wrapper type.
-
 ### Function body transformation
 
 The transformation of function with a property-wrapper parameter will be performed as such:
@@ -349,6 +340,10 @@ Property-wrapper parameters cannot have an `@autoclosure` type.
 
 > **Rationale**: `@autoclosure` is unnecessary for the wrapped value, because the wrapped-value argument at the call-site will always be wrapped in a call to `init(wrappedValue:)`, which can _already_ support `@autoclosure` arguments.
 
+Property wrappers on function parameters must support `init(wrappedValue:)`.
+
+> **Rationale**: This is an artificial limitation to prevent programmers from writing functions with an argument label that cannot be used to call the function.
+
 Property-wrapper parameters cannot have additional arguments in the wrapper attribute.
 
 > **Rationale**: Arguments on the wrapper attribute are expected to never be changed by the caller. However, it is not possible to enforce this today; thus, property-wrapper parameters cannot support additional arguments in the attribute until there is a mechanism for for per-declaration shared state for property wrappers.
@@ -413,6 +408,16 @@ struct MyView: View {
   }
 
 }
+```
+
+This syntax could also potentially be used on parameter declarations that want to use property wrappers that do not support `init(wrappedValue:)`. This would allow such property wrappers to be used on function parameters without declaring the function with an argument label that cannot be used to call the function:
+
+```swift
+func createItemRowView($item: Binding<Item>) -> some View {
+  TextField(item.name, $item.name)
+}
+
+createItemRowView($item: binding)
 ```
 
 ### Add support for `inout` wrapped parameters in functions
