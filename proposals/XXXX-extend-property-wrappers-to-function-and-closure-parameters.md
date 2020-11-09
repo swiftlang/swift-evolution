@@ -420,6 +420,8 @@ func createItemRowView($item: Binding<Item>) -> some View {
 createItemRowView($item: binding)
 ```
 
+It’s important to note, however, that the above syntax has quite a few shortcomings. Namely, one notable drawback is that this syntax is reminiscent of property wrappers' projected value and, thus, may be confusing. Furthermore, auto-complete could be a better solution here, as it would aid the user in writing the property-wrapper attribute, while still retaining expressiveness. Nevertheless, this idea could be expanded upon in the future.
+
 ### Property-wrapper parameters in synthesized memberwise initializers
 
 Synthesized memberwise initializers could use property-wrapper parameters for stored properties with attached property wrappers:
