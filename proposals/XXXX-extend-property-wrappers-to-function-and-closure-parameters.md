@@ -295,6 +295,10 @@ Property-wrapper parameters cannot have additional arguments in the wrapper attr
 
 > **Rationale**: Arguments on the wrapper attribute are expected to never be changed by the caller. However, it is not possible to enforce this today, so property-wrapper parameters cannot support additional arguments in the attribute until there is a mechanism for for per-declaration shared state for property wrappers.
 
+Non-instance methods cannot use property wrappers that require the enclosing self subscript.
+
+> **Rationale**: Non-instance methods do not have an enclosing `self` instance, which is required for the local computed property that represents `wrappedValue`.
+
 
 ## Source compatibility
 
@@ -371,58 +375,6 @@ distanceFromUpperBound(
 ### Add support for `inout` wrapped parameters in functions
 
 This proposal doesn't currently support marking function parameters to which wrapper types have been applied `inout`. We deemed that this functionality would be better tackled by another proposal due to its implementation complexity. However, such a feature would be really useful for wrapper types with value semantics and it would simplify the mental model. Furthermore, it could alleviate some confusion for users that don't understand the difference between a setter with value semantics and one with reference semantics.
-
-
-### Accessing enclosing `Self` from wrapper types
-
-There's currently no public feature that allows a wrapper to access its enclosing `Self` type:
-
-```swift
-@propertyWrapper
-struct Mirror<EnclosingSelf, Value, Path>
-  where Path : KeyPath<EnclosingSelf, Value> { 
-  
-  let keyPath: Path 
-
-
-  init(of keyPath: Path) { ... }
-  
-}
-
-
-struct Point {
-
-  private var _vector: SIMD2<Double>
-  
-  
-  init(x: Double, y: Double) {
-    self._vector = SIMD2(x: x, y: y)
-  }
-  
-  
-  @Mirror(of: \._vector.x)
-  var x
-  
-  @Mirror(of: \._vector.y)
-  var y
-  
-} ❌
-// In the above use, we'd access the enclosing
-// type's '_vector' property through the provided
-// keyPath. However, today that's invalid.
-```
-
-Furthermore, extending this feature's availability to function and closure parameters be really powerful:
-
-```swift
-func valueAndIdPair<Value>(
-  @Mirror of property: Value
-) -> (value: Value, id: Int) {
-  (value: property, id: $property.keyPath.hashValue)
-}
-```
-
-It's important to note that allowing use of such a feature in function parameters would entail some limitations. For example, a parameter marked with a wrapper type referencing enclosing `self` would be an error for a non-instance method, as the accessors for the `wrappedValue` and `projectedValue` need an enclosing `self` instance.
 
 ### Add wrapper types in the standard library
 
