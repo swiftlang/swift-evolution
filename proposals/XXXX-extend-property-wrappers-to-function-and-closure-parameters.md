@@ -25,9 +25,13 @@ The compiler will choose the wrapped value type to offer a convenience to the ca
 ```swift
 import SwiftUI
 
+
 struct TextEditor {
+
   @State var document: Optional<URL>
+  
 }
+
 
 func openEditor(with swiftFile: URL) -> TextEditor {
   TextEditor(document: swiftFile)
@@ -39,9 +43,13 @@ However, this can take flexibility away from the call-site if the property wrapp
 ```swift
 import SwiftUI
 
+
 struct TextEditor {
+
   @State() var document: Optional<URL>
+  
 }
+
 
 func openEditor(with swiftFile: URL) -> TextEditor {
   TextEditor(document: State(wrappedValue: swiftFile))
@@ -57,13 +65,17 @@ Using property-wrapper types for function parameters also results in boilerplate
 ```swift
 @propertyWrapper
 struct Lowercased {
+
   init(wrappedValue: String) { ... }
+
 
   var wrappedValue: String {
     get { ... }
     set { ... }
   }
+  
 }
+
 
 func postUrl(urlString: Lowercased) {
   guard let url = URL(string: urlString.wrappedValue) else { return }
@@ -173,12 +185,16 @@ Since the property wrapper is initialized at the call site, this means that the 
 ```swift
 @propertyWrapper
 struct Wrapper<Value> {
+
   init(wrappedValue: Value) { ... }
 
   init(wrappedValue: Value) where Value: Collection { ... }
+  
 }
 
+
 func generic<T>(@Wrapper arg: T) { ... }
+
 ```
 
 Then overload resolution will choose which `init(wrappedValue:)` to call based on the static type of the argument at the call site:
@@ -197,12 +213,15 @@ Consider the `postUrl` example from earlier:
 ```swift
 @propertyWrapper
 struct Lowercased {
+
   init(wrappedValue: String) { ... }
+    
     
   var wrappedValue: String {
     get { ... }
     set { ... }
   }
+  
 }
 
 func postUrl(@Lowercased urlString: String) { ... }
@@ -215,7 +234,6 @@ In the above code, the `postUrl(urlString:)` function and its caller are equival
 
 ```swift
 func postUrl(urlString _urlString: Lowercased) {
-
   var urlString: String {
     get { _ urlString.wrappedValue }
   }
@@ -263,7 +281,6 @@ In the above example, the closure `a` is equivalent to:
 
 ```swift
 let a: A = { (_reference: Reference<Int>) in
-
   var reference: Int {
     get { 
       _reference.wrappedValue
@@ -395,13 +412,11 @@ Instead of writing the above, in the future one might be able to write this:
 let myInt = 0
 
 withUnsafePointer(to: ...) { (@UnsafePointer value) in
-
   print(value) // 0
   
   $value.withMemoryRebound(to: UInt64.self) {
     ... 
   }
-  
 }
 ```
 
