@@ -131,7 +131,7 @@ func postUrl(@Lowercased urlString: String) {
 postUrl(urlString: "mySite.xyz/myUnformattedUsErNAme")
 ```
 
-If `Binding` conforms to `RandomAccessCollection`, property-wrapper parameters can be used with `ForEach` to access collection elements directly in the `content` closure and enable property wrapper syntax in the closure body:
+What's more, if `Binding` conditionally conformed to `RandomAccessCollection`, property-wrapper parameters could be used with `ForEach` to access collection elements directly in the `content` closure and enable property-wrapper syntax in the closure body:
 
 ```swift
 struct MyView: View {
