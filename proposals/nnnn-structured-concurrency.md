@@ -1,6 +1,6 @@
 # Structured concurrency
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-NNNN](nnnn-structured-concurrency.md)
 * Authors: [John McCall](https://github.com/rjmccall), [Joe Groff](https://github.com/jckarter), [Doug Gregor](https://github.com/DougGregor), [Konrad Malawski](https://github.com/ktoso)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
@@ -10,9 +10,9 @@
 
 [`async`/`await`](https://github.com/DougGregor/swift-evolution/blob/async-await/proposals/nnnn-async-await.md) is a language mechanism for writing natural, efficient asynchronous code. Asynchronous functions (introduced with `async`) can give up the thread on which they are executing at any given suspension point (marked with `await`), which is necessary for building highly-concurrent systems.
 
-However, the `async`/`await` proposal does not introduce concurrency *per se*: ignoring the suspension points within an asynchronous function, it will execute in essentially the same manner as a synchronous function. This proposal introduces support for [structured concurrency](https://en.wikipedia.org/wiki/Structured_concurrency) in Swift, enabling concurrency execution of asynchronous code with a model that is ergonomic, predictable, and admits efficient implementation.
+However, the `async`/`await` proposal does not introduce concurrency *per se*: ignoring the suspension points within an asynchronous function, it will execute in essentially the same manner as a synchronous function. This proposal introduces support for [structured concurrency](https://en.wikipedia.org/wiki/Structured_concurrency) in Swift, enabling concurrent execution of asynchronous code with a model that is ergonomic, predictable, and admits efficient implementation.
 
-Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/t/concurrency-structured-concurrency/41622)
+Swift-evolution thread: [\[Concurrency\] Structured concurrency](https://forums.swift.org/t/concurrency-structured-concurrency/41622)
 
 ## Motivation
 
@@ -45,7 +45,7 @@ This proposal aims to provide the necessary tools to carve work up into smaller 
 
 ## Proposed solution
 
-Our approach follows the principles of *structured concurrency*. All asynchronous functions run as part of an asynchronous *task*. Tasks can conveniently make child tasks that will perform work concurrently. This creates a hierarchy of tasks, and information can conveniently flow up and down the hierarchy, making it convenient to manage the whole thing holistically.
+Our approach follows the principles of *structured concurrency*. All asynchronous functions run as part of an asynchronous *task*. Tasks can easily make child tasks that will perform work concurrently. This creates a hierarchy of tasks, and information can naturally flow up and down the hierarchy, making it convenient to manage the whole thing holistically.
 
 ### Child tasks
 
@@ -74,9 +74,9 @@ Bringing it back to our example, note that the `chopVegetables()` function might
 
 ### Child tasks with Task Groups
 
-The `async let` construct makes it easy to create a set number of child tasks and associate them with variables. However, the construct does not work as well with dynamic workloads, where we don't know the number child tasks we will need to create because (for example) it is dependent on the size of a data structure. For that, we need a more dynamic construct: a *task group*.
+The `async let` construct makes it easy to create a set number of child tasks and associate them with variables. However, the construct does not work as well with dynamic workloads, where we don't know the number of child tasks we will need to create because (for example) it is dependent on the size of a data structure. For that, we need a more dynamic construct: a *task group*.
 
-A task group defines a scope in which one can create new child tasks programmatically. As with all child tasks, the child tasks within the task group scope must complete when the scope exits or they will be implicitly awaited on. This is equivalent to a normal function scope enforcing that one awaits on all `async let` variables before exiting the scope, however with dynamically added child tasks the await becomes implicit at the exit of the task group scope. It is likely that various behavior variations for hanling outstanding not-awaited on added tasks will be available for call-site configuration. Task groups also provide utilities for working with the child tasks' results, e.g., by waiting until the next child task completes.
+A task group defines a scope in which one can create new child tasks programmatically. As with all child tasks, the child tasks within the task group scope must complete when the scope exits or they will be implicitly awaited on. This is equivalent to a normal function scope enforcing that one awaits on all `async let` variables before exiting the scope, however with dynamically added child tasks the await becomes implicit at the exit of the task group scope. It is likely that various behavior variations for handling outstanding not-awaited-on added tasks will be available for call-site configuration. Task groups also provide utilities for working with the child tasks' results, e.g., by waiting until the next child task completes.
 
 To stretch our example even further, let's consider our `chopVegetables()` operation, which produces an array of `Vegetable` values. With enough cooks, we could chop our vegetables even faster if we divided up the chopping for each kind of vegetable. 
 
@@ -96,7 +96,7 @@ func chopVegetables() async throws -> [Vegetable] {
 Introducing `async let` into the loop would not produce any meaningful concurrency, because each `async let` would need to complete before the next iteration of the loop could start. To create child tasks programmatically, we introduce a new task group scope via `Task.withGroup`:
 
 ```swift
-/// Sequentially chop the vegetables.
+/// Concurrently chop the vegetables.
 func chopVegetables() async throws -> [Vegetable] {
   // Create a task group where each task produces (Int, Vegetable).
   await try Task.withGroup(resultType: (Int, Vegetable).self) { group in 
@@ -104,7 +104,7 @@ func chopVegetables() async throws -> [Vegetable] {
     
     // Create a new child task for each vegetable that needs to be 
     // chopped.
-    for i in rawVeggies.indices {
+    for i in veggies.indices {
       await try group.add { 
         (i, veggies[i].chopped())
       }
@@ -127,7 +127,7 @@ As with the child tasks created by `async let`, if the closure passed to `Task.w
 
 ### Detached tasks
 
-Thus far, every task we have created is a child task, whose lifetime is limited by the scope in which is created. This does not allow for new tasks to be created that outlive the current scope.
+Thus far, every task we have created is a child task, whose lifetime is limited by the scope in which it is created. This does not allow for new tasks to be created that outlive the current scope.
 
 The `runDetached` operation creates a new task. It accepts a closure, which will be executed as the body of the task. Here, we create a new, detached task to make dinner:
 
@@ -531,7 +531,7 @@ Worth pointing out here is that adding a task to a task group could fail because
 
 Tasks in a task group by default handle thrown errors using like the musketeers would, that is: "*One for All, and All for One!*" In other words, if a single task throws an error, which escapes into the task group, all other tasks will be cancelled and the task group will re-throw this error.
 
-To visualize this, let us consider chopping vegetables again. One type veggetable that can be quite tricky to chop up is onions, they can make you cry if you don't watch out. If we attempt to chop up those vegetables, the onion will throw an error into the task group, causing all other tasks to be cancelled automatically:
+To visualize this, let us consider chopping vegetables again. One type of vegetable that can be quite tricky to chop up is onions, they can make you cry if you don't watch out. If we attempt to chop up those vegetables, the onion will throw an error into the task group, causing all other tasks to be cancelled automatically:
 
 ```swift
 func chopOnionsAndCarrots(rawVeggies: [Vegetable]) async throws -> [Vegetable] {
@@ -608,7 +608,7 @@ func confirmOrders(orders: [Order]) async throws {
 }
 ```
 
-The `confirmOrders()` function will only return once all confirmations have completed, because the task group will "at the end-edge" of it's scope, await any outstanding tasks.
+The `confirmOrders()` function will only return once all confirmations have completed, because the task group will await any outstanding tasks "at the end-edge" of its scope.
 
  
 ### Detached Tasks
