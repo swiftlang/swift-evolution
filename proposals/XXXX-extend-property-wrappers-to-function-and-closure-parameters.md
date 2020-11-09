@@ -85,7 +85,7 @@ In the above example, it is quite awkward and unintuitive that property wrappers
 ### Closures accepting property wrapper types
 
 The same boilerplate code in function bodies also applies to closures accepting property-wrapper types.
- In fact, establishing custom behavior on closure parameters is really powerful. For example, if such a feature were supported, it could be used in conjunction with [Result Builders](https://github.com/apple/swift-evolution/blob/main/proposals/0289-result-builders.md) to expose data managed by a 'component' type. For instance, in SwiftUI [`ForEach`](https://developer.apple.com/documentation/swiftui/foreach) could leverage this feature to expose the mutable state of its data source to its `content` closure. This would enable users to more easily work with the data source itself inside the closure instead of accessing the original property, which is particularly painful when working with collections, as shown in this example:
+ In fact, establishing custom behavior on closure parameters is really powerful. For example, in SwiftUI, [`ForEach`](https://developer.apple.com/documentation/swiftui/foreach) could leverage this feature to expose elements from its data source to its `content` closure directly. This would enable users to more easily work with the data source itself inside the closure instead of accessing the original property, which is particularly painful when working with collections, as shown in this example:
 
 ```swift
 struct MyView : View {
@@ -95,19 +95,31 @@ struct MyView : View {
   @State 
   private var shoppingItems: [Item]
 
-
   var body: some View {
     ForEach(0 ..< shoppingItems.count) { index in
-  
       TextField("Enter the item's name...", $shoppingItems[index].name)
-      
     }
   }
   
 }
 ```
 
-we would — with an appropriate initializer — be able to simplify the above code, reducing boilerplate as a result:
+## Proposed solution
+
+We propose to extend the contexts where application of property-wrapper types is permitted. Namely, application of such types will be allowed on function and closure parameters.
+
+Using property-wrapper parameters, the above `postUrl` example becomes:
+
+```swift
+func postUrl(@Lowercased urlString: String) {
+  guard let url = URL(string: urlString) else { return }
+  ...
+}
+
+postUrl(urlString: "mySite.xyz/myUnformattedUsErNAme")
+```
+
+If `Binding` conforms to `RandomAccessCollection`, property-wrapper parameters can be used with `ForEach` to access collection elements directly in the `content` closure and enable property wrapper syntax in the closure body:
 
 ```swift
 struct MyView: View {
@@ -115,22 +127,14 @@ struct MyView: View {
   @State 
   private var shoppingItems: [Item]
 
-
   var body: some View {
     ForEach($shoppingItems) { (@Binding shoppingItem) in
-    
       TextField("Enter the item's name...", $shoppingItem.name)
-      
     }
   }
   
 }
 ```
-
-
-## Proposed solution
-
-We propose to extend the contexts where application of property-wrapper types is permitted. Namely, application of such types will be allowed on function and closure parameters:
 
 
 ## Detailed design
