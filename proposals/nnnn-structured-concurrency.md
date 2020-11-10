@@ -325,7 +325,7 @@ func makeDinnerWithDeadline() async throws -> Meal {
   }
 }
 
-func cook(dish: Dish, duration: Duration) async throws -> Meal {
+func cook(_ dish: Dish, duration: Duration) async throws -> Meal {
   await try checkCancellation()
   // ...
 }
