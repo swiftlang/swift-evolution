@@ -10,7 +10,7 @@
 This proposal aims to add functionality to the standard library for clamping a value to a provided range.
 The proposed function would allow the user to specify a range to clamp a value to where if the value fell within the range, the value would be returned as is, if the value being clamped exceeded the upper or lower bound then the upper or lower bound would be returned respectively.
 
-Swift-evolution thread: [Add a `clamp` function to Algorithm.swift](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170306/thread.html#33674)
+Swift-evolution thread: [Add a `clamp` function to Algorithm.swift](https://forums.swift.org/t/add-a-clamp-function-to-algorithm-swift/5405)
 
 ## Motivation
 
