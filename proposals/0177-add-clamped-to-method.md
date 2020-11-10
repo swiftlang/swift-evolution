@@ -4,6 +4,9 @@
 * Author: [Nicholas Maccharoli](https://github.com/Nirma)
 * Review Manager: TBD
 * Status: **Returned for revision**
+* Status: **Awaiting review**
+* Implementation: [apple/swift#32268](https://github.com/apple/swift/pull/32268)
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/8d9f51f060b8c772f7adabee486112a97569d2b3/proposals/0177-add-clamped-to-method.md)
 
 ## Introduction
 
