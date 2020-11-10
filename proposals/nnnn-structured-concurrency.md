@@ -155,13 +155,13 @@ For example:
 
 - It's common to want to limit the total time spent on a task. Some APIs support this by allowing a timeout to be passed in, but it takes a lot of work to propagate timeouts down correctly through every level of abstraction. This is especially true because end-programmers typically want to write timeouts as relative durations (e.g. 20ms), but the correctly-composing representation for libraries to pass around internally is an absolute deadline (e.g. now + 20ms). Under structured concurrency, a deadline can be installed on a task and naturally propagate through arbitrary levels of API, including to child tasks.
 
-- Similarly, it's common to want to be able to cancel an active task. Asynchronous interface that support this often do so by synchronously returning a token object that provides some sort of `cancel()` method. This significantly complicates the design of an API and so often isn't provided. Moreover, propagating tokens, or composing them to cancel all of the active work, can create significant engineering challenges for a program. Under structured concurrency, cancellation naturally paropagates through APIs and down to child tasks, and APIs can simply install handlers to respond instantaneously to cancellation.
+- Similarly, it's common to want to be able to cancel an active task. Asynchronous interfaces that support this often do so by synchronously returning a token object that provides some sort of `cancel()` method. This significantly complicates the design of an API and so often isn't provided. Moreover, propagating tokens, or composing them to cancel all of the active work, can create significant engineering challenges for a program. Under structured concurrency, cancellation naturally propagates through APIs and down to child tasks, and APIs can simply install handlers to respond instantaneously to cancellation.
 
 - Graphical user interfaces often rely on task prioritization to ensure timely refreshes and responses to events.  Under structured concurrency, child tasks naturally inherit the priority of their parent tasks.  Furthermore, when higher-priority tasks wait for lower-priority tasks to complete, the lower-priority task and all of its child tasks can be escalated in priority, and this will reliably persist even if the task is briefly suspended.
 
 - Many systems want to maintain their own contextual information for an operation without having to pass it through every level of abstraction, such as a server that records information for the connection currently being serviced.  Structured concurrency allows this to naturally propagate down through async operations as a sort of "task-local storage" which can be picked up by child tasks.
 
-- Systems that rely on queues are often susceptible to queue-flooding, where the queues accepts a more work than it can actually handle. This is typically solved by introducing "back-pressure": a queue stops accepting new work, and the systems that are trying to enqueue work there respond by themselves stopping accepting new work. Actor systems often subvert this beceause it is difficult at the scheduler level to refuse to add work to an actor's queue, since doing so can permanently destabilize the system by leaking resources or otherwise preventing operations from completing. Structured concurrency offers a limited, cooperative solution by allowing systems to communicate up the task hierarchy that they are coming under distress, potentially allowing parent tasks to stop or slow the creation of presumably-similar new work.
+- Systems that rely on queues are often susceptible to queue-flooding, where the queue accepts more work than it can actually handle. This is typically solved by introducing "back-pressure": a queue stops accepting new work, and the systems that are trying to enqueue work there respond by themselves stopping accepting new work. Actor systems often subvert this because it is difficult at the scheduler level to refuse to add work to an actor's queue, since doing so can permanently destabilize the system by leaking resources or otherwise preventing operations from completing. Structured concurrency offers a limited, cooperative solution by allowing systems to communicate up the task hierarchy that they are coming under distress, potentially allowing parent tasks to stop or slow the creation of presumably-similar new work.
 
 This proposal doesn't propose solutions for all of these, but early investigations show promise.
 
@@ -308,7 +308,7 @@ A very common use case for cancellation is cancelling tasks because they are tak
 
 We intentionally use _deadlines_ ("points in time") as opposed to _timeouts_ ("durations of time"). This is because deadlines compose correctly: working with timeouts is prone to errors where the deadline is accidentally extended because a full timeout is reused rather than being adjusted for the time already passed. For convenience, we allow code to use a relative timeout when setting the deadline up; this will be immediately translated to an absolute deadline.
 
-To futher analyze the semantics of deadlines, let's extend our dinner preparation example with deadlines.
+To further analyze the semantics of deadlines, let's extend our dinner preparation example with deadlines.
 
 ```swift
 func makeDinnerWithDeadline() async throws -> Meal {
@@ -335,7 +335,7 @@ In the example above, we set two deadlines. The first deadline is for two hours 
 
 Note that we await the chopped vegetables before beginning the marinade. This is to illustrate the following point: imagine, somehow, that chopping up the vegetables for some reason took 1 hour and 40 minutes. Now that we get to the meat marination step, we only have 20 minutes left in our outer deadline, yet we attempt to set a deadline in "30 minutes from now." If we had just set a timeout for 30 minutes here, we would be well past the outer deadline. Instead, the task automatically notices that the new deadline of `now + 30 minutes` is actually greater than the current deadline, and thus it is ignored; the task will be cancelled appropriately at the two-hour mark.
 
-Deadlines are also available to interact with programatically. For example, the `cook` function knows exactly how much time it will take to complete. Just checking for cancellation at the beginning of the `cook()` function only means that the deadline hasn't yet been exceeded, but we can do better than that: we can check whether we actually have three hours left. If not, we can throw immediately to tell the user that we aren't going to meet the deadline:
+Deadlines are also available to interact with programmatically. For example, the `cook` function knows exactly how much time it will take to complete. Just checking for cancellation at the beginning of the `cook()` function only means that the deadline hasn't yet been exceeded, but we can do better than that: we can check whether we actually have three hours left. If not, we can throw immediately to tell the user that we aren't going to meet the deadline:
 
 ```swift
 func cook(dish: Dish, duration: Duration) async throws -> Meal {
@@ -346,7 +346,7 @@ func cook(dish: Dish, duration: Duration) async throws -> Meal {
 }
 ```
 
-Thanks to this, functions which have a known execution time can proactively cancel themselfes before even starting the work which we know would miss the deadline in the end anyway.
+Thanks to this, functions which have a known execution time can proactively cancel themselves before even starting the work which we know would miss the deadline in the end anyway.
 
 ### Child tasks with `async let`
 
@@ -457,7 +457,7 @@ extension Task {
 }
 ```
 
-A task group can be launched from any asychronous context, eventually returns a single value (the `BodyResult`). Tasks many be added to it dynamically, as we saw in the `chopVegetables` example in the *Proposed solution: Nurseries* section, and the task group enforces awaiting for all tasks before it returns by asserting that is empty when returning the final result.
+A task group can be launched from any asynchronous context, eventually returns a single value (the `BodyResult`). Tasks many be added to it dynamically, as we saw in the `chopVegetables` example in the *Proposed solution: Nurseries* section, and the task group enforces awaiting for all tasks before it returns by asserting that is empty when returning the final result.
 
 ```swift
 extension Task { 
@@ -531,7 +531,7 @@ Worth pointing out here is that adding a task to a task group could fail because
 
 Tasks in a task group by default handle thrown errors using like the musketeers would, that is: "*One for All, and All for One!*" In other words, if a single task throws an error, which escapes into the task group, all other tasks will be cancelled and the task group will re-throw this error.
 
-To visualize this, let us consider chopping vegetables again. One type veggetable that can be quite tricky to chop up is onions, they can make you cry if you don't watch out. If we attempt to chop up those vegetables, the onion will throw an error into the task group, causing all other tasks to be cancelled automatically:
+To visualize this, let us consider chopping vegetables again. One type vegetable that can be quite tricky to chop up is onions, they can make you cry if you don't watch out. If we attempt to chop up those vegetables, the onion will throw an error into the task group, causing all other tasks to be cancelled automatically:
 
 ```swift
 func chopOnionsAndCarrots(rawVeggies: [Vegetable]) async throws -> [Vegetable] {
@@ -553,8 +553,8 @@ func chopOnionsAndCarrots(rawVeggies: [Vegetable]) async throws -> [Vegetable] {
 
 Let us break up the `chopOnionsAndCarrots()` function into multiple steps to fully understand its semantics:
 
-- first w add vegetable chopping tasks to the task group
-- the chopping of the various vegetables beings asynchronously,
+- first add vegetable chopping tasks to the task group
+- then chopping of the various vegetables beings asynchronously,
 - eventually an onion will be chopped and `throw`
 
 #### Task Groups: Parent task cancellation
@@ -589,7 +589,7 @@ handle.cancel() // (1)
 try await handle.get() // will throw CancellationError // (2)
 ```
 
-There are various ways a task could be cancelled, however for this example let us consider a detached task being cancelled explicitly. This task is the parent task of the task group, and as such the cancelation will be propagated to it once the parent task's handle `cancel()` is invoked.
+There are various ways a task could be cancelled, however for this example let us consider a detached task being cancelled explicitly. This task is the parent task of the task group, and as such the cancellation will be propagated to it once the parent task's handle `cancel()` is invoked.
 
 Task Groups automatically check for the cancellation of the parent task when creating a new child task or waiting for a child task for complete. Adding a new task may also suspend if the system is under substantial load, as a form of back-pressure on the "queue" of new tasks being added to the system. These considerations allow the programmer to write straightforward, natural-feeling code that will still usually do the right thing by default.
 
@@ -616,7 +616,7 @@ The `confirmOrders()` function will only return once all confirmations have comp
 Detached tasks are one of the two "escape hatch" APIs offered in this proposal (the other being the `UnsafeContinuation` APIs discussed in the next section), for when structured concurrency rules are too rigid for a specific asynchronous operations.
 
 
-Looking at the previously mentioned example of making dinner in a detached task, but fillin in the missing types and details:
+Looking at the previously mentioned example of making dinner in a detached task, but filling in the missing types and details:
 
 
 ```swift
@@ -644,7 +644,7 @@ extension Task {
 }
 ```
 
-### Low-level code and integrating with legacy APis with `UnsafeContinuation`
+### Low-level code and integrating with legacy APIs with `UnsafeContinuation`
 
 The low-level execution of asynchronous code occasionally requires escaping the high-level abstraction of an async functions and task groups. Also, it is important to enable APIs to interact with existing non-`async` code yet still be able to present to the users of such API a pleasant to use async function based interface.
 
@@ -674,7 +674,7 @@ extension Task {
 }
 ```
 
-Unsafe continuations allow for wrapping existing complex callback-based APIs and presenting them to the caller as if it was a plan async function. 
+Unsafe continuations allow for wrapping existing complex callback-based APIs and presenting them to the caller as if it was a plain async function.
 
 Rules for dealing with unsafe continuations:
 
@@ -721,7 +721,7 @@ let veggies = await try buyVegetables(shoppingList: ["onion", "bell pepper"])
 
 Thanks to weaving the right continuation resume calls into the complex callbacks of the `buyVegetables` function, we were able to offer a much nicer overload of this function, allowing our users to rely on the async/await to interact with this function.
 
-> **The challange with diagnostics for Unsafe**: It is theoretically possible to provide compiler diagnostics to help developers avoid *simple* mistakes with resuming the continuation multiple times (or not at all). 
+> **The challenge with diagnostics for Unsafe**: It is theoretically possible to provide compiler diagnostics to help developers avoid *simple* mistakes with resuming the continuation multiple times (or not at all).
 > 
 > However, since the primary use case of this API is often integrating with complicated callback-style APIs (such as the `buyVegetables` shown above) it is often impossible for the compiler to have enough information about each callback's semantics to meaningfully produce diagnostic guidance about correct use of this unsafe API. 
 > 
