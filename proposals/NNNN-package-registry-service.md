@@ -1,12 +1,12 @@
 # Package Registry Service
 
-* Proposal: [SE-NNNN](NNNN-package-registry-service.md)
+* Proposal: [SE-0292](0292-package-registry-service.md)
 * Authors: [Bryan Clark](https://github.com/clarkbw),
            [Whitney Imura](https://github.com/whitneyimura),
            [Mattt Zmuda](https://github.com/mattt)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
-* Implementation: [apple/swift-package-manager#2914](https://github.com/apple/swift-package-manager/pull/2914)
+* Review Manager: [Tom Doron](https://github.com/tomerd)
+* Status: **Pending Review (planned November 23...December 1)**
+* Implementation: [apple/swift-package-manager#3023](https://github.com/apple/swift-package-manager/pull/3023)
 
 <!--
 
