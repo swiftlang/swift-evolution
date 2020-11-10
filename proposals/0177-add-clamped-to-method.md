@@ -1,4 +1,4 @@
-# Add clamped(to:) to the stdlib
+# Add `clamped(to:)` methods to `Comparable` and `Strideable`
 
 * Proposal: [SE-0177](0177-add-clamped-to-method.md)
 * Author: [Nicholas Maccharoli](https://github.com/Nirma)
