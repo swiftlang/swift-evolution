@@ -2,7 +2,7 @@
 
 * Proposal: [SE-0291](0291-package-collections.md)
 * Authors: [Boris Bügling](https://github.com/neonichu), [Yim Lee](https://github.com/yim-lee), [Tom Doron](https://github.com/tomerd)
-* Review Manager: TBD
+* Review Manager: [Tom Doron](https://github.com/tomerd)
 * Implementation: https://github.com/apple/swift-package-manager/pull/3030
 * Status: **Pitch**
 
