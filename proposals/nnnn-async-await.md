@@ -52,7 +52,8 @@ This "pyramid of doom" makes it difficult to read and keep track of where the co
 Callbacks make error handling difficult and very verbose. Swift 2 introduced an error handling model for synchronous code, but callback-based interfaces do not derive any benefit from it:
 
 ```swift
-func processImageData2(completionBlock: (_ result: Image?, _ error: Error?) -> Void) {
+// (2a) Using a `guard` statement for each callback:
+func processImageData2a(completionBlock: (_ result: Image?, _ error: Error?) -> Void) {
     loadWebResource("dataprofile.txt") { dataResource, error in
         guard let dataResource = dataResource else {
             completionBlock(nil, error)
@@ -68,7 +69,7 @@ func processImageData2(completionBlock: (_ result: Image?, _ error: Error?) -> V
                     completionBlock(nil, error)
                     return
                 }
-                dewarpAndCleanupImage(imageTmp) { imageResult in
+                dewarpAndCleanupImage(imageTmp) { imageResult, error in
                     guard let imageResult = imageResult else {
                         completionBlock(nil, error)
                         return
@@ -80,7 +81,7 @@ func processImageData2(completionBlock: (_ result: Image?, _ error: Error?) -> V
     }
 }
 
-processImageData2 { image, error in
+processImageData2a { image, error in
     guard let image = image else {
         display("No image today", error)
         return
@@ -92,25 +93,74 @@ processImageData2 { image, error in
 The addition of [`Result`](https://github.com/apple/swift-evolution/blob/main/proposals/0235-add-result.md) to the standard library improved on error handling for Swift APIs. Asynchronous APIs were one of the [main motivators](https://github.com/apple/swift-evolution/blob/main/proposals/0235-add-result.md#asynchronous-apis) for `Result`: 
 
 ```swift
-func processImageData2(completionBlock: (Result<Image, Error>) -> Void) {
+// (2b) Using a `do-catch` statement for each callback:
+func processImageData2b(completionBlock: (Result<Image, Error>) -> Void) {
     loadWebResource("dataprofile.txt") { dataResourceResult in
-        dataResourceResult.map { dataResource in
+        do {
+            let dataResource = try dataResourceResult.get()
             loadWebResource("imagedata.dat") { imageResourceResult in
-                imageResultResult.map { imageResource in
+                do {
+                    let imageResource = try imageResourceResult.get()
                     decodeImage(dataResource, imageResource) { imageTmpResult in
-                        imageTmpResult.map { imageTmp in 
+                        do {
+                            let imageTmp = try imageTmpResult.get()
                             dewarpAndCleanupImage(imageTmp) { imageResult in
                                 completionBlock(imageResult)
                             }
+                        } catch {
+                            completionBlock(.failure(error))
                         }
                     }
+                } catch {
+                    completionBlock(.failure(error))
                 }
             }
+        } catch {
+            completionBlock(.failure(error))
         }
     }
 }
 
-processImageData2 { result in
+processImageData2b { result in
+    do {
+        let image = try result.get()
+        display(image)
+    } catch {
+        display("No image today", error)
+    }
+}
+```
+
+```swift
+// (2c) Using a `switch` statement for each callback:
+func processImageData2c(completionBlock: (Result<Image, Error>) -> Void) {
+    loadWebResource("dataprofile.txt") { dataResourceResult in
+        switch dataResourceResult {
+        case .success(let dataResource):
+            loadWebResource("imagedata.dat") { imageResourceResult in
+                switch imageResourceResult {
+                case .success(let imageResource):
+                    decodeImage(dataResource, imageResource) { imageTmpResult in
+                        switch imageTmpResult {
+                        case .success(let imageTmp):
+                            dewarpAndCleanupImage(imageTmp) { imageResult in
+                                completionBlock(imageResult)
+                            }
+                        case .failure(let error):
+                            completionBlock(.failure(error))
+                        }
+                    }
+                case .failure(let error):
+                    completionBlock(.failure(error))
+                }
+            }
+        case .failure(let error):
+            completionBlock(.failure(error))
+        }
+    }
+}
+
+processImageData2c { result in
     switch result {
     case .success(let image):
         display(image)
@@ -120,7 +170,7 @@ processImageData2 { result in
 }
 ```
 
-It's easier to properly thread the error through when using `Result`, making the code shorter. But, the closure-nesting problem remains.
+It's easier to handle errors when using `Result`, but the closure-nesting problem remains.
 
 #### Problem 3: Conditional execution is hard and error-prone
 
@@ -148,7 +198,7 @@ This pattern inverts the natural top-down organization of the function: the code
 It's quite easy to bail-out of the asynchronous operation early by simply returning without calling the correct completion-handler block. When forgotten, the issue is very hard to debug:
 
 ```swift
-func processImageData4(completionBlock: (_ result: Image?, _ error: Error?) -> Void) {
+func processImageData4a(completionBlock: (_ result: Image?, _ error: Error?) -> Void) {
     loadWebResource("dataprofile.txt") { dataResource, error in
         guard let dataResource = dataResource else {
             return // <- forgot to call the block
@@ -166,7 +216,7 @@ func processImageData4(completionBlock: (_ result: Image?, _ error: Error?) -> V
 When you do remember to call the block, you can still forget to return after that:
 
 ```swift
-func processImageData5(recipient:Person, completionBlock: (_ result: Image?, _ error: Error?) -> Void) {
+func processImageData4b(recipient:Person, completionBlock: (_ result: Image?, _ error: Error?) -> Void) {
     if recipient.hasProfilePicture {
         if let image = recipient.profilePicture {
             completionBlock(image) // <- forgot to return after calling the block
@@ -191,7 +241,7 @@ func loadWebResource(_ path: String) async throws -> Resource
 func decodeImage(_ r1: Resource, _ r2: Resource) async throws -> Image
 func dewarpAndCleanupImage(_ i : Image) async throws -> Image
 
-func processImageData2() async throws -> Image {
+func processImageData() async throws -> Image {
   let dataResource  = await try loadWebResource("dataprofile.txt")
   let imageResource = await try loadWebResource("imagedata.dat")
   let imageTmp      = await try decodeImage(dataResource, imageResource)
