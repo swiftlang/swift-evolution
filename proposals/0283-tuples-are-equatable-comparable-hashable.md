@@ -3,7 +3,7 @@
 * Proposal: [SE-0283](0283-tuples-are-equatable-comparable-hashable.md)
 * Author: [Alejandro Alonso](https://github.com/Azoy)
 * Review Manager: [Saleem Abdulrasool](https://github.com/compnerd)
-* Status: **Implemented (Swift Next)**
+* Status: **Implemented (Swift 5.4)**
 * Implementation: [apple/swift#28833](https://github.com/apple/swift/pull/28833)
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0283-tuples-conform-to-equatable-comparable-and-hashable/36658)
 

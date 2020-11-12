@@ -3,7 +3,7 @@
 * Proposal: [SE-0284](0284-multiple-variadic-parameters.md)
 * Author: [Owen Voorhees](https://github.com/owenv)
 * Review Manager: [Saleem Abdulrasool](https://github.com/compnerd)
-* Status: **Implemented (Swift Next)**
+* Status: **Implemented (Swift 5.4)**
 * Implementation: [apple/swift#29735](https://github.com/apple/swift/pull/29735)
 
 ## Introduction
