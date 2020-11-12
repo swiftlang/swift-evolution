@@ -5,22 +5,9 @@
            [Whitney Imura](https://github.com/whitneyimura),
            [Mattt Zmuda](https://github.com/mattt)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
-* Status: **Pending Review (planned November 23...December 1)**
+* Status: **Scheduled for review (November 23...December 1)**
 * Implementation: [apple/swift-package-manager#3023](https://github.com/apple/swift-package-manager/pull/3023)
 
-<!--
-
-*During the review process, add the following fields as needed:*
-
-* Decision Notes: [Rationale](https://forums.swift.org/), [Additional Commentary](https://forums.swift.org/)
-
-* Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM)
-
-* Previous Revision: [1](https://apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
-
-* Previous Proposal: [SE-XXXX](XXXX-filename.md)
-
--->
 
 ## Introduction
 
