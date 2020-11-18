@@ -14,7 +14,7 @@ We believe there are three different components in the space of package discover
 
 **Package Registry** is focused on hosting and serving package sources as an alternative to fetching them directly from git. The goal is to provide better immutability, durability and potentially improve performance and security. This initiative is in-progress and governed by [a separate proposal](https://github.com/apple/swift-evolution/pull/1179).
 
-**Package Index** is focused for providing a search index for packages. The goal is to improve discoverability of packages that may be hosted anywhere, and provide a rich set of metadata that helps making informed decisions when choosing dependencies. The Index indexes the package core metadata available in Package.swift as well as additional metadata from additional and external sources. An example of a package index is https://swiftpackageindex.com
+**Package Index** is focused for providing a search index for packages. The goal is to improve discoverability of packages that may be hosted anywhere, and provide a rich set of metadata that helps making informed decisions when choosing dependencies. The Index indexes the package core metadata available in Package.swift as well as additional metadata from additional and external sources. An example of a package index is https://swiftpackageindex.com.
 
 **Package Collections** which are the subject of this proposal are closer to the Package Index than to the Package Registry. Collections are also designed to make discovery easier, but focused on simpler curation lists that can be easily shared rather than on larger scale indexing and ranking system that requires infrastructure. This design is the first step in teaching SwiftPM about discovery of packages and future work to support Package Indexes can build on this initial design.
 
@@ -249,6 +249,13 @@ This file will be stored in a `.swiftpm` directory in the user's home directory 
 This file will be managed through SwiftPM commands and users are not expected to edit it by hand. The format of this file is an implementation detail but it will be human readable format, likely JSON in practice.
 
 There could be a supplemental file providing key-value pairs whose keys can be referenced by the main configuration file. This can be used as an override mechanism that allows sharing the main configuration file between different users and machines by keeping user-specific configuration information out of the main configuration file. The use of this additional file will be optional and it will be managed by the user. The format will be based on git's configuration files, described [here](https://git-scm.com/docs/git-config#_syntax).
+
+
+### Data format
+
+Package collections must adhere to a specific JSON format for SwiftPM to be able to consume them. The JSON format specification has been [published in the forums](https://forums.swift.org/t/package-collection-format/42071), but it is not part of this proposal because it is not considered stable API. Over time as the data format matures, we will consider making it stable API in a separate proposal.
+
+Since the data format is unstable, users should avoid generating package collections on their own. There is plan to provide tools to facilitate generation and consumption of package collections.
 
 
 ## Future direction
