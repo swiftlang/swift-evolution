@@ -86,29 +86,15 @@ CVEs: ...
 This will list the basic metadata for the given package, as well as more detailed metadata for the latest version of the package. Available metadata for a package can incorporate data from the feed itself, as well as data discovered by SwiftPM.  For example, by querying the package's repository or gathering data from the source code hosting platform being used by the package.
 
 
-### Profiles
-
-A user can organise their package collections into multiple profiles, if desired. When adding a feed, an optional profile can be specified and each command also accepts an optional `--profile` parameter. This can be useful if the user is part of multiple organisations or is using different sets of collections for disjunct use cases. There is an implicit default profile that will be used if the `--profile` parameter is omitted, so the use of profiles is entirely optional. Each of the following commands has an optional `--profile` parameter.
-
-To list all the profiles the user has created, the `profile-list` command can be used. Once a profile contains no more collections, it will not appear in this list anymore.
-
-```
-$ swift package-collections profile-list [--json]
-Organization 1 Profile
-Organization 2 Profile
-...
-```
-
-
 
 ### Manage Package Collections
 
 #### List
 
-The list command lists all collections that are configured by the user. The result can optionally be returned as JSON for integration into other tools.
+The `list` command lists all collections that are configured by the user. The result can optionally be returned as JSON for integration into other tools.
 
 ```
-$ swift package-collections list [--json] [--profile NAME]
+$ swift package-collections list [--json]
 My organisation's packages - https://example.com/packages.json
 ...
 ```
@@ -116,41 +102,41 @@ My organisation's packages - https://example.com/packages.json
 
 #### Manual refresh
 
-The refresh command refreshes any cached data manually. SwiftPM will also automatically refresh data under various conditions, but some queries such as search will rely on locally cached data.
+The `refresh` command refreshes any cached data manually. SwiftPM will also automatically refresh data under various conditions, but some queries such as search will rely on locally cached data.
 
 ```
-$ swift package-collections refresh [--profile NAME]
+$ swift package-collections refresh
 Refreshed 23 configured package collections.
 ```
 
 
 #### Add
 
-The add command adds a feed by URL, with an optional order hint, to the user's list of configured collections. The order hint will influence ranking in search results and can also potentially be used by clients of SwiftPM to order results in a UI, for example.
+The `add` command adds a feed by URL, with an optional order hint, to the user's list of configured collections. The order hint will influence ranking in search results and can also potentially be used by clients of SwiftPM to order results in a UI, for example.
 
 
 ```
-$ swift package-collections add https://www.example.com/packages.json [--order N] [--profile NAME]
+$ swift package-collections add https://www.example.com/packages.json [--order N]
 Added "My organisation's packages" to your package collections.
 ```
 
 
 #### Remove
 
-The remove command removes a feed by URL from the user's list of configured collections.
+The `remove` command removes a feed by URL from the user's list of configured collections.
 
 ```
-$ swift package-collections remove https://www.example.com/packages.json [--profile NAME]
+$ swift package-collections remove https://www.example.com/packages.json
 Removed "My organisation's packages" from your package collections.
 ```
 
 
 #### Metadata and packages of a single feed
 
-The info command shows the metadata and included packages for a single feed. This can be used for both collections that have been previously added to the list of the user's configured collections, as well as to preview any other collections.
+The `describe` command shows the metadata and included packages for a single feed. This can be used for both collections that have been previously added to the list of the user's configured collections, as well as to preview any other collections.
 
 ```
-$ swift package-collections describe-collection https://www.example.com/packages.json [--profile NAME]
+$ swift package-collections describe https://www.example.com/packages.json
 Name: My organisation's packages
 Source: https://www.example.com/packages.json
 Description: ...
@@ -169,10 +155,10 @@ Note: Collections will be limited in the number of major and minor versions they
 
 #### Metadata for the package itself
 
-The info shows the metadata from the package itself. The result can optionally be returned as JSON for integration into other tools.
+The `describe` command shows the metadata from the package itself. The result can optionally be returned as JSON for integration into other tools.
 
 ```
-$ swift package-collections describe [--json] [--profile NAME] https://github.com/jpsim/yams
+$ swift package-collections describe [--json] https://github.com/jpsim/yams
 Description: A sweet and swifty YAML parser built on LibYAML.
 Available Versions: 4.0.0, 3.0.0, ...
 Watchers: 14
@@ -191,10 +177,10 @@ CVEs: ...
 
 #### Metadata for a package version
 
-When passing an additional `--version` parameter, the info command shows the metadata for a single package version. The result can optionally be returned as JSON for integration into other tools.
+When passing an additional `--version` parameter, the `describe` command shows the metadata for a single package version. The result can optionally be returned as JSON for integration into other tools.
 
 ```
-$ swift package-collections describe [--json] [--profile NAME] --version 4.0.0 https://github.com/jpsim/yams
+$ swift package-collections describe [--json] --version 4.0.0 https://github.com/jpsim/yams
 Package Name: Yams
 Version: 4.0.0
 Modules: Yams, CYaml
@@ -203,6 +189,8 @@ Supported Swift Versions: 5.3, 5.2, 5.1, 5.0
 License: MIT
 CVEs: ...
 ```
+
+Note: since the `describe` action is shared between showing metadata for both whole collections as well as individual packages, it will first check if the given URL matches a known package and otherwise will treat the argument as a collection URL. If the `--version` parameter is passed, the collection fallback will not be done since the user already explicitly requested information about a package.
 
 
 
@@ -213,7 +201,7 @@ CVEs: ...
 The search command does a string-based search when using the `--keyword` option and returns the list of packages that match the query. The result can optionally be returned as JSON for integration into other tools.
 
 ```
-$ swift package-collections search [--json] [--profile NAME] --keywords yaml
+$ swift package-collections search [--json] --keywords yaml
 https://github.com/jpsim/yams: A sweet and swifty YAML parser built on LibYAML.
 ...
 ```
@@ -224,7 +212,7 @@ https://github.com/jpsim/yams: A sweet and swifty YAML parser built on LibYAML.
 The search command does a search for a specific module name when using the `--module` option. The result can optionally be returned as JSON for integration into other tools. Lists the newest version the matching module can be found in. This will display more metadata per package than the string-based search as we expect just one or very few results for packages with a particular module name.
 
 ```
-$ swift package-collections search [--json] [--profile NAME] --module yams
+$ swift package-collections search [--json] --module yams
 Package Name: Yams
 Latest Version: 4.0.0
 Description: A sweet and swifty YAML parser built on LibYAML.
@@ -248,7 +236,7 @@ This file will be stored in a `.swiftpm` directory in the user's home directory 
 
 This file will be managed through SwiftPM commands and users are not expected to edit it by hand. The format of this file is an implementation detail but it will be human readable format, likely JSON in practice.
 
-There could be a supplemental file providing key-value pairs whose keys can be referenced by the main configuration file. This can be used as an override mechanism that allows sharing the main configuration file between different users and machines by keeping user-specific configuration information out of the main configuration file. The use of this additional file will be optional and it will be managed by the user. The format will be based on git's configuration files, described [here](https://git-scm.com/docs/git-config#_syntax).
+There could be a supplemental file providing key-value pairs whose keys can be referenced by the main configuration file. This can be used as an override mechanism that allows sharing the main configuration file between different users and machines by keeping user-specific configuration information out of the main configuration file. The use of this additional file will be optional and it will be managed by the user. The syntax of the format will be based on git's configuration files, described [here](https://git-scm.com/docs/git-config#_syntax), but it will not support all of its semantics.
 
 
 ## Future direction
