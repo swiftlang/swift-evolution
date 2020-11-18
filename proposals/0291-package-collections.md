@@ -4,7 +4,7 @@
 * Authors: [Boris Bügling](https://github.com/neonichu), [Yim Lee](https://github.com/yim-lee), [Tom Doron](https://github.com/tomerd)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
 * Implementation: [apple/swift-package-manager#3030](https://github.com/apple/swift-package-manager/pull/3030)
-* Status: **Active Review (November 10...November 18)**
+* Status: **Returned for revision**
 
 ## Introduction
 
