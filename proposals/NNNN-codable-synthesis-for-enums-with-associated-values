@@ -185,7 +185,7 @@ to be thrown.
 
 Customizing which values will be included follows the same rules as the
 existing functionality. Values that are excluded must have a default value
-defined if a `Decodable` conformance should be synthesized. If only `Enodable`
+defined if a `Decodable` conformance should be synthesized. If only `Encodable`
 is synthesized, this restriction does not apply.
 
 **Example**
