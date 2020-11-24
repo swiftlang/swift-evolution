@@ -1,4 +1,4 @@
-# Unlock Existentials for All Protocols
+# Unlock Existentials with Fixed Associated Types
 
 * Proposal: [SE-NNNN](NNNN-unlock-existential-types-for-all-protocols.md)
 * Authors: [Anthony Latsis](https://github.com/AnthonyLatsis), [Filip Sakel](https://github.com/filip-sakel), [Suyash Srijan](https://github.com/theblixguy)
@@ -6,195 +6,243 @@
 * Status: **Awaiting Review**
 * Implementation: [apple/swift#33767](https://github.com/apple/swift/pull/33767)
 
+## Introduction
 
-### Introduction
+Swift currently offers the ability for protocols that meet certain criteria to be used as types. Trying to use an unsupported protocol as a type yields the error: [the protocol] can only be used as a generic constraint because it has 'Self' or associated type requirements. This proposal aims to relax this artificial constraint imposed on such protocols.
 
-Swift currently offers the ability for protocols that meet certain criteria to be used as types. Trying to use an unsupported protocol as a type yields the error `[the protocol] can only be used as a generic constraint because it has 'Self' or associated type requirements`. This proposal aims to relax this artificial constraint imposed on such protocols.
+## Motivation
+
+Existential types are types synthesized by the compiler that can wrap any value of a type which conforms to a given _protocol_, _class_, or _composition of the above_. They are an incredibly useful feature in Swift for specific use cases that involve dynamicity. Thus, by being able to wrap different types that conform to a specified protocol, users and, more often, library authors can alleviate a lot of boilerplate code. That is, in certain use cases creating a custom existential type can be quite a daunting task due to its complexity; not to mention, that it introduces a lot of difficult-to-understand and hard-to-maintain code.
 
 
-### Motivation
+### Heterogenous Collections
 
-Currently, any protocol that has [non-covariant](https://en.wikipedia.org/wiki/Covariance_and_contravariance_(computer_science)) `Self` references or associated type requirements is not allowed to be used as a type. Initially, this restriction reflected technical limitations (as Joe states [here](https://forums.swift.org/t/lifting-the-self-or-associated-type-constraint-on-existentials/18025)); however, such limitations have now been alleviated. As a result, users are left unable to utilize a powerful feature for certain protocols. That’s evident in a plethora of projects. For instance, the standard library has existential types such as [`AnyHashable`](https://developer.apple.com/documentation/swift/anyhashable) and [`AnyCollection`](https://developer.apple.com/documentation/swift/anycollection) and SwiftUI has [`AnyView`](https://developer.apple.com/documentation/swiftui/anyview). 
-
-Generics are most often the best mechanism for type-level abstraction, which relies on the compiler knowing type information during compilation. However, type information is not always a gurantee, which is why the value-level abstraction of existential types is extremely useful in some cases.
-
-One such case is heterogenous collections, which require value-level abstraction to store their elements of various types:
+Such use cases that involve dynamicity can be heterogenous collections. That is, collections that need to take any type conforming to a given set of constraints involve, by their nature, some sort of existential type. For example:
 
 ```swift
-protocol IntegerStrideable : Strideable 
-  where Stride : ExpressibleByIntegerLiteral {}
+protocol User { 
 
-let strideables: [IntegerStrideable] = ... ❌
-// The compiler doesn't currently allow that.
-// So, we work around that by creating a
-// custom existential type: 'AnyIntegerStrideable'.
-
-strideables.map { $0.advanced(by: 1) }
+  associatedtype ID : Hashable 
 
 
-struct AnyIntegerStrideable { 
-  typealias Stride = ...
+  var id: ID { get }
 
-  func advanced(by n: Self) -> Stride {
-    ... 
-  }
-  
-  func distance(to other: Self) -> Stride {
-    ... 
-  }
-}
+  var username: String { get } 
 
-let strideables: [AnyIntegerStrideable] ✅
+} 
 ```
 
-Furthermore, dynamic environments are also known to lack type information. Therefore, value-level abstraction can be exploited in cases such as previewing an application, where the application's components are dynamically replaced, in the file system where a file representing an unknown type might be stored, and in server environments, where various types could be exchanged between different computers.
+So, now we want to make business users and regular users that use different types of `ID`s:
 
-Morover, the availability of an existential type for a given protocol is sometimes quite unintuitive. That is, today, a protocol qualifies for an existential type provided that it lacks any associated type or non-covariant `Self` requirements; however, the associated types of a protocol can be fixed via the same-type constraint. As a result, [post](https://forums.swift.org/t/making-a-protocols-associated-type-concrete-via-inheritance/6557) after [post](https://forums.swift.org/t/constrained-associated-type-on-protocol/38770) has been created asking for this restriction's removal:
+```swift
+struct BussinessUser : User {
+
+  struct BusinessID : Hashable { 
+
+    var organisationName: String
+
+    var organisationId: UUID 
+
+  } 
+
+
+  var id: BusinessID
+
+  var username: String    
+  
+}
+
+struct RegularUser : User {
+
+  // We’ll just use a regular unique
+  // identifier for such users.
+  var id: UUID 
+
+  var username: String    
+  
+}
+```
+
+Great! Now let’s create a list of our users:
+
+```
+let userList = [User]() ❌
+// Error: Protocol ‘User’ can only be used as a generic 
+// constraint because it has Self or associated type requirements.
+```
+
+As you can see, the current limitations on existential types prohibit the creation of our `userList`. As a result, we’ll need to create our own, manually-written existential type for `User`, which is a tedious task that requires some level experience. Moreover, the creation of custom existential types.
+
+
+### Existential Type Synthesis for Library Authors
+
+Libraries often need to provide custom existential types for commonly-used protocols, when synthesis is not available. However, that  introduces hard-to-understand and difficult-to-maintain boilerplate code into the codebase. As a result, library authors have to spend valuable time on creating, documenting and maintaining such code, which can be easily synthesized by the compiler. For instance, SwiftUI (a popular UI framework from Apple) relies heavily on the ubiquitous [`View`](https://developer.apple.com/documentation/swiftui/view) protocol. This `View` protocol has a public interface that approximately looks like this:
+
+```swift
+public protocol View {
+
+  static func _makeView(view: _GraphValue<Self>, inputs: _ViewInputs) -> _ViewOutputs
+
+  static func _makeViewList(view: _GraphValue<Self>, inputs: _ViewListInputs) -> _ViewListOutputs
+
+  static func _viewListCount(inputs: _ViewListCountInputs) -> Int?
+
+
+  associatedtype Body : View
+
+  @ViewBuilder var body: Body { get }
+
+}
+```
+
+From the interface of `View`, we can infer that SwiftUI uses some hidden, underscore-prefixed requirements internally for rendering. Thus, the associate type `Body` is likely not necessary for drawing; yet, it prevents the compiler from creating an existential type for `View`, forcing the authors to create their own such type: [`AnyView`](https://developer.apple.com/documentation/swiftui/anyview). Furthermore, another notable example is the [`Hashable`](https://developer.apple.com/documentation/swift/hashable) protocol in the Swift standard library. Consequently, this may lead authors to inconvenient workarounds. One such workaround is splitting their protocols into two distinct ones – so as to separate associated types from hidden requirements; unfortunately, this creates a complicated API, which is likely to confuse users. Otherwise, they can do what was discussed above: create a custom existential type; it creates, though, boilerplate, which is clearly undesirable. 
+
+
+### Inconsistent Language Semantics 
+
+The compiler offers existential types for all protocols except for ones that reference `Self` in a [non-covariant](https://en.wikipedia.org/wiki/Covariance_and_contravariance_(computer_science)) position or/and ones that have associated type requirements. However, that is incohesive as `Self` can be thought of as an associated type on its own, because it's can't be known solely from the context of a protocol; thus, giving `Self` and associated types different rules for synthesis of an existential type seems rather unintuitive. Furthermore, current semantics can promt library authors to avoid refining their protocols with other useful protocols in fear of their refined protocol not qualifying for the automatically generated existential type. Consider the following `Animal` protocol:
 
 ```swift
 protocol Identifiable {
+
   associatedtype ID : Hashable
-  
+
+
   var id: ID { get }
+
 }
 
-protocol User : Identifiable
-  where ID == UUID {
+
+protocol Animal : Identifiable where ID == String {
+
+  var name: String { get }
   
-  var username: Strng { get }
-}
+  var speciesName: String { get }
   
-let myUsers: [User] ❌
-// This is forbidden today
-// for no apparent reason.
-```
+  
+  var isPet: Bool { get }
 
-All in all, supporting existential types for all protocols is useful for many situations that involve dynamicity. Not to mention that there are many questions by language users asking about this behavior. Taking everything into consideration, we are confident that addressing this abnormality in the language will build a stronger foundation for [future additions](https://forums.swift.org/t/improving-the-ui-of-generics/22814).
-
-
-### Proposed Solution
-
-The constraint prohibiting the use of some protocols as types will be lifted. Consequently, boilerplate code in many projects — especially libraries and frameworks — will be significantly reduced.
-
-
-### Detailed Design 
-
-The compiler will no longer differentiate between protocols that don’t have `Self` or associated type requirements and those that do. However, some restrictions will apply to the use of requirements referencing associated types as seen in the below examples.
-
-#### Examples:
-
-##### Protocol with `Self` and Associated Type Requirements 
-
-```swift
-protocol A {
-  associatedtype A
-    
-  var a: A { get }
 }
 
-struct S : A { 
-  let a: Int = 5
-}
+extension Animal {
 
-let myA: A = S() ✅ 
-
-
-let a: Any = myA.a ❌
-// We don’t know what associated type 
-// 'A' is on the existential type of 'A'.
-
-
-extension A {
-  var opaqueA: some Any {
-    a 
+  var id: String {
+    name
   }
-  // Note that it references 
-  // the associated type 'A'.
-}
 
-let opaqueA: some Any = myA.opaqueA ❌
-// Opaque result type don't 
-// type-erase; they just conceal
-// the underlying value from the
-// user. As a result, the above 
-// is not allowed.
+}
 ```
 
-##### Protocol with Known Associated Types
+In the above case, the `Identifiable` inheritence is very useful. Namely, without any cost to the conforming type, `Animnal` can easily refine [`Identifiable`](https://github.com/apple/swift-evolution/blob/main/proposals/0261-identifiable.md) and gain powerful functionality, as a result. For instance, SwiftUI's [`ForEach`](https://developer.apple.com/documentation/swiftui/foreach) view relies on its data source conforming to `Identifiable`, in which case having such a conformance for free on `Animal`-conforming types is very convenient. Lastly, it's also important to note that in the above example the associated type `ID` is fixed to `String`; therefore, the current limitation seems even more unnecessarily restrictive and further exacerbates the confusion surrounding existential types. 
+
+
+## Proposed Solution
+
+We propose to enable synthesis of existential types for all protocols, in spite of their requirements. Thus, compositions which include protocols that could – before this proposal – not be used as types, will along with these protocols get compiler-generated existential types. Thus code similar to the following will become valid.
 
 ```swift
-protocol A {
-  associatedtype A
+protocol Animal : Identifiable where ID == String {
 
-  var a: A { get }
-}
-
-protocol RefinedA : A
-  where A == Int {}
-
-struct S : RefinedA { 
-  let a: Int = 5
-}
-
-let myRefinedA: RefinedA = S() ✅
-
-let intA: Int = myRefinedA.a ✅
-// Here we know that the associated
-// type 'A' of 'RefinedA' is 'Int'.
-```
-
-##### Protocol Composition 
-
-```swift
-protocol A {
-  associatedtype A
-
-  var a: A { get }
-}
-
-protocol RefinedA : A
-  where A == Int {}
-
-protocol B {
-  associatedtype B
-
-  var b: B { get }
-}
-
-struct S : RefinedA & B { 
-  let a: Int = 5
-  let b: Int = 5
-}
-
-
-let myRefinedAB: RefinedA & B = S() ✅
-
-
-let a: Int = myRefinedAB.a ✅
-
-let b: some Any = myRefinedAB.b ❌
-// We don’t know what type 'B' is
-// on the type-erased value 'myRefinedAB'.
-```
-
-> **Note on conflicting associated types**: Consider the following sample:
-
-  ```swift
   ...
 
-  protocol AFixedToInt : A 
-    where A == Int {}
+}
 
-  protocol AFixedToBool : A 
-    where A == Bool {}
+struct Dog : Animal { ... }
 
-  let composition: AFixedToInt & AFixedToBool ⚠️
-  // The associated type 'A' has conflicting 
-  // implementations as both 'Int' and 'Bool'
-  // in this composition type. 
+struct Cat : Animal { ... }
 
-  ```
-  > The above composition type emits a warning, as providing a value bound to the associated type '`A`' is not possible. It was also disussed to outright emit an error in this case; however, due to source compatibility constraints, the fact that the two protocols' associated types '`A`' are formally distinct and potential for protocol member disambiguation in the future, warnings were chosen.
+
+let myPets: [Animal] = [
+  Dog(named: "Alex"),
+  Cat(named: "Leo")
+] ✅
+
+myPets.first!.name ℹ️
+// Output: Alex
+```
+
+
+## Detailed Design
+
+### Availability of Existential Type
+
+Namely, under the new rules, we propose that a compiler-generated existential be offered for:
+
+1. a protocol, no matter its requirements;
+2. a protocol-with-protocol composition; and 
+3. a protocol-with-class composition.
+
+### Availability of Requirements
+
+It's important to note that not all requirements will be available through the existential types. That is, requirements that reference `Self` or any _non-fixed_ associated types in a _non-covariant_ position will _not_ be available through the generated existential type. For instance, consider the following code using the existential of the standard library's [`Equatable`](https://developer.apple.com/documentation/swift/equatable) protocol:
+
+> **Note**: Use of _non-covariant_ is intentional as requirements in both `func a(_: Self)` and `func a() -> [Self]` forms are not available in existential types.
+
+```swift
+protocol Equatable {
+
+  static func == (lhs: Self, rhs: Self) -> Bool
+  //                   ^~~~       ^~~~
+  // Use of 'Self' in a non-covariant position.
+
+}
+
+struct Dog : Equatable { ... }
+
+
+let ownerName = "Paul" as Equatable ✅
+
+let petName = "Alex" as Equatable ✅
+
+let dog = Dog(named: petName) as Equatable ✅
+
+
+ownerName == petName ❌
+// Error: TBD
+
+ownerName == dog ❌
+// Error: TBD
+```
+
+> **Rationale**: In the above case, it would be reasonable to assume that `ownerName` and `petName` could be compared, since they're both bound to `String`. However, that would be inaccurate, as they're actually bound to the existential type of `Equatable`. In spite of this, it could, still, be argued that `Equatable`'s `==(lhs:rhs:)` operator could unwrap its boxed `Self` parameters to the unboxed type ( `String` in this case), and thus compare its two `Self` parameters. There are, though, fundental problems with this approach, the most important of which being the fact that two `Self` parameters could be bound to different types, which would introduce undefined behavior. The example of comparing `ownerName` and `dog`, demonstrates this perfectly, as – besides being unsound – it poses the question of how it should be handled, if it were valid.
+
+### Types of Requirements
+
+As for the type that a requirement will be bound to when accessed from an existential type, it should be noted that all requirements that do _not_ reference `Self` or any associated type _will_ retain their type as is. However, requirements that do _not_ meet these criteria will be bound to an existential type of `Self` or the relevant associated type accordingly. For instance:
+
+```swift
+
+protocol User { 
+
+  associatedtype ID : Hashable 
+
+
+  var id: ID { get }
+
+  var username: String { get } 
+
+}
+
+struct RegularUser : User { ... }
+
+
+let regularUser = RegularUser(id: UUID(), username: "i❤️Swift")
+
+let userExistential = regularUser as User
+
+
+userExistential.username ℹ️
+// Output: i❤️Swift
+
+type(of: userExistential.username) ℹ️
+// Output: String
+
+
+type(of: userExistential.id) ℹ️
+// Output: Hashable
+```
+
+Looking at the above, one will notice that the `id` requirement of `User` is available despite being bound to the associated type `ID`; thus, the compiler exposes the existential type of `Hashable` as `id`'s type – since, the associated type is _unknown_ in the eyes of `userExistential`. Of course, `username` – whose type is known to be `String` – retains its type, as seen in the above example.
 
 
 ## Source compatibility
@@ -212,60 +260,146 @@ This is an additive change with _no_ impact on **ABI stability**.
 This is an additive change with _no_ impact on **API resilience**.
 
 
-### Alternatives Considered
+## Alternatives Considered
 
-We could leave Swift as is. That, however — as discussed in the Motivation section — produces boilerplate code and a lot of confusion for language users.
-
-
-### Future Directions
-
-#### Separate Existential Types from Protocols
-
-To alleviate confusion between existential types and protocols it has been proposed that when referring to the former some different way be used. Some advocate for the modifier 'any' to serve that purpose: `any Foo`, while others propose parameterizing 'Any': `Any<Foo>`. Whatever the way of achieving this is, differentiation between the two would be useful as it would — among other reasons — prevent beginners from unknowingly using existential types, which can adversely affect performance.
+TBD
 
 
-#### Introduce Constraints for Existential Types
+## Future Directions
 
-After introducing existential types for all protocols, constraining them seems like the next logical step. Constraining refers to constraining a protocol’s associated types which will, therefore, only be available to protocols that have unspecified associated types. These constraints would probably be the same-type constraint: `where A == B` and the conformance constraint: `where A : B`:
+### Discourage Use of Existential Types When Inappropriate 
+
+It is often that people confuse generic declaration with existential types. For example, many think that the following declarations are identical in functionality:
 
 ```swift
-typealias A = Identifiable where .ID == String
+protocol Pet {
 
-typealias B = Identifiable where .ID : Comparable 
-```
+  var name: String { get }
 
-#### Allow Accessing Associated Types
+  var animalName: String { get }  
 
-Currently, accessing associated types through a protocol's existential type is invalid. However, we could ease that constraint by replacing every associated type of the 'base' protocol with its existential type:
+} 
 
-```swift
-protocol Identifiable {
-    assciatedtype ID : Hashable
-
-    var id: ID { get }
+func call(pet: Pet) {
+  print(pet.name)
 }
 
-struct S : Identifiable {
-  let id: Int = 5
+// the above is different from this
+
+func call<SomePet : Pet>(pet: SomePet) {
+  print(pet.name)
 }
-
-let myIdentifiable: Identifiable = S()
-
-let id: Hashable = myIdentifiable.id ✅
 ```
 
-#### Make Existential Types Extensible
-
-Today, no protocol’s existential type can conform to the protocol itself (except for [`@objc` protocols](https://docs.swift.org/swift-book/LanguageGuide/Protocols.html#ID284)). This is quite unintuitive — as is evident by countless questions asking about it. Such a feature could automatically apply to protocols that lack initializers, static requirements and functions with parameters bound to `Self` (as discussed in [related post](https://forums.swift.org/t/allowing-self-conformance-for-protocols/39841)). To handle the cases that do not meet the aforementioned criteria for implicit conformance, the following syntax [has been proposed](https://forums.swift.org/t/improving-the-ui-of-generics/22814):
+The difference is quite significant: the former utilizes `Pet`’s existential type, whereas the latter uses generics.  The difference is important, as existential types are meant for use cases wherein dynamic behavior is required, but to achieve these semantics they pay a performance penalty. On the contrary, generics introduce abstraction at compile time; as a result, the compiler can make optimizations that significantly improve performance. Unfortunately, this mistake is common and the documentation may play a crucial role in that. Namely, when one goes to the swift documentation site, under the protocols section, they’ll be greeted  with a subsection called [‘Protocols as Types`](https://docs.swift.org/swift-book/LanguageGuide/Protocols.html#ID275), which contains this example:
 
 ```swift
-extension Hashable : Hashable {
+class Dice {
+
+  let sides: Int
+
+  let generator: RandomNumberGenerator
+  // Here, ‘generator’ is bound to the existential
+  // type of ‘RandomNumberGenerator’
+
+
+  init(sides: Int, generator: RandomNumberGenerator) {
+    self.sides = sides
+    self.generator = generator 
+  }
+
+
+  func roll() -> Int {
+    return Int(generator.random() * Double(sides)) + 1
+  }
+
+}
+```
+
+The authors of this section are not to blame for the inappropriate use of an existential type, as this section was written before [opaque types]() where introduced. However, now it seems that documentation and diagnostics can be improved to mitigate this problem. Therefore, we could encourage the use of opaque result types: 
+
+```swift
+let randomNumberGenerator: some  RandomNumberGenerator = …
+```
+
+Or offer different diagnostics for the following code:
+
+```swift
+struct Dice {
+
+  let generator: some RandomNumberGenerator ❌
+  // Error: Property declares an opaque return type,
+  // but has no initializer expression from which to infer
+  // an underlying type.
+
+  init(sides: Int, generator: some RandomNumberGenerator) { ❌
+    // Error: 'some' types are only implemented for the declared 
+    // type of properties and subscripts and the return type of functions
+
+    self.sides = sides
+    self.generator = generator 
+  }
+
   …
+
+} 
+```
+
+Maybe, we could provide a fix-it message that prompts us to use generics:
+
+> Did you mean to use a generic parameter conforming to `RandomNumberGenerator` in struct `Dice`?
+
+As for the second case, such syntax could be made valid in a future proposal, as it is quite unambiguous and could be equivalent to `<NumberGenerator : RandomNumberGenerator>`.
+
+Lastly, the overall documentation could use existential types only when appropriate and note that it's different from generics.
+
+
+### Simplify the Implementation of Custom Existential Types
+
+Currently, in the standard library there's a custom existential type for `Hashable`, which is called [`AnyHashable`](https://developer.apple.com/documentation/swift/anyhashable). The current implementation of `AnyHashable` is quite complex and unintuitive. However, with the proposed change it could be simplfied and from 306 to 237 lines of code, while having a much simpler mental medal. The important thing to note about `AnyHashable` is that it conforms to the protocol it is an existential of: `Hashable`, which is something that the compiler can't automatically provide. Furthermore, `Equatable` has `Self` requirements in non-covariant positions, which means that such requirements are inaccessible through the existential type. To combat the last limitation, an internal extension to `Equatable` could be added:
+
+```swift
+extension Equatable {
+
+  func isEqual<Value>(to otherValue: Value) -> Bool? {
+    guard let castedValue = otherValue as? Self else {
+     return nil
+    }
+    
+    return self == castedValue
+  }
+  
 }
 ```
-Other protocols that _do_ meet these criteria would have existential types that automatically gain conformance to their corresponding protocol. In other words, a type such as `Error` would automatically gain support for conformance to the `Error` protocol.
+
+Finally, we'd be able to add our existential type with access to both `Hashable`'s and `Equatable`'s requirements:
+
+```swift
+public struct AnyHashable {
+  var _base: Hashable
+
+  ...
+}
+```
+
+Likewise, protocols like SwiftUI's `View` could be rewritten by forwarding their contravariant `Self` requirements to internal instance methods and accessing them from the `View`-conforming `AnyView` existential with the help of the compiler-provided `View` existential – similar to what we could do with `AnyHashable`.
 
 
-#### Existential Types in the Standard Library
+### Strenghten the Generics System
 
-Currently, there are existential types in the standard library, such as `AnyHashable` and `AnyCollection`; with this new feature their implementations could be vastly simplified. To achieve type erasure, `Hashable` needs a type-erased protocol (`_AnyHashableBox`), a generic container that acts as a bridge between that type-erased protocol and the concrete `Hashable`-conforming type (`_ConcreteHashableBox`) and, lastly, the `AnyHashable` type itself. This is hard to maintain and difficult to understand boilerplate code. To avoid that, `Hashable` could just provide its default existential type, which is enabled by this proposal, with conformance to `Hashable` added as a special case – as is done with `Error` today. Similarly, `AnyCollection` could follow. As for source compatability, the existing manually-written existential types will likely be required to be retained under the same name.
+TBD
+
+
+### Updated Syntax for Synthesized Existential Types
+
+TBD
+
+
+### Allow Constrainting an Existential Type
+
+TBD
+
+
+### Allow Extending Existential Types
+
+TBD
