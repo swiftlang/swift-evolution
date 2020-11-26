@@ -407,7 +407,7 @@ If the scope of an `async let` exits *by throwing an error*, the child task corr
 
 > **Rationale**: The requirement to await a variable from each `async let` along all (non-throwing) paths ensures that child tasks aren't being created and implicitly cancelled during the normal course of execution. Such code is likely to be needlessly inefficient and should probably be restructured to avoid creating child tasks that are unnecessary.
  
-### Child Tasks with Nurseries
+### Child Tasks with TaskGroups
 
 In addition to `async let` this proposal also introduces an explicit `TaskGroup` type, which allows for fine grained scoping of tasks within such task group. 
 
@@ -457,7 +457,7 @@ extension Task {
 }
 ```
 
-A task group can be launched from any asynchronous context, eventually returns a single value (the `BodyResult`). Tasks many be added to it dynamically, as we saw in the `chopVegetables` example in the *Proposed solution: Nurseries* section, and the task group enforces awaiting for all tasks before it returns by asserting that is empty when returning the final result.
+A task group can be launched from any asynchronous context, eventually returns a single value (the `BodyResult`). Tasks many be added to it dynamically, as we saw in the `chopVegetables` example in the *Proposed solution: TaskGroups* section, and the task group enforces awaiting for all tasks before it returns by asserting that is empty when returning the final result.
 
 ```swift
 extension Task { 
@@ -485,7 +485,7 @@ extension Task {
     public mutating func next() async -> TaskResult? { ... } 
     
     /// Query whether the task group has any remaining tasks.
-    /// Nurseries are always empty upon entry to the Task.withGroup body.
+    /// Task groups are always empty upon entry to the Task.withGroup body.
     public var isEmpty: Bool { ... } 
 
     /// Cancel all the remaining tasks in the task group.
@@ -525,7 +525,7 @@ func chopVegetables(rawVeggies: [Vegetable]) async throws -> [ChoppedVegetable] 
 }
 ```
 
-#### Nurseries: Throwing and cancellation
+#### TaskGroups: Throwing and cancellation
 
 Worth pointing out here is that adding a task to a task group could fail because the task group could have been cancelled when we were about to add more tasks to it. To visualize this, let us consider the following example:
 
