@@ -409,7 +409,7 @@ If the scope of an `async let` exits *by throwing an error*, the child task corr
  
 ### Child Tasks with Nurseries
 
-In addition to `async let` this proposal also introduces an explicit `Nursery` type, which allows for fine grained scoping of tasks within such task group. 
+In addition to `async let` this proposal also introduces an explicit `TaskGroup` type, which allows for fine grained scoping of tasks within such task group. 
 
 Tasks may be added dynamically to a task group, meaning one may add a task for each element of a dynamically sized collection to a task group and have them all be bound to the task group lifecycle. This is in contrast to `async let` declarations which only allow for a statically known at compile time number of tasks to be declared.
 
@@ -462,7 +462,7 @@ A task group can be launched from any asynchronous context, eventually returns a
 ```swift
 extension Task { 
   /* @unmoveable */ 
-  public struct Nursery<TaskResult> {
+  public struct TaskGroup<TaskResult> {
     // No public initializers
     
     // Swift will statically prevent this type from being copied or moved.
