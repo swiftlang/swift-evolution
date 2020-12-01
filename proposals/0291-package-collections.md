@@ -3,8 +3,9 @@
 * Proposal: [SE-0291](0291-package-collections.md)
 * Authors: [Boris Bügling](https://github.com/neonichu), [Yim Lee](https://github.com/yim-lee), [Tom Doron](https://github.com/tomerd)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
+* Status: **Active review (November 30...December 7)**
 * Implementation: [apple/swift-package-manager#3030](https://github.com/apple/swift-package-manager/pull/3030)
-* Status: **Returned for revision**
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/7c45e22557a0ef726dea9787f0fae9dac3ed7856/proposals/0291-package-collections.md)
 
 ## Introduction
 
