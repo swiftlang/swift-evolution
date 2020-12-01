@@ -1,11 +1,10 @@
 # Extend Property Wrappers to Function and Closure Parameters
 
-* Proposal: [SE-NNNN](NNNN-extend-property-wrappers-to-function-and-closure-parameters.md)
+* Proposal: [SE-0293](0293-extend-property-wrappers-to-function-and-closure-parameters.md)
 * Authors: [Holly Borla](https://github.com/hborla), [Filip Sakel](https://github.com/filip-sakel)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Review Manager: [Chris Lattner](https://github.com/lattner)
+* Status: **Active Review (Dec 1, 2020 ... Dec 13, 2020) implementation**
 * Implementation: [apple/swift#34272](https://github.com/apple/swift/pull/34272)
-
 
 ## Introduction
 
