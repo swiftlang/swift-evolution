@@ -557,6 +557,75 @@ Asynchronous functions and function types are additive to the ABI, so there is n
 
 The ABI for an `async` function is completely different from the ABI for a synchronous function (e.g., they have incompatible calling conventions), so the addition or removal of `async` from a function or type is not a resilient change.
 
+## Future Directions
+
+### `reasync`
+
+Swift's `rethrows` is a mechanism for indicating that a particular function is throwing only when one of the arguments passed to it is a function that itself throws. For example, `Sequence.map` makes use of `rethrows` because the only way the operation can throw is if the transform itself throws:
+
+```swift
+extension Sequence {
+  func map<Transformed>(transform: (Element) throws -> Transformed) rethrows -> [Transformed] {
+    var result = [Transformed]()
+    var iterator = self.makeIterator()
+    while let element = iterator.next() {
+      result.append(try transform(element))   // note: this is the only `try`!
+    }
+    return result
+  }
+}
+```
+
+Here are uses of `map` in practice:
+
+```swift
+_ = [1, 2, 3].map { String($0) }  // okay: map does not throw because the closure does not throw
+_ = try ["1", "2", "3"].map { (string: String) -> Int in
+  guard let result = Int(string) else { throw IntParseError(string) }
+  return result
+} // okay: map can throw because the closure can throw
+```
+
+The same notion could be applied to `async` functions. For example, we could imagine making `map` asynchronous when its argument is asynchronous with `reasync`:
+
+```swift
+extension Sequence {
+  func map<Transformed>(transform: (Element) async throws -> Transformed) reasync rethrows -> [Transformed] {
+    var result = [Transformed]()
+    var iterator = self.makeIterator()
+    while let element = iterator.next() {
+      result.append(await try transform(element))   // note: this is the only `try` and only `await`!
+    }
+    return result
+  }
+}
+```
+
+*Conceptually*, this is fine: when provided with an `async` function, `map` will be treated as `async` (and you'll need to `await` the result), whereas providing it with a non-`async` function, `map` will be treated as synchronous (and won't require `await`).
+
+*In practice*, there are a few problems here:
+
+* This is probably not a very good implementation of an asynchronous `map` on a sequence. More likely, we would want a concurrent implementation that (say) processes up to number-of-cores elements concurrently.
+* The ABI of throwing functions is intentionally designed to make it possible for a `rethrows` function to act as a non-throwing function, so a single ABI entry point suffices for both throwing and non-throwing calls. The same is not true of `async` functions, which have a radically different ABI that is necessarily less efficient than the ABI for synchronous functions.
+
+For something like `Sequence.map` that might become concurrent, `reasync` is likely the wrong tool: overloading for `async` closures to provide a separate (concurrent) implementation is likely the better answer. So, `reasync` is likely to be much less generally applicable than `rethrows`.
+
+There are undoubtedly some uses for `reasync`, such as the `??` operator for optionals, where the `async` implementation degrades nicely to a synchronous implementation:
+
+```swift
+func ??<T>(
+    _ optValue: T?, _ defaultValue: @autoclosure () async throws -> T
+) reasync rethrows -> T {
+  if let value = optValue {
+    return value
+  }
+
+  return await try defaultValue()
+}
+```
+
+For such cases, the ABI concern described above can likely be addressed by emitting two entrypoints: one when the argument is `async` and one when it is not. However, the implementation is complex enough that the authors are not yet ready to commit to this design.
+
 ## Alternatives Considered
 
 ### Make `await` imply `try`
@@ -578,10 +647,11 @@ We chose not to make `await` imply `try` because they are expressing different k
 	* Added `await try` ordering restriction to match the `async throws` restriction.
 	* Added support for `async` initializers.
 	* Added support for synchronous functions satisfying an `async` protocol requirement.
+	* Added discussion of `reasync`.
 	* Added justification for `await` not implying `try`.
 	* Added justification for `async` following the function parameter list.
 
-* Original pitch [document](https://github.com/DougGregor/swift-evolution/blob/092c05eebb48f6c0603cd268b7eaf455865c64af/proposals/nnnn-async-await.md) and [forum thread](https://forums.swift.org/t/concurrency-asynchronous-functions/41619).
+* Original pitch ([document](https://github.com/DougGregor/swift-evolution/blob/092c05eebb48f6c0603cd268b7eaf455865c64af/proposals/nnnn-async-await.md) and [forum thread](https://forums.swift.org/t/concurrency-asynchronous-functions/41619)).
 
 ## Related proposals
 
