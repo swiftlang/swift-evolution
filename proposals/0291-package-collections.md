@@ -8,13 +8,13 @@
 
 ## Introduction
 
-This is a proposal for adding support for **Package Collections** to SwiftPM. A package feed is a curated list of packages and associated metadata which makes it easier to discover an existing package for a particular use case. SwiftPM will allow users to subscribe to these collections, search them via the `swift package-collections` command-line interface, and will make their contents accessible to any clients of libSwiftPM. This proposal is focused on the shape of the command-line interface and the format of configuration data related to package collections.
+This is a proposal for adding support for **Package Collections** to SwiftPM. A package collection is a curated list of packages and associated metadata which makes it easier to discover an existing package for a particular use case. SwiftPM will allow users to subscribe to these collections, search them via the `swift package-collections` command-line interface, and will make their contents accessible to any clients of libSwiftPM. This proposal is focused on the shape of the command-line interface and the format of configuration data related to package collections.
 
 We believe there are three different components in the space of package discovery with different purposes:
 
 **Package Registry** is focused on hosting and serving package sources as an alternative to fetching them directly from git. The goal is to provide better immutability, durability and potentially improve performance and security. This initiative is in-progress and governed by [a separate proposal](https://github.com/apple/swift-evolution/pull/1179).
 
-**Package Index** is focused for providing a search index for packages. The goal is to improve discoverability of packages that may be hosted anywhere, and provide a rich set of metadata that helps making informed decisions when choosing dependencies. The Index indexes the package core metadata available in Package.swift as well as additional metadata from additional and external sources. An example of a package index is https://swiftpackageindex.com.
+**Package Index** is focused for providing a search index for packages. The goal is to improve discoverability of packages that may be hosted anywhere, and provide a rich set of metadata that helps making informed decisions when choosing dependencies. The Index indexes the package core metadata available in `Package.swift` as well as additional metadata from additional and external sources. An example of a package index is https://swiftpackageindex.com.
 
 **Package Collections** which are the subject of this proposal are closer to the Package Index than to the Package Registry. Collections are also designed to make discovery easier, but focused on simpler curation lists that can be easily shared rather than on larger scale indexing and ranking system that requires infrastructure. This design is the first step in teaching SwiftPM about discovery of packages and future work to support Package Indexes can build on this initial design.
 
@@ -30,7 +30,7 @@ Exposing the data of package collections via libSwiftPM and the `swift package-c
 
 We propose to introduce a new concept called **Package Collections** to the Swift package ecosystem. Collections are authored as static JSON documents and contain a list of packages and additional metadata per package. They are published to a web server or CDN-like infrastructure making them accessible to users. SwiftPM will gain new command-line interface for adding and removing collections and will index them in the background, allowing users to more easily discover and integrate packages that are included in the collections.
 
-For example, a course instructor knows they intend to teach with a set of several packages for their class. They can construct a feed JSON file, representing those packages. Then, they can post that JSON file to a GitHub repo or a website, giving the URL to that JSON file to all their students. Students use SwiftPM to add the instructor's feed to their SwiftPM configuration, and any packages the instructor puts into that feed can be easily used by the students.
+For example, a course instructor knows they intend to teach with a set of several packages for their class. They can construct a collection JSON file, representing those packages. Then, they can post that JSON file to a GitHub repo or a website, giving the URL to that JSON file to all their students. Students use SwiftPM to add the instructor's collection to their SwiftPM configuration, and any packages the instructor puts into that collection can be easily used by the students.
 
 
 ## Detailed design
@@ -45,16 +45,16 @@ We also propose adding a new per-user SwiftPM configuration file which will init
 
 ### Example
 
-A course instructor shares a feed with packages needed for some assignments. The participants can add this feed to their set of collections:
+A course instructor shares a collection with packages needed for some assignments. The participants can add it to their set of collections:
 
 ```
 $ swift package-collections add https://www.example.com/packages.json
 Added "Packages for course XYZ" to your package collections.
 ```
 
-This will add the given feed to the user's set of collections for querying metadata and search.
+This will add the given collection to the user's set of collections for querying metadata and search.
 
-One of the assignments requires parsing a YAML file and instead of searching the web, participants can search the curated feed for packages that could help with their task:
+One of the assignments requires parsing a YAML file and instead of searching the web, participants can search the curated collection for packages that could help with their task:
 
 ```
 $ swift package-collections search --keywords yaml
@@ -83,7 +83,7 @@ License: MIT
 CVEs: ...
 ```
 
-This will list the basic metadata for the given package, as well as more detailed metadata for the latest version of the package. Available metadata for a package can incorporate data from the feed itself, as well as data discovered by SwiftPM.  For example, by querying the package's repository or gathering data from the source code hosting platform being used by the package.
+This will list the basic metadata for the given package, as well as more detailed metadata for the latest version of the package. Available metadata for a package can incorporate data from the collection itself, as well as data discovered by SwiftPM. For example, by querying the package's repository or gathering data from the source code hosting platform being used by the package.
 
 
 
@@ -112,7 +112,7 @@ Refreshed 23 configured package collections.
 
 #### Add
 
-The `add` command adds a feed by URL, with an optional order hint, to the user's list of configured collections. The order hint will influence ranking in search results and can also potentially be used by clients of SwiftPM to order results in a UI, for example.
+The `add` command adds a collection by URL, with an optional order hint, to the user's list of configured collections. The order hint will influence ranking in search results and can also potentially be used by clients of SwiftPM to order results in a UI, for example.
 
 
 ```
@@ -123,7 +123,7 @@ Added "My organisation's packages" to your package collections.
 
 #### Remove
 
-The `remove` command removes a feed by URL from the user's list of configured collections.
+The `remove` command removes a collection by URL from the user's list of configured collections.
 
 ```
 $ swift package-collections remove https://www.example.com/packages.json
@@ -131,9 +131,9 @@ Removed "My organisation's packages" from your package collections.
 ```
 
 
-#### Metadata and packages of a single feed
+#### Metadata and packages of a single collection
 
-The `describe` command shows the metadata and included packages for a single feed. This can be used for both collections that have been previously added to the list of the user's configured collections, as well as to preview any other collections.
+The `describe` command shows the metadata and included packages for a single collection. This can be used for both collections that have been previously added to the list of the user's configured collections, as well as to preview any other collections.
 
 ```
 $ swift package-collections describe https://www.example.com/packages.json
