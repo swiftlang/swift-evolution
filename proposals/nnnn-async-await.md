@@ -310,6 +310,8 @@ class Teacher {
 }
 ```
 
+> **Rationale**: The `async` follows the parameter list because it is part of the function's type as well as its declaration. This follows the precedent of `throws`.
+
 The type of a reference to a function or initializer declared `async` is an `async` function type. If the reference is a “curried” static reference to an instance method, it is the "inner" function type that is `async`, consistent with the usual rules for such references.
 
 Special functions like `deinit` and storage accessors cannot be `async`.
@@ -576,6 +578,8 @@ We chose not to make `await` imply `try` because they are expressing different k
 	* Added `await try` ordering restriction to match the `async throws` restriction.
 	* Added support for `async` initializers.
 	* Added support for synchronous functions satisfying an `async` protocol requirement.
+	* Added justification for `await` not implying `try`.
+	* Added justification for `async` following the function parameter list.
 
 * Original pitch [document](https://github.com/DougGregor/swift-evolution/blob/092c05eebb48f6c0603cd268b7eaf455865c64af/proposals/nnnn-async-await.md) and [forum thread](https://forums.swift.org/t/concurrency-asynchronous-functions/41619).
 
