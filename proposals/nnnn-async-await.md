@@ -502,25 +502,42 @@ let closure5 = { () -> Int in       // not 'async'
 
 ### Overloading and overload resolution
 
-Existing Swift programs that include both synchronous and asynchronous entry points for an operation are likely to be designed using two similarly-named methods for each operation:
+Existing Swift APIs generally support asynchronous functions via a callback interface, e.g.,
 
 ```swift
-func doSomething() -> String { ... }
-func doSomething(completionHandler: (String) -> Void) { ... }
+func doSomething(completionHandler: ((String) -> Void)? = nil) { ... }
 ```
 
-At the call site, it is clear which method is being called by the presence of the completion handler (or lack thereof). With the direct mapping of the second method's API into an `async` one, however, the signatures are now quite similar:
+Many such APIs are likely to be updated by adding an `async` form:
 
 ```swift
-func doSomething() -> String { ... }
 func doSomething() async -> String { ... }
-
-doSomething() // synchronous or asynchronous?
 ```
 
-If we were to replace `async` with `throws`, declaring the two methods above would produce a compiler error about an "invalid redeclaration." However, we propose to allow `async` functions to overload non-`async` functions, so the above code is well-formed. This allows existing Swift programs to evolve `async` versions of existing synchronous functions without spurious renaming.
+These two functions have different names and signatures, even though they share the same base name. However, either of them can be called with no parameters (due to the defaulted completion handler), which would present a problem for existing code:
 
-The ability to overload `async` and non-`async` functions is paired with an overload-resolution rule to select the appropriate function based on the context of the call. Given a call, overload resolution prefers non-`async` functions within a synchronous context because such contexts cannot contain a call to an `async` function.  Furthermore, overload resolution prefers `async` functions within an asynchronous context, because such contexts should avoid synchronous, blocking APIs when there is an alternative. When overload resolution selects an `async` function, that call is subject to the rule that it must occur within an `await` expression.
+```swift
+doSomething() // problem: can call either, unmodified Swift rules prefer the `async` version
+```
+
+Swift's overloading rules prefer to call a function with fewer default arguments, so the addition of the `async` function would existing code that called the original `doSomething(completionHandler:)` with no completion handler. This would get an error along the lines of:
+
+```
+error: `async` function cannot be called from non-asynchronous context
+```
+
+This presents problems for code evolution, because developers of existing asynchronous libraries would have to either have a hard compatiblity break (e.g, to a new major version) or would need have different names for all of the new `async` versions. The latter would likely result in a scheme such as [C#'s pervasive `Async` suffix](https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/concepts/async/task-asynchronous-programming-model).
+
+Instead, we propose an overload-resolution rule to select the appropriate function based on the context of the call. Given a call, overload resolution prefers non-`async` functions within a synchronous context (because such contexts cannot contain a call to an `async` function).  Furthermore, overload resolution prefers `async` functions within an asynchronous context (because such contexts should avoid stepping out of the asynchronous model into blocking APIs). When overload resolution selects an `async` function, that call is still subject to the rule that it must occur within an `await` expression.
+
+Note that we follow the design of `throws` in disallowing overloads that differ *only* in `async`:
+
+```swift
+func doSomething() -> String { /* ... */ }       // synchronous, blocking
+func doSomething() async -> String { /* ... */ } // asynchronous
+
+// error: redeclaration of function `doSomething()`.
+```
 
 ### Autoclosures
 
@@ -573,6 +590,13 @@ Asynchronous functions and function types are additive to the ABI, so there is n
 ## Effect on API resilience
 
 The ABI for an `async` function is completely different from the ABI for a synchronous function (e.g., they have incompatible calling conventions), so the addition or removal of `async` from a function or type is not a resilient change.
+
+## Revision history
+
+* Changes in the second pitch:
+	* One can no longer directly overload `async` and non-`async` functions. Overload resolution support remains, however, with additional justification.
+
+* Original pitch [document](https://github.com/DougGregor/swift-evolution/blob/092c05eebb48f6c0603cd268b7eaf455865c64af/proposals/nnnn-async-await.md) and [forum thread](https://forums.swift.org/t/concurrency-asynchronous-functions/41619).
 
 ## Related proposals
 
