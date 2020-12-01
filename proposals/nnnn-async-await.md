@@ -401,7 +401,7 @@ class Zebra : Animal {
 
 ### Asynchronous function types
 
-Asynchronous function types are distinct from their synchronous counterparts. There is no implicit conversion from a value of a synchronous function type to the corresponding asynchronous function type. However, the implicit conversion from a value of non-throwing asynchronous function type to its corresponding throwing asynchronous function type is permitted. For example:
+Asynchronous function types are distinct from their synchronous counterparts. However, there is an implicit conversion from a synchronous function type to its corresponding asynchronous function type. This is similar to the implicit conversion from a non-throwing function to its throwing counterpart, which can also compose with the asynchronous function conversion. For example:
 
 ```swift
 struct FunctionTypes {
@@ -411,22 +411,20 @@ struct FunctionTypes {
   var asyncThrowing: () async throws -> Void
   
   mutable func demonstrateConversions() {
-    // Okay to convert to throwing form
+    // Okay to add 'async' and/or 'throws'    
+    asyncNonThrowing = syncNonThrowing
+    asyncThrowing = syncThrowing
     syncThrowing = syncNonThrowing
     asyncThrowing = asyncNonThrowing
     
-    // Error to convert between asynchronous and synchronous
-    asyncNonThrowing = syncNonThrowing // error
+    // Error to remove 'async' or 'throws'
     syncNonThrowing = asyncNonThrowing // error
-    asyncThrowing = syncThrowing       // error
     syncThrowing = asyncThrowing       // error
+    syncNonThrowing = syncThrowing     // error
+    asyncNonThrowing = syncThrowing    // error
   }
 }
 ```
-
-One can manually create an `async` closure that calls synchronous functions, so the lack of implicit conversion does not affect the expressivity of the model. See the section on [Closures](#closures) for the syntax to define an `async` closure.
-
-> **Rationale**: We do not propose the implicit conversion from a synchronous function to an asynchronous function because it would complicate type checking, particularly in the presence of synchronous and asynchronous overloads of the same function. See the section on [Overloading and overload resolution](#overloading-and-overload-resolution) for more information.
 
 ### Await expressions
 
@@ -604,6 +602,7 @@ The ABI for an `async` function is completely different from the ABI for a synch
 
 * Changes in the second pitch:
 	* One can no longer directly overload `async` and non-`async` functions. Overload resolution support remains, however, with additional justification.
+	* Added an implicit conversion from a synchronous function to an asynchronous function.
 	* Added `await try` ordering restriction to match the `async throws` restriction.
 
 * Original pitch [document](https://github.com/DougGregor/swift-evolution/blob/092c05eebb48f6c0603cd268b7eaf455865c64af/proposals/nnnn-async-await.md) and [forum thread](https://forums.swift.org/t/concurrency-asynchronous-functions/41619).
