@@ -499,6 +499,38 @@ await computeArgumentLater(getIntSlowly())
 
 But, because the argument is an autoclosure, this rewriting is no longer semantics-preserving. Thus, the restriction on `async` autoclosure parameters avoids these problems by ensuring that `async` autoclosure parameters can only be used in asynchronous contexts.
 
+### Protocol conformance
+
+A protocol requirement can be declared as `async`. Such a requirement can be satisfied by an `async` or synchronous function. However, a synchronous function requirement cannot be satisfied by an `async` function. For example:
+
+```swift
+protocol Asynchronous {
+  func f() async
+}
+
+protocol Synchronous {
+  func g()
+}
+
+struct S1: Asynchronous {
+  func f() async { } // okay, exactly matches
+}
+
+struct S2: Asynchronous {
+  func f() { } // okay, synchronous function satisfying async requirement
+}
+
+struct S3: Synchronous {
+  func g() { } // okay, exactly matches
+}
+
+struct S4: Synchronous {
+  func g() async { } // error: cannot satisfy synchronous requirement with an async function
+}
+```
+
+This behavior follows the subtyping/implicit conversion rule for asynchronous functions, as is precedented by the behavior of `throws`.
+
 ## Source compatibility
 
 This proposal is generally additive: existing code does not use any of the new features (e.g., does not create `async` functions or closures) and will not be impacted. However, it introduces two new contextual keywords, `async` and `await`.
@@ -530,6 +562,7 @@ The ABI for an `async` function is completely different from the ABI for a synch
 	* Added an implicit conversion from a synchronous function to an asynchronous function.
 	* Added `await try` ordering restriction to match the `async throws` restriction.
 	* Added support for `async` initializers.
+	* Added support for synchronous functions satisfying an `async` protocol requirement.
 
 * Original pitch [document](https://github.com/DougGregor/swift-evolution/blob/092c05eebb48f6c0603cd268b7eaf455865c64af/proposals/nnnn-async-await.md) and [forum thread](https://forums.swift.org/t/concurrency-asynchronous-functions/41619).
 
