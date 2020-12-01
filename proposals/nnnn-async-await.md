@@ -457,6 +457,15 @@ A suspension point must not occur within an autoclosure that is not of `async` f
 
 A suspension point must not occur within a `defer` block.
 
+If `await` is directly followed with one of the variants of `try` (including `try!` and `try?`), `await` must precede the `try`/`try!`/`try?`:
+
+```swift
+let (data, response) = try await session.dataTask(with: server.redirectURL(for: url)) // error: must be `await try`
+let (data, response) = try (await session.dataTask(with: server.redirectURL(for: url))) // okay due to parentheses
+```
+
+> **Rationale**: this restriction is arbitrary, but follows the equally-arbitrary restriction on the ordering of `async throws` in preventing stylistic debates.
+
 ### Closures
 
 A closure can have `async` function type. Such closures can be explicitly marked as `async` as follows:
@@ -595,6 +604,7 @@ The ABI for an `async` function is completely different from the ABI for a synch
 
 * Changes in the second pitch:
 	* One can no longer directly overload `async` and non-`async` functions. Overload resolution support remains, however, with additional justification.
+	* Added `await try` ordering restriction to match the `async throws` restriction.
 
 * Original pitch [document](https://github.com/DougGregor/swift-evolution/blob/092c05eebb48f6c0603cd268b7eaf455865c64af/proposals/nnnn-async-await.md) and [forum thread](https://forums.swift.org/t/concurrency-asynchronous-functions/41619).
 
