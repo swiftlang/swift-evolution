@@ -555,6 +555,19 @@ Asynchronous functions and function types are additive to the ABI, so there is n
 
 The ABI for an `async` function is completely different from the ABI for a synchronous function (e.g., they have incompatible calling conventions), so the addition or removal of `async` from a function or type is not a resilient change.
 
+## Alternatives Considered
+
+### Make `await` imply `try`
+
+Many asynchronous APIs involve file I/O, networking, or other failable operations, and therefore will be both `async` and `throws`. At the call site, this means `await try` will be repeated many times. To reduce the boilerplate, `await` could imply `try`, so the following two lines would be equivalent:
+
+```swift
+let dataResource  = await loadWebResource("dataprofile.txt")
+let dataResource  = await try loadWebResource("dataprofile.txt")
+```
+
+We chose not to make `await` imply `try` because they are expressing different kinds of concerns: `await` is about a potential suspension point, where other code might execute in between when you make the call and it when it returns, while `try` is about control flow out of the block.
+
 ## Revision history
 
 * Changes in the second pitch:
