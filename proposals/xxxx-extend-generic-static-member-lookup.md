@@ -77,7 +77,7 @@ which accepts instances of the `ToggleStyle` protocol, e.g.
 ```swift
 public protocol ToggleStyle {
   associatedtype Body: View
-  func makeBody(configuration: Configuration) -> some View
+  func makeBody(configuration: Configuration) -> Body
 }
 
 public struct DefaultToggleStyle: ToggleStyle { ... }
@@ -113,22 +113,27 @@ There are ways of achieving the desired syntax today without changing the langua
 When SwiftUI was still in beta, it included one such workaround in the form of the `StaticMember` type:
 
 ```swift
+protocol ToggleStyle {
+  // ...
+  typealias Member = StaticMember<Self>
+}
+
 struct StaticMember<Base> {
   var base: Base
   init(_ base: Base)
 }
 
-extension StaticMember where Base: ColorStyle {
-  static var red: StaticMember<RedStyle> { .init(.init()) }
-  static var blue: StaticMember<BlueStyle> { .init(.init()) }
+extension StaticMember where Base: ToggleStyle {
+  static var switch: StaticMember<SwitchToggleStyle> { .init(.init()) }
+  static var checkbox: StaticMember<CheckboxToggleStyle> { .init(.init()) }
 }
 
 extension View {
-  func colorStyle<S : ColorStyle>(_ style: S.Member) -> some View
+  func toggleStyle<S : ToggleStyle>(_ style: S.Member) -> some View
 }
 
-MyView().colorStyle(.red)
-MyView().colorStyle(.blue)
+MyView().toggleStyle(.switch)
+MyView().toggleStyle(.checkbox)
 ```
 
 However, `StaticMember` *serves no purpose* outside of achieving a more ideal syntax elsewhere. Its inclusion is hard to comprehend for anyone looking at the public facing API, as the type itself is decoupled from its actual purpose. SwiftUI removed `StaticMember` before exiting beta for exactly that reason: developers were commonly confused by its existence, declaration complexity, and usage within the framework.
@@ -159,27 +164,27 @@ The second option is a much better choice that avoids having to do a global look
 This approach works well for references without an explicit base, let’s consider an example:
 
 ```swift
-protocol Style {
+protocol ToggleStyle {
 }
 
-struct BorderedStyle : Style {
+struct SwitchToggleStyle: ToggleStyle {
 }
 
-extension Style {
-  static var bordered: BorderedStyle { BorderedStyle() }
+extension ToggleStyle {
+  static var switch: SwitchToggleStyle { SwitchToggleStyle() }
 }
 
-func applyStyle<S: Style>(_: S) {
+func applyStyle<S: ToggleStyle>(_: S) {
   // ...
 }
 
-applyStyle(.bordered)
+applyStyle(.switch)
 ```
 
 
-In this case (`applyStyle(.bordered)`) the reference to the member `.bordered` is re-written to be `Bordered.bordered` in the type-checked AST.
+In this case (`applyStyle(.switch)`) the reference to the member `.switch` is re-written to be `SwitchToggleStyle.switch` in the type-checked AST.
 
-To make this work the type-checker would attempt to infer protocol conformance requirements from context, e.g. the call site of a generic function (in this case there is only one such requirement - the protocol `Style`), and propagate them to the type variable representing the implicit base type of the chain. If there is no other contextual information available, e.g. the result type couldn’t be inferred to some concrete type, the type-checker would attempt to bind base to the type of the inferred protocol requirement. 
+To make this work the type-checker would attempt to infer protocol conformance requirements from context, e.g. the call site of a generic function (in this case there is only one such requirement - the protocol `ToggleStyle`), and propagate them to the type variable representing the implicit base type of the chain. If there is no other contextual information available, e.g. the result type couldn’t be inferred to some concrete type, the type-checker would attempt to bind base to the type of the inferred protocol requirement. 
 
 Member lookup filtering is adjusted to find static members on protocol metatype base but the `Self` part of the reference type is replaced with result type of the discovered member (looking through function types and IUOs) and additional conformance requirements are placed on it (the new `Self` type) to make sure that the new base does conform to the expected protocol.
 
