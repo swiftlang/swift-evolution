@@ -320,85 +320,10 @@ If a function is both `async` and `throws`, then the `async` keyword must preced
 
 > **Rationale** : This order restriction is arbitrary, but it's not harmful, and it eliminates the potential for stylistic debates.
 
-### Asynchronous initializers
+An `async` initializer of a class that has a superclass but lacks a call to a superclass initializer will get an implicit call to `super.init()` only if the superclass has has a zero-argument, synchronous, designated initializer.
 
-A class's `init` function is allowed to be async. But, there are two rules to keep in mind when it comes to initializers and async/await:
-
-1. Property and global variable initializers are not allowed to be async.
-2. The programmer must explicity write-out calls to an async `super.init()`.
-
-> **Rationale for Rule 1**: Let's consider the following example:
->
-```swift
-func databaseLookup(_ query : String) async -> String { /*...*/ }
-
-class Teacher {
-  var employeeID : String = await databaseLookup("DefaultID")
-  // ...
-}
-```
-
->The initializer for `employeeID` creates problems for all other explicit and implicit class initializers, because those initializers would have to be exclusively `async`. This is because the class's designated initializer is the one who will implicity invoke the `async` function `databaseLookup` to initialize the `employeeID` property. Any convenience initializers eventually must call a designated initializer, which is `async` and thus the convenience intializer must be `async` too.
->
->So there's already an argument agianst `async` property initializers: they can lead to confusion and have significant knock-on effects when added to a class, so they're likely to be unpopular. Additionally, the reasoning behind these knock-on effects is likely to be confusing for programmers who are not intimately familiar with Swift's initialization procedures.
->
->Furthermore, there is already a precedent in the language that property initializers cannot throw an error outside of its context, i.e., property initializers do not throw and thus its class initializers are not required to be `throws`. Instead, property initializers have to handle any errors that may arise either with a `try!`, `try?`, or `do {} catch {}` plus the `{}()` "closure application trick":
-
-```swift
-func throwingDatabaseLookup(_ query : String) throws -> String { /*...*/ }
-
-  var employeeID : String = {
-    do {
-      try throwingDatabaseLookup("DefaultID")
-    } catch {
-      return "<error>"
-    }
-  }()
-```
->
->The closest analogue to `await` for error handling is `try`, but we cannot use the same closure application trick for `await`, because the closure itself will become `async` and applying it immediately puts us back where we started!
->
->There are also additional problems when we consider lazy properties with an `async` initializer, since any use of that property might trigger an `async` call, though only the first use would actually do so. But, because all uses might be the first use, we would need to have all uses annotated with `await`, thus needlessy propagating `async` everywhere. 
->
->Similar issues extend to initializers for global variables and anything other than local variables. Thus to avoid these issues, property and global variable initializers are not allowed to be async.
----------
-> **Rationale for Rule 2**:
-One of the key distinguishing features of initializers that are unlike ordinary functions is the requirement to call a super class's initializer, which in some instances is done for the programmer implicitly. Having async initializers in combination with implicit calls to them would create a conflict with the design goal of `await`. Specifically, that goal is to make explicit and obvious to the programmer that a suspension can occur within that expression.
->
->Now, let's consider this set of class definitions:
->
-```swift
-struct Data {
-  var x : Int = 0
-  func setCurrentID(_ x : Int) { /* ... */ }
-  func sendNetworkMessage() { /* ... */ }
-}
-
-class Animal {
-  init () async { /* ... */}
-}
-
-class Zebra : Animal {
-  var kind : Data = Data()
-  var id : Int
-
-  init(_ id : Int) async {
-    kind.setCurrentID(id)
-    self.id = id
-    // PROBLEM: implicit async call to super.init here.
-    kind.sendNetworkMessage()
-  }
-}
-```
->
->Note that `Animal` has a zero-argument designated initializer, so under the current initialization rules, a call to `super.init()` happens just after the initialization of `self.id` during "Phase 1" of `Zebra`'s `init` (see the [language guide's discussion of the procedure](https://docs.swift.org/swift-book/LanguageGuide/Initialization.html)). This implicit call could create problems for programmers who expect atomicity within the initializer's body to, say, send a network message immediately upon construction of a `Zebra`.
->
->Thus, the simple and practical solution here is to adjust the initialization rules to say that an implicit call to `super.init` will only happen if both of the following are true:
->
->1. The super class has a zero-argument, synchronous, designated initializer.
->2. The sub-class's initializer is declared synchronous.
-
-
+> **Rationale**: If the superclass initializer is `async`, the call to the asynchronous initializer is potentially a suspension point and therefore the call (and required `await`) must be visible in the source.
+ 
 ### Asynchronous function types
 
 Asynchronous function types are distinct from their synchronous counterparts. However, there is an implicit conversion from a synchronous function type to its corresponding asynchronous function type. This is similar to the implicit conversion from a non-throwing function to its throwing counterpart, which can also compose with the asynchronous function conversion. For example:
@@ -604,6 +529,7 @@ The ABI for an `async` function is completely different from the ABI for a synch
 	* One can no longer directly overload `async` and non-`async` functions. Overload resolution support remains, however, with additional justification.
 	* Added an implicit conversion from a synchronous function to an asynchronous function.
 	* Added `await try` ordering restriction to match the `async throws` restriction.
+	* Added support for `async` initializers.
 
 * Original pitch [document](https://github.com/DougGregor/swift-evolution/blob/092c05eebb48f6c0603cd268b7eaf455865c64af/proposals/nnnn-async-await.md) and [forum thread](https://forums.swift.org/t/concurrency-asynchronous-functions/41619).
 
