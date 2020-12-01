@@ -1,7 +1,7 @@
 # Extending Static Member Lookup in Generic Contexts
 
 * Proposal: [SE-NNNN](NNNN-extend-generic-static-member-lookup.md)
-* Authors: [Pavel Yaskevich](github.com/xedin), [Sam Lazarus](github.com/sl), [Matt Ricketson](github.com/ricketson)
+* Authors: [Pavel Yaskevich](https://github.com/xedin), [Sam Lazarus](https://github.com/sl), [Matt Ricketson](https://github.com/ricketson)
 * Review Manager: TBD
 * Status: **Awaiting Review**
 * Implementation: https://github.com/apple/swift/pull/34523, [toolchain](https://ci.swift.org/job/swift-PR-toolchain-osx/770//artifact/branch-main/swift-PR-34523-770-osx.tar.gz) available.
@@ -210,4 +210,3 @@ There have been multiple discussions on this topic on the Swift forums. The most
 Due to its narrow scope, the proposed design is simpler and does not require any syntax changes, while still satisfying all the intended use cases. We stress that this is an incremental improvement, which should not impede our ability to support protocol metatype extensions in the future.
 
 One concrete concern is whether the kind of static member lookup proposed here would be ambiguous with static member lookup on a hypothetical future protocol metatype property. We do not believe it would be, since lookup could be prioritized on the metatype over conforming types. Further, these kinds of namespace and lookup conflicts would likely need to be addressed in a future metatype extension proposal regardless of whether the lookup extension proposed here is accepted or not.
-
