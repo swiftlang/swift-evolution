@@ -1,10 +1,10 @@
 # Extending Static Member Lookup in Generic Contexts
 
 * Proposal: [SE-NNNN](NNNN-extend-generic-static-member-lookup.md)
-* Authors: [Pavel Yaskevich](github.com/xedin), [Sam Lazarus](github.com/sl), [Matt Ricketson](github.com/ricketson)
+* Authors: [Pavel Yaskevich](https://github.com/xedin), [Sam Lazarus](https://github.com/sl), [Matt Ricketson](https://github.com/ricketson)
 * Review Manager: TBD
 * Status: **Awaiting Review**
-* Implementation: https://github.com/apple/swift/pull/34523, [toolchain](https://ci.swift.org/job/swift-PR-toolchain-osx/770//artifact/branch-main/swift-PR-34523-770-osx.tar.gz) available.
+* Implementation: [apple/swift#34523](https://github.com/apple/swift/pull/34523)
 
 ## Introduction
 
@@ -97,7 +97,7 @@ However, this approach has a few downsides:
 * **Repetitive:** Only the “Switch” component of the style name is important, since we already know that the modifier expects a type of `ToggleStyle`.
 * **Poor discoverability:** There is no autocomplete support to expose the available `ToggleStyle` types to choose from, so you have to know them in advance.
 
-These downsides are impossible to avoid for generic parameters like above, which discourages generalizing functions. API designers should not have to chose between good design and easy-to-read code.
+These downsides are impossible to avoid for generic parameters like above, which discourages generalizing functions. API designers should not have to choose between good design and easy-to-read code.
 
 Instead, we could ideally support leading dot syntax for generic types with known protocol conformances, allowing syntax like this:
 
@@ -158,7 +158,7 @@ The type-checker is able to infer any protocol conformance requirements placed o
 The second option is a much better choice that avoids having to do a global lookup and conformance checking and is consistent with semantics of leading dot syntax, namely, the requirement that result and base types of the chain have to be equivalent. This leads to a new rule: if the result type of a static member conforms to the declaring protocol, it should be possible to reference such a member on a protocol metatype, using leading dot syntax, by implicitly replacing the protocol with a conforming type.
 
 
-> **Note:** If member returns a function type or an optional value type-checker considers “result type” (for purposes of base type inference) to be a result type of a function type and/or wrapped value of an optional type (if optional itself doesn’t conform to a required protocol). This enables calls to properties and optional chaining of member chains starting from protocol metatypes.
+> **Note:** If a member returns a function type or an optional value, the type-checker considers “result type” (for the purposes of base type inference) to be a result type of a function type and/or wrapped value of an optional type (if `Optional` itself doesn’t conform to a required protocol). This enables calls to properties, and optional chaining of member chains, starting from protocol metatypes.
 
 
 This approach works well for references without an explicit base, let’s consider an example:
@@ -181,12 +181,11 @@ func applyStyle<S: ToggleStyle>(_: S) {
 applyStyle(.switch)
 ```
 
-
 In this case (`applyStyle(.switch)`) the reference to the member `.switch` is re-written to be `SwitchToggleStyle.switch` in the type-checked AST.
 
 To make this work the type-checker would attempt to infer protocol conformance requirements from context, e.g. the call site of a generic function (in this case there is only one such requirement - the protocol `ToggleStyle`), and propagate them to the type variable representing the implicit base type of the chain. If there is no other contextual information available, e.g. the result type couldn’t be inferred to some concrete type, the type-checker would attempt to bind base to the type of the inferred protocol requirement. 
 
-Member lookup filtering is adjusted to find static members on protocol metatype base but the `Self` part of the reference type is replaced with result type of the discovered member (looking through function types and IUOs) and additional conformance requirements are placed on it (the new `Self` type) to make sure that the new base does conform to the expected protocol.
+Member lookup filtering is adjusted to find static members on a protocol metatype base, but the `Self` part of the reference type is replaced with the result type of the discovered member (looking through function types and IUOs) and additional conformance requirements are placed on it (the new `Self` type) to make sure that the new base does conform to the expected protocol.
 
 
 ## Source compatibility
@@ -215,4 +214,3 @@ There have been multiple discussions on this topic on the Swift forums. The most
 Due to its narrow scope, the proposed design is simpler and does not require any syntax changes, while still satisfying all the intended use cases. We stress that this is an incremental improvement, which should not impede our ability to support protocol metatype extensions in the future.
 
 One concrete concern is whether the kind of static member lookup proposed here would be ambiguous with static member lookup on a hypothetical future protocol metatype property. We do not believe it would be, since lookup could be prioritized on the metatype over conforming types. Further, these kinds of namespace and lookup conflicts would likely need to be addressed in a future metatype extension proposal regardless of whether the lookup extension proposed here is accepted or not.
-
