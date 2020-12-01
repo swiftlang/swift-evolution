@@ -6,6 +6,33 @@
 * Status: **Awaiting implementation**
 * Implementation: Available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
 
+Table of Contents
+=================
+
+   * [Async/await](#asyncawait)
+      * [Introduction](#introduction)
+      * [Motivation: Completion handlers are suboptimal](#motivation-completion-handlers-are-suboptimal)
+      * [Proposed solution: async/await](#proposed-solution-asyncawait)
+         * [Suspension points](#suspension-points)
+         * [Asynchronous calls](#asynchronous-calls)
+      * [Detailed design](#detailed-design)
+         * [Asynchronous functions](#asynchronous-functions)
+         * [Asynchronous function types](#asynchronous-function-types)
+         * [Await expressions](#await-expressions)
+         * [Closures](#closures)
+         * [Overloading and overload resolution](#overloading-and-overload-resolution)
+         * [Autoclosures](#autoclosures)
+         * [Protocol conformance](#protocol-conformance)
+      * [Source compatibility](#source-compatibility)
+      * [Effect on ABI stability](#effect-on-abi-stability)
+      * [Effect on API resilience](#effect-on-api-resilience)
+      * [Future Directions](#future-directions)
+         * [reasync](#reasync)
+      * [Alternatives Considered](#alternatives-considered)
+         * [Make await imply try](#make-await-imply-try)
+      * [Revision history](#revision-history)
+      * [Related proposals](#related-proposals)
+
 ## Introduction
 
 Modern Swift development involves a lot of asynchronous (or "async") programming using closures and completion handlers, but these APIs are hard to use.  This gets particularly problematic when many asynchronous operations are used, error handling is required, or control flow between asynchronous calls gets complicated.  This proposal describes a language extension to make this a lot more natural and less error prone.
