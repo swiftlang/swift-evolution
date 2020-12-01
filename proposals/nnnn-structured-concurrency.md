@@ -505,7 +505,7 @@ In the `chopVegetables()` example we not only added vegetable chopping tasks to 
 
 ```swift
 func chopVegetables(rawVeggies: [Vegetable]) async throws -> [ChoppedVegetable] {
-  await try Task.withGroup(resultType: ChoppedVegetable.self) { task group in    
+  await try Task.withGroup(resultType: ChoppedVegetable.self) { group in    
     var choppedVeggies: [ChoppedVegetable] = []
     choppedVeggies.reserveCapacity(veggies.count)
         
