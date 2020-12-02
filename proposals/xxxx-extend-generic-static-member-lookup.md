@@ -113,27 +113,32 @@ There are ways of achieving the desired syntax today without changing the langua
 When SwiftUI was still in beta, it included one such workaround in the form of the `StaticMember` type:
 
 ```swift
-protocol ToggleStyle {
+// Rejected SwiftUI APIs:
+
+public protocol ToggleStyle {
   // ...
   typealias Member = StaticMember<Self>
 }
 
-struct StaticMember<Base> {
-  var base: Base
-  init(_ base: Base)
+extension View {
+  public func toggleStyle<S: ToggleStyle>(_ style: S.Member) -> some View
+}
+
+public struct StaticMember<Base> {
+  public var base: Base
+  public init(_ base: Base)
 }
 
 extension StaticMember where Base: ToggleStyle {
-  static var switch: StaticMember<SwitchToggleStyle> { .init(.init()) }
-  static var checkbox: StaticMember<CheckboxToggleStyle> { .init(.init()) }
+  public static var `default`: StaticMember<DefaultToggleStyle> { get }
+  public static var `switch`: StaticMember<SwitchToggleStyle> { get }
+  public static var checkbox: StaticMember<CheckboxToggleStyle> { get }
 }
 
-extension View {
-  func toggleStyle<S : ToggleStyle>(_ style: S.Member) -> some View
-}
+// Leading dot syntax (using rejected workaround):
 
-MyView().toggleStyle(.switch)
-MyView().toggleStyle(.checkbox)
+Toggle("Wi-Fi", isOn: $isWiFiEnabled)
+  .toggleStyle(.switch)
 ```
 
 However, `StaticMember` *serves no purpose* outside of achieving a more ideal syntax elsewhere. Its inclusion is hard to comprehend for anyone looking at the public facing API, as the type itself is decoupled from its actual purpose. SwiftUI removed `StaticMember` before exiting beta for exactly that reason: developers were commonly confused by its existence, declaration complexity, and usage within the framework.
@@ -164,24 +169,33 @@ The second option is a much better choice that avoids having to do a global look
 This approach works well for references without an explicit base, let’s consider an example:
 
 ```swift
-protocol ToggleStyle {
+// Existing SwiftUI APIs:
+
+public protocol ToggleStyle { ... }
+
+public struct DefaultToggleStyle: ToggleStyle { ... }
+public struct SwitchToggleStyle: ToggleStyle { ... }
+public struct CheckboxToggleStyle: ToggleStyle { ... }
+
+extension View {
+  public func toggleStyle<S: ToggleStyle>(_ style: S) -> some View
 }
 
-struct SwitchToggleStyle: ToggleStyle {
-}
+// Possible SwiftUI APIs:
 
 extension ToggleStyle {
-  static var switch: SwitchToggleStyle { SwitchToggleStyle() }
+  public static var `default`: DefaultToggleStyle { get }
+  public static var `switch`: SwitchToggleStyle { get }
+  public static var checkbox: CheckboxToggleStyle { get }
 }
 
-func applyStyle<S: ToggleStyle>(_: S) {
-  // ...
-}
+// Leading dot syntax (using proposed solution):
 
-applyStyle(.switch)
+Toggle("Wi-Fi", isOn: $isWiFiEnabled)
+  .toggleStyle(.switch)
 ```
 
-In this case (`applyStyle(.switch)`) the reference to the member `.switch` is re-written to be `SwitchToggleStyle.switch` in the type-checked AST.
+In the case of `.toggleStyle(.switch)`, the reference to the member `.switch` is re-written to be `SwitchToggleStyle.switch` in the type-checked AST.
 
 To make this work the type-checker would attempt to infer protocol conformance requirements from context, e.g. the call site of a generic function (in this case there is only one such requirement - the protocol `ToggleStyle`), and propagate them to the type variable representing the implicit base type of the chain. If there is no other contextual information available, e.g. the result type couldn’t be inferred to some concrete type, the type-checker would attempt to bind base to the type of the inferred protocol requirement. 
 
