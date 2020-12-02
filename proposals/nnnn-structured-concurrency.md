@@ -132,7 +132,7 @@ Thus far, every task we have created is a child task, whose lifetime is limited 
 The `runDetached` operation creates a new task. It accepts a closure, which will be executed as the body of the task. Here, we create a new, detached task to make dinner:
 
 ```swift
-let dinnerHandle = Task.runDetached { // () async -> () in 
+let dinnerHandle = Task.runDetached { // () async -> Dinner in 
   await makeDinner()
 }
 ```
