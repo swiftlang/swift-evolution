@@ -227,7 +227,7 @@ For example, here is the `first` function:
 
 ```swift
 extension AsyncSequence {
-  public func first() async rethrows -> AsyncIterator.Element?
+  public func first() async rethrows -> Element?
 }
 ```
 
@@ -263,13 +263,13 @@ As an example, let's look at `map`:
 ```swift
 extension AsyncSequence {
   public func map<Transformed>(
-    _ transform: @escaping (AsyncIterator.Element) async throws -> Transformed
+    _ transform: @escaping (Element) async throws -> Transformed
   ) -> AsyncMapSequence<Self, Transformed>
 }
 
 public struct AsyncMapSequence<Upstream: AsyncSequence, Transformed>: AsyncSequence {
   public let upstream: Upstream
-  public let transform: (Upstream.AsyncIterator.Element) async throws -> Transformed
+  public let transform: (Upstream.Element) async throws -> Transformed
   public struct Iterator : AsyncIterator { 
     public mutating func next() async rethrows -> Transformed?
     public mutating func cancel()
