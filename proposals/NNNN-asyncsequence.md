@@ -99,7 +99,7 @@ The standard library will define the following protocols:
 public protocol AsyncSequence {
   associatedtype AsyncIterator: AsyncIteratorProtocol where AsyncIterator.Element == Element
   associatedtype Element
-  func makeAsyncIterator() -> Iterator
+  func makeAsyncIterator() -> AsyncIterator
 }
 
 public protocol AsyncIteratorProtocol {
