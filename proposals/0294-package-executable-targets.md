@@ -59,59 +59,61 @@ list of target declarations.
 The `PackageDescription` API will be updated to add an `executableTarget`
 function, currently having the same parameters as the `target` function:
 
-     /// Creates an executable target.
-     ///
-     /// An executable target can contain either Swift or C-family source files, but not both. It contains code that
-     /// is built as an executable module that can be used as the main target of an executable product.  The target
-     /// is expected to either have a source file named `main.swift`, `main.m`, `main.c`, or `main.cpp`, or a source
-     ///  file that contains the `@main` keyword.
-     ///
-     /// - Parameters:
-     ///   - name: The name of the target.
-     ///   - dependencies: The dependencies of the target. A dependency can be another target in the package or a product from a package dependency.
-     ///   - path: The custom path for the target. By default, the Swift Package Manager requires a target's sources to reside at predefined search paths;
-     ///       for example, `[PackageRoot]/Sources/[TargetName]`.
-     ///       Don't escape the package root; for example, values like `../Foo` or `/Foo` are invalid.
-     ///   - exclude: A list of paths to files or directories that the Swift Package Manager shouldn't consider to be source or resource files.
-     ///       A path is relative to the target's directory.
-     ///       This parameter has precedence over the `sources` parameter.
-     ///   - sources: An explicit list of source files. If you provide a path to a directory,
-     ///       the Swift Package Manager searches for valid source files recursively.
-     ///   - resources: An explicit list of resources files.
-     ///   - publicHeadersPath: The directory containing public headers of a C-family library target.
-     ///   - cSettings: The C settings for this target.
-     ///   - cxxSettings: The C++ settings for this target.
-     ///   - swiftSettings: The Swift settings for this target.
-     ///   - linkerSettings: The linker settings for this target.
-     @available(_PackageDescription, introduced: 999.0)
-     public static func executableTarget(
-        name: String,
-        dependencies: [Dependency] = [],
-        path: String? = nil,
-        exclude: [String] = [],
-        sources: [String]? = nil,
-        resources: [Resource]? = nil,
-        publicHeadersPath: String? = nil,
-        cSettings: [CSetting]? = nil,
-        cxxSettings: [CXXSetting]? = nil,
-        swiftSettings: [SwiftSetting]? = nil,
-        linkerSettings: [LinkerSetting]? = nil
-     ) -> Target {
-        return Target(
-            name: name,
-            dependencies: dependencies,
-            path: path,
-            exclude: exclude,
-            sources: sources,
-            resources: resources,
-            publicHeadersPath: publicHeadersPath,
-            type: .executable,
-            cSettings: cSettings,
-            cxxSettings: cxxSettings,
-            swiftSettings: swiftSettings,
-            linkerSettings: linkerSettings
-        )
-     }
+```swift
+/// Creates an executable target.
+///
+/// An executable target can contain either Swift or C-family source files, but not both. It contains code that
+/// is built as an executable module that can be used as the main target of an executable product.  The target
+/// is expected to either have a source file named `main.swift`, `main.m`, `main.c`, or `main.cpp`, or a source
+///  file that contains the `@main` keyword.
+///
+/// - Parameters:
+///   - name: The name of the target.
+///   - dependencies: The dependencies of the target. A dependency can be another target in the package or a product from a package dependency.
+///   - path: The custom path for the target. By default, the Swift Package Manager requires a target's sources to reside at predefined search paths;
+///       for example, `[PackageRoot]/Sources/[TargetName]`.
+///       Don't escape the package root; for example, values like `../Foo` or `/Foo` are invalid.
+///   - exclude: A list of paths to files or directories that the Swift Package Manager shouldn't consider to be source or resource files.
+///       A path is relative to the target's directory.
+///       This parameter has precedence over the `sources` parameter.
+///   - sources: An explicit list of source files. If you provide a path to a directory,
+///       the Swift Package Manager searches for valid source files recursively.
+///   - resources: An explicit list of resources files.
+///   - publicHeadersPath: The directory containing public headers of a C-family library target.
+///   - cSettings: The C settings for this target.
+///   - cxxSettings: The C++ settings for this target.
+///   - swiftSettings: The Swift settings for this target.
+///   - linkerSettings: The linker settings for this target.
+@available(_PackageDescription, introduced: 999.0)
+public static func executableTarget(
+   name: String,
+   dependencies: [Dependency] = [],
+   path: String? = nil,
+   exclude: [String] = [],
+   sources: [String]? = nil,
+   resources: [Resource]? = nil,
+   publicHeadersPath: String? = nil,
+   cSettings: [CSetting]? = nil,
+   cxxSettings: [CXXSetting]? = nil,
+   swiftSettings: [SwiftSetting]? = nil,
+   linkerSettings: [LinkerSetting]? = nil
+) -> Target {
+   return Target(
+       name: name,
+       dependencies: dependencies,
+       path: path,
+       exclude: exclude,
+       sources: sources,
+       resources: resources,
+       publicHeadersPath: publicHeadersPath,
+       type: .executable,
+       cSettings: cSettings,
+       cxxSettings: cxxSettings,
+       swiftSettings: swiftSettings,
+       linkerSettings: linkerSettings
+   )
+}
+```
 
 A new `.executable` case is also added to the `TargetType` enum in the
 `PackageDescription` API.
