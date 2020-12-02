@@ -242,9 +242,9 @@ There could be a supplemental file providing key-value pairs whose keys can be r
 
 ### Data format
 
-Package collections must adhere to a specific JSON format for SwiftPM to be able to consume them. A draft of the JSON format has been [posted in the forums](https://forums.swift.org/t/package-collection-format/42071), but it is not part of this proposal because it is not considered stable API. Over time as the data format matures, we will consider making it stable API in a separate proposal.
+Package collections must adhere to a specific JSON format for SwiftPM to be able to consume them. The current proposed JSON format can be found [here](https://github.com/apple/swift-package-collection-generator/blob/main/PackageCollectionFormats/v1.md). It is not part of this proposal because it is not considered stable API. Over time as the data format matures, we will consider making it stable API in a separate proposal.
 
-Since the data format is unstable, users should avoid generating package collections on their own. This proposal includes providing the necessary tooling for generating and consuming package collections.
+Since the data format is unstable, users should avoid generating package collections on their own. This proposal includes providing the necessary [tooling](https://github.com/apple/swift-package-collection-generator) for package collection generations.
 
 
 ## Future direction
