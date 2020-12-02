@@ -289,29 +289,13 @@ When control returns to an asynchronous function, it picks up exactly where it w
 
 ### Suspension points
 
-A suspension point is a point in the execution of an asynchronous function where it has to give up its thread.  Suspension points are always associated with some deterministic, syntactically explicit event in the function; they’re never hidden or asynchronous from the function’s perspective.  The detailed language design will describe several different operations as suspension points, but the most important one is a call to an asynchronous function associated with a different execution context.
+A suspension point is a point in the execution of an asynchronous function where it has to give up its thread.  Suspension points are always associated with some deterministic, syntactically explicit event in the function; they’re never hidden or asynchronous from the function’s perspective.  The primary form of suspension point is a call to an asynchronous function associated with a different execution context.
 
 It is important that suspension points are only associated with explicit operations.  In fact, it’s so important that this proposal requires that calls that might suspend be enclosed in an `await` expression. This follows Swift's precedent of requiring `try` expressions to cover calls to functions that can throw errors. Marking suspension points is particularly important because *suspensions interrupt atomicity*.  For example, if an asynchronous function is running within a given context that is protected by a serial queue, reaching a suspension point means that other code can be interleaved on that same serial queue.  A classic but somewhat hackneyed example where this atomicity matters is modeling a bank: if a deposit is credited to one account, but the operation suspends before processing a matched withdrawal, it creates a window where those funds can be double-spent.  A more germane example for many Swift programmers is a UI thread: the suspension points are the points where the UI can be shown to the user, so programs that build part of their UI and then suspend risk presenting a flickering, partially-constructed UI.  (Note that suspension points are also called out explicitly in code using explicit callbacks: the suspension happens between the point where the outer function returns and the callback starts running.)  Requiring that all potential suspension points are marked allows programmers to safely assume that places without potential suspension points will behave atomically, as well as to more easily recognize problematic non-atomic patterns.
 
 Because suspension points can only appear at points explicitly marked within an asynchronous function, long computations can still block threads.  This might happen when calling a synchronous function that just does a lot of work, or when encountering a particularly intense computational loop written directly in an asynchronous function.  In either case, the thread cannot interleave code while these computations are running, which is usually the right choice for correctness, but can also become a scalability problem.  Asynchronous programs that need to do intense computation should generally run it in a separate context.  When that’s not feasible, there will be library facilities to artificially suspend and allow other operations to be interleaved.
 
 Asynchronous functions should avoid calling functions that can actually block the thread, especially if they can block it waiting for work that’s not guaranteed to be currently running.  For example, acquiring a mutex can only block until some currently-running thread gives up the mutex; this is sometimes acceptable but must be used carefully to avoid introducing deadlocks or artificial scalability problems.  In contrast, waiting on a condition variable can block until some arbitrary other work gets scheduled that signals the variable; this pattern goes strongly against recommendation.  Ongoing library work to provide abstractions that allow programs to avoid these pitfalls will be required.
-
-This design currently provides no way to prevent the current context from interleaving code while an asynchronous function is waiting for an operation in a different context.  This omission is intentional: allowing for the prevention of interleaving is inherently prone to deadlock.
-
-### Asynchronous calls
-
-Calls to an `async` function look and act mostly like calls to a synchronous (or ordinary) function. The apparent semantics of a call to an `async` function are:
-
-1. Arguments are evaluated using the ordinary rules, including beginning accesses for any `inout` parameters.
-2. The callee’s executor is determined. This proposal does not describe the rules for determining the callee's executor; see the complementary proposal about actors.
-3. If the callee’s executor is different from the caller’s executor, a suspension occurs and the partial task to resume execution in the callee is enqueued on the callee’s executor.
-4. The callee is executed with the given arguments on its executor.
-5. During the return, if the callee’s executor is different from the caller’s executor, a suspension occurs and the partial task to resume execution in the caller is enqueued on the caller’s executor.
-6. Finally, the caller resumes execution on its executor.  If the callee returned normally, the result of the call expression is the value returned by the function; otherwise, the expression throws the error that was thrown from the callee.
-
-From the caller's perspective, `async` calls behave similarly to synchronous calls, except that they may execute on a different executor, requiring the task to be briefly suspended. Note also that the duration of `inout` accesses is potentially much longer due to the suspension over the call, so `inout` references to shared mutable state that is not sufficiently isolated are more likely to produce a dynamic exclusivity violation.
-
 
 ## Detailed design
 
