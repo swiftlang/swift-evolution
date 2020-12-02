@@ -325,9 +325,9 @@ class Teacher {
 
 The type of a reference to a function or initializer declared `async` is an `async` function type. If the reference is a “curried” static reference to an instance method, it is the "inner" function type that is `async`, consistent with the usual rules for such references.
 
-Special functions like `deinit` and storage accessors cannot be `async`.
+Special functions like `deinit` and storage accessors (i.e., the getters and setters for properties and subscripts) cannot be `async`.
 
-> **Rationale**: Properties that only have a getter could potentially be `async`. However, properties that also have an `async` setter imply the ability to pass the property as `inout` and drill down into the properties of that property itself, which depends on the setter effectively being an "instantaneous" (synchronous, non-throwing) operation. Prohibiting `async` properties is a simpler rule than only allowing get-only `async` properties.
+> **Rationale**: Properties and subscripts that only have a getter could potentially be `async`. However, properties and subscripts that also have an `async` setter imply the ability to pass the reference as `inout` and drill down into the properties of that property itself, which depends on the setter effectively being an "instantaneous" (synchronous, non-throwing) operation. Prohibiting `async` properties is a simpler rule than only allowing get-only `async` properties and subscripts.
  
 If a function is both `async` and `throws`, then the `async` keyword must precede `throws` in the type declaration. This same rule applies if `async` and `rethrows`.
 
