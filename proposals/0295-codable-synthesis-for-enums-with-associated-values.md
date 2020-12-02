@@ -154,7 +154,7 @@ enum CodingKeys_store: CodingKey {
   case key
   case value
 }
-``
+```
 
 Since cases with unlabeled parameters encode into unkeyed containers,
 no `CodingKeys` enum will be generated for them.
