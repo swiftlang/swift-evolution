@@ -663,7 +663,18 @@ struct MyProgram {
 }
 ```
 
-There will be other ways to initiate asynchronous work as well, which will be left to subsequent proposals. None of them affect the fundamental mechanisms of async/await as defined in this proposal.
+Additionally, top-level code is not considered an asynchronous context in this proposal, so the following program is ill-formed:
+
+```swift
+func f() async -> String { "hello, asynchronously" }
+
+print(await f()) // error: cannot call asynchronous function in top-level code
+```
+
+This, too, will be addressed in a subsequent proposal that properly accounts for
+top-level variables.
+
+None of the concerns for top-level code affect the fundamental mechanisms of async/await as defined in this proposal.
 
 ## Revision history
 
