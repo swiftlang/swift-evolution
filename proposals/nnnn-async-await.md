@@ -45,7 +45,7 @@ This proposal defines the semantics of asynchronous functions. However, it does 
 This proposal draws some inspiration (and most of the Motivation section) from an earlier proposal written by 
 [Chris Lattner](https://github.com/lattner) and [Joe Groff](https://github.com/jckarter), available [here](https://gist.github.com/lattner/429b9070918248274f25b714dcfc7619). That proposal itself is derived from a proposal written by [Oleg Andreev](https://github.com/oleganza), available [here](https://gist.github.com/oleganza/7342ed829bddd86f740a). It has been significantly rewritten (again), and many details have changed, but the core ideas of asynchronous functions have remained the same.
 
-Swift-evolution thread: [\[Concurrency\] Asynchronous functions](https://forums.swift.org/t/concurrency-asynchronous-functions/41619)
+Swift-evolution thread: [Pitch #1](https://forums.swift.org/t/concurrency-asynchronous-functions/41619), [Pitch #2](https://forums.swift.org/t/pitch-2-async-await/42420)
 
 ## Motivation: Completion handlers are suboptimal
 
