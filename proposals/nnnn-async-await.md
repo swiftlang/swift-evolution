@@ -650,6 +650,9 @@ let dataResource  = await try loadWebResource("dataprofile.txt")
 
 We chose not to make `await` imply `try` because they are expressing different kinds of concerns: `await` is about a potential suspension point, where other code might execute in between when you make the call and it when it returns, while `try` is about control flow out of the block.
 
+One other motivation that has come up for making `await` imply `try` is related to task cancellation. If task cancellation were modeled as a thrown error, and every potential suspension point implicitly checked whether the task was cancelled, then every suspension point could throw: in such cases `await` might as well imply `try` because every `await` can potentially exit with an error.
+Task cancellation is covered in the [Structured Concurrency](https://github.com/DougGregor/swift-evolution/blob/structured-concurrency/proposals/nnnn-structured-concurrency.md) proposal, and does *not* model cancellation solely as a thrown error nor does it introduce implicit cancellation checks at each potential suspension point.
+
 ## Revision history
 
 * Changes in the second pitch:
