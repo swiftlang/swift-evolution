@@ -4,7 +4,8 @@
 * Author: [Bruno Rocha](https://github.com/rockbruno)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Implementation: [apple/swift#33932](https://github.com/apple/swift/pull/33932)
-* Status: **[Returned for revision](https://forums.swift.org/t/se-0290-unavailability-condition/41873/34)**
+* Status: **Returned for revision**
+* Decision Notes: [Review #1](https://forums.swift.org/t/se-0290-unavailability-condition/41873/34)
 
 ## Introduction
 
@@ -160,9 +161,9 @@ if #unavailable(iOS 9.0, *) {
 }
 ```
 
-### Function Builders
+### Result builders
 
-As `#unavailable` behaves exactly like `#available`, `ViewBuilder` does not need to be modified to support it. Using `#unavailable` on a builder will simply instead trigger `buildLimitedAvailability(_:)` in the `else` block. 
+As `#unavailable` behaves exactly like `#available`, [`ViewBuilder`](https://developer.apple.com/documentation/swiftui/viewbuilder) does not need to be modified to support it. Using `#unavailable` on a builder will simply instead trigger [`buildLimitedAvailability(_:)`](0289-result-builders.md#availability) in the `else` block.
 
 ## Source compatibility and ABI
 
