@@ -161,6 +161,52 @@ if #unavailable(iOS 9.0, *) {
 }
 ```
 
+### Semantics of `*`
+
+The compiler uses the platform wildcard `*` to ease porting to new platforms. Because new platforms typically branch from existing platforms, the wildcard allows availability checks to execute the guarded branch on the new platform without requiring a modification to every availability guard in the program. 
+
+To achieve this in practice, the wildcard represents the minimum deployment target of the unspecified platform being compiled.
+
+```swift
+if #available(*) {
+  // ...
+} else {
+  // Will never be executed
+}
+```
+
+When multiple platforms are present in the statement, the wildcard represents *only* the platforms that were not specified. A check like `#available(iOS 13, *)` means "if compiling for iOS, iOS 13, otherwise, the minimum deployment target" and not "if compiling for iOS, iOS 13 **and** iOS's deployment target, otherwise, *just* the minimum deployment target". The wildcard doesn't include platforms that were explictly added to the statement, which can be visualized by how it's not possible to specify a platform multiple times.
+
+```swift
+if #available(iOS 12, *)
+if #available(iOS 12, iOS 13, *) // Error: Version for 'iOS' already specified
+```
+
+For unavailability, this means that `#unavailable(*)` and `#unavailable(notWhatImCompiling X, *)` should return `false`. Since the minimum deployment target will always be present, the statement can never be true. This behavior also matches how a theoretical `!#available(*)` would behave if building expressions with `#available` was possible.
+
+```swift
+if #unavailable(*) {
+  // Will never be executed
+} else {
+  // ...
+}
+```
+
+The wildcard *only* represents platforms that were unspecified in the statement. This means that `#unavailable(iOS 13, *)` doesn't mean "iOS 13 *and* iOS's minimum deployment target", but "if iOS, iOS 13, otherwise the minimum deployment target"
+
+As an interesting side effect, this means that having multiple unavailability checks in the same statement (`#unavailable(iOS 13, *), #unavailable(watchOS 3, *)` as opposed to `#unavailable(iOS 13, watchOS 3, *)`) would cause the statement to always be false. 
+
+In these cases, since wildcard checks are eventually optimized to boolean literals, the compiler will already emit a warning indicating that the code will never be executed. Still, we can provide a more descriptive diagnostic that suggests using a single check that considers all platforms. 
+
+```swift
+if #unavailable(iOS 13, *), #unavailable(watchOS 3, *) {
+  // ... 
+  // Warning: code will never be executed
+  // Error: unavailability checks are canceling each other, use a single check that treats all platforms 
+  // fix-it: #unavailable(iOS 13, watchOS 3, *)
+}
+```
+
 ### Result builders
 
 As `#unavailable` behaves exactly like `#available`, [`ViewBuilder`](https://developer.apple.com/documentation/swiftui/viewbuilder) does not need to be modified to support it. Using `#unavailable` on a builder will simply instead trigger [`buildLimitedAvailability(_:)`](0289-result-builders.md#availability) in the `else` block.
@@ -173,7 +219,7 @@ This change is purely additive.
 
 ### `!#available(...)` and `#available(...) == false`
 
-While allowing the original condition to be reversed seems to be the obvious choice, supporting it in practice would require hardcoding all of this behavior as `#available` cannot be used as an expression. The author would rather not add tech debt to the compiler.
+While allowing the original condition to be reversed seems to be the obvious choice, supporting it in practice would require hardcoding all of this behavior as `#available` cannot be used as an expression. The author would rather not add tech debt to the compiler. On the other hand, given that it's fair to consider that this is a developer's first guess when attempting to do unavailability, the compiler will provide fix-its for each of these spellings.
 
 Refactoring `#available` to be usable as an expression would likely require refactoring the entire symbol availability system and has an extensive amount of implications and edge cases. The work to support it would be considerably beyond what is proposed here.
 
