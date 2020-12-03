@@ -4,8 +4,8 @@
 * Authors: [Bryan Clark](https://github.com/clarkbw),
            [Whitney Imura](https://github.com/whitneyimura),
            [Mattt Zmuda](https://github.com/mattt)
-* Review Manager: [Tom Doron](https://github.com/tomerd)
-* Status: **Scheduled for review (November 23...December 1)**
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
+* Status: **Scheduled for review (December 8...December 17)**
 * Implementation: [apple/swift-package-manager#3023](https://github.com/apple/swift-package-manager/pull/3023)
 
 
