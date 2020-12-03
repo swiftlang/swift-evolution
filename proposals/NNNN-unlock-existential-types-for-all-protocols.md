@@ -71,7 +71,7 @@ let userList = [User]() ❌
 // constraint because it has Self or associated type requirements.
 ```
 
-As you can see, the current limitations on existential types prohibit the creation of our `userList`. As a result, we’ll need to create our own, manually-written existential type for `User`, which is a tedious task that requires some level experience. Moreover, the creation of custom existential types.
+As you can see, the current limitations on existential types prohibit the creation of our `userList`. As a result, we’ll need to create our own, manually-written existential type for `User`, which is a tedious task that requires some level experience.
 
 
 ### Existential Type Synthesis for Library Authors
