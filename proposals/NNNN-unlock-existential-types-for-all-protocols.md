@@ -166,10 +166,7 @@ myPets.first!.name ℹ️
 
 ### Availability of Existential Type
 
-Namely, under the new rules, we propose that a compiler-generated existential be offered for:
-1. a protocol, no matter its requirements;
-2. a protocol-with-protocol composition; and
-3. a protocol-with-class composition.
+Namely, under the new rules, we propose that a compiler-generated existential be offered for protocols and protocol compositions no matter their requirements.
 
 ### Availability of Requirements
 
