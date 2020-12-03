@@ -4,7 +4,7 @@
 * Author: [Bruno Rocha](https://github.com/rockbruno)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Implementation: [apple/swift#33932](https://github.com/apple/swift/pull/33932)
-* Status: **Active Review (November 9...November 17)**
+* Status: **[Returned for revision](https://forums.swift.org/t/se-0290-unavailability-condition/41873/34)**
 
 ## Introduction
 
