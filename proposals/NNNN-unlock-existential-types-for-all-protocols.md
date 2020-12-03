@@ -245,19 +245,19 @@ type(of: userExistential.id) ℹ️
 Looking at the above, one will notice that the `id` requirement of `User` is available despite being bound to the associated type `ID`; thus, the compiler exposes the existential type of `Hashable` as `id`'s type – since, the associated type is _unknown_ in the eyes of `userExistential`. Of course, `username` – whose type is known to be `String` – retains its type, as seen in the above example.
 
 
-## Source compatibility
+## Source Compatibility
 
 This is an additive change with _no_ impact on **source compatibility**.
 
 
-## Effect on ABI stability
+## Effect on ABI Stability
 
 This is an additive change with _no_ impact on **ABI stability**.
 
 
-## Effect on API resilience
+## Effect on API Resilience
 
-This is an additive change with _no_ impact on **API resilience**.
+From now on, adding a defaulted associated type is both a binary- and source-compatible change.
 
 
 ## Alternatives Considered
