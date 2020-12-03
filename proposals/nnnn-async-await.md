@@ -28,6 +28,7 @@ Table of Contents
       * [Effect on API resilience](#effect-on-api-resilience)
       * [Future Directions](#future-directions)
          * [reasync](#reasync)
+         * [Launching async tasks](#launching-async-tasks)
       * [Alternatives Considered](#alternatives-considered)
          * [Make await imply try](#make-await-imply-try)
       * [Revision history](#revision-history)
@@ -652,6 +653,19 @@ We chose not to make `await` imply `try` because they are expressing different k
 
 One other motivation that has come up for making `await` imply `try` is related to task cancellation. If task cancellation were modeled as a thrown error, and every potential suspension point implicitly checked whether the task was cancelled, then every suspension point could throw: in such cases `await` might as well imply `try` because every `await` can potentially exit with an error.
 Task cancellation is covered in the [Structured Concurrency](https://github.com/DougGregor/swift-evolution/blob/structured-concurrency/proposals/nnnn-structured-concurrency.md) proposal, and does *not* model cancellation solely as a thrown error nor does it introduce implicit cancellation checks at each potential suspension point.
+
+### Launching async tasks
+
+Because only `async` code can call other `async` code, this proposal provides no way to initiate asynchronous code. This is intentional: all asynchronous code runs within the context of a "task", a notion which is defined in the [Structured Concurrency](https://github.com/DougGregor/swift-evolution/blob/structured-concurrency/proposals/nnnn-structured-concurrency.md) proposal. That proposal provides the ability to define asynchronous entry points to the program via `@main`, e.g.,
+
+```swift
+@main
+struct MyProgram {
+  static func main() async { ... }
+}
+```
+
+There will be other ways to initiate asynchronous work as well, which will be left to subsequent proposals. None of them affect the fundamental mechanisms of async/await as defined in this proposal.
 
 ## Revision history
 
