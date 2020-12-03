@@ -76,7 +76,7 @@ As you can see, the current limitations on existential types prohibit the creati
 
 ### Existential Type Synthesis for Library Authors
 
-Libraries often need to provide custom existential types for commonly-used protocols, when synthesis is not available. However, that  introduces hard-to-understand and difficult-to-maintain boilerplate code into the codebase. As a result, library authors have to spend valuable time on creating, documenting and maintaining such code, which can be easily synthesized by the compiler. For instance, SwiftUI (a popular UI framework from Apple) relies heavily on the ubiquitous [`View`](https://developer.apple.com/documentation/swiftui/view) protocol. This `View` protocol has a public interface that approximately looks like this:
+Libraries often need to provide custom existential types for commonly-used protocols, when synthesis is not available. However, that  introduces hard-to-understand and difficult-to-maintain boilerplate code into the codebase. As a result, library authors have to spend valuable time on creating, documenting and maintaining such code, which can be easily synthesized by the compiler. For instance, [SwiftUI](https://developer.apple.com/documentation/swiftui) relies heavily on the ubiquitous [`View`](https://developer.apple.com/documentation/swiftui/view) protocol. This `View` protocol has a public interface that approximately looks like this:
 
 ```swift
 public protocol View {
