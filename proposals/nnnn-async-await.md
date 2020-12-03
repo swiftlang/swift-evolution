@@ -347,7 +347,7 @@ struct FunctionTypes {
   var asyncNonThrowing: () async -> Void
   var asyncThrowing: () async throws -> Void
   
-  mutable func demonstrateConversions() {
+  mutating func demonstrateConversions() {
     // Okay to add 'async' and/or 'throws'    
     asyncNonThrowing = syncNonThrowing
     asyncThrowing = syncThrowing
