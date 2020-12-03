@@ -283,6 +283,7 @@ For each of these functions, we first define a type which conforms with the `Asy
 | - |
 | `map<T>(_ transform: (Element) async throws -> T) -> AsyncMapSequence` |
 | `compactMap<T>(_ transform: (Element) async throws -> T?) -> AsyncCompactMapSequence` |
+| `flatMap<SegmentOfResult: AsyncSequence>(_ transform: (Element) async throws -> SegmentOfResult) async rethrows -> AsyncFlatMapSequence` |
 | `drop(while: (Element) async throws -> Bool) async rethrows -> AsyncDropWhileSequence` |
 | `dropFirst(_ n: Int) async rethrows -> AsyncDropFirstSequence` |
 | `prefix(while: (Element) async throws -> Bool) async rethrows -> AsyncPrefixWhileSequence` |
