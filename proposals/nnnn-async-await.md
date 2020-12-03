@@ -3,7 +3,7 @@
 * Proposal: [SE-NNNN](NNNN-async-await.md)
 * Authors: [John McCall](https://github.com/rjmccall), [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: TBD
-* Status: **Awaiting implementation**
+* Status: **Awaiting review**
 * Implementation: Available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
 
 Table of Contents
@@ -33,6 +33,7 @@ Table of Contents
          * [Make await imply try](#make-await-imply-try)
       * [Revision history](#revision-history)
       * [Related proposals](#related-proposals)
+      * [Acknowledgments](#acknowledgments)
 
 ## Introduction
 
@@ -41,9 +42,6 @@ Modern Swift development involves a lot of asynchronous (or "async") programming
 This design introduces a [coroutine model](https://en.wikipedia.org/wiki/Coroutine) to Swift. Functions can opt into to being `async`, allowing the programmer to compose complex logic involving asynchronous operations using the normal control-flow mechanisms. The compiler is responsible for translating an asynchronous functions into an appropriate set of closures and state machines.
 
 This proposal defines the semantics of asynchronous functions. However, it does not provide concurrency: that is covered by a separate proposal to introduce structured concurrency, which associates asynchronous functions with concurrently-executing tasks and provides APIs for creating, querying, and cancelling tasks.
-
-This proposal draws some inspiration (and most of the Motivation section) from an earlier proposal written by 
-[Chris Lattner](https://github.com/lattner) and [Joe Groff](https://github.com/jckarter), available [here](https://gist.github.com/lattner/429b9070918248274f25b714dcfc7619). That proposal itself is derived from a proposal written by [Oleg Andreev](https://github.com/oleganza), available [here](https://gist.github.com/oleganza/7342ed829bddd86f740a). It has been significantly rewritten (again), and many details have changed, but the core ideas of asynchronous functions have remained the same.
 
 Swift-evolution thread: [Pitch #1](https://forums.swift.org/t/concurrency-asynchronous-functions/41619), [Pitch #2](https://forums.swift.org/t/pitch-2-async-await/42420)
 
@@ -688,3 +686,10 @@ In addition to this proposal, there are a number of related proposals covering d
 * [Concurrency Interoperability with Objective-C](https://github.com/DougGregor/swift-evolution/blob/concurrency-objc/proposals/NNNN-concurrency-objc.md): Describes the interaction with Objective-C, especially the relationship between asynchronous Objective-C methods that accept completion handlers and `@objc async` Swift methods.
 * [Structured Concurrency](https://github.com/DougGregor/swift-evolution/blob/structured-concurrency/proposals/nnnn-structured-concurrency.md): Describes the task structure used by asynchronous calls, the creation of both child tasks and detached tasks, cancellation, prioritization, and other task-management APIs.
 * [Actors](https://github.com/DougGregor/swift-evolution/blob/actors/proposals/nnnn-actors.md): Describes the actor model, which provides state isolation for concurrent programs
+
+## Acknowledgments
+
+The desire for async/await in Swift has been around for a long time. This proposal draws some inspiration (and most of the Motivation section) from an earlier proposal written by
+[Chris Lattner](https://github.com/lattner) and [Joe Groff](https://github.com/jckarter), available [here](https://gist.github.com/lattner/429b9070918248274f25b714dcfc7619). That proposal itself is derived from a proposal written by [Oleg Andreev](https://github.com/oleganza), available [here](https://gist.github.com/oleganza/7342ed829bddd86f740a). It has been significantly rewritten (again), and many details have changed, but the core ideas of asynchronous functions have remained the same.
+
+Efficient implementation is critical for the introduction of asynchronous functions, and Swift Concurrency as a whole. Nate Chandler, Erik Eckstein, Kavon Farvardin, Joe Groff, Chris Lattner, Slava Pestov, and Arnold Schwaighofer all made significant contributions to the implementation of this proposal.
