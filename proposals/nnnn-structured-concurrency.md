@@ -773,3 +773,10 @@ This change is purely additive to the ABI.
 ## Effect on API resilience
 
 All of the changes described in this document are additive to the language and are locally scoped, e.g., within function bodies. Therefore, there is no effect on API resilience.
+
+## Revision history
+
+* Changes in the second pitch:
+  * "Task nursery" has been replaced with "task group".
+
+* Original pitch [document](https://github.com/DougGregor/swift-evolution/blob/06fd6b3937f4cd2900bbaf7bb22889c46b5cb6c3/proposals/nnnn-structured-concurrency.md)
