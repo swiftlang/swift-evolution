@@ -334,7 +334,7 @@ If a function is both `async` and `throws`, then the `async` keyword must preced
 
 An `async` initializer of a class that has a superclass but lacks a call to a superclass initializer will get an implicit call to `super.init()` only if the superclass has has a zero-argument, synchronous, designated initializer.
 
-> **Rationale**: If the superclass initializer is `async`, the call to the asynchronous initializer is potentially a suspension point and therefore the call (and required `await`) must be visible in the source.
+> **Rationale**: If the superclass initializer is `async`, the call to the asynchronous initializer is a potential suspension point and therefore the call (and required `await`) must be visible in the source.
  
 ### Asynchronous function types
 
@@ -388,9 +388,9 @@ The `await` has no additional semantics; like `try`, it merely marks that an asy
 
 > **Rationale**: It is important that asynchronous calls are clearly identifiable within the function because they may introduce suspension points, which break the atomicity of the operation.  The suspension points may be inherent to the call (because the asynchronous call must execute on a different executor) or simply be part of the implementation of the callee, but in either case it is semantically important and the programmer needs to acknowledge it. `await` expressions are also an indicator of asynchronous code, which interacts with inference in closures; see the section on [Closures](#closures) for more information.
 
-A suspension point must not occur within an autoclosure that is not of `async` function type.
+A potential suspension point must not occur within an autoclosure that is not of `async` function type.
 
-A suspension point must not occur within a `defer` block.
+A potential suspension point must not occur within a `defer` block.
 
 If `await` is directly followed with one of the variants of `try` (including `try!` and `try?`), `await` must precede the `try`/`try!`/`try?`:
 
@@ -649,7 +649,7 @@ let dataResource  = await try loadWebResource("dataprofile.txt")
 
 We chose not to make `await` imply `try` because they are expressing different kinds of concerns: `await` is about a potential suspension point, where other code might execute in between when you make the call and it when it returns, while `try` is about control flow out of the block.
 
-One other motivation that has come up for making `await` imply `try` is related to task cancellation. If task cancellation were modeled as a thrown error, and every potential suspension point implicitly checked whether the task was cancelled, then every suspension point could throw: in such cases `await` might as well imply `try` because every `await` can potentially exit with an error.
+One other motivation that has come up for making `await` imply `try` is related to task cancellation. If task cancellation were modeled as a thrown error, and every potential suspension point implicitly checked whether the task was cancelled, then every potential suspension point could throw: in such cases `await` might as well imply `try` because every `await` can potentially exit with an error.
 Task cancellation is covered in the [Structured Concurrency](https://github.com/DougGregor/swift-evolution/blob/structured-concurrency/proposals/nnnn-structured-concurrency.md) proposal, and does *not* model cancellation solely as a thrown error nor does it introduce implicit cancellation checks at each potential suspension point.
 
 ### Launching async tasks
