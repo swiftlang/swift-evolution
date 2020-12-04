@@ -1,6 +1,6 @@
 # Async/await
 
-* Proposal: [SE-NNNN](NNNN-async-await.md)
+* Proposal: [SE-0296](0296-async-await.md)
 * Authors: [John McCall](https://github.com/rjmccall), [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Scheduled for review (December 8...December 22)**
