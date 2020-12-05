@@ -464,7 +464,7 @@ These two functions have different names and signatures, even though they share 
 doSomething() // problem: can call either, unmodified Swift rules prefer the `async` version
 ```
 
-Swift's overloading rules prefer to call a function with fewer default arguments, so the addition of the `async` function would existing code that called the original `doSomething(completionHandler:)` with no completion handler. This would get an error along the lines of:
+Swift's overloading rules prefer to call a function with fewer default arguments, so the addition of the `async` function would break existing code that called the original `doSomething(completionHandler:)` with no completion handler. This would get an error along the lines of:
 
 ```
 error: `async` function cannot be called from non-asynchronous context
