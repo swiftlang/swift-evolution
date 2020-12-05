@@ -256,7 +256,7 @@ Thankfully the `guard` syntax protects against forgetting to return to some degr
 
 #### Problem 5: Because completion handlers are awkward, too many APIs are defined synchronously
 
-This is hard to quantify, but the authors believe that the awkwardness of defining and using asynchronous APIs (using completion handlers) has led to many APIs being defined with apparently synchronous behavior, even when they can block.  This can lead to problematic performance and responsiveness problems in UI applications, e.g. a spinning cursor.  It can also lead to the definition of APIs that cannot be used when asynchrony is critical to achieve scale, e.g. on the server.
+This is hard to quantify, but the authors believe that the awkwardness of defining and using asynchronous APIs (using completion handlers) has led to many APIs being defined with apparently asynchronous behavior, even when they can block.  This can lead to problematic performance and responsiveness problems in UI applications, e.g. a spinning cursor.  It can also lead to the definition of APIs that cannot be used when asynchrony is critical to achieve scale, e.g. on the server.
 
 ## Proposed solution: async/await
 
