@@ -380,13 +380,18 @@ let newURL = await server.redirectURL(for: url)
 let (data, response) = await try session.dataTask(with: newURL)
 ```
 
-In this code example, a task suspension may happen during the calls to `redirectURL(for:)` and `dataTask(with:)` because they are async functions. Thus, both call expressions must be contained within some `await` expression, because each call contains a potential suspension point. The operand of an `await` expression must contain at least one potential suspension point, although more than one potential suspension point is allowed within an `await`'s operand. For example, we can use one `await` to cover both potential suspension points from our example by rewriting it as:
+In this code example, a task suspension may happen during the calls to `redirectURL(for:)` and `dataTask(with:)` because they are async functions. Thus, both call expressions must be contained within some `await` expression, because each call contains a potential suspension point. An `await` operand may contain more than one potential suspension point. For example, we can use one `await` to cover both potential suspension points from our example by rewriting it as:
 
 ```swift
 let (data, response) = await try session.dataTask(with: server.redirectURL(for: url))
 ```
 
 The `await` has no additional semantics; like `try`, it merely marks that an asynchronous call is being made.  The type of the `await` expression is the type of its operand, and its result is the result of its operand.
+An `await` operand may also have no potential suspension points, which will result in a warning from the Swift compiler, following the precedent of `try` expressions:
+
+```swift
+let x = await synchronous() // warning: no calls to 'async' functions occur within 'await' expression
+```
 
 > **Rationale**: It is important that asynchronous calls are clearly identifiable within the function because they may introduce suspension points, which break the atomicity of the operation.  The suspension points may be inherent to the call (because the asynchronous call must execute on a different executor) or simply be part of the implementation of the callee, but in either case it is semantically important and the programmer needs to acknowledge it. `await` expressions are also an indicator of asynchronous code, which interacts with inference in closures; see the section on [Closures](#closures) for more information.
 
