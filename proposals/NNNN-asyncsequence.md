@@ -134,7 +134,7 @@ struct Counter : AsyncSequence {
   }
 
   func makeAsyncIterator() -> AsyncIterator {
-    return Iterator(howHigh: howHigh)
+    return AsyncIterator(howHigh: howHigh)
   }
 }
 ```
