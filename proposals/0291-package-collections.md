@@ -9,7 +9,7 @@
 
 ## Introduction
 
-This is a proposal for adding support for **Package Collections** to SwiftPM. A package collection is a curated list of packages and associated metadata which makes it easier to discover an existing package for a particular use case. SwiftPM will allow users to subscribe to these collections, search them via the `swift package-collections` command-line interface, and will make their contents accessible to any clients of libSwiftPM. This proposal is focused on the shape of the command-line interface and the format of configuration data related to package collections.
+This is a proposal for adding support for **Package Collections** to SwiftPM. A package collection is a curated list of packages and associated metadata which makes it easier to discover an existing package for a particular use case. SwiftPM will allow users to subscribe to these collections, search them via the `swift package-collection` command-line interface, and will make their contents accessible to any clients of libSwiftPM. This proposal is focused on the shape of the command-line interface and the format of configuration data related to package collections.
 
 We believe there are three different components in the space of package discovery with different purposes:
 
@@ -24,7 +24,7 @@ We believe there are three different components in the space of package discover
 
 Currently, it can be difficult to discover packages that fit particular use cases.  There is also no standardized way of accessing metadata about a package which is not part of the package manifest itself. We envision educators and community influencers publishing package collections to go along with course materials or blog posts, removing the friction of using packages for the first time and the cognitive overload of deciding which packages are useful for a particular task. We also envision enterprises using collections to narrow the decision space for their internal engineering teams, focusing them on a trusted set of vetted packages.
 
-Exposing the data of package collections via libSwiftPM and the `swift package-collections` command-line interface will also allow other tools to leverage this information and provide a richer experience for package discovery that is configured by the user in one central place.
+Exposing the data of package collections via libSwiftPM and the `swift package-collection` command-line interface will also allow other tools to leverage this information and provide a richer experience for package discovery that is configured by the user in one central place.
 
 
 ## Proposed solution
@@ -36,7 +36,7 @@ For example, a course instructor knows they intend to teach with a set of severa
 
 ## Detailed design
 
-We propose to add a new sets of commands under a `swift package-collections` command-line interface that support the following workflows:
+We propose to add a new sets of commands under a `swift package-collection` command-line interface that support the following workflows:
 
 1. Managing collections
 2. Querying metadata for individual packages
@@ -49,7 +49,7 @@ We also propose adding a new per-user SwiftPM configuration file which will init
 A course instructor shares a collection with packages needed for some assignments. The participants can add it to their set of collections:
 
 ```
-$ swift package-collections add https://www.example.com/packages.json
+$ swift package-collection add https://www.example.com/packages.json
 Added "Packages for course XYZ" to your package collections.
 ```
 
@@ -58,7 +58,7 @@ This will add the given collection to the user's set of collections for querying
 One of the assignments requires parsing a YAML file and instead of searching the web, participants can search the curated collection for packages that could help with their task:
 
 ```
-$ swift package-collections search --keywords yaml
+$ swift package-collection search --keywords yaml
 https://github.com/jpsim/yams: A sweet and swifty YAML parser built on LibYAML.
 ...
 ```
@@ -68,7 +68,7 @@ This will perform a string-based search across various metadata fields of all pa
 Once a suitable package has been identified, there will also be the ability to query for more metadata, such as available versions, which will be required to actually depend on the package in practice.
 
 ```
-$ swift package-collections describe https://github.com/jpsim/yams
+$ swift package-collection describe https://github.com/jpsim/yams
 Description: A sweet and swifty YAML parser built on LibYAML.
 Available Versions: 4.0.0, 3.0.0, ...
 Watchers: 14
@@ -95,7 +95,7 @@ This will list the basic metadata for the given package, as well as more detaile
 The `list` command lists all collections that are configured by the user. The result can optionally be returned as JSON for integration into other tools.
 
 ```
-$ swift package-collections list [--json]
+$ swift package-collection list [--json]
 My organisation's packages - https://example.com/packages.json
 ...
 ```
@@ -106,7 +106,7 @@ My organisation's packages - https://example.com/packages.json
 The `refresh` command refreshes any cached data manually. SwiftPM will also automatically refresh data under various conditions, but some queries such as search will rely on locally cached data.
 
 ```
-$ swift package-collections refresh
+$ swift package-collection refresh
 Refreshed 23 configured package collections.
 ```
 
@@ -117,7 +117,7 @@ The `add` command adds a collection by URL, with an optional order hint, to the 
 
 
 ```
-$ swift package-collections add https://www.example.com/packages.json [--order N]
+$ swift package-collection add https://www.example.com/packages.json [--order N]
 Added "My organisation's packages" to your package collections.
 ```
 
@@ -127,7 +127,7 @@ Added "My organisation's packages" to your package collections.
 The `remove` command removes a collection by URL from the user's list of configured collections.
 
 ```
-$ swift package-collections remove https://www.example.com/packages.json
+$ swift package-collection remove https://www.example.com/packages.json
 Removed "My organisation's packages" from your package collections.
 ```
 
@@ -137,7 +137,7 @@ Removed "My organisation's packages" from your package collections.
 The `describe` command shows the metadata and included packages for a single collection. This can be used for both collections that have been previously added to the list of the user's configured collections, as well as to preview any other collections.
 
 ```
-$ swift package-collections describe https://www.example.com/packages.json
+$ swift package-collection describe https://www.example.com/packages.json
 Name: My organisation's packages
 Source: https://www.example.com/packages.json
 Description: ...
@@ -159,7 +159,7 @@ Note: Collections will be limited in the number of major and minor versions they
 The `describe` command shows the metadata from the package itself. The result can optionally be returned as JSON for integration into other tools.
 
 ```
-$ swift package-collections describe [--json] https://github.com/jpsim/yams
+$ swift package-collection describe [--json] https://github.com/jpsim/yams
 Description: A sweet and swifty YAML parser built on LibYAML.
 Available Versions: 4.0.0, 3.0.0, ...
 Watchers: 14
@@ -181,7 +181,7 @@ CVEs: ...
 When passing an additional `--version` parameter, the `describe` command shows the metadata for a single package version. The result can optionally be returned as JSON for integration into other tools.
 
 ```
-$ swift package-collections describe [--json] --version 4.0.0 https://github.com/jpsim/yams
+$ swift package-collection describe [--json] --version 4.0.0 https://github.com/jpsim/yams
 Package Name: Yams
 Version: 4.0.0
 Modules: Yams, CYaml
@@ -202,7 +202,7 @@ Note: since the `describe` action is shared between showing metadata for both wh
 The search command does a string-based search when using the `--keyword` option and returns the list of packages that match the query. The result can optionally be returned as JSON for integration into other tools.
 
 ```
-$ swift package-collections search [--json] --keywords yaml
+$ swift package-collection search [--json] --keywords yaml
 https://github.com/jpsim/yams: A sweet and swifty YAML parser built on LibYAML.
 ...
 ```
@@ -213,7 +213,7 @@ https://github.com/jpsim/yams: A sweet and swifty YAML parser built on LibYAML.
 The search command does a search for a specific module name when using the `--module` option. The result can optionally be returned as JSON for integration into other tools. Lists the newest version the matching module can be found in. This will display more metadata per package than the string-based search as we expect just one or very few results for packages with a particular module name.
 
 ```
-$ swift package-collections search [--json] --module yams
+$ swift package-collection search [--json] --module yams
 Package Name: Yams
 Latest Version: 4.0.0
 Description: A sweet and swifty YAML parser built on LibYAML.
