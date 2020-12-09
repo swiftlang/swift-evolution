@@ -7,7 +7,7 @@
 * Review Manager: [Tom Doron](https://github.com/tomerd)
 * Status: **Active review (December 8...December 17)**
 * Implementation: [apple/swift-package-manager#3023](https://github.com/apple/swift-package-manager/pull/3023)
-
+* Review: [Review](https://forums.swift.org/t/se-0292-package-registry-service/)
 
 ## Introduction
 
