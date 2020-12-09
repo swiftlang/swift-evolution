@@ -554,7 +554,7 @@ This behavior follows the subtyping/implicit conversion rule for asynchronous fu
 
 This proposal is generally additive: existing code does not use any of the new features (e.g., does not create `async` functions or closures) and will not be impacted. However, it introduces two new contextual keywords, `async` and `await`.
 
-The positions of the new uses of `async` within the grammar (function declarations, function types, and as a prefix for `let`) allows us to treat `async` as a contextual keyword without breaking source compatibility. A user-defined `async` cannot occur in those grammatical positions in well-formed code.
+The positions of the new uses of `async` within the grammar (function declarations and function types) allows us to treat `async` as a contextual keyword without breaking source compatibility. A user-defined `async` cannot occur in those grammatical positions in well-formed code.
 
 The `await` contextual keyword is more problematic, because it occurs within an expression. For example, one could define a function `await` in Swift today:
 
