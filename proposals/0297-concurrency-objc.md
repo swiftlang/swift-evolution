@@ -1,9 +1,9 @@
 # Concurrency Interoperability with Objective-C
 
-* Proposal: [SE-NNNN](NNNN-concurrency-objc.md)
+* Proposal: [SE-0297](0297-concurrency-objc.md)
 * Author: [Doug Gregor](https://github.com/DougGregor)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Review Manager: [Chris Lattner](https://github.com/lattner)
+* Status: **Active Review (December 10...December 22)**
 * Implementation: Partially available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
 
 ## Table of Contents
