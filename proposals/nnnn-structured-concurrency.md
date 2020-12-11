@@ -72,6 +72,37 @@ However, child tasks in the proposed structured-concurrency model are (intention
 
 Bringing it back to our example, note that the `chopVegetables()` function might throw an error if, say, there is an incident with the kitchen knife. That thrown error completes the child task for chopping the vegetables. The error will then be propagated out of the `makeDinner()` function, as expected. On exiting the body of the `makeDinner()` function, any child tasks that have not yet completed (marinating the meat or preheating the oven, maybe both) will be automatically cancelled.
 
+### Detached tasks
+
+Thus far, every task we have created is a child task, whose lifetime is limited by the scope in which it is created. This does not allow for new tasks to be created that outlive the current scope. The Task API proposal introduces a `runDetached` operation that creates a new *detached* task given an `async` function or closure for the task body, and returns a task handle referencing the newly-launched task. Unlike child tasks, detached tasks aren't cancelled even if there are no remaining uses of their task handle, so `runDetached` is suitable for operations for which the program does not need to observe completion. For more information, see the Task API proposal.
+
+### Asynchronous programs
+
+A program can use `@main` with an `async main()` function to initiate asynchronous work:
+
+```swift
+@main
+struct Eat {
+  static func main() async {
+    let meal = await try! makeDinner()
+    print(meal)
+  }
+}
+```
+
+Semantically, Swift will create a detached task that will execute `main()`. Once that task completes, the program terminates.
+
+Top-level code can also make use of asynchronous calls. For example:
+
+
+```swift
+// main.swift or a Swift script
+let meal = await try makeDinner()
+print(meal)
+```
+
+The model is the same as for `@main`: Swift creates a detached task to execute top-level code, and completion of that task terminates the program.
+
 ## Detailed design
 
 ### Structured concurrency
@@ -154,10 +185,6 @@ An executor is called *exclusive* if the partial tasks submitted to it will neve
 Swift provides a default executor implementation, but both actor classes and global actors (described in separate proposals) can suppress this and provide their own implementation.
 
 Generally end-users need not interact with executors directly, but rather use them implicitly by invoking functions which happen to use executors to perform the invoked asynchronous functions.
-
-### Detached tasks
-
-Thus far, every task we have created is a child task, whose lifetime is limited by the scope in which it is created. This does not allow for new tasks to be created that outlive the current scope. The Task API proposal introduces a `runDetached` operation that creates a new *detached* task given an `async` function or closure for the task body, and returns a task handle referencing the newly-launched task. Unlike child tasks, detached tasks aren't cancelled even if there are no remaining uses of their task handle, so `runDetached` is suitable for operations for which the program does not need to observe completion. For more information, see the Task API proposal.
 
 ### Task priorities
 
@@ -378,10 +405,12 @@ This change is purely additive to the ABI.
 
 All of the changes described in this document are additive to the language and are locally scoped, e.g., within function bodies. Therefore, there is no effect on API resilience.
 
+
 ## Revision history
 
 * Changes in the second pitch:
   * "Task nursery" has been replaced with "task group".
   * Specific Task APIs (including task groups, priorities, and deadlines) have been removed from this proposal. They will become part of a separate Task API proposal.
+  * Added support for asychronous `@main` and top-level code.
 
 * Original pitch [document](https://github.com/DougGregor/swift-evolution/blob/06fd6b3937f4cd2900bbaf7bb22889c46b5cb6c3/proposals/nnnn-structured-concurrency.md)
