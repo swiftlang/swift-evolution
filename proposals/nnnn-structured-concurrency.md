@@ -53,18 +53,19 @@ This proposal introduces an easy way to create child tasks with `async let`:
 
 ```swift
 func makeDinner() async throws -> Meal {
-  async let veggies = try chopVegetables()
+  async let veggies = chopVegetables()
   async let meat = marinateMeat()
-  async let oven = try preheatOven(temperature: 350)
+  async let oven = preheatOven(temperature: 350)
 
-  let dish = Dish(ingredients: await [veggies, meat])
+  let dish = Dish(ingredients: await [try veggies, meat])
   return await try oven.cook(dish, duration: .hours(3))
 }
 ``` 
 
-`async let` is similar to a `let`, in that it defines a local constant that is initialized by the expression on the right-hand side of the `=`. However, it differs in that the initializer expression is evaluated in a separate, concurrently-executing child task. On completion, the child task will initialize the variables in the `async let` and complete.
+`async let` is similar to a `let`, in that it defines a local constant that is initialized by the expression on the right-hand side of the `=`. However, it differs in that the initializer expression is evaluated in a separate, concurrently-executing child task. On completion, the child task will initialize the variables in the `async let`.
 
-Because the main body of the function executes concurrently with its child tasks, it is possible that `makeDinner` will reach the point where it needs the value of an `async let` (say, `veggies`) before that value has been produced. To account for that, reading a variable defined by an `async let` is treated as a suspension point, and therefore must be marked with `await`. The task will suspend until the child task has completed initialization of the variable, and then resume.
+Because the main body of the function executes concurrently with its child tasks, it is possible that `makeDinner` will reach the point where it needs the value of an `async let` (say, `veggies`) before that value has been produced. To account for that, reading a variable defined by an `async let` is treated as a potential suspension point, and therefore must be marked with `await`. When the expression on right-hand side of the `=` of an `async let` can throw an error, that thrown error can be observed when reading the variable, and therefore must be marked with some form of `try`.
+The task will suspend until the child task has completed initialization of the variable (or thrown an error), and then resume.
 
 One can think of `async let` as introducing a (hidden) future, which is created at the point of declaration of the `async let` and whose value is retrieved at the `await`. In this sense, `async let` is syntactic sugar to futures.
 
@@ -224,8 +225,8 @@ We can illustrate cancellation with a version of the `chopVegetables()` function
 
 ```swift
 func chopVegetables() async throws -> [Vegetable] {
-  async let carrot = try chop(Carrot()) // (1) throws UnfortunateAccidentWithKnifeError()!
-  async let onion = try chop(Onion()) // (2)
+  async let carrot = chop(Carrot()) // (1) throws UnfortunateAccidentWithKnifeError()!
+  async let onion = chop(Onion()) // (2)
   
   return await try [carrot, onion] // (3)
 }
@@ -256,21 +257,25 @@ Note also that no information is passed to the task about why it was cancelled. 
 Asynchronous calls do not by themselves introduce concurrent execution. However, `async` functions may conveniently request work to be run in a child task, permitting it to run concurrently, with an `async let`:
 
 ```swift
-async let result = try fetchHTTPContent(of: url)
+async let result = fetchHTTPContent(of: url)
 ```
 
-Any reference to a variable that was declared in an `async let` is a suspension point, equivalent to a call to an asynchronous function, so it must occur within an `await` expression. The initializer of the `async let` is considered to be enclosed by an implicit `await` expression.
+Any reference to a variable that was declared in an `async let` is a potential suspension point, equivalent to a call to an asynchronous function, so it must occur within an `await` expression. The initializer of the `async let` is considered to be enclosed by an implicit `await` expression.
 
 If the initializer of the `async let` can throw an error, then each reference to a variable declared within that `async let` clause is considered to throw an error, and therefore must also be enclosed in one of `try`/`try!`/`try?`:
 
 ```swift
+func throwsNay() throws -> Int { throw Nay() }
+
 {
-  async let (yay, nay) = ("yay", throw Nay())
+  async let (yay, nay) = ("yay", throwsNay())
   
   await try yay // must be marked with `try`; throws Nay()
   // implicitly guarantees `nay` also be completed at this point
 }
 ```
+
+The initializer of the `async let` is considered to be enclosed by an implicit `try` expression.
 
 The simplest way to think about it is that anything to the right hand side of the `=` of an `async let` is initiated together (as-if in an asynchronous closure), implying that if any of the values initialized by this closure throws, all other left-hand side to-be-initialized variables must also be considered as it they had thrown that error. 
 
@@ -295,7 +300,7 @@ At least one of the variables for a given `async let` clause must be awaited at 
 
 ```swift
 {
-  async let result = try fetchHTTPContent(of: url)
+  async let result = fetchHTTPContent(of: url)
   if condition {
     let header = await try result.header
     // okay, awaited `result`
@@ -412,5 +417,6 @@ All of the changes described in this document are additive to the language and a
   * "Task nursery" has been replaced with "task group".
   * Specific Task APIs (including task groups, priorities, and deadlines) have been removed from this proposal. They will become part of a separate Task API proposal.
   * Added support for asychronous `@main` and top-level code.
+  * Specify that `try` is not required in the initializer of an `async let`, because the thrown error is only observable when reading from one of the variables.
 
 * Original pitch [document](https://github.com/DougGregor/swift-evolution/blob/06fd6b3937f4cd2900bbaf7bb22889c46b5cb6c3/proposals/nnnn-structured-concurrency.md)
