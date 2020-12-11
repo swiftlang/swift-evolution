@@ -20,7 +20,7 @@ There are a number of reasons someone might want to make changes to a package us
 - In some situations, it's less error-prone than editing the manifest manually. Package authors could provide a one line command in their README to easily integrate the latest version as a dependency.
 - Because more of the process is automated, users would no longer need to remember details of the package layout convention, like which files and folders they need to create when adding a new library target.
 - Using libSwiftPM, IDEs could offer to update the manifest automatically when the user tries to import a missing dependency or create a new target.
-- Future features like package collections and package registries could make dependency integration easier for users browsing for packages.
+- Users could add packages from their package collections as dependencies by name instead of URL
 
 Additionally, many other package managers offer similar features:
 - npm's [`npm install`](https://docs.npmjs.com/specifying-dependencies-and-devdependencies-in-a-package-json-file#adding-dependencies-to-a-packagejson-file-from-the-command-line) command for adding dependencies to its `package.json`
@@ -53,8 +53,8 @@ The following subcommands will be added to `swift package`:
 
 In addition to editing the manifest, the add-target command will create the appropriate `Sources` or `Tests` subdirectories for new targets.
 
-`swift package add-dependency <url> [--exact <version>] [--revision <revision>] [--branch <branch>] [--from <version>] [--up-to-next-minor-from <version>]`
-**url**: The URL of the new package dependency. This may also be the path to a local package.
+`swift package add-dependency <dependency> [--exact <version>] [--revision <revision>] [--branch <branch>] [--from <version>] [--up-to-next-minor-from <version>]`
+**dependency**: This may be the URL of a remote package, the path to a local package, or the name of a package in one of the user's package collections.
 Only one of the following options may appear to specify a package dependency requirement:
 **--exact <version>**: Specifies a `.exact(<version>)` requirement in the manifest.
 **--revision <revision>**: Specifies a `.revision(<revision>)` requirement in the manifest.
