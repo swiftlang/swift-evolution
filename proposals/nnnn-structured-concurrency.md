@@ -322,27 +322,22 @@ The low-level execution of asynchronous code occasionally requires escaping the 
 For such situations, this proposal introduces the concept of a `Unsafe(Throwing)Continuation`:
 
 ```swift
-extension Task {
-  public static func withUnsafeContinuation<T>(
-    operation: (UnsafeContinuation<T>) -> ()
-  ) async -> T { ... }
-
-  public struct UnsafeContinuation<T> {
-    private init(...) { ... }
-    public func resume(returning: T) { ... }
-  }
-
-
-  public static func withUnsafeThrowingContinuation<T, E: Error>(
-    operation: (UnsafeThrowingContinuation<T, E>) -> ()
-  ) async throws -> T { ... }
-  
-  public struct UnsafeThrowingContinuation<T, E: Error> {
-    private init(...) { ... }
-    public func resume(returning: T) { ... }
-    public func resume(throwing: E) { ... }
-  }
+public struct UnsafeContinuation<T> {
+  public func resume(returning: T)
 }
+
+public func withUnsafeContinuation<T>(
+    operation: (UnsafeContinuation<T>) -> ()
+) async -> T
+
+public struct UnsafeThrowingContinuation<T, E: Error> {
+  public func resume(returning: T)
+  public func resume(throwing: E)
+}
+
+public func withUnsafeThrowingContinuation<T, E: Error>(
+    operation: (UnsafeThrowingContinuation<T, E>) -> ()
+) async throws -> T
 ```
 
 Unsafe continuations allow for wrapping existing complex callback-based APIs and presenting them to the caller as if it was a plain async function.
@@ -374,7 +369,7 @@ func buyVegetables(
 ```swift
 // returns 1 or more vegetables or throws an error
 func buyVegetables(shoppingList: [String]) async throws -> [Vegetable] {
-  await try Task.withUnsafeThrowingContinuation { continuation in
+  await try withUnsafeThrowingContinuation { continuation in
     var veggies: [Vegetable] = []
 
     buyVegetables(
@@ -418,5 +413,6 @@ All of the changes described in this document are additive to the language and a
   * Specific Task APIs (including task groups, priorities, and deadlines) have been removed from this proposal. They will become part of a separate Task API proposal.
   * Added support for asychronous `@main` and top-level code.
   * Specify that `try` is not required in the initializer of an `async let`, because the thrown error is only observable when reading from one of the variables.
+  * `withUnsafe(Throwing)Continuation` functions have been moved out of the `Task` type.
 
 * Original pitch [document](https://github.com/DougGregor/swift-evolution/blob/06fd6b3937f4cd2900bbaf7bb22889c46b5cb6c3/proposals/nnnn-structured-concurrency.md)
