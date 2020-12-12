@@ -315,6 +315,10 @@ If the scope of an `async let` exits *by throwing an error*, the child task corr
 
 > **Rationale**: The requirement to await a variable from each `async let` along all (non-throwing) paths ensures that child tasks aren't being created and implicitly cancelled during the normal course of execution. Such code is likely to be needlessly inefficient and should probably be restructured to avoid creating child tasks that are unnecessary.
  
+A variable defined in an `async let` can not be captured by an escaping closure. 
+
+> **Rationale**: Capture of a variable defined by an `async let` within an escaping closure would allow the implicitly-created child task to escape its lexical context, which otherwise would not be permissible.
+ 
 ### Low-level code and integrating with legacy APIs with `UnsafeContinuation`
 
 The low-level execution of asynchronous code occasionally requires escaping the high-level abstraction of an async functions and task groups. Also, it is important to enable APIs to interact with existing non-`async` code yet still be able to present to the users of such API a pleasant to use async function based interface.
@@ -414,5 +418,6 @@ All of the changes described in this document are additive to the language and a
   * Added support for asychronous `@main` and top-level code.
   * Specify that `try` is not required in the initializer of an `async let`, because the thrown error is only observable when reading from one of the variables.
   * `withUnsafe(Throwing)Continuation` functions have been moved out of the `Task` type.
+  * Note that an `async let` variable can only be captured by a non-escaping closure.
 
 * Original pitch [document](https://github.com/DougGregor/swift-evolution/blob/06fd6b3937f4cd2900bbaf7bb22889c46b5cb6c3/proposals/nnnn-structured-concurrency.md)
