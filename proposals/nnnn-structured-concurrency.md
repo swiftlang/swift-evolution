@@ -296,21 +296,6 @@ let
 
 In the above example one can consider each clause as it's own asynchronously initialized variable, i.e. the `ok`  is initialized on its own, and the `(yay, nay)` are initialized together as was discussed previously. 
 
-At least one of the variables for a given `async let` clause must be awaited at least once along all execution paths (that don't throw an error) before it goes out of scope. For example:
-
-```swift
-{
-  async let result = fetchHTTPContent(of: url)
-  if condition {
-    let header = await try result.header
-    // okay, awaited `result`
-  } else {
-    // error: did not await 'result' along this path. Fix this with, e.g.,
-    //   _ = await try result
-  }
-}
-```
-
 If the scope of an `async let` exits *by throwing an error*, the child task corresponding to the `async let` is implicitly cancelled. If the child task has already completed, its result (or thrown error) is discarded.
 
 > **Rationale**: The requirement to await a variable from each `async let` along all (non-throwing) paths ensures that child tasks aren't being created and implicitly cancelled during the normal course of execution. Such code is likely to be needlessly inefficient and should probably be restructured to avoid creating child tasks that are unnecessary.
@@ -419,5 +404,6 @@ All of the changes described in this document are additive to the language and a
   * Specify that `try` is not required in the initializer of an `async let`, because the thrown error is only observable when reading from one of the variables.
   * `withUnsafe(Throwing)Continuation` functions have been moved out of the `Task` type.
   * Note that an `async let` variable can only be captured by a non-escaping closure.
+  * Removed the requirement that an `async let` variable be awaited on all paths.
 
 * Original pitch [document](https://github.com/DougGregor/swift-evolution/blob/06fd6b3937f4cd2900bbaf7bb22889c46b5cb6c3/proposals/nnnn-structured-concurrency.md)
