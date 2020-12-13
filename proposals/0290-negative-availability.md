@@ -192,8 +192,6 @@ if #unavailable(*) {
 }
 ```
 
-The wildcard *only* represents platforms that were unspecified in the statement. This means that `#unavailable(iOS 13, *)` doesn't mean "iOS 13 *and* iOS's minimum deployment target", but "if iOS, iOS 13, otherwise the minimum deployment target"
-
 As an interesting side effect, this means that having multiple unavailability checks in the same statement (`#unavailable(iOS 13, *), #unavailable(watchOS 3, *)` as opposed to `#unavailable(iOS 13, watchOS 3, *)`) would cause the statement to always be false if they are covering different platforms. 
 
 In these cases, since wildcard checks are eventually optimized to boolean literals, the compiler will already emit a warning indicating that the code will never be executed. Still, we can provide a more descriptive diagnostic that suggests using a single check that considers all platforms. 
