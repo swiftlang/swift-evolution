@@ -333,7 +333,7 @@ If a function is both `async` and `throws`, then the `async` keyword must preced
 
 > **Rationale** : This order restriction is arbitrary, but it's not harmful, and it eliminates the potential for stylistic debates.
 
-An `async` initializer of a class that has a superclass but lacks a call to a superclass initializer will get an implicit call to `super.init()` only if the superclass has has a zero-argument, synchronous, designated initializer.
+An `async` initializer of a class that has a superclass but lacks a call to a superclass initializer will get an implicit call to `super.init()` only if the superclass has a zero-argument, synchronous, designated initializer.
 
 > **Rationale**: If the superclass initializer is `async`, the call to the asynchronous initializer is a potential suspension point and therefore the call (and required `await`) must be visible in the source.
  
