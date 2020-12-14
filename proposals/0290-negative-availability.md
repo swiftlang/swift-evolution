@@ -175,12 +175,30 @@ if #available(*) {
 }
 ```
 
-When multiple platforms are present in the statement, the wildcard represents *only* the platforms that were not specified. A check like `#available(iOS 13, *)` means "if compiling for iOS, iOS 13, otherwise, the minimum deployment target" and not "if compiling for iOS, iOS 13 **and** iOS's deployment target, otherwise, *just* the minimum deployment target". The wildcard doesn't include platforms that were explictly added to the statement, which can be visualized by how it's not possible to specify a platform multiple times.
+The list of specs must always contain an entry that matches the platform that's being compiled. This can be done either with an explicit version requirement (`iOS 12`) or by using the wildcard (`*`). As mentioned above, the latter represents the minimum deployment target of the platform, which can be used to signal that the expression being written is unrelated to the current platform.
+
+```swift
+error: condition required for target platform 'iOS'
+if #available(macOS 11) {
+   ^
+
+// Solutions:
+if #available(macOS 11, iOS 12, *)
+if #available(macOS 11, *)
+```
+
+Even if you have no plans to use your code in a different platform, your statement must still define the wildcard. Because the platform being compiled must always have an entry in the spec list, the wildcard makes sure that newer platforms are able to compile your code without requiring a modification to every availability guard in the program.
+
+It's important to note that availability spec lists **are not boolean expressions**. It's not possible to add multiple versions of a platform to the statement:
 
 ```swift
 if #available(iOS 12, *)
 if #available(iOS 12, iOS 13, *) // Error: Version for 'iOS' already specified
 ```
+
+Additionally, the specification of different platforms have no effect on the final result -- it depends *only* on the (unique) spec that matches the current platform being compiled. A check like `#available(iOS 12, watchOS 4, *)` compiled in iOS doesn't mean "return true if (iOS 12 **||** watchOS 4 **||** the current platform's minimum deployment target) is available", it simply means "return true if iOS 12 is available". The specs that refer to different platforms are ignored.
+
+Finally, the wildcard represents *only* the platforms that were not explicitly specified in the spec list. When `#available(iOS 13, *)` is compiled for iOS, the wildcard will be ignored in favor of the explictly defined iOS 13 spec. As mentioned before, a platform can only be mentioned once.
 
 For unavailability, this means that `#unavailable(*)` and `#unavailable(notWhatImCompiling X, *)` should return `false`. Since the minimum deployment target will always be present, the statement can never be true. This behavior also matches how a theoretical `!#available(*)` would behave if building expressions with `#available` was possible.
 
