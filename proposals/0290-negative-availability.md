@@ -163,33 +163,23 @@ if #unavailable(iOS 9.0, *) {
 
 ### Semantics of `*`
 
-The compiler uses the platform wildcard `*` to ease porting to new platforms. Because new platforms typically branch from existing platforms, the wildcard allows availability checks to execute the guarded branch on the new platform without requiring a modification to every availability guard in the program. 
+Availability statements are composed by a list of platform specs. The list answers what's the condition (in this case, version availability) for statement to return true in the platform where the code is being compiled.
 
-To achieve this in practice, the wildcard represents the minimum deployment target of the unspecified platform being compiled.
-
-```swift
-if #available(*) {
-  // ...
-} else {
-  // Will never be executed
-}
-```
-
-The list of specs must always contain an entry that matches the platform that's being compiled. This can be done either with an explicit version requirement (`iOS 12`) or by using the wildcard (`*`). As mentioned above, the latter represents the minimum deployment target of the platform, which can be used to signal that the expression being written is unrelated to the current platform.
+For this to work, the spec list must always contain an entry that matches the platform that's being compiled. This can be done either with an explicit version requirement like `iOS 12` or by using the generic platform wildcard `*`. The wildcard can essentially be used to signal that the expression being written is unrelated to the current platform, and so no version specification is needed. In practice, it represents the minimum deployment target of the platform.
 
 ```swift
 error: condition required for target platform 'iOS'
 if #available(macOS 11) {
    ^
 
-// Solutions:
+// Solution examples:
 if #available(macOS 11, iOS 12, *)
 if #available(macOS 11, *)
 ```
 
-Even if you have no plans to use your code in a different platform, your statement must still define the wildcard. Because the platform being compiled must always have an entry in the spec list, the wildcard makes sure that newer platforms are able to compile your code without requiring a modification to every availability guard in the program.
+Even if you have no plans to use your code in a different platform, your statement must still define the wildcard to define what should happen in all unspecified current and potential new future platforms. The compiler uses the wildcard to ease porting to new platforms -- because the platform being compiled must always have an entry in the spec list, the wildcard allows these platforms to compile your code without requiring a modification to every availability guard in the program. Additionally, because new platforms typically branch from existing platforms, the wildcard allows these checks to execute the guarded branch on the new platform by default.
 
-It's important to note that availability spec lists **are not boolean expressions**. It's not possible to add multiple versions of a platform to the statement:
+It's important to note that availability spec lists **are not boolean expressions**. For example, it's not possible to add multiple versions of a platform to the statement:
 
 ```swift
 if #available(iOS 12, *)
@@ -199,6 +189,8 @@ if #available(iOS 12, iOS 13, *) // Error: Version for 'iOS' already specified
 Additionally, the specification of different platforms have no effect on the final result -- it depends *only* on the (unique) spec that matches the current platform being compiled. A check like `#available(iOS 12, watchOS 4, *)` compiled in iOS doesn't mean "return true if (iOS 12 **||** watchOS 4 **||** the current platform's minimum deployment target) is available", it simply means "return true if iOS 12 is available". The specs that refer to different platforms are ignored.
 
 Finally, the wildcard represents *only* the platforms that were not explicitly specified in the spec list. When `#available(iOS 13, *)` is compiled for iOS, the wildcard will be ignored in favor of the explictly defined iOS 13 spec. As mentioned before, a platform can only be mentioned once.
+
+### Semantics of `*` for unavailability
 
 For unavailability, this means that `#unavailable(*)` and `#unavailable(notWhatImCompiling X, *)` should return `false`. Since the minimum deployment target will always be present, the statement can never be true. This behavior also matches how a theoretical `!#available(*)` would behave if building expressions with `#available` was possible.
 
