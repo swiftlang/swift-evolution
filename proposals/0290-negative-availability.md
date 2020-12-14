@@ -236,3 +236,37 @@ While allowing the original condition to be reversed seems to be the obvious cho
 Refactoring `#available` to be usable as an expression would likely require refactoring the entire symbol availability system and has an extensive amount of implications and edge cases. The work to support it would be considerably beyond what is proposed here.
 
 Supporting it by hardcoding this behavior is possible though, and could be implemented if the core team is willing and has a plan to eliminate the resulting tech debt in the future.
+
+### `#unavailable(iOS 12)` and other alternatives that involve removing/repurposing the wildcard
+
+One point of discussion was the importance of the wildcard in the case of unavailability. Because the wildcard achieves nothing in terms of functionality, we considered alternatives that involved omitting or removing it completely. However, the wildcard is still important from a platform migration point of view. Although we don't need to force the guarded branch to be executed like in `#available`, the presence of the wildcard still play its intended role of allowing code involving unavailability statements to be compiled in new platforms without requiring the statements to be modified.
+
+Additionally, we had lenghty discussions about the *readability* of unavailability statements. We've noticed that even though availability in Swift has never been a boolean expression, it was clear that pretty much every developer's first instinct is to assume that `(iOS 12, *)` is equivalent to `iOS 12 || *`. The main point of discussion then was that the average developer might not understand why a call like `#unavailable(iOS 12, *)` will return `false` in non-iOS platforms, because they will assume the list means `iOS 12 || *` (`true`), while in reality (and as described in the `Semantics` section) the list means just `*` (`false`). During the discussion, it turned out that every alternative spelling we thought of had this problem in one way or the other.
+
+On the other hand, we were unable to locate concrete examples where this confusion could happen in *practice*. The reason for this is because any availability/unavailability statement that triggers the wildcard is automatically a statement that is unrelated to that platform, meaning that the result of the expression should, ultimately, be irrevelant for the developer even if they're not sure what that's going to be.
+
+```swift
+if #unavailable(iOS 12, *) {
+   // usage of iOS APIs
+}
+```
+
+Even though a developer could be confused about what would happen when this code is executed in macOS, the final result would be irrelevant as this code has nothing to do with it. We could argue that this is the case even if we force a confusion scenario by having macOS APIs inside the check:
+
+```swift
+if #unavailable(iOS 12, *) {
+   // usage of iOS APIs
+   // usage of macOS APIs
+}
+```
+
+In this case, we could argue that the statement is simply being misused. If the negative availability is only interesting for iOS (as dictated by macOS not having an explicit version entry in the list), then the macOS code should be outside of the statement.
+
+```swift
+if #unavailable(iOS 12, *) {
+   // usage of iOS APIs
+}
+// usage of macOS APIs
+```
+
+The author concludes that the possibility of confusion is not a problem with the unavailability feature, but with how availability spec lists are documented. There's no dedicated page for the availability literal, and the [official documentation for attributes](https://docs.swift.org/swift-book/ReferenceManual/Attributes.html) doesn't go into detail on how the result is calculated besides saying that the wildcard contains all platforms. Since there appears to be no real situations where a mistake could be made, the author believes that this issue can be fixed without requiring changes to the syntax of availability spec lists, by improving the official Swift documentation and making it clear that the list is not a boolean expression.
