@@ -196,7 +196,7 @@ Finally, the wildcard represents *only* the platforms that were not explicitly s
 
 ### Semantics of `*` for unavailability
 
-For unavailability, the semantics mentioned above means that `#unavailable(*)` and `#unavailable(notWhatImCompiling X, *)` should do the opposite of `#available` and return `false`. Since the minimum deployment target will always be present, the statement can never be true. This behavior also matches how a theoretical `!#available(*)` would behave if building expressions with `#available` was possible.
+For unavailability, the semantics mentioned above means that `#unavailable(*)` and `#unavailable(notWhatImCompiling X, *)` should do the opposite of `#available` and return `false`. Since the minimum deployment target will always be present, the statement can never be true. This behavior is exactly how the current workaround works, and it also matches how the theoretical `!#available(*)` would behave.
 
 ```swift
 if #unavailable(*) {
@@ -241,109 +241,12 @@ Supporting it by hardcoding this behavior is possible though, and could be imple
 
 One point of discussion was the importance of the wildcard in the case of unavailability. Because the wildcard achieves nothing in terms of functionality, we considered alternatives that involved omitting or removing it completely. However, the wildcard is still important from a platform migration point of view. Although we don't need to force the guarded branch to be executed like in `#available`, the presence of the wildcard still play its intended role of allowing code involving unavailability statements to be compiled in new platforms without requiring the statements to be modified.
 
-Additionally, we had lenghty discussions about the *readability* of unavailability statements. We've noticed that even though availability in Swift has never been a boolean expression, it was clear that pretty much every developer's first instinct is to assume that `(iOS 12, *)` is equivalent to `iOS 12 || *`. The main point of discussion then was that the average developer might not understand why a call like `#unavailable(iOS 12, *)` will return `false` in non-iOS platforms, because they will assume the list means `iOS 12 || *` (`true`), while in reality (and as described in the `Semantics` section) the list means just `*` (`false`). During the discussion, it turned out that every alternative spelling we thought of had this problem in one way or the other.
+Additionally, we had lenghty discussions about the *readability* of unavailability statements. We've noticed that even though availability in Swift has never been a boolean expression, it was clear that pretty much every developer's first instinct is to assume that `(iOS 12, *)` is equivalent to `iOS 12 || *`. The main point of discussion then was that the average developer might not understand why a call like `#unavailable(iOS 12, *)` will return `false` in non-iOS platforms, because they will assume the list means `iOS 12 || *` (`true`), while in reality (and as described in the `Semantics` section) the list means just `*` (`false`). During the discussion, it turned out that every alternative spelling we thought of had this problem in one way or the other, and there was much worry that this confusion could cause developers to introduce bugs in their applications.
 
-On the other hand, we were unable to locate concrete examples where this confusion could actually cause the feature to be misused. This is because even when we carefully crafted an example to make the statements as confusing as possible the typechecker still made sure the code behaved correctly when compiled in a different platform. 
+We can provide that this is false by how `#unavailable` doesn't introduce any new behavior -- it's nothing more than a reversed `#available` with a different literal name, which works no different than the current workaround of using the else block. Any confusing `#unavailable` scenario can also be conveyed as a confusing `#available` scenario by simply swapping the branches.
 
-Here's one example that shows this. For this, we'll use [SKTerminateForInvalidReceipt](https://developer.apple.com/documentation/storekit/1620081-skterminateforinvalidreceipt?changes=latest_major&language=objc) to create a perfect use-case of a multiplatform API that could lead to one of these confusing scenarios:
+Additionally, we were unable to locate concrete examples where this confusion could *actually* cause the feature to be misused. This is because even when we tried to craft a perfect example that would cause the statement to behave incorrectly in a specific platform, the typechecker was still preventing the project from compiling.
 
-```swift
-// iOS 7.1+
-// macOS 10.14+
-// Mac Catalyst 13.0+
-// tvOS 9.0+
-// watchOS 6.2+
-```
+It seems that the only way to make `#unavailable` *actually* end up in the wrong clause is if somehow a replacement API was introduced *before* the old one was deprecated, which under the perfect minimum target/current version combination would cause the typechecker to not complain about the API's availability and allow a platform to execute the migrated branched before the deprecation actually happened. Still, even in this unlikely made up case the code still wouldn't be **incorrect**, as the "migrated" code *does* support that platform version. This scenario would also not be something introduced by `#unavailable`, as the exact the same scenario can happen today when using the else block of an `#available` statement.
 
-Let's assume that we want to implement it in an iOS/macOS app. If we have an app where the minimum target is below these requirements in both of the platforms, then we can make it available with an explicit availability clause:
-
-```swift
-// Minimum deployment target: iOS 5 and macOS 9
-if #available(iOS 7.1, macOS 10.14, *) {
-    SKTerminateForInvalidReceipt()
-} else {
-    // a fallback for iOS and macOS
-}
-```
-
-If we assume that this API was deprecated in some future version (for example, iOS 14 and macOS 12) and that a new API was added as a replacement, then we could implement a reverse availability in the following manner. This is not the use-case that this proposal was made for, but it will be fine for this example.
-
-```swift
-// Minimum deployment target: iOS 5 and macOS 9
-if #unavailable(iOS 14, macOS 12, *) {
-    SKTerminateForInvalidReceipt()
-} else {
-    // implement the new standard for both iOS and macOS
-}
-```
-
-Here, as expected, the syntax can't be deemed confusing for a developer because we're explicitly defining the versions in the statement.
-
-We can make the statements confusing by going back to the beginning and magically bumping macOS's minimum target to something above that API's requirement. If we do that, then we don't need to define it in the clause anymore:
-
-```swift
-// Minimum deployment target: iOS 5 and macOS 13
-if #available(iOS 7.1, *) {
-    SKTerminateForInvalidReceipt()
-} else {
-    // a fallback for iOS only
-    // macOS will never trigger this, because * is greater than this API's requirement
-}
-```
-
-Because macOS's is greater than the API's requirement, the statement will always return true and no explicit version requirement is needed. We do though still need it for iOS.
-
-Likewise, we can do the same for `#unavailable`:
-
-```swift
-// Minimum deployment target: iOS 5 and macOS 13
-if #unavailable(iOS 14, *) {
-    SKTerminateForInvalidReceipt()
-    // macOS will never trigger this, because * is greater than this API's deprecation point
-} else {
-    // implement the new standard for both iOS and macOS
-}
-```
-
-But in this case, doing so will cause the statement to always return **false** for macOS. This makes perfect sense since it's impossible to run this app in a version where the fallback needs to be applied, but we can definitely see how someone would have to look at this multiple times to comprehend it.
-
-The thing is, this is *also* true for the already existing `#available` statement. Even though the statement returning true is easier to digest, the author personally still had to look at this 3 times to understand what was really going to happen:
-
-```swift
-// Minimum deployment target: iOS 5 and macOS 13
-if #available(iOS 7.1, *) {
-    SKTerminateForInvalidReceipt()
-} else {
-    // a fallback for iOS only
-    // macOS will never trigger this, because * is greater than this API's requirement
-}
-```
-
-The cause of the confusion is not necessarily the spec list syntax, but the divergence between the supported platform's minimum targets together with the decision of not making the macOS versions explicit in the statement. But even in a confusing scenario like this there still seems to be no way a developer can make a **mistake** when using availability statements. Even though the statement looks confusing it's perfectly correct for `#unavailable(*)` to return false, and the correctness holds even when we attempt to make a mistake **on purpose**. 
-
-Here's an example to show this -- If we *only* support iOS, we could have something like this:
-
-```swift
-// Minimum deployment target: iOS 5
-if #unavailable(iOS 14, *) {
-    SKTerminateForInvalidReceipt()
-} else {
-    // implement the new standard for iOS
-}
-```
-
-We can make this statement **incorrectly** return false on macOS if we were to start supporting something like macOS 9 (a version under the deprecation point). This is not obvious, and likely the situation we think that could happen when we first notice that `#unavailable` can have confusing scenarios.
-
-However, we won't be able to compile this code! Because the minimum deployment target is below the deprecation point, the typechecker will complain that the new standard's APIs are not available for macOS and that we need to add the correct macOS version to the spec list, thus removing the point of confusion. 
-
-```swift
-if #unavailable(iOS 14, macOS 12, *) {
-    SKTerminateForInvalidReceipt()
-} else {
-    // implement the new standard for both iOS and macOS
-}
-```
-
-It seems that the only way to make this *actually* end up in the wrong clause is if somehow the new standard's API were added *before* the old one was deprecated, which under the perfect minimum target/current version combination would cause the typechecker to not complain and thus allow macOS to migrate to the new standard before the deprecation happened. Still, even in this unlikely made up case the code still wouldn't be **incorrect**, as the "migrated" code *does* support that macOS version.
-
-Even though we can force many situations where the code becomes hard to understand, it doesn't seem to be possible to make it work **incorrectly**. The author then concludes that the possibility that some developers might misunderstand the syntax of `#unavailable` is not a serious problem, and that it can be treated by improving the official documentation. For example, there's currently no dedicated page for the availability literal and the [official documentation for attributes](https://docs.swift.org/swift-book/ReferenceManual/Attributes.html) doesn't go into detail on how the result is calculated besides saying that the wildcard contains all platforms. These pages can be improved to go into more detail on the fact that spec lists are not boolean expressions, which would make confused developers more comfortable with availability features.
+The author then concludes that although it's possible for developers to feel confused by the syntax, this is something that already exists with `#available` and has no proven negative impact.
