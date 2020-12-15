@@ -161,7 +161,7 @@ if #unavailable(iOS 9.0, *) {
 }
 ```
 
-### Semantics of `*`
+### Semantics of `*` for unavailability
 
 Availability statements are composed by a list of platform specs. The purpose of the list is to answer what's the platform version requirement necessary for the statement to return true in the platform where the code is being compiled.
 
@@ -193,8 +193,6 @@ if #available(iOS 12, iOS 13, *) // Error: Version for 'iOS' already specified
 Additionally, the specification of different platforms have no effect on the final result -- it depends *only* on the (unique) spec that matches the current platform being compiled. A check like `#available(iOS 12, watchOS 4, *)` compiled in iOS doesn't mean "return true if (iOS 12 **||** watchOS 4 **||** the current platform's minimum deployment target) is available", it simply means "return true if iOS 12 is available". The specs that refer to different platforms are ignored.
 
 Finally, the wildcard represents *only* the platforms that were not explicitly specified in the spec list. When `#available(iOS 13, *)` is compiled for iOS, the wildcard will be ignored in favor of the explictly defined iOS 13 spec. As mentioned before, a platform can only be mentioned once.
-
-### Semantics of `*` for unavailability
 
 For unavailability, the semantics mentioned above means that `#unavailable(*)` and `#unavailable(notWhatImCompiling X, *)` should do the opposite of `#available` and return `false`. Since the minimum deployment target will always be present, the statement can never be true. This behavior is exactly how the current workaround works, and it also matches how the theoretical `!#available(*)` would behave.
 
