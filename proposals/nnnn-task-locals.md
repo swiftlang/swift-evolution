@@ -202,7 +202,7 @@ We also notice that in many situations, the following chain will exist:
 
 Where many tasks can exist however they do not contribute any new task local values to the chain. Thanks to task locals being immutable at task creation, we can guarantee that their known values never change, and thus we can optimize lookups from all tasks whose parent's do not contribute any additional task local values. 
 
-Specifically, at creation time of e.g. `child-task-3` we can notice that the parent (`child-task-2`) does not have any task local values, and thus we can directly point at *its* instead: `child-task-1`, which indeed does contribute some values. More generally, the rule is expressed as pointing "up" to the first parent task that actually has any task local values defined. Thanks to this, looking up `id` from `child-task-4` is only costing a single "hop" right into `child-task-1` which happens to define this key. If it didn't contain the key we were looking for, we would continue this search (including skipping empty tasks) until a detached task is reached.
+Specifically, at creation time of e.g. `child-task-3` we can notice that the parent (`child-task-2`) does not have any task local values, and thus we can directly point at *its* parent instead: `child-task-1`, which indeed does contribute some values. More generally, the rule is expressed as pointing "up" to the first parent task that actually has any task local values defined. Thanks to this, looking up `id` from `child-task-4` is only costing a single "hop" right into `child-task-1` which happens to define this key. If it didn't contain the key we were looking for, we would continue this search (including skipping empty tasks) until a detached task is reached.
 
 This approach is highly optimized for the kinds of use-cases such values are used for. Specifically, the following assumptions are made about the access patterns to such values:
 
@@ -509,40 +509,6 @@ func makeDinner(context: LoggingContext) async throws -> Meal {
 ```
 
 Thanks to the passed `LoggingContext` implementations may be invoked with a specific `"dinner-request-id"` and even if we are preparing multiple dinners in parallel, we know "which dinner" a specific operation belongs to:
-
-```swift
-var context: LoggingContext = ...
-
-context.baggage.dinnerID = "1234"
-async let first = makeDinner(context: context)
-
-context.baggage.dinnerID = "5678"
-async let second = makeDinner(context: context)
-
-await first
-await second
-```
-
-Resulting in logs like this:
-
-```
-<timestamp> dinner-id=1234 makeDinner
-<timestamp> dinner-id=1234 chopVegetables
-  <timestamp> dinner-id=5678 makeDinner
-  <timestamp> dinner-id=5678 chopVegetables
-<timestamp> dinner-id=1234 marinateMeat
-<timestamp> dinner-id=1234 preheatOven
-  <timestamp> dinner-id=5678 marinateMeat
-<timestamp> dinner-id=1234 cook
-  <timestamp> dinner-id=5678 preheatOven
-  <timestamp> dinner-id=5678 cook
-```
-
-Allowing developers to track down the request specific logs by filtering logs by the `dinner-id` that may be encountering some slowness, or other issues.
-
-We do not stop there however, by instrumenting all functions with swift-tracing, we can obtain a full trace of the execution (in production), and analyze it later on using tracing systems such as [zipkin](https://zipkin.io), [jaeger](https://www.jaegertracing.io/docs/1.20/#trace-detail-view),  [Grafana](https://grafana.com/blog/2020/11/09/trace-discovery-in-grafana-tempo-using-prometheus-exemplars-loki-2.0-queries-and-more/), or others.
-
-
 
 ```swift
 var context: LoggingContext = ...
