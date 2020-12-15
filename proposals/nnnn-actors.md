@@ -146,13 +146,13 @@ One critical point that needs to be discussed and fleshed out is whether actors 
 
 The notion of reentrancy allows the actor runtime to claim the complete elimination of deadlocks, offers opportunity for scheduling optimization techniques where a "high priority task" _must_ be executed as soon as possible, however at the cost of _interleaving_ with any other actor-isolated function's execution any other asynchronous function declared on this actor. This imposes a large mental burden on developers, as every single actor function currently has to be implemented keeping reentrancy in mind, which effectively fails on delivering the promise of pain-free concurrency for the majority of use-cases.
 
-Currently, this proposal takes the aggressive approach of assuming _all_ actors are reentrant and not providing ways to opt out of this behavior. This section aims to highlight issues, benefits and tradeoffs with this approach as well as non-reentrancy in general. The goal of discussing these reentrancy issues, is to arrive at a design that is developer friendly, non-surprising, and delivers more completely on Swift's promise of _safe_ and _sane_ concurrency by default thanks to the use of actors.
+Currently, this proposal takes the aggressive approach of assuming _all_ actors are reentrant and not providing ways to opt out of this behavior. This section aims to highlight issues, benefits and tradeoffs with this approach as well as non-reentrancy in general. The goal of discussing these reentrancy issues, is to arrive at a design that is developer friendly, non-surprising, and delivers more completely on Swift's promise of _safe_ and _pain-free_ concurrency by default thanks to the use of actors.
 
 #### Reentrant actors: "Interleaving" execution
 
 Reentrancy means that execution of asynchronous actor-isolated functions may "interleave" at suspension points, leading to increased complexity in programming with such actors, as every suspension point must be carefully inspected if the code _after_ it depends on some invariants that could have changed before it suspended.
 
-Interleaving executions still respect the actor's "single-threaded illusion"–i.e. no two functions will ever execute *concurrently* on any given actor–however they may _interleave_ at suspension points. In broad terms this means that reentrant actors are _thread-safe_ but are automatically protecting from the "high level" kinds of races that may still occur, potentially invalidating invariants upon which an executing asynchronous function may be relying on.
+Interleaving executions still respect the actor's "single-threaded illusion"–i.e. no two functions will ever execute *concurrently* on any given actor–however they may _interleave_ at suspension points. In broad terms this means that reentrant actors are _thread-safe_ but are not automatically protecting from the "high level" kinds of races that may still occur, potentially invalidating invariants upon which an executing asynchronous function may be relying on.
 
 > Empirically: we know that both an non-reentrant and reentrant awaiting and actors are useful, however both semantics must be available to developers in order to use actors as a means of isolating state from "concurrent" (in the meaning of interleaved) modification.
 
@@ -291,13 +291,13 @@ Some runtimes solve this by making *every single actor call have a timeout*. Thi
 
 It is easy to point out a small mistake in actors spanning a few lines of code, however programming complex actors with reentrancy can be quite a challenge. In this specific example, the solution–in hindsight–is simple, we should store the opinion in a function local variable, or in other words, any state the actor needs to to complete an execution "atomically" it must copy into local function scope. This can be hard to remember and manage consistently.
 
-> Depending on one's viewpoint, one could actually claim that deadlocks are better (!), than interleaving because they can be detected more easily and fixed more consistently.
+> Depending on one's viewpoint, one could actually claim that deadlocks are better (!), than interleaving because they can be reliably detected and explained by tools, can be detected in fuzz tests (no need to know what the correct result is for a random input), and can be fixed more consistently.
 
 #### Reentrancy and async lets
 
 Swift also offers the `async let` declaration style, allowing for expressing structured bounded number of asynchronous child tasks being performed concurrently.
 
-In order to sanity check our assumptions, let us also write some code using `async let` and see how reentrancy does or does not come into play here:
+In order to check our assumptions, let us also write some code using `async let` and see how reentrancy does or does not come into play here:
 
 ```swift
 actor class Friend {
@@ -336,7 +336,7 @@ So even such snippet (under non-reentrancy rules):
 
 ```swift
 await wallet.lendFriendSomeCash()
-await wallet.looseWallet() 
+await wallet.loseWallet() 
 ```
 
 would be correct. Even if our friend takes 10 minutes to reply to `howMuchDoYouNeed`, we are being patient with them and wait with processing the next _external_ message (that will cause us to loose our wallet), until after we are done lending our friend some cash.
@@ -841,5 +841,4 @@ Nearly all changes in actor isolation are breaking changes, because the actor is
 
 * A class cannot be turned into an actor class or vice versa.
 * The actor isolation of a public declaration cannot be changed except between `@actorIndependent(unsafe)` and `@actorIndependent`.
-
 
