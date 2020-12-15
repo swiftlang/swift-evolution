@@ -80,8 +80,8 @@ Declaring a task local value begins with declaring a `TaskLocalKey` that will be
 ```swift
 extension TaskLocalValues {
   
-    public enum RequestIDKey: TaskLocalKey {
-      public static let defaultValue: String? { nil } 
+    public struct RequestIDKey: TaskLocalKey {
+      public var defaultValue: String? { nil } 
     }
     public var requestID: RequestIDKey { .init() }
   
@@ -219,7 +219,7 @@ This approach is highly optimized for the kinds of use-cases such values are use
 
 ### Similarities and differences with SwiftUI `Environment`
 
-Readers may be aware of SwiftUI's type [https://developer.apple.com/documentation/swiftui/environment](SwiftUI Environment) which seemingly a very similar purpose, however it is more focused on the view hierarchies, rather than "flow of a value _through_ asynchronous calls" which this API is focused on.
+Readers may be aware of SwiftUI's type [SwiftUI Environment](https://developer.apple.com/documentation/swiftui/environment) which seemingly has a very similar purpose, however it is more focused on the view hierarchies, rather than "flow of a value _through_ asynchronous calls" which this API is focused on.
 
 One may think about the difference how these APIs differ in terms of where the "parent/child" relationship is represented. SwiftUI's environment considers relationships between views, while task local values are about the relationship of asynchronous tasks. So while the general idea is similar, the actual semantics are quite different. It is best to visualize task local values as "following" the execution path, regardless where (in which specific asynchronous function or actor) that execution takes place.
 
@@ -344,7 +344,7 @@ Snippet explaining their functioning:
 > A
 > ```
 
-This again is very similar to to just task local variables, however adds a API on top of it -- where the variable is typed ONCE 
+This again is very similar to task local variables, however it expresses it as an actual variable through the access must be performed.
 
 ### Go: explicit context passing all the way
 
@@ -571,7 +571,7 @@ Thanks to swift-tracing and automatic context propagation we can make tracing mu
 
 #### Future direction: Function wrapper interaction
 
-> **CAVEAT**: This proposal does not imply/promise any future work on function wrappers, however **if** they were proposed and accepted at some point, a this would be a natural use-case for them.
+> **CAVEAT**: This proposal does not imply/promise any future work on function wrappers, however **if** they were proposed and accepted at some point, this would be a natural use-case for them.
 
 If Swift were to get "function wrappers", tracing a set of asynchronous functions becomes trivial:
 
@@ -605,7 +605,7 @@ This way developers could configure tasks used in their tests to bind a "mock fi
 
 ### Use case: Progress Monitoring
 
-In interactive applications asynchronous tasks frequently are linked with some progress indicator such that an user waiting for the task knows that it indeed is proceeding, and not just "stuck" on an never-ending "Loading..."-screen. 
+In interactive applications asynchronous tasks frequently are linked with some progress indicator such that a user waiting for the task knows that it indeed is proceeding, and not just "stuck" on a never-ending "Loading..."-screen.
 
 Foundation offers the [Progress](https://developer.apple.com/documentation/foundation/progress) type which is used with UI frameworks, such as SwiftUI [citation needed], to easily report back progress of tasks back to users. Currently, `Progress` can be used by either passing it manually and explicitly, or accessing it through thread local storage. 
 
