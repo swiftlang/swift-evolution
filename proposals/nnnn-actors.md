@@ -323,13 +323,13 @@ actor class Wallet {
     }  
   }
 
-  func looseWallet() async { 
+  func loseWallet() async { 
     amount = 0
   }
 }
 ```
 
-This example composes well; Calls to an actor's `self` are allowed to pass through as usual, and _replies_ from other actors are also accepted. What can _not_ happen with non-reentrant actors is the `looseWallet()` function being randomly triggered while we are attempting to lend our friend some cash -- this would have been an external call into the actor, which our non-reentrancy rule would prevent.
+This example composes well; Calls to an actor's `self` are allowed to pass through as usual, and _replies_ from other actors are also accepted. What can _not_ happen with non-reentrant actors is the `loseWallet()` function being randomly triggered while we are attempting to lend our friend some cash -- this would have been an external call into the actor, which our non-reentrancy rule would prevent.
 
 So even such snippet (under non-reentrancy rules):
 
@@ -339,7 +339,7 @@ await wallet.lendFriendSomeCash()
 await wallet.loseWallet() 
 ```
 
-would be correct. Even if our friend takes 10 minutes to reply to `howMuchDoYouNeed`, we are being patient with them and wait with processing the next _external_ message (that will cause us to loose our wallet), until after we are done lending our friend some cash.
+would be correct. Even if our friend takes 10 minutes to reply to `howMuchDoYouNeed`, we are being patient with them and wait with processing the next _external_ message (that will cause us to lose our wallet), until after we are done lending our friend some cash.
 
 Under reentrant rules, the above code could be unsafe, changing our wallet's balance to zero right before we are about to decrement it (!).
 
