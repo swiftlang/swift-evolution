@@ -196,7 +196,7 @@ Finally, the wildcard represents *only* the platforms that were not explicitly s
 
 ### Semantics of `*` for unavailability
 
-For unavailability, the semantics mentioned above means that `#unavailable(*)` and `#unavailable(notWhatImCompiling X, *)` should do the opposite of `#available` and return `false`. Since the minimum deployment target will always be present, the statement can never be true. This behavior also matches how a theoretical `!#available(*)` would behave if building expressions with `#available` was possible.
+For unavailability, the semantics mentioned above means that `#unavailable(*)` and `#unavailable(notWhatImCompiling X, *)` should do the opposite of `#available` and return `false`. Since the minimum deployment target will always be present, the statement can never be true. This behavior is exactly how the current workaround works, and it also matches how the theoretical `!#available(*)` would behave.
 
 ```swift
 if #unavailable(*) {
@@ -236,3 +236,19 @@ While allowing the original condition to be reversed seems to be the obvious cho
 Refactoring `#available` to be usable as an expression would likely require refactoring the entire symbol availability system and has an extensive amount of implications and edge cases. The work to support it would be considerably beyond what is proposed here.
 
 Supporting it by hardcoding this behavior is possible though, and could be implemented if the core team is willing and has a plan to eliminate the resulting tech debt in the future.
+
+### `#unavailable(iOS 12)` and other alternatives that involve removing/repurposing the wildcard
+
+One point of discussion was the importance of the wildcard in the case of unavailability. Because the wildcard achieves nothing in terms of functionality, we considered alternatives that involved omitting or removing it completely. However, the wildcard is still important from a platform migration point of view. Although we don't need to force the guarded branch to be executed like in `#available`, the presence of the wildcard still play its intended role of allowing code involving unavailability statements to be compiled in new platforms without requiring the statements to be modified.
+
+Additionally, we had lenghty discussions about the *readability* of unavailability statements. We've noticed that even though availability in Swift has never been a boolean expression, it was clear that pretty much every developer's first instinct is to assume that `(iOS 12, *)` is equivalent to `iOS 12 || *`. The main point of discussion then was that the average developer might not understand why a call like `#unavailable(iOS 12, *)` will return `false` in non-iOS platforms, because they will assume the list means `iOS 12 || *` (`true`), while in reality (and as described in the `Semantics` section) the list means just `*` (`false`). During the discussion, it turned out that every alternative spelling we thought of had this problem in one way or the other, and there was much worry that this confusion could cause developers to introduce bugs in their applications.
+
+We can prove that this is false by how `#unavailable` doesn't introduce any new behavior -- it's nothing more than a reversed `#available` with a different literal name, which works no different than the current workaround of using the else block. Any confusing `#unavailable` scenario can also be conveyed as a confusing `#available` scenario by simply swapping the branches.
+
+Additionally, we were unable to locate concrete examples where this confusion could *actually* cause the feature to be misused. This is because even when we tried to craft a perfect example that would cause the statement to behave incorrectly in a specific platform, the typechecker was still preventing the project from compiling.
+
+It seems that the only way to make `#unavailable` *actually* end up in the wrong clause is if somehow a replacement API was introduced *before* the old one was deprecated, which under the perfect minimum target/current version combination would cause the typechecker to not complain about the API's availability and allow a platform to execute the migrated branched before the deprecation actually happened. Still, even in this unlikely made up case the code still wouldn't be **incorrect**, as the "migrated" code *does* support that platform version. This scenario would also not be something introduced by `#unavailable`, as the exact the same scenario can happen today when using the else block of an `#available` statement.
+
+The author then concludes that although it's possible for developers to feel confused by the syntax, this is something that already exists with `#available` and has no proven negative impact.
+
+During the pitch, we have discussed that one possible reason why this confusion exists is because there's no good documentation about availability statements -- there's currently no dedicated page for the availability literal, and the [official documentation for attributes](https://docs.swift.org/swift-book/ReferenceManual/Attributes.html) doesn't go into detail on how the result is calculated besides saying that the wildcard contains all platforms. These pages can be improved to go into more detail on the fact that spec lists are not boolean expressions, which would make confused developers more comfortable with availability features.
