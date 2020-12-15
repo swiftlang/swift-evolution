@@ -3,48 +3,46 @@
 * Proposal: [SE-NNNN](NNNN-task-local.md)
 * Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
 * Review Manager: TBD
-* Status: **Implementation In Progress**
+* Status: **Pending Implementation**
 * Implementation: Work in progress can be tracked in [PR #34722](https://github.com/apple/swift/pull/34722)
 
 ## Table of Contents
 
-* [Task Local Values](#task-local-values)
-  * [Table of Contents](#table-of-contents)
-  * [Introduction](#introduction)
-  * [Motivation](#motivation)
-  * [Proposed solution](#proposed-solution)
-    * [Task Local Values](#task-local-values-1)
-  * [Alternative API Considered](#alternative-api-considered)
-  * [Detailed design](#detailed-design)
-    * [value.bound(to:body:) implementation](#valueboundtobody-implementation)
-    * [Value lifecycle](#value-lifecycle)
-    * [get(key:) implementation](#getkey-implementation)
-    * [Similarities and differences with SwiftUI Environment](#similarities-and-differences-with-swiftui-environment)
-  * [Prior Art](#prior-art)
-    * [Kotlin: CoroutineContext[T]](#kotlin-coroutinecontextt)
-    * [Java/Loom: Scope Variables](#javaloom-scope-variables)
-    * [Go: explicit context passing all the way](#go-explicit-context-passing-all-the-way)
-  * [Rejected Alternatives](#rejected-alternatives)
-    * [Plain-old Thread Local variables](#plain-old-thread-local-variables)
-    * [Dispatch Queue Specific Values](#dispatch-queue-specific-values)
-  * [Intended use-cases](#intended-use-cases)
-    * [Use case: Distributed Tracing &amp; Contextual Logging](#use-case-distributed-tracing--contextual-logging)
-      * [Contextual Logging](#contextual-logging)
-      * [Function Tracing](#function-tracing)
-      * [Distributed Tracing](#distributed-tracing)
-      * [Future direction: Function wrapper interaction](#future-direction-function-wrapper-interaction)
-    * [Use case: Progress Monitoring](#use-case-progress-monitoring)
-  * [Source compatibility](#source-compatibility)
-  * [Effect on ABI stability](#effect-on-abi-stability)
-  * [Effect on API resilience](#effect-on-api-resilience)
+* [Introduction](#introduction)
+* [Motivation](#motivation)
+* [Proposed solution](#proposed-solution)
+  * [Task Local Values](#task-local-values-1)
+* [Detailed design](#detailed-design)
+  * [value.bound(to:body:) implementation](#valueboundtobody-implementation)
+  * [Value lifecycle](#value-lifecycle)
+  * [get(key:) implementation](#getkey-implementation)
+  * [Similarities and differences with SwiftUI Environment](#similarities-and-differences-with-swiftui-environment)
+* [Alternative Surface APIs Considered](#alternative-surface-apis-considered)
+* [Prior Art](#prior-art)
+  * [Kotlin: CoroutineContext[T]](#kotlin-coroutinecontextt)
+  * [Java/Loom: Scope Variables](#javaloom-scope-variables)
+  * [Go: explicit context passing all the way](#go-explicit-context-passing-all-the-way)
+* [Rejected Alternatives](#rejected-alternatives)
+  * [Plain-old Thread Local variables](#plain-old-thread-local-variables)
+  * [Dispatch Queue Specific Values](#dispatch-queue-specific-values)
+* [Intended use-cases](#intended-use-cases)
+  * [Use case: Distributed Tracing &amp; Contextual Logging](#use-case-distributed-tracing--contextual-logging)
+    * [Contextual Logging](#contextual-logging)
+    * [Function Tracing](#function-tracing)
+    * [Distributed Tracing](#distributed-tracing)
+    * [Future direction: Function wrapper interaction](#future-direction-function-wrapper-interaction)
+  * [Use case: Progress Monitoring](#use-case-progress-monitoring)
+* [Source compatibility](#source-compatibility)
+* [Effect on ABI stability](#effect-on-abi-stability)
+* [Effect on API resilience](#effect-on-api-resilience)
 
 ## Introduction
 
 With Swift embracing asynchronous functions and actors, asynchronous code will be everywhere. 
 
-Therefore, the need for debugging, tracing and otherwise instrumenting asynchronous code becomes even more necessary than before. At the same time, tools which instrumentation systems could have used before to carry information along requests -- such as thread locals or queue specific values, are no longer compatible with Swift's Task-focused take on concurrency.
+Therefore, the need for debugging, tracing and otherwise instrumenting asynchronous code becomes even more necessary than before. At the same time, tools which instrumentation systems could have used before to carry information along requests -- such as thread locals or queue-specific values -- are no longer compatible with Swift's Task-focused take on concurrency.
 
-Previously, tool developers could have relied on thread-local or queue-specific values to carry information across asynchronous boundaries. However, these mechanisms do not compose well in general, have known "gotchas" (e.g., having to remember and carefully maintain clearing state from these containers after a task has completed to avoid leaking them), and do not compose at all with Swift's Task-first approach to concurrency. Furthermore, they do not feel "right" given Swift's focus on Structured Concurrency because they are inherently unstructured.
+Previously, tool developers could have relied on thread-local or queue-specific values as containers to associate information with a task and carry it across suspension boundaries. However, these mechanisms do not compose well in general, have known "gotchas" (e.g., forgetting to carefully maintain and clear state from these containers after a task has completed to avoid leaking them), and do not compose at all with Swift's task-first approach to concurrency. Furthermore, those mechanisms do not feel "right" given Swift's focus on Structured Concurrency, because they are inherently unstructured.
 
 This proposal defines the semantics of _Task Local Values_. That is, values which are local to a `Task`.
 
@@ -54,16 +52,16 @@ Swift-evolution thread: [Discussion thread topic for that proposal](https://foru
 
 ## Motivation
 
-Task Local Values are a significant improvement over thread-local storage in that it works with Swift's concurrency model and embraces its structured nature.
+Task Local Values are a significant improvement over thread-local storage in that it is a better fit for Swift's concurrency model because it takes advantage of its structured nature. In existing code, developers have used thread-local or queue-specific values to associate state with each thread/queue, however the exact semantics of those mechanisms made it difficult and error prone in reality.
 
 Specifically, previously developers could have used thread-local or queue-specific values to achieve some of these features, however the exact semantics of those made it difficult and error prone in reality. 
 
 > The use of thread-locals in highly asynchronous libraries is generally frowned upon because it is so difficult to get right, and generally only adds to the confusion rather than helping one achieve transparent context propagation. 
 > 
-> This is why currently [Swift Distributed Tracing](https://github.com/apple/swift-distributed-tracing) had to revert to using explicit context passing which makes asynchronous APIs even more verbose than they already are.
+> This is why currently [Swift Distributed Tracing](https://github.com/apple/swift-distributed-tracing) had to revert to using explicit context passing, making asynchronous APIs even more verbose than they already are.
 
 
-And last but not least, these approaches are outright incompatible with asynchronous code which hops between execution contexts, which also includes Swift's async/await execution semantics which guarantee specific _executors_ or _actors_ to be used for execution, however never guarantee any specific queue or thread use at all.
+Finally, those mechanisms are outright incompatible with asynchronous code that hops between execution contexts, which also includes Swift's async/await execution semantics which guarantee specific _executors_ or _actors_ to be used for execution, however never guarantees any specific queue or thread use at all.
 
 > For discussion about alternative approaches to this problem please refer to [Prior Art](#prior-art) and [Alternatives Considered](#alternatives-considered).
 
@@ -71,59 +69,62 @@ And last but not least, these approaches are outright incompatible with asynchro
 
 ### Task Local Values
 
-Tasks already have the capability to "carry metadata with them," and it is used to implement both cancellation, deadlines as well as priority propagation throughout a Task as well as its child tasks. Specifically Task API's making use of this are `Task.currentPriority()`, `Task.currentDeadline()` and `Task.isCancelled()`. Task local values do not directly use the same storage mechanism, as cancellation and priority is somewhat optimized because _all_ tasks carry them, but the semantics are the same.
+Tasks already require the capability to "carry metadata with them," and that metadata used to implement both cancellation, deadlines as well as priority propagation for a `Task` and its child tasks. Specifically Task API's exhibiting similar behavior are: `Task.currentPriority()`, `Task.currentDeadline()` and `Task.isCancelled()`. Task local values do not directly use the same storage mechanism, as cancellation and priority is somewhat optimized because _all_ tasks carry them, but the semantics are the same.
 
 We propose to expose the Task's internal ability to "carry metadata with it" via an Swift API, *aimed for library and instrumentation authors* such that they can participate in carrying additional information with Tasks, the same way as Tasks already do with priority and deadlines and other metadata.
 
-> An alternative surface level API is proposed below; we are looking for feedback which API style would be more welcome by the community, however the underlying feature-set remains the same.
+> An alternative surface level API is proposed in [Alternative API Considered](#alternative-api-considered), however it faces some usability limitations that may be hard to resolve without variadic generics. 
 
-Task local values may only be accessed from contexts which are running in a task: asynchronous functions. As such all operations, except declaring the value handle are asynchronous operations.
+Task local values may only be accessed from contexts that are running in a task: asynchronous functions. As such all operations, except declaring the task-local value's handle are asynchronous operations.
 
-Declaring a task local value begins with declaring and storing a handle to it:
+Declaring a task local value begins with declaring it as a static local and storing a *handle* to it, like so:
 
 
 ```swift
-static let example = Task.Local<String>()
+static let requestID = Task.Local<String>()
 ```
 
-> This design is indeed inspired by SwiftUI's environment concept, however it differs tremendously in "where" the child/parent relationship is expressed. Read more about this comparison in the section comparing with SwiftUI below.
+> This design may remind you of SwiftUI's "environment" concept, however it differs tremendously in *where* the child/parent relationship is expressed. In a later section we'll make a more detailed comparison with SwiftUI.
 
-The handle can be used to access control which parts of the application may read/write this value, e.g. by storing a private `Task.Local` declaration in a specific class of a framework.
+A task-local handle can be used to access control the parts of the application that may read/write its underlying value, e.g. by storing a `private` task-local handle declaration in a specific class of a framework.
 
 Next, in order to access the value one has to `get()` it:
 
 ```swift
+static let requestID = Task.Local<String>()
+
 func printRequestID() async {
   let id = await requestID.get() ?? "<unknown>"
   print("request-id: \(id)")
 }
 ```
 
-Since it is not known statically if the value will be present or not, the returned value is an optional.
+Since it is not known statically if the value will be present or not, the returned value is an `Optional<String>`.
 
-Note that none of the operations on `Task.Local<T>` operations actually suspend, and return immediately. We may want to discuss an @instantaneous annotation to mark functions which only can be invoked in an asynchronous context, but are guaranteed to never suspend - such as Task.currentPriority() and these `Task.Local` APIs. This however would be a separate proposal, also applying to Task's various APIs with similar semantics.
+Note that none of the operations on the `Task.Local<T>` handle actually suspend; they return immediately. This fact may call for a more general `@instantaneous` annotation for asynchronous functions that are guaranteed to never suspend -- such as `Task.currentPriority()` and these `Task.Local` APIs. But, such an annotation would require a separate proposal, since it also applies to Task's various APIs with similar semantics.
 
-It would be possible to offer an overload of task locals which at initialization take a default value and return that instead of `nil` when no value was found, it would be defined as:
-
+It would be possible to offer an overload of task-locals that, at initialization, take a default value and return that instead of `nil` when no value is found during an access; defined as:
 
 ```swift
 static let exampleWithDefault = Task.Local<String>.WithDefault("hello")
 ```
 
-Setting values is the most crucial piece of this design, as it embraces the structured nature of Swift's concurrency. Unlike thread-local values, it is not possible to just "set" a `Task.Local<T>`, it can only be bound to a specific value for a _scope_. The value is represented by storing it on the executing child `Task` within that scope. Once the scope ends, the child task ends, and the associated task local value is discarded:
-
+Setting values is the most crucial piece of this design, as it embraces the structured nature of Swift's concurrency. Unlike thread-local values, it is not possible to just "set" a `Task.Local<T>` using an arbitrary identifier for a look-up. The handle is bound to a specific declaration that is accessable only to its lexical _scope_. The handle's underlying value is represented by storing it on the executing child's `Task` within that scope. Once the scope ends, the child task ends, and the associated task local value is discarded:
 
 ```swift
 await requestID.bound(to: "1234-5678") {
-  await printRequest() // 1234-5678
+  await printRequestID() // 1234-5678
 }
 
-await printRequest() // <unknown>
+await printRequestID() // <unknown>
 ```
 
 Another crucial point of task locals is that values set in a parent task, are _readable_ by any child of its child tasks:
 
 ```swift
+static let requestID = Task.Local<String>()
+// ...
+
 await requestID.bound(to: "1234-5678") {
   await nested()
 }
@@ -141,7 +142,7 @@ func nestedAgain() async -> String? {
 }
 ```
 
-This allows developers to keep the "scope" structure in mind when working with task locals. The API can also be used to set multiple values at the same time:
+This allows developers to keep the "scope" structure in mind when working with task-locals. The API can also be used to set multiple values at the same time:
 
 ```swift
 await Task.with(example.bound(to: "A"),
@@ -151,33 +152,6 @@ await Task.with(example.bound(to: "A"),
 ```
 
 The same operations also work and compose naturally with child tasks created by `async let` and Task Groups.
-
-## Alternative API Considered
-
-An alternative take on this API could attempt to look more similar to SwiftUI's environment (discussed more in depth below), however this comes with a set usability limitations that are not as easy to resolve.
-
-Alternative design sketch:
-
-```swift
-extension TaskLocalValues { 
-  public var requestID: RequestIDKey { .init() }
-  
-  enum RequestIDKey: TaskLocalKey { 
-    typealias Value = String?
-    static var defaultValue: Self.Value { nil }
-  }
-}
-```
-
-```swift
-await Task.with(\.requestID, boundTo: "1234") { 
-  if let value = await Task.local(\.requestID) {
-    ...
-  }
-}
-```
-
-Which is more similar to how custom values may be set for SwiftUI's `@Environment`, however since we need to introduce scopes for task locals to function properly, and we may need to set multiple values at the same time, the API design becomes a not as clean. It is not trivial to provide a variadic yet type-safe version of `Task.with(key2:value1:...keyN:valueN:)` API, so it would have to be either solved by another mini DSL for binding values, or by avoiding the problem and forcing users to set multiple values using multiple nested scopes. This is sub-optimal in many ways, and the "handle" declaration style discussed before leans itself more naturally to task-local values we believe.
 
 ## Detailed design
 
@@ -296,7 +270,6 @@ In other words:
 
 - **SwiftUI's `@Environment`** is useful for structurally configuring views etc.
 - **Task Local Values** are useful for _carrying_ metadata along through a series of asynchronous calls, where each call may want to access it, and the context is likely different for every single "incoming request" even while the structure of the system remains the same.
-
 
 ## Prior Art
 
@@ -433,6 +406,32 @@ Go Concurrency Patterns: Context](https://blog.golang.org/context).
  
 ## Rejected Alternatives
 
+## Alternative Considered Surface API
+
+An alternative take on this API could attempt to look more similar to SwiftUI's environment (discussed more in depth below), however this comes with a set usability limitations that are not as easy to resolve.
+
+Alternative design sketch:
+
+```swift
+extension TaskLocalValues { 
+  public var requestID: RequestIDKey { .init() }
+  
+  enum RequestIDKey: TaskLocalKey { 
+    typealias Value = String?
+    static var defaultValue: Self.Value { nil }
+  }
+}
+```
+
+```swift
+await Task.with(\.requestID, boundTo: "1234") { 
+  if let value = await Task.local(\.requestID) {
+    ...
+  }
+}
+```
+
+Which is more similar to how custom values may be set for SwiftUI's `@Environment`, however since we need to introduce scopes for task locals to function properly, and we may need to set multiple values at the same time, the API design becomes a not as clean. It is not trivial to provide a variadic yet type-safe version of `Task.with(key2:value1:...keyN:valueN:)` API, so it would have to be either solved by another mini DSL for binding values, or by avoiding the problem and forcing users to set multiple values using multiple nested scopes. This is sub-optimal in many ways, and the "handle" declaration style discussed before leans itself more naturally to task-local values we believe.
 
 ### Plain-old Thread Local variables
 
