@@ -627,6 +627,11 @@ Which would automatically *start* a tracing `Span` with an *operation name* "mak
 
 This way, eventually, we would have gained all benefits of (distributed) tracing and contextual logging, without any of the noise and complexity usually associated with it.
 
+### Use case: Mocking out internals in "test mode"
+
+Some libraries may offer a special API that allows switching e.g. filesystem access to a "mock filesystem" if it is present in a task local value.
+
+This way developers could configure tasks used in their tests to bind a "mock filesystem" under a known to the underlying library task local value, and this way avoid writing/reading from a real filesystem in tests, achieving greater test isolation without having to pass a specific `Filesystem` instance through all API calls of the library.
 
 ### Use case: Progress Monitoring
 
