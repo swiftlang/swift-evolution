@@ -11,7 +11,7 @@
 ## Introduction
 
 This proposal lets Swift Package authors declare targets as executable in the
-package manifest. This replaces the current approach of inferring executabilty
+package manifest. This replaces the current approach of inferring executability
 based on the presence of a source file with the base name `main` at the top
 level of the target source directory.
 
@@ -145,7 +145,7 @@ should have a fix-it to change the associated `.target` declaration to
 `.executableTarget`.
 
 A future tools-version will remove the warning and treat any target that is
-declared using `.target` as library target.
+declared using `.target` as a library target.
 
 SwiftPM already passes different flags when compiling executable targets and
 library targets, and that remains unchanged. In particular, SwiftPM passes
@@ -154,7 +154,7 @@ to do so with these changes. It will continue to not pass this flag when
 compiling executable targets, so that the compiler will continue to interpret
 `main.swift` as the main source file of an executable.
 
-## Impact on exisiting packages
+## Impact on existing packages
 
 There is no impact on existing packages. Packages that specify a tools-version
 of 5.4 or greater will get the new behavior. Any package graph can contain a
