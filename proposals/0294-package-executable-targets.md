@@ -11,8 +11,8 @@
 ## Introduction
 
 This proposal lets Swift Package authors declare targets as executable in the
-package manifest. This replaces the current approach of inferring executabilty
-based on the presence of a source file with the base name "main" at the top
+package manifest. This replaces the current approach of inferring executability
+based on the presence of a source file with the base name `main` at the top
 level of the target source directory.
 
 Letting package authors declare targets as executable allows the use of `@main`
@@ -56,8 +56,8 @@ list of target declarations.
 
 ## Detailed design
 
-The `PackageDescription` API will be updated to add an `executableTarget`
-function, currently having the same parameters as the `target` function:
+The `PackageDescription` API is updated to add an `executableTarget` function,
+currently having the same parameters as the `target` function:
 
 ```swift
 /// Creates an executable target.
@@ -118,26 +118,48 @@ public static func executableTarget(
 A new `.executable` case is also added to the `TargetType` enum in the
 `PackageDescription` API.
 
-These are the only changes that are visible to package manifest authors.
+These are the only API changes that are visible to package manifest authors.
 
-On the implementation side, this proposal updates the logic in SwiftPM so that:
+On the implementation side, this proposal also updates the logic in SwiftPM
+so that:
 
-- if the package tools version is 5.3 or earlier, a target is considered to be
-  executable using the same rules as in SwiftPM 5.3
-- if the package tools version is newer than 5.3, only the target type
-  determines whether the target is treated as an exeutable or a library target
+- if the package tools-version is less than 5.4, a target is considered to be
+  executable in exactly the same way as in versions of SwiftPM prior to 5.4
+- if the package tools-version is greater than or equal to 5.4, then:
+   - if the target is declared using `.executableTarget`, then it is considered
+     to be an executable target
+   - if the target is declared using `.target`, then source files are examined
+     using the same rules as prior to 5.4, and a warning suggesting that the
+     target be declared using `.executableTarget` is emitted if the target is
+     considered executable under those rules
+
+The effect of this logic is that, starting with SwiftPM tools-version 5.4,
+declaring an executable target by using `.target` and having it inferred to be
+an executable by the presence of a source file with a base name of `main` is
+considered deprecated but still works.
+
+This approach eases the transition for any package that adopts tools-version
+5.4, and provides better diagnostics to change the declarations of executable
+targets to use `.executableTarget`. If technically feasible, the warning
+should have a fix-it to change the associated `.target` declaration to
+`.executableTarget`.
+
+A future tools-version will remove the warning and treat any target that is
+declared using `.target` as a library target.
 
 SwiftPM already passes different flags when compiling executable targets and
 library targets, and that remains unchanged. In particular, SwiftPM passes
 `-parse-as-library` when compiling a non-executable target, and will continue
-to do so with these changes.
+to do so with these changes. It will continue to not pass this flag when
+compiling executable targets, so that the compiler will continue to interpret
+`main.swift` as the main source file of an executable.
 
-## Impact on exisiting packages
+## Impact on existing packages
 
-There is no impact on existing packages. Packages that specify a tools version
-newer than 5.3 will get the new behavior. A package graph can contain a mixture
-of old and new packages, with each package determining a target's executableness
-according to the tools version for that package.
+There is no impact on existing packages. Packages that specify a tools-version
+of 5.4 or greater will get the new behavior. Any package graph can contain a
+mixture of old and new packages, and each target's executability will be
+determined according to the tools-version of the package that declares it.
 
 As with any Swift module, the Swift compiler will not let an executable have
 multiple `@main` entry points, including one that is specified by having a
@@ -145,7 +167,8 @@ multiple `@main` entry points, including one that is specified by having a
 
 ## Alternatives considered
 
-There are various other ways of designating a target as executable:
+There are various other ways that could have been considered for designating
+a target as executable:
 
 #### As a new parameter on `target`
 
@@ -157,7 +180,7 @@ applied to only library targets or executable targets.
 
 #### Through some other designation outside the manifest
 
-Since the intended executability of a target is an fundamental statement of
+Since the intended executability of a target is a fundamental statement of
 purpose, it seems logical that this should be denoted in the package manifest.
 The Swift package manifest provides all the information other than what can be
 inferred from the file system.
@@ -166,10 +189,11 @@ inferred from the file system.
 
 It is somewhat redundant that a package having only a single executable target
 that builds a single executable product will now have both a product and target
-with the word "executable" in its name. This is mitigated by the existing Swift
+with the word "executable" in its type. This is mitigated by the existing Swift
 Package Manager behavior of implicitly creating an executable product for any
 executable target if there isn't already a product with the same name (this
 behavior remains unchanged by this proposal).
 
 Since a future goal is to find a way to unify product and target declarations
-in the package manifest, this is expected to be only a short-term issue.
+in the package manifest, the redundant appearance of the word "executable" in
+both product and target type names is expected to be only a short-term issue.
