@@ -3,10 +3,11 @@
 * Proposal: [SE-0294](0294-package-executable-targets.md)
 * Authors: [Anders Bertelrud](https://github.com/abertelrud)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
-* Status: **Active review (December 1...December 13)**
+* Status: **Accepted**
 * Implementation: [apple/swift-package-manager#3045](https://github.com/apple/swift-package-manager/pull/3045)
 * Bugs: [SR-13924](https://bugs.swift.org/browse/SR-13924)
-* Pitch: [Forum Discussion](https://forums.swift.org/t/pitch-ability-to-declare-executable-targets-in-swiftpm-manifests-to-support-main/41968)
+* Pitch: [Forum Discussion](https://forums.swift.org/t/pitch-ability-to-declare-executable-targets-in-swiftpm-manifests-to-support-main/)
+* Review: [Forum Discussion](https://forums.swift.org/t/se-0294-declaring-executable-targets-in-package-manifests/)
 
 ## Introduction
 
