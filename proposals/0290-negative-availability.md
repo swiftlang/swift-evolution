@@ -204,9 +204,9 @@ if #unavailable(*) {
 }
 ```
 
-As an interesting side effect, this means that having multiple unavailability checks in the same statement (`#unavailable(iOS 13, *), #unavailable(watchOS 3, *)` as opposed to `#unavailable(iOS 13, watchOS 3, *)`) would cause the statement to always be false if they are covering different platforms. 
+As an interesting side effect, this means that having multiple unavailability checks in the same statement (`#unavailable(iOS 13, *), #unavailable(watchOS 3, *)` as opposed to `#unavailable(iOS 13, watchOS 3, *)`) would cause the statement to always be false if they are triggering the wildcard (in this case, because they cover different platforms). 
 
-In these cases, since wildcard checks are eventually optimized to boolean literals, the compiler will already emit a warning indicating that the code will never be executed. Still, we can provide a more descriptive diagnostic that suggests using a single check that considers all platforms. 
+In these cases, since wildcard checks are eventually optimized to boolean literals, the compiler will already emit a warning indicating that the code will never be executed. Still, we could provide a more descriptive diagnostic that suggests using a single check that considers all platforms. 
 
 ```swift
 if #unavailable(iOS 13, *), #unavailable(watchOS 3, *) {
