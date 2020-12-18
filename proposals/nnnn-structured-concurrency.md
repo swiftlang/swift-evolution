@@ -270,9 +270,9 @@ The priority of a task does not necessarily match the priority of its executor. 
 
 In some situations the priority of a task must be escalated in order to avoid a priority inversion:
 
-- If a task is running on behalf of an actor, and a higher-priority task is enqueued on the actor, the task may temporarily run at the priority of the higher-priority task. This does not affect child tasks or `Task.currentPriority()`; it is a property of the thread running the task, not the task itself.
+- If a task is running on behalf of an actor, and a higher-priority task is enqueued on the actor, the task may temporarily run at the priority of the higher-priority task. This does not affect child tasks or `Task.currentPriority`; it is a property of the thread running the task, not the task itself.
 
-- If a task is created with a `Task.Handle`, and a higher-priority task calls `await try handle.get()`, the priority of the task will be permanently increased to match the higher-priority task.  This does affect child tasks and `Task.currentPriority()`.
+- If a task is created with a `Task.Handle`, and a higher-priority task calls `handle.get()`, the priority of the task will be permanently increased to match the higher-priority task.  This does affect child tasks and `Task.currentPriority`.
 
 ### Cancellation
 
@@ -371,7 +371,7 @@ A variable defined in an `async let` can not be captured by an escaping closure.
 
 > **Rationale**: Capture of a variable defined by an `async let` within an escaping closure would allow the implicitly-created child task to escape its lexical context, which otherwise would not be permissible.
  
-### Child Tasks with TaskGroups
+### Child Tasks with Task Groups
 
 In addition to `async let` this proposal also introduces an explicit `TaskGroup` type, which allows for fine grained scoping of tasks within such task group. 
 
@@ -425,7 +425,6 @@ A task group can be launched from any asynchronous context, eventually returns a
 
 ```swift
 extension Task { 
-  /* @unmoveable */ 
   public struct TaskGroup<TaskResult> {
     // No public initializers
     
@@ -433,20 +432,15 @@ extension Task {
     // For now, that implies that it cannot be used with generics.
 
     /// Add a child task.
+    @discardableResult
     public mutating func add(
         overridingPriority: Priority? = nil,
-        operation: () async -> TaskResult
-    ) { ... } 
-
-    /// Add a child task and return a handle that can be used to manage it.
-    public mutating func addWithHandle(
-        overridingPriority: Priority? = nil,
-        operation: () async -> TaskResult
-    ) -> Handle<TaskResult> { ... } 
+        operation: () async throws -> TaskResult
+    ) -> Task.Handle<TaskResult> { ... } 
 
     /// Wait for a child task to complete and return the result it returned,
     /// or else return.
-    public mutating func next() async -> TaskResult? { ... } 
+    public mutating func next() async throws -> TaskResult? { ... } 
     
     /// Query whether the task group has any remaining tasks.
     /// Task groups are always empty upon entry to the Task.withGroup body.
@@ -475,12 +469,12 @@ func chopVegetables(rawVeggies: [Vegetable]) async throws -> [ChoppedVegetable] 
         
     // add all chopping tasks and process them concurrently
     for v in rawVeggies {
-      await try task group.add { // await the successful adding of the task 
+      await try group.add { // await the successful adding of the task 
         await v.chopped() // await the processing result of task
       }
     }
 
-    while let choppedVeggie = await try task group.next() { 
+    while let choppedVeggie = await try group.next() { 
       choppedVeggies.append(choppedVeggie)
     }
     
@@ -489,7 +483,7 @@ func chopVegetables(rawVeggies: [Vegetable]) async throws -> [ChoppedVegetable] 
 }
 ```
 
-#### TaskGroups: Throwing and cancellation
+#### Task Groups: Throwing and cancellation
 
 Worth pointing out here is that adding a task to a task group could fail because the task group could have been cancelled when we were about to add more tasks to it. To visualize this, let us consider the following example:
 
@@ -502,13 +496,13 @@ func chopOnionsAndCarrots(rawVeggies: [Vegetable]) async throws -> [Vegetable] {
   await try Task.withGroup { task group in // (3) will re-throw the onion chopping error
     // kick off asynchronous vegetable chopping:
     for v in rawVeggies {
-      await try task group.add { 
+      await try group.add { 
         await try v.chopped() // (1) throws
       }
     }
     
     // collect chopped up results:
-    while let choppedVeggie = await try task group.next() { // (2) will throw for the onion
+    while let choppedVeggie = await try group.next() { // (2) will throw for the onion
       choppedVeggies.append(choppedVeggie)
     }
   }
@@ -564,9 +558,9 @@ In the following example we need to confirm each order that we received, however
 
 ```swift
 func confirmOrders(orders: [Order]) async throws {
-  await try Task.withGroup { task group in 
+  await try Task.withGroup { group in 
     for order in orders {
-      await try task group.add { await order.confirm() } 
+      await try group.add { await order.confirm() } 
     }
   }
 }
@@ -578,7 +572,6 @@ The `confirmOrders()` function will only return once all confirmations have comp
 ### Detached Tasks
 
 Detached tasks are one of the two "escape hatch" APIs offered in this proposal (the other being the `UnsafeContinuation` APIs discussed in the next section), for when structured concurrency rules are too rigid for a specific asynchronous operations.
-
 
 Looking at the previously mentioned example of making dinner in a detached task, but filling in the missing types and details:
 
