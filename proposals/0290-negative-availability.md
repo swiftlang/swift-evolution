@@ -181,7 +181,7 @@ if #available(iOS 12)
 // In practice, the last two will not compile due to an additional requirement that is mentioned below.
 ```
 
-Even if you have no plans to use your code in a different platform, your statement must still define the wildcard as a way to define what should happen in all unspecified current and potential new future platforms. The compiler uses the wildcard to ease porting to new platforms -- because the platform being compiled must always have an entry in the spec list, the wildcard allows these platforms to compile your code without requiring a modification to every availability guard in the program. Additionally, because new platforms typically branch from existing platforms, the wildcard also makes sure these ported checks will always return `true` by default.
+Even if you have no plans to use your code in a different platform, your statement must still define the wildcard as a way to define what should happen in all unspecified current and potential new future platforms. The compiler uses the wildcard to ease porting to new platforms -- because the platform being compiled must always have an entry in the spec list, the wildcard allows these platforms to compile your code without requiring a modification to every availability guard in the program. Additionally, because new platforms typically branch from existing platforms, the wildcard also makes sure these ported checks will always return `true` by default when checking for availability.
 
 It's important to note that availability spec lists **are not boolean expressions**. For example, it's not possible to add multiple versions of a platform to the statement:
 
