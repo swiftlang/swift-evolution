@@ -319,52 +319,6 @@ func chop(_ vegetable: Vegetable) async throws -> Vegetable {
 
 Note also that no information is passed to the task about why it was cancelled.  A task may be cancelled for many reasons, and additional reasons may accrue after the initial cancellation (for example, if the task fails to immediately exit, it may pass a deadline). The goal of cancellation is to allow tasks to be cancelled in a lightweight way, not to be a secondary method of inter-task communication.
 
-#### Cancellation with Deadlines
-
-A very common use case for cancellation is cancelling tasks because they are taking too long to complete. This proposal introduces the concept of *deadlines* and enables them to cause a task to consider itself as cancelled if such deadline is exceeded.
-
-We intentionally use _deadlines_ ("points in time") as opposed to _timeouts_ ("durations of time"). This is because deadlines compose correctly: working with timeouts is prone to errors where the deadline is accidentally extended because a full timeout is reused rather than being adjusted for the time already passed. For convenience, we allow code to use a relative timeout when setting the deadline up; this will be immediately translated to an absolute deadline.
-
-To further analyze the semantics of deadlines, let's extend our dinner preparation example with deadlines.
-
-```swift
-func makeDinnerWithDeadline() async throws -> Meal {
-  await try Task.withDeadline(in: .hours(2)) {
-    // intentionally wait until the vegetables have been chopped before starting any child tasks
-    let veggies = await try chopVegetables()
-    async let meat = Task.withDeadline(in: .minutes(30)) {
-      marinateMeat()
-    }
-    async let oven = try preheatOven(temperature: 350)
-    
-    let dish = Dish(ingredients: await [veggies, meat])
-    return await try oven.cook(dish, duration: .hours(3))
-  }
-}
-
-func cook(_ dish: Dish, duration: Duration) async throws -> Meal {
-  await try checkCancellation()
-  // ...
-}
-```
-
-In the example above, we set two deadlines. The first deadline is for two hours from the start and applies to the entire dinner preparation task. The second deadline is for 30 minutes from the time we start the marinade, and it applies only to that portion of the task.
-
-Note that we await the chopped vegetables before beginning the marinade. This is to illustrate the following point: imagine, somehow, that chopping up the vegetables for some reason took 1 hour and 40 minutes. Now that we get to the meat marination step, we only have 20 minutes left in our outer deadline, yet we attempt to set a deadline in "30 minutes from now." If we had just set a timeout for 30 minutes here, we would be well past the outer deadline. Instead, the task automatically notices that the new deadline of `now + 30 minutes` is actually greater than the current deadline, and thus it is ignored; the task will be cancelled appropriately at the two-hour mark.
-
-Deadlines are also available to interact with programmatically. For example, the `cook` function knows exactly how much time it will take to complete. Just checking for cancellation at the beginning of the `cook()` function only means that the deadline hasn't yet been exceeded, but we can do better than that: we can check whether we actually have three hours left. If not, we can throw immediately to tell the user that we aren't going to meet the deadline:
-
-```swift
-func cook(dish: Dish, duration: Duration) async throws -> Meal {
-  guard await Task.currentDeadline().remaining > duration else { 
-    throw await NotEnoughTimeToPrepareMealError("Not enough time to prepare meal!")
-  }
-  // ...
-}
-```
-
-Thanks to this, functions which have a known execution time can proactively cancel themselves before even starting the work which we know would miss the deadline in the end anyway.
-
 ### Child tasks with `async let`
 
 Asynchronous calls do not by themselves introduce concurrent execution. However, `async` functions may conveniently request work to be run in a child task, permitting it to run concurrently, with an `async let`:
@@ -732,9 +686,7 @@ Thanks to weaving the right continuation resume calls into the complex callbacks
 > 
 > Developers must carefully place the `resume` calls guarantee the proper resumption semantics of unsafe continuations, lack of consideration for a case where resume should have been called will result in a task hanging forever, justifying the unsafe denotation of this API.
 
-### Miscellaneous minor Task APIs
-
-#### Voluntary Suspension
+### Voluntary Suspension
 
 For certain tasks of long running operations, say performing many tasks in a tight loop, it might be beneficial for tasks to sometimes check in if they should perhaps suspend and offer a chance for other tasks to proceed (e.g. if all are executing on a shared, limited-concurrency pool). For this use-case `Task` includes a `yield()` operation, which is a way to explicitly suspend and give other tasks a chance to run for a while. 
 
