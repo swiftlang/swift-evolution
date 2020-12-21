@@ -373,7 +373,7 @@ Consider the following example:
 
 ```swift
 // func redirectURL(for url: URL) async -> URL { ... }
-// func dataTask(with: URL) async throws -> URLSessionDataTask { ... }
+// func dataTask(with: URL) async throws -> (Data, URLResponse) { ... }
 
 let newURL = await server.redirectURL(for: url)
 let (data, response) = await try session.dataTask(with: newURL)
