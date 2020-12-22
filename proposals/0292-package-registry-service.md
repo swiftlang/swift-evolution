@@ -607,14 +607,11 @@ in a future, optional extension to the registry specification.
 
 ### Package removal
 
-The proposed specification defines an endpoint for publishing package releases,
-but not for removing them.
-
 There are several reasons why a package release may be removed, including:
 
-* The package maintainer publishes a release by mistake.
-* A security vulnerability is found in a release.
-* The registry is compelled by law enforcement to remove a release.
+* The package maintainer publishing a release by mistake
+* A security vulnerability being discovered in a release
+* The registry being compelled by law enforcement to remove a release
 
 However, removing a package release has the potential to
 break any packages that depend on it.
@@ -626,9 +623,10 @@ informed by registry specification itself.
 For now,
 a registry is free to exercise its own discretion
 about how to respond to out-of-band removal requests.
-We look forward to discussing this further
-and updating the specification once we arrive at a consensus
-about the correct behavior.
+
+We plan to consider these questions
+as part of the future, optional extension to the specification
+described in the previous section.
 
 ### Binary framework distribution
 
