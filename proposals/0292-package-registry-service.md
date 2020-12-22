@@ -564,46 +564,46 @@ For the reasons outlined in the preceding Security section,
 we believe that digital signatures may offer additional guarantees
 of authenticity and non-repudiation beyond what's possible with checksums alone.
 
-### Addition of a `publish` subcommand
-
-Most package managers —
-including the ones described in the introduction to this proposal —
-follows what we describe as a <dfn>"push"</dfn> model.
-When a package owner releases a new version of their software,
-a client runs a command locally and pushes the results to a server.
-
-However,
-the "push" model reflects a tradition of software deployment
-that predates modern source code management and build automation.
-As package maintainers can attest,
-this approach often involves a lot of manual effort
-and trial-and-error guesswork.
-It also lacks strong guarantees about reproducibility and software traceability.
-
-Taking inspiration from current best-practices like
-continuous integration (CI) and continuous delivery (CD),
-this proposal instead follows what we describe a "pull" model.
-When a package owner releases a new version of their software,
-their sole responsibility is to notify the package registry.
-The server does all the work of downloading the source code
-and packaging it up for distribution.
-
-We considered but rejected the idea of a `publish` subcommand
-for a few different reasons.
-For one, we worried that the existence of `swift package archive-source`
-would cause confusion to anyone more familiar with
-another "push"-style package ecosystem.
-The specification's open-ended policy for a registry's authentication model
-also proved to be a complicating factor.
-But the deciding factor was that we saw `publish` as unnecessary;
-we imagine package publication to be the
-final outcome of a successful CI /CD pipeline to be run automatically,
-rather than a command to be run manually.
-
 ## Future directions
 
 Defining a standard interface for package registries
 lays the groundwork for several useful features.
+
+### Package publication
+
+A package registry is responsible for determining
+which package releases are made available to a consumer.
+This proposal sets no policies for how
+package releases are published to a registry.
+
+Many package managers —
+including the ones mentioned above —
+and artifact repository services, such as
+[Docker Hub],
+[JFrog Artifactory],
+and [AWS CodeArtifact]
+follow what we describe as a <dfn>"push"</dfn> model of publication:
+When a package owner wants to releases a new version of their software,
+they produce a build locally and push the resulting artifact to a server.
+This model has the benefit of operational simplicity and flexibility.
+For example,
+maintainers have an opportunity to digitally sign artifacts
+before uploading them to the server.
+
+Alternatively,
+a system might incorporate build automation techniques like
+continuous integration (CI) and continuous delivery (CD)
+into what we describe as a "pull" model:
+When a package owner wants to release a new version of their software,
+their sole responsibility is to notify the package registry;
+the server does all the work of downloading the source code
+and packaging it up for distribution.
+This model can provide strong guarantees about
+reproducibility, quality assurance, and software traceability.
+
+We intend to work with industry stakeholders
+to develop standards for publishing Swift packages
+in a future, optional extension to the registry specification.
 
 ### Package removal
 
@@ -771,6 +771,9 @@ but is included here as a complement to the search subcommand described above.
 [npm]: https://www.npmjs.com "The npm Registry"
 [crates.io]: https://crates.io "crates.io: The Rust community’s crate registry"
 [CocoaPods]: https://cocoapods.org "A dependency manager for Swift and Objective-C Cocoa projects"
+[Docker Hub]: https://hub.docker.com
+[JFrog Artifactory]: https://jfrog.com/artifactory/
+[AWS CodeArtifact]: https://aws.amazon.com/codeartifact/
 [thundering herd effect]: https://en.wikipedia.org/wiki/Thundering_herd_problem "Thundering herd problem"
 [offline cache]: https://yarnpkg.com/features/offline-cache "Offline Cache | Yarn - Package Manager"
 [XCFramework]: https://developer.apple.com/videos/play/wwdc2019/416/ "WWDC 2019 Session 416: Binary Frameworks in Swift"
