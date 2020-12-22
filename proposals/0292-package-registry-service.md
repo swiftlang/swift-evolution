@@ -422,6 +422,15 @@ However, much of the associated risk can be mitigated,
 and a package registry can offer stronger guarantees for safety and security
 compared to downloading dependencies using Git.
 
+Some security measures,
+such as use of HTTPS and integrity checksums,
+are required by the registry service specification.
+Other security decisions are delegated to to the registries themselves.
+For example,
+registries are encouraged to adopt a
+scoped, revocable authorization framework like [OAuth 2.0][RFC 6749],
+but this isn't a strict requirement.
+
 To better understand the security implications of this proposal —
 and Swift dependency management more broadly —
 we employ the
