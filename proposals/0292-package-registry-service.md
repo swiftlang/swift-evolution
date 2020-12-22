@@ -89,8 +89,7 @@ and will allow for new functionality to be built in the future.
 A package registry service implements REST API endpoints
 for listing releases for a package,
 fetching information about a release,
-downloading the source archive for a release,
-and publishing a new release of a package.
+and downloading the source archive for a release.
 
 | Method | Path                                                 | Description                                      |
 | ------ | ---------------------------------------------------- | ------------------------------------------------ |
@@ -98,7 +97,6 @@ and publishing a new release of a package.
 | `GET`  | `/{package}/{version}`                               | Fetch metadata for a package release             |
 | `GET`  | `/{package}/{version}/Package.swift{?swift-version}` | Fetch manifest for a package release             |
 | `GET`  | `/{package}/{version}.zip`                           | Download source archive for a package release    |
-| `PUT`  | `/{package}/{version}{?commit,branch,tag,path,url}`  | Publish a package release or update its metadata |
 
 A formal specification for the package registry interface
 is provided alongside this proposal.
