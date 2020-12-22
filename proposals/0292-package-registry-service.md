@@ -186,8 +186,8 @@ The first external dependency itself has a dependency on a package at the URL
 The second depends on the same package,
 but specifies a slightly different URL in its declaration:
 `git@example.com:mona/linkedlist.git`.
-Under the proposed regiment,
-both transitive dependencies would resolve to the same package,
+Under the proposed scheme,
+both transitive dependencies resolve to the same package,
 identified with the URI `example.com/mona/linkedlist`.
 
 #### Dependency graph resolution
@@ -695,7 +695,7 @@ of authenticity and non-repudiation beyond what's possible with checksums alone.
 Defining a standard interface for package registries
 lays the groundwork for several useful features.
 
-### Package publication
+### Package publishing
 
 A package registry is responsible for determining
 which package releases are made available to a consumer.
