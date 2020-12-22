@@ -142,7 +142,7 @@ and their corresponding package registry API calls.
 Initially,
 Swift Package Manager will use a package registry to resolve dependencies
 only when the user passes the `--enable-package-registries` command-line flag.
-This may change in a future release.
+This option may be changed or removed in a future release.
 
 ```terminal
 $ swift build --enable-package-registries
@@ -185,7 +185,7 @@ in its response to `GET /{package}/{version}/Package.swift`.
 However, package registries won't support
 [version-specific _tag_ selection][version-specific-tag-selection],
 and instead rely on [Semantic Versioning][SemVer]
-to accomodate different versions of Swift
+to accommodate different versions of Swift
 (for example,
 by using major release versions
 or build metadata like `1.0.0+swift-5_3`).
@@ -508,7 +508,7 @@ Swift Package Manager currently uses Zip archives for binary dependencies,
 which is reason enough to use it again here.
 
 We briefly considered `tar` as an archive format
-but concluded that its behavior of preserving symlinks and executable bits
+but concluded that its behavior of preserving symbolic links and executable bits
 served no useful purpose in the context of package management,
 and instead raised concerns about portability and security.
 
