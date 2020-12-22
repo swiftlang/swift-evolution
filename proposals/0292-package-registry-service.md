@@ -101,7 +101,9 @@ and downloading the source archive for a release.
 A formal specification for the package registry interface
 is provided alongside this proposal.
 In addition,
-an OpenAPI (v3) document and a reference implementation
+an OpenAPI (v3) document,
+a reference implementation written in Swift,
+and a benchmarking harness
 are provided for the convenience of developers interested
 in building their own package registry.
 
