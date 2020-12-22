@@ -138,43 +138,43 @@ a dependency may be declared in a package manifest:
 
 * Removing the scheme component, if present:
   ```
-  https:///example.com/mona/LinkedList → example.com/mona/LinkedList
+  https:///github.com/mona/LinkedList → github.com/mona/LinkedList
   ```
 * Removing the userinfo component (preceded by `@`), if present:
   ```
-  git@example.com/mona/LinkedList → example.com/mona/LinkedList
+  git@github.com/mona/LinkedList → github.com/mona/LinkedList
   ```
 * Removing the port subcomponent, if present:
   ```
-  example.com:443/mona/LinkedList → example.com/mona/LinkedList
+  github.com:443/mona/LinkedList → github.com/mona/LinkedList
   ```
 * Replacing the colon (`:`) preceding the path component in "`scp`-style" URLs:
   ```
-  git@example.com:mona/LinkedList.git → example.com/mona/LinkedList
+  git@github.com:mona/LinkedList.git → github.com/mona/LinkedList
   ```
 * Expanding the tilde (`~`) to the provided user, if applicable:
   ```
-  ssh://mona@example.com/~/LinkedList.git → example.com/~mona/LinkedList
+  ssh://mona@github.com/~/LinkedList.git → github.com/~mona/LinkedList
   ```
 * Removing percent-encoding from the path component, if applicable:
   ```
-  example.com/mona/%F0%9F%94%97List → example.com/mona/🔗List
+  github.com/mona/%F0%9F%94%97List → github.com/mona/🔗List
   ```
 * Removing the `.git` file extension from the path component, if present:
   ```
-  example.com/mona/LinkedList.git → example.com/mona/LinkedList
+  github.com/mona/LinkedList.git → github.com/mona/LinkedList
   ```
 * Removing the trailing slash (`/`) in the path component, if present:
   ```
-  example.com/mona/LinkedList/ → example.com/mona/LinkedList
+  github.com/mona/LinkedList/ → github.com/mona/LinkedList
   ```
 * Removing the fragment component (preceded by `#`), if present:
   ```
-  example.com/mona/LinkedList#installation → example.com/mona/LinkedList
+  github.com/mona/LinkedList#installation → github.com/mona/LinkedList
   ```
 * Removing the query component (preceded by `?`), if present:
   ```
-  example.com/mona/LinkedList?utm_source=forums.swift.org → example.com/mona/LinkedList
+  github.com/mona/LinkedList?utm_source=forums.swift.org → github.com/mona/LinkedList
   ```
 * Adding a leading slash (`/`) for `file://` URLs and absolute file paths:
   ```
@@ -184,13 +184,13 @@ a dependency may be declared in a package manifest:
 For example,
 consider a package that declares two external dependencies.
 The first external dependency itself has a dependency on a package at the URL
-`https:///example.com/mona/LinkedList`.
+`https:///github.com/mona/LinkedList`.
 The second depends on the same package,
 but specifies a slightly different URL in its declaration:
-`git@example.com:mona/linkedlist.git`.
+`git@github.com:mona/linkedlist.git`.
 Under the proposed scheme,
 both transitive dependencies resolve to the same package,
-identified with the URI `example.com/mona/linkedlist`.
+identified with the URI `github.com/mona/linkedlist`.
 
 #### Dependency graph resolution
 
@@ -238,16 +238,16 @@ here are a list of dependencies that do and do not qualify:
 
 ```swift
 // ✅ These dependencies qualify for resolution with package registry
-.package(url: "https://example.com/mona/LinkedList", from: "1.1.0")
-.package(url: "https://example.com/mona/LinkedList", .exact("1.1.0"))
-.package(url: "https://example.com/mona/LinkedList", .upToNextMajor(from: "1.1.0"))
-.package(url: "https://example.com/mona/LinkedList", .upToNextMinor(from: "1.1.0"))
+.package(url: "https://github.com/mona/LinkedList", from: "1.1.0")
+.package(url: "https://github.com/mona/LinkedList", .exact("1.1.0"))
+.package(url: "https://github.com/mona/LinkedList", .upToNextMajor(from: "1.1.0"))
+.package(url: "https://github.com/mona/LinkedList", .upToNextMinor(from: "1.1.0"))
 
 // ❌ These dependencies can only be resolved using Git
-.package(url: "git@example.com:mona/LinkedList.git", from: "1.1.0") // No https scheme
-.package(url: "https://example.com/mona/LinkedList.git", from: "1.1.0") // .git file extension
-.package(url: "https://example.com/mona/LinkedList", .branch("master")) // No version
-.package(url: "https://example.com/mona/LinkedList", .revision("d6ca4e56219a8a5f0237d6dcdd8b975ec7e24c89")) // No version
+.package(url: "git@github.com:mona/LinkedList.git", from: "1.1.0") // No https scheme
+.package(url: "https://github.com/mona/LinkedList.git", from: "1.1.0") // .git file extension
+.package(url: "https://github.com/mona/LinkedList", .branch("master")) // No version
+.package(url: "https://github.com/mona/LinkedList", .revision("d6ca4e56219a8a5f0237d6dcdd8b975ec7e24c89")) // No version
 .package(path: "../LinkedList") // No https scheme or version
 ```
 
@@ -641,10 +641,10 @@ to invent new solutions to problems that are currently solved, including:
   for adjudicating claims and disputes of ownership.
 - **Addressability**:
   You can navigate to the package URL
-  `example.com/mona/LinkedList`
+  `github.com/mona/LinkedList`
   from a browser or other networking clients.
   But that's not true of a reverse-DNS identifier like
-  `com.example.mona.linkedlist`.
+  `com.github.mona.linkedlist`.
 - **Compatibility**:
   If an alternative naming scheme were used for registry packages,
   a developer would need to migrate all direct and transitive dependencies
@@ -776,7 +776,7 @@ to support distributing packages as [XCFramework] bundles.
 
 ```http
 GET /github.com/mona/LinkedList/1.1.1.xcframework HTTP/1.1
-Host: packages.example.com
+Host: packages.github.com
 Accept: application/vnd.swift.registry.v1+xcframework
 ```
 
@@ -791,7 +791,7 @@ let package = Package(
     targets: [
         .binaryTarget(
             name: "LinkedList",
-            url: "https://packages.example.com/github.com/mona/LinkedList/1.1.1.xcframework",
+            url: "https://packages.github.com/github.com/mona/LinkedList/1.1.1.xcframework",
             checksum: "ed04a550c2c7537f2a02ab44dd329f9e74f9f4d3e773eb883132e0aa51438b37"
         ),
     ]
@@ -803,10 +803,10 @@ let package = Package(
 By default,
 the identity of the package is the same as its location.
 Whether a package is declared with a URL of
-`https:///example.com/mona/linkedlist` or
-`git@example.com:mona/linkedlist.git`,
+`https:///github.com/mona/linkedlist` or
+`git@github.com:mona/linkedlist.git`,
 Swift Package Manager will — unless configured otherwise —
-attempt to fetch that dependency by consulting `example.com`,
+attempt to fetch that dependency by consulting `github.com`,
 which may respond with a Git repository or a source archive
 (or perhaps `404 Not Found`).
 
@@ -815,8 +815,8 @@ by setting a [dependency mirror][SE-0219] for that package's URL.
 
 ```terminal
 $ swift package config set-mirror \
-    --original-url https:///example.com/mona/linkedlist \
-    --mirror-url https:///example.net/octocorp/swiftlinkedlist
+    --original-url https:///github.com/mona/linkedlist \
+    --mirror-url https:///github.com/octocorp/swiftlinkedlist
 ```
 
 Dependency mirroring allows for package dependencies to be rerouted
@@ -838,9 +838,9 @@ $ swift package config set-registry-proxy https://internal.example.com/
 
 When one or more proxy URLs are configured in this way,
 resolving a package dependency with the URL
-`https:///example.com/mona/linkedlist`
+`https:///github.com/mona/linkedlist`
 results in a `GET` request to
-`https://internal.example.com/example.com/mona/linkedlist`.
+`https://internal.example.com/github.com/mona/linkedlist`.
 
 A registry proxy decouples package identity from package location entirely,
 which could unlock a variety of compelling use cases:
