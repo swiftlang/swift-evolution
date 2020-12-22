@@ -298,6 +298,10 @@ the user can pass the `--disable-repository-fallback` command-line flag.
 $ swift build --enable-package-registries --disable-repository-fallback
 ```
 
+> **Note**:
+> A dependency may be available only through the package registry interface,
+> without a corresponding source repository.
+
 These options may be changed or removed in a future release.
 
 ### Changes to `Package.resolved`
