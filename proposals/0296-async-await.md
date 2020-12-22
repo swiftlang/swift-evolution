@@ -267,10 +267,10 @@ func decodeImage(_ r1: Resource, _ r2: Resource) async throws -> Image
 func dewarpAndCleanupImage(_ i : Image) async throws -> Image
 
 func processImageData() async throws -> Image {
-  let dataResource  = await try loadWebResource("dataprofile.txt")
-  let imageResource = await try loadWebResource("imagedata.dat")
-  let imageTmp      = await try decodeImage(dataResource, imageResource)
-  let imageResult   = await try dewarpAndCleanupImage(imageTmp)
+  let dataResource  = try await loadWebResource("dataprofile.txt")
+  let imageResource = try await loadWebResource("imagedata.dat")
+  let imageTmp      = try await decodeImage(dataResource, imageResource)
+  let imageResult   = try await dewarpAndCleanupImage(imageTmp)
   return imageResult
 }
 ```
@@ -376,13 +376,13 @@ Consider the following example:
 // func dataTask(with: URL) async throws -> (Data, URLResponse) { ... }
 
 let newURL = await server.redirectURL(for: url)
-let (data, response) = await try session.dataTask(with: newURL)
+let (data, response) = try await session.dataTask(with: newURL)
 ```
 
 In this code example, a task suspension may happen during the calls to `redirectURL(for:)` and `dataTask(with:)` because they are async functions. Thus, both call expressions must be contained within some `await` expression, because each call contains a potential suspension point. An `await` operand may contain more than one potential suspension point. For example, we can use one `await` to cover both potential suspension points from our example by rewriting it as:
 
 ```swift
-let (data, response) = await try session.dataTask(with: server.redirectURL(for: url))
+let (data, response) = try await session.dataTask(with: server.redirectURL(for: url))
 ```
 
 The `await` has no additional semantics; like `try`, it merely marks that an asynchronous call is being made.  The type of the `await` expression is the type of its operand, and its result is the result of its operand.
@@ -398,11 +398,11 @@ A potential suspension point must not occur within an autoclosure that is not of
 
 A potential suspension point must not occur within a `defer` block.
 
-If `await` is directly followed with one of the variants of `try` (including `try!` and `try?`), `await` must precede the `try`/`try!`/`try?`:
+If both `await` and a variant of `try` (including `try!` and `try?`) are applied to the same subexpression, `await` must follow the `try`/`try!`/`try?`:
 
 ```swift
-let (data, response) = try await session.dataTask(with: server.redirectURL(for: url)) // error: must be `await try`
-let (data, response) = try (await session.dataTask(with: server.redirectURL(for: url))) // okay due to parentheses
+let (data, response) = await try session.dataTask(with: server.redirectURL(for: url)) // error: must be `try await`
+let (data, response) = await (try session.dataTask(with: server.redirectURL(for: url))) // okay due to parentheses
 ```
 
 > **Rationale**: this restriction is arbitrary, but follows the equally-arbitrary restriction on the ordering of `async throws` in preventing stylistic debates.
@@ -610,7 +610,7 @@ extension Sequence {
     var result = [Transformed]()
     var iterator = self.makeIterator()
     while let element = iterator.next() {
-      result.append(await try transform(element))   // note: this is the only `try` and only `await`!
+      result.append(try await transform(element))   // note: this is the only `try` and only `await`!
     }
     return result
   }
@@ -636,7 +636,7 @@ func ??<T>(
     return value
   }
 
-  return await try defaultValue()
+  return try await defaultValue()
 }
 ```
 
@@ -646,11 +646,11 @@ For such cases, the ABI concern described above can likely be addressed by emitt
 
 ### Make `await` imply `try`
 
-Many asynchronous APIs involve file I/O, networking, or other failable operations, and therefore will be both `async` and `throws`. At the call site, this means `await try` will be repeated many times. To reduce the boilerplate, `await` could imply `try`, so the following two lines would be equivalent:
+Many asynchronous APIs involve file I/O, networking, or other failable operations, and therefore will be both `async` and `throws`. At the call site, this means `try await` will be repeated many times. To reduce the boilerplate, `await` could imply `try`, so the following two lines would be equivalent:
 
 ```swift
 let dataResource  = await loadWebResource("dataprofile.txt")
-let dataResource  = await try loadWebResource("dataprofile.txt")
+let dataResource  = try await loadWebResource("dataprofile.txt")
 ```
 
 We chose not to make `await` imply `try` because they are expressing different kinds of concerns: `await` is about a potential suspension point, where other code might execute in between when you make the call and it when it returns, while `try` is about control flow out of the block.
@@ -684,10 +684,12 @@ None of the concerns for top-level code affect the fundamental mechanisms of asy
 
 ## Revision history
 
+* Post-review changes:
+   * Replaced `try await` with `try await`.
 * Changes in the second pitch:
 	* One can no longer directly overload `async` and non-`async` functions. Overload resolution support remains, however, with additional justification.
 	* Added an implicit conversion from a synchronous function to an asynchronous function.
-	* Added `await try` ordering restriction to match the `async throws` restriction.
+	* Added `try await` ordering restriction to match the `async throws` restriction.
 	* Added support for `async` initializers.
 	* Added support for synchronous functions satisfying an `async` protocol requirement.
 	* Added discussion of `reasync`.
