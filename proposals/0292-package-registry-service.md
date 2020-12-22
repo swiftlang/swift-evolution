@@ -121,7 +121,7 @@ This proposal adds a new `RegistryPackageContainer` type
 that adopts `PackageContainer`
 and performs equivalent operations with HTTP requests to a registry service.
 
-This proposal also adds a new `CompoundRepositoryProvider` type
+This proposal also adds a new `CompositeRepositoryProvider` type
 that conforms to `RepositoryPackageContainerProvider`
 and attempts to use the package registry interface when available
 for qualifying remote packages.
