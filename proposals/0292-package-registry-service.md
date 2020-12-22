@@ -756,6 +756,63 @@ let package = Package(
 )
 ```
 
+### Intermediate registry proxies
+
+By default,
+the identity of the package is the same as its location.
+Whether a package is declared with a URL of
+`https:///example.com/mona/linkedlist` or
+`git@example.com:mona/linkedlist.git`,
+Swift Package Manager will — unless configured otherwise —
+attempt to fetch that dependency by consulting `example.com`,
+which may respond with a Git repository or a source archive
+(or perhaps `404 Not Found`).
+
+A user can currently specify an alternate location for a package
+by setting a [dependency mirror][SE-0219] for that package's URL.
+
+```terminal
+$ swift package config set-mirror \
+    --original-url https:///example.com/mona/linkedlist \
+    --mirror-url https:///example.net/octocorp/swiftlinkedlist
+```
+
+Dependency mirroring allows for package dependencies to be rerouted
+on an individual basis.
+However, this approach doesn't scale well for large numbers of dependencies.
+
+Swift Package Manager could implement a complementary feature
+that allows users to specify one or more registry proxy URLs
+that would be consulted (in order)
+when resolving dependencies through the package registry interface.
+
+For example,
+a build server that doesn't allow external network connections
+may specify an internal registry URL to manage all package dependency requests.
+
+```terminal
+$ swift package config set-registry-proxy https://internal.example.com/
+```
+
+When one or more proxy URLs are configured in this way,
+resolving a package dependency with the URL
+`https:///example.com/mona/linkedlist`
+results in a `GET` request to
+`https://internal.example.com/example.com/mona/linkedlist`.
+
+A registry proxy decouples package identity from package location entirely,
+which could unlock a variety of compelling use cases:
+
+- **Geographic colocation**:
+  Developers working under adverse networking conditions can
+  host a mirror of official package sources on a nearby network.
+- **Policy enforcement**:
+  A corporate network can enforce quality or licensing standards,
+  so that only approved packages are available.
+- **Auditing**:
+  A registry may analyze or meter access to packages
+  for the purposes of ranking popularity or charging licensing fees.
+
 ### Offline cache
 
 Swift Package Manager could implement an [offline cache]
@@ -881,3 +938,4 @@ but is included here as a complement to the search subcommand described above.
 [version-specific-tag-selection]: https://github.com/apple/swift-package-manager/blob/master/Documentation/Usage.md#version-specific-tag-selection "Swift Package Manager - Version-specific Tag Selection"
 [version-specific-manifest-selection]: https://github.com/apple/swift-package-manager/blob/master/Documentation/Usage.md#version-specific-manifest-selection "Swift Package Manager - Version-specific Manifest Selection"
 [STRIDE]: https://en.wikipedia.org/wiki/STRIDE_(security) "STRIDE (security)"
+[SE-0219]: https://github.com/apple/swift-evolution/blob/master/proposals/0219-package-manager-dependency-mirroring.md "Package Manager Dependency Mirroring"
