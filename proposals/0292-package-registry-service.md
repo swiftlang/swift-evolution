@@ -198,12 +198,12 @@ rather than a departure from existing behavior.
 URLs also confer a host of additional benefits, including:
 
 - **Global addressability**:
-  You can navigate to package URLs from a browser or other networking clients
+  You can navigate to package URLs from a browser or other networking clients.
 - **Security**:
-  Requests are authenticated through existing TLS certificate infrastructure
+  Requests are authenticated through existing TLS certificate infrastructure.
 - **Naming authority**:
   Control of package namespaces are a function of DNS resolution,
-  which are adjudicated by [ICANN] and domain registrars
+  which are adjudicated by [ICANN] and domain registrars.
 
 #### Dependency graph resolution
 
