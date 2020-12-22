@@ -685,7 +685,7 @@ None of the concerns for top-level code affect the fundamental mechanisms of asy
 ## Revision history
 
 * Post-review changes:
-   * Replaced `try await` with `try await`.
+   * Replaced `await try` with `try await`.
 * Changes in the second pitch:
 	* One can no longer directly overload `async` and non-`async` functions. Overload resolution support remains, however, with additional justification.
 	* Added an implicit conversion from a synchronous function to an asynchronous function.
