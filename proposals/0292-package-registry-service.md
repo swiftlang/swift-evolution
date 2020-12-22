@@ -107,6 +107,104 @@ in building their own package registry.
 
 ### Changes to Swift Package Manager
 
+#### Package identity
+
+Currently, the identity of a package is computed from
+the last path component of its effective URL
+(which can be changed with dependency mirroring and forking).
+However, this approach can lead to conflation of
+distinct packages with similar names
+as well as duplication of the same package under different names.
+
+We propose to instead use a normalized form of
+a package dependency's declared location
+as that package's canonical identity.
+Not only would this resolve the aforementioned naming ambiguities,
+but it would allow for package registries to be adopted by package consumers
+with minimal changes to their code.
+
+For the purposes of package resolution,
+package identities are
+case-insensitive
+(for example, `mona` ≍ `MONA`)
+and normalization-insensitive
+(for example, `n` + `◌̃` ≍ `ñ`).
+In addition,
+the following operations are performed
+to mitigate insignificant variations in how
+a dependency may be declared in a package manifest:
+
+* Removing the scheme component, if present:
+  ```
+  https:///example.com/mona/LinkedList → example.com/mona/LinkedList
+  ```
+* Removing the userinfo component (preceded by `@`), if present:
+  ```
+  git@example.com/mona/LinkedList → example.com/mona/LinkedList
+  ```
+* Removing the port subcomponent, if present:
+  ```
+  example.com:443/mona/LinkedList → example.com/mona/LinkedList
+  ```
+* Replacing the colon (`:`) preceding the path component in "`scp`-style" URLs:
+  ```
+  git@example.com:mona/LinkedList.git → example.com/mona/LinkedList
+  ```
+* Expanding the tilde (`~`) to the provided user, if applicable:
+  ```
+  ssh://mona@example.com/~/LinkedList.git → example.com/~mona/LinkedList
+  ```
+* Removing percent-encoding from the path component, if applicable:
+  ```
+  example.com/mona/%F0%9F%94%97List → example.com/mona/🔗List
+  ```
+* Removing the `.git` file extension from the path component, if present:
+  ```
+  example.com/mona/LinkedList.git → example.com/mona/LinkedList
+  ```
+* Removing the trailing slash (`/`) in the path component, if present:
+  ```
+  example.com/mona/LinkedList/ → example.com/mona/LinkedList
+  ```
+* Removing the fragment component (preceded by `#`), if present:
+  ```
+  example.com/mona/LinkedList#installation → example.com/mona/LinkedList
+  ```
+* Removing the query component (preceded by `?`), if present:
+  ```
+  example.com/mona/LinkedList?utm_source=forums.swift.org → example.com/mona/LinkedList
+  ```
+* Adding a leading slash (`/`) for `file://` URLs and absolute file paths:
+  ```
+  file:///Users/mona/LinkedList → /Users/mona/LinkedList
+  ```
+
+For example,
+consider a package that declares two external dependencies.
+The first external dependency itself has a dependency on a package at the URL
+`https:///example.com/mona/LinkedList`.
+The second depends on the same package,
+but specifies a slightly different URL in its declaration:
+`git@example.com:mona/linkedlist.git`.
+Under the proposed regiment,
+both transitive dependencies would resolve to the same package,
+identified with the URI `example.com/mona/linkedlist`.
+
+We believe that using URLs as package identifiers will be
+intuitive and familiar for developers.
+`Package.swift` manifests have always declared external dependencies using URLs,
+so this step represents a formalization of this tradition
+rather than a departure from existing behavior.
+URLs also confer a host of additional benefits, including:
+
+- **Global addressability**:
+  You can navigate to package URLs from a browser or other networking clients
+- **Security**:
+  Requests are authenticated through existing TLS certificate infrastructure
+- **Naming authority**:
+  Control of package namespaces are a function of DNS resolution,
+  which are adjudicated by [ICANN] and domain registrars
+
 #### Dependency graph resolution
 
 In its `PackageGraph` module, Swift Package Manager defines
@@ -153,16 +251,16 @@ here are a list of dependencies that do and do not qualify:
 
 ```swift
 // ✅ These dependencies qualify for resolution with package registry
-.package(url: "https://github.com/mona/LinkedList", from: "1.1.0")
-.package(url: "https://github.com/mona/LinkedList", .exact("1.1.0"))
-.package(url: "https://github.com/mona/LinkedList", .upToNextMajor(from: "1.1.0"))
-.package(url: "https://github.com/mona/LinkedList", .upToNextMinor(from: "1.1.0"))
+.package(url: "https://example.com/mona/LinkedList", from: "1.1.0")
+.package(url: "https://example.com/mona/LinkedList", .exact("1.1.0"))
+.package(url: "https://example.com/mona/LinkedList", .upToNextMajor(from: "1.1.0"))
+.package(url: "https://example.com/mona/LinkedList", .upToNextMinor(from: "1.1.0"))
 
 // ❌ These dependencies can only be resolved using Git
-.package(url: "git@github.com:mona/LinkedList.git", from: "1.1.0") // No https scheme
-.package(url: "https://github.com/mona/LinkedList.git", from: "1.1.0") // .git file extension
-.package(url: "https://github.com/mona/LinkedList", .branch("master")) // No version
-.package(url: "https://github.com/mona/LinkedList", .revision("d6ca4e56219a8a5f0237d6dcdd8b975ec7e24c89")) // No version
+.package(url: "git@example.com:mona/LinkedList.git", from: "1.1.0") // No https scheme
+.package(url: "https://example.com/mona/LinkedList.git", from: "1.1.0") // .git file extension
+.package(url: "https://example.com/mona/LinkedList", .branch("master")) // No version
+.package(url: "https://example.com/mona/LinkedList", .revision("d6ca4e56219a8a5f0237d6dcdd8b975ec7e24c89")) // No version
 .package(path: "../LinkedList") // No https scheme or version
 ```
 
@@ -773,6 +871,7 @@ but is included here as a complement to the search subcommand described above.
 [Docker Hub]: https://hub.docker.com
 [JFrog Artifactory]: https://jfrog.com/artifactory/
 [AWS CodeArtifact]: https://aws.amazon.com/codeartifact/
+[ICANN]: https://www.icann.org
 [thundering herd effect]: https://en.wikipedia.org/wiki/Thundering_herd_problem "Thundering herd problem"
 [offline cache]: https://yarnpkg.com/features/offline-cache "Offline Cache | Yarn - Package Manager"
 [XCFramework]: https://developer.apple.com/videos/play/wwdc2019/416/ "WWDC 2019 Session 416: Binary Frameworks in Swift"
