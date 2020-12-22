@@ -251,19 +251,19 @@ Once the correct checksum is determined,
 the user can update `Package.resolved` with the correct value
 and try again.
 
-### Archive subcommand
+### Archive-source subcommand
 
 An anecdotal look at other package managers suggests that
 a checksum mismatch is more likely to be a
 disagreement in how to create the archive and/or calculate the checksum
 than, say, a forged or corrupted package.
 
-This proposal adds a new `swift package archive` subcommand
+This proposal adds a new `swift package archive-source` subcommand
 to provide a standard way to create source archives for package releases.
 
 ```manpage
 SYNOPSIS
-	swift package archive [--output=<file>]
+	swift package archive-source [--output=<file>]
 
 OPTIONS
 	-o <file>, --output=<file>
@@ -271,7 +271,8 @@ OPTIONS
 		If unspecified, the package is written to `\(PackageName).zip`.
 ```
 
-Run the `swift package archive` subcommand in the root directory of a package
+Run the `swift package archive-source` subcommand
+in the root directory of a package
 to generate a source archive for the current working tree.
 For example:
 
@@ -291,7 +292,7 @@ import PackageDescription
 let package = Package(
 name: "LinkedList",
 
-$ swift package archive
+$ swift package archive-source
 Created LinkedList.zip
 ```
 
@@ -303,12 +304,12 @@ This can be configured with the `--output` option:
 
 ```terminal
 $ git checkout 1.2.0
-$ swift package archive --output="LinkedList-1.2.0.zip"
+$ swift package archive-source --output="LinkedList-1.2.0.zip"
 # Created LinkedList-1.2.0.zip
 ```
 
-The `archive` subcommand has the equivalent behavior of [`git-archive(1)`]
-using the `zip` format at its default compression level.
+The `archive-source` subcommand has the equivalent behavior of
+[`git-archive(1)`] using the `zip` format at its default compression level.
 Therefore, the following command produces
 equivalent output to the previous example:
 
@@ -531,9 +532,9 @@ and instead raised concerns about portability and security.
 > without storing anything separately from the archive used for the
 > package archive endpoint (`GET /{package}/{version}.zip`).
 
-### Addition of an `unarchive` subcommand
+### Addition of an `unarchive-source` subcommand
 
-This proposal adds an `archive` subcommand
+This proposal adds an `archive-source` subcommand
 as a standard way for developers and registries
 to create source archives for packages.
 Having a canonical tool for creating source archives
@@ -541,7 +542,7 @@ avoids any confusion when attempting to verify the integrity of
 Zip files sent from a registry
 with the source code for that package.
 
-We considered including a complementary `unarchive` subcommand
+We considered including a complementary `unarchive-source` subcommand
 but ultimately decided against it,
 reason being that unarchiving a Zip archive
 is unambiguous and well-supported on most platforms.
@@ -589,7 +590,7 @@ and packaging it up for distribution.
 
 We considered but rejected the idea of a `publish` subcommand
 for a few different reasons.
-For one, we worried that the existence of `swift package archive`
+For one, we worried that the existence of `swift package archive-source`
 would cause confusion to anyone more familiar with
 another "push"-style package ecosystem.
 The specification's open-ended policy for a registry's authentication model
