@@ -139,19 +139,7 @@ and their corresponding package registry API calls.
 | List the available tags for a package | `git tag`                   | `GET /{package}`                         |
 | Fetch a package manifest              | `git clone`                 | `GET /{package}/{version}/Package.swift` |
 
-Initially,
-Swift Package Manager will use a package registry to resolve dependencies
-only when the user passes the `--enable-package-registries` command-line flag.
-This option may be changed or removed in a future release.
 
-```terminal
-$ swift build --enable-package-registries
-```
-
-When package registries are enabled,
-Swift Package Manager will first attempt to use package registry API calls
-to resolve qualifying dependencies,
-falling back to Git operations if those API calls fail.
 A dependency qualifies for resolution through a package registry
 if it satisfies all of the following criteria:
 
@@ -189,6 +177,29 @@ to accommodate different versions of Swift
 (for example,
 by using major release versions
 or build metadata like `1.0.0+swift-5_3`).
+
+#### Command-line interface
+
+Initially,
+Swift Package Manager will use a package registry to resolve dependencies
+only when the user passes the `--enable-package-registries` command-line flag.
+
+```terminal
+$ swift build --enable-package-registries
+```
+
+When package registries are enabled,
+Swift Package Manager will first attempt to use package registry API calls
+to resolve qualifying dependencies,
+falling back to Git operations if those API calls fail.
+To disable this fallback behavior,
+the user can pass the `--disable-repository-fallback` command-line flag.
+
+```terminal
+$ swift build --enable-package-registries --disable-repository-fallback
+```
+
+These options may be changed or removed in a future release.
 
 ### Changes to `Package.resolved`
 
