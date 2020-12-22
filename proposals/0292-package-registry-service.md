@@ -107,6 +107,8 @@ in building their own package registry.
 
 ### Changes to Swift Package Manager
 
+#### Dependency graph resolution
+
 In its `PackageGraph` module, Swift Package Manager defines
 the `PackageContainer` protocol as the top-level unit of package resolution.
 Conforming types are responsible for
@@ -138,7 +140,6 @@ and their corresponding package registry API calls.
 | Fetch the contents of a package       | `git clone && git checkout` | `GET /{package}/{version}.zip`           |
 | List the available tags for a package | `git tag`                   | `GET /{package}`                         |
 | Fetch a package manifest              | `git clone`                 | `GET /{package}/{version}/Package.swift` |
-
 
 A dependency qualifies for resolution through a package registry
 if it satisfies all of the following criteria:
