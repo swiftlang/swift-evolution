@@ -120,6 +120,8 @@ There are currently two concrete implementations of `PackageContainer`:
 This proposal adds a new `RegistryPackageContainer` type
 that adopts `PackageContainer`
 and performs equivalent operations with HTTP requests to a registry service.
+These client-server interactions are facilitated by
+a new `RegistryManager` type.
 
 This proposal also adds a new `CompositeRepositoryProvider` type
 that conforms to `RepositoryPackageContainerProvider`
