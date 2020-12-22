@@ -190,21 +190,6 @@ Under the proposed regiment,
 both transitive dependencies would resolve to the same package,
 identified with the URI `example.com/mona/linkedlist`.
 
-We believe that using URLs as package identifiers will be
-intuitive and familiar for developers.
-`Package.swift` manifests have always declared external dependencies using URLs,
-so this step represents a formalization of this tradition
-rather than a departure from existing behavior.
-URLs also confer a host of additional benefits, including:
-
-- **Global addressability**:
-  You can navigate to package URLs from a browser or other networking clients.
-- **Security**:
-  Requests are authenticated through existing TLS certificate infrastructure.
-- **Naming authority**:
-  Control of package namespaces are a function of DNS resolution,
-  which are adjudicated by [ICANN] and domain registrars.
-
 #### Dependency graph resolution
 
 In its `PackageGraph` module, Swift Package Manager defines
@@ -617,6 +602,44 @@ to opt-in to package registry APIs when available.
 
 ## Alternatives considered
 
+### Use of alternative naming schemes
+
+Some systems use [reverse domain name notation] to identify software components
+(for example, `org.swift.swift-package-manager`),
+including [Uniform Type Identifiers][UTI] on Apple platforms,
+apps on the Android operating system,
+and dependencies in [Maven].
+
+We considered these and other schemes for identifying packages,
+but ultimately rejected them in favor of URLs.
+
+`Package.swift` manifests have always declared external dependencies using URLs,
+so this step represents a formalization of long-standing tradition
+rather than a departure from existing behavior.
+Adopting an alternative scheme for package identity would require us
+to invent new solutions to problems that are currently solved, including:
+
+- **Naming authority**:
+  Control of package namespaces are a function of DNS resolution,
+  which is controlled by [ICANN] and domain registrars.
+  Migrating away from DNS would entail creating a new, separate body
+  for adjudicating claims and disputes of ownership.
+- **Addressability**:
+  You can navigate to the package URL
+  `example.com/mona/LinkedList`
+  from a browser or other networking clients.
+  But that's not true of a reverse-DNS identifier like
+  `com.example.mona.linkedlist`.
+- **Compatibility**:
+  If an alternative naming scheme were used for registry packages,
+  a developer would need to migrate all direct and transitive dependencies
+  to these new identifiers to benefit from the benefits of package registries.
+  Identifying packages by URL allow registries to be adopted incrementally.
+
+We believe that using URLs as package identifiers is
+intuitive and familiar for developers,
+and will best solve the immediate and future needs of this project.
+
 ### Use of `tar` or other archive formats
 
 Swift Package Manager currently uses Zip archives for binary dependencies,
@@ -929,6 +952,9 @@ but is included here as a complement to the search subcommand described above.
 [npm]: https://www.npmjs.com "The npm Registry"
 [crates.io]: https://crates.io "crates.io: The Rust community’s crate registry"
 [CocoaPods]: https://cocoapods.org "A dependency manager for Swift and Objective-C Cocoa projects"
+[reverse domain name notation]: https://en.wikipedia.org/wiki/Reverse_domain_name_notation
+[UTI]: https://en.wikipedia.org/wiki/Uniform_Type_Identifier
+[Maven]: https://maven.apache.org
 [Docker Hub]: https://hub.docker.com
 [JFrog Artifactory]: https://jfrog.com/artifactory/
 [AWS CodeArtifact]: https://aws.amazon.com/codeartifact/
