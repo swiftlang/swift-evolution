@@ -3,7 +3,8 @@
 * Proposal: [SE-0297](0297-concurrency-objc.md)
 * Author: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Active Review (December 10...December 22)**
+* Status: **Accepted With Modifications** 
+* [Acceptance Post](https://forums.swift.org/t/accepted-with-modifications-se-0297-concurrency-interoperability-with-objective-c/43306)
 * Implementation: Partially available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
 
 ## Table of Contents
