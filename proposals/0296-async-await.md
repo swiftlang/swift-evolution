@@ -30,6 +30,7 @@ Table of Contents
       * [Alternatives Considered](#alternatives-considered)
          * [Make await imply try](#make-await-imply-try)
          * [Launching async tasks](#launching-async-tasks)
+         * [Await as syntactic sugar](#await-as-syntactic-sugar]
       * [Revision history](#revision-history)
       * [Related proposals](#related-proposals)
       * [Acknowledgments](#acknowledgments)
@@ -681,6 +682,27 @@ This, too, will be addressed in a subsequent proposal that properly accounts for
 top-level variables.
 
 None of the concerns for top-level code affect the fundamental mechanisms of async/await as defined in this proposal.
+
+### Await as syntactic sugar
+
+This proposal makes `async` functions a core part of the Swift type system, distinct from synchronos functions. An alternative design would leave the type system unchanged, and instead make `async` and `await` syntactic sugar over some `Future<T, Error>` type, e.g.,
+
+```swift
+async func processImageData() throws -> Future<Image, Error> {
+  let dataResource  = try loadWebResource("dataprofile.txt").await()
+  let imageResource = try loadWebResource("imagedata.dat").await()
+  let imageTmp      = try decodeImage(dataResource, imageResource).await()
+  let imageResult   = try dewarpAndCleanupImage(imageTmp).await()
+  return imageResult
+}
+```
+
+This approach has a number of downsides vs. the proposed approach here:
+
+* There is no universal `Future` type on which to build it in the Swift ecosystem. If the Swift ecosystem had mostly settled on a single future type already (e.g., if there wa already one in the standard library), a syntactic-sugar approach like the above would codify existing practice. Lacking such a type, one would have to try to abstract over all of the different kinds of future types with some kind of `Futurable` protocol. This may be possible for some set of future types, but would give up any guarantees about the behavior or performance of asynchronous code.
+* It is inconsistent with the design of `throws`. The result type of asynchronous functions in this model is the future type (or "any `Futurable` type"), rather than the actual returned value. They must always be `await`'ed immediately (hence the postfix syntax) or you'll end up working with futures when you actually care about the result of the asynchronous operation. This becomes a programming-with-futures model rather than an asynchronous-programming model, when many other aspects of the `async` design intentionally push away from thinking about the futures.
+* Taking `async` out of the type system would eliminate the ability to do overloading based on `async`. See the prior section on the reasons for overloading on `async`.
+* Futures are relatively heavyweight types, and forming one for every async operation has nontrivial costs in both code size and performance. In contrast, deep integration with the type system allows `async` functions to be purpose-built and optimized for efficient suspension. All levels of the Swift compiler and runtime can optimize `async` functions in a manner that would not be possible with future-returning functions.
 
 ## Revision history
 
