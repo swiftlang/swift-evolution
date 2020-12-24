@@ -54,7 +54,7 @@ func fetchShareParticipant(
 Swift callers can invoke `fetchShareParticipant(withUserRecordID:)` within an `await` expression:
 
 ```swift
-guard let participant = await try? container.fetchShareParticipant(withUserRecordID: user) else {
+guard let participant = try? await container.fetchShareParticipant(withUserRecordID: user) else {
     return nil
 }
 ```
@@ -146,7 +146,7 @@ This will be translated into the following `async` function:
 When the compiler sees a call to such a method, it effectively uses `withUnsafeContinuation` to form a continuation for the rest of the function, then wraps the given continuation in a closure. For example:
 
 ```swift
-let (signedValue, signature) = await try passLibrary.sign(signData, using: pass)
+let (signedValue, signature) = try await passLibrary.sign(signData, using: pass)
 ```
 
 becomes pseudo-code similar to
@@ -170,6 +170,18 @@ Additional rules are applied when translating an Objective-C method name into a 
 
 * If the base name of the method starts with `get`, the `get` is removed and the leading initialisms are lowercased.
 * If the base name of the method ends with `Asynchronously`, that word is removed.
+
+If the completion-handler parameter of the Objective-C method is nullable and the translated `async` method returns non-`Void`, it will be marked with the `@discardableResult` attribute. For example:
+
+```objc
+-(void)stopRecordingWithCompletionHandler:void(^ _Nullable)(RPPreviewViewController * _Nullable, NSError * _Nullable)handler;
+```
+
+will become:
+
+```swift
+@discardableResult func stopRecording() async throws -> RPPreviewViewController
+```
 
 ### Defining asynchronous `@objc` methods in Swift
 
@@ -211,7 +223,7 @@ Again, the synthesized Objective-C method implementation will create a detached 
 ) {
     runDetached {
         do {
-            let value = await try performDangerousTrick(operation: operation)
+            let value = try await performDangerousTrick(operation: operation)
             completionHandler?(value, nil)
         } catch {
             completionHandler?(nil, error)
@@ -318,6 +330,9 @@ Importing the same Objective-C API in two different ways causes some issues:
 
 ## Revision history
 
+* Post-review:
+   * `await try` becomes `try await` based on result of SE-0296 review
+   * Added inference of `@discardableResult` for `async` methods translated from completion-handler methods with an optional completion handler.
 * Changes in the second pitch:
 	* Removed mention of asynchronous handlers, which will be in a separate proposal.
 	* Introduced the `swift_async_error` Clang attribute to separate out "throwing" behavior from the `swift_async` attribute.
