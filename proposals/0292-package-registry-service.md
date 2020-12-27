@@ -710,6 +710,101 @@ of authenticity and non-repudiation beyond what's possible with checksums alone.
 Defining a standard interface for package registries
 lays the groundwork for several useful features.
 
+### Module name collision resolution
+
+Swift Package Manager cannot build a project
+if any of the following are true:
+
+1. Two or more packages in the project
+   are located by URLs with the same (case-insensitive) last path component
+   (for example, `github.com/mona/LinkedList` and `github.com/OctoCorp/linkedlist`)
+2. Two or more packages in the project
+   declare the same name in their package manifest
+   (for example, `let package = Package(name: "LinkedList"`))
+3. Two or more modules provided by packages in the project
+   have the same name
+   (`let package = Package(products: [.library(name: "LinkedList")])`)
+
+This proposal directly addresses point #1
+and lays the foundation for resolving #2 and #3.
+
+Consider the following package manifest,
+which Swift Package Manager currently fails to resolve
+for all three of the reasons listed above
+(assume both external dependencies are named "LinkedList"
+and contain a library product named "LinkedList").
+
+```swift
+// swift-tools-version:5.3
+import PackageDescription
+
+let package = Package(name: "Greeter",
+                      dependencies: [
+                        .package(name: "LinkedList",
+                                 url: "https://github.com/mona/LinkedList",
+                                 from: "1.1.0"),
+                        .package(name: "LinkedList",
+                                 url: "https://github.com/OctoCorp/linkedlist",
+                                 from: "0.1.0")
+                      ],
+                      targets: [
+                        .target(
+                            name: "Greeter",
+                            dependencies: [
+                                .product(name: "LinkedList",
+                                         package: "LinkedList"), // github.com/mona/LinkedList
+                                .product(name: "LinkedList",
+                                         package: "LinkedList") // github.com/OctoCorp/linkedlist
+                            ])
+                      ])
+```
+
+By adopting URLs as unique package identifiers,
+the existing `name` parameter in dependency `.package` declarations
+becomes redundant,
+and could instead be used to label nodes in the dependency graph.
+
+```diff
+-                        .package(name: "LinkedList",
++                        .package(name: "LinkedList-Mona",
+                                  url: "https://github.com/mona/LinkedList",
+                                  from: "1.1.0"),
+-                        .package(name: "LinkedList",
++                        .package(name: "LinkedList-OctoCorp",
+                                  url: "https://github.com/OctoCorp/linkedlist",
+                                  from: "0.1.0")
+```
+
+These package names
+(or, alternatively, the package URI)
+could then be used in `.product` declarations
+to reference a particular package's module.
+
+To resolve name collisions in package modules,
+a dictionary literal might be used to assign aliases
+for that module within the declared target.
+
+```diff
+                             dependencies: [
+-                                .product(name: "LinkedList",
+-                                         package: "LinkedList"),
+-                                .product(name: "LinkedList",
+-                                         package: "LinkedList")
++                                "MonaLinkedList": .product(name: "LinkedList",
++                                                           package: "LinkedList-Mona"),
++                                "OctoCorpLinkedList": .product(name: "LinkedList",
++                                                               package: "LinkedList-OctoCorp")
+```
+
+Following from this example,
+source files in the `Greeter` target would be able to import both modules
+according to their assigned aliases.
+
+```swift
+import MonaLinkedList
+import OctoCorpLinkedList
+```
+
 ### Intermediate registry proxies
 
 By default,
