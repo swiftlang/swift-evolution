@@ -764,7 +764,7 @@ the existing `name` parameter in dependency `.package` declarations
 becomes redundant,
 and could instead be used to label nodes in the dependency graph.
 
-```diff
+```diff 
 -                        .package(name: "LinkedList",
 +                        .package(name: "LinkedList-Mona",
                                   url: "https://github.com/mona/LinkedList",
@@ -804,6 +804,39 @@ according to their assigned aliases.
 import MonaLinkedList
 import OctoCorpLinkedList
 ```
+
+### Importing external modules without a package manifest
+
+Developers enjoy using Swift as a scripting language,
+but wish there were an easier way to import external dependencies
+in a standalone file,
+without the overhead of the package manifest and directory structure.
+Various solutions have been explored through community projects like
+[swift-sh], [Beak], and [Marathon],
+and discussions on the Swift forums.
+
+For example,
+running the command `swift path/to/file.swift` with the following file
+would automatically resolve and download the `LinkedList` dependency
+before building and running the script executable.
+
+```swift
+// Proposed syntax by Rahul Malik, Ankit Aggarwal, and David Hart
+// See: https://forums.swift.org/t/swiftpm-support-for-swift-scripts/33126
+@package(url: "https://github.com/mona/LinkedList", from: "1.1.0")
+import LinkedList
+
+// Variation with hypothetical module aliasing
+@package(url: "https://github.com/OctoCorp/linkedlist", from: "0.1.0")
+import LinkedList as OctoCorpLinkedList
+
+print("Hello, world!")
+```
+
+While the functionality described by this proposal
+isn't required for such a feature,
+a registry provides the same benefits of speed, efficiency, and security
+as it would in the context of a package.
 
 ### Intermediate registry proxies
 
@@ -1079,3 +1112,6 @@ but is included here as a complement to the search subcommand described above.
 [version-specific-manifest-selection]: https://github.com/apple/swift-package-manager/blob/master/Documentation/Usage.md#version-specific-manifest-selection "Swift Package Manager - Version-specific Manifest Selection"
 [STRIDE]: https://en.wikipedia.org/wiki/STRIDE_(security) "STRIDE (security)"
 [SE-0219]: https://github.com/apple/swift-evolution/blob/master/proposals/0219-package-manager-dependency-mirroring.md "Package Manager Dependency Mirroring"
+[swift-sh]: https://github.com/mxcl/swift-sh
+[Beak]: https://github.com/yonaskolb/Beak
+[Marathon]: https://github.com/JohnSundell/Marathon
