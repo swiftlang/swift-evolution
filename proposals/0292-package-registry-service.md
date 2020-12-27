@@ -710,6 +710,71 @@ of authenticity and non-repudiation beyond what's possible with checksums alone.
 Defining a standard interface for package registries
 lays the groundwork for several useful features.
 
+### Intermediate registry proxies
+
+By default,
+the identity of the package is the same as its location.
+Whether a package is declared with a URL of
+`https:///github.com/mona/linkedlist` or
+`git@github.com:mona/linkedlist.git`,
+Swift Package Manager will — unless configured otherwise —
+attempt to fetch that dependency by consulting `github.com`,
+which may respond with a Git repository or a source archive
+(or perhaps `404 Not Found`).
+
+A user can currently specify an alternate location for a package
+by setting a [dependency mirror][SE-0219] for that package's URL.
+
+```terminal
+$ swift package config set-mirror \
+    --original-url https:///github.com/mona/linkedlist \
+    --mirror-url https:///github.com/octocorp/swiftlinkedlist
+```
+
+Dependency mirroring allows for package dependencies to be rerouted
+on an individual basis.
+However, this approach doesn't scale well for large numbers of dependencies.
+
+Swift Package Manager could implement a complementary feature
+that allows users to specify one or more registry proxy URLs
+that would be consulted (in order)
+when resolving dependencies through the package registry interface.
+
+For example,
+a build server that doesn't allow external network connections
+may specify an internal registry URL to manage all package dependency requests.
+
+```terminal
+$ swift package config set-registry-proxy https://internal.example.com/
+```
+
+When one or more proxy URLs are configured in this way,
+resolving a package dependency with the URL
+`https:///github.com/mona/linkedlist`
+results in a `GET` request to
+`https://internal.example.com/github.com/mona/linkedlist`.
+
+A registry proxy decouples package identity from package location entirely,
+which could unlock a variety of compelling use cases:
+
+- **Geographic colocation**:
+  Developers working under adverse networking conditions can
+  host a mirror of official package sources on a nearby network.
+- **Policy enforcement**:
+  A corporate network can enforce quality or licensing standards,
+  so that only approved packages are available.
+- **Auditing**:
+  A registry may analyze or meter access to packages
+  for the purposes of ranking popularity or charging licensing fees.
+
+### Offline cache
+
+Swift Package Manager could implement an [offline cache]
+that would allow it to work without network access.
+While this is technically possible today,
+a package registry makes for a simpler and more secure implementation
+than would otherwise be possible with Git repositories alone.
+
 ### Package publishing
 
 A package registry is responsible for determining
@@ -797,71 +862,6 @@ let package = Package(
     ]
 )
 ```
-
-### Intermediate registry proxies
-
-By default,
-the identity of the package is the same as its location.
-Whether a package is declared with a URL of
-`https:///github.com/mona/linkedlist` or
-`git@github.com:mona/linkedlist.git`,
-Swift Package Manager will — unless configured otherwise —
-attempt to fetch that dependency by consulting `github.com`,
-which may respond with a Git repository or a source archive
-(or perhaps `404 Not Found`).
-
-A user can currently specify an alternate location for a package
-by setting a [dependency mirror][SE-0219] for that package's URL.
-
-```terminal
-$ swift package config set-mirror \
-    --original-url https:///github.com/mona/linkedlist \
-    --mirror-url https:///github.com/octocorp/swiftlinkedlist
-```
-
-Dependency mirroring allows for package dependencies to be rerouted
-on an individual basis.
-However, this approach doesn't scale well for large numbers of dependencies.
-
-Swift Package Manager could implement a complementary feature
-that allows users to specify one or more registry proxy URLs
-that would be consulted (in order)
-when resolving dependencies through the package registry interface.
-
-For example,
-a build server that doesn't allow external network connections
-may specify an internal registry URL to manage all package dependency requests.
-
-```terminal
-$ swift package config set-registry-proxy https://internal.example.com/
-```
-
-When one or more proxy URLs are configured in this way,
-resolving a package dependency with the URL
-`https:///github.com/mona/linkedlist`
-results in a `GET` request to
-`https://internal.example.com/github.com/mona/linkedlist`.
-
-A registry proxy decouples package identity from package location entirely,
-which could unlock a variety of compelling use cases:
-
-- **Geographic colocation**:
-  Developers working under adverse networking conditions can
-  host a mirror of official package sources on a nearby network.
-- **Policy enforcement**:
-  A corporate network can enforce quality or licensing standards,
-  so that only approved packages are available.
-- **Auditing**:
-  A registry may analyze or meter access to packages
-  for the purposes of ranking popularity or charging licensing fees.
-
-### Offline cache
-
-Swift Package Manager could implement an [offline cache]
-that would allow it to work without network access.
-While this is technically possible today,
-a package registry makes for a simpler and more secure implementation
-than would otherwise be possible with Git repositories alone.
 
 ### Security auditing
 
