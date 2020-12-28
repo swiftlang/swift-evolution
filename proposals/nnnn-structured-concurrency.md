@@ -430,7 +430,129 @@ A variable defined in an `async let` can not be captured by an escaping closure.
 
 > **Rationale**: Capture of a variable defined by an `async let` within an escaping closure would allow the implicitly-created child task to escape its lexical context, which otherwise would not be permissible.
  
-### Child Tasks with Task Groups
+### Task API
+
+Much of the proposed implementation of structured concurrency is in the APIs for creating, querying, and managing APIs described here. 
+
+#### `Task` type
+
+The `Task` type is an empty `enum` that is used as a namespace for types and operations related to task management.
+
+```swift
+@frozen enum Task { }
+```
+
+Any operations that pertain to the current task will be `static` `async` functions. This ensures that the operations are only accessible from within `async` functions (which have a task) and they can only operate on the current task (rather than some arbitrary other task). 
+
+#### Task priorities
+
+The priority of a task is used by the executor to help make scheduling decisions. The priorities are listed from highest (most important) to lowest (least important).
+
+```swift
+extension Task {
+  /// Describes the priority of a task.
+  enum Priority: Int, Comparable {
+    /// The task is important for user interaction, such as animations, event handling, or
+    /// updating your app's user interface 
+    case userInteractive
+
+    /// The task was initiated by the user and prevents the user from actively using
+    /// your app.
+    case userInitiated
+
+    /// Default priority for tasks. 
+    case `default`
+
+    /// Priority for a utility function that the user does not track actively.
+    case utility
+
+    /// Priority for maintenance or cleanup tasks.
+    case background
+  }
+  
+  /// Determine the priority of the currently-executing task.
+  static func currentPriority() async -> Priority
+}
+```
+
+The `currentPriority()` operation queries the priority of the currently-executing task. Task priorities are set on task creation (e.g., `Task.runDetached` or `Task.Group.add`) and can be escalated later, e.g., if a higher-priority task waits on the task handle of a lower-priority task.
+ 
+#### Task handles
+
+A task handle provides a reference to a task whose primary purpose is to retrieve the result of the task.
+
+```swift
+extension Task {
+  struct Handle<Success, Failure: Error> {
+    /// Retrieve the result produced the task, if is the normal return value, or
+    /// throws the error that completed the task with a thrown error.
+    func get() async throws -> Success
+    
+    /// Retrieve the result produced by the task as a \c Result instance.
+    func getResult() async -> Result<Success, Failure>
+  }
+}
+
+extension Task.Handle where Failure == Never {
+  /// Retrieve the result produced by a task that is known to never throw.
+  func get() async -> Success
+}
+```
+
+The `get()` operation is the primary consumer interface to a task handle: it produces the result returned by the task or (if the task exits via a thrown error) throws the error produced by the task. For example:
+
+```swift
+func eat(mealHandle: Task.Handle<Meal, Error>) {
+  let meal = try await mealHandle()
+  meal.eat() // yum
+}
+```
+
+Task handles also provide the ability to cancel a task programmatically:
+
+```swift
+extension Task.Handle {
+  /// Cancel the given task.
+  func cancel()
+  
+  /// Determine whether the task was cancelled.
+  var isCancelled: Bool { get }
+}
+```
+
+As noted elsewhere, cancellation is cooperative: the task will note that it has been cancelled and can choose to return earlier (either via a normal return or a thrown error, as appropriate). `isCancelled` can be used to determine whether a particular task was ever cancelled.
+
+#### Detached tasks
+
+A new, detached task can be created with the `Task.runDetached` operation. It is the only way in which synchronous code can create a new, asynchronous task. The resulting task is represented by a `Task.Handle`.
+
+```swift
+extension Task {
+  /// Create a new, detached task that produces a value of type `T` that cannot throw.
+  static func runDetached<T>(
+    priority: Priority = .default,
+    operation: @escaping () async -> T
+  ) -> Handle<T>
+
+  /// Create a new, detached task that produces a value of type `T` that can throw.
+  static func runDetached<T>(
+    priority: Priority = .default,
+    operation: @escaping () async throws -> T
+  ) -> Handle<T, Error>
+}
+```
+
+Detached tasks will typically be created using a closure, e.g.,
+
+```swift
+let dinnerHandle: Task.Handle<Meal, Error> = Task.runDetached {
+  try await makeDinner()
+}
+
+try await eat(dinnerHandle)
+```
+
+### Task Groups
 
 In addition to `async let` this proposal also introduces an explicit `TaskGroup` type, which allows for fine grained scoping of tasks within such task group. 
 
@@ -627,39 +749,6 @@ func confirmOrders(orders: [Order]) async throws {
 
 The `confirmOrders()` function will only return once all confirmations have completed, because the task group will await any outstanding tasks "at the end-edge" of its scope.
 
- 
-### Detached Tasks
-
-Detached tasks are one of the two "escape hatch" APIs offered in this proposal (the other being the `UnsafeContinuation` APIs discussed in the next section), for when structured concurrency rules are too rigid for a specific asynchronous operations.
-
-Looking at the previously mentioned example of making dinner in a detached task, but filling in the missing types and details:
-
-
-```swift
-let dinnerHandle: Task.Handle<Dinner> = Task.runDetached {
-  await makeDinner()
-}
-
-// optionally, someone, somewhere may cancel the task:
-// dinnerHandle.cancel()
-
-let dinner = try await dinnerHandle.get()
-```
-
-The `Task.Handle` returned from the `runDetached` function serves as a reference to an in-flight `Task`, allowing either awaiting or cancelling the task.
-
-The `get()` function is always `throwing` (even if the task's code is not) also the `CancellationError`, so awaiting on a `handle.get()` is *always* throwing, even if the wrapped operation was not throwing itself.
-
-```swift
-extension Task {
-  public final class Handle<Success> {
-    public func get() async throws -> Success { ... }
-
-    public func cancel() { ... }
-  }
-}
-```
-
 ### Low-level code and integrating with legacy APIs with `UnsafeContinuation`
 
 The low-level execution of asynchronous code occasionally requires escaping the high-level abstraction of an async functions and task groups. Also, it is important to enable APIs to interact with existing non-`async` code yet still be able to present to the users of such API a pleasant to use async function based interface.
@@ -768,6 +857,7 @@ All of the changes described in this document are additive to the language and a
 * Changes in the second pitch:
   * Added a "desugaring" of `async let` to task groups and more motivation for the structured-concurrency parts of the design.
   * Reflowed the entire proposal to focus on the general description of structured concurrency first, the programming model with syntax next, and then details of the language features and API design last.
+  * Reworked the presentation of the Task APIs with more rationale for the design.
   * "Task nursery" has been replaced with "task group".
   * Added support for asynchronous `@main` and top-level code.
   * Specify that `try` is not required in the initializer of an `async let`, because the thrown error is only observable when reading from one of the variables.
