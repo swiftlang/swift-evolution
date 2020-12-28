@@ -43,9 +43,110 @@ To make dinner preparation go faster, we need to perform some of these steps *co
 
 This proposal aims to provide the necessary tools to carve work up into smaller tasks that can run concurrently, to allow tasks to wait for each other to complete, and to effectively manage the overall progress of a task.
 
+## Structured concurrency
+
+Any concurrency system must offer certain basic tools. There must be some way to create a new thread that will run concurrently with existing threads. There must also be some way to make a thread wait until another thread signals it to continue. These are powerful tools, and you can write very sophisticated systems with them. But they're also very primitive tools: they make very few assumptions, but in return they give you very little support.
+
+Imagine there's a function which does a large amount of work on the CPU. We want to optimize it by splitting the work across two cores; so now the function creates a new thread, does half the work in each thread, and then has its original thread wait for the new thread to finish. (In a more modern system, the function might add a task to a global thread pool, but the basic concept is the same.) There is a relationship between the work done by these two threads, but the system doesn't know about it. That makes it much harder to solve systemic problems.
+
+For example, suppose a high-priority operation needs the function to hurry up and finish. The operation might know to escalate the priority of the first thread, but really it ought to escalate both. At best, it won't escalate the second thread until the first thread starts waiting for it. It's relatively easy to solve this problem narrowly, maybe by letting the function register a second thread that should be escalated. But it'll be an ad hoc solution that might need to be repeated in every function that wants to use concurrency.
+
+Structured concurrency solves this by asking programmers to organize their use of concurrency into high-level tasks and their child component tasks. These tasks become the primary units of concurrency, rather than lower-level concepts like threads. Structuring concurrency this way allows information to naturally flow up and down the hierarchy of tasks which would otherwise require carefully-written support at every level of abstraction and on every thread transition. This in turn permits many different high-level problems to be addressed with relative ease.
+
+For example:
+
+- It's common to want to limit the total time spent on a task. Some APIs support this by allowing a timeout to be passed in, but it takes a lot of work to propagate timeouts down correctly through every level of abstraction. This is especially true because end-programmers typically want to write timeouts as relative durations (e.g. 20ms), but the correctly-composing representation for libraries to pass around internally is an absolute deadline (e.g. now + 20ms). Under structured concurrency, a deadline can be installed on a task and naturally propagate through arbitrary levels of API, including to child tasks.
+
+- Similarly, it's common to want to be able to cancel an active task. Asynchronous interfaces that support this often do so by synchronously returning a token object that provides some sort of `cancel()` method. This significantly complicates the design of an API and so often isn't provided. Moreover, propagating tokens, or composing them to cancel all of the active work, can create significant engineering challenges for a program. Under structured concurrency, cancellation naturally propagates through APIs and down to child tasks, and APIs can install handlers to respond instantaneously to cancellation.
+
+- Graphical user interfaces often rely on task prioritization to ensure timely refreshes and responses to events.  Under structured concurrency, child tasks naturally inherit the priority of their parent tasks.  Furthermore, when higher-priority tasks wait for lower-priority tasks to complete, the lower-priority task and all of its child tasks can be escalated in priority, and this will reliably persist even if the task is briefly suspended.
+
+- Many systems want to maintain their own contextual information for an operation without having to pass it through every level of abstraction, such as a server that records information for the connection currently being serviced.  Structured concurrency allows this to naturally propagate down through async operations as a sort of "task-local storage" which can be picked up by child tasks.
+
+- Systems that rely on queues are often susceptible to queue-flooding, where the queue accepts more work than it can actually handle. This is typically solved by introducing "back-pressure": a queue stops accepting new work, and the systems that are trying to enqueue work there respond by themselves stopping accepting new work. Actor systems often subvert this because it is difficult at the scheduler level to refuse to add work to an actor's queue, since doing so can permanently destabilize the system by leaking resources or otherwise preventing operations from completing. Structured concurrency offers a limited, cooperative solution by allowing systems to communicate up the task hierarchy that they are coming under distress, potentially allowing parent tasks to stop or slow the creation of presumably-similar new work.
+
+This proposal doesn't propose solutions for all of these, but early investigations show promise.
+
+### Tasks
+
+A task is the basic unit of concurrency in the system. Every asynchronous function is executing in a task. In other words, a _task_ is to _asynchronous functions_, what a _thread_ is to _synchronous functions_. That is:
+
+- All asynchronous functions run as part of some task.
+- A task runs one function at a time; a single task has no concurrency.
+- When a function makes an `async` call, the called function is still running as part of the same task (and the caller waits for it to return).
+- Similarly, when a function returns from an `async` call, the caller resumes running on the same task.
+
+Synchronous functions do not necessarily run as part of a task.
+
+Swift assumes the existence of an underlying thread system. Tasks are scheduled by the system to run on these system threads. Tasks do not require special scheduling support from the underlying thread system, although a good scheduler could take advantage of some of the interesting properties of Swift's task scheduling.
+
+A task can be in one of three states:
+
+* A **suspended** task has more work to do but is not currently running.  
+    - It may be **schedulable**, meaning that it’s ready to run and is just waiting for the system to instruct a thread to begin executing it, 
+    - or it may be **waiting** on some external event before it can become schedulable.
+* A **running** task is currently running on a thread.  
+    - It will run until it either returns from its initial function (and becomes completed) or reaches a suspension point (and becomes suspended).  At a suspension point, it may become immediately schedulable if, say, its execution just needs to change actors.
+* A **completed** task has no more work to do and will never enter any other state.  
+    - Code can wait for a task to become completed in various ways, most notably by `await`-ing on it.
+
+The way we talk about execution for tasks and asynchronous functions is more complicated than it is for synchronous functions.  An asynchronous function is running as part of a task.  If the task is running, it and its current function are also running on a thread.
+
+Note that, when an asynchronous function calls another asynchronous function, we say that the calling function is suspended, but that doesn’t mean the entire task is suspended.  From the perspective of the function, it is suspended, waiting for the call to return.  From the perspective of the task, it may have continued running in the callee, or it may have been suspended in order to, say, change to a different execution context.
+
+Tasks serve three high-level purposes:
+
+* They carry scheduling information, such as the task's priority.
+* They serve as a handle through which the operation can be cancelled, queried, or manipulated.
+* They can carry user-provided task-local data.
+
+At a lower level, the task allows the implementation to optimize the allocation of local memory, such as for asynchronous function contexts.  It also allows dynamic tools, crash reporters, and debuggers to discover how a function is being used.
+
+### Child tasks
+
+An asynchronous function can create a child task.  Child tasks inherit some of the structure of their parent task, including its priority, but can run concurrently with it.  However, this concurrency is bounded: a function that creates a child task must wait for it to end before returning.  This structure means that functions can locally reason about all the work currently being done for the current task, anticipate the effects of cancelling the current task, and so on.  It also makes spawning the child task substantially more efficient.
+
+Of course, a function’s task may itself be a child of another task, and its parent may have other children; a function cannot reason locally about these.  But the features of this design that apply to an entire task tree, such as cancellation, only apply “downwards” and don’t automatically propagate upwards in the task hierarchy, and so the child tree still can be statically reasoned about.  If child tasks did not have bounded duration and so could arbitrarily outlast their parents, the behavior of tasks under these features would not be easily comprehensible. 
+
+### Partial tasks
+
+The execution of a task can be seen as a succession of periods where the task was running, each of which ends at a suspension point or — finally — at the completion of the task.  These periods are called partial tasks.  Partial tasks are the basic units of schedulable work in the system.  They are also the primitive through which asynchronous functions interact with the underlying synchronous world.  For the most part, programmers should not have to work directly with partial tasks unless they are implementing a custom executor.
+
+### Executors
+
+An executor is a service which accepts the submission of partial tasks and arranges for some thread to run them. The system assumes that executors are reliable and will never fail to run a partial task. 
+
+An asynchronous function that is currently running always knows the executor that it's running on.  This allows the function to avoid unnecessarily suspending when making a call to the same executor, and it allows the function to resume executing on the same executor it started on.
+
+An executor is called *exclusive* if the partial tasks submitted to it will never be run concurrently.  (Specifically, the partial tasks must be totally ordered by the happens-before relationship: given any two tasks that were submitted and run, the end of one must happen-before the beginning of the other.) Executors are not required to run partial tasks in the order they were submitted; in fact, they should generally honor task priority over submission order.
+
+Swift provides a default executor implementation, but both actor classes and global actors (described in separate proposals) can suppress this and provide their own implementation.
+
+Generally end-users need not interact with executors directly, but rather use them implicitly by invoking functions which happen to use executors to perform the invoked asynchronous functions.
+
+### Task priorities
+
+A task is associated with a specific priority.
+
+Task priority may inform decisions an executor makes about how and when to schedule tasks submitted to it. An executor may utilize priority information to attempt to run higher priority tasks first, and then continuing to serve lower priority tasks. It may also use priority information to affect the platform thread priority.
+
+The exact semantics of how priority is treated are left up to each platform and specific executor implementation.
+
+Child tasks automatically inherit their parent task's priority. Detached tasks do not inherit priority (or any other information) because they semantically do not have a parent task.
+
+The priority of a task does not necessarily match the priority of its executor. For example, the UI thread on Apple platforms is a high-priority executor; any task submitted to it will be run with high priority for the duration of its time on the thread. This helps to ensure that the UI thread will be available to run higher-priority work if it is submitted later. This does not affect the formal priority of the task.
+
+### Priority Escalation
+
+In some situations the priority of a task must be escalated in order to avoid a priority inversion:
+
+- If a task is running on behalf of an actor, and a higher-priority task is enqueued on the actor, the task may temporarily run at the priority of the higher-priority task. This does not affect child tasks or the reported priority; it is a property of the thread running the task, not the task itself.
+
+- If a task is created with a task handle, and a higher-priority task waits for that task to complete, the priority of the task will be permanently increased to match the higher-priority task.  This does affect child tasks and the reported task priority.
+- 
 ## Proposed solution
 
-Our approach follows the principles of *structured concurrency*. All asynchronous functions run as part of an asynchronous *task*. Tasks can make child tasks that will perform work concurrently. This creates a hierarchy of tasks, and information can naturally flow up and down the hierarchy, making it convenient to manage the whole thing holistically.
+Our approach follows the principles of *structured concurrency* described above. All asynchronous functions run as part of an asynchronous task. Tasks can make child tasks that will perform work concurrently. This creates a hierarchy of tasks, and information can naturally flow up and down the hierarchy, making it convenient to manage the whole thing holistically.
 
 ### Child tasks
 
@@ -58,18 +159,18 @@ func makeDinner() async throws -> Meal {
   async let oven = preheatOven(temperature: 350)
 
   let dish = Dish(ingredients: await [try veggies, meat])
-  return await try oven.cook(dish, duration: .hours(3))
+  return try await oven.cook(dish, duration: .hours(3))
 }
 ``` 
 
-`async let` is similar to a `let`, in that it defines a local constant that is initialized by the expression on the right-hand side of the `=`. However, it differs in that the initializer expression is evaluated in a separate, concurrently-executing child task. On completion, the child task will initialize the variables in the `async let`.
+`async let` is similar to a `let`, in that it defines a local constant that is initialized by the expression on the right-hand side of the `=`. However, it differs in that the initializer expression is evaluated in a separate, concurrently-executing child task. On normal completion, the child task will initialize the variables in the `async let`.
 
 Because the main body of the function executes concurrently with its child tasks, it is possible that `makeDinner` will reach the point where it needs the value of an `async let` (say, `veggies`) before that value has been produced. To account for that, reading a variable defined by an `async let` is treated as a potential suspension point, and therefore must be marked with `await`. When the expression on right-hand side of the `=` of an `async let` can throw an error, that thrown error can be observed when reading the variable, and therefore must be marked with some form of `try`.
 The task will suspend until the child task has completed initialization of the variable (or thrown an error), and then resume.
 
-One can think of `async let` as introducing a (hidden) future, which is created at the point of declaration of the `async let` and whose value is retrieved at the `await`. In this sense, `async let` is syntactic sugar to futures. The futures for child tasks are not ex
+One can think of `async let` as introducing a (hidden) future, which is created at the point of declaration of the `async let` and whose value is retrieved at the `await`. In this sense, `async let` is syntactic sugar to futures.
 
-However, child tasks in the proposed structured-concurrency model are (intentionally) more restricted than general-purpose futures. Unlike in a typical futures implementation, a child task does not persist beyond the scope in which it was created. By the time the scope exits, the child task must either have completed, or it will be implicitly awaited. When the scope exits via a thrown error, the child task will be implicitly cancelled before it is awaited. This structure both makes it easier to reason about the concurrent tasks that are executing within a given scope, and also unlocks numerous optimization opportunities for the compiler and runtime. 
+However, child tasks in the proposed structured-concurrency model are (intentionally) more restricted than general-purpose futures. Unlike in a typical futures implementation, a child task does not persist beyond the scope in which it was created. By the time the scope exits, the child task must either have completed, or it will be implicitly awaited. When the scope exits via a thrown error, the child task will be implicitly cancelled before it is awaited.
 
 Bringing it back to our example, note that the `chopVegetables()` function might throw an error if, say, there is an incident with the kitchen knife. That thrown error completes the child task for chopping the vegetables. The error will then be propagated out of the `makeDinner()` function, as expected. On exiting the body of the `makeDinner()` function with this error, any child tasks that have not yet completed (marinating the meat or preheating the oven, maybe both) will be automatically cancelled.
 
@@ -120,15 +221,15 @@ func chopVegetables() async throws -> [Vegetable] {
 }
 ```
 
-The `Task.withGroup(resultType:body:)` function introduces a new scope in which child tasks can be created (using the task group's `add` method). The `next` method waits for the next child task to complete, providing the result value from the child task. In our example above, each child task produces the index where the result should go, along with the chopped vegetable.
+The `Task.withGroup(resultType:body:)` function introduces a new scope in which child tasks can be created (using the task group's `add` method). All tasks in a given task group produce a value of the same type (specified by the `resultType` argument). The `next` method waits for the next child task to complete, providing the result value from the child task. In our example above, each child task produces the index where the result should go, along with the chopped vegetable.
 
 As with the child tasks created by `async let`, if the closure passed to `Task.withGroup` exits without having completed all child tasks, the task group will wait until all child tasks have completed before returning. If the closure exited with a thrown error, the child tasks will first be cancelled.
 
-Although we have explained child tasks "as if" there were a hidden future, that future instance is intentionally not exposed in the interfaces of either `async let` or task groups. Therefore, there is no way in which a reference to the child task can escape the scope in which the child task is created. This maintains the structure of the child task tree and makes concurrency easier to reason about and optimize.
+Although we have explained child tasks "as if" there were a hidden future, that future instance is intentionally not exposed in the interfaces of either `async let` or task groups. Therefore, there is no way in which a reference to the child task can escape the scope in which the child task is created. This ensures that the structure of structured concurrency is maintained. It both makes it easier to reason about the concurrent tasks that are executing within a given scope and also unlocks numerous optimization opportunities for the compiler and runtime. 
 
 ### `async let` as sugar to task groups
 
-`async let` can be thought of as syntactic sugar for task groups. The illustrate, we will implement the `makeDinner()` function using task groups alone. The desugaring requires us to provide a single result type for all of the tasks that go into the task group, so we model each of the `async let`s in scope with a different case of an enum:
+`async let` can be desugared to task groups. The illustrate, we will implement the `makeDinner()` function using task groups alone. The desugaring requires us to provide a single result type for all of the tasks that go into the task group, so we model each of the `async let`s in scope with a different case of an enum:
 
 ```swift
 enum DinnerChild {
@@ -159,7 +260,7 @@ func makeDinnerTaskGroup() async throws -> Meal {
     var meat: Meat? = nil
     var oven: Oven? = nil
     var dish: Dish? = nil
-    while let child = await try group.next() {
+    while let child = try await group.next() {
       switch child {
         case .chopVegetables(let newVeggies):
           veggies = newVeggies
@@ -170,18 +271,20 @@ func makeDinnerTaskGroup() async throws -> Meal {
       }
       
       if dish == nil, let veggies = veggies, let meat = meat {
-        dish = Dish(ingredients: await [try veggies, meat])
+        dish = Dish(ingredients: [veggies, meat])
       }
       
       if let oven = oven, let dish = dish {
-        return await try oven.cook(dish, duration: .hours(3))
+        return try await oven.cook(dish, duration: .hours(3))
       }
     }
     
     fatalError("Should have returned above")
   }
 }
-```  
+```
+
+The task-group implementation accounts for the tasks completing in any order by decoding the task result and placing it into one of several named variables. It then implements a simple state machine to (e.g.) prepare the dish once the meat and veggies are available, then cook the meal once the dish is prepared and the oven is preheated.
 
 ### Detached tasks
 
@@ -193,13 +296,13 @@ let dinnerHandle = Task.runDetached {
 }
 ``` 
 
-`Task.runDetached` returns a task handle (in this case, `Task.Handle<Meal, Error>`) referencing the newly-launched task. Task handles can be used to await the result of the task, e.g.,
+A detached task is represented by a task handle (in this case, `Task.Handle<Meal, Error>`) referencing the newly-launched task. Task handles can be used to await the result of the task, e.g.,
 
 ```swift
 let dinner = try await dinnerHandle.get()
 ```
 
-Unlike child tasks, detached tasks aren't cancelled even if there are no remaining uses of their task handle, so `runDetached` is suitable for operations for which the program does not need to observe completion. However, the task handle can be used to explicitly cancel the operation, e.g.,
+Detached tasks run to completion even if there are no remaining uses of their task handle, so `runDetached` is suitable for operations for which the program does not need to observe completion. However, the task handle can be used to explicitly cancel the operation, e.g.,
 
 ```swift
 dinnerHandle.cancel()
@@ -232,112 +335,9 @@ print(meal)
 
 The model is the same as for `@main`: Swift creates a task to execute top-level code, and completion of that task terminates the program.
 
-## Detailed design
-
-### Structured concurrency
-
-Any concurrency system must offer certain basic tools. There must be some way to create a new thread that will run concurrently with existing threads. There must also be some way to make a thread wait until another thread signals it to continue. These are powerful tools, and you can write very sophisticated systems with them. But they're also very primitive tools: they make very few assumptions, but in return they give you very little support.
-
-Imagine there's a function which does a large amount of work on the CPU. We want to optimize it by splitting the work across two cores; so now the function creates a new thread, does half the work in each thread, and then has its original thread wait for the new thread to finish. (In a more modern system, the function might add a task to a global thread pool, but the basic concept is the same.) There is a relationship between the work done by these two threads, but the system doesn't know about it. That makes it much harder to solve systemic problems.
-
-For example, suppose a high-priority operation needs the function to hurry up and finish. The operation might know to escalate the priority of the first thread, but really it ought to escalate both. At best, it won't escalate the second thread until the first thread starts waiting for it. It's relatively easy to solve this problem narrowly, maybe by letting the function register a second thread that should be escalated. But it'll be an ad hoc solution that might need to be repeated in every function that wants to use concurrency.
-
-Structured concurrency solves this by asking programmers to organize their use of concurrency into high-level tasks and their child component tasks. These tasks become the primary units of concurrency, rather than lower-level concepts like threads. Structuring concurrency this way allows information to naturally flow up and down the hierarchy of tasks which would otherwise require carefully-written support at every level of abstraction and on every thread transition. This in turn permits many different high-level problems to be addressed with relative ease.
-
-For example:
-
-- It's common to want to limit the total time spent on a task. Some APIs support this by allowing a timeout to be passed in, but it takes a lot of work to propagate timeouts down correctly through every level of abstraction. This is especially true because end-programmers typically want to write timeouts as relative durations (e.g. 20ms), but the correctly-composing representation for libraries to pass around internally is an absolute deadline (e.g. now + 20ms). Under structured concurrency, a deadline can be installed on a task and naturally propagate through arbitrary levels of API, including to child tasks.
-
-- Similarly, it's common to want to be able to cancel an active task. Asynchronous interfaces that support this often do so by synchronously returning a token object that provides some sort of `cancel()` method. This significantly complicates the design of an API and so often isn't provided. Moreover, propagating tokens, or composing them to cancel all of the active work, can create significant engineering challenges for a program. Under structured concurrency, cancellation naturally propagates through APIs and down to child tasks, and APIs can simply install handlers to respond instantaneously to cancellation.
-
-- Graphical user interfaces often rely on task prioritization to ensure timely refreshes and responses to events.  Under structured concurrency, child tasks naturally inherit the priority of their parent tasks.  Furthermore, when higher-priority tasks wait for lower-priority tasks to complete, the lower-priority task and all of its child tasks can be escalated in priority, and this will reliably persist even if the task is briefly suspended.
-
-- Many systems want to maintain their own contextual information for an operation without having to pass it through every level of abstraction, such as a server that records information for the connection currently being serviced.  Structured concurrency allows this to naturally propagate down through async operations as a sort of "task-local storage" which can be picked up by child tasks.
-
-- Systems that rely on queues are often susceptible to queue-flooding, where the queue accepts more work than it can actually handle. This is typically solved by introducing "back-pressure": a queue stops accepting new work, and the systems that are trying to enqueue work there respond by themselves stopping accepting new work. Actor systems often subvert this because it is difficult at the scheduler level to refuse to add work to an actor's queue, since doing so can permanently destabilize the system by leaking resources or otherwise preventing operations from completing. Structured concurrency offers a limited, cooperative solution by allowing systems to communicate up the task hierarchy that they are coming under distress, potentially allowing parent tasks to stop or slow the creation of presumably-similar new work.
-
-This proposal doesn't propose solutions for all of these, but early investigations show promise.
-
-### Tasks
-
-A task is the basic unit of concurrency in the system. Every asynchronous function is executing in a task. In other words, a _task_ is to _asynchronous functions_, what a _thread_ is to _synchronous functions_. That is:
-
-- All asynchronous functions run as part of some task.
-- A task runs one function at a time; a single task has no concurrency.
-- When a function makes an `async` call, the called function is still running as part of the same task (and the caller waits for it to return).
-- Similarly, when a function returns from an `async` call, the caller resumes running on the same task.
-
-Synchronous functions do not necessarily run as part of a task.
-
-Swift assumes the existence of an underlying thread system. Tasks are scheduled by the system to run on these system threads. Tasks do not require special scheduling support from the underlying thread system, although a good scheduler could take advantage of some of the interesting properties of Swift's task scheduling.
-
-A task can be in one of three states:
-
-* A **suspended** task has more work to do but is not currently running.  
-    - It may be **schedulable**, meaning that it’s ready to run and is just waiting for the system to instruct a thread to begin executing it, 
-    - or it may be **waiting** on some external event before it can become schedulable.
-* A **running** task is currently running on a thread.  
-    - It will run until it either returns from its initial function (and becomes completed) or reaches a suspension point (and becomes suspended).  At a suspension point, it may become immediately schedulable if, say, its execution just needs to change actors.
-* A **completed** task has no more work to do and will never enter any other state.  
-    - Code can wait for a task to become completed in various ways, most notably by [`await`](nnnn-async-await.md)-ing on it.
-
-The way we talk about execution for tasks and asynchronous functions is more complicated than it is for synchronous functions.  An asynchronous function is running as part of a task.  If the task is running, it and its current function are also running on a thread.
-
-Note that, when an asynchronous function calls another asynchronous function, we say that the calling function is suspended, but that doesn’t mean the entire task is suspended.  From the perspective of the function, it is suspended, waiting for the call to return.  From the perspective of the task, it may have continued running in the callee, or it may have been suspended in order to, say, change to a different execution context.
-
-Tasks serve three high-level purposes:
-
-* They carry scheduling information, such as the task's priority.
-* They serve as a handle through which the operation can be cancelled, queried, or manipulated.
-* They can carry user-provided task-local data.
-
-At a lower level, the task allows the implementation to optimize the allocation of local memory, such as for asynchronous function contexts.  It also allows dynamic tools, crash reporters, and debuggers to discover how a function is being used.
-
-### Child tasks
-
-An asynchronous function can create a child task.  Child tasks inherit some of the structure of their parent task, including its priority, but can run concurrently with it.  However, this concurrency is bounded: a function that creates a child task must wait for it to end before returning.  This structure means that functions can locally reason about all the work currently being done for the current task, anticipate the effects of cancelling the current task, and so on.  It also makes spawning the child task substantially more efficient.
-
-Of course, a function’s task may itself be a child of another task, and its parent may have other children; a function cannot reason locally about these.  But the features of this design that apply to an entire task tree, such as cancellation, only apply “downwards” and don’t automatically propagate upwards in the task hierarchy, and so the child tree still can be statically reasoned about.  If child tasks did not have bounded duration and so could arbitrarily outlast their parents, the behavior of tasks under these features would not be easily comprehensible. 
-
-### Partial tasks
-
-The execution of a task can be seen as a succession of periods where the task was running, each of which ends at a suspension point or — finally — at the completion of the task.  These periods are called partial tasks.  Partial tasks are the basic units of schedulable work in the system.  They are also the primitive through which asynchronous functions interact with the underlying synchronous world.  For the most part, programmers should not have to work directly with partial tasks unless they are implementing a custom executor.
-
-### Executors
-
-An executor is a service which accepts the submission of partial tasks and arranges for some thread to run them. The system assumes that executors are reliable and will never fail to run a partial task. 
-
-An asynchronous function that is currently running always knows the executor that it's running on.  This allows the function to avoid unnecessarily suspending when making a call to the same executor, and it allows the function to resume executing on the same executor it started on.
-
-An executor is called *exclusive* if the partial tasks submitted to it will never be run concurrently.  (Specifically, the partial tasks must be totally ordered by the happens-before relationship: given any two tasks that were submitted and run, the end of one must happen-before the beginning of the other.) Executors are not required to run partial tasks in the order they were submitted; in fact, they should generally honor task priority over submission order.
-
-Swift provides a default executor implementation, but both actor classes and global actors (described in separate proposals) can suppress this and provide their own implementation.
-
-Generally end-users need not interact with executors directly, but rather use them implicitly by invoking functions which happen to use executors to perform the invoked asynchronous functions.
-
-### Task priorities
-
-A task is associated with a specific priority.
-
-Task priority may inform decisions an executor makes about how and when to schedule tasks submitted to it. An executor may utilize priority information to attempt to run higher priority tasks first, and then continuing to serve lower priority tasks. It may also use priority information to affect the platform thread priority.
-
-The exact semantics of how priority is treated are left up to each platform and specific executor implementation.
-
-Child tasks automatically inherit their parent task's priority. Detached tasks do not inherit priority (or any other information) because they semantically do not have a parent task.
-
-The priority of a task does not necessarily match the priority of its executor. For example, the UI thread on Apple platforms is a high-priority executor; any task submitted to it will be run with high priority for the duration of its time on the thread. This helps to ensure that the UI thread will be available to run higher-priority work if it is submitted later. This does not affect the formal priority of the task.
-
-#### Priority Escalation
-
-In some situations the priority of a task must be escalated in order to avoid a priority inversion:
-
-- If a task is running on behalf of an actor, and a higher-priority task is enqueued on the actor, the task may temporarily run at the priority of the higher-priority task. This does not affect child tasks or `Task.currentPriority`; it is a property of the thread running the task, not the task itself.
-
-- If a task is created with a `Task.Handle`, and a higher-priority task calls `handle.get()`, the priority of the task will be permanently increased to match the higher-priority task.  This does affect child tasks and `Task.currentPriority`.
-
 ### Cancellation
 
-A task can be cancelled asynchronously by any context that has a reference to a task or one of its parent tasks. Cancellation can be triggered explicitly by calling `cancel()` on the task. Cancellation can also trigger automatically, for example when a parent task throws an error out of a scope with unawaited child tasks (such as an `async let`).
+A task can be cancelled asynchronously by any context that has a reference to a task or one of its parent tasks. Cancellation can be triggered explicitly by calling `cancel()` on the task handle. Cancellation can also trigger automatically, for example when a parent task throws an error out of a scope with unawaited child tasks (such as an `async let` or the closure passed to `Task.withGroup`).
 
 The effect of cancellation within the cancelled task is fully cooperative and synchronous. That is, cancellation has no effect at all unless something checks for cancellation. Conventionally, most functions that check for cancellation report it by throwing `CancellationError()`; accordingly, they must be throwing functions, and calls to them must be decorated with some form of `try`. As a result, cancellation introduces no additional control-flow paths within asynchronous functions; you can always look at a function and see the places where cancellation can occur. As with any other thrown error, `defer` blocks can be used to clean up effectively after cancellation.
 
@@ -380,7 +380,9 @@ func chop(_ vegetable: Vegetable) async throws -> Vegetable {
 
 Note also that no information is passed to the task about why it was cancelled.  A task may be cancelled for many reasons, and additional reasons may accrue after the initial cancellation (for example, if the task fails to immediately exit, it may pass a deadline). The goal of cancellation is to allow tasks to be cancelled in a lightweight way, not to be a secondary method of inter-task communication.
 
-### Child tasks with `async let`
+## Detailed design
+
+### `async let`
 
 Asynchronous calls do not by themselves introduce concurrent execution. However, `async` functions may conveniently request work to be run in a child task, permitting it to run concurrently, with an `async let`:
 
@@ -423,10 +425,6 @@ let
 ```
 
 In the above example one can consider each clause as it's own asynchronously initialized variable, i.e. the `ok`  is initialized on its own, and the `(yay, nay)` are initialized together as was discussed previously. 
-
-If the scope of an `async let` exits *by throwing an error*, the child task corresponding to the `async let` is implicitly cancelled. If the child task has already completed, its result (or thrown error) is discarded.
-
-> **Rationale**: The requirement to await a variable from each `async let` along all (non-throwing) paths ensures that child tasks aren't being created and implicitly cancelled during the normal course of execution. Such code is likely to be needlessly inefficient and should probably be restructured to avoid creating child tasks that are unnecessary.
  
 A variable defined in an `async let` can not be captured by an escaping closure. 
 
@@ -769,6 +767,7 @@ All of the changes described in this document are additive to the language and a
 
 * Changes in the second pitch:
   * Added a "desugaring" of `async let` to task groups and more motivation for the structured-concurrency parts of the design.
+  * Reflowed the entire proposal to focus on the general description of structured concurrency first, the programming model with syntax next, and then details of the language features and API design last.
   * "Task nursery" has been replaced with "task group".
   * Added support for asynchronous `@main` and top-level code.
   * Specify that `try` is not required in the initializer of an `async let`, because the thrown error is only observable when reading from one of the variables.
