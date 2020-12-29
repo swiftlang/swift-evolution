@@ -5,6 +5,7 @@
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Implementation: [apple/swift#33932](https://github.com/apple/swift/pull/33932)
 * Status: **Returned for revision**
+* Previous revision: [1](https://github.com/apple/swift-evolution/blob/066545c1cc9ff2b87ce233e0f8936f8d53724bdb/proposals/0290-negative-availability.md)
 * Decision Notes: [Review #1](https://forums.swift.org/t/se-0290-unavailability-condition/41873/34)
 
 ## Introduction
