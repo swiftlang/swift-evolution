@@ -483,7 +483,7 @@ A task handle provides a reference to a task whose primary purpose is to retriev
 
 ```swift
 extension Task {
-  struct Handle<Success, Failure: Error> {
+  struct Handle<Success, Failure: Error>: Equatable, Hashable {
     /// Retrieve the result produced the task, if is the normal return value, or
     /// throws the error that completed the task with a thrown error.
     func get() async throws -> Success
@@ -556,8 +556,61 @@ try await eat(dinnerHandle)
 
 #### Cancellation
 
-TODO write out these APIs
+A task can check whether it has been cancelled with the `Task.isCancelled()` operation, and act accordingly. For tasks that would prefer to immediately exit with a thrown error on cancellation, the task API provides a common error type, `CancellationError`, to communicate that the task was cancelled. The `Task.checkCancellation()` will throw `CancellationError` when the task has been cancelled, and is provided as a convenience.
 
+```swift
+extension Task {
+  /// Returns `true` if the task is cancelled, and should stop executing.
+  ///
+  /// This function returns instantly and will never suspend.
+  static func isCancelled() async -> Bool
+
+  /// The default cancellation thrown when a task is cancelled.
+  ///
+  /// This error is also thrown automatically by `Task.checkCancellation()`,
+  /// if the current task has been cancelled.
+  struct CancellationError: Error {
+    // no extra information, cancellation is intended to be light-weight
+    init() {}
+  }
+
+  /// Check if the task is cancelled and throw an `CancellationError` if it was.
+  ///
+  /// It is intentional that no information is passed to the task about why it
+  /// was cancelled. A task may be cancelled for many reasons, and additional
+  /// reasons may accrue / after the initial cancellation (for example, if the
+  /// task fails to immediately exit, it may pass a deadline).
+  ///
+  /// The goal of cancellation is to allow tasks to be cancelled in a
+  /// lightweight way, not to be a secondary method of inter-task communication.
+  ///
+  /// This function returns instantly and will never suspend.
+  static func checkCancellation() async throws
+}
+```
+
+For tasks that want to react immediately to cancellation (rather than, say, waiting until a cancellation error propagates upward), one can install a cancellation handler:
+ 
+```swift
+extension Task {
+  /// Execute an operation with cancellation handler which will immediately be
+  /// invoked if the current task is cancelled.
+  ///
+  /// This differs from the operation cooperatively checking for cancellation
+  /// and reacting to it in that the cancellation handler is _always_ and
+  /// _immediately_ invoked when the task is cancelled. For example, even if the
+  /// operation is running code which never checks for cancellation, a cancellation
+  /// handler still would run and give us a chance to run some cleanup code.
+  ///
+  /// Does not check for cancellation, and always executes the passed `operation`.
+  ///
+  /// This function returns instantly and will never suspend.
+  /* @instantaneous */
+  static func withCancellationHandler<T>(
+    handler: /* @concurrent */ () -> Void,
+    operation: () async throws -> T
+  ) async rethrows -> T
+```
 
 #### Voluntary Suspension
 
@@ -635,7 +688,7 @@ extension Task.Group {
   mutating func add(
       overridingPriority: Priority? = nil,
       operation: @escaping () async throws -> TaskResult
-  ) async
+  ) async /*TODO:throws?*/
 }
 ```
 
@@ -672,6 +725,8 @@ while let result = try await group.next() {
 ```
 
 ##### Task Groups: Throwing and cancellation
+
+When an error is thrown out of the `body` of `withGroup`, all of the tasks in the group are implicitly cancelled. One can explicitly cancel all tasks (and discard all results) using the `cancelAll()` operation:
 
 ```swift
 extension Task.Group {
