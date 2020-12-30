@@ -678,7 +678,7 @@ This waiting can be performed either:
 - by the code within the task group itself (e.g., using `next()`, described below), or
 - implicitly in the task group itself when returning from the `body`.
 
-#### Adding tasks to a group
+##### Adding tasks to a group
 
 Within the `body` function, tasks may be added dynamically with the `add` operation. Each task produces a value of the same type (the `ResultType` generic parameter):
 
@@ -688,7 +688,7 @@ extension Task.Group {
   mutating func add(
       overridingPriority: Priority? = nil,
       operation: @escaping () async throws -> TaskResult
-  ) async /*TODO:throws?*/
+  ) async -> Bool
 }
 ```
 
@@ -696,13 +696,16 @@ extension Task.Group {
 
 The `add` operation is `async` to allow for a form of back-pressure. If the executor on which the new task will be scheduled is oversubscribed, the `add` call itself can suspend to slow the creation of new tasks.
 
-### Querying tasks in the group
+The `add` operation returns `true` to indicate that the task was added to the group, and
+`false` otherwise. The only circumstance under which the task will not be added to the group is when the task group has been cancelled; see the section on [task group cancellation](#task-group-cancellation) for more information.
+
+##### Querying tasks in the group
 
 The `next()` operation allows one to gather the results from the tasks that have been added to the group. It produces the result from one of the tasks in the group, whether it is the normal result or a thrown error. 
 
 ```swift
 extension Task.Group {
-  /// Wait for a task to complete and return the result it returned (or throw if it
+  /// Wait for a task to complete and return the result it returned (or throw if the task
   /// exited with a thrown error), or else return `nil` when there are no tasks left in
   /// the group.
   mutating func next() async throws -> TaskResult? { ... } 
@@ -724,9 +727,16 @@ while let result = try await group.next() {
 }
 ```
 
-##### Task Groups: Throwing and cancellation
+With this pattern, if a single task throws an error, the error will be propagated out of the `body` function and the task group itself. To handle errors from individual tasks, one can use a do-catch block or the `nextResult()` method.
 
-When an error is thrown out of the `body` of `withGroup`, all of the tasks in the group are implicitly cancelled. One can explicitly cancel all tasks (and discard all results) using the `cancelAll()` operation:
+##### Task group cancellation
+
+There are several ways in which a task group can be cancelled. In all cases, all of the tasks in the group are cancelled and no more tasks can be added to the group (`add` will return `false`). The three ways in which a task group can be cancelled are:
+
+1. When an error is thrown out of the `body` of `withGroup`,
+2. When the task in which the task group itself was created is cancelled, or
+3. When the `cancelAll()` operation is invoked.
+
 
 ```swift
 extension Task.Group {
@@ -735,89 +745,6 @@ extension Task.Group {
   mutating func cancelAll() { ... } 
 }
 ```
-
-Worth pointing out here is that adding a task to a task group could fail because the task group could have been cancelled when we were about to add more tasks to it. To visualize this, let us consider the following example:
-
-Tasks in a task group by default handle thrown errors using like the musketeers would, that is: "*One for All, and All for One!*" In other words, if a single task throws an error, which escapes into the task group, all other tasks will be cancelled and the task group will re-throw this error.
-
-To visualize this, let us consider chopping vegetables again. One type of vegetable that can be quite tricky to chop up is onions, they can make you cry if you don't watch out. If we attempt to chop up those vegetables, the onion will throw an error into the task group, causing all other tasks to be cancelled automatically:
-
-```swift
-func chopOnionsAndCarrots(rawVeggies: [Vegetable]) async throws -> [Vegetable] {
-  try await Task.withGroup { task group in // (3) will re-throw the onion chopping error
-    // kick off asynchronous vegetable chopping:
-    for v in rawVeggies {
-      try await group.add { 
-        try await v.chopped() // (1) throws
-      }
-    }
-    
-    // collect chopped up results:
-    while let choppedVeggie = try await group.next() { // (2) will throw for the onion
-      choppedVeggies.append(choppedVeggie)
-    }
-  }
-}
-```
-
-Let us break up the `chopOnionsAndCarrots()` function into multiple steps to fully understand its semantics:
-
-- first add vegetable chopping tasks to the task group
-- then chopping of the various vegetables beings asynchronously,
-- eventually an onion will be chopped and `throw`
-
-##### Task Groups: Parent task cancellation
-
-So far we did not yet discuss the cancellation of task groups. A task group can be cancelled if the task in which it was created is cancelled. Cancelling a task group cancels all the tasks within it. Attempting to add more tasks into a cancelled task group will throw a `CancellationError`. The following example illustrates these semantics:
-
-```swift
-struct WorkItem { 
-  func process() async throws {
-    try await Task.checkCancellation() // (4)
-    // ... 
-  } 
-}
-
-let handle = Task.runDetached {
-  try await Task.withGroup(resultType: Int.self) { task group in
-    var processed = 0
-    for w in workItems { // (3)
-      try await task group.add { await w.process() }
-    }
-    
-    while let result = try await task group.next() { 
-      processed += 1
-    }
-    
-    return processed
-  }
-}
-
-handle.cancel() // (1)
-
-try await handle.get() // will throw CancellationError // (2)
-```
-
-There are various ways a task could be cancelled, however for this example let us consider a detached task being cancelled explicitly. This task is the parent task of the task group, and as such the cancellation will be propagated to it once the parent task's handle `cancel()` is invoked.
-
-Task Groups automatically check for the cancellation of the parent task when creating a new child task or waiting for a child task for complete. Adding a new task may also suspend if the system is under substantial load, as a form of back-pressure on the "queue" of new tasks being added to the system. These considerations allow the programmer to write straightforward, natural-feeling code that will still usually do the right thing by default.
-
-#### Task Groups: Implicitly awaited tasks
-Sometimes it is not necessary to gather the results of asynchronous functions (e.g. because they may be `Void` returning, "uni-directional"), in this case we can rely on the task group implicitly awaiting for all tasks started before returning. 
-
-In the following example we need to confirm each order that we received, however that confirmation does not return any useful value to us (either it is `Void` or we simply choose to ignore the return values):
-
-```swift
-func confirmOrders(orders: [Order]) async throws {
-  try await Task.withGroup { group in 
-    for order in orders {
-      try await group.add { await order.confirm() } 
-    }
-  }
-}
-```
-
-The `confirmOrders()` function will only return once all confirmations have completed, because the task group will await any outstanding tasks "at the end-edge" of its scope.
 
 ### Low-level code and integrating with legacy APIs
 
