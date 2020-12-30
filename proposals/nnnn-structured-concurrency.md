@@ -163,7 +163,7 @@ func makeDinner() async throws -> Meal {
 }
 ``` 
 
-`async let` is similar to a `let`, in that it defines a local constant that is initialized by the expression on the right-hand side of the `=`. However, it differs in that the initializer expression is evaluated in a separate, concurrently-executing child task. On normal completion, the child task will initialize the variables in the `async let`.
+`async let` is similar to a `let`, in that it defines a local constant that is initialized by the expression on the right-hand side of the `=`. However, it differs in that the initializer expression is evaluated in a separate, concurrently-executing child task. The child task beginning running as soon as the `async let` is encountered. On normal completion, the child task will initialize the variables in the `async let`.
 
 Because the main body of the function executes concurrently with its child tasks, it is possible that `makeDinner` will reach the point where it needs the value of an `async let` (say, `veggies`) before that value has been produced. To account for that, reading a variable defined by an `async let` is treated as a potential suspension point, and therefore must be marked with `await`. When the expression on right-hand side of the `=` of an `async let` can throw an error, that thrown error can be observed when reading the variable, and therefore must be marked with some form of `try`.
 The task will suspend until the child task has completed initialization of the variable (or thrown an error), and then resume.
@@ -842,6 +842,7 @@ All of the changes described in this document are additive to the language and a
   * Added a "desugaring" of `async let` to task groups and more motivation for the structured-concurrency parts of the design.
   * Reflowed the entire proposal to focus on the general description of structured concurrency first, the programming model with syntax next, and then details of the language features and API design last.
   * Reworked the presentation of the Task APIs with more rationale for the design.
+  * Added more discussion of why futures aren't more prominent.
   * "Task nursery" has been replaced with "task group".
   * Added support for asynchronous `@main` and top-level code.
   * Specify that `try` is not required in the initializer of an `async let`, because the thrown error is only observable when reading from one of the variables.
@@ -850,3 +851,30 @@ All of the changes described in this document are additive to the language and a
   * Removed the requirement that an `async let` variable be awaited on all paths.
 
 * Original pitch [document](https://github.com/DougGregor/swift-evolution/blob/06fd6b3937f4cd2900bbaf7bb22889c46b5cb6c3/proposals/nnnn-structured-concurrency.md)
+
+## Alternatives Considered
+
+### Prominent futures
+
+The design of `async let` and task groups intentionally avoids exposing any task handles (futures) for child tasks. This ensures that the structure of structured concurrency, where all child tasks complete before their parent task, is maintained. That helps various properties such as priorities, deadlines, and cancellation to propagate in a meaningful way down the task tree.
+
+However, an alternative design would bring futures to the forefront. Instead of `async let`, one could introduce an `addChild` counterpart to `addDetached` that creates a new child task (of the current task), and then retrieve the result of that child task using the provided `Task.Handle`. To ensure that child tasks complete before the scope exits, we would require some kind of scoping mechanism that provides similar behavior to task groups. For example, the `makeDinner` example would be something like:
+
+```swift
+func makeDinner() async throws -> Meal {
+  Task.withChildScope { scope in 
+    let veggiesHandle = scope.runChild { try await chopVegetables() }
+    let meatHandle = scope.runChild { await marinateMeat() }
+    let ovenHandle = scope.runChild { await preheatOven(temperature: 350) }
+
+    let dish = Dish(ingredients: await [try veggiesHandle.get(), meatHandle.get()])
+    return try await ovenHandle.get().cook(dish, duration: .hours(3))
+  }
+}
+```
+
+The task handles produced by `runChild` should never escape the scope in which they are created, although there is no language mechanism to enforce this. Moreover, the difference between detached and child tasks becomes blurred: both return the same `Task.Handle` type, but some have extra restrictions while others don't. So while it is possible to maintain structured concurrency with a future-centric design, it requires more programmer discipline (even for otherwise simple tasks), and provides less structure for the Swift compiler, optimizer, and runtime to use to provide an efficient implementation of child tasks.
+
+### Naming of `async let`
+
+`async let` introduces a new child task that executes concurrently. It was noted in earlier pitches that the use of `async` here might be too subtle for the introduction of concurrent work, and that something like `spawn let` might be more suitable. We don't have strong opinions on the term used here at this point, and note that nearly any word or attribute will work here in the grammar.
