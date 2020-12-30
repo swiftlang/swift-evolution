@@ -143,7 +143,7 @@ In some situations the priority of a task must be escalated in order to avoid a 
 - If a task is running on behalf of an actor, and a higher-priority task is enqueued on the actor, the task may temporarily run at the priority of the higher-priority task. This does not affect child tasks or the reported priority; it is a property of the thread running the task, not the task itself.
 
 - If a task is created with a task handle, and a higher-priority task waits for that task to complete, the priority of the task will be permanently increased to match the higher-priority task.  This does affect child tasks and the reported task priority.
-- 
+
 ## Proposed solution
 
 Our approach follows the principles of *structured concurrency* described above. All asynchronous functions run as part of an asynchronous task. Tasks can make child tasks that will perform work concurrently. This creates a hierarchy of tasks, and information can naturally flow up and down the hierarchy, making it convenient to manage the whole thing holistically.
@@ -364,7 +364,7 @@ On line *(1)*, we start a new child task to chop a carrot. Suppose that this cal
 
 As we mentioned before, the effect of cancellation on a task is synchronous and cooperative. Functions which do a lot of synchronous computation may wish to check explicitly for cancellation. They can do so by inspecting the task's cancelled status:
 
-```
+```swift
 func chop(_ vegetable: Vegetable) async throws -> Vegetable {
   try await Task.checkCancellation() // automatically throws `CancellationError`
   // chop chop chop ...
