@@ -746,11 +746,11 @@ extension Task.Group {
 }
 ```
 
-### Low-level code and integrating with legacy APIs
+#### Adapting callback APIs for `async` clients
 
-The low-level execution of asynchronous code occasionally requires escaping the high-level abstraction of an async functions and task groups. Also, it is important to enable APIs to interact with existing non-`async` code yet still be able to present to the users of such API a pleasant to use async function based interface.
+Swift APIs often provide asynchronous code execution by way of a callback. This may occur either because the code itself was written prior to the introduction of async/await, or (more interestingly in the long term) because it ties in with some other system that is primarily event-driven. In such cases, one may want to provide an `async` interface to clients while using callbacks internally.
 
-For such situations, this proposal introduces the concept of a `Unsafe(Throwing)Continuation`:
+The library provides two functions, `withUnsafeContinuation` and `withUnsafeThrowingContinuation`, that allow one to call into a callback-based API from inside `async` code. Each function takes an `operation`, which is expected to be a closure that will call into the callback-based API. The `operation` itself receives a `continuation` instance that must be resumed by the callback, either to provide the result value or (in the throwing variant) the thrown error.
 
 ```swift
 struct UnsafeContinuation<T> {
@@ -766,17 +766,17 @@ struct UnsafeThrowingContinuation<T, E: Error> {
   func resume(throwing: E)
 }
 
-func withUnsafeThrowingContinuation<T, E: Error>(
-    operation: (UnsafeThrowingContinuation<T, E>) -> ()
+func withUnsafeThrowingContinuation<T>(
+    operation: (UnsafeThrowingContinuation<T, Error>) -> ()
 ) async throws -> T
 ```
 
-Unsafe continuations allow for wrapping existing complex callback-based APIs and presenting them to the caller as if it was a plain async function.
-
-Rules for dealing with unsafe continuations:
+The operation provided to these unsafe continuation operations must follow several semantic rules:
 
 - the `resume` function must only be called *exactly-once* on each execution path the `operation` may take (including any error handling paths),
 - the `resume` function must be called exactly at the _end_ of the `operation` function's execution, otherwise or else it will be impossible to define useful semantics for captures in the operation function, which could otherwise run concurrently with the continuation; unfortunately, this unavoidably introduces some overhead to the use of these continuations.
+
+These properties can be checked at runtime by having the continuation instance record whether it was resumed, and using that information to report various failure conditions, such as being resumed twice or being destroyed without ever having been resumed. This checking does bear some runtime cost, so it can either be always-available or could use separate entrypoints.
 
 Using this API one may for example wrap such (purposefully convoluted for the sake of demonstrating the flexibility of the continuation API) function:
 
@@ -818,11 +818,7 @@ let veggies = try await buyVegetables(shoppingList: ["onion", "bell pepper"])
 
 Thanks to weaving the right continuation resume calls into the complex callbacks of the `buyVegetables` function, we were able to offer a much nicer overload of this function, allowing our users to rely on the async/await to interact with this function.
 
-> **The challenge with diagnostics for Unsafe**: It is theoretically possible to provide compiler diagnostics to help developers avoid *simple* mistakes with resuming the continuation multiple times (or not at all).
-> 
-> However, since the primary use case of this API is often integrating with complicated callback-style APIs (such as the `buyVegetables` shown above) it is often impossible for the compiler to have enough information about each callback's semantics to meaningfully produce diagnostic guidance about correct use of this unsafe API. 
-> 
-> Developers must carefully place the `resume` calls guarantee the proper resumption semantics of unsafe continuations, lack of consideration for a case where resume should have been called will result in a task hanging forever, justifying the unsafe denotation of this API.
+
 
 ## Source compatibility
 
