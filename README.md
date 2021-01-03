@@ -12,7 +12,7 @@ This repository tracks the ongoing evolution of Swift. It contains:
 ## Goals and Release Notes
 
 * [On the road to Swift 6](https://forums.swift.org/t/on-the-road-to-swift-6/32862)
-* [CHANGELOG](https://github.com/apple/swift/blob/master/CHANGELOG.md)
+* [CHANGELOG](https://github.com/apple/swift/blob/main/CHANGELOG.md)
 
 | Version   | Announced                                                       | Released                                                 |
 | :-------- | :-------------------------------------------------------------- | :------------------------------------------------------- |
