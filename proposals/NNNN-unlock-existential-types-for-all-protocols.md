@@ -8,7 +8,7 @@
 
 ## Introduction
 
-Swift currently offers the ability for protocols that meet certain criteria to be used as types. Trying to use an unsupported protocol as a type yields the error: [the protocol] can only be used as a generic constraint because it has 'Self' or associated type requirements. This proposal aims to relax this artificial constraint imposed on such protocols.
+Swift currently offers the ability for protocols that meet certain criteria to be used as types. Swift currently offers the ability for protocols with requirement meeting certain criteria to be used as types. Trying to use an unsupported protocol as a type yields the error: [the protocol] can only be used as a generic constraint because it has 'Self' or associated type requirements. This proposal aims to relax this artificial constraint, and instead constraint the availability of protocol members.
 
 ## Motivation
 
