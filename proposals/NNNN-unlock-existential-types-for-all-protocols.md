@@ -17,7 +17,7 @@ Existential types are types synthesized by the compiler that can wrap any value 
 
 ### Heterogenous Collections
 
-Such use cases that involve dynamicity can be heterogenous collections. That is, collections that need to take any type conforming to a given set of constraints involve, by their nature, some sort of existential type. For example:
+Heterogeneous collections inherently involve some sort of dynamicity; for example, consider this `User` protocol:
 
 ```swift
 protocol User { 
@@ -71,7 +71,7 @@ let userList = [User]() ❌
 // constraint because it has Self or associated type requirements.
 ```
 
-As you can see, the current limitations on existential types prohibit the creation of our `userList`. As a result, we’ll need to create our own, manually-written existential type for `User`, which is a tedious task that requires some level experience.
+Evidently, the current limitations on existential types prohibit the creation of our `userList`. As a result, we’ll need to create our own, manually-written existential type for `User`, which is a tedious task that requires some level experience.
 
 
 ### Existential Type Synthesis for Library Authors
