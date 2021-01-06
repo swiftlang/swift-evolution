@@ -149,7 +149,7 @@ There are several kinds of postfix expressions in Swift grammar.
 * optional chaining expression
 * postfix operator expression
 
-Body of postfix `#if` expression must start with explicit member expression, initializer expression, or postfix self expression.  But you can continue the expression with any other postfix expression suffixes. e.g.
+The body of a postfix `#if` expression must start with an explicit member expression, initializer expression, or postfix self expression (that is, the suffixes that begin with `.`).  Once started this way, you can continue the expression with any other postfix expression suffixes.  For example:
 
 ```swift
 // OK
@@ -163,7 +163,7 @@ baseExpr
 #endif
 ```
 
-Note that you however cannot continue infix operator binary expressions inside the body because binary expression is not a postfix expression.
+However, you cannot continue the expression within the `#if` with non-postfix suffixes.  For example, you cannot contiinue it with a binary operator, because a binary expression is not a postfix expression:
 
 ```swift
 // ERROR
@@ -173,11 +173,11 @@ baseExpr
 #endif
 ```
 
-Starting with other postfix expressions is not allowed because most of them must start on the same line as the base expression.
+Starting with other postfix expression suffixes besides those beginning with `.` is not allowed because this would be ambiguous with starting a new statement.  These suffixes are generally required to start on the same line as the base expression.
 
-### Empty `#elseif`/`#else` body
+### `#elseif`/`#else` body
 
-`#elseif` and `#else` body can be empty.
+While the body of the `#if` clause must begin with `.`, the body of any `#elseif` or `#else` clauses can be empty.
 
 ```swift
 // OK
@@ -189,7 +189,7 @@ baseExpr
 #endif
 ```
 
- Though unrelated statements in the body is not allowed.
+If the clause is not empty, then it has the same requirements as the `#if` clause: it must begin with a postfix expression suffix starting with `.`, it may not continue into a non-postfix expression, and it must not contain an unrelated statement.
 
 ```swift
 // ERROR
