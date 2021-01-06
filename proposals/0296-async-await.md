@@ -30,7 +30,7 @@ Table of Contents
       * [Alternatives Considered](#alternatives-considered)
          * [Make await imply try](#make-await-imply-try)
          * [Launching async tasks](#launching-async-tasks)
-         * [Await as syntactic sugar](#await-as-syntactic-sugar]
+         * [Await as syntactic sugar](#await-as-syntactic-sugar)
       * [Revision history](#revision-history)
       * [Related proposals](#related-proposals)
       * [Acknowledgments](#acknowledgments)
