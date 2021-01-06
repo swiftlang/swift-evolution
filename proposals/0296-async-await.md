@@ -685,7 +685,7 @@ None of the concerns for top-level code affect the fundamental mechanisms of asy
 
 ### Await as syntactic sugar
 
-This proposal makes `async` functions a core part of the Swift type system, distinct from synchronos functions. An alternative design would leave the type system unchanged, and instead make `async` and `await` syntactic sugar over some `Future<T, Error>` type, e.g.,
+This proposal makes `async` functions a core part of the Swift type system, distinct from synchronous functions. An alternative design would leave the type system unchanged, and instead make `async` and `await` syntactic sugar over some `Future<T, Error>` type, e.g.,
 
 ```swift
 async func processImageData() throws -> Future<Image, Error> {
