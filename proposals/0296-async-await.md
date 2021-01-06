@@ -708,6 +708,7 @@ This approach has a number of downsides vs. the proposed approach here:
 
 * Post-review changes:
    * Replaced `await try` with `try await`.
+   * Added syntactic-sugar alternative design.
 * Changes in the second pitch:
 	* One can no longer directly overload `async` and non-`async` functions. Overload resolution support remains, however, with additional justification.
 	* Added an implicit conversion from a synchronous function to an asynchronous function.
