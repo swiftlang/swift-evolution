@@ -712,7 +712,7 @@ This approach has a number of downsides vs. the proposed approach here:
 * Changes in the second pitch:
 	* One can no longer directly overload `async` and non-`async` functions. Overload resolution support remains, however, with additional justification.
 	* Added an implicit conversion from a synchronous function to an asynchronous function.
-	* Added `try await` ordering restriction to match the `async throws` restriction.
+	* Added `await try` ordering restriction to match the `async throws` restriction.
 	* Added support for `async` initializers.
 	* Added support for synchronous functions satisfying an `async` protocol requirement.
 	* Added discussion of `reasync`.
