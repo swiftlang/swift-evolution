@@ -545,7 +545,43 @@ The implementation is able to form a chain of contexts, such that each context p
 
 This blog post is fairly informative on how this is used in the real world: [
 Go Concurrency Patterns: Context](https://blog.golang.org/context).
+
+## Alternatives Considered
+
+### Surface API: Key-less value definitions
+
+Stefano De Carlois proposed on the forums to simplify the definition sites to be:
+
+```swift
+extension Task.Local {
+  var foo: String { "Swift" }
+}
+```
+
+Our concerns about this shape of API are: 
+
+- it prioritizes briefity and not clarity. It is not clear that the value returned by the computed property `foo` is the default value. And there isn't a good place to hint at this. In the `...Key` proposal we have plenty room to define a function `static var defaultValue` which developers need to implement, immediately explaining what this does.
+- this shape of API means that we would need to actively invoke the key-path in order to obtain the value stored in it. With the `...Key` proposal. We are concerned about the performance impact of having to invoke the key-path rather than invoke a static function on a key, however we would need to benchmark this to be sure about the performance impact.
+- it makes it harder future extension, if we needed to allow special flags for some keys. Granted, we currently do not have an use-case for this, but with Key types is is trivial to add special "do not inherit" or "force a copy" or similar behaviors for specific keys. It is currently not planned to implement any such modifiers though.
  
+For completeness, the functions to read and bind values with this proposal would become:
+
+```swift
+enum Task {
+  enum Local {}
+  
+  static func withLocal<Value, BodyResult>(
+    _ path: KeyPath<Local, Value>,
+    boundTo value: Value,
+    body: @escaping () async -> BodyResult
+  ) async -> BodyResult { ... }
+  
+  static func local<Value>(
+    _ path: KeyPath<Local, Value>
+  ) async -> Value { ... }
+}
+```
+
 ## Rejected Alternatives
 
 ### Plain-old Thread Local variables
@@ -822,9 +858,9 @@ This change is purely additive to the source language.
 
 ## Effect on ABI stability
 
-This proposal is purely additive.
+This proposal is additive in nature.
 
-It utilizes an internal storage mechanism already present in the `Task`.
+It adds one additional pointer for implementing the task local value stack in `AsyncTask`.
 
 ## Effect on API resilience
 
