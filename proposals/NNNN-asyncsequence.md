@@ -3,12 +3,12 @@
 * Proposal: [SE-NNNN](Async-Await-Series.md.md)
 * Authors: [Tony Parker](https://github.com/parkera), [Philippe Hausler](https://github.com/phausler)
 * Review Manager: TBD
-* Status: **Awaiting implementation**
-* Implementation: **TODO** [apple/swift#NNNNN](https://github.com/apple/swift/pull/NNNNN) or [apple/swift-evolution-staging#NNNNN](https://github.com/apple/swift-evolution-staging/pull/NNNNN)
+* Status: **Awaiting review**
+* Implementation: [apple/swift#35224](https://github.com/apple/swift/pull/35224)
 
 ## Introduction
 
-Swift's proposed [async/await](https://github.com/DougGregor/swift-evolution/blob/async-await/proposals/nnnn-async-await.md) feature provides an intuitive, built-in way to write and use functions that return a single value at some future point in time. We propose building on top of this feature to create an intuitive, built-in way to write and use functions that return many values over time.
+Swift's [async/await](https://github.com/apple/swift-evolution/blob/main/proposals/0296-async-await.md) feature provides an intuitive, built-in way to write and use functions that return a single value at some future point in time. We propose building on top of this feature to create an intuitive, built-in way to write and use functions that return many values over time.
 
 This proposal is composed of the following pieces:
 
