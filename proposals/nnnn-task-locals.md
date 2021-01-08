@@ -78,7 +78,7 @@ Finally, those mechanisms are outright incompatible with asynchronous code that 
 
 Tasks already require the capability to "carry metadata with them," and that metadata used to implement both cancellation, deadlines as well as priority propagation for a `Task` and its child tasks. Specifically Task API's exhibiting similar behavior are: `Task.currentPriority()`, `Task.currentDeadline()` and `Task.isCancelled()`. Task local values do not directly use the same storage mechanism, as cancellation and priority is somewhat optimized because _all_ tasks carry them, but the semantics are the same.
 
-We propose to expose the Task's internal ability to "carry metadata with it" via an Swift API, *aimed for library and instrumentation authors* such that they can participate in carrying additional information with Tasks, the same way as Tasks already do with priority and deadlines and other metadata.
+We propose to expose the Task's internal ability to "carry metadata with it" via a Swift API, *aimed for library and instrumentation authors* such that they can participate in carrying additional information with Tasks, the same way as Tasks already do with priority and deadlines and other metadata.
 
 Task local values may only be accessed from contexts that are running in a task: asynchronous functions. As such all operations, except declaring the task-local value's handle are asynchronous operations.
 
@@ -828,7 +828,7 @@ This is troublesome because it means that refactoring any code that needs to acc
 
 This limitation will be lifted as the ABI of async functions is locked down and stabilized in the coming versions of Swift.
 
-One these issues are resolved, the Task API is expected to gain API similar to these:
+Once these issues are resolved, the Task API is expected to gain API similar to these:
 
 ```swift
 extension Task {
@@ -848,9 +848,9 @@ func synchronous() {
 }
 ```
 
-The function `local(_:)` is defined on the `UnsafeCurrentTask` itself _on purpose_ as to avoid the more expensive lookup that may be involved with `unsafeCurrent()`. These APIs may change and are subject to a different proposal however.
+The function `local(_:)` is defined on the `UnsafeCurrentTask` itself _on purpose_ so as to avoid the more expensive lookup that may be involved with `unsafeCurrent()`. These APIs may change and are subject to a different proposal however.
 
-This is important for use cases such as logging with contextual metadata. It would be not only annoying, but error prone if unable to log with contextual metadata, as users don't necessarily want to write `await` before every single log statement in their application - it would send the wrong message about why the await is needed and may make it seem like the logger will suspend until it flushed a message or something while that is not true, and it would only need the `await` to access the task for logging.
+This is important for use cases such as logging with contextual metadata. It would be not only annoying, but also error-prone if unable to log with contextual metadata, as users don't necessarily want to write `await` before every single log statement in their application –– it would send the wrong message about why the await is needed and may make it seem like the logger will suspend until it flushed a message or something while that is not true, and it would only need the `await` to access the task for logging.
 
 ### Tracing annotations with Function Wrappers
 
