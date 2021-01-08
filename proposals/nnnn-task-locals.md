@@ -359,8 +359,15 @@ This approach is highly optimized for the kinds of use-cases such values are use
   - tasks must always be able to call `Task.local(_:)` and get predictable values back; specifically, this means that a task _must not_ be able to mutate its task-local values -- because child tasks run concurrently with it, this would mean that a child task invoking `Task.local(_:)` twice, could get conflicting results, leading to a confusing programming model
   - **conclusion**: task local storage must be initialized at task creation time and cannot be mutated, values may only be "bound" by creating new scopes/tasks.
 
-
 > Note: This approach is similar to how Go's `Context` objects work -- they also cannot be mutated, but only `With(...)` copied, however the copies actually form a chain of contexts, all pointing to their parent context. In Swift, we simply reuse the Concurrency model's inherent `Task` abstraction to implement this pattern.
+
+#### Child task and value lifetimes
+
+It is also important to note that no additional synchronization is needed on the internal implementation of the task local value stack / linked-list. This is because we strongly rely on guarantees of structured concurrency. Specifically, we exploit the guarantee that:
+
+> *By the time the scope exits, the child task must either have completed, or it will be implicitly awaited.* When the scope exits via a thrown error, the child task will be implicitly cancelled before it is awaited.
+
+Thanks to this guarantee child tasks may directly point at the head of the stack of their parent (or super-parent), and we need not implement any additional house-keeping for those references. We know that the parent task will always have values we pointed to from child tasks (defined within a `withLocal` body) present, and the child tasks are guaranteed to complete before the `withLocal` returns. We use this to automatically pop bound values from the value stack as we return from the `withLocal` function, this is guaranteed to be safe, since by that time, all child tasks must have completed and no-one will refer to the task local-values at that point anymore.
 
 ### Similarities and differences with SwiftUI `Environment`
 
