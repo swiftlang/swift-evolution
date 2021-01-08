@@ -21,7 +21,7 @@ This proposal is composed of the following pieces:
 We'd like iterating over asynchronous sequences of values to be as easy as iterating over synchronous sequences of values. An example use case is iterating over the lines in a file, like this:
 
 ```swift
-for await try line in myFile.lines() {
+for try await line in myFile.lines() {
   // Do something with each line
 }
 ```
@@ -56,7 +56,7 @@ Going one step further, let's imagine how it might look to use our new `lines` f
 ```swift
 let header: String?
 do {
-  for await try line in myFile.lines() {
+  for try await line in myFile.lines() {
     header = line
     break
   }
@@ -70,7 +70,7 @@ Or, perhaps we actually do want to read all lines in the file before starting ou
 ```swift
 var allLines: [String] = []
 do {
-  for await try line in myFile.lines() {
+  for try await line in myFile.lines() {
     allLines.append(line)
   }
 } catch {
@@ -173,7 +173,7 @@ Any other exit (e.g., `return` or `throw`) from the `for` loop will also call `c
 Returning to our earlier example:
 
 ```swift
-for await try line in myFile.lines() {
+for try await line in myFile.lines() {
   // Do something with each line
 }
 ```
@@ -182,7 +182,7 @@ The compiler will emit the equivalent of the following code:
 
 ```swift
 var it = myFile.lines().makeAsyncIterator()
-while let value = await try it.next() {
+while let value = try await it.next() {
   // Do something with each line
 }
 ```
@@ -198,11 +198,11 @@ If, inside the body of the loop, the code calls `break`, `return` or `throw`, th
 If this iteration is itself in a context in which cancellation can occur, then it is up to the developer to check for cancellation themselves and break out of the loop:
 
 ```swift
-for await try line in myFile.lines() {
+for try await line in myFile.lines() {
   // Do something
   ...
   // Check for cancellation
-  await try Task.checkCancellation()
+  try await Task.checkCancellation()
 }
 ```
 
@@ -262,7 +262,7 @@ extension AsyncSequence {
 With this extension, our "first line" example from earlier becomes simply:
 
 ```swift
-let first = await try? myFile.lines().first()
+let first = try? await myFile.lines().first()
 ```
 
 The following functions will be added to `AsyncSequence`:
