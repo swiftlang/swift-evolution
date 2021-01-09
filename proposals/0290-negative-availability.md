@@ -4,7 +4,8 @@
 * Author: [Bruno Rocha](https://github.com/rockbruno)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Implementation: [apple/swift#33932](https://github.com/apple/swift/pull/33932)
-* Status: **Returned for revision**
+* Status: **Active review (January 4...January 12)**
+* Previous revision: [1](https://github.com/apple/swift-evolution/blob/066545c1cc9ff2b87ce233e0f8936f8d53724bdb/proposals/0290-negative-availability.md)
 * Decision Notes: [Review #1](https://forums.swift.org/t/se-0290-unavailability-condition/41873/34)
 
 ## Introduction
@@ -161,6 +162,62 @@ if #unavailable(iOS 9.0, *) {
 }
 ```
 
+### Semantics of `*` for unavailability
+
+Availability statements are composed by a list of platform specs. The purpose of the list is to answer what's the platform version requirement necessary for the statement to return true in the platform where the code is being compiled.
+
+For this to work properly, the spec list must always contain an entry that matches the platform that's being compiled. An entry can be added to the list by either writing an explicit platform requirement (like `iOS 12`) or by using the generic platform wildcard `*`. Essentially, the wildcard signals that the expression being written is unrelated to the current platform, meaning that no version specification is needed. In practice, "no version specification needed" is done by treating the wildcard as the minimum deployment target of the platform, which essentially will cause the statement to never be false.
+
+```swift
+// Example: Code is compiling in iOS
+
+error: condition required for target platform 'iOS'
+if #available(macOS 11) {
+   ^
+
+/// Examples of possible solutions:
+if #available(macOS 11, *)
+if #available(macOS 11, iOS 12)
+if #available(iOS 12)
+// In practice, the last two will not compile due to an additional requirement that is mentioned below.
+```
+
+Even if you have no plans to use your code in a different platform, your statement must still define the wildcard as a way to define what should happen in all unspecified current and potential new future platforms. The compiler uses the wildcard to ease porting to new platforms -- because the platform being compiled must always have an entry in the spec list, the wildcard allows these platforms to compile your code without requiring a modification to every availability guard in the program. Additionally, because new platforms typically branch from existing platforms, the wildcard also makes sure these ported checks will always return `true` by default when checking for availability.
+
+It's important to note that availability spec lists **are not boolean expressions**. For example, it's not possible to add multiple versions of a platform to the statement:
+
+```swift
+if #available(iOS 12, *)
+if #available(iOS 12, iOS 13, *) // Error: Version for 'iOS' already specified
+```
+
+Additionally, the specification of different platforms have no effect on the final result -- it depends *only* on the (unique) spec that matches the current platform being compiled. A check like `#available(iOS 12, watchOS 4, *)` compiled in iOS doesn't mean "return true if (iOS 12 **||** watchOS 4 **||** the current platform's minimum deployment target) is available", it simply means "return true if iOS 12 is available". The specs that refer to different platforms are ignored.
+
+Finally, the wildcard represents *only* the platforms that were not explicitly specified in the spec list. When `#available(iOS 13, *)` is compiled for iOS, the wildcard will be ignored in favor of the explictly defined iOS 13 spec. As mentioned before, a platform can only be mentioned once.
+
+For unavailability, the semantics mentioned above means that `#unavailable(*)` and `#unavailable(notWhatImCompiling X, *)` should do the opposite of `#available` and return `false`. Since the minimum deployment target will always be present, the statement can never be true. This behavior is exactly how the current workaround works, and it also matches how the theoretical `!#available(*)` would behave.
+
+```swift
+if #unavailable(*) {
+  // Will never be executed
+} else {
+  // ...
+}
+```
+
+As an interesting side effect, this means that having multiple unavailability checks in the same statement (`#unavailable(iOS 13, *), #unavailable(watchOS 3, *)` as opposed to `#unavailable(iOS 13, watchOS 3, *)`) would cause the statement to always be false if they are triggering the wildcard (in this case, because they cover different platforms). 
+
+In these cases, since wildcard checks are eventually optimized to boolean literals, the compiler will already emit a warning indicating that the code will never be executed. Still, we could provide a more descriptive diagnostic that suggests using a single check that considers all platforms. 
+
+```swift
+if #unavailable(iOS 13, *), #unavailable(watchOS 3, *) {
+  // ... 
+  // Warning: code will never be executed
+  // Warning: unavailability checks in this statement are canceling each other, use a single check that treats all platforms 
+  // fix-it: #unavailable(iOS 13, watchOS 3, *)
+}
+```
+
 ### Result builders
 
 As `#unavailable` behaves exactly like `#available`, [`ViewBuilder`](https://developer.apple.com/documentation/swiftui/viewbuilder) does not need to be modified to support it. Using `#unavailable` on a builder will simply instead trigger [`buildLimitedAvailability(_:)`](0289-result-builders.md#availability) in the `else` block.
@@ -178,3 +235,19 @@ While allowing the original condition to be reversed seems to be the obvious cho
 Refactoring `#available` to be usable as an expression would likely require refactoring the entire symbol availability system and has an extensive amount of implications and edge cases. The work to support it would be considerably beyond what is proposed here.
 
 Supporting it by hardcoding this behavior is possible though, and could be implemented if the core team is willing and has a plan to eliminate the resulting tech debt in the future.
+
+On the other hand, given that it's fair to consider that this is a developer's first guess when attempting to do unavailability, the compiler will provide fix-its for each of these spellings.
+
+### `#unavailable(iOS 12)`, `#unavailable(iOS 12 && *)`, `#available(iOS < 12, *)` and other alternatives that involve reworking spec lists
+
+One point of discussion was the importance of the wildcard in the case of unavailability. Because the wildcard achieves nothing in terms of functionality, we considered alternatives that involved omitting or removing it completely. However, the wildcard is still important from a platform migration point of view, because although we don't need to force the guarded branch to be executed like in `#available`, the presence of the wildcard still play its intended role of allowing code involving unavailability statements to be ported to different platforms without requiring every single statement to be modified.
+
+Additionally, we had lenghty discussions about the *readability* of unavailability statements. We've noticed that even though availability in Swift has never been a boolean expression, it was clear that pretty much every developer's first instinct is to assume that `(iOS 12, *)` is equivalent to `iOS 12 || *`. The main point of discussion then was that the average developer might not understand why a call like `#unavailable(iOS 12, *)` will return `false` in non-iOS platforms, because they will assume the list means `iOS 12 || *` (`true`), while in reality (and as described in the `Semantics` section) the list means just `*` (`false`). During the pitch we tried to come up with alternatives that could eliminate this, and although some of them *did* succeed in doing that, they were doing so at the cost of making `#unavailable` "misleading", just like in the case of `!#available`. We ultimately decided that these improvements would be better suited for a *separate* proposal that focused on improving spec lists in general, which will be mentioned again at the end of this section.
+
+In general, there was much worry that this confusion could cause developers to misuse `#unavailable` and introduce bugs in their applications. We can prove that this feeling cannot happen in practice by how `#unavailable` doesn't introduce any new behavior -- it's nothing more than a reversed `#available` with a reversed literal name, which is semantically no different than the current workaround of using the `else` branch. Any confusing `#unavailable` scenario can also be conveyed as a confusing `#available` scenario by simply swapping the branches.
+
+Additionally, we were unable to locate concrete examples where this confusion could *actually* cause the feature to be misused. This is because if someone *does* misunderstand the branches, the project will simply fail to compile as there are symbols being used outside of an availability range. This was the case even when we tried to make the statements as vague as possible in an attempt to introduce a bug on purpose, and should hopefully make it clear for a confused developer that their code is simply upside-down.
+
+Although it's possible for developers to feel confused by the syntax, this is something that already exists with `#available` and cannot result in the feature being misused. As `#unavailable` does not introduces any new functionality that could change this, the author personally believes that this issue could be considered harmless and orthogonal to this proposal.
+
+However, we *do* have an unanimous agreement that spec lists can be confusing and that a new proposal should be created that re-evaluates how they are defined in code. Some members have also shared their belief that this re-evaluation should also happen *before* this proposal is introduced, which the author also agrees if there is a strong argument that `#unavailable` as is can be harmful for Swift.

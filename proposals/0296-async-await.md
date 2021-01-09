@@ -3,8 +3,9 @@
 * Proposal: [SE-0296](0296-async-await.md)
 * Authors: [John McCall](https://github.com/rjmccall), [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active review (December 8...December 22)**
+* Status: **Accepted**
 * Implementation: Available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-modification-se-0296-async-await/43318)
 
 Table of Contents
 =================
@@ -30,6 +31,7 @@ Table of Contents
       * [Alternatives Considered](#alternatives-considered)
          * [Make await imply try](#make-await-imply-try)
          * [Launching async tasks](#launching-async-tasks)
+         * [Await as syntactic sugar](#await-as-syntactic-sugar)
       * [Revision history](#revision-history)
       * [Related proposals](#related-proposals)
       * [Acknowledgments](#acknowledgments)
@@ -267,10 +269,10 @@ func decodeImage(_ r1: Resource, _ r2: Resource) async throws -> Image
 func dewarpAndCleanupImage(_ i : Image) async throws -> Image
 
 func processImageData() async throws -> Image {
-  let dataResource  = await try loadWebResource("dataprofile.txt")
-  let imageResource = await try loadWebResource("imagedata.dat")
-  let imageTmp      = await try decodeImage(dataResource, imageResource)
-  let imageResult   = await try dewarpAndCleanupImage(imageTmp)
+  let dataResource  = try await loadWebResource("dataprofile.txt")
+  let imageResource = try await loadWebResource("imagedata.dat")
+  let imageTmp      = try await decodeImage(dataResource, imageResource)
+  let imageResult   = try await dewarpAndCleanupImage(imageTmp)
   return imageResult
 }
 ```
@@ -333,7 +335,7 @@ If a function is both `async` and `throws`, then the `async` keyword must preced
 
 > **Rationale** : This order restriction is arbitrary, but it's not harmful, and it eliminates the potential for stylistic debates.
 
-An `async` initializer of a class that has a superclass but lacks a call to a superclass initializer will get an implicit call to `super.init()` only if the superclass has has a zero-argument, synchronous, designated initializer.
+An `async` initializer of a class that has a superclass but lacks a call to a superclass initializer will get an implicit call to `super.init()` only if the superclass has a zero-argument, synchronous, designated initializer.
 
 > **Rationale**: If the superclass initializer is `async`, the call to the asynchronous initializer is a potential suspension point and therefore the call (and required `await`) must be visible in the source.
  
@@ -373,16 +375,16 @@ Consider the following example:
 
 ```swift
 // func redirectURL(for url: URL) async -> URL { ... }
-// func dataTask(with: URL) async throws -> URLSessionDataTask { ... }
+// func dataTask(with: URL) async throws -> (Data, URLResponse) { ... }
 
 let newURL = await server.redirectURL(for: url)
-let (data, response) = await try session.dataTask(with: newURL)
+let (data, response) = try await session.dataTask(with: newURL)
 ```
 
 In this code example, a task suspension may happen during the calls to `redirectURL(for:)` and `dataTask(with:)` because they are async functions. Thus, both call expressions must be contained within some `await` expression, because each call contains a potential suspension point. An `await` operand may contain more than one potential suspension point. For example, we can use one `await` to cover both potential suspension points from our example by rewriting it as:
 
 ```swift
-let (data, response) = await try session.dataTask(with: server.redirectURL(for: url))
+let (data, response) = try await session.dataTask(with: server.redirectURL(for: url))
 ```
 
 The `await` has no additional semantics; like `try`, it merely marks that an asynchronous call is being made.  The type of the `await` expression is the type of its operand, and its result is the result of its operand.
@@ -398,11 +400,11 @@ A potential suspension point must not occur within an autoclosure that is not of
 
 A potential suspension point must not occur within a `defer` block.
 
-If `await` is directly followed with one of the variants of `try` (including `try!` and `try?`), `await` must precede the `try`/`try!`/`try?`:
+If both `await` and a variant of `try` (including `try!` and `try?`) are applied to the same subexpression, `await` must follow the `try`/`try!`/`try?`:
 
 ```swift
-let (data, response) = try await session.dataTask(with: server.redirectURL(for: url)) // error: must be `await try`
-let (data, response) = try (await session.dataTask(with: server.redirectURL(for: url))) // okay due to parentheses
+let (data, response) = await try session.dataTask(with: server.redirectURL(for: url)) // error: must be `try await`
+let (data, response) = await (try session.dataTask(with: server.redirectURL(for: url))) // okay due to parentheses
 ```
 
 > **Rationale**: this restriction is arbitrary, but follows the equally-arbitrary restriction on the ordering of `async throws` in preventing stylistic debates.
@@ -610,7 +612,7 @@ extension Sequence {
     var result = [Transformed]()
     var iterator = self.makeIterator()
     while let element = iterator.next() {
-      result.append(await try transform(element))   // note: this is the only `try` and only `await`!
+      result.append(try await transform(element))   // note: this is the only `try` and only `await`!
     }
     return result
   }
@@ -636,7 +638,7 @@ func ??<T>(
     return value
   }
 
-  return await try defaultValue()
+  return try await defaultValue()
 }
 ```
 
@@ -646,11 +648,11 @@ For such cases, the ABI concern described above can likely be addressed by emitt
 
 ### Make `await` imply `try`
 
-Many asynchronous APIs involve file I/O, networking, or other failable operations, and therefore will be both `async` and `throws`. At the call site, this means `await try` will be repeated many times. To reduce the boilerplate, `await` could imply `try`, so the following two lines would be equivalent:
+Many asynchronous APIs involve file I/O, networking, or other failable operations, and therefore will be both `async` and `throws`. At the call site, this means `try await` will be repeated many times. To reduce the boilerplate, `await` could imply `try`, so the following two lines would be equivalent:
 
 ```swift
 let dataResource  = await loadWebResource("dataprofile.txt")
-let dataResource  = await try loadWebResource("dataprofile.txt")
+let dataResource  = try await loadWebResource("dataprofile.txt")
 ```
 
 We chose not to make `await` imply `try` because they are expressing different kinds of concerns: `await` is about a potential suspension point, where other code might execute in between when you make the call and it when it returns, while `try` is about control flow out of the block.
@@ -682,8 +684,32 @@ top-level variables.
 
 None of the concerns for top-level code affect the fundamental mechanisms of async/await as defined in this proposal.
 
+### Await as syntactic sugar
+
+This proposal makes `async` functions a core part of the Swift type system, distinct from synchronous functions. An alternative design would leave the type system unchanged, and instead make `async` and `await` syntactic sugar over some `Future<T, Error>` type, e.g.,
+
+```swift
+async func processImageData() throws -> Future<Image, Error> {
+  let dataResource  = try loadWebResource("dataprofile.txt").await()
+  let imageResource = try loadWebResource("imagedata.dat").await()
+  let imageTmp      = try decodeImage(dataResource, imageResource).await()
+  let imageResult   = try dewarpAndCleanupImage(imageTmp).await()
+  return imageResult
+}
+```
+
+This approach has a number of downsides vs. the proposed approach here:
+
+* There is no universal `Future` type on which to build it in the Swift ecosystem. If the Swift ecosystem had mostly settled on a single future type already (e.g., if there were already one in the standard library), a syntactic-sugar approach like the above would codify existing practice. Lacking such a type, one would have to try to abstract over all of the different kinds of future types with some kind of `Futurable` protocol. This may be possible for some set of future types, but would give up any guarantees about the behavior or performance of asynchronous code.
+* It is inconsistent with the design of `throws`. The result type of asynchronous functions in this model is the future type (or "any `Futurable` type"), rather than the actual returned value. They must always be `await`'ed immediately (hence the postfix syntax) or you'll end up working with futures when you actually care about the result of the asynchronous operation. This becomes a programming-with-futures model rather than an asynchronous-programming model, when many other aspects of the `async` design intentionally push away from thinking about the futures.
+* Taking `async` out of the type system would eliminate the ability to do overloading based on `async`. See the prior section on the reasons for overloading on `async`.
+* Futures are relatively heavyweight types, and forming one for every async operation has nontrivial costs in both code size and performance. In contrast, deep integration with the type system allows `async` functions to be purpose-built and optimized for efficient suspension. All levels of the Swift compiler and runtime can optimize `async` functions in a manner that would not be possible with future-returning functions.
+
 ## Revision history
 
+* Post-review changes:
+   * Replaced `await try` with `try await`.
+   * Added syntactic-sugar alternative design.
 * Changes in the second pitch:
 	* One can no longer directly overload `async` and non-`async` functions. Overload resolution support remains, however, with additional justification.
 	* Added an implicit conversion from a synchronous function to an asynchronous function.
