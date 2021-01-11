@@ -568,33 +568,6 @@ With this type, `GenericActor<Int>` maintains actor isolation but `GenericActor<
 
 There are solutions to these problems. However, the scope of the solutions is large enough that they deserve their own separate proposals. Therefore, **this proposal only provides basic actor isolation for data race safety with value types**.
 
-### Global actors
-
-What we’ve described as actor isolation is one part of a larger problem of data isolation.  It is important that all memory be protected from data races, not just memory directly associated with an instance of an actor class. Global actors allow code and state anywhere to be actor-isolated to a specific singleton actor. This extends the actor isolation rules out to annotated global variables, global functions, and members of any type or extension thereof. For example, global actors allow the important concepts of "Main Thread" or "UI Thread" to be expressed in terms of actors without having to capture everything into a single class. 
-
-*Global actors* provide a way to annotate arbitrary declarations (properties, subscripts, functions, etc.) as being part of a process-wide singleton actor. A global actor is described by a type that has been annotated with the `@globalActor` attribute:
-
-```swift
-@globalActor
-struct UIActor {
-  /* details below */
-}
-```
-
-Such types can then be used to annotate particular declarations that are isolated to the actor. For example, a handler for a touch event on a touchscreen device:
-
-```swift
-@UIActor
-func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-  // ...
-}
-```
-
-A declaration with an attribute indicating a global actor type is actor-isolated to that global actor. The global actor type has its own queue that is used to perform any access to mutable state that is also actor-isolated with that same global actor.
-
-Global actors are implicitly singletons, i.e. there is always _one_ instance of a global actor in a given process. This is in contrast to `actor classes`, of which there can be no instances, one instance, or many instances in a given process at any given time.
-
-
 ## Detailed design
 
 ### Actor classes
@@ -626,7 +599,7 @@ extension BankAccount {
 }  
 ```
 
-An instance method, computed property, or subscript of an actor class may be annotated with `@actorIndependent` or a global actor attribute.  If so, it (or its accessors) are no longer actor-isolated to the `self` instance of the actor.
+An instance method, computed property, or subscript of an actor class may be annotated with `@actorIndependent`.  If so, it (or its accessors) are no longer actor-isolated to the `self` instance of the actor.
 
 By default, the mutable stored properties (declared with `var`) of an actor class are actor-isolated to the actor instance. A stored property may be annotated with `@actorIndependent(unsafe)` to remove this restriction. 
 
@@ -659,53 +632,6 @@ The `enqueue(partialTask:)` requirement is special in that it can only be provid
 
 Non-`actor` classes can conform to the `Actor` protocol, and are not subject to the restrictions above. This allows existing classes to work with some `Actor`-specific APIs, but does not bring any of the advantages of actor classes (e.g., actor isolation) to them.
 
-### Global actors
-
-A global actor can be declared by creating a new custom attribute type with `@globalActor`:
-
-```swift
-@globalActor
-struct UIActor {
-  static let shared = SomeActorInstance()
-}
-```
-
-The type must provide a static `shared` property that provides the singleton actor instance, on which any work associated with the global actor will be enqueued. There are otherwise no requirements placed on the type itself.
-
-The custom attribute type may be generic.  The custom attribute is called a global actor attribute.  A global actor attribute is never parameterized.  Two global actor attributes identify the same global actor if they identify the same type.
-
-Global actor attributes apply to declarations as follows:
-
-* A declaration cannot have multiple global actor attributes.  The rules below say that, in some cases, a global actor attribute is propagated from one declaration to another.  If the rules say that an attribute “propagates by default”, then no propagation is performed if the destination declaration has an explicit global actor attribute.  If the rules say that attribute “propagates mandatorily”, then it is an error if the destination declaration has an explicit global actor attribute that does not identify the same actor.  Regardless, it is an error if global actor attributes that do not identify the same actor are propagated to the same declaration.
-
-* A function, property, subscript, or initializer declared with a global actor attribute becomes actor-isolated to the given global actor.
-
- ```swift
- @UIActor func drawAHouse(graphics: CGGraphics) {
-     // ...
- }
- ```
-
-* Local variables and constants cannot be marked with a global actor attribute. 
-
-* A type declared with a global actor attribute propagates the attribute to all methods, properties, subscripts, and extensions of the type by default.
-
-* An extension declared with a global actor attribute propagates the attribute to all the members of the extension by default.
-
-* A protocol declared with a global actor attribute propagates the attribute to its conforming types by default.
-
-* A protocol requirement declared with a global actor attribute propagates the attribute to its witnesses mandatorily if they are declared in the same module as the conformance. 
-
-* A class declared with a global actor attribute propagates the attribute to its subclasses mandatorily.
-
-* An overridden declaration propagates its global actor attribute (if any) to its overrides mandatorily.  Other forms of propagation do not apply to overrides.  It is an error if a declaration with a global actor attribute overrides a declaration without an attribute.
-
-* An actor class cannot have a global actor attribute.  Stored instance properties of actor classes cannot have global actor attributes.  Other members of an actor class can have global actor attributes; such members are actor-isolated to the global actor, not the actor instance.
-
-* A deinit cannot have a global actor attribute and is never a target for propagation.
-
-The effect of these rules is to make it easy for a few classes and protocols to be annotated as being part of a global actor (e.g., the `@UIActor`), and for code that interoperates with those (subclassing the classes, conforming to the protocols) to not need explicit annotations.
-
 ### Actor-independent declarations
 
 A declaration may be declared to be actor-independent:
@@ -719,18 +645,16 @@ When used on a declaration, it indicates that the declaration is not actor-isola
 
 When used on a class, the attribute applies by default to members of the class and extensions thereof.  It also interrupts the ordinary implicit propagation of actor-isolation attributes from the superclass, except as required for overrides.
 
-The attribute is ill-formed when applied to any other declaration.  It is ill-formed if combined with an explicit global actor attribute.
+The attribute is ill-formed when applied to any other declaration.
 
 The `@actorIndependent` attribute has an optional "unsafe" argument.  `@actorIndependent(unsafe)` is treated the same way as `@actorIndependent` from the client's perspective, meaning that it can be used from anywhere. However, the implementation of an `@actorIndependent(unsafe)` entity is allowed to refer to actor-isolated state, which would have been ill-formed under `@actorIndependent`.
 
 ### Actor isolation checking
 
-Any given non-local declaration in a program can be classified into one of five actor isolation categories:
+Any given non-local declaration in a program can be classified into one of four actor isolation categories:
 
 * Actor-isolated to a specific instance of an actor class:
   - This includes the stored instance properties of an actor class as well as computed instance properties, instance methods, and instance subscripts, as demonstrated with the `BankAccount` example.
-* Actor-isolated to a specific global actor:
-  - This includes any property, function, method, subscript, or initializer that has an attribute referencing a global actor, such as the `touchesEnded(_:with:)` method mentioned above.
 * Actor-independent: 
   - The declaration is not actor-isolated to any actor. This includes any property, function, method, subscript, or initializer that has the `@actorIndependent` attribute.
 * Actor-independent (unsafe): 
@@ -756,7 +680,7 @@ When the target is not `async`, the actor isolation categories for the source an
 * the source category is actor-independent (unsafe), or
 * the target category is unknown.
 
-The first rule is the most direct: an actor-isolated declaration can access other declarations within its same actor, whether that's an actor instance (on `self`) or global actor (e.g., `@UIActor`).
+The first rule is the most direct: an actor-isolated declaration can access other declarations within its same actor, by referring to it on `self`.
 
 The second rule specifies that actor-independent declarations can be used from anywhere because they aren't tied to a particular actor. Actor classes can provide actor-independent instance methods, but because those functions are not actor-isolated, that cannot read the actor's own mutable state. For example:
 
@@ -794,7 +718,7 @@ When a given declaration (the "overriding declaration") overrides another declar
 * the overriding and overridden declarations have the same actor isolation or
 * the overriding declaration is actor-independent.
 
-In the absence of an explicitly-specified actor-isolation attribute (i.e, a global actor attribute or `@actorIndependent`), the overriding declaration will inherit the actor isolation of the overridden declaration.
+In the absence of an explicitly-specified actor-isolation attribute (i.e, `@actorIndependent`), the overriding declaration will inherit the actor isolation of the overridden declaration.
 
 #### Protocol conformance
 
@@ -842,3 +766,9 @@ Nearly all changes in actor isolation are breaking changes, because the actor is
 * A class cannot be turned into an actor class or vice versa.
 * The actor isolation of a public declaration cannot be changed except between `@actorIndependent(unsafe)` and `@actorIndependent`.
 
+## Revision history
+
+* Changes in the second pitch:
+  * Removed global actors; they will be part of a separate document.
+
+* Original pitch [document](https://github.com/DougGregor/swift-evolution/blob/6fd3903ed348b44496b32a39b40f6b6a538c83ce/proposals/nnnn-actors.md)
