@@ -628,7 +628,7 @@ extension BankAccount {
 
 An instance method, computed property, or subscript of an actor class may be annotated with `@actorIndependent` or a global actor attribute.  If so, it (or its accessors) are no longer actor-isolated to the `self` instance of the actor.
 
-By default, the mutable stored properties (declared with `var`) of an actor class actor-isolated to the actor instance. A stored property may be annotated with `@actorIndependent(unsafe)` to remove this restriction. 
+By default, the mutable stored properties (declared with `var`) of an actor class are actor-isolated to the actor instance. A stored property may be annotated with `@actorIndependent(unsafe)` to remove this restriction. 
 
 ### Actor protocol
 
