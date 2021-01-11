@@ -10,7 +10,7 @@
 
 The [actor model](https://en.wikipedia.org/wiki/Actor_model) involves entities called actors. Each *actor* can perform local computation based on its own state, send messages to other actors, and act on messages received from other actors. Actors run independently, and cannot access the state of other actors, making it a powerful abstraction for managing concurrency in language applications. The actor model has been implemented in a number of programming languages, such as Erlang and Pony, as well as various libraries like Akka (on the JVM) and Orleans (on the .NET CLR).
 
-This proposal introduces a design for *actors* in Swift, providing a model for building concurrent programs that are simple to reason about and are safer from data races.
+This proposal introduces a design for *actors* in Swift, providing a model for building concurrent programs that are simple to reason about and are safer from data races. 
 
 Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/)
 
@@ -21,7 +21,7 @@ One of the more difficult problems in developing concurrent programs is dealing 
 Data races are notoriously hard to reproduce and debug, because they often depend on two threads getting scheduled in a particular way. 
 Tools such as [ThreadSanitizer](https://clang.llvm.org/docs/ThreadSanitizer.html) help, but they are necessarily reactive (as opposed to proactive)--they help find existing bugs, but cannot help prevent them.
 
-Actors provide a model for building concurrent programs that are free of data races. They do so through *data isolation*: each actor protects is own instance data, ensuring that only a single thread will access that data at a given time. Actors shift the way of thinking about concurrency from raw threading to actors and put focus on actors "owning" their local state. This proposal provides a basic isolation model that protects the value-type state of an actor from data races. A full actor isolation model, which protects other state (such as reference types) is left as future work.
+Actors provide a model for building concurrent programs that are free of data races. They do so through *data isolation*: each actor protects is own instance data, ensuring that only a single thread will access that data at a given time. Actors shift the way of thinking about concurrency from raw threading to actors and put focus on actors "owning" their local state. This proposal provides a basic isolation model that protects the value-type state of an actor from data races. A full actor isolation model, which protects other state (such as reference types) is handled separately by [Preventing Data Races in the Swift Concurrency Model](https://gist.github.com/DougGregor/10db898093ce33694139d1dcd7da3397).
 
 ## Proposed solution
 
@@ -67,9 +67,7 @@ If `BankAccount` were a normal class, the `transfer(amount:to:)` method would be
 
 As noted in the error message, `balance` is *actor-isolated*, meaning that it can only be accessed from within the specific actor it is tied to or "isolated by". In this case, it's the instance of `BankAccount` referenced by `self`. Stored properties, computed properties, subscripts, and synchronous instance methods (like `transfer(amount:to:)`) in an actor class are all actor-isolated by default.
 
-On the other hand, the reference to `other.ownerName` is allowed, because `ownerName` is immutable (defined by `let`). Once initialized, it is never written, so there can be no data races in accessing it. `ownerName` is called *actor-independent*, because it can be freely used from any actor. Constants introduced with `let` are actor-independent by default; there is also an attribute `@actorIndependent` (described in [**Actor-independent declarations**](#actor-independent-declarations)) to specify that a particular declaration is actor-independent.
-
-> **Note**: Constants defined by `let` are only truly immutable when the type is a value type or some kind of immutable reference type. A `let` that refers to a mutable reference type (such as a non-actor class type) would be unsafe based on the rules discussed so far. These issues are discussed later in [**Escaping reference types**](#escaping-reference-types).
+On the other hand, the reference to `other.ownerName` is allowed, because `ownerName` is immutable (defined by `let`). Once initialized, it is never written, so there can be no data races in accessing it. `ownerName` is called *actor-independent*, because it can be freely used from any actor. Constants introduced with `let` are actor-independent by default; there is also an attribute `@actorIndependent` (described in [**Actor-independent declarations**](#actor-independent-declarations)) to specify that a particular declaration is actor-independent. 
 
 Compile-time actor-isolation checking, as shown above, ensures that code outside of the actor does not interfere with the actor's mutable state. 
 
@@ -505,69 +503,6 @@ extension BankAccount {
 
 This restriction prevents exclusivity violations where the modification of the actor-isolated `balance` is initiated by passing it as `inout` to a call that is then suspended, and another task executed on the same actor then fails with an exclusivity violation in trying to access `balance` itself.
 
-#### Escaping reference types
-
-The rules concerning actor isolation ensure that accesses to an actor class's stored properties cannot occur concurrently, eliminating data races unless unsafe code has subverted the model. 
-
-However, the actor isolation rules presented in this proposal are only sufficient for *value types*. With a value type, any copy of the value produces a completely independent instance. Modifications to that independent instance cannot affect the original, and vice versa. Therefore, one can pass a copy of an actor-isolated stored property to another actor, or even write it into a global variable, and the actor will maintain its isolation because the copy is distinct.
-
-Reference types break the isolation model, because mutations to a "copy" of a value of reference type can affect the original, and vice versa. Let's introduce another stored property into our bank account to describe recent transactions, and make `Transaction` a reference type (a class):
-
-```swift
-class Transaction { 
-  var amount: Double
-  var dateOccurred: Date
-}
-
-actor class BankAccount {
-  // ...
-  private var transactions: [Transaction]
-}
-```
-
-The `transactions` stored property is actor-isolated, so it cannot be modified directly. Moreover, arrays are themselves value types when they contain value types. But the transactions stored in the array are reference types. The moment one of the instances of `Transaction`  from the `transactions` array *escapes* the actor's context, data isolation is lost. For example, here's a function that retrieves the most recent transaction:
-
-```swift
-extension BankAccount {
-  func mostRecentTransaction() async -> Transaction? {   // UNSAFE! Transaction is a reference type
-    return transactions.min { $0.dateOccurred > $1.dateOccurred } 
-  }
-}
-```
-
-A client of this API gets a reference to the transaction inside the given bank account, e.g.,
-
-```swift
-guard let transaction = await account.mostRecentTransaction() else {
-  return
-}
-```
-
-At this point, the client can both modify the actor-isolated state by directly modifying the fields of `transaction`, as well as see any changes that the actor has made to the transaction. These operations may execute concurrently with code running on the actor, causing race conditions. 
-
-Not all examples of "escaping" reference types are quite as straightforward as this one. Reference types can be stored within structs, enums, and in collections such as arrays and dictionaries, so cannot look only at whether the type or its generic arguments are a `class`. The reference type might also be hidden in code not visible to the user, e.g.,
-
-```swift
-public struct LooksLikeAValueType {
-  private var transaction: Transaction  // not semantically a value type
-}
-```
-
-Generics further complicate the matter: some types, like the standard library collections, act like value types when their generic arguments are value types. An actor class might be generic, in which case its ability to maintain isolation depends on its generic argument:
-
-```swift
-actor class GenericActor<T> {
-  private var array: [T]
-  func first() async -> T? { 
-    return array.first
-  }
-}
-```
-
-With this type, `GenericActor<Int>` maintains actor isolation but `GenericActor<Transaction>` does not.
-
-There are solutions to these problems. However, the scope of the solutions is large enough that they deserve their own separate proposals. Therefore, **this proposal only provides basic actor isolation for data race safety with value types**.
-
 ## Detailed design
 
 ### Actor classes
@@ -770,5 +705,6 @@ Nearly all changes in actor isolation are breaking changes, because the actor is
 
 * Changes in the second pitch:
   * Removed global actors; they will be part of a separate document.
+  * Separated out the discussion of data races for reference types.
 
 * Original pitch [document](https://github.com/DougGregor/swift-evolution/blob/6fd3903ed348b44496b32a39b40f6b6a538c83ce/proposals/nnnn-actors.md)
