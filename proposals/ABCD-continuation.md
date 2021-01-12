@@ -205,6 +205,72 @@ trap if the program attempts to resume the continuation multiple times.
 is discarded without ever resuming the task, which leaves the task stuck in its
 suspended state, leaking any resources it holds.
 
+## Additional examples
+
+Continuations can be used to interface with more complex event-driven
+interfaces than callbacks as well. As long as the entirety of the process
+follows the requirement that the continuation be resumed exactly once, there
+are no other restrictions on where the continuation can be resumed. For
+instance, an `Operation` implementation can trigger resumption of a
+continuation when the operation completes:
+
+```
+class MyOperation: Operation {
+  let continuation: UnsafeContinuation<OperationResult>
+  var result: OperationResult?
+
+  init(continuation: UnsafeContinuation<OperationResult>) {
+    self.continuation = continuation
+  }
+
+  /* rest of operation populates `result`... */
+
+  override func finish() {
+    continuation.resume(returning: result!)
+  }
+}
+
+func doOperation() async -> OperationResult {
+  return await withUnsafeContinuation { continuation in
+    MyOperation(continuation: continuation).start()
+  }
+}
+```
+
+Using APIs from the [structured concurrency proposal](https://github.com/DougGregor/swift-evolution/blob/structured-concurrency/proposals/nnnn-structured-concurrency.md),
+one can wrap up a `URLSession` in a task, allowing the task's cancellation
+to control cancellation of the session, and using a continuation to respond
+to data and error events fired by the network activity:
+
+```
+func download(url: URL) async throws -> Data? {
+  var urlSessionTask: URLSessionTask?
+
+  return try Task.withCancellationHandler {
+    urlSessionTask?.cancel()
+  } operation: {
+    let result: Data? = try await withUnsafeThrowingContinuation { continuation in
+      urlSessionTask = URLSession.shared.dataTask(with: url) { data, _, error in
+        if case (let cancelled as NSURLErrorCancelled)? = error {
+          continuation.resume(returning: nil)
+        } else if let error = error {
+          continuation.resume(throwing: error)
+        } else {
+          continuation.resume(returning: data)
+        }
+      }
+      urlSessionTask?.resume()
+    }
+    if let result = result {
+      return result
+    } else {
+      Task.cancel()
+      return nil
+    }
+  }
+}
+```
+
 ## Alternatives considered
 
 ### Name `CheckedContinuation` just `Continuation`
