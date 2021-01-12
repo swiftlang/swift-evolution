@@ -16,6 +16,7 @@ resume the task in response to an event
 Swift-evolution thread:
 
 - [Structured concurrency](https://forums.swift.org/t/concurrency-structured-concurrency/41622)
+- [Continuations for interfacing async tasks with synchronous code](https://forums.swift.org/t/concurrency-continuations-for-interfacing-async-tasks-with-synchronous-code/43619)
 
 ## Motivation
 
@@ -199,8 +200,8 @@ func buyVegetables(shoppingList: [String]) async throws -> [Vegetable] {
 ```
 
 Instead of leading to undefined behavior, `CheckedContinuation` will instead
-ignore attempts to resume the continuation multiple times, logging a warning
-message. `CheckedContinuation` will also log a warning if the continuation
+trap if the program attempts to resume the continuation multiple times.
+`CheckedContinuation` will also log a warning if the continuation
 is discarded without ever resuming the task, which leaves the task stuck in its
 suspended state, leaking any resources it holds.
 
@@ -229,5 +230,67 @@ this here, though:
   introduce a continuation type that statically enforces the exactly-once
   property.
 
-
 ### Don't expose `UnsafeContinuation`
+
+One could similarly make an argument that `UnsafeContinuation` shouldn't be
+exposed at all, since the `Checked` form can always be used instead. We think
+that being able to avoid the cost of checking when interacting with
+performance-sensitive APIs is valuable, once users have validated that their
+interfaces to those APIs are correct.
+
+### Have `CheckedContinuation` trap on all misuses, or log all misuses
+
+`CheckedContinuation` is proposed to trap when the program attempts to
+resume the same continuation twice, but only log a warning if a continuation
+is abandoned without getting resumed. We think this is the right tradeoff
+for these different situations for the following reasons:
+
+- With `UnsafeContinuation`, resuming multiple times corrupts the process and
+  leaves it in an undefined state. By trapping when the task is resumed
+  multiple times, `CheckedContinuation` turns undefined behavior into a well-
+  defined trap situation.  This is analogous to other checked/unchecked
+  pairings in the standard library, such as `!` vs. `unsafelyUnwrapped` for
+  `Optional`.
+- By contrast, failing to resume a continuation with `UnsafeContinuation`
+  does not corrupt the task, beyond leaking the suspended task's resources;
+  the rest of the program can continue executing normally. Furthermore,
+  the only way we can currently detect and report such a leak is by using
+  a class `deinit` in its implementation. The precise moment at which such
+  a deinit would execute is not entirely predictable because of refcounting
+  variability from ARC optimization. If `deinit` were made to trap, whether that
+  trap is executed and when could vary with optimization level, which we
+  don't think would lead to a good experience.
+
+### Expose more `Task` API on `*Continuation`, or allow a `Handle` to be recovered from a continuation
+
+The full `Task` and `Handle` API provides additional control over the task
+state to holders of the handle, particularly the ability to query and set
+cancellation state, as well as await the final result of the task, and one
+might wonder why the `*Continuation` types do not also expose this functionality.
+The role of a `Continuation` is very different from a `Handle`, in that a handle
+represents and controls the entire lifetime of the task, whereas a continuation
+only represents a *single suspension point* in the lifetime of the task.
+Furthermore, the `*Continuation` API is primarily designed to allow for
+interfacing with code outside of Swift's structured concurrency model, and
+we believe that interactions between tasks are best handled inside that model
+as much as possible.
+
+Note that `*Continuation` also does not strictly need direct support for any
+task API on itself. If, for instance, someone wants a task to cancel itself
+in response to a callback, they can achieve that by funneling a sentinel
+through the continuation's resume type, such as an Optional's `nil`:
+
+```
+let callbackResult: Result? = await withUnsafeContinuation { c in
+  someCallbackBasedAPI(
+    completion: { c.resume($0) },
+    cancelation: { c.resume(nil) })
+}
+
+if let result = callbackResult {
+  process(result)
+} else {
+  cancel()
+}
+```
+
