@@ -3,7 +3,7 @@
 * Proposal: [SE-0298](0298-asyncsequence.md)
 * Authors: [Tony Parker](https://github.com/parkera), [Philippe Hausler](https://github.com/phausler)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Scheduled for review (January 12...26, 2021)**
+* Status: **Active Review (January 12...26, 2021)**
 * Implementation: [apple/swift#35224](https://github.com/apple/swift/pull/35224)
 
 ## Introduction
