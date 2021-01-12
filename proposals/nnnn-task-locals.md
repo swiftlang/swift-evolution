@@ -3,7 +3,8 @@
 * Proposal: [SE-NNNN](NNNN-task-local.md)
 * Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
 * Review Manager: TBD
-* Status: **Implemented:** [PR #34722](https://github.com/apple/swift/pull/34722)
+* Status: Awaiting review
+* Implementation: [apple/swift#34722](https://github.com/apple/swift/pull/34722)
 
 ## Table of Contents
 
