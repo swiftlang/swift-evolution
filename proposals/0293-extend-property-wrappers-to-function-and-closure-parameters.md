@@ -167,6 +167,74 @@ struct MyView : View {
 
 However, now we observe the same boilerplate code in the closure body because the property-wrapper syntax cannot be used with the closure parameter.
 
+### Property validation
+
+Both library developers and language users often need to assert their assumptions, for which `precondition(_:_:)` is often used:
+
+```swift
+enum Product {
+  case plainSandwich 
+  case grilledCheeseSandwich 
+  case avocadoToast
+}
+
+func buy(quantity: Int, of product: Product) {
+  precondition(quanity >= 1, "Invalid product quanity.")
+  
+  if quantity == 1 {
+    ...
+  }
+}
+```
+
+The above code is quite clear; it has, though, the obvious drawback that changing the the condition to be asserted or its error message requires significant effort as a precondition statement is individually written for each function.
+
+Furthermore, supposing the above is library code, we may want to test for our precondition while offering an easy-to-debug way. So, using `Validation` from [`ValidatedPropertyKit`](https://github.com/SvenTiigi/ValidatedPropertyKit) we can write:
+
+```swift
+@propertyWrapper
+struct Asserted<Value> { 
+
+  ...
+  
+  // The assertion will appear at the right file and line
+  init(
+    wrappedValue: Value, 
+    validation: Validation<Value>,
+    file: StaticString = #file,
+    line: UInt = #line
+  ) {
+    ...
+  }
+  
+}
+
+
+func buy(
+  quantity: Int, 
+  of product: Product,
+  file: StaticString = #file,
+  line: UInt = #line
+  // These are a lot of properties for every time
+  // we want to check for the right quantity.
+) {
+  var validatedQuantity = Validated(
+    quantity,
+    .greaterOrEqual(1),
+    file: file, 
+    line: line
+  )
+  
+  if validatedQuantity.wrappedValue == 1 {
+    // The lack of property-wrapper tranformation is
+    // evident here.
+    ...
+  }
+}
+```
+
+This not only makes writing easy-to-maintain validations easy, but improves debugging for the the API's users as well. Unfortunately, it still lacks the elegant syntax property wrappers offer, making the creation of new functions a demanding task.
+
 ## Proposed solution
 
 We propose to allow application of property wrappers on function and closure parameters.
