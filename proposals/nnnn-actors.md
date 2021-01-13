@@ -65,61 +65,19 @@ extension BankAccount {
 
 If `BankAccount` were a normal class, the `transfer(amount:to:)` method would be well-formed, but would be subject to data races in concurrent code without an external locking mechanism. With actor classes, the attempt to reference `other.balance` triggers a compiler error, because `balance` may only be referenced on `self`.
 
-As noted in the error message, `balance` is *actor-isolated*, meaning that it can only be accessed from within the specific actor it is tied to or "isolated by". In this case, it's the instance of `BankAccount` referenced by `self`. Stored properties, computed properties, subscripts, and synchronous instance methods (like `transfer(amount:to:)`) in an actor class are all actor-isolated by default.
+As noted in the error message, `balance` is *actor-isolated*, meaning that it can only be accessed directly from within the specific actor it is tied to or "isolated by". In this case, it's the instance of `BankAccount` referenced by `self`. Stored properties, computed instance properties, instance subscripts, and instance methods (like `transfer(amount:to:)`) in an actor class are all actor-isolated by default.
 
 On the other hand, the reference to `other.ownerName` is allowed, because `ownerName` is immutable (defined by `let`). Once initialized, it is never written, so there can be no data races in accessing it. `ownerName` is called *actor-independent*, because it can be freely used from any actor. Constants introduced with `let` are actor-independent by default; there is also an attribute `@actorIndependent` (described in [**Actor-independent declarations**](#actor-independent-declarations)) to specify that a particular declaration is actor-independent. 
 
-Compile-time actor-isolation checking, as shown above, ensures that code outside of the actor does not interfere with the actor's mutable state. 
+Compile-time actor-isolation checking, as shown above, ensures that code outside of the actor does not interfere with the actor's mutable state. To work with the actor from outside of it, one must always do so with an asynchronous function invocation. Asynchronous function invocations are turned into enqueues of partial tasks representing those invocations to the actor's *queue*. This queue, along with an exclusive task executor bound to the actor, functions as a synchronization boundary between the actor and any of its external callers. For example, if we wanted to make a deposit to a given bank account `account`, we could make a call to a method `deposit(amount:)`, and that call would be placed on the queue. The executor would pull tasks from the queue one-by-one, ensuring an actor is never concurrently running on multiple threads, and would eventually process the deposit.
 
-Asynchronous function invocations are turned into enqueues of partial tasks representing those invocations to the actor's *queue*. This queue—along with an exclusive task executor bound to the actor—functions as a synchronization boundary between the actor and any of its external callers. For example, if we wanted to make a deposit to a given bank account `account`, we could make a call to a method `deposit(amount:)`, and that call would be placed on the queue. The executor would pull tasks from the queue one-by-one, ensuring an actor never is concurrently running on multiple threads, and would eventually process the deposit.
-
-Synchronous functions in Swift are not amenable to being placed on a queue to be executed later. Therefore, synchronous instance methods of actor classes are actor-isolated and, therefore, not available from outside the actor instance. For example:
-
-```swift
-extension BankAccount {
-  func depositSynchronously(amount: Double) {
-    assert(amount >= 0)
-    balance = balance + amount
-  }
-}
-
-func printMoney(accounts: [BankAccount], amount: Double) {
-  for account in accounts {
-    account.depositSynchronously(amount: amount) // error: actor-isolated instance method 'depositSynchronously(amount:)' can only be referenced inside the actor
-  }
-}
-```
-
-It should be noted that actor isolation adds a new dimension, separate from access control, to the decision making process whether or not one is allowed to invoke a specific function on an actor. Specifically, synchronous functions may only be invoked by the specific actor instance itself, and not even by any other instance of the same actor class. 
-
-All interactions with an actor (other than the special-cased access to constants) must be performed asynchronously (semantically, one may think about this as the actor model's messaging to and from the actor). Asynchronous functions provide a mechanism that is suitable for describing such operations, and are explained in depth in the complementary [async/await proposal](https://github.com/DougGregor/swift-evolution/blob/async-await/proposals/nnnn-async-await.md). We can make the `deposit(amount:)` instance method `async`, and thereby make it accessible to other actors (as well as non-actor code):
-
-```swift
-extension BankAccount {
-  func deposit(amount: Double) async {
-    assert(amount >= 0)
-    balance = balance + amount
-  }
-}
-```
-
-Now, the call to this method (which now must be adorned with [`await`](https://github.com/DougGregor/swift-evolution/blob/async-await/proposals/nnnn-async-await.md#await-expressions)) is well-formed:
-
-```swift
-await account.deposit(amount: amount)
-```
-
-Semantically, the call to `deposit(amount:)` is placed on the queue for the actor `account`, so that it will execute on that actor. If that actor is busy executing a task, then the caller will be suspended until the actor is available, so that other work can continue. See the section on [asynchronous calls](https://github.com/DougGregor/swift-evolution/blob/async-await/proposals/nnnn-async-await.md#asynchronous-calls) in the async/await proposal for more detail on the calling sequence.
-
-> **Rationale**: by only allowing asynchronous instance methods of actor classes to be invoked from outside the actor, we ensure that all synchronous methods are already inside the actor when they are called. This eliminates the need for any queuing or synchronization within the synchronous code, making such code more efficient and simpler to write.
-
-We can now properly implement a transfer of funds from one account to another:
+Based on the above, we can implement a correct version of `transfer(amount:to:)`) that is asynchronous:
 
 ```swift
 extension BankAccount {
   func transfer(amount: Double, to other: BankAccount) async throws {
     assert(amount > 0)
-    
+
     if amount > balance {
       throw BankError.insufficientFunds
     }
@@ -137,6 +95,43 @@ extension BankAccount {
   }
 }
 ```
+
+The `deposit(amount:)` operation needs involve the state of a different actor, so it must be invoked asynchronously. This method could itself be implemented as `async`:
+
+```swift
+extension BankAccount {
+  func deposit(amount: Double) async {
+    assert(amount >= 0)
+    balance = balance + amount
+  }
+}
+```
+
+However, this method doesn't really need to be `async`: it makes no asynchronous calls (note the lack of `await`). Therefore, it would be better defined as a synchronous function:
+
+```swift
+extension BankAccount {
+  func deposit(amount: Double) {
+    assert(amount >= 0)
+    balance = balance + amount
+  }
+}
+```
+
+Synchronous actor functions can be called synchronously on the actor's `self`, but must be called asynchronously the from outside of the actor. The `transfer(amount:to:)` function calls it asynchronously (on `other`), while the following function `passGo` calls it synchronously (on the implicit `self`):
+
+```swift
+extension BankAccount {
+  // Pass go and collect $200
+  func passGo() {
+    deposit(amount: 200.0)  // synchronous is okay because this implicitly calls `self`
+  }
+}
+```
+
+Any interactions with the actor that involve mutable state (whether reads or writes) must be performed asynchronously. Semantically, an asynchronous call (such as `await other.deposit(amount: amount)`) to an actor is placed on the serial queue for the actor `other`, so that it will execute on that actor. If that actor is busy executing another task, then the caller will be suspended until the actor is available, so that other work can continue. 
+
+> **Rationale**: by only allowing asynchronous calls from outside the actor, we ensure that all synchronous methods are already inside the actor when they are called. This eliminates the need for any queuing or synchronization within the synchronous code, making such code more efficient and simpler to write.
 
 ### Actor reentrancy (discussion)
 
@@ -435,7 +430,7 @@ Thanks to structured concurrency and the `Task` primitives, we are able to relax
 
 #### Closures and local functions
 
-The restrictions on only allowing access to (non-`async`) actor-isolated declarations on `self` only work so long as we can ensure that the code in which `self` is valid is executing non-concurrently on the actor. For methods on the actor class, this is established by the rules described above: `async` function calls are serialized via the actor's queue, and non-`async` calls are only allowed when we know that we are already executing (non-concurrently) on the actor.
+The restrictions on only allowing asynchronous access to actor-isolated declarations on `self` only work so long as we can ensure that the code in which `self` is valid is executing non-concurrently on the actor. For methods on the actor class, this is established by the rules described above: asynchronous function calls are serialized via the actor's queue, and non-`async` calls are only allowed when we know that we are already executing (non-concurrently) on the actor.
 
 However, `self` can also be captured by closures and local functions. Should those closures and local functions have access to actor-isolated state on the captured `self`? Consider an example where we want to close out a bank account and distribute the balance amongst a set of accounts:
 
@@ -451,7 +446,7 @@ extension BankAccount {
       }  
     }
     
-    thief.deposit(amount: balance)
+    await thief.deposit(amount: balance)
   }
 }
 ```
@@ -607,15 +602,15 @@ We'll describe each scenario in detail.
 
 #### Accesses in executable code
 
-A given declaration (call it the "source") can access another declaration (call it the "target") in executable code, e.g., by calling a function or accessing a property or subscript. If the target is `async`, there is nothing more to check: the call will be scheduled on the target actor's queue, so the access is well-formed.
+A given declaration (call it the "source") can synchronously access another declaration (call it the "target") in executable code, e.g., by calling a function or accessing a property or subscript. A synchronous invocation requires the actor isolation categories for the source and target to be compatible (defined below). An actor-isolated target function that is not compatible with the source can be accessed asynchronously.
 
-When the target is not `async`, the actor isolation categories for the source and target must be compatible. A source and target category pair is compatible if:
+A source and target category pair is compatible if:
 * the source and target categories are the same,
 * the target category is actor-independent or actor-independent (unsafe),
 * the source category is actor-independent (unsafe), or
 * the target category is unknown.
 
-The first rule is the most direct: an actor-isolated declaration can access other declarations within its same actor, by referring to it on `self`.
+The first rule is the most direct: an actor-isolated declaration can synchronously access other declarations within its same actor (e.g., by referring to it on `self`).
 
 The second rule specifies that actor-independent declarations can be used from anywhere because they aren't tied to a particular actor. Actor classes can provide actor-independent instance methods, but because those functions are not actor-isolated, that cannot read the actor's own mutable state. For example:
 
@@ -706,5 +701,6 @@ Nearly all changes in actor isolation are breaking changes, because the actor is
 * Changes in the second pitch:
   * Removed global actors; they will be part of a separate document.
   * Separated out the discussion of data races for reference types.
+  * Allow asynchronous calls to synchronous actor methods from outside the actor.
 
 * Original pitch [document](https://github.com/DougGregor/swift-evolution/blob/6fd3903ed348b44496b32a39b40f6b6a538c83ce/proposals/nnnn-actors.md)
