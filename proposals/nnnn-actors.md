@@ -560,7 +560,7 @@ The `enqueue(partialTask:)` requirement is special in that it can only be provid
 
 > **Rationale**: This design strikes a balance between efficiency for the default actor implementation and extensibility to allow alternative actor implementations.   By forcing the method to be part of the main actor class, the compiler can ensure a common low-level implementation for actor classes that permits them to be passed as a single pointer and treated uniformly by the runtime.
 
-Non-`actor` classes can conform to the `Actor` protocol, and are not subject to the restrictions above. This allows existing classes to work with some `Actor`-specific APIs, but does not bring any of the advantages of actor classes (e.g., actor isolation) to them.
+Non-`actor` classes cannot conform to the `Actor` protocol.
 
 ### Actor-independent declarations
 
@@ -702,5 +702,6 @@ Nearly all changes in actor isolation are breaking changes, because the actor is
   * Removed global actors; they will be part of a separate document.
   * Separated out the discussion of data races for reference types.
   * Allow asynchronous calls to synchronous actor methods from outside the actor.
+  * Non-actor classes cannot conform to the `Actor` protocol.
 
 * Original pitch [document](https://github.com/DougGregor/swift-evolution/blob/6fd3903ed348b44496b32a39b40f6b6a538c83ce/proposals/nnnn-actors.md)
