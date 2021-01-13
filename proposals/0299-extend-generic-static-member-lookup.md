@@ -3,7 +3,7 @@
 * Proposal: [SE-0299](0299-extend-generic-static-member-lookup.md)
 * Authors: [Pavel Yaskevich](https://github.com/xedin), [Sam Lazarus](https://github.com/sl), [Matt Ricketson](https://github.com/ricketson)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Scheduled for Review (Jan 18...Feb 1, 2021)**
+* Status: **Scheduled for Review (January 18...February 1, 2021)**
 * Implementation: [apple/swift#34523](https://github.com/apple/swift/pull/34523)
 
 ## Introduction
