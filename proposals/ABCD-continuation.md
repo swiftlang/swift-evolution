@@ -271,6 +271,26 @@ func download(url: URL) async throws -> Data? {
 }
 ```
 
+It is also possible for wrappers around callback based APIs to respect their parent/current tasks's cancellation, as follows:
+
+```
+func fetch(items: Int) async throws -> [Items] {
+  let worker = ... 
+  return try Task.withCancellationHandler(
+    handler: { worker?.cancel() }
+  ) { 
+    return try await withUnsafeThrowingContinuation { c in 
+      worker.work(
+        onNext: { value in c.resume(returning: value) },
+        onCancelled: { value in c.resume(throwing: CancellationError()) },
+      )
+    } 
+  }
+}
+```
+
+If tasks were allowed to have instances, which is under discussion in the structured concurrency proposal, it would also be possible to obtain the task in which the fetch(items:) function was invoked and call isCanceled on it whenever the insides of the withUnsafeThrowingContinuation would deem it worthwhile to do so.
+
 ## Alternatives considered
 
 ### Name `CheckedContinuation` just `Continuation`
