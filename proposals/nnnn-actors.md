@@ -1,10 +1,10 @@
 # Actors
 
 * Proposal: [SE-NNNN](NNNN-actors.md)
-* Authors: [John McCall](https://github.com/rjmccall), [Doug Gregor](https://github.com/DougGregor)
+* Authors: [John McCall](https://github.com/rjmccall), [Doug Gregor](https://github.com/DougGregor), [Konrad Malawski](https://github.com/ktoso)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
-* Implementation: Partial available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
+* Implementation: Partially available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
 
 ## Introduction
 
@@ -12,7 +12,7 @@ The [actor model](https://en.wikipedia.org/wiki/Actor_model) involves entities c
 
 This proposal introduces a design for *actors* in Swift, providing a model for building concurrent programs that are simple to reason about and are safer from data races. 
 
-Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/)
+Swift-evolution thread: [Pitch #1](https://forums.swift.org/t/concurrency-actors-actor-isolation/41613)
 
 ## Motivation
 
@@ -31,8 +31,13 @@ This proposal introduces *actor classes* into Swift. An actor class is a form of
 
 ```swift
 actor class BankAccount {
-  private let ownerName: String
+  private let accountNumber: Int
   private var balance: Double
+
+  init(accountNumber: Int, initialDeposit: Double) {
+    self.accountNumber = accountNumber
+    self.balance = initialDeposit
+  }
 }
 ```
 
@@ -55,7 +60,7 @@ extension BankAccount {
       throw BankError.insufficientFunds
     }
 
-    print("Transferring \(amount) from \(ownerName) to \(other.ownerName)")
+    print("Transferring \(amount) from \(accountNumber) to \(other.accountNumber)")
 
     balance = balance - amount
     other.balance = other.balance + amount  // error: actor-isolated property 'balance' can only be referenced on 'self'
@@ -67,7 +72,7 @@ If `BankAccount` were a normal class, the `transfer(amount:to:)` method would be
 
 As noted in the error message, `balance` is *actor-isolated*, meaning that it can only be accessed directly from within the specific actor it is tied to or "isolated by". In this case, it's the instance of `BankAccount` referenced by `self`. Stored properties, computed instance properties, instance subscripts, and instance methods (like `transfer(amount:to:)`) in an actor class are all actor-isolated by default.
 
-On the other hand, the reference to `other.ownerName` is allowed, because `ownerName` is immutable (defined by `let`). Once initialized, it is never written, so there can be no data races in accessing it. `ownerName` is called *actor-independent*, because it can be freely used from any actor. Constants introduced with `let` are actor-independent by default; there is also an attribute `@actorIndependent` (described in [**Actor-independent declarations**](#actor-independent-declarations)) to specify that a particular declaration is actor-independent. 
+On the other hand, the reference to `other.accountNumber` is allowed, because `accountNumber` is immutable (defined by `let`). Once initialized, it is never written, so there can be no data races in accessing it. `accountNumber` is called *actor-independent*, because it can be freely used from any actor. Constants introduced with `let` are actor-independent by default; there is also an attribute `@actorIndependent` (described in the next section on [**Actor independence**](#actor-independence)) to specify that a particular declaration is actor-independent. 
 
 Compile-time actor-isolation checking, as shown above, ensures that code outside of the actor does not interfere with the actor's mutable state. To work with the actor from outside of it, one must always do so with an asynchronous function invocation. Asynchronous function invocations are turned into enqueues of partial tasks representing those invocations to the actor's *queue*. This queue, along with an exclusive task executor bound to the actor, functions as a synchronization boundary between the actor and any of its external callers. For example, if we wanted to make a deposit to a given bank account `account`, we could make a call to a method `deposit(amount:)`, and that call would be placed on the queue. The executor would pull tasks from the queue one-by-one, ensuring an actor is never concurrently running on multiple threads, and would eventually process the deposit.
 
@@ -82,7 +87,7 @@ extension BankAccount {
       throw BankError.insufficientFunds
     }
 
-    print("Transferring \(amount) from \(ownerName) to \(other.ownerName)")
+    print("Transferring \(amount) from \(accountNumber) to \(other.accountNumber)")
 
     // Safe: this operation is the only one that has access to the actor's local
     // state right now, and there have not been any suspension points between
@@ -132,6 +137,60 @@ extension BankAccount {
 Any interactions with the actor that involve mutable state (whether reads or writes) must be performed asynchronously. Semantically, an asynchronous call (such as `await other.deposit(amount: amount)`) to an actor is placed on the serial queue for the actor `other`, so that it will execute on that actor. If that actor is busy executing another task, then the caller will be suspended until the actor is available, so that other work can continue. 
 
 > **Rationale**: by only allowing asynchronous calls from outside the actor, we ensure that all synchronous methods are already inside the actor when they are called. This eliminates the need for any queuing or synchronization within the synchronous code, making such code more efficient and simpler to write.
+
+
+### Actor independence
+
+Some functions (and closures) that occur lexically within actor classes are actor-independent, meaning that they can be used from outside of the actor without necessarily requiring an asynchronous call. Immutable instance properties (like `BankAccount.accountNumber`) are one such example. It also possible to specify that a given instance method, property, or subscript is actor-independent with the attribute `@actorIndependent`. This allows us (for example) to define conformance of an actor class to a protocol that has synchronous requirements:
+
+```swift
+extension BankAccount: Hashable {
+  @actorIndependent
+  func hash(into hasher: inout Hasher) {
+    hasher.combine(accountNumber)
+  }  
+}
+
+extension BankAccount: CustomStringConvertible {
+  @actorIndependent
+  var description: String {
+    "Bank account #\(accountNumber)"
+  }
+}
+```
+
+There are two important things to note here:
+
+1. Without the `@actorIndependent` attribute, the protocol conformance would be invalid, because an actor-isolated synchronous instance member cannot satisfy a synchronous protocol requirement. The compiler would produce an error such as
+```
+error: actor-isolated property "description" cannot be used to satisfy a protocol requirement
+```
+2. The `@actorIndependent` attribute means that the body of the function is treated as being outside the actor. For example, this means that one cannot access mutable actor state:
+```swift
+extension BankAccount: CustomDebugStringConvertible {
+  @actorIndependent
+  var debugDescription: String {
+    "Bank account #\(accountNumber), balance = \(balance)"  // error: actor-isolated property 'balance' can not be referenced from an '@actorIndependent' context
+  }
+}
+```
+
+Actor independence occurs in a number of other places. All functions declared outside of an actor are actor-independent by nature (there is no actor `self`). Static members of the actor are actor-independent because `self` is not an instance. Within an actor function there are local functions and closures that may be actor-independent. This is important, for example, when one of those functions captures `self` but may be executed concurrently:
+
+```swift
+extension BankAccount {
+  func endOfMonth(month: Int, year: Int) {
+    // Schedule a task to prepare an end-of-month report.
+    Task.runDetached { @actorIndependent in
+      let transactions = await self.transactions(month: month, year: year)
+      let report = Report(accountNumber: self.accountNumber, transactions: transactions)
+      await report.email(to: self.accountOwnerEmailAddress)
+    }
+  }
+}
+```
+
+The closure in the detached task will be run concurrently with other code on the actor so that the code that prepares the report (which could be compute-intensive) does not run on the serial queue for this actor. Operations on the actor `self`, such as the call to `transactions(month:year:)`, must therefore be asynchronous calls. The `@actorIndependent` will be inferred in some cases; see the section on [Closures and local functions](#closures-and-local-functions).
 
 ### Actor reentrancy (discussion)
 
@@ -575,7 +634,11 @@ When used on a declaration, it indicates that the declaration is not actor-isola
 
 When used on a class, the attribute applies by default to members of the class and extensions thereof.  It also interrupts the ordinary implicit propagation of actor-isolation attributes from the superclass, except as required for overrides.
 
+When used on an extension, the attribute applies by default to members of that extension. It also interrupts the ordinary implicit propagation of actor-isolation attributes from the superclass (if there is one), except as required for overrides.
+
 The attribute is ill-formed when applied to any other declaration.
+
+The `@actorIndependent` attribute can also be applied to a closure. Such a closure will be independent of any actor, even if it captures the `self` from an actor-isolated function.
 
 The `@actorIndependent` attribute has an optional "unsafe" argument.  `@actorIndependent(unsafe)` is treated the same way as `@actorIndependent` from the client's perspective, meaning that it can be used from anywhere. However, the implementation of an `@actorIndependent(unsafe)` entity is allowed to refer to actor-isolated state, which would have been ill-formed under `@actorIndependent`.
 
@@ -617,18 +680,13 @@ The second rule specifies that actor-independent declarations can be used from a
 ```swift
 extension BankAccount {
   @actorIndependent
-  func greeting() -> String {
-    return "Hello, \(ownerName)!"  // okay: ownerName is immutable
-  }
-  
-  @actorIndependent
   func steal(amount: Double) {
     balance -= amount  // error: actor-isolated property 'balance' can not be referenced from an '@actorIndependent' context
   }
 }  
 ```
 
-The third rule is an unsafe opt-out that allows a declaration to be treated as actor-independent by its clients, but can do actor-isolation-unsafe operations internally. It is intended to be used sparingly for interoperability with existing  synchronization mechanisms or low-level performance tuning.
+The third rule is an unsafe opt-out that allows a declaration to be treated as actor-independent by its clients, but can do actor-isolation-unsafe operations internally. It is intended to be used sparingly for interoperability with existing synchronization mechanisms, low-level performance tuning, or incremental adoption of actors in existing code bases.
 
 ```swift
 extension BankAccount {
@@ -639,7 +697,7 @@ extension BankAccount {
 }
 ```
 
-The fourth rule is provided to allow interoperability between actors and existing Swift code. Actor code (which by definition is all new code) can call into existing Swift code with unknown actor isolation. However, code with unknown actor isolation cannot call back into (non-`async`) actor-isolated code, because doing so would violate the isolation guarantees of that actor. This allows incremental adoption of actors into existing code bases, isolating the new actor code while allowing them to interoperate with the rest of the code.
+The fourth rule is provided to allow interoperability between actors and existing Swift code. Actor code (which by definition must be new code) can call into existing Swift code with unknown actor isolation. However, code with unknown actor isolation cannot call back into actor-isolated code synchronously, because doing so would violate the isolation guarantees of that actor. This allows incremental adoption of actors into existing code bases, isolating the new actor code while allowing them to interoperate with the rest of the code.
 
 #### Overrides
 
@@ -655,29 +713,8 @@ In the absence of an explicitly-specified actor-isolation attribute (i.e, `@acto
 When a given declaration (the "witness") satisfies a protocol requirement (the "requirement"), the actor isolation of the two declarations is compared. The protocol requirement can be satisfied by the witness if:
 
 * the witness and requirement have the same actor isolation,
-* the witness and requirement are `async` and the requirement has unknown actor isolation, or
-* the witness is actor-independent and the requirement has unknown actor isolation.
-
-The last case is particularly important to allow actor classes to conform to existing protocols, which will have synchronous requirements. For example, say that we want to make our `BankAccount` actor class conform to `CustomStringConvertible`:
-
-```swift
-extension BankAccount: CustomStringConvertible {
-  var description: String {       // error: actor-isolated property "description" cannot be used to satisfy a protocol requirement
-    "Bank account of \"\(ownerName)\""
-  }
-}
-```
-
-One can use `@actorIndependent` on such declarations to allow them to satisfy synchronous protocol requirements:
-
-```swift
-extension BankAccount: CustomStringConvertible {
-  @actorIndependent
-  var description: String {
-    "Bank account of \"\(ownerName)\""
-  }
-}
-```
+* the requirement is `async`, or
+* the witness is actor-independent.
 
 In the absence of an explicitly-specified actor-isolation attribute, a witness that is defined in the same type or extension as the conformance for the requirement's protocol will have its actor isolation inferred from the protocol requirement.
 
@@ -703,5 +740,6 @@ Nearly all changes in actor isolation are breaking changes, because the actor is
   * Separated out the discussion of data races for reference types.
   * Allow asynchronous calls to synchronous actor methods from outside the actor.
   * Non-actor classes cannot conform to the `Actor` protocol.
+  * Clarify the role and behavior of actor-independence.
 
 * Original pitch [document](https://github.com/DougGregor/swift-evolution/blob/6fd3903ed348b44496b32a39b40f6b6a538c83ce/proposals/nnnn-actors.md)
