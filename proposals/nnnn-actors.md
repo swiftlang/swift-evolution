@@ -139,7 +139,7 @@ Any interactions with the actor that involve mutable state (whether reads or wri
 > **Rationale**: by only allowing asynchronous calls from outside the actor, we ensure that all synchronous methods are already inside the actor when they are called. This eliminates the need for any queuing or synchronization within the synchronous code, making such code more efficient and simpler to write.
 
 
-### Actor independence
+#### Actor independence
 
 Some functions (and closures) that occur lexically within actor classes are actor-independent, meaning that they can be used from outside of the actor without necessarily requiring an asynchronous call. Immutable instance properties (like `BankAccount.accountNumber`) are one such example. It also possible to specify that a given instance method, property, or subscript is actor-independent with the attribute `@actorIndependent`. This allows us (for example) to define conformance of an actor class to a protocol that has synchronous requirements:
 
@@ -190,7 +190,69 @@ extension BankAccount {
 }
 ```
 
-The closure in the detached task will be run concurrently with other code on the actor so that the code that prepares the report (which could be compute-intensive) does not run on the serial queue for this actor. Operations on the actor `self`, such as the call to `transactions(month:year:)`, must therefore be asynchronous calls. The `@actorIndependent` will be inferred in some cases; see the section on [Closures and local functions](#closures-and-local-functions).
+The closure in the detached task will be run concurrently with other code on the actor so that the code that prepares the report (which could be compute-intensive) does not run on the serial queue for this actor. Operations on the actor `self`, such as the call to `transactions(month:year:)`, must therefore be asynchronous calls. The `@actorIndependent` will be inferred in some cases; see the section on [closures](#closures).
+
+#### Closures
+
+The restrictions on only allowing asynchronous access to actor-isolated declarations on `self` only work so long as we can ensure that the code in which `self` is valid is executing non-concurrently on the actor. For methods on the actor class, this is established by the rules described above: asynchronous function calls are serialized via the actor's queue, and synchronous calls are only allowed when we know that we are already executing (non-concurrently) on the actor.
+
+However, `self` can also be captured by closures. Should those closures have access to actor-isolated state on the captured `self`? Consider an example where we want to close out a bank account and distribute the balance amongst a set of accounts:
+
+```swift
+extension BankAccount {
+  func close(distributingTo accounts: [BankAccount]) async {
+    let transferAmount = balance / accounts.count
+
+    accounts.forEach { account in 
+      balance = balance - transferAmount             // is this safe?
+      Task.runDetached {
+        await account.deposit(amount: transferAmount)
+      }  
+    }
+    
+    await thief.deposit(amount: balance)
+  }
+}
+```
+
+The closure is accessing (and modifying) `balance`, which is part of the `self` actor's isolated state. Once the closure is formed and passed off to a function (in this case, `Sequence.forEach`), we no longer have control over when and how the closure is executed. On the other hand, we "know" that `forEach` is a synchronous function that invokes the closure on successive elements in the sequence. It is not concurrent, and the code above would be safe.
+
+If, on the other hand, we used a hypothetical parallel for-each, we would have a data race when the closure executes concurrently on different elements:
+
+```swift
+accounts.parallelForEach { account in 
+  self.balance = self.balance - transferAmount    // DATA RACE!
+  await account.deposit(amount: transferAmount)
+}
+```
+
+In this proposal, we assume that `forEach`'s closure parameter is *non-concurrent*, meaning that it will be executed serially, and that `parallelForEach`s closure parameter is *concurrent*, meaning that it can be executed concurrently with itself or with other code. For the purposes of this proposal, an escaping closure parameter is considered to be concurrent and a non-escaping closure parameter is considered to be non-concurrent. This is an heuristic that is discussed further and refined in a separate proposal on [Preventing Data Races in the Swift Concurrency Model](https://gist.github.com/DougGregor/10db898093ce33694139d1dcd7da3397).
+
+A *concurrent* closure is inferred to be actor-independent (as if annotated with `@actorIndependent`). Therefore, the `parallelForEach` example would produce the following error:
+
+```
+error: actor-isolated property 'balance' is unsafe to reference in code that may execute concurrently
+```
+
+On the other hand, the `forEach` example is well-formed, because a non-concurrent closure that captures an actor `self` from an actor-isolated context is also actor-isolated. That allows the closure to access `self.balance` synchronously.
+
+#### inout parameters
+
+Actor-isolated stored properties can be passed into synchronous functions via `inout` parameters, but it is ill-formed to pass them to asynchronous functions via `inout` parameters. For example:
+
+```swift
+func modifiesSynchronously(_: inout Double) { }
+func modifiesAsynchronously(_: inout Double) async { }
+
+extension BankAccount {
+  func wildcardBalance() async {
+    modifiesSynchronously(&balance)        // okay
+    await modifiesAsynchronously(&balance) // error: actor-isolated property 'balance' cannot be passed 'inout' to an asynchronous function
+  }
+}  
+```
+
+This restriction prevents exclusivity violations where the modification of the actor-isolated `balance` is initiated by passing it as `inout` to a call that is then suspended, and another task executed on the same actor then fails with an exclusivity violation in trying to access `balance` itself.
 
 ### Actor reentrancy (discussion)
 
@@ -487,76 +549,6 @@ By offering developers the tools to pick which reentrancy model they need for th
 
 Thanks to structured concurrency and the `Task` primitives, we are able to relax the reentrancy rules such that they do not get in the way of typical pair-wise interactions between actors, but still protect from concurrent incoming requests causing confusing ordering interleaving execution. 
 
-#### Closures and local functions
-
-The restrictions on only allowing asynchronous access to actor-isolated declarations on `self` only work so long as we can ensure that the code in which `self` is valid is executing non-concurrently on the actor. For methods on the actor class, this is established by the rules described above: asynchronous function calls are serialized via the actor's queue, and non-`async` calls are only allowed when we know that we are already executing (non-concurrently) on the actor.
-
-However, `self` can also be captured by closures and local functions. Should those closures and local functions have access to actor-isolated state on the captured `self`? Consider an example where we want to close out a bank account and distribute the balance amongst a set of accounts:
-
-```swift
-extension BankAccount {
-  func close(distributingTo accounts: [BankAccount]) async {
-    let transferAmount = balance / accounts.count
-
-    accounts.forEach { account in 
-      balance = balance - transferAmount             // is this safe?
-      Task.runDetached {
-        await account.deposit(amount: transferAmount)
-      }  
-    }
-    
-    await thief.deposit(amount: balance)
-  }
-}
-```
-
-The closure is accessing (and modifying) `balance`, which is part of the `self` actor's isolated state. Once the closure is formed and passed off to a function (in this case, `Sequence.forEach`), we no longer have control over when and how the closure is executed. On the other hand, we "know" that `forEach` is a synchronous function that invokes the closure on successive elements in the sequence. It is not concurrent, and the code above would be safe.
-
-If, on the other hand, we used a hypothetical parallel for-each, we would have a data race when the closure executes concurrently on different elements:
-
-```swift
-accounts.parallelForEach { account in 
-  self.balance = self.balance - transferAmount    // DATA RACE!
-  await account.deposit(amount: transferAmount)
-}
-```
-
-In this proposal, a closure that is non-escaping is considered to be isolated within the actor, while a closure that is escaping is considered to be outside of the actor. This is based on a notion of when closures can be executed concurrently: to execute a particular closure on a different thread, one will have to escape the closure out of its current thread to run it on another thread. The rules that prevent a non-escaping closure from escaping therefore also prevent them from being executed concurrently. 
-
-Based on the above, `parallelForEach` would need its closure parameter will be `@escaping`. The first example (with `forEach`) is well-formed, because the closure is actor-isolated and can access `self.balance`. The second example (with `parallelForEach`) will be rejected with an error:
-
-```
-error: actor-isolated property 'balance' is unsafe to reference in code that may execute concurrently
-```
-
-Note that the same restrictions apply to partial applications of non-`async` actor-isolated functions. Given a function like this:
-
-```swift
-extension BankAccount {
-  func synchronous() { }
-}
-```
-
-The expression `self.synchronous` is well-formed only if it is the direct argument to a function whose corresponding parameter is non-escaping. Otherwise, it is ill-formed because it could escape outside of the actor's context.
-
-#### inout parameters
-
-Actor-isolated stored properties can be passed into synchronous functions via `inout` parameters, but it is ill-formed to pass them to asynchronous functions via `inout` parameters. For example:
-
-```swift
-func modifiesSynchronously(_: inout Double) { }
-func modifiesAsynchronously(_: inout Double) async { }
-
-extension BankAccount {
-  func wildcardBalance() async {
-    modifiesSynchronously(&balance)        // okay
-    await modifiesAsynchronously(&balance) // error: actor-isolated property 'balance' cannot be passed 'inout' to an asynchronous function
-  }
-}  
-```
-
-This restriction prevents exclusivity violations where the modification of the actor-isolated `balance` is initiated by passing it as `inout` to a call that is then suspended, and another task executed on the same actor then fails with an exclusivity violation in trying to access `balance` itself.
-
 ## Detailed design
 
 ### Actor classes
@@ -717,6 +709,18 @@ When a given declaration (the "witness") satisfies a protocol requirement (the "
 * the witness is actor-independent.
 
 In the absence of an explicitly-specified actor-isolation attribute, a witness that is defined in the same type or extension as the conformance for the requirement's protocol will have its actor isolation inferred from the protocol requirement.
+
+### Partial applications
+
+Partial applications of synchronous actor-isolated functions are only well-formed if they are treated as non-concurrent. For example, given a function like this:
+
+```swift
+extension BankAccount {
+  func synchronous() { }
+}
+```
+
+The expression `self.synchronous` is well-formed only if it is the direct argument to a function whose corresponding parameter is non-concurrent. Otherwise, it is ill-formed because the function might be called in a context that is not actor-isolated.
 
 ## Source compatibility
 
