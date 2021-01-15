@@ -30,6 +30,9 @@
 + [Alternatives considered](#alternatives-considered)
   - [Callee-side property wrapper application](#callee-side-property-wrapper-application)
 + [Future Directions](#future-directions)
+  - [Property-wrapper parameters in memberwise initializers](#property-wrapper-parameters-in-memberwise-initializers)
+  - [Support `inout` in wrapped function parameters](#support-`inout`-in-wrapped-function-parameters)
+  - [Wrapper types in the standard library](#wrapper-types-in-the-standard-library)
 + [Revisions](#revisions)
   - [Changes from the first reviewed version](#changes-from-the-first-reviewed-version)
 + [Appendix](#appendix)
@@ -445,7 +448,7 @@ One of the motivating use-cases for property-wrapper parameters is the ability t
 
 ## Future directions
 
-### Property-wrapper parameters in synthesized memberwise initializers
+### Property-wrapper parameters in memberwise initializers
 
 Synthesized memberwise initializers could use property-wrapper parameters for stored properties with attached property wrappers:
 
@@ -462,11 +465,11 @@ func copyDocument(in editor: TextEditor) -> TextEditor {
 }
 ```
 
-### Add support for `inout` wrapped parameters in functions
+### Support `inout` in wrapped function parameters
 
 This proposal doesn't currently support marking property-wrapped function parameters `inout`. We deemed that this functionality would be better tackled by another proposal, due to its implementation complexity. Nonetheless, such a feature would be useful for mutating a `wrappedValue` argument when the wrapper has a `mutating` setter.
 
-### Add wrapper types in the standard library
+### Wrapper types in the standard library
 
 Adding wrapper types to the standard library has been discussed for types [such as `@Atomic`](https://forums.swift.org/t/atomic-property-wrapper-for-standard-library/30468) and [`@Weak`](https://forums.swift.org/t/should-weak-be-a-type/34032), which would facilitate certain APIs. Another interesting standard library wrapper type could be `@UnsafePointer`, which would be quite useful, as access of the `pointee` property is quite common:
 
