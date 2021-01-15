@@ -42,132 +42,9 @@ Property Wrappers were [introduced in Swift 5.1](https://github.com/apple/swift-
 
 Property wrappers have undoubtably been very successful. Applying a property wrapper to a property is enabled by an incredibly lightweight and expressive syntax. For instance, frameworks such as [SwiftUI](https://developer.apple.com/documentation/swiftui/) and [Combine](https://developer.apple.com/documentation/combine) introduce property wrappers such as [`State`](https://developer.apple.com/documentation/swiftui/state), [`Binding`](https://developer.apple.com/documentation/swiftui/binding) and [`Published`](https://developer.apple.com/documentation/combine/published) to expose elaborate behavior through a succinct interface, helping craft expressive yet simple APIs. However, property wrappers are only applicable to local variables and type properties, shattering the illusion that they helped realize in the first place when working with parameters.
 
-### Memberwise initialization
+Property wrappers attached to parameters have a wide variety of use cases. We present a few examples here.
 
-Currently, property-wrapper attributes on struct properties interact with function parameters through the struct's synthesized memberwise initializer. However, property-wrapper attributes are _not_ supported on function parameters. This leads to complicated and nuanced rules for which type, between the wrapped-value type and the backing property-wrapper type, the memberwise initializer accepts.
-
-The compiler will choose the wrapped-value type to offer a convenience to the call-site when the property wrapper has an initializer of the form `init(wrappedValue:)` accepting the wrapped-value type, as seen here:
-
-```swift
-import SwiftUI
-
-
-struct TextEditor {
-
-  @State var document: Optional<URL>
-  
-}
-
-
-func openEditor(with swiftFile: URL) -> TextEditor {
-  TextEditor(document: swiftFile) 
-  // The wrapped type is accepted here.
-}
-```
-
-However, this can take flexibility away from the call-site if the property wrapper has other `init` overloads, because the call-site _cannot_ choose a different initializer. Further, if the property wrapper is explicitly initialized via `init()`, then the memberwise initializer will choose the backing-wrapper type, even if the wrapper supports `init(wrappedValue:)`. This results in unnecessary boilerplate at call-sites that _do_ want to use `init(wrappedValue:)`:
-
-```swift
-import SwiftUI
-
-
-struct TextEditor {
-
-  @State() var document: Optional<URL>
-  
-}
-
-
-func openEditor(with swiftFile: URL) -> TextEditor {
-  TextEditor(document: State(wrappedValue: swiftFile))
-  // The wrapped type isn't accepted here; instead we have 
-  // to use the backing property-wrapper type: 'State'.
-}
-```
-
-Note also that the argument label does not change when the memberwise initializer uses the backing wrapper type instead of the wrapped-value type.
-
-If the generated memberwise initializer always accepted the backing wrapper type while still allowing the call-site the convenience of automatically initializing the backing wrapper via a wrapped-value type, the mental model for property wrapper initialization would be greatly simplified. Moreover, this would provide more control over the backing-wrapper initialization at the call-site.
-
-### Function parameters with property wrapper type
-
-Using property-wrapper types for function parameters also results in boilerplate code, both in the function body and at the call-site:
-
-```swift
-@propertyWrapper
-struct Lowercased {
-
-  init(wrappedValue: String) { ... }
-
-
-  var wrappedValue: String {
-    get { ... }
-    set { ... }
-  }
-  
-}
-
-
-func postUrl(urlString: Lowercased) {
-  guard let url = URL(string: urlString.wrappedValue) else { return }
-    //                                 ^~~~~~~~~~~~~
-    // We must access 'wrappedValue' manually.
-  ...
-}
-
-
-postUrl(urlString: Lowercased(wrappedValue: "mySite.xyz/myUnformattedUsErNAme"))
-//                 ^~~~~~~~~~
-// We must initialize `Lowercased` manually,
-// instead of automatically initializing
-// from its wrapped value type.
-```
-
-In the above example, the inability to apply property wrappers to function parameters prevents the programmer from removing unnecessary details from the code. The call-site of `postUrl` is forced to initialize an instance of `Lowercased` manually using `init(wrappedValue:)`, even though this initailization is automatic when using `@Lowercased` on a local variable or type property. Further, manually accessing `wrappedValue` in the function body can be distracting when trying to understand the implementation. These limitations are emphasized by the fact that property wrappers were originally sought out to eliminate such boilerplate.
-
-### Closures accepting property-wrapper types
-
-Consider the following SwiftUI code, which uses [`ForEach`](https://developer.apple.com/documentation/swiftui/foreach) over a collection:
-
-```swift
-struct MyView : View {
-
-  // A simple Shopping Item that includes
-  // a 'quantity' and a 'name' property.
-  @State
-  private var shoppingItems: [Item]
-
-  var body: some View {
-    ForEach(0 ..< shoppingItems.count) { index in
-      TextField(shoppingItems[index].name, $shoppingItems[index].name)
-    }
-  }
-
-}
-```
-
-Working with `shoppingItems` in the closure body is painful, because the code must manually index into the original wrapped property, rather than working with collection elements directly in the closure. The manual indexing would be alleviated if the closure accepted `Binding`s to collection elements:
-
-```swift
-struct MyView : View {
-
-  // A simple Shopping Item that includes
-  // a 'quantity' and a 'name' property.
-  @State
-  private var shoppingItems: [Item]
-
-  var body: some View {
-    ForEach($shoppingItems) { itemBinding in
-      TextField(itemBinding.wrappedValue.name, itemBinding.name)
-    }
-  }
-
-}
-```
-
-However, now we observe the same boilerplate code in the closure body because the property-wrapper syntax cannot be used with the closure parameter.
-
-### Property validation
+### Argument validation
 
 Both library developers and language users often need to assert their assumptions, for which `precondition(_:_:)` is often used:
 
@@ -193,7 +70,7 @@ Furthermore, supposing the above is library code, we may want to test for our pr
 
 ```swift
 @propertyWrapper
-struct Asserted<Value> { 
+struct Validated<Value> {
 
   ...
   
@@ -235,35 +112,86 @@ func buy(
 
 This not only makes writing easy-to-maintain validations easy, but improves debugging for the the API's users as well. Unfortunately, it still lacks the elegant syntax property wrappers offer, making the creation of new functions a demanding task.
 
-## Proposed solution
+### Pass-by-value for reference types
 
-We propose to allow application of property wrappers on function and closure parameters.
-
-Using property-wrapper parameters, the above `postUrl` example becomes:
+The `@NSCopying` attribute is a tool to emulate value semantics for reference-type properties. The same functionality can now be implemented as a property wrapper, as shown in [SE-0258](https://github.com/apple/swift-evolution/blob/master/proposals/0258-property-wrappers.md#nscopying):
 
 ```swift
-func postUrl(@Lowercased urlString: String) {
-  guard let url = URL(string: urlString) else { return }
-  ...
-}
+@propertyWrapper
+struct Copying<Value: NSCopying> {
+  private var _value: Value
 
-postUrl(urlString: "mySite.xyz/myUnformattedUsErNAme")
+  init(wrappedValue value: Value) {
+    // Copy the value on initialization.
+    self._value = value.copy() as! Value
+  }
+
+  var wrappedValue: Value {
+    get { return _value }
+    set {
+      // Copy the value on reassignment.
+      _value = newValue.copy() as! Value
+    }
+  }
+}
 ```
 
-In the above SwiftUI example, if collection elements could be accessed via `Binding`s in the `ForEach` closure, property-wrapper parameters could be used to enable property-wrapper syntax in the closure body:
+However, this property wrapper cannot be used on parameters to achieve pass-by-value semantics for reference-type arguments. To achieve pass-by-value semantics, `copy()` must be called manually, which is easy to forget, or the `Copying` type must be used directly in an API, which causes each call-site to manually create an instance of `Copying`.
+
+### Memberwise initialization
+
+Consider the following property wrapper, inspired by `@Traceable` from [David Piper's blog post](https://medium.com/better-programming/creating-a-history-with-property-wrappers-in-swift-5-1-4c0202060a7f), which tracks the history of a value:
 
 ```swift
-struct MyView: View {
+@propertyWrapper
+struct Traceable<Value> {
 
-  @State
-  private var shoppingItems: [Item]
+  init(wrappedValue value: Value) { ... }
 
-  var body: some View {
-    ForEach($shoppingItems) { $item in
-      TextField(item.name, $item.name)
+  init(projectedValue: History) { ... }
+
+  var wrappedValue: Value {
+    get {
+      return history.currentValue
+    }
+    set {
+      history.append(newValue)
     }
   }
 
+  var projectedValue: History { return history }
+
+  private var history: History
+
+  struct History { ... }
+
+}
+```
+
+This property wrapper can be initialized with a value to be traced, or with an existing history of a value being traced. Now consider the following model for a simple text editor that supports change tracking:
+
+```swift
+struct TextEditor {
+  @Traceable var dataSource: String
+}
+```
+
+Currently, property-wrapper attributes on struct properties interact with function parameters through the struct's synthesized memberwise initializer. Because the `@Traceable` property wrapper supports initialization from a wrapped value via `init(wrappedValue:)`, the memberwise initializer for `TextEditor` will take in a `String`. However, the programmer may want to initialize `TextEditor` with a string value that already has a history. Today, this can be achieved with overloads, which can greatly impact compile-time performance, or by exposing the `Traceable` type through the `TextEditor` initializer, which is meant to be implementation detail.
+
+## Proposed solution
+
+We propose to allow application of property wrappers on function and closure parameters, allowing the call-site to pass a wrapped value or a projected value which will be used to automatically initialize the backing property wrapper.
+
+Using property-wrapper parameters, the above argument validation example can be simplified to:
+
+```swift
+func buy(
+  @Validated(.greaterOrEqual(1)) quantity: Int,
+  of product: Product,
+) {
+  if quantity == 1 {
+    ...
+  }
 }
 ```
 
