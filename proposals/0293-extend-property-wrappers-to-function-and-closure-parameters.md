@@ -64,16 +64,13 @@ func buy(quantity: Int, of product: Product) {
 }
 ```
 
-The above code is quite clear; it has, though, the obvious drawback that changing the the condition to be asserted or its error message requires significant effort as a precondition statement is individually written for each function.
+The above code is quite clear; it has, though, the obvious drawback that changing the the condition to be asserted or its error message requires significant effort as a precondition statement is individually written for each function and manually documented.
 
 Furthermore, supposing the above is library code, we may want to test for our precondition while offering an easy-to-debug way. So, using `Validation` from [`ValidatedPropertyKit`](https://github.com/SvenTiigi/ValidatedPropertyKit) we can write:
 
 ```swift
 @propertyWrapper
 struct Validated<Value> {
-
-  ...
-  
   // The assertion will appear at the right file and line
   init(
     wrappedValue: Value, 
@@ -83,7 +80,10 @@ struct Validated<Value> {
   ) {
     ...
   }
-  
+
+  var wrappedValue: Value { ... }
+
+  var projectedValue: Result<Value, ValidationResult> { ... }
 }
 
 
@@ -143,12 +143,14 @@ However, this property wrapper cannot be used on parameters to achieve pass-by-v
 Consider the following property wrapper, inspired by `@Traceable` from [David Piper's blog post](https://medium.com/better-programming/creating-a-history-with-property-wrappers-in-swift-5-1-4c0202060a7f), which tracks the history of a value:
 
 ```swift
+struct History<Value> { ... }
+
 @propertyWrapper
 struct Traceable<Value> {
 
   init(wrappedValue value: Value) { ... }
 
-  init(projectedValue: History) { ... }
+  init(projectedValue: History<Value>) { ... }
 
   var wrappedValue: Value {
     get {
@@ -159,11 +161,9 @@ struct Traceable<Value> {
     }
   }
 
-  var projectedValue: History { return history }
+  var projectedValue: History<Value> { return history }
 
-  private var history: History
-
-  struct History { ... }
+  private var history: History<Value>
 
 }
 ```
@@ -214,14 +214,14 @@ The transformation of function with a property-wrapped parameter will be perform
 Consider the following function with a property-wrapped parameter using the `@Validated` property wrapper:
 
 ```swift
-func insert(@Validated(.nonEmpty) text: String?) { ... }
+func insert(@Validated(.nonEmpty) text: String) { ... }
 ```
 
 The compiler will synthesize computed `text` and `$text` variables in the body of `insert`:
 
 ```swift
-func insert(text _text: Validated<String?>) { 
-  var text: String? {
+func insert(text _text: Validated<String>) {
+  var text: String {
     get { _text.wrappedValue }
   }
 
@@ -237,51 +237,68 @@ func insert(text _text: Validated<String?>) {
 
 When passing an argument to a function with a property-wrapped parameter, the compiler will wrap the argument in a call to the appropriate initializer depending on the argument label. When using the original argument label (or no argument label), the compiler will wrap the argument in a call to `init(wrappedValue:)`. When using the argument label prefixed with `$` (or `$_` in the case of no argument label), the compiler will wrap the argument in a call to `init(projectedValue:)`. 
 
-Consider the following property wrapper that implements both `init(wrappedValue:)` and `init(projectedValue:)`:
+Consider the `@Traceable` property wrapper that implements both `init(wrappedValue:)` and `init(projectedValue:)`:
 
 ```swift
-struct Projection<Value> { ... }
+struct History<Value> { ... }
 
 @propertyWrapper
-public struct Wrapper<Value> {
+struct Traceable<Value> {
 
-  public init(wrappedValue: Value) { ... }
+  init(wrappedValue value: Value)
 
-  public init(projectedValue: Projection<Value>) { ... }
+  init(projectedValue: History<Value>)
 
-  public var wrappedValue: Value
+  var wrappedValue: Value
 
-  public var projectedValue: Projection<Value> { ... }
+  var projectedValue: History<Value>
 
 }
 ```
 
-A function with a `@Wrapped` parameter can be called with either a wrapped value or a projected value:
+A function with an `@Traceable` parameter can be called with either a wrapped value or a projected value:
 
 ```swift
-func useWrapper<Value>(@Wrapper arg: Value) { ... }
+func log<Value>(@Traceable value: Value) { ... }
 
-let projection: Projection<Int> = ...
-useWrapper(arg: 10)
-useWrapper($arg: projection)
+let history: History<Int> = ...
+log(value: 10)
+log($value: history)
 ```
 
-The compiler will inject a call to the appropriate property-wrapper initializer into each call to `useWrapper` based on the argument label:
+The compiler will inject a call to the appropriate property-wrapper initializer into each call to `log` based on the argument label, so the above code is transformed to:
 
 ```swift
-useWrapper(arg: Wrapper(wrappedValue: 10))
-useWrapper(arg: Wrapper(projectedValue: projection))
+log(value: Traceable(wrappedValue: 10))
+log(value: Traceable(projectedValue: history))
 ```
 
 Wrapped parameters with no argument label can still be passed a projection using the syntax `$_:`, as shown in the following example:
 
 ```swift
-func useWrapper<Value>(@Wrapper _ arg: Value) { ... }
+func log<Value>(@Traceable _ value: Value) { ... }
 
-let projection: Projection<Int> = ...
-useWrapper(10)
-useWrapper(_: 10)
-useWrapper($_: projection)
+let history: History<Int> = ...
+log(10)
+log(_: 10)
+log($_: history)
+```
+
+For composed property wrappers, initialization of the backing wrapper via wrapped value will contain a call to `init(wrappedValue:)` for each property-wrapper attribute in the composition chain. However, initialization via projected value will only contain one call to `init(projectedValue:)` for the outermost wrapper attribute, because property wrapper projections are not composed. For example:
+
+```swift
+func log(@Traceable @Traceable text: String) { ... }
+
+let history: History<Traceable<String>> = ...
+log(text: "Hello!")
+log($text: history)
+```
+
+The above calls to `log` are transformed to:
+
+```swift
+log(text: Traceable(wrappedValue: Traceable(wrappedValue: "Hello!"))
+log(text: Traceable(projectedValue: history))
 ```
 
 This transformation at the call-site only applies when calling the function directly using the declaration name. The semantics of closures and unapplied function references are specified [in a later section](#closures-and-unapplied-function-references).
@@ -324,10 +341,10 @@ generic(arg: [1, 2, 3]) // calls the constrained init(wrappedValue:)
 
 By default, closures and unapplied references to functions that accept property-wrapped parameters use the wrapped-value type in the parameter list, and the compiler will generate a thunk to initialize the backing wrapper and call the function.
 
-Consider the following function using the `@Clamped` property wrapper:
+Consider the following function which uses the [`@Clamping`](https://github.com/apple/swift-evolution/blob/main/proposals/0258-property-wrappers.md#clamping-a-value-within-bounds) property wrapper:
 
 ```swift
-func reportProgress(@Clamped(to: 0...100) percent: Int) { ... }
+func reportProgress(@Clamping(min: 0, max: 100) percent: Int) { ... }
 ```
 
 The type of `reportProgress` is `(Int) -> Void`. These semantics can be observed when working with an unapplied reference to `reportProgress`:
@@ -340,7 +357,7 @@ fnRef(10)
 The compiler will generate a thunk when referencing `reportProgress` to take in the wrapped-value type and initialize the backing property wrapper:
 
 ```swift
-let fnRef: (Int) -> Void =  { reportProgress(percent: Clamped(wrappedValue: $0, to: 0...100) }
+let fnRef: (Int) -> Void =  { reportProgress(percent: Clamping(wrappedValue: $0, min: 0, max: 100) }
 ```
 
 The type of a closure or unapplied function reference can be changed to instead take in the projected-value type using `$` in front of the parameter name in a closure or in front of the argument label in a function reference. Consider the following `UnsafeMutableReference` property wrapper that projects an `UnsafeMutablePointer` and implements `init(projectedValue:)`:
@@ -361,21 +378,12 @@ withUnsafeMutablePointer(to: &value) { @UnsafeMutableReference $value in
 }
 ```
 
-For closure parameters, the property-wrapper attribute is not necessary if the backing property wrapper and the projected value have the same type:
+For closure parameters, the property-wrapper attribute is not necessary if the backing property wrapper and the projected value have the same type, such as the [`Binding`](https://developer.apple.com/documentation/swiftui/binding) property wrapper from SwiftUI:
 
 
 ```swift
-struct MyView: View {
-
-  @State
-  private var shoppingItems: [Item]
-
-  var body: some View {
-    ForEach($shoppingItems) { $item in
-      TextField(item.name, $item.name)
-    }
-  }
-
+let useBinding: (Binding<Int>) -> Void = { $value in
+  ...
 }
 ```
 
@@ -388,6 +396,14 @@ The composed mutability of the innermost `wrappedValue` getter must be `nonmutat
 Property-wrapper parameters cannot have an `@autoclosure` type.
 
 > **Rationale**: `@autoclosure` is unnecessary for the wrapped value, because the wrapped-value argument at the call-site will always be wrapped in a call to `init(wrappedValue:)` or `init(projectedValue:)`, which can _already_ support `@autoclosure` arguments.
+
+Property-wrapper parameters cannot also have an attached result builder attribute.
+
+> **Rationale**: Result builder attributes can be applied to the parameters in `init(wrappedValue:)` and `init(projectedValue:)`. If there is a result builder attached to a property-wrapper parameter that already has a result builder in `init(wrappedValue:)`, it's unclear which result builder should be applied.
+
+Property-wrapper parameters with arguments in the wrapper attribute cannot be passed a projected value.
+
+> **Rationale** Arguments in the wrapper attribute only apply to `init(wrappedValue:)`. To ensure that these arguments never change, the call-site must always use `init(wrappedValue:)` and pass the additional attribute arguments.
 
 Property wrappers on function parameters must support `init(wrappedValue:)`.
 
@@ -431,17 +447,15 @@ One of the motivating use-cases for property-wrapper parameters is the ability t
 Synthesized memberwise initializers could use property-wrapper parameters for stored properties with attached property wrappers:
 
 ```swift
-struct MyView {
-
-  @State() var document: Optional<URL>
+struct TextEditor {
+  @Traceable var dataSource: String
 
   // Synthesized memberwise init
-  init(@State document: Optional<URL>) { ... }
-
+  init(@Traceable dataSource: String) { ... }
 }
 
-func openEditor(with swiftFile: URL) -> TextEditor {
-  TextEditor(document: swiftFile)
+func copyDocument(in editor: TextEditor) -> TextEditor {
+  TextEditor($dataSource: editor.$dataSource)
 }
 ```
 
@@ -467,7 +481,7 @@ Instead of writing the above, in the future one might be able to write the follo
 ```swift
 let myInt = 0
 
-withUnsafePointer(to: ...) { (@UnsafePointer value) in
+withUnsafePointer(to: ...) { $value in
   print(value) // 0
   
   $value.withMemoryRebound(to: UInt64.self) {
@@ -500,7 +514,7 @@ Otherwise:
   * If the wrappedValue accessor in the _N_ th property wrapper is nonmutating, then the _N_ th access has the same mutability as the _N - 1_ th get access.
   * If the wrappedValue accessor in the _N_ th property wrapper is mutating, then the _N_ th access is mutating if the _N - 1_ th get or set access is mutating.
 
-**Example**: Consider the following `Reference` property wrapper, which is composed with `Lowercased` and used on a closure parameter:
+**Example**: Consider the following `Reference` property wrapper, which is composed with `Validated` and used on a function parameter:
 
 ```swift
 @propertyWrapper
@@ -517,15 +531,15 @@ struct Reference<Value> {
   
 }
 
-let useReference = { (@Reference @Lowercased reference: String) in
+func useReference(@Reference @Validated(.nonEmpty) reference: String) {
   ...
 }
 ```
 
-In the above example, the closure `useReference` is equivalent to:
+In the above example, the function `useReference` is equivalent to:
 
 ```swift
-let useReference = { (_reference: Reference<Lowercased>) in
+func useReference(reference _reference: Reference<Validated<String>>) {
   var reference: String {
     get { 
       _reference.wrappedValue.wrappedValue
@@ -535,8 +549,8 @@ let useReference = { (_reference: Reference<Lowercased>) in
     }
   }
 
-  var $reference: Reference<Lowercased> {
-    get { 
+  var $reference: Reference<Validated<String>> {
+    get {
       _reference.projectedValue
     }
   }
@@ -545,4 +559,4 @@ let useReference = { (_reference: Reference<Lowercased>) in
 }
 ```
 
-Since both the getter and setter of `Reference.wrappedValue` are `nonmutating`, a setter can be synthesized for `var reference`, even though `Lowercased.wrappedValue` has a `mutating` setter. `Reference` also defines a `projectedValue` property, so a local computed property called `$reference` is synthesized in the closure, but it does _not_ have a setter, because `Reference.projectedValue` only defines a getter.
+Since both the getter and setter of `Reference.wrappedValue` are `nonmutating`, a setter can be synthesized for `var reference`, even though `Validated.wrappedValue` has a `mutating` setter. `Reference` also defines a `projectedValue` property, so a local computed property called `$reference` is synthesized in the function body, but it does _not_ have a setter, because `Reference.projectedValue` only defines a getter.
