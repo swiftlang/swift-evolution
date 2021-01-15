@@ -12,6 +12,9 @@
 
 + [Introduction](#introduction)
 + [Motivation](#motivation)
+  - [Argument validation](#argument-validation)
+  - [Pass-by-value for reference types](#pass-by-value-for-reference-types)
+  - [Memberwise initialization](#memberwise-initialization)
 + [Proposed solution](#proposed-solution)
 + [Detailed design](#detailed-design)
   - [Function-body semantics](#function-body-semantics)
