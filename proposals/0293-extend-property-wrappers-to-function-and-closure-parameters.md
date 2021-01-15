@@ -22,14 +22,16 @@
     - [Passing a projected value argument](#passing-a-projected-value-argument)
     - [Arguments in the property-wrapper attribute](#arguments-in-the-property-wrapper-attribute)
     - [Overload resolution of backing property-wrapper initializer](#overload-resolution-of-backing-property-wrapper-initializer)
-  - [Closures and unapplied function references](#closures-and-unapplied-function-references)
+  - [Semantics of function expressions](#semantics-of-function-expressions)
+    - [Unapplied function references](#unapplied-function-references)
+    - [Closures](#closures)
   - [Restrictions on property-wrapper parameters](#restrictions-on-property-wrapper-parameters)
 + [Source compatibility](#source-compatibility)
 + [Effect on ABI stability](#effect-on-abi-stability)
 + [Effect on API resilience](#effect-on-api-resilience)
 + [Alternatives considered](#alternatives-considered)
   - [Callee-side property wrapper application](#callee-side-property-wrapper-application)
-+ [Future Directions](#future-directions)
++ [Future directions](#future-directions)
   - [Property-wrapper parameters in memberwise initializers](#property-wrapper-parameters-in-memberwise-initializers)
   - [Support `inout` in wrapped function parameters](#support-`inout`-in-wrapped-function-parameters)
   - [Wrapper types in the standard library](#wrapper-types-in-the-standard-library)
@@ -343,55 +345,76 @@ generic(arg: [1, 2, 3]) // calls the constrained init(wrappedValue:)
                         // because the argument conforms to Collection.
 ```
 
-### Closures and unapplied function references
+### Semantics of function expressions
 
-By default, closures and unapplied references to functions that accept property-wrapped parameters use the wrapped-value type in the parameter list, and the compiler will generate a thunk to initialize the backing wrapper and call the function.
+#### Unapplied function references
 
-Consider the following function which uses the [`@Clamping`](https://github.com/apple/swift-evolution/blob/main/proposals/0258-property-wrappers.md#clamping-a-value-within-bounds) property wrapper:
+By default, unapplied references to functions that accept property-wrapped parameters use the wrapped-value type in the parameter list, and the compiler will generate a thunk to initialize the backing wrapper and call the function.
+
+Consider the `log` function from above, which uses the `@Traceable` property wrapper:
 
 ```swift
-func reportProgress(@Clamping(min: 0, max: 100) percent: Int) { ... }
+func log<Value>(@Traceable value: Value) { ... }
 ```
 
-The type of `reportProgress` is `(Int) -> Void`. These semantics can be observed when working with an unapplied reference to `reportProgress`:
+The type of `log` is `(Value) -> Void`. These semantics can be observed when working with an unapplied reference to `log`:
 
 ```swift
-let fnRef: (Int) -> Void = reportProgress
+let fnRef: (Int) -> Void = log
 fnRef(10)
 ```
 
-The compiler will generate a thunk when referencing `reportProgress` to take in the wrapped-value type and initialize the backing property wrapper:
+The compiler will generate a thunk when referencing `log` to take in the wrapped-value type and initialize the backing property wrapper:
 
 ```swift
-let fnRef: (Int) -> Void =  { reportProgress(percent: Clamping(wrappedValue: $0, min: 0, max: 100) }
+let fnRef: (Int) -> Void =  { log(value: Traceable(wrappedValue: $0) }
 ```
 
-The type of a closure or unapplied function reference can be changed to instead take in the projected-value type using `$` in front of the parameter name in a closure or in front of the argument label in a function reference. Consider the following `UnsafeMutableReference` property wrapper that projects an `UnsafeMutablePointer` and implements `init(projectedValue:)`:
+The type of an unapplied function reference can be changed to instead take in the projected-value type using `$` in front of the argument label. Since `Traceable` implements `init(projectedValue:)`, the `log` function can be referenced in a way that takes in `History` by using `$` in front of `value`:
 
 ```swift
-@propertyWrapper
-struct UnsafeMutableReference<Value> {
-
-  init(projectedValue: UnsafeMutablePointer<Value>) { ... }
-
-}
+let history: History<Int> = ...
+let fnRef: (History<Int>) -> Void = log($value:)
+fnRef(history)
 ```
-The above property wrapper can be used for closure parameteres of type `UnsafeMutablePointer` using `$` to prefix the parameter name:
+
+If the property-wrapped parameter in `log` omits an argument label, the function can still be referenced to take in the projected-value type using `$_`:
 
 ```swift
-withUnsafeMutablePointer(to: &value) { @UnsafeMutableReference $value in
+func log<Value>(@Traceable _ value: Value) { ... }
+
+let history: History<Int> = ...
+let fnRef: (History<Int>) -> Void = log($_:)
+fnRef(history)
+```
+
+#### Closures
+
+Closures have the same semantics as unapplied function references, with different syntax because the property-wrapper attribute needs to be specified on the closure parameter declaration. The `log` function from above can be implemented as a closure to take in the wrapped-value type:
+
+```swift
+let log: (Int) -> Void = { (@Traceable value) in
   ...
 }
 ```
 
-For closure parameters, the property-wrapper attribute is not necessary if the backing property wrapper and the projected value have the same type, such as the [`Binding`](https://developer.apple.com/documentation/swiftui/binding) property wrapper from SwiftUI:
+The closure can be implemented to instead take in the projected-value type by using the `$` prefix in the parameter name:
 
+```swift
+let log: (History<Int>) -> Void { (@Traceable $value) in
+  ...
+}
+```
+
+For closures that take in a projected value, the property-wrapper attribute is not necessary if the backing property wrapper and the projected value have the same type, such as the [`Binding`](https://developer.apple.com/documentation/swiftui/binding) property wrapper from SwiftUI. If `Binding` implemented `init(projectedValue:)`, it could be used as a property-wrapper attribute on closure parameters without explicitly writing the attribute:
 
 ```swift
 let useBinding: (Binding<Int>) -> Void = { $value in
   ...
 }
 ```
+
+Since property-wrapper projections are not composed, this syntax will only infer one property-wrapper attribute. To use property-wrapper composition, the attributes must always be explicitly written.
 
 ### Restrictions on property-wrapper parameters
 
