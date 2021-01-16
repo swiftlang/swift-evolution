@@ -209,7 +209,7 @@ Property wrappers are essentially sugar wrapping a given declaration with compil
 
 ### Function-body semantics
 
-Attaching a property wrapper to a parameter makes that parameter a computed variable local to the function body, and changes the parameter type to the backing wrapper type. The type of the parameter is only observable in compiled code - [unapplied references to functions with property-wrapped parameters](#closures-and-unapplied-function-references) will not use the backing wrapper type.
+Attaching a property wrapper to a parameter makes that parameter a computed variable local to the function body, and changes the parameter type to the backing wrapper type. The type of the parameter is only observable in compiled code - [unapplied references to functions with property-wrapped parameters](#unapplied-function-references) will not use the backing wrapper type.
 
 The transformation of function with a property-wrapped parameter will be performed as such:
 
@@ -217,7 +217,7 @@ The transformation of function with a property-wrapped parameter will be perform
 2. The parameter name will be prefixed with an underscore.
 3. The type of the parameter will be the backing property-wrapper type.
 4. A local computed property representing the `wrappedValue` of the innermost property wrapper will be synthesized with the same name as the original, unprefixed parameter name. If the innermost `wrappedValue` defines a setter, a setter will be synthesized for the local property if the mutability of the composed setter is `nonmutating`. The mutability computation is specified in the [appendix](#appendix).
-5. If the outermost property wrapper defines a `projectedValue` property, a local computed property representing the outermost `projectedValue` will be synthesized and named per the original parameter name prefixed with a dollar sign (`$`). If the outermost `projectedValue` defines a setter, a setter for the local computed property will be synthesized if the `projectedValue` setter is `nonmutating`, or if the outermost wrapper is a reference type.
+5. If the outermost property wrapper defines a `projectedValue` property with a `nonmutating` getter, a local computed property representing the outermost `projectedValue` will be synthesized and named per the original parameter name prefixed with a dollar sign (`$`). If the outermost `projectedValue` defines a setter, a setter for the local computed property will be synthesized if the `projectedValue` setter is `nonmutating`.
 
 Consider the following function with a property-wrapped parameter using the `@Validated` property wrapper:
 
@@ -309,7 +309,7 @@ log(text: Traceable(wrappedValue: Traceable(wrappedValue: "Hello!"))
 log(text: Traceable(projectedValue: history))
 ```
 
-This transformation at the call-site only applies when calling the function directly using the declaration name. The semantics of closures and unapplied function references are specified [in a later section](#closures-and-unapplied-function-references).
+This transformation at the call-site only applies when calling the function directly using the declaration name. The semantics of closures and unapplied function references are specified [in a later section](#semantics-of-function-expressions).
 
 #### Passing a projected value argument
 
@@ -362,12 +362,15 @@ The type of `log` is `(Value) -> Void`. These semantics can be observed when wor
 ```swift
 let fnRef: (Int) -> Void = log
 fnRef(10)
+
+let fnRefWithLabel: (Int) -> Void = log(value:)
+fnRefWithLabel(10)
 ```
 
-The compiler will generate a thunk when referencing `log` to take in the wrapped-value type and initialize the backing property wrapper:
+The compiler will generate a thunk when referencing `log` to take in the wrapped-value type and initialize the backing property wrapper. Both references to `log` in the above example are transformed to:
 
 ```swift
-let fnRef: (Int) -> Void =  { log(value: Traceable(wrappedValue: $0) }
+{ log(value: Traceable(wrappedValue: $0) }
 ```
 
 The type of an unapplied function reference can be changed to instead take in the projected-value type using `$` in front of the argument label. Since `Traceable` implements `init(projectedValue:)`, the `log` function can be referenced in a way that takes in `History` by using `$` in front of `value`:
