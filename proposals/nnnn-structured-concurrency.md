@@ -148,39 +148,68 @@ In some situations the priority of a task must be escalated in order to avoid a 
 
 Our approach follows the principles of *structured concurrency* described above. All asynchronous functions run as part of an asynchronous task. Tasks can make child tasks that will perform work concurrently. This creates a hierarchy of tasks, and information can naturally flow up and down the hierarchy, making it convenient to manage the whole thing holistically.
 
-### Child tasks
+### Task groups and child tasks
 
-This proposal introduces an easy way to create child tasks with `async let`:
+A *task group* defines a scope in which one can create new child tasks programmatically. As with all child tasks, the child tasks within the task group scope must complete when the scope exits, and will be implicitly cancelled first if the scope exits with a thrown error.
+
+To illustrate task groups, let's start by showing how we can introduce some
+real concurrency to our `makeDinner` example:
 
 ```swift
 func makeDinner() async throws -> Meal {
-  async let veggies = chopVegetables()
-  async let meat = marinateMeat()
-  async let oven = preheatOven(temperature: 350)
+  // Prepare some variables to receive results from our concurrent child tasks
+  var veggies: [Vegetable]?
+  var meat: Meat?
+  var oven: Oven?
 
-  let dish = Dish(ingredients: await [try veggies, meat])
-  return try await oven.cook(dish, duration: .hours(3))
+  // Create a task group to scope the lifetime of our three child tasks
+  try await Task.withGroup(resultType: Void.self) { group in
+    await group.add {
+      veggies = try await chopVegetables()
+    }
+    await group.add {
+      meat = await marinateMeat()
+    }
+    await group.app {
+      oven = await preheatOven(temperature: 350)
+    }
+  }
+
+  // If execution resumes normally after `Task.withGroup`, then we can assume
+  // that all child tasks added to the group completed successfully. That means
+  // we can confidently force-unwrap the variables containing the child task
+  // results here.
+  let dish = Dish(ingredients: [veggies!, meat!])
+  return try await oven!.cook(dish, duration: .hours(3))
 }
-``` 
+```
 
-`async let` is similar to a `let`, in that it defines a local constant that is initialized by the expression on the right-hand side of the `=`. However, it differs in that the initializer expression is evaluated in a separate, concurrently-executing child task. The child task beginning running as soon as the `async let` is encountered. On normal completion, the child task will initialize the variables in the `async let`.
+The `Task.withGroup` API gives us access to a task group, and governs the
+lifetime of the *child tasks* we subsequently add to the group using its
+`add` method. By the time `withGroup` finishes executing, we know that all of
+the subtasks have completed.  A child task does not persist beyond the scope in
+which it was created. By the time the scope exits, the child task must either
+have completed, or it will be implicitly awaited. When the scope exits via a
+thrown error, the child task will be implicitly cancelled before it is awaited.
 
-Because the main body of the function executes concurrently with its child tasks, it is possible that `makeDinner` will reach the point where it needs the value of an `async let` (say, `veggies`) before that value has been produced. To account for that, reading a variable defined by an `async let` is treated as a potential suspension point, and therefore must be marked with `await`. When the expression on right-hand side of the `=` of an `async let` can throw an error, that thrown error can be observed when reading the variable, and therefore must be marked with some form of `try`.
-The task will suspend until the child task has completed initialization of the variable (or thrown an error), and then resume.
+These properties allow us to nicely contain the effects of the concurrency we
+introduce inside the task group: although `chopVegetables`, `marinateMeat`,
+and `preheatOven` will run concurrently, and may make progress in any order,
+we can be sure that they have all finished executing in one way or another
+by the time `withGroup` returns or throws an error. In either case, task groups
+naturally propagate status from child tasks to the parent; in this example,
+the `chopVegetables()` function might throw an error if, say, there is an
+incident with the kitchen knife. That thrown error completes the child task for
+chopping the vegetables. The error will then be propagated out of the
+`makeDinner()` function, as expected. On exiting the body of the `makeDinner()`
+function with this error, any child tasks that have not yet completed
+(marinating the meat or preheating the oven, maybe both) will be automatically
+cancelled. Structured concurrency means we don't have to manually propagate
+errors and manage cancellation; if execution continues normally after a call
+into `Task.withGroup`, we can assume that all of its child tasks completed
+successfully.
 
-One can think of `async let` as introducing a (hidden) future, which is created at the point of declaration of the `async let` and whose value is retrieved at the `await`. In this sense, `async let` is syntactic sugar to futures.
-
-However, child tasks in the proposed structured-concurrency model are (intentionally) more restricted than general-purpose futures. Unlike in a typical futures implementation, a child task does not persist beyond the scope in which it was created. By the time the scope exits, the child task must either have completed, or it will be implicitly awaited. When the scope exits via a thrown error, the child task will be implicitly cancelled before it is awaited.
-
-Bringing it back to our example, note that the `chopVegetables()` function might throw an error if, say, there is an incident with the kitchen knife. That thrown error completes the child task for chopping the vegetables. The error will then be propagated out of the `makeDinner()` function, as expected. On exiting the body of the `makeDinner()` function with this error, any child tasks that have not yet completed (marinating the meat or preheating the oven, maybe both) will be automatically cancelled.
-
-### Task groups
-
-A *task group* defines a scope in which one can create new child tasks programmatically. As with all child tasks, the child tasks within the task group scope must complete when the scope exits, and will be implicitly cancelled first if the scope exits with a thrown error. This is equivalent to the behavior of `async let` variables, but is more suitable for a dynamic set of child tasks.
-
-To illustrate task groups, we'll stretch our example even and consider our `chopVegetables()` operation, which produces an array of `Vegetable` values. With enough cooks, we could chop our vegetables even faster if we divided up the chopping for each kind of vegetable. 
-
-Let's start with a sequential version of `chopVegetables()`:
+Let's stretch our example even further and focus in on our `chopVegetables()` operation, which produces an array of `Vegetable` values. With enough cooks, we could chop our vegetables even faster if we divided up the chopping for each kind of vegetable. Let's start with a sequential version of `chopVegetables()`:
 
 ```swift
 /// Sequentially chop the vegetables.
@@ -193,7 +222,15 @@ func chopVegetables() async throws -> [Vegetable] {
 }
 ```
 
-Introducing `async let` into the loop would not produce any meaningful concurrency, because each `async let` would need to complete before the next iteration of the loop could start. To create child tasks programmatically, we introduce a new task group via `Task.withGroup`:
+Unlike the top-level `makeDinner` task, here we have a dynamic amount of
+potential concurrency; depending on how many vegetables we can get from
+`gatherRawVeggies`, each vegetable could in principle be chopped in parallel
+with the rest. We also don't need to necessarily gather the chopped vegetables
+in any specific order, and can collect the results as they become ready.
+
+To create child tasks programmatically, and gather their results, we still introduce a new task group via `Task.withGroup`, this time specifying a `resultType`
+for the child tasks, and using the `next` method to collect those results as
+they become ready:
 
 ```swift
 /// Concurrently chop the vegetables.
@@ -221,70 +258,10 @@ func chopVegetables() async throws -> [Vegetable] {
 }
 ```
 
-The `Task.withGroup(resultType:body:)` function introduces a new scope in which child tasks can be created (using the task group's `add` method). All tasks in a given task group produce a value of the same type (specified by the `resultType` argument). The `next` method waits for the next child task to complete, providing the result value from the child task. In our example above, each child task produces the index where the result should go, along with the chopped vegetable.
+As in the first example, if the closure passed to `Task.withGroup` exited without having completed all its child tasks, the task group will still wait until all child tasks have completed before returning. If the closure exits with a thrown error, the outstanding child tasks will first be cancelled before propagating
+the error to the parent.
 
-As with the child tasks created by `async let`, if the closure passed to `Task.withGroup` exits without having completed all child tasks, the task group will wait until all child tasks have completed before returning. If the closure exited with a thrown error, the child tasks will first be cancelled.
-
-Although we have explained child tasks "as if" there were a hidden future, that future instance is intentionally not exposed in the interfaces of either `async let` or task groups. Therefore, there is no way in which a reference to the child task can escape the scope in which the child task is created. This ensures that the structure of structured concurrency is maintained. It both makes it easier to reason about the concurrent tasks that are executing within a given scope and also unlocks numerous optimization opportunities for the compiler and runtime. 
-
-### `async let` as sugar to task groups
-
-`async let` can be desugared to task groups. The illustrate, we will implement the `makeDinner()` function using task groups alone. The desugaring requires us to provide a single result type for all of the tasks that go into the task group, so we model each of the `async let`s in scope with a different case of an enum:
-
-```swift
-enum DinnerChild {
-  case chopVegetables([Vegetable])
-  case marinateMeat(Meat)
-  case preheatOven(Oven)
-}
-```
-
-We can then re-implement `makeDinner` with only a task group:
-
-```swift
-func makeDinnerTaskGroup() async throws -> Meal {
-  withTaskGroup(resultType: DinnerChildTask.self) { group in    
-    await group.add {
-      DinnerChild.chopVegetables(await chopVegetables())
-    }
-    
-    await group.add {
-      DinnerChild.marinateMeat(await marinateMeat())
-    }
-    
-    await group.add {
-      DinnerChild.preheatOven(await preheatOven(temperature: 350))
-    }
-    
-    var veggies: [Vegetable]? = nil
-    var meat: Meat? = nil
-    var oven: Oven? = nil
-    var dish: Dish? = nil
-    while let child = try await group.next() {
-      switch child {
-        case .chopVegetables(let newVeggies):
-          veggies = newVeggies
-        case .marinateMeat(let newMeat):
-          meat = newMeat
-        case .preheatOven(let newOven):
-          oven = newOven
-      }
-      
-      if dish == nil, let veggies = veggies, let meat = meat {
-        dish = Dish(ingredients: [veggies, meat])
-      }
-      
-      if let oven = oven, let dish = dish {
-        return try await oven.cook(dish, duration: .hours(3))
-      }
-    }
-    
-    fatalError("Should have returned above")
-  }
-}
-```
-
-The task-group implementation accounts for the tasks completing in any order by decoding the task result and placing it into one of several named variables. It then implements a simple state machine to (e.g.) prepare the dish once the meat and veggies are available, then cook the meal once the dish is prepared and the oven is preheated.
+By contrast with future-based task APIs, there is no way in which a reference to the child task can escape the scope in which the child task is created. This ensures that the structure of structured concurrency is maintained. It both makes it easier to reason about the concurrent tasks that are executing within a given scope, and also unlocks numerous optimization opportunities for the compiler and runtime.
 
 ### Detached tasks
 
@@ -310,7 +287,7 @@ dinnerHandle.cancel()
 
 ### Asynchronous programs
 
-A program can use `@main` with an `async main()` function to initiate asynchronous work:
+A program can use `@main` with a `main()` function that is `async`:
 
 ```swift
 @main
@@ -337,7 +314,7 @@ The model is the same as for `@main`: Swift creates a task to execute top-level 
 
 ### Cancellation
 
-A task can be cancelled asynchronously by any context that has a reference to a task or one of its parent tasks. Cancellation can be triggered explicitly by calling `cancel()` on the task handle. Cancellation can also trigger automatically, for example when a parent task throws an error out of a scope with unawaited child tasks (such as an `async let` or the closure passed to `Task.withGroup`).
+A task can be cancelled asynchronously by any context that has a reference to a task or one of its parent tasks. Cancellation can be triggered explicitly by calling `cancel()` on the task handle. Cancellation can also trigger automatically, for example when a parent task throws an error out of a scope with unawaited child tasks.
 
 The effect of cancellation within the cancelled task is fully cooperative and synchronous. That is, cancellation has no effect at all unless something checks for cancellation. Conventionally, most functions that check for cancellation report it by throwing `CancellationError()`; accordingly, they must be throwing functions, and calls to them must be decorated with some form of `try`. As a result, cancellation introduces no additional control-flow paths within asynchronous functions; you can always look at a function and see the places where cancellation can occur. As with any other thrown error, `defer` blocks can be used to clean up effectively after cancellation.
 
@@ -353,14 +330,26 @@ We can illustrate cancellation with a version of the `chopVegetables()` function
 
 ```swift
 func chopVegetables() async throws -> [Vegetable] {
-  async let carrot = chop(Carrot()) // (1) throws UnfortunateAccidentWithKnifeError()!
-  async let onion = chop(Onion()) // (2)
+  var veggies: [Vegetable] = []
+
+  try await Task.withGroup(resultType: Vegetable.self) { group in
+    await group.add {
+      return try await chop(Carrot()) // (1) throws UnfortunateAccidentWithKnifeError()
+    }
+    await group.add {
+      return try await chop(Onion()) // (2)
+    }
+
+    while let veggie = try await group.next() { // (3)
+      veggies.append(veggie)
+    }
+  }
   
-  return try await [carrot, onion] // (3)
+  return veggies
 }
 ```
 
-On line *(1)*, we start a new child task to chop a carrot. Suppose that this call to the `chop` function throws an error. Because this is asynchronous, that error is not immediately observed in `chopVegetables`, and we proceed to start a second child task to chop an onion *(2)*. On line *(3)*, we `await` the carrot-chopping task, which causes us to throw the error that was thrown from `chop`. Since we do not handle this error, we exit the scope without having yet awaited the onion-chopping task. This causes that task to be automatically cancelled. Because cancellation is cooperative, and because structured concurrency does not allow child tasks to outlast their parent context, control does not actually return until the onion-chopping task actually completes; any value it returns or throws will be discarded.
+On line *(1)*, we start a new child task to chop a carrot. Suppose that this call to the `chop` function throws an error. Because this is asynchronous, that error is not immediately observed in `chopVegetables`, and we proceed to start a second child task to chop an onion *(2)*. On line *(3)*, we await the `next` completed task, which could be either of the child tasks we spawned, but for the sake of discussion we'll say happens to be the `chop(Carrot())` child task from *(1)*. This causes us to throw the error that was thrown from `chop`. Since we do not handle this error, we exit the scope without having yet awaited the onion-chopping task. This causes that task to be automatically cancelled. Because cancellation is cooperative, and because structured concurrency does not allow child tasks to outlast their parent context, control does not actually return until the onion-chopping task actually completes; any value it returns or throws will be discarded.
 
 As we mentioned before, the effect of cancellation on a task is synchronous and cooperative. Functions which do a lot of synchronous computation may wish to check explicitly for cancellation. They can do so by inspecting the task's cancelled status:
 
@@ -382,54 +371,6 @@ Note also that no information is passed to the task about why it was cancelled. 
 
 ## Detailed design
 
-### `async let`
-
-Asynchronous calls do not by themselves introduce concurrent execution. However, `async` functions may conveniently request work to be run in a child task, permitting it to run concurrently, with an `async let`:
-
-```swift
-async let result = fetchHTTPContent(of: url)
-```
-
-Any reference to a variable that was declared in an `async let` is a potential suspension point, equivalent to a call to an asynchronous function, so it must occur within an `await` expression. The initializer of the `async let` is considered to be enclosed by an implicit `await` expression.
-
-If the initializer of the `async let` can throw an error, then each reference to a variable declared within that `async let` clause is considered to throw an error, and therefore must also be enclosed in one of `try`/`try!`/`try?`:
-
-```swift
-func throwsNay() throws -> Int { throw Nay() }
-
-{
-  async let (yay, nay) = ("yay", throwsNay())
-  
-  try await yay // must be marked with `try`; throws Nay()
-  // implicitly guarantees `nay` also be completed at this point
-}
-```
-
-The initializer of the `async let` is considered to be enclosed by an implicit `try` expression.
-
-The simplest way to think about it is that anything to the right hand side of the `=` of an `async let` is initiated together (as-if in an asynchronous closure), implying that if any of the values initialized by this closure throws, all other left-hand side to-be-initialized variables must also be considered as it they had thrown that error. 
-
-There is one additional case which may need a short explanation. Multiple clauses in a single `async let` may be written like this:
-
-```swift
-{
-  async
-let 
-    ok = "ok",
-    (yay, nay) = ("yay", throw Nay())
-  
-  await ok
-  try await yay
-  // okay
-}
-```
-
-In the above example one can consider each clause as it's own asynchronously initialized variable, i.e. the `ok`  is initialized on its own, and the `(yay, nay)` are initialized together as was discussed previously. 
- 
-A variable defined in an `async let` can not be captured by an escaping closure. 
-
-> **Rationale**: Capture of a variable defined by an `async let` within an escaping closure would allow the implicitly-created child task to escape its lexical context, which otherwise would not be permissible.
- 
 ### Task API
 
 Much of the proposed implementation of structured concurrency is in the APIs for creating, querying, and managing APIs described here. 
@@ -672,10 +613,10 @@ extension Task {
 
 The result of `withGroup` is the result produced by the `body` function, or a thrown error if the `body` function throws an error.
 
-A task group _guarantees_ that it will `await` for all tasks that were added to it before it returns.
+A task group _guarantees_ that it will `await` all tasks that were added to it before it returns.
 
 This waiting can be performed either: 
-- by the code within the task group itself (e.g., using `next()`, described below), or
+- by the code within the task group itself (e.g., using `next()` repeatedly until it returns `nil`, described below), or
 - implicitly in the task group itself when returning from the `body`.
 
 ##### Adding tasks to a group
@@ -746,83 +687,9 @@ extension Task.Group {
 }
 ```
 
-#### Adapting callback APIs for `async` clients
-
-Swift APIs often provide asynchronous code execution by way of a callback. This may occur either because the code itself was written prior to the introduction of async/await, or (more interestingly in the long term) because it ties in with some other system that is primarily event-driven. In such cases, one may want to provide an `async` interface to clients while using callbacks internally.
-
-The library provides two functions, `withUnsafeContinuation` and `withUnsafeThrowingContinuation`, that allow one to call into a callback-based API from inside `async` code. Each function takes an `operation`, which is expected to be a closure that will call into the callback-based API. The `operation` itself receives a `continuation` instance that must be resumed by the callback, either to provide the result value or (in the throwing variant) the thrown error.
-
-```swift
-struct UnsafeContinuation<T> {
-  func resume(returning: T)
-}
-
-func withUnsafeContinuation<T>(
-    operation: (UnsafeContinuation<T>) -> ()
-) async -> T
-
-struct UnsafeThrowingContinuation<T, E: Error> {
-  func resume(returning: T)
-  func resume(throwing: E)
-}
-
-func withUnsafeThrowingContinuation<T>(
-    operation: (UnsafeThrowingContinuation<T, Error>) -> ()
-) async throws -> T
-```
-
-The operation provided to these unsafe continuation operations must follow several semantic rules:
-
-- the `resume` function must only be called *exactly-once* on each execution path the `operation` may take (including any error handling paths),
-- the `resume` function must be called exactly at the _end_ of the `operation` function's execution, otherwise or else it will be impossible to define useful semantics for captures in the operation function, which could otherwise run concurrently with the continuation; unfortunately, this unavoidably introduces some overhead to the use of these continuations.
-
-These properties can be checked at runtime by having the continuation instance record whether it was resumed, and using that information to report various failure conditions, such as being resumed twice or being destroyed without ever having been resumed. This checking does bear some runtime cost, so it can either be always-available or could use separate entrypoints.
-
-Using this API one may for example wrap such (purposefully convoluted for the sake of demonstrating the flexibility of the continuation API) function:
-
-```swift
-func buyVegetables(
-  shoppingList: [String],
-  // a) if all veggies were in store, this is invoked *exactly-once*
-  onGotAllVegetables: ([Vegetable]) -> (),
-
-  // b) if not all veggies were in store, invoked one by one *one or more times*
-  onGotVegetable: (Vegetable) -> (),
-  // b) if at least one onGotVegetable was called *exactly-once*
-  //    this is invoked once no more veggies will be emitted
-  onNoMoreVegetables: () -> (),
-  
-  // c) if no veggies _at all_ were available, this is invoked *exactly once*
-  onNoVegetablesInStore: (Error) -> ()
-)
-```
-
-```swift
-// returns 1 or more vegetables or throws an error
-func buyVegetables(shoppingList: [String]) async throws -> [Vegetable] {
-  try await withUnsafeThrowingContinuation { continuation in
-    var veggies: [Vegetable] = []
-
-    buyVegetables(
-      shoppingList: shoppingList,
-      onGotAllVegetables: { veggies in continuation.resume(returning: veggies) },
-      onGotVegetable: { v in veggies.append(v) },
-      onNoMoreVegetables: { continuation.resume(returning: veggies) },
-      onNoVegetablesInStore: { error in continuation.resume(throwing: error) },
-    )
-  }
-}
-
-let veggies = try await buyVegetables(shoppingList: ["onion", "bell pepper"])
-```
-
-Thanks to weaving the right continuation resume calls into the complex callbacks of the `buyVegetables` function, we were able to offer a much nicer overload of this function, allowing our users to rely on the async/await to interact with this function.
-
-
-
 ## Source compatibility
 
-This change is purely additive to the source language. The additional use of the contextual keyword `async` in `async let` accepts new code as well-formed but does not break or change the meaning of existing code.
+This change is purely additive to the source language.
 
 ## Effect on ABI stability
 
@@ -833,6 +700,10 @@ This change is purely additive to the ABI.
 All of the changes described in this document are additive to the language and are locally scoped, e.g., within function bodies. Therefore, there is no effect on API resilience.
 
 ## Revision history
+
+* Changes in the third pitch:
+  * Factored `with*Continuation` into [its own proposal](https://github.com/apple/swift-evolution/pull/1244).
+  * Factored `async let` into its own proposal.
 
 * Changes in the second pitch:
   * Added a "desugaring" of `async let` to task groups and more motivation for the structured-concurrency parts of the design.
@@ -852,9 +723,9 @@ All of the changes described in this document are additive to the language and a
 
 ### Prominent futures
 
-The design of `async let` and task groups intentionally avoids exposing any task handles (futures) for child tasks. This ensures that the structure of structured concurrency, where all child tasks complete before their parent task, is maintained. That helps various properties such as priorities, deadlines, and cancellation to propagate in a meaningful way down the task tree.
+The design of task groups intentionally avoids exposing any task handles (futures) for child tasks. This ensures that the structure of structured concurrency, where all child tasks complete before their parent task, is maintained. That helps various properties such as priorities, deadlines, and cancellation to propagate in a meaningful way down the task tree.
 
-However, an alternative design would bring futures to the forefront. Instead of `async let`, one could introduce an `addChild` counterpart to `addDetached` that creates a new child task (of the current task), and then retrieve the result of that child task using the provided `Task.Handle`. To ensure that child tasks complete before the scope exits, we would require some kind of scoping mechanism that provides similar behavior to task groups. For example, the `makeDinner` example would be something like:
+However, an alternative design would bring futures to the forefront. One could introduce an `runChild` counterpart to `runDetached` that creates a new child task (of the current task), and then retrieve the result of that child task using the provided `Task.Handle`. To ensure that child tasks complete before the scope exits, we would require some kind of scoping mechanism that provides similar behavior to task groups. For example, the `makeDinner` example would be something like:
 
 ```swift
 func makeDinner() async throws -> Meal {
@@ -871,6 +742,65 @@ func makeDinner() async throws -> Meal {
 
 The task handles produced by `runChild` should never escape the scope in which they are created, although there is no language mechanism to enforce this. Moreover, the difference between detached and child tasks becomes blurred: both return the same `Task.Handle` type, but some have extra restrictions while others don't. So while it is possible to maintain structured concurrency with a future-centric design, it requires more programmer discipline (even for otherwise simple tasks), and provides less structure for the Swift compiler, optimizer, and runtime to use to provide an efficient implementation of child tasks.
 
-### Naming of `async let`
+## Future directions
 
-`async let` introduces a new child task that executes concurrently. It was noted in earlier pitches that the use of `async` here might be too subtle for the introduction of concurrent work, and that something like `spawn let` might be more suitable. We don't have strong opinions on the term used here at this point, and note that nearly any word or attribute will work here in the grammar.
+### `async let`
+
+Although our design deemphasizes futures for structured tasks, for the reasons
+delineated above, we acknowledge that it will be common to want to pass
+heterogeneous values up from child tasks to their parent. This is possible
+within the existing task group APIs, though not ideal. Take our
+first `makeDinner` example:
+
+```
+func makeDinner() async throws -> Meal {
+  var veggies: [Vegetable]?
+  var meat: Meat?
+  var oven: Oven?
+
+  // Create a task group to scope the lifetime of our three child tasks
+  try await Task.withGroup(resultType: Void.self) { group in
+    await group.add {
+      veggies = try await chopVegetables()
+    }
+    await group.add {
+      meat = await marinateMeat()
+    }
+    await group.app {
+      oven = await preheatOven(temperature: 350)
+    }
+  }
+
+  let dish = Dish(ingredients: [veggies!, meat!])
+  return try await oven!.cook(dish, duration: .hours(3))
+}
+```
+
+Although this works, it imposes a fair amount of boilerplate, and it relies
+on programmer discipline to be correct in a way that we generally try to avoid
+in Swift. Refactorings of this code could lead to one of the optional variables
+no longer getting populated with a value, leading to a crash on unwrap,
+or one of the variables potentially getting written accidentally by two
+different child tasks, leading to potential race conditions, without any
+help from the compiler.
+
+We believe that this pattern is common enough to deserve a targeted solution.
+Because child tasks are scoped in a manner very similar to local variables,
+we could provide a binding syntax to represent the result of a child task, and 
+then treat accesses of that binding as an operation that requires `await`-ing
+and/or `try`-ing the result of the child task:
+
+```
+func makeDinner() async throws -> Meal {
+  async let veggies = chopVegetables()
+  async let meat = marinateMeat()
+  async let oven = preheatOven(temperature: 350)
+
+  let dish = Dish(ingredients: await [try veggies, meat])
+  return await oven.cook(dish, duration: .hours(3))
+}
+```
+
+This would provide a lightweight syntax for a very common dataflow pattern
+between child tasks and parents within a task group. This idea is explored in
+its own proposal.
