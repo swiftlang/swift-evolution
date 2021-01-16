@@ -32,6 +32,7 @@
 + [Alternatives considered](#alternatives-considered)
   - [Callee-side property wrapper application](#callee-side-property-wrapper-application)
 + [Future directions](#future-directions)
+  - [Generalized property-wrapper initialization from a projection](#generalized-property-wrapper-initialization-from-a-projection)
   - [Property-wrapper parameters in memberwise initializers](#property-wrapper-parameters-in-memberwise-initializers)
   - [Support `inout` in wrapped function parameters](#support-`inout`-in-wrapped-function-parameters)
   - [Wrapper types in the standard library](#wrapper-types-in-the-standard-library)
@@ -473,6 +474,20 @@ Under these semantics, using a property-wrapper parameter is effectively the sam
 One of the motivating use-cases for property-wrapper parameters is the ability to pass a projected value, which makes this approach unviable with out a significant type-checking performance impact or unintuitive restrictions. Further, making arguments in the wrapper attribute resilient is inconsistent with default arguments. Finally, caller-side property wrapper application has useful semantics. For example, for property wrappers that capture the file and line number to log a message or assert a precondition, it's much more useful to capture the location where the argument is provided rather than the location of the parameter declaration.
 
 ## Future directions
+
+### Generalized property-wrapper initialization from a projection
+
+This proposal adds `init(projectedValue:)` as a new property-wrapper initialization mechanism from a projected value for function arguments. This mechanism could also be used to support definite initailization from a projected value for properties and local variables:
+
+```swift
+struct TextEditor {
+  @Traceable var dataSource: String
+
+  init(history: History<String>) {
+    $dataSource = history //  treated as _dataSource = Traceable(projectedValue: history)
+  }
+}
+```
 
 ### Property-wrapper parameters in memberwise initializers
 
