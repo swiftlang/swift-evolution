@@ -1,9 +1,9 @@
 # Continuations for interfacing async tasks with synchronous code
 
-* Proposal: [SE-ABCD](ABCD-continuation.md)
+* Proposal: [SE-0300](0300-continuation.md)
 * Authors: [John McCall](https://github.com/rjmccall), [Joe Groff](https://github.com/jckarter), [Doug Gregor](https://github.com/DougGregor), [Konrad Malawski](https://github.com/ktoso)
-* Review Manager: TBD
-* Status: **Awaiting review**
+* Review Manager: [Ben Cohen](https://github.com/airspeedswift)
+* Status: **Active review (15 - 26 January 2021)**
 
 ## Introduction
 
