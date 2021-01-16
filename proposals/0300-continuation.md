@@ -44,7 +44,7 @@ we can turn it into an `async` interface by suspending the task and using its
 continuation to resume it when the callback is invoked, turning the argument
 passed into the callback into the normal return value of the async function:
 
-```
+```swift
 func operation() async -> OperationResult {
   // Suspend the current task, and pass its continuation into a closure
   // that executes immediately
@@ -72,7 +72,7 @@ error that becomes the result of the `withUnsafeContinuation` call when the
 async task resumes:
 
 
-```
+```swift
 struct UnsafeContinuation<T> {
   func resume(returning: T)
 }
@@ -110,7 +110,7 @@ Using the `Unsafe*Continuation` API, one may for example wrap such
 (purposefully convoluted for the sake of demonstrating the flexibility of
 the continuation API) function:
 
-```
+```swift
 func buyVegetables(
   shoppingList: [String],
   // a) if all veggies were in store, this is invoked *exactly-once*
@@ -157,7 +157,7 @@ guidance when developing interfaces between sync and async code, the
 library will also provide a wrapper which checks for invalid use of the
 continuation:
 
-```
+```swift
 struct CheckedContinuation<T> {
   func resume(returning: T)
 }
@@ -182,7 +182,7 @@ can switch easily between the checked and unchecked variants. For instance,
 the `buyVegetables` example above can opt into checking merely by turning
 its call of `withUnsafeThrowingContinuation` into one of `withCheckedThrowingContinuation`:
 
-```
+```swift
 // returns 1 or more vegetables or throws an error
 func buyVegetables(shoppingList: [String]) async throws -> [Vegetable] {
   try await withCheckedThrowingContinuation { continuation in
@@ -214,7 +214,7 @@ are no other restrictions on where the continuation can be resumed. For
 instance, an `Operation` implementation can trigger resumption of a
 continuation when the operation completes:
 
-```
+```swift
 class MyOperation: Operation {
   let continuation: UnsafeContinuation<OperationResult>
   var result: OperationResult?
@@ -242,7 +242,7 @@ one can wrap up a `URLSession` in a task, allowing the task's cancellation
 to control cancellation of the session, and using a continuation to respond
 to data and error events fired by the network activity:
 
-```
+```swift
 func download(url: URL) async throws -> Data? {
   var urlSessionTask: URLSessionTask?
 
@@ -273,7 +273,7 @@ func download(url: URL) async throws -> Data? {
 
 It is also possible for wrappers around callback based APIs to respect their parent/current tasks's cancellation, as follows:
 
-```
+```swift
 func fetch(items: Int) async throws -> [Items] {
   let worker = ... 
   return try Task.withCancellationHandler(
@@ -366,7 +366,7 @@ task API on itself. If, for instance, someone wants a task to cancel itself
 in response to a callback, they can achieve that by funneling a sentinel
 through the continuation's resume type, such as an Optional's `nil`:
 
-```
+```swift
 let callbackResult: Result? = await withUnsafeContinuation { c in
   someCallbackBasedAPI(
     completion: { c.resume($0) },
@@ -379,4 +379,3 @@ if let result = callbackResult {
   cancel()
 }
 ```
-
