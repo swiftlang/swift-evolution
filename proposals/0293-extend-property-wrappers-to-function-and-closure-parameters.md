@@ -31,6 +31,7 @@
 + [Effect on API resilience](#effect-on-api-resilience)
 + [Alternatives considered](#alternatives-considered)
   - [Callee-side property wrapper application](#callee-side-property-wrapper-application)
+  - [Passing a property-wrapper storage instance directly](#passing-a-property-wrapper-storage-instance-directly)
 + [Future directions](#future-directions)
   - [Generalized property-wrapper initialization from a projection](#generalized-property-wrapper-initialization-from-a-projection)
   - [Property-wrapper parameters in memberwise initializers](#property-wrapper-parameters-in-memberwise-initializers)
@@ -314,7 +315,18 @@ This transformation at the call-site only applies when calling the function dire
 
 #### Passing a projected value argument
 
-Property wrappers must support initialization through a wrapped value to be used with function parameters. Property wrappers can opt into support for passing a projected value by implementing an initializer of the form `init(projectedValue:)`. This initializer must have a single parameter of the same type as the `projectedValue` property and have the same access level as the property-wrapper type itself. The initializer may have additional parameters as long as they have default arguments. Presence of `init(projectedValue:)` enables passing a projected value via the `$` calling syntax. This method of initialization is not mandatory for functions using supported wrapper types, as it can be disabled by providing empty attribute arguments: `func log(@Traceable() _ value: Value) { ... }`.
+Property wrappers can opt into support for passing a projected-value argument to a property-wrapped parameter.
+
+Though property-wrapper projections can be utilized to expose arbitrary API through the synthesized `$` property, projections are typically used to either publicly expose the backing property wrapper directly, or to provide a public representation of the backing wrapper that's suitable for use outside of the declaration that owns the wrapper storage. In such cases, supporting property-wrapper initialization from a projected-value is very useful, especially if the wrapper does not support `init(wrappedValue:)`. To support passing a property-wrapper projection to a function with a wrapped parameter, property wrappers can implement `init(projectedValue:)`.
+
+Presence of an `init(projectedValue:)` that meets the following requirements enables passing a projected value via the `$` calling syntax:
+
+- The first parameter of this initializer must be labeled `projectedValue` and have the same type as the `var projectedValue` property.
+- The initializer must have the same access level as the property-wrapper type.
+- The initializer must not be failable.
+- Any additional parameters to the initializer must have default arguments.
+
+This method of initialization is not mandatory for functions using supported wrapper types, and it can be disabled by providing arguments in the wrapper attribute, including empty attribute arguments: `func log(@Traceable() _ value: Value) { ... }`.
 
 #### Arguments in the property-wrapper attribute
 
@@ -472,6 +484,12 @@ Under these semantics, using a property-wrapper parameter is effectively the sam
 3. Arguments in the wrapper attribute and other default arguments to the property-wrapper initializers become resilient and are also evaluated in the callee rather than the caller.
 
 One of the motivating use-cases for property-wrapper parameters is the ability to pass a projected value, which makes this approach unviable with out a significant type-checking performance impact or unintuitive restrictions. Further, making arguments in the wrapper attribute resilient is inconsistent with default arguments. Finally, caller-side property wrapper application has useful semantics. For example, for property wrappers that capture the file and line number to log a message or assert a precondition, it's much more useful to capture the location where the argument is provided rather than the location of the parameter declaration.
+
+### Passing a property-wrapper storage instance directly
+
+A previous revision of this proposal supported passing a property-wrapper storage instance to a function with a wrapped parameter directly because the type of such a function was in terms of the property-wrapper type. A big point of criticism during the first review was that the backing storage type should be an artifact of the function implementation, and not exposed to function callers through the type system.
+
+Keeping the property-wrapper storage type private is consistent with how property wrappers work today. Unless a property wrapper projects its storage type via `projectedValue`, the storage type itself is meant to be private, implementation detail that cannot be accessed by API clients.
 
 ## Future directions
 
