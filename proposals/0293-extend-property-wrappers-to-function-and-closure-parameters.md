@@ -293,7 +293,7 @@ log(_: 10)
 log($_: history)
 ```
 
-For composed property wrappers, initialization of the backing wrapper via wrapped value will contain a call to `init(wrappedValue:)` for each property-wrapper attribute in the composition chain. However, initialization via projected value will only contain one call to `init(projectedValue:)` for the outermost wrapper attribute, because property wrapper projections are not composed. For example:
+For composed property wrappers, initialization of the backing wrapper via wrapped value will contain a call to `init(wrappedValue:)` for each property-wrapper attribute in the composition chain. However, initialization via projected value will only contain one call to `init(projectedValue:)` for the outermost wrapper attribute, because property wrapper projections are not composed. For example: 
 
 ```swift
 func log(@Traceable @Traceable text: String) { ... }
@@ -314,7 +314,7 @@ This transformation at the call-site only applies when calling the function dire
 
 #### Passing a projected value argument
 
-Property wrappers must support initialization through a wrapped value to be used with function parameters. Property wrappers can opt into support for passing a projected value by implementing an initializer of the form `init(projectedValue:)`. This initializer must have a single parameter of the same type as the `projectedValue` property and have the same access level as the property-wrapper type itself. The initializer may have additional parameters as long as they have default arguments. Presence of `init(projectedValue:)` enables passing a projected value via the `$` calling syntax.
+Property wrappers must support initialization through a wrapped value to be used with function parameters. Property wrappers can opt into support for passing a projected value by implementing an initializer of the form `init(projectedValue:)`. This initializer must have a single parameter of the same type as the `projectedValue` property and have the same access level as the property-wrapper type itself. The initializer may have additional parameters as long as they have default arguments. Presence of `init(projectedValue:)` enables passing a projected value via the `$` calling syntax. This method of initialization is not mandatory for functions using supported wrapper types, as it can be disabled by providing empty attribute arguments: `func log(@Traceable() _ value: Value) { ... }`.
 
 #### Arguments in the property-wrapper attribute
 
