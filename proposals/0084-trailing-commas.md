@@ -79,7 +79,7 @@ Allowing cut and paste or commenting of entire parameter lines means simple chan
 
 > "Having used, more or less continuously for my 20 years as a professional programmer, both a language that allows trailing commas and one that does not, I come down pretty strongly on the side of allowing trailing commas (for all the reasons already stated in this thread). If it means requiring a newline after the last comma to make some people feel better about it, so be it."  - John Siracusa
 
-> "I was skeptical of this until a week or two ago, when I had some code where I ended up commenting out certain parameters. Removing the now-trailing commas was an inconvenience. So, +1 from me." - Brent Royal-Gordon
+> "I was skeptical of this until a week or two ago, when I had some code where I ended up commenting out certain parameters. Removing the now-trailing commas was an inconvenience. So, +1 from me." - Becca Royal-Gordon
 
 > "We should be consistent in either accepting or rejecting trailing commas everywhere we have comma-delimited syntax. I'm in favor of accepting it, since it's popular in languages where it's supported to enable a minimal-diff style, so that changes to code don't impact neighboring lines for purely syntactic reasons.
 >

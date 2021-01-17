@@ -72,5 +72,5 @@ The original proposal suggested replacing `protocol<>` with either `Any<>` or `a
 
 ## Acknowledgements
 
-[Matthew Johnson](https://github.com/anandabits) and [Brent Royal-Gordon](https://github.com/brentdax) provided valuable input which helped shape the first version of this proposal.
+[Matthew Johnson](https://github.com/anandabits) and [Becca Royal-Gordon](https://github.com/beccadax) provided valuable input which helped shape the first version of this proposal.
 

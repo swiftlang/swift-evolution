@@ -1,7 +1,7 @@
 # Static and class subscripts
 
 * Proposal: [SE-0254](0254-static-subscripts.md)
-* Author: [Brent Royal-Gordon](https://github.com/brentdax)
+* Author: [Becca Royal-Gordon](https://github.com/beccadax)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 5.1)**
 * Implementation: [apple/swift#23358](https://github.com/apple/swift/pull/23358)

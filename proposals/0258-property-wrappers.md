@@ -589,7 +589,7 @@ enum GlobalSettings {
 
 ### Copy-on-write
 
-With some work, property wrappers can provide copy-on-write wrappers (original example courtesy of Brent Royal-Gordon):
+With some work, property wrappers can provide copy-on-write wrappers (original example courtesy of Becca Royal-Gordon):
 
 ```swift
 protocol Copyable: AnyObject {
@@ -1569,4 +1569,4 @@ One could express this either by naming the property directly (as above) or, for
 
 ## Acknowledgments
 
-This proposal was greatly improved throughout its [first pitch](https://forums.swift.org/t/pitch-property-delegates/21895) by many people. Harlan Haskins, Brent Royal-Gordon, Adrian Zubarev, Jordan Rose and others provided great examples of uses of property wrappers (several of which are in this proposal). Adrian Zubarev and Kenny Leung helped push on some of the core assumptions and restrictions of the original proposal, helping to make it more general. Vini Vendramini and David Hart helped tie this proposal together with custom attributes, which drastically reduced the syntactic surface area of this proposal.
+This proposal was greatly improved throughout its [first pitch](https://forums.swift.org/t/pitch-property-delegates/21895) by many people. Harlan Haskins, Becca Royal-Gordon, Adrian Zubarev, Jordan Rose and others provided great examples of uses of property wrappers (several of which are in this proposal). Adrian Zubarev and Kenny Leung helped push on some of the core assumptions and restrictions of the original proposal, helping to make it more general. Vini Vendramini and David Hart helped tie this proposal together with custom attributes, which drastically reduced the syntactic surface area of this proposal.

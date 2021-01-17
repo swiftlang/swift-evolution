@@ -178,7 +178,7 @@ For some user-defined types, especially bignum types, you may want to implement 
 * [Precondition check in sqlite function](https://github.com/sqlcipher/sqlcipher/blob/c6f709fca81c910ba133aaf6330c28e01ccfe5f8/src/crypto_impl.c#L1296)
 * [Alternating UITableView cell background style](https://github.com/alloy/HockeySDK-CocoaPods/blob/978f3f072d206cfa35f4789d3a5b3abb31b9df11/Pods/HockeySDK/Classes/BITFeedbackListViewController.m#L502). NSTableView [has built in support](https://developer.apple.com/documentation/appkit/nstableview/1533967-usesalternatingrowbackgroundcolo?language=objc) for this.
 * [Barcode reading](https://github.com/TheLevelUp/ZXingObjC/blob/d952cc02beb948ab49832661528c5e3e4953885e/ZXingObjC/oned/rss/expanded/ZXRSSExpandedReader.m#L449)
-* [CSS row and column styling](https://www.w3.org/Style/Examples/007/evenodd.en.html) with `nth-child(even)` and `nth-child(odd)` (h/t @brentdax)
+* [CSS row and column styling](https://www.w3.org/Style/Examples/007/evenodd.en.html) with `nth-child(even)` and `nth-child(odd)` (h/t @beccadax)
 * Various test code
 
 Some _really_ real-world examples:

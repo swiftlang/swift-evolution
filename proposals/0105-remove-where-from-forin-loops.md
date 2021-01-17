@@ -153,4 +153,4 @@ Code must be refactored to move the where clause into `guard` (or, for less styl
 
 ## Acknowledgements
 
-Big thanks to Joe Groff, Brent Royal-Gordon, Xiaodi Wu
+Big thanks to Joe Groff, Becca Royal-Gordon, Xiaodi Wu
