@@ -468,7 +468,7 @@ I didn't have a strong preference for any particular choice as long as it *isn't
 
 Note that "nonextensible" does have one problem: Apple already uses [`NS_TYPED_EXTENSIBLE_ENUM `][NS_TYPED_EXTENSIBLE_ENUM] to refer to enum-like sets of constants (usually strings) that *clients* can add "cases" to. That's not the same meaning as the exhaustiveness discussed in this proposal.
 
-During the first review for this proposal, Brent Royal-Gordon suggested "frozen", which was met with general approval or at least no major objections.
+During the first review for this proposal, Becca Royal-Gordon suggested "frozen", which was met with general approval or at least no major objections.
 
   [NS_TYPED_EXTENSIBLE_ENUM]: https://developer.apple.com/library/content/documentation/Swift/Conceptual/BuildingCocoaApps/InteractingWithCAPIs.html#//apple_ref/doc/uid/TP40014216-CH8-ID206
 
@@ -538,7 +538,7 @@ unknown:
 
 ### Testing invalid cases
 
-Another issue with non-frozen enums is that clients cannot properly test what happens when a new case is introduced, almost by definition. Brent Royal-Gordon came up with the idea to have a new type annotation that would allow the creation of an invalid enum value. Since this is only something to use for testing, the initial version of the idea used `@testable` as the spelling for the annotation. The tests could then use a special expression, `#invalid`, to pass this invalid value to a function with a `@testable` enum parameter.
+Another issue with non-frozen enums is that clients cannot properly test what happens when a new case is introduced, almost by definition. Becca Royal-Gordon came up with the idea to have a new type annotation that would allow the creation of an invalid enum value. Since this is only something to use for testing, the initial version of the idea used `@testable` as the spelling for the annotation. The tests could then use a special expression, `#invalid`, to pass this invalid value to a function with a `@testable` enum parameter.
 
 However, this would only work in cases where the action to be taken does not actually depend on the enum value. If it needs to be passed to the original library that owns the enum, or used with an API that is not does not have this annotation, the code still cannot be tested properly.
 

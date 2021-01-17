@@ -64,7 +64,7 @@ Adding default arguments would unify the compiler's handling of subscripts and f
 
 ## Source compatibility
 
-This is a purely additive change. We don't propose changing the Standard Library to use this new feature, that should be part of a separate proposal. (Likewise, we should consider making subscripts `throws` in a [separate proposal](https://github.com/brentdax/swift-evolution/blob/throwing-properties/proposals/0000-throwing-properties.md)).
+This is a purely additive change. We don't propose changing the Standard Library to use this new feature, that should be part of a separate proposal. (Likewise, we should consider making subscripts `throws` in a [separate proposal](https://github.com/beccadax/swift-evolution/blob/throwing-properties/proposals/0000-throwing-properties.md)).
 
 ## Effect on ABI stability
 

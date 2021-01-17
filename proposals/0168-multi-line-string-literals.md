@@ -1,7 +1,7 @@
 # Multi-Line String Literals
 
 * Proposal: [SE-0168](0168-multi-line-string-literals.md)
-* Authors: [John Holdsworth](https://github.com/johnno1962), [Brent Royal-Gordon](https://github.com/brentdax), [Tyler Cloutier](https://github.com/TheArtOfEngineering)
+* Authors: [John Holdsworth](https://github.com/johnno1962), [Becca Royal-Gordon](https://github.com/beccadax), [Tyler Cloutier](https://github.com/TheArtOfEngineering)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
 * Status: **Implemented (Swift 4)**
 * Implementation: [apple/swift#8813](https://github.com/apple/swift/pull/8813)

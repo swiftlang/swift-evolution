@@ -90,7 +90,7 @@ There are four primary alternatives:
    in the Swift 2 timeframe.  I feel that it has stood the test of time well
    since then.
 
- * *Change the syntax of `if` and `while`*: Brent Royal-Gordon points out that
+ * *Change the syntax of `if` and `while`*: Becca Royal-Gordon points out that
    we could change `if` and `while` to use a keyword after their condition as
    well, e.g.:
 

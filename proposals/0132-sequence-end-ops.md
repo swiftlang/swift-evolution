@@ -1,7 +1,7 @@
 # Rationalizing Sequence end-operation names
 
 * Proposal: [SE-0132](0132-sequence-end-ops.md)
-* Authors: [Brent Royal-Gordon](https://github.com/brentdax), [Dave Abrahams](https://github.com/dabrahams)
+* Authors: [Becca Royal-Gordon](https://github.com/beccadax), [Dave Abrahams](https://github.com/dabrahams)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Rejected**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000267.html)

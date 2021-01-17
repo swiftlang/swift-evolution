@@ -145,5 +145,5 @@ Upon acceptance, this proposal removes two of the last remaining instances of sn
 
 ## Acknowledgements
 
-Changing the behavior of non-void functions to use default warnings for unused results was initially introduced by Adrian Kashivskyy. Additional thanks go out to Chris Lattner, Gwendal Roué, Dmitri Gribenko, Jeff Kelley, David Owens, Jed Lewison, Stephen Cellis, Ankit Aggarwal, Paul Ossenbruggen,Brent Royal-Gordon, Tino Heth, Haravikk, Félix Cloutier,Yuta Koshizawa, 
+Changing the behavior of non-void functions to use default warnings for unused results was initially introduced by Adrian Kashivskyy. Additional thanks go out to Chris Lattner, Gwendal Roué, Dmitri Gribenko, Jeff Kelley, David Owens, Jed Lewison, Stephen Cellis, Ankit Aggarwal, Paul Ossenbruggen, Becca Royal-Gordon, Tino Heth, Haravikk, Félix Cloutier,Yuta Koshizawa, 
 for their feedback on this topic.

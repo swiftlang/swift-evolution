@@ -1,7 +1,7 @@
 # Concise magic file names
 
 * Proposal: [SE-0274](0274-magic-file.md)
-* Authors: [Brent Royal-Gordon](https://github.com/brentdax), [Dave DeLong](https://github.com/davedelong)
+* Authors: [Becca Royal-Gordon](https://github.com/beccadax), [Dave DeLong](https://github.com/davedelong)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift/)
 * Original review: [Returned for revision](https://forums.swift.org/t/se-0274-concise-magic-file-names/32373/50) 
 * Status: **Accepted**
@@ -49,7 +49,7 @@ For `#file`'s most important use case, it seems like the current string computed
 
 We propose changing the string that `#file` evaluates to—instead of evaluating to the full path, it will now have the format `<module-name>/<file-name>`. For those applications which still need a full path, we will provide a new magic identifier, `#filePath`. Both of these features will otherwise behave the same as the old `#file`, including capturing the call site location when used in default arguments. The standard library's assertion and error functions will continue to use `#file`.
 
-With this proposal, a file at `/Users/brent/Desktop/0274-magic-file.swift` in a module named `MagicFile` with this content:
+With this proposal, a file at `/Users/becca/Desktop/0274-magic-file.swift` in a module named `MagicFile` with this content:
 
 ```swift
 print(#file)
@@ -61,7 +61,7 @@ Would produce this output:
 
 ```text
 MagicFile/0274-magic-file.swift
-/Users/brent/Desktop/0274-magic-file.swift
+/Users/becca/Desktop/0274-magic-file.swift
 Fatal error: Something bad happened!: file MagicFile/0274-magic-file.swift, line 3
 ```
 

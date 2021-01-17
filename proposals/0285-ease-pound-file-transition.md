@@ -1,7 +1,7 @@
 # Ease the transition to concise magic file strings
 
 * Proposal: [SE-0285](0285-ease-pound-file-transition.md)
-* Author: [Brent Royal-Gordon](https://github.com/brentdax)
+* Author: [Becca Royal-Gordon](https://github.com/beccadax)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
 * Implementation: [apple/swift#32700](https://github.com/apple/swift/pull/32700)
 * Status: **Implemented (Swift 5.3)**
