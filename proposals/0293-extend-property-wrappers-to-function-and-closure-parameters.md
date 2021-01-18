@@ -489,6 +489,13 @@ One of the motivating use-cases for property-wrapper parameters is the ability t
 
 A previous revision of this proposal supported passing a property-wrapper storage instance to a function with a wrapped parameter directly because the type of such a function was in terms of the property-wrapper type. A big point of criticism during the first review was that the backing storage type should be an artifact of the function implementation, and not exposed to function callers through the type system.
 
+
+Exposing the property-wrapper storage type through the type system has the following implications, summarized by [Frederick Kellison-Linn](https://forums.swift.org/u/jumhyn):
+
+* The addition/removal of a property-wrapper attribute on a function parameter is a source-breaking change for any code that references or curries the function.
+* It prohibits the use of initializer arguments in the wrapper attribute. There's no point in declaring a wrapper as `@Asserted(.greaterOrEqual(1))` if any client can simply pass an `Asserted` instance with a completely different validation.
+* It removes API control from both the property wrapper author and the author of the wrapped-argument function.
+
 Keeping the property-wrapper storage type private is consistent with how property wrappers work today. Unless a property wrapper projects its storage type via `projectedValue`, the storage type itself is meant to be private, implementation detail that cannot be accessed by API clients.
 
 ## Future directions
