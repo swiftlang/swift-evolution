@@ -207,11 +207,11 @@ func buy(
 
 ## Detailed design
 
-Property wrappers are essentially sugar wrapping a given declaration with compiler-synthesized code. Retaining this principle, a function can now be called with the wrapped and projected values. Namely, annotating a parameter declaration with a property-wrapper attribute changes the declaration’s type to the backing storage, and prompts the compiler to synthesize the wrapped and projected values. When the function is called the compiler will, also, insert a call to the appropriate property-wrapper initializer.
+Property wrappers are essentially sugar wrapping a given declaration with compiler-synthesized code. Retaining this principle, a function can now be called with the wrapped and projected values. Namely, annotating a parameter declaration with a property-wrapper attribute changes the declaration’s type to the backing storage, and prompts the compiler to synthesize the wrapped and projected values. Furthermore, when the function is called the compiler will insert a call to the appropriate property-wrapper initializer.
 
 ### Function-body semantics
 
-Attaching a property wrapper to a parameter makes that parameter a computed variable local to the function body, and changes the parameter type to the backing wrapper type. The type of the parameter is only observable in compiled code - [unapplied references to functions with property-wrapped parameters](#unapplied-function-references) will not use the backing wrapper type.
+Attaching a property wrapper to a parameter makes that parameter a computed variable local to the function body, and changes the parameter type to the backing wrapper type. The type of the parameter is only observable in compiled code - [unapplied references to functions with property-wrapped parameters](#unapplied-function-references) will not use the backing-wrapper type.
 
 The transformation of function with a property-wrapped parameter will be performed as such:
 
@@ -315,7 +315,7 @@ This transformation at the call-site only applies when calling the function dire
 
 #### Passing a projected value argument
 
-Property wrappers can opt into support for passing a projected-value argument to a property-wrapped parameter.
+Property wrappers can opt into passing a projected-value argument to a property-wrapped parameter.
 
 Though property-wrapper projections can be utilized to expose arbitrary API through the synthesized `$` property, projections are typically used to either publicly expose the backing property wrapper directly, or to provide a public representation of the backing wrapper that's suitable for use outside of the declaration that owns the wrapper storage. In such cases, supporting property-wrapper initialization from a projected-value is very useful, especially if the wrapper does not support `init(wrappedValue:)`. To support passing a property-wrapper projection to a function with a wrapped parameter, property wrappers can implement `init(projectedValue:)`.
 
@@ -334,7 +334,7 @@ Arguments in the property-wrapper attribute as well as other default arguments t
 
 #### Overload resolution of backing property-wrapper initializer
 
-Since the property wrapper is initialized at the call-site, this means that the argument type can impact overload resolution of `init(wrappedValue:)` and `init(projectedValue:)`. For example, if a property wrapper defines overloads of `init(wrappedValue:)` with different generic constraints and that wrapper is used on a function parameter, e.g.:
+Since the property wrapper is initialized at the call-site, the argument type can impact overload resolution of `init(wrappedValue:)` and `init(projectedValue:)`. For example, if a property wrapper defines overloads of `init(wrappedValue:)` with different generic constraints and that wrapper is used on a function parameter, e.g.:
 
 ```swift
 @propertyWrapper
@@ -394,7 +394,7 @@ let fnRef: (History<Int>) -> Void = log($value:)
 fnRef(history)
 ```
 
-If the property-wrapped parameter in `log` omits an argument label, the function can still be referenced to take in the projected-value type using `$_`:
+If the property-wrapped parameter in `log` omitted its argument label, the function could still be referenced to take in the projected-value type using `$_`:
 
 ```swift
 func log<Value>(@Traceable _ value: Value) { ... }
@@ -406,7 +406,7 @@ fnRef(history)
 
 #### Closures
 
-Closures have the same semantics as unapplied function references, with different syntax because the property-wrapper attribute needs to be specified on the closure parameter declaration. The `log` function from above can be implemented as a closure to take in the wrapped-value type:
+Closures have the same semantics as unapplied function references, albeit with different syntax because the property-wrapper attribute needs to be specified on the closure parameter declaration. The above `log` function can be implemented as a closure that takes in the wrapped-value type:
 
 ```swift
 let log: (Int) -> Void = { (@Traceable value) in
@@ -444,7 +444,7 @@ Property-wrapper parameters cannot have an `@autoclosure` type.
 
 Property-wrapper parameters cannot also have an attached result builder attribute.
 
-> **Rationale**: Result builder attributes can be applied to the parameters in `init(wrappedValue:)` and `init(projectedValue:)`. If there is a result builder attached to a property-wrapper parameter that already has a result builder in `init(wrappedValue:)`, it's unclear which result builder should be applied.
+> **Rationale**: Result-builder attributes can be applied to the parameters in `init(wrappedValue:)` and `init(projectedValue:)`. If there is a result builder attached to a property-wrapper parameter that already has a result builder in `init(wrappedValue:)`, it's unclear which result builder should be applied.
 
 Property-wrapper parameters with arguments in the wrapper attribute cannot be passed a projected value.
 
@@ -469,7 +469,7 @@ This is an additive change with no impact on the existing ABI.
 
 ## Effect on API resilience
 
-This proposal introduces the need for property-wrapper custom attributes to become part of public API. This is because a property wrapper applied to a function parameter changes the type of that parameter in the ABI, and it changes the way that function callers are compiled to pass an argument of that type. Thus, adding or removing a property wrapper on a public function parameter is an ABI-breaking change (but not a source-breaking change). Like default arguments, arguments in wrapper attributes are emitted into clients and are not part of the ABI.
+This proposal makes property-wrapper custom attributes on function parameters part of public API. This is done due to the fact that a property wrapper applied to a function parameter changes the type of said parameter in the ABI, while also changing the way that function callers are compiled to pass an argument of that type. Thus, adding or removing a property wrapper on a public function parameter is an ABI-breaking change –– but not a source-breaking one. Like default arguments, arguments in wrapper attributes are emitted into clients and are not part of the ABI.
 
 ## Alternatives considered
 
