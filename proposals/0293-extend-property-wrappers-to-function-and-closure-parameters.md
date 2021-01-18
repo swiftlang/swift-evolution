@@ -207,7 +207,7 @@ func buy(
 
 ## Detailed design
 
-Property wrappers are essentially sugar wrapping a given declaration with compiler-synthesized code. This proposal retains this principle. Annotating a parameter declaration with a property-wrapper attribute allows the call-site to pass a wrapped value or a projected value, and the compiler will automatically initialize the backing wrapper to pass to the function. The function author can also use the property-wrapper syntax for accessing the backing wrapper and the projected value in the body of the function.
+Property wrappers are essentially sugar wrapping a given declaration with compiler-synthesized code. Retaining this principle, a function can now be called with the wrapped and projected values. Namely, annotating a parameter declaration with a property-wrapper attribute changes the declaration’s type to the backing storage, and prompts the compiler to synthesize the wrapped and projected values. When the function is called the compiler will, also, insert a call to the appropriate property-wrapper initializer.
 
 ### Function-body semantics
 
