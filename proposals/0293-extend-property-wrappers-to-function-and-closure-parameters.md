@@ -76,11 +76,11 @@ func buy(quantity: Int, of product: Product) {
 
 The above code is quite clear; it has, though, the obvious drawback that changing the the condition to be asserted or its error message requires significant effort as a precondition statement is individually written for each function and manually documented.
 
-Furthermore, supposing the above is library code, we may want to test for our precondition while offering an easy-to-debug way. So, using `Validation` from [`ValidatedPropertyKit`](https://github.com/SvenTiigi/ValidatedPropertyKit) we can write:
+Furthermore, supposing the above is library code, we may want to test for our precondition while offering an easy-to-debug way. So, using `Validation` from [`PropertyKit`](https://github.com/SvenTiigi/ValidatedPropertyKit) we can write:
 
 ```swift
 @propertyWrapper
-struct Validated<Value> {
+struct Asserted<Value> {
   // The assertion will appear at the right file and line
   init(
     wrappedValue: Value, 
@@ -105,7 +105,7 @@ func buy(
   // These are a lot of properties for every time
   // we want to check for the right quantity.
 ) {
-  var validatedQuantity = Validated(
+  var validatedQuantity = Asserted(
     quantity,
     .greaterOrEqual(1),
     file: file, 
@@ -196,7 +196,7 @@ Using property-wrapper parameters, the above argument validation example can be 
 
 ```swift
 func buy(
-  @Validated(.greaterOrEqual(1)) quantity: Int,
+  @Asserted(.greaterOrEqual(1)) quantity: Int,
   of product: Product,
 ) {
   if quantity == 1 {
@@ -221,16 +221,16 @@ The transformation of function with a property-wrapped parameter will be perform
 4. A local computed property representing the `wrappedValue` of the innermost property wrapper will be synthesized with the same name as the original, unprefixed parameter name. If the innermost `wrappedValue` defines a setter, a setter will be synthesized for the local property if the mutability of the composed setter is `nonmutating`. The mutability computation is specified in the [appendix](#appendix).
 5. If the outermost property wrapper defines a `projectedValue` property with a `nonmutating` getter, a local computed property representing the outermost `projectedValue` will be synthesized and named per the original parameter name prefixed with a dollar sign (`$`). If the outermost `projectedValue` defines a setter, a setter for the local computed property will be synthesized if the `projectedValue` setter is `nonmutating`.
 
-Consider the following function with a property-wrapped parameter using the `@Validated` property wrapper:
+Consider the following function with a property-wrapped parameter using the `@Asserted` property wrapper:
 
 ```swift
-func insert(@Validated(.nonEmpty) text: String) { ... }
+func insert(@Asserted(.nonEmpty) text: String) { ... }
 ```
 
 The compiler will synthesize computed `text` and `$text` variables in the body of `insert`:
 
 ```swift
-func insert(text _text: Validated<String>) {
+func insert(text _text: Asserted<String>) {
   var text: String {
     get { _text.wrappedValue }
   }
@@ -579,7 +579,7 @@ Otherwise:
   * If the wrappedValue accessor in the _N_ th property wrapper is nonmutating, then the _N_ th access has the same mutability as the _N - 1_ th get access.
   * If the wrappedValue accessor in the _N_ th property wrapper is mutating, then the _N_ th access is mutating if the _N - 1_ th get or set access is mutating.
 
-**Example**: Consider the following `Reference` property wrapper, which is composed with `Validated` and used on a function parameter:
+**Example**: Consider the following `Reference` property wrapper, which is composed with `Asserted` and used on a function parameter:
 
 ```swift
 @propertyWrapper
@@ -596,7 +596,7 @@ struct Reference<Value> {
   
 }
 
-func useReference(@Reference @Validated(.nonEmpty) reference: String) {
+func useReference(@Reference @Asserted(.nonEmpty) reference: String) {
   ...
 }
 ```
@@ -604,7 +604,7 @@ func useReference(@Reference @Validated(.nonEmpty) reference: String) {
 In the above example, the function `useReference` is equivalent to:
 
 ```swift
-func useReference(reference _reference: Reference<Validated<String>>) {
+func useReference(reference _reference: Reference<Asserted<String>>) {
   var reference: String {
     get { 
       _reference.wrappedValue.wrappedValue
@@ -614,7 +614,7 @@ func useReference(reference _reference: Reference<Validated<String>>) {
     }
   }
 
-  var $reference: Reference<Validated<String>> {
+  var $reference: Reference<Asserted<String>> {
     get {
       _reference.projectedValue
     }
@@ -624,4 +624,4 @@ func useReference(reference _reference: Reference<Validated<String>>) {
 }
 ```
 
-Since both the getter and setter of `Reference.wrappedValue` are `nonmutating`, a setter can be synthesized for `var reference`, even though `Validated.wrappedValue` has a `mutating` setter. `Reference` also defines a `projectedValue` property, so a local computed property called `$reference` is synthesized in the function body, but it does _not_ have a setter, because `Reference.projectedValue` only defines a getter.
+Since both the getter and setter of `Reference.wrappedValue` are `nonmutating`, a setter can be synthesized for `var reference`, even though `Asserted.wrappedValue` has a `mutating` setter. `Reference` also defines a `projectedValue` property, so a local computed property called `$reference` is synthesized in the function body, but it does _not_ have a setter, because `Reference.projectedValue` only defines a getter.
