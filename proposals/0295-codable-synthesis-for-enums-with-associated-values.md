@@ -3,7 +3,7 @@
 * Proposal: [SE-0295](0295-codable-synthesis-for-enums-with-associated-values.md)
 * Authors: [Dario Rexin](https://github.com/drexin)
 * Review Manager: [Saleem Abdulrasool](https://github.com/compnerd)
-* Status: **Scheduled for Review January 21...31, 2021**
+* Status: **Scheduled for Review (January 21...31, 2021)**
 * Implementation: [apple/swift#34855](https://github.com/apple/swift/pull/34855)
 * Pitch: [Forum Discussion](https://forums.swift.org/t/codable-synthesis-for-enums-with-associated-values/41493)
 
