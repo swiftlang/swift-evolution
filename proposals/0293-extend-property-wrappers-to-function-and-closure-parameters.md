@@ -315,11 +315,11 @@ This transformation at the call-site only applies when calling the function dire
 
 #### Passing a projected value argument
 
-Property wrappers can opt into passing a projected-value argument to a property-wrapped parameter.
+Property-wrapper projections are designed to allow property wrappers to provide a representation of the storage type that can be used outside of the context that owns the property-wrapper storage. Typically, projections either expose the backing property wrapper directly, or provide an instance of a separate type that vends more restricted access to the functionality on the property wrapper.
 
-Though property-wrapper projections can be utilized to expose arbitrary API through the synthesized `$` property, projections are typically used to either publicly expose the backing property wrapper directly, or to provide a public representation of the backing wrapper that's suitable for use outside of the declaration that owns the wrapper storage. In such cases, supporting property-wrapper initialization from a projected-value is very useful, especially if the wrapper does not support `init(wrappedValue:)`. To support passing a property-wrapper projection to a function with a wrapped parameter, property wrappers can implement `init(projectedValue:)`.
+When a property-wrapper has a projection, it's often the case that the presence of the property-wrapper is fundamental to understanding the behavior of the property itself, and it's often necessary to use the projection alongside the wrapped value. In such cases, the projection is equal in importance to the wrapped value in the API of the wrapped property. With respect to function parameters, it's equally important to support passing a projection, especially if the property wrapper does not support initialization from a wrapped value.
 
-Presence of an `init(projectedValue:)` that meets the following requirements enables passing a projected value via the `$` calling syntax:
+Property wrappers can opt into passing a projected-value argument to a property-wrapped parameter. To enable passing a property-wrapper projection to a function with a wrapped parameter, property wrappers must declare `var projectedValue`, and implement an `init(projectedValue:)` that meets the following requirements:
 
 - The first parameter of this initializer must be labeled `projectedValue` and have the same type as the `var projectedValue` property.
 - The initializer must have the same access level as the property-wrapper type.
