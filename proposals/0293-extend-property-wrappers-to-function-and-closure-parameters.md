@@ -374,11 +374,11 @@ func log<Value>(@Traceable value: Value) { ... }
 The type of `log` is `(Value) -> Void`. These semantics can be observed when working with an unapplied reference to `log`:
 
 ```swift
-let fnRef: (Int) -> Void = log
-fnRef(10)
+let logReference: (Int) -> Void = log
+logReference(10)
 
-let fnRefWithLabel: (Int) -> Void = log(value:)
-fnRefWithLabel(10)
+let logReferenceWithLabel: (Int) -> Void = log(value:)
+logReferenceWithLabel(10)
 ```
 
 The compiler will generate a thunk when referencing `log` to take in the wrapped-value type and initialize the backing property wrapper. Both references to `log` in the above example are transformed to:
@@ -391,8 +391,8 @@ The type of an unapplied function reference can be changed to instead take in th
 
 ```swift
 let history: History<Int> = ...
-let fnRef: (History<Int>) -> Void = log($value:)
-fnRef(history)
+let logReference: (History<Int>) -> Void = log($value:)
+logReference(history)
 ```
 
 If the property-wrapped parameter in `log` omitted its argument label, the function could still be referenced to take in the projected-value type using `$_`:
@@ -401,8 +401,8 @@ If the property-wrapped parameter in `log` omitted its argument label, the funct
 func log<Value>(@Traceable _ value: Value) { ... }
 
 let history: History<Int> = ...
-let fnRef: (History<Int>) -> Void = log($_:)
-fnRef(history)
+let logReference: (History<Int>) -> Void = log($_:)
+logReference(history)
 ```
 
 #### Closures
