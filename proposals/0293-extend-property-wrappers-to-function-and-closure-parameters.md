@@ -3,7 +3,7 @@
 * Proposal: [SE-0293](0293-extend-property-wrappers-to-function-and-closure-parameters.md)
 * Authors: [Holly Borla](https://github.com/hborla), [Filip Sakel](https://github.com/filip-sakel)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Scheduled for review Jan 27...Feb 8**
+* Status: **Scheduled for review (January 27...February 8, 2021)**
 * Implementation: [apple/swift#34272](https://github.com/apple/swift/pull/34272)
 * Decision Notes: [Review #1](https://forums.swift.org/t/returned-for-revision-se-0293-extend-property-wrappers-to-function-and-closure-parameters/42953)
 
