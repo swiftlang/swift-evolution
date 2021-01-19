@@ -589,12 +589,14 @@ By default, the mutable stored properties (declared with `var`) of an actor clas
 All actor classes conform to a new protocol `Actor`:
 
 ```swift
-protocol Actor: AnyObject {
-  func enqueue(partialTask: PartialAsyncTask)
-}
+protocol Actor: AnyObject { /* unspecified */ }
 ```
 
-The `enqueue(partialTask:)` operation is a low-level operation used to queue work for the actor to execute. `PartialAsyncTask` represents a unit of work to execute. It effectively has a single synchronous function, `run()`, which should be called synchronously within the actor's context. Only the compiler can produce new `PartialAsyncTasks`. To explicitly enqueue work on an actor, use the `run` method:
+All actor classes implicitly conform to the `Actor` protocol. Non-actor classes cannot conform to the `Actor` protocol.
+
+The `Actor` protocol has no stated requirements in this proposal. Rather, a separate proposal on customized executors will specify the requirements and detail how to provide an alternative implementation of an actor's queueing behavior. Regardless of those details, an actor that does not provide implementations of those requirements will receive synthesized default implementations. Such actors are said to be default actors.
+
+The `Actor` protocol provides a single operation, the `run` method, which executes a given function on this actor:
 
 ```swift
 extension Actor {
@@ -606,12 +608,6 @@ extension Actor {
   func run<T>(operation: () async throws -> T) async rethrows -> T
 }
 ```
-
-The `enqueue(partialTask:)` requirement is special in that it can only be provided in the primary actor class declaration (not an extension), and cannot be `final`. If `enqueue(partialTask:)` is not explicitly provided, the Swift compiler will provide a default implementation for the actor, with its own (hidden) queue.
-
-> **Rationale**: This design strikes a balance between efficiency for the default actor implementation and extensibility to allow alternative actor implementations.   By forcing the method to be part of the main actor class, the compiler can ensure a common low-level implementation for actor classes that permits them to be passed as a single pointer and treated uniformly by the runtime.
-
-Non-`actor` classes cannot conform to the `Actor` protocol.
 
 ### Actor-independent declarations
 
@@ -744,6 +740,7 @@ Nearly all changes in actor isolation are breaking changes, because the actor is
   * Separated out the discussion of data races for reference types.
   * Allow asynchronous calls to synchronous actor methods from outside the actor.
   * Non-actor classes cannot conform to the `Actor` protocol.
+  * Remove `enqueue(partialTask:)` from the `Actor` protocol; we'll tackle customizing actors and executors in a separate proposal.
   * Clarify the role and behavior of actor-independence.
 
 * Original pitch [document](https://github.com/DougGregor/swift-evolution/blob/6fd3903ed348b44496b32a39b40f6b6a538c83ce/proposals/nnnn-actors.md)
