@@ -470,7 +470,7 @@ This is an additive change with no impact on the existing ABI.
 
 ## Effect on API resilience
 
-This proposal makes property-wrapper custom attributes on function parameters part of public API. This is done due to the fact that a property wrapper applied to a function parameter changes the type of said parameter in the ABI, while also changing the way that function callers are compiled to pass an argument of that type. Thus, adding or removing a property wrapper on a public function parameter is an ABI-breaking change –– but not a source-breaking one. Like default arguments, arguments in wrapper attributes are emitted into clients and are not part of the ABI.
+This proposal makes property-wrapper custom attributes on function parameters part of public API. This is because a property wrapper applied to a function parameter changes the type of that parameter in the ABI; it also changes the way that function callers are compiled to pass an argument of that type. Thus, adding or removing a property wrapper on a public function parameter is an ABI-breaking change –– but not a source-breaking one. Furthermore, similar to the existing behavior of default arguments, arguments in wrapper attributes are emitted into clients and are therefore not a part of the ABI.
 
 ## Alternatives considered
 
@@ -484,7 +484,7 @@ Under these semantics, using a property-wrapper parameter is effectively the sam
 2. The type of the argument provided at the call-site cannot affect the overload resolution of `init(wrappedValue:)`.
 3. Arguments in the wrapper attribute and other default arguments to the property-wrapper initializers become resilient and are also evaluated in the callee rather than the caller.
 
-One of the motivating use-cases for property-wrapper parameters is the ability to pass a projected value, which makes this approach unviable with out a significant type-checking performance impact or unintuitive restrictions. Further, making arguments in the wrapper attribute resilient is inconsistent with default arguments. Finally, caller-side property wrapper application has useful semantics. For example, for property wrappers that capture the file and line number to log a message or assert a precondition, it's much more useful to capture the location where the argument is provided rather than the location of the parameter declaration.
+One of the motivating use-cases for property-wrapper parameters is the ability to pass a projected value, which makes this approach unviable without a significant type-checking performance impact or unintuitive restrictions. Further, making arguments in the wrapper attribute resilient is inconsistent with default arguments. Finally, caller-side property wrapper application has useful semantics. For example, for property wrappers that capture the file and line number to log a message or assert a precondition, it's much more useful to capture the location where the argument is provided rather than the location of the parameter declaration.
 
 ### Passing a property-wrapper storage instance directly
 
