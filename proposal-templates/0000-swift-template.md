@@ -100,3 +100,9 @@ in the Swift repository.
 Describe alternative approaches to addressing the same problem, and
 why you chose this approach instead.
 
+## Acknowledgments
+
+If significant changes or improvements suggested by members of the 
+community were incorporated into the proposal as it developed, take a
+moment here to thank them for their contributions. Swift evolution is a 
+collaborative process, and everyone's input should recieve recognition!
