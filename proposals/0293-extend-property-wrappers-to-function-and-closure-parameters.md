@@ -41,6 +41,7 @@
   - [Changes from the first reviewed version](#changes-from-the-first-reviewed-version)
 + [Appendix](#appendix)
   - [Mutability of composed `wrappedValue` accessors](#mutability-of-composed-wrappedValue-accessors)
++ [Acknowledgements](#acknowledgements)
 
 
 ## Introduction
@@ -489,7 +490,6 @@ One of the motivating use-cases for property-wrapper parameters is the ability t
 
 A previous revision of this proposal supported passing a property-wrapper storage instance to a function with a wrapped parameter directly because the type of such a function was in terms of the property-wrapper type. A big point of criticism during the first review was that the backing storage type should be an artifact of the function implementation, and not exposed to function callers through the type system.
 
-
 Exposing the property-wrapper storage type through the type system has the following implications, summarized by [Frederick Kellison-Linn](https://forums.swift.org/u/jumhyn):
 
 * The addition/removal of a property-wrapper attribute on a function parameter is a source-breaking change for any code that references or curries the function.
@@ -632,3 +632,7 @@ func useReference(reference _reference: Reference<Asserted<String>>) {
 ```
 
 Since both the getter and setter of `Reference.wrappedValue` are `nonmutating`, a setter can be synthesized for `var reference`, even though `Asserted.wrappedValue` has a `mutating` setter. `Reference` also defines a `projectedValue` property, so a local computed property called `$reference` is synthesized in the function body, but it does _not_ have a setter, because `Reference.projectedValue` only defines a getter.
+
+## Acknowledgements
+
+This proposal was greatly improved as a direct result of feedback from the community. [Doug Gregor](https://forums.swift.org/u/douglas_gregor) and [Dave Abrahams](https://forums.swift.org/u/dabrahams) surfaced more use cases for property-wrapper parameters. [Frederick Kellison-Linn](https://forums.swift.org/u/jumhyn) proposed the idea to change the behavior of unapplied function references based on argument labels, and provided [ample justification](#passing-a-property-wrapper-storage-instance-directly) for why the semantics in the first revision were unintuitive. [Lantua](https://forums.swift.org/u/lantua) pushed for the behavior of closures to be consistent with that of functions, and proposed the idea to use `$` on closure parameters in cases where the wrapper attribute is unnecessary. Many others participated throughout the several pitches and first review. This feature would not be where it is today without the thoughtful contributions from folks across our community.
