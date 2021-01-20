@@ -25,12 +25,12 @@ Actors provide a model for building concurrent programs that are free of data ra
 
 ## Proposed solution
 
-### Actor classes
+### Actors
 
-This proposal introduces *actor classes* into Swift. An actor class is a form of class that protects access to its mutable state, and is introduced with "actor class":
+This proposal introduces *actors* into Swift. An actor is a form of class that protects access to its mutable state, and is introduced with "actor":
 
 ```swift
-actor class BankAccount {
+actor BankAccount {
   private let accountNumber: Int
   private var balance: Double
 
@@ -41,13 +41,13 @@ actor class BankAccount {
 }
 ```
 
-Actor classes behave like classes in most respects: they can inherit (from other actor classes), have methods, properties, and subscripts. They can be extended and conform to protocols, be generic, and be used with generics.
+Actors behave like classes in most respects: they can inherit (from other actors), have methods, properties, and subscripts. They can be extended and conform to protocols, be generic, and be used with generics.
 
-The primary difference is that actor classes protect their state from data races. This is enforced statically by the Swift compiler through a set of limitations on the way in which actors and their members can be used, collectively called *actor isolation*.   
+The primary difference is that actors protect their state from data races. This is enforced statically by the Swift compiler through a set of limitations on the way in which actors and their members can be used, collectively called *actor isolation*.   
 
 ### Actor isolation
 
-Actor isolation is how actors protect their mutable state. For actor classes, the primary mechanism for this protection is by only allowing their stored instance properties to be accessed directly on `self`. For example, here is a method that attempts to transfer money from one account to another:
+Actor isolation is how actors protect their mutable state. For actors, the primary mechanism for this protection is by only allowing their stored instance properties to be accessed directly on `self`. For example, here is a method that attempts to transfer money from one account to another:
 
 ```swift
 extension BankAccount {
@@ -68,9 +68,9 @@ extension BankAccount {
 }
 ```
 
-If `BankAccount` were a normal class, the `transfer(amount:to:)` method would be well-formed, but would be subject to data races in concurrent code without an external locking mechanism. With actor classes, the attempt to reference `other.balance` triggers a compiler error, because `balance` may only be referenced on `self`.
+If `BankAccount` were a normal class, the `transfer(amount:to:)` method would be well-formed, but would be subject to data races in concurrent code without an external locking mechanism. With actors, the attempt to reference `other.balance` triggers a compiler error, because `balance` may only be referenced on `self`.
 
-As noted in the error message, `balance` is *actor-isolated*, meaning that it can only be accessed directly from within the specific actor it is tied to or "isolated by". In this case, it's the instance of `BankAccount` referenced by `self`. Stored properties, computed instance properties, instance subscripts, and instance methods (like `transfer(amount:to:)`) in an actor class are all actor-isolated by default.
+As noted in the error message, `balance` is *actor-isolated*, meaning that it can only be accessed directly from within the specific actor it is tied to or "isolated by". In this case, it's the instance of `BankAccount` referenced by `self`. Stored properties, computed instance properties, instance subscripts, and instance methods (like `transfer(amount:to:)`) in an actor are all actor-isolated by default.
 
 On the other hand, the reference to `other.accountNumber` is allowed, because `accountNumber` is immutable (defined by `let`). Once initialized, it is never written, so there can be no data races in accessing it. `accountNumber` is called *actor-independent*, because it can be freely used from any actor. Constants introduced with `let` are actor-independent by default; there is also an attribute `@actorIndependent` (described in the next section on [**Actor independence**](#actor-independence)) to specify that a particular declaration is actor-independent. 
 
@@ -141,7 +141,7 @@ Any interactions with the actor that involve mutable state (whether reads or wri
 
 #### Actor independence
 
-Some functions (and closures) that occur lexically within actor classes are actor-independent, meaning that they can be used from outside of the actor without necessarily requiring an asynchronous call. Immutable instance properties (like `BankAccount.accountNumber`) are one such example. It also possible to specify that a given instance method, property, or subscript is actor-independent with the attribute `@actorIndependent`. This allows us (for example) to define conformance of an actor class to a protocol that has synchronous requirements:
+Some functions (and closures) that occur lexically within actors are actor-independent, meaning that they can be used from outside of the actor without necessarily requiring an asynchronous call. Immutable instance properties (like `BankAccount.accountNumber`) are one such example. It also possible to specify that a given instance method, property, or subscript is actor-independent with the attribute `@actorIndependent`. This allows us (for example) to define conformance of an actor to a protocol that has synchronous requirements:
 
 ```swift
 extension BankAccount: Hashable {
@@ -194,7 +194,7 @@ The closure in the detached task will be run concurrently with other code on the
 
 #### Closures
 
-The restrictions on only allowing asynchronous access to actor-isolated declarations on `self` only work so long as we can ensure that the code in which `self` is valid is executing non-concurrently on the actor. For methods on the actor class, this is established by the rules described above: asynchronous function calls are serialized via the actor's queue, and synchronous calls are only allowed when we know that we are already executing (non-concurrently) on the actor.
+The restrictions on only allowing asynchronous access to actor-isolated declarations on `self` only work so long as we can ensure that the code in which `self` is valid is executing non-concurrently on the actor. For methods on the actor, this is established by the rules described above: asynchronous function calls are serialized via the actor's queue, and synchronous calls are only allowed when we know that we are already executing (non-concurrently) on the actor.
 
 However, `self` can also be captured by closures. Should those closures have access to actor-isolated state on the captured `self`? Consider an example where we want to close out a bank account and distribute the balance amongst a set of accounts:
 
@@ -270,7 +270,7 @@ Interleaving executions still respect the actor's "single-threaded illusion", i.
 
 ```swift
 // reentrant actor
-actor class Person {
+actor Person {
   let friend: Friend
   
   // actor-isolated opinion
@@ -333,7 +333,7 @@ If we look at the example from the previous section, but now assume that actors 
 
 ```swift
 // *non-reentrant* actor
-actor class DecisionMaker {
+actor DecisionMaker {
   let friend: Friend
   var opinion: Judgement = .noIdea
 
@@ -370,14 +370,14 @@ To illustrate the issue a bit more, let us consider this example:
 
 ```swift
 // naïvely non-reentrant
-actor class Kitchen {
+actor Kitchen {
   func order(order: MealOrder, from waiter: Waiter) async -> Confirmation {
     await waiter.areYouSure() // deadlock ☠️
   }
 }
 
 // naïvely non-reentrant
-actor class Waiter {
+actor Waiter {
   let kitchen: Kitchen
   func order(order: MealOrder) async -> Confirmation {
     await kitchen.order(order: order, waiter: self)
@@ -406,7 +406,7 @@ As noted previously, we propose that actors be non-reentrant by default, and pro
 Actors will be non-reentrant by default. Individual actor-isolated functions can be explicitly marked as `@reentrant` to allow interleaving on any asynchronous calls that occur within the body of that function:
 
 ```swift
-actor class ImageDownloader { 
+actor ImageDownloader { 
   var bestImages: [Image]
   var currentBest: Image?
 
@@ -435,11 +435,11 @@ The above illustrates a popular use-case for reentrant calls: read only calls. T
 
 > Declaration-side annotations for reentrancy are explored in [Orleans's take on the subject](https://dotnet.github.io/orleans/docs/grains/reentrancy.html). The reason we compare to Orleans here is because it's model is fairly similar to Swift's with regards to modeling actors as reference types that express messages and interactions using async/await.
 
-An actor class itself can be annotated as `@reentrant`, to indicate that all actor-isolated async functions of that actor are `@reentrant` by default. The `@reentrant(never)` form of the attribute can be used to disable re-entrancy for specific functions:
+An actor itself can be annotated as `@reentrant`, to indicate that all actor-isolated async functions of that actor are `@reentrant` by default. The `@reentrant(never)` form of the attribute can be used to disable re-entrancy for specific functions:
 
 ```swift
 @reentrant
-actor class ImageDownloader {
+actor ImageDownloader {
   // ...
   
   // implicitly @reentrant
@@ -462,26 +462,26 @@ Thanks to structured concurrency and the `Task` primitives, we are able to relax
 
 ## Detailed design
 
-### Actor classes
+### Actors
 
-A class can be declared as an actor class using the `actor` modifier:
+An actor type can be declared with the `actor` keyword:
 
 ```
 /// Declares a new type BankAccount
-actor class BankAccount {
+actor BankAccount {
   // ...
 }
 ```
 
-Each instance of the actor class represents a unique actor.
+Each instance of the actor represents a unique actor. The term "actor" can be used to refer to either an instance or the type; where necessary, one can refer to the "actor instance" or "actor type" to disambiguate.
 
-An actor class may only inherit from another actor class. A non-actor class may only inherit from another non-actor class.
+An actor may only inherit from another actor. A non-actor may only inherit from another non-actor.
 
-> **Rationale**: Actor classes enforce state isolation, but non-actor classes do not. If an actor class inherits from a non-actor class (or vice versa), part of the actor's state would not be covered by the actor-isolation rules, introducing the potential for data races on that state.
+> **Rationale**: Actors enforce state isolation, but non-actors do not. If an actor inherits from a non-actor (or vice versa), part of the actor's state would not be covered by the actor-isolation rules, introducing the potential for data races on that state.
 
-As a special exception described in the complementary proposal [Concurrency Interoperability with Objective-C](https://github.com/DougGregor/swift-evolution/blob/concurrency-objc/proposals/NNNN-concurrency-objc.md), an actor class may inherit from `NSObject`.
+As a special exception described in the complementary proposal [Concurrency Interoperability with Objective-C](https://github.com/DougGregor/swift-evolution/blob/concurrency-objc/proposals/NNNN-concurrency-objc.md), an actor may inherit from `NSObject`.
 
-By default, the instance methods, properties, and subscripts of an actor class are actor-isolated to the actor instance. This is true even for methods added retroactively on an actor class via an extension, like any other Swift type.
+By default, the instance methods, properties, and subscripts of an actor are actor-isolated to the actor instance. This is true even for methods added retroactively on an actor via an extension, like any other Swift type.
 
 ```
 extension BankAccount {
@@ -491,19 +491,19 @@ extension BankAccount {
 }  
 ```
 
-An instance method, computed property, or subscript of an actor class may be annotated with `@actorIndependent`.  If so, it (or its accessors) are no longer actor-isolated to the `self` instance of the actor.
+An instance method, computed property, or subscript of an actor may be annotated with `@actorIndependent`.  If so, it (or its accessors) are no longer actor-isolated to the `self` instance of the actor.
 
-By default, the mutable stored properties (declared with `var`) of an actor class are actor-isolated to the actor instance. A stored property may be annotated with `@actorIndependent(unsafe)` to remove this restriction. 
+By default, the mutable stored properties (declared with `var`) of an actor are actor-isolated to the actor instance. A stored property may be annotated with `@actorIndependent(unsafe)` to remove this restriction. 
 
 ### Actor protocol
 
-All actor classes conform to a new protocol `Actor`:
+All actors conform to a new protocol `Actor`:
 
 ```swift
 protocol Actor: AnyObject { /* unspecified */ }
 ```
 
-All actor classes implicitly conform to the `Actor` protocol. Non-actor classes cannot conform to the `Actor` protocol.
+All actors implicitly conform to the `Actor` protocol. Non-actors cannot conform to the `Actor` protocol.
 
 The `Actor` protocol has no stated requirements in this proposal. Rather, a separate proposal on customized executors will specify the requirements and detail how to provide an alternative implementation of an actor's queueing behavior. Regardless of those details, an actor that does not provide implementations of those requirements will receive synthesized default implementations. Such actors are said to be default actors.
 
@@ -529,7 +529,7 @@ A declaration may be declared to be actor-independent:
 var count: Int { constantCount + 1 }
 ```
 
-When used on a declaration, it indicates that the declaration is not actor-isolated to any actor, which allows it to be accessed from anywhere. Moreover, it interrupts the implicit propagation of actor isolation from context, e.g., it can be used on an instance declaration in an actor class to make the declaration actor-independent rather than isolated to the actor.
+When used on a declaration, it indicates that the declaration is not actor-isolated to any actor, which allows it to be accessed from anywhere. Moreover, it interrupts the implicit propagation of actor isolation from context, e.g., it can be used on an instance declaration in an actor to make the declaration actor-independent rather than isolated to the actor.
 
 When used on a class, the attribute applies by default to members of the class and extensions thereof.  It also interrupts the ordinary implicit propagation of actor-isolation attributes from the superclass, except as required for overrides.
 
@@ -545,8 +545,8 @@ The `@actorIndependent` attribute has an optional "unsafe" argument.  `@actorInd
 
 Any given non-local declaration in a program can be classified into one of four actor isolation categories:
 
-* Actor-isolated to a specific instance of an actor class:
-  - This includes the stored instance properties of an actor class as well as computed instance properties, instance methods, and instance subscripts, as demonstrated with the `BankAccount` example.
+* Actor-isolated to a specific instance of an actor:
+  - This includes the stored instance properties of an actor as well as computed instance properties, instance methods, and instance subscripts, as demonstrated with the `BankAccount` example.
 * Actor-independent: 
   - The declaration is not actor-isolated to any actor. This includes any property, function, method, subscript, or initializer that has the `@actorIndependent` attribute.
 * Actor-independent (unsafe): 
@@ -574,7 +574,7 @@ A source and target category pair is compatible if:
 
 The first rule is the most direct: an actor-isolated declaration can synchronously access other declarations within its same actor (e.g., by referring to it on `self`).
 
-The second rule specifies that actor-independent declarations can be used from anywhere because they aren't tied to a particular actor. Actor classes can provide actor-independent instance methods, but because those functions are not actor-isolated, that cannot read the actor's own mutable state. For example:
+The second rule specifies that actor-independent declarations can be used from anywhere because they aren't tied to a particular actor. Actors can provide actor-independent instance methods, but because those functions are not actor-isolated, that cannot read the actor's own mutable state. For example:
 
 ```swift
 extension BankAccount {
@@ -631,7 +631,7 @@ The expression `self.synchronous` is well-formed only if it is the direct argume
 
 ### Reentrancy
 
-The `@reentrant` attribute may be added to any actor-isolated function, actor class, or extension of an actor class. The attribute has two forms:
+The `@reentrant` attribute may be added to any actor-isolated function, actor, or extension of an actor. The attribute has two forms:
 
 * `@reentrant`: Indicates that each potential suspension point within the function body is reentrant.
 * `@reentrant(never)`: Indicates that each potential suspension point within the function body is non-reentrant.
@@ -650,7 +650,7 @@ If there is no suitable `@reentrant` attribute, an actor-isolated function is no
 
 ## Source compatibility
 
-This proposal is additive, and should not break source compatibility. The addition of the `actor` contextual keyword to introduce actor classes is a parser change that does not break existing code, and the other changes are carefully staged so they do not change existing code. Only new code that introduces actor classes or actor-isolation attributes will be affected.
+This proposal is additive, and should not break source compatibility. The addition of the `actor` contextual keyword to introduce actors is a parser change that does not break existing code, and the other changes are carefully staged so they do not change existing code. Only new code that introduces actors or actor-isolation attributes will be affected.
 
 ## Effect on ABI stability
 
@@ -660,7 +660,7 @@ This is purely additive to the ABI.
 
 Nearly all changes in actor isolation are breaking changes, because the actor isolation rules require consistency between a declaration and its users:
 
-* A class cannot be turned into an actor class or vice versa.
+* A class cannot be turned into an actor or vice versa.
 * The actor isolation of a public declaration cannot be changed except between `@actorIndependent(unsafe)` and `@actorIndependent`.
 
 ## Alternatives Considered
@@ -692,7 +692,7 @@ class EvenEvanSync {
 This code is depending on the two methods of these classes to effectively be "reentrant" within the same call stack, because one will call into the other (and vice-versa) as part of the computation. Now, take this example and make it asynchronous using actors:
 
 ```swift
-actor class OddOddy {
+actor OddOddy {
   let evan: EvenEvan!
 
   func isOdd(_ n: Int) async -> Bool {
@@ -701,7 +701,7 @@ actor class OddOddy {
   }
 }
 
-actor class EvenEvan {
+actor EvenEvan {
   let oddy: OddOddy!
 
   func isEven(_ n: Int) async -> Bool {
@@ -741,9 +741,10 @@ Like classes, actors as proposed allow inheritance. However, actors and classes 
   * Removed global actors; they will be part of a separate document.
   * Separated out the discussion of data races for reference types.
   * Allow asynchronous calls to synchronous actor methods from outside the actor.
-  * Non-actor classes cannot conform to the `Actor` protocol.
+  * Non-actors cannot conform to the `Actor` protocol.
   * Remove `enqueue(partialTask:)` from the `Actor` protocol; we'll tackle customizing actors and executors in a separate proposal.
   * Clarify the role and behavior of actor-independence.
-  * Add.a section to "Alternatives Considered" that discusses actor inheritance.
+  * Add a section to "Alternatives Considered" that discusses actor inheritance.
+  * Replace "actor class" with "actor".
 
 * Original pitch [document](https://github.com/DougGregor/swift-evolution/blob/6fd3903ed348b44496b32a39b40f6b6a538c83ce/proposals/nnnn-actors.md)
