@@ -663,21 +663,6 @@ Nearly all changes in actor isolation are breaking changes, because the actor is
 * A class cannot be turned into an actor class or vice versa.
 * The actor isolation of a public declaration cannot be changed except between `@actorIndependent(unsafe)` and `@actorIndependent`.
 
-## Revision history
-
-* Changes in the second pitch:
-  * Added a discussion of the tradeoffs with actor reentrancy and deadlocks, with various examples, and two important changes:
-    - Actors are non-reentrant by default, and
-    - A new attribute `@reentrant` has been added to enable reentrancy in a given function.
-  * Removed global actors; they will be part of a separate document.
-  * Separated out the discussion of data races for reference types.
-  * Allow asynchronous calls to synchronous actor methods from outside the actor.
-  * Non-actor classes cannot conform to the `Actor` protocol.
-  * Remove `enqueue(partialTask:)` from the `Actor` protocol; we'll tackle customizing actors and executors in a separate proposal.
-  * Clarify the role and behavior of actor-independence.
-
-* Original pitch [document](https://github.com/DougGregor/swift-evolution/blob/6fd3903ed348b44496b32a39b40f6b6a538c83ce/proposals/nnnn-actors.md)
-
 ## Alternatives Considered
 
 ### Task-chain reentrancy
@@ -738,3 +723,27 @@ There are a few reasons why we are not currently comfortable including task-chai
 * The approach is semantically similar to recursive locks (even though there is no actual locking or blocking involved), which are particularly hard to work with in concurrent code, and we have not yet convinced ourselves those problems won't manifest in the actor model.
 
 If we can address the above, task-chain reentrancy can be introduced into the actor model with another spelling of the reentrancy attribute such as `@reentrant(task)`, and may provide a more suitable default than non-reentrant (`@reentrant(never)`).
+
+### Eliminating inheritance
+
+Like classes, actors as proposed allow inheritance. However, actors and classes cannot be co-mingled in an inheritance hierarchy, so there are essentially two different kinds of type hierarchies. It has been [proposed](TODO) that actors should not permit inheritance at all, because doing so would simplify actors: features such as method overriding, initializer inheritance, required and convenience initializers, and inheritance of protocol conformances would not need to be specified, and users would not need to consider them. The [discussion thread](TODO) on the proposal to eliminate inheritance provides several reasons to keep actor inheritance:
+
+* Actor inheritance makes it easier to port existing class hierarches to get the benefits of actors. Without actor inheritance, such porting will also have to content with (e.g.) replacing superclasses with protocols and explicitly-specified stored properties.
+* The lack of inheritance in actors won't prevent users from having to understand the complexities of inheritance, because inheritance will still be used pervasively with classes.
+* The design and implementation of actors naturally admits inheritance. Actors are fundamentally class-like, the semantics of inheritance follow directly from the need to maintain actor isolation, and the implementation of actors as "special classes" naturally supports all of these features. There is little benefit to the implementation from eliminating the possibility of inheritance of actors.
+
+## Revision history
+
+* Changes in the second pitch:
+  * Added a discussion of the tradeoffs with actor reentrancy and deadlocks, with various examples, and two important changes:
+    - Actors are non-reentrant by default, and
+    - A new attribute `@reentrant` has been added to enable reentrancy in a given function.
+  * Removed global actors; they will be part of a separate document.
+  * Separated out the discussion of data races for reference types.
+  * Allow asynchronous calls to synchronous actor methods from outside the actor.
+  * Non-actor classes cannot conform to the `Actor` protocol.
+  * Remove `enqueue(partialTask:)` from the `Actor` protocol; we'll tackle customizing actors and executors in a separate proposal.
+  * Clarify the role and behavior of actor-independence.
+  * Add.a section to "Alternatives Considered" that discusses actor inheritance.
+
+* Original pitch [document](https://github.com/DougGregor/swift-evolution/blob/6fd3903ed348b44496b32a39b40f6b6a538c83ce/proposals/nnnn-actors.md)
