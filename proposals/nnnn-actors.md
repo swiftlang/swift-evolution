@@ -760,18 +760,18 @@ If we can address the above, task-chain reentrancy can be introduced into the ac
 
 ### Eliminating inheritance
 
-Like classes, actors as proposed allow inheritance. However, actors and classes cannot be co-mingled in an inheritance hierarchy, so there are essentially two different kinds of type hierarchies. It has been [proposed](TODO) that actors should not permit inheritance at all, because doing so would simplify actors: features such as method overriding, initializer inheritance, required and convenience initializers, and inheritance of protocol conformances would not need to be specified, and users would not need to consider them. The [discussion thread](TODO) on the proposal to eliminate inheritance provides several reasons to keep actor inheritance:
+Like classes, actors as proposed allow inheritance. However, actors and classes cannot be co-mingled in an inheritance hierarchy, so there are essentially two different kinds of type hierarchies. It has been [proposed](https://docs.google.com/document/d/14e3p6yBt1kPrakLcEHV4C9mqNBkNibXIZsozdZ6E71c/edit#) that actors should not permit inheritance at all, because doing so would simplify actors: features such as method overriding, initializer inheritance, required and convenience initializers, and inheritance of protocol conformances would not need to be specified, and users would not need to consider them. The [discussion thread](https://forums.swift.org/t/actors-are-reference-types-but-why-classes/42281) on the proposal to eliminate inheritance provides several reasons to keep actor inheritance:
 
-* Actor inheritance makes it easier to port existing class hierarches to get the benefits of actors. Without actor inheritance, such porting will also have to content with (e.g.) replacing superclasses with protocols and explicitly-specified stored properties.
+* Actor inheritance makes it easier to port existing class hierarches to get the benefits of actors. Without actor inheritance, such porting will also have to contend with (e.g.) replacing superclasses with protocols and explicitly-specified stored properties at the same time.
 * The lack of inheritance in actors won't prevent users from having to understand the complexities of inheritance, because inheritance will still be used pervasively with classes.
-* The design and implementation of actors naturally admits inheritance. Actors are fundamentally class-like, the semantics of inheritance follow directly from the need to maintain actor isolation, and the implementation of actors as "special classes" naturally supports all of these features. There is little benefit to the implementation from eliminating the possibility of inheritance of actors.
+* The design and implementation of actors naturally admits inheritance. Actors are fundamentally class-like, the semantics of inheritance follow directly from the need to maintain actor isolation. The implementation of actors is essentially as "special classes", so it supports all of these features out of the box. There is little benefit to the implementation from eliminating the possibility of inheritance of actors.
 
 ## Revision history
 
 * Changes in the second pitch:
   * Added a discussion of the tradeoffs with actor reentrancy and deadlocks, with various examples, and two important changes:
-    - Actors are non-reentrant by default, and
-    - A new attribute `@reentrant` has been added to enable reentrancy in a given function.
+      - Actors are non-reentrant by default, and
+      - A new attribute `@reentrant` has been added to enable reentrancy in a given function.
   * Removed global actors; they will be part of a separate document.
   * Separated out the discussion of data races for reference types.
   * Allow asynchronous calls to synchronous actor methods from outside the actor.
