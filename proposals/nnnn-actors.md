@@ -6,6 +6,40 @@
 * Status: **Awaiting implementation**
 * Implementation: Partially available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
 
+## Table of Contents
+
+   * [Introduction](#introduction)
+   * [Motivation](#motivation)
+   * [Proposed solution](#proposed-solution)
+      * [Actors](#actors-1)
+      * [Actor isolation](#actor-isolation)
+         * [Actor independence](#actor-independence)
+         * [Closures](#closures)
+         * [inout parameters](#inout-parameters)
+      * [Actor reentrancy](#actor-reentrancy)
+         * ["Interleaving" execution with reentrant actors](#interleaving-execution-with-reentrant-actors)
+         * [Deadlocks with non-reentrant actors](#deadlocks-with-non-reentrant-actors)
+         * [Existing practice](#existing-practice)
+         * [Proposal: Default non-reentrant actors and opt-in reentrancy](#proposal-default-non-reentrant-actors-and-opt-in-reentrancy)
+         * [Reentrancy Summary](#reentrancy-summary)
+   * [Detailed design](#detailed-design)
+      * [Actors](#actors-2)
+      * [Actor protocol](#actor-protocol)
+      * [Actor-independent declarations](#actor-independent-declarations)
+      * [Actor isolation checking](#actor-isolation-checking)
+         * [Accesses in executable code](#accesses-in-executable-code)
+         * [Overrides](#overrides)
+         * [Protocol conformance](#protocol-conformance)
+      * [Partial applications](#partial-applications)
+      * [Reentrancy](#reentrancy)
+   * [Source compatibility](#source-compatibility)
+   * [Effect on ABI stability](#effect-on-abi-stability)
+   * [Effect on API resilience](#effect-on-api-resilience)
+   * [Alternatives Considered](#alternatives-considered)
+      * [Task-chain reentrancy](#task-chain-reentrancy)
+      * [Eliminating inheritance](#eliminating-inheritance)
+   * [Revision history](#revision-history)
+
 ## Introduction
 
 The [actor model](https://en.wikipedia.org/wiki/Actor_model) involves entities called actors. Each *actor* can perform local computation based on its own state, send messages to other actors, and act on messages received from other actors. Actors run independently, and cannot access the state of other actors, making it a powerful abstraction for managing concurrency in language applications. The actor model has been implemented in a number of programming languages, such as Erlang and Pony, as well as various libraries like Akka (on the JVM) and Orleans (on the .NET CLR).
