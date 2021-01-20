@@ -6,6 +6,7 @@
 * Status: **Scheduled for Review (January 21...31, 2021)**
 * Implementation: [apple/swift#34855](https://github.com/apple/swift/pull/34855)
 * Pitch: [Forum Discussion](https://forums.swift.org/t/codable-synthesis-for-enums-with-associated-values/41493)
+* Previous Review: [Forum Discussion](https://forums.swift.org/t/se-0295-codable-synthesis-for-enums-with-associated-values/42408)
 
 ## Introduction
 
@@ -64,7 +65,7 @@ which points to another container that contains the values as they would be enco
 for structs and classes.
 
 Associated values can also be unlabeled, in which case they will be encoded into an
-array instead (that needs to happen even if only one of the value does not have a label):
+array instead, or just the raw value if only one parameter is present.
 
 ```swift
 enum Command: Codable {
@@ -77,9 +78,7 @@ would encoded to
 
 ```json
 {
-  "load": [
-    "MyKey"
-  ]
+  "load": "MyKey"
 }
 ```
 
@@ -94,7 +93,7 @@ and
 }
 ```
 
-An enum case without associated values would encode the same as one where all values have labels,
+An enum case without associated values would be encoded as `true` value.
 i.e.
 
 ```swift
@@ -107,12 +106,9 @@ would encode to:
 
 ```json
 {
-  "dumpToDisk": {}
+  "dumpToDisk": true
 }
 ```
-
-This is done for compatibility reasons. If associated values are added to a case later on, the structure
-would not change, unless those values are unlabeled.
 
 With the exception of the last case, this solution is closely following the default behavior of the Rust library [serde](https://serde.rs/container-attrs.html).
 
@@ -122,8 +118,8 @@ For the existing cases users can customize which properties are included in the 
 and map the property name to a custom name for the encoded representation by providing a custom `CodingKeys`
 declaration instead of having the compiler generate one. The same should apply to the enum case.
 Given that enums are encoded into a nested structure, there are multiple `CodingKeys` declarations. One
-that contains the keys for each of the enum cases, and one for each case that contain the keys for the
-associated values.
+that contains the keys for each of the enum cases, which as before is called `CodingKeys`, and one for each case that contain the keys for the
+associated values, that are prefixed with the capilized case name, e.g. `LoadCodingKeys` for `case load`.
 
 **Example**
 
@@ -145,12 +141,12 @@ enum CodingKeys: CodingKey {
 }
 
 // contains keys for all associated values of `case load`
-enum CodingKeys_load: CodingKey {
+enum LoadCodingKeys: CodingKey {
   case key
 }
 
 // contains keys for all associated values of `case store`
-enum CodingKeys_store: CodingKey {
+enum StoreCodingKeys: CodingKey {
   case key
   case value
 }
@@ -195,7 +191,7 @@ enum Command: Codable {
   case load(key: String, someLocalInfo: Int)
 
   // invalid, because `someLocalInfo` has no default value
-  enum CodingKeys_load: CodingKey {
+  enum LoadCodingKeys: CodingKey {
     case key
   }
 }
@@ -206,7 +202,7 @@ enum Command: Codable {
   case load(key: String, someLocalInfo: Int = 0)
 
   // valid, because `someLocalInfo` has a default value
-  enum CodingKeys_load: CodingKey {
+  enum LoadCodingKeys: CodingKey {
     case key
   }
 }
@@ -217,7 +213,7 @@ enum Command: Codable {
   case load(key: String)
 
   // invalid, because `someUnknownKey` does not map to a parameter in `load`
-  enum CodingKeys_load: CodingKey {
+  enum LoadCodingKeys: CodingKey {
     case key
     case someUnknownKey
   }
@@ -236,7 +232,7 @@ enum Command: Codable {
     case load = "lade"
   }
 
-  enum CodingKeys_load: String, CodingKey {
+  enum LoadCodingKeys: String, CodingKey {
     case key = "schluessel"
   }
 }
@@ -248,6 +244,72 @@ would encode to:
 {
   "lade": {
     "schluessel": "MyKey"
+  }
+}
+```
+
+### Unsupported cases
+
+This proposal specifically does not support auto-synthesis for enums with overloaded case identifiers. This decision has been made because there is no clear way to support the feature, while also allowing the model to evolve, without severe restrictions. The separate cases in an enum typically have different semantics associated with them, so it is crucial to be able to properly identify the different cases and reject unknown cases.
+
+In this proposal, we are using keys as descriminators. For overloaded case names that would not be sufficient to identify the different overloads. An alternative would be to use the full name, including labels, e.g. `"store(key:,value:)"` for `case store(key: String, value: Int)`. This leads to several problems.
+
+1. Not a valid enum case identifier, so no user customization possible
+2. Not forward/backward compatible because it changes when parameters are added
+3. Very Swift specific, making interop with non-Swift systems awkward
+
+An alternative solution would be to match the keys against the parameter names when decoding an object. This approach also has issues.
+
+1. Overloads can share paramter names
+
+This causes ambiguity when a message contains additional keys:
+
+```swift
+enum Test: Codable {
+  case x(y: Int)
+}
+```
+
+```json
+{
+  "x": {
+    "y": 42,
+    "z": "test"
+  }
+}
+```
+
+This could either mean that a parameter has been added to the existing case in a new code version, which should be ok under backwards compatibility rules, but could also mean that an overloaded has been added that partially matches the original case. If it is a different case, we should reject the message, but there is no way for the old version to decide this.
+
+Another case that causes ambiguity is an overload that has an additional, optional parameter:
+
+```swift
+enum Test: Codable {
+  case x(y: Int)
+  case x(y: Int, z: String?)
+}
+```
+
+If `z` is `nil`, this case encodes to the same as the first, so even in the same code version there can be ambiguity.
+
+2. Order of key value pairs is no necessarily guaranteed
+
+This means the following definition leads to ambiguity when decoding:
+
+```swift
+enum Test: Codable {
+  case x(y: Int, z: String)
+  case x(z: String, y: Int)
+}
+```
+
+The following JSON would match both cases
+
+```json
+{
+  "x" : {
+    "y": 42,
+    "z": "test"
   }
 }
 ```
@@ -272,3 +334,19 @@ While we do believe that there is value in doing this, we think that the default
 behavior should more closely follow the structure of the types that are encoded.
 A future proposal could add customization options to change the structure to meet
 individual requirements.
+
+### Parameterless cases
+
+Alternative ways to encode these cases have been discussed and the following problems have been found:
+
+1. Encode as plain values, as we do today with `RawRepresentable`
+
+The problem with this is that `Decoder` does not have APIs to check which type of container is present and adding such APIs would be a breaking change. The existing APIs to read containers are `throws`, but it is not specified in which cases an error should occur. 
+
+2. Encode as empty `Keyed-` / `UnkeyedContainer`
+
+It was initially proposed to encode this case as an empty `KeyedContainer`, but in the first review it was pointed out that there is no good justification to favor `Keyed-` over `UnkeyedContainer` for reasons of backwards compatibility.
+
+3. Encode as `nil`
+
+This representation is problematic, because `Encoder` implementations can decide to drop `nil` values, which would also mean losing the key and with it the ability to identify the case.
