@@ -24,7 +24,6 @@
          * [Reentrancy Summary](#reentrancy-summary)
    * [Detailed design](#detailed-design)
       * [Actors](#actors-2)
-      * [Actor protocol](#actor-protocol)
       * [Actor-independent declarations](#actor-independent-declarations)
       * [Actor isolation checking](#actor-isolation-checking)
          * [Accesses in executable code](#accesses-in-executable-code)
@@ -529,31 +528,6 @@ An instance method, computed property, or subscript of an actor may be annotated
 
 By default, the mutable stored properties (declared with `var`) of an actor are actor-isolated to the actor instance. A stored property may be annotated with `@actorIndependent(unsafe)` to remove this restriction. 
 
-### Actor protocol
-
-All actors conform to a new protocol `Actor`:
-
-```swift
-protocol Actor: AnyObject { /* unspecified */ }
-```
-
-All actors implicitly conform to the `Actor` protocol. Non-actors cannot conform to the `Actor` protocol.
-
-The `Actor` protocol has no stated requirements in this proposal. Rather, a separate proposal on customized executors will specify the requirements and detail how to provide an alternative implementation of an actor's queueing behavior. Regardless of those details, an actor that does not provide implementations of those requirements will receive synthesized default implementations. Such actors are said to be default actors.
-
-The `Actor` protocol provides a single operation, the `run` method, which executes a given function on this actor:
-
-```swift
-extension Actor {
-  // Run the given async function on this actor.
-  //
-  // Precondition: the function is not constrained to a different actor;
-  //   if it is not constrained to any actor at all, it will still run on
-  //   behalf of `self`
-  func run<T>(operation: () async throws -> T) async rethrows -> T
-}
-```
-
 ### Actor-independent declarations
 
 A declaration may be declared to be actor-independent:
@@ -775,8 +749,7 @@ Like classes, actors as proposed allow inheritance. However, actors and classes 
   * Removed global actors; they will be part of a separate document.
   * Separated out the discussion of data races for reference types.
   * Allow asynchronous calls to synchronous actor methods from outside the actor.
-  * Non-actors cannot conform to the `Actor` protocol.
-  * Remove `enqueue(partialTask:)` from the `Actor` protocol; we'll tackle customizing actors and executors in a separate proposal.
+  * Removed the `Actor` protocol; we'll tackle customizing actors and executors in a separate proposal.
   * Clarify the role and behavior of actor-independence.
   * Add a section to "Alternatives Considered" that discusses actor inheritance.
   * Replace "actor class" with "actor".
