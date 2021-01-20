@@ -254,23 +254,19 @@ extension BankAccount {
 
 This restriction prevents exclusivity violations where the modification of the actor-isolated `balance` is initiated by passing it as `inout` to a call that is then suspended, and another task executed on the same actor then fails with an exclusivity violation in trying to access `balance` itself.
 
-### Actor reentrancy (discussion)
+### Actor reentrancy
 
-One critical point that needs to be discussed and fleshed out is whether actors are [reentrant](https://en.wikipedia.org/wiki/Reentrancy_(computing)) by default or not.
+One critical point that needs to be discussed is whether actor-isolated functions are [reentrant](https://en.wikipedia.org/wiki/Reentrancy_(computing)). When an actor-isolated function suspends, reentrancy allows other work to execute on the actor before the original actor-isolated function resumes, which we refer to as *interleaving*. Reentrancy eliminates a source of deadlocks, where two actors depend on each other, and offers opportunities for better scheduling of (e.g.) higher-priority tasks. However, it means that actor-isolated state can change across an `await` when an interleaved task mutates that state, making it much harder to reason about the invariants of an actor within an asynchronous actor function.
 
-The notion of reentrancy allows the actor runtime to claim the complete elimination of deadlocks, offers opportunity for scheduling optimization techniques where a "high priority task" _must_ be executed as soon as possible, however at the cost of _interleaving_ with any other actor-isolated function's execution any other asynchronous function declared on this actor. This imposes a large mental burden on developers, as every single actor function currently has to be implemented keeping reentrancy in mind, which effectively fails on delivering the promise of pain-free concurrency for the majority of use-cases.
+This section explores the issue of reentrancy with examples that illustrate both the benefits and problems with both reentrant and non-reentrant actors, and settles on the following overall approach:
+* Actors default to being non-reentrant, but
+* An attribute `@reentrant` allows one to make a particular actor-isolated function reentrant. 
 
-Currently, this proposal takes the aggressive approach of assuming _all_ actors are reentrant and not providing ways to opt out of this behavior. This section aims to highlight issues, benefits and tradeoffs with this approach as well as non-reentrancy in general. The goal of discussing these reentrancy issues, is to arrive at a design that is developer friendly, non-surprising, and delivers more completely on Swift's promise of _safe_ and _pain-free_ concurrency by default thanks to the use of actors.
+#### "Interleaving" execution with reentrant actors
 
-#### Reentrant actors: "Interleaving" execution
+Reentrancy means that execution of asynchronous actor-isolated functions may "interleave" at suspension points, leading to increased complexity in programming with such actors, as every suspension point must be carefully inspected if the code *after* it depends on some invariants that could have changed before it suspended.
 
-Reentrancy means that execution of asynchronous actor-isolated functions may "interleave" at suspension points, leading to increased complexity in programming with such actors, as every suspension point must be carefully inspected if the code _after_ it depends on some invariants that could have changed before it suspended.
-
-Interleaving executions still respect the actor's "single-threaded illusion"–i.e. no two functions will ever execute *concurrently* on any given actor–however they may _interleave_ at suspension points. In broad terms this means that reentrant actors are _thread-safe_ but are not automatically protecting from the "high level" kinds of races that may still occur, potentially invalidating invariants upon which an executing asynchronous function may be relying on.
-
-> Empirically: we know that both an non-reentrant and reentrant awaiting and actors are useful, however both semantics must be available to developers in order to use actors as a means of isolating state from "concurrent" (in the meaning of interleaved) modification.
-
-To further clarify the implications of this, let us consider the following actor, which thinks of an idea and then returns it, after telling its friend about it.
+Interleaving executions still respect the actor's "single-threaded illusion", i.e., no two functions will ever execute *concurrently* on any given actor. However they may *interleave* at suspension points. In broad terms this means that reentrant actors are *thread-safe* but are not automatically protecting from the "high level" kinds of races that may still occur, potentially invalidating invariants upon which an executing asynchronous function may be relying on. To further clarify the implications of this, let us consider the following actor, which thinks of an idea and then returns it, after telling its friend about it.
 
 ```swift
 // reentrant actor
@@ -296,7 +292,7 @@ actor class Person {
 
 > Reentrant code is notoriously difficult to program with–one is protected from low level data-races, however the higher level semantic races may still happen. In the examples shown, the states are small enough that they are simple to fit in one's hear so they do not appear as tricky, however in the real world races can be dauntingly hard to debug.
 
-In the example above the `Person` can think of a good or bad idea, shares that opinion with a friend, and returns that opinion that it stored. Since the actor is reentrant this code is **wrong** and will return an _arbitrary opinion_ if the actor begins to think of a few ideas at the same time.
+In the example above the `Person` can think of a good or bad idea, shares that opinion with a friend, and returns that opinion that it stored. Since the actor is reentrant this code is **wrong** and will return an *arbitrary opinion* if the actor begins to think of a few ideas at the same time.
 
 This is exemplified by the following piece of code, exercising the `decisionMaker` actor:
 
@@ -308,7 +304,7 @@ await shouldBeGood // could be .goodIdea or .badIdea ☠️
 await shouldBeBad
 ```
 
-> This issue is illustrated by using async lets, however also simply manifest by more than 1 actor calling out to the same decision maker; one invoking `thinkOfGoodIdea` and the other one `thinkOfBadIdea`, a reentrant actor is not protecting us from such race conditions, making the programming model unnecessarily hard to reason about.
+> This issue is illustrated by using async lets, however also simply manifest by more than one actor calling out to the same decision maker; one invoking `thinkOfGoodIdea` and the other one `thinkOfBadIdea`.
 
 This snippet _may_ result (depending on timing of the resumptions) in the following execution:
 
@@ -323,25 +319,17 @@ return opinion                     // <3>
 return opinion                     // <6>
 ```
 
-But it _may_ also result in the "naively expected" execution, i.e. without interleaving, making the problem even trickier, because as with normal race conditions in concurrent code -- the issue will only show up when exercised in more real usage patterns, rather than early on in unit testing.
+But it _may_ also result in the "naively expected" execution, i.e. without interleaving, meaning that the issue will only show up intermittently, like many race conditions in concurrent code.
 
-With this example we have showcased that reentrant actors, by design, do not prevent "high-level" race conditions. They only prevent "low-level" data-races, as in: concurrent access to some variable they protect etc.
+With this example we have showcased that reentrant actors, by design, do not prevent "high-level" race conditions. They only prevent "low-level" data-races, as in: concurrent access to some variable they protect etc. The example here a simple single variable state, yet already it can catch people off guard because how similar it looks to synchronous code. In hindsight, the solution is simple: we should store the opinion in a function local variable, or in other words, any state the actor needs to to complete an execution "atomically" it must copy into local function scope. This can be hard to remember and manage consistently, especially in real applications where actors are used to isolate and protect complex state transitions. Because actors effectively can only communicate through async calls to other parts of the system, a typical actor function will not have one or two suspension points but many of them, leading to exponential growth of the possible states an actor function may observe during it's execution.
 
-Please note that the example here a simple single variable state, yet already it can catch people off guard because how similar it looks to synchronous code. The problem is greatly exaggerated in real applications where actors are used to isolate and protect complex state transitions. Because actors effectively can only communicate through async calls to other parts of the system, a typical actor function will not have one or two suspension points but many of them - leading to exponential growth of the possible states an actor function may observe during it's execution.
+#### Deadlocks with non-reentrant actors
 
-> Existing actor implementations err on the side of non-reentrant actors by default, allowing for reentrancy to be optionally opted-into.
->
-> - Erlang/Elixir ([gen_server](https://medium.com/@eduardbme/erlang-gen-server-never-call-your-public-interface-functions-internally-c17c8f28a1ee)) - showcases a simple "loop/deadlock" scenario and how to detect and fix it,
-> - Orleans ([Grains](https://dotnet.github.io/orleans/docs/grains/reentrancy.html)) offer extensive declarative configuration around reentrancy, it is also the closest to the Swift actors model,
-> - Akka ([Persistence persist/persistAsync](https://doc.akka.io/docs/akka/current/persistence.html#relaxed-local-consistency-requirements-and-high-throughput-use-cases) does not have async/await support because Scala's lack of it so the general problem does not show up as painfully as in languages with it, however it effectively is _non-reentrant behavior by default_, and specific APIs are designed to allow programmers to _opt into_ reentrant whenever it would be needed. In the linked documentation `persistAsync` is the re-entrant version of the API, and it is used _very rarely_ in practice. Akka persistence and this API has been used to implement bank transactions and process managers, by relying on the non-reentrancy of `persist()` as a killer feature, making implementations simple to understand and _safe_.
-
-#### Non-reentrant actors: Deadlocks
-
-The opposite of reentrant actor functions are "non-reentrant" functions and actors. This means that while an actor is processing an incoming actor function call (message), it will _not_ process any other message from its queue until it has completed running this initial function.
+The opposite of reentrant actor functions are "non-reentrant" functions and actors. This means that while an actor is processing an incoming actor function call (message), it will *not* process any other message from its queue until it has completed running this initial function.
 
 In Swift's actor model, calling actor-isolated functions on `self` would be still allowed and not deadlock the actor, however if a cyclic call from A to B could only be fulfilled by A completing a request from B, we would end up with a deadlock. Generally though, such call cycles are uncommon, and when they happen, they can be diagnosed easily either in debugging of call graphs (if/when we would gain tooling for such), or by inspecting the calls made by actors by using [(swift distributed) tracing](https://github.com/apple/swift-distributed-tracing)) libraries.
 
-If look at the example from the previous section, but now assume that actors are non-reentrant, it is _trivially correct_ and behaves just like a newcomer to actor model and async/await would expect it to behave in the first place:
+If we look at the example from the previous section, but now assume that actors are non-reentrant, it is *trivially correct* and behaves just like a newcomer to actor model and async/await would expect it to behave in the first place:
 
 ```swift
 // *non-reentrant* actor
@@ -397,79 +385,25 @@ actor class Waiter {
 }
 ```
 
-In this example the deadlock is relatively simple to spot and diagnose. Perhaps such simple cases we could even diagnose statically someday. It may happen however that deadlocks are not easy to diagnose, in which case tracing and other diagnostic systems could help.
+In this example the deadlock is relatively simple to spot and diagnose. Perhaps such simple cases we could even diagnose statically someday. It may happen however that deadlocks are not easy to diagnose, in which case tracing and other diagnostic systems could help, similar to how tooling can help identify reference cycles.
 
-Deadlocked actors would be sitting around as inactive zombies forever, because normal swift async calls do not include timeouts.
+Deadlocked actors would be sitting around as inactive zombies forever. Some runtimes solve deadlocks like this by making *every single actor call have a timeout*. This would mean that each `await` could potentially `throw`, and that either timeouts or deadlock detection would have to always be enabled. We feel this would be prohibitively expensive, because we envision actors being used in the vast majority of concurrent Swift applications. It would also muddy the waters with respect to cancellation, which is intentionally designed to be explicit and cooperative. Therefore, we feel that the approach of automatically cancelling on deadlocks does not fit well with the direction of Swift Concurrency.
 
-Some runtimes solve this by making *every single actor call have a timeout*. This would mean that each await could potentially throw, and that either timeouts or deadlock detection would have to always be enabled - which would be prohibitively expensive since we envision actors being used in the vast majority of concurrent Swift applications. It would also muddy the waters with respect to cancellation, which intentionally is designed to be explicit and cooperative, and as checking timeouts/deadlines is a form of cancellation, this is _not_ something we are going to support transparently, thus actor calls neither may assume this. 
+#### Existing practice
 
-It is easy to point out a small mistake in actors spanning a few lines of code, however programming complex actors with reentrancy can be quite a challenge. In this specific example, the solution–in hindsight–is simple, we should store the opinion in a function local variable, or in other words, any state the actor needs to to complete an execution "atomically" it must copy into local function scope. This can be hard to remember and manage consistently.
+Existing actor implementations err on the side of non-reentrant actors by default, allowing for reentrancy to be optionally opted-into.
 
-> Depending on one's viewpoint, one could actually claim that deadlocks are better (!), than interleaving because they can be reliably detected and explained by tools, can be detected in fuzz tests (no need to know what the correct result is for a random input), and can be fixed more consistently.
-
-#### Reentrancy and async lets
-
-Swift also offers the `async let` declaration style, allowing for expressing structured bounded number of asynchronous child tasks being performed concurrently.
-
-In order to check our assumptions, let us also write some code using `async let` and see how reentrancy does or does not come into play here:
-
-```swift
-actor class Friend {
-  func howMuchDoYouNeed() async -> Amount { ... }
-  func send(cash: Amount) async { ... }
-}
-
-actor class Wallet {
-  let friend: Friend = ... 
-  
-  var amount: Amount = ... 
-  func checkCash() async -> Amount { ... }
-  
-  func lendFriendSomeCash() async  {
-    async let requested = friend.howMuchDoYouNeed() 
-    async let debt = checkDebt()
-    async let cash = checkCash()
-    let available = await cash - debt.amount
-    
-    if await requested <= available { 
-      amount -= requested
-      await friend.send(cash: requested) // ✅        
-    }  
-  }
-
-  func loseWallet() async { 
-    amount = 0
-  }
-}
-```
-
-This example composes well; Calls to an actor's `self` are allowed to pass through as usual, and _replies_ from other actors are also accepted. What can _not_ happen with non-reentrant actors is the `loseWallet()` function being randomly triggered while we are attempting to lend our friend some cash -- this would have been an external call into the actor, which our non-reentrancy rule would prevent.
-
-So even such snippet (under non-reentrancy rules):
-
-
-```swift
-await wallet.lendFriendSomeCash()
-await wallet.loseWallet() 
-```
-
-would be correct. Even if our friend takes 10 minutes to reply to `howMuchDoYouNeed`, we are being patient with them and wait with processing the next _external_ message (that will cause us to lose our wallet), until after we are done lending our friend some cash.
-
-Under reentrant rules, the above code could be unsafe, changing our wallet's balance to zero right before we are about to decrement it (!).
+* Erlang/Elixir ([gen_server](https://medium.com/@eduardbme/erlang-gen-server-never-call-your-public-interface-functions-internally-c17c8f28a1ee)) showcases a simple "loop/deadlock" scenario and how to detect and fix it,
+* - Orleans ([Grains](https://dotnet.github.io/orleans/docs/grains/reentrancy.html)) offer extensive declarative configuration around reentrancy, it is also the closest to the Swift actors model,
+* - Akka ([Persistence persist/persistAsync](https://doc.akka.io/docs/akka/current/persistence.html#relaxed-local-consistency-requirements-and-high-throughput-use-cases) does not have async/await support because Scala's lack of it so the general problem does not show up as painfully as in languages with it, however it effectively is _non-reentrant behavior by default_, and specific APIs are designed to allow programmers to _opt into_ reentrant whenever it would be needed. In the linked documentation `persistAsync` is the re-entrant version of the API, and it is used _very rarely_ in practice. Akka persistence and this API has been used to implement bank transactions and process managers, by relying on the non-reentrancy of `persist()` as a killer feature, making implementations simple to understand and _safe_.
 
 #### Proposal: Default non-reentrant actors and opt-in reentrancy
 
-We could amend our model with the following changes:
+As noted previously, we propose that actors be non-reentrant by default, and provide an attribute (`@reentrant`) to make specific actor-isolated functions reentrant.
 
-- actors are **non-**reentrant by default
-  - external calls from other actors are performed "one by one," they cannot automatically "jump in front of the queue"
-- actors which want all their functions to be able to interleave each other, may annotate their definition using `@reentrant` assumes all of it's functions are `@reentrant`
+> **Rationale**: Reentrancy brings with it significant potential for race conditions on actors, where assumptions about "single-threadedness" of actors will break down due to interleaving of execution. This interleaving undercuts the usability of the model, and would make Swift differ from existing actor systems in a manner that might be surprising. While this decision admits deadlock, we feel that deadlock situations are easier to reason about and debug than race conditions, possibly aided by runtime tools.
 
-> Alternate spelling proposals follow below the example.
-
-The rationale to make actors non-reentrant by default is clear: it is what feels natural and what actually enables "write as if synchronous code in an actor, and it just works" style of programming.
-
-However, there are valid and important cases where we _do_ want to enable reentrant calls - e.g. a high priority message changing how we are processing a long running task inside an actor:
+Actors will be non-reentrant by default. Individual actor-isolated functions can be explicitly marked as `@reentrant` to allow interleaving on any asynchronous calls that occur within the body of that function:
 
 ```swift
 actor class ImageDownloader { 
@@ -490,8 +424,8 @@ actor class ImageDownloader {
 
     return images
   }
-  
-  func currentBest() async -> Image { 
+
+  func getCurrentBest() -> Image { 
     currentBest
   } 
 }
@@ -499,45 +433,22 @@ actor class ImageDownloader {
 
 The above illustrates a popular use-case for reentrant calls: read only calls. They can be used to observe progress, request a "best effort" answer while better answers are being processed still, or one can invoke a cancel function to cancel some ongoing work inside an actor from another one.
 
-Optionally, we could consider an `@interleave(readOnly)` or annotation that allows for adding "read only" queries to actors, even for actors which otherwise are non-reentrant. In the above example we could then annotate `concurrentBest` as such, and even if the other functions are not `@reentrant` such read-only function could interleave them. We _could_ extend the model to `@interleave(unsafe)` if we really needed to open up that backdoor, but we suggest to leave this out on purpose. 
+> Declaration-side annotations for reentrancy are explored in [Orleans's take on the subject](https://dotnet.github.io/orleans/docs/grains/reentrancy.html). The reason we compare to Orleans here is because it's model is fairly similar to Swift's with regards to modeling actors as reference types that express messages and interactions using async/await.
 
-The issue and solutions to it are not new, and have been successfully proven in [Orleans's take on the subject](https://dotnet.github.io/orleans/docs/grains/reentrancy.html). The reason we compare to Orleans here is because it's model is fairly similar to Swift's with regards to modeling actors as reference types that express messages and interactions using async/await.
-
-#### Proposal: Structured concurrency / Task-chain - aware reentrant actors
-
-In addition to the above semantics and fine grained control over reentrancy, we can do better than that, thanks to Swift's built in notion of structured concurrency with tasks and child tasks.
-
-Assuming the non-reentrant actors as just discussed, it is still important to recognize that a frequent and usually quite understandable way of interacting between actors which are simply "conversations" between two or more actors in order fo fulfil some initial request.
-
-Thanks to Swift embracing [Structured Concurrency](https://github.com/DougGregor/swift-evolution/blob/structured-concurrency/proposals/nnnn-structured-concurrency.md) as a core building block of it's concurrency story, we are in good position to do _better_ than just outright banning reentrancy. In Swift, every asynchronous operation is part of a `Task` which encapsulates the general computation taking place, and every asynchronous operation spawned from such task becomes a child Task of the current task. Synchronous calls do not change the current task (in a way, one can think of Tasks as similar to Threads, however they are not directly mapped to one another). Using this core capability in Swift's concurrency model, we are able to make actor calls *task-chain aware* and *allow* such calls to be reentrant.
-
-This resolves both the deadlock we encountered in the `Waiter` and `Kitchen` example in the previous section, and even enables implementing mutually recursive actors. In the following–world's silliest isEven implementation, we can see two actors performing either is even/odd checks, and mutually calling out to each other, because of the structured nature of tasks, and task awareness of the actor runtime, such calls would _not (!)_ deadlock under the task-aware runtime: 
+An actor class itself can be annotated as `@reentrant`, to indicate that all actor-isolated async functions of that actor are `@reentrant` by default. The `@reentrant(never)` form of the attribute can be used to disable re-entrancy for specific functions:
 
 ```swift
-// WARNING: Don't actually implement an isOdd/isEven check like this, 
-//          it involves multiple executor hops and is therefore very sub-optimal.
-public actor class OddOddy { 
-  let evan: EvenEvan!
+@reentrant
+actor class ImageDownloader {
+  // ...
   
-  func isOdd(n: Int) async -> Bool {
-    if n == 0 { return true }
-    return await evan.isEven(num - 1)
-  }
-}
+  // implicitly @reentrant
+  func downloadAndPickBest(n: Int, urls: [URL]) async -> [Image] { ... }
 
-actor class EvenEvan {
-  let oddy: OddOddy!
-
-  func isEven(n: Int) async -> Bool {
-    if n == 0 { return false }
-    return await oddy.isOdd(num - 1)
-  }
+  @reentrant(never)
+  func optimizeImages() async { ... }
 }
 ```
-
-Semantically, this can be seen as similar in capability as reentrant locking, however with no actual locking or blocking involved.
-
-This behavior could be again configurable, if e.g. it definitely is not what the developer intended we could configure this when spawning the actor or by specific properties within or annotations on the actor type.
 
 #### Reentrancy Summary
 
@@ -718,6 +629,25 @@ extension BankAccount {
 
 The expression `self.synchronous` is well-formed only if it is the direct argument to a function whose corresponding parameter is non-concurrent. Otherwise, it is ill-formed because the function might be called in a context that is not actor-isolated.
 
+### Reentrancy
+
+The `@reentrant` attribute may be added to any actor-isolated function, actor class, or extension of an actor class. The attribute has two forms:
+
+* `@reentrant`: Indicates that each potential suspension point within the function body is reentrant.
+* `@reentrant(never)`: Indicates that each potential suspension point within the function body is non-reentrant.
+
+A non-reentrant potential suspension point prevents any other asynchronous call from executing on the actor until it has completed. Note that asynchronous calls to non-reentrant async functions directly on `self` are exempted from this check, so an actor can asynchronously call itself without producing a deadlock.
+
+> **Rationale**: Allowing direct calls on `self` eliminates an obvious set of deadlocks, and requires only the same static knowledge as actor-isolation checking for synchronous access to actor-isolated state.
+
+It is an error to have a `@reentrant` attribute on an actor-independent function, non-actor type, or extension of a non-actor type. Only one `@reentrant` attribute may occur on a given declaration. The reentrancy of an actor-isolated declaration is determined by finding a suitable `@reentrant` attribute. The search is as follows:
+
+1. The declaration itself.
+2. If the declaration is within an extension, the extension.
+3. If the declaration is within a type (or extension thereof), the type definition.
+
+If there is no suitable `@reentrant` attribute, an actor-isolated function is non-reentrant.
+
 ## Source compatibility
 
 This proposal is additive, and should not break source compatibility. The addition of the `actor` contextual keyword to introduce actor classes is a parser change that does not break existing code, and the other changes are carefully staged so they do not change existing code. Only new code that introduces actor classes or actor-isolation attributes will be affected.
@@ -736,6 +666,9 @@ Nearly all changes in actor isolation are breaking changes, because the actor is
 ## Revision history
 
 * Changes in the second pitch:
+  * Added a discussion of the tradeoffs with actor reentrancy and deadlocks, with various examples, and two important changes:
+    - Actors are non-reentrant by default, and
+    - A new attribute `@reentrant` has been added to enable reentrancy in a given function.
   * Removed global actors; they will be part of a separate document.
   * Separated out the discussion of data races for reference types.
   * Allow asynchronous calls to synchronous actor methods from outside the actor.
@@ -744,3 +677,64 @@ Nearly all changes in actor isolation are breaking changes, because the actor is
   * Clarify the role and behavior of actor-independence.
 
 * Original pitch [document](https://github.com/DougGregor/swift-evolution/blob/6fd3903ed348b44496b32a39b40f6b6a538c83ce/proposals/nnnn-actors.md)
+
+## Alternatives Considered
+
+### Task-chain reentrancy
+
+The discussion of reentrant and non-reentrant actors treats reentrancy as a binary choice, where all forms of reentrancy are considered to be equally likely to introduce hard-to-reason-about data races. However, a frequent and usually quite understandable way of interacting between actors which are simply "conversations" between two or more actors in order fo fulfill some initial request. In synchronous code, it's common to have two or more different classes call back into each other with synchronous calls. For example, here is a silly implementation of `isEven` that uses mutual recursion between two classes:
+
+```swift
+class OddOddySync {
+  let evan: EvenEvanSync!
+
+  func isOdd(_ n: Int) -> Bool {
+    if n == 0 { return true }
+    return evan.isEven(num - 1)
+  }
+}
+
+class EvenEvanSync {
+  let oddy: OddOddySync!
+
+  func isEven(_ n: Int) -> Bool {
+    if n == 0 { return false }
+    return oddy.isOdd(num - 1)
+  }
+}
+```
+
+This code is depending on the two methods of these classes to effectively be "reentrant" within the same call stack, because one will call into the other (and vice-versa) as part of the computation. Now, take this example and make it asynchronous using actors:
+
+```swift
+actor class OddOddy {
+  let evan: EvenEvan!
+
+  func isOdd(_ n: Int) async -> Bool {
+    if n == 0 { return true }
+    return await evan.isEven(num - 1)
+  }
+}
+
+actor class EvenEvan {
+  let oddy: OddOddy!
+
+  func isEven(_ n: Int) async -> Bool {
+    if n == 0 { return false }
+    return await oddy.isOdd(num - 1)
+  }
+}
+```
+
+Under the current proposal, this code will deadlock, because a call from `EvanEvan.isEven` to `OddOddy.isOdd` will then depend on another call to `EvanEvan.isEven`, which cannot proceed until the original call completes. One would need to make these methods reentrant to eliminate the deadlock.
+
+With Swift embracing [Structured Concurrency](https://github.com/DougGregor/swift-evolution/blob/structured-concurrency/proposals/nnnn-structured-concurrency.md) as a core building block of its concurrency story, we may be able to do better than outright banning reentrancy. In Swift, every asynchronous operation is part of a `Task` which encapsulates the general computation taking place, and every asynchronous operation spawned from such task becomes a child task of the current task. Therefore, it is possible to know whether a given asynchronous call is part of the same task hierarchy, which is the rough equivalent to being in the same call stack in synchronous code.
+
+We could introduce a new kind of reentrancy, *task-chain reentrancy*, which allows reentrant calls on behalf of the given task or any of its children. This resolves both the deadlock we encountered in the `Waiter` and `Kitchen` example from the section on [deadlocks](#deadlocks-with-non-reentrant-actors) as well as the mutually-recursive `isEven` example above, while still preventing reentrancy from unrelated tasks. This reentrancy therefore mimics synchronous code more closely, eliminating many deadlocks without allow unrelated interleavings to break the high-level invariants of an actor.
+
+There are a few reasons why we are not currently comfortable including task-chain reentrancy in the proposal:
+* The task-based reentrancy approach doesn't seem to have been tried at scale. Orleans documents support for [reentrancy in a call chain](https://dotnet.github.io/orleans/docs/grains/reentrancy.html#reentrancy-within-a-call-chain), but the implementation is fairly limited.
+* We do not yet know of an efficient implementation technique for this approach within the actor runtime.
+* The approach is semantically similar to recursive locks (even though there is no actual locking or blocking involved), which are particularly hard to work with in concurrent code, and we have not yet convinced ourselves those problems won't manifest in the actor model.
+
+If we can address the above, task-chain reentrancy can be introduced into the actor model with another spelling of the reentrancy attribute such as `@reentrant(task)`, and may provide a more suitable default than non-reentrant (`@reentrant(never)`).
