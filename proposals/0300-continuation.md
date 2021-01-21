@@ -11,7 +11,7 @@ Asynchronous Swift code needs to be able to work with existing synchronous
 code that uses techniques such as completion callbacks and delegate methods to
 respond to events. Asynchronous tasks can suspend themselves on
 **continuations** which synchronous code can then capture and invoke to
-resume the task in response to an event
+resume the task in response to an event.
 
 Swift-evolution thread:
 
@@ -92,12 +92,17 @@ func withUnsafeThrowingContinuation<T>(
 ) async throws -> T
 ```
 
-The operation must follow one of the following invariants:
+The `resume` methods immediately return control to the caller after
+transitioning the task out of its suspended state. The task itself does not
+actually resume execution until its executor reschedules it.
 
-- Either the resume function must only be called *exactly-once* on each
-  execution path the operation may take (including any error handling paths),
-  or else
-- the resume function must be called exactly at the end of the operation
+The program must follow one of the following invariants after invoking
+`withUnsafeContinuation`:
+
+- Either the resume function must only be called *exactly-once* after 
+  the operation function passed into `withUnsafeContinuation` has finished
+  executing, on every execution path through the program,
+- Or else the resume function must be called exactly at the end of the operation
   function's execution.
 
 `Unsafe*Continuation` is an unsafe interface, so it is undefined behavior if
@@ -203,7 +208,8 @@ Instead of leading to undefined behavior, `CheckedContinuation` will instead
 trap if the program attempts to resume the continuation multiple times.
 `CheckedContinuation` will also log a warning if the continuation
 is discarded without ever resuming the task, which leaves the task stuck in its
-suspended state, leaking any resources it holds.
+suspended state, leaking any resources it holds. These checks happen regardless
+of the optimization level of the program.
 
 ## Additional examples
 
@@ -379,3 +385,52 @@ if let result = callbackResult {
   cancel()
 }
 ```
+
+### Provide API to resume the task immediately to avoid "queue-hopping"
+
+Some APIs, in addition to taking a completion handler or delegate, also allow
+the client to control *where* that completion handler or delegate's methods are
+invoked; for instance, some APIs on Apple platforms take an argument for the
+dispatch queue the completion handler should be invoked by. In these cases,
+it would be optimal if the original API could resume the task directly on the
+dispatch queue (or whatever other scheduling mechanism, such as a thread or 
+run loop) that the task would normally be resumed on by its executor. To
+enable this, `Task` could provide an API to get its current queue, if any,
+and `*Continuation` in turn could provide an `unsafeResumeImmediately` set of
+APIs, which would immediately resume execution of the task on the current
+thread. This would enable something like this:
+
+```
+// Given an API that takes a queue and completion handler:
+func doThingAsynchronously(queue: DispatchQueue, completion: (ResultType) -> Void)
+
+// We could wrap it in a Swift async function like:
+func doThing() async -> ResultType {
+  // Get the current queue our task is associated with, if any
+  let taskQueue = Task.currentQueue()
+
+  await withUnsafeContinuation { c in
+    if let queue = taskQueue {
+      // Schedule to resume on the right queue, if we know it
+      doThingAsynchronously(queue: queue) {
+        c.unsafeResumeImmediately(returning: $0)
+      }
+    } else {
+      // If the task doesn't have a queue association, resume conservatively
+      doThingAsynchronously(queue: DispatchQueue.global) {
+        c.resume(returning: $0)
+      }
+    }
+  }
+}
+```
+
+However, such an API would have to be used very carefully; the programmer
+would have to be careful that no operations happen in the task that might
+change its executor, such as calling out to an actor-bound method, between
+when the current queue is checked and when `withUnsafeContinuation` is used.
+If the task is resumed in the wrong context, it will break assumptions in the
+written code as well as those made by the compiler and runtime, which will
+lead to subtle bugs that would be difficult to diagnose. We can investigate
+this as an addition to the core proposal, if "queue hopping" in continuation-
+based adapters turns out to be a performance problem in practice.
