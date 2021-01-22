@@ -33,7 +33,7 @@ func makeDinner() async throws -> Meal {
   let dish = Dish(ingredients: [veggies, meat])
   return try await oven.cook(dish, duration: .hours(3))
 }
-``` 
+```
 
 Each step in our dinner preparation is an asynchronous operation, so there are numerous suspension points. While waiting for the vegetables to be chopped, `makeDinner` won't block a thread: it will suspend until the vegetables are available, then resume. Presumably, many dinners could be in various stages of preparation, with most suspended until their current step is completed.
 
@@ -271,7 +271,7 @@ Thus far, every task we have created is a child task, whose lifetime is limited 
 let dinnerHandle = Task.runDetached {
   try await makeDinner()
 }
-``` 
+```
 
 A detached task is represented by a task handle (in this case, `Task.Handle<Meal, Error>`) referencing the newly-launched task. Task handles can be used to await the result of the task, e.g.,
 
@@ -355,12 +355,12 @@ As we mentioned before, the effect of cancellation on a task is synchronous and 
 
 ```swift
 func chop(_ vegetable: Vegetable) async throws -> Vegetable {
-  try await Task.checkCancellation() // automatically throws `CancellationError`
+  try Task.checkCancellation() // automatically throws `CancellationError`
   // chop chop chop ...
   // ... 
   
-  guard await !Task.isCancelled() else { 
-    print("Canceled mid-way through chopping of \(vegetable)!")
+  guard Task.isCancelled else { 
+    print("Cancelled mid-way through chopping of \(vegetable)!")
     throw CancellationError() 
   } 
   // chop some more, chop chop chop ...
@@ -377,13 +377,43 @@ Much of the proposed implementation of structured concurrency is in the APIs for
 
 #### `Task` type
 
-The `Task` type is an empty `enum` that is used as a namespace for types and operations related to task management.
+The `Task` type is used as a namespace for types and operations related to task management. 
 
 ```swift
-@frozen enum Task { }
+struct Task: Equatable, Hashable { ... }
 ```
 
-Any operations that pertain to the current task will be `static` `async` functions. This ensures that the operations are only accessible from within `async` functions (which have a task) and they can only operate on the current task (rather than some arbitrary other task). 
+The "current task" can be obtained from inside of an async function using the `current` static function, like this:
+
+```swift
+func foo() async { 
+  let task = await Task.current()
+}
+```
+
+An asynchronous function _always_ executes within a task. As the `current` function itself is also asynchronous, it can only be invoked from an asynchronous function and is guaranteed to return the apropriate `Task`. The task object obtained this way is safe access by other tasks/threads. The APIs surfaced on it are specifically designed to also be safe, and relatively cheap, to be called from other tasks.
+
+Tasks are equatable and hashable, this can be used to store and compare them, and can be used e.g. to answer questions such as "is this the same task I was called from before" etc. Keep in mind though, that tasks should not be held onto unnecessarily.
+
+#### `UnsafeCurrentTask` type
+
+It is also possible to obtain a reference to the "current" task from _synchronous_ functions.
+
+This type is the core underlying type used to implement most of the APIs discussed in the following sections (which may be used from non-async contexts). Accessing using this API performs a thread-local lookup of a specific thread-local variable that is maintained by the Swift concurrency runtime.
+
+The `UnsafeCurrentTask` is unsafe because it offers APIs which must not be invoked from any other task than the task it represents. In other words, it must not be stored, or accessed from other tasks/threads. Invoking some of its APIs from other contexts will result in undefined behavior.
+
+```swift
+func synchronous() {
+  if let task = Task.unsafeCurrent {
+    print("Seems I was invoked as part of a Task!")
+  }
+}
+```
+
+Unlike the `current` function, the `unsafeCurrent` function returns an _optional_ `UnsafeCurrentTask`, this is because such synchronous function may be invoked from a task (i.e. from within asynchronous Swift code) or outside of it (e.g. some Task unaware API, like a raw pthread thread calling into Swift code).
+
+`UnsafeCurrentTask` has all the same query operations as `Task` (i.e. `isCancelled`, `priority`, ...) which are equally safe to invoke on the unsafe task as on a normal task, however it may define more APIs in the future that are more fragile and must only ever be invoked while executing on the same task (e.g. access to [Task Local Values](https://github.com/apple/swift-evolution/pull/1245) which are defined in a separate proposal).
 
 #### Task priorities
 
@@ -411,10 +441,20 @@ extension Task {
     case background
   }
   
+  /// Determine the priority of the currently-executing task,
+  /// or `.default` if no current task is available.
+  static var currentPriority: Priority { ... }
+  
   /// Determine the priority of the currently-executing task.
-  static func currentPriority() async -> Priority
+  var priority: Priority { ... }
 }
 ```
+
+The `currentPriority()` operation queries the priority of the currently-executing task. It may also be invoked from a synchronous context and returns `.default` if not running inside of a task in that case.
+
+Alternatively, if one already holds a `Task` instance, one may query its priority using the `priority` property. Generally the `Task.currentPriority` function is preferred rather than spelling out `await Task.current().priority` which is far more verbose.
+
+Task priorities are set on task creation (e.g., `Task.runDetached` or `Task.Group.add`) and can be escalated later, e.g., if a higher-priority task waits on the task handle of a lower-priority task.
 
 The `currentPriority()` operation queries the priority of the currently-executing task. Task priorities are set on task creation (e.g., `Task.runDetached` or `Task.Group.add`) and can be escalated later, e.g., if a higher-priority task waits on the task handle of a lower-priority task.
  
@@ -497,14 +537,18 @@ try await eat(dinnerHandle)
 
 #### Cancellation
 
-A task can check whether it has been cancelled with the `Task.isCancelled()` operation, and act accordingly. For tasks that would prefer to immediately exit with a thrown error on cancellation, the task API provides a common error type, `CancellationError`, to communicate that the task was cancelled. The `Task.checkCancellation()` will throw `CancellationError` when the task has been cancelled, and is provided as a convenience.
+A task can check whether it has been cancelled with the `Task.isCancelled` operation, and act accordingly. For tasks that would prefer to immediately exit with a thrown error on cancellation, the task API provides a common error type, `CancellationError`, to communicate that the task was cancelled. The `Task.checkCancellation()` will throw `CancellationError` when the task has been cancelled, and is provided as a convenience.
 
 ```swift
 extension Task {
+  
   /// Returns `true` if the task is cancelled, and should stop executing.
   ///
-  /// This function returns instantly and will never suspend.
-  static func isCancelled() async -> Bool
+  /// Always returns `false` when called from code not currently running inside of a `Task`.
+  static var isCancelled: Bool
+  
+  /// Returns `true` if the task is cancelled, and should stop executing.
+  var isCancelled: Bool
 
   /// The default cancellation thrown when a task is cancelled.
   ///
@@ -525,13 +569,16 @@ extension Task {
   /// The goal of cancellation is to allow tasks to be cancelled in a
   /// lightweight way, not to be a secondary method of inter-task communication.
   ///
-  /// This function returns instantly and will never suspend.
-  static func checkCancellation() async throws
+  /// Never throws if invoked from code not currently running inside of a `Task`.
+  static func checkCancellation() throws
+  
+  /// << same as static checkCancellation >>
+  func checkCancellation() throws
 }
 ```
 
 For tasks that want to react immediately to cancellation (rather than, say, waiting until a cancellation error propagates upward), one can install a cancellation handler:
- 
+
 ```swift
 extension Task {
   /// Execute an operation with cancellation handler which will immediately be
@@ -546,11 +593,11 @@ extension Task {
   /// Does not check for cancellation, and always executes the passed `operation`.
   ///
   /// This function returns instantly and will never suspend.
-  /* @instantaneous */
   static func withCancellationHandler<T>(
     handler: /* @concurrent */ () -> Void,
     operation: () async throws -> T
   ) async rethrows -> T
+}
 ```
 
 #### Voluntary Suspension
