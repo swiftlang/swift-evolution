@@ -34,6 +34,7 @@
   - [Passing a property-wrapper storage instance directly](#passing-a-property-wrapper-storage-instance-directly)
 + [Future directions](#future-directions)
   - [Generalized property-wrapper initialization from a projection](#generalized-property-wrapper-initialization-from-a-projection)
+  - [Extending property wrappers to patterns](#extending-property-wrappers-to-patterns)
   - [Property-wrapper parameters in memberwise initializers](#property-wrapper-parameters-in-memberwise-initializers)
   - [Support `inout` in wrapped function parameters](#support-`inout`-in-wrapped-function-parameters)
   - [Wrapper types in the standard library](#wrapper-types-in-the-standard-library)
@@ -511,6 +512,48 @@ struct TextEditor {
   init(history: History<String>) {
     $dataSource = history //  treated as _dataSource = Traceable(projectedValue: history)
   }
+}
+```
+
+### Extending property wrappers to patterns
+
+Property-wrapper backing-storage initialization in the the pattern of a closure argument was supported in first revision. Building on this syntax, the core team suggested the extension of property-wrapper application to places where patterns exist. Of course, the design has been amended so as to preserve the expectation that the backing storage be private; extending property wrappers to patterns, though, is still a viable future direction. 
+
+Enabling the application of property wrappers where patterns are available is quite straightforward and could be introduced in as part of two separate features. The first could be to enable utility wrappers –– such as `@Asserted` –– in patterns. The second could be enabling projected-value initialization, which would facilitate intuitive and effortless access to property wrappers in native language constructs, as shown below:
+
+```swift
+// === Use of utility wrappers --------
+
+let (@Traceable userRatings, ratingsCount) = ...
+
+for @Asserted(.greaterOrEqual(0)) rating in userRatings {
+  print(“Received another \(rating)-start rating!”)
+  
+  // Received another 4-start rating!
+  // Received another 5-start rating!
+}
+
+while @Lowercased let reviewerUsernames = [“WENDY300”, “JOHN12”] {
+  print(reviewerUsernames)
+  
+  // wendy300
+  // john12
+}
+
+
+// === Use of projected-value initialization --------
+
+enum Review {
+  case revised(History<String>), original(String)
+  
+  init(fromUser username: String) { ... }
+}
+
+switch Review(fromUser: "wendy300") {
+case .revised(@Traceable let $reviewText):
+  ...
+case .original(let originalReview):
+  ...
 }
 ```
 
