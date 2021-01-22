@@ -96,20 +96,15 @@ The `resume` methods immediately return control to the caller after
 transitioning the task out of its suspended state. The task itself does not
 actually resume execution until its executor reschedules it.
 
-The program must follow one of the following invariants after invoking
-`withUnsafeContinuation`:
-
-- Either the resume function must only be called *exactly-once* after 
-  the operation function passed into `withUnsafeContinuation` has finished
-  executing, on every execution path through the program,
-- Or else the resume function must be called exactly at the end of the operation
-  function's execution.
-
+After invoking `withUnsafeContinuation`, the resume function must be
+called *exactly-once* on every execution path through the program.
 `Unsafe*Continuation` is an unsafe interface, so it is undefined behavior if
-these invariants are not followed by the operation. This allows
-continuations to be a low-overhead way of interfacing with synchronous code.
-Wrappers can provide checking for these invariants, and the library will provide
-one such wrapper, discussed below.
+a `resume` method is invoked on the same continuation more than once. The
+task remains in the suspended state until it is resumed; if the continuation
+is discarded and never resumed, then the task will be left suspended until
+the process ends, leaking any resources it holds.
+Wrappers can provide checking for these misuses of continuations, and the
+library will provide one such wrapper, discussed below.
 
 Using the `Unsafe*Continuation` API, one may for example wrap such
 (purposefully convoluted for the sake of demonstrating the flexibility of
