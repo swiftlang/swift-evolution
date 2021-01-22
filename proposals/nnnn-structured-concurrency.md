@@ -235,22 +235,22 @@ they become ready:
 ```swift
 /// Concurrently chop the vegetables.
 func chopVegetables() async throws -> [Vegetable] {
-  // Create a task group where each task produces (Int, Vegetable).
-  try await Task.withGroup(resultType: (Int, Vegetable).self) { group in 
+  // Create a task group where each child task produces a Vegetable.
+  try await Task.withGroup(resultType: Vegetable.self) { group in 
     var veggies: [Vegetable] = gatherRawVeggies()
     
     // Create a new child task for each vegetable that needs to be 
     // chopped.
     for i in veggies.indices {
       await group.add { 
-        (i, veggies[i].chopped())
+        return veggies[i].chopped()
       }
     }
 
-    // Wait for all of the chopping to complete, slotting each result
-    // into its place in the array as it becomes available.
-    while let (index, choppedVeggie) = try await group.next() {
-      veggies[index] = choppedVeggie
+    // Wait for all of the chopping to complete, collecting the veggies into
+    // the result array in whatever order they're ready.
+    while let choppedVeggie = try await group.next() {
+      veggies.append(choppedVeggie)
     }
     
     return veggies
