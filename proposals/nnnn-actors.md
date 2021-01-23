@@ -157,7 +157,7 @@ extension BankAccount {
 }
 ```
 
-Synchronous actor functions can be called synchronously on the actor's `self`, but must be called asynchronously the from outside of the actor. The `transfer(amount:to:)` function calls it asynchronously (on `other`), while the following function `passGo` calls it synchronously (on the implicit `self`):
+Synchronous actor functions can be called synchronously on the actor's `self`, but must be called asynchronously from outside of the actor. The `transfer(amount:to:)` function calls it asynchronously (on `other`), while the following function `passGo` calls it synchronously (on the implicit `self`):
 
 ```swift
 extension BankAccount {
@@ -436,7 +436,7 @@ There are a number of existing actor implementations that have
 
 * Erlang/Elixir ([gen_server](https://medium.com/@eduardbme/erlang-gen-server-never-call-your-public-interface-functions-internally-c17c8f28a1ee)) showcases a simple "loop/deadlock" scenario and how to detect and fix it,
 * Akka ([Persistence persist/persistAsync](https://doc.akka.io/docs/akka/current/persistence.html#relaxed-local-consistency-requirements-and-high-throughput-use-cases) is effectively _non-reentrant behavior by default_, and specific APIs are designed to allow programmers to _opt into_ reentrant whenever it would be needed. In the linked documentation `persistAsync` is the re-entrant version of the API, and it is used _very rarely_ in practice. Akka persistence and this API has been used to implement bank transactions and process managers, by relying on the non-reentrancy of `persist()` as a killer feature, making implementations simple to understand and _safe_. Note that Akka is built on top of Scala, which does not provide `async`/`await`. This means that mailbox-processing methods are more synchronous in nature, and rather than block the actor while waiting for a response, they would handle the response as a separate message receipt.
-* Orleans ([grains](https://dotnet.github.io/orleans/docs/grains/reentrancy.html)) are also non-reentrant by default, but offer extensive configuration around reentrancy. Grains and specific methods can be marked as being re-entrant, and there is even a dynamic mechanism by which one can implement a run-time predicate to determine whether an invocation can interleave. Orleans is perhaps closest to the Swift approach described here, because it is built on top of a language that provides `async`/`await` (C#). Note thatOrleans also has a feature called [call-chain reentrancy](https://dotnet.github.io/orleans/docs/grains/reentrancy.html#reentrancy-within-a-call-chain), which we feel is a promising potential direction: we cover it later in this proposal in our section on [task-chain reentrancy](#task-chain-reentrancy).
+* Orleans ([grains](https://dotnet.github.io/orleans/docs/grains/reentrancy.html)) are also non-reentrant by default, but offer extensive configuration around reentrancy. Grains and specific methods can be marked as being re-entrant, and there is even a dynamic mechanism by which one can implement a run-time predicate to determine whether an invocation can interleave. Orleans is perhaps closest to the Swift approach described here, because it is built on top of a language that provides `async`/`await` (C#). Note that Orleans *ad* a feature called [call-chain reentrancy](https://dotnet.github.io/orleans/docs/grains/reentrancy.html#reentrancy-within-a-call-chain), which we feel is a promising potential direction: we cover it later in this proposal in our section on [task-chain reentrancy](#task-chain-reentrancy).
 
 
 #### Proposal: Default reentrant actors and opt-in non-reentrancy
@@ -688,9 +688,8 @@ With Swift embracing [Structured Concurrency](https://github.com/DougGregor/swif
 We could introduce a new kind of reentrancy, *task-chain reentrancy*, which allows reentrant calls on behalf of the given task or any of its children. This resolves both the deadlock we encountered in the `Waiter` and `Kitchen` example from the section on [deadlocks](#deadlocks-with-non-reentrant-actors) as well as the mutually-recursive `isEven` example above, while still preventing reentrancy from unrelated tasks. This reentrancy therefore mimics synchronous code more closely, eliminating many deadlocks without allow unrelated interleavings to break the high-level invariants of an actor.
 
 There are a few reasons why we are not currently comfortable including task-chain reentrancy in the proposal:
-* The task-based reentrancy approach doesn't seem to have been tried at scale. Orleans documents support for [reentrancy in a call chain](https://dotnet.github.io/orleans/docs/grains/reentrancy.html#reentrancy-within-a-call-chain), but the implementation is fairly limited and it seems it hasn't worked out well there.
+* The task-based reentrancy approach doesn't seem to have been tried at scale. Orleans documents support for [reentrancy in a call chain](https://dotnet.github.io/orleans/docs/grains/reentrancy.html#reentrancy-within-a-call-chain), but the implementation was fairly limited and it was eventually [removed](https://twitter.com/reubenbond/status/1349725703634251779). From the Orleans experience, it is hard to assess whether the problem is with the idea or the specific implementation.
 * We do not yet know of an efficient implementation technique for this approach within the actor runtime.
-* The approach is semantically similar to recursive locks (even though there is no actual locking or blocking involved), which are particularly hard to work with in concurrent code, and we have not yet convinced ourselves those problems won't manifest in the actor model.
 
 If we can address the above, task-chain reentrancy can be introduced into the actor model with another spelling of the reentrancy attribute such as `@reentrant(task)`, and may provide a more suitable default than non-reentrant (`@reentrant(never)`).
 
@@ -701,6 +700,8 @@ Like classes, actors as proposed allow inheritance. However, actors and classes 
 * Actor inheritance makes it easier to port existing class hierarches to get the benefits of actors. Without actor inheritance, such porting will also have to contend with (e.g.) replacing superclasses with protocols and explicitly-specified stored properties at the same time.
 * The lack of inheritance in actors won't prevent users from having to understand the complexities of inheritance, because inheritance will still be used pervasively with classes.
 * The design and implementation of actors naturally admits inheritance. Actors are fundamentally class-like, the semantics of inheritance follow directly from the need to maintain actor isolation. The implementation of actors is essentially as "special classes", so it supports all of these features out of the box. There is little benefit to the implementation from eliminating the possibility of inheritance of actors.
+
+Overall, we feel that actor inheritance has use cases just like class inheritance does, and the reasons to avoid having inheritance as part of the actor model are driven more by a desire to move Swift away from inheritance than by any practical or implementation problems with inheritance.
 
 ## Revision history
 
