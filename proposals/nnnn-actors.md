@@ -1,18 +1,52 @@
 # Actors
 
 * Proposal: [SE-NNNN](NNNN-actors.md)
-* Authors: [John McCall](https://github.com/rjmccall), [Doug Gregor](https://github.com/DougGregor)
+* Authors: [John McCall](https://github.com/rjmccall), [Doug Gregor](https://github.com/DougGregor), [Konrad Malawski](https://github.com/ktoso)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
-* Implementation: Partial available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
+* Implementation: Partially available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
+
+## Table of Contents
+
+   * [Introduction](#introduction)
+   * [Motivation](#motivation)
+   * [Proposed solution](#proposed-solution)
+      * [Actors](#actors-1)
+      * [Actor isolation](#actor-isolation)
+         * [Actor independence](#actor-independence)
+         * [Closures](#closures)
+         * [inout parameters](#inout-parameters)
+      * [Actor reentrancy](#actor-reentrancy)
+         * ["Interleaving" execution with reentrant actors](#interleaving-execution-with-reentrant-actors)
+         * [Deadlocks with non-reentrant actors](#deadlocks-with-non-reentrant-actors)
+         * [Unnecessary blocking with non-reentrant actors](#unnecessary-blocking-with-non-reentrant-actors)
+         * [Existing practice](#existing-practice)
+         * [Proposal: Default non-reentrant actors and opt-in reentrancy](#proposal-default-non-reentrant-actors-and-opt-in-reentrancy)
+         * [Reentrancy Summary](#reentrancy-summary)
+   * [Detailed design](#detailed-design)
+      * [Actors](#actors-2)
+      * [Actor-independent declarations](#actor-independent-declarations)
+      * [Actor isolation checking](#actor-isolation-checking)
+         * [Accesses in executable code](#accesses-in-executable-code)
+         * [Overrides](#overrides)
+         * [Protocol conformance](#protocol-conformance)
+      * [Partial applications](#partial-applications)
+      * [Reentrancy](#reentrancy)
+   * [Source compatibility](#source-compatibility)
+   * [Effect on ABI stability](#effect-on-abi-stability)
+   * [Effect on API resilience](#effect-on-api-resilience)
+   * [Alternatives Considered](#alternatives-considered)
+      * [Task-chain reentrancy](#task-chain-reentrancy)
+      * [Eliminating inheritance](#eliminating-inheritance)
+   * [Revision history](#revision-history)
 
 ## Introduction
 
 The [actor model](https://en.wikipedia.org/wiki/Actor_model) involves entities called actors. Each *actor* can perform local computation based on its own state, send messages to other actors, and act on messages received from other actors. Actors run independently, and cannot access the state of other actors, making it a powerful abstraction for managing concurrency in language applications. The actor model has been implemented in a number of programming languages, such as Erlang and Pony, as well as various libraries like Akka (on the JVM) and Orleans (on the .NET CLR).
 
-This proposal introduces a design for *actors* in Swift, providing a model for building concurrent programs that are simple to reason about and are safer from data races.
+This proposal introduces a design for *actors* in Swift, providing a model for building concurrent programs that are simple to reason about and are safer from data races. 
 
-Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/)
+Swift-evolution thread: [Pitch #1](https://forums.swift.org/t/concurrency-actors-actor-isolation/41613)
 
 ## Motivation
 
@@ -21,28 +55,33 @@ One of the more difficult problems in developing concurrent programs is dealing 
 Data races are notoriously hard to reproduce and debug, because they often depend on two threads getting scheduled in a particular way. 
 Tools such as [ThreadSanitizer](https://clang.llvm.org/docs/ThreadSanitizer.html) help, but they are necessarily reactive (as opposed to proactive)--they help find existing bugs, but cannot help prevent them.
 
-Actors provide a model for building concurrent programs that are free of data races. They do so through *data isolation*: each actor protects is own instance data, ensuring that only a single thread will access that data at a given time. Actors shift the way of thinking about concurrency from raw threading to actors and put focus on actors "owning" their local state. This proposal provides a basic isolation model that protects the value-type state of an actor from data races. A full actor isolation model, which protects other state (such as reference types) is left as future work.
+Actors provide a model for building concurrent programs that are free of data races. They do so through *data isolation*: each actor protects is own instance data, ensuring that only a single thread will access that data at a given time. Actors shift the way of thinking about concurrency from raw threading to actors and put focus on actors "owning" their local state. This proposal provides a basic isolation model that protects the value-type state of an actor from data races. A full actor isolation model, which protects other state (such as reference types) is handled separately by [Preventing Data Races in the Swift Concurrency Model](https://gist.github.com/DougGregor/10db898093ce33694139d1dcd7da3397).
 
 ## Proposed solution
 
-### Actor classes
+### Actors
 
-This proposal introduces *actor classes* into Swift. An actor class is a form of class that protects access to its mutable state, and is introduced with "actor class":
+This proposal introduces *actors* into Swift. An actor is a form of class that protects access to its mutable state, and is introduced with "actor":
 
 ```swift
-actor class BankAccount {
-  private let ownerName: String
+actor BankAccount {
+  private let accountNumber: Int
   private var balance: Double
+
+  init(accountNumber: Int, initialDeposit: Double) {
+    self.accountNumber = accountNumber
+    self.balance = initialDeposit
+  }
 }
 ```
 
-Actor classes behave like classes in most respects: they can inherit (from other actor classes), have methods, properties, and subscripts. They can be extended and conform to protocols, be generic, and be used with generics.
+Actors behave like classes in most respects: they can inherit (from other actors), have methods, properties, and subscripts. They can be extended and conform to protocols, be generic, and be used with generics.
 
-The primary difference is that actor classes protect their state from data races. This is enforced statically by the Swift compiler through a set of limitations on the way in which actors and their members can be used, collectively called *actor isolation*.   
+The primary difference is that actors protect their state from data races. This is enforced statically by the Swift compiler through a set of limitations on the way in which actors and their members can be used, collectively called *actor isolation*.   
 
 ### Actor isolation
 
-Actor isolation is how actors protect their mutable state. For actor classes, the primary mechanism for this protection is by only allowing their stored instance properties to be accessed directly on `self`. For example, here is a method that attempts to transfer money from one account to another:
+Actor isolation is how actors protect their mutable state. For actors, the primary mechanism for this protection is by only allowing their stored instance properties to be accessed directly on `self`. For example, here is a method that attempts to transfer money from one account to another:
 
 ```swift
 extension BankAccount {
@@ -55,7 +94,7 @@ extension BankAccount {
       throw BankError.insufficientFunds
     }
 
-    print("Transferring \(amount) from \(ownerName) to \(other.ownerName)")
+    print("Transferring \(amount) from \(accountNumber) to \(other.accountNumber)")
 
     balance = balance - amount
     other.balance = other.balance + amount  // error: actor-isolated property 'balance' can only be referenced on 'self'
@@ -63,70 +102,26 @@ extension BankAccount {
 }
 ```
 
-If `BankAccount` were a normal class, the `transfer(amount:to:)` method would be well-formed, but would be subject to data races in concurrent code without an external locking mechanism. With actor classes, the attempt to reference `other.balance` triggers a compiler error, because `balance` may only be referenced on `self`.
+If `BankAccount` were a normal class, the `transfer(amount:to:)` method would be well-formed, but would be subject to data races in concurrent code without an external locking mechanism. With actors, the attempt to reference `other.balance` triggers a compiler error, because `balance` may only be referenced on `self`.
 
-As noted in the error message, `balance` is *actor-isolated*, meaning that it can only be accessed from within the specific actor it is tied to or "isolated by". In this case, it's the instance of `BankAccount` referenced by `self`. Stored properties, computed properties, subscripts, and synchronous instance methods (like `transfer(amount:to:)`) in an actor class are all actor-isolated by default.
+As noted in the error message, `balance` is *actor-isolated*, meaning that it can only be accessed directly from within the specific actor it is tied to or "isolated by". In this case, it's the instance of `BankAccount` referenced by `self`. Stored properties, computed instance properties, instance subscripts, and instance methods (like `transfer(amount:to:)`) in an actor are all actor-isolated by default.
 
-On the other hand, the reference to `other.ownerName` is allowed, because `ownerName` is immutable (defined by `let`). Once initialized, it is never written, so there can be no data races in accessing it. `ownerName` is called *actor-independent*, because it can be freely used from any actor. Constants introduced with `let` are actor-independent by default; there is also an attribute `@actorIndependent` (described in [**Actor-independent declarations**](#actor-independent-declarations)) to specify that a particular declaration is actor-independent.
+On the other hand, the reference to `other.accountNumber` is allowed, because `accountNumber` is immutable (defined by `let`). Once initialized, it is never written, so there can be no data races in accessing it. `accountNumber` is called *actor-independent*, because it can be freely used from any actor. Constants introduced with `let` are actor-independent by default; there is also an attribute `@actorIndependent` (described in the next section on [**Actor independence**](#actor-independence)) to specify that a particular declaration is actor-independent. 
 
-> **Note**: Constants defined by `let` are only truly immutable when the type is a value type or some kind of immutable reference type. A `let` that refers to a mutable reference type (such as a non-actor class type) would be unsafe based on the rules discussed so far. These issues are discussed later in [**Escaping reference types**](#escaping-reference-types).
+Compile-time actor-isolation checking, as shown above, ensures that code outside of the actor does not interfere with the actor's mutable state. To work with the actor from outside of it, one must always do so with an asynchronous function invocation. Asynchronous function invocations are turned into enqueues of partial tasks representing those invocations to the actor's *queue* (as in, queue of tasks, not `DispatchQueue`). This queue, along with an exclusive task executor (which may be using dispatch queues) bound to the actor, functions as a synchronization boundary between the actor and any of its external callers. For example, if we wanted to make a deposit to a given bank account `account`, we could make a call to a method `deposit(amount:)`, and that call would be placed on the queue. The executor would pull tasks from the queue one-by-one, ensuring an actor is never concurrently running on multiple threads, and would eventually process the deposit.
 
-Compile-time actor-isolation checking, as shown above, ensures that code outside of the actor does not interfere with the actor's mutable state. 
-
-Asynchronous function invocations are turned into enqueues of partial tasks representing those invocations to the actor's *queue*. This queue—along with an exclusive task executor bound to the actor—functions as a synchronization boundary between the actor and any of its external callers. For example, if we wanted to make a deposit to a given bank account `account`, we could make a call to a method `deposit(amount:)`, and that call would be placed on the queue. The executor would pull tasks from the queue one-by-one, ensuring an actor never is concurrently running on multiple threads, and would eventually process the deposit.
-
-Synchronous functions in Swift are not amenable to being placed on a queue to be executed later. Therefore, synchronous instance methods of actor classes are actor-isolated and, therefore, not available from outside the actor instance. For example:
-
-```swift
-extension BankAccount {
-  func depositSynchronously(amount: Double) {
-    assert(amount >= 0)
-    balance = balance + amount
-  }
-}
-
-func printMoney(accounts: [BankAccount], amount: Double) {
-  for account in accounts {
-    account.depositSynchronously(amount: amount) // error: actor-isolated instance method 'depositSynchronously(amount:)' can only be referenced inside the actor
-  }
-}
-```
-
-It should be noted that actor isolation adds a new dimension, separate from access control, to the decision making process whether or not one is allowed to invoke a specific function on an actor. Specifically, synchronous functions may only be invoked by the specific actor instance itself, and not even by any other instance of the same actor class. 
-
-All interactions with an actor (other than the special-cased access to constants) must be performed asynchronously (semantically, one may think about this as the actor model's messaging to and from the actor). Asynchronous functions provide a mechanism that is suitable for describing such operations, and are explained in depth in the complementary [async/await proposal](https://github.com/DougGregor/swift-evolution/blob/async-await/proposals/nnnn-async-await.md). We can make the `deposit(amount:)` instance method `async`, and thereby make it accessible to other actors (as well as non-actor code):
-
-```swift
-extension BankAccount {
-  func deposit(amount: Double) async {
-    assert(amount >= 0)
-    balance = balance + amount
-  }
-}
-```
-
-Now, the call to this method (which now must be adorned with [`await`](https://github.com/DougGregor/swift-evolution/blob/async-await/proposals/nnnn-async-await.md#await-expressions)) is well-formed:
-
-```swift
-await account.deposit(amount: amount)
-```
-
-Semantically, the call to `deposit(amount:)` is placed on the queue for the actor `account`, so that it will execute on that actor. If that actor is busy executing a task, then the caller will be suspended until the actor is available, so that other work can continue. See the section on [asynchronous calls](https://github.com/DougGregor/swift-evolution/blob/async-await/proposals/nnnn-async-await.md#asynchronous-calls) in the async/await proposal for more detail on the calling sequence.
-
-> **Rationale**: by only allowing asynchronous instance methods of actor classes to be invoked from outside the actor, we ensure that all synchronous methods are already inside the actor when they are called. This eliminates the need for any queuing or synchronization within the synchronous code, making such code more efficient and simpler to write.
-
-We can now properly implement a transfer of funds from one account to another:
+Based on the above, we can implement a correct version of `transfer(amount:to:)`) that is asynchronous:
 
 ```swift
 extension BankAccount {
   func transfer(amount: Double, to other: BankAccount) async throws {
     assert(amount > 0)
-    
+
     if amount > balance {
       throw BankError.insufficientFunds
     }
 
-    print("Transferring \(amount) from \(ownerName) to \(other.ownerName)")
+    print("Transferring \(amount) from \(accountNumber) to \(other.accountNumber)")
 
     // Safe: this operation is the only one that has access to the actor's local
     // state right now, and there have not been any suspension points between
@@ -140,306 +135,102 @@ extension BankAccount {
 }
 ```
 
-### Actor reentrancy (discussion)
-
-One critical point that needs to be discussed and fleshed out is whether actors are [reentrant](https://en.wikipedia.org/wiki/Reentrancy_(computing)) by default or not.
-
-The notion of reentrancy allows the actor runtime to claim the complete elimination of deadlocks, offers opportunity for scheduling optimization techniques where a "high priority task" _must_ be executed as soon as possible, however at the cost of _interleaving_ with any other actor-isolated function's execution any other asynchronous function declared on this actor. This imposes a large mental burden on developers, as every single actor function currently has to be implemented keeping reentrancy in mind, which effectively fails on delivering the promise of pain-free concurrency for the majority of use-cases.
-
-Currently, this proposal takes the aggressive approach of assuming _all_ actors are reentrant and not providing ways to opt out of this behavior. This section aims to highlight issues, benefits and tradeoffs with this approach as well as non-reentrancy in general. The goal of discussing these reentrancy issues, is to arrive at a design that is developer friendly, non-surprising, and delivers more completely on Swift's promise of _safe_ and _pain-free_ concurrency by default thanks to the use of actors.
-
-#### Reentrant actors: "Interleaving" execution
-
-Reentrancy means that execution of asynchronous actor-isolated functions may "interleave" at suspension points, leading to increased complexity in programming with such actors, as every suspension point must be carefully inspected if the code _after_ it depends on some invariants that could have changed before it suspended.
-
-Interleaving executions still respect the actor's "single-threaded illusion"–i.e. no two functions will ever execute *concurrently* on any given actor–however they may _interleave_ at suspension points. In broad terms this means that reentrant actors are _thread-safe_ but are not automatically protecting from the "high level" kinds of races that may still occur, potentially invalidating invariants upon which an executing asynchronous function may be relying on.
-
-> Empirically: we know that both an non-reentrant and reentrant awaiting and actors are useful, however both semantics must be available to developers in order to use actors as a means of isolating state from "concurrent" (in the meaning of interleaved) modification.
-
-To further clarify the implications of this, let us consider the following actor, which thinks of an idea and then returns it, after telling its friend about it.
+The `deposit(amount:)` operation needs involve the state of a different actor, so it must be invoked asynchronously. This method could itself be implemented as `async`:
 
 ```swift
-// reentrant actor
-actor class Person {
-  let friend: Friend
-  
-  // actor-isolated opinion
-  var opinion: Judgement = .noIdea
-
-  func thinkOfGoodIdea() async -> Decision {
-    opinion = .goodIdea                     // <1>
-    await friend.tell(opinion)              // <2>
-    return opinion // 🤨                    // <3>
-  }
-
-  func thinkOfBadIdea() async -> Decision {
-    opinion = .badIdea                     // <4>
-    await friend.tell(opinion)             // <5>
-    return opinion // 🤨                   // <6>
+extension BankAccount {
+  func deposit(amount: Double) async {
+    assert(amount >= 0)
+    balance = balance + amount
   }
 }
 ```
 
-> Reentrant code is notoriously difficult to program with–one is protected from low level data-races, however the higher level semantic races may still happen. In the examples shown, the states are small enough that they are simple to fit in one's hear so they do not appear as tricky, however in the real world races can be dauntingly hard to debug.
-
-In the example above the `Person` can think of a good or bad idea, shares that opinion with a friend, and returns that opinion that it stored. Since the actor is reentrant this code is **wrong** and will return an _arbitrary opinion_ if the actor begins to think of a few ideas at the same time.
-
-This is exemplified by the following piece of code, exercising the `decisionMaker` actor:
+However, this method doesn't really need to be `async`: it makes no asynchronous calls (note the lack of `await`). Therefore, it would be better defined as a synchronous function:
 
 ```swift
-async let shouldBeGood = person.thinkOfGoodIdea() // runs async
-async let shouldBeBad = person.thinkOfBadIdea() // runs async
-
-await shouldBeGood // could be .goodIdea or .badIdea ☠️
-await shouldBeBad
-```
-
-> This issue is illustrated by using async lets, however also simply manifest by more than 1 actor calling out to the same decision maker; one invoking `thinkOfGoodIdea` and the other one `thinkOfBadIdea`, a reentrant actor is not protecting us from such race conditions, making the programming model unnecessarily hard to reason about.
-
-This snippet _may_ result (depending on timing of the resumptions) in the following execution:
-
-```swift
-opinion = .goodIdea                // <1>
-// suspend: await friend.tell(...) // <2>
-opinion = .badIdea                 // | <4> (!)
-// suspend: await friend.tell(...) // | <5>
-// resume: await friend.tell(...)  // <2>
-return opinion                     // <3>
-// resume: await friend.tell(...)  // <5>
-return opinion                     // <6>
-```
-
-But it _may_ also result in the "naively expected" execution, i.e. without interleaving, making the problem even trickier, because as with normal race conditions in concurrent code -- the issue will only show up when exercised in more real usage patterns, rather than early on in unit testing.
-
-With this example we have showcased that reentrant actors, by design, do not prevent "high-level" race conditions. They only prevent "low-level" data-races, as in: concurrent access to some variable they protect etc.
-
-Please note that the example here a simple single variable state, yet already it can catch people off guard because how similar it looks to synchronous code. The problem is greatly exaggerated in real applications where actors are used to isolate and protect complex state transitions. Because actors effectively can only communicate through async calls to other parts of the system, a typical actor function will not have one or two suspension points but many of them - leading to exponential growth of the possible states an actor function may observe during it's execution.
-
-> Existing actor implementations err on the side of non-reentrant actors by default, allowing for reentrancy to be optionally opted-into.
->
-> - Erlang/Elixir ([gen_server](https://medium.com/@eduardbme/erlang-gen-server-never-call-your-public-interface-functions-internally-c17c8f28a1ee)) - showcases a simple "loop/deadlock" scenario and how to detect and fix it,
-> - Orleans ([Grains](https://dotnet.github.io/orleans/docs/grains/reentrancy.html)) offer extensive declarative configuration around reentrancy, it is also the closest to the Swift actors model,
-> - Akka ([Persistence persist/persistAsync](https://doc.akka.io/docs/akka/current/persistence.html#relaxed-local-consistency-requirements-and-high-throughput-use-cases) does not have async/await support because Scala's lack of it so the general problem does not show up as painfully as in languages with it, however it effectively is _non-reentrant behavior by default_, and specific APIs are designed to allow programmers to _opt into_ reentrant whenever it would be needed. In the linked documentation `persistAsync` is the re-entrant version of the API, and it is used _very rarely_ in practice. Akka persistence and this API has been used to implement bank transactions and process managers, by relying on the non-reentrancy of `persist()` as a killer feature, making implementations simple to understand and _safe_.
-
-#### Non-reentrant actors: Deadlocks
-
-The opposite of reentrant actor functions are "non-reentrant" functions and actors. This means that while an actor is processing an incoming actor function call (message), it will _not_ process any other message from its queue until it has completed running this initial function.
-
-In Swift's actor model, calling actor-isolated functions on `self` would be still allowed and not deadlock the actor, however if a cyclic call from A to B could only be fulfilled by A completing a request from B, we would end up with a deadlock. Generally though, such call cycles are uncommon, and when they happen, they can be diagnosed easily either in debugging of call graphs (if/when we would gain tooling for such), or by inspecting the calls made by actors by using [(swift distributed) tracing](https://github.com/apple/swift-distributed-tracing)) libraries.
-
-If look at the example from the previous section, but now assume that actors are non-reentrant, it is _trivially correct_ and behaves just like a newcomer to actor model and async/await would expect it to behave in the first place:
-
-```swift
-// *non-reentrant* actor
-actor class DecisionMaker {
-  let friend: Friend
-  var opinion: Judgement = .noIdea
-
-  func thinkOfGoodIdea() async -> Decision {
-    opinion = .goodIdea                                   
-    _ = await consultWith(friend, myOpinion: opinion)
-    return opinion // ✅ always .goodIdea
-  }
-
-  func thinkOfBadIdea() async -> Decision {
-    opinion = .badIdea
-    _ = await tell(friend, myOpinion: opinion)
-    return opinion // ✅ always .badIdea
+extension BankAccount {
+  func deposit(amount: Double) {
+    assert(amount >= 0)
+    balance = balance + amount
   }
 }
 ```
 
-This allows programmers to really embrace the "as if single threaded, normal function" programming mindset when using (non-reentrant) actors. This benefit comes at a cost however: the potential for deadlocks.
-
-> The term "deadlock" used in these discussions refer to actors asynchronously waiting on "each other," or on "future work of self". No thread blocking is necessary to manifest this issue.
->
-> In theory the Swift runtime may still keep special reentrant functions on actors to "kill" unresponsive ones.
-
-Deadlocks can, in the naïve non-reentrant model, can appear in the following situations:
-
-- **dependency loops**
-  - description: actor `A` requesting (and awaiting) on a call to `B`, and `B` then calling (and awaiting) on something from `A` directly (or indirectly)
-  - solution: such loops are possible to detect and crash on with tracing systems or debugging systems in general, and are usually easy to resolve once the call-chain is diagnosed
-- **awaiting on future work** (performed by self)
-  - description: is a form of the loop case, however can happen in some more surprising cases, say spawning a detached task that calls into self
-  - solution: this again is possible to diagnose with tracing and debugging tools
-
-To illustrate the issue a bit more, let us consider this example:
+Synchronous actor functions can be called synchronously on the actor's `self`, but must be called asynchronously from outside of the actor. The `transfer(amount:to:)` function calls it asynchronously (on `other`), while the following function `passGo` calls it synchronously (on the implicit `self`):
 
 ```swift
-// naïvely non-reentrant
-actor class Kitchen {
-  func order(order: MealOrder, from waiter: Waiter) async -> Confirmation {
-    await waiter.areYouSure() // deadlock ☠️
-  }
-}
-
-// naïvely non-reentrant
-actor class Waiter {
-  let kitchen: Kitchen
-  func order(order: MealOrder) async -> Confirmation {
-    await kitchen.order(order: order, waiter: self)
+extension BankAccount {
+  // Pass go and collect $200
+  func passGo() {
+    deposit(amount: 200.0)  // synchronous is okay because this implicitly calls `self`
   }
 }
 ```
 
-In this example the deadlock is relatively simple to spot and diagnose. Perhaps such simple cases we could even diagnose statically someday. It may happen however that deadlocks are not easy to diagnose, in which case tracing and other diagnostic systems could help.
+Any interactions with the actor that involve mutable state (whether reads or writes) must be performed asynchronously. Semantically, an asynchronous call (such as `await other.deposit(amount: amount)`) to an actor is placed on the serial queue for the actor `other`, so that it will execute on that actor. If that actor is busy executing another task, then the caller will be suspended until the actor is available, so that other work can continue. 
 
-Deadlocked actors would be sitting around as inactive zombies forever, because normal swift async calls do not include timeouts.
+> **Rationale**: by only allowing asynchronous calls from outside the actor, we ensure that all synchronous methods are already inside the actor when they are called. This eliminates the need for any queuing or synchronization within the synchronous code, making such code more efficient and simpler to write.
 
-Some runtimes solve this by making *every single actor call have a timeout*. This would mean that each await could potentially throw, and that either timeouts or deadlock detection would have to always be enabled - which would be prohibitively expensive since we envision actors being used in the vast majority of concurrent Swift applications. It would also muddy the waters with respect to cancellation, which intentionally is designed to be explicit and cooperative, and as checking timeouts/deadlines is a form of cancellation, this is _not_ something we are going to support transparently, thus actor calls neither may assume this. 
 
-It is easy to point out a small mistake in actors spanning a few lines of code, however programming complex actors with reentrancy can be quite a challenge. In this specific example, the solution–in hindsight–is simple, we should store the opinion in a function local variable, or in other words, any state the actor needs to to complete an execution "atomically" it must copy into local function scope. This can be hard to remember and manage consistently.
+#### Actor independence
 
-> Depending on one's viewpoint, one could actually claim that deadlocks are better (!), than interleaving because they can be reliably detected and explained by tools, can be detected in fuzz tests (no need to know what the correct result is for a random input), and can be fixed more consistently.
-
-#### Reentrancy and async lets
-
-Swift also offers the `async let` declaration style, allowing for expressing structured bounded number of asynchronous child tasks being performed concurrently.
-
-In order to check our assumptions, let us also write some code using `async let` and see how reentrancy does or does not come into play here:
+Some functions (and closures) that occur lexically within actors are actor-independent, meaning that they can be used from outside of the actor without necessarily requiring an asynchronous call. Immutable instance properties (like `BankAccount.accountNumber`) are one such example. It also possible to specify that a given instance method, property, or subscript is actor-independent with the attribute `@actorIndependent`. This allows us (for example) to define conformance of an actor to a protocol that has synchronous requirements:
 
 ```swift
-actor class Friend {
-  func howMuchDoYouNeed() async -> Amount { ... }
-  func send(cash: Amount) async { ... }
+extension BankAccount: Hashable {
+  @actorIndependent
+  func hash(into hasher: inout Hasher) {
+    hasher.combine(accountNumber)
+  }  
 }
 
-actor class Wallet {
-  let friend: Friend = ... 
-  
-  var amount: Amount = ... 
-  func checkCash() async -> Amount { ... }
-  
-  func lendFriendSomeCash() async  {
-    async let requested = friend.howMuchDoYouNeed() 
-    async let debt = checkDebt()
-    async let cash = checkCash()
-    let available = await cash - debt.amount
-    
-    if await requested <= available { 
-      amount -= requested
-      await friend.send(cash: requested) // ✅        
-    }  
-  }
-
-  func loseWallet() async { 
-    amount = 0
+extension BankAccount: CustomStringConvertible {
+  @actorIndependent
+  var description: String {
+    "Bank account #\(accountNumber)"
   }
 }
 ```
 
-This example composes well; Calls to an actor's `self` are allowed to pass through as usual, and _replies_ from other actors are also accepted. What can _not_ happen with non-reentrant actors is the `loseWallet()` function being randomly triggered while we are attempting to lend our friend some cash -- this would have been an external call into the actor, which our non-reentrancy rule would prevent.
+There are two important things to note here:
 
-So even such snippet (under non-reentrancy rules):
-
-
+1. Without the `@actorIndependent` attribute, the protocol conformance would be invalid, because an actor-isolated synchronous instance member cannot satisfy a synchronous protocol requirement. The compiler would produce an error such as
+```
+error: actor-isolated property "description" cannot be used to satisfy a protocol requirement
+```
+2. The `@actorIndependent` attribute means that the body of the function is treated as being outside the actor. For example, this means that one cannot access mutable actor state:
 ```swift
-await wallet.lendFriendSomeCash()
-await wallet.loseWallet() 
+extension BankAccount: CustomDebugStringConvertible {
+  @actorIndependent
+  var debugDescription: String {
+    "Bank account #\(accountNumber), balance = \(balance)"  // error: actor-isolated property 'balance' can not be referenced from an '@actorIndependent' context
+  }
+}
 ```
 
-would be correct. Even if our friend takes 10 minutes to reply to `howMuchDoYouNeed`, we are being patient with them and wait with processing the next _external_ message (that will cause us to lose our wallet), until after we are done lending our friend some cash.
-
-Under reentrant rules, the above code could be unsafe, changing our wallet's balance to zero right before we are about to decrement it (!).
-
-#### Proposal: Default non-reentrant actors and opt-in reentrancy
-
-We could amend our model with the following changes:
-
-- actors are **non-**reentrant by default
-  - external calls from other actors are performed "one by one," they cannot automatically "jump in front of the queue"
-- actors which want all their functions to be able to interleave each other, may annotate their definition using `@reentrant` assumes all of it's functions are `@reentrant`
-
-> Alternate spelling proposals follow below the example.
-
-The rationale to make actors non-reentrant by default is clear: it is what feels natural and what actually enables "write as if synchronous code in an actor, and it just works" style of programming.
-
-However, there are valid and important cases where we _do_ want to enable reentrant calls - e.g. a high priority message changing how we are processing a long running task inside an actor:
+Actor independence occurs in a number of other places. All functions declared outside of an actor are actor-independent by nature (there is no actor `self`). Static members of the actor are actor-independent because `self` is not an instance. Within an actor function there are local functions and closures that may be actor-independent. This is important, for example, when one of those functions captures `self` but may be executed concurrently:
 
 ```swift
-actor class ImageDownloader { 
-  var bestImages: [Image]
-  var currentBest: Image?
-
-  @reentrant // ✅ may be invoked at any point in time 
-  func downloadAndPickBest(n: Int, urls: [URL]) async -> [Image] {
-    for url in urls {
-      let image = await download(url)
-      bestImages.append(image)
-      let ranking = await rank(image) 
-      if ranking.isBest { 
-        bestImage = image  
-      }
-      // ... more things to compute only the "best n" etc...
+extension BankAccount {
+  func endOfMonth(month: Int, year: Int) {
+    // Schedule a task to prepare an end-of-month report.
+    Task.runDetached { @actorIndependent in
+      let transactions = await self.transactions(month: month, year: year)
+      let report = Report(accountNumber: self.accountNumber, transactions: transactions)
+      await report.email(to: self.accountOwnerEmailAddress)
     }
-
-    return images
-  }
-  
-  func currentBest() async -> Image { 
-    currentBest
-  } 
-}
-```
-
-The above illustrates a popular use-case for reentrant calls: read only calls. They can be used to observe progress, request a "best effort" answer while better answers are being processed still, or one can invoke a cancel function to cancel some ongoing work inside an actor from another one.
-
-Optionally, we could consider an `@interleave(readOnly)` or annotation that allows for adding "read only" queries to actors, even for actors which otherwise are non-reentrant. In the above example we could then annotate `concurrentBest` as such, and even if the other functions are not `@reentrant` such read-only function could interleave them. We _could_ extend the model to `@interleave(unsafe)` if we really needed to open up that backdoor, but we suggest to leave this out on purpose. 
-
-The issue and solutions to it are not new, and have been successfully proven in [Orleans's take on the subject](https://dotnet.github.io/orleans/docs/grains/reentrancy.html). The reason we compare to Orleans here is because it's model is fairly similar to Swift's with regards to modeling actors as reference types that express messages and interactions using async/await.
-
-#### Proposal: Structured concurrency / Task-chain - aware reentrant actors
-
-In addition to the above semantics and fine grained control over reentrancy, we can do better than that, thanks to Swift's built in notion of structured concurrency with tasks and child tasks.
-
-Assuming the non-reentrant actors as just discussed, it is still important to recognize that a frequent and usually quite understandable way of interacting between actors which are simply "conversations" between two or more actors in order fo fulfil some initial request.
-
-Thanks to Swift embracing [Structured Concurrency](https://github.com/DougGregor/swift-evolution/blob/structured-concurrency/proposals/nnnn-structured-concurrency.md) as a core building block of it's concurrency story, we are in good position to do _better_ than just outright banning reentrancy. In Swift, every asynchronous operation is part of a `Task` which encapsulates the general computation taking place, and every asynchronous operation spawned from such task becomes a child Task of the current task. Synchronous calls do not change the current task (in a way, one can think of Tasks as similar to Threads, however they are not directly mapped to one another). Using this core capability in Swift's concurrency model, we are able to make actor calls *task-chain aware* and *allow* such calls to be reentrant.
-
-This resolves both the deadlock we encountered in the `Waiter` and `Kitchen` example in the previous section, and even enables implementing mutually recursive actors. In the following–world's silliest isEven implementation, we can see two actors performing either is even/odd checks, and mutually calling out to each other, because of the structured nature of tasks, and task awareness of the actor runtime, such calls would _not (!)_ deadlock under the task-aware runtime: 
-
-```swift
-// WARNING: Don't actually implement an isOdd/isEven check like this, 
-//          it involves multiple executor hops and is therefore very sub-optimal.
-public actor class OddOddy { 
-  let evan: EvenEvan!
-  
-  func isOdd(n: Int) async -> Bool {
-    if n == 0 { return true }
-    return await evan.isEven(num - 1)
-  }
-}
-
-actor class EvenEvan {
-  let oddy: OddOddy!
-
-  func isEven(n: Int) async -> Bool {
-    if n == 0 { return false }
-    return await oddy.isOdd(num - 1)
   }
 }
 ```
 
-Semantically, this can be seen as similar in capability as reentrant locking, however with no actual locking or blocking involved.
+The closure in the detached task will be run concurrently with other code on the actor so that the code that prepares the report (which could be compute-intensive) does not run on the serial queue for this actor. Operations on the actor `self`, such as the call to `transactions(month:year:)`, must therefore be asynchronous calls. The `@actorIndependent` will be inferred in some cases; see the section on [closures](#closures).
 
-This behavior could be again configurable, if e.g. it definitely is not what the developer intended we could configure this when spawning the actor or by specific properties within or annotations on the actor type.
+#### Closures
 
-#### Reentrancy Summary
+The restrictions on only allowing asynchronous access to actor-isolated declarations on `self` only work so long as we can ensure that the code in which `self` is valid is executing non-concurrently on the actor. For methods on the actor, this is established by the rules described above: asynchronous function calls are serialized via the actor's queue, and synchronous calls are only allowed when we know that we are already executing (non-concurrently) on the actor.
 
-Preventing reentrancy complicates the model slightly, as there are cases where deadlocks can happen, however the gained benefit of an actor _truly_ being an a domain in which external calls are linearized and handled one after the other. Thanks to non-reentrant actors we can think of them as collections of small programs (their async functions triggered externally) which are triggered and run to completion, and then handle the next task, which greatly simplifies the mental model when working with those.
-
-So, from a consistency point of view, one might want to prefer non-reentrant actors, but from an high-priority work scheduling in the style of "run this now, at any cost" reentrant actors offer an useful model, preventing data-races, while allowing this interleaved execution which–if one is *very careful*–can be utilized to some benefit.
-
-By offering developers the tools to pick which reentrancy model they need for their specific actor and actor functions, we allow users to pick the safe good default most of the time, and allow opt-ing into the more tricky to get right reentrant mode when developers know they need it. Marking single functions can also be used as a way to break actor deadlocks which could otherwise (rarely) occur if we didn't provide ways for reentrancy at all.
-
-Thanks to structured concurrency and the `Task` primitives, we are able to relax the reentrancy rules such that they do not get in the way of typical pair-wise interactions between actors, but still protect from concurrent incoming requests causing confusing ordering interleaving execution. 
-
-#### Closures and local functions
-
-The restrictions on only allowing access to (non-`async`) actor-isolated declarations on `self` only work so long as we can ensure that the code in which `self` is valid is executing non-concurrently on the actor. For methods on the actor class, this is established by the rules described above: `async` function calls are serialized via the actor's queue, and non-`async` calls are only allowed when we know that we are already executing (non-concurrently) on the actor.
-
-However, `self` can also be captured by closures and local functions. Should those closures and local functions have access to actor-isolated state on the captured `self`? Consider an example where we want to close out a bank account and distribute the balance amongst a set of accounts:
+However, `self` can also be captured by closures. Should those closures have access to actor-isolated state on the captured `self`? Consider an example where we want to close out a bank account and distribute the balance amongst a set of accounts:
 
 ```swift
 extension BankAccount {
@@ -453,7 +244,7 @@ extension BankAccount {
       }  
     }
     
-    thief.deposit(amount: balance)
+    await thief.deposit(amount: balance)
   }
 }
 ```
@@ -469,23 +260,15 @@ accounts.parallelForEach { account in
 }
 ```
 
-In this proposal, a closure that is non-escaping is considered to be isolated within the actor, while a closure that is escaping is considered to be outside of the actor. This is based on a notion of when closures can be executed concurrently: to execute a particular closure on a different thread, one will have to escape the closure out of its current thread to run it on another thread. The rules that prevent a non-escaping closure from escaping therefore also prevent them from being executed concurrently. 
+In this proposal, we assume that `forEach`'s closure parameter is *non-concurrent*, meaning that it will be executed serially, and that `parallelForEach`s closure parameter is *concurrent*, meaning that it can be executed concurrently with itself or with other code. For the purposes of this proposal, an escaping closure parameter is considered to be concurrent and a non-escaping closure parameter is considered to be non-concurrent. This is an heuristic that is discussed further and refined in a separate proposal on [Preventing Data Races in the Swift Concurrency Model](https://gist.github.com/DougGregor/10db898093ce33694139d1dcd7da3397).
 
-Based on the above, `parallelForEach` would need its closure parameter will be `@escaping`. The first example (with `forEach`) is well-formed, because the closure is actor-isolated and can access `self.balance`. The second example (with `parallelForEach`) will be rejected with an error:
+A *concurrent* closure is inferred to be actor-independent (as if annotated with `@actorIndependent`). Therefore, the `parallelForEach` example would produce the following error:
 
 ```
 error: actor-isolated property 'balance' is unsafe to reference in code that may execute concurrently
 ```
 
-Note that the same restrictions apply to partial applications of non-`async` actor-isolated functions. Given a function like this:
-
-```swift
-extension BankAccount {
-  func synchronous() { }
-}
-```
-
-The expression `self.synchronous` is well-formed only if it is the direct argument to a function whose corresponding parameter is non-escaping. Otherwise, it is ill-formed because it could escape outside of the actor's context.
+On the other hand, the `forEach` example is well-formed, because a non-concurrent closure that captures an actor `self` from an actor-isolated context is also actor-isolated. That allows the closure to access `self.balance` synchronously.
 
 #### inout parameters
 
@@ -505,118 +288,195 @@ extension BankAccount {
 
 This restriction prevents exclusivity violations where the modification of the actor-isolated `balance` is initiated by passing it as `inout` to a call that is then suspended, and another task executed on the same actor then fails with an exclusivity violation in trying to access `balance` itself.
 
-#### Escaping reference types
+### Actor reentrancy
 
-The rules concerning actor isolation ensure that accesses to an actor class's stored properties cannot occur concurrently, eliminating data races unless unsafe code has subverted the model. 
+One critical point that needs to be discussed is whether actor-isolated functions are [reentrant](https://en.wikipedia.org/wiki/Reentrancy_(computing)). When an actor-isolated function suspends, reentrancy allows other work to execute on the actor before the original actor-isolated function resumes, which we refer to as *interleaving*. Reentrancy eliminates a source of deadlocks, where two actors depend on each other, and offers opportunities for better scheduling of (e.g.) higher-priority tasks. However, it means that actor-isolated state can change across an `await` when an interleaved task mutates that state, making it much harder to reason about the invariants of an actor within an asynchronous actor function.
 
-However, the actor isolation rules presented in this proposal are only sufficient for *value types*. With a value type, any copy of the value produces a completely independent instance. Modifications to that independent instance cannot affect the original, and vice versa. Therefore, one can pass a copy of an actor-isolated stored property to another actor, or even write it into a global variable, and the actor will maintain its isolation because the copy is distinct.
+This section explores the issue of reentrancy with examples that illustrate both the benefits and problems with both reentrant and non-reentrant actors, and settles on the following overall approach:
+* Introduce an attribute to specifically control re-entrancy, spelled `@reentrant` and `@reentrant(never)`, which can be used to annotate actors and actor methods.
+* Actors default to being `@reentrant`.
 
-Reference types break the isolation model, because mutations to a "copy" of a value of reference type can affect the original, and vice versa. Let's introduce another stored property into our bank account to describe recent transactions, and make `Transaction` a reference type (a class):
+#### "Interleaving" execution with reentrant actors
 
-```swift
-class Transaction { 
-  var amount: Double
-  var dateOccurred: Date
-}
+Reentrancy means that execution of asynchronous actor-isolated functions may "interleave" at suspension points, leading to increased complexity in programming with such actors, as every suspension point must be carefully inspected if the code *after* it depends on some invariants that could have changed before it suspended.
 
-actor class BankAccount {
-  // ...
-  private var transactions: [Transaction]
-}
-```
-
-The `transactions` stored property is actor-isolated, so it cannot be modified directly. Moreover, arrays are themselves value types when they contain value types. But the transactions stored in the array are reference types. The moment one of the instances of `Transaction`  from the `transactions` array *escapes* the actor's context, data isolation is lost. For example, here's a function that retrieves the most recent transaction:
+Interleaving executions still respect the actor's "single-threaded illusion", i.e., no two functions will ever execute *concurrently* on any given actor. However they may *interleave* at suspension points. In broad terms this means that reentrant actors are *thread-safe* but are not automatically protecting from the "high level" kinds of races that may still occur, potentially invalidating invariants upon which an executing asynchronous function may be relying on. To further clarify the implications of this, let us consider the following actor, which thinks of an idea and then returns it, after telling its friend about it.
 
 ```swift
-extension BankAccount {
-  func mostRecentTransaction() async -> Transaction? {   // UNSAFE! Transaction is a reference type
-    return transactions.min { $0.dateOccurred > $1.dateOccurred } 
+// @reentrant
+actor Person {
+  let friend: Friend
+  
+  // actor-isolated opinion
+  var opinion: Judgment = .noIdea
+
+  func thinkOfGoodIdea() async -> Decision {
+    opinion = .goodIdea                       // <1>
+    await friend.tell(opinion, heldBy: self)  // <2>
+    return opinion // 🤨                      // <3>
+  }
+
+  func thinkOfBadIdea() async -> Decision {
+    opinion = .badIdea                       // <4>
+    await friend.tell(opinion, heldBy: self) // <5>
+    return opinion // 🤨                     // <6>
   }
 }
 ```
 
-A client of this API gets a reference to the transaction inside the given bank account, e.g.,
+In the example above the `Person` can think of a good or bad idea, shares that opinion with a friend, and returns that opinion that it stored. Since the actor is reentrant this code is wrong and will return an arbitrary opinion if the actor begins to think of a few ideas at the same time.
+
+This is exemplified by the following piece of code, exercising the `decisionMaker` actor:
 
 ```swift
-guard let transaction = await account.mostRecentTransaction() else {
-  return
-}
+async let shouldBeGood = person.thinkOfGoodIdea() // runs async
+async let shouldBeBad = person.thinkOfBadIdea() // runs async
+
+await shouldBeGood // could be .goodIdea or .badIdea ☠️
+await shouldBeBad
 ```
 
-At this point, the client can both modify the actor-isolated state by directly modifying the fields of `transaction`, as well as see any changes that the actor has made to the transaction. These operations may execute concurrently with code running on the actor, causing race conditions. 
+> This issue is illustrated by using async lets, however also simply manifest by more than one actor calling out to the same decision maker; one invoking `thinkOfGoodIdea` and the other one `thinkOfBadIdea`.
 
-Not all examples of "escaping" reference types are quite as straightforward as this one. Reference types can be stored within structs, enums, and in collections such as arrays and dictionaries, so cannot look only at whether the type or its generic arguments are a `class`. The reference type might also be hidden in code not visible to the user, e.g.,
+This snippet _may_ result (depending on timing of the resumptions) in the following execution:
 
 ```swift
-public struct LooksLikeAValueType {
-  private var transaction: Transaction  // not semantically a value type
-}
+opinion = .goodIdea                // <1>
+// suspend: await friend.tell(...) // <2>
+opinion = .badIdea                 // | <4> (!)
+// suspend: await friend.tell(...) // | <5>
+// resume: await friend.tell(...)  // <2>
+return opinion                     // <3>
+// resume: await friend.tell(...)  // <5>
+return opinion                     // <6>
 ```
 
-Generics further complicate the matter: some types, like the standard library collections, act like value types when their generic arguments are value types. An actor class might be generic, in which case its ability to maintain isolation depends on its generic argument:
+But it _may_ also result in the "naively expected" execution, i.e. without interleaving, meaning that the issue will only show up intermittently, like many race conditions in concurrent code.
+
+The potential for interleaved execution at suspension points is the primary reason for the requirement that every suspension point be [marked by `await`](https://github.com/apple/swift-evolution/blob/main/proposals/0296-async-await.md#suspension-points) in the source code, even though `await` itself has no semantic effect. It is an indicator that any shared state might change across the `await`, so one should avoid breaking invariants across an `await`, or otherwise depending on the state "before" to be identical to the state "after".
+
+Generally speaking, the easiest way to avoid breaking invariants across an `await` is to encapsulate state updates in synchronous actor functions. Effectively, synchronous code in an actor provides a [critical section](https://en.wikipedia.org/wiki/Critical_section), whereas an `await` interrupts a critical section. For our example above, we could effect this change by separating "opinion formation" from "telling a friend your opinion". Indeed, telling your friend your opinion might reasonably cause you to change your opinion!
+
+#### Deadlocks with non-reentrant actors
+
+The opposite of reentrant actor functions are "non-reentrant" functions and actors. This means that while an actor is processing an incoming actor function call (message), it will *not* process any other message from its queue until it has completed running this initial function. Essentially, the entire actor is blocked from executing until that task completes.
+
+If we take the example from the previous section and use a non-reentrant actor, it will execute correctly, because no work can be scheduled on the actor until `friend.tell` has completed:
 
 ```swift
-actor class GenericActor<T> {
-  private var array: [T]
-  func first() async -> T? { 
-    return array.first
+@reentrant(never)
+actor DecisionMaker {
+  let friend: DecisionMaker
+  var opinion: Judgment = .noIdea
+
+  func thinkOfGoodIdea() async -> Decision {
+    opinion = .goodIdea                                   
+    await friend.tell(opinion, heldBy: self)
+    return opinion // ✅ always .goodIdea
+  }
+
+  func thinkOfBadIdea() async -> Decision {
+    opinion = .badIdea
+    await friend.tell(opinion, heldBy: self)
+    return opinion // ✅ always .badIdea
   }
 }
 ```
 
-With this type, `GenericActor<Int>` maintains actor isolation but `GenericActor<Transaction>` does not.
-
-There are solutions to these problems. However, the scope of the solutions is large enough that they deserve their own separate proposals. Therefore, **this proposal only provides basic actor isolation for data race safety with value types**.
-
-### Global actors
-
-What we’ve described as actor isolation is one part of a larger problem of data isolation.  It is important that all memory be protected from data races, not just memory directly associated with an instance of an actor class. Global actors allow code and state anywhere to be actor-isolated to a specific singleton actor. This extends the actor isolation rules out to annotated global variables, global functions, and members of any type or extension thereof. For example, global actors allow the important concepts of "Main Thread" or "UI Thread" to be expressed in terms of actors without having to capture everything into a single class. 
-
-*Global actors* provide a way to annotate arbitrary declarations (properties, subscripts, functions, etc.) as being part of a process-wide singleton actor. A global actor is described by a type that has been annotated with the `@globalActor` attribute:
+However, non-entrancy can result in deadlock if a task involves calling back into the actor. For example, let's stretch this example further and have our friend try to convince us to change a bad idea:
 
 ```swift
-@globalActor
-struct UIActor {
-  /* details below */
+extension DecisionMaker {
+  func tell(_ opinion: Judgment, heldBy friend: DecisionMaker) async {
+    if opinion == .badIdea {
+      await friend.convinceOtherwise(opinion)
+    }
+  }
 }
 ```
 
-Such types can then be used to annotate particular declarations that are isolated to the actor. For example, a handler for a touch event on a touchscreen device:
+With non-reentrant actors, `thinkOfGoodIdea()` will succeed under this implementation, because `tell` essentially does nothing. However, `thinkOfBadIdea()` will deadlock because the original decision maker (call it `A`) is locked when it calls `tell` on another decision maker (call it `B`). `B` then tries to convince `A` otherwise, but that call cannot execute because `A` is already locked. Hence, the actor itself deadlocks and cannot progress.
+
+> The term "deadlock" used in these discussions refer to actors asynchronously waiting on "each other," or on "future work of self". No thread blocking is necessary to manifest this issue.
+
+In theory, a fully non-reentrant model would also deadlock when calling asynchronous functions on `self`. However, since such calls are statically determinable to be on `self`, they would execute immediately and therefore not block.
+
+Deadlocks with non-reentrant actors can be detected and diagnosed with tools that can identify cyclic call graphs or through various logging/tracing facilities. With such deadlocks, the (asynchronous) call stack, annotated with the actor instances for each actor method, should suffice to debug the problem.
+
+Deadlocked actors would be sitting around as inactive zombies forever. Some runtimes solve deadlocks like this by making every single actor call have a timeout (such timeouts are already useful for distributed actor systems). This would mean that each `await` could potentially `throw`, and that either timeouts or deadlock detection would have to always be enabled. We feel this would be prohibitively expensive, because we envision actors being used in the vast majority of concurrent Swift applications. It would also muddy the waters with respect to cancellation, which is intentionally designed to be explicit and cooperative. Therefore, we feel that the approach of automatically cancelling on deadlocks does not fit well with the direction of Swift Concurrency.
+
+#### Unnecessary blocking with non-reentrant actors
+
+Consider an actor that handles the download of various images and maintains a cache of what it has downloaded to make subsequent accesses faster:
 
 ```swift
-@UIActor
-func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-  // ...
+@reentrant(never)
+actor ImageDownloader { 
+  var cache: [URL: Image] = [:]
+
+  func getImage(_ url: URL) async -> Image {
+    if let cachedImage = cache[url] {
+      return cachedImage
+    }
+    
+    let data = await download(url)
+    let image = await Image(decoding: data)
+    return cache[url, default: image]
+  }
 }
 ```
 
-A declaration with an attribute indicating a global actor type is actor-isolated to that global actor. The global actor type has its own queue that is used to perform any access to mutable state that is also actor-isolated with that same global actor.
+This actor is functionally correct, whether it is re-entrant or not. However, if it is non-reentrant, it will completely serialize the download of images: once a single client asked for an image, all other clients are blocked from starting any requests--even ones that would hit the cache or which ask for images at different URLs---until that first client has had its image fully downloaded and decoded.
 
-Global actors are implicitly singletons, i.e. there is always _one_ instance of a global actor in a given process. This is in contrast to `actor classes`, of which there can be no instances, one instance, or many instances in a given process at any given time.
+With a reentrant actor, multiple clients can fetch images independently, so that (say) they can all be at different stages of downloading and decoding an image. The serialized execution of partial tasks on the actor ensures that the cache itself can never get corrupted. At worst, two clients might ask for the same image URL at the same time, in which there will be some redundant work. 
 
+#### Existing practice
+
+There are a number of existing actor implementations that have 
+
+* Erlang/Elixir ([gen_server](https://medium.com/@eduardbme/erlang-gen-server-never-call-your-public-interface-functions-internally-c17c8f28a1ee)) showcases a simple "loop/deadlock" scenario and how to detect and fix it,
+* Akka ([Persistence persist/persistAsync](https://doc.akka.io/docs/akka/current/persistence.html#relaxed-local-consistency-requirements-and-high-throughput-use-cases) is effectively _non-reentrant behavior by default_, and specific APIs are designed to allow programmers to _opt into_ reentrant whenever it would be needed. In the linked documentation `persistAsync` is the re-entrant version of the API, and it is used _very rarely_ in practice. Akka persistence and this API has been used to implement bank transactions and process managers, by relying on the non-reentrancy of `persist()` as a killer feature, making implementations simple to understand and _safe_. Note that Akka is built on top of Scala, which does not provide `async`/`await`. This means that mailbox-processing methods are more synchronous in nature, and rather than block the actor while waiting for a response, they would handle the response as a separate message receipt.
+* Orleans ([grains](https://dotnet.github.io/orleans/docs/grains/reentrancy.html)) are also non-reentrant by default, but offer extensive configuration around reentrancy. Grains and specific methods can be marked as being re-entrant, and there is even a dynamic mechanism by which one can implement a run-time predicate to determine whether an invocation can interleave. Orleans is perhaps closest to the Swift approach described here, because it is built on top of a language that provides `async`/`await` (C#). Note that Orleans *ad* a feature called [call-chain reentrancy](https://dotnet.github.io/orleans/docs/grains/reentrancy.html#reentrancy-within-a-call-chain), which we feel is a promising potential direction: we cover it later in this proposal in our section on [task-chain reentrancy](#task-chain-reentrancy).
+
+
+#### Proposal: Default reentrant actors and opt-in non-reentrancy
+
+As noted previously, we propose that actors be reentrant by default, and provide an attribute (`@reentrant(never)`) to make specific actors or actor-isolated functions non-reentrant.
+
+> **Rationale**: Reentrancy by default all but eliminates the potential for deadlocks. Moreover, it helps ensure that actors can make timely progress within a concurrent system, and that (say) a particular actor does not end up unnecessarily blocked on a long-running asynchronous operation (say, downloading a file). The mechanisms for ensuring safe interleaving, such as using synchronous code when performing mutations and being careful not to break invariants across `await` calls, are already present in the proposal.
+
+#### Reentrancy Summary
+
+Preventing reentrancy complicates the model slightly, as there are cases where deadlocks can happen, however the gained benefit of an actor _truly_ being an a domain in which external calls are linearized and handled one after the other. Thanks to non-reentrant actors we can think of them as collections of small programs (their async functions triggered externally) which are triggered and run to completion, and then handle the next task, which greatly simplifies the mental model when working with those.
+
+So, from a consistency point of view, one might want to prefer non-reentrant actors, but from an high-priority work scheduling in the style of "run this now, at any cost" reentrant actors offer an useful model, preventing data-races, while allowing this interleaved execution which–if one is *very careful*–can be utilized to some benefit.
+
+By offering developers the tools to pick which reentrancy model they need for their specific actor and actor functions, we allow users to pick the safe good default most of the time, and allow opt-ing into the more tricky to get right reentrant mode when developers know they need it. Marking single functions can also be used as a way to break actor deadlocks which could otherwise (rarely) occur if we didn't provide ways for reentrancy at all.
+
+Thanks to structured concurrency and the `Task` primitives, we are able to relax the reentrancy rules such that they do not get in the way of typical pair-wise interactions between actors, but still protect from concurrent incoming requests causing confusing ordering interleaving execution. 
 
 ## Detailed design
 
-### Actor classes
+### Actors
 
-A class can be declared as an actor class using the `actor` modifier:
+An actor type can be declared with the `actor` keyword:
 
 ```
 /// Declares a new type BankAccount
-actor class BankAccount {
+actor BankAccount {
   // ...
 }
 ```
 
-Each instance of the actor class represents a unique actor.
+Each instance of the actor represents a unique actor. The term "actor" can be used to refer to either an instance or the type; where necessary, one can refer to the "actor instance" or "actor type" to disambiguate.
 
-An actor class may only inherit from another actor class. A non-actor class may only inherit from another non-actor class.
+An actor may only inherit from another actor. A non-actor may only inherit from another non-actor.
 
-> **Rationale**: Actor classes enforce state isolation, but non-actor classes do not. If an actor class inherits from a non-actor class (or vice versa), part of the actor's state would not be covered by the actor-isolation rules, introducing the potential for data races on that state.
+> **Rationale**: Actors enforce state isolation, but non-actors do not. If an actor inherits from a non-actor (or vice versa), part of the actor's state would not be covered by the actor-isolation rules, introducing the potential for data races on that state.
 
-As a special exception described in the complementary proposal [Concurrency Interoperability with Objective-C](https://github.com/DougGregor/swift-evolution/blob/concurrency-objc/proposals/NNNN-concurrency-objc.md), an actor class may inherit from `NSObject`.
+As a special exception described in the complementary proposal [Concurrency Interoperability with Objective-C](https://github.com/DougGregor/swift-evolution/blob/concurrency-objc/proposals/NNNN-concurrency-objc.md), an actor may inherit from `NSObject`.
 
-By default, the instance methods, properties, and subscripts of an actor class are actor-isolated to the actor instance. This is true even for methods added retroactively on an actor class via an extension, like any other Swift type.
+By default, the instance methods, properties, and subscripts of an actor are actor-isolated to the actor instance. This is true even for methods added retroactively on an actor via an extension, like any other Swift type.
 
 ```
 extension BankAccount {
@@ -626,85 +486,9 @@ extension BankAccount {
 }  
 ```
 
-An instance method, computed property, or subscript of an actor class may be annotated with `@actorIndependent` or a global actor attribute.  If so, it (or its accessors) are no longer actor-isolated to the `self` instance of the actor.
+An instance method, computed property, or subscript of an actor may be annotated with `@actorIndependent`.  If so, it (or its accessors) are no longer actor-isolated to the `self` instance of the actor.
 
-By default, the mutable stored properties (declared with `var`) of an actor class are actor-isolated to the actor instance. A stored property may be annotated with `@actorIndependent(unsafe)` to remove this restriction. 
-
-### Actor protocol
-
-All actor classes conform to a new protocol `Actor`:
-
-```swift
-protocol Actor: AnyObject {
-  func enqueue(partialTask: PartialAsyncTask)
-}
-```
-
-The `enqueue(partialTask:)` operation is a low-level operation used to queue work for the actor to execute. `PartialAsyncTask` represents a unit of work to execute. It effectively has a single synchronous function, `run()`, which should be called synchronously within the actor's context. Only the compiler can produce new `PartialAsyncTasks`. To explicitly enqueue work on an actor, use the `run` method:
-
-```swift
-extension Actor {
-  // Run the given async function on this actor.
-  //
-  // Precondition: the function is not constrained to a different actor;
-  //   if it is not constrained to any actor at all, it will still run on
-  //   behalf of `self`
-  func run<T>(operation: () async throws -> T) async rethrows -> T
-}
-```
-
-The `enqueue(partialTask:)` requirement is special in that it can only be provided in the primary actor class declaration (not an extension), and cannot be `final`. If `enqueue(partialTask:)` is not explicitly provided, the Swift compiler will provide a default implementation for the actor, with its own (hidden) queue.
-
-> **Rationale**: This design strikes a balance between efficiency for the default actor implementation and extensibility to allow alternative actor implementations.   By forcing the method to be part of the main actor class, the compiler can ensure a common low-level implementation for actor classes that permits them to be passed as a single pointer and treated uniformly by the runtime.
-
-Non-`actor` classes can conform to the `Actor` protocol, and are not subject to the restrictions above. This allows existing classes to work with some `Actor`-specific APIs, but does not bring any of the advantages of actor classes (e.g., actor isolation) to them.
-
-### Global actors
-
-A global actor can be declared by creating a new custom attribute type with `@globalActor`:
-
-```swift
-@globalActor
-struct UIActor {
-  static let shared = SomeActorInstance()
-}
-```
-
-The type must provide a static `shared` property that provides the singleton actor instance, on which any work associated with the global actor will be enqueued. There are otherwise no requirements placed on the type itself.
-
-The custom attribute type may be generic.  The custom attribute is called a global actor attribute.  A global actor attribute is never parameterized.  Two global actor attributes identify the same global actor if they identify the same type.
-
-Global actor attributes apply to declarations as follows:
-
-* A declaration cannot have multiple global actor attributes.  The rules below say that, in some cases, a global actor attribute is propagated from one declaration to another.  If the rules say that an attribute “propagates by default”, then no propagation is performed if the destination declaration has an explicit global actor attribute.  If the rules say that attribute “propagates mandatorily”, then it is an error if the destination declaration has an explicit global actor attribute that does not identify the same actor.  Regardless, it is an error if global actor attributes that do not identify the same actor are propagated to the same declaration.
-
-* A function, property, subscript, or initializer declared with a global actor attribute becomes actor-isolated to the given global actor.
-
- ```swift
- @UIActor func drawAHouse(graphics: CGGraphics) {
-     // ...
- }
- ```
-
-* Local variables and constants cannot be marked with a global actor attribute. 
-
-* A type declared with a global actor attribute propagates the attribute to all methods, properties, subscripts, and extensions of the type by default.
-
-* An extension declared with a global actor attribute propagates the attribute to all the members of the extension by default.
-
-* A protocol declared with a global actor attribute propagates the attribute to its conforming types by default.
-
-* A protocol requirement declared with a global actor attribute propagates the attribute to its witnesses mandatorily if they are declared in the same module as the conformance. 
-
-* A class declared with a global actor attribute propagates the attribute to its subclasses mandatorily.
-
-* An overridden declaration propagates its global actor attribute (if any) to its overrides mandatorily.  Other forms of propagation do not apply to overrides.  It is an error if a declaration with a global actor attribute overrides a declaration without an attribute.
-
-* An actor class cannot have a global actor attribute.  Stored instance properties of actor classes cannot have global actor attributes.  Other members of an actor class can have global actor attributes; such members are actor-isolated to the global actor, not the actor instance.
-
-* A deinit cannot have a global actor attribute and is never a target for propagation.
-
-The effect of these rules is to make it easy for a few classes and protocols to be annotated as being part of a global actor (e.g., the `@UIActor`), and for code that interoperates with those (subclassing the classes, conforming to the protocols) to not need explicit annotations.
+By default, the mutable stored properties (declared with `var`) of an actor are actor-isolated to the actor instance. A stored property may be annotated with `@actorIndependent(unsafe)` to remove this restriction. 
 
 ### Actor-independent declarations
 
@@ -715,22 +499,24 @@ A declaration may be declared to be actor-independent:
 var count: Int { constantCount + 1 }
 ```
 
-When used on a declaration, it indicates that the declaration is not actor-isolated to any actor, which allows it to be accessed from anywhere. Moreover, it interrupts the implicit propagation of actor isolation from context, e.g., it can be used on an instance declaration in an actor class to make the declaration actor-independent rather than isolated to the actor.
+When used on a declaration, it indicates that the declaration is not actor-isolated to any actor, which allows it to be accessed from anywhere. Moreover, it interrupts the implicit propagation of actor isolation from context, e.g., it can be used on an instance declaration in an actor to make the declaration actor-independent rather than isolated to the actor.
 
 When used on a class, the attribute applies by default to members of the class and extensions thereof.  It also interrupts the ordinary implicit propagation of actor-isolation attributes from the superclass, except as required for overrides.
 
-The attribute is ill-formed when applied to any other declaration.  It is ill-formed if combined with an explicit global actor attribute.
+When used on an extension, the attribute applies by default to members of that extension. It also interrupts the ordinary implicit propagation of actor-isolation attributes from the superclass (if there is one), except as required for overrides.
+
+The attribute is ill-formed when applied to any other declaration.
+
+The `@actorIndependent` attribute can also be applied to a closure. Such a closure will be independent of any actor, even if it captures the `self` from an actor-isolated function.
 
 The `@actorIndependent` attribute has an optional "unsafe" argument.  `@actorIndependent(unsafe)` is treated the same way as `@actorIndependent` from the client's perspective, meaning that it can be used from anywhere. However, the implementation of an `@actorIndependent(unsafe)` entity is allowed to refer to actor-isolated state, which would have been ill-formed under `@actorIndependent`.
 
 ### Actor isolation checking
 
-Any given non-local declaration in a program can be classified into one of five actor isolation categories:
+Any given non-local declaration in a program can be classified into one of four actor isolation categories:
 
-* Actor-isolated to a specific instance of an actor class:
-  - This includes the stored instance properties of an actor class as well as computed instance properties, instance methods, and instance subscripts, as demonstrated with the `BankAccount` example.
-* Actor-isolated to a specific global actor:
-  - This includes any property, function, method, subscript, or initializer that has an attribute referencing a global actor, such as the `touchesEnded(_:with:)` method mentioned above.
+* Actor-isolated to a specific instance of an actor:
+  - This includes the stored instance properties of an actor as well as computed instance properties, instance methods, and instance subscripts, as demonstrated with the `BankAccount` example.
 * Actor-independent: 
   - The declaration is not actor-isolated to any actor. This includes any property, function, method, subscript, or initializer that has the `@actorIndependent` attribute.
 * Actor-independent (unsafe): 
@@ -748,25 +534,20 @@ We'll describe each scenario in detail.
 
 #### Accesses in executable code
 
-A given declaration (call it the "source") can access another declaration (call it the "target") in executable code, e.g., by calling a function or accessing a property or subscript. If the target is `async`, there is nothing more to check: the call will be scheduled on the target actor's queue, so the access is well-formed.
+A given declaration (call it the "source") can synchronously access another declaration (call it the "target") in executable code, e.g., by calling a function or accessing a property or subscript. A synchronous invocation requires the actor isolation categories for the source and target to be compatible (defined below). An actor-isolated target function that is not compatible with the source can be accessed asynchronously.
 
-When the target is not `async`, the actor isolation categories for the source and target must be compatible. A source and target category pair is compatible if:
+A source and target category pair is compatible if:
 * the source and target categories are the same,
 * the target category is actor-independent or actor-independent (unsafe),
 * the source category is actor-independent (unsafe), or
 * the target category is unknown.
 
-The first rule is the most direct: an actor-isolated declaration can access other declarations within its same actor, whether that's an actor instance (on `self`) or global actor (e.g., `@UIActor`).
+The first rule is the most direct: an actor-isolated declaration can synchronously access other declarations within its same actor (e.g., by referring to it on `self`).
 
-The second rule specifies that actor-independent declarations can be used from anywhere because they aren't tied to a particular actor. Actor classes can provide actor-independent instance methods, but because those functions are not actor-isolated, that cannot read the actor's own mutable state. For example:
+The second rule specifies that actor-independent declarations can be used from anywhere because they aren't tied to a particular actor. Actors can provide actor-independent instance methods, but because those functions are not actor-isolated, that cannot read the actor's own mutable state. For example:
 
 ```swift
 extension BankAccount {
-  @actorIndependent
-  func greeting() -> String {
-    return "Hello, \(ownerName)!"  // okay: ownerName is immutable
-  }
-  
   @actorIndependent
   func steal(amount: Double) {
     balance -= amount  // error: actor-isolated property 'balance' can not be referenced from an '@actorIndependent' context
@@ -774,7 +555,7 @@ extension BankAccount {
 }  
 ```
 
-The third rule is an unsafe opt-out that allows a declaration to be treated as actor-independent by its clients, but can do actor-isolation-unsafe operations internally. It is intended to be used sparingly for interoperability with existing  synchronization mechanisms or low-level performance tuning.
+The third rule is an unsafe opt-out that allows a declaration to be treated as actor-independent by its clients, but can do actor-isolation-unsafe operations internally. It is intended to be used sparingly for interoperability with existing synchronization mechanisms, low-level performance tuning, or incremental adoption of actors in existing code bases.
 
 ```swift
 extension BankAccount {
@@ -785,7 +566,7 @@ extension BankAccount {
 }
 ```
 
-The fourth rule is provided to allow interoperability between actors and existing Swift code. Actor code (which by definition is all new code) can call into existing Swift code with unknown actor isolation. However, code with unknown actor isolation cannot call back into (non-`async`) actor-isolated code, because doing so would violate the isolation guarantees of that actor. This allows incremental adoption of actors into existing code bases, isolating the new actor code while allowing them to interoperate with the rest of the code.
+The fourth rule is provided to allow interoperability between actors and existing Swift code. Actor code (which by definition must be new code) can call into existing Swift code with unknown actor isolation. However, code with unknown actor isolation cannot call back into actor-isolated code synchronously, because doing so would violate the isolation guarantees of that actor. This allows incremental adoption of actors into existing code bases, isolating the new actor code while allowing them to interoperate with the rest of the code.
 
 #### Overrides
 
@@ -794,42 +575,52 @@ When a given declaration (the "overriding declaration") overrides another declar
 * the overriding and overridden declarations have the same actor isolation or
 * the overriding declaration is actor-independent.
 
-In the absence of an explicitly-specified actor-isolation attribute (i.e, a global actor attribute or `@actorIndependent`), the overriding declaration will inherit the actor isolation of the overridden declaration.
+In the absence of an explicitly-specified actor-isolation attribute (i.e, `@actorIndependent`), the overriding declaration will inherit the actor isolation of the overridden declaration.
 
 #### Protocol conformance
 
 When a given declaration (the "witness") satisfies a protocol requirement (the "requirement"), the actor isolation of the two declarations is compared. The protocol requirement can be satisfied by the witness if:
 
 * the witness and requirement have the same actor isolation,
-* the witness and requirement are `async` and the requirement has unknown actor isolation, or
-* the witness is actor-independent and the requirement has unknown actor isolation.
-
-The last case is particularly important to allow actor classes to conform to existing protocols, which will have synchronous requirements. For example, say that we want to make our `BankAccount` actor class conform to `CustomStringConvertible`:
-
-```swift
-extension BankAccount: CustomStringConvertible {
-  var description: String {       // error: actor-isolated property "description" cannot be used to satisfy a protocol requirement
-    "Bank account of \"\(ownerName)\""
-  }
-}
-```
-
-One can use `@actorIndependent` on such declarations to allow them to satisfy synchronous protocol requirements:
-
-```swift
-extension BankAccount: CustomStringConvertible {
-  @actorIndependent
-  var description: String {
-    "Bank account of \"\(ownerName)\""
-  }
-}
-```
+* the requirement is `async`, or
+* the witness is actor-independent.
 
 In the absence of an explicitly-specified actor-isolation attribute, a witness that is defined in the same type or extension as the conformance for the requirement's protocol will have its actor isolation inferred from the protocol requirement.
 
+### Partial applications
+
+Partial applications of synchronous actor-isolated functions are only well-formed if they are treated as non-concurrent. For example, given a function like this:
+
+```swift
+extension BankAccount {
+  func synchronous() { }
+}
+```
+
+The expression `self.synchronous` is well-formed only if it is the direct argument to a function whose corresponding parameter is non-concurrent. Otherwise, it is ill-formed because the function might be called in a context that is not actor-isolated.
+
+### Reentrancy
+
+The `@reentrant` attribute may be added to any actor-isolated function, actor, or extension of an actor. The attribute has two forms:
+
+* `@reentrant`: Indicates that each potential suspension point within the function bodies covered by the attribute is reentrant.
+* `@reentrant(never)`: Indicates that each potential suspension point within the function bodies covered by the attribute is non-reentrant.
+
+A non-reentrant potential suspension point prevents any other asynchronous call from executing on the actor until it has completed. Note that asynchronous calls to non-reentrant async functions directly on `self` are exempted from this check, so an actor can asynchronously call itself without producing a deadlock.
+
+> **Rationale**: Allowing direct calls on `self` eliminates an obvious set of deadlocks, and requires only the same static knowledge as actor-isolation checking for synchronous access to actor-isolated state.
+
+It is an error to have a `@reentrant` attribute on an actor-independent function, non-actor type, or extension of a non-actor type. Only one `@reentrant` attribute may occur on a given declaration. The reentrancy of an actor-isolated declaration is determined by finding a suitable `@reentrant` attribute. The search is as follows:
+
+1. The declaration itself.
+2. If the declaration is within an extension, the extension.
+3. If the declaration is within a type (or extension thereof), the type definition.
+
+If there is no suitable `@reentrant` attribute, an actor-isolated function is reentrant.
+
 ## Source compatibility
 
-This proposal is additive, and should not break source compatibility. The addition of the `actor` contextual keyword to introduce actor classes is a parser change that does not break existing code, and the other changes are carefully staged so they do not change existing code. Only new code that introduces actor classes or actor-isolation attributes will be affected.
+This proposal is additive, and should not break source compatibility. The addition of the `actor` contextual keyword to introduce actors is a parser change that does not break existing code, and the other changes are carefully staged so they do not change existing code. Only new code that introduces actors or actor-isolation attributes will be affected.
 
 ## Effect on ABI stability
 
@@ -839,6 +630,89 @@ This is purely additive to the ABI.
 
 Nearly all changes in actor isolation are breaking changes, because the actor isolation rules require consistency between a declaration and its users:
 
-* A class cannot be turned into an actor class or vice versa.
+* A class cannot be turned into an actor or vice versa.
 * The actor isolation of a public declaration cannot be changed except between `@actorIndependent(unsafe)` and `@actorIndependent`.
 
+## Alternatives Considered
+
+### Task-chain reentrancy
+
+The discussion of reentrant and non-reentrant actors treats reentrancy as a binary choice, where all forms of reentrancy are considered to be equally likely to introduce hard-to-reason-about data races. However, a frequent and usually quite understandable way of interacting between actors which are simply "conversations" between two or more actors in order fo fulfill some initial request. In synchronous code, it's common to have two or more different classes call back into each other with synchronous calls. For example, here is a silly implementation of `isEven` that uses mutual recursion between two classes:
+
+```swift
+class OddOddySync {
+  let evan: EvenEvanSync!
+
+  func isOdd(_ n: Int) -> Bool {
+    if n == 0 { return true }
+    return evan.isEven(num - 1)
+  }
+}
+
+class EvenEvanSync {
+  let oddy: OddOddySync!
+
+  func isEven(_ n: Int) -> Bool {
+    if n == 0 { return false }
+    return oddy.isOdd(num - 1)
+  }
+}
+```
+
+This code is depending on the two methods of these classes to effectively be "reentrant" within the same call stack, because one will call into the other (and vice-versa) as part of the computation. Now, take this example and make it asynchronous using actors:
+
+```swift
+actor OddOddy {
+  let evan: EvenEvan!
+
+  func isOdd(_ n: Int) async -> Bool {
+    if n == 0 { return true }
+    return await evan.isEven(num - 1)
+  }
+}
+
+actor EvenEvan {
+  let oddy: OddOddy!
+
+  func isEven(_ n: Int) async -> Bool {
+    if n == 0 { return false }
+    return await oddy.isOdd(num - 1)
+  }
+}
+```
+
+Under the current proposal, this code will deadlock, because a call from `EvanEvan.isEven` to `OddOddy.isOdd` will then depend on another call to `EvanEvan.isEven`, which cannot proceed until the original call completes. One would need to make these methods reentrant to eliminate the deadlock.
+
+With Swift embracing [Structured Concurrency](https://github.com/DougGregor/swift-evolution/blob/structured-concurrency/proposals/nnnn-structured-concurrency.md) as a core building block of its concurrency story, we may be able to do better than outright banning reentrancy. In Swift, every asynchronous operation is part of a `Task` which encapsulates the general computation taking place, and every asynchronous operation spawned from such task becomes a child task of the current task. Therefore, it is possible to know whether a given asynchronous call is part of the same task hierarchy, which is the rough equivalent to being in the same call stack in synchronous code.
+
+We could introduce a new kind of reentrancy, *task-chain reentrancy*, which allows reentrant calls on behalf of the given task or any of its children. This resolves both the deadlock we encountered in the `Waiter` and `Kitchen` example from the section on [deadlocks](#deadlocks-with-non-reentrant-actors) as well as the mutually-recursive `isEven` example above, while still preventing reentrancy from unrelated tasks. This reentrancy therefore mimics synchronous code more closely, eliminating many deadlocks without allow unrelated interleavings to break the high-level invariants of an actor.
+
+There are a few reasons why we are not currently comfortable including task-chain reentrancy in the proposal:
+* The task-based reentrancy approach doesn't seem to have been tried at scale. Orleans documents support for [reentrancy in a call chain](https://dotnet.github.io/orleans/docs/grains/reentrancy.html#reentrancy-within-a-call-chain), but the implementation was fairly limited and it was eventually [removed](https://twitter.com/reubenbond/status/1349725703634251779). From the Orleans experience, it is hard to assess whether the problem is with the idea or the specific implementation.
+* We do not yet know of an efficient implementation technique for this approach within the actor runtime.
+
+If we can address the above, task-chain reentrancy can be introduced into the actor model with another spelling of the reentrancy attribute such as `@reentrant(task)`, and may provide a more suitable default than non-reentrant (`@reentrant(never)`).
+
+### Eliminating inheritance
+
+Like classes, actors as proposed allow inheritance. However, actors and classes cannot be co-mingled in an inheritance hierarchy, so there are essentially two different kinds of type hierarchies. It has been [proposed](https://docs.google.com/document/d/14e3p6yBt1kPrakLcEHV4C9mqNBkNibXIZsozdZ6E71c/edit#) that actors should not permit inheritance at all, because doing so would simplify actors: features such as method overriding, initializer inheritance, required and convenience initializers, and inheritance of protocol conformances would not need to be specified, and users would not need to consider them. The [discussion thread](https://forums.swift.org/t/actors-are-reference-types-but-why-classes/42281) on the proposal to eliminate inheritance provides several reasons to keep actor inheritance:
+
+* Actor inheritance makes it easier to port existing class hierarches to get the benefits of actors. Without actor inheritance, such porting will also have to contend with (e.g.) replacing superclasses with protocols and explicitly-specified stored properties at the same time.
+* The lack of inheritance in actors won't prevent users from having to understand the complexities of inheritance, because inheritance will still be used pervasively with classes.
+* The design and implementation of actors naturally admits inheritance. Actors are fundamentally class-like, the semantics of inheritance follow directly from the need to maintain actor isolation. The implementation of actors is essentially as "special classes", so it supports all of these features out of the box. There is little benefit to the implementation from eliminating the possibility of inheritance of actors.
+
+Overall, we feel that actor inheritance has use cases just like class inheritance does, and the reasons to avoid having inheritance as part of the actor model are driven more by a desire to move Swift away from inheritance than by any practical or implementation problems with inheritance.
+
+## Revision history
+
+* Changes in the second pitch:
+  * Added a discussion of the tradeoffs with actor reentrancy, performance, and deadlocks, with various examples, and the addition of new attribute `@reentrant(never)` to disable reentrancy at the actor or function level.
+  * Removed global actors; they will be part of a separate document.
+  * Separated out the discussion of data races for reference types.
+  * Allow asynchronous calls to synchronous actor methods from outside the actor.
+  * Removed the `Actor` protocol; we'll tackle customizing actors and executors in a separate proposal.
+  * Clarify the role and behavior of actor-independence.
+  * Add a section to "Alternatives Considered" that discusses actor inheritance.
+  * Replace "actor class" with "actor".
+
+* Original pitch [document](https://github.com/DougGregor/swift-evolution/blob/6fd3903ed348b44496b32a39b40f6b6a538c83ce/proposals/nnnn-actors.md)
