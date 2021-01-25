@@ -391,9 +391,9 @@ func foo() async {
 }
 ```
 
-An asynchronous function _always_ executes within a task. As the `current` function itself is also asynchronous, it can only be invoked from an asynchronous function and is guaranteed to return the apropriate `Task`. The task object obtained this way is safe access by other tasks/threads. The APIs surfaced on it are specifically designed to also be safe, and relatively cheap, to be called from other tasks.
+An asynchronous function _always_ executes within a task. As the `current` function itself is also asynchronous, it can only be invoked from an asynchronous function and is guaranteed to return the appropriate `Task`. The task object obtained this way is safe access by other tasks/threads. The APIs surfaced on it are specifically designed to also be safe, and relatively cheap, to be called from other tasks.
 
-Tasks are equatable and hashable, this can be used to store and compare them, and can be used e.g. to answer questions such as "is this the same task I was called from before" etc. Keep in mind though, that tasks should not be held onto unnecessarily.
+Tasks are `Equatable` and `Hashable`, this can be used to store and compare them, and can be used e.g. to answer questions such as "is this the same task I was called from before" etc. Keep in mind though, that tasks should not be held onto unnecessarily.
 
 #### `UnsafeCurrentTask` type
 
@@ -450,7 +450,7 @@ extension Task {
 }
 ```
 
-The `currentPriority()` operation queries the priority of the currently-executing task. It may also be invoked from a synchronous context and returns `.default` if not running inside of a task in that case.
+The `currentPriority` operation queries the priority of the currently-executing task. It may also be invoked from a synchronous context and returns `.default` if not running inside of a task in that case.
 
 Alternatively, if one already holds a `Task` instance, one may query its priority using the `priority` property. Generally the `Task.currentPriority` function is preferred rather than spelling out `await Task.current().priority` which is far more verbose.
 
