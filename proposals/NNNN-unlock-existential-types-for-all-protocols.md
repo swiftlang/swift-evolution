@@ -8,7 +8,7 @@
 
 ## Introduction
 
-Swift currently offers the ability for protocols that meet certain criteria to be used as types. Trying to use an unsupported protocol as a type yields the error: [the protocol] can only be used as a generic constraint because it has 'Self' or associated type requirements. This proposal aims to relax this artificial constraint, and instead constraint the availability of protocol members.
+Swift allows the use of a protocol as a value type when its *requirements* meet a rather unintuitive list of criteria, among which is the well-known criterion for the absense of associated type requirements, and emits the following error otherwise: "%protocol can only be used as a generic constraint because it has 'Self' or associated type requirements". This proposal aims to *alleviate* the restriction to only impact the ability to invoke certain protocol members (in contrast to sealing off the entire protocol interface), as well as adjust the specified criteria to reduce the scope of the restriciton.
 
 ## Motivation
 
