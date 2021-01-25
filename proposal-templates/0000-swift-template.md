@@ -105,4 +105,4 @@ why you chose this approach instead.
 If significant changes or improvements suggested by members of the 
 community were incorporated into the proposal as it developed, take a
 moment here to thank them for their contributions. Swift evolution is a 
-collaborative process, and everyone's input should recieve recognition!
+collaborative process, and everyone's input should receive recognition!
