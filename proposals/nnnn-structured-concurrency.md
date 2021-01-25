@@ -751,6 +751,7 @@ All of the changes described in this document are additive to the language and a
 * Changes in the third pitch:
   * Factored `with*Continuation` into [its own proposal](https://github.com/apple/swift-evolution/pull/1244).
   * Factored `async let` into its own proposal.
+  * `Task` becomes a `struct` with instance functions, introduction of `Task.current`, `Task.unsafeCurrent` and the `UnsafeCurrentTask` APIs
 
 * Changes in the second pitch:
   * Added a "desugaring" of `async let` to task groups and more motivation for the structured-concurrency parts of the design.
