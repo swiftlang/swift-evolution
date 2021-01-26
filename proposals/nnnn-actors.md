@@ -21,7 +21,7 @@
          * [Deadlocks with non-reentrant actors](#deadlocks-with-non-reentrant-actors)
          * [Unnecessary blocking with non-reentrant actors](#unnecessary-blocking-with-non-reentrant-actors)
          * [Existing practice](#existing-practice)
-         * [Proposal: Default non-reentrant actors and opt-in reentrancy](#proposal-default-non-reentrant-actors-and-opt-in-reentrancy)
+         * [Default reentrant actors and opt-in non-reentrancy](#default-reentrant-actors-and-opt-in-non-reentrancy)
          * [Reentrancy Summary](#reentrancy-summary)
    * [Detailed design](#detailed-design)
       * [Actors](#actors-2)
@@ -432,14 +432,14 @@ With a reentrant actor, multiple clients can fetch images independently, so that
 
 #### Existing practice
 
-There are a number of existing actor implementations that have 
+There are a number of existing actor implementations that have considered the notion or reentrancy:
 
 * Erlang/Elixir ([gen_server](https://medium.com/@eduardbme/erlang-gen-server-never-call-your-public-interface-functions-internally-c17c8f28a1ee)) showcases a simple "loop/deadlock" scenario and how to detect and fix it,
 * Akka ([Persistence persist/persistAsync](https://doc.akka.io/docs/akka/current/persistence.html#relaxed-local-consistency-requirements-and-high-throughput-use-cases) is effectively _non-reentrant behavior by default_, and specific APIs are designed to allow programmers to _opt into_ reentrant whenever it would be needed. In the linked documentation `persistAsync` is the re-entrant version of the API, and it is used _very rarely_ in practice. Akka persistence and this API has been used to implement bank transactions and process managers, by relying on the non-reentrancy of `persist()` as a killer feature, making implementations simple to understand and _safe_. Note that Akka is built on top of Scala, which does not provide `async`/`await`. This means that mailbox-processing methods are more synchronous in nature, and rather than block the actor while waiting for a response, they would handle the response as a separate message receipt.
 * Orleans ([grains](https://dotnet.github.io/orleans/docs/grains/reentrancy.html)) are also non-reentrant by default, but offer extensive configuration around reentrancy. Grains and specific methods can be marked as being re-entrant, and there is even a dynamic mechanism by which one can implement a run-time predicate to determine whether an invocation can interleave. Orleans is perhaps closest to the Swift approach described here, because it is built on top of a language that provides `async`/`await` (C#). Note that Orleans *ad* a feature called [call-chain reentrancy](https://dotnet.github.io/orleans/docs/grains/reentrancy.html#reentrancy-within-a-call-chain), which we feel is a promising potential direction: we cover it later in this proposal in our section on [task-chain reentrancy](#task-chain-reentrancy).
 
 
-#### Proposal: Default reentrant actors and opt-in non-reentrancy
+#### Default reentrant actors and opt-in non-reentrancy
 
 As noted previously, we propose that actors be reentrant by default, and provide an attribute (`@reentrant(never)`) to make specific actors or actor-isolated functions non-reentrant.
 
@@ -662,6 +662,7 @@ class EvenEvanSync {
 This code is depending on the two methods of these classes to effectively be "reentrant" within the same call stack, because one will call into the other (and vice-versa) as part of the computation. Now, take this example and make it asynchronous using actors:
 
 ```swift
+@reentrant(never)
 actor OddOddy {
   let evan: EvenEvan!
 
@@ -671,6 +672,7 @@ actor OddOddy {
   }
 }
 
+@reentrant(never)
 actor EvenEvan {
   let oddy: OddOddy!
 
@@ -681,17 +683,17 @@ actor EvenEvan {
 }
 ```
 
-Under the current proposal, this code will deadlock, because a call from `EvanEvan.isEven` to `OddOddy.isOdd` will then depend on another call to `EvanEvan.isEven`, which cannot proceed until the original call completes. One would need to make these methods reentrant to eliminate the deadlock.
+Under `@reentrant(never)`, this code will deadlock, because a call from `EvanEvan.isEven` to `OddOddy.isOdd` will then depend on another call to `EvanEvan.isEven`, which cannot proceed until the original call completes. One would need to make these methods to be reentrant to eliminate the deadlock.
 
 With Swift embracing [Structured Concurrency](https://github.com/DougGregor/swift-evolution/blob/structured-concurrency/proposals/nnnn-structured-concurrency.md) as a core building block of its concurrency story, we may be able to do better than outright banning reentrancy. In Swift, every asynchronous operation is part of a `Task` which encapsulates the general computation taking place, and every asynchronous operation spawned from such task becomes a child task of the current task. Therefore, it is possible to know whether a given asynchronous call is part of the same task hierarchy, which is the rough equivalent to being in the same call stack in synchronous code.
 
-We could introduce a new kind of reentrancy, *task-chain reentrancy*, which allows reentrant calls on behalf of the given task or any of its children. This resolves both the deadlock we encountered in the `Waiter` and `Kitchen` example from the section on [deadlocks](#deadlocks-with-non-reentrant-actors) as well as the mutually-recursive `isEven` example above, while still preventing reentrancy from unrelated tasks. This reentrancy therefore mimics synchronous code more closely, eliminating many deadlocks without allow unrelated interleavings to break the high-level invariants of an actor.
+We could introduce a new kind of reentrancy, *task-chain reentrancy*, which allows reentrant calls on behalf of the given task or any of its children. This resolves both the deadlock we encountered in the `convinceOtherwise` example from the section on [deadlocks](#deadlocks-with-non-reentrant-actors) as well as the mutually-recursive `isEven` example above, while still preventing reentrancy from unrelated tasks. This reentrancy therefore mimics synchronous code more closely, eliminating many deadlocks without allowing unrelated interleavings to break the high-level invariants of an actor.
 
 There are a few reasons why we are not currently comfortable including task-chain reentrancy in the proposal:
 * The task-based reentrancy approach doesn't seem to have been tried at scale. Orleans documents support for [reentrancy in a call chain](https://dotnet.github.io/orleans/docs/grains/reentrancy.html#reentrancy-within-a-call-chain), but the implementation was fairly limited and it was eventually [removed](https://twitter.com/reubenbond/status/1349725703634251779). From the Orleans experience, it is hard to assess whether the problem is with the idea or the specific implementation.
 * We do not yet know of an efficient implementation technique for this approach within the actor runtime.
 
-If we can address the above, task-chain reentrancy can be introduced into the actor model with another spelling of the reentrancy attribute such as `@reentrant(task)`, and may provide a more suitable default than non-reentrant (`@reentrant(never)`).
+If we can address the above, task-chain reentrancy can be introduced into the actor model with another spelling of the reentrancy attribute such as `@reentrant(task)`, and may provide the best default.
 
 ### Eliminating inheritance
 
