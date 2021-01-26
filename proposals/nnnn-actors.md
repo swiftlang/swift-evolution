@@ -610,13 +610,37 @@ A non-reentrant potential suspension point prevents any other asynchronous call 
 
 > **Rationale**: Allowing direct calls on `self` eliminates an obvious set of deadlocks, and requires only the same static knowledge as actor-isolation checking for synchronous access to actor-isolated state.
 
-It is an error to have a `@reentrant` attribute on an actor-independent function, non-actor type, or extension of a non-actor type. Only one `@reentrant` attribute may occur on a given declaration. The reentrancy of an actor-isolated declaration is determined by finding a suitable `@reentrant` attribute. The search is as follows:
+It is an error to have a `@reentrant` attribute on an actor-independent function, non-actor type, or extension of a non-actor type. Only one `@reentrant` attribute may occur on a given declaration. The reentrancy of an actor-isolated function is determined by finding a suitable `@reentrant` attribute. The search is as follows:
 
-1. The declaration itself.
-2. If the declaration is within an extension, the extension.
-3. If the declaration is within a type (or extension thereof), the type definition.
+1. The function itself.
+2. If the function is a member of an extension, the extension.
+3. If the function is a member of a type (or extension thereof), the type definition.
 
 If there is no suitable `@reentrant` attribute, an actor-isolated function is reentrant.
+
+Here's an example illustrating how the `@reentrant` attribute can be applied at various points:
+
+```swift
+actor class Stage {
+  @reentrant(never) func f() async { ... }    // not reentrant
+  func g() async { ... }                      // reentrant
+}
+
+@reentrant(never)
+extension Stage {
+  func h() async { ... }                      // not reentrant
+  @reentrant func i() async { ... }           // reentrant
+
+  actor InnerChild {                          // reentrant, not affected by enclosing extension
+    func j() async { ... }                    // reentrant
+  }
+
+  @actorIndependent func k() async { .. }     // okay, reentrancy is uninteresting
+  @actorIndependent @reentrant func l() async { .. } // error: @reentrant on non-actor-isolated
+}
+
+@reentrant func m() async { ... } // error: @reentrant on non-actor-isolated
+```
 
 ## Source compatibility
 
