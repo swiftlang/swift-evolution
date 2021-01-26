@@ -420,9 +420,9 @@ func foo() async {
 }
 ```
 
-An asynchronous function _always_ executes within a task. As the `current` function itself is also asynchronous, it can only be invoked from an asynchronous function and is guaranteed to return the apropriate `Task`. The task object obtained this way is safe access by other tasks/threads. The APIs surfaced on it are specifically designed to also be safe, and relatively cheap, to be called from other tasks.
+An asynchronous function _always_ executes within a task. As the `current` function itself is also asynchronous, it can only be invoked from an asynchronous function and is guaranteed to return the appropriate `Task`. The task object obtained this way is safe access by other tasks/threads. The APIs surfaced on it are specifically designed to also be safe, and relatively cheap, to be called from other tasks.
 
-Tasks are equatable and hashable, this can be used to store and compare them, and can be used e.g. to answer questions such as "is this the same task I was called from before" etc. Keep in mind though, that tasks should not be held onto unnecessarily.
+Tasks are `Equatable` and `Hashable`, this can be used to store and compare them, and can be used e.g. to answer questions such as "is this the same task I was called from before" etc. Keep in mind though, that tasks should not be held onto unnecessarily.
 
 #### `UnsafeCurrentTask` type
 
@@ -828,6 +828,7 @@ All of the changes described in this document are additive to the language and a
 * Changes in the third pitch:
   * Factored `with*Continuation` into [its own proposal](https://github.com/apple/swift-evolution/pull/1244).
   * Factored `async let` into its own proposal.
+  * `Task` becomes a `struct` with instance functions, introduction of `Task.current`, `Task.unsafeCurrent` and the `UnsafeCurrentTask` APIs
 
 * Changes in the second pitch:
   * Added a "desugaring" of `async let` to task groups and more motivation for the structured-concurrency parts of the design.
