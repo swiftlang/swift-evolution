@@ -51,14 +51,16 @@ extension URL {
 
 ### Additional AsyncSequence functions
 
-Going one step further, let's imagine how it might look to use our new `lines` function in more places. Perhaps we only want the first line of a file because it contains a header that we are interested in:
+Going one step further, let's imagine how it might look to use our new `lines` function in more places. Perhaps we want to process lines until we reach one that is greater than a certain length.
 
 ```swift
-let header: String?
+let longLine: String?
 do {
   for try await line in myFile.lines() {
-    header = line
-    break
+    if line.count > 80 {
+      longLine = line
+      break
+    }
   }
 } catch {
   header = nil // file didn't exist
@@ -85,7 +87,7 @@ extension URL {
   struct Lines : AsyncSequence { }
 
   func lines() -> Lines
-  func firstLine() throws async -> String?
+  func firstLongLine() throws async -> String?
   func collectLines() throws async -> [String]
 }
 ```
@@ -106,7 +108,6 @@ public protocol AsyncSequence {
 public protocol AsyncIteratorProtocol {
   associatedtype Element
   mutating func next() async throws -> Element?
-  __consuming mutating func cancel()
 }
 ```
 
@@ -120,7 +121,7 @@ struct Counter : AsyncSequence {
     let howHigh: Int
     var current = 1
     mutating func next() async -> Int? {
-      // If this task were truly async, we could use the `Task` API to check for cancellation here and return early.
+      // We could use the `Task` API to check for cancellation here and return early.
       guard current <= howHigh else {
         return nil
       }
@@ -186,7 +187,7 @@ All of the usual rules about error handling apply. For example, this iteration m
 
 ### Cancellation
 
-Authors of `AsyncIteratorProtocol` types should use the cancellation primitives provided by Swift's `Task` API, part of [structured concurrency](https://github.com/DougGregor/swift-evolution/blob/structured-concurrency/proposals/nnnn-structured-concurrency.md). As described there, the iterator can choose how it responds to cancellation. The most common behaviors will be either throwing `CancellationError` or returning `nil` from the iterator. 
+`AsyncIteratorProtocol` types should use the cancellation primitives provided by Swift's `Task` API, part of [structured concurrency](https://github.com/DougGregor/swift-evolution/blob/structured-concurrency/proposals/nnnn-structured-concurrency.md). As described there, the iterator can choose how it responds to cancellation. The most common behaviors will be either throwing `CancellationError` or returning `nil` from the iterator. 
 
 If an `AsyncIteratorProtocol` type has cleanup to do upon cancellation, it can do it in two places:
 
@@ -202,34 +203,34 @@ The `await` is always required because the definition of the protocol is that it
 
 The existence of a standard `AsyncSequence` protocol allows us to write generic algorithms for any type that conforms to it. There are two categories of functions: those that return a single value (and are thus marked as `async`), and those that return a new `AsyncSequence` (and are not marked as `async` themselves).
 
-The functions that return a single value are especially interesting because they increase usability by changing a loop into a single `await` line. Functions in this category are `first`, `contains`, `count`, `min`, `max`, `reduce`, and more. Functions that return a new `AsyncSequence` include `filter`, `map`, and `compactMap`.
+The functions that return a single value are especially interesting because they increase usability by changing a loop into a single `await` line. Functions in this category are `first`, `contains`, `min`, `max`, `reduce`, and more. Functions that return a new `AsyncSequence` include `filter`, `map`, and `compactMap`.
 
 ### AsyncSequence to single value
 
 Algorithms that reduce a for loop into a single call can improve readability of code. They remove the boilerplate required to set up and iterate a loop.
 
-For example, here is the `first` function:
+For example, here is the `contains` function:
 
 ```swift
-extension AsyncSequence {
-  public func first() async rethrows -> Element?
+extension AsyncSequence where Element : Equatable {
+  public func contains(_ value: Element) async rethrows -> Bool
 }
 ```
 
-With this extension, our "first line" example from earlier becomes simply:
+With this extension, our "first long line" example from earlier becomes simply:
 
 ```swift
-let first = try? await myFile.lines().first()
+let first = try? await myFile.lines().first(where: { $0.count > 80 })
 ```
 
 Or, if the sequence should be processed asynchonously and used later:
 
 ```swift
-async let first = myFile.lines().first()
+async let first = myFile.lines().first(where: { $0.count > 80 })
 
 // later
 
-useFirst(await try? first)
+warnAboutLongLine(try? await first)
 ```
 
 The following functions will be added to `AsyncSequence`:
@@ -240,7 +241,6 @@ The following functions will be added to `AsyncSequence`:
 | `contains(where: (Element) async throws -> Bool) async rethrows -> Bool` | The `async` on the closure allows optional async behavior, but does not require it |
 | `allSatisfy(_ predicate: (Element) async throws -> Bool) async rethrows -> Bool` | |
 | `first(where: (Element) async throws -> Bool) async rethrows -> Element?` | |
-| `first() async rethrows -> Element?` | Not a property since properties cannot `throw` |
 | `min() async rethrows -> Element?` | Requires `Comparable` element |
 | `min(by: (Element, Element) async throws -> Bool) async rethrows -> Element?` | |
 | `max() async rethrows -> Element?` | Requires `Comparable` element |
@@ -291,6 +291,8 @@ The following topics are things we consider important and worth discussion in fu
 We've aimed for parity with the most relevant `Sequence` functions. There may be others that are worth adding in a future proposal.
 
 API which uses a time argument must be coordinated with the discussion about `Executor` as part of the [structured concurrency proposal](https://github.com/DougGregor/swift-evolution/blob/structured-concurrency/proposals/nnnn-structured-concurrency.md).
+
+We would like a `first` property, but properties cannot currently be `async` or `throws`. Discussions are ongoing about adding a capability to the language to allow effects on properties. If those features become part of Swift then we should add a `first` property to `AsyncSequence`.
 
 ### AsyncSequence Builder
 
