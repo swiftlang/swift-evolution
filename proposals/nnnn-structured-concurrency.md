@@ -369,6 +369,35 @@ func chop(_ vegetable: Vegetable) async throws -> Vegetable {
 
 Note also that no information is passed to the task about why it was cancelled.  A task may be cancelled for many reasons, and additional reasons may accrue after the initial cancellation (for example, if the task fails to immediately exit, it may pass a deadline). The goal of cancellation is to allow tasks to be cancelled in a lightweight way, not to be a secondary method of inter-task communication.
 
+### Access from synchronous functions
+
+As already shown in the above examples, it is possible to call functions that inspect the "current task" in order to check if it was e.g. cancelled. However, those functions are on purpose not `async` and _can_ be called from synchronous functions as well.
+
+This is possible because of the existence of the `Task.unsafeCurrent` API:
+
+```swift
+extension Task { 
+  static var unsafeCurrent: UnsafeCurrentTask? { get }
+}
+```
+
+The `unsafeCurrent` API returns `nil` if the function is called from a context in which a Task is not available. In practice this means that nowhere in the call chain until this invocation, was any asynchronous function involved. If there is an asynchronous function in the call chain until the invocation of `unsafeCurrent`, that task will be returned.
+
+This API is the callable-from-synchronous contexts version of `Task.current` which is an asynchronous function and therefore always has a `Task` available that it can return:
+
+```swift
+extension Task { 
+  static func current() async -> Task { get }
+  // If async computed properties proposal is accepted, this can become a static property
+}
+```
+
+The `UnsafeCurrentTask` is purposefully named unsafe as it *may* expose APIs which can *only* be invoked safely from within task itself, and would exhibit undefined behavior if used from another task. It is therefore unsafe to store and "use later" an `UnsafeCurrentTask`. Examples of such unsafe API are interacting with task local values on a task object, which must be equal to the "current" task to be performed safely. This is by design, and offers the runtime optimization opportunities for the normal, and safe, access patterns to task storage.
+
+`Task` defines APIs which are *always safe* to invoke, regardless if from the same task or from another task. Such safe APIs include `isCancelled`, `priority`.
+
+It is possible to get a `Task` out of an `UnsafeCurrentTask`
+
 ## Detailed design
 
 ### Task API
@@ -441,23 +470,17 @@ extension Task {
     case background
   }
   
-  /// Determine the priority of the currently-executing task,
-  /// or `.default` if no current task is available.
-  static var currentPriority: Priority { ... }
-  
   /// Determine the priority of the currently-executing task.
   var priority: Priority { ... }
 }
 ```
 
-The `currentPriority()` operation queries the priority of the currently-executing task. It may also be invoked from a synchronous context and returns `.default` if not running inside of a task in that case.
-
-Alternatively, if one already holds a `Task` instance, one may query its priority using the `priority` property. Generally the `Task.currentPriority` function is preferred rather than spelling out `await Task.current().priority` which is far more verbose.
+The `priority` operation queries the priority of the task.
 
 Task priorities are set on task creation (e.g., `Task.runDetached` or `Task.Group.add`) and can be escalated later, e.g., if a higher-priority task waits on the task handle of a lower-priority task.
 
-The `currentPriority()` operation queries the priority of the currently-executing task. Task priorities are set on task creation (e.g., `Task.runDetached` or `Task.Group.add`) and can be escalated later, e.g., if a higher-priority task waits on the task handle of a lower-priority task.
- 
+The `currentPriority` operation queries the priority of the currently-executing task. Task priorities are set on task creation (e.g., `Task.runDetached` or `Task.Group.add`) and can be escalated later, e.g., if a higher-priority task waits on the task handle of a lower-priority task.
+
 #### Task handles
 
 A task handle provides a reference to a task whose primary purpose is to retrieve the result of the task.
@@ -503,6 +526,17 @@ extension Task.Handle {
 
 As noted elsewhere, cancellation is cooperative: the task will note that it has been cancelled and can choose to return earlier (either via a normal return or a thrown error, as appropriate). `isCancelled` can be used to determine whether a particular task was ever cancelled.
 
+It is possible to obtain a task that the handle refers to by using `handle.task`:
+
+```swift
+extension Task.Handle { 
+  /// Returns the task object the handle is refering to.
+  var task: Task { get }
+}
+```
+
+Getting the handle's task allows us to check if the work we're about to wait on perhaps was already cancelled (by calling `handle.task.isCancelled`), or query at what priority the task is executing.
+
 #### Detached tasks
 
 A new, detached task can be created with the `Task.runDetached` operation. The resulting task is represented by a `Task.Handle`.
@@ -540,13 +574,7 @@ try await eat(dinnerHandle)
 A task can check whether it has been cancelled with the `Task.isCancelled` operation, and act accordingly. For tasks that would prefer to immediately exit with a thrown error on cancellation, the task API provides a common error type, `CancellationError`, to communicate that the task was cancelled. The `Task.checkCancellation()` will throw `CancellationError` when the task has been cancelled, and is provided as a convenience.
 
 ```swift
-extension Task {
-  
-  /// Returns `true` if the task is cancelled, and should stop executing.
-  ///
-  /// Always returns `false` when called from code not currently running inside of a `Task`.
-  static var isCancelled: Bool
-  
+extension Task { 
   /// Returns `true` if the task is cancelled, and should stop executing.
   var isCancelled: Bool
 
@@ -559,20 +587,6 @@ extension Task {
     init() {}
   }
 
-  /// Check if the task is cancelled and throw an `CancellationError` if it was.
-  ///
-  /// It is intentional that no information is passed to the task about why it
-  /// was cancelled. A task may be cancelled for many reasons, and additional
-  /// reasons may accrue / after the initial cancellation (for example, if the
-  /// task fails to immediately exit, it may pass a deadline).
-  ///
-  /// The goal of cancellation is to allow tasks to be cancelled in a
-  /// lightweight way, not to be a secondary method of inter-task communication.
-  ///
-  /// Never throws if invoked from code not currently running inside of a `Task`.
-  static func checkCancellation() throws
-  
-  /// << same as static checkCancellation >>
   func checkCancellation() throws
 }
 ```
@@ -609,6 +623,69 @@ extension Task {
   static func yield() async
 }
 ```
+
+#### Querying Task status from synchronous functions
+
+While all APIs defined on `Task` so far have been *instance* functions and properties, this implies that in order to query them one first would have to obtain a Task object. Obtaining a task object safely is perfomed by invoking the `Task.current()` asynchronous function, leading to the question: how do we check if a task we're running in, has been cancelled if we are in the in a synchronous function which was invoked from an asynchronous function?
+
+Thankfully, thanks to the previously discussed `UnsafeCurrentTask` Swift also can offer safe, and usable from synchronous contexts, static versions of almost all functions defined in the previous sections.
+
+##### Cancelation
+
+It is possible to query for cancellation from within a synchronous task, e.g. while iterating over a loop and wanting to check if we should abort its execution by using the static `Task.isCancelled` function:
+
+```swift
+extension Task { 
+
+  /// Returns `true` if the task is cancelled, and should stop executing.
+  ///
+  /// Always returns `false` when called from code not currently running inside of a `Task`.
+  static var isCancelled: Bool { get }
+  
+  /// Check if the task is cancelled and throw an `CancellationError` if it was.
+  ///
+  /// It is intentional that no information is passed to the task about why it
+  /// was cancelled. A task may be cancelled for many reasons, and additional
+  /// reasons may accrue / after the initial cancellation (for example, if the
+  /// task fails to immediately exit, it may pass a deadline).
+  ///
+  /// The goal of cancellation is to allow tasks to be cancelled in a
+  /// lightweight way, not to be a secondary method of inter-task communication.
+  ///
+  /// Never throws if invoked from code not currently running inside of a `Task`.
+  static func checkCancellation() throws
+}
+```
+
+The functions work the same as their instance counter parts, except that if invoked from a context that has no Task available, e.g. if invoked from outside of Swift's concurrency model (e.g. directly from a pthread) a default value is returned.
+
+The isCancelled function is implemented as:
+
+```swift
+extension Task {
+  static var isCancelled: Bool { 
+    Task.unsafeCurrent?.isCancelled ?? false
+  }
+}
+```
+
+Which makes sense, because if not executing within a task, such code can never "be cancelled" using Swift's task infrastructure.
+
+This static `isCancelled` function is always safe to invoke, as the use of `UnsafeCurrentTask` is such that it can never escape or be stored somewhere, which is the only unsafe part about that API.
+
+##### Task priorities
+
+Similarily, a static `currentPriority` function is available on all task objects:
+
+```swift
+extension Task { 
+  static var currentPriority: Task.Priority { 
+    Task.unsafeCurrent.?.priority ?? Task.Priority.default
+  }
+}
+```
+
+The rationale for the default value is that if running outside of the Task infrastructure, there is no way to impact the priority of 
 
 #### Task Groups
 
