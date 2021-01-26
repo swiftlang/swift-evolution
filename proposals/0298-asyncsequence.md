@@ -87,8 +87,8 @@ extension URL {
   struct Lines : AsyncSequence { }
 
   func lines() -> Lines
-  func firstLongLine() throws async -> String?
-  func collectLines() throws async -> [String]
+  func firstLongLine() async throws -> String?
+  func collectLines() async throws -> [String]
 }
 ```
 
