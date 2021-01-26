@@ -63,7 +63,7 @@ do {
     }
   }
 } catch {
-  header = nil // file didn't exist
+  longLine = nil // file didn't exist
 }
 ```
 
