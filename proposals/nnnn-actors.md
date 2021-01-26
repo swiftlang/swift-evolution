@@ -723,11 +723,25 @@ If we can address the above, task-chain reentrancy can be introduced into the ac
 
 Like classes, actors as proposed allow inheritance. However, actors and classes cannot be co-mingled in an inheritance hierarchy, so there are essentially two different kinds of type hierarchies. It has been [proposed](https://docs.google.com/document/d/14e3p6yBt1kPrakLcEHV4C9mqNBkNibXIZsozdZ6E71c/edit#) that actors should not permit inheritance at all, because doing so would simplify actors: features such as method overriding, initializer inheritance, required and convenience initializers, and inheritance of protocol conformances would not need to be specified, and users would not need to consider them. The [discussion thread](https://forums.swift.org/t/actors-are-reference-types-but-why-classes/42281) on the proposal to eliminate inheritance provides several reasons to keep actor inheritance:
 
-* Actor inheritance makes it easier to port existing class hierarches to get the benefits of actors. Without actor inheritance, such porting will also have to contend with (e.g.) replacing superclasses with protocols and explicitly-specified stored properties at the same time.
+* Actor inheritance makes it easier to port existing class hierarchies to get the benefits of actors. Without actor inheritance, such porting will also have to contend with (e.g.) replacing superclasses with protocols and explicitly-specified stored properties at the same time.
 * The lack of inheritance in actors won't prevent users from having to understand the complexities of inheritance, because inheritance will still be used pervasively with classes.
 * The design and implementation of actors naturally admits inheritance. Actors are fundamentally class-like, the semantics of inheritance follow directly from the need to maintain actor isolation. The implementation of actors is essentially as "special classes", so it supports all of these features out of the box. There is little benefit to the implementation from eliminating the possibility of inheritance of actors.
 
-Overall, we feel that actor inheritance has use cases just like class inheritance does, and the reasons to avoid having inheritance as part of the actor model are driven more by a desire to move Swift away from inheritance than by any practical or implementation problems with inheritance.
+Actor inheritance has similar use cases to class inheritance. If we take a textbook example with `Person` and `Employee` classes, all the same reasoning applies to actors:
+
+```swift
+actor Person {
+  var name: String
+  var birthdate: Date
+  // lots of other attributes
+}
+
+actor Employee: Person {
+  var badgeNumber: Int
+}
+```
+
+This implementation will behave as one would expect for inheritance (every `Employee` is-a `Person`). The inheriting actor type also extends the actor-isolation domain of the actor type it inherits, so (for example) it is safe for a method of `Employee` to refer to `self.birthdate`. Given that there are no implementation reasons to disallow inheritance, and the reasons for inheritance of classes apply equally to actors, we retain inheritance for actor types.
 
 ## Revision history
 
