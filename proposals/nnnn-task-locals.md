@@ -114,7 +114,7 @@ func asyncPrintRequestID() async {
   print("request-id: \(id)")
 }
 
-func syncPrintRequestID() async {
+func syncPrintRequestID() {
   let id = Task.local(\.requestID)
   print("request-id: \(id)")
 }
