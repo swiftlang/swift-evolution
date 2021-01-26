@@ -21,7 +21,7 @@ There have been quite a few times in my professional and personal programming li
 
 There already exists an extension to `CountableRange` in the standard library  implementing `clamped(to:)` that will limit the calling range to that of the provided range, so having the same functionality but just for types that conform to the `Comparable` protocol would be conceptually consistent.
 
-Having functionality like `clamped(to:)` added to `Comparable` as a protocol extension would benefit users of the Swift language whom wish to guarantee that a value is kept within bounds, perhaps one example of this coming in handy would be to limit the result of some calculation between two acceptable numerical limits, say the bounds of a normalized coordinate system.
+Having functionality like `clamped(to:)` added to `Comparable` as a protocol extension would benefit users of the Swift language trying to express and ensure that a value is kept within bounds, perhaps one example of this coming in handy would be to limit the result of some calculation between two acceptable numerical limits, say the bounds of a normalized coordinate system.
 
 ## Proposed solution
 
