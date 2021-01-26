@@ -100,7 +100,7 @@ The standard library will define the following protocols:
 public protocol AsyncSequence {
   associatedtype AsyncIterator: AsyncIteratorProtocol where AsyncIterator.Element == Element
   associatedtype Element
-  func makeAsyncIterator() -> AsyncIterator
+  __consuming func makeAsyncIterator() -> AsyncIterator
 }
 
 public protocol AsyncIteratorProtocol {
@@ -120,6 +120,7 @@ struct Counter : AsyncSequence {
     let howHigh: Int
     var current = 1
     mutating func next() async -> Int? {
+      // If this task were truly async, we could use the `Task` API to check for cancellation here and return early.
       guard current <= howHigh else {
         return nil
       }
@@ -127,10 +128,6 @@ struct Counter : AsyncSequence {
       let result = current
       current += 1
       return result
-    }
-
-    mutating func cancel() {
-      current = howHigh + 1 // Make sure we do not emit another value
     }
   }
 
@@ -160,13 +157,11 @@ for await i in Counter(howHigh: 3) {
   if i == 2 { break }
 }
 /*
-Prints the following, then calls cancel before breaking out of the loop:
+Prints the following:
 1
 2
 */
 ```
-
-Any other exit (e.g., `return` or `throw`) from the `for` loop will also call `cancel` first.
 
 ## Detailed design
 
@@ -354,11 +349,3 @@ For example, `for...in` cannot be used on an `IteratorProtocol` -- only a `Seque
 Another point in favor of consistency is that implementing an `AsyncSequence` should feel familiar to anyone who knows how to implement a `Sequence`.
 
 We are hoping for widespread adoption of the protocol in API which would normally have instead used a `Notification`, informational delegate pattern, or multi-callback closure argument. In many of these cases we feel like the API should return the 'factory type' (an `AsyncSequence`) so that it can be iterated again. It will still be up to the caller to be aware of any underlying cost of performing that operation, as with iteration of any `Sequence` today.
-
-### Move-only iterator and removing Cancel
-
-We discussed waiting to introduce this feature until move-only types are available in the future. This is a tradeoff in which we look to the Core Team for advice, but the authors believe the benefit of having this functionality now has the edge. It will likely be the case that move-only types will bring changes to other `Sequence` and `IteratorProtocol` types when it arrives in any case.
-
-Prototyping of the patch does not seem to indicate undue complexity in the compiler implementation. In fact, it appears that the existing ideas around `defer` actually match this concept cleanly. 
-
-We have included a `__consuming` attribute on the `cancel` function, which should allow move-only iterators to exist in the future.
