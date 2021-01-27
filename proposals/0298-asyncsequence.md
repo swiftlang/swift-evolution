@@ -5,6 +5,7 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Accepted**
 * Implementation: [apple/swift#35224](https://github.com/apple/swift/pull/35224)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-modification-se-0298-async-await-sequences/44231)
 
 ## Introduction
 
