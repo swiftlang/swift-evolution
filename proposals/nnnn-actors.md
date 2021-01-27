@@ -644,11 +644,11 @@ extension Stage {
 
 ## Source compatibility
 
-This proposal is additive, and should not break source compatibility. The addition of the `actor` contextual keyword to introduce actors is a parser change that does not break existing code, and the other changes are carefully staged so they do not change existing code. Only new code that introduces actors or actor-isolation attributes will be affected.
+This proposal is mostly additive, and should not break source compatibility. The `actor` contextual keyword to introduce actors is a parser change that does not break existing code, and the other changes are carefully staged so they do not change existing code. Only new code that introduces actors or actor-isolation attributes will be affected.
 
 ## Effect on ABI stability
 
-This is purely additive to the ABI.
+This is purely additive to the ABI. Actor isolation itself is a static notion that is not part of the ABI.
 
 ## Effect on API resilience
 
