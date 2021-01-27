@@ -51,17 +51,19 @@ extension URL {
 
 ### Additional AsyncSequence functions
 
-Going one step further, let's imagine how it might look to use our new `lines` function in more places. Perhaps we only want the first line of a file because it contains a header that we are interested in:
+Going one step further, let's imagine how it might look to use our new `lines` function in more places. Perhaps we want to process lines until we reach one that is greater than a certain length.
 
 ```swift
-let header: String?
+let longLine: String?
 do {
   for try await line in myFile.lines() {
-    header = line
-    break
+    if line.count > 80 {
+      longLine = line
+      break
+    }
   }
 } catch {
-  header = nil // file didn't exist
+  longLine = nil // file didn't exist
 }
 ```
 
@@ -85,8 +87,8 @@ extension URL {
   struct Lines : AsyncSequence { }
 
   func lines() -> Lines
-  func firstLine() throws async -> String?
-  func collectLines() throws async -> [String]
+  func firstLongLine() async throws -> String?
+  func collectLines() async throws -> [String]
 }
 ```
 
@@ -100,13 +102,12 @@ The standard library will define the following protocols:
 public protocol AsyncSequence {
   associatedtype AsyncIterator: AsyncIteratorProtocol where AsyncIterator.Element == Element
   associatedtype Element
-  func makeAsyncIterator() -> AsyncIterator
+  __consuming func makeAsyncIterator() -> AsyncIterator
 }
 
 public protocol AsyncIteratorProtocol {
   associatedtype Element
   mutating func next() async throws -> Element?
-  __consuming mutating func cancel()
 }
 ```
 
@@ -120,6 +121,7 @@ struct Counter : AsyncSequence {
     let howHigh: Int
     var current = 1
     mutating func next() async -> Int? {
+      // We could use the `Task` API to check for cancellation here and return early.
       guard current <= howHigh else {
         return nil
       }
@@ -127,10 +129,6 @@ struct Counter : AsyncSequence {
       let result = current
       current += 1
       return result
-    }
-
-    mutating func cancel() {
-      current = howHigh + 1 // Make sure we do not emit another value
     }
   }
 
@@ -160,13 +158,11 @@ for await i in Counter(howHigh: 3) {
   if i == 2 { break }
 }
 /*
-Prints the following, then calls cancel before breaking out of the loop:
+Prints the following:
 1
 2
 */
 ```
-
-Any other exit (e.g., `return` or `throw`) from the `for` loop will also call `cancel` first.
 
 ## Detailed design
 
@@ -182,7 +178,7 @@ The compiler will emit the equivalent of the following code:
 
 ```swift
 var it = myFile.lines().makeAsyncIterator()
-while let value = try await it.next() {
+while let line = try await it.next() {
   // Do something with each line
 }
 ```
@@ -191,50 +187,12 @@ All of the usual rules about error handling apply. For example, this iteration m
 
 ### Cancellation
 
-If `next()` returns `nil` then the iteration ends naturally and the compiler does not insert a call to `cancel()`.  If `next()` throws an error, then iteration also ends and the compiler does not insert a call to `cancel()`. In both of these cases, it was the `AsyncSequence` itself which decided to end iteration and there is no need to tell it to cancel.
+`AsyncIteratorProtocol` types should use the cancellation primitives provided by Swift's `Task` API, part of [structured concurrency](https://github.com/DougGregor/swift-evolution/blob/structured-concurrency/proposals/nnnn-structured-concurrency.md). As described there, the iterator can choose how it responds to cancellation. The most common behaviors will be either throwing `CancellationError` or returning `nil` from the iterator. 
 
-If, inside the body of the loop, the code calls `break`, `return` or `throw`, then the compiler first inserts a synchronous call to `cancel()` on the `it` iterator.
+If an `AsyncIteratorProtocol` type has cleanup to do upon cancellation, it can do it in two places:
 
-If this iteration is itself in a context in which cancellation can occur, then it is up to the developer to check for cancellation themselves and break out of the loop:
-
-```swift
-for try await line in myFile.lines() {
-  // Do something
-  ...
-  // Check for cancellation
-  try await Task.checkCancellation()
-}
-```
-
-In this case, control of cancellation (which is a potential suspension point, and may be something to do either before or after receiving a value) is up to the author of the code.
-
-#### Cancellation on Reference Types
-
-If the `AsyncIterator` is a `class` type, it should assume that `deinit` is equivalent to calling `cancel`. This will prevent leaking of resources in cases where the iterator is used manually and `cancel` is not called. It also provides a future-proofing path for move-only iterators.
-#### Automatic Cancellation
-
-"Automatic" calls to `cancel` are conceptually compatible with `defer`. Given the following code:
-
-```swift
-for await x in seq {
-  // code
-}
-```
-
-The compiler generates code equivalent to this:
-
-```swift
-do {
-  var $_iterator = seq.makeAsyncIterator()
-  var $_element: Element? = await $_iterator.next()
-  defer { if $_element != nil { $_iterator.cancel() } }
-  while let x = $_element {
-    // code
-    $_element = await $_iterator.next()
-  }
-}
-```
-
+1. After checking for cancellation using the `Task` API.
+2. In its `deinit` (if it is a class type).
 ### Rethrows
 
 This proposal will take advantage of a separate proposal to add specialized `rethrows` conformance in a protocol, pitched [here](https://forums.swift.org/t/pitch-rethrowing-protocol-conformances/42373). With the changes proposed there for `rethrows`, it will not be required to use `try` when iterating an `AsyncSequence` which does not itself throw.
@@ -245,24 +203,34 @@ The `await` is always required because the definition of the protocol is that it
 
 The existence of a standard `AsyncSequence` protocol allows us to write generic algorithms for any type that conforms to it. There are two categories of functions: those that return a single value (and are thus marked as `async`), and those that return a new `AsyncSequence` (and are not marked as `async` themselves).
 
-The functions that return a single value are especially interesting because they increase usability by changing a loop into a single `await` line. Functions in this category are `first`, `contains`, `count`, `min`, `max`, `reduce`, and more. Functions that return a new `AsyncSequence` include `filter`, `map`, and `compactMap`.
+The functions that return a single value are especially interesting because they increase usability by changing a loop into a single `await` line. Functions in this category are `first`, `contains`, `min`, `max`, `reduce`, and more. Functions that return a new `AsyncSequence` include `filter`, `map`, and `compactMap`.
 
 ### AsyncSequence to single value
 
 Algorithms that reduce a for loop into a single call can improve readability of code. They remove the boilerplate required to set up and iterate a loop.
 
-For example, here is the `first` function:
+For example, here is the `contains` function:
 
 ```swift
-extension AsyncSequence {
-  public func first() async rethrows -> Element?
+extension AsyncSequence where Element : Equatable {
+  public func contains(_ value: Element) async rethrows -> Bool
 }
 ```
 
-With this extension, our "first line" example from earlier becomes simply:
+With this extension, our "first long line" example from earlier becomes simply:
 
 ```swift
-let first = try? await myFile.lines().first()
+let first = try? await myFile.lines().first(where: { $0.count > 80 })
+```
+
+Or, if the sequence should be processed asynchonously and used later:
+
+```swift
+async let first = myFile.lines().first(where: { $0.count > 80 })
+
+// later
+
+warnAboutLongLine(try? await first)
 ```
 
 The following functions will be added to `AsyncSequence`:
@@ -273,7 +241,6 @@ The following functions will be added to `AsyncSequence`:
 | `contains(where: (Element) async throws -> Bool) async rethrows -> Bool` | The `async` on the closure allows optional async behavior, but does not require it |
 | `allSatisfy(_ predicate: (Element) async throws -> Bool) async rethrows -> Bool` | |
 | `first(where: (Element) async throws -> Bool) async rethrows -> Element?` | |
-| `first() async rethrows -> Element?` | Not a property since properties cannot `throw` |
 | `min() async rethrows -> Element?` | Requires `Comparable` element |
 | `min(by: (Element, Element) async throws -> Bool) async rethrows -> Element?` | |
 | `max() async rethrows -> Element?` | Requires `Comparable` element |
@@ -299,7 +266,6 @@ public struct AsyncMapSequence<Upstream: AsyncSequence, Transformed>: AsyncSeque
   public let transform: (Upstream.Element) async throws -> Transformed
   public struct Iterator : AsyncIterator { 
     public mutating func next() async rethrows -> Transformed?
-    public mutating func cancel()
   }
 }
 ```
@@ -326,6 +292,8 @@ We've aimed for parity with the most relevant `Sequence` functions. There may be
 
 API which uses a time argument must be coordinated with the discussion about `Executor` as part of the [structured concurrency proposal](https://github.com/DougGregor/swift-evolution/blob/structured-concurrency/proposals/nnnn-structured-concurrency.md).
 
+We would like a `first` property, but properties cannot currently be `async` or `throws`. Discussions are ongoing about adding a capability to the language to allow effects on properties. If those features become part of Swift then we should add a `first` property to `AsyncSequence`.
+
 ### AsyncSequence Builder
 
 In the standard library we have not only the `Sequence` and `Collection` protocols, but concrete types which adopt them (for example, `Array`). We will need a similar API for `AsyncSequence` that makes it easy to construct a concrete instance when needed, without declaring a new type and adding protocol conformance.
@@ -344,9 +312,16 @@ This change is additive to API.
 
 ## Alternatives considered
 
-### Asynchronous cancellation
+### Explicit Cancellation
 
-The `cancel()` function on the iterator could be marked as `async`. However, this means that the implicit cancellation done when leaving a `for/in` loop would require an implicit `await` -- something we think is probably too much to hide from the developer. Most cancellation behavior is going to be as simple as setting a flag to check later, so we leave it as a synchronous function and encourage adopters to make cancellation fast and non-blocking.
+An earlier version of this proposal included an explicit `cancel` function. We removed it for the following reasons:
+
+1. Reducing the requirements of implementing `AsyncIteratorProtocol` makes it simpler to use and easier to understand. The rules about when `cancel` would be called, while straightforward, would nevertheless be one additional thing for Swift developers to learn.
+2. The structured concurrency proposal already includes a definition of cancellation that works well for `AsyncSequence`. We should consider the overall behavior of cancellation for asynchronous code as one concept.
+
+### Asynchronous Cancellation
+
+If we used explicit cancellation, the `cancel()` function on the iterator could be marked as `async`. However, this means that the implicit cancellation done when leaving a `for/in` loop would require an implicit `await` -- something we think is probably too much to hide from the developer. Most cancellation behavior is going to be as simple as setting a flag to check later, so we leave it as a synchronous function and encourage adopters to make cancellation fast and non-blocking.
 ### Opaque Types
 
 Each `AsyncSequence`-to-`AsyncSequence` algorithm will define its own concrete type. We could attempt to hide these details behind a general purpose type eraser. We believe leaving the types exposed gives us (and the compiler) more optimization opportunities. A great future enhancement would be for the language to support `some AsyncSequence where Element=...`-style syntax, allowing hiding of concrete `AsyncSequence` types at API boundaries.
@@ -367,20 +342,12 @@ We considered a shorter syntax of `await...in`. However, since the behavior here
 
 ### Add APIs to iterator instead of sequence
 
-We discussed applying the fundamental API (`map`, `reduce`, etc.) to the `AsyncIterator` protocol instead of `AsyncSequence`. There has been a long-standing (albeit deliberate) ambiguity in the `Sequence` API -- is it supposed to be single-pass or multi-pass? This new kind of iterator & sequence could provide an opportunity to define this more concretely.
+We discussed applying the fundamental API (`map`, `reduce`, etc.) to `AsyncIteratorProtocol` instead of `AsyncSequence`. There has been a long-standing (albeit deliberate) ambiguity in the `Sequence` API -- is it supposed to be single-pass or multi-pass? This new kind of iterator & sequence could provide an opportunity to define this more concretely.
 
 While it is tempting to use this new API to right past wrongs, we maintain that the high level goal of consistency with existing Swift concepts is more important. 
 
-For example, `for...in` cannot be used on an `Iterator` -- only a `Sequence`. If we chose to make `AsyncIterator` use `for...in` as described here, that leaves us with the choice of either introducing an inconsistency between `AsyncIterator` and `Iterator` or giving up on the familiar `for...in` syntax. Even if we decided to add `for...in` to `Iterator`, it would still be inconsistent because we would be required to leave `for...in` syntax on the existing `Sequence`.
+For example, `for...in` cannot be used on an `IteratorProtocol` -- only a `Sequence`. If we chose to make `AsyncIteratorProtocol` use `for...in` as described here, that leaves us with the choice of either introducing an inconsistency between `AsyncIteratorProtocol` and `IteratorProtocol` or giving up on the familiar `for...in` syntax. Even if we decided to add `for...in` to `IteratorProtocol`, it would still be inconsistent because we would be required to leave `for...in` syntax on the existing `Sequence`.
 
 Another point in favor of consistency is that implementing an `AsyncSequence` should feel familiar to anyone who knows how to implement a `Sequence`.
 
 We are hoping for widespread adoption of the protocol in API which would normally have instead used a `Notification`, informational delegate pattern, or multi-callback closure argument. In many of these cases we feel like the API should return the 'factory type' (an `AsyncSequence`) so that it can be iterated again. It will still be up to the caller to be aware of any underlying cost of performing that operation, as with iteration of any `Sequence` today.
-
-### Move-only iterator and removing Cancel
-
-We discussed waiting to introduce this feature until move-only types are available in the future. This is a tradeoff in which we look to the Core Team for advice, but the authors believe the benefit of having this functionality now has the edge. It will likely be the case that move-only types will bring changes to other `Sequence` and `Iterator` types when it arrives in any case.
-
-Prototyping of the patch does not seem to indicate undue complexity in the compiler implementation. In fact, it appears that the existing ideas around `defer` actually match this concept cleanly. 
-
-We have included a `__consuming` attribute on the `cancel` function, which should allow move-only iterators to exist in the future.
