@@ -319,7 +319,7 @@ This transformation at the call-site only applies when calling the function dire
 
 Property-wrapper projections are designed to allow property wrappers to provide a representation of the storage type that can be used outside of the context that owns the property-wrapper storage. Typically, projections either expose the backing property wrapper directly, or provide an instance of a separate type that vends more restricted access to the functionality on the property wrapper.
 
-When a property-wrapper has a projection, it's often the case that the presence of the property-wrapper is fundamental to understanding the behavior of the property itself, and it's often necessary to use the projection alongside the wrapped value. In such cases, the projection is equal in importance to the wrapped value in the API of the wrapped property. With respect to function parameters, it's equally important to support passing a projection, especially if the property wrapper does not support initialization from a wrapped value.
+When a property-wrapper has a projection, it's often the case that the presence of the property-wrapper is fundamental to understanding the behavior of the property itself, and it's often necessary to use the projection alongside the wrapped value. In such cases, the projection is equal in importance to the wrapped value in the API of the wrapped property. With respect to function parameters, it's equally important to support passing a projection.
 
 Property wrappers can opt into passing a projected-value argument to a property-wrapped parameter. To enable passing a property-wrapper projection to a function with a wrapped parameter, property wrappers must declare `var projectedValue`, and implement an `init(projectedValue:)` that meets the following requirements:
 
@@ -460,6 +460,9 @@ Non-instance methods cannot use property wrappers that require the enclosing `se
 
 > **Rationale**: Non-instance methods do _not_ have an enclosing `self` instance, which is required for the local computed property that represents `wrappedValue`.
 
+Property wrapper attributes can only be used on parameters in overridden functions or protocol witnesses if the original has the same property wrapper attributes.
+
+> **Rationale**: This restriction ensures that the call-site transformation is always the same for families of dynamically dispatched functions.
 
 ## Source compatibility
 
@@ -517,22 +520,20 @@ struct TextEditor {
 
 ### Extending property wrappers to patterns
 
-Property-wrapper backing-storage initialization in the the pattern of a closure argument was supported in first revision. Building on this syntax, the core team suggested the extension of property-wrapper application to places where patterns exist. Of course, the design has been amended so as to preserve the expectation that the backing storage be private; extending property wrappers to patterns, though, is still a viable future direction. 
+Passing a property-wrapper storage instance directly to a property-wrapped closure parameter was supported in first revision. One suggestion from the core team was to imagine this functionality as an orthogonal feature to allow pattern matching to "unwrap" property wrappers. Though this proposal revised the design of closures to match the behavior of unapplied function references, extending property wrappers to all patterns is still a viable future direction.
 
-Enabling the application of property wrappers where patterns are available is quite straightforward. It would simply require enabling projected-value initialization, which would facilitate intuitive and effortless access to property wrappers in native language constructs, as shown below:
+Enabling the application of property wrappers in value-binding patterns would facilitate using the intuitive property-wrapper syntax in native language constructs, as shown below:
 
 ```swift
 enum Review {
-  case revised(History<String>), original(String)
-  
-  init(fromUser username: String) { ... }
+  case revised(Traceable<String>)
+  case original(String)
 }
 
 switch Review(fromUser: "swiftUser5") {
-case .revised(@Traceable let $reviewText):
-  ...
-case .original(let originalReview):
-  ...
+case .revised(@Traceable let reviewText),
+     .original(let reviewText):
+  // do something with reviewText
 }
 ```
 
@@ -591,9 +592,9 @@ As a result, unsafe code is not dominated by visually displeasing accesses to `p
 ### Changes from the first reviewed version
 
 * Passing a projected value using the `$` calling syntax is supported via `init(projectedValue:)`.
-* The type of the unapplied function reference uses the wrapped-value type by default. Referencing the function using the projected-value type is supported by writing `$` in front of the argument label, or `_` if there is no argument label.
+* The type of the unapplied function reference uses the wrapped-value type by default. Referencing the function using the projected-value type is supported by writing `$` in front of the argument label, or by writing `$_` if there is no argument label.
 * Closures with property-wrapper parameters have the same semantics as unapplied function references.
-* Additional arguments in the wrapper attribute are supported, and these arguments have the same semantics as default function arguments.
+* Additional arguments in the wrapper attribute are supported, and these arguments have the same evaluation semantics as default function arguments.
 
 ## Appendix
 
