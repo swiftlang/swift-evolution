@@ -4,6 +4,7 @@
 * Authors: [John McCall](https://github.com/rjmccall), [Joe Groff](https://github.com/jckarter), [Doug Gregor](https://github.com/DougGregor), [Konrad Malawski](https://github.com/ktoso)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Active review (15 - 26 January 2021)**
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/5f79481244329ec2860951c0c49c101aef5069e7/proposals/0300-continuation.md)
 
 ## Introduction
 
@@ -92,11 +93,21 @@ func withUnsafeThrowingContinuation<T>(
 ) async throws -> T
 ```
 
-The `resume` methods immediately return control to the caller after
-transitioning the task out of its suspended state. The task itself does not
-actually resume execution until its executor reschedules it.
+`withUnsafe*Continuation` will run its `operation` argument immediately in the
+task's current context, passing in a *continuation* value that can be
+used to resume the task. The `operation` function must arrange for the
+continuation to be resumed at some point in the future; after the `operation`
+function returns, the task is suspended. The task must then be brought out
+of the suspended state by invoking one of the continuation's `resume` methods.
+Note that `resume` immediately returns control to the caller after transitioning
+the task out of its suspended state; The task itself does not actually resume
+execution until its executor reschedules it. The argument to
+`resume(returning:)` becomes the return value of `withUnsafe*Continuation`
+when the task resumes execution. With an `UnsafeThrowingContinuation`,
+`resume(throwing:)` can be used instead to make the task resume by propagating
+the given error.
 
-After invoking `withUnsafeContinuation`, the resume function must be
+After invoking `withUnsafeContinuation`, exactly one `resume` method must be
 called *exactly-once* on every execution path through the program.
 `Unsafe*Continuation` is an unsafe interface, so it is undefined behavior if
 a `resume` method is invoked on the same continuation more than once. The
@@ -390,10 +401,12 @@ dispatch queue the completion handler should be invoked by. In these cases,
 it would be optimal if the original API could resume the task directly on the
 dispatch queue (or whatever other scheduling mechanism, such as a thread or 
 run loop) that the task would normally be resumed on by its executor. To
-enable this, `Task` could provide an API to get its current queue, if any,
-and `*Continuation` in turn could provide an `unsafeResumeImmediately` set of
-APIs, which would immediately resume execution of the task on the current
-thread. This would enable something like this:
+enable this, we could provide a variant of `with*Continuation` that, in
+addition to providing a continuation, also provides the dispatch queue that
+the task expects to be resumed on. The `*Continuation` type in turn could
+provide an `unsafeResumeImmediately` set of APIs, which would immediately
+resume execution of the task on the current thread. This would enable something
+like this:
 
 ```
 // Given an API that takes a queue and completion handler:
@@ -401,31 +414,36 @@ func doThingAsynchronously(queue: DispatchQueue, completion: (ResultType) -> Voi
 
 // We could wrap it in a Swift async function like:
 func doThing() async -> ResultType {
-  // Get the current queue our task is associated with, if any
-  let taskQueue = Task.currentQueue()
-
-  await withUnsafeContinuation { c in
-    if let queue = taskQueue {
-      // Schedule to resume on the right queue, if we know it
-      doThingAsynchronously(queue: queue) {
-        c.unsafeResumeImmediately(returning: $0)
-      }
-    } else {
-      // If the task doesn't have a queue association, resume conservatively
-      doThingAsynchronously(queue: DispatchQueue.global) {
-        c.resume(returning: $0)
-      }
+  await withUnsafeContinuationAndCurrentDispatchQueue { c, queue in
+    // Schedule to resume on the right queue, if we know it
+    doThingAsynchronously(queue: queue) {
+      c.unsafeResumeImmediately(returning: $0)
     }
   }
 }
 ```
 
 However, such an API would have to be used very carefully; the programmer
-would have to be careful that no operations happen in the task that might
-change its executor, such as calling out to an actor-bound method, between
-when the current queue is checked and when `withUnsafeContinuation` is used.
+would have to be careful that `unsafeResumeImmediately` is in fact invoked
+in the correct context, and that it is safe to take over control of the
+current thread from the caller for a potentially unbounded amount of time.
 If the task is resumed in the wrong context, it will break assumptions in the
 written code as well as those made by the compiler and runtime, which will
 lead to subtle bugs that would be difficult to diagnose. We can investigate
 this as an addition to the core proposal, if "queue hopping" in continuation-
 based adapters turns out to be a performance problem in practice.
+
+## Revision history
+
+- Clarified the execution behavior of `with*Continuation` and
+  `*Continuation.resume`, namely that `with*Continuation` immediately executes
+  its operation argument in the current context before suspending the task,
+  and that `resume` immediately returns to its caller after un-suspending the
+  task, leaving the task to be scheduled by its executor.
+- Removed an unnecessary invariant on when `resume` must be invoked; it is valid
+  to invoke it exactly once at any point after the `with*Continuation` operation
+  has started executing; it does not need to run exactly when the operation
+  returns.
+- Added "future direction" discussion of a potential more advanced API that
+  could allow continuations to directly resume their task when the correct
+  dispatch queue to do so is known.
