@@ -621,7 +621,7 @@ If there is no suitable `@reentrant` attribute, an actor-isolated declaration is
 Here's an example illustrating how the `@reentrant` attribute can be applied at various points:
 
 ```swift
-actor class Stage {
+actor Stage {
   @reentrant(never) func f() async { ... }    // not reentrant
   func g() async { ... }                      // reentrant
 }
