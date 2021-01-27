@@ -501,7 +501,7 @@ var count: Int { constantCount + 1 }
 
 When used on a declaration, it indicates that the declaration is not actor-isolated to any actor, which allows it to be accessed from anywhere. Moreover, it interrupts the implicit propagation of actor isolation from context, e.g., it can be used on an instance declaration in an actor to make the declaration actor-independent rather than isolated to the actor.
 
-When used on a class, the attribute applies by default to members of the class and extensions thereof.  It also interrupts the ordinary implicit propagation of actor-isolation attributes from the superclass, except as required for overrides.
+When used on a type, the attribute applies by default to members of the type and extensions thereof.  It also interrupts the ordinary implicit propagation of actor-isolation attributes from the superclass, except as required for overrides.
 
 When used on an extension, the attribute applies by default to members of that extension. It also interrupts the ordinary implicit propagation of actor-isolation attributes from the superclass (if there is one), except as required for overrides.
 
