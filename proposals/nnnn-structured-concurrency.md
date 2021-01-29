@@ -214,11 +214,12 @@ Let's stretch our example even further and focus in on our `chopVegetables()` op
 ```swift
 /// Sequentially chop the vegetables.
 func chopVegetables() async throws -> [Vegetable] {
-  var veggies: [Vegetable] = gatherRawVeggies()
-  for i in veggies.indices {
-    veggies[i] = try await veggies[i].chopped()
+  let rawVeggies: [Vegetable] = gatherRawVeggies()
+  var choppedVeggies: [Vegetable] = []
+  for v in rawVeggies {
+    choppedVeggies.append(try await v.chopped())
   }
-  return veggies
+  return choppedVeggies
 }
 ```
 
@@ -591,6 +592,8 @@ extension Task {
 }
 ```
 
+#### Cancellation handlers
+
 For tasks that want to react immediately to cancellation (rather than, say, waiting until a cancellation error propagates upward), one can install a cancellation handler:
 
 ```swift
@@ -614,9 +617,48 @@ extension Task {
 }
 ```
 
+Note that the `handler` runs `@concurrent` with the rest of the task, because it
+is executed immediately when the task is cancelled, which can happen at any
+point. If the task has already been cancelled at the point `withCancellationHandler` is called, the cancellation handler is invoked immediately, before the
+`operation` block is executed.
+
+These properties place rather strict limitations on what a
+cancellation handler closure can safely do, but the ability to be triggered at
+any point makes cancellation handlers useful for managing the state of related
+objects, in cases where either polling cancellation state from within the task
+or else propagating it by throwing `CancellationError` is not possible. As one
+example, cancellation handlers can be useful in conjunction with
+[continuations](0300-continuation.md) to help thread cancellation through
+non-`async` event-driven interfaces. For example, if one wanted to wrap up
+Foundation's `URLSession` object in an async function interface, cancelling the
+`URLSession` if the async task is itself cancelled, then it might look
+something like this:
+
+```
+func download(url: URL) async throws -> Data? {
+  var urlSessionTask: URLSessionTask?
+
+  return try Task.withCancellationHandler { urlSessionTask?.cancel() }
+  operation: {
+    return try await withUnsafeThrowingContinuation { continuation in
+      urlSessionTask = URLSession.shared.dataTask(with: url) { data, _, error in
+        if let error = error {
+          // Ideally translate NSURLErrorCancelled to CancellationError here
+          continuation.resume(throwing: error)
+        } else {
+          continuation.resume(returning: data)
+        }
+      }
+      urlSessionTask?.resume()
+    }
+  }
+}
+```
+
 #### Voluntary Suspension
 
-For certain tasks of long running operations, say performing many tasks in a tight loop, it might be beneficial for tasks to sometimes check in if they should perhaps suspend and offer a chance for other tasks to proceed (e.g. if all are executing on a shared, limited-concurrency pool). For this use-case `Task` includes a `yield()` operation, which is a way to explicitly suspend and give other tasks a chance to run for a while. 
+For long running operations, say performing many computations in a tight loop
+without natural suspend points, it might be beneficial to occasionally check in if the task should perhaps suspend and offer a chance for other tasks to proceed (e.g. if all are executing on a shared, limited-concurrency pool). For this use case, `Task` includes a `yield()` operation, which is a way to explicitly suspend the current task and give other tasks a chance to run for a while. 
 
 ```swift
 extension Task {
