@@ -638,8 +638,9 @@ something like this:
 func download(url: URL) async throws -> Data? {
   var urlSessionTask: URLSessionTask?
 
-  return try Task.withCancellationHandler { urlSessionTask?.cancel() }
-  operation: {
+  return try Task.withCancellationHandler {
+    urlSessionTask?.cancel()
+  } operation: {
     return try await withUnsafeThrowingContinuation { continuation in
       urlSessionTask = URLSession.shared.dataTask(with: url) { data, _, error in
         if let error = error {
