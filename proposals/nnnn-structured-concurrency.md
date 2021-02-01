@@ -229,9 +229,9 @@ potential concurrency; depending on how many vegetables we can get from
 with the rest. We also don't need to necessarily gather the chopped vegetables
 in any specific order, and can collect the results as they become ready.
 
-To create child tasks programmatically, and gather their results, we still introduce a new task group via `Task.withGroup`, this time specifying a `resultType`
-for the child tasks, and using the `next` method to collect those results as
-they become ready:
+To create a dynamic number of child tasks and gather their results, we still introduce a new task group via `Task.withGroup`, specifying a `resultType`
+for the child tasks, and using the group's `next` method to collect those
+results as they become ready:
 
 ```swift
 /// Concurrently chop the vegetables.
@@ -548,6 +548,7 @@ extension Task {
   @discardableResult
   static func runDetached<T>(
     priority: Priority = .default,
+    startingOn executor: ExecutorRef? = nil,
     operation: @escaping () async -> T
   ) -> Handle<T>
 
@@ -555,6 +556,7 @@ extension Task {
   @discardableResult
   static func runDetached<T>(
     priority: Priority = .default,
+    startingOn executor: ExecutorRef? = nil,
     operation: @escaping () async throws -> T
   ) -> Handle<T, Error>
 }
@@ -569,6 +571,10 @@ let dinnerHandle: Task.Handle<Meal, Error> = Task.runDetached {
 
 try await eat(dinnerHandle)
 ```
+
+By default, the new task will be initially scheduled on the default global
+concurrent executor. `runDetached` may optionally be given a `startingOn`
+executor on which to schedule the new task instead.
 
 #### Cancellation
 
@@ -763,6 +769,7 @@ extension Task {
   ///   - all tasks remaining in the group will be automatically cancelled.
   static func withGroup<TaskResult, BodyResult>(
     resultType: TaskResult.Type,
+    startingChildTasksOn executor: ExecutorRef? = nil,
     returning returnType: BodyResult.Type = BodyResult.self,
     body: (inout Task.Group<TaskResult>) async throws -> BodyResult
   ) async throws -> BodyResult { ... } 
@@ -786,6 +793,9 @@ This waiting can be performed either:
 - by the code within the task group itself (e.g., using `next()` repeatedly until it returns `nil`, described below), or
 - implicitly in the task group itself when returning from the `body`.
 
+By default, the task group will schedule child tasks added to the group on the default global concurrent executor. The `startingChildTasksOn` argument can
+be provided to override this behavior.
+
 ##### Adding tasks to a group
 
 Within the `body` function, tasks may be added dynamically with the `add` operation. Each task produces a value of the same type (the `ResultType` generic parameter):
@@ -802,7 +812,8 @@ extension Task.Group {
 
 `add` creates a new task in the task group, which will execute the given `operation` function concurrently. The task will be a child of the task that initially created the task group (via `Task.withGroup`), and will have the same priority as that task unless given a new priority with a non-`nil` `overridingPriority` argument.
 
-The `add` operation is `async` to allow for a form of back-pressure. If the executor on which the new task will be scheduled is oversubscribed, the `add` call itself can suspend to slow the creation of new tasks.
+The `add` operation is `async` to allow for a form of back-pressure. If the executor on which the new task will be scheduled is oversubscribed, the `add` call itself can suspend to slow the creation of new tasks. (By default, this is the
+default global concurrent executor, though a `withGroup` call can override this if it's passed a different executor argument.)
 
 The `add` operation returns `true` to indicate that the task was added to the group, and
 `false` otherwise. The only circumstance under which the task will not be added to the group is when the task group has been cancelled; see the section on [task group cancellation](#task-group-cancellation) for more information.
