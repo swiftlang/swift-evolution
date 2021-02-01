@@ -140,7 +140,7 @@ far easier to write functions that, unlike standard functions, will
 reliably abandon a thread when they need to wait for something
 to complete. Similarly, the design avoids operations which rely
 on blocking threads on arbitrary future work, like the traditional
-condition variable primitive, becausse allowing widespread
+condition variable primitive, because allowing widespread
 thread-blocking of this sort can easily starve a fixed-width
 thread pool or even lead to deadlock.
 
@@ -250,7 +250,7 @@ struct UnownedJobRef {
 ```
 
 The `UnownedExecutorRef` type is the opaque type of a reference
-to an executor. This type packs certain highly-valuable information
+to an executor. This type packs certain highly valuable information
 into the reference. It is an unmanaged (that is, unsafe) reference
 to the executor. Whatever context produces an `UnownedExecutorRef`
 is generally responsible for keeping the reference alive while it
@@ -301,7 +301,7 @@ for each actor that doesn't declare a custom executor; see "Actor
 executors" below. It is based on an "asynchronous lock" design which
 allows existing threads to immediately begin executing code on behalf
 of the actor rather than requiring functions to suspend and resume
-executing asynchronously. This process is calling *switching*. In
+executing asynchronously. This process is called *switching*. In
 situations where switching is impossible, such as when the actor is
 already executing on a thread, a job to process the actor will be
 scheduled onto the default concurrent executor.
@@ -462,4 +462,3 @@ TODO *---rjmccall*
 
 Describe alternative approaches to addressing the same problem, and
 why you chose this approach instead.
-
