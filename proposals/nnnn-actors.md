@@ -755,6 +755,7 @@ This implementation will behave as one would expect for inheritance (every `Empl
 
 * Changes in the third pitch:
   * Narrow the proposal down to only support re-entrant actors. Capture several potential non-reentrant designs in the Alternatives Considered as possible future extensions.
+  * Moved Objective-C interoperability into its own section.
 * Changes in the second pitch:
   * Added a discussion of the tradeoffs with actor reentrancy, performance, and deadlocks, with various examples, and the addition of new attribute `@reentrant(never)` to disable reentrancy at the actor or function level.
   * Removed global actors; they will be part of a separate document.
