@@ -460,8 +460,6 @@ An actor may only inherit from another actor. A non-actor may only inherit from 
 
 > **Rationale**: Actors enforce state isolation, but non-actors do not. If an actor inherits from a non-actor (or vice versa), part of the actor's state would not be covered by the actor-isolation rules, introducing the potential for data races on that state.
 
-As a special exception described in the complementary proposal [Concurrency Interoperability with Objective-C](https://github.com/DougGregor/swift-evolution/blob/concurrency-objc/proposals/NNNN-concurrency-objc.md), an actor may inherit from `NSObject`.
-
 By default, the instance methods, properties, and subscripts of an actor are actor-isolated to the actor instance. This is true even for methods added retroactively on an actor via an extension, like any other Swift type.
 
 ```
@@ -584,6 +582,24 @@ extension BankAccount {
 ```
 
 The expression `self.synchronous` is well-formed only if it is the direct argument to a function whose corresponding parameter is non-concurrent. Otherwise, it is ill-formed because the function might be called in a context that is not actor-isolated.
+
+### Actor interoperability with Objective-C
+
+As a special exception to the rule that an actor can only inherit from another actor, an actor can inherit from `NSObject`. This allows actors to themselves be declared `@objc`, and implicitly provides conformance to `NSObjectProtocol`:
+
+```swift
+@objc actor MyActor: NSObject { ... }
+```
+
+A member of an actor can only be `@objc` if it is either `async` or is independent of the actor's isolation domain. Synchronous code that is within the actor's isolation domain can only be invoked on `self` (in Swift). Objective-C does not have knowledge of actor isolation, so these members are not permitted to be exposed to Objective-C. For example:
+
+```swift
+@objc actor MyActor: NSObject {
+    @objc func synchronous() { } // error: part of actor's isolation domain
+    @objc func asynchronous() async { } // okay: asynchronous, exposed to Objective-C as a method that accepts a completion handler
+    @objc @actorIndependent func independent() { } // okay: actor-independent
+}
+```
 
 ## Source compatibility
 
