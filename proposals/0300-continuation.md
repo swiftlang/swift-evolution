@@ -408,7 +408,7 @@ provide an `unsafeResumeImmediately` set of APIs, which would immediately
 resume execution of the task on the current thread. This would enable something
 like this:
 
-```
+```swift
 // Given an API that takes a queue and completion handler:
 func doThingAsynchronously(queue: DispatchQueue, completion: (ResultType) -> Void)
 
