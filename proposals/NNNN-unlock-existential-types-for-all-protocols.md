@@ -39,7 +39,7 @@ struct BussinessUser : User {
     let organisationId: UUID
   }
 
-  let id: BusinessID
+  let id: ID
 
   let username: String
 }
@@ -65,7 +65,7 @@ Evidently, the current limitations on existential types prohibit the creation of
 
 ### Existential Type Synthesis for Library Authors
 
-For convenience, libraries are often bound to vend custom type-erased wrappers for commonly-used protocols when their existential counterpart is not supported. This comes at the expense of code size, resilience, and valuable time required to design, document, and maintain such code, more so if the target protocol is not owned by the library. For instance, [SwiftUI](https://developer.apple.com/documentation/swiftui) heavily relies on the ubiquitous [`View`](https://developer.apple.com/documentation/swiftui/view) protocol with a public interface approximating the following:
+For convenience, libraries are often bound to vend custom type-erased wrappers for commonly-used protocols when their existential counterpart is not supported. This comes at the expense of code size, resilience, and valuable time required to design, document, and maintain such code, more so if the protocol is declared in a different library. For instance, [SwiftUI](https://developer.apple.com/documentation/swiftui) heavily relies on the ubiquitous [`View`](https://developer.apple.com/documentation/swiftui/view) protocol with a public interface approximating the following:
 
 ```swift
 public protocol View {
