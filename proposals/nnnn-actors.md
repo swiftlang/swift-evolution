@@ -470,11 +470,13 @@ extension BankAccount {
 }  
 ```
 
+Actors are similar to classes in all respects independent of isolation: actor types can have `static` and `class` methods, properties, and subscripts. All of the attributes that apply to classes apply to actors in much the same way, except where those semantics conflict with actor isolation. An actor type satisfies an `AnyObject` requirement.
+
+### Actor-independent declarations
+
 An instance method, computed property, or subscript of an actor may be annotated with `@actorIndependent`.  If so, it (or its accessors) are no longer actor-isolated to the `self` instance of the actor.
 
 By default, the mutable stored properties (declared with `var`) of an actor are actor-isolated to the actor instance. A stored property may be annotated with `@actorIndependent(unsafe)` to remove this restriction. 
-
-### Actor-independent declarations
 
 A declaration may be declared to be actor-independent:
 
@@ -756,6 +758,7 @@ This implementation will behave as one would expect for inheritance (every `Empl
 * Changes in the third pitch:
   * Narrow the proposal down to only support re-entrant actors. Capture several potential non-reentrant designs in the Alternatives Considered as possible future extensions.
   * Moved Objective-C interoperability into its own section.
+  * Clarify the "class-like" behaviors of actor types, such as satisfying an `AnyObject` conformance.
 * Changes in the second pitch:
   * Added a discussion of the tradeoffs with actor reentrancy, performance, and deadlocks, with various examples, and the addition of new attribute `@reentrant(never)` to disable reentrancy at the actor or function level.
   * Removed global actors; they will be part of a separate document.
