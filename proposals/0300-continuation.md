@@ -3,7 +3,7 @@
 * Proposal: [SE-0300](0300-continuation.md)
 * Authors: [John McCall](https://github.com/rjmccall), [Joe Groff](https://github.com/jckarter), [Doug Gregor](https://github.com/DougGregor), [Konrad Malawski](https://github.com/ktoso)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active review (15 - 26 January 2021)**
+* Status: **Active review (1 - 11 February 2021)**
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/5f79481244329ec2860951c0c49c101aef5069e7/proposals/0300-continuation.md)
 
 ## Introduction
