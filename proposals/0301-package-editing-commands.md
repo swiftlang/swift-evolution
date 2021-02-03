@@ -9,9 +9,9 @@
 
 ## Introduction
 
-Forums Discussion: https://forums.swift.org/t/pitch-package-editor-commands/42224/
-
 Because Swift package manifests are written in Swift using the PackageDescription API, it is difficult to automate common tasks like adding a new product, target, or dependency. This proposal introduces new `swift package` subcommands to perform some common editing tasks which can streamline users' workflows and enable new higher-level tools.
+
+Forums Discussion: https://forums.swift.org/t/pitch-package-editor-commands/42224/
 
 ## Motivation
 
@@ -39,28 +39,29 @@ The following subcommands will be added to `swift package`:
 
 `swift package add-product <name> [--type <type>] [--targets <targets>]`
 
-**name**: The name of the new product.
-**type**: _executable_, _library_, _static-library_, or _dynamic-library_. If unspecified, this will default to _library_.
-**targets**: A comma separated list of target names to to add to the new product.
-
+- **name**: The name of the new product.
+- **type**: _executable_, _library_, _static-library_, or _dynamic-library_. If unspecified, this will default to _library_.
+- **targets**: A comma separated list of target names to to add to the new product.
+***
 `swift package add-target <name> [--type <type>] [--no-test-target] [--dependencies <dependencies>] [--url <url>] [--path <path>] [--checksum <checksum>]`
-**name**: The name of the new target.
-**type**: _library_, _executable_, _test_, or _binary_. If unspecified, this will default to _library_. The distinction between library and executable targets doesn't impact the manifest currently, but will determine whether or not a `main.swift` file is created. Adding system library targets will not be supported by the initial version of the CLI due to their often complex configuration requirements.
-**--no-test-target**: By default, a test target is added for each library target unless this flag is present.
-**dependencies**: A comma separated list of target dependency names.
-**url/path**: The URL for a remote binary target or path for a local one.
-**checksum**: The checksum for a remote binary target.
+- **name**: The name of the new target.
+- **type**: _library_, _executable_, _test_, or _binary_. If unspecified, this will default to _library_. Adding system library targets will not be supported by the initial version of the CLI due to their often complex configuration requirements.
+- **--no-test-target**: By default, a test target is added for each library target unless this flag is present.
+- **dependencies**: A comma separated list of target dependency names.
+- **url/path**: The URL for a remote binary target or path for a local one.
+- **checksum**: The checksum for a remote binary target.
 
 In addition to editing the manifest, the add-target command will create the appropriate `Sources` or `Tests` subdirectories for new targets.
-
+***
 `swift package add-dependency <dependency> [--exact <version>] [--revision <revision>] [--branch <branch>] [--from <version>] [--up-to-next-minor-from <version>]`
-**dependency**: This may be the URL of a remote package, the path to a local package, or the name of a package in one of the user's package collections.
+- **dependency**: This may be the URL of a remote package, the path to a local package, or the name of a package in one of the user's package collections.
+
 Only one of the following options may appear to specify a package dependency requirement:
-**--exact <version>**: Specifies a `.exact(<version>)` requirement in the manifest.
-**--revision <revision>**: Specifies a `.revision(<revision>)` requirement in the manifest.
-**--branch <branch>**: Specifies a `.branch(<branch>)` requirement in the manifest.
-**--from <revision>**: Specifies a `.upToNextMajor(<version>)` requirement in the manifest.
-**--up-to-next-minor-from <version>**: Specifies a `.upToNextMinor(<version>)` requirement in the manifest.
+- **--exact <version>**: Specifies a `.exact(<version>)` requirement in the manifest.
+- **--revision <revision>**: Specifies a `.revision(<revision>)` requirement in the manifest.
+- **--branch <branch>**: Specifies a `.branch(<branch>)` requirement in the manifest.
+- **--from <revision>**: Specifies a `.upToNextMajor(<version>)` requirement in the manifest.
+- **--up-to-next-minor-from <version>**: Specifies a `.upToNextMinor(<version>)` requirement in the manifest.
 
 If no requirement is specified, the command will default to a `.upToNextMajor` requirement on the latest version of the package.
 
@@ -153,7 +154,7 @@ Because this proposal only includes new editing commands, it has no impact on pa
 
 ## Alternatives considered
 
-One alternative considered was not including this functionality at all. It's worth noting that maintaining package editor functionality over time and adapting it to changes in the `PackageDescription` API will require a nontrivial effort. However, the benefits of including the functionality are substantial enought that it seems like a worthwhile tradeoff. Beyond that, much of the required infrastructure can be reused to enable other new features like source locations in manifest diagnostics and commands like `swift package upgrade` discussed in the "Future Directions" section.
+One alternative considered was not including this functionality at all. It's worth noting that maintaining package editor functionality over time and adapting it to changes in the `PackageDescription` API will require a nontrivial effort. However, the benefits of including the functionality are substantial enough that it seems like a worthwhile tradeoff. Beyond that, much of the required infrastructure can be reused to enable other new features like source locations in manifest diagnostics and commands like `swift package upgrade` discussed in the "Future Directions" section.
 
 Another suggested alternative was to provide an interface to run scripts which mutate the `Package` object after the manifest is run. A full discussion of such a feature is outside the scope of this proposal, but it would likely allow more flexible edits. However, this approach has several downsides. To persist edits after running such a script, the entire `Package.swift` would need to be rewritten, which would drop comments, the content of inactive conditional compilation blocks, and any other skipped branches in the manifest code. The proposed subcommands, which rely on a syntax-level transformation, are able to make more specific edits to the manifest and avoid these issues.
 
