@@ -192,6 +192,9 @@ public protocol TaskLocalKey {
   /// if the type itself does not have a good "undefined" or "zero" value that could
   /// be used here.
   static var defaultValue: Value { get }
+  
+  /// Determines 
+  static var carryMode: TaskLocalCarryMode { get }
 }
 ```
 
@@ -220,6 +223,53 @@ extension TaskLocalValues {
 This follows prior-art of SwiftUI Environment's [EnvironmentValues](https://developer.apple.com/documentation/swiftui/environmentvalues) and [EnvironmentKey](https://developer.apple.com/documentation/swiftui/environmentkey). However notice that there is no need for implementing set/get with any actual logic; just the types and are used for identification of task-local values. This is because it is not really correct to think about task local values in terms of just a "set" operation, but it is only scopes of "_key_ bound to _value_" which can bind values, as will be discussed below.  
 
 The implementation of task locals relies on the existence of `Task.unsafeCurrent` from the [Structured Concurrency proposal](https://forums.swift.org/t/pitch-2-structured-concurrency/43452/116). This is how we are able to obtain a task reference, regardless if within or outside of an asynchronous context.
+
+#### TaskLocal Carry Modes
+
+Specialized carry semantics are available as opt-in by declaring a special carry mode on one's `MyKey` type.
+
+These features are designed for a very narrow, specialized set of tools: tracing Instruments / Tracers. It is not recommended to use 
+
+```swift
+struct TaskLocalCarryMode: Equatable { 
+  static let `default`: Self
+  
+  static let breadcrumbThroughDetached: Self // TODO BAD NAME
+  
+//  static let copyAlways: Self
+}
+```
+
+The storage mechanism for `breadcrumbThroughDetached TODO BAD NAME` is a specialized, secondary stack (???) or special marker (???) that carries a task local value even through detach operations. This specifically matters a lot for tools like Instruments and general purpose Tracers, which may need to trace "through" detached tasks in order to not break a trace.
+
+Consider the following example, where a trace is broken (i.e. the traceID is not carried forward to the `httpRequest()`):
+
+```swift
+await Task.withLocal(\.traceID, boudnTo: "111-22-333") {
+  await Task.runDetached { // detach because the request is fire-and-forget
+    httpRequest() // (!) would want to know it was kicked off during traceID=111-22-333
+  }
+}
+```
+
+We can fix this behavior, by specializing the `traceID`'s key to use the `TaskLocalCarryMode.breadcrumbThroughDetached` which will carry forward any task local values stored under this key.
+
+```swift
+// FIXED (to carry through detached tasks automatically) traceID key
+extension TaskLocalValues {
+  struct TraceIDKey: TaskLocalKey {
+    static var defaultValue: String? { nil }
+    static var carryMode: CarryMode { .breadcrumpThroughDetached } // !
+  }
+  public var traceID: TraceIDKey { .init() }
+}
+```
+
+which will result in any task local value bound using this key, if present, to be copied into the detached tasks's task local storage. 
+
+
+
+TODO: define semantics more... this was suggested to be a limited memory thing, e.g. only three slots.
 
 ### Binding task-local values
 
@@ -856,6 +906,7 @@ Such annotations depend on the arrival of [Function Wrappers](https://forums.swi
 - v2: Thanks to the introduction of `Task.unsafeCurrent` in Structured Concurrency, we're able to amend this proposal to:
   - allow access to task-locals from *synchronous* functions, 
   - link to the [ConcurrentValue](https://forums.swift.org/t/pitch-3-concurrentvalue-and-concurrent-closures/43947) proposal and suggest it would be used to restrict what kinds of values may be stored inside task locals.
+  - introduce specialized limited storage for specialized trace keys, to be carried even through detached tasks.
   - rewordings and clarifications.
 - v1: Initial draft
 
