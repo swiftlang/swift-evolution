@@ -19,8 +19,8 @@ Swift's concurrency design is intentionally vague about the
 details of how code is actually run.  Most code does not rely
 on specific properties of the execution environment, such as
 being run to a specific operating system thread, and instead
-needs only on high-level semantic properties, such as that
-no other code will be accessing certain variables concurrently.
+needs only high-level semantic properties, such as that no other
+code will be accessing certain variables concurrently.
 Maintaining flexibility about how work is scheduled onto threads
 allows Swift to avoid certain performance pitfalls by default.
 
