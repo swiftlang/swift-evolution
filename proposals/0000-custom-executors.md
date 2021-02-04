@@ -348,7 +348,7 @@ must provide a serial executor.
 
 ```swift
 protocol Actor: AnyObject {
-  /// Return the serial executoor for this actor.
+  /// Return the serial executor for this actor.
   ///
   /// This must always return the same reference, and `isSerial()`
   /// must return true for the reference.
