@@ -363,12 +363,14 @@ An `actor` may derive its executor implementation in one
 of the following ways. We may add more ways in the future.
 
 - The actor may declare a property named `serialExecutor`.
+  The property must not be actor-isolated.
 
 - The actor may declare a property named `delegateActor`.
-  The type of the property must be convertible to `Actor`.
-  The property must always return the same actor. Actor safety
-  checking should allow uses of the actor state and functions of
-  `delegateActor` from the actor functions of the delegating actor.
+  The property must not be actor-isolated. The type of the property
+  must be convertible to `Actor`. The property must always return
+  the same actor. Actor safety checking should allow uses of the
+  actor state and functions of `delegateActor` from the actor
+  functions of the delegating actor.
 
   The `serialExecutor` property will be synthesized as if
   the following:
@@ -388,10 +390,18 @@ of the following ways. We may add more ways in the future.
   `serialExecutor` will be synthesized as `public final`.
   It will be `@inlinable` if the actor class is `frozen`.
 
+In some situations, it may be useful for an actor to delegate
+to another actor's executor with `serialExecutor` rather than
+delegating to the actor with `delegateActor`.  This allows the
+system to dynamically benefit from the executor being shared
+(and thus avoid extra dispatches) without semantically tying
+the actors' isolation together (which could become hard-coded
+and hard to eliminate).
+
 ### Explicit scheduling
 
-The following operations are provided in order to perform explicit
-scheduling onto executors:
+The following operation is provided in order to perform explicit
+scheduling onto an executor:
 
 ```swift
 extension Executor {
@@ -400,65 +410,69 @@ extension Executor {
 }
 ```
 
+The following operation is provided in order to perform explicit
+scheduling onto an actor's executor:
+
+```swift
+extension Actor {
+  /// Run the given async operation explicitly on the actor's executor.
+  ///
+  /// Ideally, when the operation is an explicit closure expression, the
+  /// body of that closure should isolation-checked as if it were an actor
+  /// function of this actor. That may be somewhat challenging to
+  /// define in the design, since it's only reliable when this method
+  /// is called on a constant actor reference. Since isolation checking
+  /// is defined to be independent of ordinary type-checking, it should
+  /// be possible to improve this in later versions of the compiler
+  /// without affecting source compatibility.
+  func run<T>(operation: () -> async throws T) async rethrows -> T
+}
+```
+
 ## Source compatibility
 
-TODO *---rjmccall*
-
-Relative to the Swift 3 evolution process, the source compatibility
-requirements for Swift 4 are *much* more stringent: we should only
-break source compatibility if the Swift 3 constructs were actively
-harmful in some way, the volume of affected Swift 3 code is relatively
-small, and we can provide source compatibility (in Swift 3
-compatibility mode) and migration.
-
-Will existing correct Swift 3 or Swift 4 applications stop compiling
-due to this change? Will applications still compile but produce
-different behavior than they used to? If "yes" to either of these, is
-it possible for the Swift 4 compiler to accept the old syntax in its
-Swift 3 compatibility mode? Is it possible to automatically migrate
-from the old syntax to the new syntax? Can Swift applications be
-written in a common subset that works both with Swift 3 and Swift 4 to
-aid in migration?
+This feature describes new APIs that are expected to be used in
+conjunction with the `async`/`await` feature; there is no anticipated
+impact on existing code.
 
 ## Effect on ABI stability
 
-TODO *---rjmccall*
+Swift's scheduling runtime must maintain references to executors in
+order to correctly implement the semantics of task/actor scheduling.
+Custom executors mean that the runtime must propagate and store
+slightly more information, but we believe this can be done in a fairly
+extensible manner.  In general, the ABI here will likely favor the
+built-in (default) executors.
 
-Does the proposal change the ABI of existing language features? The
-ABI comprises all aspects of the code generation model and interaction
-with the Swift runtime, including such things as calling conventions,
-the layout of data types, and the behavior of dynamic features in the
-language (reflection, dynamic dispatch, dynamic casting via `as?`,
-etc.). Purely syntactic changes rarely change existing ABI. Additive
-features may extend the ABI but, unless they extend some fundamental
-runtime behavior (such as the aforementioned dynamic features), they
-won't change the existing ABI.
-
-Features that don't change the existing ABI are considered out of
-scope for [Swift 4 stage 1](README.md). However, additive features
-that would reshape the standard library in a way that changes its ABI,
-such as [where clauses for associated
-types](https://github.com/apple/swift-evolution/blob/master/proposals/0142-associated-types-constraints.md),
-can be in scope. If this proposal could be used to improve the
-standard library in ways that would affect its ABI, describe them
-here.
+The design of the `Executor` and `SerialExecutor` protocols will be
+ABI, and that ABI may limit the sorts of scheduling tricks that can be
+done with non-default executor implementations in the future.  The
+design of `SerialExecutor` currently does not support non-reentrant
+actors, and it does not support executors for which dispatch is
+always synchronous (e.g. that just acquire a traditional mutex).
 
 ## Effect on API resilience
 
-TODO *---rjmccall*
+While some APIs may depend on being executed on particular executors,
+this proposal makes no effort to formalize that in interfaces, as opposed
+to being an implementation detail of implementations, and so has no API
+resilience implications.
 
-API resilience describes the changes one can make to a public API
-without breaking its ABI. Does this proposal introduce features that
-would become part of a public API? If so, what kinds of changes can be
-made without breaking ABI? Can this feature be added/removed without
-breaking ABI? For more information about the resilience model, see the
-[library evolution
-document](https://github.com/apple/swift/blob/master/docs/LibraryEvolution.rst)
-in the Swift repository.
+If this is extended in the future to automatic, declaration-driven
+executor switching, as actors do, that would have API resilience
+implications.
 
 ## Alternatives considered
 
-TODO *---rjmccall*
-
-Describe alternative approaches to addressing the same problem, and
-why you chose this approach instead.
+The proposed ways for actors to opt in to custom executors are brittle,
+in the sense that a typo or some similar error could accidentally leave
+the actor using the default executor. This could be fully mitigated by
+requiring actors to explicitly opt in to using the default executor;
+however, that would be an unacceptable burden on the common case. Short
+of that, it would be possible to have a modifier that marks a declaration
+as having special significance, and then complain if the compiler
+doesn't recognize that significance. However, there are a number of
+existing features that use a name-sensitive design like this, such as
+dynamic member lookup ([SE-0195](0195-dynamic-member-lookup.md)).
+A "special significance" modifier should be designed and considered more
+holistically.
