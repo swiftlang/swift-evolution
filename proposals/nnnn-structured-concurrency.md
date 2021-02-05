@@ -548,16 +548,16 @@ extension Task {
   @discardableResult
   static func runDetached<T>(
     priority: Priority = .default,
-    startingOn executor: ExecutorRef? = nil,
-    operation: @escaping () async -> T
+    startingOn executor: UnownedExecutorRef? = nil,
+    operation: @escaping @concurrent () async -> T
   ) -> Handle<T>
 
   /// Create a new, detached task that produces a value of type `T` or throws an error.
   @discardableResult
   static func runDetached<T>(
     priority: Priority = .default,
-    startingOn executor: ExecutorRef? = nil,
-    operation: @escaping () async throws -> T
+    startingOn executor: UnownedExecutorRef? = nil,
+    operation: @escaping @concurrent () async throws -> T
   ) -> Handle<T, Error>
 }
 ```
@@ -617,7 +617,7 @@ extension Task {
   ///
   /// This function returns instantly and will never suspend.
   static func withCancellationHandler<T>(
-    handler: /* @concurrent */ () -> Void,
+    handler: @concurrent () -> Void,
     operation: () async throws -> T
   ) async rethrows -> T
 }
@@ -679,7 +679,7 @@ While all APIs defined on `Task` so far have been *instance* functions and prope
 
 Thankfully, thanks to the previously discussed `UnsafeCurrentTask` Swift also can offer safe, and usable from synchronous contexts, static versions of almost all functions defined in the previous sections.
 
-##### Cancelation
+##### Cancellation
 
 It is possible to query for cancellation from within a synchronous task, e.g. while iterating over a loop and wanting to check if we should abort its execution by using the static `Task.isCancelled` function:
 
@@ -805,7 +805,7 @@ extension Task.Group {
   /// Add a task to the group.
   mutating func add(
       overridingPriority: Priority? = nil,
-      operation: @escaping () async throws -> TaskResult
+      operation: @concurrent @escaping () async throws -> TaskResult
   ) async -> Bool
 }
 ```
@@ -823,7 +823,7 @@ The `add` operation returns `true` to indicate that the task was added to the gr
 The `next()` operation allows one to gather the results from the tasks that have been added to the group. It produces the result from one of the tasks in the group, whether it is the normal result or a thrown error. 
 
 ```swift
-extension Task.Group {
+extension Task.Group: AsyncSequence {
   /// Wait for a task to complete and return the result it returned (or throw if the task
   /// exited with a thrown error), or else return `nil` when there are no tasks left in
   /// the group.
@@ -842,6 +842,13 @@ The `next()` operation may typically be used within a `while` loop to gather the
 
 ```swift
 while let result = try await group.next() {
+  // some accumulation logic (e.g. sum += result)
+}
+```
+
+`Task.Group` also conforms to the [`AsyncSequence` protocol](https://github.com/apple/swift-evolution/blob/main/proposals/0298-asyncsequence.md), allowing the child tasks' results to be iterated in a `for await` loop:
+```swift
+for try await result in group {
   // some accumulation logic (e.g. sum += result)
 }
 ```
@@ -881,8 +888,10 @@ All of the changes described in this document are additive to the language and a
 
 * Changes in the third pitch:
   * Factored `with*Continuation` into [its own proposal](https://github.com/apple/swift-evolution/pull/1244).
-  * Factored `async let` into its own proposal.
+  * Factored `async let` into [its own proposal](https://github.com/DougGregor/swift-evolution/pull/50).
   * `Task` becomes a `struct` with instance functions, introduction of `Task.current`, `Task.unsafeCurrent` and the `UnsafeCurrentTask` APIs
+  * `Task.Group` now conforms to [the `AsyncSequence` protocol](https://github.com/apple/swift-evolution/blob/main/proposals/0298-asyncsequence.md).
+  * `Task.runDetached` and `Task.Group.add` now accept [executor](https://github.com/apple/swift-evolution/pull/1257) arguments to specify where the newly-spawned tasks are initially scheduled.
 
 * Changes in the second pitch:
   * Added a "desugaring" of `async let` to task groups and more motivation for the structured-concurrency parts of the design.
