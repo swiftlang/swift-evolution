@@ -293,6 +293,54 @@ extension BankAccount {
 
 This restriction prevents exclusivity violations where the modification of the actor-isolated `balance` is initiated by passing it as `inout` to a call that is then suspended, and another task executed on the same actor then fails with an exclusivity violation in trying to access `balance` itself.
 
+### Cross-actor references and `ConcurrentValue` types
+
+A separate proposal introduces the [`ConcurrentValue` protocol](https://docs.google.com/document/d/1m2fLLq9_ArY1ySt108soxOZNX7XT0ixMlNLFK08789M/). Values of types that conform to the `ConcurrentValue` protocol are safe to share across concurrently-executing code. There are various kinds of types that work well this way: value-semantic types like `Int` and `String`, value-semantic collections of such types like `[String]` or `[Int: String]`, immutable classes, and so on.
+
+Actors protect their shared mutable state, so actor instances can be freely shared across concurrently-executing code, and the actor itself will internally maintain synchronization. Therefore, every actor type implicitly conforms to the `ConcurrentValue` protocol.
+
+All cross-actor references are, necessarily, working with values of types that are being shared across different concurrently-executed code. For example, let's say that our `BankAccount` includes a list of owners, where each owner is modeled by a `Person` class:
+
+```swift
+class Person {
+  var name: String
+  let birthDate: Date
+}
+
+actor BankAccount {
+  // ...
+  var owners: [Person]
+
+  func primaryOwner() -> Person? { return owners.first }
+}
+```
+
+The `primaryOwner` function can be called asynchronously from another actor, and then the `Person` instance can be modified from anywhere:
+
+```swift
+if let primary = await account.primaryOwner() {
+  primary.name = "The Honorable " + primary.name  // problem: concurrent mutation of actor-isolated state
+}
+```
+
+Even non-mutating access is problematic, because the person's `name` could be modified from within the actor at the same time as the original call is trying to access it. To prevent this potential for concurrent mutation of actor-isolated state, all cross-actor references can only involve types that conform to `ConcurrentValue`. For a cross-actor asynchronous call, the argument and result types must conform to `ConcurrentValue`. For a cross-actor reference to an immutable property, the property type must conform to `ConcurrentValue`. By insisting that all cross-actor references only use `ConcurrentValue` types, we can ensure that no references to shared mutable state flow into or out of the actor's isolation domain. The compiler will produce a diagnostic for such issues. For example, the call to `account.primaryOwner()` about would produce an error like the following:
+
+```
+error: cannot call function returning non-concurrent-value type 'Person?' across actors
+```
+
+Note that the `primaryOwner()` function as defined above can still be used with actor-isolated code. For example, we can define a function to get the name of the primary owner, like this:
+
+```swift
+extension BankAccount {
+  func primaryOwnerName() -> String? {
+    return primaryOwner()?.name
+  }
+}
+```
+
+The `primaryOwnerName()` function is safe to asynchronously call across actors because `String` (and therefore `String?`) conforms to `ConcurrentValue`.
+
 ### Actor reentrancy
 
 Actor-isolated functions are [reentrant](https://en.wikipedia.org/wiki/Reentrancy_(computing)). When an actor-isolated function suspends, reentrancy allows other work to execute on the actor before the original actor-isolated function resumes, which we refer to as *interleaving*. Reentrancy eliminates a source of deadlocks, where two actors depend on each other, can improve overall performance by not unnecessarily blocking work on actors, and offers opportunities for better scheduling of (e.g.) higher-priority tasks. However, it means that actor-isolated state can change across an `await` when an interleaved task mutates that state, meaning that developers must be sure not to break invariants across an await. In general, this is the [reason for requiring `await`](https://github.com/apple/swift-evolution/blob/main/proposals/0296-async-await.md#suspension-points) on asynchronous calls, because various state (e.g., global state) can change when a call suspends.
@@ -753,6 +801,7 @@ This implementation will behave as one would expect for inheritance (every `Empl
   * Narrow the proposal down to only support re-entrant actors. Capture several potential non-reentrant designs in the Alternatives Considered as possible future extensions.
   * Replaced `@actorIndependent` attribute with a `nonisolated` modifier, which follows the approach of `nonmutating` and ties in better with the "actor isolation" terminology (thank you to Xiaodi Wu for the suggestion).
   * Replaced "queue" terminology with the more traditional "mailbox" terminology, to try to help alleviate confusion with Dispatch queues.
+  * Introduced "cross-actor reference" terminology and the requirement that cross-actor references always traffic in `ConcurrentValue` types.
   * Reference `@concurrent` function types from their separate proposal.
   * Moved Objective-C interoperability into its own section.
   * Clarify the "class-like" behaviors of actor types, such as satisfying an `AnyObject` conformance.
