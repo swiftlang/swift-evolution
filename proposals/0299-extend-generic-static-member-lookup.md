@@ -181,15 +181,15 @@ extension View {
 // Possible SwiftUI APIs:
 
 extension ToggleStyle where Self == DefaultToggleStyle {
-  public static var `default`: Self { get }
+  public static var `default`: Self { .init() }
 }
 
 extension ToggleStyle where Self == SwitchToggleStyle {
-  public static var `switch`: Self { get }
+  public static var `switch`: Self { .init() }
 }
 
 extension ToggleStyle where Self == CheckboxToggleStyle {
-  public static var checkbox: Self { get }
+  public static var checkbox: Self { .init() }
 }
 
 // Leading dot syntax (using proposed solution):
