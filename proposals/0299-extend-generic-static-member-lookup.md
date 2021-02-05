@@ -150,7 +150,7 @@ In a [prior pitch](https://forums.swift.org/t/protocol-metatype-extensions-to-be
 
 We propose *partially* lifting the current limitation placed on referencing of static members from protocol metatypes, in order to improve call site ergonomics of the language and make leading dot syntax behave consistently for all possible base types.
 
-More specifically, we propose allowing static members declared in extensions of protocols, to be referenced by leading dot syntax if the declaring extension constrains `Self` to be a concrete type.
+More specifically, we propose allowing static members declared in extensions of protocols, to be referenced by leading dot syntax if the declaring extension or member itself constrains `Self` to be a concrete type.
 
 The scope of this proposal is limited by design: partially lifting this restriction is an incremental step forward that doesn’t require making significant changes to the implementation of protocols, but also does not foreclose making further improvements in the future such as generally supporting protocol metatype extensions (more on this in *Alternatives Considered*, below).
 
@@ -159,13 +159,9 @@ The scope of this proposal is limited by design: partially lifting this restrict
 The type-checker is able to infer any protocol conformance requirements placed on a particular argument from the call site of a generic function. In our previous example, the `toggleStyle` function requires its argument conform to `ToggleStyle`. Based on that information, the type-checker should be able to resolve a base type for a leading dot syntax argument as a type which conforms to the `ToggleStyle` protocol. It can’t simply use the type `ToggleStyle` because only types conforming to a protocol can provide a witness method to reference. To discover such a type and produce a well-formed reference there are two options:
 
 * Do a global lookup for any type which conforms to the given protocol and use it as a base;
-* Require that the result type of a member declaration conforms to the declaring protocol.
+* Require that protocol extension declaring static member(s) or member itself (i.e. generic function/subscript) has 'Self' bound to a concrete type via same-type generic requirement that would be used to provide a witness for the reference.
 
-The second option is a much better choice that avoids having to do a global lookup and conformance checking and is consistent with semantics of leading dot syntax, namely, the requirement that result and base types of the chain have to be equivalent. This leads to a new rule: if the result type of a static member conforms to the declaring protocol, it should be possible to reference such a member on a protocol metatype, using leading dot syntax, by implicitly replacing the protocol with a conforming type.
-
-
-> **Note:** If a member returns a function type or an optional value, the type-checker considers “result type” (for the purposes of base type inference) to be a result type of a function type and/or wrapped value of an optional type (if `Optional` itself doesn’t conform to a required protocol). This enables calls to properties, and optional chaining of member chains, starting from protocol metatypes.
-
+The second option is a much better choice that avoids having to do a global lookup and conformance checking and is consistent with semantics of leading dot syntax, namely, the requirement that result and base types of the chain have to be equivalent. This leads to a new rule: if member either binds 'Self' directly (via same-type generic requirement), or is declared in a protocol extension that has `Self` bound to a concrete type, it should be possible to reference such a member on a protocol metatype, using leading dot syntax, by implicitly replacing the protocol with a conforming type referred by `Self`.
 
 This approach works well for references without an explicit base, let’s consider an example:
 
@@ -184,10 +180,16 @@ extension View {
 
 // Possible SwiftUI APIs:
 
-extension ToggleStyle {
-  public static var `default`: DefaultToggleStyle { get }
-  public static var `switch`: SwitchToggleStyle { get }
-  public static var checkbox: CheckboxToggleStyle { get }
+extension ToggleStyle where Self == DefaultToggleStyle {
+  public static var `default`: Self { get }
+}
+
+extension ToggleStyle where Self == SwitchToggleStyle {
+  public static var `switch`: Self { get }
+}
+
+extension ToggleStyle where Self == CheckboxToggleStyle {
+  public static var checkbox: Self { get }
 }
 
 // Leading dot syntax (using proposed solution):
@@ -198,10 +200,28 @@ Toggle("Wi-Fi", isOn: $isWiFiEnabled)
 
 In the case of `.toggleStyle(.switch)`, the reference to the member `.switch` is re-written to be `SwitchToggleStyle.switch` in the type-checked AST.
 
+Note that declaring members this way pollutes the namespace of each concrete type by creating members like `DefaultToggleStyle.default`, but we believe this is an acceptable trade-off to improve call site ergonomics.
+
+It's also possible to bind `Self` to a type with generic parameters:
+
+```swift
+public struct CustomToggleStyle<T>: ToggleStyle {
+  ...
+}
+
+extension ToggleStyle {
+  public static func custom<T>(_: T) -> Self where Self == CustomToggleStyle<T> {
+     ...
+  }
+}
+
+Toggle("Wi-Fi", isOn: $isWiFiEnabled)
+   .toggleStyle(.custom(42)) // base type is inferred to be `CustomToggleStyle<Int>` based on the argument type.
+```
+
 To make this work the type-checker would attempt to infer protocol conformance requirements from context, e.g. the call site of a generic function (in this case there is only one such requirement - the protocol `ToggleStyle`), and propagate them to the type variable representing the implicit base type of the chain. If there is no other contextual information available, e.g. the result type couldn’t be inferred to some concrete type, the type-checker would attempt to bind base to the type of the inferred protocol requirement. 
 
-Member lookup filtering is adjusted to find static members on a protocol metatype base, but the `Self` part of the reference type is replaced with the result type of the discovered member (looking through function types and IUOs) and additional conformance requirements are placed on it (the new `Self` type) to make sure that the new base does conform to the expected protocol.
-
+Member lookup filtering is adjusted to find static members declared in extension of a protocol metatype. Type-checker would then attempt to find innermost generic signature (either signature of context or itself, if it's some kind of a generic function) and make sure 'Self' parameter of a protocol is bound to a concrete type before accepting the member. When a reference to such a member is considered in expression context, type-checker would replace implicit base type with the concrete type referred by `Self` to form a valid reference to a static member.
 
 ## Source compatibility
 
@@ -250,35 +270,3 @@ SwitchToggleStyle.default
 CheckboxToggleStyle.switch
 // and so on and so forth
 ```
-
-SwiftUI could choose to apply the same approach that is required by this pitch, constraining each of the extensions to self like so:
-
-```swift
-extension ToggleStyle where Self == DefaultToggleStyle {
-  public static var `default`: DefaultToggleStyle { .init() }
-}
-
-extension ToggleStyle where Self == SwitchToggleStyle {
-  public static var `switch`: SwitchToggleStyle { .init() }
-}
-
-extension ToggleStyle where Self == CheckboxToggleStyle {
-  public static var checkbox: CheckboxToggleStyle { .init() }
-}
-```
-
-However this still pollutes the namespace of each concrete type by creating members like `DefaultToggleStyle.default`, which, while less problematic, is still not ideal. By lifting the requirement that the return type be used as the base type, and in its place requiring `Self` be constrained to a concrete type, we can then use a separate type to act as a namespace for these static properties:
-
-```swift
-public enum StandardToggleStyles: ToggleStyle {
-  // stub the implementation for `ToggleStyle requirements
-}
-
-extension ToggleStyle where Self == DefaultToggleStyle {
-  public static var `default`: DefaultToggleStyle { .init() }
-  public static var `switch`: SwitchToggleStyle { .init() }
-  public static var checkbox: CheckboxToggleStyle { .init() }
-}
-```
-
-This still gives us the desired syntax, and only creates the concrete static members `StandardToggleStyles.default`, `StandardToggleStyles.switch`, and `StandardToggleStyles.checkbox`, all of which are reasonable.
