@@ -148,9 +148,9 @@ In a [prior pitch](https://forums.swift.org/t/protocol-metatype-extensions-to-be
 
 ## Proposed solution
 
-We propose *partially* lifting the current limitation placed on referencing of static members from protocol metatypes, in order to improve call site ergonomics of the language and make leading dot syntax behave consistently for all possible base types.
+We propose *partially* lifting the current limitation placed on referencing of static members from protocol metatypes in order to improve call site ergonomics of the language and make leading dot syntax behave consistently for all possible base types.
 
-More specifically, we propose allowing static members declared in extensions of protocols, to be referenced by leading dot syntax if the declaring extension or member itself constrains `Self` to be a concrete type.
+More specifically, we propose allowing static members declared in extensions of protocols to be referenced by leading dot syntax if the declaring extension or member itself constrains `Self` to be a concrete type.
 
 The scope of this proposal is limited by design: partially lifting this restriction is an incremental step forward that doesn’t require making significant changes to the implementation of protocols, but also does not foreclose making further improvements in the future such as generally supporting protocol metatype extensions (more on this in *Alternatives Considered*, below).
 
@@ -159,9 +159,9 @@ The scope of this proposal is limited by design: partially lifting this restrict
 The type-checker is able to infer any protocol conformance requirements placed on a particular argument from the call site of a generic function. In our previous example, the `toggleStyle` function requires its argument conform to `ToggleStyle`. Based on that information, the type-checker should be able to resolve a base type for a leading dot syntax argument as a type which conforms to the `ToggleStyle` protocol. It can’t simply use the type `ToggleStyle` because only types conforming to a protocol can provide a witness method to reference. To discover such a type and produce a well-formed reference there are two options:
 
 * Do a global lookup for any type which conforms to the given protocol and use it as a base;
-* Require that protocol extension declaring static member(s) or member itself (i.e. generic function/subscript) has 'Self' bound to a concrete type via same-type generic requirement that would be used to provide a witness for the reference.
+* Require that protocol extension declaring static member(s) or member itself (i.e. generic function/subscript) has 'Self' bound to a concrete type via a same-type generic requirement that would be used to provide a witness for the reference.
 
-The second option is a much better choice that avoids having to do a global lookup and conformance checking and is consistent with semantics of leading dot syntax, namely, the requirement that result and base types of the chain have to be equivalent. This leads to a new rule: if member either binds 'Self' directly (via same-type generic requirement), or is declared in a protocol extension that has `Self` bound to a concrete type, it should be possible to reference such a member on a protocol metatype, using leading dot syntax, by implicitly replacing the protocol with a conforming type referred by `Self`.
+The second option is a much better choice that avoids having to do a global lookup and conformance checking and is consistent with the semantics of leading dot syntax, namely, the requirement that result and base types of the chain have to be equivalent. This leads to a new rule: if member either binds 'Self' directly (via same-type generic requirement), or is declared in a protocol extension that has `Self` bound to a concrete type, it should be possible to reference such a member on a protocol metatype, using leading dot syntax, by implicitly replacing the protocol with a conforming type referred by `Self`.
 
 This approach works well for references without an explicit base, let’s consider an example:
 
