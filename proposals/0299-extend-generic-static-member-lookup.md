@@ -150,7 +150,7 @@ In a [prior pitch](https://forums.swift.org/t/protocol-metatype-extensions-to-be
 
 We propose *partially* lifting the current limitation placed on referencing of static members from protocol metatypes, in order to improve call site ergonomics of the language and make leading dot syntax behave consistently for all possible base types.
 
-More specifically, we propose allowing static members declared on protocols, or extensions of such, to be referenced by leading dot syntax if their result type conforms to the declaring protocol.
+More specifically, we propose allowing static members declared in extensions of protocols, to be referenced by leading dot syntax if the declaring extension constrains `Self` to be a concrete type.
 
 The scope of this proposal is limited by design: partially lifting this restriction is an incremental step forward that doesn’t require making significant changes to the implementation of protocols, but also does not foreclose making further improvements in the future such as generally supporting protocol metatype extensions (more on this in *Alternatives Considered*, below).
 
@@ -229,3 +229,56 @@ There have been multiple discussions on this topic on the Swift forums. The most
 Due to its narrow scope, the proposed design is simpler and does not require any syntax changes, while still satisfying all the intended use cases. We stress that this is an incremental improvement, which should not impede our ability to support protocol metatype extensions in the future.
 
 One concrete concern is whether the kind of static member lookup proposed here would be ambiguous with static member lookup on a hypothetical future protocol metatype property. We do not believe it would be, since lookup could be prioritized on the metatype over conforming types. Further, these kinds of namespace and lookup conflicts would likely need to be addressed in a future metatype extension proposal regardless of whether the lookup extension proposed here is accepted or not.
+
+### Allow leading dot syntax for any extensions on protocol metatypes where the return type can be used as the base type
+
+While technically feasible (as the compiler can use the concrete return type as the base type of the expression), this approach leads to the pollution of the protocols namespace. Consider the SwiftUI use case with this approach. The following use case would be valid as the types of the `default`, `switch` and `checkbox` static members all conform to `ToggleStyle`:
+
+```swift
+extension ToggleStyle {
+  public static var `default`: DefaultToggleStyle { .init() }
+  public static var `switch`: SwitchToggleStyle { .init() }
+  public static var checkbox: CheckboxToggleStyle { .init() }
+}
+```
+
+This unfortunately leads to all of the following being valid:
+
+```swift
+DefaultToggleStyle.checkbox
+SwitchToggleStyle.default
+CheckboxToggleStyle.switch
+// and so on and so forth
+```
+
+SwiftUI could choose to apply the same approach that is required by this pitch, constraining each of the extensions to self like so:
+
+```swift
+extension ToggleStyle where Self == DefaultToggleStyle {
+  public static var `default`: DefaultToggleStyle { .init() }
+}
+
+extension ToggleStyle where Self == SwitchToggleStyle {
+  public static var `switch`: SwitchToggleStyle { .init() }
+}
+
+extension ToggleStyle where Self == CheckboxToggleStyle {
+  public static var checkbox: CheckboxToggleStyle { .init() }
+}
+```
+
+However this still pollutes the namespace of each concrete type by creating members like `DefaultToggleStyle.default`, which, while less problematic, is still not ideal. By lifting the requirement that the return type be used as the base type, and in its place requiring `Self` be constrained to a concrete type, we can then use a separate type to act as a namespace for these static properties:
+
+```swift
+public enum StandardToggleStyles: ToggleStyle {
+  // stub the implementation for `ToggleStyle requirements
+}
+
+extension ToggleStyle where Self == DefaultToggleStyle {
+  public static var `default`: DefaultToggleStyle { .init() }
+  public static var `switch`: SwitchToggleStyle { .init() }
+  public static var checkbox: CheckboxToggleStyle { .init() }
+}
+```
+
+This still gives us the desired syntax, and only creates the concrete static members `StandardToggleStyles.default`, `StandardToggleStyles.switch`, and `StandardToggleStyles.checkbox`, all of which are reasonable.
