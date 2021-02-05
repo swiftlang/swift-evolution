@@ -148,7 +148,7 @@ In a [prior pitch](https://forums.swift.org/t/protocol-metatype-extensions-to-be
 
 ## Proposed solution
 
-We propose *partially* lifting the current limitation placed on referencing of static members from protocol metatypes, in order to improve call site ergonomics of the language and make leading dot syntax behave consistently for all possible base types.
+We propose *partially* lifting the current limitation placed on referencing of static members from protocol metatypes in order to improve call site ergonomics of the language and make leading dot syntax behave consistently for all possible base types.
 
 More specifically, we propose allowing static members declared in extensions of protocols, to be referenced by leading dot syntax if the declaring extension or member itself constrains `Self` to be a concrete type.
 
