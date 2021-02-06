@@ -734,7 +734,7 @@ extension Task {
 }
 ```
 
-The rationale for the default value is that if running outside of the Task infrastructure, there is no way to impact the priority of 
+The rationale for the default value is that if running outside of the Task infrastructure, there is no way to impact the priority of a task if not using the task infrastructure after all.
 
 #### Task Groups
 
