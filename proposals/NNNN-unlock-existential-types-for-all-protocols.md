@@ -8,11 +8,11 @@
 
 ## Introduction
 
-Swift allows the use of a protocol as a value type when its *requirements* meet a rather unintuitive list of criteria, among which is the well-known criterion for the absense of associated type requirements, and emits the following error otherwise: "%protocol can only be used as a generic constraint because it has 'Self' or associated type requirements". This proposal aims to *alleviate* the restriction to only impact the ability to invoke certain protocol members (in contrast to sealing off the entire protocol interface), as well as adjust the specified criteria to reduce the scope of the restriciton.
+Swift allows the use of a protocol as a value type when its *requirements* meet a rather unintuitive list of criteria, among which is the well-known criterion for the absense of associated type requirements, and emits the following error otherwise: "%protocol can only be used as a generic constraint because it has 'Self' or associated type requirements". This proposal aims to *alleviate* this restriction to only impact the ability to invoke certain protocol members (in contrast to eagerly sealing off the entire protocol interface), as well as adjust the specified criteria to reduce the scope of the restriciton.
 
 ## Motivation
 
-In Swift, an *existential type* for a given *protocol type* or *protocol composition type* is a formally distinct type that has an equivalent spelling and can hold a value of any conforming type, only exposing the interface(s) of the specified protocol(s) (and superclass). The ability to represent an instance of any conforming type enables users and, more importantly, library authors to save on API surface and the considerable amount of boilerplate and difficult-to-maintain code often entailed in the design of ergonomic and exhaustive type-erased wrappers that stand in for a particular existential type. Likewise, existential types can prove incredibly useful in specific use cases that involve dynamicity.
+In Swift, an *existential type* for a given *protocol type* or *protocol composition type* is a formally distinct type that has an equivalent spelling and can hold a value of any conforming type, exposing just the interface(s) of the specified protocol(s) (and superclass). An *existential value* is therefore a value of existential type. The ability to represent an instance of any conforming type enables users and, more importantly, library authors to save on API surface and the considerable amount of boilerplate and difficult-to-maintain code often entailed in the design of ergonomic and exhaustive type-erased wrappers that stand in for a particular existential type. Likewise, existential types can prove incredibly useful in specific use cases that involve dynamicity.
 
 ### Heterogenous Collections
 
@@ -62,92 +62,149 @@ let userList = [User]() ❌
 
 Evidently, the current limitations on existential types prohibit the creation of our `userList`. As a result, we’ll need to create our own, manually-written existential type for `User`, which is a tedious task that requires some level experience.
 
+### Inconsistent Language Semantics
 
-### Existential Type Synthesis for Library Authors
-
-For convenience, libraries are often bound to vend custom type-erased wrappers for commonly-used protocols when their existential counterpart is not supported. This comes at the expense of code size, resilience, and valuable time required to design, document, and maintain such code, more so if the protocol is declared in a different library. For instance, [SwiftUI](https://developer.apple.com/documentation/swiftui) heavily relies on the ubiquitous [`View`](https://developer.apple.com/documentation/swiftui/view) protocol with a public interface approximating the following:
-
-```swift
-public protocol View {
-  static func _makeView(view: _GraphValue<Self>, inputs: _ViewInputs) -> _ViewOutputs
-
-  static func _makeViewList(view: _GraphValue<Self>, inputs: _ViewListInputs) -> _ViewListOutputs
-
-  static func _viewListCount(inputs: _ViewListCountInputs) -> Int?
-
-
-  associatedtype Body : View
-
-  @ViewBuilder var body: Body { get }
-}
-```
-
-From the interface of `View`, we can infer that SwiftUI uses some hidden, underscore-prefixed requirements internally for rendering. Thus, the associate type `Body` is likely not necessary for drawing; yet, it prevents the compiler from creating an existential type for `View`, forcing the authors to create their own such type: [`AnyView`](https://developer.apple.com/documentation/swiftui/anyview). Furthermore, another notable example is the [`Hashable`](https://developer.apple.com/documentation/swift/hashable) protocol in the Swift standard library. Consequently, this may lead authors to inconvenient workarounds. One such workaround is splitting their protocols into two distinct ones – so as to separate associated types from hidden requirements; unfortunately, this creates a complicated API, which is likely to confuse users. Otherwise, they can do what was discussed above: create a custom existential type; it creates, though, boilerplate, which is clearly undesirable. 
-
-
-### Inconsistent Language Semantics 
-
-The compiler offers existential types for all protocols except for ones that reference `Self` in a [non-covariant](https://en.wikipedia.org/wiki/Covariance_and_contravariance_(computer_science)) position or/and ones that have associated type requirements. However, that is incohesive as `Self` can be thought of as an associated type on its own, because it's can't be known solely from the context of a protocol; thus, giving `Self` and associated types different rules for synthesis of an existential type seems rather unintuitive. Furthermore, current semantics can promt library authors to avoid refining their protocols with other useful protocols in fear of their refined protocol not qualifying for the automatically generated existential type. Consider the following `Animal` protocol:
+The compiler permits the use of a protocol as a value type **unless** *1) the protocol has an associated type requirement*, or *2) the type of a requirement (method, subscript, or property) contains a reference to `Self` in [non-covariant](https://en.wikipedia.org/wiki/Covariance_and_contravariance_(computer_science)) position*:
 
 ```swift
-protocol Identifiable {
-
-  associatedtype ID : Hashable
-
+// 'Identifiable' has an associated type requirement.
+public protocol Identifiable {
+  associatedtype ID: Hashable
 
   var id: ID { get }
-
 }
 
-
-protocol Animal : Identifiable where ID == String {
-
-  var name: String { get }
-  
-  var speciesName: String { get }
-  
-  
-  var isPet: Bool { get }
-
-}
-
-extension Animal {
-
-  var id: String {
-    name
-  }
-
+// 'Equatable' has a '==' requirement containing a `Self` reference in contravariant parameter position.
+public protocol Equatable {
+  static func == (lhs: Self, rhs: Self) -> Bool
 }
 ```
 
-In the above case, the `Identifiable` inheritence is very useful. Namely, without any cost to the conforming type, `Animnal` can easily refine [`Identifiable`](https://github.com/apple/swift-evolution/blob/main/proposals/0261-identifiable.md) and gain powerful functionality, as a result. For instance, SwiftUI's [`ForEach`](https://developer.apple.com/documentation/swiftui/foreach) view relies on its data source conforming to `Identifiable`, in which case having such a conformance for free on `Animal`-conforming types is very convenient. Lastly, it's also important to note that in the above example the associated type `ID` is fixed to `String`; therefore, the current limitation seems even more unnecessarily restrictive and further exacerbates the confusion surrounding existential types. 
+The latter condition is well-grounded in terms of the type safety aspect of invoking specific members. Consider the following protocol interface:
 
+```swift
+protocol P {
+  func foo() -> Self
+  
+  func bar(_: Self)
+}
+```
+
+An invocation of a protocol member on an existential value implies the capability to represent the type of that member outside its protocol context. Today, the sole means to representing the dynamic `Self` type of an existential value is type erasure — the substitution of `Self` with a representable supertype, like `P`. On the other hand, type erasure is safe to perform only in [covariant](https://en.wikipedia.org/wiki/Covariance_and_contravariance_(computer_science)) position. For example, calling `foo` on a value of type `P` is safe with its covariant `Self` result type erased to `P`, whereas acting similarly with the contravariant `Self` parameter type in `bar` would expose the opportunity to pass in an argument of non-matching type; hence the condition.
+
+Nonetheless, unlike requirements, protocol extension members cannot afford to retroactively jeopardize the existential availability of the protocol. To handle these, the restriction is forced to take on a more reasonable, on-demand and spot-on manifestation in the form of a member invocation failure:
+
+```swift 
+protocol P {}
+extension P {
+  func method(_: Self) {}
+}
+
+func callMethod(p: P) {
+  p.method // error: member 'method' cannot be used on value of protocol type 'P'; use a generic constraint instead
+}
+```
+
+Evidently, an associated type or other unfortunate requirement (such as `bar`) cannot speak for the rest of the interface. Some protocols still have a useful subset of functionality that either doesn't rely on `Self` and associated types, or relies on them in an existentially compatible way.
+
+The case of an associated type requirement that is known to have a predefined implementation reveals another downside to the status quo:
+
+```swift
+protocol P {
+  associatedtype A
+}
+
+protocol Animal: Identifiable where ID == String {}
+extension Animal {
+  var name: String { id }
+}
+```
+
+Contrary to the intent, `Animal` is still assumed as "having an associated type requirement", which happens to be the only thing restraining the existential.
+
+One more counterproductive aspect to the semantic inconsistency is how authors could be lead to avoid refining useful protocols in fear of their own protocol not qualifying for an existential type.
+
+### Library Evolution
+
+Removing the type-level restriction would mean that adding defaulted requirements to a protocol is always both a binary- and source-compatible change, since it couldn't interfere with existing uses of the protocol.
+
+### Type-erasing Wrappers
+
+For convenience, libraries are often bound to vend custom type-erasing wrappers for commonly used protocols. Since the wrapper must evolve in sync with the protocol, this comes at the expense of resilience, code size and valuable time required to design, document, and maintain these ergonomic interfaces. While removing the restriction doesn't define away the need for manual containers like [`AnySequence`](https://developer.apple.com/documentation/swift/anysequence) and [`AnyHashable`](https://developer.apple.com/documentation/swift/anyhashable), it allows for them to be written in a way that's simpler, easier for the compiler to optimize, and ABI-compatible with future generalized existentials, by wrapping the unconstrained existential type instead of falling back on `Any` or boxing a value in a subclass or closure, and using private protocol extensions to wrap requirements that cannot be directly accessed on the existential:
+
+```swift
+protocol Foo {
+  associatedtype Bar
+
+  func foo(_: Bar) -> Bar
+}
+
+private extension Foo {
+  // Forward to the foo method in an existential-accessible way, asserting that
+  // the '_Bar' generic argument matches the actual 'Bar' associated type of the
+  // dynamic value.
+  func _fooThunk<_Bar>(_ bar: _Bar) -> _Bar {
+    assert(_Bar.self == Bar.self)
+    let result = foo(unsafeBitCast(bar, to: Bar.self))
+    return unsafeBitCast(result, to: _Bar.self)
+  }
+}
+
+struct AnyFoo<Bar>: Foo {
+  private var _value: Foo
+
+  init<F: Foo>(_ value: F) where F.Bar == Bar {
+    self._value = value
+  }
+  
+  func foo(_ bar: Bar) -> Bar {
+    return self._value._fooThunk(bar)
+  }
+}
+```
 
 ## Proposed Solution
 
-We propose to enable synthesis of existential types for all protocols, in spite of their requirements. Thus, compositions which include protocols that could – before this proposal – not be used as types, will along with these protocols get compiler-generated existential types. Thus code similar to the following will become valid.
+We propose to allow any protocol to be used as a value type and exercise the restriction on individual member invocations uniformly across extension members *and* requirements. Additionally, the defining criteria shall consider the generic signature of the base type to account for predefined or known implementations of associated type requirements. Among other subtle circumstances, this will allow the qualification checking to bypass references to `Self`-rooted associated types when the protocol binds them to a fully concrete type via same-type constraints:
 
 ```swift
-protocol Animal : Identifiable where ID == String {
+protocol IntCollection: BidirectionalCollection where Self.Element == Int {}
 
-  ...
+let array: IntCollection = [3, 1, 4, 1, 5]
 
-}
-
-struct Dog : Animal { ... }
-
-struct Cat : Animal { ... }
-
-
-let myPets: [Animal] = [
-  Dog(named: "Alex"),
-  Cat(named: "Leo")
-] ✅
-
-myPets.first!.name ℹ️
-// Output: Alex
+print(array.first.unsafelyUnwrapped) // OK, prints "3"
 ```
 
+### Covariant Associated Type Erasure
+
+With existential types unlocked, the mere existence of an associated type requirement will no longer prevent one from using a member, but references to them *will* for the same reason some `Self` references do today. As alluded to in [Inconsistent Language Semantics](#inconsistent-language-semantics), covariant `Self` references are already getting replaced with the existential base type, making the following example valid today.
+
+```swift
+protocol P {
+  func foo() -> Self
+}
+
+func callFoo(_ p : P) {
+  let x = p.foo() // x is of type 'P'
+}
+```
+
+Because they tend to occur considerably more often than `Self` in API, and for the sake of consistency, we believe that enabling covariant type erasure for associated types as well is a reasonable undertaking in light of the primary focus:
+
+```swift
+protocol P {
+  associatedtype A: Collection
+  func foo() -> A
+}
+
+func callFoo(_ p: P) {
+  let x = p.foo() // OK, x is of type 'Collection'
+}
+```
+___
+
+This way, a protocol or protocol extension member (method, subscript, or property) may be used with an existential base iff all of the following criteria hold:
+* the type of the invoked method or accessor, as viewed in context of the *base type*, must **not** contain references to `Self` or `Self`-based associated types in [non-covariant](https://en.wikipedia.org/wiki/Covariance_and_contravariance_(computer_science)) position.
 
 ## Detailed Design
 
