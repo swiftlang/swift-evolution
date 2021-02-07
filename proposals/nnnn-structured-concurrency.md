@@ -508,7 +508,7 @@ The `get()` operation is the primary consumer interface to a task handle: it pro
 
 ```swift
 func eat(mealHandle: Task.Handle<Meal, Error>) {
-  let meal = try await mealHandle()
+  let meal = try await mealHandle.get()
   meal.eat() // yum
 }
 ```
