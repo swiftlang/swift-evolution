@@ -3,7 +3,7 @@
 * Proposal: [SE-0299](0299-extend-generic-static-member-lookup.md)
 * Authors: [Pavel Yaskevich](https://github.com/xedin), [Sam Lazarus](https://github.com/sl), [Matt Ricketson](https://github.com/ricketson)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Returned for Revision**
+* Status: **Active Review (February 8...15, 2021)**
 * Implementation: [apple/swift#34523](https://github.com/apple/swift/pull/34523)
 * Decision Notes: [First return for revision](https://forums.swift.org/t/returned-for-revision-se-0299-extending-static-member-lookup-in-generic-contexts/44466), [First review thread](https://forums.swift.org/t/se-0299-extending-static-member-lookup-in-generic-contexts/43958)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/4dd3a9c85195185ab7ad99c468732c5b568d51ac/proposals/0299-extend-generic-static-member-lookup.md)
