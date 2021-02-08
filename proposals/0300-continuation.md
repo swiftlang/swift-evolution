@@ -78,6 +78,10 @@ struct UnsafeContinuation<T> {
   func resume(returning: T)
 }
 
+extension UnsafeContinuation where T == Void {
+  func resume()
+}
+
 func withUnsafeContinuation<T>(
     _ operation: (UnsafeContinuation<T>) -> ()
 ) async -> T
@@ -86,6 +90,10 @@ struct UnsafeThrowingContinuation<T> {
   func resume(returning: T)
   func resume(throwing: Error)
   func resume<E: Error>(with result: Result<T, E>)
+}
+
+extension UnsafeThrowingContinuation where T == Void {
+  func resume()
 }
 
 func withUnsafeThrowingContinuation<T>(
@@ -106,6 +114,11 @@ execution until its executor reschedules it. The argument to
 when the task resumes execution. With an `UnsafeThrowingContinuation`,
 `resume(throwing:)` can be used instead to make the task resume by propagating
 the given error.
+
+If the return type of `withUnsafe*Continuation` is `Void`, one must specify
+a value of `()` when calling `resume(returning:)`. Doing so produces some
+unsightly code, so `Unsafe*Continuation<Void>` has an extra member `resume()`
+that makes the function call easier to read.
 
 After invoking `withUnsafeContinuation`, exactly one `resume` method must be
 called *exactly-once* on every execution path through the program.
@@ -173,6 +186,10 @@ struct CheckedContinuation<T> {
   func resume(returning: T)
 }
 
+extension CheckedContinuation where T == Void {
+  func resume()
+}
+
 func withCheckedContinuation<T>(
     _ operation: (CheckedContinuation<T>) -> ()
 ) async -> T
@@ -183,6 +200,9 @@ struct CheckedThrowingContinuation<T> {
   func resume<E: Error>(with result: Result<T, E>)
 }
 
+extension CheckedThrowingContinuation where T == Void {
+  func resume()
+}
 func withCheckedThrowingContinuation<T>(
     _ operation: (CheckedThrowingContinuation<T>) -> ()
 ) async throws -> T
@@ -447,3 +467,4 @@ based adapters turns out to be a performance problem in practice.
 - Added "future direction" discussion of a potential more advanced API that
   could allow continuations to directly resume their task when the correct
   dispatch queue to do so is known.
+- Added `resume()` on `Void`-returning `Continuation` types.
