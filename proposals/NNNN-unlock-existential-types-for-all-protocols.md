@@ -12,7 +12,7 @@ Swift allows the use of a protocol as a value type when its *requirements* meet 
 
 ## Motivation
 
-In Swift, an *existential type* for a given *protocol type* or *protocol composition type* is a formally distinct type that has an equivalent spelling and can hold a value of any conforming type, exposing just the interface(s) of the specified protocol(s) (and superclass). An *existential value* is therefore a value of existential type. The ability to represent an instance of any conforming type enables users and, more importantly, library authors to save on API surface and the considerable amount of boilerplate and difficult-to-maintain code often entailed in the design of ergonomic and exhaustive type-erased wrappers that stand in for a particular existential type. Likewise, existential types can prove incredibly useful in specific use cases that involve dynamicity.
+In Swift, an *existential type* for a given *protocol type* or *protocol composition type* is a formally distinct type that has an equivalent spelling and can hold a value of any conforming type, exposing just the interface(s) of the specified protocol(s) (and superclass). An *existential value* is therefore a value of an existential type. The ability to represent an instance of any conforming type enables users and, more importantly, library authors to save on API surface and the considerable amount of boilerplate and difficult-to-maintain code often entailed in the design of ergonomic and exhaustive type-erased wrappers that stand in for a particular existential type. Likewise, existential types can prove incredibly useful in specific use cases that involve dynamicity.
 
 ### Heterogenous Collections
 
@@ -105,9 +105,9 @@ func callMethod(p: P) {
 }
 ```
 
-Evidently, an associated type or other unfortunate requirement (such as `bar`) cannot speak for the rest of the interface. Some protocols still have a useful subset of functionality that either doesn't rely on `Self` and associated types, or relies on them in an existentially compatible way.
+Evidently, an associated type or other unfortunate requirements (such as `bar`) cannot speak for the rest of the interface. Some protocols still have a useful subset of functionality that either doesn't rely on `Self` and associated types, or that relies on them in a way compatible with existential types.
 
-The case of an associated type requirement that is known to have a predefined implementation reveals another downside to the status quo:
+The case of an associated type requirement that is known to have a predefined implementation reveals another downside of the status quo:
 
 ```swift
 protocol P {
@@ -120,17 +120,17 @@ extension Animal {
 }
 ```
 
-Contrary to the intent, `Animal` is still assumed as "having an associated type requirement", which happens to be the only thing restraining the existential.
+Unfortunately, `Animal` is still "assumed" to have an associated type requirement, which is solely responsible for restraining the existential.
 
-One more counterproductive aspect to the semantic inconsistency is how authors could be lead to avoid refining useful protocols in fear of their own protocol not qualifying for an existential type.
+The current semantic inconsistency also discourages authors from refining their existing protocols with other, useful ones in fear of losing existential qualification.
 
 ### Library Evolution
 
-Removing the type-level restriction would mean that adding defaulted requirements to a protocol is always both a binary- and source-compatible change, since it couldn't interfere with existing uses of the protocol.
+Removing the type-level restriction would mean that adding defaulted requirements to a protocol is always both a binary- and source-compatible change, since it would not interfere with existing uses of the protocol.
 
 ### Type-erasing Wrappers
 
-For convenience, libraries are often bound to vend custom type-erasing wrappers for commonly used protocols. Since the wrapper must evolve in sync with the protocol, this comes at the expense of resilience, code size and valuable time required to design, document, and maintain these ergonomic interfaces. While removing the restriction doesn't define away the need for manual containers like [`AnySequence`](https://developer.apple.com/documentation/swift/anysequence) and [`AnyHashable`](https://developer.apple.com/documentation/swift/anyhashable), it allows for them to be written in a way that's simpler, easier for the compiler to optimize, and ABI-compatible with future generalized existentials, by wrapping the unconstrained existential type instead of falling back on `Any` or boxing a value in a subclass or closure, and using private protocol extensions to wrap requirements that cannot be directly accessed on the existential:
+For convenience, libraries often vend custom type-erasing wrappers for commonly used protocols. Since the wrapper must evolve in parallel to the protocol, resilience, code size and valuable time required to design, document, and maintain these ergonomic interfaces are all sacrificed. While removing the restriction doesn't define away the need for manual containers, like [`AnySequence`](https://developer.apple.com/documentation/swift/anysequence) and [`AnyHashable`](https://developer.apple.com/documentation/swift/anyhashable), it does allow writing them in a simpler, more easily optmizable, and ABI-compatible way. This is achieved by wrapping the unconstrained existential type instead of falling back on `Any` or boxing a value in a subclass or closure, and using private protocol extensions to wrap requirements that cannot be directly accessed on the existential:
 
 ```swift
 protocol Foo {
