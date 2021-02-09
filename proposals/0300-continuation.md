@@ -61,6 +61,41 @@ func operation() async -> OperationResult {
 
 ## Detailed design
 
+### Common continuation protocol
+
+The library includes a protocol, `Continuation`, representing any of the possible continuation types:
+
+```swift
+public protocol Continuation {
+    associatedtype T
+    associatedtype E: Error
+    
+    func resume(returning value: __owned T)
+    func resume(throwing error: __owned E)
+}
+
+extension Continuation {
+    public func resume(with result: Result<T, E>)
+    public func resume() where T == Void
+}
+```
+
+The argument to `resume(returning:)` becomes the return value of the enclosing
+`async` function when it returns.
+
+With a `Continuation` where `E` is `Never`, `resume(throwing:)` is
+implicitly unavailable. Otherwise, it can be thrown from the enclosing `async`
+function allowing the error to be propagated to the caller.
+
+`resume(with:)` is provided to make interop with `Result<T, E>`
+easier—it is default-implemented to invoke either `resume(returning:)` or
+`resume(throwing:)` depending on the passed value.
+
+If the return type of a `Continuation` is `Void`, one must specify
+a value of `()` when calling `resume(returning:)`. Doing so produces some
+unsightly code, so `Continuation<Void, E>` has an extra member
+`resume()` that makes the function call easier to read.
+
 ### Raw unsafe continuations
 
 The library provides two functions, `withUnsafeContinuation` and
@@ -74,30 +109,15 @@ async task resumes:
 
 
 ```swift
-struct UnsafeContinuation<T> {
-  func resume(returning: T)
-}
-
-extension UnsafeContinuation where T == Void {
-  func resume()
+struct UnsafeContinuation<T, E>: Continuation {
 }
 
 func withUnsafeContinuation<T>(
-    _ operation: (UnsafeContinuation<T>) -> ()
+    _ operation: (UnsafeContinuation<T, Never>) -> ()
 ) async -> T
 
-struct UnsafeThrowingContinuation<T> {
-  func resume(returning: T)
-  func resume(throwing: Error)
-  func resume<E: Error>(with result: Result<T, E>)
-}
-
-extension UnsafeThrowingContinuation where T == Void {
-  func resume()
-}
-
 func withUnsafeThrowingContinuation<T>(
-    _ operation: (UnsafeThrowingContinuation<T>) -> ()
+    _ operation: (UnsafeContinuation<T, Error>) -> ()
 ) async throws -> T
 ```
 
@@ -111,14 +131,8 @@ Note that `resume` immediately returns control to the caller after transitioning
 the task out of its suspended state; The task itself does not actually resume
 execution until its executor reschedules it. The argument to
 `resume(returning:)` becomes the return value of `withUnsafe*Continuation`
-when the task resumes execution. With an `UnsafeThrowingContinuation`,
-`resume(throwing:)` can be used instead to make the task resume by propagating
-the given error.
-
-If the return type of `withUnsafe*Continuation` is `Void`, one must specify
-a value of `()` when calling `resume(returning:)`. Doing so produces some
-unsightly code, so `Unsafe*Continuation<Void>` has an extra member `resume()`
-that makes the function call easier to read.
+when the task resumes execution. The argument to `resume(throwing:)` is
+thrown from said function.
 
 After invoking `withUnsafeContinuation`, exactly one `resume` method must be
 called *exactly-once* on every execution path through the program.
@@ -182,29 +196,15 @@ library will also provide a wrapper which checks for invalid use of the
 continuation:
 
 ```swift
-struct CheckedContinuation<T> {
-  func resume(returning: T)
-}
-
-extension CheckedContinuation where T == Void {
-  func resume()
+struct CheckedContinuation<T, E>: Continuation {
 }
 
 func withCheckedContinuation<T>(
-    _ operation: (CheckedContinuation<T>) -> ()
+    _ operation: (CheckedContinuation<T, Never>) -> ()
 ) async -> T
 
-struct CheckedThrowingContinuation<T> {
-  func resume(returning: T)
-  func resume(throwing: Error)
-  func resume<E: Error>(with result: Result<T, E>)
-}
-
-extension CheckedThrowingContinuation where T == Void {
-  func resume()
-}
 func withCheckedThrowingContinuation<T>(
-    _ operation: (CheckedThrowingContinuation<T>) -> ()
+    _ operation: (CheckedContinuation <T, Error>) -> ()
 ) async throws -> T
 ```
 
@@ -453,6 +453,17 @@ lead to subtle bugs that would be difficult to diagnose. We can investigate
 this as an addition to the core proposal, if "queue hopping" in continuation-
 based adapters turns out to be a performance problem in practice.
 
+### Expose separate throwing and non-throwing Continuation types
+
+This proposal previously included separate continuation types that differed based
+on whether or not the relevant task could throw. This resulted in a significant
+amount of duplicated code in the implementation.
+
+The proposal was therefore updated to consolidate the two types and introduce a
+`Continuation` protocol with default-implemented members where possible. This
+reduces the size of the implementation and may allow for some interesting future
+directions (by letting us create new types that conform to `Continuation`.)
+
 ## Revision history
 
 - Clarified the execution behavior of `with*Continuation` and
@@ -468,3 +479,5 @@ based adapters turns out to be a performance problem in practice.
   could allow continuations to directly resume their task when the correct
   dispatch queue to do so is known.
 - Added `resume()` on `Void`-returning `Continuation` types.
+- Added a new `Continuation` protocol and refactored the relationships between
+  continuation types.
