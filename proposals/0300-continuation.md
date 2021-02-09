@@ -63,7 +63,8 @@ func operation() async -> OperationResult {
 
 ### Common continuation protocol
 
-The library includes a protocol, `Continuation`, representing any of the possible continuation types:
+The library includes a protocol, `Continuation`, representing any of the
+possible continuation types:
 
 ```swift
 public protocol Continuation {
@@ -109,7 +110,7 @@ async task resumes:
 
 
 ```swift
-struct UnsafeContinuation<T, E>: Continuation {
+struct UnsafeContinuation<T, E: Error>: Continuation {
 }
 
 func withUnsafeContinuation<T>(
@@ -196,7 +197,7 @@ library will also provide a wrapper which checks for invalid use of the
 continuation:
 
 ```swift
-struct CheckedContinuation<T, E>: Continuation {
+struct CheckedContinuation<T, E: Error>: Continuation {
 }
 
 func withCheckedContinuation<T>(
