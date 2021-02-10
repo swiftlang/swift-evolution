@@ -3,8 +3,8 @@
 * Proposal: [SE-0300](0300-continuation.md)
 * Authors: [John McCall](https://github.com/rjmccall), [Joe Groff](https://github.com/jckarter), [Doug Gregor](https://github.com/DougGregor), [Konrad Malawski](https://github.com/ktoso)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active review (1 - 11 February 2021)**
-* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/5f79481244329ec2860951c0c49c101aef5069e7/proposals/0300-continuation.md)
+* Status: **Returned for revision**
+* Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/5f79481244329ec2860951c0c49c101aef5069e7/proposals/0300-continuation.md), [2](https://github.com/apple/swift-evolution/blob/61c788cdb9674c99fc8731b49056cebcb5497edd/proposals/0300-continuation.md)
 
 ## Introduction
 
@@ -74,30 +74,22 @@ async task resumes:
 
 
 ```swift
-struct UnsafeContinuation<T> {
+struct UnsafeContinuation<T, E: Error> {
   func resume(returning: T)
+  func resume(throwing: E)
+  func resume(with result: Result<T, E>)
 }
 
 extension UnsafeContinuation where T == Void {
-  func resume()
+  func resume() { resume(returning: ()) }
 }
 
 func withUnsafeContinuation<T>(
-    _ operation: (UnsafeContinuation<T>) -> ()
+    _ operation: (UnsafeContinuation<T, Never>) -> ()
 ) async -> T
 
-struct UnsafeThrowingContinuation<T> {
-  func resume(returning: T)
-  func resume(throwing: Error)
-  func resume<E: Error>(with result: Result<T, E>)
-}
-
-extension UnsafeThrowingContinuation where T == Void {
-  func resume()
-}
-
 func withUnsafeThrowingContinuation<T>(
-    _ operation: (UnsafeThrowingContinuation<T>) -> ()
+    _ operation: (UnsafeContinuation<T, Error>) throws -> ()
 ) async throws -> T
 ```
 
@@ -108,12 +100,16 @@ continuation to be resumed at some point in the future; after the `operation`
 function returns, the task is suspended. The task must then be brought out
 of the suspended state by invoking one of the continuation's `resume` methods.
 Note that `resume` immediately returns control to the caller after transitioning
-the task out of its suspended state; The task itself does not actually resume
+the task out of its suspended state; the task itself does not actually resume
 execution until its executor reschedules it. The argument to
 `resume(returning:)` becomes the return value of `withUnsafe*Continuation`
-when the task resumes execution. With an `UnsafeThrowingContinuation`,
+when the task resumes execution.
 `resume(throwing:)` can be used instead to make the task resume by propagating
-the given error.
+the given error. As a convenience, given a `Result`, `resume(with:)` can be used
+to resume the task by returning normally or raising an error according to the
+state of the `Result`. If the `operation` raises an uncaught error before
+returning, this behaves as if the operation had invoked `resume(throwing:)` with
+the error.
 
 If the return type of `withUnsafe*Continuation` is `Void`, one must specify
 a value of `()` when calling `resume(returning:)`. Doing so produces some
@@ -182,8 +178,10 @@ library will also provide a wrapper which checks for invalid use of the
 continuation:
 
 ```swift
-struct CheckedContinuation<T> {
+struct CheckedContinuation<T, E: Error> {
   func resume(returning: T)
+  func resume(throwing: E)
+  func resume(with result: Result<T, E>)
 }
 
 extension CheckedContinuation where T == Void {
@@ -194,17 +192,8 @@ func withCheckedContinuation<T>(
     _ operation: (CheckedContinuation<T>) -> ()
 ) async -> T
 
-struct CheckedThrowingContinuation<T> {
-  func resume(returning: T)
-  func resume(throwing: Error)
-  func resume<E: Error>(with result: Result<T, E>)
-}
-
-extension CheckedThrowingContinuation where T == Void {
-  func resume()
-}
 func withCheckedThrowingContinuation<T>(
-    _ operation: (CheckedThrowingContinuation<T>) -> ()
+  _ operation: (CheckedContinuation<T>) throws -> ()
 ) async throws -> T
 ```
 
@@ -248,10 +237,10 @@ continuation when the operation completes:
 
 ```swift
 class MyOperation: Operation {
-  let continuation: UnsafeContinuation<OperationResult>
+  let continuation: UnsafeContinuation<OperationResult, Never>
   var result: OperationResult?
 
-  init(continuation: UnsafeContinuation<OperationResult>) {
+  init(continuation: UnsafeContinuation<OperationResult, Never>) {
     self.continuation = continuation
   }
 
@@ -402,7 +391,7 @@ through the continuation's resume type, such as an Optional's `nil`:
 let callbackResult: Result? = await withUnsafeContinuation { c in
   someCallbackBasedAPI(
     completion: { c.resume($0) },
-    cancelation: { c.resume(nil) })
+    cancellation: { c.resume(nil) })
 }
 
 if let result = callbackResult {
@@ -454,6 +443,18 @@ this as an addition to the core proposal, if "queue hopping" in continuation-
 based adapters turns out to be a performance problem in practice.
 
 ## Revision history
+
+Third revision:
+
+- Replaced separate `*Continuation<T>` and `*ThrowingContinuation<T>` types with a
+  single `Continuation<T, E: Error>` type parameterized on the error type.
+- Added a convenience `resume()` equivalent to `resume(returning: ())` for
+  continuations with a `Void` return type.
+- Changed `with*ThrowingContinuation` to take an `operation` block that may
+  throw, and to immediately resume the task throwing the error if an uncaught
+  error propagates from the operation.
+
+Second revision:
 
 - Clarified the execution behavior of `with*Continuation` and
   `*Continuation.resume`, namely that `with*Continuation` immediately executes
