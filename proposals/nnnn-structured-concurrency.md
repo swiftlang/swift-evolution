@@ -371,43 +371,6 @@ func chop(_ vegetable: Vegetable) async throws -> Vegetable {
 
 Note also that no information is passed to the task about why it was cancelled.  A task may be cancelled for many reasons, and additional reasons may accrue after the initial cancellation (for example, if the task fails to immediately exit, it may pass a deadline). The goal of cancellation is to allow tasks to be cancelled in a lightweight way, not to be a secondary method of inter-task communication.
 
-Task groups can also be cancelled, in order to trigger cancellation of any
-still-running child tasks and prevent the addition of further children. A
-`Task.Group` value can also be tested for cancellation by reading its
-`isCancelled` property. Looking back at the previous example:
-
-```swift
-func chopVegetables() async throws -> [Vegetable] {
-  var veggies: [Vegetable] = []
-
-  try await Task.withGroup(resultType: Vegetable.self) { group in
-    await group.add {
-      group.cancel() // Cancel all work in the group
-      throw UnfortunateAccidentWithKnifeError()
-    }
-    await group.add {
-      return try await chop(Onion()) // (2)
-    }
-
-    print(group.isCancelled) // prints false
-
-    do {
-      while let veggie = try await group.next() { // (3)
-        veggies.append(veggie)
-      }
-    } catch {
-      print(group.isCancelled) // prints true now
-      let added = await group.add {
-        return try await chop(SweetPotato())
-      }
-      print(added) // prints false, no child was added to the cancelled group
-    }
-  }
-  
-  return veggies
-}
-```
-
 ### Access from synchronous functions
 
 As already shown in the above examples, it is possible to call functions that inspect the "current task" in order to check if it was e.g. cancelled. However, those functions are on purpose not `async` and _can_ be called from synchronous functions as well.
@@ -584,7 +547,7 @@ A new, detached task can be created with the `Task.runDetached` operation. The r
 extension Task {
   /// Create a new, detached task that produces a value of type `T`.
   @discardableResult
-  static func runDetached<T>(
+  static func runDetached<T: ConcurrentValue>(
     priority: Priority = .default,
     startingOn executor: UnownedExecutorRef? = nil,
     operation: @escaping @concurrent () async -> T
@@ -592,7 +555,7 @@ extension Task {
 
   /// Create a new, detached task that produces a value of type `T` or throws an error.
   @discardableResult
-  static func runDetached<T>(
+  static func runDetached<T: ConcurrentValue>(
     priority: Priority = .default,
     startingOn executor: UnownedExecutorRef? = nil,
     operation: @escaping @concurrent () async throws -> T
@@ -805,7 +768,7 @@ extension Task {
   ///   - once the `withGroup` returns the group is guaranteed to be empty.
   /// - if the body throws:
   ///   - all tasks remaining in the group will be automatically cancelled.
-  static func withGroup<TaskResult, Return>(
+  static func withGroup<TaskResult: ConcurrentValue, Return>(
     resultType: TaskResult.Type,
     startingChildTasksOn executor: ExecutorRef? = nil,
     returning returnType: Return.Type = Return.self,
@@ -840,7 +803,9 @@ Within the `body` function, tasks may be added dynamically with the `add` operat
 
 ```swift
 extension Task.Group { 
-  /// Add a task to the group.
+  /// Add a child task to the group.
+  ///
+  /// Returns true if the task was successfully added, false otherwise.
   mutating func add(
       overridingPriority: Priority? = nil,
       operation: @concurrent @escaping () async throws -> TaskResult
@@ -901,14 +866,54 @@ There are several ways in which a task group can be cancelled. In all cases, all
 2. When the task in which the task group itself was created is cancelled, or
 3. When the `cancelAll()` operation is invoked.
 
+A group's cancellation state can be queried by reading the `isCancelled`
+property.
 
 ```swift
 extension Task.Group {
   /// Cancel all the remaining tasks in the task group.
   /// Any results, including errors thrown, are discarded.
   mutating func cancelAll() { ... } 
+
+  /// Returns true if the group has been cancelled.
+  var isCancelled: Bool { get }
 }
 ```
+
+For example:
+
+```swift
+func chopVegetables() async throws -> [Vegetable] {
+  var veggies: [Vegetable] = []
+
+  try await Task.withGroup(resultType: Vegetable.self) { group in
+    print(group.isCancelled) // prints false
+
+    await group.add {
+      group.cancelAll() // Cancel all work in the group
+      throw UnfortunateAccidentWithKnifeError()
+    }
+    await group.add {
+      return try await chop(Onion()) // (2)
+    }
+
+    do {
+      while let veggie = try await group.next() { // (3)
+        veggies.append(veggie)
+      }
+    } catch {
+      print(group.isCancelled) // prints true now
+      let added = await group.add {
+        return try await chop(SweetPotato())
+      }
+      print(added) // prints false, no child was added to the cancelled group
+    }
+  }
+  
+  return veggies
+}
+```
+
 
 ## Source compatibility
 
