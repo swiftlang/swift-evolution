@@ -4,13 +4,13 @@
 * Author: [Matthew Johnson](https://github.com/anandabits)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Deferred**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160111/006469.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/review-se-0018-flexible-memberwise-initialization/939/22)
 
 ## Introduction
 
 The Swift compiler is currently able to generate a memberwise initializer for use in some circumstances, however there are currently many limitations to this.  This proposal builds on the idea of a compiler generated memberwise initializer, making the capability available to any initializer that opts in.
 
-Swift-evolution thread: [Proposal Draft: flexible memberwise initialization](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151221/003902.html)
+Swift-evolution thread: [Proposal Draft: flexible memberwise initialization](https://forums.swift.org/t/proposal-draft-flexible-memberwise-initialization/698)
 
 ## Motivation
 
@@ -24,7 +24,7 @@ Underlying this problem is the fact that initialization scales with M x N comple
 
 Flexible and concise initialization for both type authors and consumers will encourages using immutability where possible and removes the need for boilerplate from the concerns one must consider when designing the intializers for a type.
 
-Quoting [Chris Lattner](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151130/000518.html):
+Quoting [Chris Lattner](https://forums.swift.org/t/proposal-helpers-for-initializing-properties-of-same-name-as-parameters/129/8):
 
 	The default memberwise initializer behavior of Swift has at least these deficiencies (IMO):
 	1) Defining a custom init in a struct disables the memberwise initializer, and there is no easy way to get it back.
@@ -472,7 +472,7 @@ NOTE: The tension mentioned here is lessened by #6 above: memberwise initializat
 
 ### Require initializers to explicitly specify memberwise initialization parameters
 
-The thread "[helpers for initializing properties of the same name as parameters](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151130/000428.html)" discussed an idea for synthesizing property initialization in the body of the initializer while requiring the parameters to be declard explicitly.  
+The thread "[helpers for initializing properties of the same name as parameters](https://forums.swift.org/t/proposal-helpers-for-initializing-properties-of-same-name-as-parameters/129/3)" discussed an idea for synthesizing property initialization in the body of the initializer while requiring the parameters to be declard explicitly.  
 
 ```swift
 struct Foo {

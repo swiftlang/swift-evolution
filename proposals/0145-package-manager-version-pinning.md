@@ -4,9 +4,9 @@
 * Author: [Daniel Dunbar](https://github.com/ddunbar), [Ankit Aggarwal](https://github.com/aciidb0mb3r), [Graydon Hoare](https://github.com/graydon)
 * Review Manager: [Anders Bertelrud](https://github.com/abertelrud)
 * Status: **Implemented (Swift 3.1)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-December/000302.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/swift-evolution-accepted-se-0145-package-manager-version-pinning-revised/4653)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/91725ee83fa34c81942a634dcdfa9d2441fbd853/proposals/0145-package-manager-version-pinning.md)
-* Previous Discussion: [Email Thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20161107/028758.html)
+* Previous Discussion: [Email Thread](https://forums.swift.org/t/review-se-0145-package-manager-version-pinning/4405/15)
 
 ## Introduction
 

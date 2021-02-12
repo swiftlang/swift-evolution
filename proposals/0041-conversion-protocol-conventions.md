@@ -4,13 +4,13 @@
 * Authors: [Matthew Johnson](https://github.com/anandabits), [Erica Sadun](http://github.com/erica)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Rejected**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000160.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/rejected-se-0041-updating-protocol-naming-conventions-for-conversions/2684)
 
 ## Introduction
 
 We propose to expand and improve the naming conventions established by the API Guidelines and the standard library with regard to conversion related protocols. We believe common protocol naming patterns should be clear, consistent, and meaningful. The Swift standard library includes slightly north of eighty protocols. Of these, about 15% concern themselves with type initialization and conversion. This proposal assigns specific conventional suffixes to these tasks.  We present this proposal to improve overall language coherence.
 
-*The Swift-evolution thread about this topic can be found here: [Proposal: conversion protocol naming conventions](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151207/002052.html)*
+*The Swift-evolution thread about this topic can be found here: [Proposal: conversion protocol naming conventions](https://forums.swift.org/t/proposal-conversion-protocol-naming-conventions/478)*
 
 ## Motivation
 

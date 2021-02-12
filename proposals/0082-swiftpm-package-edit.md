@@ -4,7 +4,7 @@
 * Author: [Daniel Dunbar](https://github.com/ddunbar)
 * Review Manager: [Anders Bertelrud](https://github.com/abertelrud)
 * Status: **Implemented (Swift 3.1)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160509/017038.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0082-package-manager-editable-packages/2540)
 
 ## Introduction
 
@@ -15,9 +15,9 @@ those sources, and add a new feature for allowing iterative development. These
 features are tightly interrelated, which is why they are combined into one
 proposal.
 
-[Proposal Announcement](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160425/015686.html)
+[Proposal Announcement](https://forums.swift.org/t/rfc-swift-package-manager-editable-packages-proposal/2333)
 
-[Review announcement](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160502/016502.html)
+[Review announcement](https://forums.swift.org/t/review-se-0082-package-manager-editable-packages/2450)
 
 
 ## Motivation

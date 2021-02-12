@@ -4,7 +4,7 @@
 * Author: Ilya Belenkiy
 * Status: **Implemented (Swift 3)**
 * Review Manager: [Doug Gregor](http://github.com/DougGregor)
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160404/014116.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/se-0025-scoped-access-level-next-steps/1797/131)
 * Bug: [SR-1275](https://bugs.swift.org/browse/SR-1275)
 * Previous revision: [1](https://github.com/apple/swift-evolution/blob/e4328889a9643100177aef19f6f428855c5d0cf2/proposals/0025-scoped-access-level.md)
 
@@ -12,7 +12,7 @@
 
 Scoped access level allows hiding implementation details of a class or a class extension at the class/extension level, instead of a file. It is a concise expression of the intent that a particular part of a class or extension definition is there only to implement a public API for other classes or extensions and must not be used directly anywhere outside of the scope of the class or the extension.
 
-[Swift Evolution Discussion](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160222/011162.html), [Next Steps Discussion](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160314/012604.html)
+[Swift Evolution Discussion](https://forums.swift.org/t/review-se-0025-scoped-access-level/1588), [Next Steps Discussion](https://forums.swift.org/t/se-0025-scoped-access-level-next-steps/1797)
 
 ## Motivation
 

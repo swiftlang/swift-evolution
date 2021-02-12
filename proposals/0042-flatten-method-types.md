@@ -4,7 +4,7 @@
 * Author: [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Rejected**
-* Decision Notes: [Original acceptance](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160321/013251.html). The proposal was not implemented in time for Swift 3, and is now source-breaking.
+* Decision Notes: [Original acceptance](https://forums.swift.org/t/accepted-se-0042-flattening-the-function-type-of-unapplied-method-references/1926). The proposal was not implemented in time for Swift 3, and is now source-breaking.
   
 * Bug: [SR-1051](https://bugs.swift.org/browse/SR-1051)
 
@@ -36,7 +36,7 @@ let f = Type.instanceMethod // f: (Type, y: Int) -> Int
 f(Type(x: 1), y: 2)         // ==> 3
 ```
 
-Swift-evolution thread: [Flattening the function type of unapplied instance methods](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160222/010843.html)
+Swift-evolution thread: [Flattening the function type of unapplied instance methods](https://forums.swift.org/t/pitch-flattening-the-function-type-of-unapplied-instance-methods/1523)
 
 ## Motivation
 

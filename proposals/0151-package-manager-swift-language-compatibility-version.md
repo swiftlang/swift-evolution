@@ -4,7 +4,7 @@
 * Authors: [Daniel Dunbar](https://github.com/ddunbar), [Rick Ballard](http://github.com/rballard)
 * Review Manager: [Anders Bertelrud](https://github.com/abertelrud)
 * Status: **Implemented (Swift 3.1)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170213/032021.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0151-package-manager-swift-language-compatibility-version/5183)
 * Bug: [SR-3964](https://bugs.swift.org/browse/SR-3964)
 
 ## Introduction

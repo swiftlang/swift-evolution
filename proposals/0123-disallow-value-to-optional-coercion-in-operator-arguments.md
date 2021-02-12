@@ -4,7 +4,7 @@
 * Authors: [Mark Lacey](https://github.com/rudkx), [Doug Gregor](https://github.com/DougGregor), [Jacob Bandes-Storch](https://github.com/jtbandes)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Rejected**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000246.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/rejected-se-0123-disallow-coercion-to-optionals-in-operator-arguments/3479)
 
 ## Introduction
 
@@ -46,7 +46,7 @@ This coercion happens for normal function calls, the assignment
 statement, and for operators defined with optional parameter types,
 e.g. the comparison operators and the nil-coalescing operator (`??`).
 
-Swift-evolution thread: [Optional comparison operators](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160711/024121.html)
+Swift-evolution thread: [Optional comparison operators](https://forums.swift.org/t/optional-comparison-operators/3320)
 
 ## Proposal
 

@@ -4,7 +4,7 @@
 * Author: [Oisin Kidney](https://github.com/oisdk)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151221/004418.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0008-add-a-lazy-flatmap-for-sequences-of-optionals/748)
 * Bug: [SR-361](https://bugs.swift.org/browse/SR-361)
 
 ## Introduction ##
@@ -39,7 +39,7 @@ However, there is only a lazy implementation for the first version:
 // [1, 2, 3, 4, 5]
 ```
 
-Swift Evolution Discussions: [Lazy flatMap for Optionals](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151130/000534.html), [Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/002592.html)
+Swift Evolution Discussions: [Lazy flatMap for Optionals](https://forums.swift.org/t/lazy-flatmap-for-optionals/127/3), [Review](https://forums.swift.org/t/review-add-a-lazy-flatmap-for-sequences-of-optionals/548)
 
 ## Motivation ##
 

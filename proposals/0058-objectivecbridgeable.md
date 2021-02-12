@@ -4,13 +4,13 @@
 * Authors: [Russ Bishop](https://github.com/russbishop), [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
 * Status: **Deferred**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-April/000095.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/deferred-se-0058-allow-swift-types-to-provide-custom-objective-c-representations/2167)
 
 ## Introduction
 
 Provide an `ObjectiveCBridgeable` protocol that allows a Swift type to control how it is represented in Objective-C by converting into and back from an entirely separate `@objc` type. This frees library authors to create truly native Swift APIs while still supporting Objective-C.
 
-Swift-evolution thread: [\[Idea\] ObjectiveCBridgeable](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160222/011032.html)
+Swift-evolution thread: [\[Idea\] ObjectiveCBridgeable](https://forums.swift.org/t/idea-objectivecbridgeable/1559)
 
 
 ## Motivation

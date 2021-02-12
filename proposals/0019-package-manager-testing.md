@@ -4,7 +4,7 @@
 * Authors: [Max Howell](https://github.com/mxcl), [Daniel Dunbar](https://github.com/ddunbar), [Mattt Thompson](https://github.com/mattt)
 * Review Manager: [Rick Ballard](https://github.com/rballard)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160118/007278.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0019-swift-testing-package-manager/1155)
 * Bug: [SR-592](https://bugs.swift.org/browse/SR-592)
 
 ## Introduction
@@ -13,7 +13,7 @@ Testing is an essential part of modern software development.
 Tight integration of testing into the Swift Package Manager
 will help ensure a stable and reliable packaging ecosystem.
 
-[SE Review Link](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160104/005397.html), [Second Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160111/006758.html)
+[SE Review Link](https://forums.swift.org/t/review-se-0019-swift-testing-package-manager/909), [Second Review](https://forums.swift.org/t/review-se-0019-swift-testing-package-manager/1084)
 
 ## Proposed Solution
 

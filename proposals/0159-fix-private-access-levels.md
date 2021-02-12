@@ -4,7 +4,7 @@
 * Author: [David Hart](http://github.com/hartbit)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Rejected**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170403/034902.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/rejected-se-0159-fix-private-access-levels/5576)
 
 ## Introduction
 

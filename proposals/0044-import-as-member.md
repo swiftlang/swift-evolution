@@ -4,7 +4,7 @@
 * Author: [Michael Ilseman](https://github.com/milseman)
 * Status: **Implemented (Swift 3)**
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160321/013265.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0044-import-as-member/1929)
 * Bug: [SR-1053](https://bugs.swift.org/browse/SR-1053)
 
 ## Introduction
@@ -16,8 +16,9 @@ authors to specify the capability of importing functions and variables as
 members on imported Swift types. It also seeks to provide an automatic inference
 option for APIs that follow a consistent, disciplined naming convention.
 
-[Swift-evolution thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160229/011617.html)<br />
-[Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160314/012695.html)
+[Swift-evolution thread](https://forums.swift.org/t/proposal-draft-import-as-member/1650)<br />
+[Review](https://forums.swift.org/t/review-se-0044-import-as-member/1805)
+
 ## Motivation
 
 C APIs and frameworks currently import into Swift as global functions and global

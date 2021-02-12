@@ -4,7 +4,7 @@
 * Author: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 4.2)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2017-May/000374.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0174-change-filter-to-return-an-associated-type/5866)
 * Bug: [SR-3444](https://bugs.swift.org/browse/SR-3444)
 
 ## Introduction

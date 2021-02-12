@@ -4,13 +4,13 @@
 * Author: [David Hart](https://github.com/hartbit)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Rejected**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160104/005478.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/rejected-se-0009-require-self-for-accessing-instance-members/930)
 
 ## Introduction
 
 The current version of Swift (2.1) requires using `self` when accessing instance members in closures. The proposal suggests extending this to all member accesses (as is intrinsically the case in Objective-C). It has the benefit of documenting instance properties vs local variables and instance functions vs local functions or closures.
 
-[Swift Evolution Discussion Thread](https://lists.swift.org/pipermail/swift-evolution/2015-December/000209.html)
+[Swift Evolution Discussion Thread](https://forums.swift.org/t/proposal-re-instate-mandatory-self-for-accessing-instance-properties-and-functions/125)
 
 ## Motivation
 
@@ -21,7 +21,7 @@ This proposal makes it obvious which are instance properties vs local variables,
 * Less confusing from a learning point of view.
 * Lets the compiler warn users (and avoids bugs) where the authors mean to use a local variable but instead are unknowingly using an instance property (and the other way round).
 
-One example of a bug avoidable by the proposal ([provided by Rudolf Adamkovic](https://lists.swift.org/pipermail/swift-evolution/2015-December/000243.html)):
+One example of a bug avoidable by the proposal ([provided by Rudolf Adamkovic](https://forums.swift.org/t/proposal-re-instate-mandatory-self-for-accessing-instance-properties-and-functions/125/4)):
 
 ```swift
 class MyViewController : UIViewController {

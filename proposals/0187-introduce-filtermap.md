@@ -6,10 +6,10 @@
 * Status: **Implemented (Swift 4.1)**
 * Implementation: [apple/swift#12819](https://github.com/apple/swift/pull/12819)
 * Decision Notes:
-    [Review #0](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171023/040609.html),
-    [Review #1](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171106/040999.html),
-    [Review #2](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171113/041342.html),
-    [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171218/042207.html)
+    [Review #0](https://forums.swift.org/t/draft-introduce-sequence-filteredmap/6872),
+    [Review #1](https://forums.swift.org/t/review-se-0187-introduce-sequence-filtermap/6977),
+    [Review #2](https://forums.swift.org/t/accepted-and-focused-re-review-se-0187-introduce-sequence-filtermap/7076),
+    [Rationale](https://forums.swift.org/t/accepted-with-revisions-se-0187-introduce-sequence-filtermap/7290)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/2d24b0ce9f138858b8341467170d6d8ba973827f/proposals/0187-introduce-filtermap.md)
 
 ## Introduction

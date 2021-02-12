@@ -4,7 +4,7 @@
 * Author: [Jesse Rusak](https://github.com/jder)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000066.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0037-clarify-interaction-between-comments-operators/1833)
 * Bug: [SR-960](https://bugs.swift.org/browse/SR-960)
 
 
@@ -17,11 +17,11 @@ whether they are to the left or right of an operator, and the contents of
 the comment itself. This proposal suggests a uniform set of rules for how these
 cases should be parsed.
 
-Swift-evolution thread: [started here](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160104/006030.html)
+Swift-evolution thread: [started here](https://forums.swift.org/t/draft-clarify-interaction-between-comments-operators/984)
 
 A draft implementation is [available here](https://github.com/apple/swift/compare/master...jder:comment-operator-fixes).
 
-[Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160307/012398.html)
+[Review](https://forums.swift.org/t/review-se-0037-clarify-interaction-between-comments-operators/1762)
 
 ## Motivation
 

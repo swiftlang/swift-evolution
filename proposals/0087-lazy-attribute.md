@@ -4,7 +4,7 @@
 * Author: [Anton3](https://github.com/Anton3)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Rejected**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000172.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/rejected-se-0087-rename-lazy-to-lazy/2778)
 
 ## Introduction
 
@@ -16,7 +16,7 @@ struct ResourceManager {
 }
 ```
 
-Swift-evolution thread: [link to the discussion thread for that proposal](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160502/016325.html)
+Swift-evolution thread: [link to the discussion thread for that proposal](https://forums.swift.org/t/idea-make-lazy-an-attribute/2424)
 
 ## Motivation
 

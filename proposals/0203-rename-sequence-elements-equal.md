@@ -12,7 +12,7 @@
 
 The behavior of `Sequence.elementsEqual` is confusing to users given its name. Having surveyed alternative solutions to this problem, it is proposed that the method be renamed to `Sequence.elementsEqualInIterationOrder`.
 
-Swift-evolution thread: [Rename Sequence.elementsEqual](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171009/040362.html)
+Swift-evolution thread: [Rename Sequence.elementsEqual](https://forums.swift.org/t/draft-rename-sequence-elementsequal/6821)
 
 ## Motivation
 
@@ -28,7 +28,7 @@ set1.elementsEqual(set2) // false
 
 In almost all circumstances where a set is compared to another set or a dictionary is compared to another dictionary, users should use `==`, which is order-insensitive, instead of `elementsEqual(_:)`, which is order-sensitive.
 
-[As Michael Ilseman explains](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171016/040544.html):
+[As Michael Ilseman explains](https://forums.swift.org/t/draft-rename-sequence-elementsequal/6821/152):
 
 > We have two forms of equality we're talking about: equality of Sequence and equality of the elements of Sequences in their respective ordering. `==` covers the former, and I'll use the existing (harmful) name of `elementsEqual` for the latter.
 >

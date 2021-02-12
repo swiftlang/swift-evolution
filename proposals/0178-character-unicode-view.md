@@ -4,7 +4,7 @@
 * Author: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Status: **Implemented (Swift 4)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170515/036714.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0178-add-unicodescalars-property-to-character/5941)
 * Implementation: [apple/swift#9675](https://github.com/apple/swift/pull/9675)
 
 ## Introduction

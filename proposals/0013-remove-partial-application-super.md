@@ -4,7 +4,7 @@
 * Author: [David Farler](https://github.com/bitjammer)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Rejected**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160118/007316.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/rejected-se-0013-remove-partial-application-of-non-final-super-methods/1157)
 
 
 ## Introduction
@@ -24,7 +24,7 @@ those mechanisms, I propose that we disallow partial application of
 non-final methods through `super`, except where the `self` parameter is
 implicitly captured.
 
-[Swift Evolution Discussion Thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151207/000947.html)
+[Swift Evolution Discussion Thread](https://forums.swift.org/t/swift-2-2-removing-partial-application-of-super-method-calls/264)
 
 ## Motivation
 

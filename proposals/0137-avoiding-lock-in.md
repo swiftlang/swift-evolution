@@ -4,14 +4,14 @@
 * Authors: [Dave Abrahams](https://github.com/dabrahams), [Dmitri Gribenko](https://github.com/gribozavr)
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160815/026300.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0137-avoiding-lock-in-to-legacy-protocol-designs/3781)
 
 ## Introduction
 
 We propose to deprecate or move protocols that shouldn't be a part of
 the standard library's public API going forward.
 
-Swift-evolution threads: [Late Pitch](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160808/026071.html), [Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160808/026103.html)
+Swift-evolution threads: [Late Pitch](https://forums.swift.org/t/late-pitch-deprecations-moves-and-renames/3723), [Review](https://forums.swift.org/t/review-se-0137-avoiding-lock-in-to-legacy-protocol-designs/3739)
 
 ## Motivation
 

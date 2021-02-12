@@ -4,7 +4,7 @@
 * Author: [Matthew Johnson](https://github.com/anandabits)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3.1)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000150.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-revision-se-0080-failable-numeric-conversion-initializers/2578)
 * Bug: [SR-1491](https://bugs.swift.org/browse/SR-1491)
 
 ## Introduction
@@ -13,7 +13,7 @@ Swift numeric types all currently have a family of conversion initializers.  In 
 
 This proposal is to add a new family of conversion initializers to all numeric types that either complete successfully without loss of information or return nil.
 
-Swift-evolution thread: [Proposal: failable numeric conversion initializers](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151130/000623.html)
+Swift-evolution thread: [Proposal: failable numeric conversion initializers](https://forums.swift.org/t/proposal-failable-numeric-conversion-initializers/216)
 
 ## Motivation
 
