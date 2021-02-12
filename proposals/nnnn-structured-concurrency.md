@@ -238,23 +238,24 @@ results as they become ready:
 func chopVegetables() async throws -> [Vegetable] {
   // Create a task group where each child task produces a Vegetable.
   try await Task.withGroup(resultType: Vegetable.self) { group in 
-    var veggies: [Vegetable] = gatherRawVeggies()
+    var rawVeggies: [Vegetable] = gatherRawVeggies()
+    var choppedVeggies: [Vegetable] = []
     
     // Create a new child task for each vegetable that needs to be 
     // chopped.
-    for i in veggies.indices {
+    for v in rawVeggies {
       await group.add { 
-        return veggies[i].chopped()
+        return v.chopped()
       }
     }
 
     // Wait for all of the chopping to complete, collecting the veggies into
     // the result array in whatever order they're ready.
     while let choppedVeggie = try await group.next() {
-      veggies.append(choppedVeggie)
+      choppedVeggies.append(choppedVeggie)
     }
     
-    return veggies
+    return choppedVeggies
   }
 }
 ```
@@ -369,6 +370,43 @@ func chop(_ vegetable: Vegetable) async throws -> Vegetable {
 ```
 
 Note also that no information is passed to the task about why it was cancelled.  A task may be cancelled for many reasons, and additional reasons may accrue after the initial cancellation (for example, if the task fails to immediately exit, it may pass a deadline). The goal of cancellation is to allow tasks to be cancelled in a lightweight way, not to be a secondary method of inter-task communication.
+
+Task groups can also be cancelled, in order to trigger cancellation of any
+still-running child tasks and prevent the addition of further children. A
+`Task.Group` value can also be tested for cancellation by reading its
+`isCancelled` property. Looking back at the previous example:
+
+```swift
+func chopVegetables() async throws -> [Vegetable] {
+  var veggies: [Vegetable] = []
+
+  try await Task.withGroup(resultType: Vegetable.self) { group in
+    await group.add {
+      group.cancel() // Cancel all work in the group
+      throw UnfortunateAccidentWithKnifeError()
+    }
+    await group.add {
+      return try await chop(Onion()) // (2)
+    }
+
+    print(group.isCancelled) // prints false
+
+    do {
+      while let veggie = try await group.next() { // (3)
+        veggies.append(veggie)
+      }
+    } catch {
+      print(group.isCancelled) // prints true now
+      let added = await group.add {
+        return try await chop(SweetPotato())
+      }
+      print(added) // prints false, no child was added to the cancelled group
+    }
+  }
+  
+  return veggies
+}
+```
 
 ### Access from synchronous functions
 
@@ -734,7 +772,7 @@ extension Task {
 }
 ```
 
-The rationale for the default value is that if running outside of the Task infrastructure, there is no way to impact the priority of a task if not using the task infrastructure after all.
+The rationale for the default value is that if running outside of the Task infrastructure, there is no way for the caller to impact the priority of any task.
 
 #### Task Groups
 
@@ -767,12 +805,12 @@ extension Task {
   ///   - once the `withGroup` returns the group is guaranteed to be empty.
   /// - if the body throws:
   ///   - all tasks remaining in the group will be automatically cancelled.
-  static func withGroup<TaskResult, BodyResult>(
+  static func withGroup<TaskResult, Return>(
     resultType: TaskResult.Type,
     startingChildTasksOn executor: ExecutorRef? = nil,
-    returning returnType: BodyResult.Type = BodyResult.self,
-    body: (inout Task.Group<TaskResult>) async throws -> BodyResult
-  ) async throws -> BodyResult { ... } 
+    returning returnType: Return.Type = Return.self,
+    body: (inout Task.Group<TaskResult>) async throws -> Return
+  ) async throws -> Return { ... } 
   
   /// A group of tasks, each of which produces a result of type `TaskResult`.
   struct Group<TaskResult> {
