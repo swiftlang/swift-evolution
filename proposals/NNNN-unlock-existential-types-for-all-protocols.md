@@ -107,7 +107,7 @@ func callMethod(p: P) {
 
 Evidently, an associated type or other unfortunate requirements (such as `bar`) cannot speak for the rest of the interface. Some protocols still have a useful subset of functionality that either doesn't rely on `Self` and associated types, or that relies on them in a way compatible with existential types.
 
-The case of an associated type requirement that is known to have a predefined implementation reveals another downside of the status quo:
+The case of an associated type requirement that is known to have a predefined implementation reveals another downside to the status quo:
 
 ```swift
 protocol P {
