@@ -48,7 +48,7 @@ As with the `PackageDescription` API for package manifests, the `PackageExtensio
 
 To allow package extensions to be declared, the following API will be added to `PackageDescription`:
 
-```
+```swift
 extension Target {
 
     /// Defines a new package extension target with a given name, declaring it as
@@ -154,7 +154,7 @@ final class ExtensionCapability {
 
 To allow targets to use package extensions, a `using` parameter that accepts a list of `.extension()` usages will also be added to various target definitions in `PackageDescription`:
 
-```
+```swift
 extension Target {
     .target(
         . . .
@@ -193,7 +193,7 @@ The API of the new `PackageExtension` library lets the package extension constru
 
 The initial proposed `PackageExtension` API is:
 
-```
+```swift
 /// Like package manifests, package extensions are Swift scripts that use API
 /// from a special library provided by SwiftPM. In the case of package exten-
 /// sions, this is `PackageExtension`.  Extensions run in a sandbox, and have
@@ -399,7 +399,7 @@ SwiftGen supports using a config file named `swiftgen.yml` and this example impl
 
 The package manifest has a dependency on the SwiftGen package, which vends an extension that the client package can use for any of its targets by referencing it by name in the package manifest:
 
-```
+```swift
 // swift-tools-version: 999.0
 import PackageDescription
 
@@ -441,7 +441,7 @@ In this case, `main.swift` is the Swift script that implements the package exten
 
 The package manifest would have a `extension` target in addition to the existing target that provides the `swiftgen` command line tool itself:
 
-```
+```swift
 // swift-tools-version: 999.0
 import PackageDescription
 
@@ -472,7 +472,7 @@ let package = Package(
 
 The package extension script implementing the `prebuild` capability might look like this:
 
-```
+```swift
 import PackageExtension
 
 // This example configures `swiftgen` to write to a "SwiftGenOutputs" directory.
@@ -524,7 +524,7 @@ The `messages.proto` source file needs to be processed using the `protoc` compil
 
 The package manifest has a dependency on the SwiftProtobuf package, and references the extension defined in it:
 
-```
+```swift
 // swift-tools-version: 999.0
 import PackageDescription
 
@@ -567,7 +567,7 @@ SwiftProtobuf
 
 The package manifest is:
 
-```
+```swift
 // swift-tools-version: 999.0
 import PackageDescription
 
@@ -608,7 +608,7 @@ The `protoc-gen-swift` target is a regular executable target that implements a s
 
 The package extension script might look like:
 
-```
+```swift
 import PackageExtension
 
 // In this case we generate an invocation of `protoc` for each input file, passing
@@ -678,7 +678,7 @@ A third important use case is source generators that analyze Swift files and gen
 
 One could imagine a source generation tool called `GenSwifty` generating some additional “sugar” for existing definitions in a swift target. It would be configured like this by end users:
 
-```
+```swift
 // swift-tools-version: 999.0
 import PackageDescription
 
@@ -698,7 +698,7 @@ let package = Package(
 
 The package manifest of the `gen-swifty` package would be as follows:
 
-```
+```swift
 // swift-tools-version: 999.0
 import PackageDescription
 
@@ -740,7 +740,7 @@ MyPackage
 
 The manifest is:
 
-```
+```swift
 // swift-tools-version: 999.0
 import PackageDescription
 
