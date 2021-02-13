@@ -1,7 +1,7 @@
 # Package Manager Extensible Build Tools
 
 * Proposal: [SE-NNNN](NNNN-filename.md)
-* Authors: [Anders Bertelrud](https://github.com/abertelrud), , [Konrad 'ktoso' Malawski](https://github.com/ktoso), [Tom Doron](https://github.com/tomerd)
+* Authors: [Anders Bertelrud](https://github.com/abertelrud), [Konrad 'ktoso' Malawski](https://github.com/ktoso), [Tom Doron](https://github.com/tomerd)
 * Review Manager: TBD
 * Status: **WIP**
 * Previous Pitch and Forum Discussion: [Package Manager Extensible Build Tools](https://forums.swift.org/t/package-manager-extensible-build-tools/10900)
