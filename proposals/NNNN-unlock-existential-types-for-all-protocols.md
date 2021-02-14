@@ -12,7 +12,7 @@ Swift allows the use of a protocol as a value type when its *requirements* meet 
 
 ## Motivation
 
-In Swift, an *existential type* for a given *protocol type* or *protocol composition type* is a formally distinct type that has an equivalent spelling and can hold a value of any conforming type, exposing just the interface(s) of the specified protocol(s) (and superclass). An *existential value* is therefore a value of an existential type. The ability to represent an instance of any conforming type enables users and, more importantly, library authors to save on API surface and the considerable amount of boilerplate and difficult-to-maintain code often entailed in the design of ergonomic and exhaustive type-erased wrappers that stand in for a particular existential type. Likewise, existential types can prove incredibly useful in specific use cases that involve dynamicity.
+In Swift, an *existential type* for a given *protocol type* or *protocol composition type* is a formally distinct type that has an equivalent spelling and can hold a value of any conforming type, exposing just the interface(s) of the specified protocol(s) (and superclass). An *existential value* is therefore a value of existential type. The ability to represent an instance of any conforming type enables users and, more importantly, library authors to save on API surface and the considerable amount of boilerplate and difficult-to-maintain code often entailed in the design of ergonomic and exhaustive type-erased wrappers that stand in for a particular existential type. Likewise, existential types can prove incredibly useful in specific use cases that involve dynamicity.
 
 ### Heterogenous Collections
 
