@@ -120,7 +120,7 @@ extension Animal {
 }
 ```
 
-Unfortunately, `Animal` is still "assumed" to have an associated type requirement, which is solely responsible for restraining the existential.
+Contrary to the user's intent, `Animal` is still assumed as having an associated type requirement, which is solely responsible for restraining the existential.
 
 The current semantic inconsistency also discourages authors from refining their existing protocols with other, useful ones in fear of losing existential qualification.
 
