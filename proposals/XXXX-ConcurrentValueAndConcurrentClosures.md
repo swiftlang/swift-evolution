@@ -16,13 +16,16 @@ This proposal describes an approach to address one of the challenging problems i
 
 This implementation approach involves marker protocols named `ConcurrentValue` and `UnsafeConcurrentValue`, as well as a `@concurrent` attribute that may be applied to functions.
 
+
 ## Motivation
 
-Each actor instance and structured concurrency task in a program represents an “island of single threaded-ness”, which makes them a natural synchronization point that holds a bag of mutable state. These perform computation in parallel with other tasks, but we want the vast majority of code in such a system to be synchronization free -- building on the logical independence of the actor, and using its queue as a synchronization point for its data.
+Each actor instance and structured concurrency task in a program represents an “island of single threaded-ness”, which makes them a natural synchronization point that holds a bag of mutable state. These perform computation in parallel with other tasks, but we want the vast majority of code in such a system to be synchronization free -- building on the logical independence of the actor, and using its mailbox as a synchronization point for its data.
 
 As such, a key question is: “when and how do we allow data to be transferred between concurrency domains?” Such transfers occur in arguments and results of actor method calls and tasks created by structured concurrency, for example.
 
-The Swift Concurrency features aspire to build a safe and powerful programming model.  We want to achieve three things:
+The Swift Concurrency features aspire to build a safe and powerful programming model. We want to achieve three things:
+
+
 
 1. We want Swift programmers to get a static compiler error when they try to pass across concurrency domains that could introduce unprotected shared mutable state.
 2. We want advanced programmers to be able to implement libraries with sophisticated techniques (e.g. a concurrent hash table) that can be used in a safe way by others.
@@ -47,7 +50,7 @@ Structs, enums and tuples are the primary mode for composition of values in Swif
 
 ### Higher Order Functional Programming
 
-It is common in Swift and other languages with functional programming roots to use [higher-order programming](https://en.wikipedia.org/wiki/Higher-order_function), where you pass functions to other functions.  Functions in Swift are reference types, but many functions are perfectly safe to pass across concurrency domains - for example, those with an empty capture list, like a global function.
+It is common in Swift and other languages with functional programming roots to use [higher-order programming](https://en.wikipedia.org/wiki/Higher-order_function), where you pass functions to other functions.  Functions in Swift are reference types, but many functions are perfectly safe to pass across concurrency domains - for example, those with an empty capture list.
 
 There are many useful reasons why you’d want to send bits of computation between concurrency domains in the form of a function - even trivial algorithms like `parallelMap` need this.  This occurs at larger scale as well -- for example, consider an actor example like this:
 
@@ -59,18 +62,21 @@ actor MyContactList {
 }
 ```
 
+
 Which could then be used like so:
+
 
 ```
 // Closures with no captures are ok!
 list = await contactList.filteredElements { $0.firstName != "Max" }
 
-// Capturing a 'searchName' string is ok, because strings are
+// Capturing a 'searchName' string by value is ok, because strings are
 // ok to pass across concurrency domains.
 list = await contactList.filteredElements {
        [searchName] in $0.firstName == searchName
       }
 ```
+
 
 We feel that it is important to enable functions to be passed across concurrency domains, but we are also concerned that we should not allow capturing local state _by reference_ in these functions, and we should not allow capturing unsafe things by value.  Both would introduce memory safety problems.
 
@@ -84,7 +90,7 @@ One common and efficient design pattern in concurrent programming is to build im
 
 A common design pattern in concurrent systems is for a class to provide a “thread-safe” API: they protect their state with explicit synchronization (mutexes, atomics, etc). Because the public API to the class is safe to use from multiple concurrency domains, the reference to the class can be directly transferred safely.
 
-References to actor instances themselves are an example of this: they are safe to pass between concurrency domains by passing a pointer, since the mutable state within an actor is implicitly protected by the actor queue.
+References to actor instances themselves are an example of this: they are safe to pass between concurrency domains by passing a pointer, since the mutable state within an actor is implicitly protected by the actor mailbox.
 
 
 ### “Transferring” Objects Between Concurrency Domains
@@ -119,11 +125,14 @@ Beyond the basic proposal, in the future it could make sense to add a set of ada
 
 This proposal introduces the concept of a “marker” protocol, which indicates that the protocol has some semantic property but is entirely a compile-time notion that does not have any impact at runtime.  Marker protocols have the following restrictions:
 
+
+
 *   They cannot have requirements of any kind.
 *   They cannot inherit from non-marker protocols.
 *   A marker protocol cannot be named as the type in an `is` or as? check (e.g., `x as? ConcurrentValue` is an error).
+*   A marker protocol cannot be used in a generic constraint for a conditional protocol conformance to a non-marker protocol.
 
-We think this is a generally useful feature, but believe it should be a compiler-internal feature for this round of proposal.  As such, we explain it and use this concept with the “`@_marker`” attribute syntax below.
+We think this is a generally useful feature, but believe it should be a compiler-internal feature at this point.  As such, we explain it and use this concept with the “`@_marker`” attribute syntax below.
 
 
 ### `ConcurrentValue` and `UnsafeConcurrentValue` Protocols
@@ -153,15 +162,17 @@ actor SomeActor {
 }
 
 // ... but they cannot be called by other code not protected
-// by the actor's queue:
+// by the actor's mailbox:
 func f(a: SomeActor, myString: NSMutableString) async {
   // error: 'NSMutableString' may not be passed across actors;
   //        it does not conform to 'ConcurrentValue'
   await a.doThing(string: myString)
-}
 ```
 
-The `ConcurrentValue` protocol models types that are allowed to be safely passed across concurrency domains by copying the value.  This includes value semantic types, references to immutable reference types, internally synchronized reference types, `@concurrent` closures, and potentially other future type system extensions for unique ownership etc.
+
+}
+
+The `ConcurrentValue` protocol models types that are allowed to be safely passed across concurrency domains by copying the value.  This includes value-semantic types, references to immutable reference types, internally synchronized reference types, `@concurrent` closures, and potentially other future type system extensions for unique ownership etc.
 
 Note that incorrect conformance to this protocol can introduce bugs in your program (just as an incorrect implementation of `Hashable` can break invariants), which is why the compiler checks conformance (see below).
 
@@ -220,55 +231,81 @@ struct MyCorrectPair<T> {
 extension MyCorrectPair: ConcurrentValue where T: ConcurrentValue { }
 ```
 
-As mentioned in the compiler diagnostic, any type can override this behavior by conforming to the `UnsafeConcurrentValue` protocol to affect the same result, with a more explicit syntax. Any struct, enum or class may conform to `UnsafeConcurrentValue` (and thus ConcurrentValue) to indicate that they may be safely passed across concurrency domains.
+
+As mentioned in the compiler diagnostic, any type can override this behavior by conforming to the `UnsafeConcurrentValue` protocol to affect the same result, with a more explicit syntax. 
+
+Any struct, enum or class may conform to `UnsafeConcurrentValue` (and thus `ConcurrentValue`) to indicate that they may be safely passed across concurrency domains.
+
+ 
+
+A `struct` or `enum` can only be made to conform to `ConcurrentValue` within the same source file in which the type was defined. This ensures that the stored properties in a struct and associated values in an enum are visible so that their types can be checked for `ConcurrentValue` conformance. For example:
+
+
+```
+// MySneakyNSPerson.swift
+struct MySneakyNSPerson {
+  private var name: NSMutableString
+  public var age: Int
+}
+
+// in another source file or module...
+// error: cannot declare conformance to ConcurrentValue outside of
+// the source file defined MySneakyNSPerson
+extension MySneakyNSPerson: ConcurrentValue { }
+```
+
+
+Without this restriction, another source file or module, which cannot see the private stored property name, would conclude that `MySneakyNSPerson` is properly a `ConcurrentValue`. One can declare conformance to `UnsafeConcurrentValue` to disable this check as well.
 
 This approach follows the precedent of [SE-0185](https://github.com/apple/swift-evolution/blob/main/proposals/0185-synthesize-equatable-hashable.md), [SE-0266](https://github.com/apple/swift-evolution/blob/main/proposals/0266-synthesized-comparable-for-enumerations.md), and [SE-0283](https://github.com/apple/swift-evolution/blob/main/proposals/0283-tuples-are-equatable-comparable-hashable.md) which uses explicit conformance to direct compiler behavior.  An alternative design would be to make conformance _implicit_ for all types that structurally conform.  Please see “Alternatives Considered” at the end of this proposal for more discussion about this.
 
 
 #### `[Unsafe]ConcurrentValue` Conformance Checking for classes
 
-Any type may explicitly conform to `UnsafeConcurrentValue` (and thus implicitly conform to `ConcurrentValue`) without compiler checking, including classes.  However, subclassing and resilience makes conformance checking for classes more complicated.  Consider a type like this:
+Any class may be declared to conform to `UnsafeConcurrentValue`, allowing them to be passed between actors without semantic checks.  This is appropriate for classes that use access control and internal synchronization to provide memory safety -- these mechanisms cannot generally be checked by the compiler.
+
+In addition, a class may conform to `ConcurrentValue` and be checked for memory safety by the compiler in a specific limited case: when the class is a final class containing only immutable stored properties of types that conform to ConcurrentValue:
 
 
 ```
-// error: classes may not conform to ConcurrentValue
-// note: use UnsafeConcurrentValue if you know what you're doing.
-class MyClass : ConcurrentValue {
+final class MyClass : ConcurrentValue {
   let state: String
 }
 ```
 
-It would be unsafe for the compiler to allow this, because a subclass could have mutable state.  Furthermore, even final classes can have members added and removed from them in API stable ways due to resilience.  In future work, we could allow classes that are `final` and `@frozen` to conform to `ConcurrentValue` if all of their members and their base class conform to `ConcurrentValue`.  We defer consideration of this to future work to simplify this proposal, get more experience with the model, and understand the needs better.
 
-This behavior discourages incorrect and unsafe sharing of mutable reference semantic state:
+Such classes may not inherit from classes other than NSObject (for Objective-C interoperability).  `ConcurrentValue` classes have the same restriction as structs and enums that requires the `ConcurrentValue` conformance to occur in the same source file.
 
-```
-// error: classes may not conform to ConcurrentValue
-// note: use UnsafeConcurrentValue if you know what you're doing.
-extension NSMutableString : ConcurrentValue {}
-```
+This behavior makes it possible to safely create and pass around immutable bags of shared state between actors.  There are several ways to generalize this in the future, but there are non-obvious cases to nail down.  As such, this proposal intentionally keeps safety checking for classes limited to ensure we make progress on other aspects of the concurrency design.
 
-While this is a possible bug, Swift doesn’t define away all classes of bugs, and this is a relatively obscure thing to do.  Allowing reference types to conform to `UnsafeConcurrentValue` allows advanced types to work nicely with the concurrency system, e.g. those that are internally synchronized or immutable by definition.
 
-#### Adoption of `ConcurrentValue` by Standard Library Types
+#### Actor types
 
-It is important for standard library types to be passed across concurrency domains, but they are typically implemented in terms of builtin LLVM types.  As such, standard library types like `Int` and `String` need to conform to `UnsafeConcurrentValue`:
+Actor types provide their own internal synchronization, so they implicitly conform to `ConcurrentValue`. The [actors proposal](https://github.com/DougGregor/swift-evolution/blob/actors/proposals/nnnn-actors.md) provides more detail.
 
-```
-extension Int : UnsafeConcurrentValue {}
-extension String : UnsafeConcurrentValue {}
-// … etc.
-```
 
-Similarly, conditional conformances for various collection and optional types can be defined naturally:
+#### Key path literals
+
+Key paths themselves conform to the `ConcurrentValue` protocol. However, to ensure that it is safe to share key paths, key path literals can only capture values of types that conform to the `ConcurrentValue` protocol. This affects uses of subscripts in key paths:
+
 
 ```
-extension Array : ConcurrentValue where Element : ConcurrentValue {}
+class SomeClass: Hashable {
+  var value: Int
+}
+
+class SomeContainer {
+  var dict: [SomeClass : String]
+}
+
+let sc = SomeClass(...)
+
+// error: capture of 'sc' in key path requires 'SomeClass' to conform
+// to 'ConcurrentValue'
+let keyPath = \SomeContainer.dict[sc]   
 ```
 
-All actors references are themselves safely modeled as `ConcurrentValue`, so the compiler implicitly treats them as though they conform to `ConcurrentValue`.
 
-Note that `UnsafeMutablePointer` and `UnsafeBufferPointer` are highly debatable - there are good arguments for marking them as `UnsafeConcurrentValue` types, but we believe that it is fine to consider that in a follow-on proposal.
 
 ### New `@concurrent` attribute for functions
 
@@ -276,12 +313,17 @@ While the `ConcurrentValue` protocol directly addresses value types and allows c
 
 We propose defining a new attribute on function types named `@concurrent`.   A `@concurrent` function type is safe to transfer across concurrency domains (and thus, it implicitly conforms to the `ConcurrentValue` protocol).  To ensure memory safety, the compiler checks several things about values (e.g. closures and functions) that have `@concurrent` function type:
 
-1. Functions have `@concurrent` function type if their parameter and result types all conform to `ConcurrentValue`, they capture no values (e.g. global functions and closures / nested functions with no captures), and have no `inout` arguments.
-2. Closures that have `@concurrent` function type are checked to ensure their parameter and result types all conform to `ConcurrentValue`.  Furthermore, they implicitly capture local values by-value (which are immutable like a `let` value) and require that the captured values conform to `ConcurrentValue`.
-3. Nested functions declarations that close over values may be marked with the `@concurrent` attribute (`@concurrent func local() {}`), given them a `@concurrent` function type.  This causes them to obey the same rules as `@concurrent` closures, diagnosing cases where they try to capture non-`ConcurrenValue` values or mutate captured values.
-4. Accessors are not currently allowed to participate with the `@concurrent` system as of this proposal.  It would be straight-forward to allow getters to do so in a future proposal if there was demand for this.
 
-The `@concurrent` attribute to function types is orthogonal to the existing `@escaping` attribute, but it works the same way.  `@concurrent` functions are always subtypes of non-`@concurrent` functions, and implicitly downconvert when needed.  Similarly, closure expressions infer the `@concurrent` bit from context just like `@escaping` closures do.
+
+1. A function can be marked `@concurrent`. Any captures must also conform to `ConcurrentValue`.
+2. Closures that have `@concurrent` function type can only use by-value captures. Captures of immutable values introduced by `let` are implicitly by-value; any other capture must be specified via a capture list: \
+`let prefix: String = ... \
+var suffix: String = …  \
+strings.parallelMap { [suffix] in prefix + $0 + suffix }` \
+The types of all captured values must conform to `ConcurrentValue`.
+3. Accessors are not currently allowed to participate with the `@concurrent` system as of this proposal.  It would be straight-forward to allow getters to do so in a future proposal if there was demand for this.
+
+The `@concurrent` attribute to function types is orthogonal to the existing `@escaping` attribute, but it works the same way.  `@concurrent` functions are always subtypes of non-`@concurrent` functions, and implicitly convert when needed.  Similarly, closure expressions infer the `@concurrent` bit from context just like `@escaping` closures do.
 
 We can revisit the example from the motivation section -- it may be declared like this:
 
@@ -292,7 +334,9 @@ actor MyContactList {
 }
 ```
 
+
 Which could then be used like so:
+
 
 ```
 // Closures with no captures are ok!
@@ -300,7 +344,7 @@ list = await contactList.filteredElements { $0.firstName != "Max" }
 
 // Capturing a 'searchName' string is ok, because String conforms
 // to ConcurrentValue.  searchName is captured by value implicitly.
-list = await contactList.filteredElements { $0.firstName == searchName }
+list = await contactList.filteredElements { $0.firstName==searchName }
 
 // @concurrent is part of the type, so passing a compatible
 // function declaration works as well.
@@ -311,8 +355,8 @@ list = await contactList.filteredElements {
   $0.firstName == nsMutableName
 }
 
-// Error: someLocalInt is immutable because it was captured
-// by-value in a @concurrent closure!
+// Error: someLocalInt cannot be captured by reference in a 
+// @concurrent closure!
 var someLocalInt = 1
 list = await contactList.filteredElements { 
   someLocalInt += 1
@@ -326,12 +370,21 @@ The combination of `@concurrent` closures and `ConcurrentValue` types allows typ
 
 #### Inference of `@concurrent` for Closure Expressions
 
-The inference rule for `@concurrent` attribute for closure expressions is exactly the same as for closure `@escaping` inference.  A closure expression is inferred to be `@concurrent` if:
+The inference rule for `@concurrent` attribute for closure expressions is similar to closure `@escaping` inference.  A closure expression is inferred to be `@concurrent` if:
 
 
 
 *   It is used in a context that expects a `@concurrent` function type (e.g. `parallelMap` or `Task.runDetached`).
 *   When `@concurrent` is in the closure “in” specification.
+
+The difference from `@escaping` is that a context-less closure defaults to be non-`@concurrent`, but defaults to being `@escaping`:
+
+
+```
+  // defaults to @escaping but not @concurrent 
+  let fn = { (x: Int, y: Int) -> Int in x+y }
+```
+
 
 Nested functions are also an important consideration, because they can also capture values just like a closure expression.  We propose requiring the `@concurrent` attribute on nested function declarations:
 
@@ -365,43 +418,94 @@ func globalFunction(arr: [Int]) {
 
 This composes cleanly for both structured concurrency and actors.
 
-#### Interaction of Actor self and `@concurrent` closures
 
-Actors are a proposal that is conceptually layered on top of this one, but it is important to be aware of the actor design to make sure that this proposal addresses its needs.  As described above, actor method sends across concurrency boundaries naturally require that arguments and results conform to `ConcurrentValue`, and thus implicitly require that closures passed across such boundaries are `@concurrent`.
+### Thrown errors
 
-One additional detail that needs to be addressed is “when is something a cross actor call?”.  For example, we would like these calls to be synchronous and not require an await:
+A function or closure that `throws` can effectively return a value of any type that conforms to the `Error` protocol. If the function is called from a different concurrency domain, the thrown value can be passed across it.
+
 
 ```
-extension SomeActor {
-  public func oneSyncFunction(x: Int) {... }
-  public func otherSyncFunction() {
-    // No await needed: stays in concurrency domain of self actor.
-    self.oneSyncFunction(x: 42)
-    oneSyncFunction(x: 7)    // Implicit self is fine.
+class MutableStorage {
+  var counter: Int
+}
+struct ProblematicError: Error {
+  var storage: MutableStorage
+} 
+
+actor MyActor {
+  var storage: MutableStorage
+  func doSomethingRisky() throws -> String { 
+    throw ProblematicError(storage: storage)
   }
 }
 ```
 
-However, we also need to consider the case when ‘self’ is captured into a closure within an actor method.  For example:
+
+A call to `myActor.doSomethingRisky()` from another concurrency domain would throw the problematic error, capturing part of the mutable state of `myActor`, then provide it to another concurrency domain, breaking actor isolation. Because there is no information in the signature of `doSomethingRisky()` about the types of errors thrown, and an error that propagates out from `doSomethingRisky()` could come from _any_ code that the function invokes, there is no place at which we could check that only `ConcurrentValue`-conforming errors are thrown.
+
+To close this safety hole, we alter the definition of the `Error` protocol to require that _all_ error types conform to `ConcurrentValue`:
+
 
 ```
-extension SomeActor {
-  public func thing(arr: [Int]) {
-    // This should obviously be allowed!
-    a.forEach { self.oneSyncFunction(x: $0) }
-
-    // Error: await required because it hops concurrency domains.
-    a.parallelMap { self.oneSyncFunction(x: $0) }
-
-    // Is this ok?
-    someHigherOrderFunction {
-      self.oneSyncFunction(x: 7)  // ok or not?
-    }
-  }
-}
+protocol Error: ConcurrentValue { … }
 ```
 
-We need the compiler to know whether there is a possible concurrency domain hop or not - if so, an await is required.  Fortunately, this works out through straight-forward composition of the basic type system rules above: It is perfectly safe to use actor `self` in a non-`@concurrent` closure in an actor method, but using it in a `@concurrent` closure is treated as being from a different concurrency domain, and thus requires an `await`.
+
+Now, the `ProblematicError` type will be rejected with an error because it conforms to `ConcurrentValue` but contains a stored property of non-`ConcurrentValue` type `MutableStorage`.
+
+Generally speaking, one cannot add a new inherited protocol to an existing protocol without breaking both source and binary compatibility. However, marker protocols have no impact on the ABI and no requirements, so binary compatibility is maintained.
+
+Source compatibility requires more care, however. `ProblematicError` is well-formed in today’s Swift, but will be rejected with the introduction of `ConcurrentValue`. To ease the transition, errors about types that get their `ConcurrentValue` conformances through `Error` will be downgraded to warnings in Swift &lt; 6. 
+
+
+### Adoption of `ConcurrentValue` by Standard Library Types
+
+It is important for standard library types to be passed across concurrency domains. The vast majority of standard library types provide value semantics, and therefore should conform to `ConcurrentValue`, e.g.:
+
+
+```
+extension Int: ConcurrentValue {}
+extension String: ConcurrentValue {}
+```
+
+
+Generic value-semantic types are safe to be passed across concurrency domains so long as any element types are safe to be passed across concurrency domains. This dependency can be modeled by conditional conformances:
+
+
+```
+extension Optional: ConcurrentValue where Wrapped: ConcurrentValue {}
+extension Array: ConcurrentValue where Element: ConcurrentValue {}
+extension Dictionary: ConcurrentValue 
+    where Key: ConcurrentValue, Value: ConcurrentValue {}
+```
+
+
+Except for the cases listed below, all struct, enum, and class types in the standard library conform to the `ConcurrentValue` protocol. Generic types conditionally conform to the `ConcurrentValue` protocol when all of their generic arguments conform to `ConcurrentValue`. The exceptions to these rules follow:
+
+
+
+*   `ManagedBuffer`: this class is meant to provide mutable reference semantics for a buffer. It must not conform to `ConcurrentValue` (even unsafely).
+*   `Unsafe(Mutable)(Buffer)Pointer`: these generic types _unconditionally_ conform to the `UnsafeConcurrentValue` protocol. Unsafe pointer types provide fundamentally unsafe access to memory, so making them.
+*   Lazy algorithm adapter types: the types returned by lazy algorithms (e.g., as the result of `array.lazy.map` { … }) never conform to `ConcurrentValue`. Many of these algorithms (like the lazy `map`) take non-`@concurrent` closure values, and therefore cannot safely conform to `ConcurrentValue`.
+
+The standard library protocols `Error` and `CodingKey` inherit from the `ConcurrentValue` protocol:
+
+
+
+*   `Error` inherits from `ConcurrentValue` to ensure that thrown errors can safely be passed across concurrency domains, as discussed in the previous section.
+*   `CodingKey` inherits from `ConcurrentValue` so that types like `EncodingError` and `DecodingError`, which store `CodingKey` instances, can correctly conform to `ConcurrentValue`. 
+
+
+### Support for Imported C / Objective-C APIs
+
+Interoperability with C and Objective-C is an important part of Swift. C code will always be implicitly unsafe for concurrency, because Swift cannot enforce correct behavior of C APIs. However, we still define some basic interactions with the concurrency model by providing implicit `ConcurrentValue` conformances for many C types:
+
+
+
+*   C enum types always conform to the `ConcurrentValue` protocol.
+*   C struct types conform to the `ConcurrentValue` protocol if all of their stored properties conform to `ConcurrentValue`.
+*   C function pointers conform to the `ConcurrentValue` protocol. This is safe because they cannot capture values.
+
 
 ## Future Work / Follow-on Projects
 
@@ -420,6 +524,7 @@ To illustrate how we can do this with Swift concurrency, consider a pattern that
 
 This can be achieved by the introduction of a generic helper struct:
 
+
 ```
 @propertyWrapper
 struct UnsafeTransfer<T: AnyObject> : UnsafeConcurrentValue {
@@ -430,7 +535,9 @@ struct UnsafeTransfer<T: AnyObject> : UnsafeConcurrentValue {
 }
 ```
 
+
 For example, `NSMutableDictionary` isn’t safe to pass across concurrency domains, so it isn’t safe to conform to `ConcurrentValue`.  The struct above allows you (as an app programmer) to write an actor API in your application like this:
+
 
 ```
 actor MyAppActor {
@@ -439,7 +546,9 @@ actor MyAppActor {
 }
 ```
 
+
 While this isn’t particularly pretty, it is effective at getting things done on the caller side when you need to work with unaudited and unsafe code.  This can also be sugared into a parameter attribute using the recently proposed [extension to property wrappers for arguments](https://forums.swift.org/t/pitch-2-extend-property-wrappers-to-function-and-closure-parameters/40959), allowing a prettier declaration and caller-side syntax:
+
 
 ```
 actor MyAppActor {
@@ -448,13 +557,16 @@ actor MyAppActor {
 }
 ```
 
+
+
 ### Objective-C Framework Support
 
 **NOTE**: This section is NOT considered part of the proposal - it is included just to illustrate aspects of the design.
 
-Objective-C has established patterns that would make sense to pull into this framework en-masse, e.g. the `[NSCopying protocol](https://developer.apple.com/documentation/foundation/nscopying)` is one important and widely adopted protocol that should be onboarded into this framework.
+Objective-C has established patterns that would make sense to pull into this framework en-masse, e.g. the <code>[NSCopying protocol](https://developer.apple.com/documentation/foundation/nscopying)</code> is one important and widely adopted protocol that should be onboarded into this framework.
 
 General consensus is that it is important to make copies explicit in the model, so we can implement an `NSCopied` helper like so:
+
 
 ```
 @propertyWrapper
@@ -467,32 +579,94 @@ struct NSCopied<Wrapped: NSCopying>: UnsafeConcurrentValue {
 }
 ```
 
+
 This would allow individual arguments and results of actor methods to opt-into a copy like this:
+
 
 ```
 actor MyAppActor {
   // The string is implicitly copied each time you invoke this.
   public func lookup(@NSCopied name: NSString) -> Int async
-}
 ```
+
+
+}
 
 One random note: the Objective-C static type system is not very helpful to us with immutability here: statically typed `NSString`’s may actually be dynamically `NSMutableString`’s due to their subclass relationships.  Because of this, it isn’t safe to assume that values of `NSString` type are dynamically immutable -- they should be implemented to invoke the `copy()` method.
 
+
+### Interaction of Actor self and `@concurrent` closures
+
+Actors are a proposal that is conceptually layered on top of this one, but it is important to be aware of the actor design to make sure that this proposal addresses its needs.  As described above, actor method sends across concurrency boundaries naturally require that arguments and results conform to `ConcurrentValue`, and thus implicitly require that closures passed across such boundaries are `@concurrent`.
+
+One additional detail that needs to be addressed is “when is something a cross actor call?”.  For example, we would like these calls to be synchronous and not require an await:
+
+
+```
+extension SomeActor {
+  public func oneSyncFunction(x: Int) {... }
+  public func otherSyncFunction() {
+    // No await needed: stays in concurrency domain of self actor.
+    self.oneSyncFunction(x: 42)
+    oneSyncFunction(x: 7)    // Implicit self is fine.
+  }
+}
+```
+
+
+However, we also need to consider the case when ‘self’ is captured into a closure within an actor method.  For example:
+
+
+```
+extension SomeActor {
+  public func thing(arr: [Int]) {
+    // This should obviously be allowed!
+    a.forEach { self.oneSyncFunction(x: $0) }
+
+    // Error: await required because it hops concurrency domains.
+    a.parallelMap { self.oneSyncFunction(x: $0) }
+
+    // Is this ok?
+    someHigherOrderFunction {
+      self.oneSyncFunction(x: 7)  // ok or not?
+    }
+  }
+}
+```
+
+
+
+## We need the compiler to know whether there is a possible concurrency domain hop or not - if so, an await is required.  Fortunately, this works out through straight-forward composition of the basic type system rules above: It is perfectly safe to use actor `self` in a non-`@concurrent` closure in an actor method, but using it in a `@concurrent` closure is treated as being from a different concurrency domain, and thus requires an `await`.
+
+
 ## Source Compatibility
 
-This is fully source compatible with existing code bases - it is a purely additive proposal.  Furthermore, by including this in “Swift Concurrency 1.0,” it eliminates a major source break in “Swift Concurrency 2.0” that would be required to lock down on what is passed across concurrency domains.
+This is almost completely source compatible with existing code bases. The introduction of `ConcurrentValue`, `UnsafeConcurrentValue`, and `@concurrent` functions are additive features that have no impact when not used and therefore do not affect existing code.
+
+There are a few new restrictions that could cause source breakage in exotic cases:
+
+
+
+*   The change to keypath literals subscripts will break exotic keypaths that are indexed with non-standard types.
+*   `Error` and `CodingKey` inherit from `ConcurrentValue` and thus require that custom errors and keys conform to `ConcurrentValue`.
+
+Because of these changes, the new restrictions will only be enforced in Swift 6 mode, but will be warnings for Swift 5 and earlier.
+
 
 ## Effect on API resilience
 
 This proposal has no effect on API resilience!
 
+
 ## Alternatives Considered
 
 There are several alternatives that make sense to discuss w.r.t. this proposal.  Here we capture some of the bigger ones.
 
+
 ### Implicit struct/enum Conformance to `ConcurrentValue`
 
 Early in the discussion, a few people objected to the boilerplate “: ConcurrentValue” conformance syntax for types that should “obviously” conform (e.g. a struct with two `Int`s in it):
+
 
 ```
 struct MyPerson2 { // Implicitly conforms to ConcurrentValue!
@@ -500,7 +674,10 @@ struct MyPerson2 { // Implicitly conforms to ConcurrentValue!
 }
 ```
 
+
 While initially appealing to some, this proposal aligns with strong precedent in the Swift ecosystems (e.g. `Hashable`, `Equatable`, `Codable`, etc) which all require explicit conformance.  We use the following rationale:
+
+
 
 *   Consistency with existing protocols is important, and the same boilerplate argument applies to `Hashable`, `Equatable`, etc.  This was discussed during their review.
 *   Implicit conformance is a problem for API resilience, because adding a new non-`ConcurrentValue` member to a type would cause it to drop conformance to `ConcurrentValue`.  Adding members to a struct is not meant to be source-breaking by default.
@@ -508,9 +685,10 @@ While initially appealing to some, this proposal aligns with strong precedent in
 *   If we decide that the boilerplate is too heavy, we can always add implicit conformances in the future.  In contrast, starting with implicit conformances and then removing them would be source breaking.
 *   Not all struct/enum compositions of `ConcurrentValue` types are themselves concurrency safe ([examples](https://forums.swift.org/t/pitch-2-protocol-based-actor-isolation/42123/6)), so implicit conformance would require a way to disable autosynthesis, making the proposal more complicated.
 
+
 ### Exotic Type System Features
 
-The [Swift Concurrency Roadmap](https://forums.swift.org/t/swift-concurrency-roadmap/41611) mentions that a future iteration of the feature set could introduce new type system features like `mutableIfUnique` classes, and it is easy to imagine that move semantics and unique ownership could get introduced into Swift someday. 
+The [Swift Concurrency Roadmap](https://forums.swift.org/t/swift-concurrency-roadmap/41611) mentions that a future iteration of the feature set could introduce new type system features like “`mutableIfUnique`” classes, and it is easy to imagine that move semantics and unique ownership could get introduced into Swift someday. 
 
 While it is difficult to understand the detailed interaction without knowing the full specification of future proposals, we believe that the checking machinery that enforces `ConcurrentValue` checking is simple and composable.  It should work with any types that are safe to pass across concurrency boundaries.
 
@@ -525,6 +703,8 @@ The [first revision of this proposal](https://docs.google.com/document/d/1OMHZKW
 The [initial proposal for the actor system](https://forums.swift.org/t/concurrency-actors-actor-isolation/41613/) suggests that we launch “Swift Concurrency 1.0” without any enforcement of value transfers across concurrency domains, then later introduce a “Swift Concurrency 2.0” system that locks this down.
 
 That approach has several downsides compared to this proposal:
+
+
 
 1. The “Swift Concurrency 1.0” code would miss key memory safety checking - which is the primary stated goal of the Swift Concurrency model.
 2. “Swift Concurrency 2.0” will be significantly source incompatible with “Swift Concurrency 1.0” and will put the Swift community through a very difficult and unnecessary migration.  
