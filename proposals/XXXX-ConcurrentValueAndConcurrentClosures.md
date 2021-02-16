@@ -4,7 +4,7 @@
 * Authors: [Chris Lattner](https://github.com/lattner), [Doug Gregor](https://github.com/douggregor)
 * Review Manager: ?
 * Status: **Draft**
-* Implementation: [Doug's Pull Request](https://github.com/apple/swift/pull/35264)
+* Implementation: [apple/swift#35264](https://github.com/apple/swift/pull/35264)
 * Major Contributors: Dave Abrahams, Paul Cantrell, Matthew Johnson, John McCall
 
 ## Introduction
