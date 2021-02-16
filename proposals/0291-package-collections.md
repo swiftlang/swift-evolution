@@ -247,6 +247,72 @@ Package collections must adhere to a specific JSON format for SwiftPM to be able
 
 Since the data format is unstable, users should avoid generating package collections on their own. This proposal includes providing the necessary [tooling](https://github.com/apple/swift-package-collection-generator) for package collection generations.
 
+### Package collection signing
+
+Package collections can be signed to establish authenticity and protect their integrity. Doing this is optional and users will not be blocked from adding unsigned package collections.  
+
+There will be [tooling](https://github.com/apple/swift-package-collection-generator) to help publishers sign their package collections. To generate a signature one must provide:
+- The package collection file to be signed
+- A code signing certificate
+- The certificate's private key
+- The certificate's chain in its entirety
+
+The signature will include the certificate's public key and chain so that they can be used for verification later.
+
+A signed package collection will have an extra `signature` key:
+
+```
+{
+  // Package collection JSON
+  ...,
+  "signature": {
+    ...
+  }
+}
+```
+
+#### Requirements on signing certificate
+
+The following conditions are checked and enforced during signature generation and verification:
+- The timestamp at which signing/verification is done must fall within the signing certificate's validity period.
+- The certificate's "Extended Key Usage" extension must include "Code Signing".
+- The certificate must use either 256-bit EC (recommended) or 2048-bit RSA key.
+- The certificate must not be revoked. The certificate authority must support OCSP, which means the certificate must have the "Certificate Authority Information Access" extension that includes OCSP as a method, specifying the responder's URL.
+- The certificate chain is valid and root certificate must be trusted.
+
+Non-expired, non-revoked Apple Distribution certificates from [developer.apple.com](https://developer.apple.com) satisfy all of the criteria above.
+
+##### Trusted root certificates
+
+On Apple platforms, all root certificates that come preinstalled with the OS are automatically trusted. Users may specify additional certificates to trust by placing them in the `~/.swiftpm/config/trustRootCerts` directory. 
+
+On non-Apple platforms, there are no trusted root certificates by default. Only those found in `~/.swiftpm/config/trustRootCerts` are trusted.
+
+#### Add a signed package collection
+
+When adding a signed package collection, SwiftPM will check that:
+- The file content (excluding `signature`) is what was used to generate the signature. In other words, this checks to see if the collection has been altered since it was signed.
+- The signing certificate meets all of the [requirements](#requirements-on-signing-certificate).
+
+SwiftPM will not import a collection if any of these checks fails.
+
+User may opt to skip the signature check on a collection by passing the `--skip-signature-check` flag during `add`:
+
+```bash
+$ swift package-collection add https://www.example.com/packages.json --skip-signature-check
+```
+
+Since there are no trusted root certificates by default on non-Apple platforms, the signature check will always fail. SwiftPM will detect this and instruct user to either set up the `~/.swiftpm/config/trustRootCerts` directory or use `--skip-signature-check`.
+
+#### Add an unsigned package collection
+
+When adding an unsigned package collection, user must confirm their trust by passing the `--trust-signed` flag:
+
+```bash
+$ swift package-collection add https://www.example.com/unsigned-packages.json --trust-unsigned
+```
+
+The `--skip-signature-check` flag has no effects on unsigned collections.
 
 ## Future direction
 
