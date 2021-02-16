@@ -1,7 +1,7 @@
 # `ConcurrentValue` and `@concurrent` closures
 
 
-* Proposal: [SE-0168](0168-multi-line-string-literals.md)
+* Proposal: [SE-NNNN](NNNN-concurrent-value-and-concurrent-closures.md)
 * Authors: [Chris Lattner](https://github.com/lattner), [Doug Gregor](https://github.com/douggregor)
 * Review Manager: ?
 * Status: **Draft**
@@ -38,14 +38,14 @@ Before we jump into the proposed solution, let’s take a look at some common ca
 
 The first kind of type we need to support are simple values like integers. These can be trivially passed across concurrency domains because they do not contain pointers.
 
-Going beyond this, Swift has a strong emphasis on types with [value semantics](https://en.wikipedia.org/wiki/Value_semantics), which are safe to transfer across concurrent boundaries. Except for classes, Swift’s mechanisms for type composition provide value semantics when their elements do. This includes generic structs, as well as its core collections: for example, `Dictionary&lt;Int, String>` can be directly shared across concurrency domains. Swift’s Copy on Write approach means that collections can be transferred without proactive data copying of their representations -- an extremely powerful fact that I believe will make the Swift concurrency model more efficient than other systems in practice.
+Going beyond this, Swift has a strong emphasis on types with [value semantics](https://en.wikipedia.org/wiki/Value_semantics), which are safe to transfer across concurrent boundaries. Except for classes, Swift’s mechanisms for type composition provide value semantics when their elements do. This includes generic structs, as well as its core collections: for example, `Dictionary<Int, String>` can be directly shared across concurrency domains. Swift’s Copy on Write approach means that collections can be transferred without proactive data copying of their representations -- an extremely powerful fact that I believe will make the Swift concurrency model more efficient than other systems in practice.
 
 However, everything isn’t simple here: the core collections can **not** be safely transferred across concurrency domains when they contain general class references, closures that capture mutable state, and other non-value types. We need a way to differentiate between the cases that are safe to transfer and those that are not.
 
 
 ### Value Semantic Composition
 
-Structs, enums and tuples are the primary mode for composition of values in Swift. These are all safe to transfer across concurrency domain -- so long as the data they contain is itself safe to transfer.
+Structs, enums and tuples are the primary mode for composition of values in Swift. These are all safe to transfer across concurrency domains -- so long as the data they contain is itself safe to transfer.
 
 
 ### Higher Order Functional Programming
@@ -129,7 +129,7 @@ This proposal introduces the concept of a “marker” protocol, which indicates
 
 *   They cannot have requirements of any kind.
 *   They cannot inherit from non-marker protocols.
-*   A marker protocol cannot be named as the type in an `is` or as? check (e.g., `x as? ConcurrentValue` is an error).
+*   A marker protocol cannot be named as the type in an `is` or `as?` check (e.g., `x as? ConcurrentValue` is an error).
 *   A marker protocol cannot be used in a generic constraint for a conditional protocol conformance to a non-marker protocol.
 
 We think this is a generally useful feature, but believe it should be a compiler-internal feature at this point.  As such, we explain it and use this concept with the “`@_marker`” attribute syntax below.
@@ -170,7 +170,6 @@ func f(a: SomeActor, myString: NSMutableString) async {
 ```
 
 
-}
 
 The `ConcurrentValue` protocol models types that are allowed to be safely passed across concurrency domains by copying the value.  This includes value-semantic types, references to immutable reference types, internally synchronized reference types, `@concurrent` closures, and potentially other future type system extensions for unique ownership etc.
 
@@ -315,13 +314,19 @@ We propose defining a new attribute on function types named `@concurrent`.   A `
 
 
 
-1. A function can be marked `@concurrent`. Any captures must also conform to `ConcurrentValue`.
-2. Closures that have `@concurrent` function type can only use by-value captures. Captures of immutable values introduced by `let` are implicitly by-value; any other capture must be specified via a capture list: \
-`let prefix: String = ... \
-var suffix: String = …  \
-strings.parallelMap { [suffix] in prefix + $0 + suffix }` \
-The types of all captured values must conform to `ConcurrentValue`.
-3. Accessors are not currently allowed to participate with the `@concurrent` system as of this proposal.  It would be straight-forward to allow getters to do so in a future proposal if there was demand for this.
+1.  A function can be marked `@concurrent`. Any captures must also conform to `ConcurrentValue`.
+
+2.  Closures that have `@concurrent` function type can only use by-value captures. Captures of immutable values introduced by `let` are implicitly by-value; any other capture must be specified via a capture list:
+
+    ```swift
+    let prefix: String = ...
+    var suffix: String = ...
+    strings.parallelMap { [suffix] in prefix + $0 + suffix }
+    ```
+
+    The types of all captured values must conform to `ConcurrentValue`.
+
+3.  Accessors are not currently allowed to participate with the `@concurrent` system as of this proposal.  It would be straight-forward to allow getters to do so in a future proposal if there was demand for this.
 
 The `@concurrent` attribute to function types is orthogonal to the existing `@escaping` attribute, but it works the same way.  `@concurrent` functions are always subtypes of non-`@concurrent` functions, and implicitly convert when needed.  Similarly, closure expressions infer the `@concurrent` bit from context just like `@escaping` closures do.
 
@@ -636,7 +641,7 @@ extension SomeActor {
 
 
 
-## We need the compiler to know whether there is a possible concurrency domain hop or not - if so, an await is required.  Fortunately, this works out through straight-forward composition of the basic type system rules above: It is perfectly safe to use actor `self` in a non-`@concurrent` closure in an actor method, but using it in a `@concurrent` closure is treated as being from a different concurrency domain, and thus requires an `await`.
+We need the compiler to know whether there is a possible concurrency domain hop or not - if so, an await is required.  Fortunately, this works out through straight-forward composition of the basic type system rules above: It is perfectly safe to use actor `self` in a non-`@concurrent` closure in an actor method, but using it in a `@concurrent` closure is treated as being from a different concurrency domain, and thus requires an `await`.
 
 
 ## Source Compatibility
