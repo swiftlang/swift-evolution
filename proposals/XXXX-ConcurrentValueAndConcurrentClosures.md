@@ -486,7 +486,7 @@ actor MyAppActor {
 
 **NOTE**: This section is NOT considered part of the proposal - it is included just to illustrate aspects of the design.
 
-Objective-C has established patterns that would make sense to pull into this framework en-masse, e.g. the <code>[NSCopying protocol](https://developer.apple.com/documentation/foundation/nscopying)</code> is one important and widely adopted protocol that should be onboarded into this framework.
+Objective-C has established patterns that would make sense to pull into this framework en-masse, e.g. the [`NSCopying` protocol](https://developer.apple.com/documentation/foundation/nscopying) is one important and widely adopted protocol that should be onboarded into this framework.
 
 General consensus is that it is important to make copies explicit in the model, so we can implement an `NSCopied` helper like so:
 
