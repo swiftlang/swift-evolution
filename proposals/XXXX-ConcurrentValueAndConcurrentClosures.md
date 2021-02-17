@@ -49,8 +49,7 @@ There are many useful reasons why you’d want to send bits of computation betwe
 
 ```swift
 actor MyContactList {
-  func filteredElements(_ fn: (ContactElement) -> Bool) async
-     -> [ContactElement] { … }
+  func filteredElements(_ fn: (ContactElement) -> Bool) async -> [ContactElement] { … }
 }
 ```
 
@@ -63,8 +62,8 @@ list = await contactList.filteredElements { $0.firstName != "Max" }
 // Capturing a 'searchName' string by value is ok, because strings are
 // ok to pass across concurrency domains.
 list = await contactList.filteredElements {
-       [searchName] in $0.firstName == searchName
-      }
+  [searchName] in $0.firstName == searchName
+}
 ```
 
 We feel that it is important to enable functions to be passed across concurrency domains, but we are also concerned that we should not allow capturing local state _by reference_ in these functions, and we should not allow capturing unsafe things by value.  Both would introduce memory safety problems.
@@ -143,6 +142,7 @@ func f(a: SomeActor, myString: NSMutableString) async {
   // error: 'NSMutableString' may not be passed across actors;
   //        it does not conform to 'ConcurrentValue'
   await a.doThing(string: myString)
+}
 ```
 
 The `ConcurrentValue` protocol models types that are allowed to be safely passed across concurrency domains by copying the value.  This includes value-semantic types, references to immutable reference types, internally synchronized reference types, `@concurrent` closures, and potentially other future type system extensions for unique ownership etc.
@@ -355,7 +355,7 @@ func globalFunction(arr: [Int]) {
   @concurrent
   func mutateLocalState2(value: Int) {
     // Error: 'state' is captured as a let because of @concurrent
-    mutableState += value
+    state += value
   }
 
   // Ok, mutateLocalState2 is @concurrent.
@@ -505,9 +505,8 @@ This would allow individual arguments and results of actor methods to opt-into a
 actor MyAppActor {
   // The string is implicitly copied each time you invoke this.
   public func lookup(@NSCopied name: NSString) -> Int async
-```
-
 }
+```
 
 One random note: the Objective-C static type system is not very helpful to us with immutability here: statically typed `NSString`’s may actually be dynamically `NSMutableString`’s due to their subclass relationships.  Because of this, it isn’t safe to assume that values of `NSString` type are dynamically immutable — they should be implemented to invoke the `copy()` method.
 
