@@ -48,7 +48,7 @@ It is common in Swift and other languages with functional programming roots to u
 There are many useful reasons why you’d want to send bits of computation between concurrency domains in the form of a function — even trivial algorithms like `parallelMap` need this.  This occurs at larger scale as well — for example, consider an actor example like this:
 
 ```swift
-actor MyContactList { 
+actor MyContactList {
   func filteredElements(_ fn: (ContactElement) -> Bool) async
      -> [ContactElement] { … }
 }
@@ -198,11 +198,9 @@ struct MyCorrectPair<T> {
 extension MyCorrectPair: ConcurrentValue where T: ConcurrentValue { }
 ```
 
-As mentioned in the compiler diagnostic, any type can override this behavior by conforming to the `UnsafeConcurrentValue` protocol to affect the same result, with a more explicit syntax. 
+As mentioned in the compiler diagnostic, any type can override this behavior by conforming to the `UnsafeConcurrentValue` protocol to affect the same result, with a more explicit syntax.
 
 Any struct, enum or class may conform to `UnsafeConcurrentValue` (and thus `ConcurrentValue`) to indicate that they may be safely passed across concurrency domains.
-
- 
 
 A `struct` or `enum` can only be made to conform to `ConcurrentValue` within the same source file in which the type was defined. This ensures that the stored properties in a struct and associated values in an enum are visible so that their types can be checked for `ConcurrentValue` conformance. For example:
 
@@ -260,7 +258,7 @@ let sc = SomeClass(...)
 
 // error: capture of 'sc' in key path requires 'SomeClass' to conform
 // to 'ConcurrentValue'
-let keyPath = \SomeContainer.dict[sc]   
+let keyPath = \SomeContainer.dict[sc]
 ```
 
 ### New `@concurrent` attribute for functions
@@ -288,7 +286,7 @@ The `@concurrent` attribute to function types is orthogonal to the existing `@es
 We can revisit the example from the motivation section — it may be declared like this:
 
 ```swift
-actor MyContactList { 
+actor MyContactList {
   func filteredElements(_ fn: @concurrent (ContactElement) -> Bool) async -> [ContactElement] { … }
 }
 ```
@@ -312,12 +310,12 @@ list = await contactList.filteredElements {
   $0.firstName == nsMutableName
 }
 
-// Error: someLocalInt cannot be captured by reference in a 
+// Error: someLocalInt cannot be captured by reference in a
 // @concurrent closure!
 var someLocalInt = 1
-list = await contactList.filteredElements { 
+list = await contactList.filteredElements {
   someLocalInt += 1
-  return $0.firstName == searchName 
+  return $0.firstName == searchName
 }
 ```
 
@@ -333,15 +331,15 @@ The inference rule for `@concurrent` attribute for closure expressions is simila
 The difference from `@escaping` is that a context-less closure defaults to be non-`@concurrent`, but defaults to being `@escaping`:
 
 ```swift
-  // defaults to @escaping but not @concurrent 
-  let fn = { (x: Int, y: Int) -> Int in x+y }
+// defaults to @escaping but not @concurrent
+let fn = { (x: Int, y: Int) -> Int in x+y }
 ```
 
 Nested functions are also an important consideration, because they can also capture values just like a closure expression.  We propose requiring the `@concurrent` attribute on nested function declarations:
 
 ```swift
 func globalFunction(arr: [Int]) {
-  var state = 42 
+  var state = 42
 
   // Error, 'state' is captured immutably because closure is @concurrent.
   arr.parallelForEach { state += $0 }
@@ -377,11 +375,11 @@ class MutableStorage {
 }
 struct ProblematicError: Error {
   var storage: MutableStorage
-} 
+}
 
 actor MyActor {
   var storage: MutableStorage
-  func doSomethingRisky() throws -> String { 
+  func doSomethingRisky() throws -> String {
     throw ProblematicError(storage: storage)
   }
 }
@@ -399,7 +397,7 @@ Now, the `ProblematicError` type will be rejected with an error because it confo
 
 Generally speaking, one cannot add a new inherited protocol to an existing protocol without breaking both source and binary compatibility. However, marker protocols have no impact on the ABI and no requirements, so binary compatibility is maintained.
 
-Source compatibility requires more care, however. `ProblematicError` is well-formed in today’s Swift, but will be rejected with the introduction of `ConcurrentValue`. To ease the transition, errors about types that get their `ConcurrentValue` conformances through `Error` will be downgraded to warnings in Swift &lt; 6. 
+Source compatibility requires more care, however. `ProblematicError` is well-formed in today’s Swift, but will be rejected with the introduction of `ConcurrentValue`. To ease the transition, errors about types that get their `ConcurrentValue` conformances through `Error` will be downgraded to warnings in Swift &lt; 6.
 
 ### Adoption of `ConcurrentValue` by Standard Library Types
 
@@ -415,7 +413,7 @@ Generic value-semantic types are safe to be passed across concurrency domains so
 ```swift
 extension Optional: ConcurrentValue where Wrapped: ConcurrentValue {}
 extension Array: ConcurrentValue where Element: ConcurrentValue {}
-extension Dictionary: ConcurrentValue 
+extension Dictionary: ConcurrentValue
     where Key: ConcurrentValue, Value: ConcurrentValue {}
 ```
 
@@ -428,7 +426,7 @@ Except for the cases listed below, all struct, enum, and class types in the stan
 The standard library protocols `Error` and `CodingKey` inherit from the `ConcurrentValue` protocol:
 
 *   `Error` inherits from `ConcurrentValue` to ensure that thrown errors can safely be passed across concurrency domains, as discussed in the previous section.
-*   `CodingKey` inherits from `ConcurrentValue` so that types like `EncodingError` and `DecodingError`, which store `CodingKey` instances, can correctly conform to `ConcurrentValue`. 
+*   `CodingKey` inherits from `ConcurrentValue` so that types like `EncodingError` and `DecodingError`, which store `CodingKey` instances, can correctly conform to `ConcurrentValue`.
 
 ### Support for Imported C / Objective-C APIs
 
@@ -590,7 +588,7 @@ While initially appealing to some, this proposal aligns with strong precedent in
 
 ### Exotic Type System Features
 
-The [Swift Concurrency Roadmap](https://forums.swift.org/t/swift-concurrency-roadmap/41611) mentions that a future iteration of the feature set could introduce new type system features like “`mutableIfUnique`” classes, and it is easy to imagine that move semantics and unique ownership could get introduced into Swift someday. 
+The [Swift Concurrency Roadmap](https://forums.swift.org/t/swift-concurrency-roadmap/41611) mentions that a future iteration of the feature set could introduce new type system features like “`mutableIfUnique`” classes, and it is easy to imagine that move semantics and unique ownership could get introduced into Swift someday.
 
 While it is difficult to understand the detailed interaction without knowing the full specification of future proposals, we believe that the checking machinery that enforces `ConcurrentValue` checking is simple and composable.  It should work with any types that are safe to pass across concurrency boundaries.
 
@@ -605,7 +603,7 @@ The [initial proposal for the actor system](https://forums.swift.org/t/concurren
 That approach has several downsides compared to this proposal:
 
 1. The “Swift Concurrency 1.0” code would miss key memory safety checking — which is the primary stated goal of the Swift Concurrency model.
-2. “Swift Concurrency 2.0” will be significantly source incompatible with “Swift Concurrency 1.0” and will put the Swift community through a very difficult and unnecessary migration.  
+2. “Swift Concurrency 2.0” will be significantly source incompatible with “Swift Concurrency 1.0” and will put the Swift community through a very difficult and unnecessary migration.
 3. The expressiveness of the new type system is not well explored and it certainly does not cover all of the cases in this proposal — we will probably require something like this anyway.
 
 The model proposed here is simple and builds on core features of the existing Swift language, so it is best to adopt these checks in the first revision of the proposal.
