@@ -873,7 +873,10 @@ property.
 extension Task.Group {
   /// Cancel all the remaining tasks in the task group.
   /// Any results, including errors thrown, are discarded.
-  mutating func cancelAll() { ... } 
+  ///
+  /// Note that this is non-`mutating` so that it is safe to invoke
+  /// from child tasks that immutably capture the group value.
+  func cancelAll() { ... } 
 
   /// Returns true if the group has been cancelled.
   var isCancelled: Bool { get }
@@ -894,11 +897,11 @@ func chopVegetables() async throws -> [Vegetable] {
       throw UnfortunateAccidentWithKnifeError()
     }
     await group.add {
-      return try await chop(Onion()) // (2)
+      return try await chop(Onion())
     }
 
     do {
-      while let veggie = try await group.next() { // (3)
+      while let veggie = try await group.next() {
         veggies.append(veggie)
       }
     } catch {
