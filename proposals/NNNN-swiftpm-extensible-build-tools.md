@@ -786,6 +786,29 @@ This proposal is intentionally fairly basic and leaves many improvements for the
 - the ability for prebuild actions to depend on tools built by SwiftPM
 - the ability for package extensions (not just build tools) to use libraries provided by other targets
 - the ability for build commands to emit output files that feed back into the rule system to generate new work during the build (this requires support in SwiftPM's native build system as well as in the build systems of some IDEs that use libSwiftPM)
+- the ability to provide per target type-safe options to an use of an extension (details below)
+
+
+### Type-safe Options
+
+We are aware that many plugins will want to allow specific per-target configuration which would be best done in the package manifest of the project using the extension.
+
+We are purpusefully leaving options out of this _first_ proposal, and are going to revisit and add these in a future proposal.
+
+In theory options could just be done as a dictionary of string key/values, like this:
+
+```swift
+// NOT proposed
+.extension("Foo", options: ["Visibility": "Public"]) // not nice, not type-safe!
+```
+
+however we believe this yields a pretty sub-optimal user experience. It is hard to know what the available keys are, and what values are accepted. Is only `"Public"` correct in this example, or would `"public"` work too? Thus, we would like to rather explore a type-safe take on options, and allow plugins to defined some form of `struct MyOptions: ExtensionOptions` type, where `ExtensionOptions` is also `Codable`, and SwiftPM would take care of carrying this options type to the extension. This is a slightly difficult design to pull off well, because it requires the extension adding a type being accessible to the Package Manifest, and it also opens up considerations about
+
+```swift
+.extension(..., options: FooOptions(visibility: .public)) // yay, type-safe!
+```
+
+Designing this type-safe options is out of scope for this initial proposal though, as it carries many complexities wrt. how the types are made available from the extension definition to the end-users package manifest etc. It is an area we are interested in exploring and improving in the near future, so rather than lock ourselfes into supporting untyped dictionaries of strings, we suggest to introduce target specific, type-safe extension options in a future swift evolution proposal.
 
 ## Alternatives Considered
 
