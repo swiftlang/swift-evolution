@@ -9,15 +9,15 @@
 
 ## Introduction
 
-The [Swift Concurrency Roadmap](https://forums.swift.org/t/swift-concurrency-roadmap/41611/) was recently announced, and a key goal of that roadmap is to “provide a mechanism for isolating state in concurrent programs to eliminate data races.”  Such a mechanism will be a major progression for widely used programming languages - most of them provide concurrent programming abstractions in a way that subjects programmers to a wide range of bugs, including race conditions, deadlocks and other problems.
+The [Swift Concurrency Roadmap](https://forums.swift.org/t/swift-concurrency-roadmap/41611/) was recently announced, and a key goal of that roadmap is to “provide a mechanism for isolating state in concurrent programs to eliminate data races.”  Such a mechanism will be a major progression for widely used programming languages — most of them provide concurrent programming abstractions in a way that subjects programmers to a wide range of bugs, including race conditions, deadlocks and other problems.
 
-This proposal describes an approach to address one of the challenging problems in this space - how to type check value passing between structured concurrency constructs and actors messages. As such, this is a unifying theory that provides some of the underlying type system mechanics that make them both safe and work well together.
+This proposal describes an approach to address one of the challenging problems in this space — how to type check value passing between structured concurrency constructs and actors messages. As such, this is a unifying theory that provides some of the underlying type system mechanics that make them both safe and work well together.
 
 This implementation approach involves marker protocols named `ConcurrentValue` and `UnsafeConcurrentValue`, as well as a `@concurrent` attribute that may be applied to functions.
 
 ## Motivation
 
-Each actor instance and structured concurrency task in a program represents an “island of single threaded-ness”, which makes them a natural synchronization point that holds a bag of mutable state. These perform computation in parallel with other tasks, but we want the vast majority of code in such a system to be synchronization free -- building on the logical independence of the actor, and using its mailbox as a synchronization point for its data.
+Each actor instance and structured concurrency task in a program represents an “island of single threaded-ness”, which makes them a natural synchronization point that holds a bag of mutable state. These perform computation in parallel with other tasks, but we want the vast majority of code in such a system to be synchronization free — building on the logical independence of the actor, and using its mailbox as a synchronization point for its data.
 
 As such, a key question is: “when and how do we allow data to be transferred between concurrency domains?” Such transfers occur in arguments and results of actor method calls and tasks created by structured concurrency, for example.
 
@@ -33,19 +33,19 @@ Before we jump into the proposed solution, let’s take a look at some common ca
 
 The first kind of type we need to support are simple values like integers. These can be trivially passed across concurrency domains because they do not contain pointers.
 
-Going beyond this, Swift has a strong emphasis on types with [value semantics](https://en.wikipedia.org/wiki/Value_semantics), which are safe to transfer across concurrent boundaries. Except for classes, Swift’s mechanisms for type composition provide value semantics when their elements do. This includes generic structs, as well as its core collections: for example, `Dictionary<Int, String>` can be directly shared across concurrency domains. Swift’s Copy on Write approach means that collections can be transferred without proactive data copying of their representations -- an extremely powerful fact that I believe will make the Swift concurrency model more efficient than other systems in practice.
+Going beyond this, Swift has a strong emphasis on types with [value semantics](https://en.wikipedia.org/wiki/Value_semantics), which are safe to transfer across concurrent boundaries. Except for classes, Swift’s mechanisms for type composition provide value semantics when their elements do. This includes generic structs, as well as its core collections: for example, `Dictionary<Int, String>` can be directly shared across concurrency domains. Swift’s Copy on Write approach means that collections can be transferred without proactive data copying of their representations — an extremely powerful fact that I believe will make the Swift concurrency model more efficient than other systems in practice.
 
 However, everything isn’t simple here: the core collections can **not** be safely transferred across concurrency domains when they contain general class references, closures that capture mutable state, and other non-value types. We need a way to differentiate between the cases that are safe to transfer and those that are not.
 
 ### Value Semantic Composition
 
-Structs, enums and tuples are the primary mode for composition of values in Swift. These are all safe to transfer across concurrency domains -- so long as the data they contain is itself safe to transfer.
+Structs, enums and tuples are the primary mode for composition of values in Swift. These are all safe to transfer across concurrency domains — so long as the data they contain is itself safe to transfer.
 
 ### Higher Order Functional Programming
 
-It is common in Swift and other languages with functional programming roots to use [higher-order programming](https://en.wikipedia.org/wiki/Higher-order_function), where you pass functions to other functions.  Functions in Swift are reference types, but many functions are perfectly safe to pass across concurrency domains - for example, those with an empty capture list.
+It is common in Swift and other languages with functional programming roots to use [higher-order programming](https://en.wikipedia.org/wiki/Higher-order_function), where you pass functions to other functions.  Functions in Swift are reference types, but many functions are perfectly safe to pass across concurrency domains — for example, those with an empty capture list.
 
-There are many useful reasons why you’d want to send bits of computation between concurrency domains in the form of a function - even trivial algorithms like `parallelMap` need this.  This occurs at larger scale as well -- for example, consider an actor example like this:
+There are many useful reasons why you’d want to send bits of computation between concurrency domains in the form of a function — even trivial algorithms like `parallelMap` need this.  This occurs at larger scale as well — for example, consider an actor example like this:
 
 ```swift
 actor MyContactList { 
@@ -71,7 +71,7 @@ We feel that it is important to enable functions to be passed across concurrency
 
 ### Immutable Classes
 
-One common and efficient design pattern in concurrent programming is to build immutable data structures - it is perfectly safe to transfer a reference to a class across concurrency domains if the state within it never mutates. This design pattern is extremely efficient (no synchronization beyond ARC is required), can be used to build [advanced data structures](https://en.wikipedia.org/wiki/Persistent_data_structure), and is widely explored by the pure-functional language community.
+One common and efficient design pattern in concurrent programming is to build immutable data structures — it is perfectly safe to transfer a reference to a class across concurrency domains if the state within it never mutates. This design pattern is extremely efficient (no synchronization beyond ARC is required), can be used to build [advanced data structures](https://en.wikipedia.org/wiki/Persistent_data_structure), and is widely explored by the pure-functional language community.
 
 ### Internally Synchronized Reference Types
 
@@ -81,7 +81,7 @@ References to actor instances themselves are an example of this: they are safe t
 
 ### “Transferring” Objects Between Concurrency Domains
 
-A fairly common pattern in concurrent systems is for one concurrency domain to build up a data structure containing unsynchronized mutable state, then “hand it off” to a different concurrency domain to use by transferring the raw pointer. This is correct without synchronization if (and only if) the sender stops using the data that it built up - the result is that only the sender or receiver dynamically accesses the mutable state at a time.
+A fairly common pattern in concurrent systems is for one concurrency domain to build up a data structure containing unsynchronized mutable state, then “hand it off” to a different concurrency domain to use by transferring the raw pointer. This is correct without synchronization if (and only if) the sender stops using the data that it built up — the result is that only the sender or receiver dynamically accesses the mutable state at a time.
 
 There are both safe and unsafe ways to achieve this, e.g. see the discussion about “exotic” type systems in the “Alternatives Considered” section at the end.
 
@@ -91,7 +91,7 @@ One safe way to transfer reference types is to make a deep copy of the data stru
 
 ### Motivation Conclusion
 
-This is just a sampling of patterns, but as we can see, there are a wide range of different concurrent design patterns in widespread use. The design center of Swift around value types and encouraging use of structs is a very powerful and useful starting point, but we need to be able to reason about the complex cases as well - both for communities that want to be able express high performance APIs for a given domain but also because we need to work with legacy code that won’t get rewritten overnight.
+This is just a sampling of patterns, but as we can see, there are a wide range of different concurrent design patterns in widespread use. The design center of Swift around value types and encouraging use of structs is a very powerful and useful starting point, but we need to be able to reason about the complex cases as well — both for communities that want to be able express high performance APIs for a given domain but also because we need to work with legacy code that won’t get rewritten overnight.
 
 As such, it is important to consider approaches that allow library authors to express the intent of their types, it is important for app programmers to be able to work with uncooperative libraries retroactively, and it is also important that we provide safety as well as unsafe escape hatches so we can all just “get stuff done” in the face of an imperfect world that is in a process of transition.
 
@@ -225,7 +225,7 @@ This approach follows the precedent of [SE-0185](https://github.com/apple/swift-
 
 #### `[Unsafe]ConcurrentValue` Conformance Checking for classes
 
-Any class may be declared to conform to `UnsafeConcurrentValue`, allowing them to be passed between actors without semantic checks.  This is appropriate for classes that use access control and internal synchronization to provide memory safety -- these mechanisms cannot generally be checked by the compiler.
+Any class may be declared to conform to `UnsafeConcurrentValue`, allowing them to be passed between actors without semantic checks.  This is appropriate for classes that use access control and internal synchronization to provide memory safety — these mechanisms cannot generally be checked by the compiler.
 
 In addition, a class may conform to `ConcurrentValue` and be checked for memory safety by the compiler in a specific limited case: when the class is a final class containing only immutable stored properties of types that conform to ConcurrentValue:
 
@@ -285,7 +285,7 @@ We propose defining a new attribute on function types named `@concurrent`.   A `
 
 The `@concurrent` attribute to function types is orthogonal to the existing `@escaping` attribute, but it works the same way.  `@concurrent` functions are always subtypes of non-`@concurrent` functions, and implicitly convert when needed.  Similarly, closure expressions infer the `@concurrent` bit from context just like `@escaping` closures do.
 
-We can revisit the example from the motivation section -- it may be declared like this:
+We can revisit the example from the motivation section — it may be declared like this:
 
 ```swift
 actor MyContactList { 
@@ -444,13 +444,13 @@ In addition to the base proposal, there are several follow-on things that could 
 
 ### Adaptor Types for Legacy Codebases
 
-**NOTE**: This section is NOT considered part of the proposal - it is included just to illustrate aspects of the design.
+**NOTE**: This section is NOT considered part of the proposal — it is included just to illustrate aspects of the design.
 
 The proposal above provides good support for composition and Swift types that are updated to support concurrency.  Further, Swift’s support for retroactive conformance of protocols makes it possible for users to work with codebases that haven’t been updated yet.
 
 However, there is an additional important aspect of compatibility with existing frameworks that is important to confront: frameworks are sometimes designed around dense graphs of mutable objects with ad hoc structures.  While it would be nice to “rewrite the world” eventually, practical Swift programmers will need support to “get things done” in the meantime.  By analogy, when Swift first came out, most Objective-C frameworks were not audited for nullability.  We introduced “`ImplicitlyUnwrappedOptional`” to handle the transition period, which gracefully faded from use over the years.
 
-To illustrate how we can do this with Swift concurrency, consider a pattern that is common in Objective-C frameworks: passing an object graph across threads by “transferring” the reference across threads - this is useful but not memory safe!  Programmers will want to be able to express these things as part of their actor APIs within their apps.
+To illustrate how we can do this with Swift concurrency, consider a pattern that is common in Objective-C frameworks: passing an object graph across threads by “transferring” the reference across threads — this is useful but not memory safe!  Programmers will want to be able to express these things as part of their actor APIs within their apps.
 
 This can be achieved by the introduction of a generic helper struct:
 
@@ -484,7 +484,7 @@ actor MyAppActor {
 
 ### Objective-C Framework Support
 
-**NOTE**: This section is NOT considered part of the proposal - it is included just to illustrate aspects of the design.
+**NOTE**: This section is NOT considered part of the proposal — it is included just to illustrate aspects of the design.
 
 Objective-C has established patterns that would make sense to pull into this framework en-masse, e.g. the [`NSCopying` protocol](https://developer.apple.com/documentation/foundation/nscopying) is one important and widely adopted protocol that should be onboarded into this framework.
 
@@ -511,7 +511,7 @@ actor MyAppActor {
 
 }
 
-One random note: the Objective-C static type system is not very helpful to us with immutability here: statically typed `NSString`’s may actually be dynamically `NSMutableString`’s due to their subclass relationships.  Because of this, it isn’t safe to assume that values of `NSString` type are dynamically immutable -- they should be implemented to invoke the `copy()` method.
+One random note: the Objective-C static type system is not very helpful to us with immutability here: statically typed `NSString`’s may actually be dynamically `NSMutableString`’s due to their subclass relationships.  Because of this, it isn’t safe to assume that values of `NSString` type are dynamically immutable — they should be implemented to invoke the `copy()` method.
 
 ### Interaction of Actor self and `@concurrent` closures
 
@@ -549,7 +549,7 @@ extension SomeActor {
 }
 ```
 
-We need the compiler to know whether there is a possible concurrency domain hop or not - if so, an await is required.  Fortunately, this works out through straight-forward composition of the basic type system rules above: It is perfectly safe to use actor `self` in a non-`@concurrent` closure in an actor method, but using it in a `@concurrent` closure is treated as being from a different concurrency domain, and thus requires an `await`.
+We need the compiler to know whether there is a possible concurrency domain hop or not — if so, an await is required.  Fortunately, this works out through straight-forward composition of the basic type system rules above: It is perfectly safe to use actor `self` in a non-`@concurrent` closure in an actor method, but using it in a `@concurrent` closure is treated as being from a different concurrency domain, and thus requires an `await`.
 
 ## Source Compatibility
 
@@ -604,9 +604,9 @@ The [initial proposal for the actor system](https://forums.swift.org/t/concurren
 
 That approach has several downsides compared to this proposal:
 
-1. The “Swift Concurrency 1.0” code would miss key memory safety checking - which is the primary stated goal of the Swift Concurrency model.
+1. The “Swift Concurrency 1.0” code would miss key memory safety checking — which is the primary stated goal of the Swift Concurrency model.
 2. “Swift Concurrency 2.0” will be significantly source incompatible with “Swift Concurrency 1.0” and will put the Swift community through a very difficult and unnecessary migration.  
-3. The expressiveness of the new type system is not well explored and it certainly does not cover all of the cases in this proposal -- we will probably require something like this anyway.
+3. The expressiveness of the new type system is not well explored and it certainly does not cover all of the cases in this proposal — we will probably require something like this anyway.
 
 The model proposed here is simple and builds on core features of the existing Swift language, so it is best to adopt these checks in the first revision of the proposal.
 
