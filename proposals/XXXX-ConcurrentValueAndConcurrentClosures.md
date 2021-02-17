@@ -83,7 +83,7 @@ References to actor instances themselves are an example of this: they are safe t
 
 A fairly common pattern in concurrent systems is for one concurrency domain to build up a data structure containing unsynchronized mutable state, then “hand it off” to a different concurrency domain to use by transferring the raw pointer. This is correct without synchronization if (and only if) the sender stops using the data that it built up — the result is that only the sender or receiver dynamically accesses the mutable state at a time.
 
-There are both safe and unsafe ways to achieve this, e.g. see the discussion about “exotic” type systems in the “Alternatives Considered” section at the end.
+There are both safe and unsafe ways to achieve this, e.g. see the discussion about “exotic” type systems in the [Alternatives Considered](#alternatives-considered) section at the end.
 
 ### Deep Copying Classes
 
@@ -221,7 +221,7 @@ extension MySneakyNSPerson: ConcurrentValue { }
 
 Without this restriction, another source file or module, which cannot see the private stored property name, would conclude that `MySneakyNSPerson` is properly a `ConcurrentValue`. One can declare conformance to `UnsafeConcurrentValue` to disable this check as well.
 
-This approach follows the precedent of [SE-0185](https://github.com/apple/swift-evolution/blob/main/proposals/0185-synthesize-equatable-hashable.md), [SE-0266](https://github.com/apple/swift-evolution/blob/main/proposals/0266-synthesized-comparable-for-enumerations.md), and [SE-0283](https://github.com/apple/swift-evolution/blob/main/proposals/0283-tuples-are-equatable-comparable-hashable.md) which uses explicit conformance to direct compiler behavior.  An alternative design would be to make conformance _implicit_ for all types that structurally conform.  Please see “Alternatives Considered” at the end of this proposal for more discussion about this.
+This approach follows the precedent of [SE-0185](https://github.com/apple/swift-evolution/blob/main/proposals/0185-synthesize-equatable-hashable.md), [SE-0266](https://github.com/apple/swift-evolution/blob/main/proposals/0266-synthesized-comparable-for-enumerations.md), and [SE-0283](https://github.com/apple/swift-evolution/blob/main/proposals/0283-tuples-are-equatable-comparable-hashable.md) which uses explicit conformance to direct compiler behavior.  An alternative design would be to make conformance _implicit_ for all types that structurally conform.  Please see [Alternatives Considered](#alternatives-considered) at the end of this proposal for more discussion about this.
 
 #### `[Unsafe]ConcurrentValue` Conformance Checking for classes
 
