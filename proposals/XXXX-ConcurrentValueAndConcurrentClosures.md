@@ -7,6 +7,17 @@
 * Implementation: [apple/swift#35264](https://github.com/apple/swift/pull/35264)
 * Major Contributors: Dave Abrahams, Paul Cantrell, Matthew Johnson, John McCall
 
+## Contents
+
+* [Introduction](#introduction)
+* [Motivation](#motivation)
+* [Proposed Solution + Detailed Design](#proposed-solution--detailed-design)
+  * [`ConcurrentValue` and `UnsafeConcurrentValue` Protocols](#concurrentvalue-and-unsafeconcurrentvalue-protocols)
+  * [New `@concurrent` attribute for functions](#new-concurrent-attribute-for-functions)
+* [Future Work / Follow-on Projects](#future-work--follow-on-projects)
+* [Alternatives Considered](#alternatives-considered)
+* [Conclusion](#conclusion)
+
 ## Introduction
 
 The [Swift Concurrency Roadmap](https://forums.swift.org/t/swift-concurrency-roadmap/41611/) was recently announced, and a key goal of that roadmap is to “provide a mechanism for isolating state in concurrent programs to eliminate data races.”  Such a mechanism will be a major progression for widely used programming languages — most of them provide concurrent programming abstractions in a way that subjects programmers to a wide range of bugs, including race conditions, deadlocks and other problems.
