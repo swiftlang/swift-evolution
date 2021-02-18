@@ -80,8 +80,8 @@ extension Polynomial {
     }
 }
 
-let polynomial = Polynomial(coefficients: [2, 3, 4])
-print(polynomial.evaluated(at: 2)) // => 24
+let f = Polynomial(coefficients: [2, 3, 4])
+print(f.evaluated(at: 2)) // => 24
 ```
 
 The mathematical notation for function application is simply `output = f(input)`. Using subscript methods achieve a similar application syntax `f[x]`, but subscripts and square brackets typically connote "indexing into a collection", which is not the behavior here.
@@ -92,9 +92,9 @@ extension Polynomial {
         ...
     }
 }
-let polynomial = Polynomial(coefficients: [2, 3, 4])
+let f = Polynomial(coefficients: [2, 3, 4])
 // Subscript syntax, may be confusing.
-print(polynomial[2]) // => 24
+print(f[2]) // => 24
 ```
 
 The proposed feature enables the same call syntax as the mathematical notation:
@@ -104,9 +104,9 @@ extension Polynomial {
         ...
     }
 }
-let polynomial = Polynomial(coefficients: [2, 3, 4])
+let f = Polynomial(coefficients: [2, 3, 4])
 // Call syntax.
-print(polynomial(2)) // => 24
+print(f(2)) // => 24
 ```
 
 #### Bound closures
@@ -217,7 +217,7 @@ struct Parser<Output> {
 }
 ```
 
-When using a parser, one would need to explicitly call `applied(to:)`, but this is a bit cumbersome—the naming this API often repeats the type. Since parsers are like functions, it would be cleaner if the parser itself were callable.
+When using a parser, one would need to explicitly call `applied(to:)`, but that is a bit cumbersome. Since parsers are like functions, it would be cleaner if parsers themself were callable.
 
 ```swift
 func callAsFunction(_ input: String) throws -> Output {
@@ -233,7 +233,7 @@ let sexp = sexpParser("(+ 1 2)")
 
 ### A static counterpart to `@dynamicCallable`
 
-[SE-0216 ](https://github.com/apple/swift-evolution/blob/master/proposals/0216-dynamic-callable.md) introduced user-defined dynamically callable values. In its [alternatives considered](https://github.com/apple/swift-evolution/blob/master/proposals/0216-dynamic-callable.md#alternatives-considered) section, it was requested that we design and implement the "static callable" version of this proposal in conjunction with the dynamic version proposed. See its [pitch thread](https://forums.swift.org/t/pitch-3-introduce-user-defined-dynamically-callable-types/12232) for discussions about "static callables".
+[SE-0216](https://github.com/apple/swift-evolution/blob/master/proposals/0216-dynamic-callable.md) introduced user-defined dynamically callable values. In its [alternatives considered](https://github.com/apple/swift-evolution/blob/master/proposals/0216-dynamic-callable.md#alternatives-considered) section, it was requested that we design and implement the "static callable" version of this proposal in conjunction with the dynamic version proposed. See its [pitch thread](https://forums.swift.org/t/pitch-3-introduce-user-defined-dynamically-callable-types/12232) for discussions about "static callables".
 
 ### Prior art
 
