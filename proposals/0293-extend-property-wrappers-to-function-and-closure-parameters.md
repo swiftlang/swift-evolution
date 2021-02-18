@@ -33,6 +33,7 @@
 + [Effect on ABI stability](#effect-on-abi-stability)
 + [Effect on API resilience](#effect-on-api-resilience)
 + [Alternatives considered](#alternatives-considered)
+  - [Preserving property wrapper parameter attributes in the type system](#preserving-property-wrapper-parameter-attributes-in-the-type-system)
   - [Callee-side property wrapper application](#callee-side-property-wrapper-application)
   - [Passing a property-wrapper storage instance directly](#passing-a-property-wrapper-storage-instance-directly)
 + [Future directions](#future-directions)
@@ -530,6 +531,10 @@ Implementation-detail property wrappers have no impact on API resilience.
 However, API-level property wrappers applied to function parameters are part of the API and ABI of that function. This is because a property wrapper applied to a function parameter changes the type of that parameter in the ABI; it also changes the way that function callers are compiled to pass an argument of that type. Thus, adding or removing a property wrapper on a public function parameter is not a resilient change. Furthermore, similar to the existing behavior of default arguments, arguments in wrapper attributes are emitted into clients and are therefore not a part of the ABI.
 
 ## Alternatives considered
+
+### Preserving property wrapper parameter attributes in the type system
+
+One approach to achieving the expected semantics for higher-order functions with property wrappers in the parameter list is to preserve property wrapper attributes in parameter types. While this is feasible for plain property wrapper attributes, it is not feasible in the case where the property wrapper attribute has attribute arguments, because type equality cannot be dependent on expression equivalence.
 
 ### Callee-side property wrapper application
 
