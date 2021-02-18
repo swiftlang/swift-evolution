@@ -259,7 +259,7 @@ There will be [tooling](https://github.com/apple/swift-package-collection-genera
 
 The signature will include the certificate's public key and chain so that they can be used for verification later.
 
-A signed package collection will have an extra `signature` key:
+A signed package collection will have an extra `signature` object:
 
 ```
 {
@@ -284,9 +284,9 @@ Non-expired, non-revoked Apple Distribution certificates from [developer.apple.c
 
 ##### Trusted root certificates
 
-On Apple platforms, all root certificates that come preinstalled with the OS are automatically trusted. Users may specify additional certificates to trust by placing them in the `~/.swiftpm/config/trustRootCerts` directory. 
+On Apple platforms, all root certificates that come preinstalled with the OS are automatically trusted. Users may specify additional certificates to trust by placing them in the `~/.swiftpm/config/trust-root-certs` directory. 
 
-On non-Apple platforms, there are no trusted root certificates by default. Only those found in `~/.swiftpm/config/trustRootCerts` are trusted.
+On non-Apple platforms, there are no trusted root certificates by default. Only those found in `~/.swiftpm/config/trust-root-certs` are trusted.
 
 #### Add a signed package collection
 
@@ -302,7 +302,7 @@ User may opt to skip the signature check on a collection by passing the `--skip-
 $ swift package-collection add https://www.example.com/packages.json --skip-signature-check
 ```
 
-Since there are no trusted root certificates by default on non-Apple platforms, the signature check will always fail. SwiftPM will detect this and instruct user to either set up the `~/.swiftpm/config/trustRootCerts` directory or use `--skip-signature-check`.
+Since there are no trusted root certificates by default on non-Apple platforms, the signature check will always fail. SwiftPM will detect this and instruct user to either set up the `~/.swiftpm/config/trust-root-certs` directory or use `--skip-signature-check`.
 
 #### Add an unsigned package collection
 
@@ -313,6 +313,19 @@ $ swift package-collection add https://www.example.com/unsigned-packages.json --
 ```
 
 The `--skip-signature-check` flag has no effects on unsigned collections.
+
+#### Security risks
+
+Signed package collections as currently designed are susceptible to the following attack vectors:
+
+- **Signature stripping**: This involves attackers removing signature from a signed collection, causing it to be downloaded as an unsigned collection and bypassing signature check. In this case, publishers should make it known that the collection is signed, and users should abort the `add` operation when the "unsigned" warning shows up on a supposedly signed collection.
+- **Signature replacement**: Attackers may modify a collection then re-sign it using a different certificate, and SwiftPM will accept it as long as the signature is valid.
+
+To defend against these attacks, SwiftPM will offer a way for collection publishers to:
+1. Require signature check on their collections - this defends against "signature stripping".
+2. Restrict what certificate can be used for signing - this defends against "signature replacement".
+
+The process will involve submitting a pull request to modify SwiftPM certificate pinning configuration.
 
 ## Future direction
 
