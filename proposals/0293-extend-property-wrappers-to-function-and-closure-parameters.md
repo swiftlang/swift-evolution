@@ -503,7 +503,7 @@ Property-wrapper parameters cannot have an `@autoclosure` type.
 
 > **Rationale**: `@autoclosure` is unnecessary for the wrapped value, because the wrapped-value argument at the call-site will always be wrapped in a call to `init(wrappedValue:)` or `init(projectedValue:)`, which can _already_ support `@autoclosure` arguments.
 
-Wrapping function parameters uses property wrapper syntax.
+Function parameters cannot be wrapped without declaring a property wrapper.
 
 > **Rationale**: Differentiating syntax for function-paramter and property wrapping is pointless, because one can currently declare a function-local wrapper with the same effect, only with slightly more effort.
 
