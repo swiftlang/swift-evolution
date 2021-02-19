@@ -431,7 +431,7 @@ extension Dictionary: ConcurrentValue
 Except for the cases listed below, all struct, enum, and class types in the standard library conform to the `ConcurrentValue` protocol. Generic types conditionally conform to the `ConcurrentValue` protocol when all of their generic arguments conform to `ConcurrentValue`. The exceptions to these rules follow:
 
 *   `ManagedBuffer`: this class is meant to provide mutable reference semantics for a buffer. It must not conform to `ConcurrentValue` (even unsafely).
-*   `Unsafe(Mutable)(Buffer)Pointer`: these generic types _unconditionally_ conform to the `UnsafeConcurrentValue` protocol. Unsafe pointer types provide fundamentally unsafe access to memory, so making them.
+*   `Unsafe(Mutable)(Buffer)Pointer`: these generic types _unconditionally_ conform to the `ConcurrentValue` protocol. This means that an unsafe pointer to a non-concurrent value can potentially be used to share such values between concurrency domains. Unsafe pointer types provide fundamentally unsafe access to memory, and the programmer must be trusted to use them correctly; enforcing a strict safety rule for one narrow dimension of their otherwise completely unsafe use seems inconsistent with that design.
 *   Lazy algorithm adapter types: the types returned by lazy algorithms (e.g., as the result of `array.lazy.map` { … }) never conform to `ConcurrentValue`. Many of these algorithms (like the lazy `map`) take non-`@concurrent` closure values, and therefore cannot safely conform to `ConcurrentValue`.
 
 The standard library protocols `Error` and `CodingKey` inherit from the `ConcurrentValue` protocol:
@@ -465,8 +465,8 @@ This can be achieved by the introduction of a generic helper struct:
 
 ```swift
 @propertyWrapper
-struct UnsafeTransfer<T: AnyObject> : UnsafeConcurrentValue {
-  var wrappedValue: T
+struct UnsafeTransfer<Wrapped: AnyObject> : UnsafeConcurrentValue {
+  var wrappedValue: Wrapped
   init(wrappedValue: Wrapped) {
     self.wrappedValue = wrappedValue
   }
@@ -544,10 +544,10 @@ However, we also need to consider the case when ‘self’ is captured into a cl
 extension SomeActor {
   public func thing(arr: [Int]) {
     // This should obviously be allowed!
-    a.forEach { self.oneSyncFunction(x: $0) }
+    arr.forEach { self.oneSyncFunction(x: $0) }
 
     // Error: await required because it hops concurrency domains.
-    a.parallelMap { self.oneSyncFunction(x: $0) }
+    arr.parallelMap { self.oneSyncFunction(x: $0) }
 
     // Is this ok?
     someHigherOrderFunction {
