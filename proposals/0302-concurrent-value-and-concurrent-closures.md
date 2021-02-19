@@ -6,6 +6,7 @@
 * Status: **Active Review (February 19th...March 1st, 2021)**
 * Implementation: [apple/swift#35264](https://github.com/apple/swift/pull/35264)
 * Major Contributors: Dave Abrahams, Paul Cantrell, Matthew Johnson, John McCall
+* Review: ([review](https://forums.swift.org/t/se-0302-concurrentvalue-and-concurrent-closures/44919))
 
 ## Contents
 
