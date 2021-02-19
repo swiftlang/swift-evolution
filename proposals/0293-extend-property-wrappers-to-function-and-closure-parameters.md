@@ -37,6 +37,10 @@
   - [Callee-side property wrapper application](#callee-side-property-wrapper-application)
   - [Passing a property-wrapper storage instance directly](#passing-a-property-wrapper-storage-instance-directly)
 + [Future directions](#future-directions)
+  - [The impact of formalizing separate property wrapper models](#the-impact-of-formalizing-separate-property-wrapper-models)
+  - [Always preserve API property wrappers in generated Swift interfaces](#always-preserve-api-property-wrappers-in-generated-swift-interfaces)
+  - [Compiler detection of API property wrappers](#compiler-detection-of-api-property-wrappers)
+  - [Library-defined diagnostic notes for understanding API wrapper restrictions](#library-defined-diagnostic-notes-for-understanding-api-wrapper-restrictions)
   - [Property wrappers in protocol requirements](#property-wrappers-in-protocol-requirements)
   - [Generalized property-wrapper initialization from a projection](#generalized-property-wrapper-initialization-from-a-projection)
   - [Extending property wrappers to patterns](#extending-property-wrappers-to-patterns)
@@ -392,7 +396,7 @@ Arguments in the property-wrapper attribute as well as other default arguments t
 
 ##### Overload resolution of backing property-wrapper initializer
 
-Since the property wrapper is initialized at the call-site, the argument type can impact overload resolution of `init(wrappedValue:)` and `init(projectedValue:)`. For example, if a property wrapper defines overloads of `init(wrappedValue:)` with different generic constraints and that wrapper is used on a function parameter, e.g.:
+Though the property wrapper is initialized at the call-site, the argument type _cannot_ impact overload resolution of `init(wrappedValue:)` and `init(projectedValue:)`. For example, if a property wrapper defines overloads of `init(wrappedValue:)` with different generic constraints and that wrapper is used on a function parameter, e.g.:
 
 ```swift
 @propertyWrapper(api)
@@ -407,13 +411,12 @@ struct Wrapper<Value> {
 func generic<T>(@Wrapper arg: T) { ... }
 ```
 
-Then, overload resolution will choose which `init(wrappedValue:)` to call based on the static type of the argument at the call-site:
+Overload resolution will choose which `init(wrappedValue:)` to call based on the static type of the parameter at the declaration of the property wrapper attribute:
 
 ```swift
-generic(arg: 10) // calls the unconstrained init(wrappedValue:)
-
-generic(arg: [1, 2, 3]) // calls the constrained init(wrappedValue:)
-                        // because the argument conforms to Collection.
+// Both of the following calls use the unconstraint init(wrappedValue:)
+generic(arg: 10)
+generic(arg: [1, 2, 3])
 ```
 
 #### Semantics of function expressions
@@ -562,7 +565,37 @@ Keeping the property-wrapper storage type private is consistent with how propert
 
 ## Future directions
 
-### Property wrappers in protocol requirements
+### The impact of formalizing separate property wrapper models
+
+The design of this property wrapper extension includes a formalized distinction between property wrappers that are implementation detail and property wrappers that are API. These two kinds of wrappers will need to be modeled differently in certain places in the language. This section explores the impact that introducing two separate models for property wrappers will have on the language and the future design space for property wrappers.
+
+The property wrapper model inside the declaration context of the wrapped property will remain the same between these two kinds of property wrappers. Whether the property wrapper is API or implementation detail, the auxiliary declaration model is fundamental to programmers' understanding of how property wrappers work and how to use them, and this model should not be changed in any future enhancement to the property wrapper feature. Property wrappers are and will always be syntactic sugar for code that the programmer can write manually using exactly the strategy that the compiler uses - auxiliary variables and custom accessors on the wrapped property. Any enhancements to property wrappers that add capabilities to the auxiliary declarations, such as access to the enclosing `self` instance or delegating to an existing stored property, will not be impacted by the API versus implementation detail distinction.
+
+The distinction of API versus implementation detail _will_ have an impact outside of the enclosing context of the wrapped declaration. Conceptually, the API versus implementation-detail distinction should only impact the parts of the language where there is an abstraction layer boundary where the abstraction uses a wrapper attribute.
+
+Across module boundaries, implementation-detail property wrappers become invisible, because these wrappers are purely a detail of how the module is implemented. Clients have no knowledge of these wrappers, so property wrapper attributes that appear in the module must be API property wrappers.
+
+The modeling difference between implementation-detail and API property wrappers is only observable when both are used within the same module, and the difference is mainly observable in the language restrictions on the use of API versus implementation-detail wrappers. These two models are designed such that nearly all observable semantics of property wrapper application do not differ based on where the wrapper is applied. The only observable semantic difference that the proposal authors can think of is evaluation order among property wrapper initialization and other arguments that are passed to the API, and the proposal authors believe it is extremely unlikely that this evaluation order will have any impact on the functionality of the code. For evaluation order to have a functional impact, both the property wrapper initializer _and_ another function argument would both need to call into a separate function that has some side effect.
+
+The proposal authors believe that these two kinds of property wrappers already exist today, and formalizing the distinction is a first step in enhancing programmers' understanding of such a complex feature. Property wrappers are very flexible to cover a wide variety of use cases. Formalizing the two broad categories of use cases opens up many interesting possiblities for the language and compiler to enhance library documentation when API wrappers are used, provide better guidance to programmers, and even allow library authors to augment the guidance given to programmers on invalid code.
+
+### Always preserve API property wrappers in generated Swift interfaces
+
+Today, Swift interfaces do not include property wrapper attributes at all - interfaces always show the desugared code. For property wrappers that are fundamental to understanding how the property behaves, the loss of the wrapper attribute is a detriment to users of the API.
+
+With this proposal, API property wrappers will be preserved in Swift interfaces when attached to parameters. Wrapper attributes on API serve as additional documentation for the semantics of that API. With the new formalization of API property wrappers, the compiler could also preserve such wrappers on properties.
+
+### Compiler detection of API property wrappers
+
+There are a number of design choices that a property wrapper author can make that indicate their wrapper should be an API property wrapper. For example, property wrappers that add `var projectedValue` are adding additional API to the wrapped property. Another example is nonstandard mutability of `wrappedValue` accessors. Changing mutability of the wrapped property not only changes how the property is used, but it also impacts ABI. The compiler could emit warnings when an implementation detail property wrapper has these effects when applied, which can be silenced by adding `(api)` to the `@propertyWrapper` attribute.
+
+### Library-defined diagnostic notes for understanding API wrapper restrictions
+
+API property wrappers on parameters have more restrictions than implementation detail property wrappers, because they have an external effect to the function. One very nice thing about property wrappers as custom attributes is that the documentation for that attribute is defined by the library author. We could extend this principle and allow library authors to also define custom diagnostic notes to help explain restrictions that exist due to the external effect that the wrapper has on the function.
+
+A custom diagnostic framework may also be useful for API property wrappers applied to properties, because such wrappers often change the semantics of the wrapped declaration in a way that fundamentally changes how the declaration can be used. For example, a property wrapper may change the accessor mutability of the wrapped property, which may cause unexpected and unhelpful diagnostics when the programmer accesses the property incorrectly. The compiler cannot help explain _why_ there is a difference in mutability when the wrapper is attached, because the compiler does not understand the semantics of the wrapper.
+
+### API property wrappers in protocol requirements
 
 Protocol requirements that include property wrappers was [pitched](https://forums.swift.org/t/property-wrapper-requirements-in-protocols/33953) a while ago, but there was a lot of disagreement about whether property wrappers are implementation detail or API. With this distinction formalized, we could allow only API-level property wrappers in protocol requirements.
 
@@ -656,6 +689,7 @@ As a result, unsafe code is not dominated by visually displeasing accesses to `p
 * The distinction between API wrappers and implementation-detail wrappers is formalized via the `api` option for `@propertyWrapper`, i.e. `@propertyWrapper(api)`
 * Implementation-detail property wrappers on parameters are sugar for a local wrapped variable.
 * API property wrappers on parameters use caller-side application of the property wrapper.
+* Overload resolution for property wrapper initializers will always be done at the property wrapper declaration.
 
 ### Changes from the first reviewed version
 
