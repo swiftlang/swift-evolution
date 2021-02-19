@@ -1,9 +1,9 @@
 # `ConcurrentValue` and `@concurrent` closures
 
-* Proposal: [SE-NNNN](NNNN-concurrent-value-and-concurrent-closures.md)
+* Proposal: [SE-0302](0302-concurrent-value-and-concurrent-closures.md)
 * Authors: [Chris Lattner](https://github.com/lattner), [Doug Gregor](https://github.com/douggregor)
-* Review Manager: ?
-* Status: **Draft**
+* Review Manager: [John McCall](https://github.com/rjmccall)
+* Status: **Active Review (February 19th...March 1st, 2021)**
 * Implementation: [apple/swift#35264](https://github.com/apple/swift/pull/35264)
 * Major Contributors: Dave Abrahams, Paul Cantrell, Matthew Johnson, John McCall
 
