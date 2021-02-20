@@ -39,7 +39,7 @@
 + [Future directions](#future-directions)
   - [The impact of formalizing separate property wrapper models](#the-impact-of-formalizing-separate-property-wrapper-models)
   - [Always preserve API property wrappers in generated Swift interfaces](#always-preserve-api-property-wrappers-in-generated-swift-interfaces)
-  - [Compiler detection of API property wrappers](#compiler-detection-of-api-property-wrappers)
+  - [Explicitly specifying the type of property wrapper](#explicitly-specifying-the-type-of-property-wrapper)
   - [Library-defined diagnostic notes for understanding API wrapper restrictions](#library-defined-diagnostic-notes-for-understanding-api-wrapper-restrictions)
   - [Property wrappers in protocol requirements](#property-wrappers-in-protocol-requirements)
   - [Generalized property-wrapper initialization from a projection](#generalized-property-wrapper-initialization-from-a-projection)
@@ -572,7 +572,7 @@ Today, Swift interfaces do not include property wrapper attributes at all - inte
 
 With this proposal, API property wrappers will be preserved in Swift interfaces when attached to parameters. Wrapper attributes on API serve as additional documentation for the semantics of that API. With the new formalization of API property wrappers, the compiler could also preserve such wrappers on properties.
 
-### Explicitly specifying the type of wrapper
+### Explicitly specifying the type of property wrapper
 
 Sometimes, property wrappers can have certain specifications that are not satisfied by the compiler's rules for determining that a property wrapper is API-level. While the proposed rules ensured intuitiveness and protection against bad API design, the ability for library authors to customize that behavior will allow for more powerful APIs. Therefore, the `@propertyWrapper` attribute could have a `apiLevel` and `implementationDetail` options that allow library authors to explicitly set the type of their wrapper:
 
