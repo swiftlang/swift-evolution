@@ -347,7 +347,7 @@ The difference from `@escaping` is that a context-less closure defaults to be no
 let fn = { (x: Int, y: Int) -> Int in x+y }
 ```
 
-Nested functions are also an important consideration, because they can also capture values just like a closure expression.  We propose requiring the `@concurrent` attribute on nested function declarations:
+Nested functions are also an important consideration, because they can also capture values just like a closure expression.  The `@concurrent` attribute is used on nested function declarations to opt-into concurrency checking:
 
 ```swift
 func globalFunction(arr: [Int]) {
