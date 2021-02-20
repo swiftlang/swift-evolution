@@ -543,18 +543,6 @@ However, API-level property wrappers applied to function parameters are part of 
 
 One approach to achieving the expected semantics for higher-order functions with property wrappers in the parameter list is to preserve property wrapper attributes in parameter types. While this is feasible for plain property wrapper attributes, it is not feasible in the case where the property wrapper attribute has attribute arguments, because type equality cannot be dependent on expression equivalence.
 
-### Callee-side property wrapper application
-
-Instead of initializing the backing property wrapper using the argument at the call-site of a function that accepts a wrapped parameter, another approach is to initialize the backing property wrapper using the parameter in the function body. One benefit of this approach is that annotating a parameter with a property-wrapper attribute would not change the type of the function in the ABI, and therefore adding or removing a wrapper attribute would be a resilient change.
-
-Under these semantics, using a property-wrapper parameter is effectively the same as using a local property wrapper that is initialized from a parameter. This implies that:
-
-1. This feature cannot support passing a projected-value argument via `init(projectedValue:)`, unless there is an additional ABI entry point that acceps the projected-value type. This can only be achieved with either an exponential number of overloads, or an artificial restriction that all property-wrapper arguments must either be the wrapped-value type or the projected-value type.
-2. The type of the argument provided at the call-site cannot affect the overload resolution of `init(wrappedValue:)`.
-3. Arguments in the wrapper attribute and other default arguments to the property-wrapper initializers become resilient and are also evaluated in the callee rather than the caller.
-
-One of the motivating use-cases for property-wrapper parameters is the ability to pass a projected value, which makes this approach unviable without a significant type-checking performance impact or unintuitive restrictions. Further, making arguments in the wrapper attribute resilient is inconsistent with default arguments. Finally, caller-side property wrapper application has useful semantics. For example, for property wrappers that capture the file and line number to log a message or assert a precondition, it's much more useful to capture the location where the argument is provided rather than the location of the parameter declaration.
-
 ### Passing a property-wrapper storage instance directly
 
 A previous revision of this proposal supported passing a property-wrapper storage instance to a function with a wrapped parameter directly because the type of such a function was in terms of the property-wrapper type. A big point of criticism during the first review was that the backing storage type should be an artifact of the function implementation, and not exposed to function callers through the type system.
