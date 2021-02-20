@@ -518,6 +518,10 @@ Property wrapper attributes can only be used on parameters in overridden functio
 
 > **Rationale**: This restriction ensures that the call-site transformation is always the same for families of dynamically dispatched functions.
 
+API property wrappers must match the access level of the enclosing function.
+
+> **Rationale** These property wrappers have an external effect on the argument at the call-site, so they must be accessible to all callers.
+
 ## Source compatibility
 
 This is an additive change with no impact on source compatibility.
