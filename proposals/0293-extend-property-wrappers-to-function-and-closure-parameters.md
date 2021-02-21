@@ -265,7 +265,7 @@ The remainder of the Detailed design section describes the semantics of applying
 Property wrapper that either accept an autoclosure in their `init(wrappedValue:)` initializer or declare an `init(projectedValue` initializers will automatically become API-level ones that exhibit different semantics to default, implementation-detail property wrappers.
 
 ```swift
-struct Lazy<Value> {
+struct LateInitialized<Value> {
   init(wrappedValue: @autoclosure () -> Value) { ... }
   
   ...
@@ -284,16 +284,16 @@ The transformation of functions with a property-wrapped parameter will be perfor
 4. A local computed property representing the `wrappedValue` of the innermost property wrapper will be synthesized with the same name as the original, unprefixed parameter name. If the innermost `wrappedValue` defines a setter, a setter will be synthesized for the local property if the mutability of the composed setter is `nonmutating`. The mutability computation is specified in the [appendix](#appendix).
 5. If the outermost property wrapper defines a `projectedValue` property with a `nonmutating` getter, a local computed property representing the outermost `projectedValue` will be synthesized and named per the original parameter name prefixed with a dollar sign (`$`). If the outermost `projectedValue` defines a setter, a setter for the local computed property will be synthesized if the `projectedValue` setter is `nonmutating`.
 
-Consider the following function with a property-wrapped parameter using the `@Lazy` property wrapper:
+Consider the following function with a property-wrapped parameter using the `@LateInitialized` property wrapper:
 
 ```swift
-func showResult(@Lazy of calculationResult: Double) { ... }
+func showResult(@LateInitialized of calculationResult: Double) { ... }
 ```
 
 The compiler will synthesize computed `text` and `$text` variables in the body of `insert`:
 
 ```swift
-func showResult(of _calculationResult: Lazy<String>) {
+func showResult(of _calculationResult: LateInitialized<String>) {
   var calculationResult: String {
     get { _calculationResult.wrappedValue }
   }
@@ -399,7 +399,7 @@ Arguments in the property-wrapper attribute as well as other default arguments t
 Though the property wrapper is initialized at the call-site, the argument type _cannot_ impact overload resolution of `init(wrappedValue:)` and `init(projectedValue:)`. For example, if a property wrapper defines overloads of `init(wrappedValue:)` with different generic constraints and that wrapper is used on a function parameter, e.g.:
 
 ```swift
-struct Lazy<Value> {
+struct LateInitialized<Value> {
 
   init(wrappedValue: @escaping () -> Value) { ... }
 
@@ -407,7 +407,7 @@ struct Lazy<Value> {
   
 }
 
-func generic<Value>(@Lazy argument: Value) { ... }
+func generic<Value>(@LateInitialized argument: Value) { ... }
 ```
 
 Overload resolution will choose which `init(wrappedValue:)` to call based on the static type of the parameter at the declaration of the property wrapper attribute:
