@@ -29,6 +29,8 @@ improvement.
 
 ## Proposed solution
 
+There are two models of evolution, the one designated by the language and one that is useful in the regular use of enumerations. This proposal subsets the supported cases of automatic synthesis of Codable where the two models align. We believe this to be important to retain flexibility for the user to change the shape of the enumeration.
+
 ### Structure of encoded enums
 
 The following enum with associated values
@@ -65,7 +67,7 @@ The top-level container contains a single key that matches the name of the enum 
 which points to another container that contains the values as they would be encoded
 for structs and classes.
 
-Associated values can also be unlabeled, in which case an identifier will be generated in the form of `_$N`, where `$N` is the 0-based position of the parameter.
+Associated values can also be unlabeled, in which case an identifier will be generated in the form of `_$N`, where `$N` is the 0-based position of the parameter. Using generated identifiers allows more flexbility in evolution of models than using an `UnkeyedContainer` would. If a user defined parameter has an identifier that conflicts with a generated identifier, the compiler will produce a diagnostic message.
 
 ```swift
 enum Command: Codable {
@@ -111,6 +113,8 @@ would encode to:
   "dumpToDisk": {}
 }
 ```
+
+This allows these cases to evovle in the same manner as cases with associated values, without breaking compatibility.
 
 ### Synthesized code
 
@@ -291,6 +295,10 @@ would encode to:
 }
 ```
 
+### Evolution and compatibility
+
+Enum cases can evolve in the same way as structs and classes. Adding new fields, or removing existing ones is compatible, as long as the values are optional and the identifiers for the other cases don't change. This is in opposition to the evolution model of the language, where adding or removing associated values is a source and binary breaking change. We believe that a lot of use cases benefit from the ability to evolve the model, where source and binary compatibility are not an issue, e.g. in applications, services, or for internal types. If binary compatibility is important, evolvability can still be achieved by having a single associated value of a type that acts as container for the values.
+
 ### Unsupported cases
 
 This proposal specifically does not support auto-synthesis for enums with overloaded case identifiers. This decision has been made because there is no clear way to support the feature, while also allowing the model to evolve, without severe restrictions. The separate cases in an enum typically have different semantics associated with them, so it is crucial to be able to properly identify the different cases and reject unknown cases.
@@ -301,7 +309,6 @@ In this proposal, we are using keys as descriminators. For overloaded case names
 
 1. Not a valid enum case identifier, so no user customization possible
 2. Not forward/backward compatible because it changes when parameters are added
-3. Very Swift specific, making interop with non-Swift systems awkward
 
 An alternative solution would be to match the keys against the parameter names when decoding an object. This approach also has issues. Overloads can share parameter names, so a message that contains additional keys, that the current code version does not know about, would cause ambiguity.
 
@@ -399,3 +406,8 @@ The problem with this is that `Decoder` does not have APIs to check which type o
 2. Encode as `nil`
 
 This representation is problematic, because `Encoder` implementations can decide to drop `nil` values, which would also mean losing the key and with it the ability to identify the case.
+
+
+## Acknowledgements
+
+While iterating on this proposal, a lot of inspiration was drawn from the Rust library [serde](https://serde.rs/container-attrs.html).
