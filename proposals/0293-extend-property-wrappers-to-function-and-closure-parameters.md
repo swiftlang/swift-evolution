@@ -476,6 +476,8 @@ Implementation-detail property wrappers have no impact on API resilience. These 
 
 However, API-level property wrappers applied to function parameters are part of the API and ABI of that function. This is because a property wrapper applied to a function parameter changes the type of that parameter in the ABI; it also changes the way that function callers are compiled to pass an argument of that type. Thus, adding or removing a property wrapper on a public function parameter is not a resilient change. Furthermore, similar to the existing behavior of default arguments, arguments in wrapper attributes are emitted into clients and are therefore not a part of the ABI.
 
+Finally, property wrappers changing between implementation-detail and API-level is not a resilient change. For example, consider a property wrapper that is implementation-detail when applied to a parameter. If that property wrapper adds an `init(projectedValue:)` initializer, this is a source breaking change for clients that use this property wrapper in a function that is a protocol witness, and it is an ABI breaking change for any code that uses this property wrapper on a parameter. We expect this case to be very rare, and clients can work around the source and ABI break by either adding an argument to the wrapper attribute or using a local wrapped variable instead.
+
 ## Alternatives considered
 
 ### Preserving property wrapper parameter attributes in the type system
