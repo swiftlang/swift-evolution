@@ -12,13 +12,12 @@
 
 + [Introduction](#introduction)
 + [Motivation](#motivation)
-  - [Argument validation via property wrapper](#argument-validation-via-property-wrapper)
-  - [Logging arguments via property wrapper](#logging-arguments-via-property-wrapper)
+  - [Applying a common behavior via property wrapper](#applying-a-common-behavior-via-property-wrapper)
   - [Arguments with auxiliary values via property wrapper projection](#arguments-with-auxiliary-values-via-property-wrapper-projection)
 + [Proposed solution](#proposed-solution)
 + [Detailed design](#detailed-design)
+  - [Inference of API-level property wrappers](#inference-of-api-level-property-wrappers)
   - [Implementation-detail property wrappers](#implementation-detail-property-wrappers)
-    - [Mixed composition of API and implementation-detail wrappers](#mixed-composition-of-api-and-implementation-detail-wrappers)
   - [API-level property wrappers](#api-level-property-wrappers)
     - [Function-body semantics](#function-body-semantics)
     - [Call-site semantics](#call-site-semantics)
@@ -34,14 +33,13 @@
 + [Effect on API resilience](#effect-on-api-resilience)
 + [Alternatives considered](#alternatives-considered)
   - [Preserving property wrapper parameter attributes in the type system](#preserving-property-wrapper-parameter-attributes-in-the-type-system)
-  - [Callee-side property wrapper application](#callee-side-property-wrapper-application)
+  - [Only allow implementation-detail property wrappers on function parameters](#only-allow-implementation-detail-property-wrappers-on-function-parameters)
   - [Passing a property-wrapper storage instance directly](#passing-a-property-wrapper-storage-instance-directly)
 + [Future directions](#future-directions)
   - [The impact of formalizing separate property wrapper models](#the-impact-of-formalizing-separate-property-wrapper-models)
-  - [Always preserve API property wrappers in generated Swift interfaces](#always-preserve-api-property-wrappers-in-generated-swift-interfaces)
-  - [Explicitly specifying the type of property wrapper](#explicitly-specifying-the-type-of-property-wrapper)
+  - [Explicit spelling for API-level property wrappers](#explicit-spelling-for-api-level-property-wrappers)
   - [Library-defined diagnostic notes for understanding API wrapper restrictions](#library-defined-diagnostic-notes-for-understanding-api-wrapper-restrictions)
-  - [Property wrappers in protocol requirements](#property-wrappers-in-protocol-requirements)
+  - [API Property wrappers in protocol requirements](#api-property-wrappers-in-protocol-requirements)
   - [Generalized property-wrapper initialization from a projection](#generalized-property-wrapper-initialization-from-a-projection)
   - [Extending property wrappers to patterns](#extending-property-wrappers-to-patterns)
   - [Property-wrapper parameters in memberwise initializers](#property-wrapper-parameters-in-memberwise-initializers)
@@ -66,71 +64,34 @@ Property wrappers have undoubtably been very successful. Applying a property wra
 
 Property wrappers attached to parameters have a wide variety of use cases. We present a few examples here.
 
-### Argument validation via property wrapper
+### Applying a common behavior via property wrapper
 
-All Swift programmers often need to assert their assumptions, for which `precondition(_:_:)` can be used:
-
-```swift
-enum Product {
-  case plainSandwich 
-  case grilledCheeseSandwich 
-  case avocadoToast
-}
-
-func buy(quantity: Int, of product: Product) {
-  precondition(quanity >= 1, "Invalid product quanity.")
-  
-  if quantity == 1 {
-    ...
-  }
-}
-```
-
-The above code is quite clear; it has, though, the drawback that changing the condition to be asserted or its error message requires significant effort as a precondition statement is individually written for each function and manually documented.
-
-Furthermore, supposing the above is library code, the library author may want precondition failures to appear at the call-site in client code. This precondition also may be used throughout the library. So, using `Validation` from [`PropertyKit`](https://github.com/SvenTiigi/ValidatedPropertyKit), we can abstract the precondition into a property wrapper, and capture the source location of the caller using `#file` and `#line`:
+Property wrappers are often used as sugar for applying a common behavior to a value, such as asserting a precondition, transforming the value, or logging the value. Such behaviors are also valuable to apply to function parameters. For example, using `Validation` from [`PropertyKit`](https://github.com/SvenTiigi/ValidatedPropertyKit), we can abstract various preconditions into a property wrapper, and capture the source location of the variable that the wrapper is applied to using `#file` and `#line`:
 
 ```swift
 @propertyWrapper
 struct Asserted<Value> {
-  // The assertion will appear at the right file and line
   init(
     wrappedValue: Value, 
     validation: Validation<Value>,
     file: StaticString = #file,
     line: UInt = #line
-  ) {
-    ...
-  }
+  ) { ... }
 
   var wrappedValue: Value { ... }
-
-  var projectedValue: Result<Value, ValidationResult> { ... }
-}
-
-
-func buy(
-  quantity: Int, 
-  of product: Product,
-  file: StaticString = #file,
-  line: UInt = #line
-  // These additional arguments are needed every time
-  // we want a precondition failure to appear in the
-  // caller.
-) {
-  @Asserted(.greaterOrEqual(1), file, line) var quantity = quantity
-  
-  if quantity == 1 {
-    ...
-  }
 }
 ```
 
-This not only makes writing argument validations easy and maintainable, but it also improves the debugging experience for the the API's users. Unfortunately, there's still a significant amount of boilerplate for the library author, and the `@Asserted` property wrapper is not visible to clients, leaving the task of documenting the precondition up to the library author.
+It would be useful to apply `@Asserted` to parameters to assert certain preconditions on argument values. For example, the following code asserts that the argument passed to the `quantity` parameter is greater than or equal to 1:
 
-### Logging arguments via property wrapper
+```swift
+func buy(
+  @Asserted(.greaterOrEqual(1)) quantity: Int,
+  of product: Product,
+) { ... }
+```
 
-Consider the following `@Logged` property wrapper
+Similarly, one could write an `@Logged` property wrapper to be used as a light-weight debugging tool to see the arguments passed to a function each time that function is called:
 
 ```swift
 @propertyWrapper
@@ -148,9 +109,11 @@ struct Logged<Value> {
   }
 
 }
-```
 
-This property wrapper can be used as a lightweight debugging tool for properties and local variables. However, the easiest way to use this wrapper to log function arguments is to create a local property wrapper from the parameter, which is unnecessary boilerplate that could be generated by the compiler.
+// Every time `runAnimation` is called, the `duration` argument
+// will be logged by the property wrapper.
+func runAnimation(@Logged withDuration duration: Double) { ... }
+```
 
 ### Arguments with auxiliary values via property wrapper projection
 
@@ -196,35 +159,24 @@ Currently, property-wrapper attributes on struct properties interact with functi
 
 We propose to allow application of property wrappers on function and closure parameters, allowing the call-site to pass a wrapped value, or a projected value if appropriate, which will be used to automatically initialize the backing property wrapper.
 
-It's clear from a survey of the use cases for property wrappers on parameters that there are two kinds of property wrappers. The first kind of property wrapper is an abstraction of a common behavior on a value, such as logging, transforming, or caching a value. For these property wrappers, you use the wrapped value generally the same way as you would if the value did not have the wrapper attached, and the wrapper itself is implementation detail.
+It's clear from a survey of the use cases for property wrappers on parameters that there are two kinds of property wrappers. The first kind of property wrapper is an abstraction of a common behavior on a value, such as logging, transforming, or caching a value. For these property wrappers, you use the wrapped value generally the same way as you would if the value did not have the wrapper attached, and the wrapper itself is implementation detail. Callers that provide the value to initialize the property wrapper will always pass an instance of the wrapped-value type.
 
-The second kind of property wrapper attaches additional semantics to the value being wrapped that are _fundamental_ to understanding how the wrapped value can be used. For example, with the `@Asserted` property wrapper, programmers must know what kind of value they can assign to the property. These property wrappers become part of the API of the declaration they're attached to.
+The second kind of property wrapper attaches additional semantics to the value being wrapped that are fundamental to understanding how the wrapped value can be used. These wrappers tend to attach auxiliary API through the wrapper's `projectedValue`, and many of these wrappers cannot be initialized from an instance of the wrapped-value type.
 
-The natural model for these two kinds of wrappers is different when applied to parameters. We propose to formalize the difference between API-level property wrappers and implementation-detail property wrappers with a new `api` option for the `@propertyWrapper` attribute.
-
-Using property-wrapper parameters, the above argument validation example can be simplified to:
-
-```swift
-@propertyWrapper(api)
-struct Asserted<Value> {
-  ...
-}
-
-func buy(
-  @Asserted(.greaterOrEqual(1)) quantity: Int,
-  of product: Product,
-) {
-  if quantity == 1 {
-    ...
-  }
-}
-
-buy(quantity: 10, of: .grilledCheeseSandwich)
-```
+The natural model for these two kinds of wrappers is different when applied to parameters, because the second model must allow the caller to pass a different type of argument. We propose to formalize the difference between API-level property wrappers that have an external effect on the function and implementation-detail property wrappers. The compiler will determine whether a property wrapper must have an external effect on the function by analyzing the property wrapper's initializers.
 
 Annotating a parameter declaration with a property-wrapper attribute allows the call-site to pass a wrapped value, or a projected value if supported by the wrapper, and the compiler will automatically initialize the backing wrapper. The function author can also use the property-wrapper syntax for accessing the backing wrapper and the projected value within the body of the function.
 
 ## Detailed design
+
+### Inference of API-level property wrappers
+
+For a given property wrapper attached to a parameter, the compiler will determine whether that wrapper is part of the function signature based on whether the wrapper must have an external effect on the argument at the call-site. There are two cases where the property wrapper must affect the argument at the call-site:
+
+1. The property wrapper supports projected-value initialization, allowing the caller to pass an instance of the projected-value type.
+2. The property wrapper accepts an `@autoclosure` to `init(wrappedValue:)`.
+
+To ensure that the compiler always makes the same decision regardless of which module the property wrapper is used from, the compiler will only look in the defining module of the property wrapper for these initializers. To account for overloading and property wrapper composition, the compiler will infer the complete property wrapper [inferface type](https://github.com/apple/swift/blob/main/docs/Lexicon.md#interface-type) before determining whether the property wrapper has an external effect.
 
 ### Implementation-detail property wrappers
 
@@ -252,29 +204,17 @@ func insert(text: String) {
 }
 ```
 
-Implementation-detail property wrappers on parameters must support initialization via wrapped value, and the parameter type must be equal to the wrapped value type of the wrapper. If the wrapper requires the type of the parameter to be different than the wrapped value (e.g. an autoclosure returning the wrapped value), it should be an API wrapper. Otherwise, the type of the function would necessarily change as a result of using the wrapper on a parameter.
-
-#### Mixed composition of API and implementation-detail wrappers
-
-When a property wrapper is composed, the wrapper is considered implementation detail only if all wrappers in the composition chain are implementation detail. If any of the composed wrappers are API, the outermost wrapper is also considered to be API.
+Implementation-detail property wrappers on parameters must support initialization via wrapped value, and the parameter type must be equal to the wrapped value type of the wrapper.
 
 The remainder of the Detailed design section describes the semantics of applying an API-level property wrapper to a parameter.
 
 ### API-level property wrappers
 
-Property wrapper that either accept an autoclosure in their `init(wrappedValue:)` initializer or declare an `init(projectedValue` initializers will automatically become API-level ones that exhibit different semantics to default, implementation-detail property wrappers.
-
-```swift
-struct LateInitialized<Value> {
-  init(wrappedValue: @autoclosure () -> Value) { ... }
-  
-  ...
-}
-```
+Property wrapper that either accept an `@autoclosure` in their `init(wrappedValue:)` initializer or declare an `init(projectedValue:)` initializers will automatically become API-level wrappers. These wrappers become part of the function signature, and the property wrapper is initailized at the call-site of the function.
 
 #### Function-body semantics
 
-Attaching an API-level property wrapper to a parameter makes that parameter a computed variable local to the function body, and changes the parameter type to the backing wrapper type. The type of the parameter is only observable in compiled code; adhering to this principle, [unapplied references to functions with property-wrapped parameters](#unapplied-function-references) will not use the backing-wrapper type.
+Attaching an API-level property wrapper to a parameter makes that parameter a computed variable local to the function body, and changes the parameter type to the backing wrapper type. The type of the parameter is only observable in compiled code; [unapplied references to functions with property-wrapped parameters](#unapplied-function-references) will not use the backing-wrapper type.
 
 The transformation of functions with a property-wrapped parameter will be performed as such:
 
@@ -284,22 +224,22 @@ The transformation of functions with a property-wrapped parameter will be perfor
 4. A local computed property representing the `wrappedValue` of the innermost property wrapper will be synthesized with the same name as the original, unprefixed parameter name. If the innermost `wrappedValue` defines a setter, a setter will be synthesized for the local property if the mutability of the composed setter is `nonmutating`. The mutability computation is specified in the [appendix](#appendix).
 5. If the outermost property wrapper defines a `projectedValue` property with a `nonmutating` getter, a local computed property representing the outermost `projectedValue` will be synthesized and named per the original parameter name prefixed with a dollar sign (`$`). If the outermost `projectedValue` defines a setter, a setter for the local computed property will be synthesized if the `projectedValue` setter is `nonmutating`.
 
-Consider the following function with a property-wrapped parameter using the `@LateInitialized` property wrapper:
+Consider the following function which has a parameter with the `@Traceable` property wrapper attached:
 
 ```swift
-func showResult(@LateInitialized of calculationResult: Double) { ... }
+func copy(@Traceable text: String) { ... }
 ```
 
-The compiler will synthesize computed `text` and `$text` variables in the body of `insert`:
+The compiler will synthesize computed `text` and `$text` variables in the body of `copy(text:)`:
 
 ```swift
-func showResult(of _calculationResult: LateInitialized<String>) {
-  var calculationResult: String {
-    get { _calculationResult.wrappedValue }
+func copy(_text: Traceable<String>) {
+  var text: String {
+    get { _text.wrappedValue }
   }
 
-  var $calculationResultt: Result<String, ValidationResult> {
-    get { _calculationResult.projectedValue }
+  var $text: History<String> {
+    get { _text.projectedValue }
   }
 
   ...
@@ -532,7 +472,7 @@ This is an additive change with no impact on the existing ABI.
 
 ## Effect on API resilience
 
-Implementation-detail property wrappers have no impact on API resilience.
+Implementation-detail property wrappers have no impact on API resilience. These property wrappers will not be preserved in the generated Swift interface for the module, so they are entirely implementaiton detail.
 
 However, API-level property wrappers applied to function parameters are part of the API and ABI of that function. This is because a property wrapper applied to a function parameter changes the type of that parameter in the ABI; it also changes the way that function callers are compiled to pass an argument of that type. Thus, adding or removing a property wrapper on a public function parameter is not a resilient change. Furthermore, similar to the existing behavior of default arguments, arguments in wrapper attributes are emitted into clients and are therefore not a part of the ABI.
 
@@ -541,6 +481,19 @@ However, API-level property wrappers applied to function parameters are part of 
 ### Preserving property wrapper parameter attributes in the type system
 
 One approach to achieving the expected semantics for higher-order functions with property wrappers in the parameter list is to preserve property wrapper attributes in parameter types. While this is feasible for plain property wrapper attributes, it is not feasible in the case where the property wrapper attribute has attribute arguments, because type equality cannot be dependent on expression equivalence.
+
+### Only allow implementation-detail property wrappers on function parameters
+
+Only allowing implementation-detail property wrappers on function parameters would eliminate the need for the API-level versus implementation-detail distinction for functions, because the property wrapper would never have an external effect on the argument. However, allowing property wrappers to have an external effect on the wrapped declaration is part of what makes the feature so powerful and applicable to a wide variety of use cases. One fairly common class of property wrappers are those provide an abstracted reference to a value, such as the [`Ref` / `Box` example](https://github.com/apple/swift-evolution/blob/main/proposals/0258-property-wrappers.md#ref--box) from the SE-0258 proposal, and [`Binding`](https://developer.apple.com/documentation/swiftui/binding) from SwiftUI. It's common to pass these property wrappers around, and there isn't currently a nice way to achieve the property wrapper sugar in a function body that uses such a property wrapper. The best way to achieve this currently is to use a local property wrapper and initialize the backing storage directly, e.g.
+
+```swift
+func useReference(reference: Ref<Int>) {
+  @Ref var value: Int
+  _value = reference
+}
+```
+
+Furthermore, property wrappers can already have an external effect on the wrapped declaration today. For example, the compiler may change the type of the accessors of the wrapped declaration based on the mutability of the property wrapper's `wrappedValue` accessors, and the synthesized memberwise initializer of a type containing wrapped properties can change based on which initializers the property wrapper provides. Formalizing the distinction can only help the compiler provide the programmer with more tools to understand code that uses such property wrappers.
 
 ### Passing a property-wrapper storage instance directly
 
@@ -562,7 +515,7 @@ The design of this property wrapper extension includes a formalized distinction 
 
 The property wrapper model inside the declaration context of the wrapped property will remain the same between these two kinds of property wrappers. Whether the property wrapper is API or implementation detail, the auxiliary declaration model is fundamental to programmers' understanding of how property wrappers work and how to use them, and this model should not be changed in any future enhancement to the property wrapper feature. Property wrappers are and will always be syntactic sugar for code that the programmer can write manually using exactly the strategy that the compiler uses - auxiliary variables and custom accessors on the wrapped property. Any enhancements to property wrappers that add capabilities to the auxiliary declarations, such as access to the enclosing `self` instance or delegating to an existing stored property, will not be impacted by the API versus implementation detail distinction.
 
-The distinction of API versus implementation detail _will_ have an impact outside of the enclosing context of the wrapped declaration. Conceptually, the API versus implementation-detail distinction should only impact the parts of the language where there is an abstraction layer boundary where the abstraction uses a wrapper attribute.
+The distinction of API versus implementation detail _will_ have an impact outside of the enclosing context of the wrapped declaration. Conceptually, the API versus implementation-detail distinction should only impact the parts of the language where an abstraction that contains a property wrapper attribute is used.
 
 Across module boundaries, implementation-detail property wrappers become invisible, because these wrappers are purely a detail of how the module is implemented. Clients have no knowledge of these wrappers, so property wrapper attributes that appear in the module must be API property wrappers.
 
@@ -570,15 +523,9 @@ The modeling difference between implementation-detail and API property wrappers 
 
 The proposal authors believe that these two kinds of property wrappers already exist today, and formalizing the distinction is a first step in enhancing programmers' understanding of such a complex feature. Property wrappers are very flexible to cover a wide variety of use cases. Formalizing the two broad categories of use cases opens up many interesting possiblities for the language and compiler to enhance library documentation when API wrappers are used, provide better guidance to programmers, and even allow library authors to augment the guidance given to programmers on invalid code.
 
-### Always preserve API property wrappers in generated Swift interfaces
+### Explicit spelling for API-level property wrappers
 
-Today, Swift interfaces do not include property wrapper attributes at all - interfaces always show the desugared code. For property wrappers that are fundamental to understanding how the property behaves, the loss of the wrapper attribute is a detriment to users of the API.
-
-With this proposal, API property wrappers will be preserved in Swift interfaces when attached to parameters. Wrapper attributes on API serve as additional documentation for the semantics of that API. With the new formalization of API property wrappers, the compiler could also preserve such wrappers on properties.
-
-### Explicitly specifying the type of property wrapper
-
-Sometimes, property wrappers can have certain specifications that are not satisfied by the compiler's rules for determining that a property wrapper is API-level. While the proposed rules ensured intuitiveness and protection against bad API design, the ability for library authors to customize that behavior will allow for more powerful APIs. Therefore, the `@propertyWrapper` attribute could have a `apiLevel` and `implementationDetail` options that allow library authors to explicitly set the type of their wrapper:
+The scope of what is considered an API-level property wrapper is very limited in this proposal, and the external effect of an API-level property wrapper may be useful for wrappers that don't fit the current definition. The `@propertyWrapper` attribute could have an explicit `apiLevel` option that allows library authors to define whether the property wrapper has an external effect on the wrapped declaration:
 
 ```swift
 @propertyWrapper(apiLevel)
@@ -596,7 +543,7 @@ struct Asserted<Value> {
 
 API property wrappers on parameters have more restrictions than implementation detail property wrappers, because they have an external effect to the function. One very nice thing about property wrappers as custom attributes is that the documentation for that attribute is defined by the library author. Extend this principle, we could allow library authors to also define custom diagnostic notes to help explain restrictions that exist due to the external effects the wrapper imposes on the function.
 
-A custom diagnostic framework may also be useful for API-level property wrappers that are applied to properties, because such wrappers often change the semantics of the wrapped declaration in a way that fundamentally changes how the declaration can be used. For instance, a property wrapper may change the accessor mutability of the wrapped property, which may cause unexpected and unhelpful diagnostics when the programmer accesses the property incorrectly. The compiler cannot help explain _why_ there is a difference in mutability when the wrapper is attached, because the compiler does not understand the semantics of the wrapper.
+A custom diagnostic framework may also be useful for API-level property wrappers that are applied to properties, because such wrappers often change the semantics of the wrapped declaration in a way that fundamentally changes how the declaration can be used. For instance, a property wrapper may change the accessor mutability of the wrapped property, which may cause unexpected and unhelpful diagnostics when the programmer accesses the property incorrectly. The compiler cannot help explain _why_ there is a difference in mutability when the wrapper is attached, because the compiler does not understand how the property wrapper may change the behavior of the wrapped value.
 
 ### API property wrappers in protocol requirements
 
@@ -689,7 +636,7 @@ As a result, unsafe code is not dominated by visually displeasing accesses to `p
 
 ### Changes from the second reviewed version
 
-* The distinction between API wrappers and implementation-detail wrappers is formalized via the `api` option for `@propertyWrapper`, i.e. `@propertyWrapper(api)`
+* The distinction between API wrappers and implementation-detail wrappers is formalized, and determined by the compiler based on whether the property wrapper type allows the call-site to pass a different type of argument.
 * Implementation-detail property wrappers on parameters are sugar for a local wrapped variable.
 * API property wrappers on parameters use caller-side application of the property wrapper.
 * Overload resolution for property wrapper initializers will always be done at the property wrapper declaration.
@@ -763,4 +710,6 @@ Since both the getter and setter of `Reference.wrappedValue` are `nonmutating`, 
 
 ## Acknowledgements
 
-This proposal was greatly improved as a direct result of feedback from the community. [Doug Gregor](https://forums.swift.org/u/douglas_gregor) and [Dave Abrahams](https://forums.swift.org/u/dabrahams) surfaced more use cases for property-wrapper parameters. [Frederick Kellison-Linn](https://forums.swift.org/u/jumhyn) proposed the idea to change the behavior of unapplied function references based on argument labels, and provided [ample justification](#passing-a-property-wrapper-storage-instance-directly) for why the semantics in the first revision were unintuitive. [Lantua](https://forums.swift.org/u/lantua) pushed for the behavior of closures to be consistent with that of functions, and proposed the idea to use `$` on closure parameters in cases where the wrapper attribute is unnecessary. Many others participated throughout the several pitches and first review. This feature would not be where it is today without the thoughtful contributions from folks across our community.
+This proposal was greatly improved as a direct result of feedback from the community. [Doug Gregor](https://forums.swift.org/u/douglas_gregor) and [Dave Abrahams](https://forums.swift.org/u/dabrahams) surfaced more use cases for property-wrapper parameters. [Frederick Kellison-Linn](https://forums.swift.org/u/jumhyn) proposed the idea to change the behavior of unapplied function references based on argument labels, and provided [ample justification](#passing-a-property-wrapper-storage-instance-directly) for why the semantics in the first revision were unintuitive. [Lantua](https://forums.swift.org/u/lantua) pushed for the behavior of closures to be consistent with that of functions, and proposed the idea to use `$` on closure parameters in cases where the wrapper attribute is unnecessary. Finally, ideas from [Jens Jakob Jensen](https://forums.swift.org/u/jjj) and [John McCall](https://forums.swift.org/u/john_mccall) were combined to produce the 'inference of external property wrapper' design in its current form.
+
+Many others participated throughout the several pitches and first review. This feature would not be where it is today without the thoughtful contributions from folks across our community.
