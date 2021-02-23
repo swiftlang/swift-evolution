@@ -297,7 +297,7 @@ would encode to:
 
 ### Evolution and compatibility
 
-Enum cases can evolve in the same way as structs and classes. Adding new fields, or removing existing ones is compatible, as long as the values are optional and the identifiers for the other cases don't change. This is in opposition to the evolution model of the language, where adding or removing associated values is a source and binary breaking change. We believe that a lot of use cases benefit from the ability to evolve the model, where source and binary compatibility are not an issue, e.g. in applications, services, or for internal types. If binary compatibility is important, evolvability can still be achieved by having a single associated value of a type that acts as container for the values.
+Enum cases can evolve in the same way as structs and classes. Adding new fields, or removing existing ones is compatible, as long as the values are optional and the identifiers for the other cases don't change. This is in opposition to the evolution model of the language, where adding or removing associated values is a source and binary breaking change. We believe that a lot of use cases benefit from the ability to evolve the model, where source and binary compatibility are not an issue, e.g. in applications, services, or for internal types. If binary compatibility is important, evolution can be supported by having a single container with all the parameters as the associated value.
 
 ### Unsupported cases
 
