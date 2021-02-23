@@ -1,14 +1,19 @@
 # Package Manager Extensible Build Tools
 
 * Proposal: [SE-NNNN](NNNN-filename.md)
-* Authors: [Anders Bertelrud](https://github.com/abertelrud), [Konrad 'ktoso' Malawski](https://github.com/ktoso), [Tom Doron](https://github.com/tomerd)
+* Authors: [Anders Bertelrud](https://github.com/abertelrud), [Konrad 'ktoso' Malawski](https://github.com/ktoso), [Tom Doron](https://github.com/tomerd)
 * Review Manager: TBD
 * Status: **WIP**
 * Previous Pitch and Forum Discussion: [Package Manager Extensible Build Tools](https://forums.swift.org/t/package-manager-extensible-build-tools/10900)
 
 ## Introduction
 
-This proposal adds support for extensible build tools to the Swift Package Manager. The initial set of functionality is intentionally basic and focuses on a general way of allowing extensions to add commands to the build graph. The goal is to provide a scalable way of defining extensions and then add to the set of capabilities that extensions can provide over time, rather than to try to solve all the problems at once.
+This is a proposal for extensible build tools support in Swift Package Manager. The initial set of functionality is intentionally basic, and focuses on a general way of allowing extensions to add commands to the build graph. The approach is to:
+
+- provide a scalable way for packages to define extensions that can provide various capabilities
+- support a narrowly scoped initial set of possible capabilities that extensions can provide
+
+The set of possible capabilities can then be extended over time. The goal is to provide short-term support for common tasks such as source code generation, with a design that can scale to more complex tasks in the future.
 
 ## Motivation
 
@@ -485,7 +490,7 @@ commandConstructor.addPrebuildOutputDirectory(genOutputsDir)
 commandContructor.createCommand(
     executable:
         targetBuildContext.lookupTool(named: "swiftgen"),
-    commandline: [
+    arguments: [
         "config", "run",
         "--config", targetBuildContext.projectDir.appending("swiftgen.yml")
     ],
