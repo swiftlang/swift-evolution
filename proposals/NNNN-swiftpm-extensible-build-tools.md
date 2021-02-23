@@ -493,7 +493,7 @@ commandConstructor.addPrebuildOutputDirectory(genOutputsDir)
 // Create a command to run `swiftgen` as a prebuild command. It will be run before
 // every build and generates source files into an output directory provided by the
 // build context.
-commandContructor.createCommand(
+commandContructor.addCommand(
     displayName: "Running SwiftGen",
     executable:
         targetBuildContext.lookupTool(named: "swiftgen"),
@@ -672,7 +672,7 @@ for inputPath in targetBuildContext.inputPath {
     
     // Construct the command. Specifying the input and output paths lets the build
     // system know when to invoke the command.
-    commandContructor.createCommand(
+    commandContructor.addCommand(
         displayName: "Generating \(outputName) from \(inputPath.filename)",
         executable: protocPath,
         arguments: arguments,
