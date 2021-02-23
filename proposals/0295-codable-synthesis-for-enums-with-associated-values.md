@@ -67,7 +67,7 @@ The top-level container contains a single key that matches the name of the enum 
 which points to another container that contains the values as they would be encoded
 for structs and classes.
 
-Associated values can also be unlabeled, in which case an identifier will be generated in the form of `_$N`, where `$N` is the 0-based position of the parameter. Using generated identifiers allows more flexbility in evolution of models than using an `UnkeyedContainer` would. If a user defined parameter has an identifier that conflicts with a generated identifier, the compiler will produce a diagnostic message.
+Associated values can also be unlabeled, in which case an identifier will be generated in the form of `_$N`, where `$N` is the 0-based position of the parameter. Using generated identifiers allows more flexibility in evolution of models than using an `UnkeyedContainer` would. If a user defined parameter has an identifier that conflicts with a generated identifier, the compiler will produce a diagnostic message.
 
 ```swift
 enum Command: Codable {
@@ -114,7 +114,7 @@ would encode to:
 }
 ```
 
-This allows these cases to evovle in the same manner as cases with associated values, without breaking compatibility.
+This allows these cases to evolve in the same manner as cases with associated values, without breaking compatibility.
 
 ### Synthesized code
 
@@ -151,7 +151,7 @@ enum StoreCodingKeys: CodingKey {
 }
 ```
 
-The `encode(to:)` implementation would looks as follows:
+The `encode(to:)` implementation would look as follows:
 
 ```swift
 public func encode(to encoder: Encoder) throws {
@@ -168,7 +168,7 @@ public func encode(to encoder: Encoder) throws {
 }
 ```
 
-and `init(from decoder: Decoder)`
+and the `init(from:)` implementation would look as follows:
 
 ```swift
 public init(from decoder: Decoder) throws {
@@ -297,7 +297,7 @@ would encode to:
 
 ### Evolution and compatibility
 
-Enum cases can evolve in the same way as structs and classes. Adding new fields, or removing existing ones is compatible, as long as the values are optional and the identifiers for the other cases don't change. This is in opposition to the evolution model of the language, where adding or removing associated values is a source and binary breaking change. We believe that a lot of use cases benefit from the ability to evolve the model, where source and binary compatibility are not an issue, e.g. in applications, services, or for internal types. If binary compatibility is important, evolution can be supported by having a single container with all the parameters as the associated value.
+Enum cases can evolve in the same way as structs and classes. Adding new fields, or removing existing ones is compatible, as long as the values are optional and the identifiers for the other cases don't change. This is in opposition to the evolution model of the language, where adding or removing associated values is a source and binary breaking change. We believe that a lot of use cases benefit from the ability to evolve the model, where source and binary compatibility are not an issue, e.g. in applications, services, or for internal types. If binary compatibility is important, evolution can be supported by having a single struct or class with all the parameters as the associated value.
 
 ### Unsupported cases
 
