@@ -295,7 +295,10 @@ Adding defaulted requirements to a protocol will become a source-compatible chan
 
 ## Alternatives Considered
 
-TBD
+### Leave the Language in Its Existing State
+
+The current semantics regarding existential types prevent language users, especially library authors, from inheriting useful protocols due to the high cost of maintaining a type erasure construct. Namely, the high maintenance cost is a result of type erasure containers constituting hard-to-understand boilerplate code that entails thorough testing and a significant effort when expanding the protocol at hand. Furthermore, regular language users are often confused by the current restriction, and often lack the expertise or resources required for creating correct type-erasure contructs. 
+
 
 ## Future Directions
 
