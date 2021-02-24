@@ -41,13 +41,13 @@ The following subcommands will be added to `swift package`:
 
 - **name**: The name of the new product.
 - **type**: _executable_, _library_, _static-library_, or _dynamic-library_. If unspecified, this will default to _library_.
-- **targets**: A comma separated list of target names to to add to the new product.
+- **targets**: A space separated list of target names to to add to the new product.
 ***
 `swift package add-target <name> [--type <type>] [--no-test-target] [--dependencies <dependencies>] [--url <url>] [--path <path>] [--checksum <checksum>]`
 - **name**: The name of the new target.
 - **type**: _library_, _executable_, _test_, or _binary_. If unspecified, this will default to _library_. Adding system library targets will not be supported by the initial version of the CLI due to their often complex configuration requirements.
 - **--no-test-target**: By default, a test target is added for each library target unless this flag is present.
-- **dependencies**: A comma separated list of target dependency names.
+- **dependencies**: A space separated list of target dependency names.
 - **url/path**: The URL for a remote binary target or path for a local one.
 - **checksum**: The checksum for a remote binary target.
 
@@ -56,12 +56,12 @@ In addition to editing the manifest, the add-target command will create the appr
 `swift package add-dependency <dependency> [--exact <version>] [--revision <revision>] [--branch <branch>] [--from <version>] [--up-to-next-minor-from <version>]`
 - **dependency**: This may be the URL of a remote package, the path to a local package, or the name of a package in one of the user's package collections.
 
-Only one of the following options may appear to specify a package dependency requirement:
+The following options can be used to specify a package dependency requirement:
 - **--exact <version>**: Specifies a `.exact(<version>)` requirement in the manifest.
 - **--revision <revision>**: Specifies a `.revision(<revision>)` requirement in the manifest.
 - **--branch <branch>**: Specifies a `.branch(<branch>)` requirement in the manifest.
-- **--from <revision>**: Specifies a `.upToNextMajor(<version>)` requirement in the manifest.
 - **--up-to-next-minor-from <version>**: Specifies a `.upToNextMinor(<version>)` requirement in the manifest.
+- **--from <version>**: Specifies a `.upToNextMajor(<version>)` requirement in the manifest when it appears alone. Optionally, **--to <version>** may be added to specify a custom range requirement, or **--through** may be added to specify a custom closed range requirement.
 
 If no requirement is specified, the command will default to a `.upToNextMajor` requirement on the latest version of the package.
 
@@ -98,7 +98,7 @@ The following commands can be used to add dependencies, targets, and products:
 ```
 swift package add-dependency https://github.com/apple/swift-argument-parser
 swift package add-target MyLibraryTests --type test --dependencies MyLibrary
-swift package add-target MyExecutable --type executable --dependencies MyLibrary,ArgumentParser
+swift package add-target MyExecutable --type executable --dependencies MyLibrary ArgumentParser
 swift package add-product MyLibrary --targets MyLibrary
 ```
 Resulting in this manifest:
