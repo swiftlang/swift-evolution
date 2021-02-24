@@ -3,9 +3,9 @@
 * Proposal: [SE-0301](0301-package-editing-commands.md) 
 * Authors: [Owen Voorhees](https://github.com/owenv)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
-* Status: **Active Review (Feburary 4...February 15, 2021)**
+* Status: **Accepted**
 * Implementation: [apple/swift-package-manager#3034](https://github.com/apple/swift-package-manager/pull/3034)
-
+* Review: [Review](https://forums.swift.org/t/se-0301-package-editor-commands/)
 
 ## Introduction
 
