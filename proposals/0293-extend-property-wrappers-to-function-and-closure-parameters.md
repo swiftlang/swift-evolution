@@ -176,7 +176,7 @@ For a given property wrapper attached to a parameter, the compiler will determin
 1. The property wrapper supports projected-value initialization, allowing the caller to pass an instance of the projected-value type.
 2. The property wrapper accepts an `@autoclosure` to `init(wrappedValue:)`.
 
-To ensure that the compiler always makes the same decision regardless of which module the property wrapper is used from, the compiler will only look in the defining module of the property wrapper for these initializers. To account for overloading and property wrapper composition, the compiler will infer the complete property wrapper [inferface type](https://github.com/apple/swift/blob/main/docs/Lexicon.md#interface-type) before determining whether the property wrapper has an external effect.
+To ensure that the compiler always makes the same decision regardless of which module the property wrapper is used from, the compiler will only look in the defining module of the property wrapper for these initializers. To account for overloading and property wrapper composition, the compiler will infer the complete property wrapper [interface type](https://github.com/apple/swift/blob/main/docs/Lexicon.md#interface-type) before determining whether the property wrapper has an external effect.
 
 ### Implementation-detail property wrappers
 
@@ -233,7 +233,7 @@ func copy(@Traceable text: String) { ... }
 The compiler will synthesize computed `text` and `$text` variables in the body of `copy(text:)`:
 
 ```swift
-func copy(_text: Traceable<String>) {
+func copy(text _text: Traceable<String>) {
   var text: String {
     get { _text.wrappedValue }
   }
