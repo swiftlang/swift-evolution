@@ -521,7 +521,35 @@ The distinction of API versus implementation detail _will_ have an impact outsid
 
 Across module boundaries, implementation-detail property wrappers become invisible, because these wrappers are purely a detail of how the module is implemented. Clients have no knowledge of these wrappers, so property wrapper attributes that appear in the module must be API property wrappers.
 
-The modeling difference between implementation-detail and API property wrappers is only observable when both are used within the same module, and the difference is mainly observable in the language restrictions on the use of API versus implementation-detail wrappers. These two models are designed such that nearly all observable semantics of property wrapper application do not differ based on where the wrapper is applied. The only observable semantic difference that the proposal authors can think of is evaluation order among property wrapper initialization and other arguments that are passed to the API, and the proposal authors believe it is extremely unlikely that this evaluation order will have any impact on the functionality of the code. For evaluation order to have a functional impact, both the property wrapper initializer _and_ another function argument would both need to call into a separate function that has some side effect.
+The modeling difference between implementation-detail and API property wrappers is only observable when both are used within the same module, and the difference is mainly observable in the language restrictions on the use of API versus implementation-detail wrappers. These two models are designed such that nearly all observable semantics of property wrapper application do not differ based on where the wrapper is applied. The only observable semantic difference that the proposal authors can think of is evaluation order among property wrapper initialization and other arguments that are passed to the API, and the proposal authors believe it is extremely unlikely that this evaluation order will have any impact on the functionality of the code. For evaluation order to have a functional impact, both the property wrapper initializer _and_ another function argument would both need to call into a separate function that has some side effect. For example:
+
+```swift
+func hasSideEffect() -> Int {
+  struct S {
+    static var state = 0
+  }
+
+  S.state += 1
+  return S.state
+}
+
+@propertyWrapper
+struct Wrapper {
+  var wrappedValue: Int
+
+  init(wrappedValue: Int) {
+    self.wrappedValue = wrappedValue + hasSideEffect()
+  }
+}
+
+func demonstrateEvaluationOrder(@Wrapper arg1: Int, arg2: Int) {
+  print(arg1, arg2)
+}
+
+demonstrateEvaluationOrder(arg1: 1, arg2: hasSideEffect())
+```
+
+If the property wrapper initializer is evaluated in the caller, the output of this code is `2, 2`. If the property wrapper initializer is evaluated in the callee, the output of the code is `3, 1`.
 
 The proposal authors believe that these two kinds of property wrappers already exist today, and formalizing the distinction is a first step in enhancing programmers' understanding of such a complex feature. Property wrappers are very flexible to cover a wide variety of use cases. Formalizing the two broad categories of use cases opens up many interesting possiblities for the language and compiler to enhance library documentation when API wrappers are used, provide better guidance to programmers, and even allow library authors to augment the guidance given to programmers on invalid code.
 
