@@ -158,6 +158,16 @@ One alternative considered was not including this functionality at all. It's wor
 
 Another suggested alternative was to provide an interface to run scripts which mutate the `Package` object after the manifest is run. A full discussion of such a feature is outside the scope of this proposal, but it would likely allow more flexible edits. However, this approach has several downsides. To persist edits after running such a script, the entire `Package.swift` would need to be rewritten, which would drop comments, the content of inactive conditional compilation blocks, and any other skipped branches in the manifest code. The proposed subcommands, which rely on a syntax-level transformation, are able to make more specific edits to the manifest and avoid these issues.
 
+---
+
+During the review, an alternative spelling for the commands was proposed:
+```
+swift package product add ...
+swift package target add ...
+swift package dependency add ...
+```
+These spellings could scale better to introduce new 'verbs' in addition to `add` (for example, `rename`, `delete`, etc.), and there's some prior art (`git remote add`, for example). However, they'd also introduce a fourth level of subcommand nesting which could impact help output and ease-of-use, and might imply the existence of additional functionality which isn't likely to be added in the near future. Overall, both approaches to the subcommand spellings have legitimate tradeoffs, so it was decided to keep the original spellings.
+
 ## Future Directions
 
 ### Support for Deleting Products/Targets/Dependencies and Renaming Products/Targets
