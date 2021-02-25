@@ -493,7 +493,7 @@ commandConstructor.addPrebuildOutputDirectory(genOutputsDir)
 // Create a command to run `swiftgen` as a prebuild command. It will be run before
 // every build and generates source files into an output directory provided by the
 // build context.
-commandContructor.addCommand(
+commandConstructor.addCommand(
     displayName: "Running SwiftGen",
     executable:
         targetBuildContext.lookupTool(named: "swiftgen"),
@@ -672,7 +672,7 @@ for inputPath in targetBuildContext.inputPath {
     
     // Construct the command. Specifying the input and output paths lets the build
     // system know when to invoke the command.
-    commandContructor.addCommand(
+    commandConstructor.addCommand(
         displayName: "Generating \(outputName) from \(inputPath.filename)",
         executable: protocPath,
         arguments: arguments,
@@ -781,7 +781,7 @@ In this case the `.extension()` in the `usingExtensions` parameter refers to an 
 
 The implementation of the package extension would be similar to the previous examples, but with a somewhat differently formed command line to transform the `.dat` file into something else.
 
-## Impact on exisiting packages
+## Impact on existing packages
 
 The new API and functionality will only be available to packages that specify a tools version equal to or later than the SwiftPM version in which this functionality is implemented, so there will be no impact on existing packages.
 
@@ -808,7 +808,7 @@ This proposal is intentionally fairly basic and leaves many improvements for the
 
 We are aware that many plugins will want to allow specific per-target configuration which would be best done in the package manifest of the project using the extension.
 
-We are purpusefully leaving options out of this _first_ proposal, and are going to revisit and add these in a future proposal.
+We are purposefully leaving options out of this _first_ proposal, and are going to revisit and add these in a future proposal.
 
 In theory options could just be done as a dictionary of string key/values, like this:
 
@@ -827,7 +827,7 @@ This is a slightly difficult design to pull off well, because it requires the ex
 
 Designing this type-safe options is out of scope for this initial proposal though, as it carries many complexities w.r.t. how the types are made available from the extension definition to the end-users package manifest etc.
 
-It is an area we are interested in exploring and improving in the near future, so rather than lock ourselfes into supporting untyped dictionaries of strings, we suggest to introduce target specific, type-safe extension options in a future swift evolution proposal.
+It is an area we are interested in exploring and improving in the near future, so rather than lock ourselves into supporting untyped dictionaries of strings, we suggest to introduce target specific, type-safe extension options in a future swift evolution proposal.
 
 ### Separate Dependency Graphs for Build Tools
 
