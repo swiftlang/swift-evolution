@@ -126,7 +126,9 @@ component of the dependency URL (or path in the case of local dependencies).
 With this change, the name specified in the dependency manifest will have no bearing
 over target based dependencies (other than for backwards compatibility).
 
-Note: SE-0292 (when accepted and implemented) will further refine how package identities are computed.
+Note: [SE-0292] (when accepted and implemented) will further refine how package identities are computed.
+
+  [SE-0292]: https://github.com/apple/swift-evolution/blob/main/proposals/0292-package-registry-service.md
 
 **TBD version**
 
