@@ -398,6 +398,14 @@ This proposal defines three different plugin capabilities, which determine how t
 - `postbuild` — This capability indicates that the commands defined by the plugin should run after the end of every build. This can be used for postprocessing of artifacts or for documentation generation.
   Because they run on every build, postbuild command should use caching to do as little work as possible (ideally none) when there are no changes to their inputs.
 
+#### Error Handling
+
+An errors emitted by the build command will be handled by the build system as for other build commands. SwiftPM will should output on console, and IDEs that use libSwiftPM will show it as it does for the other build commands.
+
+Diagnostics from the plugin script itself can be reported using `DiagnosticsEmitter` APIs. Also, uncaught `Error`s thrown at the top level of the script will be emitted as errors. In either case, if there are any errors, the plugin script will be considered to have failed, and SwiftPM and any IDEs that use libSwiftPM will emit them as it does with other configuration errors. In an IDE this would be similar to errors encountered during the rule matching of source file types, for example.
+
+The script can use `print()` statements to emit debug output, and it will be shown in SwiftPM's console and as detailed output text in the build logs of IDEs that use libSwiftPM.
+
 ## Example 1: SwiftGen
 
 This example is a package that uses SwiftGen to generate source code for accessing resources. The package plugin can be defined in the same package as the one that provides the source generation tool (SwiftGen, in this case), so that client packages access it just by adding a package dependency on the SwiftGen package.
