@@ -119,7 +119,7 @@ extension Package.Dependency {
 }
 ```
 
-Starting with SwiftPM version following 5.4 (TBD), SwiftPM will actively discourage the use of the
+Starting with the SwiftPM version following 5.4 (exact number TBD), SwiftPM will actively discourage the use of the
 `name` attribute on the package dependency declaration (will emit warning when used with tools-version >= TBD)
 and instead will compute an identity for the declared dependency by using the last path
 component of the dependency URL (or path in the case of local dependencies).
