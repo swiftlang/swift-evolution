@@ -1,9 +1,9 @@
 # Package Manager Extensible Build Tools
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0303](0303-filename.md)
 * Authors: [Anders Bertelrud](https://github.com/abertelrud), [Konrad 'ktoso' Malawski](https://github.com/ktoso), [Tom Doron](https://github.com/tomerd)
-* Review Manager: TBD
-* Status: **Draft**
+* Review Manager: [Tom Doron](https://github.com/tomerd)
+* Status: **Active Review (February 25 - March 12, 2021)**
 * Pitch and Forum Discussion: [Pitch: SwiftPM Extensible Build Tools](https://forums.swift.org/t/pitch-swiftpm-extensible-build-tools/44715)
 
 ## Introduction
