@@ -122,7 +122,8 @@ extension Package.Dependency {
 Starting with the SwiftPM version following 5.4 (exact number TBD), SwiftPM will actively discourage the use of the
 `name` attribute on the package dependency declaration (will emit warning when used with tools-version >= TBD)
 and instead will compute an identity for the declared dependency by using the last path
-component of the dependency URL (or path in the case of local dependencies).
+component of the dependency URL (or path in the case of local dependencies) in the dependencies section.
+The dependency URL used for this purpose is as-typed (no percent encoding or other transformation), and regardless of any configured mirrors.
 With this change, the name specified in the dependency manifest will have no bearing
 over target based dependencies (other than for backwards compatibility).
 
