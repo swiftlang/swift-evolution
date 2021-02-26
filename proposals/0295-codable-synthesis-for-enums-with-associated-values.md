@@ -3,10 +3,11 @@
 * Proposal: [SE-0295](0295-codable-synthesis-for-enums-with-associated-values.md)
 * Authors: [Dario Rexin](https://github.com/drexin)
 * Review Manager: [Saleem Abdulrasool](https://github.com/compnerd)
-* Status: **Scheduled for Review (January 21...31, 2021)**
+* Status: **Awaiting review**
 * Implementation: [apple/swift#34855](https://github.com/apple/swift/pull/34855)
 * Pitch: [Forum Discussion](https://forums.swift.org/t/codable-synthesis-for-enums-with-associated-values/41493)
 * Previous Review: [Forum Discussion](https://forums.swift.org/t/se-0295-codable-synthesis-for-enums-with-associated-values/42408)
+* Previous Review 2: [Forum Discussion](https://forums.swift.org/t/se-0295-codable-synthesis-for-enums-with-associated-values-second-review/44036)
 
 ## Introduction
 
@@ -27,6 +28,8 @@ We believe that having a solution for this is an important quality of life
 improvement.
 
 ## Proposed solution
+
+There are two models of evolution, the one designated by the language and one that is useful in the regular use of enumerations. This proposal subsets the supported cases of automatic synthesis of Codable where the two models align. We believe this to be important to retain flexibility for the user to change the shape of the enumeration.
 
 ### Structure of encoded enums
 
@@ -64,13 +67,12 @@ The top-level container contains a single key that matches the name of the enum 
 which points to another container that contains the values as they would be encoded
 for structs and classes.
 
-Associated values can also be unlabeled, in which case they will be encoded into an
-array instead, or just the raw value if only one parameter is present.
+Associated values can also be unlabeled, in which case an identifier will be generated in the form of `_$N`, where `$N` is the 0-based position of the parameter. Using generated identifiers allows more flexibility in evolution of models than using an `UnkeyedContainer` would. If a user defined parameter has an identifier that conflicts with a generated identifier, the compiler will produce a diagnostic message.
 
 ```swift
 enum Command: Codable {
   case load(String)
-  case store(String, value: Int)
+  case store(key: String, Int)
 }
 ```
 
@@ -78,7 +80,9 @@ would encoded to
 
 ```json
 {
-  "load": "MyKey"
+  "load": {
+    "_0": "MyKey"
+  }
 }
 ```
 
@@ -86,14 +90,14 @@ and
 
 ```json
 {
-  "store": [
-    "MyKey",
-    42
-  ]
+  "store": {
+    "key": "MyKey",
+    "_1": 42
+  }
 }
 ```
 
-An enum case without associated values would be encoded as `true` value.
+An enum case without associated values would be encoded as an empty `KeyedContainer`,
 i.e.
 
 ```swift
@@ -106,22 +110,17 @@ would encode to:
 
 ```json
 {
-  "dumpToDisk": true
+  "dumpToDisk": {}
 }
 ```
 
-With the exception of the last case, this solution is closely following the default behavior of the Rust library [serde](https://serde.rs/container-attrs.html).
+This allows these cases to evolve in the same manner as cases with associated values, without breaking compatibility.
 
-### User customization
+### Synthesized code
 
-For the existing cases users can customize which properties are included in the encoded respresentation
-and map the property name to a custom name for the encoded representation by providing a custom `CodingKeys`
-declaration instead of having the compiler generate one. The same should apply to the enum case.
 Given that enums are encoded into a nested structure, there are multiple `CodingKeys` declarations. One
 that contains the keys for each of the enum cases, which as before is called `CodingKeys`, and one for each case that contain the keys for the
 associated values, that are prefixed with the capilized case name, e.g. `LoadCodingKeys` for `case load`.
-
-**Example**
 
 ```swift
 enum Command: Codable {
@@ -152,8 +151,54 @@ enum StoreCodingKeys: CodingKey {
 }
 ```
 
-Since cases with unlabeled parameters encode into unkeyed containers,
-no `CodingKeys` enum will be generated for them.
+The `encode(to:)` implementation would look as follows:
+
+```swift
+public func encode(to encoder: Encoder) throws {
+  var container = encoder.container(keyedBy: CodingKeys.self)
+  switch self {
+  case let .load(key):
+    var nestedContainer = container.nestedContainer(keyedBy: LoadCodingKeys.self, forKey: .load)
+    try nestedContainer.encode(key, forKey: .key)
+  case let .store(key, value):
+    var nestedContainer = container.nestedContainer(keyedBy: StoreCodingKeys.self, forKey: .store)
+    try nestedContainer.encode(key, forKey: .key)
+    try nestedContainer.encode(value, forKey: .value)
+  }
+}
+```
+
+and the `init(from:)` implementation would look as follows:
+
+```swift
+public init(from decoder: Decoder) throws {
+  let container = try decoder.container(keyedBy: CodingKeys.self)
+  if container.allKeys.count != 1 {
+    let context = DecodingError.Context(
+      codingPath: container.codingPath,
+      debugDescription: "Invalid number of keys found, expected one.")
+    throw DecodingError.typeMismatch(Command.self, context)
+  }
+
+  switch container.allKeys.first.unsafelyUnwrapped {
+  case .load:
+    let nestedContainer = try container.nestedContainer(keyedBy: LoadCodingKeys.self, forKey: .load)
+    self = .load(
+      key: try nestedContainer.decode(String.self, forKey: .key))
+  case .store:
+    let nestedContainer = try container.nestedContainer(keyedBy: StoreCodingKeys.self, forKey: .store)
+    self = .store(
+      key: try nestedContainer.decode(String.self, forKey: .key),
+      value: try nestedContainer.decode(Int.self, forKey: .value))
+  }
+}
+```
+
+### User customization
+
+For the existing cases, users can customize which properties are included in the encoded respresentation
+and map the property name to a custom name for the encoded representation by providing a custom `CodingKeys`
+declaration, instead of having the compiler generate one. The same should apply to the enum case.
 
 Users can define custom `CodingKeys` declarations for all, or a subset
 of the cases. If some of the cases in an enum should not be codable,
@@ -181,7 +226,7 @@ to be thrown.
 
 Customizing which values will be included follows the same rules as the
 existing functionality. Values that are excluded must have a default value
-defined if a `Decodable` conformance should be synthesized. If only `Encodable`
+defined, if a `Decodable` conformance should be synthesized. If only `Encodable`
 is synthesized, this restriction does not apply.
 
 **Example**
@@ -227,13 +272,15 @@ Keys can be mapped to other names by conforming to `RawRepresentable`:
 ```swift
 enum Command: Codable {
   case load(key: String)
+  case store(key: String, Int)
 
   enum CodingKeys: String, CodingKey {
     case load = "lade"
   }
 
-  enum LoadCodingKeys: String, CodingKey {
+  enum StoreCodingKeys: String, CodingKey {
     case key = "schluessel"
+    case _1  = "wert"
   }
 }
 ```
@@ -248,21 +295,24 @@ would encode to:
 }
 ```
 
+### Evolution and compatibility
+
+Enum cases can evolve in the same way as structs and classes. Adding new fields, or removing existing ones is compatible, as long as the values are optional and the identifiers for the other cases don't change. This is in opposition to the evolution model of the language, where adding or removing associated values is a source and binary breaking change. We believe that a lot of use cases benefit from the ability to evolve the model, where source and binary compatibility are not an issue, e.g. in applications, services, or for internal types. If binary compatibility is important, evolution can be supported by having a single struct or class with all the parameters as the associated value.
+
 ### Unsupported cases
 
 This proposal specifically does not support auto-synthesis for enums with overloaded case identifiers. This decision has been made because there is no clear way to support the feature, while also allowing the model to evolve, without severe restrictions. The separate cases in an enum typically have different semantics associated with them, so it is crucial to be able to properly identify the different cases and reject unknown cases.
+
+#### Evolution with overloaded case identifiers
 
 In this proposal, we are using keys as descriminators. For overloaded case names that would not be sufficient to identify the different overloads. An alternative would be to use the full name, including labels, e.g. `"store(key:,value:)"` for `case store(key: String, value: Int)`. This leads to several problems.
 
 1. Not a valid enum case identifier, so no user customization possible
 2. Not forward/backward compatible because it changes when parameters are added
-3. Very Swift specific, making interop with non-Swift systems awkward
 
-An alternative solution would be to match the keys against the parameter names when decoding an object. This approach also has issues.
+An alternative solution would be to match the keys against the parameter names when decoding an object. This approach also has issues. Overloads can share parameter names, so a message that contains additional keys, that the current code version does not know about, would cause ambiguity.
 
-1. Overloads can share paramter names
-
-This causes ambiguity when a message contains additional keys:
+**Example**
 
 ```swift
 enum Test: Codable {
@@ -279,9 +329,13 @@ enum Test: Codable {
 }
 ```
 
-This could either mean that a parameter has been added to the existing case in a new code version, which should be ok under backwards compatibility rules, but could also mean that an overloaded has been added that partially matches the original case. If it is a different case, we should reject the message, but there is no way for the old version to decide this.
+This could either mean that a parameter has been added to the existing case in a new code version, which should be ok under backwards compatibility rules, but could also mean that an overload has been added that partially matches the original case. If it is a different case, we should reject the message, but there is no way for the old code to decide this.
 
-Another case that causes ambiguity is an overload that has an additional, optional parameter:
+#### Ambiguities without evolution
+
+Even when ignoring evolution, ambiguities exist with overloaded case identifiers. If two overloads share the same parameter names and one of them has additional optional parameters, the encoder can decide to drop `nil` values. This would cause ambiguities when only the shared keys are present.
+
+**Example**
 
 ```swift
 enum Test: Codable {
@@ -290,11 +344,17 @@ enum Test: Codable {
 }
 ```
 
-If `z` is `nil`, this case encodes to the same as the first, so even in the same code version there can be ambiguity.
+Both cases would match the following input:
 
-2. Order of key value pairs is no necessarily guaranteed
+```json
+{
+  "x": {
+    "y": 42
+  }
+}
+```
 
-This means the following definition leads to ambiguity when decoding:
+Another ambiguity can be created by using the same parameter names for two overloads, only in a different order. Some formats do not guarantee the ordering of the keys, so the following definition leads to ambiguity when decoding:
 
 ```swift
 enum Test: Codable {
@@ -303,7 +363,7 @@ enum Test: Codable {
 }
 ```
 
-The following JSON would match both cases
+Both cases would match the following input:
 
 ```json
 {
@@ -343,10 +403,11 @@ Alternative ways to encode these cases have been discussed and the following pro
 
 The problem with this is that `Decoder` does not have APIs to check which type of container is present and adding such APIs would be a breaking change. The existing APIs to read containers are `throws`, but it is not specified in which cases an error should occur. 
 
-2. Encode as empty `Keyed-` / `UnkeyedContainer`
-
-It was initially proposed to encode this case as an empty `KeyedContainer`, but in the first review it was pointed out that there is no good justification to favor `Keyed-` over `UnkeyedContainer` for reasons of backwards compatibility.
-
-3. Encode as `nil`
+2. Encode as `nil`
 
 This representation is problematic, because `Encoder` implementations can decide to drop `nil` values, which would also mean losing the key and with it the ability to identify the case.
+
+
+## Acknowledgements
+
+While iterating on this proposal, a lot of inspiration was drawn from the Rust library [serde](https://serde.rs/container-attrs.html).
