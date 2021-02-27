@@ -153,7 +153,7 @@ struct TextEditor {
 }
 ```
 
-Currently, property-wrapper attributes on struct properties interact with function parameters through the struct's synthesized memberwise initializer. Because the `@Traceable` property wrapper supports initialization from a wrapped value via `init(wrappedValue:)`, the memberwise initializer for `TextEditor` will take in a `String`. However, the programmer may want to initialize `TextEditor` with a string value that already has a history. Today, this can be achieved with overloads, which can greatly impact compile-time performance and imposes boilerplate on the programmer, or by exposing the `Traceable` type through the `TextEditor` initializer, which is meant to be implementation detail.
+Currently, property-wrapper attributes on struct properties interact with function parameters through the struct's synthesized memberwise initializer. Because the `@Traceable` property wrapper supports initialization from a wrapped value via `init(wrappedValue:)`, the memberwise initializer for `TextEditor` will take in a `String`. However, the programmer may want to initialize `TextEditor` with a string value that already has a history. Today, this behavior can be achieved with overloads, which can greatly impact compile-time performance and impose boilerplate on the programmer. Another approach is to expose the `Traceable` type through the `TextEditor` initializer, which is unfortunate since the backing storage is meant to be implementation detail.
 
 ## Proposed solution
 
