@@ -518,7 +518,7 @@ Exposing the property-wrapper storage type through the type system has the follo
 * It prohibits the use of initializer arguments in the wrapper attribute. There's no point in declaring a wrapper as `@Asserted(.greaterOrEqual(1))` if any client can simply pass an `Asserted` instance with a completely different validation.
 * It removes API control from both the property wrapper author and the author of the wrapped-argument function.
 
-Keeping the property-wrapper storage type private is consistent with how property wrappers work today. Unless a property wrapper projects its storage type via `projectedValue`, the storage type itself is meant to be private, implementation detail that cannot be accessed by API clients.
+Keeping the property-wrapper storage type private is consistent with how property wrappers work today. Unless a property wrapper projects its storage type via `projectedValue`, the storage type itself is meant to be a private implementation detail inaccessible to API clients.
 
 ## Future directions
 
