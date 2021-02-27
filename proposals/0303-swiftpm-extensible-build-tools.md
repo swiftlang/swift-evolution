@@ -262,9 +262,9 @@ protocol TargetBuildContext {
     /// file list.
     protocol FileList: Sequence {
         func makeIterator() -> FileListIterator
-        struct FileListIterator: IteratorProtocol {
-            mutating func next() -> FilePath?
-        }
+    }
+    struct FileListIterator: IteratorProtocol {
+        mutating func next() -> FilePath?
     }
     
     /// Information about all targets in the dependency closure of the target
