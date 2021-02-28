@@ -14,6 +14,7 @@
 + [Motivation](#motivation)
   - [Applying a common behavior via property wrapper](#applying-a-common-behavior-via-property-wrapper)
   - [Arguments with auxiliary values via property wrapper projection](#arguments-with-auxiliary-values-via-property-wrapper-projection)
+  - [Property wrappers in bridging code](#property-wrappers-in-bridging-code)
 + [Proposed solution](#proposed-solution)
 + [Detailed design](#detailed-design)
   - [Inference of API-level property wrappers](#inference-of-api-level-property-wrappers)
@@ -150,6 +151,45 @@ struct TextEditor {
 ```
 
 Currently, property-wrapper attributes on struct properties interact with function parameters through the struct's synthesized memberwise initializer. Because the `@Traceable` property wrapper supports initialization from a wrapped value via `init(wrappedValue:)`, the memberwise initializer for `TextEditor` will take in a `String`. However, the programmer may want to initialize `TextEditor` with a string value that already has a history. Today, this behavior can be achieved with overloads, which can greatly impact compile-time performance and impose boilerplate on the programmer. Another approach is to expose the `Traceable` type through the `TextEditor` initializer, which is unfortunate since the backing storage is meant to be implementation detail.
+
+### Property wrappers in bridging code
+
+It is important for a lot of interface code, whether that is between libraries or languages, to be able to easily pass around bridging types in a form resembling native language constructs. Property wrappers are very well suited for that, as they can simply wrap a reference or value of such a type, which users can, then, pass them around effortlessly and concisely. 
+
+However, with the current limitation of property wrappers not being supported on function parameters, functions and closures can become heavily polluted with boilerplate code. Especially now, with more and more projects attempting to achieve interpolation with Swift, like [JavaScriptKit](https://github.com/swiftwasm/JavaScriptKit) and the [C++ bridging efforts](??), addressing this limitation is crucial.
+
+For instance, @dabrahams demonstrated how `UnsafeReference` property wrappers could be used to pass around C++ references in Swift:
+
+```swift 
+@propertyWrapper
+struct UnsafeReference<T> {
+  public let address: UnsafePointer<T>
+  
+  init(_ address: UnsafePointer<T>) {
+    self.address = address
+  }
+  
+  var wrappedValue: T {
+    address.pointee
+  }
+  var projectedValue: Self {
+    self
+  }
+}
+```
+
+On a more general note, property wrappers could also be used to bridge different concurrency domains for legacy codebases, which was discussed as a future direction of an [actor isolation pitch](https://forums.swift.org/t/pitch-2-protocol-based-actor-isolation/42123):
+
+```swift
+@propertyWrapper
+struct UnsafeTransfer<T : AnyObject> : ActorSendable {
+  var wrappedValue: T
+  
+  init(wrappedValue: Wrapped) {
+    self.wrappedValue = wrappedValue
+  }
+}
+```
 
 ## Proposed solution
 
