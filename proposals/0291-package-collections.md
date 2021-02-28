@@ -306,7 +306,7 @@ Since there are no trusted root certificates by default on non-Apple platforms, 
 
 #### Add an unsigned package collection
 
-When adding an unsigned package collection, user must confirm their trust by passing the `--trust-signed` flag:
+When adding an unsigned package collection, user must confirm their trust by passing the `--trust-unsigned` flag:
 
 ```bash
 $ swift package-collection add https://www.example.com/unsigned-packages.json --trust-unsigned
