@@ -96,7 +96,6 @@ Similarly, one could write an `@Logged` property wrapper to be used as a light-w
 ```swift
 @propertyWrapper
 struct Logged<Value> {
-
   init(wrappedValue: Value) {
     print(wrappedValue)
     self.wrappedValue = wrappedValue
@@ -107,7 +106,6 @@ struct Logged<Value> {
       print(wrappedValue)
     }
   }
-
 }
 
 // Every time `runAnimation` is called, the `duration` argument
@@ -124,24 +122,22 @@ struct History<Value> { ... }
 
 @propertyWrapper
 struct Traceable<Value> {
+  private var history: History<Value>
 
   init(wrappedValue value: Value) { ... }
-
   init(projectedValue: History<Value>) { ... }
 
   var wrappedValue: Value {
     get {
-      return history.currentValue
+      history.currentValue
     }
     set {
       history.append(newValue)
     }
   }
-
-  var projectedValue: History<Value> { return history }
-
-  private var history: History<Value>
-
+  var projectedValue: History<Value> {
+    history
+  }
 }
 ```
 
@@ -256,15 +252,11 @@ Consider the `@Traceable` property wrapper that implements both `init(wrappedVal
 struct History<Value> { ... }
 
 struct Traceable<Value> {
-
   init(wrappedValue value: Value)
-
   init(projectedValue: History<Value>)
 
   var wrappedValue: Value
-
   var projectedValue: History<Value>
-
 }
 ```
 
@@ -274,6 +266,7 @@ A function with an `@Traceable` parameter can be called with either a wrapped va
 func log<Value>(@Traceable value: Value) { ... }
 
 let history: History<Int> = ...
+
 log(value: 10)
 log($value: history)
 ```
@@ -291,6 +284,7 @@ Wrapped parameters with no argument label can still be passed a projection using
 func log<Value>(@Traceable _ value: Value) { ... }
 
 let history: History<Int> = ...
+
 log(10)
 log(_: 10)
 log($_: history)
@@ -302,6 +296,7 @@ For composed property wrappers, initialization of the backing wrapper via wrappe
 func log(@Traceable @Traceable text: String) { ... }
 
 let history: History<Traceable<String>> = ...
+
 log(text: "Hello!")
 log($text: history)
 ```
@@ -341,11 +336,13 @@ Though the property wrapper is initialized at the call-site, the argument type _
 ```swift
 @propertyWrapper
 struct Wrapper<Value> {
-
-  init(wrappedValue: @autoclosure () -> Value) { ... }
-
-  init(wrappedValue: @autoclosure () -> Value) where Value : Collection { ... }
+  init(
+    wrappedValue: @autoclosure () -> Value
+  ) { ... }
   
+  init(
+    wrappedValue: @autoclosure () -> Value
+  ) where Value : Collection { ... }
 }
 
 func generic<T>(@Wrapper value: T) { ... }
@@ -354,7 +351,7 @@ func generic<T>(@Wrapper value: T) { ... }
 Overload resolution will choose which `init(wrappedValue:)` to call based on the static type of the parameter at the declaration of the property wrapper attribute. Because the type of the parameter `value` is an unconstrained generic type parameter, the unconstrained `init(wrappedValue:)` will always be called:
 
 ```swift
-// Both of the following calls use the unconstrained init(wrappedValue:)
+// Both of the following calls use the unconstrained 'init(wrappedValue:)'
 generic(value: 10)
 generic(value: [1, 2, 3])
 ```
@@ -363,7 +360,7 @@ However, `generic` could be overloaded where `T : Collection` to allow the const
 
 ```swift
 func generic<T>(@Wrapper value: T) { ... }
-func generic<T>(@Wrapper value: T) where T : Collection { ... }
+func generic<T : Collection>(@Wrapper value: T) { ... }
 
 generic(value: 10)        // calls the unconstrained init(wrappedValue:)
 generic(value: [1, 2, 3]) // calls init(wrappedValue:) where Value : Collection
@@ -387,8 +384,8 @@ The type of `log` is `(Value) -> Void`. These semantics can be observed when wor
 let logReference: (Int) -> Void = log
 logReference(10)
 
-let logReferenceWithLabel: (Int) -> Void = log(value:)
-logReferenceWithLabel(10)
+let labeledLogReference: (Int) -> Void = log(value:)
+labeledLogReference(10)
 ```
 
 The compiler will generate a thunk when referencing `log` to take in the wrapped-value type and initialize the backing property wrapper. Both references to `log` in the above example are transformed to:
@@ -599,7 +596,8 @@ struct TextEditor {
   @Traceable var dataSource: String
 
   init(history: History<String>) {
-    $dataSource = history //  treated as _dataSource = Traceable(projectedValue: history)
+    // treated as _dataSource = Traceable(projectedValue: history)
+    $dataSource = history 
   }
 }
 ```
@@ -619,7 +617,7 @@ enum Review {
 switch Review(fromUser: "swiftUser5") {
 case .revised(@Traceable let reviewText),
      .original(let reviewText):
-  // do something with reviewText
+  // do something with 'reviewText'
 }
 ```
 
@@ -707,19 +705,19 @@ Otherwise:
 ```swift
 @propertyWrapper
 struct Reference<Value> {
-    
   var wrappedValue: Value {
-    get 
-    nonmutating set
+    get { ... }
+    nonmutating set { ... }
   }
-    
   var projectedValue: Reference<Value> {
     self
   }
-  
+
 }
 
-func useReference(@Reference @Asserted(.nonEmpty) reference: String) {
+func useReference(
+  @Reference @Asserted(.nonEmpty) reference: String
+) {
   ...
 }
 ```
@@ -727,7 +725,9 @@ func useReference(@Reference @Asserted(.nonEmpty) reference: String) {
 In the above example, the function `useReference` is equivalent to:
 
 ```swift
-func useReference(reference _reference: Reference<Asserted<String>>) {
+func useReference(
+  reference _reference: Reference<Asserted<String>>
+) {
   var reference: String {
     get { 
       _reference.wrappedValue.wrappedValue
