@@ -13,6 +13,7 @@
 * [Proposed solution](#proposed-solution)
    * [Actors](#actors-1)
    * [Actor isolation](#actor-isolation)
+      * [Isolated parameters](#isolated-parameters)
       * [Nonisolated declarations](#nonisolated-declarations)
       * [Closures](#closures)
       * [inout parameters](#inout-parameters)
@@ -25,6 +26,7 @@
       * [Reentrancy Summary](#reentrancy-summary)
 * [Detailed design](#detailed-design)
    * [Actors](#actors-2)
+   * [Isolated parameters](#isolated-parameters-1)
    * [Non-isolated declarations](#non-isolated-declarations)
    * [Actor isolation checking](#actor-isolation-checking)
       * [Accesses in executable code](#accesses-in-executable-code)
@@ -47,7 +49,7 @@ The [actor model](https://en.wikipedia.org/wiki/Actor_model) involves entities c
 
 This proposal introduces a design for *actors* in Swift, providing a model for building concurrent programs that are simple to reason about and are safer from data races. 
 
-Swift-evolution thread: [Pitch #1](https://forums.swift.org/t/concurrency-actors-actor-isolation/41613)
+Swift-evolution thread: [Pitch #1](https://forums.swift.org/t/concurrency-actors-actor-isolation/41613), [Pitch #2](https://forums.swift.org/t/pitch-2-actors/44094), [Pitch #3](https://forums.swift.org/t/pitch-3-actors/44470).
 
 ## Motivation
 
@@ -552,7 +554,7 @@ An actor may only inherit from another actor. A non-actor may only inherit from 
 
 > **Rationale**: Actors enforce state isolation, but non-actors do not. If an actor inherits from a non-actor (or vice versa), part of the actor's state would not be covered by the actor-isolation rules, introducing the potential for data races on that state.
 
-By default, the instance methods, properties, and subscripts of an actor are actor-isolated to the actor instance. This is true even for methods added retroactively on an actor via an extension, like any other Swift type.
+By default, the instance methods, properties, and subscripts of an actor have an isolated `self` parameter. This is true even for methods added retroactively on an actor via an extension, like any other Swift type.
 
 ```
 extension BankAccount {
@@ -564,11 +566,14 @@ extension BankAccount {
 
 Actors are similar to classes in all respects independent of isolation: actor types can have `static` and `class` methods, properties, and subscripts. All of the attributes that apply to classes apply to actors in much the same way, except where those semantics conflict with actor isolation. An actor type satisfies an `AnyObject` requirement.
 
+### Isolated parameters
+
+
+
+
 ### Non-isolated declarations
 
-An instance method, computed property, or subscript of an actor may be annotated with `nonisolated`.  When a declaration is `nonisolated`, it (or its accessors) are no longer actor-isolated to the `self` instance of the actor.
-
-By default, the mutable stored properties (declared with `var`) of an actor are actor-isolated to the actor instance. A stored property may be annotated with `nonisolated(unsafe)` to remove this restriction. 
+An instance method, computed property, or subscript of an actor may be annotated with `nonisolated`.  When a declaration is `nonisolated`, it (or its accessors) have a `self` parameter that is not `isolated`.
 
 A declaration may be declared to be non-isolated:
 
@@ -576,26 +581,22 @@ A declaration may be declared to be non-isolated:
 nonisolated var count: Int { constantCount + 1 }
 ```
 
-When used on a declaration, it indicates that the declaration is not actor-isolated to any actor, which allows it to be accessed from anywhere. Moreover, it interrupts the implicit propagation of actor isolation from context, e.g., it can be used on an instance declaration in an actor to make the declaration non-isolated rather than isolated to the actor.
+Declarations marked as `nonisolated` can be used from outside the actor's isolation domain.
 
-The `nonisolated` modifier has an optional "unsafe" argument.  `nonisolated(unsafe)` is treated the same way as `nonisolated` from the client's perspective, meaning that references to it are not cross-actor references. However, the implementation of a `nonisolated(unsafe)` entity is allowed to refer to actor-isolated state, which would have been ill-formed under `nonisolated`. As such, `nonisolated(unsafe)` allows one to disable actor isolation checking to (e.g.) use alternative, unsafe synchronization techniques.
+By default, the mutable instance stored properties (declared with `var`) of an actor are actor-isolated to the actor instance. A stored instance property may be annotated with `nonisolated(unsafe)` to remove this restriction.
+
+> **Rationale**: `nonisolated(unsafe)` allows specific stored instance properties to opt out of actor isolation checking, allowing careful developers to implement their own synchronization mechanisms.
 
 ### Actor isolation checking
 
-Any given non-local declaration in a program can be classified into one of four actor isolation categories:
+Any given declaration in a program is either isolated to a specific actor or is non-isolated.
 
-* Actor-isolated to a specific instance of an actor:
-  - This includes the stored instance properties of an actor as well as computed instance properties, instance methods, and instance subscripts, as demonstrated with the `BankAccount` example.
-* Non-isolated: 
-  - The declaration is not actor-isolated to any actor. This includes any property, function, method, subscript, or initializer that has the `nonisolated` modifier.
-* Non-isolated (unsafe): 
-  - The declaration is not actor-isolated to any actor. This includes any property, function, method, subscript, or initializer that has the `nonnisolated(unsafe)` attribute.
-  - The declaration's definition is not subject to actor isolation checking.
-* Unknown: 
-  - The declaration is not actor-isolated to any actor, nor has it been explicitly determined that it is non-isolated. Such code might depend on shared mutable state that hasn't been modeled by any actor.
+An actor-isolated declaration can be the stored instance properties of an actor as well as any function that has an `isolated` parameter, which includes computed instance properties, instance methods, and instance subscripts of an actor. 
+
+Declarations that are not isolated to an actor are called non-isolated.
 
 The actor isolation rules are checked in a number of places, where two different declarations need to be compared to determine if their usage together maintains actor isolation. There are several such places:
-* When the definition of one declaration (e.g., the body of a function) accesses another declaration in executuable code, e.g., calling a function, accessing a property, or evaluating a subscript.
+* When the definition of one declaration (e.g., the body of a function) accesses another declaration in executable code, e.g., calling a function, accessing a property, or evaluating a subscript.
 * When one declaration overrides another.
 * When one declaration satisfies a protocol requirement.
 
@@ -606,34 +607,20 @@ We'll describe each scenario in detail.
 A given declaration (call it the "source") can synchronously access another declaration (call it the "target") in executable code, e.g., by calling a function or accessing a property or subscript. A synchronous invocation requires the actor isolation categories for the source and target to be compatible (defined below). An actor-isolated target function or target property getter that is not compatible with the source can be accessed asynchronously.
 
 A source and target category pair is compatible if:
-* the source and target categories are the same,
-* the target category is non-isolated or non-isolated (unsafe),
-* the source category is non-isolated (unsafe), or
-* the target category is unknown.
+* the source and target categories are the same, or
+* the target category is non-isolated.
 
-The first rule is the most direct: an actor-isolated declaration can synchronously access other declarations within its same actor (e.g., by referring to it on `self`).
+The first rule is the most direct: an isolated parameter (e.g., `self` or any other parameter marked as `isolated`) can synchronously access any member its type (e.g., a mutable instance property) that is isolated to the same actor.
 
 The second rule specifies that non-isolated declarations can be used from anywhere because they aren't tied to a particular actor. Actors can provide non-isolated instance methods, but because those functions are not actor-isolated, that cannot read the actor's own mutable state. For example:
 
 ```swift
 extension BankAccount {
   nonisolated func steal(amount: Double) {
-    balance -= amount  // error: actor-isolated property 'balance' can not be referenced from a non-isolated context
+    balance -= amount  // error: actor-isolated property 'balance' can not be referenced on non-isolated parameter 'self'
   }
 }  
 ```
-
-The third rule is an unsafe opt-out that allows a declaration to be treated as non-isolated by its clients, but can do actor-isolation-unsafe operations internally. It is intended to be used sparingly for interoperability with existing synchronization mechanisms, low-level performance tuning, or incremental adoption of actors in existing code bases.
-
-```swift
-extension BankAccount {
-  nonisolated(unsafe) func steal(amount: Double) {
-    balance -= amount  // data-racy, but permitted due to (unsafe)
-  }
-}
-```
-
-The fourth rule is provided to allow interoperability between actors and existing Swift code. Actor code (which by definition must be new code) can call into existing Swift code with unknown actor isolation. However, code with unknown actor isolation cannot call back into actor-isolated code synchronously, because doing so would violate the isolation guarantees of that actor. This allows incremental adoption of actors into existing code bases, isolating the new actor code while allowing them to interoperate with the rest of the code.
 
 #### Overrides
 
@@ -839,6 +826,7 @@ This implementation will behave as one would expect for inheritance (every `Empl
 * Changes in the fourth pitch:
   * Allow cross-actor references to actor properties, so long as they are reads (not writes or `inout` references)
   * Added `isolated` parameters, to generalize the previously-special behavior of `self` in an actor and make the semantics of `nonisolated` more clear.
+  * Limit `nonisolated(unsafe)` to stored instance properties. The prior definition was far too broad.
 * Changes in the third pitch:
   * Narrow the proposal down to only support re-entrant actors. Capture several potential non-reentrant designs in the Alternatives Considered as possible future extensions.
   * Replaced `@actorIndependent` attribute with a `nonisolated` modifier, which follows the approach of `nonmutating` and ties in better with the "actor isolation" terminology (thank you to Xiaodi Wu for the suggestion).
