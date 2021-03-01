@@ -29,7 +29,7 @@
    * [Isolated parameters](#isolated-parameters-1)
    * [Non-isolated declarations](#non-isolated-declarations)
    * [Actor isolation checking](#actor-isolation-checking)
-      * [Accesses in executable code](#accesses-in-executable-code)
+      * [References and actor isolation](#references-and-actor-isolation)
       * [Overrides](#overrides)
       * [Protocol conformance](#protocol-conformance)
    * [Partial applications](#partial-applications)
@@ -113,7 +113,7 @@ A reference to an actor-isolated declaration from outside that actor is call a *
 
 The second form of permissible cross-actor reference is one that is performed with an asynchronous function invocation. Such asynchronous function invocations are turned into "messages" requesting that the actor execute the corresponding task when it can safely do so. These messages are stored in the actor's "mailbox", and the caller initiating the asynchronous function invocation may be suspended until the actor is able to process the corresponding message in its mailbox. An actor processes the messages its mailbox sequentially, so that a given actor will never have two concurrently-executing tasks running actor-isolated code. This ensures that there are no data races on actor-isolated mutable state, because there is no concurrency in any code that can access actor-isolated state. For example, if we wanted to make a deposit to a given bank account `account`, we could make a call to a method `deposit(amount:)` on another actor, and that call would become a message placed in the actor's mailbox and the caller would suspend. When that actor processes messages, it will eventually process the message corresponding to the deposit, executing that call within the actor's isolation domain when no other code is executing in that actor's isolation domain.
 
-> **Implementation note**: At an implementation level, the messages are partial tasks (described by the [Structured Concurrency] proposal) for the asynchronous call, and each actor instance contains its own serial executor (also in the [Structured Concurrency] proposal). The serial executor is responsible for running the partial tasks sequentially. This is conceptually similar to a serial [`DispatchQueue`](https://developer.apple.com/documentation/dispatch/dispatchqueue), but the actual implementation in the actor runtime uses a lighter-weight implementation that takes advantage of Swift's `async` functions.
+> **Implementation note**: At an implementation level, the messages are partial tasks (described by the [Structured Concurrency][sc] proposal) for the asynchronous call, and each actor instance contains its own serial executor (also in the [Structured Concurrency][sc] proposal). The serial executor is responsible for running the partial tasks sequentially. This is conceptually similar to a serial [`DispatchQueue`](https://developer.apple.com/documentation/dispatch/dispatchqueue), but the actual implementation in the actor runtime uses a lighter-weight implementation that takes advantage of Swift's `async` functions.
 
 Compile-time actor-isolation checking determines which references to actor-isolated declarations are cross-actor references, and ensures that such references use one of the two permissible mechanisms described above. This ensures that code outside of the actor does not interfere with the actor's mutable state.
 
@@ -287,7 +287,7 @@ extension BankAccount {
 }
 ```
 
-A task created with `Task.runDetached` runs concurrently with all other code. If the closure passed to `Task.runDetached` were to be actor-isolated, we would introduce a data race on access to shared mutable state on `BankAccount`. Actors prevent this data race by specifying that a `@concurrent` closure (described in [`ConcurrentValue` and `@concurrent` closures](https://docs.google.com/document/d/1m2fLLq9_ArY1ySt108soxOZNX7XT0ixMlNLFK08789M/), and used in the definition of `Task.runDetached` in the [Structured Concurrency] proposal) is always non-isolated. Therefore, it is required to use asynchronous calls to any actor-isolated declarations.
+A task created with `Task.runDetached` runs concurrently with all other code. If the closure passed to `Task.runDetached` were to be actor-isolated, we would introduce a data race on access to shared mutable state on `BankAccount`. Actors prevent this data race by specifying that a `@concurrent` closure (described in [`ConcurrentValue` and `@concurrent` closures][se302], and used in the definition of `Task.runDetached` in the [Structured Concurrency][sc] proposal) is always non-isolated. Therefore, it is required to use asynchronous calls to any actor-isolated declarations.
 
 It is often useful for closures within an actor-isolated function to themselves be actor-isolated, and it is safe from data races so long as the closure itself cannot be executed concurrently with the actor-isolated context in which it occurs. For example, using a sequence algorithm like `forEach` is free from data races because the closure will only be called serially:
 
@@ -335,7 +335,13 @@ The specific rule determining whether a closure captures an `isolated` parameter
 * If the closure is `@concurrent` or is nested within a `@concurrent` closure or local function, it is non-isolated, or
 * If the closure is `@escaping` or is nested within an `@escaping` closure or a local function, it is non-isolated.
 
-This rule does not prevent all possible data races, because Swift code could use C concurrency APIs (such as POSIX threads or Dispatch) to introduce concurrent execution of closures, along with [`withoutActuallyEscaping`](https://developer.apple.com/documentation/swift/2827967-withoutactuallyescaping) to subvert the rule about `@escaping` closures. Even with corrected C APIs (for example, introducing a `@concurrent` annotation on API such as [`DispatchQueue.concurrentPerform`](https://developer.apple.com/documentation/dispatch/dispatchqueue/2016088-concurrentperform)), one would be dependent on having all Swift code in any libraries recompiled to ensure that `@concurrent` has been applied wherever concurrent execution is possible. The above rule should eliminates most data races that occur in practice, because the combination of non-escaping closures with concurrent execution is fairly rare.
+For the examples above:
+
+* The closure passed to `runDetached` captures `self` as non-isolated because it requires a `@concurrent` function to be passed to it.
+* The closure passed to `downloadTransactions` captures `self` as non-isolated because it requires an `@escaping` function.
+* The closure passed to `forEach` captures `self` as isolated because it takes a non-concurrent, non-escaping function.
+
+> **Rationale**: In theory, `@escaping` is completely orthogonal from `@concurrent`. However, in practice nearly all `@escaping` closures in Swift code today are executed concurrently via mechanisms that predate Swift Concurrency. In time, those escaping functions that are executed concurrently will be annotated with `@concurrent` as well as `@escaping`. However, until that happens, `@escaping` non-`@concurrent` functions will be a major hole in the safety model, allowing data races on actor-isolated state. The rule that prevents `isolated` parameter capture in an `@escaping` closure could be lifted in a future version of Swift, where limitations on concurrent execution are more widely enforced.
 
 #### inout parameters
 
@@ -353,11 +359,11 @@ extension BankAccount {
 }  
 ```
 
-This restriction prevents exclusivity violations where the modification of the actor-isolated `balance` is initiated by passing it as `inout` to a call that is then suspended, and another task executed on the same actor then fails with an exclusivity violation in trying to access `balance` itself.
+> **Rationale**: this restriction prevents exclusivity violations where the modification of the actor-isolated `balance` is initiated by passing it as `inout` to a call that is then suspended, and another task executed on the same actor then attempts to access `balance`. Such an access would then result in an exclusivity violation that will terminate the program. While the `inout` restriction is not required for memory safety (because errors will be detected at runtime), the default re-entrancy of actors makes it very easy to introduce non-deterministic exclusivity violations. Therefore, we introduce this restriction to eliminate that class of problems that where a race would trigger an exclusivity violation.
 
 ### Cross-actor references and `ConcurrentValue` types
 
-A separate proposal introduces the [`ConcurrentValue` protocol](https://docs.google.com/document/d/1m2fLLq9_ArY1ySt108soxOZNX7XT0ixMlNLFK08789M/). Values of types that conform to the `ConcurrentValue` protocol are safe to share across concurrently-executing code. There are various kinds of types that work well this way: value-semantic types like `Int` and `String`, value-semantic collections of such types like `[String]` or `[Int: String]`, immutable classes, and so on.
+A separate proposal introduces the [`ConcurrentValue` protocol][se302]. Values of types that conform to the `ConcurrentValue` protocol are safe to share across concurrently-executing code. There are various kinds of types that work well this way: value-semantic types like `Int` and `String`, value-semantic collections of such types like `[String]` or `[Int: String]`, immutable classes, and so on.
 
 Actors protect their shared mutable state, so actor instances can be freely shared across concurrently-executing code, and the actor itself will internally maintain synchronization. Therefore, every actor type implicitly conforms to the `ConcurrentValue` protocol.
 
@@ -552,7 +558,7 @@ There are a number of existing actor implementations that have considered the no
 
 #### Reentrancy Summary
 
-This proposal provides only reentrant actors. However, the [Alternatives Considered](#alternatives-considered] section describes potential future design directions that could add opt-in non-reentrancy.
+This proposal provides only reentrant actors. However, the [Alternatives Considered](#alternatives-considered) section describes potential future design directions that could add opt-in non-reentrancy.
 
 > **Rationale**: Reentrancy by default all but eliminates the potential for deadlocks. Moreover, it helps ensure that actors can make timely progress within a concurrent system, and that a particular actor does not end up unnecessarily blocked on a long-running asynchronous operation (say, downloading a file). The mechanisms for ensuring safe interleaving, such as using synchronous code when performing mutations and being careful not to break invariants across `await` calls, are already present in the proposal.
 
@@ -571,7 +577,7 @@ actor BankAccount {
 
 Each instance of the actor represents a unique actor. The term "actor" can be used to refer to either an instance or the type; where necessary, one can refer to the "actor instance" or "actor type" to disambiguate.
 
-An actor may only inherit from another actor. A non-actor may only inherit from another non-actor.
+An actor may only inherit from another actor (or `NSObject`; see the section on Objective-C interoperability below). A non-actor may only inherit from another non-actor.
 
 > **Rationale**: Actors enforce state isolation, but non-actors do not. If an actor inherits from a non-actor (or vice versa), part of the actor's state would not be covered by the actor-isolation rules, introducing the potential for data races on that state.
 
@@ -586,11 +592,6 @@ extension BankAccount {
 ```
 
 Actors are similar to classes in all respects independent of isolation: actor types can have `static` and `class` methods, properties, and subscripts. All of the attributes that apply to classes apply to actors in much the same way, except where those semantics conflict with actor isolation. An actor type satisfies an `AnyObject` requirement.
-
-### Isolated parameters
-
-
-
 
 ### Non-isolated declarations
 
@@ -617,21 +618,21 @@ An actor-isolated declaration can be the stored instance properties of an actor 
 Declarations that are not isolated to an actor are called non-isolated.
 
 The actor isolation rules are checked in a number of places, where two different declarations need to be compared to determine if their usage together maintains actor isolation. There are several such places:
-* When the definition of one declaration (e.g., the body of a function) accesses another declaration in executable code, e.g., calling a function, accessing a property, or evaluating a subscript.
+* When the definition of one declaration (e.g., the body of a function) references another declaration, e.g., calling a function, accessing a property, or evaluating a subscript.
 * When one declaration overrides another.
 * When one declaration satisfies a protocol requirement.
 
 We'll describe each scenario in detail.
 
-#### Accesses in executable code
+#### References and actor isolation
 
-A given declaration (call it the "source") can synchronously access another declaration (call it the "target") in executable code, e.g., by calling a function or accessing a property or subscript. A synchronous invocation requires the actor isolation categories for the source and target to be compatible (defined below). An actor-isolated target function or target property getter that is not compatible with the source can be accessed asynchronously.
+A given declaration (call it the "source") can synchronously reference another declaration (call it the "target"), e.g., by calling a function or accessing a property or subscript. A synchronous invocation requires the actor isolation categories for the source and target to be compatible (defined below). An actor-isolated target function or target property getter that is not compatible with the source can be accessed asynchronously.
 
 A source and target category pair is compatible if:
 * the source and target categories are the same, or
 * the target category is non-isolated.
 
-The first rule is the most direct: an isolated parameter (e.g., `self` or any other parameter marked as `isolated`) can synchronously access any member its type (e.g., a mutable instance property) that is isolated to the same actor.
+The first rule is the most direct: an isolated parameter (e.g., `self` or any other parameter marked as `isolated`) can synchronously access any member its type (e.g., a mutable instance property) that is isolated to the same actor. The argument that corresponds to an `isolated` parameter must itself be `isolated`.
 
 The second rule specifies that non-isolated declarations can be used from anywhere because they aren't tied to a particular actor. Actors can provide non-isolated instance methods, but because those functions are not actor-isolated, that cannot read the actor's own mutable state. For example:
 
@@ -654,13 +655,10 @@ In the absence of an explicitly-specified actor-isolation modifier (i.e, `noniso
 
 #### Protocol conformance
 
-When a given declaration (the "witness") satisfies a protocol requirement (the "requirement"), the actor isolation of the two declarations is compared. The protocol requirement can be satisfied by the witness if:
+When a given declaration (the "witness") satisfies a protocol requirement (the "requirement"), the protocol requirement can be satisfied by the witness if:
 
-* the witness and requirement have the same actor isolation,
-* the requirement is `async`, or
+* The requirement is `async`, or
 * the witness is non-isolated.
-
-In the absence of an explicitly-specified actor-isolation attribute, a witness that is defined in the same type or extension as the conformance for the requirement's protocol will have its actor isolation inferred from the protocol requirement.
 
 ### Partial applications
 
@@ -814,7 +812,7 @@ actor EvenEvan {
 
 Under `@reentrant(never)`, this code will deadlock, because a call from `EvanEvan.isEven` to `OddOddy.isOdd` will then depend on another call to `EvanEvan.isEven`, which cannot proceed until the original call completes. One would need to make these methods to be reentrant to eliminate the deadlock.
 
-With Swift embracing [Structured Concurrency](https://github.com/DougGregor/swift-evolution/blob/structured-concurrency/proposals/nnnn-structured-concurrency.md) as a core building block of its concurrency story, we may be able to do better than outright banning reentrancy. In Swift, every asynchronous operation is part of a `Task` which encapsulates the general computation taking place, and every asynchronous operation spawned from such task becomes a child task of the current task. Therefore, it is possible to know whether a given asynchronous call is part of the same task hierarchy, which is the rough equivalent to being in the same call stack in synchronous code.
+With Swift embracing [Structured Concurrency][sc] as a core building block of its concurrency story, we may be able to do better than outright banning reentrancy. In Swift, every asynchronous operation is part of a `Task` which encapsulates the general computation taking place, and every asynchronous operation spawned from such task becomes a child task of the current task. Therefore, it is possible to know whether a given asynchronous call is part of the same task hierarchy, which is the rough equivalent to being in the same call stack in synchronous code.
 
 We could introduce a new kind of reentrancy, *task-chain reentrancy*, which allows reentrant calls on behalf of the given task or any of its children. This resolves both the deadlock we encountered in the `convinceOtherwise` example from the section on [deadlocks](#deadlocks-with-non-reentrant-actors) as well as the mutually-recursive `isEven` example above, while still preventing reentrancy from unrelated tasks. This reentrancy therefore mimics synchronous code more closely, eliminating many deadlocks without allowing unrelated interleavings to break the high-level invariants of an actor.
 
@@ -877,4 +875,5 @@ This implementation will behave as one would expect for inheritance (every `Empl
 * Original pitch [document](https://github.com/DougGregor/swift-evolution/blob/6fd3903ed348b44496b32a39b40f6b6a538c83ce/proposals/nnnn-actors.md)
 
 
-[Structured Concurrency]: [Structured Concurrency](https://github.com/DougGregor/swift-evolution/blob/structured-concurrency/proposals/nnnn-structured-concurrency.md)
+[sc]: https://github.com/DougGregor/swift-evolution/blob/structured-concurrency/proposals/nnnn-structured-concurrency.md
+[se302]: https://github.com/apple/swift-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md
