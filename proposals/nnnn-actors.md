@@ -660,21 +660,51 @@ When a given declaration (the "witness") satisfies a protocol requirement (the "
 * The requirement is `async`, or
 * the witness is non-isolated.
 
+
+
 ### Partial applications
 
-Partial applications of functions with an `isolated` parameter are only well-formed if they are treated as non-concurrent. For example, given a function like this:
+A partial applications of a function with an `isolated` parameter is only permitted when the expression is a direct argument whose corresponding parameter is non-escaping and non-concurrent. For example:
 
 ```swift
-extension BankAccount {
-  func synchronous() { }
+func runLater<T>(_ operation: @escaping () -> T) -> T { ... }
+
+actor A {
+  func f(_: Int) -> Double { ... }
+  func g() -> Double { ... }
+  
+  func useAF(array: [Int]) {
+    array.map(self.f)                     // okay
+    Task.runDetached(operation: self.g)   // error: self.g has non-concurrent type () -> Double that cannot be converted to a @concurrent function type
+    runLater(self.g)                      // error: self.g has escaping function type () -> Double
+  }
 }
 ```
 
-The expression `self.synchronous` is well-formed only if it is the direct argument to a function whose corresponding parameter is non-concurrent. Otherwise, it is ill-formed because the function might be called in a context that is not actor-isolated.
+These restrictions follow from the actor isolation rules for the "desugaring" of partial applications to closures. The two erroneous cases above fall out from the fact that the `self` parameter would be captured as non-isolated in a closure that performs the call, so access to the actor-isolated function `g` would have to be asynchronous. Here are the "desugared" forms of the partial applications:
+
+
+```swift
+extension A {
+  func useAFDesugared(a: A, array: [Int]) {
+    array.map { f($0) } )      // okay
+    Task.runDetached { g() }   // error: self is non-isolated, so call to `g` cannot be synchronous
+    runLater { g() }           // error: self is non-isolated, so the call to `g` cannot be synchronous
+  }
+}
+```
 
 ### Key paths
 
-A key path cannot involve a reference to an actor-isolated declaration.
+A key path cannot involve a reference to an actor-isolated declaration:
+
+```swift
+actor A {
+  var storage: Int
+}
+
+let kp = \A.storage  // error: key path would permit access to actor-isolated storage
+```
 
 > **Rationale**: Allowing the formation of a key path that references an actor-isolated property or subscript would permit accesses to the actor's protected state from outside of the actor isolation domain.
 
@@ -854,6 +884,7 @@ This implementation will behave as one would expect for inheritance (every `Empl
   * Limit `nonisolated(unsafe)` to stored instance properties. The prior definition was far too broad.
   * Clarify that `super` is isolated if `self` is.
   * Prohibit references to actor-isolated declarations in key paths.
+  * Clarify the behavior of partial applications.
 * Changes in the third pitch:
   * Narrow the proposal down to only support re-entrant actors. Capture several potential non-reentrant designs in the Alternatives Considered as possible future extensions.
   * Replaced `@actorIndependent` attribute with a `nonisolated` modifier, which follows the approach of `nonmutating` and ties in better with the "actor isolation" terminology (thank you to Xiaodi Wu for the suggestion).
