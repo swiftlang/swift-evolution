@@ -1,7 +1,7 @@
 # Actors
 
 * Proposal: [SE-NNNN](NNNN-actors.md)
-* Authors: [John McCall](https://github.com/rjmccall), [Doug Gregor](https://github.com/DougGregor), [Konrad Malawski](https://github.com/ktoso)
+* Authors: [John McCall](https://github.com/rjmccall), [Doug Gregor](https://github.com/DougGregor), [Konrad Malawski](https://github.com/ktoso), [Chris Lattner](https://github.com/lattner)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
 * Implementation: Partially available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
@@ -171,6 +171,16 @@ extension BankAccount {
   func passGo() {
     deposit(amount: 200.0)  // synchronous is okay because this implicitly calls `self`
   }
+}
+```
+
+Cross-actor references to an actor property are permitted as an asynchronous call so long as they are read-only accesses:
+
+
+```swift
+func checkBalance(account: BankAccount) {
+  print(await account.balance)   // okay
+  await account.balance = 1000.0 // error: cross-actor property mutations are not permitted
 }
 ```
 
@@ -565,7 +575,7 @@ We'll describe each scenario in detail.
 
 #### Accesses in executable code
 
-A given declaration (call it the "source") can synchronously access another declaration (call it the "target") in executable code, e.g., by calling a function or accessing a property or subscript. A synchronous invocation requires the actor isolation categories for the source and target to be compatible (defined below). An actor-isolated target function that is not compatible with the source can be accessed asynchronously.
+A given declaration (call it the "source") can synchronously access another declaration (call it the "target") in executable code, e.g., by calling a function or accessing a property or subscript. A synchronous invocation requires the actor isolation categories for the source and target to be compatible (defined below). An actor-isolated target function or target property getter that is not compatible with the source can be accessed asynchronously.
 
 A source and target category pair is compatible if:
 * the source and target categories are the same,
@@ -798,6 +808,8 @@ This implementation will behave as one would expect for inheritance (every `Empl
 
 ## Revision history
 
+* Changes in the fourth pitch:
+  * Allow cross-actor references to actor properties, so long as they are reads (not writes or `inout` references)
 * Changes in the third pitch:
   * Narrow the proposal down to only support re-entrant actors. Capture several potential non-reentrant designs in the Alternatives Considered as possible future extensions.
   * Replaced `@actorIndependent` attribute with a `nonisolated` modifier, which follows the approach of `nonmutating` and ties in better with the "actor isolation" terminology (thank you to Xiaodi Wu for the suggestion).
