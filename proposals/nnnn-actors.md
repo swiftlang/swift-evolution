@@ -184,9 +184,35 @@ func checkBalance(account: BankAccount) {
 }
 ```
 
+#### Actor-isolated parameters
+
+The `self` parameter of an actor function is special in that it is within the actor's isolation domain, so it can access properties and synchronous functions on the actor. The same capabilities can be afforded to a different parameter by marking it as `isolated`. For example, this allows us to express an operation that runs a closure on an actor:
+
+```swift
+extension BankAccount {
+  func runOnActor<R>(body: (isolated BankAccount) async -> R) -> R {
+    body(self) // okay: self is actor-isolated
+  }
+}
+
+func investWildly(account: BankAccount, amount: Double) async {
+  await account.runOnActor { account in
+    account.balance -= amount                    // okay: account is actor-isolated
+    let winnings = await gamble(amount: amount)
+    account.balance += winnings
+  }
+}
+``` 
+
+It also allows actor functions to be extracted into global or local functions, allowing code to be refactored without breaking actor isolation. Due to `isolated` parameters, the `self` parameter of an actor function is actually not that special: it merely defaults to `isolated`. For example, type of `BankAccount.deposit(amount:)`, defined above, is a curried function that involves an isolated `self`:
+
+```swift
+let fn = BankAccount.deposit(amount:) // type is (isolated BankAccount) -> (Double) -> Void
+```
+
 #### Nonisolated declarations
 
-Some declarations that occur lexically within actors are not actor-isolated. These functions give up the ability to directly access actor-isolated declarations, but in return they can be used from outside of the actor without requiring an asynchronous function call. The modifier `nonisolated` allows a declaration within an actor that would normally be actor-isolated to opt out of that isolation. This allows us (for example) to define conformance of an actor to a protocol that has synchronous requirements, which would otherwise cause actor isolation checking to produce an error, or to introduce (synchronous) actor operations that are computed based on immutable state. For example:
+As noted above, instance declarations defined within actors have an `isolated` parameter `self` by default. However, the modifier `nonisolated` on an actor instance declaration makes the `self` parameter non-isolated. This allows us (for example) to define conformance of an actor to a protocol that has synchronous requirements, which would otherwise cause actor isolation checking to produce an error, or to introduce (synchronous) actor operations that are computed based on immutable actor state. For example:
 
 ```swift
 extension BankAccount: Hashable {
@@ -200,6 +226,8 @@ extension BankAccount: CustomStringConvertible {
     "Bank account #\(accountNumber)"
   }
 }
+
+let fn = BankAccount.hash(into:) // type is (BankAccount) -> (inout Hasher) -> Void
 ```
 
 There are two important things to note here:
@@ -208,7 +236,7 @@ There are two important things to note here:
 ```
 error: actor-isolated property "description" cannot be used to satisfy a protocol requirement
 ```
-2. The `nonisolated` modifier means that the body of the function is treated as being outside the actor. This makes references to declartions on `self` cross-actor references, so actor isolation checking may prevent them from being used:
+2. The `nonisolated` modifier means that the `self` parameter is not consider to reference an isoalted actor. This makes references to declarations on `self` cross-actor references, so actor isolation checking will prevent them from being used:
 ```swift
 extension BankAccount: CustomDebugStringConvertible {
   nonisolated var debugDescription: String {
@@ -217,7 +245,7 @@ extension BankAccount: CustomDebugStringConvertible {
 }
 ```
 
-Most functions are not isolated to a particular actor. For example, all functions declared outside of an actor are not actor isolated by nature (there is no actor `self`). Static members of the actor are not actor-isolated because `self` is not an instance. Within an actor-isolated function there are local functions and closures that may or may not be actor-isolated; the rules are described in the following section. 
+Most functions are not isolated to a particular actor. For example, all functions declared outside of an actor are not actor isolated by nature (there is no actor `self` and they have no other `isolated` parameters). Static members of the actor are not actor-isolated because `self` is not an instance. Within an actor-isolated function there are local functions and closures that may or may not be actor-isolated; the rules are described in the following section. 
 
 #### Closures
 
@@ -245,7 +273,7 @@ extension BankAccount {
   func close(distributingTo accounts: [BankAccount]) async {
     let transferAmount = balance / accounts.count
 
-    accounts.forEach { account in                        // okay, closure is actor-isolated
+    accounts.forEach { account in                        // okay, captured self in closure is actor-isolated
       balance = balance - transferAmount            
       await account.deposit(amount: transferAmount)
     }
@@ -280,7 +308,7 @@ error: actor-isolated property 'transactions' can not be referenced by non-isola
 error: actor-isolated property 'lastUpdateDate' can not be referenced by non-isolated closure
 ```
 
-The specific rule determining whether a closure within an actor-isolated function is itself actor-isolated checks two properties:
+The specific rule determining whether a closure captures an `isolated` parameter as actor-isolated checks two properties:
 * If the closure is `@concurrent` or is nested within a `@concurrent` closure or local function, it is non-isolated, or
 * If the closure is `@escaping` or is nested within an `@escaping` closure or a local function, it is non-isolated.
 
@@ -628,7 +656,7 @@ In the absence of an explicitly-specified actor-isolation attribute, a witness t
 
 ### Partial applications
 
-Partial applications of synchronous actor-isolated functions are only well-formed if they are treated as non-concurrent. For example, given a function like this:
+Partial applications of functions with an `isolated` parameter are only well-formed if they are treated as non-concurrent. For example, given a function like this:
 
 ```swift
 extension BankAccount {
@@ -810,6 +838,7 @@ This implementation will behave as one would expect for inheritance (every `Empl
 
 * Changes in the fourth pitch:
   * Allow cross-actor references to actor properties, so long as they are reads (not writes or `inout` references)
+  * Added `isolated` parameters, to generalize the previously-special behavior of `self` in an actor and make the semantics of `nonisolated` more clear.
 * Changes in the third pitch:
   * Narrow the proposal down to only support re-entrant actors. Capture several potential non-reentrant designs in the Alternatives Considered as possible future extensions.
   * Replaced `@actorIndependent` attribute with a `nonisolated` modifier, which follows the approach of `nonmutating` and ties in better with the "actor isolation" terminology (thank you to Xiaodi Wu for the suggestion).
