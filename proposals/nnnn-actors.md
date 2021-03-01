@@ -165,13 +165,13 @@ extension BankAccount {
 }
 ```
 
-Synchronous actor functions can be called synchronously on the actor's `self`, but cross-actor references to this method require an asynchronous call. The `transfer(amount:to:)` function calls it asynchronously (on `other`), while the following function `passGo` calls it synchronously (on the implicit `self`):
+Synchronous actor functions can be called synchronously on the actor's `self` (or `super`), but cross-actor references to this method require an asynchronous call. The `transfer(amount:to:)` function calls it asynchronously (on `other`), while the following function `passGo` calls it synchronously (on the implicit `self`):
 
 ```swift
-extension BankAccount {
+actor MonopolyAccount : BankAccount {
   // Pass go and collect $200
   func passGo() {
-    deposit(amount: 200.0)  // synchronous is okay because this implicitly calls `self`
+    super.deposit(amount: 200.0)  // synchronous is okay because `self` is isolated and therefore so is `super`
   }
 }
 ```
@@ -206,10 +206,31 @@ func investWildly(account: BankAccount, amount: Double) async {
 }
 ``` 
 
-It also allows actor functions to be extracted into global or local functions, allowing code to be refactored without breaking actor isolation. Due to `isolated` parameters, the `self` parameter of an actor function is actually not that special: it merely defaults to `isolated`. For example, type of `BankAccount.deposit(amount:)`, defined above, is a curried function that involves an isolated `self`:
+It also allows actor functions to be extracted into global or local functions, so code can be refactored without breaking actor isolation. Due to `isolated` parameters, the `self` parameter of an actor function is actually not that special: it merely defaults to `isolated` because of the context in which it is declared. For example, type of `BankAccount.deposit(amount:)`, defined above, is a curried function that involves an isolated `self`:
 
 ```swift
 let fn = BankAccount.deposit(amount:) // type is (isolated BankAccount) -> (Double) -> Void
+```
+
+This means that any actor function can be turned into a global function, with the same restrictions now applying to one of its other parameters:
+
+```swift
+func deposit(amount: Double, in account: isolated BankAccount) {
+  account.balance += amount  // okay: account is isolated
+}
+
+func f(account1: BankAccount, account2: isolated BankAccount) {
+  deposit(amount: 100, in: account1) // error: account1 is not isolated
+  deposit(amount: 100, in: account2) // okay: account2 is isolated
+}
+```
+
+Note that there is no mechanism that would permit two actors to be isolated at the same time, because one has to "leave" one actor's isolation domain to enter the isolation domain of another actor. Therefore, we prohibit the definition of a function with more than one isolated parameter:
+
+```swift
+func transfer(amount: Double, from fromAccount: isolated BankAccount, to toAccount: isolated BankAccount) { // error: only one parameter in a function can be isolated
+  // ...
+}
 ```
 
 #### Nonisolated declarations
@@ -653,6 +674,12 @@ extension BankAccount {
 
 The expression `self.synchronous` is well-formed only if it is the direct argument to a function whose corresponding parameter is non-concurrent. Otherwise, it is ill-formed because the function might be called in a context that is not actor-isolated.
 
+### Key paths
+
+A key path cannot involve a reference to an actor-isolated declaration.
+
+> **Rationale**: Allowing the formation of a key path that references an actor-isolated property or subscript would permit accesses to the actor's protected state from outside of the actor isolation domain.
+
 ### Actor interoperability with Objective-C
 
 As a special exception to the rule that an actor can only inherit from another actor, an actor can inherit from `NSObject`. This allows actors to themselves be declared `@objc`, and implicitly provides conformance to `NSObjectProtocol`:
@@ -827,6 +854,8 @@ This implementation will behave as one would expect for inheritance (every `Empl
   * Allow cross-actor references to actor properties, so long as they are reads (not writes or `inout` references)
   * Added `isolated` parameters, to generalize the previously-special behavior of `self` in an actor and make the semantics of `nonisolated` more clear.
   * Limit `nonisolated(unsafe)` to stored instance properties. The prior definition was far too broad.
+  * Clarify that `super` is isolated if `self` is.
+  * Prohibit references to actor-isolated declarations in key paths.
 * Changes in the third pitch:
   * Narrow the proposal down to only support re-entrant actors. Capture several potential non-reentrant designs in the Alternatives Considered as possible future extensions.
   * Replaced `@actorIndependent` attribute with a `nonisolated` modifier, which follows the approach of `nonmutating` and ties in better with the "actor isolation" terminology (thank you to Xiaodi Wu for the suggestion).
