@@ -13,7 +13,7 @@
 * [Introduction](#introduction)
 * [Motivation](#motivation)
 * [Proposed Solution + Detailed Design](#proposed-solution--detailed-design)
-  * [`Sendable` and `UnsafeSendable` Protocols](#Sendable-and-unsafeSendable-protocols)
+  * [`Sendable` Protocol](#Sendable-protocol)
   * [New `@sendable` attribute for functions](#new-sendable-attribute-for-functions)
 * [Future Work / Follow-on Projects](#future-work--follow-on-projects)
 * [Alternatives Considered](#alternatives-considered)
@@ -26,7 +26,7 @@ A key goal of the Swift Concurrency effort is to “provide a mechanism for isol
 
 This proposal describes an approach to address one of the challenging problems in this space — how to type check value passing between structured concurrency constructs and actors messages. As such, this is a unifying theory that provides some of the underlying type system mechanics that make them both safe and work well together.
 
-This implementation approach involves marker protocols named `Sendable` and `UnsafeSendable`, as well as a `@sendable` attribute that may be applied to functions.
+This implementation approach involves a marker protocol named `Sendable`, as well as a `@sendable` attribute that may be applied to functions.
 
 ## Motivation
 
@@ -111,7 +111,7 @@ Finally, our goal is for Swift (in general and in this specific case) to be a hi
 
 ## Proposed Solution + Detailed Design
 
-The high level design of this proposal revolves around a `Sendable` marker protocol (and an `UnsafeSendable` refinement), adoption of `Sendable` by standard library types, and a new `@sendable` attribute for functions.
+The high level design of this proposal revolves around a `Sendable` marker protocol, adoption of `Sendable` by standard library types, and a new `@sendable` attribute for functions.
 
 Beyond the basic proposal, in the future it could make sense to add a set of adapter types to handle legacy compatibility cases, and first class support for Objective-C frameworks.  These are described in the following section.
 
@@ -126,16 +126,13 @@ This proposal introduces the concept of a “marker” protocol, which indicates
 
 We think this is a generally useful feature, but believe it should be a compiler-internal feature at this point.  As such, we explain it and use this concept with the “`@_marker`” attribute syntax below.
 
-### `Sendable` and `UnsafeSendable` Protocols
+### `Sendable` Protocol
 
-The core of this proposal are two marker protocols defined in the Swift standard library (these protocols have different conformance checking rules):
+The core of this proposal is a marker protocol defined in the Swift standard library , which has special conformance checking rules:
 
 ```swift
 @_marker
 protocol Sendable {}
-
-@_marker
-protocol UnsafeSendable: Sendable {}
 ```
 
 It is a good idea for types to conform to the `Sendable` protocol when they are designed so all of their public API is safe to use across concurrency domains.  This is true for example, when there are no public mutators, if public mutators are implemented with COW, or if they are implemented with internal locking or some other mechanism.  Types may of course have internal implementation details based on local mutation if they have locking or COW as part of their public API.
@@ -170,9 +167,9 @@ Swift has [hard coded conformances for tuples](https://github.com/apple/swift-ev
 
 Metatypes (such as` Int.Type`, the type produced by the expression `Int.self`) always conform to `Sendable`, because they are immutable.
 
-#### `[Unsafe]Sendable` Conformance Checking for structs and enums
+#### `Sendable` conformance checking for structs and enums
 
-`Sendable` types are extremely common in Swift and aggregates of them are also safe to transfer across concurrency domains.  As such, the Swift compiler allows direct conformance to `Sendable` for structs and enums that are compositions of other `Sendable` types:
+`Sendable` types are extremely common in Swift and aggregates of them are also safe to transfer across concurrency domains.  As such, the Swift compiler allows direct conformance to `Sendable` for structs and classes that are compositions of other `Sendable` types:
 
 ```swift
 struct MyPerson : Sendable { var name: String, age: Int }
@@ -187,11 +184,11 @@ actor SomeActor {
 }
 ```
 
-While this is convenient, we would like to slightly increase friction of protocol adoption for cases that require more thought.  As such,  the compiler rejects conformance of structs and enums to the `Sendable` protocol when one of their members (or associated values) does not itself conform to `Sendable` (or is not known to conform to `Sendable` through a generic constraint):
+While this is convenient, we would like to slightly increase friction of protocol adoption for cases that require more thought.  As such, the compiler rejects conformance of structs and enums to the `Sendable` protocol when one of their members (or associated values) does not itself conform to `Sendable` (or is not known to conform to `Sendable` through a generic constraint):
 
 ```swift
 // error: MyNSPerson cannot conform to Sendable due to NSMutableString member.
-// note: use UnsafeSendable if you know what you're doing.
+// note: add '@unchecked' if you know what you're doing.
 struct MyNSPerson : Sendable {
   var name: NSMutableString
   var age: Int
@@ -211,9 +208,7 @@ struct MyCorrectPair<T> {
 extension MyCorrectPair: Sendable where T: Sendable { }
 ```
 
-As mentioned in the compiler diagnostic, any type can override this behavior by conforming to the `UnsafeSendable` protocol to affect the same result, with a more explicit syntax.
-
-Any struct, enum or class may conform to `UnsafeSendable` (and thus `Sendable`) to indicate that they may be safely passed across concurrency domains.
+As mentioned in the compiler diagnostic, any type can override this checking behavior by annotating the conformance to `Sendable` with `@unchecked`. This indicates that the type can safely be passed across concurrency domains, but requires the author of the type to ensure that this is safe.
 
 A `struct` or `enum` can only be made to conform to `Sendable` within the same source file in which the type was defined. This ensures that the stored properties in a struct and associated values in an enum are visible so that their types can be checked for `Sendable` conformance. For example:
 
@@ -230,13 +225,19 @@ struct MySneakyNSPerson {
 extension MySneakyNSPerson: Sendable { }
 ```
 
-Without this restriction, another source file or module, which cannot see the private stored property name, would conclude that `MySneakyNSPerson` is properly a `Sendable`. One can declare conformance to `UnsafeSendable` to disable this check as well.
+Without this restriction, another source file or module, which cannot see the private stored property name, would conclude that `MySneakyNSPerson` is properly a `Sendable`. One can declare conformance to `Sendable` as `@unchecked` to disable this check as well:
+
+```swift
+// in another source file or module...
+// okay: unchecked conformances in a different source file are permitted
+extension MySneakyNSPerson: @unchecked Sendable { }
+```
 
 This approach follows the precedent of [SE-0185](https://github.com/apple/swift-evolution/blob/main/proposals/0185-synthesize-equatable-hashable.md), [SE-0266](https://github.com/apple/swift-evolution/blob/main/proposals/0266-synthesized-comparable-for-enumerations.md), and [SE-0283](https://github.com/apple/swift-evolution/blob/main/proposals/0283-tuples-are-equatable-comparable-hashable.md) which uses explicit conformance to direct compiler behavior.  An alternative design would be to make conformance _implicit_ for all types that structurally conform.  Please see [Alternatives Considered](#alternatives-considered) at the end of this proposal for more discussion about this.
 
-#### `[Unsafe]Sendable` Conformance Checking for classes
+#### `[Unsafe]Sendable` conformance checking for classes
 
-Any class may be declared to conform to `UnsafeSendable`, allowing them to be passed between actors without semantic checks.  This is appropriate for classes that use access control and internal synchronization to provide memory safety — these mechanisms cannot generally be checked by the compiler.
+Any class may be declared to conform to `Sendable` with an `@unchecked` conformance, allowing them to be passed between actors without semantic checks.  This is appropriate for classes that use access control and internal synchronization to provide memory safety — these mechanisms cannot generally be checked by the compiler.
 
 In addition, a class may conform to `Sendable` and be checked for memory safety by the compiler in a specific limited case: when the class is a final class containing only immutable stored properties of types that conform to Sendable:
 
@@ -467,7 +468,7 @@ This can be achieved by the introduction of a generic helper struct:
 
 ```swift
 @propertyWrapper
-struct UnsafeTransfer<Wrapped: AnyObject> : UnsafeSendable {
+struct UnsafeTransfer<Wrapper> : @unchecked Sendable {
   var wrappedValue: Wrapped
   init(wrappedValue: Wrapped) {
     self.wrappedValue = wrappedValue
@@ -503,7 +504,7 @@ General consensus is that it is important to make copies explicit in the model, 
 
 ```swift
 @propertyWrapper
-struct NSCopied<Wrapped: NSCopying>: UnsafeSendable {
+struct NSCopied<Wrapped: NSCopying>: @unchecked Sendable {
   let wrappedValue: Wrapped
 
   init(wrappedValue: Wrapped) {
@@ -563,7 +564,7 @@ We need the compiler to know whether there is a possible concurrency domain hop 
 
 ## Source Compatibility
 
-This is almost completely source compatible with existing code bases. The introduction of `Sendable`, `UnsafeSendable`, and `@sendable` functions are additive features that have no impact when not used and therefore do not affect existing code.
+This is almost completely source compatible with existing code bases. The introduction of the `Sendable` marker protocol  and `@sendable` functions are additive features that have no impact when not used and therefore do not affect existing code.
 
 There are a few new restrictions that could cause source breakage in exotic cases:
 
@@ -630,3 +631,4 @@ Because the feature is mostly a library feature that builds on existing language
 
 * Changes from the first review
   * Renamed `ConcurrentValue` to `Sendable` and `@concurrent` to `@sendable`.
+  * Replaced `UnsafeConcurrentValue` with `@unchecked Sendable` conformances.
