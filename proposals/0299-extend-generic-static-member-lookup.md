@@ -162,7 +162,7 @@ The type-checker is able to infer any protocol conformance requirements placed o
 * Do a global lookup for any type which conforms to the given protocol and use it as a base;
 * Require that protocol extension declaring static member(s) or member itself (i.e. generic function/subscript) has 'Self' bound to a concrete type via a same-type generic requirement that would be used to provide a witness for the reference.
 
-The second option is a much better choice that avoids having to do a global lookup and conformance checking and is consistent with the semantics of leading dot syntax, namely, the requirement that result and base types of the chain have to be equivalent. This leads to a new rule: if member either binds 'Self' directly (via same-type generic requirement), or is declared in a protocol extension that has `Self` bound to a concrete type, it should be possible to reference such a member on a protocol metatype, using leading dot syntax, by implicitly replacing the protocol with a conforming type referred by `Self`.
+The second option is a much better choice that avoids having to do a global lookup and conformance checking and is consistent with the semantics of leading dot syntax, namely, the requirement that result and base types of the chain have to be convertible. This leads to a new rule: if member either binds 'Self' directly (via same-type generic requirement), or is declared in a protocol extension that has `Self` bound to a concrete type, it should be possible to reference such a member on a protocol metatype, using leading dot syntax, by implicitly replacing the protocol with a conforming type referred by `Self`.
 
 This approach works well for references without an explicit base, let’s consider an example:
 
