@@ -37,9 +37,11 @@
 * [Source compatibility](#source-compatibility)
 * [Effect on ABI stability](#effect-on-abi-stability)
 * [Effect on API resilience](#effect-on-api-resilience)
-* [Alternatives Considered](#alternatives-considered)
+* [Future Directions](#future-directions)
    * [Non-reentrancy](#non-reentrancy)
    * [Task-chain reentrancy](#task-chain-reentrancy)
+   * [Isolated protocol conformances](#isolated-protocol-conformances)
+* [Alternatives Considered](#alternatives-considered)
    * [Eliminating inheritance](#eliminating-inheritance)
 * [Revision history](#revision-history)
 
@@ -741,7 +743,7 @@ Nearly all changes in actor isolation are breaking changes, because the actor is
 * A class cannot be turned into an actor or vice versa.
 * The actor isolation of a public declaration cannot be changed except between `nonisolated(unsafe)` and `nonisolated`.
 
-## Alternatives Considered
+## Future Directions
 
 ### Non-reentrancy
 
@@ -852,6 +854,57 @@ There are a few reasons why we are not currently comfortale including task-chain
 
 If we can address the above, task-chain reentrancy can be introduced into the actor model with another spelling of the reentrancy attribute such as `@reentrant(task)`, and may provide the best default.
 
+### Isolated protocol conformances
+
+The conformance of an actor type to a protocol assumes that the client of the protocol is outside of the actor's isolation domain. Therefore, [protocol conformances](#protocol-conformance) require either the protocol to have `async` requirements or the actor to use non-isolated members to establish protocol conformance. The [Type System Considerations for Actor Protocol](https://forums.swift.org/t/exploration-type-system-considerations-for-actor-proposal/44540) pitch argues that actor types should be able to conform to protocols with the assumption that the conformance is only used within the actor's isolation context. That pitch provides the following example:
+
+```swift
+public protocol DataProcessible {
+    var data: Data { get }
+}
+extension DataProcessible {
+  func compressData() -> Data {
+    use(data) 
+    /// details omitted
+  }
+}
+
+actor MyDataActor : DataProcessible {
+  // error: cannot fulfill sync requirement with isolated actor member.
+  var data: Data
+
+  func doThing() {
+    // All sync, no problem!
+    let compressed = compressData()
+  }
+}
+```
+
+That pitch suggests that the conformance of `MyDataActor : DataProcessible` be permitted, and introduces the notion of a `@sync` actor type to describe the actor when in its own isolation domain. Specifically, the type `@sync MyDataActor` conforms to `DataProcessible` but the type `@async MyDataActor` (which represents the actor outside of its isolation domain) does not.
+
+This proposal does not separate isolated from non-isolated actor types, and instead uses an `isolated` parameter to describe the actor that the code is executing on. The same notion can be extended to introduce isolated protocol conformances, which are conformances that can only be used with isolated values. For example, the conformance itself could have `isolated` applied to it to mark it as an isolated conformance:
+
+```swift
+actor MyDataActor : isolated DataProcessible {
+  var data: Data   // okay: satisfies "data" requirement
+
+  func doThing() {
+    // okay, because self is isolated
+    let compressed = compressData()
+  }
+  
+  nonisolated failToDoTheThing() {
+    // error: isolated conformance MyDataActor : DataProcessible cannot be used when non-isolated
+    // value of type MyDataActor is passed to the generic function.
+    let compressed = compressData()    
+  }
+}
+```
+
+The use of isolated protocol conformances would require a number of other restrictions to ensure that the protocol conformance cannot be used on non-isolated instances of the actor. For example, this means that a non-isolated conformance can never be used along with `ConcurrentValue` on the same type, because that would permit a non-isolated instance of the actor to be passed outside of the actor's isolation domain along with a protocol conformance that assumes it is within the actor's isolation domain.
+
+## Alternatives considered
+
 ### Eliminating inheritance
 
 Like classes, actors as proposed allow inheritance. However, actors and classes cannot be co-mingled in an inheritance hierarchy, so there are essentially two different kinds of type hierarchies. It has been [proposed](https://docs.google.com/document/d/14e3p6yBt1kPrakLcEHV4C9mqNBkNibXIZsozdZ6E71c/edit#) that actors should not permit inheritance at all, because doing so would simplify actors: features such as method overriding, initializer inheritance, required and convenience initializers, and inheritance of protocol conformances would not need to be specified, and users would not need to consider them. The [discussion thread](https://forums.swift.org/t/actors-are-reference-types-but-why-classes/42281) on the proposal to eliminate inheritance provides several reasons to keep actor inheritance:
@@ -885,6 +938,7 @@ This implementation will behave as one would expect for inheritance (every `Empl
   * Clarify that `super` is isolated if `self` is.
   * Prohibit references to actor-isolated declarations in key paths.
   * Clarify the behavior of partial applications.
+  * Added a "future directions" section describing isolated protocol conformances.
 * Changes in the third pitch:
   * Narrow the proposal down to only support re-entrant actors. Capture several potential non-reentrant designs in the Alternatives Considered as possible future extensions.
   * Replaced `@actorIndependent` attribute with a `nonisolated` modifier, which follows the approach of `nonmutating` and ties in better with the "actor isolation" terminology (thank you to Xiaodi Wu for the suggestion).
