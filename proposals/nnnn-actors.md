@@ -449,14 +449,15 @@ In the example above the `Person` can think of a good or bad idea, shares that o
 This is exemplified by the following piece of code, exercising the `decisionMaker` actor:
 
 ```swift
-async let shouldBeGood = person.thinkOfGoodIdea() // runs async
-async let shouldBeBad = person.thinkOfBadIdea() // runs async
+let goodThink = Task.runDetached { await person.thinkOfGoodIdea() }  // runs async
+let badThink = Task.runDetached { await person.thinkOfBadIdea() } // runs async
+
+let shouldBeGood = await goodThink.get()
+let shouldBeBad = await badThink.get()
 
 await shouldBeGood // could be .goodIdea or .badIdea ☠️
 await shouldBeBad
 ```
-
-> This issue is illustrated by using async lets, however also simply manifest by more than one actor calling out to the same decision maker; one invoking `thinkOfGoodIdea` and the other one `thinkOfBadIdea`.
 
 This snippet _may_ result (depending on timing of the resumptions) in the following execution:
 
