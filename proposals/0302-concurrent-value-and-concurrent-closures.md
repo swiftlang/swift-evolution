@@ -233,9 +233,42 @@ Without this restriction, another source file or module, which cannot see the pr
 extension MySneakyNSPerson: @unchecked Sendable { }
 ```
 
-This approach follows the precedent of [SE-0185](https://github.com/apple/swift-evolution/blob/main/proposals/0185-synthesize-equatable-hashable.md), [SE-0266](https://github.com/apple/swift-evolution/blob/main/proposals/0266-synthesized-comparable-for-enumerations.md), and [SE-0283](https://github.com/apple/swift-evolution/blob/main/proposals/0283-tuples-are-equatable-comparable-hashable.md) which uses explicit conformance to direct compiler behavior.  An alternative design would be to make conformance _implicit_ for all types that structurally conform.  Please see [Alternatives Considered](#alternatives-considered) at the end of this proposal for more discussion about this.
+#### Implicit struct/enum conformance to `Sendable`
 
-#### `[Unsafe]Sendable` conformance checking for classes
+Many structs and enums satisfy the requirements of `Sendable`, and having to explicitly write out "`: Sendable`" for every such type can feel like boilerplate. 
+For non-public, non-frozen structs and enums, the `Sendable` conformance is implicitly provided when conformance checking (described in the previous section) succeeds:
+
+```swift
+struct MyPerson2 { // Implicitly conforms to Sendable!
+  var name: String, age: Int
+}
+
+class NotConcurrent { } // Does not conform to Sendable
+
+struct MyPerson3 { // Does not conform to Sendable because nc is of non-Sendable type
+  var nc: NotConcurrent
+}
+```
+
+Public non-frozen structs and enums do not get an implicit conformance, because doing so would present a problem for API resilience: the implicit conformance to `Sendable` would become part of the contract with clients of the API, even if it was not intended to be. Moreover, this contract could easily be broken by extending the struct or enum with storage that does not conform to `Sendable`. 
+
+> **Rationale**: Existing precedent from `Hashable`, `Equatable`, and `Codable` is to require explicit conformance, even when the details are synthesized. We break from that precedent for `Sendable` because (1) `Sendable` is likely to be even more common, (2) there is no impact on code size (or the binary at all) for `Sendable`, unlike with the other protocols, and (3) `Sendable` does not introduce any additional API beyond allowing the use of the type across concurrency domains.
+
+Note that implicit conformance to `Sendable` is only available for non-generic types and for generic types whose instance data is guaranteed to be of `Sendable` type. For example:
+
+```swift
+struct X<T: Sendable> {  // implicitly conforms to Sendable
+  var value: T
+}
+
+struct Y<T> {    // does not implicitly conform to Sendable because T does not conform to Sendable
+  var value: T
+}
+```
+
+Swift will not implicitly introduce a conditional conformance. It is possible that this could be introduced in a future proposal.
+
+#### `Sendable` conformance checking for classes
 
 Any class may be declared to conform to `Sendable` with an `@unchecked` conformance, allowing them to be passed between actors without semantic checks.  This is appropriate for classes that use access control and internal synchronization to provide memory safety — these mechanisms cannot generally be checked by the compiler.
 
@@ -581,24 +614,6 @@ This proposal has no effect on API resilience!
 
 There are several alternatives that make sense to discuss w.r.t. this proposal.  Here we capture some of the bigger ones.
 
-### Implicit struct/enum Conformance to `Sendable`
-
-Early in the discussion, a few people objected to the boilerplate “: Sendable” conformance syntax for types that should “obviously” conform (e.g. a struct with two `Int`s in it):
-
-```swift
-struct MyPerson2 { // Implicitly conforms to Sendable!
-  var name: String, age: Int
-}
-```
-
-While initially appealing to some, this proposal aligns with strong precedent in the Swift ecosystems (e.g. `Hashable`, `Equatable`, `Codable`, etc) which all require explicit conformance.  We use the following rationale:
-
-*   Consistency with existing protocols is important, and the same boilerplate argument applies to `Hashable`, `Equatable`, etc.  This was discussed during their review.
-*   Implicit conformance is a problem for API resilience, because adding a new non-`Sendable` member to a type would cause it to drop conformance to `Sendable`.  Adding members to a struct is not meant to be source-breaking by default.
-*   Explicit conformances give you a [compiler error eagerly](https://forums.swift.org/t/pitch-protocol-based-actor-isolation/41677/7) if you define a struct with non-concurrent things, encouraging you to think about safety.  With implicit conformances you only get the error when trying to send it across concurrency domains.
-*   If we decide that the boilerplate is too heavy, we can always add implicit conformances in the future.  In contrast, starting with implicit conformances and then removing them would be source breaking.
-*   Not all struct/enum compositions of `Sendable` types are themselves concurrency safe ([examples](https://forums.swift.org/t/pitch-2-protocol-based-actor-isolation/42123/6)), so implicit conformance would require a way to disable autosynthesis, making the proposal more complicated.
-
 ### Exotic Type System Features
 
 The [Swift Concurrency Roadmap](https://forums.swift.org/t/swift-concurrency-roadmap/41611) mentions that a future iteration of the feature set could introduce new type system features like “`mutableIfUnique`” classes, and it is easy to imagine that move semantics and unique ownership could get introduced into Swift someday.
@@ -632,3 +647,4 @@ Because the feature is mostly a library feature that builds on existing language
 * Changes from the first review
   * Renamed `ConcurrentValue` to `Sendable` and `@concurrent` to `@sendable`.
   * Replaced `UnsafeConcurrentValue` with `@unchecked Sendable` conformances.
+  * Add implicit conformance to `Sendable` for non-public, non-frozen `struct` and `enum` types.
