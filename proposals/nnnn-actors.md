@@ -230,7 +230,7 @@ func f(account1: BankAccount, account2: isolated BankAccount) {
 Note that there is no mechanism that would permit two actors to be isolated at the same time, because one has to "leave" one actor's isolation domain to enter the isolation domain of another actor. Therefore, we prohibit the definition of a function with more than one isolated parameter:
 
 ```swift
-func transfer(amount: Double, from fromAccount: isolated BankAccount, to toAccount: isolated BankAccount) { // error: only one parameter in a function can be isolated
+func transfer(amount: Double, from fromAccount: isolated BankAccount, to toAccount: isolated BankAccount) { // error: only one parameter in a function can be actor-isolated
   // ...
 }
 ```
@@ -261,7 +261,7 @@ There are two important things to note here:
 ```
 error: actor-isolated property "description" cannot be used to satisfy a protocol requirement
 ```
-2. The `nonisolated` modifier means that the `self` parameter is not consider to reference an isoalted actor. This makes references to declarations on `self` cross-actor references, so actor isolation checking will prevent them from being used:
+2. The `nonisolated` modifier means that the `self` parameter is not consider to reference an isolated actor. This makes references to declarations on `self` cross-actor references, so actor isolation checking will prevent them from being used:
 ```swift
 extension BankAccount: CustomDebugStringConvertible {
   nonisolated var debugDescription: String {
@@ -666,7 +666,7 @@ When a given declaration (the "witness") satisfies a protocol requirement (the "
 
 ### Partial applications
 
-A partial applications of a function with an `isolated` parameter is only permitted when the expression is a direct argument whose corresponding parameter is non-escaping and non-concurrent. For example:
+A partial application of a function with an `isolated` parameter is only permitted when the expression is a direct argument whose corresponding parameter is non-escaping and non-concurrent. For example:
 
 ```swift
 func runLater<T>(_ operation: @escaping () -> T) -> T { ... }
