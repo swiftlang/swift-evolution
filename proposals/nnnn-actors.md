@@ -206,7 +206,7 @@ func investWildly(account: BankAccount, amount: Double) async {
     account.balance += winnings
   }
 }
-``` 
+```
 
 It also allows actor functions to be extracted into global or local functions, so code can be refactored without breaking actor isolation. Due to `isolated` parameters, the `self` parameter of an actor function is actually not that special: it merely defaults to `isolated` because of the context in which it is declared. For example, type of `BankAccount.deposit(amount:)`, defined above, is a curried function that involves an isolated `self`:
 
@@ -611,6 +611,35 @@ Declarations marked as `nonisolated` can be used from outside the actor's isolat
 By default, the mutable instance stored properties (declared with `var`) of an actor are actor-isolated to the actor instance. A stored instance property may be annotated with `nonisolated(unsafe)` to remove this restriction.
 
 > **Rationale**: `nonisolated(unsafe)` allows specific stored instance properties to opt out of actor isolation checking, allowing careful developers to implement their own synchronization mechanisms.
+
+It is legal, albeit uncommon, to declare an actor instance method as `nonisolated` _and_ have it accept a different `isolated` actor parameter. Since nonisolated can be understood as removing the implicit `isolated self`, the addition of an `isolated` parameter still properly respects the requirement that there be only a single actor with which a function is isolated.
+
+In other words, the following function:
+
+```swift
+actor Greeter { 
+  func greet(_ name: String) { ... }
+}
+
+actor Worker {
+  private let name: String
+  var creditCard: CreditCard
+  
+  nonisolated func hello(by greeter: isolated Greeter) { 
+    greeter.greet(self.name)
+    greeter.take(creditCard) // error: nonisolated Worker function cannot refer to isoalted state 'creditCard', function is actor-isolated to 'greeter: isolated Greeter'
+  }
+}
+```
+
+Exhibits the following semantics:
+
+- this function is isolated with the `Greeter` actor, and *not* the `Worker` (!),
+  - as such, it can synchronously invoke the `greeter.greet` function.
+- it cannot refer to isolated state of the Worker,
+- it will execute on the `Greeter` actor.
+
+In practice this means that this function can only be invoked by a greeter which passes `self` as an isolated parameter to the hello function of the worker it is about to greet. The `hello` function can refer to the actors private, non isolated state, such as a constant (or other `nonisolated` variables).
 
 ### Actor isolation checking
 
