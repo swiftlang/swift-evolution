@@ -561,7 +561,7 @@ There are a number of existing actor implementations that have considered the no
 
 #### Reentrancy Summary
 
-This proposal provides only reentrant actors. However, the [Alternatives Considered](#alternatives-considered) section describes potential future design directions that could add opt-in non-reentrancy.
+This proposal provides only reentrant actors. However, the [Future Directions](#future-directions) section describes potential future design directions that could add opt-in non-reentrancy.
 
 > **Rationale**: Reentrancy by default all but eliminates the potential for deadlocks. Moreover, it helps ensure that actors can make timely progress within a concurrent system, and that a particular actor does not end up unnecessarily blocked on a long-running asynchronous operation (say, downloading a file). The mechanisms for ensuring safe interleaving, such as using synchronous code when performing mutations and being careful not to break invariants across `await` calls, are already present in the proposal.
 
