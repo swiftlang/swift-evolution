@@ -364,7 +364,7 @@ func chop(_ vegetable: Vegetable) async throws -> Vegetable {
   // chop chop chop ...
   // ... 
   
-  guard Task.isCancelled else { 
+  guard !Task.isCancelled else { 
     print("Cancelled mid-way through chopping of \(vegetable)!")
     throw CancellationError() 
   } 
