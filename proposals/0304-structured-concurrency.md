@@ -1,6 +1,6 @@
 # Structured concurrency
 
-* Proposal: [SE-0303](0303-structured-concurrency.md)
+* Proposal: [SE-0304](0304-structured-concurrency.md)
 * Authors: [John McCall](https://github.com/rjmccall), [Joe Groff](https://github.com/jckarter), [Doug Gregor](https://github.com/DougGregor), [Konrad Malawski](https://github.com/ktoso)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Active Review (March 4 - 16 2021)**
