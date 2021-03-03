@@ -635,9 +635,9 @@ actor Worker {
 Exhibits the following semantics:
 
 - this function is isolated with the `Greeter` actor, and *not* the `Worker` (!),
-  - as such, it can synchronously invoke the `greeter.greet` function
-- it cannot refer to isolated state of the Worker
-- it will execute on the `Greeter` actor, 
+  - as such, it can synchronously invoke the `greeter.greet` function.
+- it cannot refer to isolated state of the Worker,
+- it will execute on the `Greeter` actor.
 
 In practice this means that this function can only be invoked by a greeter which passes `self` as an isolated parameter to the hello function of the worker it is about to greet. The `hello` function can refer to the actors private, non isolated state, such as a constant (or other `nonisolated` variables).
 
