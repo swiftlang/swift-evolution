@@ -3,7 +3,7 @@
 * Proposal: [SE-0298](0298-asyncsequence.md)
 * Authors: [Tony Parker](https://github.com/parkera), [Philippe Hausler](https://github.com/phausler)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted**
+* Status: **Implemented (Swift Next)**
 * Implementation: [apple/swift#35224](https://github.com/apple/swift/pull/35224)
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-modification-se-0298-async-await-sequences/44231)
 

@@ -3,12 +3,11 @@
 * Proposal: [SE-0296](0296-async-await.md)
 * Authors: [John McCall](https://github.com/rjmccall), [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Accepted**
+* Status: **Implemented (Swift Next)**
 * Implementation: Available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-modification-se-0296-async-await/43318)
 
-Table of Contents
-=================
+## Table of Contents
 
    * [Async/await](#asyncawait)
       * [Introduction](#introduction)

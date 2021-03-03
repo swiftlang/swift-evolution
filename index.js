@@ -19,7 +19,7 @@ var proposals
  * To be updated when proposals are confirmed to have been implemented
  * in a new language version.
  */
-var languageVersions = ['2.2', '3', '3.0.1', '3.1', '4', '4.1', '4.2', '5', '5.1', '5.2', '5.3', '5.4'] // 'Next'
+var languageVersions = ['2.2', '3', '3.0.1', '3.1', '4', '4.1', '4.2', '5', '5.1', '5.2', '5.3', '5.4', 'Next']
 
 /** Storage for the user's current selection of filters when filtering is toggled off. */
 var filterSelection = []
