@@ -12,7 +12,10 @@
 
 However, the `async`/`await` proposal does not introduce concurrency *per se*: ignoring the suspension points within an asynchronous function, it will execute in essentially the same manner as a synchronous function. This proposal introduces support for [structured concurrency](https://en.wikipedia.org/wiki/Structured_concurrency) in Swift, enabling concurrent execution of asynchronous code with a model that is ergonomic, predictable, and admits efficient implementation.
 
-Swift-evolution thread: [\[Concurrency\] Structured concurrency](https://forums.swift.org/t/concurrency-structured-concurrency/41622)
+Swift-evolution threads:
+  [Pitch #1](https://forums.swift.org/t/concurrency-structured-concurrency/41622),
+  [Pitch #2](https://forums.swift.org/t/pitch-2-structured-concurrency/43452),
+  [Pitch #3](https://forums.swift.org/t/pitch-3-structured-concurrency/44496)
 
 ## Motivation
 
