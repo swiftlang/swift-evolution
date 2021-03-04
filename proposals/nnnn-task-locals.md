@@ -289,7 +289,7 @@ This way, only the current task which has bound this task local value to itself 
 
 ```swift
 let house: House = ... 
-Task.withLocal(\.house, boundTo: Progress(...)) {
+Task.withLocal(\.house, boundTo: House(...)) {
   assert(Task.local(\.house) != nil)
   async let child = assert(Task.local(\.house) == nil) // not available in child task 
 }
