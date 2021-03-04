@@ -173,7 +173,7 @@ func makeDinner() async throws -> Meal {
     await group.add {
       meat = await marinateMeat()
     }
-    await group.app {
+    await group.add {
       oven = await preheatOven(temperature: 350)
     }
   }
