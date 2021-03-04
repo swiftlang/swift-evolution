@@ -644,7 +644,7 @@ Foundation's `URLSession` object in an async function interface, cancelling the
 `URLSession` if the async task is itself cancelled, then it might look
 something like this:
 
-```
+```swift
 func download(url: URL) async throws -> Data? {
   var urlSessionTask: URLSessionTask?
 
@@ -989,7 +989,7 @@ heterogeneous values up from child tasks to their parent. This is possible
 within the existing task group APIs, though not ideal. Take our
 first `makeDinner` example:
 
-```
+```swift
 func makeDinner() async throws -> Meal {
   var veggies: [Vegetable]?
   var meat: Meat?
@@ -1027,7 +1027,7 @@ we could provide a binding syntax to represent the result of a child task, and
 then treat accesses of that binding as an operation that requires `await`-ing
 and/or `try`-ing the result of the child task:
 
-```
+```swift
 func makeDinner() async throws -> Meal {
   async let veggies = chopVegetables()
   async let meat = marinateMeat()
