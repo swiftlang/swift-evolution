@@ -3,8 +3,8 @@
 * Proposal: [SE-NNNN](NNNN-task-local.md)
 * Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
 * Review Manager: TBD
-* Status: Awaiting review
-* Implementation: [apple/swift#34722](https://github.com/apple/swift/pull/34722)
+* Status: **Implemented**, except "always best effort" inheritance method which is debatable 
+* Implementation: Available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
 
 ## Table of Contents
 
