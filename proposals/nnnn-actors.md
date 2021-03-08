@@ -12,10 +12,10 @@
 * [Proposed solution](#proposed-solution)
    * [Actors](#actors-1)
    * [Actor isolation](#actor-isolation)
-      * [Isolated parameters](#isolated-parameters)
+      * [Actor-isolated parameters](#actor-isolated-parameters)
       * [Closures](#closures)
       * [inout parameters](#inout-parameters)
-      * [Nonisolated declarations](#nonisolated-declarations)
+      * [Non-isolated declarations](#non-isolated-declarations)
    * [Cross-actor references and Sendable types](#cross-actor-references-and-sendable-types)
    * [Actor reentrancy](#actor-reentrancy)
       * ["Interleaving" execution with reentrant actors](#interleaving-execution-with-reentrant-actors)
@@ -25,12 +25,11 @@
       * [Reentrancy Summary](#reentrancy-summary)
 * [Detailed design](#detailed-design)
    * [Actors](#actors-2)
-   * [Isolated parameters](#isolated-parameters-1)
-   * [Non-isolated declarations](#non-isolated-declarations)
    * [Actor isolation checking](#actor-isolation-checking)
       * [References and actor isolation](#references-and-actor-isolation)
       * [Overrides](#overrides)
       * [Protocol conformance](#protocol-conformance)
+   * [Non-isolated declarations](#non-isolated-declarations-1)
    * [Partial applications](#partial-applications)
    * [Actor interoperability with Objective-C](#actor-interoperability-with-objective-c)
 * [Source compatibility](#source-compatibility)
@@ -183,7 +182,7 @@ func checkBalance(account: BankAccount) {
 
 #### Actor-isolated parameters
 
-The `self` parameter of an actor function is special in that it is within the actor's isolation domain, so it can access properties and synchronous functions on the actor. The same capabilities can be afforded to a different parameter by marking it as `isolated`. For example, this allows us to express an operation that runs a closure on an actor:
+The `self` parameter of an actor function is special in that it is within the actor's isolation domain, so it can access properties and synchronous functions on the actor. The same capabilities can be afforded to a different parameter by marking it as `isolated`; such a parameter must have a type that conforms to the `Actor` protocol. For example, this allows us to express an operation that runs a closure on an actor:
 
 ```swift
 extension BankAccount {
@@ -325,7 +324,7 @@ actor A {
 
 > **Rationale**: this restriction prevents exclusivity violations where the modification of the actor-isolated `balance` is initiated by passing it as `inout` to a call that is then suspended, and another task executed on the same actor then attempts to access `balance`. Such an access would then result in an exclusivity violation that will terminate the program. While the `inout` restriction is not required for memory safety (because errors will be detected at runtime), the default re-entrancy of actors makes it very easy to introduce non-deterministic exclusivity violations. Therefore, we introduce this restriction to eliminate that class of problems that where a race would trigger an exclusivity violation.
 
-#### Nonisolated declarations
+#### Non-isolated declarations
 
 Instance declarations defined within actors have an `isolated` parameter `self` by default. However, the modifier `nonisolated` on an actor instance declaration makes the `self` parameter non-isolated. This allows us to provide abstraction over the immutable state of an actor that can be accessed synchronously from anywhere:
 
@@ -340,7 +339,7 @@ extension BankAccount {
 }
 ```
 
-Non-isolated declarations can also be used to define conformances of an actor to a protocol that has synchronous requirements, which would otherwise cause actor isolation checking to produce an error. For example:
+Non-isolated declarations can also be used to define conformances of an actor to a protocol that has synchronous requirements, which would otherwise cause actor isolation checking to produce an error. For example, it can be useful to defining protocol conformances based on immutable state:
 
 ```swift
 extension BankAccount: Hashable {
@@ -365,15 +364,49 @@ There are two important things to note here:
 error: actor-isolated property "description" cannot be used to satisfy a protocol requirement
 ```
 2. The `nonisolated` modifier means that the `self` parameter is not consider to reference an isolated actor. This makes references to declarations on `self` cross-actor references, so actor isolation checking will prevent them from being used:
+
 ```swift
-extension BankAccount: CustomDebugStringConvertible {
-  nonisolated var debugDescription: String {
-    "Bank account #\(accountNumber), balance = \(balance)"  // error: actor-isolated property 'balance' can not be referenced from a non-isolated context
+extension BankAccount {
+  nonisolated func steal(amount: Double) {
+    balance -= amount  // error: actor-isolated property 'balance' can not be referenced on non-isolated parameter 'self'
   }
+}  
+```
+
+Non-isolated declarations are particularly useful for adapting existing asynchronous code to actors. For example, consider an existing simple "server" protocol that uses a completion handler:
+
+```swift
+protocol Server {
+  func send<Message: MessageType>(
+    message: Message,
+    completionHandler: (Result<Message.Reply>) -> Void
+  )
 }
 ```
 
-Most functions are not isolated to a particular actor. For example, all functions declared outside of an actor are not actor isolated by nature (there is no actor `self` and they have no other `isolated` parameters). Static members of the actor are not actor-isolated because `self` is not an instance.
+Over time, this protocol should evolve to provide `async` requirements. However, one can make an actor type conform to this protocol using a non-isolated declaration:
+
+```swift
+actor MyActorServer {
+  func send<Message: MessageType>(message: Message) async throws -> Message.Reply { ... }  // this is the "real" asynchronous implementation we want
+}
+
+extension MyActorServer : Server {
+  nonisolated func send<Message: MessageType>(
+    message: Message,
+    completionHandler: (Result<Message.Reply>) -> Void
+  ) {
+    Task.runDetached {
+      do {
+        let reply = try await send(message: message)
+        completionHandler(.success(reply))
+      } catch {
+        completionHandler(.failure(error))
+      } 
+    }
+  }
+}
+```
 
 ### Cross-actor references and `Sendable` types
 
@@ -618,6 +651,75 @@ protocol Actor : AnyObject, Sendable { }
 
 The definition of the `Actor` protocol is intentionally left blank. The [custom executors proposal][customexecs] will introduce requirements into the `Actor` protocol. These requirements will be implicitly synthesized by the implementation when not explicitly provided, but can be explicitly provided to allow actors to control their own serialized execution.
 
+### Actor isolation checking
+
+Any given declaration in a program is either actor-isolated or is non-isolated. A function (including accessors) is actor-isolated if it contains an `isolated` parameter, in which case it is said to be isolated to the actor described by that parameter. A mutable instance property or instance subscript is actor-isolated if it is defined on an actor type and is not explicitly non-isolated. Declarations that are not actor-isolated are called non-isolated.
+
+The actor isolation rules are checked in a number of places, where two different declarations need to be compared to determine if their usage together maintains actor isolation. There are several such places:
+* When the definition of one declaration (e.g., the body of a function) references another declaration, e.g., calling a function, accessing a property, or evaluating a subscript.
+* When one declaration overrides another.
+* When one declaration satisfies a protocol requirement.
+
+We'll describe each scenario in detail.
+
+#### References and actor isolation
+
+An actor-isolated non-`async` declaration can only be synchronously accessed from another declaration that is isolated to the same actor. For synchronous access to an actor-isolated function, the argument corresponding to an `isolated` parameter must itself be `isolated`. For synchronous access to an actor-isolated instance property or instance subscript, the `self` argument must be isolated.
+
+An actor-isolated declaration can be asynchronously accessed from any declaration, whether it is isolated to another actor or is non-isolated. Such accesses are asynchronous operations, and therefore must be annotated with `await`. Semantically, the progam will switch to the actor to perform the synchronous operation, and then switch back to the caller's executor afterward.
+
+For example:
+
+```swift
+actor MyActor {
+  let name: String
+  var counter: Int = 0
+  func f()
+}
+
+func g(a: isolated MyActor, b: MyActor) async {
+  print(a.name)          // okay, name is non-isolated
+  print(b.name)          // okay, name is non-isolated
+  print(a.counter)       // okay, a is isolated to MyActor
+  print(await b.counter) // okay, b is not isolated to MyActor but asynchronous access is permitted
+  a.f()                  // okay, a is isolated to MyActor
+  await b.f()            // okay, b is not isolated to MyActor but asynchronous access is permitted
+  g(a: a, b: b)          // okay, argument to a is isolated and argument to b is not
+  g(a: a, b: a)          // okay, argument to a is isolated and argument to b is also isolated (but doesn't need to be)
+  g(a: b, b: b)          // error: argument to a is not isolated
+}
+```
+
+#### Overrides
+
+When a given declaration (the "overriding declaration") overrides another declaration (the "overridden" declaration), the actor isolation of the two declarations is compared. The override is well-formed if:
+
+* the overriding and overridden declarations are isolated to the same actor, or
+* the overriding declaration is non-isolated.
+
+In the absence of an explicitly-specified actor-isolation modifier (i.e, `nonisolated`), the overriding declaration will inherit the actor isolation of the overridden declaration.
+
+#### Protocol conformance
+
+When a given declaration (the "witness") satisfies a protocol requirement (the "requirement"), the protocol requirement can be satisfied by the witness if:
+
+* The requirement is `async`, or
+* the witness is non-isolated.
+
+An actor can satisfy an asynchronous requirement because any uses of the requirement are asynchronous, and can therefore suspend until the actor is available to execute them. Note that an actor can satisfy and asynchronous requirement with a synchronous one, in which case the normal notion of asynchronously accessing a synchronous declaration on an actor applies. For example:
+
+```swift
+protocol Server {
+  func send<Message: MessageType>(message: Message) async throws -> Message.Reply
+}
+
+actor MyServer : Server {
+  func send<Message: MessageType>(message: Message) throws -> Message.Reply { ... }  // okay, asynchronously accessed from clients of the protocol
+}
+```
+
+A non-isolated witness can always satisfy a requirement (whether synchronous or not), because the witness can run in any context---it does not need to be run on the actor because it isn't isolated to the actor.
+
 ### Non-isolated declarations
 
 An instance method, computed property, or subscript of an actor may be annotated with `nonisolated`.  When a declaration is `nonisolated`, it (or its accessors) have a `self` parameter that is not `isolated`.
@@ -633,59 +735,6 @@ Declarations marked as `nonisolated` can be used from outside the actor's isolat
 By default, the mutable instance stored properties (declared with `var`) of an actor are actor-isolated to the actor instance. A stored instance property may be annotated with `nonisolated(unsafe)` to remove this restriction.
 
 > **Rationale**: `nonisolated(unsafe)` allows specific stored instance properties to opt out of actor isolation checking, allowing careful developers to implement their own synchronization mechanisms.
-
-### Actor isolation checking
-
-Any given declaration in a program is either isolated to a specific actor or is non-isolated.
-
-An actor-isolated declaration can be the stored instance properties of an actor as well as any function that has an `isolated` parameter, which includes computed instance properties, instance methods, and instance subscripts of an actor. 
-
-Declarations that are not isolated to an actor are called non-isolated.
-
-The actor isolation rules are checked in a number of places, where two different declarations need to be compared to determine if their usage together maintains actor isolation. There are several such places:
-* When the definition of one declaration (e.g., the body of a function) references another declaration, e.g., calling a function, accessing a property, or evaluating a subscript.
-* When one declaration overrides another.
-* When one declaration satisfies a protocol requirement.
-
-We'll describe each scenario in detail.
-
-#### References and actor isolation
-
-A given declaration (call it the "source") can synchronously reference another declaration (call it the "target"), e.g., by calling a function or accessing a property or subscript. A synchronous invocation requires the actor isolation categories for the source and target to be compatible (defined below). An actor-isolated target function or target property getter that is not compatible with the source can be accessed asynchronously.
-
-A source and target category pair is compatible if:
-* the source and target categories are the same, or
-* the target category is non-isolated.
-
-The first rule is the most direct: an isolated parameter (e.g., `self` or any other parameter marked as `isolated`) can synchronously access any member its type (e.g., a mutable instance property) that is isolated to the same actor. The argument that corresponds to an `isolated` parameter must itself be `isolated`.
-
-The second rule specifies that non-isolated declarations can be used from anywhere because they aren't tied to a particular actor. Actors can provide non-isolated instance methods, but because those functions are not actor-isolated, that cannot read the actor's own mutable state. For example:
-
-```swift
-extension BankAccount {
-  nonisolated func steal(amount: Double) {
-    balance -= amount  // error: actor-isolated property 'balance' can not be referenced on non-isolated parameter 'self'
-  }
-}  
-```
-
-#### Overrides
-
-When a given declaration (the "overriding declaration") overrides another declaration (the "overridden" declaration), the actor isolation of the two declarations is compared. The override is well-formed if:
-
-* the overriding and overridden declarations have the same actor isolation or
-* the overriding declaration is non-isolated.
-
-In the absence of an explicitly-specified actor-isolation modifier (i.e, `nonisolated`), the overriding declaration will inherit the actor isolation of the overridden declaration.
-
-#### Protocol conformance
-
-When a given declaration (the "witness") satisfies a protocol requirement (the "requirement"), the protocol requirement can be satisfied by the witness if:
-
-* The requirement is `async`, or
-* the witness is non-isolated.
-
-
 
 ### Partial applications
 
@@ -959,6 +1008,8 @@ This implementation will behave as one would expect for inheritance (every `Empl
   * Replace `Sendable` with `Sendable` to better track SE-0302.
   * Add the `Actor` protocol back, as an empty protocol whose details will be filled in with a subsequent proposal for [custom executors][customexecs].
   * Replace `ConcurrentValue` with `Sendable` and `@concurrent` with `@sendable` to track the evolution of [SE-0302][se302].
+  * Clarify the presentation of actor isolation checking.
+  * Add more examples for non-isolated declarations.
 * Changes in the fourth pitch:
   * Allow cross-actor references to actor properties, so long as they are reads (not writes or `inout` references)
   * Added `isolated` parameters, to generalize the previously-special behavior of `self` in an actor and make the semantics of `nonisolated` more clear.
