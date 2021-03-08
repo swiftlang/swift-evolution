@@ -41,6 +41,7 @@
    * [Isolated protocol conformances](#isolated-protocol-conformances)
 * [Alternatives Considered](#alternatives-considered)
    * [Eliminating inheritance](#eliminating-inheritance)
+   * [Isolated or sync actor types](#isolated-or-sync-actor-types)
 * [Revision history](#revision-history)
 
 ## Introduction
@@ -1001,6 +1002,60 @@ actor Employee: Person {
 
 This implementation will behave as one would expect for inheritance (every `Employee` is-a `Person`). The inheriting actor type also extends the actor-isolation domain of the actor type it inherits, so (for example) it is safe for a method of `Employee` to refer to `self.birthdate`. Given that there are no implementation reasons to disallow inheritance, and the reasons for inheritance of classes apply equally to actors, we retain inheritance for actor types.
 
+### Isolated or sync actor types
+
+The notion of "isolated" parameters grew out of a [proposal](https://forums.swift.org/t/exploration-type-system-considerations-for-actor-proposal/44540) that generalized the notion of actor isolation from something that only made sense on `self` to one that made sense for any parameter. That proposal modeled isolation directly in the type system by introducing a new kind of type: `@sync` actor types were used for values that have synchronous access to the actors they describe. Therefore, instead of saying that `self` is an `isolated` parameter of type `MyActor`, the proposal would say that `self` has the type `@sync MyActor`. The "isolated conformances" described in the future directions above are similar to (and directly influenced by) the notion that `@sync` actor types can conform to (synchronous) protocols as described in that proposal.
+
+At a high level, isolated parameters and isolated conformances are similar to parameters of `@sync` type and conformances of `@sync` types to protocols, and can address similar sets of use cases. This proposal chose to treat `isolated` as a parameter modifier rather than as a type because it provides a simpler, value-centric model that aligns more closely with the behavior of a similarly-constrained construct, `inout`. There are several inconsistencies to the `@sync` type approach that made it less desirable:
+
+* The type of an actor's `self` can change within nested contexts, such as closures, between `@sync` and non-`@sync`:
+
+    ```swift
+    func f<T>(_: T) { }
+  
+    actor MyActor {
+      func g() {
+        f(self) // T = @sync MyActor
+
+        Task.runDetached {
+          f(self) // T = MyActor
+        }
+      }
+    }  
+    ```
+  Generally speaking, a variable in Swift has the same type when it's captured in a nested context as it does in its enclosing context, which provides a level of predictability that would be lost with `@sync` types. In the example above, type inference for the call to `f` differs significantly whether you're in the closure or not. A [recent discussion on the forums](https://forums.swift.org/t/implicit-casts-for-verified-type-information/41035) about narrowing types showed resistence to the idea of changing the type of a variable in a nested context, even when doing so could eliminate additional boilerplate. 
+
+* The design relies heavily on the implicit conversion from `@sync MyActor` to `MyActor`, e.g.,
+
+    ```swift
+    func acceptActor(_: MyActor) { }
+    func acceptSendable<T: Sendable>(_: T) { }
+  
+    extension MyActor {
+      func h() {
+        acceptActor(h)  // okay, requires conversion of @sync MyActor to MyActor
+        acceptSendable(h) // okay, requires T=MyActor and conversion of @sync MyActor to MyActor
+      }
+    }
+  ```
+
+* Conformance to `Sendable` doesn't follow the normal subtyping rules. Per the conversion above, a `@sync` actor type is a subtype of the corresponding (non-`@sync`) actor type. By definition, a subtype has all of the conformances of its supertype, and may of course add more capabilities. This is a general principle of type system design, and shows up in Swift in a number of places, e.g., with subclassing:
+
+    ```swift
+    protocol P { }
+    
+    class C: P { }
+    class D: C { }
+    
+    func test(c: C, d: D) {
+      let _: P = c   // okay, C conforms to P
+      let _: P = d   // okay, D conforms to P because it is a subtype of C, which itself conforms to P
+    }
+    ```
+    
+    However, `@sync` types don't behave this way with respect to `Sendable`. A non-`@sync` actor type conforms to `Sendable` (it's safe to share it across concurrency domains), but its corresponding `@sync` subtype does *not* conform to `Sendable`. This is why in the prior example's call to `acceptSendable`, the implicit conversion from `@sync MyActor` to `MyActor` is required.
+    
+
 ## Revision history
 
 * Changes in the fifth pitch:
@@ -1010,6 +1065,7 @@ This implementation will behave as one would expect for inheritance (every `Empl
   * Replace `ConcurrentValue` with `Sendable` and `@concurrent` with `@sendable` to track the evolution of [SE-0302][se302].
   * Clarify the presentation of actor isolation checking.
   * Add more examples for non-isolated declarations.
+  * Added a section on isolated or "sync" actor types.
 * Changes in the fourth pitch:
   * Allow cross-actor references to actor properties, so long as they are reads (not writes or `inout` references)
   * Added `isolated` parameters, to generalize the previously-special behavior of `self` in an actor and make the semantics of `nonisolated` more clear.
@@ -1035,7 +1091,6 @@ This implementation will behave as one would expect for inheritance (every `Empl
   * Clarify the role and behavior of actor-independence.
   * Add a section to "Alternatives Considered" that discusses actor inheritance.
   * Replace "actor class" with "actor".
-
 * Original pitch [document](https://github.com/DougGregor/swift-evolution/blob/6fd3903ed348b44496b32a39b40f6b6a538c83ce/proposals/nnnn-actors.md)
 
 
