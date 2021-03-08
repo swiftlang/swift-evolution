@@ -776,7 +776,7 @@ extension Task {
     startingChildTasksOn executor: ExecutorRef? = nil,
     returning returnType: Return.Type = Return.self,
     body: (inout Task.Group<TaskResult>) async throws -> Return
-  ) async throws -> Return { ... } 
+  ) async rethrows -> Return { ... } 
   
   /// A group of tasks, each of which produces a result of type `TaskResult`.
   struct Group<TaskResult> {
