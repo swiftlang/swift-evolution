@@ -573,7 +573,7 @@ let dinnerHandle: Task.Handle<Meal, Error> = Task.runDetached {
   try await makeDinner()
 }
 
-try await eat(dinnerHandle)
+try await eat(mealHandle: dinnerHandle)
 ```
 
 By default, the new task will be initially scheduled on the default global
