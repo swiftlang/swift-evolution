@@ -37,13 +37,11 @@
 + [Future directions](#future-directions)
   - [The impact of formalizing separate property wrapper models](#the-impact-of-formalizing-separate-property-wrapper-models)
   - [Explicit spelling for API-level property wrappers](#explicit-spelling-for-api-level-property-wrappers)
-  - [Library-defined diagnostic notes for understanding API wrapper restrictions](#library-defined-diagnostic-notes-for-understanding-api-wrapper-restrictions)
-  - [API Property wrappers in protocol requirements](#api-property-wrappers-in-protocol-requirements)
   - [Generalized property-wrapper initialization from a projection](#generalized-property-wrapper-initialization-from-a-projection)
-  - [Extending property wrappers to patterns](#extending-property-wrappers-to-patterns)
-  - [Property-wrapper parameters in member-wise initializers](#property-wrapper-parameters-in-member-wise-initializers)
+  - [Static property-wrapper attribute arguments](#static-property-wrapper-attribute-arguments)
+  - [API property wrappers in protocol requirements](#api-property-wrappers-in-protocol-requirements)
+  - [Extend property wrappers to patterns](#extend-property-wrappers-to-patterns)
   - [Support `inout` in wrapped function parameters](#support-inout-in-wrapped-function-parameters)
-  - [Wrapper types in the standard library](#wrapper-types-in-the-standard-library)
 + [Revisions](#revisions)
   - [Changes from the second reviewed version](#changes-from-the-second-reviewed-version)
   - [Changes from the first reviewed version](#changes-from-the-first-reviewed-version)
@@ -566,7 +564,7 @@ demonstrateEvaluationOrder(arg1: 1, arg2: hasSideEffect())
 
 If the property wrapper initializer is evaluated in the caller, the output of this code is `2, 2`. If the property wrapper initializer is evaluated in the callee, the output of the code is `3, 1`.
 
-The proposal authors believe that these two kinds of property wrappers already exist, and formalizing the distinction is a first step in enhancing programmers' understanding of such a complex feature. Property wrappers are very flexible to cover a wide variety of use cases. Formalizing the two broad categories of use cases opens up many interesting possibilities for the language and compiler to enhance library documentation when API wrappers are used, provide better guidance to programmers, and even allow library authors to augment the guidance given to programmers on invalid code.
+The proposal authors believe that these two kinds of property wrappers already exist, and formalizing the distinction is a first step in enhancing programmers' understanding of such a complex feature. Property wrappers are very flexible to cover a wide variety of use cases. Formalizing the two broad categories of use cases opens up many interesting possibilities for the language and compiler to enhance library documentation when API wrappers are used, provide better guidance to programmers, and even allow library authors to augment the guidance given to programmers on invalid code through, for example, library-defined diagnostic notes.
 
 ### Explicit spelling for API-level property wrappers
 
@@ -584,16 +582,6 @@ struct Asserted<Value> {
 }
 ```
 
-### Library-defined diagnostic notes for understanding API wrapper restrictions
-
-API property wrappers on parameters have more restrictions than implementation detail property wrappers, because they have an external effect to the function. One very nice thing about property wrappers as custom attributes is that the documentation for that attribute is defined by the library author. Extending the principle of allowing libraries to define more functionality, we could allow libraries to define custom diagnostic notes to help explain restrictions that exist due to the external effects the wrapper imposes on the function.
-
-A custom diagnostic framework may also be useful for API-level property wrappers that are applied to properties, because these wrappers can change how the wrapped declaration can be used. For instance, a property wrapper may change the accessor mutability of the wrapped property, which may cause unexpected and unhelpful diagnostics when the programmer accesses the property incorrectly. The compiler can tell the programmer _what_ the mutability is, but it cannot help explain _why_ there is a difference in mutability when the wrapper is attached.
-
-### API property wrappers in protocol requirements
-
-Protocol requirements that include property wrappers was [pitched](https://forums.swift.org/t/property-wrapper-requirements-in-protocols/33953) a while ago, but there was a lot of disagreement about whether property wrappers are implementation detail or API. With this distinction formalized, we could allow only API-level property wrappers in protocol requirements.
-
 ### Generalized property-wrapper initialization from a projection
 
 This proposal adds `init(projectedValue:)` as a new property-wrapper initialization mechanism for function parameters. This mechanism could also be used to support initialization from a projected value for properties and local variables via [definite initialization](https://en.wikipedia.org/wiki/Definite_assignment_analysis):
@@ -609,7 +597,69 @@ struct TextEditor {
 }
 ```
 
-### Extending property wrappers to patterns
+### Static property-wrapper attribute arguments
+
+This proposal does not allow API-level property wrappers to have arguments in the wrapper attribute to ensure that these arguments remain the same across the different initialization mechanisms. Instead of passing these arguments to the property-wrapper initializer, property wrappers could opt into storing these arguments in per-wrapped-declaration static storage that is shared across property-wrapper instances. Consider the following example, inspired by [ValidatedPropertyKit](https://github.com/SvenTiigi/ValidatedPropertyKit):
+
+```swift
+@propertyWrapper(sharedInfo: Validation)
+struct Asserted<Value: Comparable> {
+  struct Validation {
+    private let predicate: (Value) -> Bool
+
+    init(predicate: @escaping (Value) -> Bool) {
+      self.predicate = predicate
+    }
+
+    init(_ validation: Validation) {
+      self.predicate = validation.predicate
+    }
+
+    static func greaterOrEqual(_ value: Value) -> Self {
+      .init { $0 >= value }
+    }
+  }
+
+  init(wrappedValue: Value) { ... }
+
+  // This is the 'wrappedValue'
+  subscript(sharedInfo: Validation) -> Value {
+    get { ... }
+    set { ... }
+  }
+}
+```
+
+When `Asserted` is applied as a property wrapper, the arguments to the wrapper attribute become arguments to the `Validation` initializer, which would have static storage that is shared across each instance of the `Asserted` property wrapper in the following struct:
+
+```swift
+struct S {
+  @Asserted(.greaterOrEqual(1)) var value: Int = 10
+}
+
+// translated to -->
+
+struct S {
+  private static let _value$sharedInfo: Asserted<Int>.Validation
+      = .init(.greaterOrEqual(1))
+
+  private var _value: Asserted<Int>
+      = .init(wrappedValue: 10)
+
+  var value: Int {
+    get { _value[sharedInfo: _value$sharedInfo] }
+    set { _value[sharedInfo: _value$sharedInfo] = newValue }
+  }
+}
+```
+
+This static storage mechanism would eliminate a lot of unnecessary storage in property wrapper instances. It would also allow API property wrappers on parameters to have attribute arguments, because those arguments are guaranteed to never change regardless of how the property wrapper is initialized.
+
+### API property wrappers in protocol requirements
+
+Protocol requirements that include property wrappers was [pitched](https://forums.swift.org/t/property-wrapper-requirements-in-protocols/33953) a while ago, but there was a lot of disagreement about whether property wrappers are implementation detail or API. With this distinction formalized, we could allow only API-level property wrappers in protocol requirements.
+
+### Extend property wrappers to patterns
 
 Passing a property-wrapper storage instance directly to a property-wrapped closure parameter was supported in first revision. One suggestion from the core team was to imagine this functionality as an orthogonal feature to allow pattern matching to "unwrap" property wrappers. Though this proposal revised the design of closures to match the behavior of unapplied function references, extending property wrappers to all patterns is still a viable future direction.
 
@@ -628,56 +678,9 @@ case .revised(@Traceable let reviewText),
 }
 ```
 
-### Property-wrapper parameters in member-wise initializers
-
-Synthesized member-wise initializers could use property-wrapper parameters for stored properties with attached property wrappers:
-
-```swift
-struct TextEditor {
-  @Traceable var dataSource: String
-
-  // Synthesized member-wise init
-  init(@Traceable dataSource: String) { ... }
-}
-
-func copyDocument(in editor: TextEditor) -> TextEditor {
-  TextEditor($dataSource: editor.$dataSource)
-}
-```
-
 ### Support `inout` in wrapped function parameters
 
-This proposal doesn't currently support marking property-wrapped function parameters `inout`. We deemed that this functionality would be better tackled by another proposal, due to its implementation complexity. Nonetheless, such a feature would be useful for mutating a `wrappedValue` argument when the wrapper has a `mutating` setter.
-
-
-### Wrapper types in the standard library
-
-Adding wrapper types to the standard library has been discussed for types [such as `@Atomic`](https://forums.swift.org/t/atomic-property-wrapper-for-standard-library/30468) and [`@Weak`](https://forums.swift.org/t/should-weak-be-a-type/34032), which would facilitate certain APIs. Another interesting standard library wrapper type could be `@UnsafePointer`, which would be quite useful, as access of the `pointee` property is quite common:
-
-```swift
-let myPointer: UnsafePointer<UInt8> = ...
-
-myPointer.pointee 
-//        ^~~~~~~ 
-// This is the accessor pattern property 
-// wrappers were devised to tackle.
-```
-
-Instead of writing the above, in the future one might be able to write the following:
-
-```swift
-let myInt = 0
-
-withUnsafePointer(to: ...) { $value in
-  print(value) // 0
-  
-  $value.withMemoryRebound(to: UInt64.self) {
-    ... 
-  }
-}
-```
-
-As a result, unsafe code is not dominated by visually displeasing accesses to `pointee` members; rather, more natural and clear code is enabled.
+This proposal doesn't currently support marking property-wrapped function parameters `inout`. We deemed that this functionality would be better tackled by another proposal, due to its implementation complexity. Nonetheless, this would be useful for mutating a wrapped parameter with the changes written back to the argument that was passed.
 
 ## Revisions
 
