@@ -237,7 +237,7 @@ extension BankAccount {
 }
 ```
 
-A task created with `Task.runDetached` runs concurrently with all other code. If the closure passed to `Task.runDetached` were to be actor-isolated, we would introduce a data race on access to shared mutable state on `BankAccount`. Actors prevent this data race by specifying that a `@concurrent` closure (described in [`Sendable` and `@concurrent` closures][se302], and used in the definition of `Task.runDetached` in the [Structured Concurrency][sc] proposal) is always non-isolated. Therefore, it is required to use asynchronous calls to any actor-isolated declarations.
+A task created with `Task.runDetached` runs concurrently with all other code. If the closure passed to `Task.runDetached` were to be actor-isolated, we would introduce a data race on access to shared mutable state on `BankAccount`. Actors prevent this data race by specifying that a `@sendable` closure (described in [`Sendable` and `@sendable` closures][se302], and used in the definition of `Task.runDetached` in the [Structured Concurrency][sc] proposal) is always non-isolated. Therefore, it is required to use asynchronous calls to any actor-isolated declarations.
 
 It is often useful for closures within an actor-isolated function to themselves be actor-isolated, and it is safe from data races so long as the closure itself cannot be executed concurrently with the actor-isolated context in which it occurs. For example, using a sequence algorithm like `forEach` is free from data races because the closure will only be called serially:
 
@@ -277,21 +277,21 @@ extension BankAccount {
 Here, `BankSession.downloadTransactions` is using a completion handler to deliver its results. That completion handler will be called at some later time, but the caller has no knowledge of the actor, so the completion handler can be executed concurrently with actor-isolated code, which would cause a data race. This proposal makes the closure non-isolated in this case, so the references to `self.transactions` and `self.lastUpdateDate` will be flagged as an error by actor isolation checking:
 
 ```
-error: actor-isolated property 'transactions' can not be referenced by @concurrent closure
+error: actor-isolated property 'transactions' can not be referenced by @sendable closure
 error: actor-isolated property 'lastUpdateDate' can not be referenced by @escaping closure
 ```
 
 The specific rule determining whether a closure captures an `isolated` parameter as actor-isolated checks two properties:
-* If the closure is `@concurrent` or is nested within a `@concurrent` closure or local function, it is non-isolated, or
+* If the closure is `@sendable` or is nested within a `@sendable` closure or local function, it is non-isolated, or
 * If the closure is `@escaping` or is nested within an `@escaping` closure or a local function, it is non-isolated.
 
 For the examples above:
 
-* The closure passed to `runDetached` captures `self` as non-isolated because it requires a `@concurrent` function to be passed to it.
+* The closure passed to `runDetached` captures `self` as non-isolated because it requires a `@sendable` function to be passed to it.
 * The closure passed to `downloadTransactions` captures `self` as non-isolated because it requires an `@escaping` function.
 * The closure passed to `forEach` captures `self` as isolated because it takes a non-concurrent, non-escaping function.
 
-> **Rationale**: In theory, `@escaping` is completely orthogonal from `@concurrent`. However, in practice nearly all `@escaping` closures in Swift code today are executed concurrently via mechanisms that predate Swift Concurrency. In time, those escaping functions that are executed concurrently will be annotated with `@concurrent` as well as `@escaping`. However, until that happens, `@escaping` non-`@concurrent` functions will be a major hole in the safety model, allowing data races on actor-isolated state. The rule that prevents `isolated` parameter capture in an `@escaping` closure could be lifted in a future version of Swift, where limitations on concurrent execution are more widely enforced.
+> **Rationale**: In theory, `@escaping` is completely orthogonal from `@sendable`. However, in practice nearly all `@escaping` closures in Swift code today are executed concurrently via mechanisms that predate Swift Concurrency. In time, those escaping functions that are executed concurrently will be annotated with `@sendable` as well as `@escaping`. However, until that happens, `@escaping` non-`@sendable` functions will be a major hole in the safety model, allowing data races on actor-isolated state. The rule that prevents `isolated` parameter capture in an `@escaping` closure could be lifted in a future version of Swift, where limitations on concurrent execution are more widely enforced.
 
 #### inout parameters
 
@@ -613,7 +613,7 @@ Actors are similar to classes in all respects independent of isolation: actor ty
 The actor protocol abstracts over all types that are actors. Each actor type implicitly conforms to `Actor`, but no other kind of type (class, enum, struct, etc.) can conform to the `Actor` protocol.
 
 ```swift
-protocol Actor : AnyObject, ConcurrentValue { }
+protocol Actor : AnyObject, Sendable { }
 ```
 
 The definition of the `Actor` protocol is intentionally left blank. The [custom executors proposal][customexecs] will introduce requirements into the `Actor` protocol. These requirements will be implicitly synthesized by the implementation when not explicitly provided, but can be explicitly provided to allow actors to control their own serialized execution.
@@ -700,7 +700,7 @@ actor A {
   
   func useAF(array: [Int]) {
     array.map(self.f)                     // okay
-    Task.runDetached(operation: self.g)   // error: self.g has non-concurrent type () -> Double that cannot be converted to a @concurrent function type
+    Task.runDetached(operation: self.g)   // error: self.g has non-concurrent type () -> Double that cannot be converted to a @sendable function type
     runLater(self.g)                      // error: self.g has escaping function type () -> Double
   }
 }
@@ -956,8 +956,9 @@ This implementation will behave as one would expect for inheritance (every `Empl
 
 * Changes in the fifth pitch:
   * Drop the prohibition on having multiple `isolated` parameters. We don't need to ban it.
-  * Replace `ConcurrentValue` with `Sendable` to better track SE-0302.
+  * Replace `Sendable` with `Sendable` to better track SE-0302.
   * Add the `Actor` protocol back, as an empty protocol whose details will be filled in with a subsequent proposal for [custom executors][customexecs].
+  * Replace `ConcurrentValue` with `Sendable` and `@concurrent` with `@sendable` to track the evolution of [SE-0302][se302].
 * Changes in the fourth pitch:
   * Allow cross-actor references to actor properties, so long as they are reads (not writes or `inout` references)
   * Added `isolated` parameters, to generalize the previously-special behavior of `self` in an actor and make the semantics of `nonisolated` more clear.
@@ -971,7 +972,7 @@ This implementation will behave as one would expect for inheritance (every `Empl
   * Replaced `@actorIndependent` attribute with a `nonisolated` modifier, which follows the approach of `nonmutating` and ties in better with the "actor isolation" terminology (thank you to Xiaodi Wu for the suggestion).
   * Replaced "queue" terminology with the more traditional "mailbox" terminology, to try to help alleviate confusion with Dispatch queues.
   * Introduced "cross-actor reference" terminology and the requirement that cross-actor references always traffic in `Sendable` types.
-  * Reference `@concurrent` function types from their separate proposal.
+  * Reference `@sendable` function types from their separate proposal.
   * Moved Objective-C interoperability into its own section.
   * Clarify the "class-like" behaviors of actor types, such as satisfying an `AnyObject` conformance.
 * Changes in the second pitch:
