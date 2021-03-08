@@ -606,7 +606,17 @@ extension BankAccount {
 }  
 ```
 
-Actors are similar to classes in all respects independent of isolation: actor types can have `static` and `class` methods, properties, and subscripts. All of the attributes that apply to classes apply to actors in much the same way, except where those semantics conflict with actor isolation. An actor type satisfies an `AnyObject` requirement.
+Actors are similar to classes in all respects independent of isolation: actor types can have `static` and `class` methods, properties, and subscripts. All of the attributes that apply to classes apply to actors in much the same way, except where those semantics conflict with actor isolation.
+
+### Actor protocol
+
+The actor protocol abstracts over all types that are actors. Each actor type implicitly conforms to `Actor`, but no other kind of type (class, enum, struct, etc.) can conform to the `Actor` protocol.
+
+```swift
+protocol Actor : AnyObject, ConcurrentValue { }
+```
+
+The definition of the `Actor` protocol is intentionally left blank. The [custom executors proposal][customexecs] will introduce requirements into the `Actor` protocol. These requirements will be implicitly synthesized by the implementation when not explicitly provided, but can be explicitly provided to allow actors to control their own serialized execution.
 
 ### Non-isolated declarations
 
@@ -947,6 +957,7 @@ This implementation will behave as one would expect for inheritance (every `Empl
 * Changes in the fifth pitch:
   * Drop the prohibition on having multiple `isolated` parameters. We don't need to ban it.
   * Replace `ConcurrentValue` with `Sendable` to better track SE-0302.
+  * Add the `Actor` protocol back, as an empty protocol whose details will be filled in with a subsequent proposal for [custom executors][customexecs].
 * Changes in the fourth pitch:
   * Allow cross-actor references to actor properties, so long as they are reads (not writes or `inout` references)
   * Added `isolated` parameters, to generalize the previously-special behavior of `self` in an actor and make the semantics of `nonisolated` more clear.
@@ -976,5 +987,6 @@ This implementation will behave as one would expect for inheritance (every `Empl
 * Original pitch [document](https://github.com/DougGregor/swift-evolution/blob/6fd3903ed348b44496b32a39b40f6b6a538c83ce/proposals/nnnn-actors.md)
 
 
-[sc]: https://github.com/DougGregor/swift-evolution/blob/structured-concurrency/proposals/nnnn-structured-concurrency.md
+[sc]: https://github.com/apple/swift-evolution/blob/main/proposals/0304-structured-concurrency.md
 [se302]: https://github.com/apple/swift-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md
+[customexecs]: https://github.com/rjmccall/swift-evolution/blob/custom-executors/proposals/0000-custom-executors.md
