@@ -75,12 +75,11 @@ Bar().call(action: sample)    // prints: "Foo.Type:0"
 // example 2.1, compiles
 ````
 
-The function `call` has the `action` parameter, which holds a reference to a class function of `Foo`. To use
-the current design with the variable `sample`, the variable needs to be passed as a
-parameter `Bar().currentDesign(action: sample)`.
+The function `call` has the `action` parameter, which holds a reference to a class function of `Foo`. To use the current
+design with the variable `sample`, the variable needs to be passed as a parameter `Bar().call(action: sample)`.
 
 Instead of using the variable `sample`, it is also possible to use a closure, which will handle the `action` and will be
-called in `currentDesign`, see the following code.
+called in `call`, see the following code.
 
 ````swift
 extension Bar {
@@ -397,8 +396,8 @@ extension Bar {
 ````
 
 The upper proposed changes are syntactic sugar only, without changing any code/behavior. Changing the receiver of the
-closure would be a semantic change. Although the old syntax is quite uncommon in Swift, there should be no semantic
-code changes breaking existing code. Instead, there must be some kind of opt-in.
+closure would be a semantic change. Although the old syntax is quite uncommon in Swift, there should be no semantic code
+changes breaking existing code. Instead, there must be some kind of opt-in.
 
 1. explicit writing the receiver:
    If the developer uses explicitly the new type syntax, the receiver should change automatically to the inner one.
@@ -414,21 +413,21 @@ code changes breaking existing code. Instead, there must be some kind of opt-in.
 @switchSelf // alternative: annotate the whole extension/class to use this optin in every receiver function
 extension Bar {
     func explicite() {
-        currentDesign(action: { Foo.(i: Int) -> Void in // Foo.(i: Int) is explicit written by the developer
+        call(action: { Foo.(i: Int) -> Void in // Foo.(i: Int) is explicit written by the developer
            self.printing(i) // self is Foo
         })
     }
     
     func annotateClosure() {
         @switchSelf
-        currentDesign(action: { i in // Foo.(i: Int) -> Void is the implicite type
+        call(action: { i in // Foo.(i: Int) -> Void is the implicite type
             self.printing(i) // self is Foo
         })
     }
     
     @switchSelf
     func annotateFunction() {
-        currentDesign(action: { i in // Foo.(i: Int) -> Void is the implicite type
+        call(action: { i in // Foo.(i: Int) -> Void is the implicite type
            // do something
         })
     }
@@ -536,7 +535,7 @@ old `self` to keep source compatibility.
 ````swift
 extension Bar {
     func closureCurrentDesign() {
-        currentDesign(action: { Foo.(i: Int) -> Void in 
+        call(action: { Foo.(i: Int) -> Void in 
                 self.printing(i) // self is implicit switched to Foo, only with this closure syntax, opt in!
                 self:Bar.printing(i) // switch explicite to the outer receiver Bar
             }
@@ -544,7 +543,7 @@ extension Bar {
     }
     
     func closureCurrentDesignShort() { // removed all optional parts
-        currentDesign { i in 
+        call { i in 
             printing(i) // self is implicit switched to Foo, only with this closure syntax, opt in!
         }
     }
@@ -555,7 +554,7 @@ Bar().closureCurrentDesign() // prints: "Foo.Type:0\nBar.Type:0"
 
 extension Bar {
     func closureCurrentDesign() {
-        currentDesign(action: { (foo: Foo) -> (Int) -> Void in
+        call(action: { (foo: Foo) -> (Int) -> Void in
             return { (i: Int) in
                 
                 foo.printing(i) // switching the receiver using the variable `foo`, which is self in the new syntax
@@ -630,9 +629,9 @@ struct Bar {
 ````
 
 Although the current common label syntax would result in `Bar:self`, it looks very similar to `Bar.self`. Furthermore,
-the `.` and the `:` lies on the same key, everywhere else the wrong char results in a lexer error,
-e.g. `let a . String`, this mistake would not result in a lexer error, `Bar.self` and `Bar:self` would be both
-lexically correct. To prevent mangling, the syntax `self:Bar` is proposed.
+the `.` and the `:` lies on the same key, everywhere else the wrong char results in a lexer error, e.g. `let a . String`
+, this mistake would not result in a lexer error, `Bar.self` and `Bar:self` would be both lexically correct. To prevent
+mangling, the syntax `self:Bar` is proposed.
 
 ### OptIn annotation
 
