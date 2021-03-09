@@ -511,7 +511,7 @@ extension Task.Handle where Failure == Never {
 The `get()` operation is the primary consumer interface to a task handle: it produces the result returned by the task or (if the task exits via a thrown error) throws the error produced by the task. For example:
 
 ```swift
-func eat(mealHandle: Task.Handle<Meal, Error>) {
+func eat(mealHandle: Task.Handle<Meal, Error>) async throws {
   let meal = try await mealHandle.get()
   meal.eat() // yum
 }
