@@ -758,9 +758,7 @@ nonisolated var count: Int { constantCount + 1 }
 
 Declarations marked as `nonisolated` can be used from outside the actor's isolation domain.
 
-By default, the mutable instance stored properties (declared with `var`) of an actor are actor-isolated to the actor instance. A stored instance property may be annotated with `nonisolated(unsafe)` to remove this restriction.
-
-> **Rationale**: `nonisolated(unsafe)` allows specific stored instance properties to opt out of actor isolation checking, allowing careful developers to implement their own synchronization mechanisms.
+By default, the mutable instance stored properties (declared with `var`) of an actor are actor-isolated to the actor instance.
 
 ### Partial applications
 
@@ -871,7 +869,7 @@ This is purely additive to the ABI. Actor isolation itself is a static notion th
 Nearly all changes in actor isolation are breaking changes, because the actor isolation rules require consistency between a declaration and its users:
 
 * A class cannot be turned into an actor or vice versa.
-* The actor isolation of a public declaration cannot be changed except between `nonisolated(unsafe)` and `nonisolated`.
+* The actor isolation of a public declaration cannot be changed.
 
 ## Future Directions
 
@@ -1118,6 +1116,7 @@ At a high level, isolated parameters and isolated conformances are similar to pa
 * Changes in the sixth pitch:
   * Make the instance requirements of `Actor` protocols actor-isolated to `self`, and allow actor types to conform to such protocols using actor-isolated witnesses.
   * Reflow the "Proposed Solution" section to get the bigger ideas out earlier.
+  * Remove `nonisolated(unsafe)`.
 * Changes in the fifth pitch:
   * Drop the prohibition on having multiple `isolated` parameters. We don't need to ban it.
   * Add the `Actor` protocol back, as an empty protocol whose details will be filled in with a subsequent proposal for [custom executors][customexecs].
