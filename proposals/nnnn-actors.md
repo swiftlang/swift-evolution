@@ -20,6 +20,7 @@
       * [Unnecessary blocking with non-reentrant actors](#unnecessary-blocking-with-non-reentrant-actors)
       * [Existing practice](#existing-practice)
       * [Reentrancy Summary](#reentrancy-summary)
+   * [Protocol conformances](#protocol-conformances)
    * [Actor-isolated parameters](#actor-isolated-parameters)
    * [Non-isolated declarations](#non-isolated-declarations)
 * [Detailed design](#detailed-design)
