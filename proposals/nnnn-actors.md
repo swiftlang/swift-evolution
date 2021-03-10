@@ -455,6 +455,60 @@ This proposal provides only reentrant actors. However, the [Future Directions](#
 
 > **Rationale**: Reentrancy by default all but eliminates the potential for deadlocks. Moreover, it helps ensure that actors can make timely progress within a concurrent system, and that a particular actor does not end up unnecessarily blocked on a long-running asynchronous operation (say, downloading a file). The mechanisms for ensuring safe interleaving, such as using synchronous code when performing mutations and being careful not to break invariants across `await` calls, are already present in the proposal.
 
+### Protocol conformances
+
+All actor types implicitly conform to a new protocol, `Actor`:
+
+```swift
+protocol Actor : AnyObject, Sendable { }
+```
+
+> **Note**: The definition of the `Actor` protocol is intentionally left blank. The [custom executors proposal][customexecs] will introduce requirements into the `Actor` protocol. These requirements will be implicitly synthesized by the implementation when not explicitly provided, but can be explicitly provided to allow actors to control their own serialized execution.
+
+The `Actor` protocol can be used to write generic operations that work across all actors, including extending all actor types with new operations. As with actor types, instance properties, functions, and subscripts defined on the `Actor` protocol (including extensions thereof) are actor-isolated to the `self` actor. For example, 
+
+```swift
+protocol DataProcessible: Actor {  // only actor types can conform to this protocol
+  var data: Data { get }           // actor-isolated to self
+}
+
+extension DataProcessible {
+  func compressData() -> Data {    // actor-isolated to self
+    // use data synchronously
+  }
+}
+
+actor MyProcessor : DataProcessible {
+  var data: Data                   // okay, actor-isolated to self
+  
+  func doSomething() {
+    let newData = compressData()   // okay, calling actor-isolated method on self
+    // use new data
+  }
+}
+
+func doProcessing<T: DataProcessible>(processor: T) async {
+  await processor.compressData() // not actor-isolated, so we must interact asynchronously with the actor
+}
+```
+
+No other kind of concrete type (class, enum, struct, etc.) can conform to the `Actor` protocol, because they cannot define actor-isolated operations.
+
+Actors can also conform to protocols with `async` requirements, because all clients will already have to interact with those requirements asynchronously, giving the actor the ability to protect its isolated state. For example:
+
+```swift
+protocol Server {
+  func send<Message: MessageType>(message: Message) async throws -> Message.Reply
+}
+
+actor MyActor: Server {
+  func send<Message: MessageType>(message: Message) async throws -> Message.Reply { // okay: this method is actor-isolated to 'self', satisfies asynchronous requirement
+  }
+}
+```
+
+Actors can be made to conform to non-`Actor` protocols with synchronous requirements, but doing so cannot access mutable state within the actor. See the section on [non-isolated declarations](#non-isolated-declarations) for more information.
+
 ### Actor-isolated parameters
 
 The `self` parameter of an actor function is special in that it is within the actor's isolation domain, so it can access properties and synchronous functions on the actor. The same capabilities can be afforded to a different parameter by marking it as `isolated`; such a parameter must have a type that conforms to the `Actor` protocol. For example, this allows us to express an operation that runs a closure on an actor:
@@ -546,7 +600,7 @@ extension BankAccount {
 Non-isolated declarations are particularly useful for adapting existing asynchronous code to actors. For example, consider an existing simple "server" protocol that uses a completion handler:
 
 ```swift
-protocol Server {
+protocol OldServer {
   func send<Message: MessageType>(
     message: Message,
     completionHandler: (Result<Message.Reply>) -> Void
@@ -561,7 +615,7 @@ actor MyActorServer {
   func send<Message: MessageType>(message: Message) async throws -> Message.Reply { ... }  // this is the "real" asynchronous implementation we want
 }
 
-extension MyActorServer : Server {
+extension MyActorServer : OldServer {
   nonisolated func send<Message: MessageType>(
     message: Message,
     completionHandler: (Result<Message.Reply>) -> Void
@@ -609,45 +663,6 @@ extension BankAccount {
 
 Actors are similar to classes in all respects independent of isolation: actor types can have `static` and `class` methods, properties, and subscripts. All of the attributes that apply to classes apply to actors in much the same way, except where those semantics conflict with actor isolation.
 
-### Actor protocol
-
-The actor protocol abstracts over all types that are actors. Each actor type implicitly conforms to `Actor`, but no other kind of type (class, enum, struct, etc.) can conform to the `Actor` protocol.
-
-```swift
-protocol Actor : AnyObject, Sendable { }
-```
-
-The definition of the `Actor` protocol is intentionally left blank. The [custom executors proposal][customexecs] will introduce requirements into the `Actor` protocol. These requirements will be implicitly synthesized by the implementation when not explicitly provided, but can be explicitly provided to allow actors to control their own serialized execution.
-
-It is legal, albeit uncommon, to declare an actor instance method as `nonisolated` _and_ have it accept a different `isolated` actor parameter. Since nonisolated can be understood as removing the implicit `isolated self`, the addition of an `isolated` parameter still properly respects the requirement that there be only a single actor with which a function is isolated.
-
-In other words, the following function:
-
-```swift
-actor Greeter { 
-  func greet(_ name: String) { ... }
-}
-
-actor Worker {
-  private let name: String
-  var creditCard: CreditCard
-  
-  nonisolated func hello(by greeter: isolated Greeter) { 
-    greeter.greet(self.name)
-    greeter.take(creditCard) // error: nonisolated Worker function cannot refer to isoalted state 'creditCard', function is actor-isolated to 'greeter: isolated Greeter'
-  }
-}
-```
-
-Exhibits the following semantics:
-
-- this function is isolated with the `Greeter` actor, and *not* the `Worker` (!),
-  - as such, it can synchronously invoke the `greeter.greet` function.
-- it cannot refer to isolated state of the Worker,
-- it will execute on the `Greeter` actor.
-
-In practice this means that this function can only be invoked by a greeter which passes `self` as an isolated parameter to the hello function of the worker it is about to greet. The `hello` function can refer to the actors private, non isolated state, such as a constant (or other `nonisolated` variables).
-
 ### Actor isolation checking
 
 Any given declaration in a program is either actor-isolated or is non-isolated. A function (including accessors) is actor-isolated if it contains an `isolated` parameter, in which case it is said to be isolated to the actor described by that parameter. A mutable instance property or instance subscript is actor-isolated if it is defined on an actor type and is not explicitly non-isolated. Declarations that are not actor-isolated are called non-isolated.
@@ -692,6 +707,7 @@ func g(a: isolated MyActor, b: MyActor) async {
 When a given declaration (the "overriding declaration") overrides another declaration (the "overridden" declaration), the actor isolation of the two declarations is compared. The override is well-formed if:
 
 * the overriding and overridden declarations are isolated to the same actor, or
+* the declarations are both `async`, or
 * the overriding declaration is non-isolated.
 
 In the absence of an explicitly-specified actor-isolation modifier (i.e, `nonisolated`), the overriding declaration will inherit the actor isolation of the overridden declaration.
@@ -701,6 +717,7 @@ In the absence of an explicitly-specified actor-isolation modifier (i.e, `noniso
 When a given declaration (the "witness") satisfies a protocol requirement (the "requirement"), the protocol requirement can be satisfied by the witness if:
 
 * The requirement is `async`, or
+* the requirement and witness are both actor-isolated to the same parameter,
 * the witness is non-isolated.
 
 An actor can satisfy an asynchronous requirement because any uses of the requirement are asynchronous, and can therefore suspend until the actor is available to execute them. Note that an actor can satisfy and asynchronous requirement with a synchronous one, in which case the normal notion of asynchronously accessing a synchronous declaration on an actor applies. For example:
@@ -1098,6 +1115,9 @@ At a high level, isolated parameters and isolated conformances are similar to pa
 
 ## Revision history
 
+* Changes in the sixth pitch:
+  * Make the instance requirements of `Actor` protocols actor-isolated to `self`, and allow actor types to conform to such protocols using actor-isolated witnesses.
+  * Reflow the "Proposed Solution" section to get the bigger ideas out earlier.
 * Changes in the fifth pitch:
   * Drop the prohibition on having multiple `isolated` parameters. We don't need to ban it.
   * Add the `Actor` protocol back, as an empty protocol whose details will be filled in with a subsequent proposal for [custom executors][customexecs].
