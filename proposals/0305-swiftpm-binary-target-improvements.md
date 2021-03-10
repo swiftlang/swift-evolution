@@ -1,10 +1,11 @@
 # Package Manager Binary Target Improvements
 
-* Proposal: [SE-NNNN](NNNN-filename.md)
+* Proposal: [SE-0305](0305-swiftpm-binary-target-improvements.md)
 * Authors: [Anders Bertelrud](https://github.com/abertelrud), [Tom Doron](https://github.com/tomerd)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
-
+* Review Manager: [Tom Doron](https://github.com/tomerd)
+* Status: **Scheduled for Review (March 11 - 23 2021)**
+* Implementation: Available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `SWIFTPM_ENABLE_PLUGINS`
+ 
 ## Introdction
 
 This proposal extends SwiftPM binary targets to also support other kinds of prebuilt artifacts, such as command line tools.  It does not in and of itself add support for non-Darwin binary libraries, although the proposed improvements could be a step towards such support.
