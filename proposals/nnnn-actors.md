@@ -12,17 +12,16 @@
 * [Proposed solution](#proposed-solution)
    * [Actors](#actors-1)
    * [Actor isolation](#actor-isolation)
-      * [Actor-isolated parameters](#actor-isolated-parameters)
-      * [Closures](#closures)
-      * [inout parameters](#inout-parameters)
-      * [Non-isolated declarations](#non-isolated-declarations)
    * [Cross-actor references and Sendable types](#cross-actor-references-and-sendable-types)
+   * [Closures](#closures)
    * [Actor reentrancy](#actor-reentrancy)
       * ["Interleaving" execution with reentrant actors](#interleaving-execution-with-reentrant-actors)
       * [Deadlocks with non-reentrant actors](#deadlocks-with-non-reentrant-actors)
       * [Unnecessary blocking with non-reentrant actors](#unnecessary-blocking-with-non-reentrant-actors)
       * [Existing practice](#existing-practice)
       * [Reentrancy Summary](#reentrancy-summary)
+   * [Actor-isolated parameters](#actor-isolated-parameters)
+   * [Non-isolated declarations](#non-isolated-declarations)
 * [Detailed design](#detailed-design)
    * [Actors](#actors-2)
    * [Actor isolation checking](#actor-isolation-checking)
@@ -101,7 +100,7 @@ extension BankAccount {
 
 If `BankAccount` were a class, the `transfer(amount:to:)` method would be well-formed, but would be subject to data races in concurrent code without an external locking mechanism. 
 
-With actors, the attempt to reference `other.balance` triggers a compiler error, because `balance` may only be referenced on `self`. The error message notes that `balance` is *actor-isolated*, meaning that it can only be accessed directly from within the specific actor it is tied to or "isolated by". In this case, it's the instance of `BankAccount` referenced by `self`. All declarations on an instance of an actor, including stored and computed instance properties (like `balance`), instance methods (like `transfer(amount:to:)`), and instance subscripts, are all actor-isolated by default. Actor-isolated declarations can freely refer to other actor-isolated declarations on the same actor instance (on `self`).
+With actors, the attempt to reference `other.balance` triggers a compiler error, because `balance` may only be referenced on `self`. The error message notes that `balance` is *actor-isolated*, meaning that it can only be accessed directly from within the specific actor it is tied to or "isolated by". In this case, it's the instance of `BankAccount` referenced by `self`. All declarations on an instance of an actor, including stored and computed instance properties (like `balance`), instance methods (like `transfer(amount:to:)`), and instance subscripts, are all actor-isolated by default. Actor-isolated declarations can freely refer to other actor-isolated declarations on the same actor instance (on `self`). Any declaration that is not actor-isolated is *non-isolated* and cannot synchronously access any actor-isolated declaration.
 
 A reference to an actor-isolated declaration from outside that actor is called a *cross-actor reference*. Such references are permissible in one of two ways. First, a cross-actor reference to immutable state is allowed because, once initialized, that state can never be modified (either from inside the actor or outside it), so there are no data races by definition. The reference to `other.accountNumber` is allowed based on this rule, because `accountNumber` is declared via a `let` and has value-semantic type `Int`.
 
@@ -181,46 +180,55 @@ func checkBalance(account: BankAccount) {
 
 > **Rationale**: it is possible to support cross-actor property sets. However, cross-actor `inout` operations cannot be reasonably supported because there would be an implicit suspension point between the "get" and the "set" that could introduce what would effectively be race conditions. Moreover, setting properties asynchronously may make it easier to break invariants unintentionally if, e.g., two properties need to be updated at once to maintain an invariant.
 
-#### Actor-isolated parameters
+### Cross-actor references and `Sendable` types
 
-The `self` parameter of an actor function is special in that it is within the actor's isolation domain, so it can access properties and synchronous functions on the actor. The same capabilities can be afforded to a different parameter by marking it as `isolated`; such a parameter must have a type that conforms to the `Actor` protocol. For example, this allows us to express an operation that runs a closure on an actor:
+[SE-0302][se302] introduces the `Sendable` protocol. Values of types that conform to the `Sendable` protocol are safe to share across concurrently-executing code. There are various kinds of types that work well this way: value-semantic types like `Int` and `String`, value-semantic collections of such types like `[String]` or `[Int: String]`, immutable classes, classes that perform their own synchronization internally (like a concurrent hash table), and so on.
+
+Actors protect their mutable state, so actor instances can be freely shared across concurrently-executing code, and the actor itself will internally maintain synchronization. Therefore, every actor type implicitly conforms to the `Sendable` protocol.
+
+All cross-actor references are, necessarily, working with values of types that are being shared across different concurrently-executed code. For example, let's say that our `BankAccount` includes a list of owners, where each owner is modeled by a `Person` class:
+
+```swift
+class Person {
+  var name: String
+  let birthDate: Date
+}
+
+actor BankAccount {
+  // ...
+  var owners: [Person]
+
+  func primaryOwner() -> Person? { return owners.first }
+}
+```
+
+The `primaryOwner` function can be called asynchronously from another actor, and then the `Person` instance can be modified from anywhere:
+
+```swift
+if let primary = await account.primaryOwner() {
+  primary.name = "The Honorable " + primary.name  // problem: concurrent mutation of actor-isolated state
+}
+```
+
+Even non-mutating access is problematic, because the person's `name` could be modified from within the actor at the same time as the original call is trying to access it. To prevent this potential for concurrent mutation of actor-isolated state, all cross-actor references can only involve types that conform to `Sendable`. For a cross-actor asynchronous call, the argument and result types must conform to `Sendable`. For a cross-actor reference to an immutable property, the property type must conform to `Sendable`. By insisting that all cross-actor references only use `Sendable` types, we can ensure that no references to shared mutable state flow into or out of the actor's isolation domain. The compiler will produce a diagnostic for such issues. For example, the call to `account.primaryOwner()` about would produce an error like the following:
+
+```
+error: cannot call function returning non-Sendable type 'Person?' across actors
+```
+
+Note that the `primaryOwner()` function as defined above can still be used with actor-isolated code. For example, we can define a function to get the name of the primary owner, like this:
 
 ```swift
 extension BankAccount {
-  func runOnActor<R>(body: (isolated BankAccount) async -> R) -> R {
-    body(self) // okay: self is actor-isolated
-  }
-}
-
-func investWildly(account: BankAccount, amount: Double) async {
-  await account.runOnActor { account in
-    account.balance -= amount                    // okay: account is actor-isolated
-    let winnings = await gamble(amount: amount)
-    account.balance += winnings
+  func primaryOwnerName() -> String? {
+    return primaryOwner()?.name
   }
 }
 ```
 
-It also allows actor functions to be extracted into global or local functions, so code can be refactored without breaking actor isolation. Due to `isolated` parameters, the `self` parameter of an actor function is actually not that special: it merely defaults to `isolated` because of the context in which it is declared. For example, type of `BankAccount.deposit(amount:)`, defined above, is a curried function that involves an isolated `self`:
+The `primaryOwnerName()` function is safe to asynchronously call across actors because `String` (and therefore `String?`) conforms to `Sendable`.
 
-```swift
-let fn = BankAccount.deposit(amount:) // type is (isolated BankAccount) -> (Double) -> Void
-```
-
-This means that any actor function can be turned into a global function, with the same restrictions now applying to one of its other parameters:
-
-```swift
-func deposit(amount: Double, in account: isolated BankAccount) {
-  account.balance += amount  // okay: account is isolated
-}
-
-func f(account1: BankAccount, account2: isolated BankAccount) {
-  deposit(amount: 100, in: account1) // error: account1 is not isolated
-  deposit(amount: 100, in: account2) // okay: account2 is isolated
-}
-```
-
-#### Closures
+### Closures
 
 The restrictions on cross-actor references only work so long as we can ensure that the code that might execute concurrently with actor-isolated code is considered to be non-isolated. For example, consider a function that schedules report generation at the end of the month:
 
@@ -237,7 +245,7 @@ extension BankAccount {
 }
 ```
 
-A task created with `Task.runDetached` runs concurrently with all other code. If the closure passed to `Task.runDetached` were to be actor-isolated, we would introduce a data race on access to shared mutable state on `BankAccount`. Actors prevent this data race by specifying that a `@Sendable` closure (described in [`Sendable` and `@Sendable` closures][se302], and used in the definition of `Task.runDetached` in the [Structured Concurrency][sc] proposal) is always non-isolated. Therefore, it is required to use asynchronous calls to any actor-isolated declarations.
+A task created with `Task.runDetached` runs concurrently with all other code. If the closure passed to `Task.runDetached` were to be actor-isolated, we would introduce a data race on access to the mutable state on `BankAccount`. Actors prevent this data race by specifying that a `@Sendable` closure (described in [`Sendable` and `@Sendable` closures][se302], and used in the definition of `Task.runDetached` in the [Structured Concurrency][sc] proposal) is always non-isolated. Therefore, it is required to use asynchronous calls to any actor-isolated declarations.
 
 It is often useful for closures within an actor-isolated function to themselves be actor-isolated, and it is safe from data races so long as the closure itself cannot be executed concurrently with the actor-isolated context in which it occurs. For example, using a sequence algorithm like `forEach` is free from data races because the closure will only be called serially:
 
@@ -246,7 +254,7 @@ extension BankAccount {
   func close(distributingTo accounts: [BankAccount]) async {
     let transferAmount = balance / accounts.count
 
-    accounts.forEach { account in                        // okay, captured self in closure is actor-isolated
+    accounts.forEach { account in                        // okay, closure is actor-isolated to `self`
       balance = balance - transferAmount            
       await account.deposit(amount: transferAmount)
     }
@@ -281,181 +289,17 @@ error: actor-isolated property 'transactions' can not be referenced by @Sendable
 error: actor-isolated property 'lastUpdateDate' can not be referenced by @escaping closure
 ```
 
-The specific rule determining whether a closure captures an `isolated` parameter as actor-isolated checks two properties:
+The specific rule determining whether a closure is actor-isolated checks two properties:
 * If the closure is `@Sendable` or is nested within a `@Sendable` closure or local function, it is non-isolated, or
 * If the closure is `@escaping` or is nested within an `@escaping` closure or a local function, it is non-isolated.
 
 For the examples above:
 
-* The closure passed to `runDetached` captures `self` as non-isolated because it requires a `@Sendable` function to be passed to it.
-* The closure passed to `downloadTransactions` captures `self` as non-isolated because it requires an `@escaping` function.
-* The closure passed to `forEach` captures `self` as isolated because it takes a non-concurrent, non-escaping function.
+* The closure passed to `runDetached` is non-isolated because it requires a `@Sendable` function to be passed to it.
+* The closure passed to `downloadTransactions` is non-isolated because it requires an `@escaping` function.
+* The closure passed to `forEach` is actor-isolated to `self` because it takes a non-sendable, non-escaping function.
 
 > **Rationale**: In theory, `@escaping` is completely orthogonal from `@Sendable`. However, in practice nearly all `@escaping` closures in Swift code today are executed concurrently via mechanisms that predate Swift Concurrency. In time, those escaping functions that are executed concurrently will be annotated with `@Sendable` as well as `@escaping`. However, until that happens, `@escaping` non-`@Sendable` functions will be a major hole in the safety model, allowing data races on actor-isolated state. The rule that prevents `isolated` parameter capture in an `@escaping` closure could be lifted in a future version of Swift, where limitations on concurrent execution are more widely enforced.
-
-#### inout parameters
-
-Actor-isolated stored properties can be passed into synchronous functions via `inout` parameters, but it is ill-formed to pass them to asynchronous functions via `inout` parameters. For example:
-
-```swift
-func modifiesSynchronously(_: inout Double) { }
-func modifiesAsynchronously(_: inout Double) async { }
-
-extension BankAccount {
-  func wildcardBalance() async {
-    modifiesSynchronously(&balance)        // okay
-    await modifiesAsynchronously(&balance) // error: actor-isolated property 'balance' cannot be passed 'inout' to an asynchronous function
-  }
-}  
-
-class C { var state : Double }
-struct Pair { var a, b : Double }
-actor A {
-  let someC : C
-  var somePair : Pair
-
-  func inoutModifications() async {
-    modifiesSynchronously(&someC.state)        // okay
-    await modifiesAsynchronously(&someC.state) // not okay
-    modifiesSynchronously(&somePair.a)         // okay
-    await modifiesAsynchronously(&somePair.a)  // not okay
-  }
-}
-```
-
-> **Rationale**: this restriction prevents exclusivity violations where the modification of the actor-isolated `balance` is initiated by passing it as `inout` to a call that is then suspended, and another task executed on the same actor then attempts to access `balance`. Such an access would then result in an exclusivity violation that will terminate the program. While the `inout` restriction is not required for memory safety (because errors will be detected at runtime), the default re-entrancy of actors makes it very easy to introduce non-deterministic exclusivity violations. Therefore, we introduce this restriction to eliminate that class of problems that where a race would trigger an exclusivity violation.
-
-#### Non-isolated declarations
-
-Instance declarations defined within actors have an `isolated` parameter `self` by default. However, the modifier `nonisolated` on an actor instance declaration makes the `self` parameter non-isolated. This allows us to provide abstraction over the immutable state of an actor that can be accessed synchronously from anywhere:
-
-```swift
-extension BankAccount {
-  // Produce an account number string with all but the last digits replaced with "X", which
-  // is safe to put on documents.
-  nonisolated var safeAccountNumberDisplayString: String {
-    let digits = String(accountNumber)
-    return String(repeating: "X", count: digits.count - 4) + String(digits.suffix(4))
-  }
-}
-```
-
-Non-isolated declarations can also be used to define conformances of an actor to a protocol that has synchronous requirements, which would otherwise cause actor isolation checking to produce an error. For example, it can be useful to defining protocol conformances based on immutable state:
-
-```swift
-extension BankAccount: Hashable {
-  nonisolated func hash(into hasher: inout Hasher) {
-    hasher.combine(accountNumber) 
-  }  
-}
-
-let fn = BankAccount.hash(into:) // type is (BankAccount) -> (inout Hasher) -> Void
-
-extension BankAccount: CustomStringConvertible {
-  nonisolated var description: String {
-    "Bank account #\(safeAccountNumberDisplayString)"
-  }
-}
-```
-
-There are two important things to note here:
-
-1. Without the `nonisolated` modifier, the protocol conformance would be invalid, because an actor-isolated synchronous instance member cannot satisfy a synchronous protocol requirement. The compiler would produce an error such as
-```
-error: actor-isolated property "description" cannot be used to satisfy a protocol requirement
-```
-2. The `nonisolated` modifier means that the `self` parameter is not consider to reference an isolated actor. This makes references to declarations on `self` cross-actor references, so actor isolation checking will prevent them from being used:
-
-```swift
-extension BankAccount {
-  nonisolated func steal(amount: Double) {
-    balance -= amount  // error: actor-isolated property 'balance' can not be referenced on non-isolated parameter 'self'
-  }
-}  
-```
-
-Non-isolated declarations are particularly useful for adapting existing asynchronous code to actors. For example, consider an existing simple "server" protocol that uses a completion handler:
-
-```swift
-protocol Server {
-  func send<Message: MessageType>(
-    message: Message,
-    completionHandler: (Result<Message.Reply>) -> Void
-  )
-}
-```
-
-Over time, this protocol should evolve to provide `async` requirements. However, one can make an actor type conform to this protocol using a non-isolated declaration:
-
-```swift
-actor MyActorServer {
-  func send<Message: MessageType>(message: Message) async throws -> Message.Reply { ... }  // this is the "real" asynchronous implementation we want
-}
-
-extension MyActorServer : Server {
-  nonisolated func send<Message: MessageType>(
-    message: Message,
-    completionHandler: (Result<Message.Reply>) -> Void
-  ) {
-    Task.runDetached {
-      do {
-        let reply = try await send(message: message)
-        completionHandler(.success(reply))
-      } catch {
-        completionHandler(.failure(error))
-      } 
-    }
-  }
-}
-```
-
-### Cross-actor references and `Sendable` types
-
-[SE-0302][se302] introduces the `Sendable` protocol. Values of types that conform to the `Sendable` protocol are safe to share across concurrently-executing code. There are various kinds of types that work well this way: value-semantic types like `Int` and `String`, value-semantic collections of such types like `[String]` or `[Int: String]`, immutable classes, classes that perform their own synchronization internally (like a concurrent hash table), and so on.
-
-Actors protect their mutable state, so actor instances can be freely shared across concurrently-executing code, and the actor itself will internally maintain synchronization. Therefore, every actor type implicitly conforms to the `Sendable` protocol.
-
-All cross-actor references are, necessarily, working with values of types that are being shared across different concurrently-executed code. For example, let's say that our `BankAccount` includes a list of owners, where each owner is modeled by a `Person` class:
-
-```swift
-class Person {
-  var name: String
-  let birthDate: Date
-}
-
-actor BankAccount {
-  // ...
-  var owners: [Person]
-
-  func primaryOwner() -> Person? { return owners.first }
-}
-```
-
-The `primaryOwner` function can be called asynchronously from another actor, and then the `Person` instance can be modified from anywhere:
-
-```swift
-if let primary = await account.primaryOwner() {
-  primary.name = "The Honorable " + primary.name  // problem: concurrent mutation of actor-isolated state
-}
-```
-
-Even non-mutating access is problematic, because the person's `name` could be modified from within the actor at the same time as the original call is trying to access it. To prevent this potential for concurrent mutation of actor-isolated state, all cross-actor references can only involve types that conform to `Sendable`. For a cross-actor asynchronous call, the argument and result types must conform to `Sendable`. For a cross-actor reference to an immutable property, the property type must conform to `Sendable`. By insisting that all cross-actor references only use `Sendable` types, we can ensure that no references to shared mutable state flow into or out of the actor's isolation domain. The compiler will produce a diagnostic for such issues. For example, the call to `account.primaryOwner()` about would produce an error like the following:
-
-```
-error: cannot call function returning non-concurrent-value type 'Person?' across actors
-```
-
-Note that the `primaryOwner()` function as defined above can still be used with actor-isolated code. For example, we can define a function to get the name of the primary owner, like this:
-
-```swift
-extension BankAccount {
-  func primaryOwnerName() -> String? {
-    return primaryOwner()?.name
-  }
-}
-```
-
-The `primaryOwnerName()` function is safe to asynchronously call across actors because `String` (and therefore `String?`) conforms to `Sendable`.
 
 ### Actor reentrancy
 
@@ -610,6 +454,129 @@ There are a number of existing actor implementations that have considered the no
 This proposal provides only reentrant actors. However, the [Future Directions](#future-directions) section describes potential future design directions that could add opt-in non-reentrancy.
 
 > **Rationale**: Reentrancy by default all but eliminates the potential for deadlocks. Moreover, it helps ensure that actors can make timely progress within a concurrent system, and that a particular actor does not end up unnecessarily blocked on a long-running asynchronous operation (say, downloading a file). The mechanisms for ensuring safe interleaving, such as using synchronous code when performing mutations and being careful not to break invariants across `await` calls, are already present in the proposal.
+
+### Actor-isolated parameters
+
+The `self` parameter of an actor function is special in that it is within the actor's isolation domain, so it can access properties and synchronous functions on the actor. The same capabilities can be afforded to a different parameter by marking it as `isolated`; such a parameter must have a type that conforms to the `Actor` protocol. For example, this allows us to express an operation that runs a closure on an actor:
+
+```swift
+extension BankAccount {
+  func runOnActor<R>(body: (isolated BankAccount) async -> R) -> R {
+    body(self) // okay: self is actor-isolated
+  }
+}
+
+func investWildly(account: BankAccount, amount: Double) async {
+  await account.runOnActor { account in
+    account.balance -= amount                    // okay: account is actor-isolated
+    let winnings = await gamble(amount: amount)
+    account.balance += winnings
+  }
+}
+```
+
+It also allows actor functions to be extracted into global or local functions, so code can be refactored without breaking actor isolation. Due to `isolated` parameters, the `self` parameter of an actor function is actually not that special: it merely defaults to `isolated` because of the context in which it is declared. For example, type of `BankAccount.deposit(amount:)`, defined above, is a curried function that involves an isolated `self`:
+
+```swift
+let fn = BankAccount.deposit(amount:) // type is (isolated BankAccount) -> (Double) -> Void
+```
+
+This means that any actor function can be turned into a global function, with the same restrictions now applying to one of its other parameters:
+
+```swift
+func deposit(amount: Double, in account: isolated BankAccount) {
+  account.balance += amount  // okay: account is isolated
+}
+
+func f(account1: BankAccount, account2: isolated BankAccount) {
+  deposit(amount: 100, in: account1) // error: account1 is not isolated
+  deposit(amount: 100, in: account2) // okay: account2 is isolated
+}
+```
+
+### Non-isolated declarations
+
+Instance declarations defined within actors have an `isolated` parameter `self` by default. However, the modifier `nonisolated` on an actor instance declaration makes the `self` parameter non-isolated. This allows us to provide abstraction over the immutable state of an actor that can be accessed synchronously from anywhere:
+
+```swift
+extension BankAccount {
+  // Produce an account number string with all but the last digits replaced with "X", which
+  // is safe to put on documents.
+  nonisolated var safeAccountNumberDisplayString: String {
+    let digits = String(accountNumber)
+    return String(repeating: "X", count: digits.count - 4) + String(digits.suffix(4))
+  }
+}
+```
+
+Non-isolated declarations can also be used to define conformances of an actor to a protocol that has synchronous requirements, which would otherwise cause actor isolation checking to produce an error. For example, it can be useful to defining protocol conformances based on immutable state:
+
+```swift
+extension BankAccount: Hashable {
+  nonisolated func hash(into hasher: inout Hasher) {
+    hasher.combine(accountNumber) 
+  }  
+}
+
+let fn = BankAccount.hash(into:) // type is (BankAccount) -> (inout Hasher) -> Void
+
+extension BankAccount: CustomStringConvertible {
+  nonisolated var description: String {
+    "Bank account #\(safeAccountNumberDisplayString)"
+  }
+}
+```
+
+There are two important things to note here:
+
+1. Without the `nonisolated` modifier, the protocol conformance would be invalid, because an actor-isolated synchronous instance member cannot satisfy a synchronous protocol requirement. The compiler would produce an error such as
+```
+error: actor-isolated property "description" cannot be used to satisfy a protocol requirement
+```
+2. The `nonisolated` modifier means that the `self` parameter is not consider to reference an isolated actor. This makes references to declarations on `self` cross-actor references, so actor isolation checking will prevent them from being used:
+
+```swift
+extension BankAccount {
+  nonisolated func steal(amount: Double) {
+    balance -= amount  // error: actor-isolated property 'balance' can not be referenced on non-isolated parameter 'self'
+  }
+}  
+```
+
+Non-isolated declarations are particularly useful for adapting existing asynchronous code to actors. For example, consider an existing simple "server" protocol that uses a completion handler:
+
+```swift
+protocol Server {
+  func send<Message: MessageType>(
+    message: Message,
+    completionHandler: (Result<Message.Reply>) -> Void
+  )
+}
+```
+
+Over time, this protocol should evolve to provide `async` requirements. However, one can make an actor type conform to this protocol using a non-isolated declaration:
+
+```swift
+actor MyActorServer {
+  func send<Message: MessageType>(message: Message) async throws -> Message.Reply { ... }  // this is the "real" asynchronous implementation we want
+}
+
+extension MyActorServer : Server {
+  nonisolated func send<Message: MessageType>(
+    message: Message,
+    completionHandler: (Result<Message.Reply>) -> Void
+  ) {
+    Task.runDetached {
+      do {
+        let reply = try await send(message: message)
+        completionHandler(.success(reply))
+      } catch {
+        completionHandler(.failure(error))
+      } 
+    }
+  }
+}
+```
 
 ## Detailed design
 
@@ -823,6 +790,38 @@ let kp = \A.storage  // error: key path would permit access to actor-isolated st
 ```
 
 > **Rationale**: Allowing the formation of a key path that references an actor-isolated property or subscript would permit accesses to the actor's protected state from outside of the actor isolation domain.
+
+### inout parameters
+
+Actor-isolated stored properties can be passed into synchronous functions via `inout` parameters, but it is ill-formed to pass them to asynchronous functions via `inout` parameters. For example:
+
+```swift
+func modifiesSynchronously(_: inout Double) { }
+func modifiesAsynchronously(_: inout Double) async { }
+
+extension BankAccount {
+  func wildcardBalance() async {
+    modifiesSynchronously(&balance)        // okay
+    await modifiesAsynchronously(&balance) // error: actor-isolated property 'balance' cannot be passed 'inout' to an asynchronous function
+  }
+}  
+
+class C { var state : Double }
+struct Pair { var a, b : Double }
+actor A {
+  let someC : C
+  var somePair : Pair
+
+  func inoutModifications() async {
+    modifiesSynchronously(&someC.state)        // okay
+    await modifiesAsynchronously(&someC.state) // not okay
+    modifiesSynchronously(&somePair.a)         // okay
+    await modifiesAsynchronously(&somePair.a)  // not okay
+  }
+}
+```
+
+> **Rationale**: this restriction prevents exclusivity violations where the modification of the actor-isolated `balance` is initiated by passing it as `inout` to a call that is then suspended, and another task executed on the same actor then attempts to access `balance`. Such an access would then result in an exclusivity violation that will terminate the program. While the `inout` restriction is not required for memory safety (because errors will be detected at runtime), the default re-entrancy of actors makes it very easy to introduce non-deterministic exclusivity violations. Therefore, we introduce this restriction to eliminate that class of problems that where a race would trigger an exclusivity violation.
 
 ### Actor interoperability with Objective-C
 
