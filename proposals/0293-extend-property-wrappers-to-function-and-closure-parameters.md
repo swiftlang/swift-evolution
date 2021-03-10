@@ -421,7 +421,7 @@ For both implementation-detail and API property wrappers, the type of the wrappe
 struct Wrapper<Value> {
   init(wrappedValue: Value) { ... }
 
-  init(wrappedValue: Value) where Value : Collection { ... }
+  init(wrappedValue: Value) where Value: Collection { ... }
 }
 
 func generic<T>(@Wrapper value: T) { ... }
@@ -435,14 +435,14 @@ generic(value: 10)
 generic(value: [1, 2, 3])
 ```
 
-The function `generic` could be overloaded where `T : Collection` to allow the constrained `init(wrappedValue:)` to be called:
+The function `generic` could be overloaded where `T: Collection` to allow the constrained `init(wrappedValue:)` to be called:
 
 ```swift
 func generic<T>(@Wrapper value: T) { ... }
-func generic<T : Collection>(@Wrapper value: T) { ... }
+func generic<T: Collection>(@Wrapper value: T) { ... }
 
 generic(value: 10)        // calls the unconstrained init(wrappedValue:)
-generic(value: [1, 2, 3]) // calls init(wrappedValue:) where Value : Collection
+generic(value: [1, 2, 3]) // calls init(wrappedValue:) where Value: Collection
 ```
 
 ### Restrictions on property-wrapper parameters
