@@ -28,6 +28,8 @@
       * [Overrides](#overrides)
       * [Protocol conformance](#protocol-conformance)
    * [Partial applications](#partial-applications)
+   * [Key paths](#key-paths)
+   * [inout parameters](#inout-parameters)
    * [Actor interoperability with Objective-C](#actor-interoperability-with-objective-c)
 * [Source compatibility](#source-compatibility)
 * [Effect on ABI stability](#effect-on-abi-stability)
@@ -35,7 +37,7 @@
 * [Future Directions](#future-directions)
    * [Non-reentrancy](#non-reentrancy)
    * [Task-chain reentrancy](#task-chain-reentrancy)
-* [Alternatives Considered](#alternatives-considered)
+* [Alternatives considered](#alternatives-considered)
    * [Eliminating inheritance](#eliminating-inheritance)
 * [Revision history](#revision-history)
 
