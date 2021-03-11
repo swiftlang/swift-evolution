@@ -21,15 +21,12 @@
       * [Existing practice](#existing-practice)
       * [Reentrancy Summary](#reentrancy-summary)
    * [Protocol conformances](#protocol-conformances)
-   * [Actor-isolated parameters](#actor-isolated-parameters)
-   * [Non-isolated declarations](#non-isolated-declarations)
 * [Detailed design](#detailed-design)
    * [Actors](#actors-2)
    * [Actor isolation checking](#actor-isolation-checking)
       * [References and actor isolation](#references-and-actor-isolation)
       * [Overrides](#overrides)
       * [Protocol conformance](#protocol-conformance)
-   * [Non-isolated declarations](#non-isolated-declarations-1)
    * [Partial applications](#partial-applications)
    * [Actor interoperability with Objective-C](#actor-interoperability-with-objective-c)
 * [Source compatibility](#source-compatibility)
@@ -38,10 +35,8 @@
 * [Future Directions](#future-directions)
    * [Non-reentrancy](#non-reentrancy)
    * [Task-chain reentrancy](#task-chain-reentrancy)
-   * [Isolated protocol conformances](#isolated-protocol-conformances)
 * [Alternatives Considered](#alternatives-considered)
    * [Eliminating inheritance](#eliminating-inheritance)
-   * [Isolated or sync actor types](#isolated-or-sync-actor-types)
 * [Revision history](#revision-history)
 
 ## Introduction
@@ -111,7 +106,7 @@ The second form of permissible cross-actor reference is one that is performed wi
 
 Compile-time actor-isolation checking determines which references to actor-isolated declarations are cross-actor references, and ensures that such references use one of the two permissible mechanisms described above. This ensures that code outside of the actor does not interfere with the actor's mutable state.
 
-Based on the above, we can implement a correct version of `transfer(amount:to:)`) that is asynchronous:
+Based on the above, we can implement a correct version of `transfer(amount:to:)` that is asynchronous:
 
 ```swift
 extension BankAccount {
@@ -268,7 +263,7 @@ extension BankAccount {
 However, not all closure-accepting functions are as well-behaved as the sequence algorithms are. For example, any existing code that provides a completion-handler-based API is problematic:
 
 ```swift
-// not-yet-ported code, possibly from a library
+// not-yet-ported code, probably from a library
 extension BankSession {
   func downloadTransactions(accountNumber: Int, since: Date, completionHandler: @escaping ([Transactions], [Date]) -> Void) { ... }
 }
@@ -300,7 +295,7 @@ For the examples above:
 * The closure passed to `downloadTransactions` is non-isolated because it requires an `@escaping` function.
 * The closure passed to `forEach` is actor-isolated to `self` because it takes a non-sendable, non-escaping function.
 
-> **Rationale**: In theory, `@escaping` is completely orthogonal from `@Sendable`. However, in practice nearly all `@escaping` closures in Swift code today are executed concurrently via mechanisms that predate Swift Concurrency. In time, those escaping functions that are executed concurrently will be annotated with `@Sendable` as well as `@escaping`. However, until that happens, `@escaping` non-`@Sendable` functions will be a major hole in the safety model, allowing data races on actor-isolated state. The rule that prevents `isolated` parameter capture in an `@escaping` closure could be lifted in a future version of Swift, where limitations on concurrent execution are more widely enforced.
+> **Rationale**: In theory, `@escaping` is completely orthogonal to `@Sendable`, and a Swift program built entirely with `@Sendable` from the ground up would not have the rule that `@escaping` closures be non-isolated. However, the existing Swift ecosystem is built without `@Sendable`, which leaves us with an unfortunate choice. We can assume that the lack of `@Sendable` on a function type means that the closure won't escape the concurrency domain, and where existing code (i.e., all Swift code that's been written so far) breaks this assumption, we'll have a data race. Or, we can conservatively assume that all existing function types are `@Sendable`, which will prevent all data races, but at the cost of being unable to use even the most basic facilities (such as `Sequence.map`, above). Therefore, we employ an heuristic: `@escaping` is a good (but imperfect) indicator in Swift today that the closure can be executed concurrently, so we don't permit escaping closures to be actor-isolated. This eliminates a significant proportion of the data races that would affect actor state, and the cost of (1) admitting some data races with existing code that manages to execute a closure concurrently without escaping it, and (2) prohibiting some safe patterns where a closure escapes but does not cross concurrency domains. This is a pragmatic, temporarily solution to the problem of rolling out data-race prevention throughout an existing ecosystem. Our approach will ratchet up the safety as code opts in to more concurrency safety in future language versions.
 
 ### Actor reentrancy
 
@@ -508,130 +503,7 @@ actor MyActor: Server {
 }
 ```
 
-Actors can be made to conform to non-`Actor` protocols with synchronous requirements, but doing so cannot access mutable state within the actor. See the section on [non-isolated declarations](#non-isolated-declarations) for more information.
-
-### Actor-isolated parameters
-
-The `self` parameter of an actor function is special in that it is within the actor's isolation domain, so it can access properties and synchronous functions on the actor. The same capabilities can be afforded to a different parameter by marking it as `isolated`; such a parameter must have a type that conforms to the `Actor` protocol. For example, this allows us to express an operation that runs a closure on an actor:
-
-```swift
-extension BankAccount {
-  func runOnActor<R>(body: (isolated BankAccount) async -> R) -> R {
-    body(self) // okay: self is actor-isolated
-  }
-}
-
-func investWildly(account: BankAccount, amount: Double) async {
-  await account.runOnActor { account in
-    account.balance -= amount                    // okay: account is actor-isolated
-    let winnings = await gamble(amount: amount)
-    account.balance += winnings
-  }
-}
-```
-
-It also allows actor functions to be extracted into global or local functions, so code can be refactored without breaking actor isolation. Due to `isolated` parameters, the `self` parameter of an actor function is actually not that special: it merely defaults to `isolated` because of the context in which it is declared. For example, type of `BankAccount.deposit(amount:)`, defined above, is a curried function that involves an isolated `self`:
-
-```swift
-let fn = BankAccount.deposit(amount:) // type is (isolated BankAccount) -> (Double) -> Void
-```
-
-This means that any actor function can be turned into a global function, with the same restrictions now applying to one of its other parameters:
-
-```swift
-func deposit(amount: Double, in account: isolated BankAccount) {
-  account.balance += amount  // okay: account is isolated
-}
-
-func f(account1: BankAccount, account2: isolated BankAccount) {
-  deposit(amount: 100, in: account1) // error: account1 is not isolated
-  deposit(amount: 100, in: account2) // okay: account2 is isolated
-}
-```
-
-### Non-isolated declarations
-
-Instance declarations defined within actors have an `isolated` parameter `self` by default. However, the modifier `nonisolated` on an actor instance declaration makes the `self` parameter non-isolated. This allows us to provide abstraction over the immutable state of an actor that can be accessed synchronously from anywhere:
-
-```swift
-extension BankAccount {
-  // Produce an account number string with all but the last digits replaced with "X", which
-  // is safe to put on documents.
-  nonisolated var safeAccountNumberDisplayString: String {
-    let digits = String(accountNumber)
-    return String(repeating: "X", count: digits.count - 4) + String(digits.suffix(4))
-  }
-}
-```
-
-Non-isolated declarations can also be used to define conformances of an actor to a protocol that has synchronous requirements, which would otherwise cause actor isolation checking to produce an error. For example, it can be useful to defining protocol conformances based on immutable state:
-
-```swift
-extension BankAccount: Hashable {
-  nonisolated func hash(into hasher: inout Hasher) {
-    hasher.combine(accountNumber) 
-  }  
-}
-
-let fn = BankAccount.hash(into:) // type is (BankAccount) -> (inout Hasher) -> Void
-
-extension BankAccount: CustomStringConvertible {
-  nonisolated var description: String {
-    "Bank account #\(safeAccountNumberDisplayString)"
-  }
-}
-```
-
-There are two important things to note here:
-
-1. Without the `nonisolated` modifier, the protocol conformance would be invalid, because an actor-isolated synchronous instance member cannot satisfy a synchronous protocol requirement. The compiler would produce an error such as
-```
-error: actor-isolated property "description" cannot be used to satisfy a protocol requirement
-```
-2. The `nonisolated` modifier means that the `self` parameter is not consider to reference an isolated actor. This makes references to declarations on `self` cross-actor references, so actor isolation checking will prevent them from being used:
-
-```swift
-extension BankAccount {
-  nonisolated func steal(amount: Double) {
-    balance -= amount  // error: actor-isolated property 'balance' can not be referenced on non-isolated parameter 'self'
-  }
-}  
-```
-
-Non-isolated declarations are particularly useful for adapting existing asynchronous code to actors. For example, consider an existing simple "server" protocol that uses a completion handler:
-
-```swift
-protocol OldServer {
-  func send<Message: MessageType>(
-    message: Message,
-    completionHandler: (Result<Message.Reply>) -> Void
-  )
-}
-```
-
-Over time, this protocol should evolve to provide `async` requirements. However, one can make an actor type conform to this protocol using a non-isolated declaration:
-
-```swift
-actor MyActorServer {
-  func send<Message: MessageType>(message: Message) async throws -> Message.Reply { ... }  // this is the "real" asynchronous implementation we want
-}
-
-extension MyActorServer : OldServer {
-  nonisolated func send<Message: MessageType>(
-    message: Message,
-    completionHandler: (Result<Message.Reply>) -> Void
-  ) {
-    Task.runDetached {
-      do {
-        let reply = try await send(message: message)
-        completionHandler(.success(reply))
-      } catch {
-        completionHandler(.failure(error))
-      } 
-    }
-  }
-}
-```
+Actors cannot otherwise be made to conform to non-`Actor` protocols with synchronous requirements. However, there is a separate proposal on [controlling actor isolation][isolationcontrol] that allows such conformances when they can implemented in a manner that does not reference any mutable actor state.
 
 ## Detailed design
 
@@ -666,7 +538,7 @@ Actors are similar to classes in all respects independent of isolation: actor ty
 
 ### Actor isolation checking
 
-Any given declaration in a program is either actor-isolated or is non-isolated. A function (including accessors) is actor-isolated if it contains an `isolated` parameter, in which case it is said to be isolated to the actor described by that parameter. A mutable instance property or instance subscript is actor-isolated if it is defined on an actor type and is not explicitly non-isolated. Declarations that are not actor-isolated are called non-isolated.
+Any given declaration in a program is either actor-isolated or is non-isolated. A function (including accessors) is actor-isolated if it is defined on an actor type (including protocols where `Self` conforms to `Actor`, and extensions thereof). A mutable instance property or instance subscript is actor-isolated if it is defined on an actor type. Declarations that are not actor-isolated are called non-isolated.
 
 The actor isolation rules are checked in a number of places, where two different declarations need to be compared to determine if their usage together maintains actor isolation. There are several such places:
 * When the definition of one declaration (e.g., the body of a function) references another declaration, e.g., calling a function, accessing a property, or evaluating a subscript.
@@ -677,7 +549,7 @@ We'll describe each scenario in detail.
 
 #### References and actor isolation
 
-An actor-isolated non-`async` declaration can only be synchronously accessed from another declaration that is isolated to the same actor. For synchronous access to an actor-isolated function, the argument corresponding to an `isolated` parameter must itself be `isolated`. For synchronous access to an actor-isolated instance property or instance subscript, the `self` argument must be isolated.
+An actor-isolated non-`async` declaration can only be synchronously accessed from another declaration that is isolated to the same actor. For synchronous access to an actor-isolated function, the function must be called from another actor-isolated function. For synchronous access to an actor-isolated instance property or instance subscript, the instance itself must be actor-isolated.
 
 An actor-isolated declaration can be asynchronously accessed from any declaration, whether it is isolated to another actor or is non-isolated. Such accesses are asynchronous operations, and therefore must be annotated with `await`. Semantically, the progam will switch to the actor to perform the synchronous operation, and then switch back to the caller's executor afterward.
 
@@ -690,16 +562,15 @@ actor MyActor {
   func f()
 }
 
-func g(a: isolated MyActor, b: MyActor) async {
-  print(a.name)          // okay, name is non-isolated
-  print(b.name)          // okay, name is non-isolated
-  print(a.counter)       // okay, a is isolated to MyActor
-  print(await b.counter) // okay, b is not isolated to MyActor but asynchronous access is permitted
-  a.f()                  // okay, a is isolated to MyActor
-  await b.f()            // okay, b is not isolated to MyActor but asynchronous access is permitted
-  g(a: a, b: b)          // okay, argument to a is isolated and argument to b is not
-  g(a: a, b: a)          // okay, argument to a is isolated and argument to b is also isolated (but doesn't need to be)
-  g(a: b, b: b)          // error: argument to a is not isolated
+extension MyActor {
+  func g(other: MyActor) async {
+    print(name)          // okay, name is non-isolated
+    print(other.name)    // okay, name is non-isolated
+    print(counter)       // okay, g() is isolated to MyActor
+    print(other.counter) // error: g() is isolated to "self", not "other"
+    f()                  // okay, g() is isolated to MyActor
+    await other.f()      // okay, other is not isolated to "self" but asynchronous access is permitted
+  }
 }
 ```
 
@@ -708,18 +579,14 @@ func g(a: isolated MyActor, b: MyActor) async {
 When a given declaration (the "overriding declaration") overrides another declaration (the "overridden" declaration), the actor isolation of the two declarations is compared. The override is well-formed if:
 
 * the overriding and overridden declarations are isolated to the same actor, or
-* the declarations are both `async`, or
-* the overriding declaration is non-isolated.
-
-In the absence of an explicitly-specified actor-isolation modifier (i.e, `nonisolated`), the overriding declaration will inherit the actor isolation of the overridden declaration.
+* the declarations are both `async`.
 
 #### Protocol conformance
 
 When a given declaration (the "witness") satisfies a protocol requirement (the "requirement"), the protocol requirement can be satisfied by the witness if:
 
 * The requirement is `async`, or
-* the requirement and witness are both actor-isolated to the same parameter,
-* the witness is non-isolated.
+* the requirement and witness are both actor-isolated.
 
 An actor can satisfy an asynchronous requirement because any uses of the requirement are asynchronous, and can therefore suspend until the actor is available to execute them. Note that an actor can satisfy and asynchronous requirement with a synchronous one, in which case the normal notion of asynchronously accessing a synchronous declaration on an actor applies. For example:
 
@@ -733,37 +600,9 @@ actor MyServer : Server {
 }
 ```
 
-A non-isolated witness can always satisfy a requirement (whether synchronous or not), because the witness can run in any context---it does not need to be run on the actor because it isn't isolated to the actor. For example:
-
-```swift
-protocol Server { 
-  func shutdown()
-}
-
-actor MyServer: Server { 
-  nonisolated func shutdown() { // okay: this can be called synchronously
-    Task.runDetached { await self.shutDownProperly() } 
-  }
-}
-```
-
-### Non-isolated declarations
-
-An instance method, computed property, or subscript of an actor may be annotated with `nonisolated`.  When a declaration is `nonisolated`, it (or its accessors) have a `self` parameter that is not `isolated`.
-
-A declaration may be declared to be non-isolated:
-
-```
-nonisolated var count: Int { constantCount + 1 }
-```
-
-Declarations marked as `nonisolated` can be used from outside the actor's isolation domain.
-
-By default, the mutable instance stored properties (declared with `var`) of an actor are actor-isolated to the actor instance.
-
 ### Partial applications
 
-A partial application of a function with an `isolated` parameter is only permitted when the expression is a direct argument whose corresponding parameter is non-escaping and non-concurrent. For example:
+Partial applications of isolated functions are only permitted when the expression is a direct argument whose corresponding parameter is non-escaping and non-Sendable. For example:
 
 ```swift
 func runLater<T>(_ operation: @escaping () -> T) -> T { ... }
@@ -774,13 +613,13 @@ actor A {
   
   func useAF(array: [Int]) {
     array.map(self.f)                     // okay
-    Task.runDetached(operation: self.g)   // error: self.g has non-concurrent type () -> Double that cannot be converted to a @Sendable function type
+    Task.runDetached(operation: self.g)   // error: self.g has non-sendable type () -> Double that cannot be converted to a @Sendable function type
     runLater(self.g)                      // error: self.g has escaping function type () -> Double
   }
 }
 ```
 
-These restrictions follow from the actor isolation rules for the "desugaring" of partial applications to closures. The two erroneous cases above fall out from the fact that the `self` parameter would be captured as non-isolated in a closure that performs the call, so access to the actor-isolated function `g` would have to be asynchronous. Here are the "desugared" forms of the partial applications:
+These restrictions follow from the actor isolation rules for the "desugaring" of partial applications to closures. The two erroneous cases above fall out from the fact that the closure would be non-isolated in a closure that performs the call, so access to the actor-isolated function `g` would have to be asynchronous. Here are the "desugared" forms of the partial applications:
 
 
 ```swift
@@ -805,7 +644,7 @@ actor A {
 let kp = \A.storage  // error: key path would permit access to actor-isolated storage
 ```
 
-> **Rationale**: Allowing the formation of a key path that references an actor-isolated property or subscript would permit accesses to the actor's protected state from outside of the actor isolation domain.
+> **Rationale**: Allowing the formation of a key path that references an actor-isolated property or subscript would permit accesses to the actor's protected state from outside of the actor isolation domain. As an alternative to this rule, we could remove the `Sendable` conformance from key paths, such that one could form key paths to actor-isolated state but they could not be shared.
 
 ### inout parameters
 
@@ -983,55 +822,6 @@ There are a few reasons why we are not currently comfortale including task-chain
 
 If we can address the above, task-chain reentrancy can be introduced into the actor model with another spelling of the reentrancy attribute such as `@reentrant(task)`, and may provide the best default.
 
-### Isolated protocol conformances
-
-The conformance of an actor type to a protocol assumes that the client of the protocol is outside of the actor's isolation domain. Therefore, [protocol conformances](#protocol-conformance) require either the protocol to have `async` requirements or the actor to use non-isolated members to establish protocol conformance. The [Type System Considerations for Actor Protocol](https://forums.swift.org/t/exploration-type-system-considerations-for-actor-proposal/44540) pitch argues that actor types should be able to conform to protocols with the assumption that the conformance is only used within the actor's isolation context. That pitch provides the following example:
-
-```swift
-public protocol DataProcessible {
-    var data: Data { get }
-}
-extension DataProcessible {
-  func compressData() -> Data {
-    use(data) 
-    /// details omitted
-  }
-}
-
-actor MyDataActor : DataProcessible {
-  // error: cannot fulfill sync requirement with isolated actor member.
-  var data: Data
-
-  func doThing() {
-    // All sync, no problem!
-    let compressed = compressData()
-  }
-}
-```
-
-That pitch suggests that the conformance of `MyDataActor : DataProcessible` be permitted, and introduces the notion of a `@sync` actor type to describe the actor when in its own isolation domain. Specifically, the type `@sync MyDataActor` conforms to `DataProcessible` but the type `@async MyDataActor` (which represents the actor outside of its isolation domain) does not.
-
-This proposal does not separate isolated from non-isolated actor types, and instead uses an `isolated` parameter to describe the actor that the code is executing on. The same notion can be extended to introduce isolated protocol conformances, which are conformances that can only be used with isolated values. For example, the conformance itself could have `isolated` applied to it to mark it as an isolated conformance:
-
-```swift
-actor MyDataActor : isolated DataProcessible {
-  var data: Data   // okay: satisfies "data" requirement
-
-  func doThing() {
-    // okay, because self is isolated
-    let compressed = compressData()
-  }
-  
-  nonisolated failToDoTheThing() {
-    // error: isolated conformance MyDataActor : DataProcessible cannot be used when non-isolated
-    // value of type MyDataActor is passed to the generic function.
-    let compressed = compressData()    
-  }
-}
-```
-
-The use of isolated protocol conformances would require a number of other restrictions to ensure that the protocol conformance cannot be used on non-isolated instances of the actor. For example, this means that a non-isolated conformance can never be used along with `Sendable` on the same type, because that would permit a non-isolated instance of the actor to be passed outside of the actor's isolation domain along with a protocol conformance that assumes it is within the actor's isolation domain.
-
 ## Alternatives considered
 
 ### Eliminating inheritance
@@ -1058,62 +848,10 @@ actor Employee: Person {
 
 This implementation will behave as one would expect for inheritance (every `Employee` is-a `Person`). The inheriting actor type also extends the actor-isolation domain of the actor type it inherits, so (for example) it is safe for a method of `Employee` to refer to `self.birthdate`. Given that there are no implementation reasons to disallow inheritance, and the reasons for inheritance of classes apply equally to actors, we retain inheritance for actor types.
 
-### Isolated or sync actor types
-
-The notion of "isolated" parameters grew out of a [proposal](https://forums.swift.org/t/exploration-type-system-considerations-for-actor-proposal/44540) that generalized the notion of actor isolation from something that only made sense on `self` to one that made sense for any parameter. That proposal modeled isolation directly in the type system by introducing a new kind of type: `@sync` actor types were used for values that have synchronous access to the actors they describe. Therefore, instead of saying that `self` is an `isolated` parameter of type `MyActor`, the proposal would say that `self` has the type `@sync MyActor`. The "isolated conformances" described in the future directions above are similar to (and directly influenced by) the notion that `@sync` actor types can conform to (synchronous) protocols as described in that proposal.
-
-At a high level, isolated parameters and isolated conformances are similar to parameters of `@sync` type and conformances of `@sync` types to protocols, and can address similar sets of use cases. This proposal chose to treat `isolated` as a parameter modifier rather than as a type because it provides a simpler, value-centric model that aligns more closely with the behavior of a similarly-constrained construct, `inout`. There are several inconsistencies to the `@sync` type approach that made it less desirable:
-
-* The type of an actor's `self` can change within nested contexts, such as closures, between `@sync` and non-`@sync`:
-
-    ```swift
-    func f<T>(_: T) { }
-  
-    actor MyActor {
-      func g() {
-        f(self) // T = @sync MyActor
-
-        Task.runDetached {
-          f(self) // T = MyActor
-        }
-      }
-    }  
-    ```
-  Generally speaking, a variable in Swift has the same type when it's captured in a nested context as it does in its enclosing context, which provides a level of predictability that would be lost with `@sync` types. In the example above, type inference for the call to `f` differs significantly whether you're in the closure or not. A [recent discussion on the forums](https://forums.swift.org/t/implicit-casts-for-verified-type-information/41035) about narrowing types showed resistence to the idea of changing the type of a variable in a nested context, even when doing so could eliminate additional boilerplate. 
-
-* The design relies heavily on the implicit conversion from `@sync MyActor` to `MyActor`, e.g.,
-
-    ```swift
-    func acceptActor(_: MyActor) { }
-    func acceptSendable<T: Sendable>(_: T) { }
-  
-    extension MyActor {
-      func h() {
-        acceptActor(h)  // okay, requires conversion of @sync MyActor to MyActor
-        acceptSendable(h) // okay, requires T=MyActor and conversion of @sync MyActor to MyActor
-      }
-    }
-  ```
-
-* Conformance to `Sendable` doesn't follow the normal subtyping rules. Per the conversion above, a `@sync` actor type is a subtype of the corresponding (non-`@sync`) actor type. By definition, a subtype has all of the conformances of its supertype, and may of course add more capabilities. This is a general principle of type system design, and shows up in Swift in a number of places, e.g., with subclassing:
-
-    ```swift
-    protocol P { }
-    
-    class C: P { }
-    class D: C { }
-    
-    func test(c: C, d: D) {
-      let _: P = c   // okay, C conforms to P
-      let _: P = d   // okay, D conforms to P because it is a subtype of C, which itself conforms to P
-    }
-    ```
-    
-    However, `@sync` types don't behave this way with respect to `Sendable`. A non-`@sync` actor type conforms to `Sendable` (it's safe to share it across concurrency domains), but its corresponding `@sync` subtype does *not* conform to `Sendable`. This is why in the prior example's call to `acceptSendable`, the implicit conversion from `@sync MyActor` to `MyActor` is required.
-    
-
 ## Revision history
 
+* Changes in the seventh pitch:
+  * Removed isolated parameters and `nonisolated` from this proposal. They'll come in a follow-up proposal on [controlling actor isolation][isolationcontrol].
 * Changes in the sixth pitch:
   * Make the instance requirements of `Actor` protocols actor-isolated to `self`, and allow actor types to conform to such protocols using actor-isolated witnesses.
   * Reflow the "Proposed Solution" section to get the bigger ideas out earlier.
@@ -1156,3 +894,4 @@ At a high level, isolated parameters and isolated conformances are similar to pa
 [sc]: https://github.com/apple/swift-evolution/blob/main/proposals/0304-structured-concurrency.md
 [se302]: https://github.com/apple/swift-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md
 [customexecs]: https://github.com/rjmccall/swift-evolution/blob/custom-executors/proposals/0000-custom-executors.md
+[isolationcontrol]: https://github.com/DougGregor/swift-evolution/blob/actor-isolation-control/proposals/nnnn-actor-isolation-control.md
