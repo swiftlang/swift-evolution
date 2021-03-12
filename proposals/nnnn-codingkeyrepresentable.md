@@ -54,7 +54,7 @@ I have a draft PR for the proposed solution: [#34458](https://github.com/apple/s
 
 ## Examples
 
-```
+```swift
 // Same as stdlib's _DictionaryCodingKey
 struct _AnyCodingKey: CodingKey {
     let stringValue: String
@@ -110,7 +110,7 @@ try String(data: encoder.encode(data), encoding: .utf8)
 
 The proposed solution adds a new protocol, `CodingKeyRepresentable`:
 
-```
+```swift
 /// Indicates that the conforming type can provide a `CodingKey` to be used when
 /// encoding into a keyed container.
 public protocol CodingKeyRepresentable {
@@ -121,7 +121,7 @@ public protocol CodingKeyRepresentable {
 
 In the conditional `Encodable` conformance on `Dictionary`, the following extra case can handle such conforming types:
 
-```
+```swift
     } else if let _ = Key.self as? CodingKeyRepresentable.Type {
       // Since the keys are CodingKeyRepresentable, we can use the `codingKey`
       // to create `_DictionaryCodingKey` instances.
@@ -138,7 +138,7 @@ In the conditional `Encodable` conformance on `Dictionary`, the following extra 
 
 In the conditional `Decodable` conformance on `Dictionary`, we can similarly handle conforming types:
 
-```
+```swift
     } else if let codingKeyRepresentableType = Key.self as? CodingKeyRepresentable.Type {
       // The keys are CodingKeyRepresentable, so we should be able to expect a keyed container.
       let container = try decoder.container(keyedBy: _DictionaryCodingKey.self)
@@ -189,7 +189,7 @@ It was suggested during the pitch phase to use an associated type for the `Codin
 
 The presented use case was perfectly valid - and demonstrated using the following example:
 
-```
+```swift
 enum MyKey: Int, CodingKey {
     case a = 1
     case b = 3
@@ -246,7 +246,7 @@ On the *producing* side (e.g. in `MyCustomType` ), I'm also not sure the utility
 
 I believe that the constrained `MyKey` example above will be the minority use-case, but expressed without the `associatedtype` constraint too:
 
-```
+```swift
 enum MyKey: Int, CodingKey {
     case a = 1, b = 3, c = 5
 
