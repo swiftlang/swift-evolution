@@ -8,7 +8,7 @@
 
 ## Introduction
 
-I propose to extend the language and allow `Double` and `CGFloat` types to be used interchangeably by means of transparently converting one type into the other as a sort of retroactive `typealias` between these two types. 
+I propose to extend the language and allow Double and CGFloat types to be used interchangeably by means of transparently converting one type into the other as a sort of retroactive typealias between these two types.  This is a _narrowly_ defined implicit conversion intended to be part of the _existing family_ of implicit conversions (including NSType <=> CFType conversions) supported by Swift to strengthen Objective-C and Swift interoperability. The only difference between the proposed conversion and existing ones is related to the fact that interchangeability implies both narrowing conversion (`Double` -> `CGFloat`) and widening one (`CGFloat` -> `Double`) on 32-bit platforms. This proposal is not about generalizing support for implicit conversions to the language.
 
 Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/t/pitch-allow-interchangeable-use-of-cgfloat-and-double-types/45324)
 
