@@ -1,9 +1,9 @@
 # Actors
 
-* Proposal: [SE-NNNN](NNNN-actors.md)
+* Proposal: [SE-0306](0306-actors.md)
 * Authors: [John McCall](https://github.com/rjmccall), [Doug Gregor](https://github.com/DougGregor), [Konrad Malawski](https://github.com/ktoso), [Chris Lattner](https://github.com/lattner)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Review Manager: [Joe Groff](https://github.com/jckarter)
+* Status: **Scheduled for Review (March 15...29, 2021)**
 * Implementation: Partially available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
 
 ## Table of Contents
