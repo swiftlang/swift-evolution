@@ -314,7 +314,7 @@ This behavior makes it possible to safely create and pass around immutable bags 
 
 #### Actor types
 
-Actor types provide their own internal synchronization, so they implicitly conform to `Sendable`. The [actors proposal](https://github.com/DougGregor/swift-evolution/blob/actors/proposals/nnnn-actors.md) provides more detail.
+Actor types provide their own internal synchronization, so they implicitly conform to `Sendable`. The [actors proposal](https://github.com/apple/swift-evolution/blob/main/proposals/0306-actors.md) provides more detail.
 
 #### Key path literals
 
