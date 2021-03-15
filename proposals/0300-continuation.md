@@ -258,7 +258,7 @@ func doOperation() async -> OperationResult {
 }
 ```
 
-Using APIs from the [structured concurrency proposal](https://github.com/DougGregor/swift-evolution/blob/structured-concurrency/proposals/nnnn-structured-concurrency.md),
+Using APIs from the [structured concurrency proposal](https://github.com/apple/swift-evolution/blob/main/proposals/0304-structured-concurrency.md),
 one can wrap up a `URLSession` in a task, allowing the task's cancellation
 to control cancellation of the session, and using a continuation to respond
 to data and error events fired by the network activity:
