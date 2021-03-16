@@ -1,9 +1,9 @@
-# `Sendable` and `@sendable` closures
+# `Sendable` and `@Sendable` closures
 
 * Proposal: [SE-0302](0302-concurrent-value-and-concurrent-closures.md)
 * Authors: [Chris Lattner](https://github.com/lattner), [Doug Gregor](https://github.com/douggregor)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active Review (March 2nd...March 8th, 2021)**
+* Status: **Accepted**
 * Implementation: [apple/swift#35264](https://github.com/apple/swift/pull/35264)
 * Major Contributors: Dave Abrahams, Paul Cantrell, Matthew Johnson, John McCall
 * Review: ([first review](https://forums.swift.org/t/se-0302-Sendable-and-concurrent-closures/44919)) ([revision announcement](https://forums.swift.org/t/returned-for-revision-se-0302-concurrentvalue-and-concurrent-closures/45251)) ([second review](https://forums.swift.org/t/se-0302-second-review-sendable-and-sendable-closures/45253))
@@ -30,21 +30,21 @@
         * [Sendable conformance checking for classes](#sendable-conformance-checking-for-classes)
         * [Actor types](#actor-types)
         * [Key path literals](#key-path-literals)
-     * [New @sendable attribute for functions](#new-sendable-attribute-for-functions)
-        * [Inference of @sendable for Closure Expressions](#inference-of-sendable-for-closure-expressions)
+     * [New @Sendable attribute for functions](#new-sendable-attribute-for-functions)
+        * [Inference of @Sendable for Closure Expressions](#inference-of-sendable-for-closure-expressions)
      * [Thrown errors](#thrown-errors)
      * [Adoption of Sendable by Standard Library Types](#adoption-of-sendable-by-standard-library-types)
      * [Support for Imported C / Objective-C APIs](#support-for-imported-c--objective-c-apis)
   * [Future Work / Follow-on Projects](#future-work--follow-on-projects)
      * [Adaptor Types for Legacy Codebases](#adaptor-types-for-legacy-codebases)
      * [Objective-C Framework Support](#objective-c-framework-support)
-     * [Interaction of Actor self and @sendable closures](#interaction-of-actor-self-and-sendable-closures)
+     * [Interaction of Actor self and @Sendable closures](#interaction-of-actor-self-and-sendable-closures)
+     * [Marker protocols as custom attributes](#marker-protocols-as-custom-attributes)
   * [Source Compatibility](#source-compatibility)
   * [Effect on API resilience](#effect-on-api-resilience)
   * [Alternatives Considered](#alternatives-considered)
      * [Exotic Type System Features](#exotic-type-system-features)
      * [Support an explicit copy hook](#support-an-explicit-copy-hook)
-     * [Do Not Enforce Transfers in “Swift Concurrency 1.0”](#do-not-enforce-transfers-in-swift-concurrency-10)
   * [Conclusion](#conclusion)
   * [Revision history](#revision-history)
 
@@ -54,7 +54,7 @@ A key goal of the Swift Concurrency effort is to “provide a mechanism for isol
 
 This proposal describes an approach to address one of the challenging problems in this space — how to type check value passing between structured concurrency constructs and actors messages. As such, this is a unifying theory that provides some of the underlying type system mechanics that make them both safe and work well together.
 
-This implementation approach involves a marker protocol named `Sendable`, as well as a `@sendable` attribute that may be applied to functions.
+This implementation approach involves a marker protocol named `Sendable`, as well as a `@Sendable` attribute that may be applied to functions.
 
 ## Motivation
 
@@ -139,7 +139,7 @@ Finally, our goal is for Swift (in general and in this specific case) to be a hi
 
 ## Proposed Solution + Detailed Design
 
-The high level design of this proposal revolves around a `Sendable` marker protocol, adoption of `Sendable` by standard library types, and a new `@sendable` attribute for functions.
+The high level design of this proposal revolves around a `Sendable` marker protocol, adoption of `Sendable` by standard library types, and a new `@Sendable` attribute for functions.
 
 Beyond the basic proposal, in the future it could make sense to add a set of adapter types to handle legacy compatibility cases, and first class support for Objective-C frameworks.  These are described in the following section.
 
@@ -183,7 +183,7 @@ func f(a: SomeActor, myString: NSMutableString) async {
 }
 ```
 
-The `Sendable` protocol models types that are allowed to be safely passed across concurrency domains by copying the value.  This includes value-semantic types, references to immutable reference types, internally synchronized reference types, `@sendable` closures, and potentially other future type system extensions for unique ownership etc.
+The `Sendable` protocol models types that are allowed to be safely passed across concurrency domains by copying the value.  This includes value-semantic types, references to immutable reference types, internally synchronized reference types, `@Sendable` closures, and potentially other future type system extensions for unique ownership etc.
 
 Note that incorrect conformance to this protocol can introduce bugs in your program (just as an incorrect implementation of `Hashable` can break invariants), which is why the compiler checks conformance (see below).
 
@@ -336,15 +336,15 @@ let sc = SomeClass(...)
 let keyPath = \SomeContainer.dict[sc]
 ```
 
-### New `@sendable` attribute for functions
+### New `@Sendable` attribute for functions
 
 While the `Sendable` protocol directly addresses value types and allows classes to opt-in to participation with the concurrency system, function types are also important reference types that cannot currently conform to protocols. Functions in Swift occur in several forms, including global func declarations, nested functions, accessors (getters, setters, subscripts, etc), and closures.  It is useful and important to allow functions to be passed across concurrency domains where possible to allow higher order functional programming techniques in the Swift Concurrency model, for example to allow definition of `parallelMap` and other obvious concurrency constructs.
 
-We propose defining a new attribute on function types named `@sendable`.   A `@sendable` function type is safe to transfer across concurrency domains (and thus, it implicitly conforms to the `Sendable` protocol).  To ensure memory safety, the compiler checks several things about values (e.g. closures and functions) that have `@sendable` function type:
+We propose defining a new attribute on function types named `@Sendable`.   A `@Sendable` function type is safe to transfer across concurrency domains (and thus, it implicitly conforms to the `Sendable` protocol).  To ensure memory safety, the compiler checks several things about values (e.g. closures and functions) that have `@Sendable` function type:
 
-1.  A function can be marked `@sendable`. Any captures must also conform to `Sendable`.
+1.  A function can be marked `@Sendable`. Any captures must also conform to `Sendable`.
 
-2.  Closures that have `@sendable` function type can only use by-value captures. Captures of immutable values introduced by `let` are implicitly by-value; any other capture must be specified via a capture list:
+2.  Closures that have `@Sendable` function type can only use by-value captures. Captures of immutable values introduced by `let` are implicitly by-value; any other capture must be specified via a capture list:
 
     ```swift
     let prefix: String = ...
@@ -354,15 +354,15 @@ We propose defining a new attribute on function types named `@sendable`.   A `@s
 
     The types of all captured values must conform to `Sendable`.
 
-3.  Accessors are not currently allowed to participate with the `@sendable` system as of this proposal.  It would be straight-forward to allow getters to do so in a future proposal if there was demand for this.
+3.  Accessors are not currently allowed to participate with the `@Sendable` system as of this proposal.  It would be straight-forward to allow getters to do so in a future proposal if there was demand for this.
 
-The `@sendable` attribute to function types is orthogonal to the existing `@escaping` attribute, but it works the same way.  `@sendable` functions are always subtypes of non-`@sendable` functions, and implicitly convert when needed.  Similarly, closure expressions infer the `@sendable` bit from context just like `@escaping` closures do.
+The `@Sendable` attribute to function types is orthogonal to the existing `@escaping` attribute, but it works the same way.  `@Sendable` functions are always subtypes of non-`@Sendable` functions, and implicitly convert when needed.  Similarly, closure expressions infer the `@Sendable` bit from context just like `@escaping` closures do.
 
 We can revisit the example from the motivation section — it may be declared like this:
 
 ```swift
 actor MyContactList {
-  func filteredElements(_ fn: @sendable (ContactElement) -> Bool) async -> [ContactElement] { … }
+  func filteredElements(_ fn: @Sendable (ContactElement) -> Bool) async -> [ContactElement] { … }
 }
 ```
 
@@ -376,17 +376,17 @@ list = await contactList.filteredElements { $0.firstName != "Max" }
 // to Sendable.  searchName is captured by value implicitly.
 list = await contactList.filteredElements { $0.firstName==searchName }
 
-// @sendable is part of the type, so passing a compatible
+// @Sendable is part of the type, so passing a compatible
 // function declaration works as well.
 list = await contactList.filteredElements(dynamicPredicate)
 
-// Error: cannot capture NSMutableString in a @sendable closure!
+// Error: cannot capture NSMutableString in a @Sendable closure!
 list = await contactList.filteredElements {
   $0.firstName == nsMutableName
 }
 
 // Error: someLocalInt cannot be captured by reference in a
-// @sendable closure!
+// @Sendable closure!
 var someLocalInt = 1
 list = await contactList.filteredElements {
   someLocalInt += 1
@@ -394,29 +394,29 @@ list = await contactList.filteredElements {
 }
 ```
 
-The combination of `@sendable` closures and `Sendable` types allows type safe concurrency that is library extensible, while still being easy to use and understand.  Both of these concepts are key foundations that actors and structured concurrency builds on top of.
+The combination of `@Sendable` closures and `Sendable` types allows type safe concurrency that is library extensible, while still being easy to use and understand.  Both of these concepts are key foundations that actors and structured concurrency builds on top of.
 
-#### Inference of `@sendable` for Closure Expressions
+#### Inference of `@Sendable` for Closure Expressions
 
-The inference rule for `@sendable` attribute for closure expressions is similar to closure `@escaping` inference.  A closure expression is inferred to be `@sendable` if:
+The inference rule for `@Sendable` attribute for closure expressions is similar to closure `@escaping` inference.  A closure expression is inferred to be `@Sendable` if:
 
-*   It is used in a context that expects a `@sendable` function type (e.g. `parallelMap` or `Task.runDetached`).
-*   When `@sendable` is in the closure “in” specification.
+*   It is used in a context that expects a `@Sendable` function type (e.g. `parallelMap` or `Task.runDetached`).
+*   When `@Sendable` is in the closure “in” specification.
 
-The difference from `@escaping` is that a context-less closure defaults to be non-`@sendable`, but defaults to being `@escaping`:
+The difference from `@escaping` is that a context-less closure defaults to be non-`@Sendable`, but defaults to being `@escaping`:
 
 ```swift
-// defaults to @escaping but not @sendable
+// defaults to @escaping but not @Sendable
 let fn = { (x: Int, y: Int) -> Int in x+y }
 ```
 
-Nested functions are also an important consideration, because they can also capture values just like a closure expression.  The `@sendable` attribute is used on nested function declarations to opt-into concurrency checking:
+Nested functions are also an important consideration, because they can also capture values just like a closure expression.  The `@Sendable` attribute is used on nested function declarations to opt-into concurrency checking:
 
 ```swift
 func globalFunction(arr: [Int]) {
   var state = 42
 
-  // Error, 'state' is captured immutably because closure is @sendable.
+  // Error, 'state' is captured immutably because closure is @Sendable.
   arr.parallelForEach { state += $0 }
 
   // Ok, function captures 'state' by reference.
@@ -424,16 +424,16 @@ func globalFunction(arr: [Int]) {
     state += value
   }
 
-  // Error: non-@sendable function isn't convertible to @sendable function type.
+  // Error: non-@Sendable function isn't convertible to @Sendable function type.
   arr.parallelForEach(mutateLocalState1)
 
-  @sendable
+  @Sendable
   func mutateLocalState2(value: Int) {
-    // Error: 'state' is captured as a let because of @sendable
+    // Error: 'state' is captured as a let because of @Sendable
     state += value
   }
 
-  // Ok, mutateLocalState2 is @sendable.
+  // Ok, mutateLocalState2 is @Sendable.
   arr.parallelForEach(mutateLocalState2)
 }
 ```
@@ -496,7 +496,7 @@ Except for the cases listed below, all struct, enum, and class types in the stan
 
 *   `ManagedBuffer`: this class is meant to provide mutable reference semantics for a buffer. It must not conform to `Sendable` (even unsafely).
 *   `Unsafe(Mutable)(Buffer)Pointer`: these generic types _unconditionally_ conform to the `Sendable` protocol. This means that an unsafe pointer to a non-concurrent value can potentially be used to share such values between concurrency domains. Unsafe pointer types provide fundamentally unsafe access to memory, and the programmer must be trusted to use them correctly; enforcing a strict safety rule for one narrow dimension of their otherwise completely unsafe use seems inconsistent with that design.
-*   Lazy algorithm adapter types: the types returned by lazy algorithms (e.g., as the result of `array.lazy.map` { … }) never conform to `Sendable`. Many of these algorithms (like the lazy `map`) take non-`@sendable` closure values, and therefore cannot safely conform to `Sendable`.
+*   Lazy algorithm adapter types: the types returned by lazy algorithms (e.g., as the result of `array.lazy.map` { … }) never conform to `Sendable`. Many of these algorithms (like the lazy `map`) take non-`@Sendable` closure values, and therefore cannot safely conform to `Sendable`.
 
 The standard library protocols `Error` and `CodingKey` inherit from the `Sendable` protocol:
 
@@ -585,9 +585,9 @@ actor MyAppActor {
 
 One random note: the Objective-C static type system is not very helpful to us with immutability here: statically typed `NSString`’s may actually be dynamically `NSMutableString`’s due to their subclass relationships.  Because of this, it isn’t safe to assume that values of `NSString` type are dynamically immutable — they should be implemented to invoke the `copy()` method.
 
-### Interaction of Actor self and `@sendable` closures
+### Interaction of Actor self and `@Sendable` closures
 
-Actors are a proposal that is conceptually layered on top of this one, but it is important to be aware of the actor design to make sure that this proposal addresses its needs.  As described above, actor method sends across concurrency boundaries naturally require that arguments and results conform to `Sendable`, and thus implicitly require that closures passed across such boundaries are `@sendable`.
+Actors are a proposal that is conceptually layered on top of this one, but it is important to be aware of the actor design to make sure that this proposal addresses its needs.  As described above, actor method sends across concurrency boundaries naturally require that arguments and results conform to `Sendable`, and thus implicitly require that closures passed across such boundaries are `@Sendable`.
 
 One additional detail that needs to be addressed is “when is something a cross actor call?”.  For example, we would like these calls to be synchronous and not require an await:
 
@@ -621,11 +621,15 @@ extension SomeActor {
 }
 ```
 
-We need the compiler to know whether there is a possible concurrency domain hop or not — if so, an await is required.  Fortunately, this works out through straight-forward composition of the basic type system rules above: It is perfectly safe to use actor `self` in a non-`@sendable` closure in an actor method, but using it in a `@sendable` closure is treated as being from a different concurrency domain, and thus requires an `await`.
+We need the compiler to know whether there is a possible concurrency domain hop or not — if so, an await is required.  Fortunately, this works out through straight-forward composition of the basic type system rules above: It is perfectly safe to use actor `self` in a non-`@Sendable` closure in an actor method, but using it in a `@Sendable` closure is treated as being from a different concurrency domain, and thus requires an `await`.
+
+### Marker protocols as custom attributes 
+
+The marker protocol `Sendable` and the function attribute `@Sendable` are intentionally given the same name. There is a potential future direction here where `@Sendable` could move from a special attribute recognized by the compiler (as in this proposal), to having marker protocols like `Sendable` be custom attributes like [property wrappers](https://github.com/apple/swift-evolution/blob/main/proposals/0258-property-wrappers.md) and [result builders](https://github.com/apple/swift-evolution/blob/main/proposals/0289-result-builders.md). Such a change would have very little effect on existing code that uses `@Sendable` so long as users don't declare their own `Sendable` type that shadows the one from the standard library. However, it would make `@Sendable` less special and allow other marker protocols to be used similarly.
 
 ## Source Compatibility
 
-This is almost completely source compatible with existing code bases. The introduction of the `Sendable` marker protocol  and `@sendable` functions are additive features that have no impact when not used and therefore do not affect existing code.
+This is almost completely source compatible with existing code bases. The introduction of the `Sendable` marker protocol  and `@Sendable` functions are additive features that have no impact when not used and therefore do not affect existing code.
 
 There are a few new restrictions that could cause source breakage in exotic cases:
 
@@ -652,18 +656,6 @@ While it is difficult to understand the detailed interaction without knowing the
 
 The [first revision of this proposal](https://docs.google.com/document/d/1OMHZKWq2dego5mXQtWt1fm-yMca2qeOdCl8YlBG1uwg/edit#) allowed types to define custom behavior when they are sent across concurrency domains, through the implementation of an `unsafeSend` protocol requirement.  This increased the complexity of the proposal, admitted undesired functionality (explicitly implemented copy behavior), made the recursive aggregate case more expensive, and would result in larger code size.
 
-### Do Not Enforce Transfers in “Swift Concurrency 1.0”
-
-The [initial proposal for the actor system](https://forums.swift.org/t/concurrency-actors-actor-isolation/41613/) suggests that we launch “Swift Concurrency 1.0” without any enforcement of value transfers across concurrency domains, then later introduce a “Swift Concurrency 2.0” system that locks this down.
-
-That approach has several downsides compared to this proposal:
-
-1. The “Swift Concurrency 1.0” code would miss key memory safety checking — which is the primary stated goal of the Swift Concurrency model.
-2. “Swift Concurrency 2.0” will be significantly source incompatible with “Swift Concurrency 1.0” and will put the Swift community through a very difficult and unnecessary migration.
-3. The expressiveness of the new type system is not well explored and it certainly does not cover all of the cases in this proposal — we will probably require something like this anyway.
-
-The model proposed here is simple and builds on core features of the existing Swift language, so it is best to adopt these checks in the first revision of the proposal.
-
 ## Conclusion
 
 This proposal defines a very simple approach for defining types that are safe to transfer across concurrency domains.  It requires minimal compiler/language support that is consistent with existing Swift features, is extensible by users, works with legacy code bases, and provides a simple model that we can feel good about even 20 years from now.
@@ -672,6 +664,10 @@ Because the feature is mostly a library feature that builds on existing language
 
 ## Revision history
 
+* Changes from the second review:
+  * Renamed `@sendable` to `@Sendable`, per review feedback and Core Team decision.
+  * Add a future direction on marker protocols as custom attributes.
+  * Removed "Swift Concurrency 1.0" and "2.0" discussion in Alternatives Considered.
 * Changes from the first review
   * Renamed `ConcurrentValue` to `Sendable` and `@concurrent` to `@sendable`.
   * Replaced `UnsafeConcurrentValue` with `@unchecked Sendable` conformances.
