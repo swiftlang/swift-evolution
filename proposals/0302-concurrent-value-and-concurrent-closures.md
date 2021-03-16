@@ -45,7 +45,7 @@
   * [Alternatives Considered](#alternatives-considered)
      * [Exotic Type System Features](#exotic-type-system-features)
      * [Support an explicit copy hook](#support-an-explicit-copy-hook)
-     * [Do Not Enforce Transfers in “Swift Concurrency 1.0”](#do-not-enforce-transfers-in-swift-concurrency-10)
+concurrency-10)
   * [Conclusion](#conclusion)
   * [Revision history](#revision-history)
 
