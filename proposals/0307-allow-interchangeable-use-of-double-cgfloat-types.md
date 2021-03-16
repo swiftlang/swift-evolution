@@ -81,8 +81,8 @@ The type-checker will detect all of the suitable locations where `Double` is con
 This new conversion has the following properties:
 
 * `Double` is always preferred over `CGFloat` where possible, in order to limit possibility of ambiguities, i.e. an overload that accepts a `Double` argument would be preferred over one that accepts a `CGFloat` if both require a conversion to type-check;
-* `Double` ↔ `CGFloat` conversion is introduced only if it has been determined by the type-checker that it would be impossible to type-check an expression without one;
-* Any number of widening conversions (`CGFloat` → `Double`)  is preferred over a single narrowing one (`Double` → `CGFloat`), and if narrowing is still contextually necessary, it would be attempted as late as possible to mitigate precision loss. 
+* `Double` <-> `CGFloat` conversion is introduced only if it has been determined by the type-checker that it would be impossible to type-check an expression without one;
+* Any number of widening conversions (`CGFloat` -> `Double`)  is preferred over a single narrowing one (`Double` -> `CGFloat`), and if narrowing is still contextually necessary, it would be attempted as late as possible to mitigate precision loss. 
     * Let’s consider following example: `let _: CGFloat = x / y` (where `x` is `CGFloat` and `y` is `Double`). Type-checked expression would be `let _: CGFloat = CGFloat.init(x / Double(y)` and not `let _: CGFloat = CGFloat(x) / y` to mitigate potential precision loss.
 * Disallowed conversions:
     * Arguments of explicit calls to the `CGFloat` initializer;
@@ -105,7 +105,7 @@ var y: CGFloat = 42
 _ = sum(x, y)
 ```
 
-Although both overloads of `sum` are homogeneous, and under current rules the call is not going to be accepted, with introduction of `Double`  ↔ `CGFloat` conversion it’s possible to form two valid calls depending on what conversion direction is picked. Since it has been established that going `CGFloat` → `Double` is always preferred, `sum(x, y)`  is going to be type-checked as `(Double, Double) -> Double` (because there is no contextual type specified) and arguments are going to be `x` and `Double(y)`. 
+Although both overloads of `sum` are homogeneous, and under current rules the call is not going to be accepted, with introduction of `Double` <-> `CGFloat` conversion it’s possible to form two valid calls depending on what conversion direction is picked. Since it has been established that going `CGFloat` -> `Double` is always preferred, `sum(x, y)`  is going to be type-checked as `(Double, Double) -> Double` (because there is no contextual type specified) and arguments are going to be `x` and `Double(y)`. 
 
 The contextual type doesn’t affect the preferred conversion direction since the type-checker would always choose a solution with the fewest number of narrowing conversions possible, i.e.:
 
