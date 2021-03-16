@@ -38,7 +38,7 @@ The compiler already implements similar conversions to improve interoperability 
 
 Let’s consider an example where such a conversion might be useful in the real world:
 
-```
+```swift
 import UIKit
 
 struct Progress {
@@ -68,7 +68,7 @@ struct Progress {
 
 Here, the `Progress` struct draws a progress circle given a start time and a duration. In Foundation, seconds are expressed using `[TimeInterval](https://developer.apple.com/documentation/foundation/timeinterval)`, which is a typealias for `Double`. However, the `[CGMutablePath](https://developer.apple.com/documentation/coregraphics/cgmutablepath)` APIs for drawing shapes require `CGFloat` arguments, forcing developers to explicitly convert between `Double` and `CGFloat` when working with these two frameworks together. Furthermore, because float literals default to `Double` in Swift, developers are forced to either explicitly annotate or convert simple constants when working with graphics APIs, such as `adjustment` in the above example. With an implicit conversion between `Double` and `CGFloat`, the call to `addRelativeArc` can be simplified to:
 
-```
+```swift
 path.addRelativeArc(center: center, radius: rect.width / 2.0, 
                     startAngle: 0.0 - adjustment,
                     delta: 2.0 * .pi * progress)
@@ -95,9 +95,9 @@ Note that with the introduction of this new conversion, homogeneous overloads ca
 
 Let’s consider following example:
 
-```
-func sum(_: Double, _: Double) → Double { ... }
-func sum(_: CGFloat, _: CGFloat) → CGFloat { ... }
+```swift
+func sum(_: Double, _: Double) -> Double { ... }
+func sum(_: CGFloat, _: CGFloat) -> CGFloat { ... }
 
 var x: Double = 0
 var y: CGFloat = 42
@@ -109,7 +109,7 @@ Although both overloads of `sum` are homogeneous, and under current rules the ca
 
 The contextual type doesn’t affect the preferred conversion direction since the type-checker would always choose a solution with the fewest number of narrowing conversions possible, i.e.:
 
-```
+```swift
 let _: CGFloat = sum(x, y)
 ```
 
