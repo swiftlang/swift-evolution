@@ -45,7 +45,6 @@
   * [Alternatives Considered](#alternatives-considered)
      * [Exotic Type System Features](#exotic-type-system-features)
      * [Support an explicit copy hook](#support-an-explicit-copy-hook)
-concurrency-10)
   * [Conclusion](#conclusion)
   * [Revision history](#revision-history)
 
