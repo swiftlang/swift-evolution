@@ -6,7 +6,7 @@
 * Status: **Accepted**
 * Implementation: [apple/swift#35264](https://github.com/apple/swift/pull/35264)
 * Major Contributors: Dave Abrahams, Paul Cantrell, Matthew Johnson, John McCall
-* Review: ([first review](https://forums.swift.org/t/se-0302-Sendable-and-concurrent-closures/44919)) ([revision announcement](https://forums.swift.org/t/returned-for-revision-se-0302-concurrentvalue-and-concurrent-closures/45251)) ([second review](https://forums.swift.org/t/se-0302-second-review-sendable-and-sendable-closures/45253))
+* Review: ([first review](https://forums.swift.org/t/se-0302-Sendable-and-concurrent-closures/44919)) ([revision announcement](https://forums.swift.org/t/returned-for-revision-se-0302-concurrentvalue-and-concurrent-closures/45251)) ([second review](https://forums.swift.org/t/se-0302-second-review-sendable-and-sendable-closures/45253)) ([acceptance](https://forums.swift.org/t/accepted-se-0302-sendable-and-sendable-closures/45786))
 
 ## Contents
 
