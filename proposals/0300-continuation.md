@@ -84,6 +84,12 @@ extension UnsafeContinuation where T == Void {
   func resume() { resume(returning: ()) }
 }
 
+extension UnsafeContinuation where T == Error {
+  // Allow covariant use of a `Result` with a stricter error type than
+  // the continuation:
+  func resume<ResultError: Error>(with result: Result<T, ResultError>)
+}
+
 func withUnsafeContinuation<T>(
     _ operation: (UnsafeContinuation<T, Never>) -> ()
 ) async -> T
@@ -188,12 +194,18 @@ extension CheckedContinuation where T == Void {
   func resume()
 }
 
+extension CheckedContinuation where T == Error {
+  // Allow covariant use of a `Result` with a stricter error type than
+  // the continuation:
+  func resume<ResultError: Error>(with result: Result<T, ResultError>)
+}
+
 func withCheckedContinuation<T>(
-    _ operation: (CheckedContinuation<T>) -> ()
+    _ operation: (CheckedContinuation<T, Never>) -> ()
 ) async -> T
 
 func withCheckedThrowingContinuation<T>(
-  _ operation: (CheckedContinuation<T>) throws -> ()
+  _ operation: (CheckedContinuation<T, Error>) throws -> ()
 ) async throws -> T
 ```
 
