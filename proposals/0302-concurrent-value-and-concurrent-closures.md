@@ -3,7 +3,7 @@
 * Proposal: [SE-0302](0302-concurrent-value-and-concurrent-closures.md)
 * Authors: [Chris Lattner](https://github.com/lattner), [Doug Gregor](https://github.com/douggregor)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active Review (March 2nd...March 8th, 2021)**
+* Status: **Accepted**
 * Implementation: [apple/swift#35264](https://github.com/apple/swift/pull/35264)
 * Major Contributors: Dave Abrahams, Paul Cantrell, Matthew Johnson, John McCall
 * Review: ([first review](https://forums.swift.org/t/se-0302-Sendable-and-concurrent-closures/44919)) ([revision announcement](https://forums.swift.org/t/returned-for-revision-se-0302-concurrentvalue-and-concurrent-closures/45251)) ([second review](https://forums.swift.org/t/se-0302-second-review-sendable-and-sendable-closures/45253))
