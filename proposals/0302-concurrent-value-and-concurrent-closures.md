@@ -39,6 +39,7 @@
      * [Adaptor Types for Legacy Codebases](#adaptor-types-for-legacy-codebases)
      * [Objective-C Framework Support](#objective-c-framework-support)
      * [Interaction of Actor self and @Sendable closures](#interaction-of-actor-self-and-sendable-closures)
+     * [Marker protocols as custom attributes](#marker-protocols-as-custom-attributes)
   * [Source Compatibility](#source-compatibility)
   * [Effect on API resilience](#effect-on-api-resilience)
   * [Alternatives Considered](#alternatives-considered)
@@ -623,6 +624,10 @@ extension SomeActor {
 
 We need the compiler to know whether there is a possible concurrency domain hop or not — if so, an await is required.  Fortunately, this works out through straight-forward composition of the basic type system rules above: It is perfectly safe to use actor `self` in a non-`@Sendable` closure in an actor method, but using it in a `@Sendable` closure is treated as being from a different concurrency domain, and thus requires an `await`.
 
+### Marker protocols as custom attributes 
+
+The marker protocol `Sendable` and the function attribute `@Sendable` are intentionally given the same name. There is a potential future direction here where `@Sendable` could move from a special attribute recognized by the compiler (as in this proposal), to having marker protocols like `Sendable` be custom attributes like [property wrappers](https://github.com/apple/swift-evolution/blob/main/proposals/0258-property-wrappers.md) and [result builders](https://github.com/apple/swift-evolution/blob/main/proposals/0289-result-builders.md). Such a change would have very little effect on existing code that uses `@Sendable` so long as users don't declare their own `Sendable` type that shadows the one from the standard library. However, it would make `@Sendable` less special and allow other marker protocols to be used similarly.
+
 ## Source Compatibility
 
 This is almost completely source compatible with existing code bases. The introduction of the `Sendable` marker protocol  and `@Sendable` functions are additive features that have no impact when not used and therefore do not affect existing code.
@@ -662,6 +667,7 @@ Because the feature is mostly a library feature that builds on existing language
 
 * Changes from the second review:
   * Renamed `@sendable` to `@Sendable`, per review feedback and Core Team decision.
+  * Add a future direction on marker protocols as custom attributes.
   * Removed "Swift Concurrency 1.0" and "2.0" discussion in Alternatives Considered.
 * Changes from the first review
   * Renamed `ConcurrentValue` to `Sendable` and `@concurrent` to `@sendable`.
