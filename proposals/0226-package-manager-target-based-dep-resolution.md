@@ -39,13 +39,10 @@ may reduce the odds of dependency hell situations.
 
 To achieve this, the package manager needs to associate the product dependencies
 with the packages which provide those products without cloning them. We propose
-to make the package name parameter in the product dependency declaration
-non-optional. This is necessary because if the package name is not specified,
+to make the `package` parameter in the product dependency declaration
+non-optional. This is necessary because if the package is not specified,
 the package manager is forced to resolve all package dependencies just to figure
-out the packages for each of the product dependency. SwiftPM will retain support
-for the `byName` declaration for products that are named after the package name.
-This provides a shorthand for the common case of small packages that vend just
-one product.
+out which products are vended by which packages.
 
 ```swift
 extension Target.Dependency {
@@ -53,12 +50,46 @@ extension Target.Dependency {
 }
 ```
 
-SwiftPM will also need the package names of the declared dependencies without
-cloning them. The package name is declared inside the package's manifest, and
-doesn't always match the package URL. We propose to enhance the URL-based
-dependency declaration APIs to allow specifying the package name. In many cases,
-the package name and the last path component its URL are the same.  Package name
-can be omitted for such dependencies.
+e.g.
+
+```
+.target(
+    name: "foo",
+    dependencies: [.product(name: "bar", package: "bar-package")]
+),
+```
+
+SwiftPM will retain support for the simplified `byName` declaration for products
+that are named after the package.
+This provides a shorthand for the common case of small packages that vend just
+one product, and the product and package names are aligned.
+
+```swift
+extension Target.Dependency {
+    static func byName(_ name: String) -> Target.Dependency
+}
+```
+
+e.g.
+
+```
+.target(
+    name: "foo",
+    dependencies: ["bar"]
+),
+```
+
+To correlate between the package referenced in the target and the declared dependency,
+SwiftPM will need to compute an identity for the declared dependencies without
+cloning them.
+
+When this feature was first implemented in SwiftPM version 5.2, the package identity needed
+to be specified using the `name` attribute on the package dependency declaration.
+Such `name` attribute had to also align to the name declared in the dependency's manifest,
+which led to adoption friction given that the manifest name is rarely known by
+the users of the dependency.
+
+**5.2 version**
 
 ```swift
 extension Package.Dependency {
@@ -88,6 +119,48 @@ extension Package.Dependency {
 }
 ```
 
+Starting with the SwiftPM version following 5.4 (exact number TBD), SwiftPM will actively discourage the use of the
+`name` attribute on the package dependency declaration (will emit warning when used with tools-version >= TBD)
+and instead will compute an identity for the declared dependency by using the last path
+component of the dependency URL (or path in the case of local dependencies) in the dependencies section.
+The dependency URL used for this purpose is as-typed (no percent encoding or other transformation), and regardless of any configured mirrors.
+With this change, the name specified in the dependency manifest will have no bearing
+over target based dependencies (other than for backwards compatibility).
+
+Note: [SE-0292] (when accepted and implemented) will further refine how package identities are computed.
+
+  [SE-0292]: https://github.com/apple/swift-evolution/blob/main/proposals/0292-package-registry-service.md
+
+**TBD version**
+
+```swift
+extension Package.Dependency {
+    static func package(
+        name: String? = nil,    // Usage will emit warning and eventually be deprecated
+        url: String,
+        from version: Version
+    ) -> Package.Dependency
+
+    static func package(
+        name: String? = nil,    // Usage will emit warning and eventually be deprecated
+        url: String,
+        _ requirement: Package.Dependency.Requirement
+    ) -> Package.Dependency
+
+    static func package(
+        name: String? = nil,    // Usage will emit warning and eventually be deprecated
+        url: String,
+        _ range: Range<Version>
+    ) -> Package.Dependency
+
+    static func package(
+        name: String? = nil,    // Usage will emit warning and eventually be deprecated
+        url: String,
+        _ range: ClosedRange<Version>
+    ) -> Package.Dependency
+}
+```
+
 ## Detailed design
 
 The resolution process will start by examining the products used in the target
@@ -96,16 +169,8 @@ For each dependency, the resolver will only clone what is necessary to build
 the products that are used in the dependees.
 
 The products declared in the target dependencies will need to provide their
-package name unless the package and product have the same name. SwiftPM will
+package identity unless the package and product have the same name. SwiftPM will
 diagnose the invalid product declarations and emit an error.
-
-Similarly, SwiftPM will validate the dependency declarations. It will be
-required that the case used in the URL basename and the package name match in
-order to allow inferring the package name from the URL. It is recommended to
-keep consistent casing for the package name and the basename. Otherwise, the
-package name will be required to specified in the dependency declaration.  Note
-that the basename will be computed by stripping the ".git" suffix from the URL
-(if present).
 
 As an example, consider the following package manifests:
 
@@ -118,7 +183,7 @@ let package = Package(
         .executable(name: "irc-sample", targets: ["irc-sample"]),
     ],
     dependencies: [
-       .package(name: "NIO", url: "https://github.com/apple/swift-nio.git", from: "1.0.0"),
+       .package(url: "https://github.com/apple/swift-nio.git", from: "1.0.0"),
 
        .package(url: "https://github.com/swift/ArgParse.git", from: "1.0.0"),
        .package(url: "https://github.com/swift/TestUtilities.git", from: "1.0.0"),
@@ -126,7 +191,7 @@ let package = Package(
     targets: [
         .target(
             name: "irc",
-            dependencies: ["NIO"]
+            dependencies: [.product(name: "NIO", package: "swift-nio"),]
         ),
 
         .target(
