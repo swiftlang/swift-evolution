@@ -401,7 +401,7 @@ The `UnsafeCurrentTask` is purposefully named unsafe as it *may* expose APIs whi
 
 `Task` defines APIs which are *always safe* to invoke, regardless if from the same task or from another task. Such safe APIs include `isCancelled`, `priority`.
 
-It is possible to get a `Task` out of an `UnsafeCurrentTask`
+It is possible to get a `Task` out of an `UnsafeCurrentTask`.
 
 ## Detailed design
 
@@ -540,7 +540,7 @@ extension Task.Handle {
 }
 ```
 
-Getting the handle's task allows us to check if the work we're about to wait on perhaps was already cancelled (by calling `handle.task.isCancelled`), or query at what priority the task is executing.
+Getting the handle's task allows us to check if the work we're about to wait on perhaps was already cancelled (by calling `handle.isCancelled`), or query at what priority the task is executing.
 
 #### Detached tasks
 
@@ -627,6 +627,8 @@ extension Task {
 }
 ```
 
+This function does not, by itself, spawn a new task, but rather executes the `operation` immediately, and once the `operation` returns the `withCancellationHandler` returns as well (similarily with throwing behaviors).
+
 Note that the `handler` runs `@concurrent` with the rest of the task, because it
 is executed immediately when the task is cancelled, which can happen at any
 point. If the task has already been cancelled at the point `withCancellationHandler` is called, the cancellation handler is invoked immediately, before the
@@ -677,11 +679,13 @@ extension Task {
 }
 ```
 
-#### Querying Task status from synchronous functions
+#### Synchronous functions/properties for Task status querying
 
-While all APIs defined on `Task` so far have been *instance* functions and properties, this implies that in order to query them one first would have to obtain a Task object. Obtaining a task object safely is perfomed by invoking the `Task.current()` asynchronous function, leading to the question: how do we check if a task we're running in, has been cancelled if we are in the in a synchronous function which was invoked from an asynchronous function?
+So far, a number of `Task` APIs have only been defined as instance functions on `Task`, this implies that in order to query them one first would have to obtain a `Task` object. Specifically, functions querying the state of the Task such as `isCancelled`, `checkCancellation` and `priority` have only been defined as instance functions so far.  Obtaining a task object safely is perfomed by invoking the `Task.current()` asynchronous function, leading to the question: how do we check if a task we're running in, has been cancelled if we are in the in a synchronous function which was invoked from an asynchronous function?
 
 Thankfully, thanks to the previously discussed `UnsafeCurrentTask` Swift also can offer safe, and usable from synchronous contexts, static versions of almost all functions defined in the previous sections.
+
+> These static versions of task status querying properties and functions should be preferred in normal day-to-day use, as they work equally well in async and sync contexts.
 
 ##### Cancellation
 
@@ -859,7 +863,30 @@ for try await result in group {
 }
 ```
 
-With this pattern, if a single task throws an error, the error will be propagated out of the `body` function and the task group itself. To handle errors from individual tasks, one can use a do-catch block or the `nextResult()` method.
+With this pattern, if a single task throws an error, the error will be propagated out of the `body` function and the task group itself. 
+
+To handle errors from individual tasks, one can use a do-catch block or the `nextResult()` method. For example, one might want to implement a function which starts `N` tasks, and reports back the first `m` successful results. This is simple to implement with a task group, by means of collecting results until the `results` array have accumulated `m` results, at which point we can cancel all remaining tasks and return from the group:
+
+```swift
+func gather(first m: Int, of work: [Work]) async throws -> [WorkResult] { 
+  assert(m <= work.count) 
+  
+  return Task.withGroup(resultType: WorkResult.self) { group in 
+    for w in work { 
+      await group.add { await w.doIt() } // spawn child tasks to perform the work
+    }  
+    
+    var results: [WorkResult] = []
+    while results.count <= m { 
+      switch try await group.nextResult() { 
+      case nil:             return results
+      case .success(let r): results.append(r)
+      case .failure(let e): print("Ignore error: \(e)")
+      }
+    }
+  }
+}
+```
 
 ##### Task group cancellation
 
