@@ -264,7 +264,7 @@ extension MySneakyNSPerson: @unchecked Sendable { }
 #### Implicit struct/enum conformance to `Sendable`
 
 Many structs and enums satisfy the requirements of `Sendable`, and having to explicitly write out "`: Sendable`" for every such type can feel like boilerplate. 
-For non-public structs and enums, and for frozen public structs and enums, the `Sendable` conformance is implicitly provided when conformance checking (described in the previous section) succeeds:
+For non-public structs and enums that are also not `@usableFromInline`, and for frozen public structs and enums, the `Sendable` conformance is implicitly provided when conformance checking (described in the previous section) succeeds:
 
 ```swift
 struct MyPerson2 { // Implicitly conforms to Sendable!
