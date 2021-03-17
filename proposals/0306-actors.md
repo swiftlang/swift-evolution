@@ -513,7 +513,7 @@ Actors cannot otherwise be made to conform to non-`Actor` protocols with synchro
 
 An actor type can be declared with the `actor` keyword:
 
-```
+```swift
 /// Declares a new type BankAccount
 actor BankAccount {
   // ...
@@ -528,7 +528,7 @@ An actor may only inherit from another actor (or `NSObject`; see the section on 
 
 By default, the instance methods, properties, and subscripts of an actor have an isolated `self` parameter. This is true even for methods added retroactively on an actor via an extension, like any other Swift type.
 
-```
+```swift
 extension BankAccount {
   func acceptTransfer(amount: Double) async { // actor-isolated
     balance += amount
