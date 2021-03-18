@@ -441,7 +441,7 @@ With a reentrant actor, multiple clients can fetch images independently, so that
 
 #### Existing practice
 
-There are a number of existing actor implementations that have considered the notion or reentrancy:
+There are a number of existing actor implementations that have considered the notion of reentrancy:
 
 * Erlang/Elixir ([gen_server](https://medium.com/@eduardbme/erlang-gen-server-never-call-your-public-interface-functions-internally-c17c8f28a1ee)) showcases a simple "loop/deadlock" scenario and how to detect and fix it,
 * Akka ([Persistence persist/persistAsync](https://doc.akka.io/docs/akka/current/persistence.html#relaxed-local-consistency-requirements-and-high-throughput-use-cases) is effectively _non-reentrant behavior by default_, and specific APIs are designed to allow programmers to _opt into_ reentrant whenever it would be needed. In the linked documentation `persistAsync` is the re-entrant version of the API, and it is used _very rarely_ in practice. Akka persistence and this API has been used to implement bank transactions and process managers, by relying on the non-reentrancy of `persist()` as a killer feature, making implementations simple to understand and _safe_. Note that Akka is built on top of Scala, which does not provide `async`/`await`. This means that mailbox-processing methods are more synchronous in nature, and rather than block the actor while waiting for a response, they would handle the response as a separate message receipt.
@@ -513,7 +513,7 @@ Actors cannot otherwise be made to conform to non-`Actor` protocols with synchro
 
 An actor type can be declared with the `actor` keyword:
 
-```
+```swift
 /// Declares a new type BankAccount
 actor BankAccount {
   // ...
@@ -528,7 +528,7 @@ An actor may only inherit from another actor (or `NSObject`; see the section on 
 
 By default, the instance methods, properties, and subscripts of an actor have an isolated `self` parameter. This is true even for methods added retroactively on an actor via an extension, like any other Swift type.
 
-```
+```swift
 extension BankAccount {
   func acceptTransfer(amount: Double) async { // actor-isolated
     balance += amount
