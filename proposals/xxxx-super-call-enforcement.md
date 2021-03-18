@@ -6,7 +6,6 @@
 * Status: **Pending Review**
 * Bug: [SR-6417](https://bugs.swift.org/browse/SR-6417)
 * Implementation: [apple/swift#32712](https://github.com/apple/swift/pull/32712)
-* Toolchain: [macOS](https://ci.swift.org/job/swift-PR-toolchain-osx/604/artifact/branch-master/swift-PR-32712-604-osx.tar.gz) and [Linux](https://ci.swift.org/job/swift-PR-toolchain-Linux/426/artifact/branch-master/swift-PR-32712-426-ubuntu16.04.tar.gz)
 
 ## Introduction
 
@@ -27,7 +26,44 @@ class MyViewController: UIViewController {
 }
 ```
 
-On top of that, the superclass method may also sometimes require a call to itself in an override for the overall functionality to work correctly.
+On top of that, the superclass method may also sometimes require a call to itself in an override for the overall functionality to work correctly. Here's an example (provided by [Rob Mayoff](https://forums.swift.org/t/super-call-enforcement/38177/37)) that illustrates the problem:
+
+```swift
+open class StyledText {
+    // Make `boldness(at:)` return true for every point in `range`.
+    public func embolden(in range: Range<String.Iterator>) {
+        ... implementation details ...
+        self.styleDidChange(in: range)
+    }
+
+    // When NOT inside a call to `embolden(in:)`, the returned
+    // `extent` is the largest range that contains point and in which
+    // every character's boldness is `isBold`
+    public func boldness(at point: String.Iterator) -> (isBold: Bool, extent: Range<String.Iterator>) {
+        ... implementation details ...
+    }
+
+    public func styleDidChange(in range: Range<String.Iterator>) {
+        // Coalesce adjacent bold ranges to simplify the implementation
+        // of `boldness(at:)`.
+        ... implementation details ...
+    }
+}
+```
+
+The implementation of `embolden(in)` relies on the behavior of `styleDidChange(in:)` to ensure that `boldness(at:)` returns the correct range of boldness.
+
+Suppose one adds a subclass of `StyledText`:
+
+```swift
+open class VeryStyledText: StyledText {
+    public override func styleDidChange(in range: Range<String.Iterator>) {
+        ... implementation details ...
+    }
+}
+```
+
+If `VeryStyledText` forgets to call `super.styleDidChange(in:)` in the implementation, then `StyledText` cannot maintain its own correct behavior. Similarly, if one further subclasses `VeryStyledText` (and so on) and forgets to call `super` in the chain, then that particular subclass will end up breaking the overall functionality.
 
 At present, there is no way to communicate this need, other than adding it to the documentation. Even experienced developers sometimes overlook this small detail, and later run into various issues at runtime. In Objective-C, one can annotate a superclass method with the [`objc_requires_super`](https://clang.llvm.org/docs/AttributeReference.html#objc-requires-super) attribute, and the compiler emits a warning when an overridden method is missing a call to the `super` method in its body.
 
@@ -38,6 +74,7 @@ class C1 {
   final func foo() {
     bar()
   }
+  
   func bar() {}
 }
 
