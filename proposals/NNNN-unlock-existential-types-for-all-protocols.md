@@ -14,7 +14,7 @@ Swift-Evolution Pitch Threads: [Thread #1](https://forums.swift.org/t/lifting-th
 
 ## Motivation
 
-When a protocol is used as a type, that type is also known as an *existential type*. Unlike `some` types, which represent some *specific* type that conforms to the given constraints, and cannot be reassigned to a different conforming type, a value of existential type can contain a value of *any* conforming type dynamically at any point in time. For convenience, we will be using the term "existential" to refer to such values and their protocol or protocol composition types throughout the proposal. We also wish to draw a distinction between an associated type *requirement* (the declaration), and an associated type (aka a dependent member type). For example, `Self.Element` and `Self.SubSequence.Element` are distinct associated types that point to the same associated type requirement.
+When a protocol is used as a type, that type is also known as an *existential type*. Unlike values of `some` types, which represent a value of some *specific* type that conforms to the given constraints, and cannot be reassigned to a value of a different conforming type, an existential value is akin to a box that can hold any value of any conforming type dynamically at any point in time. Existential types allow values of varying concrete types to be used interchangeably as values of the same existential type, abstracting the difference between the underlying conforming types at the *value level*. For convenience, we will be using the term "existential" to refer to such values and their protocol or protocol composition types throughout the proposal. We also wish to draw a distinction between an associated type *requirement* (the declaration), and an associated type (aka a dependent member type). For example, `Self.Element` and `Self.SubSequence.Element` are distinct associated types that point to the same associated type requirement.
 
 ### Heterogenous Collections
 
@@ -185,13 +185,9 @@ func test(_ c: Copyable) {
 Because they tend to outnumber direct uses of `Self` in protocol contexts, and for the sake of consistency, we believe that extending covariant type erasure to associated types is a reasonable undertaking in light of the primary focus:
 
 ```swift
-protocol P {
-  associatedtype A: Collection
-  var prop: A { get }
-}
-
-func test(_ p: P) {
-  let x = p.prop // OK, x is of type 'Collection'
+func test(_ collection: RandomAccessCollection) {
+  // func dropLast(_ k: Int = 1) -> SubSequence
+  let x = collection.dropLast() // OK, x is of type 'RandomAccessCollection'
 }
 ```
 ___
@@ -364,7 +360,7 @@ The current semantics regarding existential types prevent language users, especi
 
 ### Deemphasize Existential Types Through Diagnostics and Literature 
 
-It is often that people reach for existential types when they should be employing generic contraints — "should" not merely for performance reasons, but because they truly do not need or intend for any type erasure. Even though the compiler is sometimes able to back us up performance-wise by turning existential code into generic code (as in  `func foo(s: Sequence)` vs `func foo<S: Sequence>(s: S)`), there is an important difference between the two abstractions. Existential types provide value-level abstraction, that is, they eliminate the type-level distinction between different values of the type, and cannot maintain type relationships between independent existential values. Under most cirumstances, value-level abstraction only really makes sense on mutable state, or as a component of a larger type-erasing construct *unless* [opaque result types](https://github.com/apple/swift-evolution/blob/main/proposals/0244-opaque-result-types.md) can take their place.
+It is often that people reach for existential types when they should be employing generic contraints — "should" not merely for performance reasons, but because they truly do not need or intend for any type erasure. Even though the compiler is sometimes able to back us up performance-wise by turning existential code into generic code (as in  `func foo(s: Sequence)` vs `func foo<S: Sequence>(s: S)`), there is an important difference between the two abstractions. Existential types provide value-level abstraction, that is, they eliminate the type-level distinction between different values of the type, and cannot maintain type relationships between independent existential values. Under most cirumstances, value-level abstraction only really makes sense in mutable state, in the elements of heterogeneous containers, or within larger type-erasing constructs — *unless* our support of [`some` types](https://github.com/apple/swift-evolution/blob/main/proposals/0244-opaque-result-types.md) can turn the tide.
 
 The language documentation may play a crucial role in deemphasizing value-level abstraction early on. Namely, when one goes to the swift documentation site, under the protocols section, they’ll be greeted with a subsection called "[Protocols as Types](https://docs.swift.org/swift-book/LanguageGuide/Protocols.html#ID275)", which contains this example:
 
