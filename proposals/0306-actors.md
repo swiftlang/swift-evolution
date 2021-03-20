@@ -49,7 +49,13 @@ Swift includes classes, which provide a mechanism for declaring mutable state th
 
 The [actor model](https://en.wikipedia.org/wiki/Actor_model) defines entities called *actors* that are perfect for this task. Actors allow you as a programmer to declare that a bag of state is held within a concurrency domain and then define multiple operations that act upon it. Each actor protects its own data through *data isolation*, ensuring that only a single thread will access that data at a given time, even when many clients are concurrently making requests of the actor. As part of the Swift Concurrency Model, actors provide the same race and memory safety properties as structured concurrency, but provide the familiar abstraction and reuse features that other explicitly declared types in Swift enjoy.
 
-Swift-evolution thread: [Pitch #1](https://forums.swift.org/t/concurrency-actors-actor-isolation/41613), [Pitch #2](https://forums.swift.org/t/pitch-2-actors/44094), [Pitch #3](https://forums.swift.org/t/pitch-3-actors/44470).
+Swift-evolution threads:
+  [Pitch #1](https://forums.swift.org/t/concurrency-actors-actor-isolation/41613),
+  [Pitch #2](https://forums.swift.org/t/pitch-2-actors/44094),
+  [Pitch #3](https://forums.swift.org/t/pitch-3-actors/44470),
+  [Pitch #4](https://forums.swift.org/t/pitch-4-actors/45215),
+  [Pitch #5](https://forums.swift.org/t/pitch-4-actors/45215/36),
+  [Pitch #6](https://forums.swift.org/t/pitch-6-actors/45519).
 
 ## Proposed solution
 
