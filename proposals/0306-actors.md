@@ -590,7 +590,7 @@ When a given declaration (the "witness") satisfies a protocol requirement (the "
 * The requirement is `async`, or
 * the requirement and witness are both actor-isolated.
 
-An actor can satisfy an asynchronous requirement because any uses of the requirement are asynchronous, and can therefore suspend until the actor is available to execute them. Note that an actor can satisfy and asynchronous requirement with a synchronous one, in which case the normal notion of asynchronously accessing a synchronous declaration on an actor applies. For example:
+An actor can satisfy an asynchronous requirement because any uses of the requirement are asynchronous, and can therefore suspend until the actor is available to execute them. Note that an actor can satisfy an asynchronous requirement with a synchronous one, in which case the normal notion of asynchronously accessing a synchronous declaration on an actor applies. For example:
 
 ```swift
 protocol Server {
