@@ -16,54 +16,6 @@ Swift-Evolution Pitch Threads: [Thread #1](https://forums.swift.org/t/lifting-th
 
 When a protocol is used as a type, that type is also known as an *existential type*. Unlike values of `some` types, which represent a value of some *specific* type that conforms to the given constraints, and cannot be reassigned to a value of a different conforming type, an existential value is akin to a box that can hold any value of any conforming type dynamically at any point in time. Existential types allow values of varying concrete types to be used interchangeably as values of the same existential type, abstracting the difference between the underlying conforming types at the *value level*. For convenience, we will be using the term "existential" to refer to such values and their protocol or protocol composition types throughout the proposal. We also wish to draw a distinction between an associated type *requirement* (the declaration), and an associated type (aka a dependent member type). For example, `Self.Element` and `Self.SubSequence.Element` are distinct associated types that point to the same associated type requirement.
 
-### Heterogenous Collections
-
-Heterogeneous collections inherently involve some sort of dynamicity. Consider this improvised `User` protocol:
-
-```swift
-protocol User { 
-  associatedtype ID : Hashable 
-
-
-  var id: ID { get }
-
-  var username: String { get }
-} 
-```
-
-So, now we want to make business users and regular users that use different types of `ID`s:
-
-```swift
-struct BussinessUser : User {
-  struct ID : Hashable {
-    let organisationName: String
-
-    let organisationId: UUID
-  }
-
-  let id: ID
-
-  let username: String
-}
-
-struct RegularUser : User {
-  // We’ll just use a regular unique identifier for such users.
-  let id: UUID
-
-  let username: String
-}
-```
-
-Great! Now let’s create a list of our users:
-
-```
-let userList = [User]() ❌
-// Error: Protocol ‘User’ can only be used as a generic 
-// constraint because it has Self or associated type requirements.
-```
-
-Evidently, the current limitations on existential types prohibit the creation of our `userList`. As a result, we’ll need to create our own, manually-written existential type for `User`, which is a tedious task that requires some level experience.
-
 ### Inconsistent Language Semantics
 
 The compiler permits the use of a protocol as a type *unless*
