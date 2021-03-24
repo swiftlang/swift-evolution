@@ -1,4 +1,4 @@
-# Unlock Existentials with Fixed Associated Types
+# Unlock existentials for all protocols
 
 * Proposal: [SE-NNNN](NNNN-unlock-existential-types-for-all-protocols.md)
 * Authors: [Anthony Latsis](https://github.com/AnthonyLatsis), [Filip Sakel](https://github.com/filip-sakel), [Joe Groff](https://github.com/jckarter), [Suyash Srijan](https://github.com/theblixguy)
@@ -8,7 +8,9 @@
 
 ## Introduction
 
-Swift allows one to use a protocol as a type when its *requirements* meet a rather unintuitive list of criteria, among which is the absence of associated type requirements, and emits the following error otherwise: `Protocol can only be used as a generic constraint because it has 'Self' or associated type requirements`. Our objective is to *alleviate* this limitation so as to impact only the ability to access certain members (instead of preemptively sealing off the entire protocol interface), and adjust the specified criteria to further reduce the scope of the restriction. This proposal is a preamble to a series of changes aimed at generalizing value-level abstraction (existentials) and improving its interaction with type-level abstraction (generics). For an in-depth exploration of the relationships among different built-in abstractions models, we recommend reading the [design document for improving the UI of the generics model](https://forums.swift.org/t/improving-the-ui-of-generics/22814).
+Swift allows one to use a protocol as a type when its *requirements* meet a rather unintuitive list of criteria, among which is the absence of associated type requirements, and emits the following error otherwise: `Protocol can only be used as a generic constraint because it has 'Self' or associated type requirements`. Our objective is to *alleviate* this limitation so as to impact only the ability to access certain members (instead of preemptively sealing off the entire protocol interface), and adjust the specified criteria to further reduce the scope of the restriction.
+
+This proposal is a preamble to a series of changes aimed at generalizing value-level abstraction (existentials) and improving its interaction with type-level abstraction (generics). For an in-depth exploration of the relationships among different built-in abstractions models, we recommend reading the [design document for improving the UI of the generics model](https://forums.swift.org/t/improving-the-ui-of-generics/22814).
 
 Swift-Evolution Pitch Threads: [Thread #1](https://forums.swift.org/t/lifting-the-self-or-associated-type-constraint-on-existentials/18025), [Thread #2](https://forums.swift.org/t/unlock-existential-types-for-all-protocols/40665)
 
@@ -310,7 +312,10 @@ The current semantics regarding existential types prevent language users, especi
 
 ## Future Directions
 
-* Currently, the standard library offers type-erasing wrappers, such as [`AnyHashable`](https://github.com/apple/swift/blob/main/stdlib/public/core/AnyHashable.swift), and [`AnyCollection`](https://github.com/apple/swift/blob/main/stdlib/public/core/ExistentialCollection.swift). Their current implementations suffer from the problems described in [Motivation](#motivation); thankfully, they could be significantly simplified in the future.
-* Make existential types "self-conforming" by implicitly opening them when passed as generic arguments to functions. Generic instantiations could open them as opaque types.
-* Introduce [`any P` as a dual to `some P`](https://forums.swift.org/t/improving-the-ui-of-generics/22814#heading--clarifying-existentials) for explicitly spelling existential types
-* Allow constraining existential types, i.e. `let collection: any Collection<Self.Element == Int> = [1, 2, 3]`
+* Simplify the implementation of Standard Library type-erasing wrappers, such as [`AnyHashable`](https://github.com/apple/swift/blob/main/stdlib/public/core/AnyHashable.swift) and [`AnyCollection`](https://github.com/apple/swift/blob/main/stdlib/public/core/ExistentialCollection.swift), using the practical advice from [earlier](#type-erasing-wrappers).
+* Deemphasize existential types.
+
+  It is often that people reach for existential types when they should be employing generic contraints — "should" not merely for performance reasons, but because they truly do not need or intend for any type erasure. Even though the compiler is sometimes able to back us up performance-wise by turning existential code into generic code (as in  `func foo(s: Sequence)` vs `func foo<S: Sequence>(s: S)`), there is an important difference between the two abstractions. Existential types provide value-level abstraction, that is, they eliminate the type-level distinction between different values of the type, and cannot maintain type relationships between independent existential values. Under most cirumstances, value-level abstraction only really makes sense in mutable state, in the elements of heterogeneous containers, or, unless our support of [`some` types](https://github.com/apple/swift-evolution/blob/main/proposals/0244-opaque-result-types.md) can turn the tide, in the storage of larger type-erasing constructs. A fitting starting point for giving value-level abstraction more careful consideration early on is the [Language Guide](https://docs.swift.org/swift-book/LanguageGuide/TheBasics.html).
+* Make existential types "self-conforming" by automatically opening them when passed as generic arguments to functions. Generic instantiations could have them opened as opaque types.
+* Introduce [`any P` as a dual to `some P`](https://forums.swift.org/t/improving-the-ui-of-generics/22814#heading--clarifying-existentials) for explicitly spelling existential types.
+* Allow constraining existential types, i.e. `let collection: any Collection<Self.Element == Int> = [1, 2, 3]`.
