@@ -1010,8 +1010,8 @@ described in the previous section.
 
 ### Binary framework distribution
 
-The package registry specification could be amended
-to support distributing packages as [XCFramework] bundles.
+The registry specification could be amended to support the distribution of
+[XCFramework] bundles or [artifact archives][SE-0305].
 
 ```http
 GET /github.com/mona/LinkedList/1.1.1.xcframework HTTP/1.1
@@ -1167,6 +1167,7 @@ RegEx (github.com/mona/RegEx) - Expressions on the reg.
 [SE-0219]: https://github.com/apple/swift-evolution/blob/master/proposals/0219-package-manager-dependency-mirroring.md "Package Manager Dependency Mirroring"
 [SE-0272]: https://github.com/apple/swift-evolution/blob/master/proposals/0272-swiftpm-binary-dependencies.md "Package Manager Binary Dependencies"
 [SE-0301]: https://github.com/apple/swift-evolution/blob/main/proposals/0301-package-editing-commands.md "Package Editor Commands"
+[SE-0305]: https://github.com/apple/swift-evolution/blob/main/proposals/0305-swiftpm-binary-target-improvements.md "Package Manager Binary Target Improvements"
 [secret scanning]: https://docs.github.com/en/github/administering-a-repository/about-secret-scanning
 [SemVer]: https://semver.org/ "Semantic Versioning"
 [SoftwareSourceCode]: https://schema.org/SoftwareSourceCode
