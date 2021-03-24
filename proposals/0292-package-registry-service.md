@@ -77,7 +77,7 @@ Swift Package Manager resolves external dependencies
 in the project's package manifest (`Package.swift`) file
 that are [declared](#new-packagedescription-apis)
 with a [scoped package identifier](#package-identity) in the form
-`@scope/PackageName`.
+`scope.package-name`.
 These package identifiers resolve potential
 [module name collisions](#module-name-collision-resolution)
 across build targets.
@@ -137,26 +137,25 @@ distinct packages with similar names
 and the duplication of the same package under different names.
 
 We propose using a scoped identifier
-in the form `@scope/PackageName`
+in the form `scope.package-name`
 to identify package dependencies.
 
 A *scope* provides a namespace for related packages within a package registry.
 A package scope consists of
-an at-sign (`@`) followed by alphanumeric characters and hyphens.
+alphanumeric characters and hyphens.
 Hyphens may not occur at the beginning or end,
 nor consecutively within a scope.
-The maximum length of a package name is 40 characters.
+The maximum length of a package name is 39 characters.
 A valid package scope matches the following regular expression pattern:
 
 ```regexp
-\A@[a-zA-Z\d](?:[a-zA-Z\d]|-(?=[a-zA-Z\d])){0,39}\z
+\A[a-zA-Z\d](?:[a-zA-Z\d]|-(?=[a-zA-Z\d])){0,39}\z
 ```
 
 A package's *name* is specified by the `name` provided in its manifest.
 
-The maximum length of a package scope is 128 characters.
+The maximum length of a package name is 128 characters.
 A valid package name matches the following regular expression pattern:
-
 
 ```regexp
 \A\p{XID_Start}\p{XID_Continue}{0,127}\z
@@ -196,8 +195,8 @@ to declare one or more dependencies by their respective package identifier.
 
 ```swift
 dependencies: [
-   .package(id: "@mona/LinkedList", .upToNextMinor(from: "1.1.0")),
-   .package(id: "@mona/RegEx", .exact("2.0.0"))
+   .package(id: "mona.LinkedList", .upToNextMinor(from: "1.1.0")),
+   .package(id: "mona.RegEx", .exact("2.0.0"))
 ]
 ```
 
@@ -211,11 +210,11 @@ but excluding branch-based and commit-based requirements.
 #### Module name collision resolution
 
 Consider a dependency graph that includes both
-a package declared with the identifier `@mona/LinkedList` and
+a package declared with the identifier `mona.LinkedList` and
 an equivalent package declared with the URL `https://github.com/mona/LinkedList`.
 
 When Swift Package Manager fetches a list of releases for the identified package
-(`GET /@mona/LinkedList`),
+(`GET /mona/LinkedList`),
 the response includes a `Link` header field
 with URLs to that project's source repository
 that are known to the registry.
@@ -227,7 +226,7 @@ Link: <https://github.com/mona/LinkedList>; rel="canonical",
 
 Swift Package Manager uses this information
 to reconcile the URL-based dependency declaration with
-the package identifier `@mona/LinkedList`.
+the package identifier `mona.LinkedList`.
 Link relation URLs may also be normalized to mitigate insignificant variations.
 For example,
 a package with an ["scp-style" URL][scp-url] like
@@ -248,7 +247,7 @@ that is, the `package` parameter in `.product(name:package)` method calls.
                 dependencies: [
                   .product(name: "LinkedList",
 -                          package: "LinkedList")
-+                          package: "@mona/LinkedList")
++                          package: "mona.LinkedList")
                 ]
     ]
 ```
@@ -317,7 +316,7 @@ it's saved to `Package.resolved`.
     "object": {
         "pins": [
             {
-                "package": "@mona/LinkedList",
+                "package": "mona.LinkedList",
                 "state": {
                     "checksum": "ed008d5af44c1d0ea0e3668033cae9b695235f18b1a99240b7cf0f3d9559a30d",
                     "version": "1.2.0"
@@ -339,7 +338,7 @@ if there's a mismatch in integrity checksums.
 
 ```terminal
 $ swift build
-error: checksum of downloaded source archive of dependency '@mona/LinkedList' (c2b934fe66e55747d912f1cfd03150883c4f037370c40ca2ad4203805db79457) does not match checksum specified by the manifest (ed008d5af44c1d0ea0e3668033cae9b695235f18b1a99240b7cf0f3d9559a30d)
+error: checksum of downloaded source archive of dependency 'mona.LinkedList' (c2b934fe66e55747d912f1cfd03150883c4f037370c40ca2ad4203805db79457) does not match checksum specified by the manifest (ed008d5af44c1d0ea0e3668033cae9b695235f18b1a99240b7cf0f3d9559a30d)
 ```
 
 Once the correct checksum is determined,
@@ -485,7 +484,7 @@ fail with an error.
 
 ```terminal
 $ swift package resolve
-error: cannot resolve dependency '@mona/LinkedList' without a configured registry
+error: cannot resolve dependency 'mona.LinkedList' without a configured registry
 ```
 
 #### Associating a registry with a scope
@@ -494,19 +493,19 @@ The user can associate a package scope with a custom registry
 by passing the `--scope` option.
 
 For example,
-a user might resolve all packages with the package scope `@example`
-(such as `@example/PriorityQueue`)
+a user might resolve all packages with the package scope `example`
+(such as `example.PriorityQueue`)
 to a private registry.
 
 ```terminal
-$ swift package-registry set https://internal.example.com/ --scope @example
+$ swift package-registry set https://internal.example.com/ --scope example
 $ cat .swiftpm/config/registries.json
 ```
 
 ```json
 {
   "registries": { 
-    "@example": {
+    "example": {
       "url": "https://internal.example.com"
     }
   },
@@ -559,7 +558,7 @@ consider the following global and local registry configuration files:
     "default": {
       "url": "https://global.example.com"
     },
-    "@foo": {
+    "foo": {
       "url": "https://global.example.com"
     },
   },
@@ -569,7 +568,7 @@ consider the following global and local registry configuration files:
 // Local configuration (.swiftpm/config/registries.json)
 {
   "registries": { 
-    "@foo": {
+    "foo": {
       "url": "https://local.example.com"
     }
   },
@@ -579,7 +578,7 @@ consider the following global and local registry configuration files:
 ```
 
 Running the `swift package resolve` command with these configuration files
-resolves packages with the `@foo` scope
+resolves packages with the `foo` scope
 using the registry located at "https://local.example.com",
 and all other packages
 using the registry located at "https://global.example.com".
@@ -621,7 +620,7 @@ that assigns its alternate location.
   "object": [
     {
       "mirror": "https://github.com/OctoCorp/SwiftLinkedList.git",
-      "original": "@mona/LinkedList"
+      "original": "mona.LinkedList"
     }
   ],
   "version": 1
@@ -657,8 +656,7 @@ when deciding where to host and fetch packages.
 Our proposal's package identity scheme is designed to prevent or mitigate
 vulnerabilities common to packaging systems and networked applications:
 
-- Package scopes are marked by an at-sign (`@`) prefix
-  and restricted to a limited set of characters,
+- Package scopes are restricted to a limited set of characters,
   preventing [homograph attacks].
   For example,
   "А" (U+0410 CYRILLIC CAPITAL LETTER A) is an invalid scope character
@@ -666,17 +664,17 @@ vulnerabilities common to packaging systems and networked applications:
 - Package scopes disallow leading, trailing, or consecutive hyphens (`-`),
   and disallows underscores (`_`) entirely,
   which mitigates look-alike package scopes
-  (for example, "@llvm--swift" and "@llvm_swift" are both invalid
-  and cannot be confused for "@llvm-swift").
+  (for example, "llvm--swift" and "llvm_swift" are both invalid
+  and cannot be confused for "llvm-swift").
 - Package scopes disallow dots (`.`),
   which prevents potential confusion with domain variants of scopes
-  (for example, "@apple.com" is invalid
-  and cannot be confused for "@apple").
+  (for example, "apple.com" is invalid
+  and cannot be confused for "apple").
 - Packages are registered within a scope,
   which mitigates [typosquatting].
   Package registries may further restrict the assignment of new scopes
   that are intentionally misleading
-  (for example, "@G00gle", which looks like "@Google").
+  (for example, "G00gle", which looks like "Google").
 - Package names disallow punctuation and whitespace characters used in
   [cross-site scripting][xss] and
   [CRLF injection][http header injection] attacks.
@@ -849,8 +847,8 @@ use [reverse domain name notation] to identify software components
 (for example, `com.squareup.okhttp3`).
 
 We considered these and other schemes for identifying packages,
-but they were rejected in favor of a scoped package identity
-similar to the one used by [npm].
+but they were rejected in favor of the scoped package identity
+described in this proposal.
 
 ### Use of `tar` or other archive formats
 
@@ -879,7 +877,7 @@ with their respective identifiers.
 For example,
 the declarations
 `.package(url: "https://github.com/mona/LinkedList", .exact("1.1.0"))` and
-`.package(id: "@mona/LinkedList", .exact("1.1.0"))`,
+`.package(id: "mona.LinkedList", .exact("1.1.0"))`,
 must be deemed equivalent
 to resolve a dependency graph that contains both of them.
 
@@ -1046,12 +1044,12 @@ could be extended to add dependencies using scoped identifiers
 in addition to URLs.
 
 ```terminal
-$ swift package add-dependency @mona/LinkedList
+$ swift package add-dependency mona.LinkedList
 # Installed LinkedList 1.2.0
 ```
 
 ```diff
-+    .package(id: "@mona/LinkedList", .exact("1.2.0"))
++    .package(id: "mona.LinkedList", .exact("1.2.0"))
 ```
 
 ### Package manifest dependency migration
@@ -1066,7 +1064,7 @@ $ swift package-registry migrate
 
 ```diff
 -    .package(url: "https://github.com/mona/LinkedList", .exact("1.2.0"))
-+    .package(id: "@mona/LinkedList", .exact("1.2.0"))
++    .package(id: "mona.LinkedList", .exact("1.2.0"))
 ```
 
 ### Security audits
@@ -1080,7 +1078,7 @@ information about security advisories.
     "advisories": [{
         "cve": "CVE-20XX-12345",
         "cwe": "CWE-400",
-        "package_name": "@mona/LinkedList",
+        "package": "mona.LinkedList",
         "vulnerable_versions": "<=1.0.0",
         "patched_versions": ">1.0.0",
         "severity": "moderate",
@@ -1099,7 +1097,7 @@ $ swift package audit
 ┌───────────────┬────────────────────────────────────────────────┐
 │ High          │ Regular Expression Denial of Service           │
 ├───────────────┼────────────────────────────────────────────────┤
-│ Package       │ @mona/RegEx                                    │
+│ Package       │ mona.RegEx                                     │
 ├───────────────┼────────────────────────────────────────────────┤
 │ Dependency of │ PatternMatcher                                 │
 ├───────────────┼────────────────────────────────────────────────┤
