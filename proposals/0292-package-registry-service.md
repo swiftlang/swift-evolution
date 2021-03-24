@@ -207,7 +207,7 @@ that provides the same interface as `Package.Dependency.Requirement`
 for version-based requirements,
 but excluding branch-based and commit-based requirements.
 
-#### Module name collision resolution
+#### Package name collision resolution
 
 Consider a dependency graph that includes both
 a package declared with the identifier `mona.LinkedList` and
@@ -930,7 +930,7 @@ lays the groundwork for several useful features.
 
 ### Package dependency URL normalization
 
-As described in ["Module name collision resolution"](#module-name-collision-resolution)
+As described in ["Package name collision resolution"](#package-name-collision-resolution)
 Swift Package Manager cannot build a project
 if two or more packages in the project
 are located by URLs with the same (case-insensitive) last path component.
