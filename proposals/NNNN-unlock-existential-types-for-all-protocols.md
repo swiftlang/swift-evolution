@@ -310,36 +310,7 @@ The current semantics regarding existential types prevent language users, especi
 
 ## Future Directions
 
-### Simplify the Implementation of Type-Erasing Wrappers
-
-Currently, in the standard library there's a custom existential type for `Hashable`, which is called [`AnyHashable`](https://developer.apple.com/documentation/swift/anyhashable). The current implementation of `AnyHashable` is quite complex and unintuitive. However, with the proposed change it could be simplfied and from 306 to 237 lines of code, while having a much simpler mental medal. The important thing to note about `AnyHashable` is that it conforms to the protocol it is an existential of: `Hashable`, which is something that the compiler can't automatically provide. Furthermore, `Equatable` has `Self` requirements in non-covariant positions, which means that such requirements are inaccessible through the existential type. To combat the last limitation, an internal extension to `Equatable` could be added:
-
-```swift
-extension Equatable {
-
-  func isEqual<Value>(to otherValue: Value) -> Bool? {
-    guard let castedValue = otherValue as? Self else {
-     return nil
-    }
-    
-    return self == castedValue
-  }
-  
-}
-```
-
-Finally, we'd be able to add our existential type with access to both `Hashable`'s and `Equatable`'s requirements:
-
-```swift
-public struct AnyHashable {
-  var _base: Hashable
-
-  ...
-}
-```
-
-Likewise, protocols like SwiftUI's `View` could be rewritten by forwarding their contravariant `Self` requirements to internal instance methods and accessing them from the `View`-conforming `AnyView` existential with the help of the compiler-provided `View` existential – similar to what we could do with `AnyHashable`.
-
+* Currently, the standard library offers type-erasing wrappers, such as [`AnyHashable`](https://github.com/apple/swift/blob/main/stdlib/public/core/AnyHashable.swift), and [`AnyCollection`](https://github.com/apple/swift/blob/main/stdlib/public/core/ExistentialCollection.swift). Their current implementations suffer from the problems described in [Motivation](#motivation); thankfully, they could be significantly simplified in the future.
 * Make existential types "self-conforming" by implicitly opening them when passed as generic arguments to functions. Generic instantiations could open them as opaque types.
 * Introduce [`any P` as a dual to `some P`](https://forums.swift.org/t/improving-the-ui-of-generics/22814#heading--clarifying-existentials) for explicitly spelling existential types
 * Allow constraining existential types, i.e. `let collection: any Collection<Self.Element == Int> = [1, 2, 3]`
