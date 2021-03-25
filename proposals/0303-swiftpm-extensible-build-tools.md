@@ -383,18 +383,21 @@ protocol FileInfo {
     var type: FileType { get }
 }
 
-/// Provides information about a file type. This is expressed as a pro-
-/// tocol so that it can be extended without affecting existing plugins.
-/// It provides additional information about the inputs to the plugin.
-protocol FileType {
-    /// True if the file is a source file handled by the Swift compiler.
-    var isSwiftSource: Bool { get }
-    /// True if the file is a source file handled by the Clang compiler.
-    var isClangSource: Bool { get }
-    /// True if the file is a resource file.
-    var isResource: Bool { get }
-    /// True if the file is one that isn't handled by any built-in rule.
-    var isUnknown: Bool { get }
+/// Provides information about a the type of a file. Any future cases will
+/// use availability annotations to make sure existing plugins still work
+/// until they increase their required tools version.
+enum FileType {
+    /// A source file of a kind accepted by the Swift compiler. Only
+    /// present in Swift target.
+    case swiftSourceFile
+    /// A source file of a kind accepted by the Clang compiler. Only
+    /// present in Clang targets.
+    case clangSourceFile
+    /// A resource file of any kind either supported natively by SwiftPM
+    /// or declared as a resource by the target.
+    case resourceFile
+    /// A file not covered by any other rule.
+    case unknownFile
 }
 
 /// A simple representation of a path in the file system.
