@@ -217,7 +217,7 @@ protocol Q: P where B == G<A> {}
 ```
 Notice how the associated type that would preclude a call to `method` on a value of type `Q` is actually `A`, not `B` as the result type may suggest, due to the same-type constraint on the protocol.
 
-#### Non-conformable Existentials
+#### Non-Conformable Existentials
 
 A peculiar side effect of lowering the limitation is the expansion of the domain of existential types that cannot be conformed to. Some are such for fundamental reasons, and others could be made conformable with the adoption of appropriate features. One example of the latter is a composition between two unrelated protocols, each constraining the same associated type to different concrete types:
 ```swift
