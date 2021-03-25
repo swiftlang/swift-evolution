@@ -274,14 +274,18 @@ that adopts `PackageContainer`
 and performs equivalent operations with HTTP requests to a registry service.
 These client-server interactions are facilitated by
 a new `RegistryManager` type.
+When requesting resources from a registry,
+Swift Package Manager will employ techniques like
+exponential backoff, circuit breakers, and client-side validation
+to safeguard against adverse network conditions and malicious server responses.
 
 The following table lists the
 tasks performed by Swift Package Manager during dependency resolution
 alongside the Git operations used
 and their corresponding package registry API calls.
 
-| Task                                  | Git operation               | Registry request                                     |
-| ------------------------------------- | --------------------------- | ---------------------------------------------------- |
+| Task                                  | Git operation               | Registry request                              |
+| ------------------------------------- | --------------------------- | --------------------------------------------- |
 | Fetch the contents of a package       | `git clone && git checkout` | `GET /{scope}/{name}/{version}.zip`           |
 | List the available tags for a package | `git tag`                   | `GET /{scope}/{name}`                         |
 | Fetch a package manifest              | `git clone`                 | `GET /{scope}/{name}/{version}/Package.swift` |
