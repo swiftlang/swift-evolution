@@ -152,8 +152,7 @@ A valid package scope matches the following regular expression pattern:
 \A[a-zA-Z\d](?:[a-zA-Z\d]|-(?=[a-zA-Z\d])){0,39}\z
 ```
 
-A package's *name* is specified by the `name` provided in its manifest.
-
+A package's *name* uniquely identifies a package in a scope.
 The maximum length of a package name is 128 characters.
 A valid package name matches the following regular expression pattern:
 
