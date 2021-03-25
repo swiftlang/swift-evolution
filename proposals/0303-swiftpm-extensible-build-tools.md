@@ -354,7 +354,7 @@ protocol CommandConstructor {
         environment: [String: String] = [:],
         /// A directory into which the command can write output files that
         /// should be processed further.
-        outputDirectory: Path
+        outputFilesDirectory: Path
     )
 }
 
