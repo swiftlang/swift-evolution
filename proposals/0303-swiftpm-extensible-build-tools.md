@@ -72,6 +72,15 @@ extension Target {
     /// In the initial version of this proposal, only a single build tool plugin
     /// capability is defined. The intent is to define new capabilities in the
     /// future.
+    /// 
+    /// One possible kind of capability that could be added in the future
+    /// could be a way to augment the testing support in SwiftPM.  This could
+    /// take the form of allowing additional commands to run after the build
+    /// and test have completed, with a well-defined way to access the build
+    /// and test results. Another possible capability could be specific support
+    /// for code linters that could emit structured diagnostics with fix-its,
+    /// or for code formatters that can modify the source code as a separate
+    /// action outside the build.
     ///
     /// The package plugin itself is implemented using a Swift script that is
     /// invoked for each target that uses it. The script is invoked after the
@@ -82,9 +91,9 @@ extension Target {
     /// Note that the role of the package plugin is only to define the commands
     /// that will run before, during, or after the build. It does not itself run
     /// those commands. The commands are defined in an IDE-neutral way, and are
-    /// run as appropriate by the build system that builds the package. The plugin
-    /// itself is only a procedural way of generating commands and their input and
-    /// output dependencies.
+    /// run as appropriate by the build system that builds the package. The
+    /// plugin itself is only a procedural way of generating commands and their
+    /// input and output dependencies.
     ///
     /// The package plugin may specify the executable targets or binary targets
     /// that provide the build tools that will be used by the generated commands
@@ -95,8 +104,8 @@ extension Target {
     /// striction in a future release.
     ///
     /// The `path`, `exclude`, and `sources` parameters are the same as for any
-    /// other target, and allow flexibility in where the plugin scripts are stored
-    /// inside the package directory.
+    /// other target, and allow flexibility in where the package author can put
+    /// the plugin scripts inside the package directory.
     public static func plugin(
         name: String,
         capability: PluginCapability,
@@ -217,7 +226,7 @@ let diagnosticsEmitter: DiagnosticsEmitter
 /// be configured to write their outputs. This information should be used as
 /// part of generating the commands to be run during the build.
 protocol TargetBuildContext {
-    /// The name of the target being built.
+    /// The name of the target being built, as aspecified in the manifest.
     var targetName: String { get }
     
     /// The module name of the target. This is currently derived from the name,
@@ -402,11 +411,16 @@ enum FileType {
 
 /// A simple representation of a path in the file system.
 protocol Path {
+    /// The last path component (including any extension).
     public var filename: String { get }
+    /// The last path component (without any extension).
     public var stem: String { get }
+    /// The filename extension, if any.
     public var `extension`: String? { get }
-    public var parentDirectory { get }
-    public func appending(_ other: String) -> Path
+    /// The path except for the last path component.
+    public var parentDirectory: String { get }
+    /// The result of appending one or more path components.
+    public func appending(_ other: String, ...) -> Path
   }
 ```
 
