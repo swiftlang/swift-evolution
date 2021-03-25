@@ -460,7 +460,7 @@ In the package manifest, the capability is expressed a function invocation rathe
 
 Commands created using `addPrebuildCommand()` are run before the start of every build. When creating prebuild commands, the plugin needs to specify a directory into which the outputs will be written.  This is how the prebuild command communicates its outputs to the build system.
 
-Before invoking the prebuild command, the build system will create the output directory if needed, but it will not remove any directory contents that already exist.  After invoking the command, SwiftPM will use the contents of that directory as inputs to the consruction of build commands. The prebuild command should add or remove files so that the directory contents match the source files that should be processed by the build system.
+Before invoking the prebuild command, the build system will create the output directory if needed, but it will not remove any directory contents that already exist.  After invoking the command, SwiftPM will use the contents of that directory as inputs to the construction of build commands. The prebuild command should add or remove files so that the directory contents match the source files that should be processed by the build system.
 
 Examples of plugins that need to use prebuild commands include SwiftGen and other tools that need to see all the input files, and whose output files are determined by the contents (not just the paths) of the input files. Such a plugin usually generates just one command and configures it with an output directory into which all generated sources will be written.
 
