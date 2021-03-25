@@ -753,7 +753,7 @@ var protoSearchPaths = targetBuildContext.dependencies.map { target in
 // Add the search path to the system proto files. This sample implementation assumes
 // that they are located relative to the `protoc` compiler provided by the binary
 // target, but real implementation could be more sophisticated.
-protoSearchPaths.append(protocPath.parentDirectory.appending("system-protos"))
+protoSearchPaths.append(protocPath.removingLastComponent().appending("system-protos"))
 
 // Create a module mappings file. This is something that the Swift source generator
 // `protoc` plug-in we are using requires. The details are not important for this
@@ -779,7 +779,7 @@ for inputFile in targetBuildContext.inputFiles.filter { $0.extension == "proto" 
     
     // The name of the output file is based on the name of the input file, in a way
     // that's determined by the protoc source generator plug-in we're using.
-    let outputName = inputFile.lastComponent.stem + ".swift"
+    let outputName = inputFile.stem + ".swift"
     let outputPath = targetBuildContext.outputDirectory.appending(outputName)
     
     // Construct the command. Specifying the input and output paths lets the build
@@ -963,7 +963,11 @@ Solving this mixture of build-time and run-time package dependencies is possible
 
 ### A More Sophisticated `Path` Type
 
-The current `Path` type provided in the `PackagePlugin` API is intentionally kept minimal. A future version of this proposal would extend this type, possibly aligning it with `SwiftSystem`'s `FilePath` type.  An alternate direction would be to replace it with a more domain-specific representation that could also keep track of the path root in relation to the directories that matter to packages and build systems, avoiding the need to form absolute paths.
+The current `Path` type provided in the `PackagePlugin` API is intentionally kept minimal, and should be sufficient for the needs of most plugins. A future version of this proposal would extend this type, possibly aligning it with `SwiftSystem`'s `FilePath` type.  The initial API has purposefully been kept the same as `FilePath` to make such a transition easier.
+
+An alternate direction would be to replace it with a more domain-specific representation that could also keep track of the path root in relation to the directories that matter to packages and build systems, avoiding the need to form absolute paths.
+
+Since the API that is available to the plugin script is based on the tools version of the package that contains it, existing plugin scripts are expected to be able to run without modification even if the API does change.
 
 ### Contextual Information About the Build Target
 
