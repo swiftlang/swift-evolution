@@ -535,7 +535,7 @@ OPTIONS:
 
 Running the `package-registry unset` subcommand
 in the root directory of a package
-updates the `.swiftpm/config` file
+updates the `.swiftpm/config/registries.json` file
 to remove the `default` entry in the top-level `registries` key, if present.
 If a `--scope` option is passed,
 only the entry for the specified scope is removed, if present.
@@ -590,7 +590,7 @@ in descending order of precedence:
 
 * The package manifest in the current directory (`./Package.swift`)
 * Any existing lock file (`./Package.resolved`)
-* Any local configuration (`./.swiftpm/config`)
+* Any local configuration (`./.swiftpm/config/registries.json`)
 * Any global configuration file (`~/.swiftpm/config/registries.json`)
 
 ### Changes to config subcommand
@@ -609,7 +609,7 @@ $ swift package config set-mirror \
 This proposal updates the `swift package config set-mirror` subcommand
 to accept a `--package-identifier` option in place of an `--original-url`.
 Running this subcommand with a `--package-identifier` option
-creates or updates the `.swiftpm/config` file,
+creates or updates the `.swiftpm/config/mirrors.json` file,
 modifying the array associated with the top-level `object` key
 to add a new entry or update an existing entry
 for the specified package identifier,
@@ -775,7 +775,7 @@ can both provide similar non-repudiation guarantees.
 
 A user may inadvertently reveal the existence of a private registry
 or expose hardcoded credentials
-by checking in their project's `.swiftpm/config` file.
+by checking in their project's `.swiftpm/config` directory.
 
 An attacker could scrape public code repositories for `.swiftpm/config` files
 and attempt to reuse those credentials to impersonate the user.
@@ -812,7 +812,8 @@ is logged as `https://***@swift.pkg.github.com`).
 ### Denial of service
 
 An attacker could scrape public code repositories
-for `.swiftpm/config` files that declare one or more custom registries
+for `.swiftpm/config/registries.json` files
+that declare one or more custom registries
 and launch a denial-of-service attack
 in an attempt to reduce the availability of those resources.
 
