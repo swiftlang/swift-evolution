@@ -93,10 +93,17 @@ extension Target {
     /// on executables as well as binary targets. This is due to limitations in
     /// how SwiftPM constructs its build plan, and the goal is to remove this re-
     /// striction in a future release.
+    ///
+    /// The `path`, `exclude`, and `sources` parameters are the same as for any
+    /// other target, and allow flexibility in where the plugin scripts are stored
+    /// inside the package directory.
     public static func plugin(
         name: String,
         capability: PluginCapability,
-        dependencies: [Dependency] = []
+        dependencies: [Dependency] = [],
+        path: String? = nil,
+        exclude: [String] = [],
+        sources: [String]? = nil
     ) -> Target
 }
 
