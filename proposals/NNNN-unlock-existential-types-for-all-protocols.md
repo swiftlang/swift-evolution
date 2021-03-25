@@ -307,10 +307,6 @@ With regard to a source-compatible adoption of new adornments, we could
 
 Though, if we *were* going to introduce a new syntax for existentials, we think it'd be much less confusing if we took the potentially source-breaking path and did so uniformly, deprecating the existing syntax after a late-enough language version, than to have yet another attribute and two syntaxes where one only works some of the time. We also believe that drawing a tangible line between protocols that "do" and "do not" have limited access to their API is ill-advised due to the relative nature of this phenomenon.
 
-### Leave the Language in Its Existing State
-
-The current semantics regarding existential types prevent language users, especially library authors, from inheriting useful protocols due to the high cost of maintaining a type erasure construct. Namely, the high maintenance cost is a result of type erasure containers constituting hard-to-understand boilerplate code that entails thorough testing and a significant effort when expanding the protocol at hand. Furthermore, regular language users are often confused by the current restriction, and often lack the expertise or resources required for creating correct type-erasure contructs. 
-
 ## Future Directions
 
 * Simplify the implementation of Standard Library type-erasing wrappers, such as [`AnyHashable`](https://github.com/apple/swift/blob/main/stdlib/public/core/AnyHashable.swift) and [`AnyCollection`](https://github.com/apple/swift/blob/main/stdlib/public/core/ExistentialCollection.swift), using the practical advice from [earlier](#type-erasing-wrappers).
