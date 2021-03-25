@@ -4,7 +4,7 @@
 * Authors: [Anders Bertelrud](https://github.com/abertelrud), [Konrad 'ktoso' Malawski](https://github.com/ktoso), [Tom Doron](https://github.com/tomerd)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
 * Status: **Active Review (February 25 - March 12, 2021)**
-* Pitch and Forum Discussion: [Pitch: SwiftPM Extensible Build Tools](https://forums.swift.org/t/pitch-swiftpm-extensible-build-tools/44715)
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/878e496eb799fa407ad704d89fb401952fe8fd02/proposals/0303-swiftpm-extensible-build-tools.md)
 
 ## Introduction
 
