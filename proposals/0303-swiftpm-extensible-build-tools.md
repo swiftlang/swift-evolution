@@ -409,16 +409,22 @@ enum FileType {
     case unknownFile
 }
 
-/// A simple representation of a path in the file system.
-protocol Path {
+/// A simple representation of a path in the file system. This is aligned
+/// with SwiftSystem.FilePath to minimize any changes if that is adopted
+/// in the future.
+protocol Path: ExpressibleByStringLiteral, CustomStringConvertible {
+    /// A string representation of the path.
+    public var string: String { get }
+    
     /// The last path component (including any extension).
-    public var filename: String { get }
+    public var lastComponent: String { get }
     /// The last path component (without any extension).
     public var stem: String { get }
-    /// The filename extension, if any.
+    /// The filename extension, if any (without any leading dot).
     public var `extension`: String? { get }
+    
     /// The path except for the last path component.
-    public var parentDirectory: String { get }
+    public func removingLastComponent() -> Path { get }
     /// The result of appending one or more path components.
     public func appending(_ other: String, ...) -> Path
   }
