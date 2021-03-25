@@ -398,7 +398,7 @@ protocol FileInfo {
     var type: FileType { get }
 }
 
-/// Provides information about a the type of a file. Any future cases will
+/// Provides information about the type of a file. Any future cases will
 /// use availability annotations to make sure existing plugins still work
 /// until they increase their required tools version.
 enum FileType {
@@ -502,7 +502,7 @@ Any errors emitted by the build command will be handled by the build system in t
 
 Diagnostics from the plugin script itself can be reported using `DiagnosticsEmitter` APIs. Also, any uncaught `Swift.Error` thrown at the top level of the script will be emitted as errors. In either case, if there are any errors, the plugin script will be considered to have failed, and SwiftPM and any IDEs that use libSwiftPM will emit them as it does with other configuration errors. In an IDE this would be similar to errors encountered during the rule matching of source file types, for example.
 
-The script can use `print()` statements to emit debug output, and it will be shown in SwiftPM's console and as detailed output text in the build logs of IDEs that use libSwiftPM.
+The script can use `print()` statements to emit debug output, and it will be shown in SwiftPM's console and as detailed output text in the build logs of IDEs that use libSwiftPM.
 
 ## Example 1: SwiftGen
 
@@ -714,13 +714,13 @@ let package = Package(
         /// Package plugin that tells SwiftPM how to deal with `.proto` files.
         .plugin(
             name: "SwiftProtobuf",
-            capability: .buildTool()
+            capability: .buildTool(),
             dependencies: ["protoc", "protoc-gen-swift"]
         ),
                 
         /// Binary target that provides the prebuilt `protoc` executable.
         .binaryTarget(
-            name: "protoc"
+            name: "protoc",
             url: "https://url/to/the/built/protoc-executables.zip",
             checksum: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         ),
@@ -842,7 +842,7 @@ let package = Package(
     targets: [
         .plugin(
             name: "GenSwifty",
-            capability: .buildTool()
+            capability: .buildTool(),
             dependencies: ["GenSwiftyTool"]
         ),
         .executable(
@@ -921,13 +921,14 @@ There is inherent risk in running build tools provided by other packages. This c
 This proposal is intentionally fairly basic and leaves many improvements for the future. Among them are:
 
 - the ability for package plugins to define new types that can be used to configure those plugins in package manifests
-- the ability for a build tool to have depend on different packages than the clients of the plugin that uses it
+- the ability for a build tool to have dependencies on different versions of packages than the clients of the plugin that uses it
 - the ability for plugins to have access to the full build graph at a detailed level
 - the ability for prebuild actions to depend on tools built by SwiftPM
 - the ability for package plugin scripts to use libraries provided by other targets
 - the ability for build commands to emit output files that feed back into the rule system to generate new work during the build (this requires support in SwiftPM's native build system as well as in the build systems of some IDEs that use libSwiftPM)
 - the ability to provide per-target type-safe options to a use of an plugin (details below)
 - the ability to define post-build command and other kinds of commands
+- specific support for testing plugins (they can currently be testing using test fixtures that exercise the plugins, but it would be useful to be able to invoke them directly, for example through a `swift package` command that invokes the plugin with specific inputs)
 
 
 ### Type-Safe Options
@@ -982,6 +983,8 @@ Since the API that is available to the plugin script is based on the tools versi
 ### Contextual Information About the Build Target
 
 The current `TargetBuildContext` type in the `PackagePlugin` API provides minimal information about the structure and configuration of the target, but it does not in this initial proposal provide any information about the target platform for which the package is being built.
+
+This would be needed in order to implement more advanced tools such as code generators or linkers.
 
 ## Alternatives Considered
 
