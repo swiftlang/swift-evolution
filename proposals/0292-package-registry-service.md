@@ -71,15 +71,15 @@ to download dependencies.
 
 A user may [configure](#registry-configuration-subcommands)
 a package registry for their project
-by specifying a URL to a [conforming web service](#package-registry-service).
+by specifying a URL to a [conforming web service](#package-registry-service-1).
 When a registry is configured,
 Swift Package Manager resolves external dependencies
 in the project's package manifest (`Package.swift`) file
-that are [declared](#new-packagedescription-apis)
+that are [declared](#new-packagedescription-api)
 with a [scoped package identifier](#package-identity) in the form
 `scope.package-name`.
 These package identifiers resolve potential
-[module name collisions](#module-name-collision-resolution)
+[name collisions](#package-name-collision-resolution)
 across build targets.
 
 For each external dependency declared in the package manifest,
@@ -1168,8 +1168,8 @@ RegEx (github.com/mona/RegEx) - Expressions on the reg.
 [RubyGems]: https://rubygems.org "RubyGems: The Ruby community’s gem hosting service"
 [Schema.org]: https://schema.org/
 [scp-url]: https://git-scm.com/book/en/v2/Git-on-the-Server-The-Protocols#_the_ssh_protocol
-[SE-0219]: https://github.com/apple/swift-evolution/blob/master/proposals/0219-package-manager-dependency-mirroring.md "Package Manager Dependency Mirroring"
-[SE-0272]: https://github.com/apple/swift-evolution/blob/master/proposals/0272-swiftpm-binary-dependencies.md "Package Manager Binary Dependencies"
+[SE-0219]: https://github.com/apple/swift-evolution/blob/main/proposals/0219-package-manager-dependency-mirroring.md "Package Manager Dependency Mirroring"
+[SE-0272]: https://github.com/apple/swift-evolution/blob/main/proposals/0272-swiftpm-binary-dependencies.md "Package Manager Binary Dependencies"
 [SE-0301]: https://github.com/apple/swift-evolution/blob/main/proposals/0301-package-editing-commands.md "Package Editor Commands"
 [SE-0305]: https://github.com/apple/swift-evolution/blob/main/proposals/0305-swiftpm-binary-target-improvements.md "Package Manager Binary Target Improvements"
 [secret scanning]: https://docs.github.com/en/github/administering-a-repository/about-secret-scanning
@@ -1185,7 +1185,7 @@ RegEx (github.com/mona/RegEx) - Expressions on the reg.
 [UAX31]: http://www.unicode.org/reports/tr31/ "Unicode Technical Report #31: Unicode Identifier and Pattern Syntax"
 [UAX36]: http://www.unicode.org/reports/tr36/ "Unicode Technical Report #36: Unicode Security Considerations"
 [UTI]: https://en.wikipedia.org/wiki/Uniform_Type_Identifier
-[version-specific-manifest-selection]: https://github.com/apple/swift-package-manager/blob/master/Documentation/Usage.md#version-specific-manifest-selection "Swift Package Manager - Version-specific Manifest Selection"
-[version-specific-tag-selection]: https://github.com/apple/swift-package-manager/blob/master/Documentation/Usage.md#version-specific-tag-selection "Swift Package Manager - Version-specific Tag Selection"
+[version-specific-manifest-selection]: https://github.com/apple/swift-package-manager/blob/main/Documentation/Usage.md#version-specific-manifest-selection "Swift Package Manager - Version-specific Manifest Selection"
+[version-specific-tag-selection]: https://github.com/apple/swift-package-manager/blob/main/Documentation/Usage.md#version-specific-tag-selection "Swift Package Manager - Version-specific Tag Selection"
 [XCFramework]: https://developer.apple.com/videos/play/wwdc2019/416/ "WWDC 2019 Session 416: Binary Frameworks in Swift"
 [xss]: https://en.wikipedia.org/wiki/Cross-site_scripting
