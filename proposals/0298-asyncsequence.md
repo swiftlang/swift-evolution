@@ -6,6 +6,7 @@
 * Status: **Implemented (Swift 5.5)**
 * Implementation: [apple/swift#35224](https://github.com/apple/swift/pull/35224)
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-modification-se-0298-async-await-sequences/44231)
+* Revision: Based on [forum discussion](https://forums.swift.org/t/pitch-clarify-end-of-iteration-behavior-for-asyncsequence/45548)
 
 ## Introduction
 
@@ -194,11 +195,16 @@ If an `AsyncIteratorProtocol` type has cleanup to do upon cancellation, it can d
 
 1. After checking for cancellation using the `Task` API.
 2. In its `deinit` (if it is a class type).
+
 ### Rethrows
 
 This proposal will take advantage of a separate proposal to add specialized `rethrows` conformance in a protocol, pitched [here](https://forums.swift.org/t/pitch-rethrowing-protocol-conformances/42373). With the changes proposed there for `rethrows`, it will not be required to use `try` when iterating an `AsyncSequence` which does not itself throw.
 
 The `await` is always required because the definition of the protocol is that it is always asynchronous.
+
+### End of Iteration
+
+After an `AsyncIteratorProtocol` types returns `nil` or throws an error from its `next()` method, all future calls to `next()` must return `nil`. This matches the behavior of `IteratorProtocol` types and is important, since calling an iterator's `next()` method is the only way to determine whether iteration has finished.
 
 ## AsyncSequence Functions
 
@@ -287,6 +293,7 @@ For each of these functions, we first define a type which conforms with the `Asy
 ## Future Proposals
 
 The following topics are things we consider important and worth discussion in future proposals:
+
 ### Additional `AsyncSequence` functions
 
 We've aimed for parity with the most relevant `Sequence` functions. There may be others that are worth adding in a future proposal.
@@ -323,6 +330,7 @@ An earlier version of this proposal included an explicit `cancel` function. We r
 ### Asynchronous Cancellation
 
 If we used explicit cancellation, the `cancel()` function on the iterator could be marked as `async`. However, this means that the implicit cancellation done when leaving a `for/in` loop would require an implicit `await` -- something we think is probably too much to hide from the developer. Most cancellation behavior is going to be as simple as setting a flag to check later, so we leave it as a synchronous function and encourage adopters to make cancellation fast and non-blocking.
+
 ### Opaque Types
 
 Each `AsyncSequence`-to-`AsyncSequence` algorithm will define its own concrete type. We could attempt to hide these details behind a general purpose type eraser. We believe leaving the types exposed gives us (and the compiler) more optimization opportunities. A great future enhancement would be for the language to support `some AsyncSequence where Element=...`-style syntax, allowing hiding of concrete `AsyncSequence` types at API boundaries.
