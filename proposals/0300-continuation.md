@@ -3,7 +3,7 @@
 * Proposal: [SE-0300](0300-continuation.md)
 * Authors: [John McCall](https://github.com/rjmccall), [Joe Groff](https://github.com/jckarter), [Doug Gregor](https://github.com/DougGregor), [Konrad Malawski](https://github.com/ktoso)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active Review (March 2 - 9, 2021)**
+* Status: **Accepted**
 * Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/5f79481244329ec2860951c0c49c101aef5069e7/proposals/0300-continuation.md), [2](https://github.com/apple/swift-evolution/blob/61c788cdb9674c99fc8731b49056cebcb5497edd/proposals/0300-continuation.md)
 
 ## Introduction
@@ -82,6 +82,12 @@ struct UnsafeContinuation<T, E: Error> {
 
 extension UnsafeContinuation where T == Void {
   func resume() { resume(returning: ()) }
+}
+
+extension UnsafeContinuation where T == Error {
+  // Allow covariant use of a `Result` with a stricter error type than
+  // the continuation:
+  func resume<ResultError: Error>(with result: Result<T, ResultError>)
 }
 
 func withUnsafeContinuation<T>(
@@ -188,12 +194,18 @@ extension CheckedContinuation where T == Void {
   func resume()
 }
 
+extension CheckedContinuation where T == Error {
+  // Allow covariant use of a `Result` with a stricter error type than
+  // the continuation:
+  func resume<ResultError: Error>(with result: Result<T, ResultError>)
+}
+
 func withCheckedContinuation<T>(
-    _ operation: (CheckedContinuation<T>) -> ()
+    _ operation: (CheckedContinuation<T, Never>) -> ()
 ) async -> T
 
 func withCheckedThrowingContinuation<T>(
-  _ operation: (CheckedContinuation<T>) throws -> ()
+  _ operation: (CheckedContinuation<T, Error>) throws -> ()
 ) async throws -> T
 ```
 
