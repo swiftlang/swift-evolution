@@ -943,21 +943,37 @@ extension TaskGroup {
   mutating func spawn(
       overridingPriority: Priority? = nil,
       operation: @concurrent @escaping () async -> TaskResult
-  ) -> Bool
+  ) -> Self.Spawned
+  
+  public struct Spawned: Sendable {
+    /// Returns `true` if the task was successfully spawned in the task group,
+    /// `false` otherwise which means that the group was already cancelled and
+    /// refused to accept spawn a new child task.
+    public var successfully: Bool 
+
+    /// Task handle for the spawned task group child task,
+    /// or `nil` if it was not spawned successfully.
+    public let handle: Task.Handle<ChildTaskResult, Never>?
+  }
 }
 
 extension ThrowingTaskGroup { 
   mutating func spawn(
     overridingPriority: Priority? = nil,
     operation: @concurrent @escaping () async throws -> TaskResult
-  ) -> Bool
+  ) -> Self.Spawned
+  
+  public struct Spawned: Sendable { ... }
 }
 ```
 
 `group.spawn` creates a new task in the task group, which will execute the given `operation` function concurrently. The task will be a child of the task that initially created the task group (via `withTaskGroup`), and will have the same priority as that task unless given a new priority with a non-`nil` `overridingPriority` argument.
 
-The `spawn` operation is `async` to allow for a form of back-pressure. If the executor on which the new task will be scheduled is oversubscribed, the `spawn` call itself can suspend to slow the creation of new tasks. (By default, this is the
-default global concurrent executor, though a `withTaskGroup` call can override this if it's passed a different executor argument.)
+The spawn operation returns a `TaskGroup.Spawned` struct that contains a `spawned.successfully` property which can be inspected to check if the task truly was spawned by the group. The group is allowed to reject spawns of tasks when it was cancelled. I.e. a cancelled group will reject new tasks spawned into it, allowing implementations to prevent a group from spawning tasks infinitely. In the future a "force spawn" may be considered for addition if deemed necessary.
+
+The `TaskGroup.Spawned` also includes a`handle` to the spawned task. It may be used to cancel or await on _specific_ tasks that were submitted to the group. This is in contrast to awaiting on `group.next()` which returns values in the order as they complete. This allows implementing tasks which definitely must await on some specific task, and then can follow that through by waiting on all remaining tasks. For example if some initialization must complete before it even makes sense to continue collecting results of other tasks.
+
+Cancelling a specific task group child task does _not_ cancel the entire group or any of its siblings.
 
 > Previously the `group.spawn` operation was designed to be a suspension point, which was intended to be a simple form of back-pressure where the group could decide to not allow more than N tasks to be running concurrently. This has not been fully designed nor implemented though, so currently has been moved to a future direction.
 
@@ -1141,6 +1157,7 @@ Changes after first review:
 * Task group type parameter renames: `TaskGroup<TaskResult>` becomes `ChildTaskResult` resulting in: `public func withTaskGroup<ChildTaskResult, GroupResult>(of childTaskResultType: ChildTaskResult.Type, returning returnType: GroupResult.Type = GroupResult.self, body: (inout TaskGroup<ChildTaskResult>) async throws -> GroupResult) async rethrows -> GroupResult` resulting in a more readable call site: `withTaskGroup(of: Int.self)` and optionally `withTaskGroup(of: Int.self, returning: Int.self)`
 * For now remove `startingChildTasksOn` from `withTaskGroup` since this is only doable with Custom Executors which are pending review still.
 * Move `Task.withCancellationHandler` to a top level function `withTaskCancellationHandler` which reads more logically, as it does not create a task by itself.
+* Make `group.spawn` return `TaskGroup.Spawned` that serves both the purpose of knowing if the task was `spawned.successfully` and also obtaining the `Task.Handle` of a successfully spawned task. Thanks to Paulo Faria for reminding us to revisit this topic.
 
 ### Pitch changes
 
