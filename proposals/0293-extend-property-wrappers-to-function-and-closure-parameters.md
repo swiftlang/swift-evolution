@@ -3,9 +3,9 @@
 * Proposal: [SE-0293](0293-extend-property-wrappers-to-function-and-closure-parameters.md)
 * Authors: [Holly Borla](https://github.com/hborla), [Filip Sakel](https://github.com/filip-sakel)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
-* Status: **Active review (March 22...March 29, 2021)**
+* Status: **Accepted**
 * Implementation: [apple/swift#34272](https://github.com/apple/swift/pull/34272), [apple/swift#36344](https://github.com/apple/swift/pull/36344)
-* Decision Notes: [Review #2](https://forums.swift.org/t/returned-for-revision-2-se-0293-extend-property-wrappers-to-function-and-closure-parameters/44832), [Review #1](https://forums.swift.org/t/returned-for-revision-se-0293-extend-property-wrappers-to-function-and-closure-parameters/42953)
+* Decision Notes: [Review #3](https://forums.swift.org/t/accepted-se-0293-extend-property-wrappers-to-function-and-closure-parameters/47030), [Review #2](https://forums.swift.org/t/returned-for-revision-2-se-0293-extend-property-wrappers-to-function-and-closure-parameters/44832), [Review #1](https://forums.swift.org/t/returned-for-revision-se-0293-extend-property-wrappers-to-function-and-closure-parameters/42953)
 * Previous versions: [Revision #2](https://github.com/apple/swift-evolution/blob/bdf12b26d15d63ab7e58dab635a55ffeca841389/proposals/0293-extend-property-wrappers-to-function-and-closure-parameters.md), [Revision #1](https://github.com/apple/swift-evolution/blob/e5b2ce1fd6c1c2617a820a1e6f2b53a00e54fdce/proposals/0293-extend-property-wrappers-to-function-and-closure-parameters.md)
 
 ## Contents
