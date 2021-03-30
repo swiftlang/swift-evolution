@@ -282,7 +282,7 @@ func chopVegetables() async throws -> [Vegetable] {
     // Create a new child task for each vegetable that needs to be 
     // chopped.
     for v in rawVeggies {
-      await group.spawn { 
+      group.spawn { 
         return v.chopped()
       }
     }
@@ -1033,7 +1033,7 @@ func gather(first m: Int, of work: [Work]) async throws -> [WorkResult] {
   
   return withTaskGroup(resultType: WorkResult.self) { group in 
     for w in work { 
-      await group.spawn { await w.doIt() } // spawn child tasks to perform the work
+      group.spawn { await w.doIt() } // spawn child tasks to perform the work
     }  
     
     var results: [WorkResult] = []
@@ -1082,11 +1082,11 @@ func chopVegetables() async throws -> [Vegetable] {
   try await withThrowingTaskGroup(resultType: Vegetable.self) { group in
     print(group.isCancelled) // prints false
 
-    await group.spawn {
+    group.spawn {
       group.cancelAll() // Cancel all work in the group
       throw UnfortunateAccidentWithKnifeError()
     }
-    await group.spawn {
+    group.spawn {
       return try await chop(Onion())
     }
 
@@ -1096,7 +1096,7 @@ func chopVegetables() async throws -> [Vegetable] {
       }
     } catch {
       print(group.isCancelled) // prints true now
-      let added = await group.spawn {
+      let added = group.spawn {
         return try await chop(SweetPotato())
       }
       print(added) // prints false, no child was added to the cancelled group
@@ -1204,13 +1204,12 @@ func makeDinner() async throws -> Meal {
 
   // Create a task group to scope the lifetime of our three child tasks
   try await withTaskGroup(resultType: Void.self) { group in
-    await group.spawn {
-      veggies = try await chopVegetables()
-    }
-    await group.spawn {
+    group.spawn {
+      veggies = try await chgroup.spawn  }
+    group.spawn {
       meat = await marinateMeat()
     }
-    await group.spawn {
+    group.spawn {
       oven = await preheatOven(temperature: 350)
     }
   }
