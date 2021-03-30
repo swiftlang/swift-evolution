@@ -1,7 +1,7 @@
 # Unlock existentials for all protocols
 
 * Proposal: [SE-NNNN](NNNN-unlock-existential-types-for-all-protocols.md)
-* Authors: [Anthony Latsis](https://github.com/AnthonyLatsis), [Filip Sakel](https://github.com/filip-sakel), [Joe Groff](https://github.com/jckarter), [Suyash Srijan](https://github.com/theblixguy)
+* Authors: [Anthony Latsis](https://github.com/AnthonyLatsis), [Filip Sakel](https://github.com/filip-sakel), [Suyash Srijan](https://github.com/theblixguy)
 * Review Manager: TBD
 * Status: **Awaiting Review**
 * Implementation: [apple/swift#33767](https://github.com/apple/swift/pull/33767)
