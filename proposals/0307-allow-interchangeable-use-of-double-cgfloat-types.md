@@ -1,11 +1,11 @@
 # Allow interchangeable use of `CGFloat` and `Double` types
 
 * Proposal: [SE-0307](0307-allow-interchangeable-use-of-double-cgfloat-types.md)
-* Authors: [Pavel Yaskevich](https://github.com/xedin)
+* Author: [Pavel Yaskevich](https://github.com/xedin)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Status: **Accepted**
 * Decision Notes: [Rationale](https://forums.swift.org/t/se-0307-allow-interchangeable-use-of-cgfloat-and-double-types/45756/55)
-* **Implementation:** PR https://github.com/apple/swift/pull/34401 based on the `main` branch. Toolchains are available for [macOS](https://ci.swift.org/job/swift-PR-toolchain-osx/876//artifact/branch-main/swift-PR-34401-876-osx.tar.gz) and [Linux](https://ci.swift.org/job/swift-PR-toolchain-Linux/552//artifact/branch-main/swift-PR-34401-552-ubuntu16.04.tar.gz).
+* Implementation: [apple/swift#34401](https://github.com/apple/swift/pull/34401)
 
 ## Introduction
 
