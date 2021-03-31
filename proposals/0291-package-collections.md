@@ -3,7 +3,7 @@
 * Proposal: [SE-0291](0291-package-collections.md)
 * Authors: [Boris Bügling](https://github.com/neonichu), [Yim Lee](https://github.com/yim-lee), [Tom Doron](https://github.com/tomerd)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.5)**
 * Implementation: [apple/swift-package-manager#3030](https://github.com/apple/swift-package-manager/pull/3030)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/7c45e22557a0ef726dea9787f0fae9dac3ed7856/proposals/0291-package-collections.md), [2](https://github.com/apple/swift-evolution/blob/3e56b936a2398b7bd57c09dc39a845336d2543fe/proposals/0291-package-collections.md)
 * Review: [Review](https://forums.swift.org/t/se-0291-package-collections), [Review 2](https://forums.swift.org/t/se-0291-2nd-review-package-collections), [Acceptance](https://forums.swift.org/t/accepted-with-modifications-se-0291-package-collections), [Amendment](https://forums.swift.org/t/amendment-se-0291-package-collection-signing/), [Amendment Acceptance](https://forums.swift.org/t/accepted-se-0291-amendment-package-collection-signing/45126)
