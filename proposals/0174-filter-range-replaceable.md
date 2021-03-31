@@ -1,4 +1,4 @@
-# Change `filter` to return an associated type
+# Change `RangeReplaceableCollection.filter` to return `Self`
 
 * Proposal: [SE-0174](0174-filter-range-replaceable.md)
 * Author: [Ben Cohen](https://github.com/airspeedswift)
