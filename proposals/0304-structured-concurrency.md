@@ -159,8 +159,6 @@ Our approach follows the principles of *structured concurrency* described above.
 
 A *task group* defines a scope in which one can create new child tasks programmatically. As with all child tasks, the child tasks within the task group scope must complete when the scope exits, and will be implicitly cancelled first if the scope exits with a thrown error.
 
-Task groups are a low-level yet very powerful ab
-
 To illustrate task groups, let's start by showing how we can introduce some
 real concurrency to our `makeDinner` example:
 
@@ -275,21 +273,20 @@ results as they become ready:
 /// Concurrently chop the vegetables.
 func chopVegetables() async throws -> [Vegetable] {
   // Create a task group where each child task produces a Vegetable.
-  try await withThrowingTaskGroup(resultType: Vegetable.self) { group in 
+  try await withTaskGroup(of: Vegetable.self) { group in 
     var rawVeggies: [Vegetable] = gatherRawVeggies()
     var choppedVeggies: [Vegetable] = []
     
-    // Create a new child task for each vegetable that needs to be 
-    // chopped.
+    // Create a new child task for each vegetable that needs to be chopped.
     for v in rawVeggies {
       group.spawn { 
-        return v.chopped()
+        v.chopped()
       }
     }
 
     // Wait for all of the chopping to complete, collecting the veggies into
     // the result array in whatever order they're ready.
-    while let choppedVeggie = try await group.next() {
+    while let choppedVeggie = await group.next() {
       choppedVeggies.append(choppedVeggie)
     }
     
@@ -605,14 +602,14 @@ A new, detached task can be created with the `detach` operation. The resulting t
 /// Create a new, detached task that produces a value of type `T`.
 @discardableResult
 static func detach<T: Sendable>(
-  priority: Priority = .default,
+  priority: Task.Priority = .unspecified,
   operation: @escaping @concurrent () async -> T
 ) -> Task.Handle<T, Never>
 
 /// Create a new, detached task that produces a value of type `T` or throws an error.
 @discardableResult
 static func detach<T: Sendable>(
-  priority: Priority = .default,
+  priority: Task.Priority = .unspecified,
   operation: @escaping @concurrent () async throws -> T
 ) -> Task.Handle<T, Error>
 ```
@@ -918,7 +915,7 @@ struct TaskGroup<ChildTaskResult: Sendable> {
 
 The result of `withTaskGroup` is the result produced by the `body` function. The `withThrowingTaskGroup` version of the function allows for the task group to throw, and if that happens all tasks it contained are implicitly cancelled (and awaited on) before rethrowing the error.
 
-> Note: Sadly it is not presently possible to implement this throwing/non-throwing functionality with a single function. The complex relationship of throwing `group.spawn` with a throwing `next` as well as coresponding throwing/non-throwing `AsyncSequence` conformances make it impossible to implement all in one function/type today.
+> Note: Sadly it is not presently possible to implement this throwing/non-throwing functionality with a single function. The complex relationship of throwing `group.spawn` with a throwing `next` as well as corresponding throwing/non-throwing `AsyncSequence` conformances make it impossible to implement all in one function/type today.
 
 Note also that the `withThrowingTaskGroup` uses a `ThrowingTaskGroup<ChildTaskResult, Error>`, however specifying the type of that error is not possible. This is because this Failure parameter on the `ThrowingTaskGroup` in only used as future-proof API in case Swift were to gain typed throwing at some point in time. This design makes no promises nor does it assume typed throws are actually going to happen though.
 
@@ -936,42 +933,49 @@ Within the `body` function, tasks may be added dynamically with the spawn operat
 
 ```swift
 extension TaskGroup {
-  /// Add a child task to the group.
-  ///
-  /// Returns true if the task was successfully spawned, false otherwise.
-  /// A cancelled group will reject any further additions of tasks into it.
+  /// Unconditionally spawn a child task in the group.
+  /// 
+  /// The child task will be executing concurrently with the group, and its result 
+  /// may be collected by calling `group.next()` or iterating over the group gathering 
+  /// all submitted task results from the group.
   mutating func spawn(
-      overridingPriority: Priority? = nil,
-      operation: @concurrent @escaping () async -> TaskResult
-  ) -> Self.Spawned
-  
-  public struct Spawned: Sendable {
-    /// Returns `true` if the task was successfully spawned in the task group,
-    /// `false` otherwise which means that the group was already cancelled and
-    /// refused to accept spawn a new child task.
-    public var successfully: Bool 
+    priority: Task.Priority = .unspecified,
+    operation: @concurrent @escaping () async -> ChildTaskResult
+  )
 
-    /// Task handle for the spawned task group child task,
-    /// or `nil` if it was not spawned successfully.
-    public let handle: Task.Handle<ChildTaskResult, Never>?
-  }
+  /// Attempts to spawn a child task in the group, unless the group is already cancelled.
+  /// 
+  /// A spawn will be rejected by the group if the task it is running in was already cancelled,
+  /// or if the group was explicitly cancelled by invoking `group.cancelAll()`.
+  /// 
+  /// The child task will be executing concurrently with the group, and its result 
+  /// may be collected by calling `group.next()` or iterating over the group gathering 
+  /// all submitted task results from the group.
+  /// 
+  /// Returns true if the task was spawned successfully, and false otherwise.
+  mutating func spawnUnlessCancelled(
+    priority: Task.Priority = .unspecified,
+    operation: @concurrent @escaping () async -> ChildTaskResult
+  ) -> Bool
+  
 }
 
 extension ThrowingTaskGroup { 
   mutating func spawn(
-    overridingPriority: Priority? = nil,
-    operation: @concurrent @escaping () async throws -> TaskResult
-  ) -> Self.Spawned
+    priority: Task.Priority = .unspecified,
+    operation: @concurrent @escaping () async throws -> ChildTaskResult
+  )
   
-  public struct Spawned: Sendable { ... }
+  mutating func spawnUnlessCancelled(
+    priority: Task.Priority = .unspecified,
+    operation: @concurrent @escaping () async throws -> ChildTaskResult
+  ) -> Bool
 }
 ```
 
-`group.spawn` creates a new task in the task group, which will execute the given `operation` function concurrently. The task will be a child of the task that initially created the task group (via `withTaskGroup`), and will have the same priority as that task unless given a new priority with a non-`nil` `overridingPriority` argument.
+`group.spawn` spawns a child task in the task group to execute execute the given `operation` function concurrently. The task will be a child of the task that initially created the task group (via `withTaskGroup`), and will have the same priority as that task unless given a new priority with as an argument. Generally, it is recommended to not specify priority manually.
 
-The spawn operation returns a `TaskGroup.Spawned` struct that contains a `spawned.successfully` property which can be inspected to check if the task truly was spawned by the group. The group is allowed to reject spawns of tasks when it was cancelled. I.e. a cancelled group will reject new tasks spawned into it, allowing implementations to prevent a group from spawning tasks infinitely. In the future a "force spawn" may be considered for addition if deemed necessary.
-
-The `TaskGroup.Spawned` also includes a`handle` to the spawned task. It may be used to cancel or await on _specific_ tasks that were submitted to the group. This is in contrast to awaiting on `group.next()` which returns values in the order as they complete. This allows implementing tasks which definitely must await on some specific task, and then can follow that through by waiting on all remaining tasks. For example if some initialization must complete before it even makes sense to continue collecting results of other tasks.
+The `spawn` operation always succeeds in adding a new child task to the group, even if the task running the group has been cancelled or the group was cancelled explicitly with `group.cancelAll`. The `spawnUnlessCancelled` function automatically checks if a group is cancelled before attempting to spawn the task, allowing for simple implementation of groups which should "keep spawning tasks until cancelled".
 
 Cancelling a specific task group child task does _not_ cancel the entire group or any of its siblings.
 
@@ -988,7 +992,7 @@ extension TaskGroup: AsyncSequence {
   /// Wait for a task to complete and return the result it returned (or throw if the task
   /// exited with a thrown error), or else return `nil` when there are no tasks left in
   /// the group.
-  mutating func next() async -> TaskResult? { ... } 
+  mutating func next() async -> ChildTaskResult? { ... } 
 
   /// Query whether the task group has any remaining tasks.
   var isEmpty: Bool { ... } 
@@ -1000,11 +1004,11 @@ extension ThrowingTaskGroup: AsyncSequence {
   /// Wait for a task to complete and return the result it returned (or throw if the task
   /// exited with a thrown error), or else return `nil` when there are no tasks left in
   /// the group.
-  mutating func next() async throws -> TaskResult? { ... } 
+  mutating func next() async throws -> ChildTaskResult? { ... } 
 
   /// Wait for a task to complete and return the result or thrown error packaged in
   /// a `Result` instance. Returns `nil` only when there are no tasks left in the group.
-  mutating func nextResult() async -> Result<TaskResult, Error>?
+  mutating func nextResult() async -> Result<ChildTaskResult, Error>?
 
   /// Query whether the task group has any remaining tasks.
   var isEmpty: Bool { ... } 
@@ -1047,7 +1051,7 @@ To handle errors from individual tasks, one can use a do-catch block or the `nex
 func gather(first m: Int, of work: [Work]) async throws -> [WorkResult] { 
   assert(m <= work.count) 
   
-  return withTaskGroup(resultType: WorkResult.self) { group in 
+  return withTaskGroup(of: WorkResult.self) { group in 
     for w in work { 
       group.spawn { await w.doIt() } // spawn child tasks to perform the work
     }  
@@ -1095,7 +1099,7 @@ For example:
 func chopVegetables() async throws -> [Vegetable] {
   var veggies: [Vegetable] = []
 
-  try await withThrowingTaskGroup(resultType: Vegetable.self) { group in
+  try await withThrowingTaskGroup(of: Vegetable.self) { group in
     print(group.isCancelled) // prints false
 
     group.spawn {
@@ -1112,8 +1116,8 @@ func chopVegetables() async throws -> [Vegetable] {
       }
     } catch {
       print(group.isCancelled) // prints true now
-      let added = group.spawn {
-        return try await chop(SweetPotato())
+      let added = group.spawnUnlessCancelled {
+        try await chop(SweetPotato())
       }
       print(added) // prints false, no child was added to the cancelled group
     }
@@ -1148,9 +1152,9 @@ Changes after first review:
 * `Task.unsafeCurrent` becomes a top-level `withUnsafeCurrentTask { maybeUnsafeTask in }`
   * This better explains the intended semantics of not escaping storing the unsafe task reference.
 * Adopt `spawn...` terminology for "spawning tasks" 
-  * `runDetached` becomes `spawnDetached`
   * `TaskGroup`'s `group.spawn` becomes `group.spawn`
   * Creating a child task will eventually be `spawn <something>`
+* Based on feedback, `runDetached` becomes `detach` because of how often it may be necessary to reach for.
 * Moving away from using `Task` as namespace for everything
   * rename `TaskGroup` to `TaskGroup`, and introduce `ThrowingTaskGroup`
   * make `Task.unsafeCurrent` a free function`withUnsafeCurrentTask`
@@ -1158,6 +1162,11 @@ Changes after first review:
 * For now remove `startingChildTasksOn` from `withTaskGroup` since this is only doable with Custom Executors which are pending review still.
 * Move `Task.withCancellationHandler` to a top level function `withTaskCancellationHandler` which reads more logically, as it does not create a task by itself.
 * Make `group.spawn` return `TaskGroup.Spawned` that serves both the purpose of knowing if the task was `spawned.successfully` and also obtaining the `Task.Handle` of a successfully spawned task. Thanks to Paulo Faria for reminding us to revisit this topic.
+* The spawn parameter `overridingPriority` has been renamed to `priority` not to confuse existing users on Apple platforms where "override" has the specific meaning more similar to what we call "priority escalation".
+* Task group `spawn` now always spawns a child task rather than only when the group is not cancelled.
+* Task groups gain `spawnUnlessCancelled -> Bool` which explains the semantics intended by the previous spawn signature more clearly. The returned value is just a boolean signalling if the spawn was successfully or not.
+* Some functions were accepting `Task.Priority?` which is unnecessary because we have `.unspecified`, so those functions now accept `Task.Priority` defaulting it to `.unspecified`
+
 
 ### Pitch changes
 
@@ -1220,7 +1229,7 @@ func makeDinner() async throws -> Meal {
   var oven: Oven?
 
   // Create a task group to scope the lifetime of our three child tasks
-  try await withTaskGroup(resultType: Void.self) { group in
+  try await withTaskGroup(of: Void.self) { group in
     group.spawn {
       veggies = try await chgroup.spawn  }
     group.spawn {
@@ -1274,3 +1283,4 @@ Initially the `group.spawn` was designed with the idea of being an asynchronous 
 This was not implemented nor is it clear how efficient and meaningful this form of back-pressure really would be. A naive version of these semantics is possible to implement by balancing pending and completed task counts in the group by plain variables, so removing this implementation doe not prevent developers form implementing such "width limited" operations per se.
 
 The way to back-pressure submissions should also be considered in terms of how it relates to async let and general spawn mechanisms, not only groups. We have not figured out this completely, and rather than introduce an not-implemented API which may or may not have the right shape, for now we decided to punt on this feature until we know precisely if and how to apply this style of back-pressure on spawning tasks throughout the system.
+
