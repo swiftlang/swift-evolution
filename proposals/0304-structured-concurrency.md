@@ -216,9 +216,17 @@ await withTaskGroup(of: Void.self) { group in
     veggies = try await chopVegetables()
   }
 }
+let dish = Dish(ingredients: [veggies!])
 ```
 
-because the closure passed to `group.spawn` is executing concurrently with the task owning the group, and potentially any other accessess to the `veggies` from other tasks in the group as well.
+This may be surprising, because the child tasks are guaranteed to have
+completed in one way or another by the end of `withTaskGroup`, so it would
+theoretically be safe for them to modify variables captured from their parent
+context as long as sibling tasks or the parent task itself do not
+simultaneously access those same variables until the task group completes.
+However, Swift's `@Sendable` closure checking has to be conservative, unless
+we give it special knowledge of task groups' semantics. We leave that to a
+later proposal.
 
 The `withTaskGroup` API gives us access to a task group, and governs the
 lifetime of the *child tasks* we subsequently add to the group using its
@@ -975,17 +983,19 @@ extension ThrowingTaskGroup {
 
 `group.spawn` spawns a child task in the task group to execute execute the given `operation` function concurrently. The task will be a child of the task that initially created the task group (via `withTaskGroup`), and will have the same priority as that task unless given a new priority with as an argument. Generally, it is recommended to not specify priority manually.
 
-The `spawn` operation always succeeds in adding a new child task to the group, even if the task running the group has been cancelled or the group was cancelled explicitly with `group.cancelAll`. The `spawnUnlessCancelled` function automatically checks if a group is cancelled before attempting to spawn the task, allowing for simple implementation of groups which should "keep spawning tasks until cancelled".
+The `spawn` operation always succeeds in adding a new child task to the group, even if the task running the group has been cancelled or the group was cancelled explicitly with `group.cancelAll`. In cases where the task group has already
+been cancelled, the new child task will be spawned in the `cancelled` state.
+To avoid this, the `spawnUnlessCancelled` function checks if a group is cancelled before attempting to spawn the task, and returns a `Bool` that is true if
+the task was successfully spawned. This allows for simple implementation of groups which should "keep spawning tasks until cancelled".
 
 Cancelling a specific task group child task does _not_ cancel the entire group or any of its siblings.
 
 > Previously the `group.spawn` operation was designed to be a suspension point, which was intended to be a simple form of back-pressure where the group could decide to not allow more than N tasks to be running concurrently. This has not been fully designed nor implemented though, so currently has been moved to a future direction.
 
-The only circumstance under which the task will not be spawned to the group is when the task group has been cancelled; see the section on [task group cancellation](#task-group-cancellation) for more information.
 
 ##### Querying tasks in the group
 
-The `next()` operation allows one to gather the results from the tasks that have been added to the group. It produces the result from one of the tasks in the group, whether it is the normal result or a thrown error. 
+The `next()` operation allows one to gather the results from the tasks that have been spawned in the group. It produces the result from one of the tasks in the group, whether it is the normal result or a thrown error. 
 
 ```swift
 extension TaskGroup: AsyncSequence {
@@ -1070,7 +1080,7 @@ func gather(first m: Int, of work: [Work]) async throws -> [WorkResult] {
 
 ##### Task group cancellation
 
-There are several ways in which a task group can be cancelled. In all cases, all of the tasks in the group are cancelled and no more tasks can be added to the group (`add` will return `false`). The three ways in which a task group can be cancelled are:
+There are several ways in which a task group can be cancelled. In all cases, all of the tasks in the group are cancelled, and any new tasks spawned in the group will start out cancelled. The three ways in which a task group can be cancelled are:
 
 1. When an error is thrown out of the `body` of `withTaskGroup`,
 2. When the task in which the task group itself was created is cancelled, or
@@ -1275,6 +1285,40 @@ between child tasks and parents within a task group. This idea is explored in
 its own proposal.
 
 Alternatively, we may want to express this as `spawn` in similar manner to how `detach { ... }` works for detached tasks, spawn could be the equivalent for child tasks. It would have the same semantics as `async let`, so it is mostly a spelling discussion -- it may be beneficial to express `spawn`, `detach` and perhaps future non-waiting operations like `send` in a similar style, rather than specializing `async let` declarations. In general however a specialized form of creating child tasks within a scope will be definitely explored in the near future.
+
+### `@Sendable` closure checking for task groups
+
+In addition to `async let`, the scoped nature of task groups and child tasks would make it natural for child tasks to be able to do more ad-hoc mutation of captured state from their captured context. Because child tasks are guaranteed to
+have completed by the time a `withTaskGroup` block finishes executing, it would theoretically be safe to allow them to mutate captured local variables, as long as every child task captures a disjoint set of variables, and the variables are not referenced in the enclosing context until the task group completes, as in:
+
+```
+var numApplesProcessed = 0
+var numBananasProcessed = 0
+withTaskGroup { group in
+  // One child task handles apples:
+  group.spawn {
+    for apple in apples {
+      await processApple(apple)
+      numApplesProcessed += 1
+    }
+  }
+  // And one child task handles bananas:
+  group.spawn {
+    for banana in bananas {
+      await processBanana(banana)
+      numBananasProcessed += 1
+    }
+  }
+}
+print("\(numApplesProcessed + numBananasProcessed) fruits processed")
+```
+
+However, Swift's type checker does not have any special knowledge of `withTaskGroup`, and a conservative analysis of the `@Sendable` closures for each child
+task has to assume that the closures could be executed at any time, and so apply
+the usual rules banning capture of mutated variables. To allow for a more
+natural coding style in these situations, it would be useful if the analysis
+understood the special behavior of task groups and allowed for mutation in
+captures when it's safe in cases like this.
 
 ### Suspending `await group.spawn`
 
