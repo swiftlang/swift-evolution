@@ -1,10 +1,10 @@
 # `#if` for postfix member expressions
 
-* Proposal: [SE-NNNN](NNNN-postfix-ifconfig-expressions.md)
+* Proposal: [SE-0308](NNNN-postfix-ifconfig-expressions.md)
 * Authors: [Rintaro Ishizaki](https://github.com/rintaro)
-* Review Manager: TBD
+* Review Manager: [Saleem Abdulrasool](https://github.com/compnerd)
 * Implementation: https://github.com/apple/swift/pull/35097
-* Status: **Awaiting review**
+* Status: **Scheduled for review (April 5, 2021...April 16, 2021)**
 
 ## Introduction
 
