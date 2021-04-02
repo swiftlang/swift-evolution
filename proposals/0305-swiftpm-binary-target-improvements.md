@@ -5,7 +5,7 @@
 * Review Manager: [Tom Doron](https://github.com/tomerd)
 * Status: **Active Review (March 11 - 23 2021)**
 * Implementation: Available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `SWIFTPM_ENABLE_PLUGINS`
- 
+
 ## Introduction
 
 This proposal extends SwiftPM binary targets to also support other kinds of prebuilt artifacts, such as command line tools.  It does not in and of itself add support for non-Darwin binary libraries, although the proposed improvements could be a step towards such support.
@@ -42,7 +42,7 @@ The artifact index file maps a variant selector to the `.zip` file that contains
 
 Once a `.zip` file has been selected using the index file, it is downloaded in the same way as in the case of a single `.zip` file (which is exactly the same as for all binary targets today).  It is unarchived to a location in the local file system, and the path of the artifact archive becomes available to the rest of SwiftPM.
 
-Regardless of whether the artifact archive is local or remote, or whether or not it uses an index file, the appropriate variants of the artifacts declared in an artifact archive will be made available to any package plugins that have a target dependency on the `binaryTarget`.  This is done through API in the `PackagePlugin` library as described in [SE-0303](https://github.com/apple/swift-evolution/blob/main/proposals/0303-swiftpm-extensible-build-tools.md).
+Regardless of whether the artifact archive is local or remote, and whether or not it uses an index file, the appropriate variants of the artifacts declared in an artifact archive will be made available to any package plugins that have a target dependency on the `binaryTarget`.  This is done through API in the `PackagePlugin` library as described in [SE-0303](https://github.com/apple/swift-evolution/blob/main/proposals/0303-swiftpm-extensible-build-tools.md).
 
 ## Detailed design
 
@@ -80,9 +80,11 @@ The structure of the artifact archive is:
 
 The manifest is always at the top level and is named `info.json`.  Its contents are described in the next subsection.
 
-At the top level of the artifact archive directory is a subdirectory for each artifact in the archive.  The names of the artifacts are arbitrary, but must be unique within the archive.  They are case sensitive.  These are the names that are used in the plugin API when looking up a binary artifact.  A plugin has access to the artifacts defined in the artifact archives specified by all the binary targets on which it has declared a dependency.
+At the top level of the artifact archive directory is a subdirectory for each artifact in the archive.  The names of the artifacts are arbitrary, but must be unique within the archive.  These are the names that are used in the plugin API when looking up a binary artifact.  A plugin has access to the artifacts defined in the artifact archives specified by all the binary targets on which it has declared a dependency.
 
-Within each artifact directory are variant directories.  These names are arbitrary but would normally describe the target triples to which the artifact variants apply.  These names are case sensitive.
+Within each artifact directory are variant directories.  As with the names of artifacts, these names are arbitrary but must be unique within the artifact directory.
+
+All name lookup is case-sensitive.  In order to be resilient on case-insensitive file systems, archives should avoid using pairs of names that differ only in case.
 
 Each artifact variant directory is the root of a file system hierarchy that can be made available to a plugin.  The variant that is made available depends on the target triple of the host toolchain at the time of use.
 
@@ -128,7 +130,7 @@ Each variant dictionary contains:
 
 Note that although the `type` key is always `executable` in this proposal, this is expected to allow the support for artifact archives to be extended in future proposals to support libraries, resource sets, and other types of binary artifacts.
 
-This proposal uses [target triples](https://clang.llvm.org/docs/CrossCompilation.html#target-triple) as the variant selectors.  A single variant may support more than one target triple.
+This proposal uses [target triples](https://clang.llvm.org/docs/CrossCompilation.html#target-triple) as the variant selectors.  A single variant may support more than one target triple, as in the case of universal binaries.
 
 ### Archive processing
 
@@ -138,9 +140,11 @@ If SwiftPM finds a `.arar` directory, it will try to load the `info.json` within
 
 When a plugin asks for a tool with a particular identifier, SwiftPM will consider the artifact archives specified by any binary targets on which the plugin depends.  The artifacts defined in these archives will be made available to the plugin and will be translated to the paths at which the executables have been unarchived.  The plugin can access any support files provided with the executable in the same way.
 
+Any lookup of names within the archive is case sensitive.
+
 ### Artifact index
 
-To avoid downloading files that will not be needed, an artifact archive can be split up into multiple archives.  Each archive has the same format as any other artifact archive, but contains only a subset of the variants.
+To avoid downloading files that will not be needed, an artifact archive can be split up into multiple archives.  Each of these archives has the same format as any other artifact archive, but contains only a subset of the variants.
 
 An example could include having one archive for Apple platforms, another for Windows, and others for different Linux variants.
 
@@ -203,7 +207,7 @@ This proposal focuses on executables, since that is the immediate need in order 
 
 ## Alternatives considered
 
-One alternative would be to not extend binary targets and to instead require any executables required by plugins to be installed on the host before building the package.  However, one of the goals of packages are to be self-describing, and for SwiftPM to be able to fetch any dependencies as needed.  This should include binary executables.
+One alternative would be to not extend binary targets and to instead require any executables that are needed by plugins to be installed on the host before building the package.  However, one of the goals of packages are to be self-describing, and for SwiftPM to be able to fetch any dependencies as needed.  This should include binary executables.
 
 ## References
 
