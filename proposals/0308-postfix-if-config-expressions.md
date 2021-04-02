@@ -1,6 +1,6 @@
 # `#if` for postfix member expressions
 
-* Proposal: [SE-0308](NNNN-postfix-ifconfig-expressions.md)
+* Proposal: [SE-0308](0308-postfix-if-config-expressions.md)
 * Authors: [Rintaro Ishizaki](https://github.com/rintaro)
 * Review Manager: [Saleem Abdulrasool](https://github.com/compnerd)
 * Implementation: https://github.com/apple/swift/pull/35097
