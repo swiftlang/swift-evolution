@@ -4,6 +4,7 @@
 * Authors: [Frederick Kellison-Linn](https://github.com/jumhyn)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
+* Implementation: [apple/swift#36740](https://github.com/apple/swift/pull/36740)
 
 ## Introduction
 
@@ -232,6 +233,13 @@ extension Bar {
 
 Under this proposal, only `frobnicate1`, `frobnicate3` and `frobnicate6` would compile without error (`frobnicate1`, of course, compiles without this proposal as well), since all others have placeholders appearing in at least one position in the function signature.
 
+### Dynamic casts
+
+In dynamic casts, unlike `as` coercions, there is no inherent relationship between the casted expression and the cast type. This is why we can write things like `0 as? String` or `[""] is Double` (albeit, with warnings that the casts will always fail).
+
+While this proposal does not *explicitly* disallow placeholder types in `is`, `as?`, and `as!` casts, it provides for no additional inference rules for matching the type of the casted expression to the cast type, meaning that in most cases placeholder types will fail to type check if used in these positions (e.g., `0 as? [_]`).
+
+This also applies to `is` and `as` patterns (e.g., `case let y as [_]`).
 
 ## Source compatibility
 
@@ -313,7 +321,8 @@ Since there is more subtle design work to be done here, and because the use case
 
 ## Acknowledgments
 
-- Ben Rimmington and Xiaodi Wu suggested illustrative examples to help explain some more subtle aspects of the proposal.
+- Ben Rimmington and Xiaodi Wu suggested illustrative examples to help explain some more subtle aspects of the proposal. 
+- Xiaodi entertained extensive discussion about arcane syntactic forms that could be written using placeholders.
 - Varun Gandhi and Rintaro Ishizaki helped come up with some edge cases to test and Varun provided valuable input regarding the scoping of this proposal.
 - Holly Borla provided some well-timed encouragement and feedback to help push this proposal to completion.
 - Pavel Yaskevich and Robert Widmann patiently reviewed the initial implementation.
