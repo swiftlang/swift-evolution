@@ -791,7 +791,8 @@ and attempt to reuse those credentials to impersonate the user.
 ```
 
 This kind of attack can be mitigated on an individual basis
-by adding `.swiftpm/config` to a project's `.gitignore` file.
+by adding `.swiftpm/config` to a project's `.gitignore` file
+or storing credentials in a `.netrc` file.
 The risk could be mitigated for all users
 if Swift Package Manager included a `.gitignore` file
 in its new project template.
