@@ -4,7 +4,7 @@
 * Authors: [Rintaro Ishizaki](https://github.com/rintaro)
 * Review Manager: [Saleem Abdulrasool](https://github.com/compnerd)
 * Implementation: https://github.com/apple/swift/pull/35097
-* Status: **Scheduled for review (April 5, 2021...April 16, 2021)**
+* Status: **Active Review (April 5, 2021...April 16, 2021)**
 
 ## Introduction
 
