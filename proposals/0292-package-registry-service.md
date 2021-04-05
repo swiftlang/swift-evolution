@@ -145,7 +145,7 @@ A package scope consists of
 alphanumeric characters and hyphens.
 Hyphens may not occur at the beginning or end,
 nor consecutively within a scope.
-The maximum length of a package name is 39 characters.
+The maximum length of a package scope is 39 characters.
 A valid package scope matches the following regular expression pattern:
 
 ```regexp
