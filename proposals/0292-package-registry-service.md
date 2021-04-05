@@ -235,7 +235,7 @@ that is, the `package` parameter in `.product(name:package)` method calls.
 
 ```diff
     targets: [
-        .target(name: "MyLibrary", 
+        .target(name: "MyLibrary",
                 dependencies: [
                   .product(name: "LinkedList",
 -                          package: "LinkedList")
@@ -502,7 +502,7 @@ $ cat .swiftpm/config/registries.json
 
 ```json
 {
-  "registries": { 
+  "registries": {
     "example": {
       "url": "https://internal.example.com"
     }
@@ -565,7 +565,7 @@ consider the following global and local registry configuration files:
 
 // Local configuration (.swiftpm/config/registries.json)
 {
-  "registries": { 
+  "registries": {
     "foo": {
       "url": "https://local.example.com"
     }
