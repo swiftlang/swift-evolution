@@ -163,16 +163,9 @@ A valid package name matches the following regular expression pattern:
 > For more information,
 > see [Unicode Identifier and Pattern Syntax][UAX31].
 
-Package scopes are case-insensitive
-(for example, `mona` ≍ `MONA`).
-Package names are
-case-insensitive,
-diacritic-insensitive
-(for example, `Å` ≍ `A`), and
-width-insensitive
-(for example, `Ａ` ≍ `A`).
 Package names are compared using
-[Normalization Form Compatible Composition (NFKC)][UAX15].
+[Normalization Form Compatible Composition (NFKC)][UAX15]
+with locale-independent case folding.
 
 #### New `PackageDescription` API
 
