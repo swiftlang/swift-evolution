@@ -1162,7 +1162,7 @@ Changes after first review:
 * `Task.unsafeCurrent` becomes a top-level `withUnsafeCurrentTask { maybeUnsafeTask in }`
   * This better explains the intended semantics of not escaping storing the unsafe task reference.
 * Adopt `spawn...` terminology for "spawning tasks" 
-  * `TaskGroup`'s `group.spawn` becomes `group.spawn`
+  * `TaskGroup`'s `group.add` becomes `group.spawn`
   * Creating a child task will eventually be `spawn <something>`
 * Based on feedback, `runDetached` becomes `detach` because of how often it may be necessary to reach for.
 * Moving away from using `Task` as namespace for everything
