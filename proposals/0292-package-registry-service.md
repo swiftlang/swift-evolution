@@ -450,6 +450,8 @@ in the root directory of a package
 creates or updates the `.swiftpm/config/registries.json` file
 with a new top-level `registries` key
 that's associated with an object containing the specified registry URLs.
+The default, unscoped registry is associated with the key `[default]`.
+Any scoped registries are keyed by their case-folded name.
 
 For example,
 a build server that doesn't allow external network connections
@@ -464,8 +466,8 @@ $ cat .swiftpm/config/registries.json
 ```json
 {
   "registries": {
-    "default": { 
-      "url": "https://internal.example.com" 
+    "[default]": {
+      "url": "https://internal.example.com"
     }
   },
   "version": 1
@@ -550,8 +552,8 @@ consider the following global and local registry configuration files:
 ```jsonc
 // Global configuration (~/.swiftpm/config/registries.json)
 {
-  "registries": { 
-    "default": {
+  "registries": {
+    "[default]": {
       "url": "https://global.example.com"
     },
     "foo": {
@@ -779,7 +781,7 @@ and attempt to reuse those credentials to impersonate the user.
 ```json
 {
   "registries": {
-      "default": {
+      "[default]": {
         "url": "https://<USERNAME>:<TOKEN>@swift.pkg.github.com/<OWNER>/"
       }
   },
