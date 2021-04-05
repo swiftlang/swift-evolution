@@ -149,7 +149,7 @@ The maximum length of a package name is 39 characters.
 A valid package scope matches the following regular expression pattern:
 
 ```regexp
-\A[a-zA-Z\d](?:[a-zA-Z\d]|-(?=[a-zA-Z\d])){0,39}\z
+\A[a-zA-Z\d](?:[a-zA-Z\d]|-(?=[a-zA-Z\d])){0,38}\z
 ```
 
 A package's *name* uniquely identifies a package in a scope.
