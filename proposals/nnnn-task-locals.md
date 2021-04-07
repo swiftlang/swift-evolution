@@ -3,7 +3,7 @@
 * Proposal: [SE-NNNN](NNNN-task-local.md)
 * Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
 * Review Manager: TBD
-* Status: **Implemented**, except "always best effort" inheritance method which is debatable 
+* Status: **Implemented**
 * Implementation: Available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
 
 ## Table of Contents
@@ -223,135 +223,6 @@ extension TaskLocalValues {
 This follows prior-art of SwiftUI Environment's [EnvironmentValues](https://developer.apple.com/documentation/swiftui/environmentvalues) and [EnvironmentKey](https://developer.apple.com/documentation/swiftui/environmentkey). However notice that there is no need for implementing set/get with any actual logic; just the types and are used for identification of task-local values. This is because it is not really correct to think about task local values in terms of just a "set" operation, but it is only scopes of "_key_ bound to _value_" which can bind values, as will be discussed below.  
 
 The implementation of task locals relies on the existence of `Task.unsafeCurrent` from the [Structured Concurrency proposal](https://forums.swift.org/t/pitch-2-structured-concurrency/43452/116). This is how we are able to obtain a task reference, regardless if within or outside of an asynchronous context.
-
-#### Specialized TaskLocal Value Inheritance Semantics
-
-Some task local values may require specialized inheritance semantics. The default strategy simply means that child tasks "inherit" values from their parents. At runtime, this is not achieved by copying, but simply performing lookups through parent tasks as well, when a `TaskLocal.Inheritance.default` inherited key is being looked up.
-
-Some, specialized use-cases however can declare more specific inheritance semantics. It is *not* encouraged to use these specialized semantics nonchalantly, and their use should always be carefully considered and given much thought as they can lead to unexpected behaviors otherwise.
-
-A `TaskLocalKey` type may declare an inheritance semantics by defining the static `inherit` variable on its type:
-
-```swift
-public protocol TaskLocalKey {
-  associatedtype Value
-  static var defaultValue: Value { get }
-
-  /// Allows configuring specialized inheritance strategies for task local values.
-  ///
-  /// By default, task local values are accessible by the current or any of its
-  /// child tasks (with this rule applying recursively).
-  ///
-  /// Some, rare yet important, use-cases may require specialized inheritance
-  /// strategies, and this property allows them to configure these for their keys.
-  static var inherit: TaskLocalInheritance { get }
-}
-
-extension TaskLocalKey {
-  public static var inherit: TaskLocalInheritance { .default }
-}
-```
-
-The semantics default to `.default`, which are what one would expect normally -- that child tasks are able to lookup values defined in their parents, unless overriden in that specific child. We will discuss the exact semantics of lookups in depth in [Reading task-local values](#reading-task-local-values).
-
-In this proposal, we introduce two additional inheritance semantics: `.never` and `.alwaysBestEffort`:
-
-```swift
-// TODO: should likely remain extensible
-public enum TaskLocalInheritance: UInt8, Equatable {
-  case `default`        = 0
-  case never            = 1
-  case alwaysBestEffort = 2
-}
-```
-
-Both these semantics are driven by specific use cases from the Swift ecosystem, highlighted during early design reviews of this proposal. First, the `.never` inheritance model allows for the design of a highly specialized task-aware `Progress` type, that is not part of this proposal. And second various Tracer implementations, including swift-distributed-tracing but also Instruments which will want to use special tracing metadata which should be carried "always" (at a best effort), even through detached tasks.
-
-##### "Never" task-local value inheritance
-
-The "never" inheritance semantics allow a task to set "truly local only to this specific task" values. I.e. if a parent task sets some value using an non-inherited key, it's children will not be able to read it.
-
-It is simplest to explain those semantics with an example, so let us do just that. First we define a key that uses the `.never` inheritance semantics. We could, for example, declare a `HouseKey` and make sure it will not be inherited by our children (child tasks):
-
-```swift
-extension TaskLocalValues {
-
-  struct HouseKey: TaskLocalKey {
-    static var defaultValue: House? { nil }
-    static var inherit: TaskLocalInheritance { .never }
-  }
-  var house: HouseKey { .init() }
-
-}
-```
-
-This way, only the current task which has bound this task local value to itself can access the house key. This key remains available throughout the entire `withLocal`'s scope. However none of its child tasks, spawned either by async let, or task groups will inherit the `house`:
-
-```swift
-let house: House = ... 
-Task.withLocal(\.house, boundTo: House(...)) {
-  assert(Task.local(\.house) != nil)
-  async let child = assert(Task.local(\.house) == nil) // not available in child task 
-}
-```
-
-Addmitably, this is a fairly silly example, and in this small limited example it is trivial to replace this task local with a plain variable. Or rather, it *should* be replaced with a plain variable and not abuse task locals for this.
-
-We have specific designs in mind with regards to `Progress` monitoring types however which will greatly benefit from these semantics. The `Progress` API will be it's own swift evolution proposal however, so we do not dive much deeper into it's API design in this proposal. Please look forward to upcoming proposals with regards to monitoring
-
-##### "always, best effort" task-local value inheritance
-
-Another use-case, which is perhaps more natural than the never-inheritance, is the "always" inheritance semantics. Its primary goal is to inherit values even to detached (!) tasks.
-
-Detached tasks, created with `Task.runDetached { ... }` are on purpose and by design not inheriting _anything_ from their parents. This allows for such clean "top level" tasks to be created, without carrying either priority or local values of their parents.
-
-Sometimes, especially in tracing systems (including e.g. Instruments), one may want to trace through detached tasks _anyway_. For example, consider the following two snippets of code, which we'll assume are using swift-distributed-tracing to instrument the HTTPClient:
-
-```swift
-await Task.withLocal(\.traceID, boundTo: TraceID.random) { 
-  await HTTP().post(url: "...") // automatically carries trace-id as HTTP Header 
-}
-```
-
-Because of the anture of async/await, we are forced to await on the reply of this HTTP request. Usually that is just what we want, but perhaps we are hitting an API that never replies with any interesting information, like an metrics endpoint etc, and thus we just want to fire-and-forget this HTTP request.
-
-To do this, we use a detached task:
-
-```swift
-await Task.withLocal(\.traceID, boundTo: TraceID.random) { 
-  Task.runDetached { 
-    await HTTP().post(url: "...") // Q: is traceID accessible here?
-  }
-}
-```
-
-Notice, that under `.default` inheritance semantics, the http request would suddenly miss ("drop") the tracing information, resulting in a less useful execution trace! The same is true for in-process asynchronous tasks, whenever a fire-and-forget situation is encountered.
-
-To tackle this, it is possible to declare a key as being `.alwaysBestEffort`-inherited:
-
-```swift
-extension TaskLocalValues {
-  struct TraceIDKey: TaskLocalKey {
-    static var defaultValue: TraceID? { nil }
-    static var inherit: TaskLocalInheritance { .alwaysBestEffort }
-  }
-  public var traceID: TraceIDKey { .init() }
-}
-```
-
-With these semantics, the running the detached task will locate and copy the most recently bound value of `.traceID`, copy it and run the task.
-
-This copy of crucial importance because detached tasks may out-live the task that created them. Task local items are allocated using a task-local allocator, which must destroy all task allocated values when the task completes. As such, a detached task must copy, and task-local allocate a TaskLocal "item" holding a the task-local value, because it cannot guarantee that the task it created will be still alive by the time someone attempts to read this value.
-
-Task-local allocations are very cheap and efficient, so this is the right tradeoff to make. Most tasks simply refer to their parents if they do not modify the task-local storage (as will be discussed in depth below), and in the rare situation when we have to detach a task, we perform the copy for only those items that declared their inheritance model to require doing so.
-
-There is an additional design consideration to take into account here, that will explain the "best effort" part of this inheritance strategy name:
-
-Detached tasks are used to "break off" from any context of their parent context. Generally the same is true for their task local values, i.e. a detached task task-local value lookup simply stops a "lookup" once it hits the detached task, since it has no more parents to attempt to resovle a value in. If we naively implemented "just copy everything" strategies with "`.always`" we would _always_ have to iterate through _all_ task local values of all tasks when we detach -- this could be prohibitively slow. Especially since detaching is used for simple "one shot" or "fire and forget" operations. 
-
-Instead, we propose that `.alwaysBestEffort` keeps a separate taks-local value stack, that is limited in size, e.g. 3 values. And aggressively copies those when detaching. It would not traverse in search for "all" values which _potentialy_ may have to be copied on a detach. This means, that these values work like a "breadcrumbs", i.e. the last 3 always-best-effort inherited values are super quickly available in any task. These 3 "slots" could also be aggressively copied into child tasks from their parent, allowing for immediate (without any pointer chasing) lookups of those tracing sensitive values, which may be beneficial for in-process tracing by tools such as Instruments or similar. 
-
-How exactly these copies are performed though is able to be polished depending on workloads and performance measurements from the real world. The ABI of those values is stable in the sense that we declare the use of 3 slots for this "fast, tracing-specific, always available, even through detaches" values.
 
 ### Binding task-local values
 
@@ -1009,8 +880,139 @@ As discussed in the tracing use-case section, the ability to express `@Logged` o
 
 Such annotations depend on the arrival of [Function Wrappers](https://forums.swift.org/t/prepitch-function-wrappers/33618) or a similar feature to them, which currently are not being actively worked on, however we definitely have in the back of our minds while designing this proposal.
 
+### Specialized TaskLocal Value Inheritance Semantics
+
+Some task local values may require specialized inheritance semantics. The default strategy simply means that child tasks "inherit" values from their parents. At runtime, this is not achieved by copying, but simply performing lookups through parent tasks as well, when a `TaskLocal.Inheritance.default` inherited key is being looked up.
+
+Some, specialized use-cases however can declare more specific inheritance semantics. It is *not* encouraged to use these specialized semantics nonchalantly, and their use should always be carefully considered and given much thought as they can lead to unexpected behaviors otherwise.
+
+A `TaskLocalKey` type may declare an inheritance semantics by defining the static `inherit` variable on its type:
+
+```swift
+public protocol TaskLocalKey {
+  associatedtype Value
+  static var defaultValue: Value { get }
+
+  /// Allows configuring specialized inheritance strategies for task local values.
+  ///
+  /// By default, task local values are accessible by the current or any of its
+  /// child tasks (with this rule applying recursively).
+  ///
+  /// Some, rare yet important, use-cases may require specialized inheritance
+  /// strategies, and this property allows them to configure these for their keys.
+  static var inherit: TaskLocalInheritance { get }
+}
+
+extension TaskLocalKey {
+  public static var inherit: TaskLocalInheritance { .default }
+}
+```
+
+The semantics default to `.default`, which are what one would expect normally -- that child tasks are able to lookup values defined in their parents, unless overriden in that specific child. We will discuss the exact semantics of lookups in depth in [Reading task-local values](#reading-task-local-values).
+
+In this proposal, we introduce two additional inheritance semantics: `.never` and `.alwaysBestEffort`:
+
+```swift
+// TODO: should likely remain extensible
+public enum TaskLocalInheritance: UInt8, Equatable {
+  case `default`        = 0
+  case never            = 1
+  case alwaysBestEffort = 2
+}
+```
+
+Both these semantics are driven by specific use cases from the Swift ecosystem, highlighted during early design reviews of this proposal. First, the `.never` inheritance model allows for the design of a highly specialized task-aware `Progress` type, that is not part of this proposal. And second various Tracer implementations, including swift-distributed-tracing but also Instruments which will want to use special tracing metadata which should be carried "always" (at a best effort), even through detached tasks.
+
+#### "Never" task-local value inheritance
+
+The "never" inheritance semantics allow a task to set "truly local only to this specific task" values. I.e. if a parent task sets some value using an non-inherited key, it's children will not be able to read it.
+
+It is simplest to explain those semantics with an example, so let us do just that. First we define a key that uses the `.never` inheritance semantics. We could, for example, declare a `HouseKey` and make sure it will not be inherited by our children (child tasks):
+
+```swift
+extension TaskLocalValues {
+
+  struct HouseKey: TaskLocalKey {
+    static var defaultValue: House? { nil }
+    static var inherit: TaskLocalInheritance { .never }
+  }
+  var house: HouseKey { .init() }
+
+}
+```
+
+This way, only the current task which has bound this task local value to itself can access the house key. This key remains available throughout the entire `withLocal`'s scope. However none of its child tasks, spawned either by async let, or task groups will inherit the `house`:
+
+```swift
+let house: House = ... 
+Task.withLocal(\.house, boundTo: House(...)) {
+  assert(Task.local(\.house) != nil)
+  async let child = assert(Task.local(\.house) == nil) // not available in child task 
+}
+```
+
+Addmitably, this is a fairly silly example, and in this small limited example it is trivial to replace this task local with a plain variable. Or rather, it *should* be replaced with a plain variable and not abuse task locals for this.
+
+We have specific designs in mind with regards to `Progress` monitoring types however which will greatly benefit from these semantics. The `Progress` API will be it's own swift evolution proposal however, so we do not dive much deeper into it's API design in this proposal. Please look forward to upcoming proposals with regards to monitoring
+
+#### "always, best effort" task-local value inheritance
+
+Another use-case, which is perhaps more natural than the never-inheritance, is the "always" inheritance semantics. Its primary goal is to inherit values even to detached (!) tasks.
+
+Detached tasks, created with `Task.runDetached { ... }` are on purpose and by design not inheriting _anything_ from their parents. This allows for such clean "top level" tasks to be created, without carrying either priority or local values of their parents.
+
+Sometimes, especially in tracing systems (including e.g. Instruments), one may want to trace through detached tasks _anyway_. For example, consider the following two snippets of code, which we'll assume are using swift-distributed-tracing to instrument the HTTPClient:
+
+```swift
+await Task.withLocal(\.traceID, boundTo: TraceID.random) { 
+  await HTTP().post(url: "...") // automatically carries trace-id as HTTP Header 
+}
+```
+
+Because of the anture of async/await, we are forced to await on the reply of this HTTP request. Usually that is just what we want, but perhaps we are hitting an API that never replies with any interesting information, like an metrics endpoint etc, and thus we just want to fire-and-forget this HTTP request.
+
+To do this, we use a detached task:
+
+```swift
+await Task.withLocal(\.traceID, boundTo: TraceID.random) { 
+  Task.runDetached { 
+    await HTTP().post(url: "...") // Q: is traceID accessible here?
+  }
+}
+```
+
+Notice, that under `.default` inheritance semantics, the http request would suddenly miss ("drop") the tracing information, resulting in a less useful execution trace! The same is true for in-process asynchronous tasks, whenever a fire-and-forget situation is encountered.
+
+To tackle this, it is possible to declare a key as being `.alwaysBestEffort`-inherited:
+
+```swift
+extension TaskLocalValues {
+  struct TraceIDKey: TaskLocalKey {
+    static var defaultValue: TraceID? { nil }
+    static var inherit: TaskLocalInheritance { .alwaysBestEffort }
+  }
+  public var traceID: TraceIDKey { .init() }
+}
+```
+
+With these semantics, the running the detached task will locate and copy the most recently bound value of `.traceID`, copy it and run the task.
+
+This copy of crucial importance because detached tasks may out-live the task that created them. Task local items are allocated using a task-local allocator, which must destroy all task allocated values when the task completes. As such, a detached task must copy, and task-local allocate a TaskLocal "item" holding a the task-local value, because it cannot guarantee that the task it created will be still alive by the time someone attempts to read this value.
+
+Task-local allocations are very cheap and efficient, so this is the right tradeoff to make. Most tasks simply refer to their parents if they do not modify the task-local storage (as will be discussed in depth below), and in the rare situation when we have to detach a task, we perform the copy for only those items that declared their inheritance model to require doing so.
+
+There is an additional design consideration to take into account here, that will explain the "best effort" part of this inheritance strategy name:
+
+Detached tasks are used to "break off" from any context of their parent context. Generally the same is true for their task local values, i.e. a detached task task-local value lookup simply stops a "lookup" once it hits the detached task, since it has no more parents to attempt to resovle a value in. If we naively implemented "just copy everything" strategies with "`.always`" we would _always_ have to iterate through _all_ task local values of all tasks when we detach -- this could be prohibitively slow. Especially since detaching is used for simple "one shot" or "fire and forget" operations. 
+
+Instead, we propose that `.alwaysBestEffort` keeps a separate taks-local value stack, that is limited in size, e.g. 3 values. And aggressively copies those when detaching. It would not traverse in search for "all" values which _potentialy_ may have to be copied on a detach. This means, that these values work like a "breadcrumbs", i.e. the last 3 always-best-effort inherited values are super quickly available in any task. These 3 "slots" could also be aggressively copied into child tasks from their parent, allowing for immediate (without any pointer chasing) lookups of those tracing sensitive values, which may be beneficial for in-process tracing by tools such as Instruments or similar. 
+
+How exactly these copies are performed though is able to be polished depending on workloads and performance measurements from the real world. The ABI of those values is stable in the sense that we declare the use of 3 slots for this "fast, tracing-specific, always available, even through detaches" values.
+
 ## Revision history
 
+- v3.1: Move specialized task semantics to future directions section
+  - Will adjust implementation to not offer the "do not inherit" mode when accepted
 - v3: Prepare for review
   - polish wording and API names of "task-local value inheritance" related functions and wording,
   - discuss detached tasks and runDetached with inheritance,
