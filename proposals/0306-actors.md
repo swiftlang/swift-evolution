@@ -38,6 +38,7 @@
    * [Task-chain reentrancy](#task-chain-reentrancy)
 * [Alternatives considered](#alternatives-considered) 
    * [Actor inheritance](#actor-inheritance)
+   * [Cross-actor lets](#cross-actor-lets)
 * [Revision history](#revision-history)
 
 ## Introduction
@@ -795,11 +796,60 @@ Earlier pitches and the first reviewed version of this proposal allowed actor in
 
 Subsequent review discussion determined that the conceptual cost of actor inheritance outweighed its usefulness, so it has been removed from this proposal. The form that actor inheritance would take in the language is well-understand from prior iterations of this proposal and its implementation, so this feature could be re-introduced at a later time.
 
+### Cross-actor lets
+
+This proposal allows synchronous access to `let` properties on an actor instance from anywhere:
+
+```swift
+actor BankAccount {
+  let accountNumber: Int
+}
+
+func print(account: BankAccount) {
+  print(account.accountNumber) // okay: synchronous access to an actor's let property
+}  
+```
+
+We could instead require `let` properties to be accessed asynchronously from outside the actor, making the `print(account:)` function above an error unless it is changed to `await` access to the account number. This would be more consistent with other instance members of actors, which always require asynchronous access from outside the actor. It also allows one to evolve a `let` into a `var`, e.g.,
+
+```swift
+actor BankAccount {
+  private(set) var accountNumber: Int  // under current rules, refactoring 'let' to 'var' breaks clients synchronously accessing data
+}
+```
+
+On the other hand, requiring all access to `let` instances to be asynchronous goes against the notion that immutable `let` properties are safe for concurrency specifically because they are immutable. For example, one can safely access a local `let` from a concurrently-executing closure, but not a `var`:
+
+```swift
+func test() {
+  let total = 100
+  var counter = 0
+  
+  detach {
+    print(total) // okay
+    print(counter) // error, cannot reference a `var` from a @Sendable closure
+  }
+}
+```
+
+The change to require asynchronous access to `let` properties from outside the actor would not make it impossible to provide synchronous access. Rather, it would become part of the proposal on [controlling actor isolation][isolationcontrol], such that one would need to mark `let` declarations as `nonisolated`:
+
+```swift
+actor BankAccount {
+  nonisolated let accountNumber: Int
+}
+
+func print(account: BankAccount) {
+  print(account.accountNumber) // okay: synchronous access to an actor's let property marked as 'nonisolated'
+}  
+```
+
 ## Revision history
 
 * Changes in the second reviewed proposal:
   * Escaping closures can now be actor-isolated; only `@Sendable` prevents isolation.
   * Removed actor inheritance. It can be considered at some future point.
+  * Added "cross-actor lets" to Alternatives Considered. While there is no change to the proposed direction, the issue is explained here for further discussion.
   * Replaced `Task.runDetached` with `detach` to match updates to the [Structured Concurrency proposal][sc].
 * Changes in the seventh pitch:
   * Removed isolated parameters and `nonisolated` from this proposal. They'll come in a follow-up proposal on [controlling actor isolation][isolationcontrol].
