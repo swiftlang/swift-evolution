@@ -25,7 +25,6 @@
    * [Actors](#actors-2)
    * [Actor isolation checking](#actor-isolation-checking)
       * [References and actor isolation](#references-and-actor-isolation)
-      * [Overrides](#overrides)
       * [Protocol conformance](#protocol-conformance)
    * [Partial applications](#partial-applications)
    * [Key paths](#key-paths)
@@ -37,8 +36,7 @@
 * [Future Directions](#future-directions)
    * [Non-reentrancy](#non-reentrancy)
    * [Task-chain reentrancy](#task-chain-reentrancy)
-* [Alternatives considered](#alternatives-considered)
-   * [Eliminating inheritance](#eliminating-inheritance)
+* [Alternatives considered](#alternatives-considered) 
 * [Revision history](#revision-history)
 
 ## Introduction
@@ -55,7 +53,8 @@ Swift-evolution threads:
   [Pitch #3](https://forums.swift.org/t/pitch-3-actors/44470),
   [Pitch #4](https://forums.swift.org/t/pitch-4-actors/45215),
   [Pitch #5](https://forums.swift.org/t/pitch-4-actors/45215/36),
-  [Pitch #6](https://forums.swift.org/t/pitch-6-actors/45519).
+  [Pitch #6](https://forums.swift.org/t/pitch-6-actors/45519),
+  [Review #1](https://forums.swift.org/t/se-0306-actors/45734)
 
 ## Proposed solution
 
@@ -75,7 +74,7 @@ actor BankAccount {
 }
 ```
 
-Actors behave like classes in most respects: they can inherit (from other actors), have methods, properties, and subscripts. They can be extended and conform to protocols, be generic, and be used with generics.
+Like other Swift types, actors can have initialiers, methods, properties, and subscripts. They can be extended and conform to protocols, be generic, and be used with generics.
 
 The primary difference is that actors protect their state from data races. This is enforced statically by the Swift compiler through a set of limitations on the way in which actors and their instance members can be used, collectively called *actor isolation*.   
 
@@ -162,13 +161,13 @@ extension BankAccount {
 }
 ```
 
-Synchronous actor functions can be called synchronously on the actor's `self` (or `super`), but cross-actor references to this method require an asynchronous call. The `transfer(amount:to:)` function calls it asynchronously (on `other`), while the following function `passGo` calls it synchronously (on the implicit `self`):
+Synchronous actor functions can be called synchronously on the actor's `self`, but cross-actor references to this method require an asynchronous call. The `transfer(amount:to:)` function calls it asynchronously (on `other`), while the following function `passGo` calls it synchronously (on the implicit `self`):
 
 ```swift
-actor MonopolyAccount : BankAccount {
+extension BankAccount {
   // Pass go and collect $200
   func passGo() {
-    super.deposit(amount: 200.0)  // synchronous is okay because `self` is isolated and therefore so is `super`
+    self.deposit(amount: 200.0)  // synchronous is okay because `self` is isolated
   }
 }
 ```
@@ -496,10 +495,6 @@ actor BankAccount {
 
 Each instance of the actor represents a unique actor. The term "actor" can be used to refer to either an instance or the type; where necessary, one can refer to the "actor instance" or "actor type" to disambiguate.
 
-An actor may only inherit from another actor (or `NSObject`; see the section on Objective-C interoperability below). A non-actor may only inherit from another non-actor.
-
-> **Rationale**: Actors enforce state isolation, but non-actors do not. If an actor inherits from a non-actor (or vice versa), part of the actor's state would not be covered by the actor-isolation rules, introducing the potential for data races on that state.
-
 By default, the instance methods, properties, and subscripts of an actor have an isolated `self` parameter. This is true even for methods added retroactively on an actor via an extension, like any other Swift type.
 
 ```swift
@@ -510,15 +505,12 @@ extension BankAccount {
 }  
 ```
 
-Actors are similar to classes in all respects independent of isolation: actor types can have `static` and `class` methods, properties, and subscripts. All of the attributes that apply to classes apply to actors in much the same way, except where those semantics conflict with actor isolation.
-
 ### Actor isolation checking
 
 Any given declaration in a program is either actor-isolated or is non-isolated. A function (including accessors) is actor-isolated if it is defined on an actor type (including protocols where `Self` conforms to `Actor`, and extensions thereof). A mutable instance property or instance subscript is actor-isolated if it is defined on an actor type. Declarations that are not actor-isolated are called non-isolated.
 
 The actor isolation rules are checked in a number of places, where two different declarations need to be compared to determine if their usage together maintains actor isolation. There are several such places:
 * When the definition of one declaration (e.g., the body of a function) references another declaration, e.g., calling a function, accessing a property, or evaluating a subscript.
-* When one declaration overrides another.
 * When one declaration satisfies a protocol requirement.
 
 We'll describe each scenario in detail.
@@ -549,13 +541,6 @@ extension MyActor {
   }
 }
 ```
-
-#### Overrides
-
-When a given declaration (the "overriding declaration") overrides another declaration (the "overridden" declaration), the actor isolation of the two declarations is compared. The override is well-formed if:
-
-* the overriding and overridden declarations are isolated to the same actor, or
-* the declarations are both `async`.
 
 #### Protocol conformance
 
@@ -656,10 +641,10 @@ actor A {
 
 ### Actor interoperability with Objective-C
 
-As a special exception to the rule that an actor can only inherit from another actor, an actor can inherit from `NSObject`. This allows actors to themselves be declared `@objc`, and implicitly provides conformance to `NSObjectProtocol`:
+An actor type can be declared `@objc`, which implicitly provides conformance to `NSObjectProtocol`:
 
 ```swift
-@objc actor MyActor: NSObject { ... }
+@objc actor MyActor { ... }
 ```
 
 A member of an actor can only be `@objc` if it is either `async` or is not isolated to the actor. Synchronous code that is within the actor's isolation domain can only be invoked on `self` (in Swift). Objective-C does not have knowledge of actor isolation, so these members are not permitted to be exposed to Objective-C. For example:
@@ -800,34 +785,20 @@ If we can address the above, task-chain reentrancy can be introduced into the ac
 
 ## Alternatives considered
 
-### Eliminating inheritance
+### Actor inheritance
 
-Like classes, actors as proposed allow inheritance. However, actors and classes cannot be co-mingled in an inheritance hierarchy, so there are essentially two different kinds of type hierarchies. It has been [proposed](https://docs.google.com/document/d/14e3p6yBt1kPrakLcEHV4C9mqNBkNibXIZsozdZ6E71c/edit#) that actors should not permit inheritance at all, because doing so would simplify actors: features such as method overriding, initializer inheritance, required and convenience initializers, and inheritance of protocol conformances would not need to be specified, and users would not need to consider them. The [discussion thread](https://forums.swift.org/t/actors-are-reference-types-but-why-classes/42281) on the proposal to eliminate inheritance provides several reasons to keep actor inheritance:
+Earlier pitches and the first reviewed version of this proposal allowed actor inheritance. Actor inheritance followed the rules of class inheritance, albeit with specific additional rules required to maintain actor isolation:
 
-* Actor inheritance makes it easier to port existing class hierarchies to get the benefits of actors. Without actor inheritance, such porting will also have to contend with (e.g.) replacing superclasses with protocols and explicitly-specified stored properties at the same time.
-* The lack of inheritance in actors won't prevent users from having to understand the complexities of inheritance, because inheritance will still be used pervasively with classes.
-* The design and implementation of actors naturally admits inheritance. Actors are fundamentally class-like, the semantics of inheritance follow directly from the need to maintain actor isolation. The implementation of actors is essentially as "special classes", so it supports all of these features out of the box. There is little benefit to the implementation from eliminating the possibility of inheritance of actors.
+* An actor could not inherit from a class, and vice-versa.
+* An overriding declaration must not be more isolated than the overridden declaration.
 
-Actor inheritance has similar use cases to class inheritance. If we take a textbook example with `Person` and `Employee` classes, all the same reasoning applies to actors:
-
-```swift
-actor Person {
-  var name: String
-  var birthdate: Date
-  // lots of other attributes
-}
-
-actor Employee: Person {
-  var badgeNumber: Int
-}
-```
-
-This implementation will behave as one would expect for inheritance (every `Employee` is-a `Person`). The inheriting actor type also extends the actor-isolation domain of the actor type it inherits, so (for example) it is safe for a method of `Employee` to refer to `self.birthdate`. Given that there are no implementation reasons to disallow inheritance, and the reasons for inheritance of classes apply equally to actors, we retain inheritance for actor types.
+Subsequent review discussion determined that the conceptual cost of actor inheritance outweighed its usefulness, so it has been removed from this proposal. The form that actor inheritance would take in the language is well-understand from prior iterations of this proposal and its implementation, so this feature could be re-introduced at a later time.
 
 ## Revision history
 
 * Changes in the second reviewed proposal:
   * Escaping closures can now be actor-isolated; only `@Sendable` prevents isolation.
+  * Removed actor inheritance. It can be considered at some future point.
 * Changes in the seventh pitch:
   * Removed isolated parameters and `nonisolated` from this proposal. They'll come in a follow-up proposal on [controlling actor isolation][isolationcontrol].
 * Changes in the sixth pitch:
