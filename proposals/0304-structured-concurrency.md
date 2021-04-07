@@ -421,8 +421,8 @@ As already shown in the above examples, it is possible to call functions that in
 This is possible because of the existence of the `withUnsafeCurrentTask` API:
 
 ```swift
-static func withUnsafeCurrentTask<T>(
-    operation: (UnsafeCurrentTask?) throws -> T
+public func withUnsafeCurrentTask<T>(
+    body: (UnsafeCurrentTask?) throws -> T
 ) rethrows -> T
 ```
 
@@ -583,13 +583,10 @@ Task handles also provide the ability to cancel a task programmatically:
 extension Task.Handle {
   /// Cancel the task referenced by this handle.
   func cancel()
-  
-  /// Determine whether the task was cancelled.
-  var isCancelled: Bool { get }
 }
 ```
 
-As noted elsewhere, cancellation is cooperative: the task will note that it has been cancelled and can choose to return earlier (either via a normal return or a thrown error, as appropriate). `isCancelled` can be used to determine whether a particular task was ever cancelled.
+As noted elsewhere, cancellation is cooperative: the task will note that it has been cancelled and can choose to return earlier (either via a normal return or a thrown error, as appropriate).
 
 It is possible to obtain a task that the handle refers to by using `handle.task`:
 
@@ -600,7 +597,7 @@ extension Task.Handle {
 }
 ```
 
-Getting the handle's task allows us to check if the work we're about to wait on perhaps was already cancelled (by calling `handle.isCancelled`), or query at what priority the task is executing.
+Getting the handle's task allows us to check if the work we're about to wait on perhaps was already cancelled (by calling `handle.task.isCancelled`), or query at what priority the task is executing.
 
 #### Detached tasks
 
@@ -609,17 +606,17 @@ A new, detached task can be created with the `detach` operation. The resulting t
 ```swift
 /// Create a new, detached task that produces a value of type `T`.
 @discardableResult
-static func detach<T: Sendable>(
+public func detach<T>(
   priority: Task.Priority = .unspecified,
-  operation: @escaping @concurrent () async -> T
+  operation: @Sendable @escaping () async -> T
 ) -> Task.Handle<T, Never>
 
 /// Create a new, detached task that produces a value of type `T` or throws an error.
 @discardableResult
-static func detach<T: Sendable>(
+public func detach<T, Failure>(
   priority: Task.Priority = .unspecified,
-  operation: @escaping @concurrent () async throws -> T
-) -> Task.Handle<T, Error>
+  operation: @Sendable @escaping () async throws -> T
+) -> Task.Handle<T, Failure>
 ```
 
 Detached tasks will typically be created using a closure, e.g.,
@@ -655,7 +652,7 @@ extension Task {
     init() {}
   }
 
-  func checkCancellation() throws
+  static func checkCancellation() throws
 }
 ```
 
@@ -677,14 +674,14 @@ For tasks that want to react immediately to cancellation (rather than, say, wait
 ///
 /// This function returns instantly and will never suspend.
 static func withTaskCancellationHandler<T>(
-  handler: @concurrent () -> Void,
+  handler: @Sendable () -> Void,
   operation: () async throws -> T
 ) async rethrows -> T
 ```
 
 This function does not, by itself, spawn a new task, but rather executes the `operation` immediately, and once the `operation` returns the `withTaskCancellationHandler` returns as well (similarily with throwing behaviors).
 
-Note that the `handler` runs `@concurrent` with the rest of the task, because it
+Note that the `handler` runs `@Sendable` with the rest of the task, because it
 is executed immediately when the task is cancelled, which can happen at any
 point. If the task has already been cancelled at the point `withTaskCancellationHandler` is called, the cancellation handler is invoked immediately, before the
 `operation` block is executed.
@@ -738,7 +735,7 @@ extension Task {
 
 #### Cancellation
 
-It is possible to query for cancellation from within a synchronous task, e.g. while iterating over a loop and wanting to check if we should abort its execution by using the static `Task.isCancelled` function:
+It is possible to query for cancellation from within a synchronous task, e.g. while iterating over a loop and wanting to check if we should abort its execution by using the static `Task.isCancelled` property:
 
 ```swift
 extension Task { 
@@ -763,30 +760,34 @@ extension Task {
 }
 ```
 
-The functions work the same as their instance counter parts, except that if invoked from a context that has no Task available, e.g. if invoked from outside of Swift's concurrency model (e.g. directly from a pthread) a default value is returned.
+These work the same as their instance counter parts, except that if invoked from a context that has no Task available, e.g. if invoked from outside of Swift's concurrency model (e.g. directly from a pthread) a default value is returned.
 
-The isCancelled function is implemented as:
+The `isCancelled` property is implemented as:
 
 ```swift
 extension Task {
   static var isCancelled: Bool { 
-    Task.current?.isCancelled ?? false
+    withUnsafeCurrentTask { task in
+      task?.isCancelled ?? false
+    }
   }
 }
 ```
 
 Which makes sense, because if not executing within a task, such code can never "be cancelled" using Swift's task infrastructure.
 
-This static `isCancelled` function is always safe to invoke, i.e. it may be invoked from synchronous or asynchronous functions and will always return the expected result. Do note however that checking cancellation while concurrently setting cancellation may be slightly racy, i.e. if the `cancel` is performed form another thread, the `isCancelled`
+This static `isCancelled` property is always safe to invoke, i.e. it may be invoked from synchronous or asynchronous functions and will always return the expected result. Do note however that checking cancellation while concurrently setting cancellation may be slightly racy, i.e. if the `cancel` is performed form another thread, the `isCancelled`
 
 #### Task priorities
 
-Similarly, a static `currentPriority` function is available to check the priority of the currently executing task:
+Similarly, a static `currentPriority` property is available to check the priority of the currently executing task:
 
 ```swift
 extension Task { 
   static var currentPriority: Task.Priority { 
-    Task.current?.priority ?? Task.Priority.default
+    withUnsafeCurrentTask { task in
+      task?.priority ?? Priority.default
+    }
   }
 }
 ```
@@ -844,7 +845,7 @@ Task groups are created using `withTaskGroup` in any asynchronous context, provi
 /// - if the body returns normally:
 ///   - the group will await any not yet complete tasks,
 ///   - once the `withTaskGroup` returns the group is guaranteed to be empty.
-static func withTaskGroup<ChildTaskResult: Sendable, GroupResult>(
+public func withTaskGroup<ChildTaskResult: Sendable, GroupResult>(
   of childTaskResult: ChildTaskResult.Type,
   returning returnType: GroupResult.Type = GroupResult.self,
   body: (inout TaskGroup<ChildTaskResult>) async -> GroupResult
@@ -905,9 +906,9 @@ static func withTaskGroup<ChildTaskResult: Sendable, GroupResult>(
 ///   - once the `withTaskGroup` returns the group is guaranteed to be empty.
 /// - if the body throws:
 ///   - all tasks remaining in the group will be automatically cancelled.
-static func withThrowingTaskGroup<ChildTaskResult: Sendable, GroupResult>(
+public func withThrowingTaskGroup<ChildTaskResult: Sendable, GroupResult>(
   of childTaskResult: ChildTaskResult.Type,
-  returning groupResultType: GroupResult.Type = GroupResult.self,
+  returning returnType: GroupResult.Type = GroupResult.self,
   body: (inout ThrowingTaskGroup<ChildTaskResult, Error>) async throws -> GroupResult
 ) async rethrows -> GroupResult { ... } 
 
@@ -948,7 +949,7 @@ extension TaskGroup {
   /// all submitted task results from the group.
   mutating func spawn(
     priority: Task.Priority = .unspecified,
-    operation: @concurrent @escaping () async -> ChildTaskResult
+    operation: @Sendable @escaping () async -> ChildTaskResult
   )
 
   /// Attempts to spawn a child task in the group, unless the group is already cancelled.
@@ -963,7 +964,7 @@ extension TaskGroup {
   /// Returns true if the task was spawned successfully, and false otherwise.
   mutating func spawnUnlessCancelled(
     priority: Task.Priority = .unspecified,
-    operation: @concurrent @escaping () async -> ChildTaskResult
+    operation: @Sendable @escaping () async -> ChildTaskResult
   ) -> Bool
   
 }
@@ -971,12 +972,12 @@ extension TaskGroup {
 extension ThrowingTaskGroup { 
   mutating func spawn(
     priority: Task.Priority = .unspecified,
-    operation: @concurrent @escaping () async throws -> ChildTaskResult
+    operation: @Sendable @escaping () async throws -> ChildTaskResult
   )
   
   mutating func spawnUnlessCancelled(
     priority: Task.Priority = .unspecified,
-    operation: @concurrent @escaping () async throws -> ChildTaskResult
+    operation: @Sendable @escaping () async throws -> ChildTaskResult
   ) -> Bool
 }
 ```
@@ -1018,7 +1019,7 @@ extension ThrowingTaskGroup: AsyncSequence {
 
   /// Wait for a task to complete and return the result or thrown error packaged in
   /// a `Result` instance. Returns `nil` only when there are no tasks left in the group.
-  mutating func nextResult() async -> Result<ChildTaskResult, Error>?
+  mutating func nextResult() async throws -> Result<ChildTaskResult, Error>?
 
   /// Query whether the task group has any remaining tasks.
   var isEmpty: Bool { ... } 
