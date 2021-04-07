@@ -188,7 +188,7 @@ func makeDinner() async -> Meal {
     }
                                              
     for await finishedStep in group {
-      switch step {
+      switch finishedStep {
         case .veggies(let v): veggies = v
         case .meat(let m): meat = m
         case .oven(let o): oven = o
@@ -583,10 +583,13 @@ Task handles also provide the ability to cancel a task programmatically:
 extension Task.Handle {
   /// Cancel the task referenced by this handle.
   func cancel()
+  
+  /// Determine whether the task was cancelled.
+  var isCancelled: Bool { get }
 }
 ```
 
-As noted elsewhere, cancellation is cooperative: the task will note that it has been cancelled and can choose to return earlier (either via a normal return or a thrown error, as appropriate).
+As noted elsewhere, cancellation is cooperative: the task will note that it has been cancelled and can choose to return earlier (either via a normal return or a thrown error, as appropriate). `isCancelled` can be used to determine whether a particular task was ever cancelled.
 
 It is possible to obtain a task that the handle refers to by using `handle.task`:
 
@@ -597,7 +600,7 @@ extension Task.Handle {
 }
 ```
 
-Getting the handle's task allows us to check if the work we're about to wait on perhaps was already cancelled (by calling `handle.task.isCancelled`), or query at what priority the task is executing.
+Getting the handle's task allows us to check if the work we're about to wait on perhaps was already cancelled (by calling `handle.isCancelled`), or query at what priority the task is executing.
 
 #### Detached tasks
 
@@ -606,17 +609,17 @@ A new, detached task can be created with the `detach` operation. The resulting t
 ```swift
 /// Create a new, detached task that produces a value of type `T`.
 @discardableResult
-public func detach<T>(
+func detach<T>(
   priority: Task.Priority = .unspecified,
   operation: @Sendable @escaping () async -> T
 ) -> Task.Handle<T, Never>
 
 /// Create a new, detached task that produces a value of type `T` or throws an error.
 @discardableResult
-public func detach<T, Failure>(
+func detach<T>(
   priority: Task.Priority = .unspecified,
   operation: @Sendable @escaping () async throws -> T
-) -> Task.Handle<T, Failure>
+) -> Task.Handle<T, Error>
 ```
 
 Detached tasks will typically be created using a closure, e.g.,
@@ -767,9 +770,7 @@ The `isCancelled` property is implemented as:
 ```swift
 extension Task {
   static var isCancelled: Bool { 
-    withUnsafeCurrentTask { task in
-      task?.isCancelled ?? false
-    }
+    Task.current?.isCancelled ?? false
   }
 }
 ```
@@ -785,9 +786,7 @@ Similarly, a static `currentPriority` property is available to check the priorit
 ```swift
 extension Task { 
   static var currentPriority: Task.Priority { 
-    withUnsafeCurrentTask { task in
-      task?.priority ?? Priority.default
-    }
+    Task.current?.priority ?? Task.Priority.default
   }
 }
 ```
@@ -845,7 +844,7 @@ Task groups are created using `withTaskGroup` in any asynchronous context, provi
 /// - if the body returns normally:
 ///   - the group will await any not yet complete tasks,
 ///   - once the `withTaskGroup` returns the group is guaranteed to be empty.
-public func withTaskGroup<ChildTaskResult: Sendable, GroupResult>(
+func withTaskGroup<ChildTaskResult: Sendable, GroupResult>(
   of childTaskResult: ChildTaskResult.Type,
   returning returnType: GroupResult.Type = GroupResult.self,
   body: (inout TaskGroup<ChildTaskResult>) async -> GroupResult
@@ -906,7 +905,7 @@ public func withTaskGroup<ChildTaskResult: Sendable, GroupResult>(
 ///   - once the `withTaskGroup` returns the group is guaranteed to be empty.
 /// - if the body throws:
 ///   - all tasks remaining in the group will be automatically cancelled.
-public func withThrowingTaskGroup<ChildTaskResult: Sendable, GroupResult>(
+func withThrowingTaskGroup<ChildTaskResult: Sendable, GroupResult>(
   of childTaskResult: ChildTaskResult.Type,
   returning returnType: GroupResult.Type = GroupResult.self,
   body: (inout ThrowingTaskGroup<ChildTaskResult, Error>) async throws -> GroupResult
@@ -1019,7 +1018,7 @@ extension ThrowingTaskGroup: AsyncSequence {
 
   /// Wait for a task to complete and return the result or thrown error packaged in
   /// a `Result` instance. Returns `nil` only when there are no tasks left in the group.
-  mutating func nextResult() async throws -> Result<ChildTaskResult, Error>?
+  mutating func nextResult() async -> Result<ChildTaskResult, Error>?
 
   /// Query whether the task group has any remaining tasks.
   var isEmpty: Bool { ... } 
