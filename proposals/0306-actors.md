@@ -249,9 +249,9 @@ extension BankAccount {
 }
 ```
 
-A task created with `Task.runDetached` runs concurrently with all other code. If the closure passed to `Task.runDetached` were to be actor-isolated, we would introduce a data race on access to the mutable state on `BankAccount`. Actors prevent this data race by specifying that a `@Sendable` closure (described in [`Sendable` and `@Sendable` closures][se302], and used in the definition of `Task.runDetached` in the [Structured Concurrency][sc] proposal) is always non-isolated. Therefore, it is required to use asynchronous calls to any actor-isolated declarations.
+A task created with `Task.runDetached` runs concurrently with all other code. If the closure passed to `Task.runDetached` were to be actor-isolated, we would introduce a data race on access to the mutable state on `BankAccount`. Actors prevent this data race by specifying that a `@Sendable` closure (described in [`Sendable` and `@Sendable` closures][se302], and used in the definition of `Task.runDetached` in the [Structured Concurrency][sc] proposal) is always non-isolated. Therefore, it is required to asynchronously access any actor-isolated declarations.
 
-It is often useful for closures within an actor-isolated function to themselves be actor-isolated, and it is safe from data races so long as the closure itself cannot be executed concurrently with the actor-isolated context in which it occurs. For example, using a sequence algorithm like `forEach` is free from data races because the closure will only be called serially:
+A closure that is not `@Sendable` cannot escape the concurrency domain in which it was formed. Therefore, such a closure will be actor-isolated if it is formed within an actor-isolated context. This is useful, for example, when applying sequence algorithms like `forEach` where the provided closure will be called serially:
 
 ```swift
 extension BankAccount {
@@ -268,42 +268,10 @@ extension BankAccount {
 }
 ```
 
-However, not all closure-accepting functions are as well-behaved as the sequence algorithms are. For example, any existing code that provides a completion-handler-based API is problematic:
+A closure formed within an actor-isolated context is actor-isolated if it is non-`@Sendable`, and non-isolated if it is `@Sendable`. For the examples above:
 
-```swift
-// not-yet-ported code, probably from a library
-extension BankSession {
-  func downloadTransactions(accountNumber: Int, since: Date, completionHandler: @escaping ([Transactions], [Date]) -> Void) { ... }
-}
-
-extension BankAccount {
-  func updateTransactions() {
-    session.downloadTransactions(accountNumber: accountNumber, since: lastUpdatedDate) { (newTransactions, newLastUpdatedDate) in  // problem if this were actor-isolated
-      self.transactions.append(contentsOf: newTransactions)
-      self.lastUpdateDate = newLastUpdatedDate
-    }
-  }
-}
-```
-
-Here, `BankSession.downloadTransactions` is using a completion handler to deliver its results. That completion handler will be called at some later time, but the caller has no knowledge of the actor, so the completion handler can be executed concurrently with actor-isolated code, which would cause a data race. This proposal makes the closure non-isolated in this case, so the references to `self.transactions` and `self.lastUpdateDate` will be flagged as an error by actor isolation checking:
-
-```
-error: actor-isolated property 'transactions' can not be referenced by @Sendable closure
-error: actor-isolated property 'lastUpdateDate' can not be referenced by @escaping closure
-```
-
-The specific rule determining whether a closure is actor-isolated checks two properties:
-* If the closure is `@Sendable` or is nested within a `@Sendable` closure or local function, it is non-isolated, or
-* If the closure is `@escaping` or is nested within an `@escaping` closure or a local function, it is non-isolated.
-
-For the examples above:
-
-* The closure passed to `runDetached` is non-isolated because it requires a `@Sendable` function to be passed to it.
-* The closure passed to `downloadTransactions` is non-isolated because it requires an `@escaping` function.
-* The closure passed to `forEach` is actor-isolated to `self` because it takes a non-sendable, non-escaping function.
-
-> **Rationale**: In theory, `@escaping` is completely orthogonal to `@Sendable`, and a Swift program built entirely with `@Sendable` from the ground up would not have the rule that `@escaping` closures be non-isolated. However, the existing Swift ecosystem is built without `@Sendable`, which leaves us with an unfortunate choice. We can assume that the lack of `@Sendable` on a function type means that the closure won't escape the concurrency domain, and where existing code (i.e., all Swift code that's been written so far) breaks this assumption, we'll have a data race. Or, we can conservatively assume that all existing function types are `@Sendable`, which will prevent all data races, but at the cost of being unable to use even the most basic facilities (such as `Sequence.map`, above). Therefore, we employ an heuristic: `@escaping` is a good (but imperfect) indicator in Swift today that the closure can be executed concurrently, so we don't permit escaping closures to be actor-isolated. This eliminates a significant proportion of the data races that would affect actor state, and the cost of (1) admitting some data races with existing code that manages to execute a closure concurrently without escaping it, and (2) prohibiting some safe patterns where a closure escapes but does not cross concurrency domains. This is a pragmatic, temporarily solution to the problem of rolling out data-race prevention throughout an existing ecosystem. Our approach will ratchet up the safety as code opts in to more concurrency safety in future language versions.
+* The closure passed to `Rask.runDetached` is non-isolated because that function requires a `@Sendable` function to be passed to it.
+* The closure passed to `forEach` is actor-isolated to `self` because it takes a non-`@Sendable` function.
 
 ### Actor reentrancy
 
@@ -858,6 +826,8 @@ This implementation will behave as one would expect for inheritance (every `Empl
 
 ## Revision history
 
+* Changes in the second reviewed proposal:
+  * Escaping closures can now be actor-isolated; only `@Sendable` prevents isolation.
 * Changes in the seventh pitch:
   * Removed isolated parameters and `nonisolated` from this proposal. They'll come in a follow-up proposal on [controlling actor isolation][isolationcontrol].
 * Changes in the sixth pitch:
