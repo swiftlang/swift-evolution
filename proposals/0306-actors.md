@@ -37,6 +37,7 @@
    * [Non-reentrancy](#non-reentrancy)
    * [Task-chain reentrancy](#task-chain-reentrancy)
 * [Alternatives considered](#alternatives-considered) 
+   * [Actor inheritance](#actor-inheritance)
 * [Revision history](#revision-history)
 
 ## Introduction
@@ -239,7 +240,7 @@ The restrictions on cross-actor references only work so long as we can ensure th
 extension BankAccount {
   func endOfMonth(month: Int, year: Int) {
     // Schedule a task to prepare an end-of-month report.
-    Task.runDetached {
+    detach {
       let transactions = await self.transactions(month: month, year: year)
       let report = Report(accountNumber: self.accountNumber, transactions: transactions)
       await report.email(to: self.accountOwnerEmailAddress)
@@ -248,7 +249,7 @@ extension BankAccount {
 }
 ```
 
-A task created with `Task.runDetached` runs concurrently with all other code. If the closure passed to `Task.runDetached` were to be actor-isolated, we would introduce a data race on access to the mutable state on `BankAccount`. Actors prevent this data race by specifying that a `@Sendable` closure (described in [`Sendable` and `@Sendable` closures][se302], and used in the definition of `Task.runDetached` in the [Structured Concurrency][sc] proposal) is always non-isolated. Therefore, it is required to asynchronously access any actor-isolated declarations.
+A task created with `detach` runs concurrently with all other code. If the closure passed to `detach` were to be actor-isolated, we would introduce a data race on access to the mutable state on `BankAccount`. Actors prevent this data race by specifying that a `@Sendable` closure (described in [`Sendable` and `@Sendable` closures][se302], and used in the definition of `detach` in the [Structured Concurrency][sc] proposal) is always non-isolated. Therefore, it is required to asynchronously access any actor-isolated declarations.
 
 A closure that is not `@Sendable` cannot escape the concurrency domain in which it was formed. Therefore, such a closure will be actor-isolated if it is formed within an actor-isolated context. This is useful, for example, when applying sequence algorithms like `forEach` where the provided closure will be called serially:
 
@@ -310,8 +311,8 @@ In the example above the `Person` can think of a good or bad idea, shares that o
 This is exemplified by the following piece of code, exercising the `decisionMaker` actor:
 
 ```swift
-let goodThink = Task.runDetached { await person.thinkOfGoodIdea() }  // runs async
-let badThink = Task.runDetached { await person.thinkOfBadIdea() } // runs async
+let goodThink = detach { await person.thinkOfGoodIdea() }  // runs async
+let badThink = detach { await person.thinkOfBadIdea() } // runs async
 
 let shouldBeGood = await goodThink.get()
 let shouldBeBad = await badThink.get()
@@ -574,7 +575,7 @@ actor A {
   
   func useAF(array: [Int]) {
     array.map(self.f)                     // okay
-    Task.runDetached(operation: self.g)   // error: self.g has non-sendable type () -> Double that cannot be converted to a @Sendable function type
+    detach(operation: self.g)   // error: self.g has non-sendable type () -> Double that cannot be converted to a @Sendable function type
     runLater(self.g)                      // error: self.g has escaping function type () -> Double
   }
 }
@@ -587,7 +588,7 @@ These restrictions follow from the actor isolation rules for the "desugaring" of
 extension A {
   func useAFDesugared(a: A, array: [Int]) {
     array.map { f($0) } )      // okay
-    Task.runDetached { g() }   // error: self is non-isolated, so call to `g` cannot be synchronous
+    detach { g() }   // error: self is non-isolated, so call to `g` cannot be synchronous
     runLater { g() }           // error: self is non-isolated, so the call to `g` cannot be synchronous
   }
 }
@@ -799,6 +800,7 @@ Subsequent review discussion determined that the conceptual cost of actor inheri
 * Changes in the second reviewed proposal:
   * Escaping closures can now be actor-isolated; only `@Sendable` prevents isolation.
   * Removed actor inheritance. It can be considered at some future point.
+  * Replaced `Task.runDetached` with `detach` to match updates to the [Structured Concurrency proposal][sc].
 * Changes in the seventh pitch:
   * Removed isolated parameters and `nonisolated` from this proposal. They'll come in a follow-up proposal on [controlling actor isolation][isolationcontrol].
 * Changes in the sixth pitch:
