@@ -188,7 +188,7 @@ func makeDinner() async -> Meal {
     }
                                              
     for await finishedStep in group {
-      switch step {
+      switch finishedStep {
         case .veggies(let v): veggies = v
         case .meat(let m): meat = m
         case .oven(let o): oven = o
@@ -421,8 +421,8 @@ As already shown in the above examples, it is possible to call functions that in
 This is possible because of the existence of the `withUnsafeCurrentTask` API:
 
 ```swift
-static func withUnsafeCurrentTask<T>(
-    operation: (UnsafeCurrentTask?) throws -> T
+func withUnsafeCurrentTask<T>(
+    body: (UnsafeCurrentTask?) throws -> T
 ) rethrows -> T
 ```
 
@@ -609,16 +609,16 @@ A new, detached task can be created with the `detach` operation. The resulting t
 ```swift
 /// Create a new, detached task that produces a value of type `T`.
 @discardableResult
-static func detach<T: Sendable>(
+func detach<T>(
   priority: Task.Priority = .unspecified,
-  operation: @escaping @concurrent () async -> T
+  operation: @Sendable @escaping () async -> T
 ) -> Task.Handle<T, Never>
 
 /// Create a new, detached task that produces a value of type `T` or throws an error.
 @discardableResult
-static func detach<T: Sendable>(
+func detach<T>(
   priority: Task.Priority = .unspecified,
-  operation: @escaping @concurrent () async throws -> T
+  operation: @Sendable @escaping () async throws -> T
 ) -> Task.Handle<T, Error>
 ```
 
@@ -655,7 +655,7 @@ extension Task {
     init() {}
   }
 
-  func checkCancellation() throws
+  static func checkCancellation() throws
 }
 ```
 
@@ -677,14 +677,14 @@ For tasks that want to react immediately to cancellation (rather than, say, wait
 ///
 /// This function returns instantly and will never suspend.
 static func withTaskCancellationHandler<T>(
-  handler: @concurrent () -> Void,
+  handler: @Sendable () -> Void,
   operation: () async throws -> T
 ) async rethrows -> T
 ```
 
 This function does not, by itself, spawn a new task, but rather executes the `operation` immediately, and once the `operation` returns the `withTaskCancellationHandler` returns as well (similarily with throwing behaviors).
 
-Note that the `handler` runs `@concurrent` with the rest of the task, because it
+Note that the `handler` runs `@Sendable` with the rest of the task, because it
 is executed immediately when the task is cancelled, which can happen at any
 point. If the task has already been cancelled at the point `withTaskCancellationHandler` is called, the cancellation handler is invoked immediately, before the
 `operation` block is executed.
@@ -738,7 +738,7 @@ extension Task {
 
 #### Cancellation
 
-It is possible to query for cancellation from within a synchronous task, e.g. while iterating over a loop and wanting to check if we should abort its execution by using the static `Task.isCancelled` function:
+It is possible to query for cancellation from within a synchronous task, e.g. while iterating over a loop and wanting to check if we should abort its execution by using the static `Task.isCancelled` property:
 
 ```swift
 extension Task { 
@@ -763,9 +763,9 @@ extension Task {
 }
 ```
 
-The functions work the same as their instance counter parts, except that if invoked from a context that has no Task available, e.g. if invoked from outside of Swift's concurrency model (e.g. directly from a pthread) a default value is returned.
+These work the same as their instance counter parts, except that if invoked from a context that has no Task available, e.g. if invoked from outside of Swift's concurrency model (e.g. directly from a pthread) a default value is returned.
 
-The isCancelled function is implemented as:
+The `isCancelled` property is implemented as:
 
 ```swift
 extension Task {
@@ -777,11 +777,11 @@ extension Task {
 
 Which makes sense, because if not executing within a task, such code can never "be cancelled" using Swift's task infrastructure.
 
-This static `isCancelled` function is always safe to invoke, i.e. it may be invoked from synchronous or asynchronous functions and will always return the expected result. Do note however that checking cancellation while concurrently setting cancellation may be slightly racy, i.e. if the `cancel` is performed form another thread, the `isCancelled`
+This static `isCancelled` property is always safe to invoke, i.e. it may be invoked from synchronous or asynchronous functions and will always return the expected result. Do note however that checking cancellation while concurrently setting cancellation may be slightly racy, i.e. if the `cancel` is performed form another thread, the `isCancelled`
 
 #### Task priorities
 
-Similarly, a static `currentPriority` function is available to check the priority of the currently executing task:
+Similarly, a static `currentPriority` property is available to check the priority of the currently executing task:
 
 ```swift
 extension Task { 
@@ -844,7 +844,7 @@ Task groups are created using `withTaskGroup` in any asynchronous context, provi
 /// - if the body returns normally:
 ///   - the group will await any not yet complete tasks,
 ///   - once the `withTaskGroup` returns the group is guaranteed to be empty.
-static func withTaskGroup<ChildTaskResult: Sendable, GroupResult>(
+func withTaskGroup<ChildTaskResult: Sendable, GroupResult>(
   of childTaskResult: ChildTaskResult.Type,
   returning returnType: GroupResult.Type = GroupResult.self,
   body: (inout TaskGroup<ChildTaskResult>) async -> GroupResult
@@ -905,9 +905,9 @@ static func withTaskGroup<ChildTaskResult: Sendable, GroupResult>(
 ///   - once the `withTaskGroup` returns the group is guaranteed to be empty.
 /// - if the body throws:
 ///   - all tasks remaining in the group will be automatically cancelled.
-static func withThrowingTaskGroup<ChildTaskResult: Sendable, GroupResult>(
+func withThrowingTaskGroup<ChildTaskResult: Sendable, GroupResult>(
   of childTaskResult: ChildTaskResult.Type,
-  returning groupResultType: GroupResult.Type = GroupResult.self,
+  returning returnType: GroupResult.Type = GroupResult.self,
   body: (inout ThrowingTaskGroup<ChildTaskResult, Error>) async throws -> GroupResult
 ) async rethrows -> GroupResult { ... } 
 
@@ -948,7 +948,7 @@ extension TaskGroup {
   /// all submitted task results from the group.
   mutating func spawn(
     priority: Task.Priority = .unspecified,
-    operation: @concurrent @escaping () async -> ChildTaskResult
+    operation: @Sendable @escaping () async -> ChildTaskResult
   )
 
   /// Attempts to spawn a child task in the group, unless the group is already cancelled.
@@ -963,7 +963,7 @@ extension TaskGroup {
   /// Returns true if the task was spawned successfully, and false otherwise.
   mutating func spawnUnlessCancelled(
     priority: Task.Priority = .unspecified,
-    operation: @concurrent @escaping () async -> ChildTaskResult
+    operation: @Sendable @escaping () async -> ChildTaskResult
   ) -> Bool
   
 }
@@ -971,12 +971,12 @@ extension TaskGroup {
 extension ThrowingTaskGroup { 
   mutating func spawn(
     priority: Task.Priority = .unspecified,
-    operation: @concurrent @escaping () async throws -> ChildTaskResult
+    operation: @Sendable @escaping () async throws -> ChildTaskResult
   )
   
   mutating func spawnUnlessCancelled(
     priority: Task.Priority = .unspecified,
-    operation: @concurrent @escaping () async throws -> ChildTaskResult
+    operation: @Sendable @escaping () async throws -> ChildTaskResult
   ) -> Bool
 }
 ```
@@ -1327,4 +1327,3 @@ Initially the `group.spawn` was designed with the idea of being an asynchronous 
 This was not implemented nor is it clear how efficient and meaningful this form of back-pressure really would be. A naive version of these semantics is possible to implement by balancing pending and completed task counts in the group by plain variables, so removing this implementation doe not prevent developers form implementing such "width limited" operations per se.
 
 The way to back-pressure submissions should also be considered in terms of how it relates to async let and general spawn mechanisms, not only groups. We have not figured out this completely, and rather than introduce an not-implemented API which may or may not have the right shape, for now we decided to punt on this feature until we know precisely if and how to apply this style of back-pressure on spawning tasks throughout the system.
-
