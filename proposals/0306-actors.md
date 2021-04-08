@@ -271,7 +271,7 @@ extension BankAccount {
 
 A closure formed within an actor-isolated context is actor-isolated if it is non-`@Sendable`, and non-isolated if it is `@Sendable`. For the examples above:
 
-* The closure passed to `Rask.runDetached` is non-isolated because that function requires a `@Sendable` function to be passed to it.
+* The closure passed to `detach` is non-isolated because that function requires a `@Sendable` function to be passed to it.
 * The closure passed to `forEach` is actor-isolated to `self` because it takes a non-`@Sendable` function.
 
 ### Actor reentrancy
@@ -497,7 +497,9 @@ actor BankAccount {
 
 Each instance of the actor represents a unique actor. The term "actor" can be used to refer to either an instance or the type; where necessary, one can refer to the "actor instance" or "actor type" to disambiguate.
 
-By default, the instance methods, properties, and subscripts of an actor have an isolated `self` parameter. This is true even for methods added retroactively on an actor via an extension, like any other Swift type.
+Actors are similar to other concrete nominal types in Swift (enums, structs, and classes). Actor types can have `static` and instance methods, properties, and subscripts. They have stored properties and initializers like structs and classes. They are reference types like classes, but do not support inheritance, and therefore do not have (or need) features such as `required` and `convenience` initializers, overriding, or `class` members, `open` and `final`. Where actor types differ in behavior from other types is primarily driven by the rules of actor isolation, described below.
+
+By default, the instance methods, properties, and subscripts of an actor have an isolated `self` parameter. This is true even for methods added retroactively on an actor via an extension, like any other Swift type. Static methods, properties, and subscripts do not have a `self` parameter that is an instance of the actor, so they are not actor-isolated.
 
 ```swift
 extension BankAccount {
@@ -576,7 +578,7 @@ actor A {
   
   func useAF(array: [Int]) {
     array.map(self.f)                     // okay
-    detach(operation: self.g)   // error: self.g has non-sendable type () -> Double that cannot be converted to a @Sendable function type
+    detach(operation: self.g)             // error: self.g has non-sendable type () -> Double that cannot be converted to a @Sendable function type
     runLater(self.g)                      // error: self.g has escaping function type () -> Double
   }
 }
@@ -589,7 +591,7 @@ These restrictions follow from the actor isolation rules for the "desugaring" of
 extension A {
   func useAFDesugared(a: A, array: [Int]) {
     array.map { f($0) } )      // okay
-    detach { g() }   // error: self is non-isolated, so call to `g` cannot be synchronous
+    detach { g() }             // error: self is non-isolated, so call to `g` cannot be synchronous
     runLater { g() }           // error: self is non-isolated, so the call to `g` cannot be synchronous
   }
 }
@@ -652,7 +654,7 @@ An actor type can be declared `@objc`, which implicitly provides conformance to 
 A member of an actor can only be `@objc` if it is either `async` or is not isolated to the actor. Synchronous code that is within the actor's isolation domain can only be invoked on `self` (in Swift). Objective-C does not have knowledge of actor isolation, so these members are not permitted to be exposed to Objective-C. For example:
 
 ```swift
-@objc actor MyActor: NSObject {
+@objc actor MyActor {
     @objc func synchronous() { } // error: part of actor's isolation domain
     @objc func asynchronous() async { } // okay: asynchronous, exposed to Objective-C as a method that accepts a completion handler
     @objc nonisolated func notIsolated() { } // okay: non-isolated
