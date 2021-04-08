@@ -421,7 +421,7 @@ As already shown in the above examples, it is possible to call functions that in
 This is possible because of the existence of the `withUnsafeCurrentTask` API:
 
 ```swift
-public func withUnsafeCurrentTask<T>(
+func withUnsafeCurrentTask<T>(
     body: (UnsafeCurrentTask?) throws -> T
 ) rethrows -> T
 ```
@@ -1327,4 +1327,3 @@ Initially the `group.spawn` was designed with the idea of being an asynchronous 
 This was not implemented nor is it clear how efficient and meaningful this form of back-pressure really would be. A naive version of these semantics is possible to implement by balancing pending and completed task counts in the group by plain variables, so removing this implementation doe not prevent developers form implementing such "width limited" operations per se.
 
 The way to back-pressure submissions should also be considered in terms of how it relates to async let and general spawn mechanisms, not only groups. We have not figured out this completely, and rather than introduce an not-implemented API which may or may not have the right shape, for now we decided to punt on this feature until we know precisely if and how to apply this style of back-pressure on spawning tasks throughout the system.
-
