@@ -288,13 +288,13 @@ func chopVegetables() async throws -> [Vegetable] {
     // Create a new child task for each vegetable that needs to be chopped.
     for v in rawVeggies {
       group.spawn { 
-        v.chopped()
+        try await v.chopped()
       }
     }
 
     // Wait for all of the chopping to complete, collecting the veggies into
     // the result array in whatever order they're ready.
-    while let choppedVeggie = await group.next() {
+    while let choppedVeggie = try await group.next() {
       choppedVeggies.append(choppedVeggie)
     }
     
@@ -406,7 +406,7 @@ func chop(_ vegetable: Vegetable) async throws -> Vegetable {
   
   guard !Task.isCancelled else { 
     print("Cancelled mid-way through chopping of \(vegetable)!")
-    throw CancellationError() 
+    throw Task.CancellationError() 
   } 
   // chop some more, chop chop chop ...
 }
@@ -823,7 +823,7 @@ Task groups are created using `withTaskGroup` in any asynchronous context, provi
 ///
 ///     for await result in group {
 ///       // some accumulation logic (e.g. sum += result)
-///      }
+///     }
 ///
 /// ### Cancellation
 /// If the task that the group is running in is cancelled, the group becomes 
@@ -876,7 +876,7 @@ func withTaskGroup<ChildTaskResult: Sendable, GroupResult>(
 ///
 ///     for try await result in group {
 ///       // some accumulation logic (e.g. sum += result)
-///      }
+///     }
 ///
 /// ### Thrown errors
 /// When tasks are added to the group using the `group.spawn` function, they may
@@ -1291,7 +1291,7 @@ Alternatively, we may want to express this as `spawn` in similar manner to how `
 In addition to `async let`, the scoped nature of task groups and child tasks would make it natural for child tasks to be able to do more ad-hoc mutation of captured state from their captured context. Because child tasks are guaranteed to
 have completed by the time a `withTaskGroup` block finishes executing, it would theoretically be safe to allow them to mutate captured local variables, as long as every child task captures a disjoint set of variables, and the variables are not referenced in the enclosing context until the task group completes, as in:
 
-```
+```swift
 var numApplesProcessed = 0
 var numBananasProcessed = 0
 withTaskGroup { group in
