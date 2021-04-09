@@ -25,7 +25,6 @@
    * [Actors](#actors-2)
    * [Actor isolation checking](#actor-isolation-checking)
       * [References and actor isolation](#references-and-actor-isolation)
-      * [Overrides](#overrides)
       * [Protocol conformance](#protocol-conformance)
    * [Partial applications](#partial-applications)
    * [Key paths](#key-paths)
@@ -37,8 +36,9 @@
 * [Future Directions](#future-directions)
    * [Non-reentrancy](#non-reentrancy)
    * [Task-chain reentrancy](#task-chain-reentrancy)
-* [Alternatives considered](#alternatives-considered)
-   * [Eliminating inheritance](#eliminating-inheritance)
+* [Alternatives considered](#alternatives-considered) 
+   * [Actor inheritance](#actor-inheritance)
+   * [Cross-actor lets](#cross-actor-lets)
 * [Revision history](#revision-history)
 
 ## Introduction
@@ -55,7 +55,8 @@ Swift-evolution threads:
   [Pitch #3](https://forums.swift.org/t/pitch-3-actors/44470),
   [Pitch #4](https://forums.swift.org/t/pitch-4-actors/45215),
   [Pitch #5](https://forums.swift.org/t/pitch-4-actors/45215/36),
-  [Pitch #6](https://forums.swift.org/t/pitch-6-actors/45519).
+  [Pitch #6](https://forums.swift.org/t/pitch-6-actors/45519),
+  [Review #1](https://forums.swift.org/t/se-0306-actors/45734)
 
 ## Proposed solution
 
@@ -75,7 +76,7 @@ actor BankAccount {
 }
 ```
 
-Actors behave like classes in most respects: they can inherit (from other actors), have methods, properties, and subscripts. They can be extended and conform to protocols, be generic, and be used with generics.
+Like other Swift types, actors can have initialiers, methods, properties, and subscripts. They can be extended and conform to protocols, be generic, and be used with generics.
 
 The primary difference is that actors protect their state from data races. This is enforced statically by the Swift compiler through a set of limitations on the way in which actors and their instance members can be used, collectively called *actor isolation*.   
 
@@ -162,13 +163,13 @@ extension BankAccount {
 }
 ```
 
-Synchronous actor functions can be called synchronously on the actor's `self` (or `super`), but cross-actor references to this method require an asynchronous call. The `transfer(amount:to:)` function calls it asynchronously (on `other`), while the following function `passGo` calls it synchronously (on the implicit `self`):
+Synchronous actor functions can be called synchronously on the actor's `self`, but cross-actor references to this method require an asynchronous call. The `transfer(amount:to:)` function calls it asynchronously (on `other`), while the following function `passGo` calls it synchronously (on the implicit `self`):
 
 ```swift
-actor MonopolyAccount : BankAccount {
+extension BankAccount {
   // Pass go and collect $200
   func passGo() {
-    super.deposit(amount: 200.0)  // synchronous is okay because `self` is isolated and therefore so is `super`
+    self.deposit(amount: 200.0)  // synchronous is okay because `self` is isolated
   }
 }
 ```
@@ -240,7 +241,7 @@ The restrictions on cross-actor references only work so long as we can ensure th
 extension BankAccount {
   func endOfMonth(month: Int, year: Int) {
     // Schedule a task to prepare an end-of-month report.
-    Task.runDetached {
+    detach {
       let transactions = await self.transactions(month: month, year: year)
       let report = Report(accountNumber: self.accountNumber, transactions: transactions)
       await report.email(to: self.accountOwnerEmailAddress)
@@ -249,9 +250,9 @@ extension BankAccount {
 }
 ```
 
-A task created with `Task.runDetached` runs concurrently with all other code. If the closure passed to `Task.runDetached` were to be actor-isolated, we would introduce a data race on access to the mutable state on `BankAccount`. Actors prevent this data race by specifying that a `@Sendable` closure (described in [`Sendable` and `@Sendable` closures][se302], and used in the definition of `Task.runDetached` in the [Structured Concurrency][sc] proposal) is always non-isolated. Therefore, it is required to use asynchronous calls to any actor-isolated declarations.
+A task created with `detach` runs concurrently with all other code. If the closure passed to `detach` were to be actor-isolated, we would introduce a data race on access to the mutable state on `BankAccount`. Actors prevent this data race by specifying that a `@Sendable` closure (described in [`Sendable` and `@Sendable` closures][se302], and used in the definition of `detach` in the [Structured Concurrency][sc] proposal) is always non-isolated. Therefore, it is required to asynchronously access any actor-isolated declarations.
 
-It is often useful for closures within an actor-isolated function to themselves be actor-isolated, and it is safe from data races so long as the closure itself cannot be executed concurrently with the actor-isolated context in which it occurs. For example, using a sequence algorithm like `forEach` is free from data races because the closure will only be called serially:
+A closure that is not `@Sendable` cannot escape the concurrency domain in which it was formed. Therefore, such a closure will be actor-isolated if it is formed within an actor-isolated context. This is useful, for example, when applying sequence algorithms like `forEach` where the provided closure will be called serially:
 
 ```swift
 extension BankAccount {
@@ -268,42 +269,10 @@ extension BankAccount {
 }
 ```
 
-However, not all closure-accepting functions are as well-behaved as the sequence algorithms are. For example, any existing code that provides a completion-handler-based API is problematic:
+A closure formed within an actor-isolated context is actor-isolated if it is non-`@Sendable`, and non-isolated if it is `@Sendable`. For the examples above:
 
-```swift
-// not-yet-ported code, probably from a library
-extension BankSession {
-  func downloadTransactions(accountNumber: Int, since: Date, completionHandler: @escaping ([Transactions], [Date]) -> Void) { ... }
-}
-
-extension BankAccount {
-  func updateTransactions() {
-    session.downloadTransactions(accountNumber: accountNumber, since: lastUpdatedDate) { (newTransactions, newLastUpdatedDate) in  // problem if this were actor-isolated
-      self.transactions.append(contentsOf: newTransactions)
-      self.lastUpdateDate = newLastUpdatedDate
-    }
-  }
-}
-```
-
-Here, `BankSession.downloadTransactions` is using a completion handler to deliver its results. That completion handler will be called at some later time, but the caller has no knowledge of the actor, so the completion handler can be executed concurrently with actor-isolated code, which would cause a data race. This proposal makes the closure non-isolated in this case, so the references to `self.transactions` and `self.lastUpdateDate` will be flagged as an error by actor isolation checking:
-
-```
-error: actor-isolated property 'transactions' can not be referenced by @Sendable closure
-error: actor-isolated property 'lastUpdateDate' can not be referenced by @escaping closure
-```
-
-The specific rule determining whether a closure is actor-isolated checks two properties:
-* If the closure is `@Sendable` or is nested within a `@Sendable` closure or local function, it is non-isolated, or
-* If the closure is `@escaping` or is nested within an `@escaping` closure or a local function, it is non-isolated.
-
-For the examples above:
-
-* The closure passed to `runDetached` is non-isolated because it requires a `@Sendable` function to be passed to it.
-* The closure passed to `downloadTransactions` is non-isolated because it requires an `@escaping` function.
-* The closure passed to `forEach` is actor-isolated to `self` because it takes a non-sendable, non-escaping function.
-
-> **Rationale**: In theory, `@escaping` is completely orthogonal to `@Sendable`, and a Swift program built entirely with `@Sendable` from the ground up would not have the rule that `@escaping` closures be non-isolated. However, the existing Swift ecosystem is built without `@Sendable`, which leaves us with an unfortunate choice. We can assume that the lack of `@Sendable` on a function type means that the closure won't escape the concurrency domain, and where existing code (i.e., all Swift code that's been written so far) breaks this assumption, we'll have a data race. Or, we can conservatively assume that all existing function types are `@Sendable`, which will prevent all data races, but at the cost of being unable to use even the most basic facilities (such as `Sequence.map`, above). Therefore, we employ an heuristic: `@escaping` is a good (but imperfect) indicator in Swift today that the closure can be executed concurrently, so we don't permit escaping closures to be actor-isolated. This eliminates a significant proportion of the data races that would affect actor state, and the cost of (1) admitting some data races with existing code that manages to execute a closure concurrently without escaping it, and (2) prohibiting some safe patterns where a closure escapes but does not cross concurrency domains. This is a pragmatic, temporarily solution to the problem of rolling out data-race prevention throughout an existing ecosystem. Our approach will ratchet up the safety as code opts in to more concurrency safety in future language versions.
+* The closure passed to `detach` is non-isolated because that function requires a `@Sendable` function to be passed to it.
+* The closure passed to `forEach` is actor-isolated to `self` because it takes a non-`@Sendable` function.
 
 ### Actor reentrancy
 
@@ -343,8 +312,8 @@ In the example above the `Person` can think of a good or bad idea, shares that o
 This is exemplified by the following piece of code, exercising the `decisionMaker` actor:
 
 ```swift
-let goodThink = Task.runDetached { await person.thinkOfGoodIdea() }  // runs async
-let badThink = Task.runDetached { await person.thinkOfBadIdea() } // runs async
+let goodThink = detach { await person.thinkOfGoodIdea() }  // runs async
+let badThink = detach { await person.thinkOfBadIdea() } // runs async
 
 let shouldBeGood = await goodThink.get()
 let shouldBeBad = await badThink.get()
@@ -528,11 +497,9 @@ actor BankAccount {
 
 Each instance of the actor represents a unique actor. The term "actor" can be used to refer to either an instance or the type; where necessary, one can refer to the "actor instance" or "actor type" to disambiguate.
 
-An actor may only inherit from another actor (or `NSObject`; see the section on Objective-C interoperability below). A non-actor may only inherit from another non-actor.
+Actors are similar to other concrete nominal types in Swift (enums, structs, and classes). Actor types can have `static` and instance methods, properties, and subscripts. They have stored properties and initializers like structs and classes. They are reference types like classes, but do not support inheritance, and therefore do not have (or need) features such as `required` and `convenience` initializers, overriding, or `class` members, `open` and `final`. Where actor types differ in behavior from other types is primarily driven by the rules of actor isolation, described below.
 
-> **Rationale**: Actors enforce state isolation, but non-actors do not. If an actor inherits from a non-actor (or vice versa), part of the actor's state would not be covered by the actor-isolation rules, introducing the potential for data races on that state.
-
-By default, the instance methods, properties, and subscripts of an actor have an isolated `self` parameter. This is true even for methods added retroactively on an actor via an extension, like any other Swift type.
+By default, the instance methods, properties, and subscripts of an actor have an isolated `self` parameter. This is true even for methods added retroactively on an actor via an extension, like any other Swift type. Static methods, properties, and subscripts do not have a `self` parameter that is an instance of the actor, so they are not actor-isolated.
 
 ```swift
 extension BankAccount {
@@ -542,15 +509,12 @@ extension BankAccount {
 }  
 ```
 
-Actors are similar to classes in all respects independent of isolation: actor types can have `static` and `class` methods, properties, and subscripts. All of the attributes that apply to classes apply to actors in much the same way, except where those semantics conflict with actor isolation.
-
 ### Actor isolation checking
 
 Any given declaration in a program is either actor-isolated or is non-isolated. A function (including accessors) is actor-isolated if it is defined on an actor type (including protocols where `Self` conforms to `Actor`, and extensions thereof). A mutable instance property or instance subscript is actor-isolated if it is defined on an actor type. Declarations that are not actor-isolated are called non-isolated.
 
 The actor isolation rules are checked in a number of places, where two different declarations need to be compared to determine if their usage together maintains actor isolation. There are several such places:
 * When the definition of one declaration (e.g., the body of a function) references another declaration, e.g., calling a function, accessing a property, or evaluating a subscript.
-* When one declaration overrides another.
 * When one declaration satisfies a protocol requirement.
 
 We'll describe each scenario in detail.
@@ -581,13 +545,6 @@ extension MyActor {
   }
 }
 ```
-
-#### Overrides
-
-When a given declaration (the "overriding declaration") overrides another declaration (the "overridden" declaration), the actor isolation of the two declarations is compared. The override is well-formed if:
-
-* the overriding and overridden declarations are isolated to the same actor, or
-* the declarations are both `async`.
 
 #### Protocol conformance
 
@@ -621,7 +578,7 @@ actor A {
   
   func useAF(array: [Int]) {
     array.map(self.f)                     // okay
-    Task.runDetached(operation: self.g)   // error: self.g has non-sendable type () -> Double that cannot be converted to a @Sendable function type
+    detach(operation: self.g)             // error: self.g has non-sendable type () -> Double that cannot be converted to a @Sendable function type
     runLater(self.g)                      // error: self.g has escaping function type () -> Double
   }
 }
@@ -634,7 +591,7 @@ These restrictions follow from the actor isolation rules for the "desugaring" of
 extension A {
   func useAFDesugared(a: A, array: [Int]) {
     array.map { f($0) } )      // okay
-    Task.runDetached { g() }   // error: self is non-isolated, so call to `g` cannot be synchronous
+    detach { g() }             // error: self is non-isolated, so call to `g` cannot be synchronous
     runLater { g() }           // error: self is non-isolated, so the call to `g` cannot be synchronous
   }
 }
@@ -688,16 +645,16 @@ actor A {
 
 ### Actor interoperability with Objective-C
 
-As a special exception to the rule that an actor can only inherit from another actor, an actor can inherit from `NSObject`. This allows actors to themselves be declared `@objc`, and implicitly provides conformance to `NSObjectProtocol`:
+An actor type can be declared `@objc`, which implicitly provides conformance to `NSObjectProtocol`:
 
 ```swift
-@objc actor MyActor: NSObject { ... }
+@objc actor MyActor { ... }
 ```
 
 A member of an actor can only be `@objc` if it is either `async` or is not isolated to the actor. Synchronous code that is within the actor's isolation domain can only be invoked on `self` (in Swift). Objective-C does not have knowledge of actor isolation, so these members are not permitted to be exposed to Objective-C. For example:
 
 ```swift
-@objc actor MyActor: NSObject {
+@objc actor MyActor {
     @objc func synchronous() { } // error: part of actor's isolation domain
     @objc func asynchronous() async { } // okay: asynchronous, exposed to Objective-C as a method that accepts a completion handler
     @objc nonisolated func notIsolated() { } // okay: non-isolated
@@ -832,32 +789,70 @@ If we can address the above, task-chain reentrancy can be introduced into the ac
 
 ## Alternatives considered
 
-### Eliminating inheritance
+### Actor inheritance
 
-Like classes, actors as proposed allow inheritance. However, actors and classes cannot be co-mingled in an inheritance hierarchy, so there are essentially two different kinds of type hierarchies. It has been [proposed](https://docs.google.com/document/d/14e3p6yBt1kPrakLcEHV4C9mqNBkNibXIZsozdZ6E71c/edit#) that actors should not permit inheritance at all, because doing so would simplify actors: features such as method overriding, initializer inheritance, required and convenience initializers, and inheritance of protocol conformances would not need to be specified, and users would not need to consider them. The [discussion thread](https://forums.swift.org/t/actors-are-reference-types-but-why-classes/42281) on the proposal to eliminate inheritance provides several reasons to keep actor inheritance:
+Earlier pitches and the first reviewed version of this proposal allowed actor inheritance. Actor inheritance followed the rules of class inheritance, albeit with specific additional rules required to maintain actor isolation:
 
-* Actor inheritance makes it easier to port existing class hierarchies to get the benefits of actors. Without actor inheritance, such porting will also have to contend with (e.g.) replacing superclasses with protocols and explicitly-specified stored properties at the same time.
-* The lack of inheritance in actors won't prevent users from having to understand the complexities of inheritance, because inheritance will still be used pervasively with classes.
-* The design and implementation of actors naturally admits inheritance. Actors are fundamentally class-like, the semantics of inheritance follow directly from the need to maintain actor isolation. The implementation of actors is essentially as "special classes", so it supports all of these features out of the box. There is little benefit to the implementation from eliminating the possibility of inheritance of actors.
+* An actor could not inherit from a class, and vice-versa.
+* An overriding declaration must not be more isolated than the overridden declaration.
 
-Actor inheritance has similar use cases to class inheritance. If we take a textbook example with `Person` and `Employee` classes, all the same reasoning applies to actors:
+Subsequent review discussion determined that the conceptual cost of actor inheritance outweighed its usefulness, so it has been removed from this proposal. The form that actor inheritance would take in the language is well-understand from prior iterations of this proposal and its implementation, so this feature could be re-introduced at a later time.
+
+### Cross-actor lets
+
+This proposal allows synchronous access to `let` properties on an actor instance from anywhere:
 
 ```swift
-actor Person {
-  var name: String
-  var birthdate: Date
-  // lots of other attributes
+actor BankAccount {
+  let accountNumber: Int
 }
 
-actor Employee: Person {
-  var badgeNumber: Int
+func print(account: BankAccount) {
+  print(account.accountNumber) // okay: synchronous access to an actor's let property
+}  
+```
+
+We could instead require `let` properties to be accessed asynchronously from outside the actor, making the `print(account:)` function above an error unless it is changed to `await` access to the account number. This would be more consistent with other instance members of actors, which always require asynchronous access from outside the actor. It also allows one to evolve a `let` into a `var`, e.g.,
+
+```swift
+actor BankAccount {
+  private(set) var accountNumber: Int  // under current rules, refactoring 'let' to 'var' breaks clients synchronously accessing data
 }
 ```
 
-This implementation will behave as one would expect for inheritance (every `Employee` is-a `Person`). The inheriting actor type also extends the actor-isolation domain of the actor type it inherits, so (for example) it is safe for a method of `Employee` to refer to `self.birthdate`. Given that there are no implementation reasons to disallow inheritance, and the reasons for inheritance of classes apply equally to actors, we retain inheritance for actor types.
+On the other hand, requiring all access to `let` instances to be asynchronous goes against the notion that immutable `let` properties are safe for concurrency specifically because they are immutable. For example, one can safely access a local `let` from a concurrently-executing closure, but not a `var`:
+
+```swift
+func test() {
+  let total = 100
+  var counter = 0
+  
+  detach {
+    print(total) // okay
+    print(counter) // error, cannot reference a `var` from a @Sendable closure
+  }
+}
+```
+
+The change to require asynchronous access to `let` properties from outside the actor would not make it impossible to provide synchronous access. Rather, it would become part of the proposal on [controlling actor isolation][isolationcontrol], such that one would need to mark `let` declarations as `nonisolated`:
+
+```swift
+actor BankAccount {
+  nonisolated let accountNumber: Int
+}
+
+func print(account: BankAccount) {
+  print(account.accountNumber) // okay: synchronous access to an actor's let property marked as 'nonisolated'
+}  
+```
 
 ## Revision history
 
+* Changes in the second reviewed proposal:
+  * Escaping closures can now be actor-isolated; only `@Sendable` prevents isolation.
+  * Removed actor inheritance. It can be considered at some future point.
+  * Added "cross-actor lets" to Alternatives Considered. While there is no change to the proposed direction, the issue is explained here for further discussion.
+  * Replaced `Task.runDetached` with `detach` to match updates to the [Structured Concurrency proposal][sc].
 * Changes in the seventh pitch:
   * Removed isolated parameters and `nonisolated` from this proposal. They'll come in a follow-up proposal on [controlling actor isolation][isolationcontrol].
 * Changes in the sixth pitch:
