@@ -676,7 +676,7 @@ For tasks that want to react immediately to cancellation (rather than, say, wait
 /// Does not check for cancellation, and always executes the passed `operation`.
 ///
 /// This function returns instantly and will never suspend.
-static func withTaskCancellationHandler<T>(
+func withTaskCancellationHandler<T>(
   handler: @Sendable () -> Void,
   operation: () async throws -> T
 ) async rethrows -> T
