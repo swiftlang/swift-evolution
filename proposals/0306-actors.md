@@ -3,7 +3,7 @@
 * Proposal: [SE-0306](0306-actors.md)
 * Authors: [John McCall](https://github.com/rjmccall), [Doug Gregor](https://github.com/DougGregor), [Konrad Malawski](https://github.com/ktoso), [Chris Lattner](https://github.com/lattner)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Active review (March 15...29, 2021)**
+* Status: **Active review (April 9...23, 2021)**
 * Implementation: Partially available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
 
 ## Table of Contents
@@ -76,7 +76,7 @@ actor BankAccount {
 }
 ```
 
-Like other Swift types, actors can have initialiers, methods, properties, and subscripts. They can be extended and conform to protocols, be generic, and be used with generics.
+Like other Swift types, actors can have initializers, methods, properties, and subscripts. They can be extended and conform to protocols, be generic, and be used with generics.
 
 The primary difference is that actors protect their state from data races. This is enforced statically by the Swift compiler through a set of limitations on the way in which actors and their instance members can be used, collectively called *actor isolation*.   
 
