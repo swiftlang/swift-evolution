@@ -36,7 +36,7 @@ An asynchronous function is designed for computations that may or always will su
 
 #### Swift Concurrency
 
-An asynchronous call cannot appear within a synchronous context. This fundamental restriction means that computed properties and subscripts would be severely limited in their ability to use Swift's new concurrency features. The only concurrency capability available to them is spawning detached tasks, but the completion of those tasks cannot be awaited in synchronous contexts in order to produce an answer:
+An asynchronous call cannot appear within a synchronous context. This fundamental restriction means that computed properties and subscripts would be severely limited in their ability to use Swift's new concurrency features. The only concurrency capability available to them is creating detached tasks, but the completion of those tasks cannot be awaited in synchronous contexts in order to produce an answer:
 
 ```swift
 // ...
@@ -44,7 +44,7 @@ class Socket {
   // ...
   public var alive: Bool {
     get {
-      let handle = Task.runDetached { await self.checkSocketStatus() }
+      let handle = detach { await self.checkSocketStatus() }
       return await handle.get()
       //     ^~~~~ error: cannot 'await' in a sync context
     }
