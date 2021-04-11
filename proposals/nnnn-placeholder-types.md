@@ -106,7 +106,6 @@ Array<_> // array with placeholder element type
 (_) -> Int // function type accepting a single placeholder type argument and returning 'Int'
 (_, Double) // tuple type of placeholder and 'Double'
 _? // optional wrapping a placeholder type
-_ // a bare placeholder type is also ok!
 ```
 
 ### Type inference
@@ -138,10 +137,10 @@ let publisher: AnyPublisher<Int, _> = Just(makeValue()).setFailureType(to: Error
 
 Now, the type checker has all the information it needs to resolve the reference to `makeValue` : the ultimately resulting `AnyPublisher` must have `Output == Int` , so the result of `setFailureType(to:)` must have `Output == Int` , so the instance of `Just` must have `Output == Int` , so the argument to `Just.init` must have type `Int` , so `makeValue` must refer to the `Int` -returning overload!
 
-Note: it's technically legal to specify a bare placeholder type, which may act as a more explicit way to call out "this type is inferred":
+Note: it is not permitted to specify a type that is _just_ a placeholder—see the relevant subsection in **Future directions** for a dicussion of the considerations. This means that, for example, the following would fail to compile:
 
 ```swift
-let percent: _ = 100.0
+let percent: _ = 100.0 // error: placeholders are not allowed as top-level types
 ```
 
 ### Generic constraints
@@ -318,6 +317,28 @@ let x: @convention(c) F = { 0 }
 are already illegal.
 
 Since there is more subtle design work to be done here, and because the use cases for this extension of placeholder types are comparatively narrow, the author opts to leave this as a future direction.
+
+### Top-level placeholder types
+
+An earlier draft of this proposal allowed for the use of placeholders as top-level types, so that one could write
+
+```swift
+let x: _ = 0.0 // type of x is inferred as Double
+```
+
+Compared to other uses of this feature, top-level placeholders are clearly of more limited utility. In type annotations (as above), they merely serve as a slightly more explicit way to indicate "this type is inferred," and they are similarly unhelpful in `as` casts. There is *some* use for top-level placeholders in type expression position, particularly when passing a metatype value as a parameter. For instance, Combine's `setFailureType(to:)` operator could be used with a top-level placeholder to make conversions between failure types more lightweight wen necessary:
+
+```swift
+let p: AnyPublisher<Int, Error> = Just<Int>().setFailureType(to: _.self).eraseToAnyPublisher()
+```
+
+However, as Xiaodi Wu points out, allowing placeholders in these positions would have the effect of permitting clients to leave out type names in circumstances where library authors intended the type information to be provided explicitly, such as when using `KeyedDecodingContainer.decode(_:forKey:)`. It is not obviously desirable for users to be able to write, e.g.:
+
+```swift
+self.someProp = container.decode(_.self, forKey: .someProp)
+```
+
+Due to the additional considerations here, the author has opted to leave top-level placeholders as a future direction, which could potentially be considered once there is more real-world usage of placeholder types that could inform the benefits and drawbacks.
 
 ## Acknowledgments
 
