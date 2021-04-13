@@ -66,7 +66,7 @@ actor AccountManager {
   // NOTE: `getLastTransaction` is viewed as async 
   // when called from outside of the actor
   func getLastTransaction() -> Transaction { /* ... */ }
-  func getTransactions(onDay : Date) async -> [Transaction] { /* ... */ }
+  func getTransactions(onDay: Date) async -> [Transaction] { /* ... */ }
 }
 
 class BankAccount {
@@ -83,7 +83,7 @@ class BankAccount {
     }
   }
 
-  subscript(_ d : Date) -> [Transaction] {
+  subscript(_ d: Date) -> [Transaction] {
     return await manager?.getTransactions(onDay: d) ?? []
     //     ^~~~~ error: cannot 'await' in a sync context
   }
@@ -164,11 +164,11 @@ extension BankAccount {
 func hadWithdrawlOn(_ day: Date, from acct: BankAccount) async -> Bool {
   return await !acct[day].allSatisfy { $0.amount >= Amount.zero }
   //            ^~~~~~~~~
-  //            this access is async & throws
+  //            this access is async
 }
 ```
 
-Computed properties or subscripts can only support effects specifiers if the only kind of accessor defined is a `get`. In particular, this means that the members can only be read (i.e., because there is no `set`-ter). The main purpose of imposing such a restriction is to limit the scope of this proposal to a simple, useful, and easy-to-understand feature. Limiting effects specifiers to read-only properties and subscripts in this proposal does _not_ prevent future proposals from offering them for mutable members. For more discussion of why effectful setters are tricky, see the "Extensions considered" section of this proposal.
+Computed properties or subscripts only support effects specifiers if the only kind of accessor defined is a `get`. The main purpose of imposing this read-only restriction is to limit the scope of this proposal to a simple, useful, and easy-to-understand feature. Limiting effects specifiers to read-only properties and subscripts in this proposal does _not_ prevent future proposals from offering them for mutable members. For more discussion of why effectful setters are tricky, see the "Extensions considered" section of this proposal.
 
 ## Detailed design
 
@@ -216,16 +216,16 @@ In order for a type to conform to a protocol containing effectful properties, th
 
 ```swift
 protocol P {
-  var someProp : Int { get async throws }
+  var someProp: Int { get async throws }
 }
 
-class NoEffects : P { var someProp : Int { get { 1 } } }
+class NoEffects: P { var someProp: Int { get { 1 } } }
 
-class JustAsync : P { var someProp : Int { get async { 2 } } }
+class JustAsync: P { var someProp: Int { get async { 2 } } }
 
-struct JustThrows : P { var someProp : Int { get throws { 3 } } }
+struct JustThrows: P { var someProp: Int { get throws { 3 } } }
 
-struct Everything : P { var someProp : Int { get async throws { 4 } } }
+struct Everything: P { var someProp: Int { get async throws { 4 } } }
 
 func exampleExpressions() async throws {
   let _ = NoEffects().someProp
@@ -246,55 +246,56 @@ Formally speaking, let us consider a getter `G` to have a set of effects `effect
 
 #### Class Inheritance
 
-Effectful properties and subscripts can be inherited from a base class, and follow the usual visibility rules. The key difference is that, in order to override an inherited effectful property (or subscript) from the base class, *the subclass's property must have the same or fewer effects than the property being overridden*. This rule is a natural consequence of the subtyping relation for classes, where the base class must account for all of the effects that its subclasses may exhibit. It is fundamentally the same as the rule for protocol conformance.
+Effectful properties and subscripts can be inherited from a base class, and follow the usual visibility rules. The key difference is that, to override an inherited effectful property (or subscript) from the base class, *the subclass's property must have the same or fewer effects than the property being overridden*. This rule is a natural consequence of the subtyping relation for classes, where the base class must account for all of the effects that its subclasses may exhibit. In essence, this rule is the same as the one for protocol conformance.
 
 #### Objective-C bridging
 
-Some API designers may want to take advantage of Swift's effectful properties by having an Objective-C method imported as a property. Objective-C methods are normally imported as Swift methods, so their import as an effectful Swift property will be controlled through annotations. This avoids any source compatibility issues for imported declarations.
+Some API designers may want to take advantage of Swift's effectful properties by having an Objective-C method imported as a property. Objective-C methods are normally imported as Swift methods, so their import as an effectful Swift property will be controlled through an opt-in annotation. This avoids any source compatibility issues for imported declarations.
 
-Due to the read-only restriction on Swift properties, and the fact that a large number of failable Objective-C methods are already imported as `throws` methods in Swift, support for Objective-C bridging in this proposal is scoped for the Swift concurrency features. Specifically, an Objective-C method must be able to be imported as an async Objective-C method, as recognized by [SE-0297](https://github.com/apple/swift-evolution/blob/main/proposals/0297-concurrency-objc.md), to be imported as an effectful Swift computed property. Importing as an effectful subscript is not included in this proposal. Furthermore, exporting effectful properties to Objective-C as methods are left to future work.
+Due to the read-only restriction on Swift properties, and the fact that a large number of failable Objective-C methods are already imported as `throws` methods in Swift, support for Objective-C bridging in this proposal is scoped for the Swift concurrency features. Importing as an effectful subscript is not included in this proposal. Furthermore, exporting effectful properties to Objective-C as methods are left to future work.
+
+To import an Objective-C method as a Swift effectful property, the method must be compatible with the import rules for `async` Swift methods, as described by [SE-0297](https://github.com/apple/swift-evolution/blob/main/proposals/0297-concurrency-objc.md). An annotation changes this import behavior to produce an effectful Swift computed property, instead of an `async` Swift method. The original ObjC method is still imported as a normal Swift method, alongside the property.
 
 To summarize, an Objective-C method that meets the following requirements:
   1. The method takes exactly one argument, a completion handler, as recognized by 
   [SE-0297](https://github.com/apple/swift-evolution/blob/main/proposals/0297-concurrency-objc.md).
   2. The method returns `void`. 
-  3. The method is annotated with `__attribute__((swift_async_name("getter:myProp()")))`.
+  3. The method is annotated with `__attribute__((swift_async_name("getter:myProp()")))`. Note the use of `getter:` to specify that it should be a property instead of a method.
   
-will be imported as an effectful read-only Swift property named `myProp`, instead of a Swift `async` (and possibly also `throws`) method. For example, are some Objective-C method examples from the SDK that are eligible for import as an effectful Swift property:
+will be imported as an effectful read-only Swift property named `myProp`, instead of a Swift `async` (and possibly also `throws`) method. The following are Objective-C method examples from the SDK that have been annotated for import as an effectful Swift property:
 
 ```objc
 // from Safari Services
-@interface SFSafariTab : NSObject
+@interface SFSafariTab: NSObject
 - (void)getPagesWithCompletionHandler:(void (^)(NSArray<SFSafariPage *> *pages))completionHandler
 __attribute__((swift_async_name("getter:pages()")));
 // ...
 @end
 
 // from Exposure Notification
-@interface ENManager : NSObject
+@interface ENManager: NSObject
 - (void)getUserTraveledWithCompletionHandler:(void (^)(BOOL traveled, NSError *error))completionHandler
 __attribute__((swift_async_name("getter:userTraveled()")));;
 // ...
 @end
 ```
 
-Which would be imported into Swift as:
+which would be imported into Swift as:
 
 ```swift
-class SFSafariTab : NSObject {
-  var pages : [SFSafariPage] {
+class SFSafariTab: NSObject {
+  var pages: [SFSafariPage] {
     get async { /* ... */ }
   }
   // ...
 }
 
-class ENManager : NSObject {
-  var userTraveled : Bool {
+class ENManager: NSObject {
+  var userTraveled: Bool {
     get async throws { /* ... */ }
   }
 }
 ```
-
 
 ## Source compatibility
 
@@ -330,7 +331,7 @@ A [key-path expression](https://docs.swift.org/swift-book/ReferenceManual/Expres
 
 For example, because we do not allow for function overloading based only on differences in effects, some sort of mechanism like `rethrows` and an equivalent version for `async` (such as a "reasync") would be required on `subscript(keyPath:)` as a starting-point.  While a key-path literal can be [automatically treated as a function](0249-key-path-literal-function-expressions.md), a general `KeyPath` value is not a function, so it cannot carry effects in its type. This causes problems when trying to make, for example, a `rethrows` version of `subscript(keyPath:)` work.
 
-We could also introduce additional kinds of key-paths that have various capabilities, like the existing `WritableKeyPath` and `ReferenceWritableKeyPath`. Then, we could synthesize versions of `subscript` with the right effects specifiers on it, for example, `subscript<T : ThrowingKeyPath>(keyPath : T) throws`. This would require `KeyPath` kinds for all three new combinations of effects beyond "no effects".
+We could also introduce additional kinds of key-paths that have various capabilities, like the existing `WritableKeyPath` and `ReferenceWritableKeyPath`. Then, we could synthesize versions of `subscript` with the right effects specifiers on it, for example, `subscript<T: ThrowingKeyPath>(keyPath: T) throws`. This would require `KeyPath` kinds for all three new combinations of effects beyond "no effects".
 
 So, a non-trivial restructuring of the type system, or significant extensions to the `KeyPath` API, would be required to make key-paths work for effectful properties. Thus, for now, we will disallow accesses to effectful properties via key-paths.  There already exist restrictions on key-paths to mutable properties based on the instance type (e.g., `WritableKeyPath`), so it would not be unusual to disallow key-paths to effectful properties.
 
