@@ -6,7 +6,7 @@
 * Status: **Active Review (February 25 - March 12, 2021)**
 * Pitch and Discussion: [Pitch: SwiftPM Extensible Build Tools](https://forums.swift.org/t/pitch-swiftpm-extensible-build-tools/44715)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/878e496eb799fa407ad704d89fb401952fe8fd02/proposals/0303-swiftpm-extensible-build-tools.md)
-* Previous Discussion: [SE-0303: Package Manager Extensible Build Tools](https://forums.swift.org/t/se-0303-package-manager-extensible-build-tools/45106)
+* Forum Discussion: [1](https://forums.swift.org/t/se-0303-package-manager-extensible-build-tools/45106)
 
 ## Introduction
 
