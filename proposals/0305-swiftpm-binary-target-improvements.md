@@ -197,6 +197,9 @@ This initial proposal leaves unanswered some questions about binary compatibilit
 For Linux, this is much more of a problem.  Linux is not a single platform, and it is difficult to the variants in a way that will allow binary compatibility without having to provide an excessive number of specialized binaries.
 
 A future direction would be to adopt the concepts from [manylinux](https://www.python.org/dev/peps/pep-0513) and provide tooling to let package authors build Linux binaries in a way that makes them usable across many Linux installations.  This would, among other things, require tools to statically link against any non-ABI-stable dependencies.
+### Support for executable scripts
+
+The proposed support for executables is mainly focused on compiled executables, where it makes sense to use a target triple to represent architectures and ABI requirements. For executables implemented as shell scripts (or other kinds of scripts), it might make sense to extend the notion of variant selectors to allow the cross-platform nature of scripts to be better represented. For example, it might be reasonable to allow a `*` for the architecture if there are no architecture contstraints.
 
 ### Libraries on non-Darwin platforms
 
