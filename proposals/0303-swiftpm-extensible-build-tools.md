@@ -289,14 +289,6 @@ protocol TargetBuildContext {
     /// it or the command will need.
     var pluginWorkDirectory: Path { get }
     
-    /// The path at which SwiftPM will write a postbuild result file, if any
-    /// postbuild commands are created. This is a JSON file whose contents are
-    /// defined in SE-0303 and which may be extended by future proposals. The
-    /// file may not be written if no postbuild command ends up being created.
-    /// The plugin may choose to pass this path to a postbuild command on the
-    /// command line or in the environment.
-    var postbuildResultFile: Path { get }
-        
     /// Looks up and returns the path of a named command line executable tool.
     /// The executable must be provided by an executable target or a binary
     /// target on which the package plugin target depends. Throws an error if
@@ -415,8 +407,16 @@ protocol CommandConstructor {
         /// Optional initial working directory of the command.
         workingDirectory: Path? = nil,
         /// Any custom settings for the environment of the subprocess.
-        environment: [String: String] = [:]
-    )}
+        environment: [String: String] = [:],
+        /// The path at which SwiftPM should write out a build results file
+        /// for use by the postbuild command. The contents of this file are
+        /// are defined in SE-0303, and may be extended by future proposals.
+        /// In addition to requesting that SwiftPM write it out by passing
+        /// it in this parameter, the plugin would also pass the same path
+        /// to the command either as an argument or in the environment.
+        buildResultFile: Path?
+    )
+}
 
 /// Emits errors, warnings, and remarks to be shown as a result of running
 /// the plugin. If any errors are emitted, the plugin is considered to have
@@ -553,11 +553,9 @@ Regular build commands with defined outputs are preferable whenever possible, be
 
 Commands created using `addPostbuildCommand()` are run after every build. They have no input or output directories, since they provide no inputs to the build.
 
-Instead, they can be passed information about whether the build succeeded or failed, along with other information about the build. SwiftPM vends this information via a JSON file whose path is provided in the `postbuildResultFile` property of the target build context passed to the plugin. The plugin may choose to pass this path to the postbuild command in any way that it wants to, such as on the command line or in an environment variable.
+Instead, they can be passed information about whether the build succeeded or failed, along with other information about the build. SwiftPM vends this information via a JSON file whose path is specified by the plugin when it creates the postbuild command. After the build, SwitfPM will write the file to that path immediately before running the postbuild command. A plugin that creates a postbuild command would also pass this path to the command so that the build tool can use it (typically by passing it on the command line or in the environment). The path would typically be in an intermediate location such as the plugin work directory.
 
-The postbuild result file is only guaranteed to actually be written if at least one postbuild command is defined. It will not exist while prebuild and regular build commands are running.
-
-The format of the JSON file written at the end of the build is initially very minimal, and consists only of these keys:
+The format of the build results JSON file that can be passed to postbuild commands is initially very minimal, and consists only of these keys:
 
 - `succeeded` — a boolean that is true if and only if the command completed successfully (note that if the build was cancelled, the postbuild command is not run at all)
 - `buildConfiguration` — the build configuration that was built (either `debug` or `release`)
