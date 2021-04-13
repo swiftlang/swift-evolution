@@ -820,9 +820,9 @@ import Foundation
 let protocTool = try targetBuildContext.tool(named: "protoc")
 let protocGenSwiftTool = try targetBuildContext.tool(named: "protoc-gen-swift")
 
-/// Construct the search paths for the .proto files, which can include any of the
-/// targets in the dependency closure. Here we assume that the public ones are in
-/// a "protos" directory, but this can be made arbitrarily complex.
+// Construct the search paths for the .proto files, which can include any of the
+// targets in the dependency closure. Here we assume that the public ones are in
+// a "protos" directory, but this can be made arbitrarily complex.
 var protoSearchPaths = targetBuildContext.dependencies.map { target in
     target.targetDirectory.appending("protos")
 }
