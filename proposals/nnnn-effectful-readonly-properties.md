@@ -28,7 +28,7 @@ A *read-only computed property* is a computed property that only defines a `get`
 
 An *effect* is an observable behavior of a function. Swift's type system tracks a few kinds of effects: `throws` indicates that the function may return along an exceptional failure path with an `Error`, `rethrows` indicates that a throwing closure passed into the function may be invoked, and `async` indicates that the function may reach a suspension point.
 
-The this proposal's examples use features from a number of other recent proposals, such as [structured concurrency](0304-structured-concurrency.md) and [actors](0306-actors.md).  Overviews of those features are out of the scope of this proposal, but basic understanding of the importance of those features is required to fully grasp the motivation of this proposal.
+This proposal's examples use features from a number of other recent proposals, such as [structured concurrency](0304-structured-concurrency.md) and [actors](0306-actors.md).  Overviews of those features are out of the scope of this proposal, but basic understanding of the importance of those features is required to fully grasp the motivation of this proposal.
 
 ## Motivation
 
