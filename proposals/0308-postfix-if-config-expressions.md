@@ -163,7 +163,7 @@ baseExpr
 #endif
 ```
 
-However, you cannot continue the expression within the `#if` with non-postfix suffixes.  For example, you cannot contiinue it with a binary operator, because a binary expression is not a postfix expression:
+However, you cannot continue the expression within the `#if` with non-postfix suffixes.  For example, you cannot continue it with a binary operator, because a binary expression is not a postfix expression:
 
 ```swift
 // ERROR
