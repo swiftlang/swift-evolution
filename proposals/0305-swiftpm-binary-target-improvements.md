@@ -5,6 +5,7 @@
 * Review Manager: [Tom Doron](https://github.com/tomerd)
 * Status: **Active Review (March 11 - 23 2021)**
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/main/proposals/0305-swiftpm-binary-target-improvements.md)
+* Forum Discussion: [SE-0305: Package Manager Binary Target Improvements](https://forums.swift.org/t/se-0305-package-manager-binary-target-improvements/45589)
 * Implementation: Available in [recent `main` snapshots](https://swift.org/download/#snapshots)
 
 ## Introduction
