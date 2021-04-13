@@ -1060,11 +1060,13 @@ The current `TargetBuildContext` type in the `PackagePlugin` API provides minima
 
 This would be needed in order to implement more advanced tools such as code generators or linkers.
 
-### Specific Support for Code Formatters
+### Specific Support for Code Linters and Formatters
 
-A future proposal should add specific support for code formatters and linters. In particular, there should be a way for build tools to convey fixits and other mechanical editing instructions to SwiftPM or to an IDE that uses libSwiftPM.
+A future proposal should add specific support for code linters. In particular, there should be a way for build tools to convey fixits and other mechanical editing instructions to SwiftPM or to an IDE that uses libSwiftPM.
 
-One approach would be to use the existing Clang diagnostics file format, possibly together with a library making it easy to generate such files, and to extend the `PackagePlugin` API to allow the plugin to configure commands to emit this information in a way that SwiftPM and IDEs can apply it.
+One approach would be to use the existing Clang diagnostics file format, possibly together with a library making it easy to generate such files, and to extend the `PackagePlugin` API to allow the plugin to configure commands to emit this information in a way that SwiftPM and IDEs can apply it. Such a capability could also be useful for build tools such as source translators, if they want to be able to apply fixits to their input files.
+
+Code formatters (which typically modify the source code directly) should probably be supported using a new plugin capability that allows some specific action that a package author can take to run the formatter on their code, since it seems a bit subtle to allow source code to be modified during the build.
 
 ### Richer Information for Postbuild Commands
 
