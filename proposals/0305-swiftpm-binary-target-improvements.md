@@ -181,6 +181,51 @@ The individual `.zip` archives are expected to be located next to the `.artifact
 
 The checksum for each `.zip` archive is computed in the same manner as for other binary archives. The checksum in the binary target that references the `.artifactindex` is the checksum of the `.artifactindex` itself. In this way, SwiftPM can validate the integrity of any of the `.zip` archives referenced by the index file.
 
+## Example
+
+Here is a hypothetical example of how the Protobuf compiler (`protoc`) could be vended as an artifact bundle:
+
+```
+protoc.artifactbundle
+├── info.json
+├── protoc-3.15.6-linux-x86_64
+│   ├── bin
+│   │   └── protoc
+│   └── include
+│       └── etc.proto
+└── protoc-3.15.6-osx
+    ├── bin
+    │   └── protoc
+    └── include
+        └── etc.proto
+```
+
+The contents of the `info.json` manifest would be:
+
+```json
+{
+    "schemaVersion": "1.0",
+    "artifacts": {
+        "protoc": {
+            "type": "executable",
+            "version": "3.15.6",
+            "variants": [
+                {
+                    "path": "protoc-3.15.6-linux-x86_64/bin/protoc",
+                    "supportedTriples": ["x86_64-unknown-linux-gnu"]
+                },
+                {
+                    "path": "protoc-3.15.6-osx/bin/protoc",
+                    "supportedTriples": ["x86_64-apple-macosx", "arm64-apple-macosx"]
+                },
+            ]
+        }
+    }
+}
+```
+
+In this hypothetical case, the `osx` variant supports both x86_64 and arm64.
+
 ## Security considerations
 
 The same checksum facility that binary targets already use will ensure that any downloaded `.zip` file will have the intended contents, exactly as for XCFrameworks. There is only a small conceptual difference between running a command during the build vs linking it into the built debug binary for a package using an XCFramework. Either way, the remote code will be run on the local machine, which has inherent security implications if the source is untrusted.
