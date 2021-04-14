@@ -3,10 +3,11 @@
 * Proposal: [SE-0303](0303-swiftpm-extensible-build-tools.md)
 * Authors: [Anders Bertelrud](https://github.com/abertelrud), [Konrad 'ktoso' Malawski](https://github.com/ktoso), [Tom Doron](https://github.com/tomerd)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
-* Status: **Active Review (February 25 - March 12, 2021)**
+* Status: **Active Review (April 14 - 21, 2021)**
 * Pitch and Discussion: [Pitch: SwiftPM Extensible Build Tools](https://forums.swift.org/t/pitch-swiftpm-extensible-build-tools/44715)
+* Review: [1](https://forums.swift.org/t/se-0303-package-manager-extensible-build-tools/)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/878e496eb799fa407ad704d89fb401952fe8fd02/proposals/0303-swiftpm-extensible-build-tools.md)
-* Forum Discussion: [1](https://forums.swift.org/t/se-0303-package-manager-extensible-build-tools/45106)
+
 
 ## Introduction
 
