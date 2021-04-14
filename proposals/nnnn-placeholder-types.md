@@ -27,7 +27,7 @@ Swift-evolution threads: [Partial type annotations ](https://forums.swift.org/t/
 
 ## Motivation
 
-Swift's type inference system is quite powerful, but there are many situations where it is impossible (or simply infeasible) for the compiler to work out the type of an expression, or where the user needs to override the default types worked out by the compiler. The example above of an overloaded function `foo` is one such example.
+Swift's type inference system is quite powerful, but there are many situations where it is impossible (or simply infeasible) for the compiler to work out the type of an expression, or where the user needs to override the default types worked out by the compiler. Directly referencing the heavily-overloaded `Double.init` initializer, as seen above, is one such situation where the compiler does not have the necessary context to determine the type of the expression without additional context.
 
 Fortunately, Swift provides several ways for the user to provide type information explicitly. Common forms are:
 
