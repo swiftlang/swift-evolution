@@ -34,13 +34,13 @@ Fortunately, Swift provides several ways for the user to provide type informatio
 * Variable type annotations:
 
 ```swift
-let stringTransform: (String) -> Double = foo
+let losslessStringConverter: (String) -> Double = Double.init
 ```
 
 * Type coercion via `as` (seen above):
 
 ```swift
-let stringTransform = foo as (String) -> Double
+let losslessStringConverter = Double.init as (String) -> Double
 ```
 
 * Passing type parameters explicitly (e.g., `JSONDecoder` ):
