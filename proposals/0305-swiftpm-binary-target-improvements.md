@@ -155,10 +155,10 @@ An artifact bundle index is a JSON file with a `.artifactbundleindex` extension,
 ```json
 {
     "schemaVersion": "1.0",
-    "archives": [
+    "bundles": [
         {
-            "fileName": "<zipped archive filename>",
-            "checksum": "<checksum of zipped archive>",
+            "fileName": "<name of .zip file containing bundle>",
+            "checksum": "<checksum of .zip file>",
             "supportedTriples": [ "<triple1>", ... ]
         },
         ...
@@ -169,17 +169,17 @@ An artifact bundle index is a JSON file with a `.artifactbundleindex` extension,
 The top level of the artifact bundle index contains:
 
 * `schemaVersion` — in this proposal `1.0`; this allows changes to the format in the future
-* `archives` — a list of `.zip` archives containing bundles with subsets of variants of the same conceptual artifacts
+* `bundles` — a list of `.zip` files that contain bundles containing subsets of variants of the same conceptual artifacts
 
-Each archive dictionary contains:
+Each bundle dictionary contains:
 
 * `fileName` — the filename of the `.zip` archive containing the artifact bundle
 * `checksum` — the checksum of the `.zip` archive, computed using `swift` `package` `checksum`
 * `supportedTriples` — array of all the target triples supported by the variants in the artifact bundle
 
-The individual `.zip` archives are expected to be located next to the `.artifactindex` file, and thus only their filenames are listed in the index.
+The individual `.zip` files are expected to be located next to the `.artifactbundleindex` file, and thus only their filenames are listed in the index.
 
-The checksum for each `.zip` archive is computed in the same manner as for other binary archives. The checksum in the binary target that references the `.artifactindex` is the checksum of the `.artifactindex` itself. In this way, SwiftPM can validate the integrity of any of the `.zip` archives referenced by the index file.
+The checksum for each `.zip` file in the index is computed in the same manner as for other binary `.zip` files, i.e. using `swift` `package` `checmsum`. The checksum in the binary target that references the `.artifactbundleindex` is the checksum of the `.artifactbundleindex` file itself. In this way, SwiftPM can validate the integrity of any of the `.zip` archives referenced by the index file.
 
 ## Example
 
@@ -189,13 +189,18 @@ Here is a hypothetical example of how the Protobuf compiler (`protoc`) could be 
 protoc.artifactbundle
 ├── info.json
 ├── protoc-3.15.6-linux-x86_64
-│   ├── bin
-│   │   └── protoc
-│   └── include
-│       └── etc.proto
-└── protoc-3.15.6-osx
+│   ├── bin
+│   │   └── protoc
+│   └── include
+│       └── etc.proto
+├── protoc-3.15.6-osx
+│   ├── bin
+│   │   └── protoc
+│   └── include
+│       └── etc.proto
+└── protoc-3.15.6-windows
     ├── bin
-    │   └── protoc
+    │   └── protoc.exe
     └── include
         └── etc.proto
 ```
@@ -218,13 +223,17 @@ The contents of the `info.json` manifest would be:
                     "path": "protoc-3.15.6-osx/bin/protoc",
                     "supportedTriples": ["x86_64-apple-macosx", "arm64-apple-macosx"]
                 },
+                {
+                    "path": "protoc-3.15.6-windows/bin/protoc.exe",
+                    "supportedTriples": ["x86_64-unknown-windows"]
+                },
             ]
         }
     }
 }
 ```
 
-In this hypothetical case, the `osx` variant supports both x86_64 and arm64.
+In this hypothetical case, the `osx` variant supports both `x86_64` and `arm64`.
 
 ## Security considerations
 
