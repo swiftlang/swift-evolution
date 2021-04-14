@@ -230,7 +230,7 @@ extension Bar {
 }
 ```
 
-Under this proposal, only `frobnicate1`, `frobnicate3` and `frobnicate6` would compile without error (`frobnicate1`, of course, compiles without this proposal as well), since all others have placeholders appearing in at least one position in the function signature.
+Under this proposal, only `frobnicate`, `frobnicate3` and `frobnicate6` would compile without error (`frobnicate1`, of course, compiles without this proposal as well), since all others have placeholders appearing in at least one position in the function signature.
 
 ### Dynamic casts
 
