@@ -4,7 +4,9 @@
 * Authors: [Anders Bertelrud](https://github.com/abertelrud), [Konrad 'ktoso' Malawski](https://github.com/ktoso), [Tom Doron](https://github.com/tomerd)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
 * Status: **Active Review (February 25 - March 12, 2021)**
-* Pitch and Forum Discussion: [Pitch: SwiftPM Extensible Build Tools](https://forums.swift.org/t/pitch-swiftpm-extensible-build-tools/44715)
+* Pitch and Discussion: [Pitch: SwiftPM Extensible Build Tools](https://forums.swift.org/t/pitch-swiftpm-extensible-build-tools/44715)
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/878e496eb799fa407ad704d89fb401952fe8fd02/proposals/0303-swiftpm-extensible-build-tools.md)
+* Forum Discussion: [1](https://forums.swift.org/t/se-0303-package-manager-extensible-build-tools/45106)
 
 ## Introduction
 
@@ -15,13 +17,13 @@ This is a proposal for extensible build tools support in Swift Package Manager. 
 
 The set of possible capabilities can then be extended in future SwiftPM versions. The goal is to provide short-term support for common tasks such as source code generation, with a design that can scale to more complex tasks in the future.
 
-This proposal depends on improvements to the existing Binary Target type in SwiftPM — those details are the subject of a separate proposal that will be put up for review shortly after this one.
+This proposal depends on improvements to the existing Binary Target type in SwiftPM — those details are the subject of the separate proposal [SE-0305](https://github.com/apple/swift-evolution/blob/main/proposals/0305-swiftpm-binary-target-improvements.md).
 
 ## Motivation
 
 SwiftPM doesn’t currently provide any means of performing custom actions during a build. This includes source generation as well as custom processing for special types of resources.
 
-This is very restrictive, and affects even packages with relatively simple customization needs.  Examples include invoking source generators such as [SwiftProtobuf](https://github.com/apple/swift-protobuf) or [SwiftGen](https://github.com/SwiftGen/SwiftGen), or running a custom command to do various kinds of source generation or source inspection.
+This is very restrictive, and affects even packages with relatively simple customization needs. Examples include invoking source generators such as [SwiftProtobuf](https://github.com/apple/swift-protobuf) or [SwiftGen](https://github.com/SwiftGen/SwiftGen), or running a custom command to modify a built artifact after it is linked.
 
 Providing even basic support for extensibility is expected to allow more codebases to be built using the Swift Package Manager, and to automate many steps that package authors currently have to do manually (such as generate sources manually and commit them to their package repositories).
 
@@ -31,27 +33,29 @@ This proposal introduces a new SwiftPM target type called `plugin`.
 
 Package plugins are Swift targets that use specialized API in a new `PackagePlugin` library (provided by SwiftPM) to configure commands that will run during the build.
 
-The initial `PackagePlugin` API described in this proposal is minimal, and is mainly focused on source code generation. However, this API is expected to be able to grow over time to support new package plugin capabilities in the future.
+The initial `PackagePlugin` API described in this proposal is minimal, and is mainly focused on source code generation and build-oriented tasks. However, this API is expected to be able to grow over time to support new package plugin capabilities in the future.
 
-Package plugins are somewhat analogous to package manifests:  both are Swift scripts that are evaluated in sandboxed environments and that use specialized APIs for a limited and specific purpose.  In the case of a package manifest, the purpose is to define those characteristics of a package that cannot be inferred from the contents of the file system; in the case of a build tool plugin, the purpose is to procedurally define new commands and dependencies that should run before, during, or after a build.
+Package plugins are somewhat analogous to package manifests:  both are Swift scripts that are evaluated in sandboxed environments and that use specialized APIs for a limited and specific purpose. In the case of a package manifest, the purpose is to define those characteristics of a package that cannot be inferred from the contents of the file system; in the case of a build tool plugin, the purpose is to procedurally define new commands and dependencies that should run during a build.
 
-A package plugin is invoked after package resolution and validation, and is given access to an input context that describes the target to which the plugin is applied. The plugin also has read-only access to the package directory of the target, and is also allowed to write to specially designated areas of the build output directory.
+Build tool plugins are applied to invidual targets in the package graph, as indicated by the target.  A build tool plugin is invoked after package resolution and validation, and is given access to an input context that describes the package target to which the plugin is applied. The plugin also has read-only access to the source directory of the target, and is also allowed to write to specially designated areas of the build output directory.
 
-Note that the plugin itself does *not* perform the actual work of the build tool — that’s done by the command line invocation that the plugin defines when it is invoked for the target. The plugin can be thought of as a procedural way of generating command line arguments, and is typically quite small.
+Note that the plugin itself does *not* perform the actual work of the build tool — that is done by the command line invocation that the plugin constructs when it is applied to the target. The plugin can be thought of as a procedural way of generating command line arguments, and is typically very small.
 
-This proposal also adds a new `plugins` parameter to the declarations of `target`, `executableTarget`, and `testTarget` types that allow these kinds of targets to use one or more build tool plugins. The `binaryTarget` and `systemModule` target types do not support plugins in this initial proposal, since they are pseudo-targets not actually built.
+This proposal also adds a new `plugins` parameter to the declarations of `target`, `executableTarget`, and `testTarget` types that allow these kinds of targets to use one or more build tool plugins. The `binaryTarget` and `systemLibrary` target types do not support plugins in this initial proposal, since they are pseudo-targets and are not actually built.
 
-This initial proposal does not directly provide a way for the client target to pass configuration parameters to the plugin. However, because plugins have read-only access to the package directory, they can read custom configuration files as needed. While this means that configuration of the plugin resides outside of the package manifest, it does allow each plugin to provide a configuration format suitable for its own needs. This pattern is commonly used in practice already, in the form of JSON or YAML configuration files for source generators, etc. Future proposals are expected to let package plugins define options that can be controlled in the client package's manifest.
+This initial proposal does not directly provide a way for the client target to pass configuration parameters to the plugin. However, because plugins have read-only access to the package directory, they can read custom configuration files as needed. While this means that configuration of the plugin resides outside of the package manifest, it does allow each plugin to use a configuration format suitable for its own needs. This pattern is commonly used in practice already, in the form of JSON or YAML configuration files for source generators, etc. Future proposals are expected to let package plugins define options that can be controlled in the client package's manifest.
 
-A `plugin` target should declare dependencies on the targets that provide the executables needed during the build. The binary target type will be extended to let it vend pre-built executables for build tools that don't built with SwiftPM.  As mentioned earlier, this is the subject of a separate upcoming companion proposal to this one.
+A `plugin` target should declare dependencies on the targets that provide the executables needed during the build. The binary target type will be extended to let it vend pre-built executables for build tools that are not built using SwiftPM. This is the subject of the separate evolution proposal [SE-0305](https://github.com/apple/swift-evolution/blob/main/proposals/0305-swiftpm-binary-target-improvements.md).
 
-A plugin script itself cannot initially use custom libraries built by other SwiftPM targets.  Intially, the only APIs available are `PackagePlugin` and the Swift standard libraries.  This is somewhat limiting, but note that the plugin itself is only expected to contain a minimal amount of logic to construct a command that will then invoke a tool during the actual build. The tool that is invoked during the build — the one for which the plugin generates a command line — is either a regular `executableTarget` (which can depend on as many library targets as it wants to) or a `binaryTarget` that provides prebuilt binary artifacts.
+A plugin script itself cannot initially use custom libraries built by other SwiftPM targets. Initially, the only APIs available are `PackagePlugin` and the Swift standard libraries. This is somewhat limiting, but note that the plugin itself is only expected to contain a minimal amount of logic to construct a command that will then invoke a tool during the actual build. The tool that is invoked during the build — the one for which the plugin generates a command line — is either a regular `executableTarget` (which can depend on as many library targets as it wants to) or a `binaryTarget` that provides prebuilt binary artifacts.
 
-It is a future goal to allow package plugin scripts themselves to depend on custom libraries, but that will require larger changes to how SwiftPM — and any IDEs that use libSwiftPM — create their build plans and run their builds.  In particular, it will require those build systems to be able to build any libraries that are needed by the plugin script before invoking it, prior to the actual build of the Swift package.  SwiftPM's native build system does not currently support such tiered builds, and neither do the build systems of some IDEs that use libSwiftPM.
+It is a future goal to allow package plugin scripts themselves to depend on custom libraries, but that will require larger changes to how SwiftPM — and any IDEs that use libSwiftPM — create their build plans and run their builds. In particular, it will require those build systems to be able to build any libraries that are needed by the plugin script before invoking it, prior to the actual build of the Swift package. SwiftPM's native build system does not currently support such tiered builds, and neither do the build systems of some of the IDEs that use libSwiftPM.
 
-A package plugin target can be used by other targets in the same package without declaring a corresponding product in the manifest, but in order to let other packages use it, the `plugin` target must be exported using a `plugin` product type (just as for other kinds of targets). If and when a future version of SwiftPM unifies the concepts of products and targets — which would be desirable for other reasons — then this distinction between plugin targets and plugin products will become unnecessary.
+In order to let other packages use a `plugin` target, it must made visible to other packages through a `plugin` product type (just as for other kinds of targets). If and when a future version of SwiftPM unifies the concepts of products and targets — which would be desirable for other reasons — then this distinction between plugin targets and plugin products will become unnecessary.
 
-As with the `PackageDescription` API for package manifests, the `PackagePlugin` API availability annotations will be tied to the Swift Tools Version of the package that contains the `plugin` target.  This will allow the API to evolve over time without affecting older plugins.
+A package plugin target can be used by other targets in the same package without declaring a corresponding product in the manifest. This can be useful for highly specialized build tool plugins that are defined and used in the root package.
+
+As with the `PackageDescription` API for package manifests, the `PackagePlugin` API availability annotations will be tied to the Swift Tools Version of the package that contains the `plugin` target. This will allow the API to evolve over time without affecting older plugins.
 
 ## Detailed Design
 
@@ -61,16 +65,25 @@ To allow plugins to be declared, the following API will be added to `PackageDesc
 extension Target {
 
     /// Defines a new package plugin target with a given name, declaring it as
-    /// providing a capability of adding custom build commands.
+    /// providing a capability of extending SwiftPM in a particular way.
     ///
-    /// The capability determines what kind of build commands it can add. Besides
-    /// determining at what point in the build those commands run, the capability
-    /// determines the context that is available to the plugin and the kinds of
-    /// commands it can create.
+    /// The capability determines the way in which the plugin extends SwiftPM,
+    /// which determines the context that is available to the plugin and the
+    /// kinds of commands it can create. The plugin capability also determines
+    /// how the plugin is activated.
     ///
-    /// In the initial version of this proposal, three capabilities are provided:
-    /// prebuild, build tool, and postbuild. See the declaration of each capability
-    /// under `PluginCapability` for more information.
+    /// In the initial version of this proposal, only a single plugin capability
+    /// is defined: build tool. The intent is to define new capabilities in the
+    /// future.
+    /// 
+    /// Another possible capability that could be added in the future could be
+    /// a way to augment the testing support in SwiftPM. This could take the
+    /// form of allowing additional commands to run after the build and test
+    /// have completed, with a well-defined way to access build results and
+    /// test results. Another possible capability could be specific support
+    /// for code linters that could emit structured diagnostics with fix-its,
+    /// or for code formatters that can modify the source code as a separate
+    /// action outside the build.
     ///
     /// The package plugin itself is implemented using a Swift script that is
     /// invoked for each target that uses it. The script is invoked after the
@@ -79,23 +92,32 @@ extension Target {
     /// build parameters.
     ///
     /// Note that the role of the package plugin is only to define the commands
-    /// that will run before, during, or after the build. It does not itself run
-    /// those commands. The commands are defined in an IDE-neutral way, and are
-    /// run as appropriate by the build system that builds the package. The plugin
-    /// itself is only a procedural way of generating commands and their input and
-    /// output dependencies.
+    /// that will run before the build and during the build. It does not itself
+    /// run those commands. The commands are defined in an IDE-neutral way, and
+    /// are run as appropriate by the build system that builds the package. The
+    /// plugin itself is only a procedural way of generating commands and their
+    /// input and output dependencies.
     ///
     /// The package plugin may specify the executable targets or binary targets
     /// that provide the build tools that will be used by the generated commands
-    /// during the build. In the initial implementation, prebuild plugins can only
-    /// depend on binary targets. Build tool and postbuild plugins can depend on
-    /// executables as well as binary targets. This is due to limitations in how
-    /// SwiftPM constructs its build plan, and the goal is to remove this restric-
-    /// tion in a future release.
+    /// during the build. In the initial implementation, prebuild commands can
+    /// only depend on binary targets. Regular build commands can depend on exe-
+    /// cutables as well as binary targets. This is due to limitations in how
+    /// SwiftPM's build system constructs its build plan. It is a goal to remove
+    /// this restriction in a future release.
+    ///
+    /// The `path`, `exclude`, and `sources` parameters are the same as for any
+    /// other target, and allow flexibility in where the package author can put
+    /// the plugin scripts inside the package directory. The default subdirectory
+    /// for plugin targets is in a subdirectory called "Plugins", but this can
+    /// be customized using the `path` parameter.
     public static func plugin(
         name: String,
         capability: PluginCapability,
-        dependencies: [Dependency] = []
+        dependencies: [Dependency] = [],
+        path: String? = nil,
+        exclude: [String] = [],
+        sources: [String]? = nil
     ) -> Target
 }
 
@@ -104,7 +126,7 @@ extension Product {
     /// Defines a product that vends a package plugin target for use by clients
     /// of the package. It is not necessary to define a product for a plugin that
     /// is only used within the same package as it is defined. All the targets
-    /// listed must be plugin targets in the  same package as the product. They
+    /// listed must be plugin targets in the same package as the product. They
     /// will be applied to any client targets of the product in the same order
     /// as they are listed.
     public static func plugin(
@@ -115,54 +137,22 @@ extension Product {
 
 final class PluginCapability {
 
-    /// Plugins that define a `prebuild` capability define commands to run before
-    /// building the target. Such commands are run before every build, and can be
-    /// used for generating source code or for performing other actions where the
-    /// names of the output files cannot be determined before the command runs.
-    ///
-    /// Because the commands emitted by `prebuild` plugins are invoked on every
-    /// build, they can negatively impact build performance. Such commands should
-    /// therefore do their own dependency analysis to avoid any unnecessary work.
-    public static func prebuild() -> PluginCapability
-    
-    /// Pluginss that define a `buildTool` capability define commands to run at
-    /// various points during the build, as determined by their input and output
-    /// dependencies.
-    ///
-    /// This is the preferred kind of plugin when the names of the output files
-    /// can be determined before running the command. This is because it allows
-    /// the command to be incorporated into the build dependency graph, so that
-    /// it only runs when necessary.
-    /// 
-    /// Unlike commands generated by `prebuild` and `postbuild` plugins, those
-    /// generated by the `buildTool` plugin need to declare correct input and
-    /// output paths.
+    /// Plugins that define a `buildTool` capability define commands to run at vari-
+    /// ous points during the build.
     public static func buildTool(        
         /// Currently the plugin is invoked for every target that is specified as
         /// using it. Future SwiftPM versions could refine this so that plugins
         /// could, for example, provide input filename filters that further control
         /// when they are invoked.
     ) -> PluginCapability
-    
-    /// Plugins that define a `postbuild` capability define commands to run after
-    /// building the target. Such commands are run after every build, and can be
-    /// used for performing actions after all the artifacts have been built and the
-    /// fate of the build is known.
-    ///
-    /// Because the commands emitted by `postbuild` plugins are invoked on every
-    /// build, they can negatively impact build performance. Such commands should
-    /// therefore do their own dependency analysis to avoid any unnecessary work.
-    public static func postbuild() -> PluginCapability
-    
+        
     // The idea is to add additional capabilities in the future, each with its own
-    // semantics. A plugin can implement one or more of the capabilities, and
-    // will be invoked within a context relevant for that capability. This should
-    // be extensible to letting package plugins extend various parts of a build
-    // graph, such as testing, documentation generation, archiving actions, etc.
+    // semantics. A plugin can implement one or more of the capabilities, and it
+    // will be invoked within a context relevant for that capability.
 }
 ```
 
-To allow plugins to be used, the following API will be added to `PackageDescription`:
+To allow plugins to be applied to targets, the following API will be added to `PackageDescription`:
 
 ```swift
 extension Target {
@@ -184,8 +174,8 @@ final class PluginUsage {
     // Specifies the use of a package plugin with a given target or product name.
     // In the case of a plugin target in the same package, no package parameter is
     // provided; in the case of a plugin product in a different package, the name
-    // of the package that provides it needs to be specified.  This is analogous
-    // to product dependencies and target dependencies.
+    // of the package that provides it needs to be specified. This is analogous to
+    // product dependencies and target dependencies.
     public static func plugin(
         _ name: String,
         package: String? = nil
@@ -193,15 +183,18 @@ final class PluginUsage {
 }
 ```
 
-The plugins that a target uses are applied in the order in which they are listed — this allows one plugin to act on output files produced by another plugin.
+The plugins that a target uses are applied to it in the order in which they are listed — this allows one plugin to act on output files produced by another plugin.
 
 #### Plugin API
 
-The API of the new `PackagePlugin` library lets the plugin construct one or more build commands based on the build context for the client target. The context includes the target and module names, the set of source files in the target (including those generated by previously applied plugins), information about the target's dependency closure, and other inputs from the package. The context also includes environmental conditions such as the build directory, intermediates directory, etc.
+The API of the new `PackagePlugin` library lets the plugin construct build commands based on information about the target to which the plugin is applied. The context includes the target and module names, the set of source files in the target (including those generated by previously applied plugins), information about the target's dependency closure, and other inputs from the package.
 
-The initial proposed `PackagePlugin` API is:
+The initial proposed `PackagePlugin` API is the following:
 
 ```swift
+///
+/// PackagePlugin API
+///
 /// Like package manifests, package plugins are Swift scripts that use API
 /// from a special library provided by SwiftPM. In the case of plugins, this
 /// library is `PackagePlugin`. Plugins run in a sandbox, and have read-only
@@ -211,22 +204,26 @@ The initial proposed `PackagePlugin` API is:
 /// and can be accessed through the `targetBuildContext` global. The plugin
 /// defines commands to run during the build using the `commandConstructor`
 /// global, and can emit diagnostics using the `diagnosticsEmitter` global.
+///
 
-
-
-/// Provides information about the target being built, as well as contextual
-/// information such as the paths of the directories to which commands should
-/// be configured to write their outputs. This information should be used when
-/// generating the commands to be run during the build.
+/// The target build context provides information about the target to which
+/// the plugin is being applied, as well as contextual information such as
+/// the paths of the directories to which commands should be configured to
+/// write their outputs. This information should be used when generating the
+/// commands to be run during the build.
 let targetBuildContext: TargetBuildContext
 
-/// Constructs commands to run during the build, including full command lines.
-/// All paths should be based on the ones passed to the plugin in the target
-/// build context.
+/// The command constructor lets the plugin create commands that will run
+/// during the build, including their full command lines. All paths should
+/// be based on the ones passed to the plugin in the target build context.
 let commandConstructor: BuildCommandConstructor
 
-/// Emits errors, warnings, and remarks to be shown as a result of running the
-/// plugin.
+/// The diagnostics emitter lets the plugin emit errors, warnings, and remarks
+/// for issues discovered by the plugin. Note that diagnostics from the plugin
+/// itself are relatively rare, and relate to such things as missing tools or
+/// problems constructing the build command. Diagnostics from the build tools
+/// themselves are processed in the same way as any other output from a build
+/// tool.
 let diagnosticsEmitter: DiagnosticsEmitter
 
 
@@ -235,7 +232,7 @@ let diagnosticsEmitter: DiagnosticsEmitter
 /// be configured to write their outputs. This information should be used as
 /// part of generating the commands to be run during the build.
 protocol TargetBuildContext {
-    /// The name of the target being built.
+    /// The name of the target being built, as specified in the manifest.
     var targetName: String { get }
     
     /// The module name of the target. This is currently derived from the name,
@@ -244,28 +241,17 @@ protocol TargetBuildContext {
     var moduleName: String { get }
     
     /// The path of the target source directory.
-    var targetDir: FilePath { get }
+    var targetDirectory: Path { get }
     
     /// That path of the package that contains the target.
-    var packageDir: FilePath { get }
+    var packageDirectory: Path { get }
     
-    /// Absolute paths of the files in the target being built, including the
-    /// sources, resources, and other files. This also includes any source
-    /// files generated by other plugins that are listed earlier than this
-    /// plugin in the `plugins` parameter of the target being built.
+    /// Information about the input files specified in the target being built,
+    /// including the sources, resources, and other files. This sequence also
+    /// includes any source files generated by other plugins that are listed
+    /// earlier than this plugin in the `plugins` parameter of the target
+    /// being built.
     var inputFiles: FileList { get }
-    
-    /// Provides information about the input files in the target being built,
-    /// including sources, resources, and other files. The order of the files
-    /// is not defined but is guaranteed to be stable.
-    /// This allows the implementation to be more efficient than a static
-    /// file list.
-    protocol FileList: Sequence {
-        func makeIterator() -> FileListIterator
-    }
-    struct FileListIterator: IteratorProtocol {
-        mutating func next() -> FilePath?
-    }
     
     /// Information about all targets in the dependency closure of the target
     /// to which the plugin is being applied. This list is in topologically
@@ -274,8 +260,8 @@ protocol TargetBuildContext {
     /// generating lists of search path arguments, etc.
     var dependencies: [DependencyTargetInfo] { get }
     
-    /// Provides information about a target in the dependency closure of the
-    /// target to which the plugin is being applied.
+    /// Provides information about a target that appears in the dependency
+    /// closure of the target to which the plugin is being applied.
     protocol DependencyTargetInfo {
         
         /// The name of the target.
@@ -286,131 +272,274 @@ protocol TargetBuildContext {
         /// SwiftPM version.
         var moduleName: String { get }
         
-        /// The path of the target source directory.
-        var targetDir: FilePath { get }
+        /// Path of the target source directory.
+        var targetDirectory: Path { get }
+        
+        /// Path of the public headers directory, if any (Clang targets only).
+        var publicHeadersDirectory: Path? { get }
     }
 
-    /// The path of an output directory where the plugin or the build commands
-    /// it constructs can write anything it wants to. This includes generated
-    /// source files that should be further processed (by specifying them using
-    /// `CommandConstructor.addGeneratedSourceFile()`), and it could include
-    /// any caches used by the build tool or by the plugin itself. The plugin
-    /// is in complete control of what is written under this directory, and
-    /// the contents are preserved between builds.
-    var outputDir: FilePath { get }
-        
+    /// The path of a writable directory into which the plugin or the build
+    /// commands it constructs can write anything it wants. This could include
+    /// any generated source files that should be processed further, and it
+    /// could include any caches used by the build tool or the plugin itself.
+    /// The plugin is in complete control of what is written under this di-
+    /// rectory, and the contents are preserved between builds.
+    ///
+    /// A plugin would usually create a separate subdirectory of this directory
+    /// for each command it creates, and the command would be configured to
+    /// write its outputs to that directory. The plugin may also create other
+    /// directories for cache files and other file system content that either
+    /// it or the command will need.
+    var pluginWorkDirectory: Path { get }
+      
+    /// The path of the directory into which built products associated with
+    /// the target are written.
+    var builtProductsDirectory: Path { get }
+    
     /// Looks up and returns the path of a named command line executable tool.
-    /// The executable must be either in the toolchain or in the system search
-    /// path for executables, or be provided by an executable target or binary
-    /// target on which the package plugin target depends. Throws an error if
-    /// the tool cannot be found.
-    func lookupTool(named name: String) throws -> FilePath
+    /// The executable must be provided by an executable target or a binary
+    /// target on which the package plugin target depends. This function throws
+    /// an error if the tool cannot be found. The lookup is case sensitive.
+    func tool(named name: String) throws -> ToolInfo
+    
+    /// Information about a particular tool that is available to a plugin.
+    protocol ToolInfo {
+        /// Name of the tool, suitable for display purposes.
+        var name: String { get }
+        
+        /// Path of the built or provided tool in the file system.
+        var path: Path { get }
+    }
 }
 
-/// Constructs commands to run during the build, including full command lines,
+/// Constructs commands to run during the build, including command lines,
 /// environment variables, initial working directory, etc. All paths should
 /// be based on the ones passed to the plugin in the target build context.
 protocol CommandConstructor {
     
     /// Creates a command to run during the build. The executable should be a
-    /// path returned by `TargetBuildContext.lookupTool(named:)`, and all the
-    /// paths in both the command line and the input and output lists should be
+    /// tool returned by `TargetBuildContext.tool(named:)`, and any paths in
+    /// the arguments list as well as in the input and output lists should be
     /// based on the paths provided in the target build context structure.
     ///
-    /// Note that input and output dependencies are ignored for prebuild and
-    /// postbuild actions, since they always run before and after the build,
-    /// respectively. The display name will be shown in the build log when
-    /// the command is run.
-    func addCommand(
+    /// The build command will run whenever its outputs are missing or if its
+    /// inputs have changed since the command was last run. In other words,
+    /// it is incorporated into the build command graph.
+    ///
+    /// This is the preferred kind of command to create when the outputs that
+    /// will be generated are known ahead of time.
+    func addBuildCommand(
+        /// An arbitrary string to show in build logs and other status areas.
         displayName: String,
-        executable: FilePath,
+        /// The executable to be invoked; should be a tool looked up using
+        /// `tool(named:)`, which may reference either a binary-provided tool
+        /// or a source-built tool.
+        executable: Path,
+        /// Arguments to be passed to the tool. Any paths should be based on
+        /// the paths provided in the target build context.
         arguments: [String],
-        workingDirectory: FilePath? = nil,
+        /// Optional initial working directory of the command.
+        workingDirectory: Path? = nil,
+        /// Any custom settings for the environment of the subprocess.
         environment: [String: String] = [:],
-        inputPaths: [FilePath] = [],
-        outputPaths: [FilePath] = []
+        /// Input files to the build command. Any changes to the input files
+        /// cause the command to be rerun.
+        inputFiles: [Path] = [],
+        /// Output files that should be processed further, according to the
+        /// rules defined by the build system.
+        outputFiles: [Path] = []
     )
 
-    /// Registers a generated source file that will be passed to later stages
-    /// of the build. Note that this is separate from the output dependencies
-    /// specified when adding a command, which identify the paths of files and
-    /// directories created by the command but which are not treated as source
-    /// files for further processing.
-    func addGeneratedSourceFile(path: FilePath)
-    
-    /// Registers a directory into which a `prebuild` command will write output
-    /// files that should be considered as generated source files of the target
-    /// being built.
+    /// Creates a command to run before the build. The executable should be a
+    /// tool returned by `TargetBuildContext.tool(named:)`, and any paths in
+    /// the arguments list and the output files directory should be based on
+    /// the paths provided in the target build context structure.
     ///
-    /// It is an error to call this function from another kind of plugin than
-    /// one that has the `prebuild` capability.
-    func addPrebuildGeneratedSourceDirectory(path: FilePath)
+    /// The build command will run before the build starts, and is allowed to
+    /// create an arbitrary set of output files based on the contents of the
+    /// inputs.
+    ///
+    /// Because prebuild commands are run on every build, they are can have
+    /// significant performance impact and should only be used when there is
+    /// no way to know the names of the outputs before the command is run.
+    ///
+    /// The `outputFilesDirectory` parameter is the path of a directory into
+    /// which the command will write its output files. Any files that are in
+    /// that directory after the prebuild command finishes will be interpreted
+    /// according to same build rules as for sources.
+    func addPrebuildCommand(
+        /// An arbitrary string to show in build logs and other status areas.
+        displayName: String,
+        /// The executable to be invoked; should be a tool looked up using
+        /// `tool(named:)`, which may reference either a binary-provided tool
+        /// or a source-built tool.
+        executable: Path,
+        /// Arguments to be passed to the tool. Any paths should be based on
+        /// the paths provided in the target build context.
+        arguments: [String],
+        /// Optional initial working directory of the command.
+        workingDirectory: Path? = nil,
+        /// Any custom settings for the environment of the subprocess.
+        environment: [String: String] = [:],
+        /// A directory into which the command can write output files that
+        /// should be processed further.
+        outputFilesDirectory: Path
+    )
 }
 
 /// Emits errors, warnings, and remarks to be shown as a result of running
 /// the plugin. If any errors are emitted, the plugin is considered to have
 /// have failed, which will be reported to users during the build.
 protocol DiagnosticsEmitter {
-    func emit(error message: String, file: FilePath? = nil, line: Int? = nil)
-    func emit(warning message: String, file: FilePath? = nil, line: Int? = nil)
-    func emit(remark message: String, file: FilePath? = nil, line: Int? = nil)
+    func emit(error message: String, file: Path? = nil, line: Int? = nil)
+    func emit(warning message: String, file: Path? = nil, line: Int? = nil)
+    func emit(remark message: String, file: Path? = nil, line: Int? = nil)
 }
 
-/// In addition, the API of `FilePath` from SwiftSystem will be available.
+/// Provides information about a list of files. The order is not defined
+/// but is guaranteed to be stable. This allows the implementation to be
+/// more efficient than a static file list.
+protocol FileList: Sequence {
+    func makeIterator() -> FileListIterator
+}
+struct FileListIterator: IteratorProtocol {
+    mutating func next() -> FileInfo?
+}
+
+/// Provides information about a single file in a FileList.
+protocol FileInfo {
+    var path: Path { get }
+    var type: FileType { get }
+}
+
+/// Provides information about the type of a file. Any future cases will
+/// use availability annotations to make sure existing plugins still work
+/// until they increase their required tools version.
+enum FileType {
+    /// A source file.
+    case source
+    /// A resource file (either processed or copied).
+    case resource
+    /// A file not covered by any other rule.
+    case unknown
+}
+
+/// A simple representation of a path in the file system. This is aligned
+/// with SwiftSystem.FilePath to minimize any changes if that is adopted
+/// in the future.
+protocol Path: ExpressibleByStringLiteral, CustomStringConvertible {
+    /// A string representation of the path.
+    public var string: String { get }
+    
+    /// The last path component (including any extension).
+    public var lastComponent: String { get }
+    /// The last path component (without any extension).
+    public var stem: String { get }
+    /// The filename extension, if any (without any leading dot).
+    public var `extension`: String? { get }
+    
+    /// The path except for the last path component.
+    public func removingLastComponent() -> Path { get }
+    /// The result of appending one or more path components.
+    public func appending(_ other: [String]) -> Path
+    /// The result of appending one or more path components.
+    public func appending(_ other: String, ...) -> Path
+
+  }
 ```
 
-#### Plugin Invocation
+#### How SwiftPM Applies Plugins to Targets
 
-During package graph resolution, packages and any binary artifacts are fetched as usual. After resolving the package graph, SwiftPM invokes the package plugins that are used by the targets in the package graph.
+During package graph resolution, all package dependencies and binary artifacts are fetched as usual. After resolving the package graph, SwiftPM applies build tool plugins to any target that has a `plugins` parameter in its declaration in the package manifest.
 
-Applying a plugin to a client target is done in a similar way to how package manifests are evaluated. This is largely an implementation detail, but the semantics are as if the Swift script that implements the plugin is interpreted — or is compiled to an executable and then run — in a sandbox. Input from SwiftPM is passed to the plugin in serialized form and made available through the `TargetBuildContext` type in the `PackagePlugin` API.  Output from the plugin, generated via `CommandConstructor` and `DiagnosticsEmitter` calls, is passed back to SwiftPM in a similar manner.
+An error is reported if any of the plugins specified by a target cannot be found in the dependency closure of the target, or if they have a different capability than `buildTool`. The plugins are applied to the target in the order in which they are listed in `plugins`.
 
-If the plugin script throws an uncaught `Swift.Error` or emits at least one error diagnostic, the invocation of the plugin to the target is considered to have failed, and an error is reported to the user. This is also the case if the plugin script contains a syntax errors or if there is any other error invoking it.
+Applying a plugin to a target is done by executing the Swift script that implements it, passing inputs that describe the target to which the plugin is being applied, and interpreting its outputs as instructions for SwiftPM. The plugin is run — either by interpreting it or by compiling it to an executable and running it —in a sandbox that prevents network access and that restricts file system access.
 
-Each plugin is invoked once per usage by a target, with that target’s context as its input (plugins that are defined but not used are not invoked at all). The command definitions emitted by a package plugin are used to set up build commands to run before, during, or after the build. Any diagnostics emitted by the plugin are shown to the user, and any errors cause the build to fail.
+SwiftPM passes input to the plugin in serialized form, which is decoded and made available through the `TargetBuildContext` structure in the `PackagePlugin` API. For a build tool plugin this input includes information about the target to which the plugin is being applied, and about any other targets on which it has dependencies.
 
-The commands that run before and after the build (as indicated by specifying `prebuild` and `postbuild`, respectively, as the plugin capability) run before and after the actual build occurs. Output files created by `prebuild` commands can feed into the build plan creation, if they are emitted into directories designated by the plugin as prebuild output directories (using `CommandConstructor.addPrebuildGeneratedSourceDirectory()`). This allows such commands to generate output files whose names are not known until the command runs.
+Output from the plugin, generated via `CommandConstructor` and `DiagnosticsEmitter` calls, is passed back to SwiftPM in a serialized form.
 
-When SwiftPM applies a plugin to a particular target, it passes an output directory that is unique to that combination of target and plugin.  The plugin and the commands it invokes have write access to this directory, and should use it for any intermediates or caches needed by the plugin or by the command that it invokes, and should also create any derived sources under this directory. The plugin should specify any generated source files that should be fed back into the build system using `CommandConstructor.addGeneratedSourceFile()` for a build command or `CommandConstructor.addPrebuildGeneratedSourceDirectory()` for a prebuild command. Any other files written to the output directory are considered a private implementation detail of the plugin.
+If the plugin script throws an uncaught `Swift.Error` or emits one or more error diagnostics, the invocation of the plugin is considered to have failed, and an error is reported to the user. This is also the case if the plugin script contains syntax errors, or if there is any other error invoking it.
 
-Because prebuild and postbuild commands are run on every build, they can negatively impact build performance. Such commands should do their own dependency analysis and use caching to avoid any unnecessary work. Caches can be written to the output directory given as input to the plugin when it is invoked, as described earlier.
+Each biuld tool plugin is invoked once for each target to which it is applied, with that target’s context as its input. Plugins that are defined but never used are not invoked at all. The command definitions emitted by a package plugin are used to set up build commands to run before or during a build.
 
-Command invocations emitted by plugins that have the `buildTool` capability can additionally specify input and output dependencies. These commands are incorporated into the build graph, and are only run when their outputs are missing or their inputs have changed. This is preferable when the names of outputs and inputs can be predicted before running the command, since it lets the commands use the build system’s dependency analysis to only run the commands when needed.
+Any diagnostics emitted by the plugin are shown to the user, and any errors cause the build to fail. Any console output emitted by the plugin script is shown as debug output.
 
-It is important to emphasize the distinction between a package plugin and any build commands it defines:
+It is important to emphasize the distinction between a package plugin and the build commands it defines:
 
-- The *plugin* is invoked after the structure of the target that uses it is known but before any build commands are run. It may also be invoked again if there the target structure or other input conditions change. It is not invoked again when the *contents* of files change.
+- The *plugin* is invoked after the structure of the target that uses it is known, but before any build commands are run. It may also be invoked again if the target structure or other input conditions change. A build tool plugin is not invoked again when the *contents* of source files change.
 
-- The *commands* that are constructed by an plugin using the `CommandConstructor` API are invoked before, during, or after each build, in accordance with their defined input and output dependencies.
+- The *commands* that are created by a plugin using the `CommandConstructor` API are invoked either before or during the build, in accordance with their defined input and output dependencies.
 
-Binary targets will be improved to allow them to contain command line tools and required support files (such as the system `.proto` files in the case of `protoc`, etc). Binary targets will need to support different executable binaries based on platform and architecture. This is the topic of a separate evolution proposal to extend binary targets to support executables in addition to XCFrameworks.
+When SwiftPM applies a plugin to a particular target, it passes the path of a directory that is unique to that combination of target and plugin. The plugin and the commands it invokes have write access to this work directory, and should use it for any intermediates or caches needed by the plugin or by the commands it creates, and should also write any derived sources inside this directory (or in subdirectories of it). The plugin should specify any generated source files that should be fed back into the build system by providing their paths when creating the command. Any other files written to the output directory are considered a private implementation detail of the plugin. The contents are preserved between builds but are removed when "cleaning" the build (i.e. when removing intermediates, such as `.o` files, etc).
+
+When SwiftPM invokes a plugin, it also passes information about any build tools on which the plugin has declared dependencies in the manifest. These build tools may be either executable targets in the package graph or may be binary targets containing prebuilt executables.
+
+The `binaryTarget` type in SwiftPM will be improved to allow binaries to contain command line tools and required support files (such as the system `.proto` files in the case of `protoc`, etc). Binary targets will need to support different executable binaries based on platform and architecture. This is the topic of the separate evolution proposal [SE-0305](https://github.com/apple/swift-evolution/blob/main/proposals/0305-swiftpm-binary-target-improvements.md), which extends binary targets to support executables in addition to XCFrameworks.
 
 #### Plugin Capabilities
 
-This proposal defines three different plugin capabilities, which determine how the plugin is used.
+Although this proposal defines a general approach to plugins, it specifies only one initial capability: `buildTool`. This capability is used for plugins that generate various kinds of build commands using the `CommandConstructor` APIs.
 
-- `prebuild` — This capability indicates that the commands defined by the plugin should run before the start of every build. This capability should only be used when the paths of the inputs and outputs of the command cannot be known until the command is actually run. When the outputs paths are known ahead of time, the `buildTool` capability should instead be used.
-  Examples of plugins that need to use the `prebuild` capability include SwiftGen and other tools that need to see the whole input and whose output files are determined by the contents (not just the paths) of the input files. Such a plugin usually generates just one command and configures it with an output directory into which all generated sources will be written.
-  Because they run on every build, prebuild commands should use caching to do as little work as possible (ideally none) when there are no changes to their inputs.
-- `buildTool` — This capability indicates that the commands defined by the plugin should be incorporated into the build system's dependency graph, so that they run as needed during the build based on their declared inputs and outputs. This requires that the paths of any outputs can be known before the command is run (usually by forming the names of the outputs from some combination of the output directory and the name of the input file).
-  Examples of plugins that can use the `buildTool` capability include most compiler-like tools, such as Protobuf and other tools that take a fixed set of inputs and produce a fixed set of outputs (a nuance with Protobuf in particular is that it up to the source generator passed to `protoc` to determine the output paths, but the relevant source generators for Swift and C emit outputs havin predictable names).
-  The `buildTool` capability is preferable when possible, since commands don't have to run unless their outputs are missing or their inputs have changed since the last time they ran.
-- `postbuild` — This capability indicates that the commands defined by the plugin should run after the end of every build. This can be used for postprocessing of artifacts or for documentation generation.
-  Because they run on every build, postbuild command should use caching to do as little work as possible (ideally none) when there are no changes to their inputs.
+Future proposals may extend the `CommandConstructor` APIs to support new kinds of build commands for the `buildTool` capability, but the intent is also that entirely new kinds of capabilities can be defined in the future. New capabilities may focus on specific areas of functionality, such as source code formatters or linters, new types of unit tests, or actions that can be invoked on-demand to perform particular tasks.
 
-#### Error Handling
+Significantly different types of plugin functionality are likely to use different capabilities. They would also be coupled with new `PackagePlugin` APIs oriented toward those capabilities, such as an input context that is oriented toward the conditions under which the new capability would be invoked.
 
-An errors emitted by the build command will be handled by the build system as for other build commands. SwiftPM will should output on console, and IDEs that use libSwiftPM will show it as it does for the other build commands.
+In the package manifest, the capability is expressed as a function invocation rather than an enum in order to make it easier to add arguments with default values in the future.
 
-Diagnostics from the plugin script itself can be reported using `DiagnosticsEmitter` APIs. Also, uncaught `Error`s thrown at the top level of the script will be emitted as errors. In either case, if there are any errors, the plugin script will be considered to have failed, and SwiftPM and any IDEs that use libSwiftPM will emit them as it does with other configuration errors. In an IDE this would be similar to errors encountered during the rule matching of source file types, for example.
+#### Types of Build Commands
 
-The script can use `print()` statements to emit debug output, and it will be shown in SwiftPM's console and as detailed output text in the build logs of IDEs that use libSwiftPM.
+The initial `PackagePlugin` API allows a plugin to define two different kinds of build commands: build commands and prebuild commands. They both involve invoking a build tool with a particular command line and environment, but the specific semantics of each make them suitable for different purposes.
+
+Whenever the command is used for generating other files and when the names of the output files can be determined before the command is run, a regular build command should be used. This lets the command be incorporated into the build system and the outputs be processed according to the build system's rules.
+
+Prebuild commands should be used when the tool being invoked can produce outputs whose names are determined by the _contents_ (not names) of the input files, or when there are other reasons why the names of the outputs cannot be known before actually running the command.
+
+##### Build Commands
+
+Commands created using `addBuildCommand()` are incorporated into the build system's dependency graph, so that they run as needed during the build, based on their declared inputs and outputs. This requires that the paths of any outputs can be known before the command is run. This is usually done by forming the names of the outputs from some combination of the output directory and the name of the input file.
+
+Examples of plugins that can use regular build commands include compiler-like translators such as Protobuf and other tools that take a fixed set of inputs and produce a fixed set of outputs. (note that one nuance with Protobuf in particular is that it is actually up to the source generator invoked by `protoc` to determine the output paths — however, the relevant source generators for Swift and C do produce output files with predictable names).
+
+Other examples include translators that "compile" data files in JSON or other editable formats to a suitable binary runtime respresentation.
+
+Regular build commands with defined outputs are preferable whenever possible, because such commands don't have to run unless their outputs are missing or their inputs have changed since the last time they ran.
+
+##### Prebuild Commands
+
+Commands created using `addPrebuildCommand()` are run before the start of every build. When creating prebuild commands, the plugin needs to specify a directory into which the command will write its output files. This is how the prebuild command communicates its outputs to the build system.
+
+Before invoking a prebuild command, the build system will create the associated output directory if needed (but it will not remove any directory contents that already exist). After invoking the command, SwiftPM will use the contents of that directory as inputs to the construction of other build commands. The prebuild command should add or remove files so that the directory contents match the source files that should be processed by the build system. If the set of files in the directory has changed since the last time the prebuild command was run, the build system planning will be updated so that the changed file set is incorporated into the build.
+
+Every plugin invocation is passed the path of a directory in `targetBuildContext.pluginWorkDirectory`. A plugin would usually create a separate subdirectory of this directory for each prebuild command it creates, and the command would be configured to write its output files into that directory. The plugin may also create other subdirectories for cache files and other file system content that either it or the command needs. If these additional files need to be available to the command, the plugin would construct the command line to include their paths, for the command to use.
+
+Examples of plugins that need to use prebuild commands include SwiftGen and other tools that need to see all the input files, and whose set of output files is determined by the *contents* (not just the paths) of the input files. Such a plugin usually generates just one command and configures it with an output directory into which all generated sources will be written.
+
+Because they run on every build, prebuild commands should use caching to do as little work as possible (ideally none) when there are no changes to their inputs. This should include preserving the timestamps of generated source files whose contents haven't changed, since most build systems (including SwiftPM's own build system) use timestamps as a shorthand for detecting whether files have changed.
+
+#### Using Command to Postprocess Built Artifacts
+
+This proposal focuses on tools that run during the build, as part of constructing artifacts. A future proposal could define new plugin capabilities for more general actions that should take place at the very end of a build, after tests have completed.
+
+Nonetheless it is sometimes useful to define commands that run at the end of the build in order to post-process the built artifacts. This may include modifying the contents of property lists or other data files in custom ways, or it might include modifying various properties of linked executables, etc.
+
+Regular build commands can be used for this purpose if they are configured with artifacts inside the built-products directory as their inputs.
+
+#### Plugin Errors
+
+Any errors emitted by the build command will be handled by the build system in the same way as for other build commands. SwiftPM will show the output in its console output, and IDEs that use libSwiftPM will show it in the same way as it does for the other build commands.
+
+Diagnostics from the plugin script itself can be reported using `DiagnosticsEmitter` APIs. Also, any uncaught `Swift.Error` thrown at the top level of the script will be emitted as errors. In either case, if there are any errors, the plugin script will be considered to have failed, and SwiftPM and any IDEs that use libSwiftPM will emit them as it does with other configuration errors. In an IDE this would be similar to errors encountered during the rule matching of source file types, for example.
+
+The script can use `print()` statements to emit debug output, which will be shown in SwiftPM's console and as detailed output text in the build logs of IDEs that use libSwiftPM.
 
 ## Example 1: SwiftGen
 
 This example is a package that uses SwiftGen to generate source code for accessing resources. The package plugin can be defined in the same package as the one that provides the source generation tool (SwiftGen, in this case), so that client packages access it just by adding a package dependency on the SwiftGen package.
 
-The `swiftgen` command may generate output files with any name, and they cannot be known without either running the command or separately parsing the configuration file. In this initial proposal for build plugins, this means that the SwiftGen plugin must construct a `prebuild` command in order for the source files it generates to be processed during the build.
+The `swiftgen` command may generate output files with any name, and they cannot be known without either running the command or separately parsing the configuration file. In this initial proposal for build plugins, this means that the SwiftGen plugin must construct a prebuild command in order for the source files it generates to be processed during the build.
 
 #### Client Package
 
@@ -422,8 +551,8 @@ MyPackage
  ├ swiftgen.yml
  └ Sources
     └ MyLibrary
-        ├ Assets.xcassets
-        └ SourceFile.swift
+       ├ Assets.xcassets
+       └ SourceFile.swift
 ```
 
 
@@ -470,7 +599,7 @@ SwiftGen
        └ plugin.swift     
 ```
 
-In this case, `plugin.swift` is the Swift script that implements the package plugin target. The plugin is treated as a Swift executable, so it can consist of either a single Swift source file with any name, or multiple Swift source files of which one is named `main.swift`.
+In this case, `plugin.swift` is the Swift script that implements the package plugin target. The plugin is treated as a Swift executable, so it can consist of either a single Swift source file having any name, or multiple Swift source files of which one is named `main.swift`.
 
 The package manifest would have a `plugin` target in addition to the existing target that provides the `swiftgen` command line tool itself:
 
@@ -483,13 +612,10 @@ let package = Package(
     targets: [
         /// Package plugin that tells SwiftPM how to run `swiftgen` based on
         /// the configuration file. Client targets use this plugin by listing
-        /// it in their `plugins` parameter. This example uses the `prebuild`
-        /// capability, to make `swiftgen` run before each build.
-        /// A different example might use the `builtTool` capability, if the
-        /// names of inputs and outputs could be known ahead of time.
+        /// it in their `plugins` parameter.
         .plugin(
             name: "SwiftGenPlugin",
-            capability: .prebuild(),
+            capability: .buildTool(),
             dependencies: ["SwiftGen"]
         ),
         
@@ -503,37 +629,39 @@ let package = Package(
 )
 ```
 
-The package plugin script implementing the `prebuild` capability might look like this:
+The package plugin script might look like this:
 
 ```swift
 import PackagePlugin
 
-// This example configures `swiftgen` to write to a "SwiftGenOutputs" directory.
-let generatedSourcesDir = targetBuildContext.outputDir.appending("SwiftGenOutputs")
-commandConstructor.addPrebuildGeneratedSourceDirectory(generatedSourcesDir)
+// This example configures `swiftgen` to take inputs from a `swiftgen.yml` file.
+let swiftGenConfigFile = targetBuildContext.packageDirectory.appending("swiftgen.yml")
+
+// This example configures the command to write to a "GeneratedSources" directory.
+let genSourcesDir = targetBuildContext.pluginWorkDirectory.appending("GeneratedSources")
 
 // Create a command to run `swiftgen` as a prebuild command. It will be run before
 // every build and generates source files into an output directory provided by the
 // build context.
-commandConstructor.addCommand(
+commandConstructor.addPrebuildCommand(
     displayName: "Running SwiftGen",
-    executable:
-        try targetBuildContext.lookupTool(named: "swiftgen"),
+    executable: try targetBuildContext.tool(named: "swiftgen"),
     arguments: [
         "config", "run",
-        "--config", "\(targetBuildContext.packageDir.appending("swiftgen.yml"))"
+        "--config", "\(swiftGenConfigFile)"
     ],
     environment: [
-        "PROJECT_DIR": "\(targetBuildContext.packageDir)",
+        "PROJECT_DIR": "\(targetBuildContext.packageDirectory)",
         "TARGET_NAME": "\(targetBuildContext.targetName)",
-        "DERIVED_SOURCES_DIR": "\(generatedSourcesDir)",
-    ]
+        "DERIVED_SOURCES_DIR": "\(genSourcesDir)",
+    ],
+    outputFilesDirectory: genSourcesDir
 )
 ```
 
 An alternate use of `swiftgen` could instead invoke it once for each input file, passing it output files whose names are derived from the names of the input files. This might, however, make per-file configuration somewhat more difficult.
 
-There is a trade-off here between implementing a `prebuild` command or a `buildTool` commnand. Future improvements to SwiftPM's build system (and to those of any IDEs providing support for Swift packages) could let it support commands whose outputs aren't known until it is run.
+There is a trade-off here between implementing a prebuild command or a regular build command. Future improvements to SwiftPM's build system — and to those of any IDEs that support Swift packages — could let it support commands whose outputs aren't known until it is run.
 
 Possibly, the `swiftgen` tool itself could also be modified to provide a simplified way to invoke it, to take advantage of SwiftPM's new ability to dynamically provide the names of the input files in the target.
 
@@ -552,8 +680,8 @@ MyPackage
  ├ Package.swift
  └ Sources
     └ MyExe
-        ├ messages.proto
-        └ main.swift
+       ├ messages.proto
+       └ main.swift
 ```
 
 The `messages.proto` source file needs to be processed using the `protoc` compiler to generate Swift source files that are then compiled. In addition, the `protoc` compiler needs to be passed the path of a source generator plug-in built by the SwiftProtobuf package.
@@ -597,6 +725,10 @@ The structure of the hypothetical `SwiftProtobuf` target that provides the plugi
 SwiftProtobuf
  ├ Package.swift
  └ Sources
+    ├ SwiftProtobufRuntimeLib
+    │  └ ...
+    ├ protoc-gen-swift
+    │  └ ...
     └ SwiftProtobuf
        └ plugin.swift     
 ```
@@ -613,13 +745,13 @@ let package = Package(
         /// Package plugin that tells SwiftPM how to deal with `.proto` files.
         .plugin(
             name: "SwiftProtobuf",
-            capability: .buildTool()
+            capability: .buildTool(),
             dependencies: ["protoc", "protoc-gen-swift"]
         ),
                 
         /// Binary target that provides the prebuilt `protoc` executable.
         .binaryTarget(
-            name: "protoc"
+            name: "protoc",
             url: "https://url/to/the/built/protoc-executables.zip",
             checksum: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         ),
@@ -649,15 +781,21 @@ import Foundation
 
 // In this case we generate an invocation of `protoc` for each input file, passing
 // it the path of the `protoc-gen-swift` generator tool.
-let protocPath = try targetBuildContext.lookupTool(named: "protoc")
-let protocGenSwiftPath = try targetBuildContext.lookupTool(named: "protoc-gen-swift")
+let protocTool = try targetBuildContext.tool(named: "protoc")
+let protocGenSwiftTool = try targetBuildContext.tool(named: "protoc-gen-swift")
 
-/// Construct the search paths for the .proto files, which can include any of the
-/// targets in the dependency closure. Here we assume that the public ones are in
-/// a "protos" directory, but this can be made arbitrarily complex.
+// Construct the search paths for the .proto files, which can include any of the
+// targets in the dependency closure. Here we assume that the public ones are in
+// a "protos" directory, but this can be made arbitrarily complex.
 var protoSearchPaths = targetBuildContext.dependencies.map { target in
-    target.targetDir.appending("protos")
+    target.targetDirectory.appending("protos")
 }
+
+// This example configures the commands to write to a "GeneratedSources" directory.
+let genSourcesDir = targetBuildContext.pluginWorkDirectory.appending("GeneratedSources")
+
+// This example uses a different directory for other files generated by the plugin.
+let otherFilesDir = targetBuildContext.pluginWorkDirectory.appending("OtherFiles")
 
 // Add the search path to the system proto files. This sample implementation assumes
 // that they are located relative to the `protoc` compiler provided by the binary
@@ -668,7 +806,7 @@ protoSearchPaths.append(protocPath.removingLastComponent().appending("system-pro
 // `protoc` plug-in we are using requires. The details are not important for this
 // proposal, except that it needs to be able to be constructed from the information
 // in the target build context, and written out to the intermediates directory.
-let moduleMappingsFile = targetBuildContext.outputDir.appending("module-mappings")
+let moduleMappingsFile = otherFilesDir.appending("module-mappings")
 . . .
 // (code to generate the module mappings file)
 . . .
@@ -676,36 +814,33 @@ let outputData = outputString.data(using: .utf8)
 FileManager.default.createFile(atPath: moduleMappingsFile, contents: outputData)
 
 // Iterate over the .proto input files.
-for inputPath in targetBuildContext.inputPaths.filter { $0.extension == "proto" } {
+for inputFile in targetBuildContext.inputFiles.filter { $0.path.extension == "proto" } {
     // Construct the `protoc` arguments.
     var arguments = [
         "--plugin=protoc-gen-swift=\(protoGenSwiftPath)",
-        "--swift_out=\(targetBuildContext.outputDir)",
+        "--swift_out=\(genSourcesDir)",
         "--swift_opt=ProtoPathModuleMappings=\(moduleMappingFile)"
     ]
     arguments.append(contentsOf: protoSearchPaths.flatMap { ["-I", $0] })
-    arguments.append(inputPath)
+    arguments.append(inputFile.path)
     
     // The name of the output file is based on the name of the input file, in a way
     // that's determined by the protoc source generator plug-in we're using.
-    let outputName = inputPath.lastComponent.stem + ".swift"
-    let outputPath = targetBuildContext.outputDir.appending(outputName)
+    let outputName = inputFile.path.stem + ".swift"
+    let outputPath = genSourcesDir.appending(outputName)
     
     // Construct the command. Specifying the input and output paths lets the build
     // system know when to invoke the command.
-    commandConstructor.addCommand(
-        displayName: "Generating \(outputName) from \(inputPath.lastComponent)",
-        executable: protocPath,
+    commandConstructor.addBuildCommand(
+        displayName: "Generating \(outputName) from \(inputFile.path.lastComponent())",
+        executable: protocTool.path,
         arguments: arguments,
-        inputs: [inputPath],
-        outputs: [outputPath])
-    
-    // Register the generated source file so it will be compiled.            
-    delegate.addGeneratedSourceFile(outputPath)
+        inputFiles: [inputFile.path],
+        outputFiles: [outputPath])
 }
 ```
 
-In this case, the script iterates over the input files that have a `.proto` suffix, creating a command to invoke the compiler for each one.
+In this case, the script iterates over the input files that have a `.proto` suffix, creating a command to invoke the Protobuf compiler for each one.
 
 ## Example 3: Source Analyzer
 
@@ -744,7 +879,7 @@ let package = Package(
     targets: [
         .plugin(
             name: "GenSwifty",
-            capability: .buildTool()
+            capability: .buildTool(),
             dependencies: ["GenSwiftyTool"]
         ),
         .executable(
@@ -802,7 +937,7 @@ let package = Package(
 )
 ```
 
-In this case the `.plugin()` in the `plugin` parameter refers to a plugin target defined in the same package, so it does not have a `package` parameter and no product needs to be defined.
+In this case, the `.plugin()` expression in the `plugin` parameter refers to a plugin target defined in the same package, so it does not need a `package` parameter and no product needs to be defined.
 
 The implementation of the package plugin script would be similar to the previous examples, but with a somewhat differently formed command line to transform the `.dat` file into something else.
 
@@ -812,30 +947,33 @@ The new API and functionality will only be available to packages that specify a 
 
 ## Security
 
-Package plugins will be run in a sandbox that prevents network access and writing to the file system except to intermediate directories (similar to package manifests). In addition, SwiftPM and IDEs that use libSwiftPM should run each command generated by an plugin in a sandbox.
+Package plugins will be run in a sandbox that prevents network access and restricts writing to the file system to specific intermediate directories. This is the same sandbox that manifest parsing uses, except that it allows writing to a limited set of output directories.
 
-There is inherent risk in running build tools provided by other packages. This can possibly be mitigated by requiring the root package to list the approved package plugins. This requires further consideration.
+In addition, SwiftPM and IDEs that use libSwiftPM should run each command generated by an plugin in a sandbox. This sandbox should prevent all network access, and should only allow writing to the directories specified as outputs by the plugin.
+
+There is inherent risk in running build tools provided by other packages. This can possibly be mitigated by requiring the root package to list the approved package plugins, no matter where they are in the graph. This requires further consideration, and would be a subject of a future proposal.
 
 ## Future Directions
 
 This proposal is intentionally fairly basic and leaves many improvements for the future. Among them are:
 
-- the ability for package plugins to define new types that can be used to configure those plugins in package manifests
-- the ability for a build tool to have depend on different packages than the clients of the plugin that uses it
+- the ability for a build tool to have a separate dependency graph so that it can use different versions of the same packages as those used by the client of the build tool
 - the ability for plugins to have access to the full build graph at a detailed level
 - the ability for prebuild actions to depend on tools built by SwiftPM
 - the ability for package plugin scripts to use libraries provided by other targets
 - the ability for build commands to emit output files that feed back into the rule system to generate new work during the build (this requires support in SwiftPM's native build system as well as in the build systems of some IDEs that use libSwiftPM)
 - the ability to provide per-target type-safe options to a use of an plugin (details below)
+- the ability to define commands that run after building and testing is complete
+- specific support for testing plugin scripts (they can currently be tested using test fixtures that exercise the plugins, but it would be useful to be able to invoke them directly, for example through a `swift package` command that invokes the plugin with specific inputs)
 
 
-#### Type-Safe Options
+### Type-Safe Options
 
-We are aware that many plugins will want to allow specific per-target configuration which would be best done in the package manifest of the project using the plugin.
+We are aware that many plugins will want to allow specific per-target configuration which would be best done in the package manifest of the package that uses the plugin.
 
 We are purposefully leaving options out of this initial proposal, and plan to revisit and add these in a future proposal.
 
-In theory options, could just be done as a dictionary of string key/values, like this:
+In theory, options could just be done as a dictionary of string key-value pairs, like this:
 
 ```swift
 // NOT proposed
@@ -844,9 +982,9 @@ In theory options, could just be done as a dictionary of string key/values, like
 
 However, we believe that this results in a suboptimal user experience. It is hard to know what the available keys are, and what values are accepted. Is only `"Public"` correct in this example, or would `"public"` work too?
 
-We would therefore prefer to exclude plugin options from this proposal and explore a type-safe take on options in a future proposal.
+We would therefore prefer to exclude plugin options from this proposal and explore a type-safe approach to options in a future proposal.
 
-We would especially like to let plugins define some form of `struct MyOptions: PluginOptions` type, where `PluginOptions` is also `Codable`, and SwiftPM would take care of serializing these options and providing them to the plugin.
+We would especially like to allow plugins to define some form of `struct MyOptions: PluginOptions` type, where `PluginOptions` is also `Codable`. SwiftPM could then take care of serializing these options and providing them to the plugin.
 
 This would allow something like this:
 
@@ -854,7 +992,7 @@ This would allow something like this:
 .plugin(name: "Foo", options: FooOptions(visibility: .public)) // type-safe!
 ```
 
-Such a design is difficult to implement well, because it would require the plugin to add a type that is accessible to the package package manifest. It would also mean that the package manifest couldn't be parsed at all until the plugin module providing the types has been compiled.
+Such a design is difficult to implement well, because it would require the plugin to add a type that is accessible to the package package manifest. It would also mean that the package manifest couldn't be parsed at all until the plugin module that provides the types has been compiled.
 
 Designing such type safe options is out of scope for this initial proposal, as it involves many complexities with respect to how the types would be made available from the plugin definition to the package manifest that needs them.
 
@@ -864,11 +1002,43 @@ It is an area we are interested in exploring and improving in the near future, s
 
 This proposal uses the existing facilities that SwiftPM provides for declaring dependencies on packages that provide plugins and tools. This keeps the scope of the proposal bounded enough to allow it to be implemented in the near term, but it does mean that it does not allow there to be any conflicts between the set of package dependencies that the build tool needs compared with those that the client package needs.
 
-For example, a situation in which a build tool needs [Yams](https://github.com/jpsim/Yams) v3.x while a package client needs v4.x would not be supported by this proposal, even though it would pose no real problem at runtime. It would be very desirable to support this, but that would require significant work on SwiftPM to allow it to keep multiple independent package graphs.  It should be noted that if a package vends both a build tool and a runtime library that clients using the build tool must link against, then even this apparently simple case would get more complicated.  In this case the runtime library would have to use Yams v4.x in order to be usable by the client package, even if the tool itself used Yams v3.x.
+For example, a situation in which a build tool needs [Yams](https://github.com/jpsim/Yams) v3.x while a package client needs v4.x would not be supported by this proposal, even though it would pose no real problem at runtime. It would be very desirable to support this, but that would require significant work on SwiftPM to allow it to keep multiple independent package graphs. It should be noted that if a package vends both a build tool and a runtime library that clients using the build tool must link against, then even this apparently simple case would get more complicated. In this case the runtime library would have to use Yams v4.x in order to be usable by the client package, even if the tool itself used Yams v3.x.
 
-It should also be noted that this is no different from a package that defines an executable and a library and would like to use a particular version of Yams without requiring the client of the library to use a compatible version. This is not support in SwiftPM today either, and it is in fact another manifestation of the same problem.
+It should also be noted that this is no different from a package that defines an executable and a library and would like to use a particular version of Yams without requiring the client of the library to use a compatible version. This is not supported in SwiftPM today either, and it is in fact another manifestation of the same problem.
 
-Solving this mixture of build-time and run-time package dependencies is possible but not without significant work in SwiftPM (and IDEs that use libSwiftPM).  We think that this proposal could be extended to support declaring such dependencies in the future, and that even with this restriction, this proposal provides useful functionality for packages.
+Solving this mixture of build-time and run-time package dependencies is possible but not without significant work in SwiftPM (and IDEs that use libSwiftPM). We think that this proposal could be extended to support declaring such dependencies in the future, and that even with this restriction, this proposal provides useful functionality for packages.
+
+### A More Sophisticated `Path` Type
+
+The current `Path` type provided in the `PackagePlugin` API is intentionally kept minimal, and should be sufficient for the needs of most plugins. A future version of this proposal would extend this type, possibly aligning it with `SwiftSystem`'s `FilePath` type. The initial API has purposefully been kept the same as `FilePath` to make such a transition easier.
+
+An alternate direction would be to replace it with a more domain-specific representation that could also keep track of the path root in relation to the directories that matter to packages and build systems, avoiding the need to form absolute paths.
+
+Since the API that is available to the plugin script is based on the tools version of the package that contains it, existing plugin scripts are expected to be able to run without modification even if the API does change.
+
+### Contextual Information About the Target Platform
+
+The current `TargetBuildContext` type in the `PackagePlugin` API provides minimal information about the structure and configuration of the target, but it does not in this initial proposal provide any information about the target platform for which the package is being built.
+
+This would be needed in order to implement more advanced tools such as code generators or linkers.
+
+### Specific Support for Code Linters and Formatters
+
+A future proposal should add specific support for code linters. In particular, there should be a way for build tools to convey fixits and other mechanical editing instructions to SwiftPM or to an IDE that uses libSwiftPM.
+
+One approach would be to use the existing Clang diagnostics file format, possibly together with a library making it easy to generate such files, and to extend the `PackagePlugin` API to allow the plugin to configure commands to emit this information in a way that SwiftPM and IDEs can apply it. Such a capability could also be useful for build tools such as source translators, if they want to be able to apply fixits to their input files.
+
+Code formatters (which typically modify the source code directly) should probably be supported using a new plugin capability that allows some specific action that a package author can take to run the formatter on their code, since it seems a bit subtle to allow source code to be modified as a side effect of a regular build action.
+
+### Postbuild Commands
+
+This proposal allows regular build commands to be configured to act on artifacts after they are built, but there is a greater need for a more general kind of postbuild command that can run after building and testing are complete for all the targets in the build graph.
+
+A future proposal should extend plugins to support commands that can be run after both building and testing is complete, possibly using a new plugin capability and additional `PackagePlugin` APIs.  Such commands would be able to report on the results of the build and testing, to post notifications, etc.
+
+Many of the most useful cases need information about the results of the build and the testing. This includes detailed information about what was built, how it was built, and what the results were. This could include structured diagnostics, code coverage information, etc.
+
+A future proposal should define a structured format through which SwiftPM communicates this kind of information to postbuild commands, and should ideally provide a library with API that allows such a tool to load and query this structure.
 
 ## Alternatives Considered
 
