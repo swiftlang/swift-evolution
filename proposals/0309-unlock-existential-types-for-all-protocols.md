@@ -173,7 +173,7 @@ if let ownerName = lhs as? String, let petName = rhs as? String {
 
 ### Diagnostics
 
-Invoking an incompatible member on an existential value will trigger an error comprising of a terse description of the issue and a suggestion to use the generic approach (if applicable) in order to gain full access to the protocol interface. For the common case when the existential base is a reference to a function or subscript parameter, the diagnostic will include a fix-it that turns it into a generic parameter (again, if applicable, since generic functions are not allowed in some local contexts).
+Invoking an incompatible member on an existential value will trigger an error comprising a terse description of the issue and a suggestion to use the generic approach (if applicable) in order to gain full access to the protocol interface. For the common case when the existential base is a reference to a function or subscript parameter, the diagnostic will include a fix-it that turns it into a generic parameter (again, if applicable, since generic functions are not allowed in some local contexts).
 
 ```swift
 extension Sequence {
@@ -273,7 +273,7 @@ The proposed changes are ABI-additive and source-compatible.
 
 ## Effect on API Resilience
 
-Adding defaulted requirements to a protocol will become a always-source-compatible change.
+Adding defaulted requirements to a protocol will become an always-source-compatible change.
 
 ## Alternatives Considered
 
