@@ -152,7 +152,7 @@ An example could include having one bundle for Apple platforms, another for Wind
 
 An artifact bundle index is a JSON file with a `.artifactbundleindex` extension, and that has the following contents:
 
-```
+```json
 {
     "schemaVersion": "1.0",
     "archives": [
