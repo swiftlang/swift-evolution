@@ -604,7 +604,7 @@ This results in the context being _everywhere_. Programmers learn to visually ig
 
 Contexts are immutable, and modifying them is performed by making a new context:
 
-```
+```go
 func WithValue(parent Context, key interface{}, val interface{}) Context
 ```
 
@@ -617,7 +617,7 @@ Go Concurrency Patterns: Context](https://blog.golang.org/context).
 
 ### Surface API: Key-less value definitions
 
-Stefano De Carlois proposed on the forums to simplify the definition sites to be:
+Stefano De Carolis proposed on the forums to simplify the definition sites to be:
 
 ```swift
 extension Task.Local {
@@ -628,8 +628,8 @@ extension Task.Local {
 Our concerns about this shape of API are: 
 
 - it prioritizes briefity and not clarity. It is not clear that the value returned by the computed property `foo` is the default value. And there isn't a good place to hint at this. In the `...Key` proposal we have plenty room to define a function `static var defaultValue` which developers need to implement, immediately explaining what this does.
-- this shape of API means that we would need to actively invoke the key-path in order to obtain the value stored in it. With the `...Key` proposal. We are concerned about the performance impact of having to invoke the key-path rather than invoke a static function on a key, however we would need to benchmark this to be sure about the performance impact.
-- it makes it harder future extension, if we needed to allow special flags for some keys. Granted, we currently do not have an use-case for this, but with Key types is is trivial to add special "do not inherit" or "force a copy" or similar behaviors for specific keys. It is currently not planned to implement any such modifiers though.
+- this shape of API means that we would need to actively invoke the key-path in order to obtain the value stored in it. We are concerned about the performance impact of having to invoke the key-path rather than invoke a static function on a key, however we would need to benchmark this to be sure about the performance impact.
+- it makes it harder future extension, if we needed to allow special flags for some keys. Granted, we currently do not have an use-case for this, but with Key types it is trivial to add special "do not inherit" or "force a copy" or similar behaviors for specific keys. It is currently not planned to implement any such modifiers though.
 
 For completeness, the functions to read and bind values with this proposal would become:
 
