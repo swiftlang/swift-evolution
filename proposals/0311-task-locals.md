@@ -5,6 +5,7 @@
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Active Review (April 16...26, 2021)**
 * Implementation: Available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
+* Review: ([review](https://forums.swift.org/t/se-0311-task-local-values/47478))
 
 ## Table of Contents
 
