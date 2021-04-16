@@ -1,9 +1,9 @@
 # Task Local Values
 
-* Proposal: [SE-NNNN](NNNN-task-local.md)
+* Proposal: [SE-0311](0311-task-local.md)
 * Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
-* Review Manager: TBD
-* Status: **Implemented**
+* Review Manager: [John McCall](https://github.com/rjmccall)
+* Status: **Active Review (April 16...26, 2021)**
 * Implementation: Available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
 
 ## Table of Contents
