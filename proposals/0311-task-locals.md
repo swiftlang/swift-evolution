@@ -1,7 +1,7 @@
 # Task Local Values
 
-* Proposal: [SE-0311](0311-task-locals.md)
-* Author: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
+* Proposal: [SE-0311](0311-task-local.md)
+* Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Active Review (April 16...26, 2021)**
 * Implementation: Available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
@@ -145,13 +145,13 @@ await Task.withLocal(\.requestID, boundTo: "1234-5678") {
 func nested() async {
   await nestedAgain() // "1234-5678"
   
-  await Task.withLocal(\.requestID, boundTo: "xxxx-zzzz") { 
+  Task.withLocal(\.requestID, boundTo: "xxxx-zzzz") { 
     await nestedAgain() // "xxxx-zzzz"
   }
 } 
 
 func nestedAgain() async -> String? { 
-  return await Task.local(.requestID)
+  return Task.local(\.requestID)
 }
 ```
 
@@ -196,7 +196,7 @@ public protocol TaskLocalKey {
 }
 ```
 
-If the [ConcurrentValue` proposal](https://forums.swift.org/t/pitch-3-concurrentvalue-and-concurrent-closures/43947) is accepted, it would be an excellent choice to limit the values stored within task locals to only ConcurrentValues. As access to them may be performed by the task which set the value, and any of its children, therefore it should be safe to use in such concurrent access scenarios. Practically speaking, task local values should most often be simple value types, such as identifiers, counters or similar.
+If the [`ConcurrentValue` proposal](https://forums.swift.org/t/pitch-3-concurrentvalue-and-concurrent-closures/43947) is accepted, it would be an excellent choice to limit the values stored within task locals to only ConcurrentValues. As access to them may be performed by the task which set the value, and any of its children, therefore it should be safe to use in such concurrent access scenarios. Practically speaking, task local values should most often be simple value types, such as identifiers, counters or similar.
 
 Keys must be defined in the `TaskLocalValues` namespace: 
 
@@ -205,7 +205,7 @@ Keys must be defined in the `TaskLocalValues` namespace:
 enum TaskLocalValues {}
 ```
 
-Keys declared on this namespace are available for lookup using key-paths in the `local` and withLocal` functions.
+Keys declared on this namespace are available for lookup using key-paths in the `local` and `withLocal` functions.
 
 To declare a key, the following pattern must be followed:
 
