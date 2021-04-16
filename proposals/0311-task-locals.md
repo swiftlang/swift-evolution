@@ -193,9 +193,6 @@ public protocol TaskLocalKey {
   /// if the type itself does not have a good "undefined" or "zero" value that could
   /// be used here.
   static var defaultValue: Value { get }
-  
-  /// Determines 
-  static var carryMode: TaskLocalCarryMode { get }
 }
 ```
 
