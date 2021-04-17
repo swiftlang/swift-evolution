@@ -3,7 +3,7 @@
 * Proposal: [SE-0309](0309-unlock-existential-types-for-all-protocols.md)
 * Authors: [Anthony Latsis](https://github.com/AnthonyLatsis), [Filip Sakel](https://github.com/filip-sakel), [Suyash Srijan](https://github.com/theblixguy)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Scheduled for Review (April 17...May 1, 2021)**
+* Status: **Active Review (April 17...May 1, 2021)**
 * Implementation: [apple/swift#33767](https://github.com/apple/swift/pull/33767)
 
 ## Introduction
