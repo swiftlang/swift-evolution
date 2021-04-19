@@ -79,7 +79,7 @@ Removing the type-level restriction would mean that adding defaulted requirement
 
 ### Type-Erasing Wrappers
 
-Beyond making incremental progress toward the goal of [generalized existentials](https://github.com/apple/swift/blob/main/docs/GenericsManifesto.md#generalized-existentials), removing this restriction is a necessary — albeit not sufficient — condition for eliminating the need for manual type-erasing wrappers like [`AnySequence`](https://developer.apple.com/documentation/swift/anysequence). These containers are not always straightforwand to implement, and can become a pain to mantain in resilient environments, since the wrapper must evolve in parallel to the protocol. In the meantime, wrapping the unconstrained existential type instead of resorting to `Any` or boxing the value in a subclass or closure will enable type-erasing containers to be written in a way that's easier for the compiler to optimize, and ABI-compatible with future generalized existentials. For requirements that cannot be accessed on the existential directly, it will be possible to forward the call through the convolution of writing protocol extension methods to open the value inside and have full access to the protocol interface inside the protocol extension:
+Beyond making incremental progress toward the goal of [generalized existentials](https://github.com/apple/swift/blob/main/docs/GenericsManifesto.md#generalized-existentials), removing this restriction is a necessary — albeit not sufficient — condition for eliminating the need for manual type-erasing wrappers like [`AnySequence`](https://developer.apple.com/documentation/swift/anysequence). These containers are not always straightforward to implement, and can become a pain to mantain in resilient environments, since the wrapper must evolve in parallel to the protocol. In the meantime, wrapping the unconstrained existential type instead of resorting to `Any` or boxing the value in a subclass or closure will enable type-erasing containers to be written in a way that's easier for the compiler to optimize, and ABI-compatible with future generalized existentials. For requirements that cannot be accessed on the existential directly, it will be possible to forward the call through the convolution of writing protocol extension methods to open the value inside and have full access to the protocol interface inside the protocol extension:
 
 ```swift
 protocol Foo {
@@ -146,7 +146,7 @@ func test(_ collection: RandomAccessCollection) {
 ```
 ___
 
-This way, a protocol or protocol extension member (method/property/subscript/initializer) may be used on an existential value iff the following criteria hold:
+This way, a protocol or protocol extension member (method/property/subscript/initializer) may be used on an existential value if the following criteria hold:
 * The type of the invoked member (accessor — for storage declarations), as viewed in context of the *base type*, must **not** contain references to `Self` or `Self`-rooted associated types in [non-covariant](https://en.wikipedia.org/wiki/Covariance_and_contravariance_(computer_science)) position.
 
 > The following types will be considered covariant:
