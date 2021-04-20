@@ -153,19 +153,19 @@ The `withLocal` operation is executed synchronously, and no additional tasks are
 It is also possible to bind the same key multiple times while executing in the same task. This can be thought of the most recent binding shadowing the previous one, like this:
 
 ```swift
-print("Task.local(\.requestID)")                       // prints: no-request-id
+print(Task.local(\.requestID))                       // prints: no-request-id
 
 await Task.withLocal(\.requestID, boundTo: "1111") { 
-  print("Task.local(\.requestID)")                     // prints: 1111
+  print(Task.local(\.requestID))                     // prints: 1111
   
   await Task.withLocal(\.requestID, boundTo: "2222") { 
-    print("Task.local(\.requestID)")                   // prints: 2222
+    print(Task.local(\.requestID))                   // prints: 2222
   }
   
-  print("Task.local(\.requestID)")                    // prints: 1111
+  print(Task.local(\.requestID))                    // prints: 1111
 }
 
-print("Task.local(\.requestID)")                      // prints: <no-request-id>
+print(Task.local(\.requestID))                      // prints: <no-request-id>
 ```
 
 A task local is readable by any function invoked from a context that has set the value, regardless of how nested it is. For example, it is possible for an asynchronous function to set the value, call through a few asynchronous functions, and finally one synchronous function. All the functions are able to read the bound value, like this:
