@@ -1,17 +1,16 @@
-# Change `filter` to return an associated type
+# Change `RangeReplaceableCollection.filter` to return `Self`
 
 * Proposal: [SE-0174](0174-filter-range-replaceable.md)
 * Author: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted**
+* Status: **Implemented (Swift 4.2)**
 * Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2017-May/000374.html)
 * Bug: [SR-3444](https://bugs.swift.org/browse/SR-3444)
 
 ## Introduction
 
-This proposal changes the `filter` operation on `Sequence` to return an
-associated type, and adds a default implementation to
-`RangeReplaceableCollection` to return the same type as the filtered collection.
+This proposal implements the `filter` operation on `RangeReplaceableCollection`
+to return the same type as the filtered collection.
 
 ## Motivation
 
@@ -33,15 +32,9 @@ filter it, you will still get an `Array`.
 
 ## Proposed solution
 
-The existing protocol requirement on `filter` will be changed to return an
-associated type, `Filtered`. The extension providing a default implementation
-will remain as-is, resulting in an inferred value for `Filtered` of
-`[Element]`. `Dictionary` will automatically infer a filtered type of
-`Dictionary` as a result of this change.
-
-A default implementation on `RangeReplaceableCollection` will be provided,
+An implementation of `filter` on `RangeReplaceableCollection` will be provided,
 using `init()` and `append(_:)`, so all range-replaceable collections will
-have a `Filtered` of `Self`. Per [SE-163](https://github.com/apple/swift-evolution/blob/master/proposals/0163-string-revision-1.md),
+have a `filter` method returning of `Self`. Per [SE-163](https://github.com/apple/swift-evolution/blob/master/proposals/0163-string-revision-1.md),
 this will include `String`.
 
 Note, many sequences (for example, strides or ranges), cannot represent a
@@ -49,33 +42,6 @@ filtered `self` as `Self` and will continue to return an array. If this is a
 performance problem, `lazy` remains a good solution.
 
 ## Detailed design
-
-Add a `Filtered` associated type to `Sequence`, and change the requirement to
-return it:
-
-```swift
-protocol Sequence {
-  associatedtype Filtered
-  /// Returns an filtered sequence containing, in order, the elements of the 
-  /// sequence that satisfy the given predicate.
-  ///
-  /// In this example, `filter` is used to include only names shorter than
-  /// five characters.
-  ///
-  ///     let cast = ["Vivien", "Marlon", "Kim", "Karl"]
-  ///     let shortNames = cast.filter { $0.characters.count < 5 }
-  ///     print(shortNames)
-  ///     // Prints "["Kim", "Karl"]"
-  ///
-  /// - Parameter isIncluded: A closure that takes an element of the
-  ///   sequence as its argument and returns a Boolean value indicating
-  ///   whether the element should be included in the returned sequence.
-  /// - Returns: An array of the elements that `includeElement` allowed.
-  func filter(
-    _ isIncluded: (Iterator.Element) throws -> Bool
-  ) rethrows -> Filtered
-}
-```
 
 Add a default implementation of `filter` to `RangeReplaceableCollection`
 returning `Self`:
@@ -117,7 +83,7 @@ will only be available in Swift 4.
 
 ## Effect on ABI stability
 
-This change will affect the ABI of `Sequence` and needs to be made before
+This change will affect the ABI of `RangeReplaceableCollection` and needs to be made before
 declaring ABI stability.
 
 ## Effect on API resilience
@@ -127,10 +93,18 @@ N/A
 ## Alternatives considered
 
 Status-quo. There are benefits to the consistency of always returning `[Element]`.
+The version on `Sequence` can be reached via type context (`"abc".filter(predicate) as [Element]`).
 
 It could be worthwhile to make a similar change to `map`, but this is beyond
 the capabilities of the current generics system because `map` does not preserve
 the element type (more specifically, you cannot express a type that is `Self`
-except with a different `Element` in order to provide the default
+except with a different `Element` in order to provide the 
 implementation on `RangeReplaceableCollection`).
+
+## History
+
+This proposal originally included a new associated type `Filtered` on `Sequence`. However, this
+was unimplementable due to requiring a recursive type constraint (`Filtered: Sequence`). While
+these were supported in later Swift versions, the additional associated type was not implemented
+and that portion of the proposal has [expired](https://forums.swift.org/t/addressing-unimplemented-evolution-proposals/).
 
