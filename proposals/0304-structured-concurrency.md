@@ -777,7 +777,7 @@ extension Task {
 
 Which makes sense, because if not executing within a task, such code can never "be cancelled" using Swift's task infrastructure.
 
-This static `isCancelled` property is always safe to invoke, i.e. it may be invoked from synchronous or asynchronous functions and will always return the expected result. Do note however that checking cancellation while concurrently setting cancellation may be slightly racy, i.e. if the `cancel` is performed form another thread, the `isCancelled`
+This static `isCancelled` property is always safe to invoke, i.e. it may be invoked from synchronous or asynchronous functions and will always return the expected result. Do note however that checking cancellation while concurrently setting cancellation may be slightly racy, i.e. if the `cancel` is performed from another thread, the `isCancelled`
 
 #### Task priorities
 
