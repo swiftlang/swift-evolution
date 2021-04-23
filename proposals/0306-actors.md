@@ -3,7 +3,8 @@
 * Proposal: [SE-0306](0306-actors.md)
 * Authors: [John McCall](https://github.com/rjmccall), [Doug Gregor](https://github.com/DougGregor), [Konrad Malawski](https://github.com/ktoso), [Chris Lattner](https://github.com/lattner)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
-* Status: **Active review (April 9...23, 2021)**
+* Status: **Accepted with revisions**
+* Decision Notes: [Acceptance](https://forums.swift.org/t/accepted-with-modification-se-0306-actors/47662), [First Review](https://forums.swift.org/t/se-0306-actors/45734), [Second Review](https://forums.swift.org/t/se-0306-second-review-actors/47291)
 * Implementation: Partially available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
 
 ## Table of Contents
