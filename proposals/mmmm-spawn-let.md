@@ -200,11 +200,49 @@ spawn let o2 = order()
 
 This is because by looking at the spawn let declaration, it is obvious that the right-hand side function will be used to initialize the left hand side, by waiting on it. This is similar to single-expression `return` keyword omission, and also applies only to single expression initializers.
 
-It is not legal to declare a `spawn var`, as due to the complex initialization that an `async let` represents, it does not make sense to allow further external modification of them. Doing so would tremendously complicate the understandability of such asynchronous code, and undermine potential optimizations by making it harder to make assumptions about the data-flow of the values.
+It is illegal to declare a `spawn var`. This is due to the complex initialization that an `async let` represents, it does not make sense to allow further external modification of them. Doing so would tremendously complicate the understandability of such asynchronous code, and undermine potential optimizations by making it harder to make assumptions about the data-flow of the values.
 
 ```swift
 spawn var x = nope() // error: 'spawn' can only be used with 'let' declarations
 ```
+
+Other than having to be awaited to access its value, a `spawn let` behaves just like a typical `let`, as such it is not possible to pass it `inout` to other functions - simply because it is a `let`, and those may not be passed as `inout`.
+
+#### Declaring `spawn let` with patterns
+
+It is possible to create a `spawn let` where the left hand side is a pattern, e.g. a tuple, like this:
+
+```swift
+func left() async -> String { "l" }
+func right() async -> String { "r" }
+
+spawn let (l, r) = (left(), right())
+
+await l // at this point `r` is also assumed awaited-on
+```
+
+To understand the execution semantics of the above snippet, we can remember the sugaring rule that the right-hand side of a `spawn let` effectively is just a concurrently executing asynchronous closure:
+
+```swift
+spawn let (l, r) = {
+  return await (left(), right())
+  // -> 
+  // return (left await(), await right())
+}
+```
+
+meaning that the entire initializer of the `spawn let` is a single task, and if multiple asynchronous function calls are made inside it, they are performed one-by one. This is a specific application of the general rule of `spawn let` initializers being allowed to omit a single leading `await` keyword before their expressions. Because in this example, we invoke two asynchronous functions to form a tuple, the await can be moved outside of the expression, and that await is what is omitted in the short hand form of the `spawn let` that we've seen in the first snippet.
+
+This also means that as soon as we enter continue past the line of `await l` it is known that the `r` value also has completed sucessfully (and will not need to emit an "implicit await" which we'll discuss in detail below).
+
+Another implication of these semantics is that if _any_ piece of the initializer throws, any await on such pattern declared `spawn let` shall be considered throwing, as they are initialized "together". To visualize this, let us consider the following:
+
+```swift
+async let (yay, nay) = ("yay", throw Boom())
+try await yay // because the (yay, nay) initializer is throwing
+```
+
+Because we know that the right-hand side is simply a single closure, performing the entire initialization, we know that if any of the operations on the right hand size is throwing, the entire initializer will be considered throwing. As such, awaiting even the `yay` here must be ready for that initializer to have thrown and therefore must include the `try` keyword in addition to `await`.
 
 ### Awaiting `spawn let` values
 
@@ -249,25 +287,99 @@ _ = try await ohNo
 
 This is a simple rule and allows us to bring the feature forward already. It might be possible to employ control flow based analysis to enable "only the first reference to the specific `spawn let` on each control flow path has to be an `await`", as technically speaking, every following await will be a no-op and will not suspend as the value is already completed and the placeholder has been filled in.
 
+### Implicit `spawn let` awaiting 
+
+A `spawn let` that was declared but never awaited on *explicitly* as the scope in which it was declared exits, will be awaited on implicitly. These semantics are put in place to uphold the Structured Concurrency guarantees provided by `spawn let`.
+
+To showcase these semantics, let us have a look at this function which spawns two child tasks, `fast` and `slow` but does not await on any of them:
+
+```swift
+func go() async { 
+  spawn let f = fast() // 300ms
+  spawn let s = slow() // 3seconds
+  return "nevermind..."
+  // implicitly: cancels f
+  // implicitly: cancels s
+  // implicitly: await f
+  // implicitly: await s
+}
+```
+
+Assuming the execution times of fast and slow are as the comments next to them explain, the `go()` function will _always_ take at least 3 seconds to execute. Or to state the rule more generally, any structured invocation, will take as much time to return as much the longest of it child tasks takes to complete.
+
+As we return from the `go()` function without ever having awaited on the `f` or `s` values, both of them will be implicitly cancelled and awaited on before returning from the function `go()`. This is the very nature of structured concurrency, and avoiding this can _only_ be done by creating non-child tasks, e.g. by using `detach` or other future APIs which would allow creation of non-child tasks.
+
+If we instead awaited on one of the values, e.g. the fast one (`f`) the emitted code would not need to implicitly cancel or await it, as this was already taken care of explicitly:
+
+```swift
+func go2() async {
+  spawn let f = fast()
+  spawn let s = slow()
+  _ = await f
+  return "nevermind..."
+  // implicitly: cancels s
+  // implicitly: awaits s
+}
+```
+
+The duration of the `go2()` call remains the same, it is always `time(go2) == max(time(f), time(s))`.
+
 Special attention needs to be given to the `spawn let _ = ...` form of spawn let declarations. This form of is interesting because it creates a child-task of the right hand-side initializer, however actively chooses to ignore the result. Such declaration, and the associated child-task will run, and be awaited-on implicitly as the scope it was declared is about to exit - the same way as an un-used spawn let declaration would be.
 
 > It may be interesting for a future proposal to explore the viability of sugar to `spawn voidReturningFunction()` directly, as a `Void` returning function may often not necessarily want to be awaited on for control-flow reasons, as variables of interesting types would be.
 
-### `spawn let` error propagation 
+### `spawn let` and closures
 
-While it is legal to declare a `spawn let` and never await on it, it also implies that we do not particuilary care about its result.
+Because `spawn let` tasks cannot out-live the scope in which they are defined, passing them to closures needs some further discussion for what is legal and not.
+
+It is legal to capture a `spawn let` in a non-escaping asynchronous closure, like this:
+
+```swift
+func greet(_ f: () async -> String) async -> String { await f() }
+
+spawn let name = "Alice"
+await greet { await name }
+```
+
+Notice how we are required to write the `await` inside the closure as well as in front of the `greet` function. This is on purpose as we do want to be explicit about the await inside the closure. 
+
+The same applies to auto closures, in order to make it explicit that the await is happening _inside_ the closure rather than before it, it is required to await explicitly in parameter position where the auto closure is formed for the argument:
+
+```swift
+func greet(_ f: @autoclosure () async -> String) async -> String { await f() }
+
+spawn let name = "Bob"
+await greet(await name) // await on name is required, because autoclosure
+```
+
+It is *not* legal to escape a `spawn let` value to an escaping closure. This is because structures backing the spawn let implementation may be allocated on the stack rather than the heap. This makes them very efficient, and makes great use of the structured guarantees they have to adhere to. These optimizations, however, make it unsafe to pass them to any escaping contexts:
+
+```swift
+func greet(_ f: @escaping () async -> String) async -> String { somewhere = f; somewhere() }
+
+spawn let name = "Bob"
+await greet(await name) // error: cannot escape 'spawn let' value
+```
+
+
+
+> Note: If Swift had a `@useImmediately` annotation that could be used together with even escaping closures, as they would "promise" to be called immediately without detaching or storing the closure elsewhere.
+
+### `spawn let` error propagation
+
+While it is legal to declare a `spawn let` and never explicitly `await` on it, it also implies that we do not particuilary care about its result.
 
 This is the same as spawning a number of child-tasks in a task group, and not collecting their results, like so:
 
 ```swift
-withTaskGroup(of: Int.self) { group in 
+try await withThrowingTaskGroup(of: Int.self) { group in 
   group.spawn { throw Boom() }
                              
   return 0 // we didn't care about the child-task at all(!)
-}
+} // returns 0
 ```
 
-The above TaskGroup example will ignore the `Boom` thrown by its child task. However, it _will_ await for the task (and any other tasks it had spawned) to run to completion. If we wanted to surface all potential throws of tasks spawned in the group, we should have written: `for try await _ in group {}` which would have re-thrown the `Boom()`.
+The above TaskGroup example will ignore the `Boom` thrown by its child task. However, it _will_ await for the task (and any other tasks it had spawned) to run to completion before the `withThrowingTaskGroup` returns. If we wanted to surface all potential throws of tasks spawned in the group, we should have written: `for try await _ in group {}` which would have re-thrown the `Boom()`.
 
 The same concept carries over to `spawn let`, where the scope of the group is replaced by the syntactic scope in which the `spawn let` was declared. For example, the following snippet is semantically equivalent to the above TaskGroup one:
 
@@ -278,6 +390,8 @@ func work() async -> Int {
   spawn let work: Int = boom()
   // never await work...
   return 0
+  // implicitly: cancels work
+  // implicitly: awaits work, discards errors
 }
 ```
 
@@ -295,170 +409,212 @@ func work() async throws -> Int { // throws is enforced due to 'try await'
 
 Alternatively, we could have handled the error of `work` by wrapping it in a do/catch.
 
+#### Discussion: Should it be required to always await `await` any `spawn let` declaration
+
+The current proposal pitches that one should be able to omit awaiting on declared `spawn let`s, like this:
+
+```swift
+func hello(guest name: String) async -> String {
+  spawn let registered = register(name: name, delayInSeconds: 3)
+  // ... 
+  return "Hello \(name)!"
+  // implicitly cancels the 'registered' child-task
+  // implicitly awaits the 'registered' child-task
+}
+```
+
+Under the current proposal, this function will execute the x task, and before it returns the "hello!" it will wait cancel the still ongoing task `registered`, and await on it. If the task `registered` were to throw an error, that error would be discarded! This may be suprising.
+
+Especially error handling may become tricky and hard to locate why a piece of code is misbehaving, because the `spawn let` declaration actually has _hidden_ the fact that `register` actually was a throwing function that performed validation if the name is allowed to be greeted or not!
+
+The argument for the current semantics goes that since we did not await the task, we did not care about its result, or even failure to produce a result. 
+
+It could be argued however, that given a more complex function, with many branches in the code, we _do_ want to always await on child-tasks that may produce errors on every code path because those are important, even if not result producing values! Even in our simple `hello` function above we did actually want to ensure we waited on the registered, what we actually wanted to write is:
+
+```swift
+func hello(guest name: String) async -> String {
+  spawn let registered = register(name: name, delayInSeconds: 3)
+  // ... 
+  
+  _ = try await registered
+  // registration didn't throw, let's greet the guest!
+  
+  return "Hello \(name)!"
+}
+```
+
+For values and functions like the one above, where the value was _never_ used in the entire body of the function, the existing "*value was not used*" warnings should be able to help developers spot the issue. 
+
+However, in functions with more complex control flow, we wonder if this allowing to ellude awaits is a good notion to follow or not. For example, the following snippet showcases a situation where the programmer made a mistake and forgot to `try await` on the `registered` result in one of the branches before returning:
+
+```swift
+func hello(guest name: String) async -> String {
+  spawn let registered = register(name: name, delayInSeconds: 3)
+  // ... 
+ 
+   if isFriday { 
+     print("It's friday!")
+   } else {
+     _ = try await registered
+     // registration didn't throw, let's greet the guest!  
+     print("Any other day of the week.")
+   }
+ 
+  return "Hello \(name)!"
+}
+```
+
+By just looking at this code, it is not clear if the programmer _intentionally_ did not await on the registration on the `isFriday` branch, or if it is a real mistake and the check must always throw. In other words, is this a place where everyone is let in on fridays, but on other days only registered members are allowed on? :thinking: The code does not help us understand the real intent of the code and we would have to resort to code comments to understand the intent.
+
+It might be better if it were _enforced_ by the compiler to _always_ (unless throwing or returning) to have to await on all `spawn let` declarations. E.g. in the example above, we could detect that there exist branches on which the registered was not awaited on, and signal this as an error to the programmer, who would have to:
+
+- either fill in the apropriate `try await registered` inside the isFriday branch, or
+- move the `spawn let registered` declaration into the else branch of the if -- we indeed only perform this check on non-fridays.
+
+This rule might be too cumbersome for some code though, so perhaps this warrants a future extension where it is possible to require `@exhaustiveSpawnLetWaiting` on function level, to enforce that spawn lets are awaited on on all code paths.
+
+We could also step-back and double down on the correctness and require always waiting on all declared `spawn let` declared values at least once on all code paths. This has a potential to cause an effect of multiple awaits at the end of functions: 
+
+```swift
+func work() async throws {
+  spawn let one = doTheWork()
+  spawn let two = doTheWork()
+  spawn let three = doTheWork()
+  await one, two, tree
+}
+```
+
+but then again, perhaps this is showcasing an issue with the functions construction? It would also help with diagnosing accidentally omitted throws, because if any of such omitted throws were forced to be awaited on, we would notice it:
+
+```swift
+func work() async throws {
+  spawn let one = doTheWork()
+  spawn let two = doTheWork()
+  spawn let three = boom()
+  try await one, two, tree // ah, right three could have thrown
+}
+```
+
+We would like to get a shared understanding of the tradeoffs leaving the "allow not awaiting" rule as the default has, and if the community is aware of the dangers it implies.
+
+Another potential idea here would be to allow omitting `await` inside the initializer of a `spawn let` if it is a single function call, however _do_ require the `try` keyword nevertheless. This at least would signal some caution to programmers as they would have to remember that the task they spawned may have interesting error information to report.
+
 ### Cancellation and `spawn let` child tasks
 
 Cancellation propagates recursively through the task hierarchy from parent to child tasks.
 
-Because tasks spawned by `spawn let` are child task, they naturally participate in their parent's cancellation.
+Because tasks spawned by `spawn let` are child tasks, they naturally participate in their parent's cancellation.
 
-Cancellation of the parent task means that the scope in which the `spawn let` declarations exist is cancelled, and any of those tasks are then cancelled as well. Because cancellation in Swift is co-operative, it does not prevent the spawning of tasks automatically. The exhibits the same semantics as `TaskGroup.spawn` which, when used from an already cancelled task, _will_ spawn more child-tasks, however they will be immediately created as _cancelled_ tasks. 
+Cancellation of the parent task means that the context in which the `spawn let` declarations exist is cancelled, and any tasks created by those declatations will be cancelled as well. Because cancellation in Swift is co-operative, it does not prevent the spawning of tasks, however tasks spawned from a cancelled context are *immediately* marked as cancelled. The exhibits the same semantics as `TaskGroup.spawn` which, when used from an already cancelled task, _will_ spawn more child-tasks, however they will be immediately created as cancelled tasks – which they can inspect by calling `Task.isCancelled`.
 
-It imply though that at the moment of starting a child task, it may be begin its life already, immediately, cancelled (!). We can observe this in the following example:
+We can observe this in the following example:
 
 ```swift
-func printStatus(_ id: Int) { 
-  print("Task(\(id)).isCancelled = \(Task.isCancelled)")
-}
-
 let handle = detach { 
-  // for illustration purposes, assume we slept long enough 
-  // for the cancel of this (parent) task to be in effect already
-  await Task.sleep(...)
+  // don't write such spin loops in real code (!!!)
+  while !Task.isCancelled {
+    // keep spinning
+    await Task.sleep(...)
+  }
   
-  spawn let one = print(1) // Task(1).isCancelled = true
+  assert(Task.isCancelled) // parent task is cancelled
+  spawn let childTaskCancelled = Task.isCancelled // child-task is spawned and is cancelled too
   
-  _ = await one
+  assert(await childTaskCancelled)
 }
 
 handle.cancel() 
 ```
 
-The example uses APIs defined in the Structured Concurrency proposal: `detach` and task handle cancellation to allow us to easily illustrate that a `spawn let` performed within a task that _already is cancelled_ still spawns the child task, yet the spawned task will be immediately cancelled.
+The example uses APIs defined in the Structured Concurrency proposal: `detach` to obtain a handle for the detached task which we can cancel explicitly. This allows us to easily illustrate that a `spawn let` entered within a task that _already is cancelled_ still spawns the child task, yet the spawned task will be immediately cancelled - as witnessed by the `true` returned into the `childTaskCancelled` variable.
 
 This works well with the co-operative nature of task cancellation in Swift's concurrency story. Tasks which are able and willing to participate in cancellation handling, need to check for its status using `Task.isCancelled` or `try Task.checkCancellation()` where apropriate.
 
-> Keep in mind that cancellation always best effort and technically racy. There always exists a chance of cancellation happening before or after a specific `Task.isCancelled` check. These are the expected semantics.
+### Analysis of limitations and benefits of `spawn let`
 
-### `spawn let` as sugar to task groups
+#### Comparing with `TaskGroup`
 
-**TODO NOT UPDATED YET**
+Semantically, one might think of a `spawn let` as sugar for manually using a task group, spawning a single task within it and collecting the result from `group.next()` wherever the spawn let declared value is `await`-ed on. As we saw in the Motivation section of the proposal, such explicit usage of groups ends up very verbos and error prone in practice, thus the need for a "sugar" for the specific pattern.
 
-`spawn let` can be be thought of as syntactic sugar to what one might otherwise express using task groups.
+A `spawn let` declaration, in reality, is not just a plain sugar-syntax for task groups and can make use of additional known-at-compile time structure of the declared tasks. For example, it is possible to avoid heap allocations  for small enough spawn let child tasks, avoid queues and other mechanisms which a task group must make use of to implement it's "by completion order" yielding of values out of `next()`. 
 
-Each `spawn let` declaration
-behaves as if it creates a new task group whose scope begins at the
-`spawn let` and extends to the end of the declaration's formal scope. The
-right-hand expression in the declaration is then `add`-ed as a child task.
-`await`-ing the value of one of the declared variables acts like invoking
-`next()` on the task group to await the result of its single child task, if
-the task has not yet been completed. For example, this `spawn let` code:
+This comes at a price though, spawn let declarations are less flexible than groups, and this is what we'll explore in this section.
+
+Specifically, `spawn let` declarations are not able to express dynamic numbers of tasks executing in parallel, like this group showcases:
 
 ```swift
-// given:
-//   func produceFoo() async throws -> Foo
-//   func produceBar() async -> Bar
-//   var shouldConsumeFooFirst: Bool
-
-spawn let foo = produceFoo()
-spawn let bar = produceBar()
-
-if shouldConsumeFooFirst {
-  consumeFoo(try await foo)
-}
-consumeBar(await bar)
-consumeFooAgain(try await foo)
-```
-
-behaves as if it was written as this explicit task group based code:
-
-```swift
-// Await the result of an `spawn let` task group's single child task,
-// saving the result in case it is dynamically awaited multiple times
-func getAsyncLetGroupValue<T>(
-  _ group: Task.Group<T>,
-  _ cache: inout Result<T, Error>?
-) async throws -> T {
-  // Use the existing value if we already completed the task
-  if let existingValue = cache {
-    return try existingValue.get()
-  } else {
-    // Await the single child task
-    do {
-      let result = try await group.next()!
-      cache = .success(result)
-      return result
-    } catch {
-      cache = .error(error)
-      throw error
+func toyParallelMap<A, B>(_ items: [A], f: (A) async -> B) async -> [B] { 
+  return await withTaskGroup(of: (Int, B).self) { 
+    var bs: [B] = []
+    bs.reserveCapacity(items.count)
+    
+    // spawn off processing all `f` mapping functions in parallel
+		// in reality, one might want to limit the "width" of these
+    for i in items.indices { 
+      group.spawn { (i, await f(items[i])) }
     }
-  }
-}
-
-// spawn let foo = produceFoo()
-withTaskGroup(resultType: Foo.self) { fooGroup in
-  foogroup.spawn { try await produceFoo() }
-  var foo: Result<Foo, Error>?
-
-  // spawn let bar = produceFoo()
-  withTaskGroup(resultType: Bar.self) { barGroup in
-    bargroup.spawn { await produceBar() }
-    var bar: Result<Bar, Error>?
-
-    if shouldConsumeFooFirst {
-      // consumeFoo(try await foo)
-      consumeFoo(try await getAsyncLetGroupValue(fooGroup, &foo))
+    
+    // collect all results
+    for await (i, ) in group {
+      bs.append(mapped)
     }
-    // consumeBar(await bar)
-    consumeBar(try! await getAsyncLetGroupValue(barGroup, &bar))
-    // consumeFoo(try await foo)
-    consumeFoo(try await getAsyncLetGroupValue(fooGroup, &foo))
+    
+    return bs
   }
 }
 ```
 
-This desugaring is illustrative of the semantics of `spawn let`; the actual
-implementation can take advantage of several specific properties of this code
-structure to potentially be more efficient than a literal expansion into this
-form.
-
-### Limitations of `spawn let`
-
-#### Comparison with futures
-
-**TODO NOT UPDATED YET**
-
-One can think of `spawn let` as introducing a (hidden) future, which is
-created at the point of declaration of the `spawn let` and whose value is
-retrieved at the `await`. In this sense, `spawn let` is syntactic sugar to
-futures. However, child tasks in the proposed structured-concurrency model are
-(intentionally) more restricted than general-purpose futures. Unlike in a
-typical futures implementation, a child task does not persist beyond the scope
-in which it was created. By the time the scope exits, the child task must
-either have completed, or it will be implicitly awaited. When the scope exits
-via a thrown error, the child task will be implicitly cancelled before it is
-awaited. These limitations intentionally preserve the same properties of
-structured concurrency that explicit task groups provide.
-
-#### No dynamic child task generation
-
-**TODO NOT UPDATED YET**
-
-`spawn let` cannot be used to generate a dynamic number of child tasks, because
-the scope of the `spawn let` is always tied to its innermost block statement,
-just like a regular `let`; therefore one cannot accumulate multiple subtasks in
-a loop. For instance, if we try something like this:
+In the above `toyParallelMap` the number of child-tasks is _dynamic_ because it depends on the count of elements in the `items` array _at runtime_. Such patterns are not possible to express using `spawn let` because we'd have to know how many `spawn let` declarations to create *at compile time*. One might attempt to simulate these by:
 
 ```swift
-func chopVegetables() async throws -> [Vegetable] {
-  var veggies: [Vegetable] = gatherRawVeggies()
-  for i in veggies.indices {
-    spawn let chopped = veggies[i].chopped()
-    ...
+// very silly example to show limitations of `spawn let` when facing dynamic numbers of tasks
+func toyParallelMapExactly2<A, B>(_ items: [A], f: (A) async -> B) async -> [B] { 
+  assert(items.count == 2)
+  spawn let f0 = f(items[0])
+  spawn let f1 = f(items[1])
+  
+  return await [f0, f1]
+}
+```
+
+And while the second example reads very nicely, it cannot work in practice to implement such parallel map function, because the size of the input `items` is not known (and we'd have to implement `1...n` versions of such function).
+
+Another API which is not implementable with `spawn let` and will require using a task group is anything that requires some notion of completion order. Because `spawn let` declarations must be awaited on it is not possible to express "whichever completes first" and a task group must be used to implement such API. 
+
+For example, the `race(left:right:)` function shown below, runs two child tasks in parallel, and returns whichever completed first. Such API is not possible to implement using spawn let and must be implemented using a group:
+
+```swift
+func race(left: () async -> Int, right: () async -> Int) async -> Int {
+  await withTaskGroup(of: Int) { 
+    group.spawn { left() }
+    group.spawn { right() }
+
+    return await group.next()! // !-safe, there is at-least one result to collect
   }
 }
 ```
 
-it would not produce any meaningful concurrency, because each `spawn let`
-child task would be awaited for completion when it goes out of scope, before
-the next iteration of the loop could start. Because Swift's conditional and
-loop constructs all introduce scopes of their own, representing a dynamic
-number of child tasks necessarily requires separating the scope of the child
-tasks' lifetime from any one syntactic scope, and furthermore, accumulating
-the results of the subtasks is likely to require more involved logic than
-awaiting a single value. For these reasons, it is unlikely that syntax
-sugar would give a significant advantage over using `withTaskGroup` explicitly
-or over using the group's `next` method to process the child task results.
-`spawn let` therefore does not try to address this class of use case.
+#### Comparing with Task.Handle, and (not proposed) futures
+
+It is worth comparing `spawn let` declarations with the one other API proposed so far that is able to start asynchronous tasks: `detach` and the `Task.Handle` that it returns.
+
+First off, `detach` most of the time should not be used at all, because it does _not_ propagate task priority, tash-local values or the execution context of the caller. Not only that but a detached task is inherently not _structued_ and thus may out-live its defining scope.
+
+This immediately shows how `spawn let` and the general concept of child-tasks are superior to detached tasks. They automatically propagate all necessary information about scheduling and metadata necessary for execution tracing. And they can be allocated more efficiently than detached tasks.
+
+So while in theory one can think of `spawn let` as introducing a (hidden) `Task.Handle` or future, which is created at the point of declaration of the `spawn let` and whose value is retrieved at the `await` in practice, this comparison fails to notice the primary strenght of async lets: structured concurrency child-tasks.
+
+Child tasks in the proposed structured-concurrency model are (intentionally) more restricted than general-purpose futures. Unlike in a typical futures implementation, a child task does not persist beyond the scope in which it was created. By the time the scope exits, the child task must either have completed, or it will be implicitly awaited. When the scope exits via a thrown error, the child task will be implicitly cancelled before it is awaited. These limitations intentionally preserve the same properties of structured concurrency that explicit task groups provide.
+
+It is also on purpose, and unlike Task.Handles and futures that it is not possible to pass a "still being computed" value to another function. With handles or futures one is quite used to "pass the handle" to another function like this:
+
+```swift
+func take(h: Task.Handle<String, Error>) async -> String {
+  return await h.get()
+}
+```
+
+this goes 
 
 ## Source compatibility
 
@@ -530,14 +686,7 @@ We feel that using the word `spawn` in _every_ case that involves the creation o
 
 ### Explicit futures
 
-As discussed in the [structured concurrency proposal](nnnn-structured-concurrency.md#Prominent-futures),
-we choose not to expose futures or `Task.Handle`s for child tasks in task groups,
-because doing so either can undermine the hierarchy of tasks, by escaping from
-their parent task group and being awaited on indefinitely later, or would result
-in there being two kinds of future, one of which dynamically asserts that it's
-only used within the task's scope. `spawn let` allows for future-like data
-flow from child tasks to parent, without the need for general-purpose futures
-to be exposed.
+As discussed in the [structured concurrency proposal](nnnn-structured-concurrency.md#Prominent-futures), we choose not to expose futures or `Task.Handle`s for child tasks in task groups, because doing so either can undermine the hierarchy of tasks, by escaping from their parent task group and being awaited on indefinitely later, or would result in there being two kinds of future, one of which dynamically asserts that it's only used within the task's scope. `spawn let` allows for future-like data flow from child tasks to parent, without the need for general-purpose futures to be exposed.
 
 ### "Don't spawn tasks when in cancelled parent"
 
