@@ -1,6 +1,6 @@
 # `spawn let` bindings
 
-* Proposal: [SE-MMMM](mmmm-async-let.md)
+* Proposal: [SE-MMMM](mmmm-spawn-let.md)
 * Authors: [John McCall](https://github.com/rjmccall), [Joe Groff](https://github.com/jckarter), [Doug Gregor](https://github.com/DougGregor), [Konrad 'ktoso' Malawski](https://github.com/ktoso)
 * Review Manager: TBD
 * Status: **Awaiting implementation**
@@ -8,7 +8,7 @@
 
 ## Introduction
 
-[Structured concurrency](nnnn-structured-concurrency.md) provides a paradigm
+[Structured concurrency](0304-structured-concurrency.md) provides a paradigm
 for spawning concurrent *child tasks* in scoped *task groups*, establishing
 a well-defined hierarchy of tasks which allows for cancellation, error
 propagation, priority management, and other tricky details of concurrency
@@ -24,11 +24,11 @@ Discussion threads:
 
 ## Motivation
 
-In [SE-304: Structured Concurrency](https://github.com/apple/swift-evolution/blob/main/proposals/0304-structured-concurrency.md) we introduced concept of tasks and task groups, which can be used to spawn multiple concurrently executing child-tasks anc collect their results before exiting out of the task group.
+In [SE-0304: Structured Concurrency](0304-structured-concurrency.md) we introduced the concept of tasks and task groups, which can be used to spawn multiple concurrently executing child-tasks and collect their results before exiting out of the task group.
 
-Task groups are a very powerful, yet low-level, building block useful for creating powerful parallel computing patterns, such as collecting the "first few" successful results, and other typical fan-out or scatter/gather patterns. They work best for spreading out computation of same-typed operations. For example, a parallelMap could be implemented in terms of a TaskGroup. In that sense, task groups are a low level implementation primitive, and not the end-user API that developers are expected to interact with a lot, rather, it is expected that more powerful primivites are built on top of task groups.
+Task groups are a very powerful, yet low-level, building block useful for creating powerful parallel computing patterns, such as collecting the "first few" successful results, and other typical fan-out or scatter/gather patterns. They work best for spreading out computation of same-typed operations. For example, a parallelMap could be implemented in terms of a TaskGroup. In that sense, task groups are a low level implementation primitive, and not the end-user API that developers are expected to interact with a lot, rather, it is expected that more powerful primitives are built on top of task groups.
 
-Task Groups also automatially propagate task cancellation, priority, and task-local values through to child-tasks and offer an flexible API to collect results from those child-tasks _in completion order_, which is impossible to achieve otherwise using other structured concurrency APIs. They do all this while upholding the structured concurrency guarantees that a child-task may never "out-live" (i.e. keep running after the task group scope has exited) the parent task.
+Task Groups also automatically propagate task cancellation, priority, and task-local values through to child-tasks and offer an flexible API to collect results from those child-tasks _in completion order_, which is impossible to achieve otherwise using other structured concurrency APIs. They do all this while upholding the structured concurrency guarantees that a child-task may never "out-live" (i.e. keep running after the task group scope has exited) the parent task.
 
 While task groups are indeed very powerful, they are hard to use with *heterogenous results* and step-by-step initialization patterns. 
 
@@ -82,7 +82,7 @@ func makeDinner() async -> Meal {
 }
 ```
 
-The `withTaskGroup` scope explicitly delineates any potential concurrency, because it guarantees that any child tasks spawned within it are awaited on as the group scope exits. Any results can be collected using iterating through the group. Errors and cancellation are handled automatically for us by the group.
+The `withThrowingTaskGroup` scope explicitly delineates any potential concurrency, because it guarantees that any child tasks spawned within it are awaited on as the group scope exits. Any results can be collected by iterating through the group. Errors and cancellation are handled automatically for us by the group.
 
 However, this example showcases the weaknesses of the TaskGroups very well: heterogenous result processing and variable initialization become very boiler plate heavy. While there exist ideas to make this boiler plate go away in future releases, with smarter analysis and type checking, the fundamental issue remains. 
 
@@ -93,7 +93,7 @@ This dataflow pattern from child tasks to parents is very common, and we want to
 
 ## Proposed solution
 
-This proposal introduces a simple way to create child tasks with and await their results: `spawn let` declarations.
+This proposal introduces a simple way to create child tasks and await their results: `spawn let` declarations.
 
 Using `spawn let`, our example looks like this:
 
@@ -101,7 +101,7 @@ Using `spawn let`, our example looks like this:
 // given: 
 //   func chopVegetables() async throws -> [Vegetables]
 //   func marinateMeat() async -> Meat
-//   func preheatOven(temperature: Int) -> Oven
+//   func preheatOven(temperature: Int) async -> Oven
 
 func makeDinner() async throws -> Meal {
   spawn let veggies = chopVegetables()
@@ -119,9 +119,9 @@ The child task begins running as soon as the `spawn let` is encountered. By defa
 
 The right-hand side of a `spawn let` expression can be thought of as an implicit `@Sendable closure`, similar to how the `detach { ... }` API works, however the resulting task is a *child task* of the currently executing task. Because of this, and the need to suspend to await the results of such expression, `spawn let` declarations may only occur within an asynchronous context, i.e. an `async` function or closure.
 
-For single statement expressions in the `spawn let` initializer, the `await` and `try` keywords may be omitted. The effects they represent carry through to the introduced constant and will have to be used on when waiting on the constant. For example, in the example shown above, the veggies are declared as `spawn let veggies = chopVegetables()`, and even through `chopVegetables` is `async` and `throws`, the `await` and `try` keywords do not have to be used on that line of code. Once waiting on the value of that `async let` constant, the compiler will enforce that the expression where the `veggies` appear must be covered by both `await` and some form of `try`.
+For single statement expressions in the `spawn let` initializer, the `await` and `try` keywords may be omitted. The effects they represent carry through to the introduced constant and will have to be used when waiting on the constant. In the example shown above, the veggies are declared as `spawn let veggies = chopVegetables()`, and even through `chopVegetables` is `async` and `throws`, the `await` and `try` keywords do not have to be used on that line of code. Once waiting on the value of that `spawn let` constant, the compiler will enforce that the expression where the `veggies` appear must be covered by both `await` and some form of `try`.
 
-Because the main body of the function executes concurrently with its child tasks, it is possible that the parent task (the body of `makeDinner` in this example) will reach the point where it needs the value of an `spawn let` (say,`veggies`) before that value has been produced. To account for that, reading a variable defined by an `spawn let` is treated as a potential suspension point,
+Because the main body of the function executes concurrently with its child tasks, it is possible that the parent task (the body of `makeDinner` in this example) will reach the point where it needs the value of a `spawn let` (say,`veggies`) before that value has been produced. To account for that, reading a variable defined by a `spawn let` is treated as a potential suspension point,
 and therefore must be marked with `await`. 
 
 ## Detailed design
