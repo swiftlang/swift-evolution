@@ -217,7 +217,7 @@ let targetBuildContext: TargetBuildContext
 /// The command constructor lets the plugin create commands that will run
 /// during the build, including their full command lines. All paths should
 /// be based on the ones passed to the plugin in the target build context.
-let commandConstructor: BuildCommandConstructor
+let commandConstructor: CommandConstructor
 
 /// The diagnostics emitter lets the plugin emit errors, warnings, and remarks
 /// for issues discovered by the plugin. Note that diagnostics from the plugin
@@ -594,10 +594,12 @@ This is the hypothetical `SwiftGenPlugin` target referenced in the client packag
 ```
 SwiftGen
  ├ Package.swift
+ ├ Plugins
+ │  └ SwiftGenPlugin
+ │     └ plugin.swift
  └ Sources
-    ├ . . .
-    └ SwiftGenPlugin
-       └ plugin.swift     
+    └ SwiftGen
+       └ ...
 ```
 
 In this case, `plugin.swift` is the Swift script that implements the package plugin target. The plugin is treated as a Swift executable, so it can consist of either a single Swift source file having any name, or multiple Swift source files of which one is named `main.swift`.
@@ -725,13 +727,14 @@ The structure of the hypothetical `SwiftProtobuf` target that provides the plugi
 ```
 SwiftProtobuf
  ├ Package.swift
+ ├ Plugins
+ │  └ SwiftProtobuf
+ │     └ plugin.swift     
  └ Sources
     ├ SwiftProtobufRuntimeLib
     │  └ ...
-    ├ protoc-gen-swift
-    │  └ ...
-    └ SwiftProtobuf
-       └ plugin.swift     
+    └ protoc-gen-swift
+       └ ...
 ```
 
 The package manifest is:
@@ -901,12 +904,13 @@ This example uses a custom source generator implemented in the same package as t
 ```
 MyPackage
  ├ Package.swift
+ ├ Plugins
+ │  └ MySourceGenPlugin
+ │     └ plugin.swift     
  └ Sources
     ├ MyExe
     │   │ file.dat
     │   └ main.swift
-    ├ MySourceGenPlugin
-    │   └ plugin.swift
     └ MySourceGenTool
         └ main.swift
 ```
