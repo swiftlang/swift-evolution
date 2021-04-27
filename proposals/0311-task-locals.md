@@ -3,9 +3,10 @@
 * Proposal: [SE-0311](0311-task-locals.md)
 * Authors: [Konrad 'ktoso' Malawski](https://github.com/ktoso)
 * Review Manager: [John McCall](https://github.com/rjmccall)
-* Status: **Active Review (April 16...26, 2021)**
+* Status: **Active Review (April 27...May 4, 2021)**
 * Implementation: Available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
-* Review: ([review](https://forums.swift.org/t/se-0311-task-local-values/47478))
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/884df3ad6020f0724e06184534b21dd76bd6f4bf/proposals/0311-task-locals.md)
+* Review: ([first review](https://forums.swift.org/t/se-0311-task-local-values/47478))
 
 ## Table of Contents
 
