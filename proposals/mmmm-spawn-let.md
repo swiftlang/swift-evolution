@@ -171,7 +171,7 @@ syncMe {
 }
 ```
 
-A `spawn let` creates a child-task, which inherits its parent task's priority as well as task-local values. Semantically, this is equivalent to creating a one-off `TaskGroup` which spawns a single task and returns its result, however the implementation of `async let`s can make more assumptions and optimizations around the lifetime and usage of those values.
+A `spawn let` creates a child-task, which inherits its parent task's priority as well as task-local values. Semantically, this is equivalent to creating a one-off `TaskGroup` which spawns a single task and returns its result, however the implementation of `spawn let`s can make more assumptions and optimizations around the lifetime and usage of those values.
 
 The child-task created to initialize the `spawn let` by default runs on the global concurrent, width-limited, executor that comes with the Swift Concurrency runtime. 
 
@@ -179,7 +179,7 @@ The child-task created to initialize the `spawn let` by default runs on the glob
 
 The initializer of the `spawn let` can be thought of as a closure that runs the code contained within it in a separate task, very much like the explicit `group.spawn { <work here/> }` API of task groups.
 
-Similarily to the `group.spawn()` function, the closure is `@Sendable` and `nonisolated`, meaning that it cannot access non sendable state of the enclosing context. For example, it will result in a compile time-error, preventing a potential race condition, for a `spawn let` initializer to attempt mutating a closed over variable:
+Similarly to the `group.spawn()` function, the closure is `@Sendable` and `nonisolated`, meaning that it cannot access non-sendable state of the enclosing context. For example, it will result in a compile-time error, preventing a potential race condition, for a `spawn let` initializer to attempt mutating a closed-over variable:
 
 ```swift
 var localText: [String] = ...
@@ -194,13 +194,13 @@ The initializer of a `spawn let` permits the omission of the `await` keyword if 
 func order() async -> Order { ... }
 
 spawn let o1 = await order()
-// should be written intead as
+// should be written instead as
 spawn let o2 = order()
 ```
 
 This is because by looking at the spawn let declaration, it is obvious that the right-hand side function will be used to initialize the left hand side, by waiting on it. This is similar to single-expression `return` keyword omission, and also applies only to single expression initializers.
 
-It is illegal to declare a `spawn var`. This is due to the complex initialization that an `async let` represents, it does not make sense to allow further external modification of them. Doing so would tremendously complicate the understandability of such asynchronous code, and undermine potential optimizations by making it harder to make assumptions about the data-flow of the values.
+It is illegal to declare a `spawn var`. This is due to the complex initialization that a `spawn let` represents, it does not make sense to allow further external modification of them. Doing so would tremendously complicate the understandability of such asynchronous code, and undermine potential optimizations by making it harder to make assumptions about the data-flow of the values.
 
 ```swift
 spawn var x = nope() // error: 'spawn' can only be used with 'let' declarations
@@ -227,7 +227,7 @@ To understand the execution semantics of the above snippet, we can remember the 
 spawn let (l, r) = {
   return await (left(), right())
   // -> 
-  // return (left await(), await right())
+  // return (await left(), await right())
 }
 ```
 
@@ -238,7 +238,7 @@ This also means that as soon as we enter continue past the line of `await l` it 
 Another implication of these semantics is that if _any_ piece of the initializer throws, any await on such pattern declared `spawn let` shall be considered throwing, as they are initialized "together". To visualize this, let us consider the following:
 
 ```swift
-async let (yay, nay) = ("yay", throw Boom())
+spawn let (yay, nay) = ("yay", throw Boom())
 try await yay // because the (yay, nay) initializer is throwing
 ```
 
@@ -246,7 +246,7 @@ Because we know that the right-hand side is simply a single closure, performing 
 
 ### Awaiting `spawn let` values
 
-Since `spawn let`s introduce constants that will be "filled in later" by their right-hand-side concurrently-executing task, refering to them must be covered by an `await` keyword:
+Since `spawn let`s introduce constants that will be "filled in later" by their right-hand-side concurrently-executing task, referring to them must be covered by an `await` keyword:
 
 ```swift
 spawn let name = getName() 
@@ -273,7 +273,7 @@ try? await ohNo
 try! await ohNo
 ```
 
-Currently, it is required to cover every reference to a `spawn let` using the apropriate try and await keywords, like this:
+Currently, it is required to cover every reference to a `spawn let` using the appropriate `try` and `await` keywords, like this:
 
 ```swift
 spawn let yes = ""
@@ -305,7 +305,7 @@ func go() async {
 }
 ```
 
-Assuming the execution times of fast and slow are as the comments next to them explain, the `go()` function will _always_ take at least 3 seconds to execute. Or to state the rule more generally, any structured invocation, will take as much time to return as much the longest of it child tasks takes to complete.
+Assuming the execution times of `fast()` and `slow()` are as the comments next to them explain, the `go()` function will _always_ take at least 3 seconds to execute. Or to state the rule more generally, any structured invocation will take as much time to return as the longest of its child tasks takes to complete.
 
 As we return from the `go()` function without ever having awaited on the `f` or `s` values, both of them will be implicitly cancelled and awaited on before returning from the function `go()`. This is the very nature of structured concurrency, and avoiding this can _only_ be done by creating non-child tasks, e.g. by using `detach` or other future APIs which would allow creation of non-child tasks.
 
@@ -324,7 +324,7 @@ func go2() async {
 
 The duration of the `go2()` call remains the same, it is always `time(go2) == max(time(f), time(s))`.
 
-Special attention needs to be given to the `spawn let _ = ...` form of spawn let declarations. This form of is interesting because it creates a child-task of the right hand-side initializer, however actively chooses to ignore the result. Such declaration, and the associated child-task will run, and be awaited-on implicitly as the scope it was declared is about to exit - the same way as an un-used spawn let declaration would be.
+Special attention needs to be given to the `spawn let _ = ...` form of declarations. This form is interesting because it creates a child-task of the right-hand-side initializer, however it actively chooses to ignore the result. Such a declaration (and the associated child-task) will run and be awaited-on implicitly, as the scope it was declared in is about to exit — the same way as an unused `spawn let` declaration would be.
 
 > It may be interesting for a future proposal to explore the viability of sugar to `spawn voidReturningFunction()` directly, as a `Void` returning function may often not necessarily want to be awaited on for control-flow reasons, as variables of interesting types would be.
 
@@ -358,7 +358,7 @@ It is *not* legal to escape a `spawn let` value to an escaping closure. This is 
 func greet(_ f: @escaping () async -> String) async -> String { somewhere = f; somewhere() }
 
 spawn let name = "Bob"
-await greet(await name) // error: cannot escape 'spawn let' value
+await greet { await name } // error: cannot escape 'spawn let' value
 ```
 
 
@@ -367,7 +367,7 @@ await greet(await name) // error: cannot escape 'spawn let' value
 
 ### `spawn let` error propagation
 
-While it is legal to declare a `spawn let` and never explicitly `await` on it, it also implies that we do not particuilary care about its result.
+While it is legal to declare a `spawn let` and never explicitly `await` on it, it also implies that we do not particularly care about its result.
 
 This is the same as spawning a number of child-tasks in a task group, and not collecting their results, like so:
 
@@ -395,7 +395,7 @@ func work() async -> Int {
 }
 ```
 
-This work function, will never throw, because we didn't await on the throwing `spawn let`. If we modified it to explicitly await on it, the compiler would force us to spell out not only the `await` but also the `try` keyword. The presence of the `try` keyword woult then force us to annotate the `work()` function as `throws`, as expected from normal, non-asynchronous code in Swift:
+This `work()` function will never throw, because we didn't await on the throwing `spawn let`. If we modified it to explicitly await on it, the compiler would force us to spell out not only the `await` but also the `try` keyword. The presence of the `try` keyword would then force us to annotate the `work()` function as `throws`, as expected from normal, non-asynchronous code in Swift:
 
 ```swift
 // func boom() throws -> Int { throw Boom() }
