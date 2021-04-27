@@ -6,7 +6,7 @@
 * Status: **Active Review (April 27...May 4, 2021)**
 * Implementation: Available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/884df3ad6020f0724e06184534b21dd76bd6f4bf/proposals/0311-task-locals.md)
-* Review: ([first review](https://forums.swift.org/t/se-0311-task-local-values/47478)) (([second review](https://forums.swift.org/t/se-0311-2nd-review-task-local-values/47738))
+* Review: ([first review](https://forums.swift.org/t/se-0311-task-local-values/47478)) ([second review](https://forums.swift.org/t/se-0311-2nd-review-task-local-values/47738))
 
 ## Table of Contents
 
