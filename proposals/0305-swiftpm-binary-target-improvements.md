@@ -194,7 +194,7 @@ protoc.artifactbundle
 │   │   └── protoc
 │   └── include
 │       └── etc.proto
-├── protoc-3.15.6-osx
+├── protoc-3.15.6-macos
 │   ├── bin
 │   │   └── protoc
 │   └── include
@@ -221,7 +221,7 @@ The contents of the `info.json` manifest would be:
                     "supportedTriples": ["x86_64-unknown-linux-gnu"]
                 },
                 {
-                    "path": "protoc-3.15.6-osx/bin/protoc",
+                    "path": "protoc-3.15.6-macos/bin/protoc",
                     "supportedTriples": ["x86_64-apple-macosx", "arm64-apple-macosx"]
                 },
                 {
@@ -234,7 +234,7 @@ The contents of the `info.json` manifest would be:
 }
 ```
 
-In this hypothetical case, the `osx` variant supports both `x86_64` and `arm64`.
+In this hypothetical case, the `macos` variant supports both `x86_64` and `arm64`.
 
 ## Security considerations
 
