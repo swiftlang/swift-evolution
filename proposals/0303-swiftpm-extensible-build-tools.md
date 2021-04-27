@@ -217,7 +217,7 @@ let targetBuildContext: TargetBuildContext
 /// The command constructor lets the plugin create commands that will run
 /// during the build, including their full command lines. All paths should
 /// be based on the ones passed to the plugin in the target build context.
-let commandConstructor: BuildCommandConstructor
+let commandConstructor: CommandConstructor
 
 /// The diagnostics emitter lets the plugin emit errors, warnings, and remarks
 /// for issues discovered by the plugin. Note that diagnostics from the plugin
