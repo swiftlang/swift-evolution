@@ -3,7 +3,8 @@
 * Proposal: [SE-0310](0310-effectful-readonly-properties.md)
 * Authors: [Kavon Farvardin](https://github.com/kavon)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Active review (April 13...27, 2021)**
+* Status: **Accepted**
+* Decision Notes: [Acceptance](https://forums.swift.org/t/accepted-se-0310-effectful-read-only-properties/47739)
 * Implementation: Available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`.
 * Previous Pitch: [Document](https://github.com/kavon/swift-evolution/blob/d92deea0ba9692c2623c21203bb39394d86ffca7/proposals/nnnn-effectful-readonly-properties.md), [Discussion](https://forums.swift.org/t/pitch-effectful-read-only-properties/44090)
 
