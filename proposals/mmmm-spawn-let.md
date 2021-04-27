@@ -86,7 +86,7 @@ The `withThrowingTaskGroup` scope explicitly delineates any potential concurrenc
 
 However, this example showcases the weaknesses of the TaskGroups very well: heterogenous result processing and variable initialization become very boiler plate heavy. While there exist ideas to make this boiler plate go away in future releases, with smarter analysis and type checking, the fundamental issue remains. 
 
-If we step back a little, we can notice that in the example each child task is really producing a *single value* and returning it back to the *parent task*, which then needs to assamble the pieces and proceed with calling some other function. We achieve this by preparing, and assigning into `Optional` variables dedicated for each of the spawned tasks. This is not ideal, since
+If we step back a little, we can notice that in the example each child task is really producing a *single value* and returning it back to the *parent task*, which then needs to assemble the pieces and proceed with calling some other function. We achieve this by preparing, and assigning into `Optional` variables dedicated for each of the spawned tasks. This is not ideal, since
 although the code is correct as written, modifying this code to add a variable is not only boilerplate heavy, but also potentially quite error prone, leading to runtime crashes due to the force-unwraps which a well written Swift program usually would not have to resort to. 
 
 This dataflow pattern from child tasks to parents is very common, and we want to make it as lightweight and safe as possible.
