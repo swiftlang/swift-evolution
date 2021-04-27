@@ -189,7 +189,7 @@ Here is a hypothetical example of how the Protobuf compiler (`protoc`) could be 
 ```
 protoc.artifactbundle
 ├── info.json
-├── protoc-3.15.6-linux-x86_64
+├── protoc-3.15.6-linux-gnu
 │   ├── bin
 │   │   └── protoc
 │   └── include
@@ -217,7 +217,7 @@ The contents of the `info.json` manifest would be:
             "version": "3.15.6",
             "variants": [
                 {
-                    "path": "protoc-3.15.6-linux-x86_64/bin/protoc",
+                    "path": "protoc-3.15.6-linux-gnu/bin/protoc",
                     "supportedTriples": ["x86_64-unknown-linux-gnu"]
                 },
                 {
