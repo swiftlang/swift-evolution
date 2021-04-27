@@ -602,7 +602,7 @@ First off, `detach` most of the time should not be used at all, because it does 
 
 This immediately shows how `spawn let` and the general concept of child-tasks are superior to detached tasks. They automatically propagate all necessary information about scheduling and metadata necessary for execution tracing. And they can be allocated more efficiently than detached tasks.
 
-So while in theory one can think of `spawn let` as introducing a (hidden) `Task.Handle` or future, which is created at the point of declaration of the `spawn let` and whose value is retrieved at the `await` in practice, this comparison fails to notice the primary strenght of async lets: structured concurrency child-tasks.
+So while in theory one can think of `spawn let` as introducing a (hidden) `Task.Handle` or future, which is created at the point of declaration of the `spawn let` and whose value is retrieved at the `await` in practice, this comparison fails to notice the primary strenght of spawn lets: structured concurrency child-tasks.
 
 Child tasks in the proposed structured-concurrency model are (intentionally) more restricted than general-purpose futures. Unlike in a typical futures implementation, a child task does not persist beyond the scope in which it was created. By the time the scope exits, the child task must either have completed, or it will be implicitly awaited. When the scope exits via a thrown error, the child task will be implicitly cancelled before it is awaited. These limitations intentionally preserve the same properties of structured concurrency that explicit task groups provide.
 
