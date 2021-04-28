@@ -363,8 +363,6 @@ await greet { await name } // error: cannot escape 'spawn let' value
 
 
 
-> Note: If Swift had a `@useImmediately` annotation that could be used together with even escaping closures, as they would "promise" to be called immediately without detaching or storing the closure elsewhere.
-
 ### `spawn let` error propagation
 
 While it is legal to declare a `spawn let` and never explicitly `await` on it, it also implies that we do not particularly care about its result.
@@ -629,6 +627,54 @@ This change is purely additive to the ABI.
 All of the changes described in this document are additive to the language and are locally scoped, e.g., within function bodies. Therefore, there is no effect on API resilience.
 
 ## Future directions
+
+### Await in closure capture lists
+
+Because a `spawn let` cannot be closed over by an escaping closure, as it would unsafely extend it's lifetime beyone the lifetime of the function in thich it was declared, developers who need to wait for a value of a spawn let before passing it off to an escaping closure will have to write:
+
+```swift
+func run() async { 
+  spawn let alcatraz = "alcatraz"
+  // ... 
+  escapeFrom { // : @escaping () async -> Void
+    alcatraz // error: cannot refer to 'spawn let' from @escaping closure
+  }
+  // implicitly: await alcatraz
+}
+```
+
+The only legal way to achieve this in the present proposal is to introduce another value and store the awaited value in it:
+
+```swift
+func run() async { 
+  spawn let alcatraz = "alcatraz"
+  // ... 
+  let awaitedAlcatraz = await alcatraz
+  escapeFrom { // : @escaping () async -> Void
+    awaitedAlcatraz // ok
+  }
+}
+```
+
+This is correct, yet slightly annoying as we had to invent a new name for the awaited value. Instead, we could utilize capture lists enchanced with the ability to await on such value _at the creation point of the closure_:
+
+```swift
+func escapeFrom(_ f: @escaping () -> ()) -> () {}
+
+func run() async { 
+  spawn let alcatraz = "alcatraz"
+  // ... 
+  escapeFrom { [await alcatraz] in // value awaited on at closure creation
+    alcatraz // ok
+  }
+}
+```
+
+This snippet is semantically equivalent to the one before it, in that the `await alcatraz` happens before the `escapeFrom` function is able to run. 
+
+While it is only a small syntactic improvement over the second snippet in this section, it is a welcome and consistent one with prior patterns in swift, where it is possible to capture a `[weak variable]` in closures.
+
+The capture list is only necessary for `@escaping` closures, as non-escaping ones are guaranteed to not "out-live" the scope from which they are called, and thus cannot violate the structured concurrency guarntees a `spawn let` relies on.
 
 ### Custom executors and `spawn let` 
 
