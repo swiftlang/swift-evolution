@@ -407,7 +407,7 @@ func work() async throws -> Int { // throws is enforced due to 'try await'
 
 Alternatively, we could have handled the error of `work` by wrapping it in a do/catch.
 
-#### Discussion: Should it be required to always await `await` any `spawn let` declaration
+#### Discussion: Should it be required to always `await` any `spawn let` declaration?
 
 The current proposal pitches that one should be able to omit awaiting on declared `spawn let`s, like this:
 
@@ -421,7 +421,7 @@ func hello(guest name: String) async -> String {
 }
 ```
 
-Under the current proposal, this function will execute the x task, and before it returns the "hello!" it will wait cancel the still ongoing task `registered`, and await on it. If the task `registered` were to throw an error, that error would be discarded! This may be suprising.
+Under the current proposal, this function will execute the `registered` task, and before it returns the "Hello …!" it will cancel the still ongoing task `registered`, and await on it. If the task `registered` were to throw an error, that error would be discarded! This may be surprising.
 
 Especially error handling may become tricky and hard to locate why a piece of code is misbehaving, because the `spawn let` declaration actually has _hidden_ the fact that `register` actually was a throwing function that performed validation if the name is allowed to be greeted or not!
 
@@ -443,31 +443,31 @@ func hello(guest name: String) async -> String {
 
 For values and functions like the one above, where the value was _never_ used in the entire body of the function, the existing "*value was not used*" warnings should be able to help developers spot the issue. 
 
-However, in functions with more complex control flow, we wonder if this allowing to ellude awaits is a good notion to follow or not. For example, the following snippet showcases a situation where the programmer made a mistake and forgot to `try await` on the `registered` result in one of the branches before returning:
+However, in functions with more complex control flow, we wonder if this allowing to elide awaits is a good notion to follow or not. For example, the following snippet showcases a situation where the programmer made a mistake and forgot to `try await` on the `registered` result in one of the branches before returning:
 
 ```swift
 func hello(guest name: String) async -> String {
   spawn let registered = register(name: name, delayInSeconds: 3)
   // ... 
  
-   if isFriday { 
-     print("It's friday!")
-   } else {
-     _ = try await registered
-     // registration didn't throw, let's greet the guest!  
-     print("Any other day of the week.")
-   }
+  if isFriday { 
+    print("It's Friday!")
+  } else {
+    _ = try await registered
+    // registration didn't throw, let's greet the guest!  
+    print("Any other day of the week.")
+  }
  
   return "Hello \(name)!"
 }
 ```
 
-By just looking at this code, it is not clear if the programmer _intentionally_ did not await on the registration on the `isFriday` branch, or if it is a real mistake and the check must always throw. In other words, is this a place where everyone is let in on fridays, but on other days only registered members are allowed on? :thinking: The code does not help us understand the real intent of the code and we would have to resort to code comments to understand the intent.
+By just looking at this code, it is not clear if the programmer _intentionally_ did not await on the registration on the `isFriday` branch, or if it is a real mistake and the check must always throw. In other words, is this a place where everyone is let in on Fridays, but on other days only registered members are allowed on? :thinking: The code does not help us understand the real intent, and we would have to resort to code comments.
 
 It might be better if it were _enforced_ by the compiler to _always_ (unless throwing or returning) to have to await on all `spawn let` declarations. E.g. in the example above, we could detect that there exist branches on which the registered was not awaited on, and signal this as an error to the programmer, who would have to:
 
-- either fill in the apropriate `try await registered` inside the isFriday branch, or
-- move the `spawn let registered` declaration into the else branch of the if -- we indeed only perform this check on non-fridays.
+- either fill in the appropriate `try await registered` inside the `isFriday` branch, or
+- move the `spawn let registered` declaration into the `else` branch — we indeed only perform this check on non-Fridays.
 
 This rule might be too cumbersome for some code though, so perhaps this warrants a future extension where it is possible to require `@exhaustiveSpawnLetWaiting` on function level, to enforce that spawn lets are awaited on on all code paths.
 
@@ -503,7 +503,7 @@ Cancellation propagates recursively through the task hierarchy from parent to ch
 
 Because tasks spawned by `spawn let` are child tasks, they naturally participate in their parent's cancellation.
 
-Cancellation of the parent task means that the context in which the `spawn let` declarations exist is cancelled, and any tasks created by those declatations will be cancelled as well. Because cancellation in Swift is co-operative, it does not prevent the spawning of tasks, however tasks spawned from a cancelled context are *immediately* marked as cancelled. The exhibits the same semantics as `TaskGroup.spawn` which, when used from an already cancelled task, _will_ spawn more child-tasks, however they will be immediately created as cancelled tasks – which they can inspect by calling `Task.isCancelled`.
+Cancellation of the parent task means that the context in which the `spawn let` declarations exist is cancelled, and any tasks created by those declarations will be cancelled as well. Because cancellation in Swift is co-operative, it does not prevent the spawning of tasks, however tasks spawned from a cancelled context are *immediately* marked as cancelled. This exhibits the same semantics as `TaskGroup.spawn` which, when used from an already cancelled task, _will_ spawn more child-tasks, however they will be immediately created as cancelled tasks — which they can inspect by calling `Task.isCancelled`.
 
 We can observe this in the following example:
 
@@ -526,15 +526,15 @@ handle.cancel()
 
 The example uses APIs defined in the Structured Concurrency proposal: `detach` to obtain a handle for the detached task which we can cancel explicitly. This allows us to easily illustrate that a `spawn let` entered within a task that _already is cancelled_ still spawns the child task, yet the spawned task will be immediately cancelled - as witnessed by the `true` returned into the `childTaskCancelled` variable.
 
-This works well with the co-operative nature of task cancellation in Swift's concurrency story. Tasks which are able and willing to participate in cancellation handling, need to check for its status using `Task.isCancelled` or `try Task.checkCancellation()` where apropriate.
+This works well with the co-operative nature of task cancellation in Swift's concurrency story. Tasks which are able and willing to participate in cancellation handling, need to check for its status using `Task.isCancelled` or `try Task.checkCancellation()` where appropriate.
 
 ### Analysis of limitations and benefits of `spawn let`
 
 #### Comparing with `TaskGroup`
 
-Semantically, one might think of a `spawn let` as sugar for manually using a task group, spawning a single task within it and collecting the result from `group.next()` wherever the spawn let declared value is `await`-ed on. As we saw in the Motivation section of the proposal, such explicit usage of groups ends up very verbos and error prone in practice, thus the need for a "sugar" for the specific pattern.
+Semantically, one might think of a `spawn let` as sugar for manually using a task group, spawning a single task within it and collecting the result from `group.next()` wherever the `spawn let` declared value is `await`-ed on. As we saw in the [Motivation](#motivation) section of the proposal, such explicit usage of groups ends up very verbose and error prone in practice, thus the need for a "sugar" for the specific pattern.
 
-A `spawn let` declaration, in reality, is not just a plain sugar-syntax for task groups and can make use of additional known-at-compile time structure of the declared tasks. For example, it is possible to avoid heap allocations  for small enough spawn let child tasks, avoid queues and other mechanisms which a task group must make use of to implement it's "by completion order" yielding of values out of `next()`. 
+A `spawn let` declaration, in reality, is not just a plain sugar-syntax for task groups, and can make use of additional known-at-compile-time structure of the declared tasks. For example, it is possible to avoid heap allocations for small enough `spawn let` child tasks, avoid queues and other mechanisms which a task group must make use of to implement its "by completion order" yielding of values out of `next()`. 
 
 This comes at a price though, spawn let declarations are less flexible than groups, and this is what we'll explore in this section.
 
@@ -553,7 +553,7 @@ func toyParallelMap<A, B>(_ items: [A], f: (A) async -> B) async -> [B] {
     }
     
     // collect all results
-    for await (i, ) in group {
+    for await (i, mapped) in group {
       bs.append(mapped)
     }
     
@@ -596,7 +596,7 @@ func race(left: () async -> Int, right: () async -> Int) async -> Int {
 
 It is worth comparing `spawn let` declarations with the one other API proposed so far that is able to start asynchronous tasks: `detach` and the `Task.Handle` that it returns.
 
-First off, `detach` most of the time should not be used at all, because it does _not_ propagate task priority, tash-local values or the execution context of the caller. Not only that but a detached task is inherently not _structued_ and thus may out-live its defining scope.
+First off, `detach` most of the time should not be used at all, because it does _not_ propagate task priority, task-local values or the execution context of the caller. Not only that but a detached task is inherently not _structured_ and thus may out-live its defining scope.
 
 This immediately shows how `spawn let` and the general concept of child-tasks are superior to detached tasks. They automatically propagate all necessary information about scheduling and metadata necessary for execution tracing. And they can be allocated more efficiently than detached tasks.
 
@@ -612,7 +612,6 @@ func take(h: Task.Handle<String, Error>) async -> String {
 }
 ```
 
-this goes 
 
 ## Source compatibility
 
@@ -732,16 +731,16 @@ We feel that using the word `spawn` in _every_ case that involves the creation o
 
 ### Explicit futures
 
-As discussed in the [structured concurrency proposal](nnnn-structured-concurrency.md#Prominent-futures), we choose not to expose futures or `Task.Handle`s for child tasks in task groups, because doing so either can undermine the hierarchy of tasks, by escaping from their parent task group and being awaited on indefinitely later, or would result in there being two kinds of future, one of which dynamically asserts that it's only used within the task's scope. `spawn let` allows for future-like data flow from child tasks to parent, without the need for general-purpose futures to be exposed.
+As discussed in the [structured concurrency proposal](0304-structured-concurrency.md#prominent-futures), we choose not to expose futures or `Task.Handle`s for child tasks in task groups, because doing so either can undermine the hierarchy of tasks, by escaping from their parent task group and being awaited on indefinitely later, or would result in there being two kinds of future, one of which dynamically asserts that it's only used within the task's scope. `spawn let` allows for future-like data flow from child tasks to parent, without the need for general-purpose futures to be exposed.
 
 ### "Don't spawn tasks when in cancelled parent"
 
-It would be very confusing to have automatically "not run" if the parent task were cancelled. Such semantics are offered by task groups via the `group.spawnUnlessCancelled` API, however would be quite difficult to express using plain `let` declarations, as effectively all such declarations would have to become implicitly throwing, which would sacrifice their general usability. We are convienced that following through with the co-operative cancellation strategy works well for `spawn let` tasks, because it composes well with what all asynchronous functions should be handling cancellation to begin with: only when they want to, in apropriate places within their execution, and deciding by themselfes if they prefer to throw a `Task.CancellationError` or rather return a partial result when cancellation ocurrs.
+It would be very confusing to have `spawn let` tasks automatically "not run" if the parent task were cancelled. Such semantics are offered by task groups via the `group.spawnUnlessCancelled` API, however would be quite difficult to express using plain `let` declarations, as effectively all such declarations would have to become implicitly throwing, which would sacrifice their general usability. We are convinced that following through with the co-operative cancellation strategy works well for `spawn let` tasks, because it composes well with how all asynchronous functions should be handling cancellation to begin with: only when they want to, in appropriate places within their execution, and deciding by themselves if they prefer to throw a `Task.CancellationError` or rather return a partial result when cancellation occurs.
 
 ## Revision history
 
 After initial pitch (as part of Structured Concurrency):
 
-- renamed `spawn let` to `spawn let` to be consistent with `spawn` usage in the rest of structured concurrency APIs,
+- renamed `async let` to `spawn let` to be consistent with `spawn` usage in the rest of structured concurrency APIs,
 - added details of cancellation handling
 - added details of await handling
