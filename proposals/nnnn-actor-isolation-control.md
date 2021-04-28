@@ -26,7 +26,7 @@
    
 ## Introduction
 
-The [Swift actors proposal][actors] introduces the notion of *actor-isolated* declarations, which are declarations that can safely access an actor's mutable state. In that proposal, all instance methods, instance properties, and instance subscripts on an actor type are actor-isolated, and they can synchronously use those declarations on `self`. This proposal generalizes the notion of actor isolation to allow better control, including the ability to have actor-isolated declarations that aren't part of an actor type (e.g., they can be non-member functions) and have non-isolated declarations that are instance members of an actor type (e.g., because they are based on immutable actor state). This allows better abstraction of the use of actors, additional actor operations that are otherwise not expressible safely in the system, and enables some conformances to existing, synchronous protocols.
+The [Swift actors proposal][actors] introduces the notion of *actor-isolated* declarations, which are declarations that can safely access an actor's isolated state. In that proposal, all instance methods, instance properties, and instance subscripts on an actor type are actor-isolated, and they can synchronously use those declarations on `self`. This proposal generalizes the notion of actor isolation to allow better control, including the ability to have actor-isolated declarations that aren't part of an actor type (e.g., they can be non-member functions) and have non-isolated declarations that are instance members of an actor type (e.g., because they are based on immutable, non-isolated actor state). This allows better abstraction of the use of actors, additional actor operations that are otherwise not expressible safely in the system, and enables some conformances to existing, synchronous protocols.
 
 ## Motivation
 
@@ -57,7 +57,7 @@ There are a few seemingly obvious things that one cannot do with this actor:
 
 ## Proposed design
 
-All of the limitations described above stem from the fact that instance methods (and properties, and subscripts) on an actor type are *always* actor-isolated; no other functions can be actor-isolated and there is no way to make an instance method (etc.) not be isolated. This proposal generalizes the notion of actor-isolated functions such that any function can choose to be actor-isolated by indicating which of its actor parameters is isolated, including not having an instance method on an actor type be actor-isolated.
+All of the limitations described above stem from the fact that instance methods (and properties, and subscripts) on an actor type are *always* actor-isolated; no other functions can be actor-isolated and there is no way to make an instance method (etc.) not be isolated. This proposal generalizes the notion of actor-isolated functions such that any function can choose to be actor-isolated by indicating which of its actor parameters is isolated, as well as making an instance declaration on an actor not be actor-isolated at all.
 
 ### Actor-isolated parameters
 
@@ -70,7 +70,7 @@ func deposit(amount: Double, to account: isolated BankAccount) {
 }
 ```
 
-Because the `account` parameter is isolated, `deposit(amount:to:)` is actor-isolated (to its `account` parameter) can access actor-isolated state directly on that parameter. The same actor-isolation rules apply:
+Because the `account` parameter is isolated, `deposit(amount:to:)` is actor-isolated (to its `account` parameter) and can access actor-isolated state directly on that parameter. The same actor-isolation rules apply:
 
 ```swift
 extension BankAccount {
@@ -89,14 +89,21 @@ let fn = BankAccount.deposit(amount:)   // type of fn is (isolated BankAccount) 
 
 ### Non-isolated declarations
 
-Instance methods declared on an actor type implicitly have an `isolated self`. However, one can disable this implicit behavior using the `nonisolated` keyword:
+Instance declarations on an actor type implicitly have an `isolated self`. However, one can disable this implicit behavior using the `nonisolated` keyword:
 
 ```swift
+actor BankAccount {
+  nonisolated let accountNumber: Int
+  var balance: Double
+
+  // ...
+}
+
 extension BankAccount {
   // Produce an account number string with all but the last digits replaced with "X", which
   // is safe to put on documents.
   nonisolated func safeAccountNumberDisplayString() -> String {
-    let digits = String(accountNumber)
+    let digits = String(accountNumber)   // okay, because accountNumber is also nonisolated
     return String(repeating: "X", count: digits.count - 4) + String(digits.suffix(4))
   }
 }
@@ -104,7 +111,7 @@ extension BankAccount {
 let fn2 = BankAccount.safeAccountNumberDisplayString   // type of fn is (BankAccount) -> () -> String
 ```
 
-Note that, because `self` is not actor-isolated, `safeAccountNumberDisplayString` can only refer to immutable data on the actor. An attempt to refer to mutable data (or use any actor-isolated function) will produce an error or require asynchronous access, as appropriate:
+Note that, because `self` is not actor-isolated, `safeAccountNumberDisplayString` can only refer to non-isolated data on the actor. An attempt to refer to any actor-isolated declaration will produce an error or require asynchronous access, as appropriate:
 
 ```swift
 extension BankAccount {
@@ -116,7 +123,7 @@ extension BankAccount {
 
 ### Protocol conformances
 
-The actors proposal describes the rule that an actor-isolated function cannot satisfy a protocol requirement that is not also actor-isolated or asynchronous, because doing so would allow synchronous access to mutable actor state. However, non-isolated functions don't have access to mutable actor state, so they are free to satisfy synchronous protocol requirements of any kind. For example, we can make `BankAccount` conform to `Hashable` by basing the hashing on the account number:
+The actors proposal describes the rule that an actor-isolated function cannot satisfy a protocol requirement that is neither actor-isolated nor asynchronous, because doing so would allow synchronous access to actor state. However, non-isolated functions don't have access to actor state, so they are free to satisfy synchronous protocol requirements of any kind. For example, we can make `BankAccount` conform to `Hashable` by basing the hashing on the account number:
 
 ```swift
 extension BankAccount: Hashable {
@@ -163,7 +170,7 @@ extension MyActorServer : OldServer {
     message: Message,
     completionHandler: (Result<Message.Reply>) -> Void
   ) {
-    Task.runDetached {
+    detach {
       do {
         let reply = try await send(message: message)
         completionHandler(.success(reply))
@@ -318,4 +325,4 @@ At a high level, isolated parameters and isolated conformances are similar to pa
     However, `@sync` types don't behave this way with respect to `Sendable`. A non-`@sync` actor type conforms to `Sendable` (it's safe to share it across concurrency domains), but its corresponding `@sync` subtype does *not* conform to `Sendable`. This is why in the prior example's call to `acceptSendable`, the implicit conversion from `@sync MyActor` to `MyActor` is required.
 
 
-[actors]: https://github.com/DougGregor/swift-evolution/blob/actors/proposals/nnnn-actors.md
+[actors]: https://github.com/apple/swift-evolution/blob/main/proposals/0306-actors.md
