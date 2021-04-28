@@ -3,10 +3,11 @@
 * Proposal: [SE-0305](0305-swiftpm-binary-target-improvements.md)
 * Authors: [Anders Bertelrud](https://github.com/abertelrud), [Tom Doron](https://github.com/tomerd)
 * Review Manager: [Tom Doron](https://github.com/tomerd)
-* Status: **Active Review (April 14 - 26 2021)**
+* Status: **Accepted**
+* Decision Notes: [Acceptance](https://forums.swift.org/t/accepted-se-0305-package-manager-binary-target-improvements/47742) 
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/main/proposals/0305-swiftpm-binary-target-improvements.md)
 * Forum Discussion: [SE-0305: Package Manager Binary Target Improvements](https://forums.swift.org/t/se-0305-package-manager-binary-target-improvements/45589)
-* Review: [1](https://forums.swift.org/t/se-0305-package-manager-binary-target-improvements/)
+* Review: [1](https://forums.swift.org/t/se-0305-package-manager-binary-target-improvements/) [2](https://forums.swift.org/t/se-0305-2nd-review-package-manager-binary-target-improvements/)
 * Implementation: Available in [recent `main` snapshots](https://swift.org/download/#snapshots)
 
 ## Introduction
