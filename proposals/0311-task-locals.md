@@ -5,7 +5,7 @@
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Active Review (April 27...May 4, 2021)**
 * Implementation: Available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
-* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/884df3ad6020f0724e06184534b21dd76bd6f4bf/proposals/0311-task-locals.md)
+* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/884df3ad6020f0724e06184534b21dd76bd6f4bf/proposals/0311-task-locals.md), [2](https://github.com/apple/swift-evolution/blob/cd1aaef28802a26986094c1f851c261acc796cb6/proposals/0311-task-locals.md)
 * Review: ([first review](https://forums.swift.org/t/se-0311-task-local-values/47478)) ([second review](https://forums.swift.org/t/se-0311-2nd-review-task-local-values/47738))
 
 ## Table of Contents
@@ -95,33 +95,16 @@ We propose to expose the Task's internal ability to "carry metadata with it" via
 
 Task local values may be read from any function running within an asynchronous context. This includes *synchronous* functions which were called from an asynchronous function. Binding a task-local value however must be performed in an asynchronous function.
 
-Declaring a task local value begins with declaring a `TaskLocalKey` that will be used to retrieve it from the task:
+A task-local must be declared as a static stored property, and annotated using the `@TaskLocal` property wrapper. 
 
 ```swift
 enum MyLibrary {
- 
-    @TaskLocal(default: RequestID.empty)
-    static var requestID
-
-}
-
-struct RequestID { 
-  static var empty: RequestID? { nil }
+  @TaskLocal
+  static var requestID: RequestID? 
 }
 ```
 
-A task-local must be declared as a static stored property, and annotated using the `@TaskLocal` property wrapper. The type of the property should be left to the compiler to infer, based on the default value passed to the property wrapper. It can also be spelled out explicitly, however then the type must be spelled as `TaskLocal<ValueType>.Access`:
-
-```swift
-enum MyLibrary { 
-  
-    @TaskLocal(default: nil)
-    static var requestID: TaskLocal<RequestID?>.Access
-    
-}
-```
-
-> 💡 Note: Once property wrappers are allowed on top-level global declarations, it would be possible to declare top-level task locals.
+> 💡 Note: Once property wrappers are allowed on top-level global declarations, it would also be possible to declare top-level task locals.
 
 The important thing about declaring a task-local is that there must be one instance of it. Not doing so is very likely a programmer mistake, will lead to increased and unexpected memory use by multiple instances of the task-local key (the wrapper instances), as well as lead to unexpected lookup behavior, because each instance acts as it's own unique key for the task local storage lookups.
 
@@ -133,43 +116,45 @@ The diagnosed error would look like this:
 
 ```swift
 enum Library {
-  @TaskLocal(default: nil)
-  var requestID: TaskLocal<String?>.Access 
+  @TaskLocal
+  var requestID: String?
       // error: @TaskLocal declaration 'requestID' must be static. 
-      // Task locals declarations can only ever be declared static members.
+      // Task locals declarations must be static stored properties.
 }
 ```
 
-It is expected that task-local property declarations will often decide to use an optional type, and default it to `nil`. Some declarations however may have "good defaults", such as an empty container type, or some other representation of "not present". For example if `Task.Priority` were expressed using a task local, its `.unspecified` value would be a perfect default value to use in the task-local property declaration. We are certain similar cases exist, and thus want to allow users to retain full control over the type of the property, even if most often an optional is the right thing to use.
+It is expected that task-local property declarations will often decide to use an optional type, and default it to `nil`. 
 
-Accessing the value of a task-local property is done by calling the `get()` function.
+Some declarations however may have "good defaults", such as an empty container type, or some other representation of "not present". For example if `Task.Priority` were expressed using a task local, its `.unspecified` value would be a perfect default value to use in the task-local property declaration. We are certain similar cases exist, and thus want to allow users to retain full control over the type of the property, even if most often an optional is the right thing to use.
+
+Accessing the value of a task-local property is done by accessing the property wrapper annotated property.
 
 The access is specifically designed to be explicit, because it is not a trivial access. It incurs a thread-local lookup of the Swift Concurrency runtime's task object, as well as a potential scan over multiple tasks (from child to parent tasks), in search for the first available binding of the value.
 
 ```swift
 func asyncPrintRequestID() async {
-  let id = MyLibrary.requestID.get()
+  let id = MyLibrary.requestID
   print("request-id: \(id)")
 }
 
 func syncPrintRequestID() { // also works in synchronous functions
-  let id = MyLibrary.requestID.get()
+  let id = MyLibrary.requestID
   print("request-id: \(id)")
 }
 ```
 
-The task local value is accessible using the same API from async and non async functions, even though it relies on running inside of a Task. The asynchronous function always performs a lookup inside the current task, since it is guaranteed to have a current task, while the synchronous function simply immediately returns the default value if it is _not_ called from within a Task context. 
+The task local value is accessible using the same API from async and non async functions, even though it relies on running inside a Task. The asynchronous function always performs a lookup inside the current task, since it is guaranteed to have a current task, while the synchronous function simply immediately returns the default value if it is _not_ called from within a Task context. 
 
-> :warning: Task-local value lookups are more expensive than plain old value lookups. They involve scanning a stack of value bindings until a value is found, or the end of the stack is reached. As such, task-local values should be used with care, and e.g. hoisted out of for loops etc, so they are only looked up _once_ whenever possible.
+> :warning: Task-local value lookups are more expensive than a direct static property lookup. They involve a thread-local access and scanning a stack of value bindings until a value is found, or the end of the stack is reached. As such, task-local values should be used with care, and e.g. hoisted out of for loops etc, so they are only looked up _once_ whenever possible.
 
 Binding values is the most crucial piece of this design, as it embraces the structured nature of Swift's concurrency. Unlike thread-local values, it is not possible to just "set" a task local value. This avoids the issue of values being set and forgotten about leading to leaks and hard to debug issues with unexpected values being read in other pieces of code which did not expect them. 
 
 Using scopes and limiting a values lifetime of the task's lifetime the implementation to use efficient task-local allocation techniques, avoiding the sysdem wide allocator. Once the scope ends, the child task ends, and the associated task local value is discarded.
 
-To bind a specific task-local declaration to a specific value, we can use the `withValue(_:body:)` function, like this:
+To bind a specific task-local declaration to a specific value, we can use the `withValue(_:body:)` function which is declared on the property wrapper type. In order to access this function the `$` sign must be prefixed to the property name, to access the property wrapper's projected value rather than the wrapped value itself:
 
 ```swift
-await MyLibrary.requestID.withValue("1234-5678") {
+await MyLibrary.$requestID.withValue("1234-5678") {
   await asyncPrintRequestID() // prints: 1234-5678
   syncPrintRequestID()        // prints: 1234-5678
 }
@@ -183,39 +168,39 @@ The `withLocal` operation is executed synchronously, and no additional tasks are
 It is also possible to bind the same key multiple times while executing in the same task. This can be thought of the most recent binding shadowing the previous one, like this:
 
 ```swift
-print(MyLibrary.requestID.get())                       // prints: no-request-id
+print(MyLibrary.requestID)                       // prints: no-request-id
 
-await Task.withLocal(\.requestID, boundTo: "1111") { 
-  print(MyLibrary.requestID.get())                     // prints: 1111
+await MyLibrary.$requestID.withValue("1111") { 
+  print(MyLibrary.requestID)                     // prints: 1111
   
-  await Task.withLocal(\.requestID, boundTo: "2222") { 
-    print(MyLibrary.requestID.get())                   // prints: 2222
+  await MyLibrary.$requestID.withValue("2222") { 
+    print(MyLibrary.$requestID)                  // prints: 2222
   }
   
-  print(MyLibrary.requestID.get())                    // prints: 1111
+  print(MyLibrary.$requestID)                    // prints: 1111
 }
 
-print(MyLibrary.requestID.get())                      // prints: <no-request-id>
+print(MyLibrary.$requestID)                      // prints: <no-request-id>
 ```
 
 A task local is readable by any function invoked from a context that has set the value, regardless of how nested it is. For example, it is possible for an asynchronous function to set the value, call through a few asynchronous functions, and finally one synchronous function. All the functions are able to read the bound value, like this:
 
 ```swift
 func outer() async {
-  await MyLibrary.requestID.withValue("1234") { 
-    MyLibrary.requestID.get() // "1234"  
+  await MyLibrary.$requestID.withValue("1234") { 
+    MyLibrary.requestID // "1234"  
     middle() // "1234"
   }
 }
 
 func middle() async {
-  MyLibrary.requestID.get() // "1234"
+  MyLibrary.requestID // "1234"
   return inner() // "1234"
 }
 
 
 func inner() { // synchronous function
-  return MyLibrary.requestID.get() // "1234"
+  return MyLibrary.requestID // "1234"
 }
 ```
 
@@ -243,48 +228,40 @@ Task local values need to declare a _"key"_ which will be used to access them. T
 
 The `TaskLocal` property wrapper is used to declare task-local keys, based off a static property. 
 
-It hides the actual `Value` and instead offers `TaskLocal<Value>.Access` as the `wrappedValue`, this is in order to offer the explicit access APIs: `get()` and `withValue(_:body:)` without having to reach for the `$value` in some cases, but not in others.
-
-The explicit `get()` function is an important design tradeoff, because we want to signal to developers using this feature that it isn't "for free".
-
 The property wrapper is defined as:
 
 ```swift
 @propertyWrapper
-public final class TaskLocal<Value: Sendable>: CustomStringConvertible {
-  private let access: Access
+public final class TaskLocal<Value: Sendable>: Sendable, CustomStringConvertible {
+  let defaultValue: Value
 
-  public init(default defaultValue: Value) {
-    ...
+  public init(wrappedValue defaultValue: Value) {
+    self.defaultValue = defaultValue
   }
 
-  public struct Access: CustomStringConvertible {
-    let key: Builtin.RawPointer
-    let defaultValue: Value
+  public func get() -> Value { ... }
 
-    init(key: TaskLocal<Value>, defaultValue: Value) {
-      ...
-    }
-
-    public func get() -> Value { ... }
-
-    @discardableResult
-    public func withValue<R>(_ valueDuringBody: Value, do body: () async throws -> R,
-                             file: String = #file, line: UInt = #line) async rethrows -> R { ... }
-
-    public var description: String {
-      "TaskLocal<\(Value.self)>.Access(\(get()))"
-    }
+  @discardableResult
+  public func withValue<R>(_ valueDuringBody: Value, 
+                           do body: () async throws -> R,
+                           file: String = #file, line: UInt = #line) async rethrows -> R { ... }
+  
+  public var wrappedValue: Value {
+    self.get()
   }
+  
+  public var projectedValue: TaskLocal<Value> {
+    get { self }
 
-  public var wrappedValue: TaskLocal<Value>.Access {
-    get { ... }
     @available(*, unavailable, message: "use 'myTaskLocal.withValue(_:do:)' instead")
-    set { ... }
+    set {
+      fatalError("Illegal attempt to set a \(Self.self) value, use `withValue(...) { ... }` instead.")
+    }
   }
+
 
   public var description: String {
-    "\(Self.self)(defaultValue: \(self.access.defaultValue))"
+    "\(Self.self)(defaultValue: \(self.defaultValue))"
   }
 
 }
@@ -296,19 +273,6 @@ The property wrapper itself must be a `class` because we use it's stable object 
 
 The implementation of task locals relies on the existence of `Task.withUnsafeCurrent` from the [Structured Concurrency proposal](https://forums.swift.org/t/pitch-2-structured-concurrency/43452/116). This is how we are able to obtain a task reference, regardless if within or outside of an asynchronous context.
 
-#### Convenience API for declaring optional task-locals
-
-Because it is common to declare optional task-local values, we offer a convenience API simplifying the process a little bit.
-It is possible to skip the `default` parameter of a `@TaskLocal(default:)` property wrapper if and only if the task-local value is an `Optional` type. To use this convenience API, we cannot omit the type annotation of the declaration property, because otherwise Swift would have no way to guess what type we're expecting it to infer for the declaration:
-
-
-```swift
-@TaskLocal
-static var example: TaskLocal<String?>.Access
-```
-
- Given such declaration, the task-local will assume that we mean for it to return `nil` as default value, whenever a `get()` is performed in a context where this task-local was not set.
-
 ### Binding task-local values
 
 Task locals cannot be "set" explicitly, rather, a scope must be formed within which the key is bound to a specific value. 
@@ -317,7 +281,7 @@ This addresses pain-points of task-local values predecessor: thread-locals, whic
 
 > Please refer to [Rejected alternatives](#rejected-alternatives), for an in depth analysis of the shortcomings of thread-locals, and how task-local `withValue` scopes address them.  
 
-Binding values is done by using the `myTaskLocal.withValue(_:body:)` function, which adds task local values for the duration of the operation:
+Binding values is done by using the `$myTaskLocal.withValue(_:body:)` function, which adds task local values for the duration of the operation:
 
 ```swift
 @discardableResult
@@ -352,7 +316,7 @@ async let dinner = {
 With that in mind, we only need to wrap the body of the right hand-side with the task-local binding to achieve the result of the value being bound for the entire duration of a specific child task.
 
 ```swift
-async let dinner = Lib.wasabiPreference.withValue(.withWasabi) {
+async let dinner = Lib.$wasabiPreference.withValue(.withWasabi) {
   cookDinner()
 }
 ```
@@ -362,7 +326,7 @@ This will set the wasabi preference task local value _for the duration of that c
 If we had two meals to prepare, we could either set the value for both of them, like this:
 
 ```swift
-await Lib.wasabiPreference.withValue(.withWasabi) {
+await Lib.$wasabiPreference.withValue(.withWasabi) {
   async let firstMeal = cookDinner()
   async let secondMeal = cookDinner()
   await firstMeal, secondMeal
@@ -372,10 +336,10 @@ await Lib.wasabiPreference.withValue(.withWasabi) {
 And finally, if we wanted to set the `withWasabi` reference for most of the tasks in some scope, except one or two of them, we can compose the scopes to achieve this, as expected:
 
 ```swift
-await Lib.wasabiPreference.withValue(.withWasabi) {
+await Lib.$wasabiPreference.withValue(.withWasabi) {
   async let firstMeal = cookDinner()
   async let secondMeal = cookDinner()
-  let noWasabiMeal = await Lib.wasabiPreference.withValue(.withoutWasabi) { 
+  let noWasabiMeal = await Lib.$wasabiPreference.withValue(.withoutWasabi) { 
     cookDinner()
   }
   await firstMeal, secondMeal, noWasabiMeal
@@ -406,7 +370,8 @@ extension UnsafeCurrentTask {
   /// represented by this object.
   @discardableResult
   public func withTaskLocal<Value: Sendable, R>(
-      _ access: TaskLocal<Value>.Access, boundTo valueDuringBody: Value,
+      _ taskLocal: TaskLocal<Value>.Access, 
+      boundTo valueDuringBody: Value,
       do body: () throws -> R,
       file: String = #file, line: UInt = #line) rethrows -> R { ... }
   
@@ -417,7 +382,7 @@ And allows us to bind task-local values even within synchronous functions, like 
 
 ```swift
 func asynchronous() async { 
-  await TL.number.withValue(1111) {
+  await TL.$number.withValue(1111) {
     synchronous()
   }
 }
@@ -430,7 +395,7 @@ func synchronous() {
       return // not running within a task, so cannot bind task-local
     }
 
-    task.withTaskLocal(TL.number, boundTo: 2222) {
+    task.withTaskLocal(TL.$number, boundTo: 2222) {
       printTaskLocal(TL.number) // 2222
     }
 
@@ -454,14 +419,14 @@ Today there exists the `detach` operation which steps out of the realm of Struct
 To illustrate the interaction of detached tasks and task-locals, consider the following example:
 
 ```swift
-await Lib.sugar.withValue(.noSugar) { 
-  assert(Lib.sugar.get() == .noSugar)
+await Lib.$sugar.withValue(.noSugar) { 
+  assert(Lib.sugar == .noSugar)
   
   detach { // completely detaches from enclosing context!
-    assert(Lib.sugar.get() == .noPreference) // no preference was inherited; it's a detached task!
+    assert(Lib.sugar == .noPreference) // no preference was inherited; it's a detached task!
   }
   
-  assert(Lib.sugar.get() == .noSugar)
+  assert(Lib.sugar == .noSugar)
 } 
 ```
 
@@ -470,10 +435,10 @@ As expected, because the *detached task* completely discards any context informa
 If necessary, it is possible is possible to make a detached task carry a specific priority, executor preference and even task-local value by handling the propagation manually:
 
 ```swift
-let preference = Lib.sugar.get() // store the sugar preference in task-1
-detach(priority: Task.currentPriority) { // manually propagate priority
-  await Lib.sugar.withValue(sugarPreference) { // restore the sugar preference in detached-task
-     assert(Lib.sugar.get() == preference)
+let preference = Lib.sugar                      // store the sugar preference in task-1
+detach(priority: Task.currentPriority) {        // manually propagate priority
+  await Lib.$sugar.withValue(sugarPreference) { // restore the sugar preference in detached-task
+     assert(Lib.sugar == preference)
   }
 }
 ```
@@ -486,13 +451,13 @@ The async operation will be pitched independently, but for the sake of this prop
 
 ```swift
 // priority == .background
-await Lib.tea.withValue(.green) { 
+await Lib.$tea.withValue(.green) { 
   async { 
     await Task.sleep(10_000)
     // assert(Task.currentPriority == .background) // inherited from creating task (!)
-    assert(Lib.tea.get() == .green) // inherited from creating task
+    assert(Lib.tea == .green)                      // inherited from creating task
     print("inside")
-  } // -> Void
+  }
 }
 
 print("outside")
@@ -513,12 +478,12 @@ The one situation where a `withLocal` scope is not enough to encapsulate the lif
 ```swift
 withTaskGroup(of: String.self) { group in 
 
-  Trace.name.withValue("something") { // RUNTIME CRASH! 
+  Trace.$name.withValue("some(func:)") { // RUNTIME CRASH! 
     // error: task-local value: detected illegal task-local value binding at Example.swift:68. 
     // <... more details ... >
 
     group.spawn { 
-      Trace.name.get()
+      Trace.name
     }
   } // end-withValue
   
@@ -532,7 +497,7 @@ This is an an un-supported pattern because the purpose of `group.spawn` (and `gr
 At the same time, the just shown pattern can be seen as simply wrong usage of the API and programmer error, violating the structured nature of child-tasks. Instead, what the programmer should do in this case is either, set the value for the entire task group, such that all children inherit it:
 
 ```swift
-await Trace.name.withValue(1234) { // OK!
+await Trace.$name.withValue("some(func:)") { // OK!
     await withTaskGroup(...) { group in
         group.spawn { ... }
     }
@@ -544,7 +509,7 @@ or, set it _within_ the spawned child-task, as then the task-local allocation wi
 ```swift
 await withTaskGroup(...) { group in
     group.spawn {
-        await <task-local>.withValue(1234) { // OK!
+        await Trace.$name.withValue("some(func:)") { // OK!
             ...
         }
     }
@@ -568,14 +533,6 @@ Task local variables are semantically _inherited_ the same way by _child tasks_ 
 
 This implies that stored values may be accessed from different tasks executing concurrently. In order to guaratnee the safely task local values must conform to the `Sendable` protocol, introduced in [SE-302: `Sendable` and `@Sendable` closures](https://github.com/apple/swift-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md).
 
-Reading values is performed by invoking the `Task.local(_:)` function:
-
-```swift
-extension TaskLocal.Access {
-  public func get() -> Value { ... }
-}
-```
-
 The function synchronous and may be called from any context. If no task is available in the calling context, the default value for the task-local will be returned. The same default value is returned if the function is invoked from a context in which a task is present, however the task-local was never bound in this, or any of its parent tasks.
 
 The specific lookup mechanism used by this function will be explained in detail in the next sections.
@@ -584,9 +541,9 @@ The example below explains how the contextual awareness of task locals functions
 
 ```swift
 func simple() async {
-  print("number: \(Lib.number.get())") // number: 0
-  await Lib.number.withValue(42) {
-    print("number: \(Lib.number.get())") // number: 42
+  print("number: \(Lib.number)")     // number: 0
+  await Lib.$number.withValue(42) {
+    print("number: \(Lib.number)")   // number: 42
   }
 }
 ```
@@ -596,10 +553,12 @@ The same would work if the second `print` would be multiple asynchronous functio
 The same mechanism also works with tasks spawned in task groups or async let declarations, because those also construct child tasks, which then inherit the bound task-local values of the outer scope.
 
 ```swift
-await Lib.number.withValue(boundTo: 42) {
+await Lib.$number.withValue(boundTo: 42) {
   
   await withTaskGroup(of: Int.self) { group in 
-    group.spawn { Lib.number.get() } // task group child-task sees the "42" value
+    group.spawn { 
+      Lib.number // task group child-task sees the "42" value
+    }
     return group.next()! // 42
   }
   
@@ -624,7 +583,7 @@ Task.withUnsafeCurrentTask { task in
     return "<not executing within a task>" 
   }
 
-  return Library.example.get() // e.g. "example"
+  return Library.example // e.g. "example"
 }
 ````
 
@@ -1194,6 +1153,36 @@ As discussed in the tracing use-case section, the ability to express `@Logged` o
 
 Such annotations depend on the arrival of [Function Wrappers](https://forums.swift.org/t/prepitch-function-wrappers/33618) or a similar feature to them, which currently are not being actively worked on, however we definitely have in the back of our minds while designing this proposal.
 
+### Language features to avoid nesting with `withValue`
+
+It is necessary for task-local correctness to only bind values for a given scope. 
+
+This scoping rule is enforced by the only API to bind a task-local value being the `withValue() { ... }` function. The function essentially does two operations: 
+
+- pushes a new binding onto the task-local bindings stack in the current task
+- (executes the user provided `body` closure)
+- and pops the binding from the task-local bindings stack of the current task
+
+This structure allows us to use task-local allocation safely, and also ensure that no lingering values ever "leak" the scope where they were defined.
+
+It is, however, slightly cumbersome on a source level to have to indent code only in order to get this property when in reality most of the time a binding is going to be set for the entirety (or remaining part) of the current function.
+
+It Swift were to gain some "`using`" mechanism, that would encapsulate the pattern of doing one "start" operation now, and an "end" operation at scope exit. That would bee a very general feature with broad applicability. The same mechanism could be used by task-locals rather than resorting to nesting. 
+
+```swift
+scoped_overwrite requestID = id   // <- intentionally terrible syntax
+```
+
+which by default would desugar as:
+
+```swift
+let old = <variable>
+<variable> = new
+defer { <variable> = old }
+```
+
+but which property wrappers would have some ability to customize. Such feature may allow expressing the pattern necessary for task-local binding correctness without the cumbersome nesting.
+
 ### Specialized TaskLocal Value Inheritance Semantics
 
 Some task local values may require specialized inheritance semantics. The default strategy simply means that child tasks "inherit" values from their parents. At runtime, this is not achieved by copying, but simply performing lookups through parent tasks as well, when a `TaskLocal.Inheritance.default` inherited key is being looked up.
@@ -1268,6 +1257,7 @@ We have specific designs in mind with regards to `Progress` monitoring types how
 
 ## Revision history
 
+- v4.5: Drop the Access type and use the `projectedValue` to simplify read and declaration sites.
 - v4: Changed surface API to be focused around `@TaskLocal` property wrapper-style key definitions.
   - introduce API to bind task-local values in synchronous functions, through `UnsafeCurrentTask`
   - allude to `async` (or `send`) as the way to carry task-local values rather than forcing them into a detached task
