@@ -13,6 +13,7 @@
 * [Proposed design](#proposed-design)
    * [Actor-isolated parameters](#actor-isolated-parameters)
    * [Non-isolated declarations](#non-isolated-declarations)
+   * [Closure isolation](#closure-isolation)
    * [Protocol conformances](#protocol-conformances)
    * [Pre-async asynchronous protocols](#pre-async-asynchronous-protocols)
    * [Multiple isolated parameters](#multiple-isolated-parameters)
@@ -120,6 +121,48 @@ extension BankAccount {
   }
 }  
 ```
+
+### Closure isolation control
+
+As described in the [actors proposal][actors], closures formed within an actor-isolated function are actor-isolated so long as they are not `@Sendable`:
+
+```swift
+func acceptNonSendable(_ operation: () async -> Void) { ... }
+func acceptSendable(_ operation: @Sendable () async -> Void) { ... }
+
+
+actor A {
+  func f() { }
+  
+  func g() {
+    acceptNonSendable {
+      f() // synchronous call is okay, closure is actor-isolated to the captured "self"
+    }
+    
+    acceptSendable {
+      await f() // must call f() asynchronously because @Sendable closure is non-isolated
+    }
+  }
+}
+```
+
+We can provide control in both directions: a closure can be explicitly non-isolated using the syntax `{ nonisolated in ... }`, or can specify that it is isolated to a given `isolated` parameter by capturing that parameter as `isolated`:
+
+```swift
+extension A {
+  func h() {
+    acceptNonSendable { nonisolated in
+      await f() // call must be asynchronous, because closure is non-isolated
+    }
+    
+    acceptSendable { [isolated self] async in
+      f() // synchronous call to f() is okay, because closure is explicitly isolated to `self`
+    }
+  }
+}
+```
+
+Note that a `@Sendable` closure can only be actor-isolated if it is also `async`. Such closures will implicitly `await` at the beginning of the closure body to ensure they are running on the actor, then execute the rest of the body.
 
 ### Protocol conformances
 
