@@ -13,45 +13,49 @@
 * [Introduction](#introduction)
 * [Motivation](#motivation)
 * [Proposed solution](#proposed-solution)
-  * [Task Local Values](#task-local-values-1)
+  + [Task Local Values](#task-local-values-1)
 * [Detailed design](#detailed-design)
-  * [Declaring task-local values](#declaring-task-local-values)
-  * [Binding task-local values](#binding-task-local-values)
-    * [Binding values for the duration of a child-task](#binding-values-for-the-duration-of-a-child-task)
-    * [Forcing inheritance in a detached task](#forcing-inheritance-in-a-detached-task)
-  * [Task-local value lifecycle](#task-local-value-lifecycle)
-  * [Reading task-local values](#reading-task-local-values)
-    * [Reading task-local values: implementation details](#reading-task-local-values-implementation-details)
-    * [Child task and value lifetimes](#child-task-and-value-lifetimes)
+  + [Declaring task-local values](#declaring-task-local-values)
+  + [Binding task-local values](#binding-task-local-values)
+    - [Binding values for the duration of a child-task](#binding-values-for-the-duration-of-a-child-task)
+    - [Binding task-local values from synchronous functions](#binding-task-local-values-from-synchronous-functions)
+    - [Task-local value and tasks which outlive their scope](#task-local-value-and-tasks-which-outlive-their-scope)
+  + [Task-local value lifecycle](#task-local-value-lifecycle)
+  + [Reading task-local values](#reading-task-local-values)
+    - [Reading task-local values: implementation details](#reading-task-local-values--implementation-details)
+    - [Child task and value lifetimes](#child-task-and-value-lifetimes)
       * [Task-local value item allocations](#task-local-value-item-allocations)
-  * [Similarities and differences with SwiftUI `Environment`](#similarities-and-differences-with-swiftui-environment)
+  + [Similarities and differences with SwiftUI `Environment`](#similarities-and-differences-with-swiftui--environment-)
 * [Prior Art](#prior-art)
-  * [Kotlin: CoroutineContext[T]](#kotlin-coroutinecontextt)
-  * [Java/Loom: Scope Variables](#javaloom-scope-variables)
-  * [Go: explicit context passing all the way](#go-explicit-context-passing-all-the-way)
+  + [Kotlin: CoroutineContext[T]](#kotlin--coroutinecontext-t-)
+  + [Java/Loom: Scope Variables](#java-loom--scope-variables)
+  + [Go: explicit context passing all the way](#go--explicit-context-passing-all-the-way)
 * [Alternatives Considered](#alternatives-considered)
-  * [Surface API: Key-less value definitions](#surface-api-key-less-value-definitions)
+  + [Surface API: Type-based key definitions](#surface-api--type-based-key-definitions)
+  + [Surface API: Key-less value definitions](#surface-api--key-less-value-definitions)
 * [Rejected Alternatives](#rejected-alternatives)
-  * [Plain-old Thread Local variables](#plain-old-thread-local-variables)
-  * [Dispatch Queue Specific Values](#dispatch-queue-specific-values)
+  + [Plain-old Thread Local variables](#plain-old-thread-local-variables)
+  + [Dispatch Queue Specific Values](#dispatch-queue-specific-values)
 * [Intended use-cases](#intended-use-cases)
-  * [Use case: Distributed Tracing & Contextual Logging](#use-case-distributed-tracing--contextual-logging)
-    * [Contextual Logging](#contextual-logging)
-    * [Function Tracing](#function-tracing)
-    * [Distributed Tracing](#distributed-tracing)
-    * [Future direction: Function wrapper interaction](#future-direction-function-wrapper-interaction)
-  * [Use case: Mocking internals (Swift System)](#use-case-mocking-internals-swift-system)
-  * [Use case: Progress Monitoring](#use-case-progress-monitoring)
-  * [Use case: Executor configuration](#use-case-executor-configuration)
+  + [Use case: Distributed Tracing & Contextual Logging](#use-case--distributed-tracing---contextual-logging)
+    - [Contextual Logging](#contextual-logging)
+    - [Function Tracing](#function-tracing)
+    - [Distributed Tracing](#distributed-tracing)
+    - [Future direction: Function wrapper interaction](#future-direction--function-wrapper-interaction)
+  + [Use case: Mocking internals (Swift System)](#use-case--mocking-internals--swift-system-)
+  + [Use case: Progress Monitoring](#use-case--progress-monitoring)
+  + [Use case: Executor configuration](#use-case--executor-configuration)
 * [Future Directions](#future-directions)
-  * [Tracing annotations with Function Wrappers](#tracing-annotations-with-function-wrappers)
-  * [Specialized TaskLocal Value Inheritance Semantics](#specialized-tasklocal-value-inheritance-semantics)
-    * ["Never" task-local value inheritance](#never-task-local-value-inheritance)
-    * ["always, best effort" task-local value inheritance](#always-best-effort-task-local-value-inheritance)
+  + [Additional configuration options for `@TaskLocal`](#additional-configuration-options-for---tasklocal-)
+  + [Tracing annotations with Function Wrappers](#tracing-annotations-with-function-wrappers)
+  + [Language features to avoid nesting with `withValue`](#language-features-to-avoid-nesting-with--withvalue-)
+  + [Specialized TaskLocal Value Inheritance Semantics](#specialized-tasklocal-value-inheritance-semantics)
+    - ["Never" task-local value inheritance](#-never--task-local-value-inheritance)
 * [Revision history](#revision-history)
 * [Source compatibility](#source-compatibility)
 * [Effect on ABI stability](#effect-on-abi-stability)
 * [Effect on API resilience](#effect-on-api-resilience)
+
 
 ## Introduction
 
@@ -241,8 +245,8 @@ public final class TaskLocal<Value: Sendable>: Sendable, CustomStringConvertible
   public func get() -> Value { ... }
 
   @discardableResult
-  public func withValue<R>(_ valueDuringBody: Value, 
-                           do body: () async throws -> R,
+  public func withValue<R>(_ valueDuringOperation: Value, 
+                           operation: () async throws -> R,
                            file: String = #file, line: UInt = #line) async rethrows -> R { ... }
   
   public var wrappedValue: Value {
@@ -252,7 +256,7 @@ public final class TaskLocal<Value: Sendable>: Sendable, CustomStringConvertible
   public var projectedValue: TaskLocal<Value> {
     get { self }
 
-    @available(*, unavailable, message: "use '$myTaskLocal.withValue(_:do:)' instead")
+    @available(*, unavailable, message: "use '$myTaskLocal.withValue(_:operation:)' instead")
     set {
       fatalError("Illegal attempt to set a \(Self.self) value, use `withValue(...) { ... }` instead.")
     }
@@ -285,8 +289,8 @@ Binding values is done by using the `$myTaskLocal.withValue(_:operation:)` funct
 ```swift
 @discardableResult
 public func withValue<R>(
-  _ valueDuringBody: Value,
-  do body: () async throws -> R
+  _ valueDuringOperation: Value,
+  operation: () async throws -> R
 ) async rethrows -> R
 ```
 
@@ -336,8 +340,8 @@ And finally, if we wanted to set the `withWasabi` reference for most of the task
 
 ```swift
 await Lib.$wasabiPreference.withValue(.withWasabi) {
-  async let firstMeal = cookDinner()
-  async let secondMeal = cookDinner()
+  spawn let firstMeal = cookDinner()
+  spawn let secondMeal = cookDinner()
   spawn let noWasabiMeal = Lib.$wasabiPreference.withValue(.withoutWasabi) {
     cookDinner()
   }
@@ -351,7 +355,7 @@ In practice, please be careful with the use of task-locals and don't use them in
 
 #### Binding task-local values from synchronous functions
 
-While reading task-local values from synchronous functions is the same as from any other context: `myLocal.get()`, binding them is a different story.
+While reading task-local values from synchronous functions is the same as from any other context, binding them is a different story.
 
 In order to be able to bind a task-local value, there must be a task available to attach the value to. Since a synchronous function _may_ (or may not) be executing within an asynchronous context, we cannot statically decide if binding a value will be effective or not, unless we determine if the task is available.
 
@@ -362,7 +366,7 @@ Since great care must be taken when working with `UnsafeCurrentTask`, especially
 ```swift
 extension UnsafeCurrentTask { 
 
-  /// Allows for executing a synchronous `body` while binding a task-local value
+  /// Allows for executing a synchronous `operation` while binding a task-local value
   /// in the current task.
   ///
   /// This function MUST NOT be invoked by any other task than the current task
@@ -370,8 +374,8 @@ extension UnsafeCurrentTask {
   @discardableResult
   public func withTaskLocal<Value: Sendable, R>(
       _ taskLocal: TaskLocal<Value>,
-      boundTo valueDuringBody: Value,
-      do body: () throws -> R,
+      boundTo valueDuringOperation: Value,
+      operation: () throws -> R,
       file: String = #file, line: UInt = #line) rethrows -> R { ... }
   
 }
@@ -568,7 +572,7 @@ If a synchronous function is invoked from a context that was not running within 
 
 ```swift
 func simple() {
-  print("number: \(Lib.number.get())")
+  print("number: \(Lib.number)")
 }
 ```
 
@@ -741,7 +745,7 @@ withContext(Dispatchers.IO) {
 
 which allows adding conte context variables while the `block` executes.
 
-See also [Structured concurrency, lifecycle and coroutine parent-child hierarchy](https://github.com/Kotlin/kotlinx.coroutines/blob/master/ui/coroutines-guide-ui.md#structured-concurrency-lifecycle-and-coroutine-parent-child-hierarchy)
+See also [Structured concurrency, lifecycle and coroutine parent-child hierarchy](https://github.com/Kotlin/kotlinx.coroutines/blob/master/ui/coroutines-guide-ui.md#structured-concurrency-lifecycle-and-coroutine-parent-child-hierarchy).
 
 ### Java/Loom: Scope Variables
 
@@ -895,11 +899,11 @@ For completeness, the functions to read and bind values with this proposal would
 enum Task {
   enum Local {}
   
-  static func withLocal<Value, BodyResult>(
+  static func withLocal<Value, R>(
     _ path: KeyPath<Local, Value>,
     boundTo value: Value,
-    body: @escaping () async -> BodyResult
-  ) async -> BodyResult { ... }
+    body: @escaping () async -> R
+  ) async -> R { ... }
   
   static func local<Value>(
     _ path: KeyPath<Local, Value>
@@ -1128,11 +1132,8 @@ For example, invoking such actor-independent functions `calcFoo` and `calcBar` c
 
 ```swift
 // Just ideas, not actual API proposal (!)
-async let foo = Task.withLocal(\.executor, boundTo: someSpecificExecutor) {
+async let foo = $myExecutor.withValue(someSpecificExecutor) {
   calcFoo()
-}
-async let bar = Task.withLocal(\.executor, boundTo: .UI) {
-  calcBar()
 }
 ```
 
@@ -1142,7 +1143,7 @@ async let bar = Task.withLocal(\.executor, boundTo: .UI) {
 
 In our current work we discovered a number of special keys which we will be introducing in the future, e.g. to support operating system requirements for tracing calls, authentication or support for novel patterns such as a Swift Concurrency aware `Progress` type. 
 
-Some of those keys will want to make different performance tradeoffs. For example, tracing IDs may want to require being propagated in an in-line storage and copied every time to a child task upon `spawn` rather than being lazily accessed on each `get()`. Or certain keys may wish to propagate to child tasks only when called explicitly, so a "don't inherit" propagation policy could be used.
+Some of those keys will want to make different performance tradeoffs. For example, tracing IDs may want to require being propagated in an in-line storage and copied every time to a child task upon `spawn` rather than being lazily accessed on each read operation. Or certain keys may wish to propagate to child tasks only when called explicitly, so a "don't inherit" propagation policy could be used.
 
 These configuration options are able to be introduced in binary and source compatible ways to the property wrapper and backing storage. The storage requirements for those flags are minimal, and such flags will only ever be created once per specific task-local key. 
 
@@ -1215,7 +1216,7 @@ The semantics default to `.default`, which are what one would expect normally --
 In this proposal, we introduce two additional inheritance semantics: `.never` and `.alwaysBestEffort`:
 
 ```swift
-// TODO: should likely remain extensible
+// Should remain extensible
 public enum TaskLocalInheritance: UInt8, Equatable {
   case `default`        = 0
   case never            = 1
