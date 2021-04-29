@@ -1,10 +1,11 @@
 # `#if` for postfix member expressions
 
 * Proposal: [SE-0308](0308-postfix-if-config-expressions.md)
-* Authors: [Rintaro Ishizaki](https://github.com/rintaro)
+* Author: [Rintaro Ishizaki](https://github.com/rintaro)
 * Review Manager: [Saleem Abdulrasool](https://github.com/compnerd)
-* Implementation: https://github.com/apple/swift/pull/35097
-* Status: **Active Review (April 5, 2021...April 16, 2021)**
+* Status: **Accepted**
+* Implementation: [apple/swift#35097](https://github.com/apple/swift/pull/35097)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0308-postfix-if-config-expressions/47780)
 
 ## Introduction
 
