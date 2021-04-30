@@ -1,9 +1,9 @@
 # Improved control over actor isolation
 
-* Proposal: [SE-NNNN](nnnn-actor-isolation-control.md)
+* Proposal: [SE-0313](0313-actor-isolation-control.md)
 * Authors: [Doug Gregor](https://github.com/DougGregor), [Chris Lattner](https://github.com/lattner)
-* Review Manager: TBD
-* Status: **Awaiting implementation**
+* Review Manager: [Ted Kremenek](https://github.com/tkremenek)
+* Status: **Active Review (Apr 30 - May 11 2021)**
 * Implementation: Partially available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
 
 ## Table of Contents
