@@ -3,7 +3,7 @@
 * Proposal: [SE-0308](0308-postfix-if-config-expressions.md)
 * Author: [Rintaro Ishizaki](https://github.com/rintaro)
 * Review Manager: [Saleem Abdulrasool](https://github.com/compnerd)
-* Status: **Accepted**
+* Status: **Implemented (Swift 5.5)**
 * Implementation: [apple/swift#35097](https://github.com/apple/swift/pull/35097)
 * Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0308-postfix-if-config-expressions/47780)
 
