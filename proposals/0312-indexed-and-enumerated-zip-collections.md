@@ -3,7 +3,7 @@
 * Proposal: [SE-0312](0312-indexed-and-enumerated-zip-collections.md)
 * Author: [Tim Vermeulen](https://github.com/timvermeulen)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
-* Status: **Active Review (Apr 27 - May 7 2021)**
+* Status: **Active Review (April 27 - May 7 2021)**
 * Implementation: [apple/swift#36851](https://github.com/apple/swift/pull/36851)
 
 ## Introduction
