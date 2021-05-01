@@ -25,7 +25,7 @@
     - [Reading task-local values: implementation details](#reading-task-local-values-implementation-details)
     - [Child task and value lifetimes](#child-task-and-value-lifetimes)
       * [Task-local value item allocations](#task-local-value-item-allocations)
-  + [Similarities and differences with SwiftUI `Environment`](#similarities-and-differences-with-swiftui-environment)
+  + [Similarities and differences with SwiftUI's `Environment`](#similarities-and-differences-with-swiftuis-environment)
 * [Prior Art](#prior-art)
   + [Kotlin: CoroutineContext[T]](#kotlin-coroutinecontextt)
   + [Java/Loom: Scope Variables](#javaloom-scope-variables)
