@@ -122,8 +122,8 @@ The diagnosed error would look like this:
 enum MyLibrary {
   @TaskLocal
   var requestID: String?
-      // error: @TaskLocal declaration 'requestID' must be static. 
-      // Task-local declarations must be static stored properties.
+    // error: @TaskLocal declaration 'requestID' must be static. 
+    // Task-local declarations must be static stored properties.
 }
 ```
 
@@ -373,10 +373,10 @@ extension UnsafeCurrentTask {
   /// represented by this object.
   @discardableResult
   public func withTaskLocal<Value: Sendable, R>(
-      _ taskLocal: TaskLocal<Value>,
-      boundTo valueDuringOperation: Value,
-      operation: () throws -> R,
-      file: String = #file, line: UInt = #line) rethrows -> R { ... }
+    _ taskLocal: TaskLocal<Value>,
+    boundTo valueDuringOperation: Value,
+    operation: () throws -> R,
+    file: String = #file, line: UInt = #line) rethrows -> R { ... }
   
 }
 ```
@@ -441,7 +441,7 @@ If necessary, it is possible is possible to make a detached task carry a specifi
 let preference = Lib.sugar                      // store the sugar preference in task-1
 detach(priority: Task.currentPriority) {        // manually propagate priority
   await Lib.$sugar.withValue(sugarPreference) { // restore the sugar preference in detached-task
-     assert(Lib.sugar == preference)
+    assert(Lib.sugar == preference)
   }
 }
 ```
@@ -501,9 +501,9 @@ At the same time, the just shown pattern can be seen as simply wrong usage of th
 
 ```swift
 await Trace.$name.withValue("some(func:)") { // OK!
-    await withTaskGroup(...) { group in
-        group.spawn { ... }
-    }
+  await withTaskGroup(...) { group in
+    group.spawn { ... }
+  }
 }
 ```
 
@@ -511,11 +511,11 @@ or, set it _within_ the spawned child-task, as then the task-local allocation wi
 
 ```swift
 await withTaskGroup(...) { group in
-    group.spawn {
-        await Trace.$name.withValue("some(func:)") { // OK!
-            ...
-        }
+  group.spawn {
+    await Trace.$name.withValue("some(func:)") { // OK!
+      ...
     }
+  }
 }
 ```
 
@@ -683,17 +683,17 @@ and can be implemented as:
 
 ```swift
 struct OvenKey: EnvironmentKey {
-    static let defaultValue: Oven = DefaultOven()
+  static let defaultValue: Oven = DefaultOven()
 }
 extension EnvironmentValues {
-    var Oven: Oven {
-        get {
-            return self[OvenKey.self]
-        }
-        set {
-            self[OvenKey.self] = newValue
-        }
+  var Oven: Oven {
+    get {
+      return self[OvenKey.self]
     }
+    set {
+      self[OvenKey.self] = newValue
+    }
+  }
 }
 ```
 
@@ -729,8 +729,8 @@ Setting a context again can only be done by nesting and scopes, as follows:
 
 ```kotlin
 suspend fun <T> withContext(
-    context: CoroutineContext, 
-    block: suspend CoroutineScope.() -> T
+  context: CoroutineContext, 
+  block: suspend CoroutineScope.() -> T
 ): T
 ```
 
@@ -759,21 +759,21 @@ Snippet explaining their functioning:
 > static final Scoped<String> sv = Scoped.forType(String.class);
 > 
 > void foo() {
->     try (var __ = sv.bind("A")) {
->        bar();
->        baz();
->        bar();
->     }
+>   try (var __ = sv.bind("A")) {
+>     bar();
+>     baz();
+>     bar();
+>   }
 > }
 > 
 > void bar() {
->     System.out.println(sv.get());
+>   System.out.println(sv.get());
 > }
 > 
 > void baz() {
->     try (var __ = sv.bind("B")) {
->        bar();
->     }
+>   try (var __ = sv.bind("B")) {
+>     bar();
+>   }
 > }
 > ```
 > 
@@ -796,24 +796,24 @@ Go's take on asynchronous context propagation takes the form of the [`Context`](
 // across API boundaries. Its methods are safe for simultaneous use by multiple
 // goroutines.
 type Context interface {
-    // Done returns a channel that is closed when this Context is canceled
-    // or times out.
-    Done() <-chan struct{}
+  // Done returns a channel that is closed when this Context is canceled
+  // or times out.
+  Done() <-chan struct{}
 
-    // Err indicates why this context was canceled, after the Done channel
-    // is closed.
-    Err() error
+  // Err indicates why this context was canceled, after the Done channel
+  // is closed.
+  Err() error
 
-    // Deadline returns the time when this Context will be canceled, if any.
-    Deadline() (deadline time.Time, ok bool)
+  // Deadline returns the time when this Context will be canceled, if any.
+  Deadline() (deadline time.Time, ok bool)
 
-    // Value returns the value associated with key or nil if none.
-    Value(key interface{}) interface{}
+  // Value returns the value associated with key or nil if none.
+  Value(key interface{}) interface{}
 }
 
 var (
-   background = new(emptyCtx)
-   todo       = new(emptyCtx)
+  background = new(emptyCtx)
+  todo       = new(emptyCtx)
 )
 ```
 
@@ -825,7 +825,7 @@ The Go programming style is very strict about Context usage, meaning that _every
 
 ```go
 func DoSomething(ctx context.Context, arg Arg) error {
-	// ... use ctx ...
+  // ... use ctx ...
 }
 ```
 
@@ -853,16 +853,16 @@ The previous design required this boilerplate to declare a key:
 ```swift
 extension TaskLocalValues {
   
-    public struct RequestIDKey: TaskLocalKey {
-      public static var defaultValue: String { "<no-request-id>" } 
+  public struct RequestIDKey: TaskLocalKey {
+    // alternatively, one may declare a nil default value:
+    //     public static var defaultValue: String? { nil } 
+    public static var defaultValue: String { "<no-request-id>" }
       
-      // alternatively, one may declare a nil default value:
-      //     public static var defaultValue: String? { nil } 
-      
-      // additional options here, like e.g.
-      // static var inherit: TaskLocalValueInheritance = . never
-    }
-    public var requestID: RequestIDKey { .init() }
+    // additional options here, like e.g.
+    // static var inherit: TaskLocalValueInheritance = . never
+  }
+    
+  public var requestID: RequestIDKey { .init() }
   
 }
 ```
