@@ -255,7 +255,7 @@ This proposal is additive, extending the grammar in a space where new contextual
 
 ## Effect on ABI stability
 
-This is purely additive to the ABI. Function parameters will additionally be 
+This is purely additive to the ABI. Function parameters can be marked `isolated`, which will be captured as part of the function type. However, this (like other modifiers on a function parameter) is an additive change that won't affect existing ABI.
 
 ## Effect on API resilience
 
