@@ -292,7 +292,7 @@ Since the portion of available API is implicit, it is not apparent anywhere in c
 The first modifier is to statically prevent the addition of requirements that are incompatible with the existential, and the second is to forestall accidental unavailability and enhance discoverability.
 
 In our opinion, the pitfall of unexpected unavailability has to do mostly with inappropriate application of value-level abstraction, and is best addressed by reviewing the language guide and following the somewhat *established* roadmap for [generalized existentials](https://github.com/apple/swift/blob/main/docs/GenericsManifesto.md#generalized-existentials) (which includes syntax renovation and explicit opening of existential values), rather than taking a less principled detour. In swift-evolution discussion, the community pointed out several notable flaws:
-* Using these modifiers feels like completely loosing sight of generic programming, where no such usability limitations exist.
+* Using these modifiers feels like completely losing sight of generic programming, where no such usability limitations exist.
 * The ability to access a member does not so much depend on its declared type as on the one of a multiple of existential types that is used to access it, and the invoked accessor (for storage declarations).
 * This approach seems likely to lead to trade-offs between optimal design and compliance with the modifier.
 * Being a source-compatible addition, modifiers can merely offer the *option* to be explicit.
