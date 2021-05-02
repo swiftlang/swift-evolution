@@ -162,7 +162,7 @@ extension A {
 }
 ```
 
-Note that a `@Sendable` closure can only be actor-isolated if it is also `async`. Such closures will implicitly `await` at the beginning of the closure body to ensure they are running on the actor, then execute the rest of the body.
+Note that a `@Sendable` closure can only be actor-isolated if it is also `async`. Such closures are like `async` functions on the actor itself, and will switch to the actor at the beginning of the closure body to ensure that are running on the actor, then execute the rest of the body.
 
 ### Protocol conformances
 
