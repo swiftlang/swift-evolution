@@ -244,6 +244,10 @@ extension BankAccount {
   func g() {
     f(a: self, b: self)
   }
+
+  func h(other: BankAccount) async {
+    await f(a: self, b: other) // error: isolated parameters `a` and `b` passed values with potentially-different actors
+  }
 }
 ```
 
