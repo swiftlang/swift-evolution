@@ -117,8 +117,8 @@ and downloading the source archive for a release:
 | `GET`  | `/{scope}/{name}/{version}.zip`                           | Download source archive for a package release   |
 | `GET`  | `/identifiers{?url}`                                      | Lookup package identifiers registered for a URL |
 
-A formal specification for the package registry interface
-is provided alongside this proposal.
+A formal specification for the package registry interface is provided 
+[alongside this proposal](https://github.com/apple/swift-package-manager/blob/main/Documentation/RegistryDraft.md).
 In addition,
 an OpenAPI (v3) document
 and a reference implementation written in Swift
