@@ -112,7 +112,7 @@ enum MyLibrary {
 
 Each task-local declaration represents its own, independent task-local storage. Reading from one declaration will never observe a value stored using a different declaration, even if the declarations look exactly the same.
 
-Because of those pitfalls with creating multiple instances of the same task local identifier, we propose to diagnose and and fail at compile time unless the `@TaskLocal` property wrapper is defined on something other than a static or global property. 
+Because of those pitfalls with creating multiple instances of the same task local identifier, we propose to diagnose and fail at compile time if the `@TaskLocal` property wrapper is defined on something other than a static or global property. 
 
 > In order to do so, we will extend the internal `public static subscript<T>(_enclosingInstance object: T, ...)` subscript mechanism to require "no enclosing instance", which will cause the appropriate compile time error reporting to be triggered if such wrapper is used on a non-static or non-global property.
 
@@ -474,7 +474,7 @@ Please not that what is copied here are only the bindings, i.e. if a reference c
 
 ---
 
-One other situation where a task might out-live the `withValue` lexical-scope is a specific anti-pattern within task groups. This situation is reliably detected at runtime and cause a crash when it is encountered, along with a detailed explanation of the issue.
+One other situation where a task might out-live the `withValue` lexical-scope is a specific anti-pattern within task groups. This situation is reliably detected at runtime and causes a crash when it is encountered, along with a detailed explanation of the issue.
 
 The one situation where a `withLocal` scope is not enough to encapsulate the lifetime of a child-task is if the binding is performed _exactly_ around a TaskGroup's `group.spawn`, like this:
 
