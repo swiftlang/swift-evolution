@@ -83,7 +83,7 @@ The primary difference is that actors protect their state from data races. This 
 
 ### Actor isolation
 
-Actor isolation is how actors protect their state. For actors, the primary mechanism for this protection is by only allowing their stored instance properties to be accessed directly on `self`. For example, here is a method that attempts to transfer money from one account to another:
+Actor isolation is how actors protect their mutable state. For actors, the primary mechanism for this protection is by only allowing their stored instance properties to be accessed directly on `self`. For example, here is a method that attempts to transfer money from one account to another:
 
 ```swift
 extension BankAccount {
@@ -96,6 +96,8 @@ extension BankAccount {
       throw BankError.insufficientFunds
     }
 
+    print("Transferring \(amount) from \(accountNumber) to \(other.accountNumber)")
+
     balance = balance - amount
     other.balance = other.balance + amount  // error: actor-isolated property 'balance' can only be referenced on 'self'
   }
@@ -106,7 +108,9 @@ If `BankAccount` were a class, the `transfer(amount:to:)` method would be well-f
 
 With actors, the attempt to reference `other.balance` triggers a compiler error, because `balance` may only be referenced on `self`. The error message notes that `balance` is *actor-isolated*, meaning that it can only be accessed directly from within the specific actor it is tied to or "isolated by". In this case, it's the instance of `BankAccount` referenced by `self`. All declarations on an instance of an actor, including stored and computed instance properties (like `balance`), instance methods (like `transfer(amount:to:)`), and instance subscripts, are all actor-isolated by default. Actor-isolated declarations can freely refer to other actor-isolated declarations on the same actor instance (on `self`). Any declaration that is not actor-isolated is *non-isolated* and cannot synchronously access any actor-isolated declaration.
 
-A reference to an actor-isolated declaration from outside that actor is called a *cross-actor reference*. Such references are permissible only when performed asynchronously. Such asynchronous accesses are turned into "messages" requesting that the actor execute the corresponding task when it can safely do so. These messages are stored in the actor's "mailbox", and the caller initiating the asynchronous function invocation may be suspended until the actor is able to process the corresponding message in its mailbox. An actor processes the messages in its mailbox sequentially, so that a given actor will never have two concurrently-executing tasks running actor-isolated code. This ensures that there are no data races on actor-isolated state, because there is no concurrency in any code that can access actor-isolated state. For example, if we wanted to make a deposit to a given bank account `account`, we could make a call to a method `deposit(amount:)` on another actor, and that call would become a message placed in the actor's mailbox and the caller would suspend. When that actor processes messages, it will eventually process the message corresponding to the deposit, executing that call within the actor's isolation domain when no other code is executing in that actor's isolation domain.
+A reference to an actor-isolated declaration from outside that actor is called a *cross-actor reference*. Such references are permissible in one of two ways. First, a cross-actor reference to immutable state is allowed from anywhere in the module because, once initialized, that state can never be modified (either from inside the actor or outside it), so there are no data races by definition. The reference to `other.accountNumber` is allowed based on this rule, because `accountNumber` is declared via a `let` and has value-semantic type `Int`.
+
+The second form of permissible cross-actor reference is one that is performed with an asynchronous function invocation. Such asynchronous function invocations are turned into "messages" requesting that the actor execute the corresponding task when it can safely do so. These messages are stored in the actor's "mailbox", and the caller initiating the asynchronous function invocation may be suspended until the actor is able to process the corresponding message in its mailbox. An actor processes the messages in its mailbox sequentially, so that a given actor will never have two concurrently-executing tasks running actor-isolated code. This ensures that there are no data races on actor-isolated mutable state, because there is no concurrency in any code that can access actor-isolated state. For example, if we wanted to make a deposit to a given bank account `account`, we could make a call to a method `deposit(amount:)` on another actor, and that call would become a message placed in the actor's mailbox and the caller would suspend. When that actor processes messages, it will eventually process the message corresponding to the deposit, executing that call within the actor's isolation domain when no other code is executing in that actor's isolation domain.
 
 > **Implementation note**: At an implementation level, the messages are partial tasks (described by the [Structured Concurrency][sc] proposal) for the asynchronous call, and each actor instance contains its own serial executor (also in the [Structured Concurrency][sc] proposal). The serial executor is responsible for running the partial tasks sequentially. This is conceptually similar to a serial [`DispatchQueue`](https://developer.apple.com/documentation/dispatch/dispatchqueue), but the actual implementation in the actor runtime uses a lighter-weight implementation that takes advantage of Swift's `async` functions.
 
@@ -123,6 +127,8 @@ extension BankAccount {
       throw BankError.insufficientFunds
     }
 
+    print("Transferring \(amount) from \(accountNumber) to \(other.accountNumber)")
+
     // Safe: this operation is the only one that has access to the actor's isolated
     // state right now, and there have not been any suspension points between
     // the place where we checked for sufficient funds and here.
@@ -136,7 +142,7 @@ extension BankAccount {
 }
 ```
 
-The `deposit(amount:)` operation needs to involve the state of a different actor, so it must be invoked asynchronously. This method could itself be implemented as `async`:
+The `deposit(amount:)` operation needs involve the state of a different actor, so it must be invoked asynchronously. This method could itself be implemented as `async`:
 
 ```swift
 extension BankAccount {
@@ -180,6 +186,26 @@ func checkBalance(account: BankAccount) {
 
 > **Rationale**: it is possible to support cross-actor property sets. However, cross-actor `inout` operations cannot be reasonably supported because there would be an implicit suspension point between the "get" and the "set" that could introduce what would effectively be race conditions. Moreover, setting properties asynchronously may make it easier to break invariants unintentionally if, e.g., two properties need to be updated at once to maintain an invariant.
 
+From outside a module, immutable `let`s must be referenced asynchronously from outside the actor. For example:
+
+```swift
+// From another module
+func printAccount(account: BankAccount) {
+  print("Account #\(await account.accountNumber)")
+}
+```
+
+This preserves the ability for the module that defines `BankAccount` to evolve the `let` into a `var` without breaking clients, which is a property Swift has always maintained.:
+
+```swift
+actor BankAccount { // version 2
+  var accountNumber: Int
+  var balance: Double  
+}
+```
+
+Only code within the module will need to change to account for `accountNumber` becoming a `var`; existing clients will already use asynchronous access and be unaffected.
+
 ### Cross-actor references and `Sendable` types
 
 [SE-0302][se302] introduces the `Sendable` protocol. Values of types that conform to the `Sendable` protocol are safe to share across concurrently-executing code. There are various kinds of types that work well this way: value-semantic types like `Int` and `String`, value-semantic collections of such types like `[String]` or `[Int: String]`, immutable classes, classes that perform their own synchronization internally (like a concurrent hash table), and so on.
@@ -210,7 +236,7 @@ if let primary = await account.primaryOwner() {
 }
 ```
 
-Even non-mutating access is problematic, because the person's `name` could be modified from within the actor at the same time as the original call is trying to access it. To prevent this potential for concurrent mutation of actor-isolated state, all cross-actor references can only involve types that conform to `Sendable`. For a cross-actor asynchronous call, the argument and result types must conform to `Sendable`. For a cross-actor reference to a property, the property type must conform to `Sendable`. By insisting that all cross-actor references only use `Sendable` types, we can ensure that no references to shared mutable state flow into or out of the actor's isolation domain. The compiler will produce a diagnostic for such issues. For example, the call to `account.primaryOwner()` about would produce an error like the following:
+Even non-mutating access is problematic, because the person's `name` could be modified from within the actor at the same time as the original call is trying to access it. To prevent this potential for concurrent mutation of actor-isolated state, all cross-actor references can only involve types that conform to `Sendable`. For a cross-actor asynchronous call, the argument and result types must conform to `Sendable`. For a cross-actor reference to an immutable property, the property type must conform to `Sendable`. By insisting that all cross-actor references only use `Sendable` types, we can ensure that no references to shared mutable state flow into or out of the actor's isolation domain. The compiler will produce a diagnostic for such issues. For example, the call to `account.primaryOwner()` about would produce an error like the following:
 
 ```
 error: cannot call function returning non-Sendable type 'Person?' across actors
@@ -531,14 +557,12 @@ actor MyActor {
 
 extension MyActor {
   func g(other: MyActor) async {
-    print(name)                // okay, name is isolated to "self"
-    print(other.name)          // error: name is isolated to "self", not "other"
-    print(await other.name)    // okay, asynchronous access
-    print(counter)             // okay, g() is isolated to "self"
-    print(other.counter)       // error: g() is isolated to "self", not "other"
-    print(await other.counter) // okay, asynchronous access
-    f()                        // okay, f() is isolated to "self"
-    await other.f()            // okay, other is not isolated to "self" but asynchronous access is permitted
+    print(name)          // okay, name is non-isolated
+    print(other.name)    // okay, name is non-isolated
+    print(counter)       // okay, g() is isolated to MyActor
+    print(other.counter) // error: g() is isolated to "self", not "other"
+    f()                  // okay, g() is isolated to MyActor
+    await other.f()      // okay, other is not isolated to "self" but asynchronous access is permitted
   }
 }
 ```
@@ -797,7 +821,7 @@ Subsequent review discussion determined that the conceptual cost of actor inheri
 
 ### Cross-actor lets
 
-This proposal requires cross-actor access to `let` properties to be asynchronous, which is consistent with `var` properties. Because `let` properties are immutable, accessing from outside of the actor's concurrency domain is safe, so `let` properties could implicitly be non-isolated. This would allow code such as the following:
+This proposal allows synchronous access to `let` properties on an actor instance from anywhere:
 
 ```swift
 actor BankAccount {
@@ -805,18 +829,33 @@ actor BankAccount {
 }
 
 func print(account: BankAccount) {
-  print(account.accountNumber) // okay with this change: synchronous access to an actor's let property is safe
+  print(account.accountNumber) // okay: synchronous access to an actor's let property
 }  
 ```
 
-There are some down sides to such a change. For example, it would prevent one from evolving a `let` into a `var` without breaking clients, e.g., 
+We could instead require `let` properties to be accessed asynchronously from outside the actor, making the `print(account:)` function above an error unless it is changed to `await` access to the account number. This would be more consistent with other instance members of actors, which always require asynchronous access from outside the actor. It also allows one to evolve a `let` into a `var`, e.g.,
+
 ```swift
 actor BankAccount {
-  private(set) var accountNumber: Int  // changing 'let' to 'var' breaks clients synchronously accessing data
+  private(set) var accountNumber: Int  // under current rules, refactoring 'let' to 'var' breaks clients synchronously accessing data
 }
 ```
 
-The actors proposal by itself does not provide any means for synchronous access to `let` properties (or anything else within an actor). The proposal on [controlling actor isolation][isolationcontrol] allows one to mark `let` declarations as `nonisolated`:
+On the other hand, requiring all access to `let` instances to be asynchronous goes against the notion that immutable `let` properties are safe for concurrency specifically because they are immutable. For example, one can safely access a local `let` from a concurrently-executing closure, but not a `var`:
+
+```swift
+func test() {
+  let total = 100
+  var counter = 0
+  
+  detach {
+    print(total) // okay
+    print(counter) // error, cannot reference a `var` from a @Sendable closure
+  }
+}
+```
+
+The change to require asynchronous access to `let` properties from outside the actor would not make it impossible to provide synchronous access. Rather, it would become part of the proposal on [controlling actor isolation][isolationcontrol], such that one would need to mark `let` declarations as `nonisolated`:
 
 ```swift
 actor BankAccount {
@@ -830,6 +869,8 @@ func print(account: BankAccount) {
 
 ## Revision history
 
+* Changes in the post-review amendment to the proposal:
+  * Cross-after references to instance `let` properties from a different module must be asynchronous; within the same module they will be synchronous.
 * Changes in the final accepted version of the proposal:
   * Cross-actor references to instance `let` properties must be asynchronous.
 * Changes in the second reviewed proposal:
