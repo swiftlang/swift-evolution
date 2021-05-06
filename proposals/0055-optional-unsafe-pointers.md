@@ -4,7 +4,7 @@
 * Author: [Jordan Rose](https://github.com/jrose-apple)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000086.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0055-make-unsafe-pointer-nullability-explicit-using-optional/2012)
 * Implementation: [apple/swift#1878](https://github.com/apple/swift/pull/1878)
 
 ## Introduction
@@ -21,7 +21,7 @@ We already have a way to describe this: Optionals. This proposal makes
 information about pointer nullability available in header files for imported
 C and Objective-C APIs.
 
-swift-evolution thread: <https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160314/012918.html>
+swift-evolution thread: <https://forums.swift.org/t/making-pointer-nullability-explicit-using-optional/1859>
 
 
 ## Motivation

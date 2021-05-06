@@ -4,7 +4,7 @@
 * Author: [Anton Zhilin](https://github.com/Anton3)
 * Review Manager: [Joe Groff](http://github.com/jckarter)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160704/023745.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-revision-se-0077-v2-improved-operator-declarations/3321)
 
 **Revision history**
 
@@ -28,7 +28,7 @@ precedencegroup ComparisonPrecedence {
 infix operator <> : ComparisonPrecedence
 ```
 
-[Swift-evolution discussion thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160328/014062.html)
+[Swift-evolution discussion thread](https://forums.swift.org/t/proposal-custom-operators/2046)
 
 ## Motivation
 

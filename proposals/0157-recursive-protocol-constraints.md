@@ -4,7 +4,7 @@
 * Authors: [Douglas Gregor](https://github.com/DougGregor), [Erica Sadun](https://github.com/erica), [Austin Zheng](https://github.com/austinzheng)
 * Review Manager: [John McCall](https://github.com/rjmccall)
 * Status: **Implemented (Swift 4.1)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170320/034266.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/se-0157-support-recursive-constraints-on-associated-types/5494)
 * Bug: [SR-1445](https://bugs.swift.org/browse/SR-1445)
 
 ## Introduction
@@ -12,7 +12,7 @@
 This proposal lifts restrictions on associated types in protocols. Their constraints will be allowed to reference any
 protocol, including protocols that depend on the enclosing one (recursive constraints).
 
-Further reading: [swift-evolution thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20161107/028805.html), _[Completing Generics](https://github.com/apple/swift/blob/master/docs/GenericsManifesto.md#recursive-protocol-constraints-)_
+Further reading: [swift-evolution thread](https://forums.swift.org/t/pitch-plea-recursive-protocol-constraints/4507), _[Completing Generics](https://github.com/apple/swift/blob/master/docs/GenericsManifesto.md#recursive-protocol-constraints-)_
 
 ## Motivation
 

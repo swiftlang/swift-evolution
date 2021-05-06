@@ -1,24 +1,15 @@
 # Effectful Read-only Properties
 
 * Proposal: [SE-0310](0310-effectful-readonly-properties.md)
-* Authors: [Kavon Farvardin](https://github.com/kavon)
+* Author: [Kavon Farvardin](https://github.com/kavon)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
-* Status: **Accepted**
-* Decision Notes: [Acceptance](https://forums.swift.org/t/accepted-se-0310-effectful-read-only-properties/47739)
-* Implementation: Available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`.
-* Previous Pitch: [Document](https://github.com/kavon/swift-evolution/blob/d92deea0ba9692c2623c21203bb39394d86ffca7/proposals/nnnn-effectful-readonly-properties.md), [Discussion](https://forums.swift.org/t/pitch-effectful-read-only-properties/44090)
-
-<!-- Swift-evolution thread: [Discussion thread topic for this proposal](https://forums.swift.org/) -->
-
-<!-- The primary PRs are [apple/swift#36430](https://github.com/apple/swift/pull/36430) and [apple/swift#36670](https://github.com/apple/swift/pull/36670) -->
-
-<!--
-*During the review process, add the following fields as needed:*
-* Decision Notes: [Rationale](https://forums.swift.org/), [Additional Commentary](https://forums.swift.org/)
-* Bugs: [SR-NNNN](https://bugs.swift.org/browse/SR-NNNN), [SR-MMMM](https://bugs.swift.org/browse/SR-MMMM)
-* Previous Revision: [1](https://github.com/apple/swift-evolution/blob/...commit-ID.../proposals/NNNN-filename.md)
-* Previous Proposal: [SE-XXXX](XXXX-filename.md)
--->
+* Status: **Implemented (Swift 5.5)**
+* Decision Notes: [Pitch](https://forums.swift.org/t/pitch-effectful-read-only-properties/44090),
+             [Acceptance](https://forums.swift.org/t/accepted-se-0310-effectful-read-only-properties/47739)
+* Implementation: [apple/swift#36430](https://github.com/apple/swift/pull/36430),
+                  [apple/swift#36670](https://github.com/apple/swift/pull/36670),
+                  [apple/swift#37225](https://github.com/apple/swift/pull/37225)
+* Available in [recent `main` snapshots](https://swift.org/download/#snapshots) behind the flag `-Xfrontend -enable-experimental-concurrency`
 
 ## Introduction
 

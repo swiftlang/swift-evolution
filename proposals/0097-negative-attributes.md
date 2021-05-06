@@ -4,7 +4,7 @@
 * Author: [Erica Sadun](https://github.com/erica)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Rejected**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000181.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/rejected-se-0097-normalizing-naming-for-negative-attributes/2854)
 
 ## Introduction
 
@@ -13,7 +13,7 @@ that replaces property names starting with `no` with adjectives
 starting with `non`. 
 
 Swift-evolution thread:
-[RFC: didset and willset](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160516/017959.html)
+[RFC: didset and willset](https://forums.swift.org/t/rfc-didset-and-willset/2669)
 
 ## Motivation
 

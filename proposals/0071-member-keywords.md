@@ -4,7 +4,7 @@
 * Author: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000122.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0071-allow-most-keywords-in-member-references/2421)
 
 ## Introduction
 
@@ -21,8 +21,8 @@ after a ".", similarly to how
 [SE-0001](0001-keywords-as-argument-labels.md)
 allows keywords are argument labels.
 
-* [\[Idea\] Allowing most keywords after "."](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160222/011169.html)
-* [\[Review\] SE-0071: Allow (most) keywords in member references](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160425/015760.html)
+* [\[Idea\] Allowing most keywords after "."](https://forums.swift.org/t/idea-allowing-most-keywords-after/1592)
+* [\[Review\] SE-0071: Allow (most) keywords in member references](https://forums.swift.org/t/review-se-0071-allow-most-keywords-in-member-references/2346)
 
 ## Motivation
 

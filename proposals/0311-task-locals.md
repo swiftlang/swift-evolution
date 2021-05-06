@@ -162,7 +162,7 @@ await MyLibrary.$requestID.withValue("1234-5678") {
   syncPrintRequestID()        // prints: 1234-5678
 }
 
-await syncPrintRequestID()   // prints: no-request-id
+await asyncPrintRequestID()  // prints: no-request-id
 syncPrintRequestID()         // prints: no-request-id
 ```
 
@@ -216,7 +216,7 @@ await MyLibrary.$requestID.withValue("1234-5678") {
       MyLibrary.requestID // returns "1234-5678", which was bound by the parent task
     }
                                         
-    return group.next()! // returns "1234-5678"
+    return await group.next()! // returns "1234-5678"
   } // returns "1234-5678"
 }
 ```
@@ -556,7 +556,7 @@ The same would work if the second `print` would be multiple asynchronous functio
 The same mechanism also works with tasks spawned in task groups or async let declarations, because those also construct child tasks, which then inherit the bound task-local values of the outer scope.
 
 ```swift
-await Lib.$number.withValue(boundTo: 42) {
+await Lib.$number.withValue(42) {
   
   await withTaskGroup(of: Int.self) { group in 
     group.spawn { 
@@ -1189,20 +1189,7 @@ Some task local values may require specialized inheritance semantics. The defaul
 
 Some, specialized use-cases however can declare more specific inheritance semantics. It is *not* encouraged to use these specialized semantics nonchalantly, and their use should always be carefully considered and given much thought as they can lead to unexpected behaviors otherwise.
 
-A task local may specify inheritance semantics in an `inheritance` parameter on the `@TaskLocal`'s initializer:
-
-```swift
-@propertyWrapper
-public final class TaskLocal<Value: Sendable>: Sendable, CustomStringConvertible {
-  public init(
-    wrappedValue defaultValue: Value, 
-    inheritance: TaskLocalInheritance = .default
-  ) {
-    self.defaultValue = defaultValue
-    self.inheritance = inheritance
-  }
-}
-```
+A `TaskLocal` type may declare an inheritance semantics by defining the static `inherit` parameter when declaring the variable: `TaskLocal(inherit: .never)`.
 
 The semantics default to `.default`, which are what one would expect normally — that child tasks are able to lookup values defined in their parents, unless overriden in that specific child. We will discuss the exact semantics of lookups in depth in [Reading task-local values](#reading-task-local-values).
 
@@ -1231,13 +1218,13 @@ Both these semantics are driven by specific use cases from the Swift ecosystem, 
 
 The "never" inheritance semantics allow a task to set "truly local only to this specific task" values. I.e. if a parent task sets some value using an non-inherited key, it's children will not be able to read it.
 
-It is simplest to explain those semantics with an example, so let us do just that. First we define a key that uses the `.never` inheritance semantics. We could, for example, declare a `HouseKey` and make sure it will not be inherited by our children (child tasks):
+It is simplest to explain those semantics with an example, so let us do just that. First we define a key that uses the `.never` inheritance semantics. We could, for example, declare a `House?` task-local and make sure it will not be inherited by our children (child tasks):
 
 ```swift
-enum House {
+struct House {
 
   @TaskLocal(inherit: .never)
-  var key: TaskLocal<HouseKey?>.Access
+  static var key: House?
 
 }
 ```
@@ -1245,10 +1232,8 @@ enum House {
 This way, only the current task which has bound this task local value to itself can access the house key. This key remains available throughout the entire `withValue`'s scope. However none of its child tasks, spawned either by async let, or task groups will inherit the `house`:
 
 ```swift
-let house: House = ... 
-Lib.$house.withValue(House(...)) {
-  assert(Lib.house != nil)
-  async let child = assert(Lib.house == nil) // not available in child task 
+House.$key.withValue(House(...)) {
+  async let child = assert(House.key == nil) // not available in child task
 }
 ```
 

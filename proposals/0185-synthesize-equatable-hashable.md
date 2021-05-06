@@ -5,7 +5,7 @@
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 4.1)**
 * Implementation: [apple/swift#9619](https://github.com/apple/swift/pull/9619)
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2017-August/000400.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0185-synthesizing-equatable-and-hashable-conformance/6493)
 
 ## Introduction
 
@@ -16,7 +16,7 @@ the compiler to automatically synthesize conformance to `Equatable` and
 the correct implementation is known to be possible.
 
 Swift-evolution thread: [Universal Equatability, Hashability, and Comparability
-](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160307/012099.html)
+](https://forums.swift.org/t/universal-equatability-hashability-and-comparability/1718)
 
 ## Motivation
 

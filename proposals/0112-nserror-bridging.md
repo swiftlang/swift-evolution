@@ -4,7 +4,7 @@
 * Authors: [Doug Gregor](https://github.com/DougGregor), [Charles Srstka](https://github.com/CharlesJS)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000222.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0112-improved-nserror-bridging/3362)
 
 ## Introduction
 
@@ -38,7 +38,7 @@ proposal attempts to bridge those gaps.
 
 Swift-evolution thread: [Charles Srstka's pitch for Consistent
 bridging for NSErrors at the language
-boundary](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160502/016618.html),
+boundary](https://forums.swift.org/t/pitch-consistent-bridging-for-nserrors-at-the-language-boundary/2482),
 which discussed Charles' [original
 proposal](https://github.com/apple/swift-evolution/pull/331) that
 addressed these issues by providing ``NSError`` to ``ErrorProtocol``

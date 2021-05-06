@@ -4,7 +4,7 @@
 * Author: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
 * Status: **Implemented (Swift 2.2)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160125/007797.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0022-referencing-the-objective-c-selector-of-a-method/1194)
 * Implementation: [apple/swift#1170](https://github.com/apple/swift/pull/1170)
 
 ## Introduction
@@ -15,7 +15,7 @@ In Swift 2, Objective-C selectors are written as string literals
 with `Selector` initialization syntax that refers to a specific method
 via its Swift name.
 
-Swift-evolution thread: [here](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160111/006282.html), [Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160118/006913.html), [Amendments after acceptance](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160523/018698.html)
+Swift-evolution thread: [here](https://forums.swift.org/t/proposal-draft-referencing-the-objective-c-selector-of-a-method/1022), [Review](https://forums.swift.org/t/review-se-0022-referencing-the-objective-c-selector-of-a-method/1118), [Amendments after acceptance](https://forums.swift.org/t/amendment-se-0022-referencing-the-objective-c-selector-of-a-method/2737)
 
 ## Motivation
 
@@ -53,7 +53,7 @@ having to do the naming translation manually and get static checking
 that the method exists and is exposed to Objective-C.
 
 This proposal composes with the [Naming Functions with Argument Labels
-proposal](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160111/006262.html), which lets us name methods along with their argument labels, e.g.:
+proposal](https://forums.swift.org/t/proposal-draft-2-naming-functions-with-argument-labels/1018), which lets us name methods along with their argument labels, e.g.:
 
 	let sel = #selector(UIView.insertSubview(_:atIndex:)) // produces the Selector "insertSubview:atIndex:"
 
@@ -111,7 +111,7 @@ from a string.
 ## Alternatives considered
 
 The primary alternative is [type-safe
-selectors](https://lists.swift.org/pipermail/swift-evolution/2015-December/000233.html),
+selectors](https://forums.swift.org/t/type-safe-selectors/108),
 which would introduce a new "selector" calling convention to capture
 the type of an `@objc` method, including its selector. One major
 benefit of type-safe selectors is that they can carry type

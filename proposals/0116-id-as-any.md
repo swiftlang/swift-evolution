@@ -4,7 +4,7 @@
 * Author: [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000243.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0116-import-objective-c-id-as-swift-any-type/3476)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/b9a0ab5f7db4d3806c7941a07acedc5f0fe36e55/proposals/0116-id-as-any.md)
 
 ## Introduction
@@ -12,7 +12,7 @@
 Objective-C interfaces that use `id` and untyped collections should be imported
 into Swift as taking the `Any` type instead of `AnyObject`.
 
-Swift-evolution thread: [Importing Objective-C `id` as Swift `Any`](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160627/023203.html)
+Swift-evolution thread: [Importing Objective-C `id` as Swift `Any`](https://forums.swift.org/t/pitch-importing-objective-c-id-as-swift-any/3236)
 
 ## Motivation
 

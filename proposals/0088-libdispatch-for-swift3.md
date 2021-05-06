@@ -4,7 +4,7 @@
 * Author: [Matt Wright](https://github.com/mwwa)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000163.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-revision-se-0088-modernize-libdispatch-for-swift-3-naming-conventions/2697)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/ef372026d5f7e46848eb2a64f292328028b667b9/proposals/0088-libdispatch-for-swift3.md)
 
 ## Introduction
@@ -13,7 +13,7 @@ The existing libdispatch module imports the C API almost verbatim. To move towar
 
 This discussion focuses on the transformation of the existing libdispatch API.
 
-[Review thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160509/017170.html)
+[Review thread](https://forums.swift.org/t/review-se-0088-modernize-libdispatch-for-swift-3-naming-conventions/2552)
 
 ## Motivation
 

@@ -5,7 +5,7 @@
 * Review Manager: [Joe Groff](https://github.com/jckarter)
 * Status: **Implemented (Swift 4)**
 * Implementation: [apple/swift#8813](https://github.com/apple/swift/pull/8813)
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170417/035923.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0168-multi-line-string-literals/5715)
 * Bugs: [SR-170](https://bugs.swift.org/browse/SR-170), [SR-4701](https://bugs.swift.org/browse/SR-4701), [SR-4708](https://bugs.swift.org/browse/SR-4708), [SR-4874](https://bugs.swift.org/browse/SR-4874)
 
 ## Introduction
@@ -15,7 +15,7 @@ This has been discussed a few times on swift-evolution most recently
 putting forward a number of different syntaxes that could achieve this goal
 each of which has their own use case and constituency for discussion.
 
-[Swift-evolution thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151207/001565.html)
+[Swift-evolution thread](https://forums.swift.org/t/multi-line-string-literals/409)
 
 ## Motivation
 

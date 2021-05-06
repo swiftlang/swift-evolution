@@ -4,14 +4,14 @@
 * Author: [Erica Sadun](https://github.com/erica)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Rejected**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000179.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/rejected-se-0098-lowercase-didset-and-willset-for-more-consistent-keyword-casing/2852)
 
 ## Introduction
 
 This proposal adopts consistent conjoined keyword lowercasing.
 
 Swift-evolution thread:
-[RFC: didset and willset](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160516/017959.html)
+[RFC: didset and willset](https://forums.swift.org/t/rfc-didset-and-willset/2669)
 
 ## Motivation
 

@@ -4,7 +4,7 @@
 * Author: [Erica Sadun](https://github.com/erica)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2015-December/000001.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0007-remove-c-style-for-loops-with-conditions-and-incrementers/512)
 * Bugs: [SR-226](https://bugs.swift.org/browse/SR-226), [SR-227](https://bugs.swift.org/browse/SR-227)
 
 ## Introduction
@@ -19,7 +19,7 @@ language.
 
 The value of this construct is limited and I believe its removal should be seriously considered.
 
-This proposal was discussed on the Swift Evolution list in the [C-style For Loops](https://lists.swift.org/pipermail/swift-evolution/2015-December/000053.html) thread and reviewed in the [\[Review\] Remove C-style for-loops with conditions	and incrementers](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151207/000913.html) thread.
+This proposal was discussed on the Swift Evolution list in the [C-style For Loops](https://forums.swift.org/t/c-style-for-loops/31) thread and reviewed in the [\[Review\] Remove C-style for-loops with conditions	and incrementers](https://forums.swift.org/t/review-remove-c-style-for-loops-with-conditions-and-incrementers/255) thread.
 
 ## Advantages of For Loops
 

@@ -4,16 +4,17 @@
 * Authors: [Joe Groff](https://github.com/jckarter), [Erica Sadun](http://github.com/erica)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160215/010571.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0031-adjusting-inout-declarations-for-type-decoration/1478)
 * Implementation: [apple/swift#1333](https://github.com/apple/swift/pull/1333)
 
 ## Introduction
 
 The `inout` keyword indicates copy-in/copy-out argument behavior. In its current implementation the keyword prepends argument names. We propose to move the `inout` keyword to the right side of the colon to decorate the type instead of the parameter label.
 
-*The initial Swift-Evolution discussion of this topic took place in the "[Replace 'inout' with &](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160104/005511.html)" thread.*
+*The initial Swift-Evolution discussion of this topic took place in the "[Replace 'inout' with &](https://forums.swift.org/t/pitch-replace-inout-with/652/29)" thread.*
 
-[Thread to Proposal](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160125/008264.html), [Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160208/009793.html)
+[Thread to Proposal](https://forums.swift.org/t/proposal-adjusting-inout-declarations-for-type-decoration/1239), [Review](https://forums.swift.org/t/review-se-0031-adjusting-inout-declarations-for-type-decoration/1399)
+
 ## Motivation
 
 In Swift 2, the `inout` parameter lives on the label side rather than the type side of the colon

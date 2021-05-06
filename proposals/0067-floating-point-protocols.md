@@ -4,7 +4,7 @@
 * Author: [Stephen Canon](https://github.com/stephentyrone)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000121.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0067-enhanced-floating-point-protocols/2420)
 * Implementation: [apple/swift#2453](https://github.com/apple/swift/pull/2453)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/fb1368a6a5474f57aa8f1846b5355d18753098f3/proposals/0067-floating-point-protocols.md)
 
@@ -25,9 +25,9 @@ Revision 2 also incorporates a number of suggestions from the review list and
 corrects some typos; thanks especially to Xiaodi Wu for thoughtful feedback.
 Consult the changelog at the end of this document for full details.
 
-* [Proposal draft](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160411/014969.html)
-* [Review #1](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160418/015300.html)
-* [Review #2](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160425/015733.html)
+* [Proposal draft](https://forums.swift.org/t/proposal-draft-enhanced-floating-point-protocols/2201)
+* [Review #1](https://forums.swift.org/t/review-se-0067-enhanced-floating-point-protocols/2264)
+* [Review #2](https://forums.swift.org/t/review-2-se-0067-enhanced-floating-point-protocols/2339)
 
 ## Motivation
 

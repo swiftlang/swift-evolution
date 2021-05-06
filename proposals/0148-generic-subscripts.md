@@ -4,7 +4,7 @@
 * Author: [Chris Eidhof](https://github.com/chriseidhof)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 4)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170123/031048.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0148-generic-subscripts/5017)
 * Bug: [SR-115](https://bugs.swift.org/browse/SR-115)
 
 ## Introduction
@@ -29,7 +29,7 @@ extension JSON {
 }
 ```
 
-Swift-evolution thread: [Generic Subscripts](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170109/030064.html).
+Swift-evolution thread: [Generic Subscripts](https://forums.swift.org/t/generic-subscripts/4858).
 
 ## Motivation
 

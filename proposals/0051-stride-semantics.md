@@ -7,7 +7,7 @@
 
 Swift offers two stride functions, `stride(to:, by:)` and `stride(through:, by:)`. This proposal introduces a third style and renames the existing `to` and `through` styles.
 
-This proposal was discussed on-list in the ["\[Discussion\] stride behavior and a little bit of a call-back to digital numbers"](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160222/011194.html) thread.
+This proposal was discussed on-list in the ["\[Discussion\] stride behavior and a little bit of a call-back to digital numbers"](https://forums.swift.org/t/discussion-stride-behavior-and-a-little-bit-of-a-call-back-to-digital-numbers/1597) thread.
 
 ## Motivation
 

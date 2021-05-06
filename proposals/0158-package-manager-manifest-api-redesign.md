@@ -5,7 +5,7 @@
 * Review Manager: [Rick Ballard](https://github.com/rballard)
 * Status: **Implemented (Swift 4)**
 * Bug: [SR-3949](https://bugs.swift.org/browse/SR-3949)
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170313/033989.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0158-package-manager-manifest-api-redesign/5468)
 
 ## Introduction
 

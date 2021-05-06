@@ -4,7 +4,7 @@
 * Author: [David Farler](https://github.com/bitjammer)
 * Review Manager: [Joe Pamer](https://github.com/jopamer)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160125/008145.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/se-0003-removing-var-from-function-parameters-and-pattern-matching/1230)
 * Implementation: [apple/swift@8a5ed40](https://github.com/apple/swift/commit/8a5ed405bf1f92ec3fc97fa46e52528d2e8d67d9)
 
 ## Note
@@ -104,9 +104,9 @@ burden it placed on valid mutation patterns already in use in Swift 2
 code. You can view the discussion on the swift-evolution mailing list
 here:
 
-[Initial Discussion of Reconsideration](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160118/007326.html)
+[Initial Discussion of Reconsideration](https://forums.swift.org/t/reconsidering-se-0003-removing-var-from-function-parameters-and-pattern-matching/1159)
 
 The rationale for a final conclusion was also sent to the
 swift-evolution list, which you can view here:
 
-[Note on Revision of the Proposal](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160125/008145.html)
+[Note on Revision of the Proposal](https://forums.swift.org/t/se-0003-removing-var-from-function-parameters-and-pattern-matching/1230)

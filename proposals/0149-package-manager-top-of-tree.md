@@ -4,7 +4,7 @@
 * Author: [Boris Bügling](https://github.com/neonichu)
 * Review Manager: [Daniel Dunbar](https://github.com/ddunbar)
 * Status: **Implemented (Swift 4)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170130/031427.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0149-package-manager-support-for-top-of-tree-development/5072)
 * Bug: [SR-3709](https://bugs.swift.org/browse/SR-3709)
 
 ## Introduction

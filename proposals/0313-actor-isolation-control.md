@@ -162,7 +162,7 @@ extension A {
 }
 ```
 
-Note that a `@Sendable` closure can only be actor-isolated if it is also `async`. Such closures will implicitly `await` at the beginning of the closure body to ensure they are running on the actor, then execute the rest of the body.
+Note that a `@Sendable` closure can only be actor-isolated if it is also `async`. Such closures are like `async` functions on the actor itself, and will switch to the actor at the beginning of the closure body to ensure that are running on the actor, then execute the rest of the body.
 
 ### Protocol conformances
 
@@ -244,6 +244,10 @@ extension BankAccount {
   func g() {
     f(a: self, b: self)
   }
+
+  func h(other: BankAccount) async {
+    await f(a: self, b: other) // error: isolated parameters `a` and `b` passed values with potentially-different actors
+  }
 }
 ```
 
@@ -255,7 +259,7 @@ This proposal is additive, extending the grammar in a space where new contextual
 
 ## Effect on ABI stability
 
-This is purely additive to the ABI. Function parameters will additionally be 
+This is purely additive to the ABI. Function parameters can be marked `isolated`, which will be captured as part of the function type. However, this (like other modifiers on a function parameter) is an additive change that won't affect existing ABI.
 
 ## Effect on API resilience
 

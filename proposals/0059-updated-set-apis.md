@@ -4,7 +4,7 @@
 * Author: [Dave Abrahams](https://github.com/dabrahams)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-April/000105.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0059-update-api-naming-guidelines-and-rewrite-set-apis-accordingly/2251)
 
 ## Introduction
 

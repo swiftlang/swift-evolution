@@ -4,7 +4,7 @@
 * Author: [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 3.0.1)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160912/027062.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0140-bridge-optional-as-its-payload-or-nsnull/4005)
 
 ## Introduction
 
@@ -42,7 +42,7 @@ ObjCClass().imported(s1)
 ObjCClass().imported(s2)
 ```
 
-Swift-evolution thread: [here](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160822/026561.html)
+Swift-evolution thread: [here](https://forums.swift.org/t/proposal-draft-bridge-optional-as-its-payload-or-nsnull/3842)
 
 ## Motivation
 

@@ -4,7 +4,7 @@
 * Author: [Andrew Bennett](https://github.com/therealbnut)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160321/013250.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0043-declare-variables-in-case-labels-with-multiple-patterns/1925)
 * Implementation: [apple/swift#1383](https://github.com/apple/swift/pull/1383)
 
 ## Introduction
@@ -33,7 +33,7 @@ The error is:
 
 This proposal aims to remove this error when each pattern declares the same variables with the same types.
 
-Swift-evolution thread: [here](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160118/007431.html)
+Swift-evolution thread: [here](https://forums.swift.org/t/draft-proposal-declare-variables-in-case-labels-with-multiple-patterns/1173)
 
 ## Motivation
 

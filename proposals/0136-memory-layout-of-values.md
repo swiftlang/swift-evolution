@@ -4,14 +4,14 @@
 * Author: [Xiaodi Wu](https://github.com/xwu)
 * Review Manager: [Dave Abrahams](https://github.com/dabrahams)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160808/026164.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0136-memory-layout-of-values/3760)
 * Implementation: [apple/swift#4041](https://github.com/apple/swift/pull/4041)
 
 ## Introduction
 
 This proposal is to introduce, as a bugfix, a replacement for `sizeofValue(_:)` and related functions.
 
-Swift-evolution thread: [MemoryLayout for a value](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160801/025890.html)
+Swift-evolution thread: [MemoryLayout for a value](https://forums.swift.org/t/memorylayout-for-a-value/3671)
 
 ## Motivation
 

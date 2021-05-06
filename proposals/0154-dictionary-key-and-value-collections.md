@@ -4,7 +4,7 @@
 * Author: [Nate Cook](https://github.com/natecook1000)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 4)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170220/033159.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0154-provide-custom-collections-for-dictionary-keys-and-values/5322)
 
 ## Introduction
 
@@ -12,7 +12,7 @@ This proposal addresses significant unexpected performance gaps when using dicti
 
 New collection types provide efficient key lookup and mutable access to dictionary values, allowing in-place updates and copy-on-write optimization of stored values. The addition of these new types impacts the standard library ABI, since we won't be able to use types aliases from the existing types for `keys` and `values`.
 
-Swift-evolution thread: [[Proposal Draft] Provide Custom Collections for Dictionary Keys and Values](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20161010/027815.html)
+Swift-evolution thread: [[Proposal Draft] Provide Custom Collections for Dictionary Keys and Values](https://forums.swift.org/t/proposal-draft-provide-custom-collections-for-dictionary-keys-and-values/4244)
 
 
 ## Motivation

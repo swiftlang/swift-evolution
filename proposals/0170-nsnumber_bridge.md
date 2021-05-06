@@ -4,7 +4,7 @@
 * Author: [Philippe Hausler](https://github.com/phausler)
 * Review Manager: [Ben Cohen](https://github.com/airspeedswift)
 * Status: **Implemented (Swift 4)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170424/036226.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0170-nsnumber-bridging-and-numeric-types/5801)
 
 ##### Revision history
 

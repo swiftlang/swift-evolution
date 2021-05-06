@@ -4,7 +4,7 @@
 * Author: [Jacob Bandes-Storch](https://github.com/jtbandes)
 * Review Manager: [Philippe Hausler](https://github.com/phausler)
 * Status: **Rejected**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160530/019902.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/rejected-se-0097-normalizing-naming-for-negative-attributes/2854/9)
 
 ##### Revision history
 
@@ -18,7 +18,7 @@
 *  We propose exposing this attribute in CF and Foundation as `CF_NOESCAPE` and `NS_NOESCAPE`
 *  We also propose applying this declaration to a number of closure-taking APIs in CF and Foundation 
 
-[Swift Evolution Discussion Thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160201/009270.html)
+[Swift Evolution Discussion Thread: \[Pitch\] make @noescape the default](https://forums.swift.org/t/pitch-make-noescape-the-default/664)
 
 ## Introduction
 
