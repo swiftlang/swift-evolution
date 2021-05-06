@@ -4,7 +4,7 @@
 * Author: [Rick Ballard](https://github.com/rballard)
 * Review Manager: [Ankit Aggarwal](https://github.com/aciidb0mb3r)
 * Status: **Implemented (Swift 4)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170508/036577.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0175-package-manager-revised-dependency-resolution/5896)
 
 ## Introduction
 This proposal makes the package manager's dependency resolution behavior clearer and more intuitive. It removes the pinning commands (`swift package pin` & `swift package unpin`), replaces the `swift package fetch` command with a new `swift package resolve` command with improved behavior, and replaces the optional `Package.pins` file with a `Package.resolved` file which is always created during dependency resolution.

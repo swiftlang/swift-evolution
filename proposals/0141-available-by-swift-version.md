@@ -4,7 +4,7 @@
 * Author: [Graydon Hoare](https://github.com/graydon)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 3.1)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20161003/027604.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0141-availability-by-swift-version/4190)
 * Bug: [SR-2709](https://bugs.swift.org/browse/SR-2709)
 
 ## Introduction
@@ -17,8 +17,8 @@ It does not currently support indicating declaration lifecycle relative to
 Swift language versions. This proposal seeks to extend it to do so.
 
 Swift-evolution threads:
- [Draft](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160919/027213.html),
-[Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160919/027247.html)
+[Draft](https://forums.swift.org/t/draft-availability-by-swift-version/4083),
+[Review](https://forums.swift.org/t/review-se-0141-availability-by-swift-version/4096)
 
 ## Motivation
 

@@ -5,7 +5,7 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 4.1)**
 * Implementation: [apple/swift#12641](https://github.com/apple/swift/pull/12641)
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2017-December/000415.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0191-eliminate-indexdistance-from-collection/7191)
 
 ## Introduction
 

@@ -4,13 +4,13 @@
 * Author: [Adrian Zubarev](https://github.com/DevAndArtist)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Rejected**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000250.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/rejected-se-0119-remove-access-modifiers-from-extensions/3493)
 
 ## Introduction
 
 <p align="justify">One great goal for Swift 3 is to sort out any source breaking language changes. This proposal aims to fix access modifier inconsistency on extensions compared to other scope declarations types.</p>
 
-Swift-evolution thread: [\[Proposal\] Revising access modifiers on extensions](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160620/022144.html)
+Swift-evolution thread: [\[Proposal\] Revising access modifiers on extensions](https://forums.swift.org/t/proposal-revising-access-modifiers-on-extensions/3138)
 
 ## Motivation
 
@@ -150,7 +150,7 @@ I propose to revise the access control on extensions by removing access modifier
 
 > That way, access for members follows the same defaults as in the original type.
 >
-> [Jordan Rose](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160627/022341.html)
+> [Jordan Rose](https://forums.swift.org/t/proposal-revising-access-modifiers-on-extensions/3138/15)
 
 * It would be possible to conform types to a protocol using an *extension* which has an explicit *access modifier*. The *access modifier* respects the modifier of the extended type and the protocol to which it should be conformed.
 
@@ -243,7 +243,7 @@ I propose to revise the access control on extensions by removing access modifier
 		}
 	}
 	```
-	Such a mechanism could also be used outside extensions! This idea has its own discussion [thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160627/022644.html).
+	Such a mechanism could also be used outside extensions! This idea has its own discussion [thread](https://forums.swift.org/t/post-swift-3-proposal-introducing-group-mechanism/3196).
 
 ## Proposed solution
 

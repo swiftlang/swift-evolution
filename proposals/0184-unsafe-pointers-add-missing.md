@@ -5,7 +5,7 @@
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 4.1)**
 * Implementation: [apple/swift#12200](https://github.com/apple/swift/pull/12200)
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171002/040248.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-with-revisions-se-0184-unsafe-mutable-raw-buffer-pointer-add-missing-methods-adjust-existing-labels-for-clarity-and-remove-deallocation-size/6772)
 
 
 ## Introduction
@@ -14,7 +14,7 @@
 
 Swift’s pointer types are an important interface for low-level memory manipulation, but the current API design is not very consistent, complete, or convenient. In some places, poor naming choices and overengineered function signatures compromise memory safety by leading users to believe that they have allocated or freed memory when in fact, they have not. This proposal seeks to improve the Swift pointer API by ironing out naming inconsistencies, adding missing methods, and reducing excessive verbosity, offering a more convenient, more sensible, and less bug-prone API. 
 
-Swift-evolution threads: [Pitch: Improved Swift pointers](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170710/038013.html), [Pitch: More Improved Swift pointers](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170717/038121.html)
+Swift-evolution threads: [Pitch: Improved Swift pointers](https://forums.swift.org/t/pitch-improved-swift-pointers/6318), [Pitch: More Improved Swift pointers](https://forums.swift.org/t/pitch-improved-swift-pointers/6318)
 
 Implementation branch: [`kelvin13:se-0184a`](https://github.com/kelvin13/swift/tree/se-0184a)
 

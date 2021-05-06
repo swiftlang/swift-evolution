@@ -4,7 +4,7 @@
 * Author: [Chris Lattner](https://github.com/lattner)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-April/000099.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0049-move-noescape-and-autoclosure-to-be-type-attributes/2194)
 * Bug: [SR-1235](https://bugs.swift.org/browse/SR-1235)
 
 ## Introduction
@@ -15,7 +15,7 @@ attributes.  This improves consistency and reduces redundancy within the
 language, e.g. aligning with [SE-0031](0031-adjusting-inout-declarations.md), 
 which moved `inout`, making declaration and type syntax more consistent. 
 
-Swift-evolution thread: [here](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160307/012292.html)
+Swift-evolution thread: [here](https://forums.swift.org/t/proposal-move-noescape-and-autoclosure-to-type-attributes/1741)
 
 ## Motivation
 

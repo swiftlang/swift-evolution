@@ -4,7 +4,7 @@
 * Author: [Chris Willmore](http://github.com/cwillmor)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 4.2)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000084.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-pending-implementation-se-0054-abolish-implicitlyunwrappedoptional-type/2009)
 * Implementation: [apple/swift#14299](https://github.com/apple/swift/pull/14299)
 
 ## Introduction
@@ -15,7 +15,7 @@ Appending `!` to the type of a Swift declaration will give it optional type and
 annotate the declaration with an attribute stating that it may be implicitly
 unwrapped when used.
 
-Swift-evolution thread: ["Abolish IUO Type"](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160314/012752.html)
+Swift-evolution thread: ["Abolish IUO Type"](https://forums.swift.org/t/draft-abolish-iuo-type/1831)
 
 ## Motivation
 

@@ -36,7 +36,7 @@ Adopting this operator:
 
 
 *This proposal was first discussed on the Swift Evolution list in the 
-[\[Pitch\] Introducing the "Unwrap or Die" operator to the standard library](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170626/037730.html) thread. It has been further discussed in the Swift Forums on the [Resolved: Insert "!" is a bad fixit"](https://forums.swift.org/t/resolved-insert-is-a-bad-fixit/10764) thread.*
+[\[Pitch\] Introducing the "Unwrap or Die" operator to the standard library](https://forums.swift.org/t/pitch-introducing-the-unwrap-or-die-operator-to-the-standard-library/6207) thread. It has been further discussed in the Swift Forums on the [Resolved: Insert "!" is a bad fixit"](https://forums.swift.org/t/resolved-insert-is-a-bad-fixit/10764) thread.*
 
 ## Motivation
 

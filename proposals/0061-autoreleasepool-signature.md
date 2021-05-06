@@ -4,7 +4,7 @@
 * Author: [Timothy J. Wood](https://github.com/tjw)
 * Review Manager: [Dave Abrahams](http://github.com/dabrahams)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000123.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0061-add-generic-result-and-error-handling-to-autoreleasepool/2425)
 * Bugs: [SR-842](https://bugs.swift.org/browse/SR-842), [SR-1394](https://bugs.swift.org/browse/SR-1394)
 
 ## Introduction
@@ -14,10 +14,10 @@ support a return value or error handling, making it difficult and error-prone
 to pass results or errors from the body to the calling context.
 
 Swift-evolution thread: A first call for discussion was
-[made here](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160314/013054.html).
+[made here](https://forums.swift.org/t/update-the-signature-of-objectivec-autoreleasepool-sr-842/1886).
 Dmitri Gribenko pointed out that adding a generic return type would be useful
-(first in my premature pull request) and then also [here](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160321/013059.html).
-Jordan Rose [pointed out](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160321/013077.html)
+(first in my premature pull request) and then also [here](https://forums.swift.org/t/update-the-signature-of-objectivec-autoreleasepool-sr-842/1886/2).
+Jordan Rose [pointed out](https://forums.swift.org/t/update-the-signature-of-objectivec-autoreleasepool-sr-842/1886/3)
 that care was needed to avoid inferring an incorrect return type for the body
 block, but after testing we confirmed that this is handled correctly by
 the compiler.
@@ -101,13 +101,13 @@ suggested adding `throws`, but Dmitri Gribenko pointed out that adding a generic
 return type would be better.
 
 Further discussion raised the question of [whether `autoreleasepool` should
-behave like a statement](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160328/013697.html)
+behave like a statement](https://forums.swift.org/t/update-the-signature-of-objectivec-autoreleasepool-sr-842/1886/13)
 in the future, or whether it should behave like an expression by returning the
 result of the passed in body, with some weighing in on either side.
-Chris Lattner drew an [analogy to `forEach`](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160328/013697.html)
+Chris Lattner drew an [analogy to `forEach`](https://forums.swift.org/t/update-the-signature-of-objectivec-autoreleasepool-sr-842/1886/13)
 and pointed out that `@autoreleasepool` *is* a statement in Objective-C, while
 Jordan Rose found this case [more like `withCString`, or
-`withUnsafeMutablePointer`](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160328/013698.html),
+`withUnsafeMutablePointer`](https://forums.swift.org/t/update-the-signature-of-objectivec-autoreleasepool-sr-842/1886/14),
 where having them return a value yields nice simplifications and avoids optional
 `var`s.
 

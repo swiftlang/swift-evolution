@@ -4,14 +4,14 @@
 * Author: [Joe Pamer](https://github.com/jopamer)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000137.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0072-fully-eliminate-implicit-bridging-conversions-from-swift/2487)
 * Implementation: [apple/swift#2419](https://github.com/apple/swift/pull/2419)
 
 ## Introduction
 In Swift 1.2, we attempted to remove all implicit bridging conversions from the language. Unfortunately, problems with how the v1.2 compiler imported various un-annotated Objective-C APIs caused us to scale back on our ambitions.
 In the interest of further simplifying our type system and our user model, we would like to complete this work and fully remove implicit bridging conversions from the language in Swift 3.
 
-This was discussed in [this swift-evolution thread.](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160418/015238.html)
+This was discussed in [this swift-evolution thread.](https://forums.swift.org/t/pitch-fully-eliminate-implicit-bridging-conversions-in-swift-3/2256)
 
 ## Motivation
 Prior to Swift 1.2, conversions between bridged Swift value types and their associated Objective-C types could be implicitly inferred in both directions. For example, you could pass an NSString object to a function expecting a String value, and vice versa.

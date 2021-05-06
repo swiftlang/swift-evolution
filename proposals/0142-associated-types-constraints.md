@@ -4,7 +4,7 @@
 * Authors: [David Hart](https://github.com/hartbit), [Jacob Bandes-Storch](https://github.com/jtbandes), [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 4)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20161003/027606.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0142-permit-where-clauses-to-constrain-associated-types/4191)
 * Bugs: [SR-4506](https://bugs.swift.org/browse/SR-4506)
 
 ## Introduction
@@ -16,11 +16,8 @@ the same expressive power as generic type parameters.
 This proposal was discussed twice on the Swift Evolution list in the following
 threads:
 
-* [\[Completing Generics\] Arbitrary requirements in protocols](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160411/014667.html)
-* [Proposal] More Powerful Constraints for Associated Types
-  - [Week #1](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160418/015625.html)
-  - [Week #2](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160425/015753.html)
-  - [Week #3](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160502/016354.html)
+* [\[Completing Generics\] Arbitrary requirements in protocols](https://forums.swift.org/t/completing-generics-arbitrary-requirements-in-protocols/2135)
+* [\[Proposal\] More Powerful Constraints for Associated Types](https://forums.swift.org/t/proposal-more-powerful-constraints-for-associated-types/2328)
 
 ## Motivation
 

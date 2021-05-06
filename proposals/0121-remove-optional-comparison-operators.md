@@ -4,7 +4,7 @@
 * Author: [Jacob Bandes-Storch](https://github.com/jtbandes)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000245.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0121-remove-optional-comparison-operators/3478)
 * Implementation: [apple/swift#3637](https://github.com/apple/swift/pull/3637)
 
 ## Introduction
@@ -23,9 +23,9 @@ public func >= <T : Comparable>(lhs: T?, rhs: T?) -> Bool
 This proposal removes the above 4 functions.
 
 swift-evolution discussion threads:
-- [Optional comparison operators](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160711/024121.html)
-- [Possible bug with arithmetic optional comparison ?](https://lists.swift.org/pipermail/swift-dev/Week-of-Mon-20160523/002095.html)
-- [? suffix for <, >, <=, >= comparisons with optionals to prevent subtle bugs](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151207/001264.html)
+- [Optional comparison operators](https://forums.swift.org/t/optional-comparison-operators/3320)
+- [Possible bug with arithmetic optional comparison ?](https://forums.swift.org/t/possible-bug-with-arithmetic-optional-comparison/2749)
+- [? suffix for <, >, <=, >= comparisons with optionals to prevent subtle bugs](https://forums.swift.org/t/suffix-for-comparisons-with-optionals-to-prevent-subtle-bugs/350)
 
 ## Motivation
 
@@ -47,7 +47,7 @@ a < b  // b is coerced from "Int" to "Int?" to match the parameter type.
 
 [SE-0123](0123-disallow-value-to-optional-coercion-in-operator-arguments.md) seeks to remove this coercion (for arguments to operators) for a variety of reasons.
 
-If the coercion is not removed (if no change is made), the results of comparisons with Optional values are sometimes **surprising**, making it easy to write bugs. In a thread from December 2015, [Al Skipp offers](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151207/001267.html) the following example:
+If the coercion is not removed (if no change is made), the results of comparisons with Optional values are sometimes **surprising**, making it easy to write bugs. In a thread from December 2015, [Al Skipp offers](https://forums.swift.org/t/suffix-for-comparisons-with-optionals-to-prevent-subtle-bugs/350/3) the following example:
 
 ```swift
 struct Pet {

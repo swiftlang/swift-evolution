@@ -4,7 +4,7 @@
 * Authors: [Douglas Gregor](https://github.com/DougGregor), Austin Zheng
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Rejected**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000214.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/rejected-se-0108-remove-associated-type-inference/3304)
 
 ## Introduction
 
@@ -28,7 +28,7 @@ In this example, the typechecker deduces that `StringBag.Element` is `String` th
 
 In order to simplify the compiler and typechecker, we propose to **remove associated type witness inference**.
 
-swift-evolution thread: [pre-proposal](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160620/022138.html)
+swift-evolution thread: [pre-proposal](https://forums.swift.org/t/pitch-remove-type-inference-for-associated-types/3135)
 
 ## Motivation
 
@@ -38,7 +38,7 @@ According to *[Completing Generics](https://github.com/apple/swift/blob/master/d
 
 The main advantage of removing associated type witness inference is that it decreases the complexity of the type checker. Doing so removes the only aspect of Swift that depends upon global type inference. Simplifying the type checker makes it easier to improve the performance and correctness of the type checker code. Given that both are widely acknowledged issues with current versions of Swift, any opportunity for improvement should be carefully considered.
 
-As Douglas Gregor (original author of the relevant type inference code) [puts it](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160627/022483.html):
+As Douglas Gregor (original author of the relevant type inference code) [puts it](https://forums.swift.org/t/pitch-remove-type-inference-for-associated-types/3135/23):
 
 > Because this is the only place we do global type inference, it’s put tremendous pressure on the type checker that caused a huge number of bugs, crashes, and outright incomprehensible behavior. [...] [The re-implementation is] still not global *enough* to actually be predictable, and the legacy of this mis-feature manifests in a number of weird ways (e.g., typealiases in protocol extensions cannot be used to satisfy associated type requirements, weird rules for when a defaulted associated type gets used).
 
@@ -147,7 +147,7 @@ Currently, `C.A` for the previous example would be inferred to be `String`, and 
 
 If associated type inference were to be removed, `C.A` would be bound as `Int` (since there would be no explicit `typealias` declaration overriding the default type value), and the `doSomething()` implementation returning `Int` would be considered to fulfill the protocol requirement. Thus, the semantics of the code listing above would change even though the source itself remained unchanged.
 
-To some extent, this is an issue inherent to any design which makes no distinctions at the site of implementation between members intended to satisfy protocol requirements and members that are explicitly not intended to satisfy protocol requirements. Rather than adding keywords to create this distinction, Douglas Gregor has [proposed and implemented type checker heuristics](https://lists.swift.org/pipermail/swift-dev/Week-of-Mon-20151228/000643.html) that will generate warnings when a programmer implements a member that "looks like" it should fulfill a protocol requirement but does not actually do so. This is one possible mitigation strategy that should be revisited as a way to decrease the possible impact of removing associated type witness inference from the compiler.
+To some extent, this is an issue inherent to any design which makes no distinctions at the site of implementation between members intended to satisfy protocol requirements and members that are explicitly not intended to satisfy protocol requirements. Rather than adding keywords to create this distinction, Douglas Gregor has [proposed and implemented type checker heuristics](https://forums.swift.org/t/warning-when-overriding-an-extension-method-thats-not-in-the-protocol/861/2) that will generate warnings when a programmer implements a member that "looks like" it should fulfill a protocol requirement but does not actually do so. This is one possible mitigation strategy that should be revisited as a way to decrease the possible impact of removing associated type witness inference from the compiler.
 
 ## Impact on existing code
 
@@ -163,7 +163,7 @@ The current behavior is kept. Swift will continue to allow associated types to b
 
 There are some advantages to this approach. Brevity is slightly improved. A type's associated types don't "stand out" in the type declaration, being unobtrusively and implicitly defined through the implementation of protocol requirements.
 
-As well, Dave Abrahams expresses a [potential issue](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160627/022316.html):
+As well, Dave Abrahams expresses a [potential issue](https://forums.swift.org/t/pitch-remove-type-inference-for-associated-types/3135/17):
 
 > Finally, I am very concerned that there are protocols such as `Collection`, with many inferrable associated types, and that conforming to these protocols could become *much* uglier.
 

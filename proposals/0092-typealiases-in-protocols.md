@@ -4,7 +4,7 @@
 * Authors: [David Hart](https://github.com/hartbit), [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160516/017742.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0092-typealiases-in-protocols-and-protocol-extensions/2639)
 * Bug: [SR-1539](https://bugs.swift.org/browse/SR-1539)
 
 ## Introduction

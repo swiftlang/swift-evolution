@@ -4,7 +4,7 @@
 * Authors: [Austin Zheng](https://github.com/austinzheng), [Becca Royal-Gordon](https://github.com/beccadax)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000190.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0089-renaming-string-init-t-t/3097)
 * Bug: [SR-1881](https://bugs.swift.org/browse/SR-1881)
 * Previous Revisions: [1](https://github.com/apple/swift-evolution/blob/40aecf3647c19ae37730e39aa9e54b67fcc2be86/proposals/0089-rename-string-reflection-init.md)
 
@@ -12,7 +12,7 @@
 
 Swift's `String` type ships with a large number of initializers that take one unlabeled argument. One of these initializers, defined as `init<T>(_: T)`, is used to create a string containing the textual representation of an object. It is very easy to write code which accidentally invokes this initializer, when one of the other synonymous initializers was desired. Such code will compile without warnings and can be very difficult to detect.
 
-Discussion threads: [pre-proposal part 1](https://lists.swift.org/pipermail/swift-users/Week-of-Mon-20160502/001846.html), [pre-proposal part 2](https://lists.swift.org/pipermail/swift-users/Week-of-Mon-20160509/001867.html), [review thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160516/017881.html), [post-review thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160523/019018.html)
+Discussion threads: [pre-proposal](https://forums.swift.org/t/string-initializers-and-developer-ergonomics/2507), [review thread](https://forums.swift.org/t/review-se-0089-renaming-string-init-t-t/2663), [post-review thread](https://forums.swift.org/t/returned-for-revision-se-0089-renaming-string-init-t-t/2782)
 
 ## Motivation
 

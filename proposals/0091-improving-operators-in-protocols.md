@@ -4,7 +4,7 @@
 * Authors: [Tony Allevato](https://github.com/allevato), [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000232.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0091-improving-operator-requirements-in-protocols/3390)
 * Bug: [SR-2073](https://bugs.swift.org/browse/SR-2073)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/eaab20ed34df1dc8ba8aa07e49abc8c5fa216f3e/proposals/0091-improving-operators-in-protocols.md)
 
@@ -20,7 +20,7 @@ the conforming type implements it) and that Swift use universal lookup for
 operators that finds candidates both at the global scope and within types.
 
 Swift-evolution thread:
-[Discussion about operators and protocols in the context of `FloatingPoint`](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160425/015807.html)
+[Discussion about operators and protocols in the context of `FloatingPoint`](https://forums.swift.org/t/review-se-0067-enhanced-floating-point-protocols/2264/31)
 
 ## Motivation
 

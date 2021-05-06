@@ -4,7 +4,7 @@
 * Author: [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000146.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0060-enforcing-order-of-defaulted-parameters/2573)
 * Bug: [SR-1489](https://bugs.swift.org/browse/SR-1489)
 
 ## Introduction
@@ -14,7 +14,7 @@ method names with significant, order-sensitive argument labels, but an
 exception is made for parameters with default arguments. We should remove
 this exception.
 
-Swift-evolution thread: [Enforce argument order for defaulted parameters](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160328/013789.html)
+Swift-evolution thread: [Enforce argument order for defaulted parameters](https://forums.swift.org/t/pitch-enforce-argument-order-for-defaulted-parameters/1989)
 
 ## Motivation
 
@@ -72,7 +72,7 @@ the arguments. This should be easy to automate.
 
 ## Alternatives considered
 
-[Matthew Johnson](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160328/013802.html)
+[Matthew Johnson](https://forums.swift.org/t/pitch-enforce-argument-order-for-defaulted-parameters/1989/7)
 raises an interesting point in favor of our current behavior. For memberwise
 initializers, it makes sense to allow reordering, because declared member order
 is not usually significant otherwise:
@@ -81,7 +81,7 @@ is not usually significant otherwise:
 
 > In fact, I have found myself wishing non-defaulted memberwise initializer parameters were re-orderable at times, especially when using the implicit memberwise initializer for a struct.  Source order for property declarations does not always match what makes the most sense at the initialization site (something that was pointed out numerous times during the review of my memberwise init proposal).
 
-[Erica Sadun](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160328/013791.html)
+[Erica Sadun](https://forums.swift.org/t/pitch-enforce-argument-order-for-defaulted-parameters/1989/3)
 notes that defaulted arguments are useful to simulate an ad-hoc sum type
 parameter:
 

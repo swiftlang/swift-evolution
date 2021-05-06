@@ -4,7 +4,7 @@
 * Author: [Andrew Trick](https://github.com/atrick)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000231.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0107-unsaferawpointer-api/3389)
 
 For detailed instructions on how to migrate your code to this new
 Swift 3 API refer to the
@@ -95,14 +95,11 @@ This proposal aims to achieve several goals in one coherent design:
 
 Swift-evolution threads:
 
-- [\[RFC\] UnsafeBytePointer API for In-Memory Layout](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160509/thread.html#16909)
+- [\[RFC\] UnsafeBytePointer API for In-Memory Layout](https://forums.swift.org/t/rfc-unsafebytepointer-api-for-in-memory-layout/2526)
 
-- [\[RFC\] UnsafeBytePointer API for In-Memory Layout (Round 2)](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160516/thread.html#18156)
+- [\[RFC\] UnsafeBytePointer API for In-Memory Layout (Round 2)](https://forums.swift.org/t/rfc-unsafebytepointer-api-for-in-memory-layout/2526/7)
 
-- [RFC] UnsafeRawPointer API (Round 3)
-  - [Week #1](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160620/thread.html#22005)
-  - [Week #2](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160627/thread.html#22230)
-  - [Week #3](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160704/thread.html#23384)
+- [\[RFC\] UnsafeRawPointer API (Round 3)](https://forums.swift.org/t/draft-unsaferawpointer-api/3123)
 
 [1]:https://github.com/atrick/swift/blob/type-safe-mem-docs/docs/TypeSafeMemory.rst
 

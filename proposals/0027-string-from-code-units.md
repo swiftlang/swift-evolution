@@ -4,13 +4,13 @@
 * Author: [Zachary Waldowski](https://github.com/zwaldowski)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Rejected**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-February/000044.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/rejected-se-0027-expose-code-unit-initializers-on-string/1529)
 
 ## Introduction
 
 Going back and forth from Strings to their byte representations is an important part of solving many problems, including object serialization, binary and text file formats, wire/network interfaces, and cryptography. Swift has such utilities, but currently only exposed through `String.Type.fromCString(_:)` and `String.Type.fromCStringRepairingIllFormedUTF8(_:)`.
 
-See swift-evolution [thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160104/005951.html) and [draft proposal](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160111/006295.html).
+See swift-evolution [thread](https://forums.swift.org/t/faster-lower-level-external-string-initialization/974) and [draft proposal](https://forums.swift.org/t/faster-lower-level-external-string-initialization/974/4).
 
 ## Motivation
 

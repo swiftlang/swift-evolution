@@ -4,7 +4,7 @@
 * Author: [Tony Parker](https://github.com/parkera)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-May/000132.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0069-mutability-and-foundation-value-types/2460)
 
 ## Introduction
 
@@ -14,7 +14,7 @@ One of the core principles of Swift is "mutability when you need it." This is es
 * [Building Better Apps with Value Types in Swift - WWDC 2015 (Doug Gregor)](https://developer.apple.com/videos/play/wwdc2015/414/)
 * [Swift Programming Language - Classes and Structures](https://developer.apple.com/library/ios/documentation/Swift/Conceptual/Swift_Programming_Language/ClassesAndStructures.html#//apple_ref/doc/uid/TP40014097-CH13-ID82)
 
-[Swift Evolution Discussion](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160418/015503.html), [Swift Evolution Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160425/015682.html)
+[Swift Evolution Discussion](https://forums.swift.org/t/mutability-for-foundation-types-in-swift/2300), [Swift Evolution Review](https://forums.swift.org/t/review-se-0069-mutability-and-foundation-value-types/2332)
 
 This concept is so important that it is literally the second thing taught in _The Swift Programming Language_, right after `print("Hello, world!")`:
 

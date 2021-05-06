@@ -4,7 +4,7 @@
 * Author: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 4)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2017-July/000395.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0183-substring-performance-affordances/6393)
 * Bug: [SR-4933](https://bugs.swift.org/browse/SR-4933)
 
 ## Introduction

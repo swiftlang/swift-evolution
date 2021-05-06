@@ -4,7 +4,7 @@
 * Author: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 3.1)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170102/029945.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0147-move-unsafemutablepointer-initialize-from-to-unsafemutablebufferpointer/4823)
 * Implementation: [apple/swift#6601](https://github.com/apple/swift/pull/6601)
 
 ## Introduction

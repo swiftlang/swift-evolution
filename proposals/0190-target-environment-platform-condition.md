@@ -4,9 +4,9 @@
 * Authors: [Erica Sadun](https://github.com/erica), [Graydon Hoare](https://github.com/graydon)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Status: **Implemented (Swift 4.1)**
-* [Swift Evolution Review Thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171127/041695.html)
+* [Swift Evolution Review Thread](https://forums.swift.org/t/review-se-0190-target-environment-platform-condition/7082)
 * Implementation: [apple/swift#12964](https://github.com/apple/swift/pull/12964)
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171127/041741.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0190-target-environment-platform-condition/7138)
 
 ## Introduction
 
@@ -16,8 +16,8 @@ AVFoundation Camera code.
 
 Swift-evolution threads:
 
-* [Expanding Build Configuration Tests for Simulator and Device targets](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160314/012557.html)
-* [Target environment platform condition](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20171023/040652.html)
+* [Expanding Build Configuration Tests for Simulator and Device targets](https://forums.swift.org/t/draft-expanding-build-configuration-tests-for-simulator-and-device-targets/1793)
+* [Target environment platform condition](https://forums.swift.org/t/draft-target-environment-platform-condition/6884)
 
 ## Motivation
 

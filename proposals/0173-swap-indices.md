@@ -4,7 +4,7 @@
 * Author: [Ben Cohen](https://github.com/airspeedswift)
 * Review Manager: [Ted Kremenek](https://github.com/tkremenek)
 * Status: **Implemented (Swift 4)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170424/036229.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0173-add-mutablecollection-swapat/5811)
 * Implementation: [apple/swift#9119](https://github.com/apple/swift/pull/9119)
 
 ## Introduction

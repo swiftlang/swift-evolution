@@ -4,14 +4,14 @@
 * Author: Austin Zheng
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000216.html), [Additional Commentary](https://lists.swift.org/pipermail/swift-evolution-announce/2016-July/000233.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0111-remove-type-system-significance-of-function-argument-labels/3306), [Additional Commentary](https://forums.swift.org/t/update-commentary-se-0111-remove-type-system-significance-of-function-argument-labels/3391)
 * Bug: [SR-2009](https://bugs.swift.org/browse/SR-2009)
 
 ## Introduction
 
 Swift's type system should not allow function argument labels to be expressed as part of a function type.
 
-Discussion: [pre-proposal](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160620/021793.html)
+Discussion: [pre-proposal](https://forums.swift.org/t/partial-list-of-open-swift-3-design-topics/3094)
 
 ## Motivation
 

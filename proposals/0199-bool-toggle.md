@@ -13,7 +13,7 @@
 
 I propose adding a `mutating func toggle` to `Bool`. It toggles the `Bool`.
 
-- Swift-evolution thread: [Discussion thread topic for that proposal](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20180108/042767.html)
+- Swift-evolution thread: [Discussion thread topic for that proposal](https://forums.swift.org/t/adding-toggle-to-bool/7414)
 - Swift forums thread: [pitch: adding toggle to Bool](https://forums.swift.org/t/pitch-adding-toggle-to-bool/7414)
 
 ## Motivation

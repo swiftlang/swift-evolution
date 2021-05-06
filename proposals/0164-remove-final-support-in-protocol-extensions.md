@@ -4,14 +4,14 @@
 * Author: [Brian King](https://github.com/KingOfBrian)
 * Review Manager: [Doug Gregor](https://github.com/DougGregor)
 * Status: **Implemented (Swift 4)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2017-April/000355.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0164-remove-final-support-in-protocol-extensions/5687)
 * Bug: [SR-1762](https://bugs.swift.org/browse/SR-1762)
 
 ## Introduction
 This proposal disallows the `final` keyword when declaring functions in protocol
 extensions. 
 
-*Discussion took place on the Swift Evolution mailing list in the [Remove support for final in protocol extensions](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170306/033604.html) thread.*
+*Discussion took place on the Swift Evolution mailing list in the [Remove support for final in protocol extensions](https://forums.swift.org/t/draft-remove-support-for-final-in-protocol-extensions/5390) thread.*
 
 ## Motivation
 

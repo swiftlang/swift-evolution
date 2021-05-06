@@ -4,7 +4,7 @@
 * Author: [Doug Gregor](https://github.com/DougGregor)
 * Review Manager: [Joe Groff](https://github.com/jckarter)
 * Status: **Implemented (Swift 2.2)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-January/000021.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/review-naming-functions-with-argument-labels/1046/11)
 * Implementation: [apple/swift@ecfde0e](https://github.com/apple/swift/commit/ecfde0e71c61184989fde0f93f8d6b7f5375b99a)
 
 ## Introduction
@@ -13,10 +13,10 @@ Swift includes support for first-class functions, such that any
 function (or method) can be placed into a value of function
 type. However, when specifying the name of a function, one can only provide the base name, (e.g., `insertSubview`) without the argument labels. For overloaded functions, this means that one must disambiguate based on type information, which is awkward and verbose. This proposal allows one to provide argument labels when referencing a function, eliminating the need to provide type context in most cases.
 
-Swift-evolution thread: The first draft of this proposal was discussed [here](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151221/004555.html). It included support for naming getters/setters (separately brought up by Michael Henson
-[here](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151207/002168.html),
+Swift-evolution thread: The first draft of this proposal was discussed [here](https://forums.swift.org/t/proposal-draft-generalized-naming-for-any-function/787). It included support for naming getters/setters (separately brought up by Michael Henson
+[here](https://forums.swift.org/t/proposal-expose-getter-setters-in-the-same-way-as-regular-methods/501),
 continued
-[here](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/002203.html)). Joe Groff [convinced](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151221/004579.html) me that lenses are a better approach for working with getters/setters, so I've dropped them from this version of the proposal.
+[here](https://forums.swift.org/t/proposal-expose-getter-setters-in-the-same-way-as-regular-methods/501/5)). Joe Groff [convinced](https://forums.swift.org/t/proposal-draft-generalized-naming-for-any-function/787/4) me that lenses are a better approach for working with getters/setters, so I've dropped them from this version of the proposal.
 
 ## Motivation
 
@@ -137,12 +137,12 @@ code.
 ## Alternatives considered
 
 * Joe Groff
-  [notes](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151214/003008.html)
+  [notes](https://forums.swift.org/t/proposal-expose-getter-setters-in-the-same-way-as-regular-methods/501/3)
   that *lenses* are a better solution than manually
   retrieving getter/setter functions when the intent is to actually
   operate on the properties.
 
-* Bartlomiej Cichosz [suggests](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151228/004739.html) a general partial application syntax using `_` as a placeholder, e.g.,
+* Bartlomiej Cichosz [suggests](https://forums.swift.org/t/proposal-draft-generalized-naming-for-any-function/787/6) a general partial application syntax using `_` as a placeholder, e.g.,
 
   ```swift
 aGameView.insertSubview(_, aboveSubview: playingSurfaceView)

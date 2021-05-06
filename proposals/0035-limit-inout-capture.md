@@ -4,7 +4,7 @@
 * Author: [Joe Groff](https://github.com/jckarter)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-February/000046.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0035-limiting-inout-capture-to-noescape-contexts/1544)
 * Bug: [SR-807](https://bugs.swift.org/browse/SR-807)
 
 
@@ -13,9 +13,9 @@
 Swift's behavior when closures capture `inout` parameters and escape their enclosing context is a common source of confusion. We should disallow implicit capture of `inout` parameters
 except in `@noescape` closures.
 
-Swift-evolution thread: [only allow capture of inout parameters in @noescape closures](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160125/008074.html)
+Swift-evolution thread: [only allow capture of inout parameters in @noescape closures](https://forums.swift.org/t/pitch-only-allow-capture-of-inout-parameters-in-noescape-closures/1223)
 
-[Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160215/010465.html)
+[Review](https://forums.swift.org/t/review-se-0035-limiting-inout-capture-to-noescape-contexts/1461)
 
 ## Motivation
 

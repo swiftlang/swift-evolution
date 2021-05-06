@@ -9,7 +9,7 @@
 
 The `Dictionary` type should allow initialization from a sequence of `(Key, Value)` tuples and offer methods that merge a sequence of `(Key, Value)` tuples into a new or existing dictionary, using a closure to combine values for duplicate keys.
 
-Swift-evolution thread: [First message of thread](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160104/006124.html), [Initial proposal draft](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160111/006665.html)
+Swift-evolution thread: [First message of thread](https://forums.swift.org/t/map-like-operation-that-returns-a-dictionary/999), [Initial proposal draft](https://forums.swift.org/t/map-like-operation-that-returns-a-dictionary/999/18)
 
 
 ## Motivation

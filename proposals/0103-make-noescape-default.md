@@ -4,7 +4,7 @@
 * Author: [Trent Nadeau](https://github.com/tanadeau)
 * Review Manager: [Chris Lattner](http://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-June/000204.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0103-make-non-escaping-closures-the-default/3212)
 * Bug: [SR-1952](https://bugs.swift.org/browse/SR-1952)
 * Previous Revision: [1](https://github.com/apple/swift-evolution/blob/833afd64b5d24a777fe2c42800d4b4dcd52bb487/proposals/0103-make-noescape-default.md)
 
@@ -16,11 +16,11 @@ This proposal switches the default to be non-escaping and requires an `@escaping
 
 Swift-evolution threads:
 
-* [Make non-escaping closures the default](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160530/020181.html)
+* [Make non-escaping closures the default](https://forums.swift.org/t/proposal-make-non-escaping-closures-the-default/2889)
 
 ## Motivation
 
-Per Chris Lattner [on swift-evolution](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160530/019880.html):
+Per Chris Lattner [on swift-evolution](https://forums.swift.org/t/rejected-se-0097-normalizing-naming-for-negative-attributes/2854/2):
 
 > To provide some more details, this approach has the following advantages:
 >

@@ -12,7 +12,7 @@
 Swift condition clauses appear in `guard`, `if`, and `while` statements. This proposal re-architects the condition grammar to enable an arbitrary mix of Boolean expressions, `let` conditions (which test and unwrap optionals), general `case` clauses for arbitrary pattern matching, and availability tests.  It removes `where` clauses from optional binding conditions and case conditions, and eliminates gramatical ambiguity by using commas for separation between clauses instead of using them both to separate clauses and terms within each clause.  These modifications streamline Swift's syntax and alleviate the situation where many Swift developers don't know they can use arbitrary Boolean conditions after a value binding.
 
 Swift-evolution thread:
-[\[Pitch\] making where and ,	interchangeable in guard conditions](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160516/018352.html)
+[\[Pitch\] making where and ,	interchangeable in guard conditions](https://forums.swift.org/t/pitch-making-where-and-interchangeable-in-guard-conditions/2702)
 
 ## Motivation
 

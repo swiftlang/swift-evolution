@@ -4,14 +4,14 @@
 * Author: [Lily Ballard](https://github.com/lilyball)
 * Review Manager: [Dave Abrahams](https://github.com/dabrahams)
 * Status: **Implemented (Swift 2.2)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151221/004423.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/review-add-a-lazy-flatmap-for-sequences-of-optionals/695/4)
 * Implementation: [apple/swift#408](https://github.com/apple/swift/pull/408)
 
 ## Introduction
 
 Implement comparison operators on tuples up to some arity.
 
-[Swift Evolution Discussion](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151207/000892.html), [Review](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20151221/003907.html)
+[Swift Evolution Discussion](https://forums.swift.org/t/proposal-implement-and-for-tuples-where-possible-up-to-some-high-arity/251), [Review](https://forums.swift.org/t/review-add-a-lazy-flatmap-for-sequences-of-optionals/695)
 
 Note: The review was initially started on the wrong thread with the wrong title and subsequently corrected.
 

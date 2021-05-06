@@ -11,7 +11,7 @@
 
 String interpolation is a simple and powerful feature for expressing complex, runtime-created strings, but the current version of the `ExpressibleByStringInterpolation` protocol has been deprecated since Swift 3. We propose a new design that improves its performance, clarity, and efficiency.
 
-Swift-evolution thread: [\[Draft\] Fix ExpressibleByStringInterpolation](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20170306/033676.html), [String interpolation revamp](https://forums.swift.org/t/string-interpolation-revamp/9302), [String interpolation revamp: design decisions](https://forums.swift.org/t/string-interpolation-revamp-design-decisions/12624)
+Swift-evolution thread: [\[Draft\] Fix ExpressibleByStringInterpolation](https://forums.swift.org/t/draft-fix-expressiblebystringinterpolation/5403), [String interpolation revamp](https://forums.swift.org/t/string-interpolation-revamp/9302), [String interpolation revamp: design decisions](https://forums.swift.org/t/string-interpolation-revamp-design-decisions/12624)
 
 ## Motivation
 

@@ -4,7 +4,7 @@
 * Author: [Nicholas Maccharoli](https://github.com/nirma)
 * Review Manager: [Chris Lattner](https://github.com/lattner)
 * Status: **Implemented (Swift 3)**
-* Decision Notes: [Rationale](https://lists.swift.org/pipermail/swift-evolution-announce/2016-March/000082.html)
+* Decision Notes: [Rationale](https://forums.swift.org/t/accepted-se-0053-remove-explicit-use-of-let-from-function-parameters/1966)
 * Implementation: [apple/swift#1812](https://github.com/apple/swift/pull/1812)
 
 ## Introduction
@@ -15,7 +15,7 @@ Not allowing function parameters to be explicitly declared as `let` would permit
 Furthermore proposal [SE-0003​: "Removing `var` from Function Parameters"](0003-remove-var-parameters.md) removes `var` from function parameters removing any possible ambiguity as to whether a function parameter is immutable or not.
 
 
-Swift-evolution thread: [Removing explicit use of `let` from Function Parameters](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160314/012851.html)
+Swift-evolution thread: [Removing explicit use of `let` from Function Parameters](https://forums.swift.org/t/removing-explicit-use-of-let-from-function-parameters/1856)
 
 ## Motivation
 Now that proposal [SE-0003​: "Removing `var` from Function Parameters"](0003-remove-var-parameters.md) has been accepted, it would make sense that the syntax for function parameters being explicitly declared as `let` would be removed as well.
