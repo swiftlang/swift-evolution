@@ -526,7 +526,7 @@ Task-local values are retained until `withValue`'s `operation` scope exits. Effe
 Both value and reference types are allowed to be stored in task-local storage, using their expected respective semantics: 
 
 - values stored as task-locals are copied into the task's local storage,
-- references stored task-locals are are retained and stored by reference in the task's local storage.
+- references stored as task-locals are retained and stored by reference in the task's local storage.
 
 Task-local "item" storage allocations are performed using an efficient task-local, stack-discipline allocator, since it is known that those items can never outlive a task they are set on. This way makes it slightly cheaper to allocate storage, compared to going through the global allocator, however task-local storage _should not_ be abused to avoid passing parameters explicitly, because it makes your code harder to reason about due to the "hidden argument" passing rather than plain old parameters in function calls.
 
