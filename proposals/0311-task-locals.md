@@ -25,7 +25,7 @@
     - [Reading task-local values: implementation details](#reading-task-local-values-implementation-details)
     - [Child task and value lifetimes](#child-task-and-value-lifetimes)
       * [Task-local value item allocations](#task-local-value-item-allocations)
-  + [Similarities and differences with SwiftUI `Environment`](#similarities-and-differences-with-swiftui-environment)
+  + [Similarities and differences with SwiftUI's `Environment`](#similarities-and-differences-with-swiftuis-environment)
 * [Prior Art](#prior-art)
   + [Kotlin: CoroutineContext[T]](#kotlin-coroutinecontextt)
   + [Java/Loom: Scope Variables](#javaloom-scope-variables)
@@ -34,7 +34,7 @@
   + [Surface API: Type-based key definitions](#surface-api-type-based-key-definitions)
   + [Surface API: Key-less value definitions](#surface-api-key-less-value-definitions)
 * [Rejected Alternatives](#rejected-alternatives)
-  + [Plain-old Thread Local variables](#plain-old-thread-local-variables)
+  + [Plain-old Thread-Local variables](#plain-old-thread-local-variables)
   + [Dispatch Queue Specific Values](#dispatch-queue-specific-values)
 * [Intended use-cases](#intended-use-cases)
   + [Use case: Distributed Tracing & Contextual Logging](#use-case-distributed-tracing--contextual-logging)
@@ -61,13 +61,13 @@
 
 With Swift embracing asynchronous functions and actors, asynchronous code will be everywhere. 
 
-Therefore, the need for debugging, tracing and otherwise instrumenting asynchronous code becomes even more necessary than before. At the same time, tools which instrumentation systems could have used before to carry information along requests -- such as thread locals or queue-specific values -- are no longer compatible with Swift's Task-focused take on concurrency.
+Therefore, the need for debugging, tracing and otherwise instrumenting asynchronous code becomes even more necessary than before. At the same time, tools which instrumentation systems could have used before to carry information along requests — such as thread locals or queue-specific values — are no longer compatible with Swift's Task-focused take on concurrency.
 
 Previously, tool developers could have relied on thread-local or queue-specific values as containers to associate information with a task and carry it across suspension boundaries. However, these mechanisms do not compose well in general, have known "gotchas" (e.g., forgetting to carefully maintain and clear state from these containers after a task has completed to avoid leaking them), and do not compose at all with Swift's task-first approach to concurrency. Furthermore, those mechanisms do not feel "right" given Swift's focus on Structured Concurrency, because they are inherently unstructured.
 
 This proposal defines the semantics of _Task Local Values_. That is, values which are local to a `Task`.
 
-Task local values set in a task _cannot_ out-live the task, solving many of the pain points relating to un-structured primitives such as thread-locals, as well as aligning this feature closely with Swift's take on Structured Concurrency.
+Task-local values set in a task _cannot_ out-live the task, solving many of the pain points relating to un-structured primitives such as thread-locals, as well as aligning this feature closely with Swift's take on Structured Concurrency.
 
 Swift-evolution threads:
 
@@ -93,11 +93,11 @@ Finally, those mechanisms are outright incompatible with asynchronous code that 
 
 ### Task Local Values
 
-Tasks already require the capability to "carry" metadata with them, and that metadata used to implement both cancellation and priority propagation for a parent task and its child tasks. Specifically Task API's exhibiting similar behavior are: `Task.currentPriority`, and `Task.isCancelled`. Task local values do not directly use the same storage mechanism, as cancellation and priority is somewhat optimized because _all_ tasks carry them, but the semantics are the same.
+Tasks already require the capability to "carry" metadata with them, and that metadata used to implement both cancellation and priority propagation for a parent task and its child tasks. Specifically Task API's exhibiting similar behavior are: `Task.currentPriority`, and `Task.isCancelled`. Task-local values do not directly use the same storage mechanism, as cancellation and priority is somewhat optimized because _all_ tasks carry them, but the semantics are the same.
 
 We propose to expose the Task's internal ability to "carry metadata with it" via a Swift API, *aimed for library and instrumentation authors* such that they can participate in carrying additional information with Tasks, the same way as Tasks already do with priority and deadlines and other metadata.
 
-Task local values may be read from any function running within an asynchronous context. This includes *synchronous* functions which were called from an asynchronous function. Binding a task-local value however must be performed in an asynchronous function.
+Task-local values may be read from any function running within an asynchronous context. This includes *synchronous* functions which were called from an asynchronous function. Binding a task-local value however must be performed in an asynchronous function.
 
 A task-local must be declared as a static stored property, and annotated using the `@TaskLocal` property wrapper. 
 
@@ -122,8 +122,8 @@ The diagnosed error would look like this:
 enum MyLibrary {
   @TaskLocal
   var requestID: String?
-      // error: @TaskLocal declaration 'requestID' must be static. 
-      // Task-local declarations must be static stored properties.
+    // error: @TaskLocal declaration 'requestID' must be static. 
+    // Task-local declarations must be static stored properties.
 }
 ```
 
@@ -166,7 +166,7 @@ await asyncPrintRequestID()  // prints: no-request-id
 syncPrintRequestID()         // prints: no-request-id
 ```
 
-The `withLocal` operation is executed synchronously, and no additional tasks are created to execute them.
+The `withValue` operation is executed synchronously, and no additional tasks are created to execute them.
 
 It is also possible to bind the same key multiple times while executing in the same task. This can be thought of the most recent binding shadowing the previous one, like this:
 
@@ -211,12 +211,12 @@ The same property holds for child tasks. For example, if we used a task group to
 
 ```swift
 await MyLibrary.$requestID.withValue("1234-5678") {
-  await withTaskGroup(of: String.self) { group in 	
-      group.spawn { // spawns child task running this closure
-          MyLibrary.requestID // returns "1234-5678", which was bound by the parent task
-      }
-    
-      return await group.next()! // returns "1234-5678"
+  await withTaskGroup(of: String.self) { group in 
+    group.spawn { // spawns child task running this closure
+      MyLibrary.requestID // returns "1234-5678", which was bound by the parent task
+    }
+                                        
+    return await group.next()! // returns "1234-5678"
   } // returns "1234-5678"
 }
 ```
@@ -227,7 +227,7 @@ The same operations also work and compose naturally with child tasks created by 
 
 ### Declaring task-local values
 
-Task local values need to declare a _"key"_ which will be used to access them. This key is represented by the property wrapper instance that is created around the `@TaskLocal` annotated property.
+Task-local values need to declare a _"key"_ which will be used to access them. This key is represented by the property wrapper instance that is created around the `@TaskLocal` annotated property.
 
 The `TaskLocal` property wrapper is used to declare task-local keys, based off a static property. 
 
@@ -284,7 +284,7 @@ This addresses pain-points of task-local values predecessor: thread-locals, whic
 
 > Please refer to [Rejected alternatives](#rejected-alternatives), for an in depth analysis of the shortcomings of thread-locals, and how task-local `withValue` scopes address them.  
 
-Binding values is done by using the `$myTaskLocal.withValue(_:operation:)` function, which adds task local values for the duration of the operation:
+Binding values is done by using the `$myTaskLocal.withValue(_:operation:)` function, which adds task-local values for the duration of the operation:
 
 ```swift
 @discardableResult
@@ -294,15 +294,15 @@ public func withValue<R>(
 ) async rethrows -> R
 ```
 
-The function is marked `async` because this way we are guaranteed to always have a task available to which we can bind the value to. It is not possible to bind a task local value in a synchronous function in which there is no task available. It is possible, however, to use the `withUnsafeCurrentTask` function to bind a task-local value even when inside of an synchronous function, as long as the `withUnsafeCurrentTask` yields a task instance and not `nil`. Binding values using this pattern will be explained in the following sections.
+The function is marked `async` because this way we are guaranteed to always have a task available to which we can bind the value to. It is not possible to bind a task-local value in a synchronous function in which there is no task available. It is possible, however, to use the `withUnsafeCurrentTask` function to bind a task-local value even when inside of an synchronous function, as long as the `withUnsafeCurrentTask` yields a task instance and not `nil`. Binding values using this pattern will be explained in the following sections.
 
-Task local storage can only be modified by the "current" task itself, and it is not possible for a child task to mutate a parent's task local values. 
+Task-local storage can only be modified by the "current" task itself, and it is not possible for a child task to mutate a parent's task-local values. 
 
 #### Binding values for the duration of a child-task
 
 The scoped binding mechanism naturally composes with child tasks.
 
-Binding a task local value for the entire execution of a child task is done by changing the following:
+Binding a task-local value for the entire execution of a child task is done by changing the following:
 
 ```swift
 async let dinner = cookDinner()
@@ -324,7 +324,7 @@ async let dinner = Lib.$wasabiPreference.withValue(.withWasabi) {
 }
 ```
 
-This will set the wasabi preference task local value _for the duration of that child task_ to `.withWasabi`. 
+This will set the wasabi preference task-local value _for the duration of that child task_ to `.withWasabi`. 
 
 If we had two meals to prepare, we could either set the value for both of them, like this:
 
@@ -361,7 +361,7 @@ In order to be able to bind a task-local value, there must be a task available t
 
 Thankfully, the Structured Concurrency APIs offer the `withUnsafeCurrentTask` API which allows us to reach for the task object, and–if available–bind values as-if we were executing in an asynchronous function. 
 
-Since great care must be taken when working with `UnsafeCurrentTask`, especially with regards to its lifetime, the API to set task local values that requires its use, is defined on the `UnsafeCurrentTask` itself, as the correctness of this API call depends on the correct lifecycle of the current task. The API takes the form of:
+Since great care must be taken when working with `UnsafeCurrentTask`, especially with regards to its lifetime, the API to set task-local values that requires its use, is defined on the `UnsafeCurrentTask` itself, as the correctness of this API call depends on the correct lifecycle of the current task. The API takes the form of:
 
 ```swift
 extension UnsafeCurrentTask { 
@@ -373,10 +373,10 @@ extension UnsafeCurrentTask {
   /// represented by this object.
   @discardableResult
   public func withTaskLocal<Value: Sendable, R>(
-      _ taskLocal: TaskLocal<Value>,
-      boundTo valueDuringOperation: Value,
-      operation: () throws -> R,
-      file: String = #file, line: UInt = #line) rethrows -> R { ... }
+    _ taskLocal: TaskLocal<Value>,
+    boundTo valueDuringOperation: Value,
+    operation: () throws -> R,
+    file: String = #file, line: UInt = #line) rethrows -> R { ... }
   
 }
 ```
@@ -433,7 +433,7 @@ await Lib.$sugar.withValue(.noSugar) {
 } 
 ```
 
-As expected, because the *detached task* completely discards any context information from the creating task, no sugar preferences were automatically carried through to it. This is similar to task priority, which also is never automatically inherited in detached tasks.
+As expected, because the *detached task* completely discards any contextual information from the creating task, no sugar preferences were automatically carried through to it. This is similar to task priority, which also is never automatically inherited in detached tasks.
 
 If necessary, it is possible is possible to make a detached task carry a specific priority, executor preference and even task-local value by handling the propagation manually:
 
@@ -441,7 +441,7 @@ If necessary, it is possible is possible to make a detached task carry a specifi
 let preference = Lib.sugar                      // store the sugar preference in task-1
 detach(priority: Task.currentPriority) {        // manually propagate priority
   await Lib.$sugar.withValue(sugarPreference) { // restore the sugar preference in detached-task
-     assert(Lib.sugar == preference)
+    assert(Lib.sugar == preference)
   }
 }
 ```
@@ -466,17 +466,17 @@ await Lib.$tea.withValue(.green) {
 print("outside")
 ```
 
-Note that the `async` operation, similar to a `detach` operation is allowed to out-live the creating task. I.e. the operation is __not__ a child-task, and as such the usual technique of task-locals to rely on the task tree for storage of the taks-locals cannot be used here.
+Note that the `async` operation, similar to a `detach` operation, is allowed to out-live the creating task. I.e. the operation is __not__ a child-task, and as such the usual technique of task-locals to rely on the task tree for storage of the taks-locals cannot be used here.
 
 The implementation ensures correctness of this by _copying_ all taks-local value bindings over to the new async task at the point of creation (line 3 in the above example). This means that such operation is slightly heavier than creating a plain child-task, because not only does the task have to be likel heap allocated, it also needs to copy over all task-local bindings from the creating task.
 
-Please not that what is copied here are only the bindings, i.e. if a reference counted type was bound using `withValue` in the creting task, what is copied to the new task is a reference to the previous task, along with incrementing the reference count to it to keep the referenced object alive.
+Please note that what is copied here are only the bindings, i.e. if a reference counted type was bound using `withValue` in the creating task, what is copied to the new task is a reference to the previous task, along with incrementing the reference count to it to keep the referenced object alive.
 
 ---
 
 One other situation where a task might out-live the `withValue` lexical-scope is a specific anti-pattern within task groups. This situation is reliabily detected at runtime and cause a crash when it is encountered, along with a detailed explanation of the issue.
 
-The one situation where a `withLocal` scope is not enough to encapsulate the lifetime of a child-task is if the binding is performed _exactly_ around a TaskGroup's `group.spawn`, like this:
+The one situation where a `withValue` scope is not enough to encapsulate the lifetime of a child-task is if the binding is performed _exactly_ around a TaskGroup's `group.spawn`, like this:
 
 ```swift
 withTaskGroup(of: String.self) { group in 
@@ -495,15 +495,15 @@ withTaskGroup(of: String.self) { group in
 }
 ```
 
-This is an an un-supported pattern because the purpose of `group.spawn` (and `group.spawnUnlessCancelled`) is explicitly to spawn off a child-task and return immediately. While the _structure_ of these child-tasks is upheld by no child-task being allowed to escape the task group, the tasks do it does "escape" the scope of the `withValue` - which causes trouble for the internal workings of task locals, which are allocated using an efficient task-local allocation mechanism.
+This is an an un-supported pattern because the purpose of `group.spawn` (and `group.spawnUnlessCancelled`) is explicitly to spawn off a child-task and return immediately. While the _structure_ of these child-tasks is upheld by no child-task being allowed to escape the task group, the tasks do it does "escape" the scope of the `withValue` — which causes trouble for the internal workings of task locals, which are allocated using an efficient task-local allocation mechanism.
 
 At the same time, the just shown pattern can be seen as simply wrong usage of the API and programmer error, violating the structured nature of child-tasks. Instead, what the programmer should do in this case is either, set the value for the entire task group, such that all children inherit it:
 
 ```swift
 await Trace.$name.withValue("some(func:)") { // OK!
-    await withTaskGroup(...) { group in
-        group.spawn { ... }
-    }
+  await withTaskGroup(...) { group in
+    group.spawn { ... }
+  }
 }
 ```
 
@@ -511,28 +511,28 @@ or, set it _within_ the spawned child-task, as then the task-local allocation wi
 
 ```swift
 await withTaskGroup(...) { group in
-    group.spawn {
-        await Trace.$name.withValue("some(func:)") { // OK!
-            ...
-        }
+  group.spawn {
+    await Trace.$name.withValue("some(func:)") { // OK!
+      ...
     }
+  }
 }
 ```
 
 ### Task-local value lifecycle
 
-Task local values are retained until `withLocal`'s `operation` scope exits. Effectively this means that the value is kept alive until all child tasks created in such scope exit as well. This is important because child tasks may be refering to this specific value in the parent task, so it cannot be released earlier. 
+Task-local values are retained until `withValue`'s `operation` scope exits. Effectively this means that the value is kept alive until all child tasks created in such scope exit as well. This is important because child tasks may be refering to this specific value in the parent task, so it cannot be released earlier. 
 
 Both value and reference types are allowed to be stored in task-local storage, using their expected respective semantics: 
 
 - values stored as task-locals are copied into the task's local storage,
-- references stored task-locals are are retained and stored by reference in the task's local storage.
+- references stored as task-locals are retained and stored by reference in the task's local storage.
 
-Task local "item" storage allocations are performed using an efficient task local stack-discipline allocator, since it is known that those items can never out-live a task they are set on. This makes slightly cheaper to allocate storage for values allocated this way than going through the global allocator, however task-local storage _should not_ be abused to avoid passing parameters explicitly, because it makes your code harder to reason about due to the "hidden argument" passing rather than plain old parameters in function calls.
+Task-local "item" storage allocations are performed using an efficient task-local, stack-discipline allocator, since it is known that those items can never outlive a task they are set on. This way makes it slightly cheaper to allocate storage, compared to going through the global allocator, however task-local storage _should not_ be abused to avoid passing parameters explicitly, because it makes your code harder to reason about due to the "hidden argument" passing rather than plain old parameters in function calls.
 
 ### Reading task-local values
 
-Task local variables are semantically _inherited_ the same way by _child tasks_ similar to some other properties of a task, such as `priority`. 
+Task-local variables are semantically _inherited_ the same way by _child tasks_ similar to some other properties of a task, such as `priority`. 
 
 This implies that stored values may be accessed from different tasks executing concurrently. In order to guarantee safety, task-local values must conform to the `Sendable` protocol, introduced in [SE-0302](0302-concurrent-value-and-concurrent-closures.md).
 
@@ -551,7 +551,7 @@ func simple() async {
 }
 ```
 
-The same would work if the second `print` would be multiple asynchronous function calls "deeper" from the `withLocal` invocation.
+The same would work if the second `print` would be multiple asynchronous function calls "deeper" from the `withValue` invocation.
 
 The same mechanism also works with tasks spawned in task groups or async let declarations, because those also construct child tasks, which then inherit the bound task-local values of the outer scope.
 
@@ -568,7 +568,7 @@ await Lib.$number.withValue(42) {
 }
 ```
 
-If a synchronous function is invoked from a context that was not running within a task, it will automatically return the `defaultValue` for given key - since there is no task available to read the value from. 
+If a synchronous function is invoked from a context that was not running within a task, it will automatically return the `defaultValue` for given key — since there is no task available to read the value from. 
 
 ```swift
 func simple() {
@@ -576,9 +576,9 @@ func simple() {
 }
 ```
 
-Usually it matters not if the function was invoked without binding the task local value, or if it is executing from a context that is simply not within the Task runtime and we simply deal with the default value in either case.
+Usually it doesn’t matter if the function was invoked without first binding the task-local value, or if the execution context is outside the Task runtime, as we can simply return the default value.
 
-If it is desirable to know if the value was not bound, but we _are_ executing within a task, this can be checked by using the following pattern:
+To check if the value was not bound albeit executing within a task, the following pattern can be used:
 
 ````swift
 Task.withUnsafeCurrentTask { task in 
@@ -592,9 +592,9 @@ Task.withUnsafeCurrentTask { task in
 
 #### Reading task-local values: implementation details
 
-There are two approaches possible to implement the necessary semantics. The naive approach being copying all task local values to every created child task - this obviously creates a large overhead for "set once and then hundreds of tasks read the value" values. Because this is the usual access pattern for such values (e.g. request identifiers and similar), another approach is taken.
+There are two approaches possible to implement the necessary semantics. The naive approach being copying all task-local values to every created child task, which obviously creates a large overhead for "set once and then hundreds of tasks read the value" values. Because this is the usual access pattern for such values (e.g. request identifiers and similar), another approach is taken.
 
-Since the implementation effectively already is a linked list of tasks, where children are able to look up their parent task, we reuse this mechanism to avoid copying values into child tasks. Instead, the `get()` implementation first checks for presence of the key in the current task, if not present, it performs a lookup in its parent, and so on, until no parent is available at which point `nil` (or the default value for the task local key) is returned:
+Since the implementation effectively already is a linked list of tasks, where children are able to look up their parent task, we reuse this mechanism to avoid copying values into child tasks. Instead, the `get()` implementation first checks for presence of the key in the current task, if not present, it performs a lookup in its parent, and so on, until no parent is available at which point the default value for the task-local key is returned:
 
 ```
 [detached] ()
@@ -605,7 +605,7 @@ Since the implementation effectively already is a linked list of tasks, where ch
   |[child-task-2] (name: "alice")
 ```
 
-Looking up `name` from `child-task-2` will return "alice" immediately, while looking up the same `name` from `child-task-1-1` will have to 1) check in the child task itself, 2) check in `child-task-1`, and finally check in `detached`, all of which returning empty. Looking up `id` from `child-task-1-1` will also return immediately and return `20`, which is what we'd expect -- it is the "more specific" value deeper in the call chain.
+Looking up `name` from `child-task-2` will return "alice" immediately, while looking up the same `name` from `child-task-1-1` will have to 1) check in the child task itself, 2) check in `child-task-1`, and finally check in `detached`, all of which returning empty. Looking up `id` from `child-task-1-1` will also return immediately and return `20`, which is what we'd expect — it is the "more specific" value deeper in the call chain.
 
 We also notice that in many situations, the following chain will exist:
 
@@ -621,46 +621,46 @@ We also notice that in many situations, the following chain will exist:
       |[child-task-4] ()
 ```
 
-Where many tasks can exist however they do not contribute any new task local values to the chain. Thanks to task locals being immutable at task creation, we can guarantee that their known values never change, and thus we can optimize lookups from all tasks whose parent's do not contribute any additional task local values. 
+Where many tasks can exist however they do not contribute any new task-local values to the chain. Thanks to task locals being immutable at task creation, we can guarantee that their known values never change, and thus we can optimize lookups from all tasks whose parent's do not contribute any additional task-local values. 
 
-Specifically, at creation time of e.g. `child-task-3` we can notice that the parent (`child-task-2`) does not have any task local values, and thus we can directly point at *its* parent instead: `child-task-1`, which indeed does contribute some values. More generally, the rule is expressed as pointing "up" to the first parent task that actually has any task local values defined. Thanks to this, looking up `requestID` from `child-task-4` is only costing a single "hop" right into `child-task-1` which happens to define this key. If it didn't contain the key we were looking for, we would continue this search (including skipping empty tasks) until a detached task is reached.
+Specifically, at creation time of e.g. `child-task-3` we can notice that the parent (`child-task-2`) does not have any task-local values, and thus we can directly point at *its* parent instead: `child-task-1`, which indeed does contribute some values. More generally, the rule is expressed as pointing "up" to the first parent task that actually has any task-local values defined. Thanks to this, looking up `requestID` from `child-task-4` is only costing a single "hop" right into `child-task-1` which happens to define this key. If it didn't contain the key we were looking for, we would continue this search (including skipping empty tasks) until a detached task is reached.
 
 This approach is highly optimized for the kinds of use-cases such values are used for. Specifically, the following assumptions are made about the access patterns to such values:
 
-- **relatively few tasks read task local values**
-  - there usually is one "root task" which has the task local information set, and hundreds or thousands of small child tasks (throughout the lifetime of the "root") which may or may not read the value,
-  - _most_ child tasks do not read the task local information; and even in tracing situations where potentially many tasks will read the value, this is only true in a fraction of the code's executions,
+- **relatively few tasks read task-local values**
+  - there usually is one "root task" which has the task-local information set, and hundreds or thousands of small child tasks (throughout the lifetime of the "root") which may or may not read the value,
+  - _most_ child tasks do not read the task-local information; and even in tracing situations where potentially many tasks will read the value, this is only true in a fraction of the code's executions,
   - **conclusion**: it is not worth aggressively copying the values into all child tasks; taking a small performance hit during lookups is acceptable.
 - **there may be many tasks 'between' the task binding the values, and those reading them**
-  - quite often, values are set by a framework or runtime "once" before offering control flow to user code; usually none of the user-code adds any task local values, but only uses the existing ones (e.g. in logging or tracing)
+  - quite often, values are set by a framework or runtime "once" before offering control flow to user code; usually none of the user-code adds any task-local values, but only uses the existing ones (e.g. in logging or tracing)
   - **conclusion**: the "skip task-local 'empty' tasks" optimization is worth it,
-- **tasks should never have to worry about "racing" access to task local values**
-  - tasks must always be able to call `Task.local(_:)` and get predictable values back; specifically, this means that a task _must not_ be able to mutate its task-local values -- because child tasks run concurrently with it, this would mean that a child task invoking `Task.local(_:)` twice, could get conflicting results, leading to a confusing programming model
-  - **conclusion**: task local storage must be initialized at task creation time and cannot be mutated, values may only be "bound" by creating new scopes/tasks.
+- **tasks should never have to worry about "racing" access to task-local values**
+  - tasks must always be able to call `Lib.myValue` and get predictable values back; specifically, this means that a task _must not_ be able to mutate its task-local values — because child tasks run concurrently with it, this would mean that a child task invoking `Lib.myValue` twice, could get conflicting results, leading to a confusing programming model
+  - **conclusion**: task-local storage must be initialized at task creation time and cannot be mutated, values may only be "bound" by creating new scopes/tasks.
 
-> Note: This approach is similar to how Go's `Context` objects work -- they also cannot be mutated, but only `With(...)` copied, however the copies actually form a chain of contexts, all pointing to their parent context. In Swift, we simply reuse the Concurrency model's inherent `Task` abstraction to implement this pattern.
+> Note: This approach is similar to how Go's `Context` objects work — they also cannot be mutated, but only `With(...)` copied, however the copies actually form a chain of contexts, all pointing to their parent context. In Swift, we simply reuse the Concurrency model's inherent `Task` abstraction to implement this pattern.
 
 #### Child task and value lifetimes
 
-It is also important to note that no additional synchronization is needed on the internal implementation of the task local value stack / linked-list. This is because we strongly rely on guarantees of structured concurrency. Specifically, we exploit the guarantee that:
+It is also important to note that no additional synchronization is needed on the internal implementation of the task-local value stack / linked-list. This is because we strongly rely on guarantees of structured concurrency. Specifically, we exploit the guarantee that:
 
 > *By the time the scope exits, the child task must either have completed, or it will be implicitly awaited.* When the scope exits via a thrown error, the child task will be implicitly cancelled before it is awaited.
 
-Thanks to this guarantee child tasks may directly point at the head of the stack of their parent (or super-parent), and we need not implement any additional house-keeping for those references. We know that the parent task will always have values we pointed to from child tasks (defined within a `withLocal` body) present, and the child tasks are guaranteed to complete before the `withLocal` returns. We use this to automatically pop bound values from the value stack as we return from the `withLocal` function, this is guaranteed to be safe, since by that time, all child tasks must have completed and no-one will refer to the task local-values at that point anymore.
+Thanks to this guarantee child tasks may directly point at the head of the stack of their parent (or super-parent), and we need not implement any additional house-keeping for those references. We know that the parent task will always have values we pointed to from child tasks (defined within a `withValue` body) present, and the child tasks are guaranteed to complete before the `withValue` returns. We use this to automatically pop bound values from the value stack as we return from the `withValue` function, this is guaranteed to be safe, since by that time, all child tasks must have completed and no-one will refer to the task-local values at that point anymore.
 
 ##### Task-local value item allocations
 
 It is worth calling out that the `withValue(_:) { ... }` API style enables crucial performance optimizations for internal storage of those tasks.
 
-Since the lifetime of values is bounded by the scope of a `withValue` function along with guarantees made by structured concurrency wrt. to parent/child task lifetimes, we are able to use task-local allocation mechanisms, which avoid using the system allocator directly and can be vastly more efficient than global allocation (e.g. malloc).
+Since the lifetime of values is bounded by the scope of a `withValue` function along with guarantees made by structured concurrency with reference to parent/child task lifetimes, we are able to use task-local allocation mechanisms, which avoid using the system allocator directly and can be vastly more efficient than global allocation (e.g. malloc).
 
-### Similarities and differences with SwiftUI `Environment`
+### Similarities and differences with SwiftUI's `Environment`
 
-Readers may be aware of SwiftUI's type [SwiftUI Environment](https://developer.apple.com/documentation/swiftui/environment) which seemingly has a very similar purpose, however it is more focused on the view hierarchies, rather than "flow of a value _through_ asynchronous calls" which this API is focused on.
+Readers may be aware of SwiftUI's type [SwiftUI's Environment](https://developer.apple.com/documentation/swiftui/environment) which seemingly has a very similar purpose, however it is more focused on the view hierarchies, rather than "flow of a value _through_ asynchronous calls" which this API is focused on.
 
 One may think about the difference how these APIs differ in terms of where the "parent/child" relationship is represented. 
 
-SwiftUI's environment considers relationships between views, while task local values are about the relationship of asynchronous tasks. So while the general idea is similar, the actual semantics are quite different. It is best to visualize task local values as "following" the execution path, regardless where (in which specific asynchronous function or actor) that execution takes place.
+SwiftUI's environment considers relationships between views, while task-local values are about the relationship of asynchronous tasks. So while the general idea is similar, the actual semantics are quite different. It is best to visualize task-local values as "following" the execution path, regardless where (in which specific asynchronous function or actor) that execution takes place.
 
 Swift UI's `@Environment` can be used to define and store custom values, like so:
 
@@ -683,29 +683,29 @@ and can be implemented as:
 
 ```swift
 struct OvenKey: EnvironmentKey {
-    static let defaultValue: Oven = DefaultOven()
+  static let defaultValue: Oven = DefaultOven()
 }
 extension EnvironmentValues {
-    var Oven: Oven {
-        get {
-            return self[OvenKey.self]
-        }
-        set {
-            self[OvenKey.self] = newValue
-        }
+  var Oven: Oven {
+    get {
+      return self[OvenKey.self]
     }
+    set {
+      self[OvenKey.self] = newValue
+    }
+  }
 }
 ```
 
 Keeping the `OvenKey` `internal` or even `private` allows for fine grained control over who can set or read this value. 
 
 
-This API as well as the Swift Distributed Tracing `Baggage` type all adopt the same style and should be used in the same way to set custom keys. However it is NOT the primary purpose of task local values to help create values -- it is to use them _during_ execution of asynchronous functions.
+This API as well as the Swift Distributed Tracing `Baggage` type all adopt the same style and should be used in the same way to set custom keys. However it is NOT the primary purpose of task-local values to help create values — it is to use them _during_ execution of asynchronous functions.
 
 In other words:
 
 - **SwiftUI's `@Environment`** is useful for structurally configuring views etc.
-- **Task Local Values** are useful for _carrying_ metadata along through a series of asynchronous calls, where each call may want to access it, and the context is likely different for every single "incoming request" even while the structure of the system remains the same.
+- **Task-Local Values** are useful for _carrying_ metadata along through a series of asynchronous calls, where each call may want to access it, and the context is likely different for every single "incoming request" even while the structure of the system remains the same.
 
 Another important difference is that task-local values are used to define an object that users interact with, the `TaskLocal<Value>.Access` rather than only make available the `Value`, so the exact API shapes differ also because of this reason.
 
@@ -729,8 +729,8 @@ Setting a context again can only be done by nesting and scopes, as follows:
 
 ```kotlin
 suspend fun <T> withContext(
-    context: CoroutineContext, 
-    block: suspend CoroutineScope.() -> T
+  context: CoroutineContext, 
+  block: suspend CoroutineScope.() -> T
 ): T
 ```
 
@@ -743,15 +743,15 @@ withContext(Dispatchers.IO) {
 // IO dispatcher context variable is no longer set
 ```
 
-which allows adding conte context variables while the `block` executes.
+which allows adding context variables while the `block` executes.
 
 See also [Structured concurrency, lifecycle and coroutine parent-child hierarchy](https://github.com/Kotlin/kotlinx.coroutines/blob/master/ui/coroutines-guide-ui.md#structured-concurrency-lifecycle-and-coroutine-parent-child-hierarchy).
 
 ### Java/Loom: Scope Variables
 
-Java, with it's coroutine and green-thread based re-thinking of the JVM's execution model, is experimenting with introducing "[*Scope Variables*](https://cr.openjdk.java.net/~rpressler/loom/loom/sol1_part2.html#scope-variables)" which address the same known pain-points of thread local variables.
+Java, with it's coroutine and green-thread based re-thinking of the JVM's execution model, is experimenting with introducing "[*Scope Variables*](https://cr.openjdk.java.net/~rpressler/loom/loom/sol1_part2.html#scope-variables)" which address the same known pain-points of thread-local variables.
 
-Java's Loom based concurrency does not expose coroutines or any new concepts into the language (nor does it have async/await or function coloring, because of the use of green threads).
+Java's Loom-based concurrency does not expose coroutines or any new concepts into the language (nor does it have async/await or function coloring, because of the use of green threads).
 
 Snippet explaining their functioning:
 
@@ -759,21 +759,21 @@ Snippet explaining their functioning:
 > static final Scoped<String> sv = Scoped.forType(String.class);
 > 
 > void foo() {
->     try (var __ = sv.bind("A")) {
->        bar();
->        baz();
->        bar();
->     }
+>   try (var __ = sv.bind("A")) {
+>     bar();
+>     baz();
+>     bar();
+>   }
 > }
 > 
 > void bar() {
->     System.out.println(sv.get());
+>   System.out.println(sv.get());
 > }
 > 
 > void baz() {
->     try (var __ = sv.bind("B")) {
->        bar();
->     }
+>   try (var __ = sv.bind("B")) {
+>     bar();
+>   }
 > }
 > ```
 > 
@@ -785,7 +785,7 @@ Snippet explaining their functioning:
 > A
 > ```
 
-This again is very similar to task local variables, however it expresses it as an actual variable through the access must be performed.
+This again is very similar to task-local variables, however it expresses it as an actual variable through the access must be performed.
 
 ### Go: explicit context passing all the way
 
@@ -796,24 +796,24 @@ Go's take on asynchronous context propagation takes the form of the [`Context`](
 // across API boundaries. Its methods are safe for simultaneous use by multiple
 // goroutines.
 type Context interface {
-    // Done returns a channel that is closed when this Context is canceled
-    // or times out.
-    Done() <-chan struct{}
+  // Done returns a channel that is closed when this Context is canceled
+  // or times out.
+  Done() <-chan struct{}
 
-    // Err indicates why this context was canceled, after the Done channel
-    // is closed.
-    Err() error
+  // Err indicates why this context was canceled, after the Done channel
+  // is closed.
+  Err() error
 
-    // Deadline returns the time when this Context will be canceled, if any.
-    Deadline() (deadline time.Time, ok bool)
+  // Deadline returns the time when this Context will be canceled, if any.
+  Deadline() (deadline time.Time, ok bool)
 
-    // Value returns the value associated with key or nil if none.
-    Value(key interface{}) interface{}
+  // Value returns the value associated with key or nil if none.
+  Value(key interface{}) interface{}
 }
 
 var (
-   background = new(emptyCtx)
-   todo       = new(emptyCtx)
+  background = new(emptyCtx)
+  todo       = new(emptyCtx)
 )
 ```
 
@@ -825,7 +825,7 @@ The Go programming style is very strict about Context usage, meaning that _every
 
 ```go
 func DoSomething(ctx context.Context, arg Arg) error {
-	// ... use ctx ...
+  // ... use ctx ...
 }
 ```
 
@@ -846,23 +846,23 @@ Go Concurrency Patterns: Context](https://blog.golang.org/context).
 
 ### Surface API: Type-based key definitions
 
-The initially pitched approach to define task local keys was impossible to get wrong thanks to the type always being unique. However declaring and using the keys was deemed to tiresome by the community during review, thus the proposal currently is pitching `@TaskLocal` property wrapper.
+The initially pitched approach to define task-local keys was impossible to get wrong thanks to the type always being unique. However declaring and using the keys was deemed to tiresome by the community during review, thus the proposal currently is pitching `@TaskLocal` property wrapper.
 
 The previous design required this boilerplate to declare a key:
 
 ```swift
 extension TaskLocalValues {
   
-    public struct RequestIDKey: TaskLocalKey {
-      public static var defaultValue: String { "<no-request-id>" } 
+  public struct RequestIDKey: TaskLocalKey {
+    // alternatively, one may declare a nil default value:
+    //     public static var defaultValue: String? { nil } 
+    public static var defaultValue: String { "<no-request-id>" }
       
-      // alternatively, one may declare a nil default value:
-      //     public static var defaultValue: String? { nil } 
-      
-      // additional options here, like e.g.
-      // static var inherit: TaskLocalValueInheritance = . never
-    }
-    public var requestID: RequestIDKey { .init() }
+    // additional options here, like e.g.
+    // static var inherit: TaskLocalValueInheritance = . never
+  }
+    
+  public var requestID: RequestIDKey { .init() }
   
 }
 ```
@@ -913,30 +913,30 @@ enum Task {
 
 ## Rejected Alternatives
 
-### Plain-old Thread Local variables
+### Plain-old Thread-Local variables
 
-Thread local storage _cannot_ work effectively with Swift's concurrency model.
+Thread-local storage _cannot_ work effectively with Swift's concurrency model.
 
 Swift's concurrency model deliberately abstains from using the thread terminology, because _no guarantees_ are made about specific threads where asynchronous functions are executed. Instead, guarantees are phrased in terms of Tasks and Executors (i.e. a thread pool, event loop or dispatch queue actually running the task). 
 
 In other words: Thread locals cannot effectively work in Swift's concurrency model, because the model does not give _any_ guarantees about specific threads it will use for operations.
 
-We also specifically are addressing pain points of thread-locals with this proposal, as it is far too easy to make these mistakes with thread local values:
+We also specifically are addressing pain points of thread-locals with this proposal, as it is far too easy to make these mistakes with thread-local values:
 
 - it is hard to use thread locals in highly asynchronous code, e.g. relying on event loops or queue-hopping, because on every such queue hop the library or end-user must remember to copy and restore the values onto the thread which later-on is woken up to resume the work (i.e. in a callback),
 - it is possible to "leak" values into thread locals, i.e. forgetting to clean up a thread-local value before returning it to a thread pool, may result in:
    - a value never being released leading to memory leaks, 
    - or leading to new workloads accidentally picking up values previously set for other workloads;
-- thread locals are not "inherited" so it is difficult to implement APIs which "carry all thread local values to the underlying worker thread" or even jump to another worker thread. All involved libraries must be aware of the involved thread locals and copy them to the new thread -- which is both inefficient, and error prone (easy to forget).
+- thread locals are not "inherited" so it is difficult to implement APIs which "carry all thread-local values to the underlying worker thread" or even jump to another worker thread. All involved libraries must be aware of the involved thread locals and copy them to the new thread — which is both inefficient, and error prone (easy to forget).
 
-None of those issues are possible with task local values, because they are inherently scoped and cannot outlive the task with which they are associated.
+None of those issues are possible with task-local values, because they are inherently scoped and cannot outlive the task with which they are associated.
 
-| **Issue**           | **Thread Locals Variables** | **Task Local Values** |
+| **Issue**           | **Thread-Local Variables** | **Task-Local Values** |
 |---------------------|-----------------------------|-----------------------|
 | "Leaking" values    | Possible to forget to "unset" a value as a scope ends. | Impossible by construction; scopes are enforced on the API level, and are similar to scoping rules of async let and Task Groups. |
 | Reasoning | Unstructured, no structural hints about when a variable is expected to be set, reset etc. | Simpler to reason about, follows the child-task semantics as embraced by Swift with `async let` and Task Groups. |
 | Carrier type | Attached specific **threads**; difficult to work with in highly asynchronous APIs (such as async/await). | Attached to specific tasks, accessible through a task's child tasks as well, forming a hierarchy of values, which may be used to provide more specific values for children deeper in the hierarchy.
-| Mutation | Thread locals may be mutated by *anyone*; A caller cannot assume that a function it called did not modify the thread local that it has just set, and may need to be defensive about asserting this. | Task locals cannot modify their parent's values; They can only "modify" values by immutably adding new bindings in their own task; They cannot change values "in" their parent tasks. |
+| Mutation | Thread locals may be mutated by *anyone*; A caller cannot assume that a function it called did not modify the thread-local that it has just set, and may need to be defensive about asserting this. | Task locals cannot modify their parent's values; They can only "modify" values by immutably adding new bindings in their own task; They cannot change values "in" their parent tasks. |
 
 ### Dispatch Queue Specific Values
 
@@ -947,7 +947,7 @@ Dispatch offers APIs that allow setting values that are _specific to a dispatch 
 These APIs serve their purpose well, however they are incompatible with Swift Concurrency's task-focused model. Even if actors and asynchronous functions execute on dispatch queues, no capability to carry values over multiple queues is given, which is necessary to work well with Swift Concurrency, as execution may hop back and forth between queues.
 
 ## Intended use-cases
-It is important to keep in mind the intended use case of this API. Task local values are not indented to replace passing passing parameters where doing so explicitly is the right tool for the job. Please note that task local storage is more expensive to access than parameters passed explicitly. They also are "invisible" in API, so take care to avoid accidentally building APIs which absolutely must have some task local value set when they are called as this is very suprising and hard to debug behavior.
+It is important to keep in mind the intended use case of this API. Task-local values are not indented to replace passing passing parameters where doing so explicitly is the right tool for the job. Please note that task local storage is more expensive to access than parameters passed explicitly. They also are "invisible" in API, so take care to avoid accidentally building APIs which absolutely must have some task local value set when they are called as this is very suprising and hard to debug behavior.
 
 Only use task local storage for auxiliary _metadata_ or "_execution scoped configuration_", like mocking out some runtime bits for the duration of a _specific call_ but not globally, etc.
 
@@ -1055,13 +1055,13 @@ Such diagrams allow developers to naturally "spot" and profile the parallel exec
 
 #### Distributed Tracing
 
-So far this is on-par with an always on "profiler" that is sampling a production service, however it does only sample a single node -- all the code is on the same machine... 
+So far this is on-par with an always on "profiler" that is sampling a production service, however it does only sample a single node — all the code is on the same machine... 
 
 The most exciting bit about distributed tracing is that the same trace graphs can automatically be produced even _across libraries_ and across nodes in a _distributed system_. Thanks to HTTP Clients, Servers and RPC systems being aware of the metadata carried by asynchronous tasks, we are able to carry tracing beyond single-nodes, and easily trace distributed systems.
 
 > For in depth details about this subject, please refer to [Swift Distribted Tracing](https://github.com/apple/swift-distributed-tracing).
 
-If, for whatever reason, we had to extract `chopVegetables()` into a _separate (web) service_, the exact same code can be written -- and if the networking library used to make calls to this *"ChoppingService"* are made, the trace is automatically propagated to the remote node and the full trace now will include spans from multiple machines (!). To visualize this we can show this as:
+If, for whatever reason, we had to extract `chopVegetables()` into a _separate (web) service_, the exact same code can be written — and if the networking library used to make calls to this *"ChoppingService"* are made, the trace is automatically propagated to the remote node and the full trace now will include spans from multiple machines (!). To visualize this we can show this as:
 
 ```
 >-o-o-o----- makeDinner ----------------o---------------x      [15s]
@@ -1119,9 +1119,9 @@ This pattern exists today in [Swift System](https://github.com/apple/swift-syste
 
 In interactive applications asynchronous tasks frequently are linked with some progress indicator such that a user waiting for the task knows that it indeed is proceeding, and not just "stuck" on a never-ending "Loading..."-screen.
 
-Foundation offers the [Progress](https://developer.apple.com/documentation/foundation/progress) type which is used with UI frameworks, such as SwiftUI [citation needed], to easily report back progress of tasks back to users. Currently, `Progress` can be used by either passing it manually and explicitly, or accessing it through thread local storage. 
+Foundation offers the [Progress](https://developer.apple.com/documentation/foundation/progress) type which is used with UI frameworks, such as [SwiftUI](https://developer.apple.com/xcode/swiftui/), to easily report back progress of tasks back to users. Currently, `Progress` can be used by either passing it manually and explicitly, or accessing it through thread-local storage. 
 
-`Progress` naturally has it's own child-progress semantics which exactly mirror how the compiler enforces child task relationships -- child tasks contribute to the task's progress after all. Using task local values we could provide a nice API for progress monitoring that naturally works with tasks and child tasks, without causing noise in the APIs, and also avoiding the issues of thread-local style APIs which are notoriously difficult to use correctly.
+`Progress` naturally has it's own child-progress semantics which exactly mirror how the compiler enforces child task relationships — child tasks contribute to the task's progress after all. Using task local values we could provide a nice API for progress monitoring that naturally works with tasks and child tasks, without causing noise in the APIs, and also avoiding the issues of thread-local style APIs which are notoriously difficult to use correctly.
 
 ### Use case: Executor configuration
 
@@ -1185,24 +1185,32 @@ but which property wrappers would have some ability to customize. Such feature m
 
 ### Specialized TaskLocal Value Inheritance Semantics
 
-Some task local values may require specialized inheritance semantics. The default strategy simply means that child tasks "inherit" values from their parents. At runtime, this is not achieved by copying, but simply performing lookups through parent tasks as well, when a `TaskLocal.Inheritance.default` inherited key is being looked up.
+Some task local values may require specialized inheritance semantics. The default strategy simply means that child tasks "inherit" values from their parents. At runtime, this is not achieved by copying, but simply performing lookups through parent tasks as well, when a `TaskLocalInheritance.default` inherited key is being looked up.
 
 Some, specialized use-cases however can declare more specific inheritance semantics. It is *not* encouraged to use these specialized semantics nonchalantly, and their use should always be carefully considered and given much thought as they can lead to unexpected behaviors otherwise.
 
 A `TaskLocal` type may declare an inheritance semantics by defining the static `inherit` parameter when declaring the variable: `TaskLocal(inherit: .never)`.
 
-The semantics default to `.default`, which are what one would expect normally -- that child tasks are able to lookup values defined in their parents, unless overriden in that specific child. We will discuss the exact semantics of lookups in depth in [Reading task-local values](#reading-task-local-values).
+The semantics default to `.default`, which are what one would expect normally — that child tasks are able to lookup values defined in their parents, unless overriden in that specific child. We will discuss the exact semantics of lookups in depth in [Reading task-local values](#reading-task-local-values).
 
 In this proposal, we introduce two additional inheritance semantics: `.never` and `.alwaysBestEffort`:
 
 ```swift
-// Should remain extensible
+/// Allows configuring specialized inheritance strategies for task local values.
+///
+/// By default, task local values are accessible by the current or any of its
+/// child tasks (with this rule applying recursively).
+///
+/// Some, rare yet important, use-cases may require specialized inheritance
+/// strategies, and this property allows them to configure these for their keys.
 public enum TaskLocalInheritance: UInt8, Equatable {
   case `default`        = 0
   case never            = 1
   case alwaysBestEffort = 2
 }
 ```
+
+Note that `TaskLocalInheritance` should remain extensible.
 
 Both these semantics are driven by specific use cases from the Swift ecosystem, highlighted during early design reviews of this proposal. First, the `.never` inheritance model allows for the design of a highly specialized task-aware `Progress` type, that is not part of this proposal. And second various Tracer implementations, including swift-distributed-tracing but also Instruments which will want to use special tracing metadata which should be carried "always" (at a best effort), even through detached tasks.
 
@@ -1225,7 +1233,7 @@ This way, only the current task which has bound this task local value to itself 
 
 ```swift
 House.$key.withValue(House(...)) {
-  async let child = assert(House.key == nil) // not available in child task 
+  async let child = assert(House.key == nil) // not available in child task
 }
 ```
 
