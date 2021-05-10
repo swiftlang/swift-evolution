@@ -97,7 +97,9 @@ Tasks already require the capability to "carry" metadata with them, and that met
 
 We propose to expose the Task's internal ability to "carry metadata with it" via a Swift API, *aimed for library and instrumentation authors* such that they can participate in carrying additional information with Tasks, the same way as Tasks already do with priority and deadlines and other metadata.
 
-Task-local values may be read from any function running within an asynchronous context. This includes *synchronous* functions which were called from an asynchronous function. Binding a task-local value however must be performed in an asynchronous function.
+Task local values may be read from any function running within a task context. This includes *synchronous* functions which were called from an asynchronous function. 
+
+The functionality is also available even if no Task is available in the call stack of a function at all. In such contexts, the task-local APIs will perform a best-effort simulation of the semantics, and continue to work as expected as long as the code in such non-async function remains synchronous or uses the `async{}` operation to create a new task.
 
 A task-local must be declared as a static stored property, and annotated using the `@TaskLocal` property wrapper. 
 
@@ -294,7 +296,19 @@ public func withValue<R>(
 ) async rethrows -> R
 ```
 
-The function is marked `async` because this way we are guaranteed to always have a task available to which we can bind the value to. It is not possible to bind a task-local value in a synchronous function in which there is no task available. It is possible, however, to use the `withUnsafeCurrentTask` function to bind a task-local value even when inside of an synchronous function, as long as the `withUnsafeCurrentTask` yields a task instance and not `nil`. Binding values using this pattern will be explained in the following sections.
+A synchronous version of this function also exists, allowing users to spare the sometimes unnecessary `await` call, if all code called within the `operation` closure is synchronous as well:
+
+```swift
+@discardableResult
+public func withValue<R>(
+  _ valueDuringOperation: Value,
+  operation: () throws -> R
+) rethrows -> R
+```
+
+The synchronous version of this API can be called from synchronous function, even if they are not running on behalf of a Task. The APIs will uphold their expected semantics. Details about how this is achieved will be explained in later sections.
+
+> Once, in the future, the `reasync` modifier is implemented and accepted, these two APIs could be combined into one.
 
 Task-local storage can only be modified by the "current" task itself, and it is not possible for a child task to mutate a parent's task-local values. 
 
@@ -355,54 +369,20 @@ In practice, please be careful with the use of task-locals and don't use them in
 
 #### Binding task-local values from synchronous functions
 
-While reading task-local values from synchronous functions is the same as from any other context, binding them is a different story.
+Reading and binding task-local values is also possible from synchronous functions.
 
-In order to be able to bind a task-local value, there must be a task available to attach the value to. Since a synchronous function _may_ (or may not) be executing within an asynchronous context, we cannot statically decide if binding a value will be effective or not, unless we determine if the task is available.
+The same API is used to bind and read values from synchronous functions, however the closure passed to `withValue` when binding a key to a specific value cannot be asynchronous if called from a synchronous function itself (as usual with async functions).
 
-Thankfully, the Structured Concurrency APIs offer the `withUnsafeCurrentTask` API which allows us to reach for the task object, and–if available–bind values as-if we were executing in an asynchronous function. 
+Sometimes, it may happen that the synchronous `withValue` function is called from a context that has no Task available to attach the task-local binding to. This should rarely be the case in typical Swift programs as all threads and calls should originate from _some_ initiating asynchronous function, however e.g. if the entry point is a call from a C-library or other library which manages it's own threads, a Task may not be available. The task-local values API _continues to work even in those (task-less) circumstances_, by simulating the task scope with the use of a special thread-local in which the task-local storage is written. 
 
-Since great care must be taken when working with `UnsafeCurrentTask`, especially with regards to its lifetime, the API to set task-local values that requires its use, is defined on the `UnsafeCurrentTask` itself, as the correctness of this API call depends on the correct lifecycle of the current task. The API takes the form of:
-
-```swift
-extension UnsafeCurrentTask { 
-
-  /// Allows for executing a synchronous `operation` while binding a task-local value
-  /// in the current task.
-  ///
-  /// This function MUST NOT be invoked by any other task than the current task
-  /// represented by this object.
-  @discardableResult
-  public func withTaskLocal<Value: Sendable, R>(
-    _ taskLocal: TaskLocal<Value>,
-    boundTo valueDuringOperation: Value,
-    operation: () throws -> R,
-    file: String = #file, line: UInt = #line) rethrows -> R { ... }
-  
-}
-```
-
-And allows us to bind task-local values even within synchronous functions, like this:
+This means that as long as the code remains synchronous, all the usual task-local operations will continue to work even if the functions are called from a task-less context.
 
 ```swift
-func asynchronous() async { 
-  await TL.$number.withValue(1111) {
-    synchronous()
-  }
-}
-
-func synchronous() {
+func synchronous() { // even if no Task is available to this function, the APIs continue to work as expected
   printTaskLocal(TL.number) // 1111
 
-  withUnsafeCurrentTask { task in
-    guard let task = task else { 
-      return // not running within a task, so cannot bind task-local
-    }
-
-    task.withTaskLocal(TL.$number, boundTo: 2222) {
-      printTaskLocal(TL.number) // 2222
-    }
-
-    printTaskLocal(TL.number) // 1111
+  TL.$number.withValue(2222) { // same as usual
+    printTaskLocal(TL.number) // 2222
   }
   
   printTaskLocal(TL.number) // 1111
@@ -528,7 +508,9 @@ Both value and reference types are allowed to be stored in task-local storage, u
 - values stored as task-locals are copied into the task's local storage,
 - references stored as task-locals are retained and stored by reference in the task's local storage.
 
-Task-local "item" storage allocations are performed using an efficient task-local, stack-discipline allocator, since it is known that those items can never outlive a task they are set on. This way makes it slightly cheaper to allocate storage, compared to going through the global allocator, however task-local storage _should not_ be abused to avoid passing parameters explicitly, because it makes your code harder to reason about due to the "hidden argument" passing rather than plain old parameters in function calls.
+Task local "item" storage allocations are performed using an efficient task local stack-discipline allocator, since it is known that those items can never out-live a task they are set on. This makes slightly cheaper to allocate storage for values allocated this way than going through the global allocator, however task-local storage _should not_ be abused to avoid passing parameters explicitly, because it makes your code harder to reason about due to the "hidden argument" passing rather than plain old parameters in function calls.
+
+Task-local items which are copied to a different task, i.e. when `async{}` is launches a new un-structured task, have independent lifecycles and attach to the newly spawned task. This means that at the point of creating a new task with `async{}` reference count retains may happen for ref-counted types stored within task-local storage.
 
 ### Reading task-local values
 
@@ -638,7 +620,33 @@ This approach is highly optimized for the kinds of use-cases such values are use
   - tasks must always be able to call `Lib.myValue` and get predictable values back; specifically, this means that a task _must not_ be able to mutate its task-local values — because child tasks run concurrently with it, this would mean that a child task invoking `Lib.myValue` twice, could get conflicting results, leading to a confusing programming model
   - **conclusion**: task-local storage must be initialized at task creation time and cannot be mutated, values may only be "bound" by creating new scopes/tasks.
 
-> Note: This approach is similar to how Go's `Context` objects work — they also cannot be mutated, but only `With(...)` copied, however the copies actually form a chain of contexts, all pointing to their parent context. In Swift, we simply reuse the Concurrency model's inherent `Task` abstraction to implement this pattern.
+> Note: This approach is similar to how Go's `Context` objects work -- they also cannot be mutated, but only `With(...)` copied, however the copies actually form a chain of contexts, all pointing to their parent context. In Swift, we simply reuse the Concurrency model's inherent `Task` abstraction to implement this pattern.
+
+#### Task-locals in contexts where no Task is available
+
+Task-locals also are able to function in contexts where no Task is available, they function just as a "dynamic scope" and simply utilize a single thread-local variable to store the task-local storage, rather than forming the chain of storages as it is the case when tasks are available.
+
+The only context in which a Task is not available to the implementation are synchronous functions that were called from the outside of swift concurrency. These functions are very rare but can happen, e.g. when a callback is invoked by a C library on some thread that it managed itself. 
+
+The following API continues to work as expected in those situations:
+
+```swift
+func synchronous() {
+  withUnsafeCurrentTask { task in 
+    assert(task == nil) // no task is available!
+  }
+  
+  Example.$local.withValue(13) { 
+    other()
+  }
+}
+
+func other() {
+  print(Example.local) // 13, works as expected
+}
+```
+
+The only Swift Concurrency API that is possible to be called from such synchronous function and _will_ inherit task local values is `async{}`, and it will copy any task local values encounterted as usual. This makes for a good inter-op story even with legacy libraries -- we never have to worry if we are on a thread owned by the Swift Concurrency runtime or not, things continue to work as expected.
 
 #### Child task and value lifetimes
 
@@ -1243,6 +1251,9 @@ We have specific designs in mind with regards to `Progress` monitoring types how
 
 ## Revision history
 
+- v5: Allow usage even in contexts where no Task is available
+  - Fallback to additional thread-local storage if no Task is available to bind/get task local values from,
+  - remove API on UnsafeCurrentTask, its use-cases are now addressed by the core `withValue(_:)` API,
 - v4.5: Drop the Access type and use the `projectedValue` to simplify read and declaration sites.
 - v4: Changed surface API to be focused around `@TaskLocal` property wrapper-style key definitions.
   - introduce API to bind task-local values in synchronous functions, through `UnsafeCurrentTask`
