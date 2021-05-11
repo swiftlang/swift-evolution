@@ -100,7 +100,7 @@ We propose to expose the Task's internal ability to "carry metadata with it" via
 
 Task local values may be read from any function running within a task context. This includes *synchronous* functions which were called from an asynchronous function. 
 
-The functionality is also available even if no Task is available in the call stack of a function at all. In such contexts, the task-local APIs will perform a best-effort simulation of the semantics, and continue to work as expected as long as the code in such non-async function remains synchronous or uses the `async{}` operation to create a new task.
+The functionality is also available even if no Task is available in the call stack of a function at all. In such contexts, the task-local APIs will effectively work similar to thread-local storage meaning that they cannot automatically propagate to new (unstructured) threads (e.g. pthread) created from such context. They _will continue to work as expected_ with Task APIs nested inside such scopes however: for example, if `async{}` is used to create an asynchronous task from such synchronous function with no task available, it will inherit task-locals from the synchronous context.
 
 A task-local must be declared as a static stored property, and annotated using the `@TaskLocal` property wrapper. 
 
