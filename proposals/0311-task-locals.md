@@ -23,6 +23,7 @@
   + [Task-local value lifecycle](#task-local-value-lifecycle)
   + [Reading task-local values](#reading-task-local-values)
     - [Reading task-local values: implementation details](#reading-task-local-values-implementation-details)
+    - [Task-locals in contexts where no Task is available](#task-locals-in-contexts-where-no-task-is-available)
     - [Child task and value lifetimes](#child-task-and-value-lifetimes)
       * [Task-local value item allocations](#task-local-value-item-allocations)
   + [Similarities and differences with SwiftUI's `Environment`](#similarities-and-differences-with-swiftuis-environment)
