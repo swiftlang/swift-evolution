@@ -199,7 +199,7 @@ public struct AsyncStream<Element> {
     }
     
     /// Resume the task awaiting the next iteration point by having it return
-    /// nomally from its suspension point. Buffer the value if nothing is awaiting
+    /// normally from its suspension point. Buffer the value if nothing is awaiting
     /// the iterator.
     ///
     /// - Parameter value: The value to yield from the continuation.
@@ -269,7 +269,7 @@ extension AsyncStream: AsyncSequence {
 
 extension AsyncStream.Continuation {
   /// Resume the task awaiting the next iteration point by having it return
-  /// nomally from its suspension point or buffer the value if no awaiting
+  /// normally from its suspension point or buffer the value if no awaiting
   /// next iteration is active.
   ///
   /// - Parameter result: A result to yield from the continuation.
@@ -281,7 +281,7 @@ extension AsyncStream.Continuation {
   )
 
   /// Resume the task awaiting the next iteration point by having it return
-  /// nomally from its suspension point or buffer the value if no awaiting
+  /// normally from its suspension point or buffer the value if no awaiting
   /// next iteration is active where the `Element` is `Void`.
   ///
   /// This can be called more than once and returns to the caller immediately
@@ -333,7 +333,7 @@ extension AsyncThrowingStream: AsyncSequence {
 
 extension AsyncThrowingStream.Continuation {
   /// Resume the task awaiting the next iteration point by having it return
-  /// nomally from its suspension point or buffer the value if no awaiting
+  /// normally from its suspension point or buffer the value if no awaiting
   /// next iteration is active.
   ///
   /// - Parameter result: A result to yield from the continuation.
