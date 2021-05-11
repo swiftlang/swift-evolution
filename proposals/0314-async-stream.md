@@ -1,9 +1,9 @@
 # `AsyncStream` and `AsyncThrowingStream`
 
-* Proposal: SE-NNNN
-* Authors: [Philippe Hausler ](https://github.com/phausler), [Tony Parker ](https://github.com/parkera), [Ben D. Jones ](https://github.com/bendjones), [Nate Cook ](https://github.com/natecook1000)
-* Review Manager: TBD
-* Status: **Awaiting Review**
+* Proposal: SE-0314
+* Authors: [Philippe Hausler](https://github.com/phausler), [Tony Parker](https://github.com/parkera), [Ben D. Jones ](https://github.com/bendjones), [Nate Cook](https://github.com/natecook1000)
+* Review Manager: [Doug Gregor](https://github.com/DougGregor)
+* Status: **Active Review (May 11 - May 25, 2021)**
 * Implementation: [apple/swift#36921](https://github.com/apple/swift/pull/36921)
 
 ## Introduction
