@@ -306,9 +306,9 @@ public func withValue<R>(
 ) rethrows -> R
 ```
 
-The synchronous version of this API can be called from synchronous function, even if they are not running on behalf of a Task. The APIs will uphold their expected semantics. Details about how this is achieved will be explained in later sections.
+The synchronous version of this API can be called from synchronous functions, even if they are not running on behalf of a Task. The APIs will uphold their expected semantics. Details about how this is achieved will be explained in later sections.
 
-> Once, in the future, the `reasync` modifier is implemented and accepted, these two APIs could be combined into one.
+> In the future, if the `reasync` modifier is implemented and accepted, these two APIs could be combined into one.
 
 Task-local storage can only be modified by the "current" task itself, and it is not possible for a child task to mutate a parent's task-local values. 
 
@@ -508,9 +508,9 @@ Both value and reference types are allowed to be stored in task-local storage, u
 - values stored as task-locals are copied into the task's local storage,
 - references stored as task-locals are retained and stored by reference in the task's local storage.
 
-Task local "item" storage allocations are performed using an efficient task local stack-discipline allocator, since it is known that those items can never out-live a task they are set on. This makes slightly cheaper to allocate storage for values allocated this way than going through the global allocator, however task-local storage _should not_ be abused to avoid passing parameters explicitly, because it makes your code harder to reason about due to the "hidden argument" passing rather than plain old parameters in function calls.
+Task local "item" storage allocations are performed using an efficient task local stack-discipline allocator, since it is known that those items can never out-live a task they are set on. This makes it slightly cheaper to allocate storage for values allocated this way than going through the global allocator, however task-local storage _should not_ be abused to avoid passing parameters explicitly, because it makes your code harder to reason about due to the "hidden argument" passing rather than plain old parameters in function calls.
 
-Task-local items which are copied to a different task, i.e. when `async{}` is launches a new un-structured task, have independent lifecycles and attach to the newly spawned task. This means that at the point of creating a new task with `async{}` reference count retains may happen for ref-counted types stored within task-local storage.
+Task-local items which are copied to a different task, i.e. when `async{}` launches a new unstructured task, have independent lifecycles and attach to the newly spawned task. This means that, at the point of creating a new task with `async{}`, reference-counted types stored within task-local storage may be retained.
 
 ### Reading task-local values
 
@@ -624,9 +624,9 @@ This approach is highly optimized for the kinds of use-cases such values are use
 
 #### Task-locals in contexts where no Task is available
 
-Task-locals also are able to function in contexts where no Task is available, they function just as a "dynamic scope" and simply utilize a single thread-local variable to store the task-local storage, rather than forming the chain of storages as it is the case when tasks are available.
+Task-locals are also able to function in contexts where no Task is available, they function just as a "dynamic scope" and simply utilize a single thread-local variable to store the task-local storage, rather than forming the chain of storages as is the case when tasks are available.
 
-The only context in which a Task is not available to the implementation are synchronous functions that were called from the outside of swift concurrency. These functions are very rare but can happen, e.g. when a callback is invoked by a C library on some thread that it managed itself. 
+The only context in which a Task is not available to the implementation are synchronous functions that were called from the outside of Swift Concurrency. These functions are very rare but can happen, e.g. when a callback is invoked by a C library on some thread that it managed itself. 
 
 The following API continues to work as expected in those situations:
 
@@ -646,7 +646,7 @@ func other() {
 }
 ```
 
-The only Swift Concurrency API that is possible to be called from such synchronous function and _will_ inherit task local values is `async{}`, and it will copy any task local values encounterted as usual. This makes for a good inter-op story even with legacy libraries -- we never have to worry if we are on a thread owned by the Swift Concurrency runtime or not, things continue to work as expected.
+The only Swift Concurrency API that can be called from such synchronous functions and _will_ inherit task-local values is `async{}`, and it will copy any task-local values encountered as usual. This makes for a good interoperability story even with legacy libraries -- we never have to worry if we are on a thread owned by the Swift Concurrency runtime or not, and things continue to work as expected.
 
 #### Child task and value lifetimes
 
