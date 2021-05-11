@@ -537,22 +537,21 @@ Specifically, `async let` declarations are not able to express dynamic numbers o
 
 ```swift
 func toyParallelMap<A, B>(_ items: [A], f: (A) async -> B) async -> [B] { 
-  return await withTaskGroup(of: (Int, B).self) { 
-    var bs: [B] = []
-    bs.reserveCapacity(items.count)
+  return await withTaskGroup(of: (Int, B).self) { group in
+    var bs = [B?](repeating: nil, count: items.count)
     
     // spawn off processing all `f` mapping functions in parallel
-		// in reality, one might want to limit the "width" of these
+    // in reality, one might want to limit the "width" of these
     for i in items.indices { 
       group.spawn { (i, await f(items[i])) }
     }
     
     // collect all results
     for await (i, mapped) in group {
-      bs.append(mapped)
+      bs[i] = mapped
     }
     
-    return bs
+    return bs.map { $0! }
   }
 }
 ```
@@ -578,7 +577,7 @@ For example, the `race(left:right:)` function shown below, runs two child tasks 
 
 ```swift
 func race(left: () async -> Int, right: () async -> Int) async -> Int {
-  await withTaskGroup(of: Int) { 
+  await withTaskGroup(of: Int.self) { group in 
     group.async { left() }
     group.async { right() }
 
