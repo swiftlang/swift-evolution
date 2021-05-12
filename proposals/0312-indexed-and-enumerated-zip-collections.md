@@ -22,7 +22,7 @@ Conformance to the collection protocols can be beneficial in a variety of ways, 
 This proposal also includes the addition of the `indexed()` method (which can already be found in the [Swift Algorithms](https://github.com/apple/swift-algorithms) package) as an alternative for many use cases of `zip(_:_:)` and `enumerated()`. When the goal is to iterate over a collection’s elements and indices at the same time, `enumerated()` is often inadequate because it provides an offset, not a true index. For many collections this integer offset is different from the `Index` type, and in the case of `ArraySlice` in particular this offset is a common source of bugs when the slice’s `startIndex` isn’t `0`. `zip(c.indices, c)` solves these problems, but it is less ergonomic than `indexed()` and potentially less performant when traversing the indices of a collection is computationally expensive.
 
 ## Detailed design
-Conditionally conform `Zip2Sequence` to `Collection`, `BidirectionalCollection`, and `RandomAccessCollection`.
+Conditionally conform `Zip2Sequence` to `Collection` and `BidirectionalCollection`.
 
 > **Note**: OS version 9999 is a placeholder and will be replaced with whatever actual OS versions this functionality will be introduced in.
 
@@ -40,13 +40,32 @@ extension Zip2Sequence: BidirectionalCollection
 {
   // ...
 }
-
-@available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
-extension Zip2Sequence: RandomAccessCollection
-  where Sequence1: RandomAccessCollection, Sequence2: RandomAccessCollection {}
 ```
 
-Conditionally conform `EnumeratedSequence` to `Collection`, `BidirectionalCollection`, `RandomAccesCollection`, and `LazyCollectionProtocol`.
+Add a `zip(_:_:)` overload that returns a random-access collection when given two random-access collections.
+
+```swift
+@available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
+public func zip<Base1: RandomAccessCollection, Base2: RandomAccessCollection>(
+  _ base1: Base1, _ base2: Base2
+) -> Zip2RandomAccessCollection<Base1, Base2> {
+  Zip2RandomAccessCollection(base1, base2)
+}
+
+@available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
+public struct Zip2RandomAccessCollection<Base1, Base2>
+  where Base1: RandomAccessCollection, Base2: RandomAccessCollection
+{
+  // ...
+}
+
+@available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
+extension Zip2RandomAccessCollection: RandomAccessCollection {
+  // ...
+}
+```
+
+Conditionally conform `EnumeratedSequence` to `Collection`, `BidirectionalCollection`, `RandomAccessCollection`, and `LazyCollectionProtocol`.
 
 ```swift
 @available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
@@ -79,34 +98,34 @@ Add an `indexed()` method to `Collection` that returns a collection over (index,
 ```swift
 extension Collection {
   @available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
-  public func indexed() -> Indexed<Self> {
+  public func indexed() -> IndexedCollection<Self> {
     Indexed(_base: self)
   }
 }
 
 @available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
-public struct Indexed<Base: Collection> {
+public struct IndexedCollection<Base: Collection> {
   // ...
 }
 
 @available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
-extension Indexed: Collection {
+extension IndexedCollection: Collection {
   // ...
 }
 
 @available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
-extension Indexed: BidirectionalCollection where Base: BidirectionalCollection {
+extension IndexedCollection: BidirectionalCollection where Base: BidirectionalCollection {
   // ...
 }
 
 @available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
-extension Indexed: RandomAccessCollection where Base: RandomAccessCollection {}
+extension IndexedCollection: RandomAccessCollection where Base: RandomAccessCollection {}
 
 @available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
-extension Indexed: LazySequenceProtocol where Base: LazySequenceProtocol {}
+extension IndexedCollection: LazySequenceProtocol where Base: LazySequenceProtocol {}
 
 @available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
-extension Indexed: LazyCollectionProtocol where Base: LazyCollectionProtocol {}
+extension IndexedCollection: LazyCollectionProtocol where Base: LazyCollectionProtocol {}
 ```
 
 ## Source compatibility
@@ -150,3 +169,55 @@ Similarly, `Zip2Sequence` requires finding the index of the longer of the two co
 
 #### Keep `EnumeratedSequence` the way it is and add an `enumerated()` overload to `Collection` that returns a `Zip2Sequence<Range<Int>, Self>`.
 This is tempting because `enumerated()` is little more than `zip(0..., self)`, but this would cause an unacceptable amount of source breakage due to the lack of `offset` and `element` tuple labels that `EnumeratedSequence` provides.
+
+#### Add conditional conformance to `RandomAccessCollection` for `Zip2Sequence` rather than overloading `zip`.
+It isn’t possible to conditionally conform `Zip2Sequence` to `RandomAccessCollection` in a way that has optimal performance in all cases.
+Consider implementing `count`. Having it return `Swift.min(self._sequence1.count, self._sequence2.count)` works fine for random-access collections but is unexpectedly slow for collections that don’t support random-access:
+```swift
+let evenNumbers = (0 ..< 1_000_000).lazy.filter { $0.isMultiple(of: 2) }
+let zipped = zip(evenNumbers, ["lorum", "ipsum", "dolor"])
+// This would traverse the entire `0 ..< 1_000_000` range, even though the
+// zipped collection only has 3 elements!
+_ = zipped.count
+```
+But if `count` instead naively iterated over each pair of elements and counted them along the way, then this operation would always be O(n) and no longer meet the performance requirements of the `RandomAccessCollection` protocol.
+The underlying issue is that the same implementation of `count` needs to work for random-access collections as well as non-random-access collections, meeting both of their individual performance needs.
+The initial version of this proposal attempted to work around this problem by adding a `_hasFastCount` customisation point to the `Collection` protocol that can be checked at runtime inside the implementation of `count`:
+```swift
+protocol Collection: Sequence {
+  // ...
+  var _hasFastCount: Bool { get }
+}
+extension Collection {
+  var _hasFastCount: Bool { false }
+}
+extension RandomAccessCollection {
+  var _hasFastCount: Bool { true }
+}
+extension Zip2Sequence: Collection
+  where Sequence1.Collection, Sequence2.Collection
+{
+  // ...
+  var count: Int {
+    if self._sequence1._hasFastCount && self._sequence2._hasFastCount {
+      // It's fine to access each collection's `count` here.
+      return Swift.min(self._sequence1.count, self._sequence2.count)
+    } else {
+      // Use some other strategy that finds the number of pairs in O(n)
+      // without accessing the `count` property on the underlying collections.
+      // ...
+    }
+  }
+}
+```
+However, this didn't always work as intended. When a type conditionally conforms to `RandomAccessCollection`, accessing the value’s `_hasFastCount` property in a context where it is only statically known to be a `Collection` does not invoke the default implementation defined in the `RandomAccessCollection` extension:
+```swift
+// `ReversedCollection` conditionally conforms to `RandomAccessCollection`
+// when the base collection does.
+let reversedNumbers = (0 ..< 1_000_000).reversed()
+let zipped = zip(reversedNumbers, ["lorum", "ipsum", "dolor"])
+// Accidentally an O(n) operation.
+_ = zipped.count
+```
+In this case, the `_hasFastCount` entry in the witness table of the `Collection` conformance of `reversedNumbers` would contain the default implementation defined in the extension on `Collection` (returning `false`) rather than the one on `RandomAccessCollection` (returning `true`), due to `ReversedCollection`’s conditional conformance to `RandomAccessCollection`. As a result, `self._sequence1._hasFastCount` inside `zipped.count` would evaluate to `false`, incorrectly triggering the code path meant for non-random-access collection.
+A separate `Zip2RandomAccessCollection` type does not have this problem because the underlying collections are statically known to be random-access, and therefore `Swift.min(self._sequence1.count, self._sequence2.count)` suffices.
