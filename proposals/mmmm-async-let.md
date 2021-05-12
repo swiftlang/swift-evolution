@@ -195,10 +195,10 @@ async let o2 = order()
 
 This is because by looking at the async let declaration, it is obvious that the right-hand side function will be used to initialize the left-hand side, by waiting on it. This is similar to single-expression `return` keyword omission, and also applies only to single expression initializers.
 
-It is illegal to declare a `spawn var`. This is due to the complex initialization that a `async let` represents, it does not make sense to allow further external modification of them. Doing so would tremendously complicate the understandability of such asynchronous code, and undermine potential optimizations by making it harder to make assumptions about the data-flow of the values.
+It is illegal to declare an `async var`. This is due to the complex initialization that a `async let` represents, it does not make sense to allow further external modification of them. Doing so would tremendously complicate the understandability of such asynchronous code, and undermine potential optimizations by making it harder to make assumptions about the data-flow of the values.
 
 ```swift
-spawn var x = nope() // error: 'spawn' can only be used with 'let' declarations
+async var x = nope() // error: 'async' can only be used with 'let' declarations
 ```
 
 Other than having to be awaited to access its value, a `async let` behaves just like a typical `let`, as such it is not possible to pass it `inout` to other functions - simply because it is a `let`, and those may not be passed as `inout`.
@@ -464,7 +464,7 @@ It might be better if it were _enforced_ by the compiler to _always_ (unless thr
 - either fill in the appropriate `try await registered` inside the `isFriday` branch, or
 - move the `async let registered` declaration into the `else` branch — we indeed only perform this check on non-Fridays.
 
-This rule might be too cumbersome for some code though, so perhaps this warrants a future extension where it is possible to require `@exhaustiveSpawnLetWaiting` on function level, to enforce that async lets are awaited on all code paths.
+This rule might be too cumbersome for some code though, so perhaps this warrants a future extension where it is possible to require `@exhaustiveAsyncLetWaiting` on function level, to enforce that async lets are awaited on all code paths.
 
 We could also step-back and double down on the correctness and require always waiting on all declared `async let` declared values at least once on all code paths. This has a potential to cause an effect of multiple awaits at the end of functions: 
 
@@ -543,7 +543,7 @@ func toyParallelMap<A, B>(_ items: [A], f: (A) async -> B) async -> [B] {
     // spawn off processing all `f` mapping functions in parallel
     // in reality, one might want to limit the "width" of these
     for i in items.indices { 
-      group.spawn { (i, await f(items[i])) }
+      group.async { (i, await f(items[i])) }
     }
     
     // collect all results
