@@ -245,15 +245,13 @@ public final class TaskLocal<Value: Sendable>: Sendable, CustomStringConvertible
     self.defaultValue = defaultValue
   }
 
-  public func get() -> Value { ... }
-
   @discardableResult
   public func withValue<R>(_ valueDuringOperation: Value, 
                            operation: () async throws -> R,
                            file: String = #file, line: UInt = #line) async rethrows -> R { ... }
   
   public var wrappedValue: Value {
-    self.get()
+    ...
   }
   
   public var projectedValue: TaskLocal<Value> {
@@ -577,7 +575,7 @@ Task.withUnsafeCurrentTask { task in
 
 There are two approaches possible to implement the necessary semantics. The naive approach being copying all task-local values to every created child task, which obviously creates a large overhead for "set once and then hundreds of tasks read the value" values. Because this is the usual access pattern for such values (e.g. request identifiers and similar), another approach is taken.
 
-Since the implementation effectively already is a linked list of tasks, where children are able to look up their parent task, we reuse this mechanism to avoid copying values into child tasks. Instead, the `get()` implementation first checks for presence of the key in the current task, if not present, it performs a lookup in its parent, and so on, until no parent is available at which point the default value for the task-local key is returned:
+Since the implementation effectively already is a linked list of tasks, where children are able to look up their parent task, we reuse this mechanism to avoid copying values into child tasks. Instead, the _read_ implementation first checks for presence of the key in the current task, if not present, it performs a lookup in its parent, and so on, until no parent is available at which point the default value for the task-local key is returned:
 
 ```
 [detached] ()
