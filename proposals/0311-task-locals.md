@@ -716,8 +716,6 @@ In other words:
 - **SwiftUI's `@Environment`** is useful for structurally configuring views etc.
 - **Task-Local Values** are useful for _carrying_ metadata along through a series of asynchronous calls, where each call may want to access it, and the context is likely different for every single "incoming request" even while the structure of the system remains the same.
 
-Another important difference is that task-local values are used to define an object that users interact with, the `TaskLocal<Value>.Access` rather than only make available the `Value`, so the exact API shapes differ also because of this reason.
-
 ## Prior Art
 
 ### Kotlin: CoroutineContext[T]
