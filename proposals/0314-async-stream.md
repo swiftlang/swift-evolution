@@ -225,7 +225,7 @@ public struct AsyncStream<Element> {
     /// Canceling an active iteration will first invoke the onCancel callback
     /// and then resume yielding nil. This means that any cleanup state can be
     /// emitted accordingly in the cancellation handler.
-    public **var** onTermination: (@Sendable (Termination) -> Void)? { get nonmutating set }
+    public var onTermination: (@Sendable (Termination) -> Void)? { get nonmutating set }
   }
 
   /// Construct an AsyncStream buffering given an Element type.
