@@ -172,7 +172,7 @@ extension BankAccount {
 Cross-actor references to an actor property are permitted as an asynchronous call so long as they are read-only accesses:
 
 ```swift
-func checkBalance(account: BankAccount) {
+func checkBalance(account: BankAccount) async {
   print(await account.balance)   // okay
   await account.balance = 1000.0 // error: cross-actor property mutations are not permitted
 }
